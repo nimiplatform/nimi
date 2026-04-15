@@ -2291,6 +2291,471 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "GroupChatsService.addGroupAgent": {
+    "operationId": "addGroupAgent",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/agents",
+    "service": "GroupChatsService",
+    "methodName": "addGroupAgent",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.addGroupParticipant": {
+    "operationId": "addGroupParticipant",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/participants",
+    "service": "GroupChatsService",
+    "methodName": "addGroupParticipant",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.createGroup": {
+    "operationId": "createGroup",
+    "method": "POST",
+    "path": "/api/human/group-chats",
+    "service": "GroupChatsService",
+    "methodName": "createGroup",
+    "tag": "Group Chats",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.editGroupMessage": {
+    "operationId": "editGroupMessage",
+    "method": "PATCH",
+    "path": "/api/human/group-chats/{chatId}/messages/{messageId}",
+    "service": "GroupChatsService",
+    "methodName": "editGroupMessage",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "messageId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.getGroup": {
+    "operationId": "getGroup",
+    "method": "GET",
+    "path": "/api/human/group-chats/{chatId}",
+    "service": "GroupChatsService",
+    "methodName": "getGroup",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.listGroupMessages": {
+    "operationId": "listGroupMessages",
+    "method": "GET",
+    "path": "/api/human/group-chats/{chatId}/messages",
+    "service": "GroupChatsService",
+    "methodName": "listGroupMessages",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "around",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "after",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "before",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.listGroups": {
+    "operationId": "listGroups",
+    "method": "GET",
+    "path": "/api/human/group-chats",
+    "service": "GroupChatsService",
+    "methodName": "listGroups",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.markGroupRead": {
+    "operationId": "markGroupRead",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/read",
+    "service": "GroupChatsService",
+    "methodName": "markGroupRead",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "204"
+    ],
+    "successContentTypes": [],
+    "hasSuccessBody": false
+  },
+  "GroupChatsService.recallGroupMessage": {
+    "operationId": "recallGroupMessage",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/messages/{messageId}/recall",
+    "service": "GroupChatsService",
+    "methodName": "recallGroupMessage",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "messageId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "204"
+    ],
+    "successContentTypes": [],
+    "hasSuccessBody": false
+  },
+  "GroupChatsService.removeGroupAgent": {
+    "operationId": "removeGroupAgent",
+    "method": "DELETE",
+    "path": "/api/human/group-chats/{chatId}/agents/{agentAccountId}",
+    "service": "GroupChatsService",
+    "methodName": "removeGroupAgent",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "agentAccountId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "204"
+    ],
+    "successContentTypes": [],
+    "hasSuccessBody": false
+  },
+  "GroupChatsService.removeGroupParticipant": {
+    "operationId": "removeGroupParticipant",
+    "method": "DELETE",
+    "path": "/api/human/group-chats/{chatId}/participants/{accountId}",
+    "service": "GroupChatsService",
+    "methodName": "removeGroupParticipant",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "accountId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "204"
+    ],
+    "successContentTypes": [],
+    "hasSuccessBody": false
+  },
+  "GroupChatsService.sendGroupAgentMessage": {
+    "operationId": "sendGroupAgentMessage",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/agent-messages",
+    "service": "GroupChatsService",
+    "methodName": "sendGroupAgentMessage",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.sendGroupMessage": {
+    "operationId": "sendGroupMessage",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/messages",
+    "service": "GroupChatsService",
+    "methodName": "sendGroupMessage",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.syncGroupEvents": {
+    "operationId": "syncGroupEvents",
+    "method": "GET",
+    "path": "/api/human/group-chats/{chatId}/sync",
+    "service": "GroupChatsService",
+    "methodName": "syncGroupEvents",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "afterSeq",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.updateGroup": {
+    "operationId": "updateGroup",
+    "method": "PATCH",
+    "path": "/api/human/group-chats/{chatId}",
+    "service": "GroupChatsService",
+    "methodName": "updateGroup",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "GroupChatsService.updateGroupParticipantRole": {
+    "operationId": "updateGroupParticipantRole",
+    "method": "PATCH",
+    "path": "/api/human/group-chats/{chatId}/participants/{accountId}",
+    "service": "GroupChatsService",
+    "methodName": "updateGroupParticipantRole",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "accountId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "HumanChatsService.editMessage": {
     "operationId": "editMessage",
     "method": "PATCH",
@@ -5934,6 +6399,24 @@ export const REALM_SERVICE_METHODS = {
   },
   "GovernanceService": {
     "reportControllerCreateReport": "GovernanceService.reportControllerCreateReport"
+  },
+  "GroupChatsService": {
+    "addGroupAgent": "GroupChatsService.addGroupAgent",
+    "addGroupParticipant": "GroupChatsService.addGroupParticipant",
+    "createGroup": "GroupChatsService.createGroup",
+    "editGroupMessage": "GroupChatsService.editGroupMessage",
+    "getGroup": "GroupChatsService.getGroup",
+    "listGroupMessages": "GroupChatsService.listGroupMessages",
+    "listGroups": "GroupChatsService.listGroups",
+    "markGroupRead": "GroupChatsService.markGroupRead",
+    "recallGroupMessage": "GroupChatsService.recallGroupMessage",
+    "removeGroupAgent": "GroupChatsService.removeGroupAgent",
+    "removeGroupParticipant": "GroupChatsService.removeGroupParticipant",
+    "sendGroupAgentMessage": "GroupChatsService.sendGroupAgentMessage",
+    "sendGroupMessage": "GroupChatsService.sendGroupMessage",
+    "syncGroupEvents": "GroupChatsService.syncGroupEvents",
+    "updateGroup": "GroupChatsService.updateGroup",
+    "updateGroupParticipantRole": "GroupChatsService.updateGroupParticipantRole"
   },
   "HumanChatsService": {
     "editMessage": "HumanChatsService.editMessage",

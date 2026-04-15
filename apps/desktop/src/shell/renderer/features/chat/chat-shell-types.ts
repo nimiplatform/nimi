@@ -24,12 +24,14 @@ export const DEFAULT_LAST_SELECTED_THREAD_BY_MODE: LastSelectedThreadByMode = {
   ai: null,
   human: null,
   agent: null,
+  group: null,
 };
 
 export const DEFAULT_SELECTED_TARGET_BY_SOURCE: SelectedTargetBySource = {
   ai: 'ai:assistant',
   human: null,
   agent: null,
+  group: null,
 };
 
 export const DEFAULT_CHAT_SOURCE_FILTER: ConversationSourceFilter = 'all';
@@ -49,4 +51,5 @@ export const DEFAULT_CHAT_SETUP_STATE: ChatSetupStateByMode = {
   ai: null,
   human: null,
   agent: null,
+  group: null,
 };

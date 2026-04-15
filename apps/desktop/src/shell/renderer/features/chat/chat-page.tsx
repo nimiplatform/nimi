@@ -11,6 +11,8 @@ import { useChatTargetsForSidebar } from './chat-sidebar-targets';
 import { ChatHumanModeContent } from './chat-human-mode-content';
 import { ChatAiModeContent } from './chat-ai-mode-content';
 import { ChatAgentModeContent } from './chat-agent-mode-content';
+import { ChatGroupModeContent } from './chat-group-mode-content';
+import { GROUP_CREATE_INTENT_TARGET_ID } from './chat-group-flow-constants';
 
 const ICON_PANEL = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -138,6 +140,9 @@ export function ChatPage() {
     if (!storeSelectedTargetId) {
       return;
     }
+    if (chatMode === 'group' && storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID) {
+      return;
+    }
     const targetExists = allTargets.some((target) => target.id === storeSelectedTargetId);
     if (targetExists) {
       return;
@@ -193,6 +198,11 @@ export function ChatPage() {
     handleSelectTarget(targetId);
   }, [handleSelectTarget]);
 
+  const handleCreateGroup = useCallback(() => {
+    setChatMode('group');
+    setSelectedTargetForSource('group', GROUP_CREATE_INTENT_TARGET_ID);
+  }, [setChatMode, setSelectedTargetForSource]);
+
   const sharedProps = {
     allTargets,
     rightPanelMode,
@@ -208,6 +218,7 @@ export function ChatPage() {
       {chatMode === 'human' ? <ChatHumanModeContent {...sharedProps} /> : null}
       {chatMode === 'ai' ? <ChatAiModeContent {...sharedProps} /> : null}
       {chatMode === 'agent' ? <ChatAgentModeContent {...sharedProps} /> : null}
+      {chatMode === 'group' ? <ChatGroupModeContent {...sharedProps} /> : null}
       {rightPanelFolded ? (
         <FoldedPanelFloatingBar
           onUnfold={toggleRightPanelFold}
@@ -222,6 +233,7 @@ export function ChatPage() {
           targets={allTargets}
           selectedTargetId={storeSelectedTargetId}
           onSelectTarget={handleSelectTarget}
+          onCreateGroup={handleCreateGroup}
         />
       ) : null}
     </div>

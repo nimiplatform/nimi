@@ -62,11 +62,13 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
     ai: null,
     human: null,
     agent: null,
+    group: null,
   });
   assert.deepEqual(state.selectedTargetBySource, {
     ai: 'ai:assistant',
     human: null,
     agent: null,
+    group: null,
   });
 
   state.setSelectedChatId('human-thread-1');

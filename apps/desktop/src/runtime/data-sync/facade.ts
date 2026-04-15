@@ -284,6 +284,16 @@ export class DataSync {
     return (await this.actions.countPendingRealmRecoveryWork()) > 0;
   }
   async markChatRead(chatId: string) { await this.actions.markChatRead(chatId); }
+  loadGroupChats(limit = 20) { return this.actions.loadGroupChats(Math.min(limit, 100)); }
+  loadGroupChat(chatId: string) { return this.actions.loadGroupChat(chatId); }
+  loadGroupMessages(chatId: string, limit = 50) { return this.actions.loadGroupMessages(chatId, Math.min(limit, 100)); }
+  sendGroupMessage(chatId: string, content: string) { return this.actions.sendGroupMessage(chatId, content); }
+  async markGroupRead(chatId: string) { await this.actions.markGroupRead(chatId); }
+  createGroup(title: string, participantIds: string[], initialMessage?: string) { return this.actions.createGroup(title, participantIds, initialMessage); }
+  syncGroupEvents(chatId: string, afterSeq: number, limit = 100) { return this.actions.syncGroupEvents(chatId, afterSeq, Math.min(limit, 100)); }
+  sendGroupAgentMessage(chatId: string, agentAccountId: string, text: string, replyToMessageId?: string) { return this.actions.sendGroupAgentMessage(chatId, agentAccountId, text, replyToMessageId); }
+  addGroupAgent(chatId: string, agentAccountId: string) { return this.actions.addGroupAgent(chatId, agentAccountId); }
+  removeGroupAgent(chatId: string, agentAccountId: string) { return this.actions.removeGroupAgent(chatId, agentAccountId); }
   async loadContacts() {
     await this.actions.loadContacts();
   }

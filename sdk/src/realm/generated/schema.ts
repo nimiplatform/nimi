@@ -1809,6 +1809,214 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/human/group-chats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List group chats */
+        get: operations["listGroups"];
+        put?: never;
+        /** Create group chat */
+        post: operations["createGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get group chat by ID */
+        get: operations["getGroup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update group chat */
+        patch: operations["updateGroup"];
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}/agent-messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send group agent message */
+        post: operations["sendGroupAgentMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add agent to group */
+        post: operations["addGroupAgent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}/agents/{agentAccountId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove agent from group */
+        delete: operations["removeGroupAgent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List group messages */
+        get: operations["listGroupMessages"];
+        put?: never;
+        /** Send group message */
+        post: operations["sendGroupMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit group message */
+        patch: operations["editGroupMessage"];
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}/messages/{messageId}/recall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recall group message */
+        post: operations["recallGroupMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}/participants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add group participant */
+        post: operations["addGroupParticipant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}/participants/{accountId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove group participant */
+        delete: operations["removeGroupParticipant"];
+        options?: never;
+        head?: never;
+        /** Update participant role */
+        patch: operations["updateGroupParticipantRole"];
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark group chat read */
+        post: operations["markGroupRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/human/group-chats/{chatId}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sync group chat events */
+        get: operations["syncGroupEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/human/handle/{handle}": {
         parameters: {
             query?: never;
@@ -3439,6 +3647,12 @@ export type components = {
         AddFriendBodyDto: {
             requestMessage?: string;
         };
+        AddGroupAgentInputDto: {
+            agentAccountId: string;
+        };
+        AddGroupParticipantInputDto: {
+            accountId: string;
+        };
         AgentAppearanceDto: {
             artStyle: string;
             eyes: string;
@@ -4376,6 +4590,11 @@ export type components = {
             /** @description URL to redirect after completing onboarding */
             returnUrl: string;
         };
+        CreateGroupInputDto: {
+            participantIds: string[];
+            text?: string;
+            title: string;
+        };
         CreatePortalSessionDto: {
             /** @description URL to return to after portal */
             returnUrl: string;
@@ -4883,6 +5102,79 @@ export type components = {
             importance?: string;
             term: string;
         };
+        GroupChatViewDto: {
+            /** Format: date-time */
+            createdAt: string;
+            creatorId: string;
+            id: string;
+            lastMessage: components["schemas"]["MessageViewDto"] | null;
+            /** Format: date-time */
+            lastMessageAt: string | null;
+            participants: components["schemas"]["GroupParticipantDto"][];
+            title: string | null;
+            /** @enum {string} */
+            type: "GROUP";
+            unreadCount: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        GroupMessageAuthorDto: {
+            accountId: string;
+            agentOwnerId: string | null;
+            avatarUrl: string | null;
+            displayName: string;
+            /** @enum {string} */
+            type: "human" | "agent";
+        };
+        GroupMessageViewDto: {
+            author: components["schemas"]["GroupMessageAuthorDto"];
+            chatId: string;
+            clientMessageId?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            editedAt?: string;
+            id: string;
+            isRead: boolean;
+            /**
+             * @description Canonical attachment messages return payload.attachment with targetType, targetId, and resolved display fields when available. targetType remains RESOURCE, ASSET, or BUNDLE according to the attachment truth.
+             * @example {
+             *       "attachment": {
+             *         "displayKind": "CARD",
+             *         "preview": {
+             *           "displayKind": "IMAGE",
+             *           "targetId": "resource_preview_01hxyz",
+             *           "targetType": "RESOURCE",
+             *           "url": "https://cdn.example/preview.jpg"
+             *         },
+             *         "targetId": "bundle_01hxyz",
+             *         "targetType": "BUNDLE",
+             *         "title": "Creator Starter Pack"
+             *       }
+             *     }
+             */
+            payload: (components["schemas"]["ChatTextPayloadDto"] | {
+                attachment: components["schemas"]["AttachmentEnvelopeDto"];
+            } | components["schemas"]["ChatPostRefPayloadDto"] | components["schemas"]["ChatUserRefPayloadDto"] | components["schemas"]["ChatLinkRefPayloadDto"] | components["schemas"]["ChatGiftPayloadDto"] | components["schemas"]["ChatFriendRequestPayloadDto"]) | null;
+            replyTo?: components["schemas"]["MessageReplyViewDto"];
+            senderId: string;
+            text?: string | null;
+            type: components["schemas"]["MessageType"];
+        };
+        GroupParticipantDto: {
+            accountId: string;
+            agentOwnerId: string | null;
+            avatarUrl: string | null;
+            displayName: string;
+            handle: string;
+            isOnline: boolean;
+            /** Format: date-time */
+            joinedAt: string;
+            /** @enum {string} */
+            role: "admin" | "member";
+            /** @enum {string} */
+            type: "human" | "agent";
+        };
         HandleAvailabilityDto: {
             /** @description Whether the handle is available */
             available: boolean;
@@ -4915,6 +5207,15 @@ export type components = {
             page?: number;
             pageSize?: number;
             total?: number;
+        };
+        ListGroupChatsResultDto: {
+            items: components["schemas"]["GroupChatViewDto"][];
+            nextCursor: string | null;
+        };
+        ListGroupMessagesResultDto: {
+            items: components["schemas"]["GroupMessageViewDto"][];
+            nextAfter: string | null;
+            nextBefore: string | null;
         };
         ListMessagesResultDto: {
             items: components["schemas"]["MessageViewDto"][];
@@ -5628,6 +5929,16 @@ export type components = {
             /** @description Post ID context */
             relatedPostId?: string;
         };
+        SendGroupAgentMessageInputDto: {
+            agentAccountId: string;
+            clientMessageId: string;
+            payload?: {
+                [key: string]: unknown;
+            };
+            replyToMessageId?: string;
+            text?: string;
+            type: components["schemas"]["MessageType"];
+        };
         SendMessageInputDto: {
             clientMessageId: string;
             /**
@@ -5918,6 +6229,9 @@ export type components = {
             tags?: string[];
             webhookUrl?: string;
         };
+        UpdateGroupInputDto: {
+            title?: string;
+        };
         UpdateNsfwConsentResponseDto: {
             /** @description The new NSFW setting */
             enabled: boolean;
@@ -5931,6 +6245,10 @@ export type components = {
         };
         UpdatePPSlotConfigDto: {
             ppSlotConfig: components["schemas"]["PPSlotConfigDto"];
+        };
+        UpdateParticipantRoleInputDto: {
+            /** @enum {string} */
+            role: "admin" | "member";
         };
         UpdatePasswordRequestDto: {
             newPassword: string;
@@ -9789,6 +10107,382 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HandleAvailabilityDto"];
+                };
+            };
+        };
+    };
+    listGroups: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListGroupChatsResultDto"];
+                };
+            };
+        };
+    };
+    createGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGroupInputDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupChatViewDto"];
+                };
+            };
+        };
+    };
+    getGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupChatViewDto"];
+                };
+            };
+        };
+    };
+    updateGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGroupInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupChatViewDto"];
+                };
+            };
+        };
+    };
+    sendGroupAgentMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendGroupAgentMessageInputDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupMessageViewDto"];
+                };
+            };
+        };
+    };
+    addGroupAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddGroupAgentInputDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupParticipantDto"];
+                };
+            };
+        };
+    };
+    removeGroupAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agentAccountId: string;
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Agent removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listGroupMessages: {
+        parameters: {
+            query?: {
+                limit?: number;
+                around?: string;
+                after?: string;
+                before?: string;
+            };
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListGroupMessagesResultDto"];
+                };
+            };
+        };
+    };
+    sendGroupMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendMessageInputDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupMessageViewDto"];
+                };
+            };
+        };
+    };
+    editGroupMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: string;
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditMessageInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupMessageViewDto"];
+                };
+            };
+        };
+    };
+    recallGroupMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: string;
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Message recalled */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    addGroupParticipant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddGroupParticipantInputDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupParticipantDto"];
+                };
+            };
+        };
+    };
+    removeGroupParticipant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                accountId: string;
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Participant removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateGroupParticipantRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                accountId: string;
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateParticipantRoleInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupParticipantDto"];
+                };
+            };
+        };
+    };
+    markGroupRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Group chat marked read */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    syncGroupEvents: {
+        parameters: {
+            query?: {
+                limit?: number;
+                afterSeq?: number;
+            };
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatSyncResultDto"];
                 };
             };
         };

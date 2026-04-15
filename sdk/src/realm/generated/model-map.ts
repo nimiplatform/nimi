@@ -8,6 +8,8 @@ export type RealmGeneratedModelMap = {
   AccountRole: components['schemas']['AccountRole'];
   AccountStatus: components['schemas']['AccountStatus'];
   AddFriendBodyDto: components['schemas']['AddFriendBodyDto'];
+  AddGroupAgentInputDto: components['schemas']['AddGroupAgentInputDto'];
+  AddGroupParticipantInputDto: components['schemas']['AddGroupParticipantInputDto'];
   AgentAppearanceDto: components['schemas']['AgentAppearanceDto'];
   AgentBiologicalDto: components['schemas']['AgentBiologicalDto'];
   AgentCapabilitiesDto: components['schemas']['AgentCapabilitiesDto'];
@@ -107,6 +109,7 @@ export type RealmGeneratedModelMap = {
   CreateAudioDirectUploadDto: components['schemas']['CreateAudioDirectUploadDto'];
   CreateBundleDto: components['schemas']['CreateBundleDto'];
   CreateConnectOnboardingDto: components['schemas']['CreateConnectOnboardingDto'];
+  CreateGroupInputDto: components['schemas']['CreateGroupInputDto'];
   CreatePortalSessionDto: components['schemas']['CreatePortalSessionDto'];
   CreatePostAttachmentDto: components['schemas']['CreatePostAttachmentDto'];
   CreatePostDto: components['schemas']['CreatePostDto'];
@@ -158,11 +161,17 @@ export type RealmGeneratedModelMap = {
   GiftTransactionDto: components['schemas']['GiftTransactionDto'];
   GiftTransactionRichDto: components['schemas']['GiftTransactionRichDto'];
   GlossaryTermDto: components['schemas']['GlossaryTermDto'];
+  GroupChatViewDto: components['schemas']['GroupChatViewDto'];
+  GroupMessageAuthorDto: components['schemas']['GroupMessageAuthorDto'];
+  GroupMessageViewDto: components['schemas']['GroupMessageViewDto'];
+  GroupParticipantDto: components['schemas']['GroupParticipantDto'];
   HandleAvailabilityDto: components['schemas']['HandleAvailabilityDto'];
   ImportPolicyDto: components['schemas']['ImportPolicyDto'];
   InvitationCodeResponseDto: components['schemas']['InvitationCodeResponseDto'];
   InvitationCodeUsedByAccountDto: components['schemas']['InvitationCodeUsedByAccountDto'];
   ListChatsResultDto: components['schemas']['ListChatsResultDto'];
+  ListGroupChatsResultDto: components['schemas']['ListGroupChatsResultDto'];
+  ListGroupMessagesResultDto: components['schemas']['ListGroupMessagesResultDto'];
   ListMessagesResultDto: components['schemas']['ListMessagesResultDto'];
   LocationLandmarkDto: components['schemas']['LocationLandmarkDto'];
   LocationRegionDto: components['schemas']['LocationRegionDto'];
@@ -253,6 +262,7 @@ export type RealmGeneratedModelMap = {
   SceneTimeSettingsDto: components['schemas']['SceneTimeSettingsDto'];
   SelectAvatarDto: components['schemas']['SelectAvatarDto'];
   SendGiftDto: components['schemas']['SendGiftDto'];
+  SendGroupAgentMessageInputDto: components['schemas']['SendGroupAgentMessageInputDto'];
   SendMessageInputDto: components['schemas']['SendMessageInputDto'];
   SetAgentRelationshipDto: components['schemas']['SetAgentRelationshipDto'];
   SocialProfileDto: components['schemas']['SocialProfileDto'];
@@ -284,7 +294,9 @@ export type RealmGeneratedModelMap = {
   UpdateAssetDto: components['schemas']['UpdateAssetDto'];
   UpdateBundleDto: components['schemas']['UpdateBundleDto'];
   UpdateCreatorAgentDto: components['schemas']['UpdateCreatorAgentDto'];
+  UpdateGroupInputDto: components['schemas']['UpdateGroupInputDto'];
   UpdateNsfwConsentResponseDto: components['schemas']['UpdateNsfwConsentResponseDto'];
+  UpdateParticipantRoleInputDto: components['schemas']['UpdateParticipantRoleInputDto'];
   UpdatePasswordRequestDto: components['schemas']['UpdatePasswordRequestDto'];
   UpdatePostDto: components['schemas']['UpdatePostDto'];
   UpdatePPSlotConfigDto: components['schemas']['UpdatePPSlotConfigDto'];

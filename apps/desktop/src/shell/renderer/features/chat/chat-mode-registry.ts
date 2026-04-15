@@ -11,9 +11,10 @@ export function createDesktopConversationModeRegistry(input: {
   aiHost: DesktopConversationModeHost;
   humanHost: DesktopConversationModeHost;
   agentHost: DesktopConversationModeHost;
+  groupHost?: DesktopConversationModeHost;
 }): DesktopConversationModeRegistry {
   const hosts = input.authStatus === 'authenticated'
-    ? [input.aiHost, input.humanHost, input.agentHost]
+    ? [input.aiHost, input.humanHost, input.agentHost, ...(input.groupHost ? [input.groupHost] : [])]
     : [input.aiHost];
   return {
     hosts,

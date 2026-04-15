@@ -24,6 +24,9 @@ export async function refreshConversationCapabilityProjections(
     routeRuntime: getConversationCapabilityRouteRuntime(),
   });
   useAppStore.getState().setConversationCapabilityProjections(projections);
+  // Keep the derived agent execution resolution in sync even when the agent
+  // conversation shell has not been mounted yet, so GROUP @mentions can run.
+  refreshAgentEffectiveCapabilityResolution();
 }
 
 export function refreshAgentEffectiveCapabilityResolution(): void {

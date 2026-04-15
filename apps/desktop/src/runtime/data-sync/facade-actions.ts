@@ -14,6 +14,18 @@ import {
   syncChatEventWindow,
   startChatWithTarget,
 } from './flows/chat-flow';
+import {
+  loadGroupChatList,
+  loadGroupChat,
+  loadGroupChatMessages,
+  sendGroupChatMessage,
+  markGroupChatRead,
+  createGroupChat,
+  syncGroupChatEvents,
+  sendGroupAgentChatMessage,
+  addGroupChatAgent,
+  removeGroupChatAgent,
+} from './flows/group-chat-flow';
 
 type CreatePostDto = RealmModel<'CreatePostDto'>;
 type CreateReportDto = RealmModel<'CreateReportDto'>;
@@ -212,6 +224,26 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
         input.emitFacadeError,
         chatId,
       ),
+    loadGroupChats: async (limit = 20) =>
+      loadGroupChatList(input.callApiTask, input.emitFacadeError, limit),
+    loadGroupChat: async (chatId: string) =>
+      loadGroupChat(input.callApiTask, input.emitFacadeError, chatId),
+    loadGroupMessages: async (chatId: string, limit = 50) =>
+      loadGroupChatMessages(input.callApiTask, input.emitFacadeError, chatId, limit),
+    sendGroupMessage: async (chatId: string, content: string) =>
+      sendGroupChatMessage(input.callApiTask, input.emitFacadeError, chatId, content),
+    markGroupRead: async (chatId: string) =>
+      markGroupChatRead(input.callApiTask, input.emitFacadeError, chatId),
+    createGroup: async (title: string, participantIds: string[], initialMessage?: string) =>
+      createGroupChat(input.callApiTask, input.emitFacadeError, title, participantIds, initialMessage),
+    syncGroupEvents: async (chatId: string, afterSeq: number, limit = 200) =>
+      syncGroupChatEvents(input.callApiTask, input.emitFacadeError, chatId, afterSeq, limit),
+    sendGroupAgentMessage: async (chatId: string, agentAccountId: string, text: string, replyToMessageId?: string) =>
+      sendGroupAgentChatMessage(input.callApiTask, input.emitFacadeError, chatId, agentAccountId, text, replyToMessageId),
+    addGroupAgent: async (chatId: string, agentAccountId: string) =>
+      addGroupChatAgent(input.callApiTask, input.emitFacadeError, chatId, agentAccountId),
+    removeGroupAgent: async (chatId: string, agentAccountId: string) =>
+      removeGroupChatAgent(input.callApiTask, input.emitFacadeError, chatId, agentAccountId),
     flushSocialOutbox: async () =>
       flushPendingSocialMutations(
         input.callApiTask,

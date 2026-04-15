@@ -25,6 +25,7 @@ export const E2E_IDS = {
   chatList: 'chat-list',
   chatRow: (chatId: string) => `chat-row:${chatId}`,
   chatTarget: (targetId: string) => `chat-target:${targetId}`,
+  chatCreateGroupButton: 'chat-create-group-button',
   chatHeaderProfileToggle: 'chat-header-profile-toggle',
   chatSettingsToggle: 'chat-settings-toggle',
   chatOpenUserProfile: 'chat-open-user-profile',

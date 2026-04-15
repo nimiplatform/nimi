@@ -229,26 +229,46 @@ function renderMessageItem(
   props: TranscriptMessageGroupsProps,
 ) {
   const renderContext = toRenderContext({ item: virtualItem.item, focused: virtualItem.focused });
+  const renderedAvatar = props.renderMessageAvatar?.(virtualItem.item.message, renderContext);
+  const senderName = String(virtualItem.item.message.senderName || '').trim();
+  const showSenderLabel = virtualItem.item.message.source === 'group'
+    && !renderContext.isCurrentUser
+    && virtualItem.item.isGroupStart
+    && senderName.length > 0;
   return (
-    <CanonicalMessageBubble
-      message={virtualItem.item.message}
-      avatar={null}
-      content={props.renderMessageContent?.(virtualItem.item.message, renderContext)}
-      accessory={props.renderMessageAccessory
-        ? props.renderMessageAccessory(virtualItem.item.message, renderContext)
-        : virtualItem.item.showTimestamp
-          ? undefined
-          : null}
-      showAvatar={false}
-      showTimestamp={virtualItem.item.showTimestamp}
-      position={virtualItem.item.position}
-      displayContext="transcript"
-      voicePlayingMessageId={props.voicePlayingMessageId}
-      isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(virtualItem.item.message)}
-      onPlayVoiceMessage={props.onPlayVoiceMessage}
-      onVoiceContextMenu={props.onVoiceContextMenu}
-      onMessageContextMenu={props.onMessageContextMenu}
-    />
+    <div className={showSenderLabel ? 'space-y-1' : undefined}>
+      {showSenderLabel ? (
+        <div
+          className={cn(
+            'pl-10 text-[11px] font-medium tracking-[0.01em]',
+            virtualItem.item.message.senderKind === 'agent'
+              ? 'text-violet-600'
+              : 'text-slate-500',
+          )}
+        >
+          {senderName}
+        </div>
+      ) : null}
+      <CanonicalMessageBubble
+        message={virtualItem.item.message}
+        avatar={renderedAvatar}
+        content={props.renderMessageContent?.(virtualItem.item.message, renderContext)}
+        accessory={props.renderMessageAccessory
+          ? props.renderMessageAccessory(virtualItem.item.message, renderContext)
+          : virtualItem.item.showTimestamp
+            ? undefined
+            : null}
+        showAvatar={Boolean(renderedAvatar) && virtualItem.item.showAvatar}
+        showTimestamp={virtualItem.item.showTimestamp}
+        position={virtualItem.item.position}
+        displayContext="transcript"
+        voicePlayingMessageId={props.voicePlayingMessageId}
+        isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(virtualItem.item.message)}
+        onPlayVoiceMessage={props.onPlayVoiceMessage}
+        onVoiceContextMenu={props.onVoiceContextMenu}
+        onMessageContextMenu={props.onMessageContextMenu}
+      />
+    </div>
   );
 }
 

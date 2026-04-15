@@ -183,6 +183,11 @@ function applyChatEventToCache(input: ApplyChatEventInput): void {
     });
     if (!chatMerge.found) {
       void queryClient.invalidateQueries({ queryKey: ['chats'] });
+      // Wave 5: If this event wasn't found in DIRECT cache, it may be a GROUP
+      // chat event. Invalidate GROUP queries so the group adapter can detect
+      // incoming messages and trigger agent dispatch for cross-user mentions.
+      void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
+      void queryClient.invalidateQueries({ queryKey: ['group-messages', input.event.chatId] });
     }
     if (chatMerge.shouldMarkRead) {
       void dataSync.markChatRead(message.chatId);

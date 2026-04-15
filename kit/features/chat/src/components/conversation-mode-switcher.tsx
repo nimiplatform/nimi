@@ -33,6 +33,13 @@ const MODE_ICONS: Record<ConversationMode, React.ReactNode> = {
       <path d="M8 1l2.35 4.76L15 6.5l-3.5 3.41.83 4.84L8 12.5l-4.33 2.25.83-4.84L1 6.5l4.65-.74L8 1Z" fill="currentColor" />
     </svg>
   ),
+  group: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="5.5" cy="5" r="2.5" fill="currentColor" />
+      <circle cx="10.5" cy="5" r="2.5" fill="currentColor" />
+      <path d="M1 14a4.5 4.5 0 0 1 9 0M6 14a4.5 4.5 0 0 1 9 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  ),
 };
 
 export function ConversationModeSwitcher({

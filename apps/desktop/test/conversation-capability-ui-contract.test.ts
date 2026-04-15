@@ -106,3 +106,8 @@ test('conversation capability UI contract: agent bootstrap prioritizes text.gene
   assert.doesNotMatch(agentAdapterSource, /resolveAiConversationSetupStateFromProjection/);
   assert.match(agentHostActionsSource, /ensureAgentConversationSubmitRouteReady/);
 });
+
+test('conversation capability UI contract: projection refresh also refreshes derived agent execution resolution', () => {
+  const projectionSource = readSource('src/shell/renderer/features/chat/conversation-capability-projection.ts');
+  assert.match(projectionSource, /setConversationCapabilityProjections\(projections\);[\s\S]*refreshAgentEffectiveCapabilityResolution\(\);/);
+});

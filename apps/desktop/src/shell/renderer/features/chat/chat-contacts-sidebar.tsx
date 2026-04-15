@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 // ---------------------------------------------------------------------------
@@ -11,6 +12,7 @@ export type ChatContactsSidebarProps = {
   targets: readonly ConversationTargetSummary[];
   selectedTargetId: string | null;
   onSelectTarget: (targetId: string) => void;
+  onCreateGroup?: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -130,10 +132,18 @@ function SidebarSeparator() {
 // Section label (optional, for source grouping)
 // ---------------------------------------------------------------------------
 
-export function ChatContactsSidebar({ targets, selectedTargetId, onSelectTarget }: ChatContactsSidebarProps) {
+export function ChatContactsSidebar({
+  targets,
+  selectedTargetId,
+  onSelectTarget,
+  onCreateGroup,
+}: ChatContactsSidebarProps) {
+  const { t } = useTranslation();
   const aiTargets = targets.filter((t) => t.source === 'ai');
   const humanTargets = targets.filter((t) => t.source === 'human');
   const agentTargets = targets.filter((t) => t.source === 'agent');
+  const groupTargets = targets.filter((t) => t.source === 'group');
+  const createGroupLabel = t('Chat.createGroupShortcut', { defaultValue: 'New Group' });
 
   return (
     <aside data-testid={E2E_IDS.chatList} className="flex h-full w-14 shrink-0 flex-col items-center border-l border-slate-200/60 bg-[var(--nimi-app-background,#f3f1ee)] py-2">
@@ -172,6 +182,42 @@ export function ChatContactsSidebar({ targets, selectedTargetId, onSelectTarget 
           <>
             <SidebarSeparator />
             {agentTargets.map((target) => (
+              <ContactAvatar
+                key={target.id}
+                target={target}
+                selected={selectedTargetId === target.id}
+                onSelect={() => onSelectTarget(target.id)}
+              />
+            ))}
+          </>
+        ) : null}
+
+        {onCreateGroup ? (
+          <>
+            <SidebarSeparator />
+            <div className="group relative flex h-11 items-center">
+              <div className="absolute right-0 h-0 w-[3px] rounded-l-full bg-emerald-500 transition-all duration-200 group-hover:h-4" />
+              <button
+                type="button"
+                data-testid={E2E_IDS.chatCreateGroupButton}
+                onClick={onCreateGroup}
+                aria-label={createGroupLabel}
+                title={createGroupLabel}
+                className="relative mx-2 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white transition-all duration-200 hover:rounded-2xl"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <path d="M9 3.5v11M3.5 9h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          </>
+        ) : null}
+
+        {/* Group chats */}
+        {groupTargets.length > 0 ? (
+          <>
+            <SidebarSeparator />
+            {groupTargets.map((target) => (
               <ContactAvatar
                 key={target.id}
                 target={target}

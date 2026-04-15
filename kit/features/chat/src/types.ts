@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export const CONVERSATION_MODES = ['ai', 'human', 'agent'] as const;
+export const CONVERSATION_MODES = ['ai', 'human', 'agent', 'group'] as const;
 export type ConversationMode = (typeof CONVERSATION_MODES)[number];
 export type ConversationSourceKind = ConversationMode;
 export type ConversationSourceFilter = 'all' | ConversationSourceKind;

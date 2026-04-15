@@ -35,7 +35,7 @@ test('chat unified shell a2: main layout mounts the dedicated chat page host', (
 });
 
 test('chat unified shell a2: anonymous desktop only exposes AI mode', () => {
-  assert.match(chatModeRegistrySource, /input\.authStatus === 'authenticated'\s*\?\s*\[input\.aiHost, input\.humanHost, input\.agentHost\]\s*:\s*\[input\.aiHost\]/);
+  assert.match(chatModeRegistrySource, /input\.authStatus === 'authenticated'\s*\?\s*\[input\.aiHost, input\.humanHost, input\.agentHost.*\]\s*:\s*\[input\.aiHost\]/);
 });
 
 test('chat unified shell a2: AI host stays enterable and submit-time route gating owns readiness', () => {

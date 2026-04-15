@@ -644,6 +644,33 @@ export const FinalizeResourceDeliveryAccess = {
 
 export type FinalizeResourceDeliveryAccess = (typeof FinalizeResourceDeliveryAccess)[keyof typeof FinalizeResourceDeliveryAccess];
 
+export const GroupChatViewType = {
+  GROUP: "GROUP",
+} as const satisfies Record<string, components['schemas']['GroupChatViewDto']['type']>;
+
+export type GroupChatViewType = (typeof GroupChatViewType)[keyof typeof GroupChatViewType];
+
+export const GroupMessageAuthorType = {
+  HUMAN: "human",
+  AGENT: "agent",
+} as const satisfies Record<string, components['schemas']['GroupMessageAuthorDto']['type']>;
+
+export type GroupMessageAuthorType = (typeof GroupMessageAuthorType)[keyof typeof GroupMessageAuthorType];
+
+export const GroupParticipantRole = {
+  ADMIN: "admin",
+  MEMBER: "member",
+} as const satisfies Record<string, components['schemas']['GroupParticipantDto']['role']>;
+
+export type GroupParticipantRole = (typeof GroupParticipantRole)[keyof typeof GroupParticipantRole];
+
+export const GroupParticipantType = {
+  HUMAN: "human",
+  AGENT: "agent",
+} as const satisfies Record<string, components['schemas']['GroupParticipantDto']['type']>;
+
+export type GroupParticipantType = (typeof GroupParticipantType)[keyof typeof GroupParticipantType];
+
 export const ImportPolicyAllowedHostTypesItem = {
   WORLD: "WORLD",
 } as const satisfies Record<string, (NonNullable<components['schemas']['ImportPolicyDto']['allowedHostTypes']> extends ReadonlyArray<infer Item> ? Item : never)>;
@@ -972,6 +999,13 @@ export const UpdateAssetTransferPolicy = {
 } as const satisfies Record<string, components['schemas']['UpdateAssetDto']['transferPolicy']>;
 
 export type UpdateAssetTransferPolicy = (typeof UpdateAssetTransferPolicy)[keyof typeof UpdateAssetTransferPolicy];
+
+export const UpdateParticipantRole = {
+  ADMIN: "admin",
+  MEMBER: "member",
+} as const satisfies Record<string, components['schemas']['UpdateParticipantRoleInputDto']['role']>;
+
+export type UpdateParticipantRole = (typeof UpdateParticipantRole)[keyof typeof UpdateParticipantRole];
 
 export const UpdateResourceControllerKind = {
   ACCOUNT: "ACCOUNT",

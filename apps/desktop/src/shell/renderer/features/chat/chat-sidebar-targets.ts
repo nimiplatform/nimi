@@ -15,6 +15,11 @@ import {
   toAgentFriendTargetsFromSocialSnapshot,
 } from './chat-agent-thread-model';
 import { TARGETS_QUERY_KEY } from './chat-agent-shell-core';
+import {
+  compareGroupChatsByRecency,
+  toGroupTargetSummary,
+  type GroupChatViewDto,
+} from './chat-group-thread-model';
 
 type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
 
@@ -49,6 +54,13 @@ export function useChatTargetsForSidebar(
   const humanChatsQuery = useQuery({
     queryKey: ['chats', authStatus],
     queryFn: async () => dataSync.loadChats(),
+    enabled: authStatus === 'authenticated',
+    staleTime: 30_000,
+  });
+
+  const groupChatsQuery = useQuery({
+    queryKey: ['group-chats', authStatus],
+    queryFn: async () => dataSync.loadGroupChats(),
     enabled: authStatus === 'authenticated',
     staleTime: 30_000,
   });
@@ -93,6 +105,11 @@ export function useChatTargetsForSidebar(
     }));
   }, [agentTargetsQuery.data]);
 
+  const groupTargets = useMemo(() => {
+    const items = ((groupChatsQuery.data as { items?: GroupChatViewDto[] } | undefined)?.items || []) as GroupChatViewDto[];
+    return [...items].sort(compareGroupChatsByRecency).map(toGroupTargetSummary);
+  }, [groupChatsQuery.data]);
+
   const aiTarget = useMemo((): ConversationTargetSummary => ({
     id: 'ai:assistant',
     source: 'ai' as const,
@@ -111,7 +128,7 @@ export function useChatTargetsForSidebar(
   }), [t]);
 
   return useMemo(
-    () => [...humanTargets, aiTarget, ...agentTargets],
-    [humanTargets, aiTarget, agentTargets],
+    () => [...humanTargets, aiTarget, ...agentTargets, ...groupTargets],
+    [humanTargets, aiTarget, agentTargets, groupTargets],
   );
 }
