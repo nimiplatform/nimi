@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { IconButton, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
@@ -54,9 +54,27 @@ function ExploreSkeletonBlock({ className }: { className: string }) {
 export function ExploreView(props: ExploreViewProps) {
   const { t } = useTranslation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const feedScrollRef = useRef<HTMLDivElement>(null);
+  const feedSectionRef = useRef<HTMLElement>(null);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [topAgentsPage, setTopAgentsPage] = useState(0);
   const [topAgentsDirection, setTopAgentsDirection] = useState<'forward' | 'backward'>('forward');
+  const [feedColumns, setFeedColumns] = useState(() => (
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 640px)').matches
+      ? 2
+      : 1
+  ));
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+    const media = window.matchMedia('(min-width: 640px)');
+    const updateColumns = () => setFeedColumns(media.matches ? 2 : 1);
+    updateColumns();
+    media.addEventListener?.('change', updateColumns);
+    return () => media.removeEventListener?.('change', updateColumns);
+  }, []);
 
   // Filter worlds with banners
   const worldsWithBanners = props.worldBanners.filter((w) => w.bannerUrl);
@@ -194,6 +212,7 @@ export function ExploreView(props: ExploreViewProps) {
         className="min-h-0 flex-1"
         viewportClassName="bg-transparent"
         contentClassName="mx-auto max-w-6xl px-6 py-8"
+        viewportRef={feedScrollRef}
       >
           {/* World Banner Carousel */}
           {worldsWithBanners.length > 0 && (
@@ -360,7 +379,7 @@ export function ExploreView(props: ExploreViewProps) {
             </section>
           )}
 
-          <section className="mt-12">
+          <section ref={feedSectionRef} className="mt-12">
             <div className="mb-6 flex items-center justify-between">
               <h2 className={`nimi-type-section-title text-[color:var(--nimi-text-primary)]`} style={{ fontFamily: 'var(--font-display)' }}>
                 {t('Explore.dynamicFeed', { defaultValue: 'Dynamic Feed' })}
@@ -369,6 +388,9 @@ export function ExploreView(props: ExploreViewProps) {
             <PostFeed
               key={props.postFeedKey}
               fetchPage={props.fetchPostPage}
+              scrollRef={feedScrollRef}
+              virtualOffsetRef={feedSectionRef}
+              columns={feedColumns}
               emptyText={t('Explore.noPosts')}
               renderItem={(post) => (
                 <div className="h-fit [contain:paint] [transform:translateZ(0)]">

@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { ReactNode } from 'react';
@@ -26,6 +26,9 @@ type PostFeedProps = {
   renderItem?: (item: FeedItem, index: number) => ReactNode;
   className?: string;
   scrollRef?: RefObject<HTMLElement | null>;
+  virtualOffsetRef?: RefObject<HTMLElement | null>;
+  /** Number of columns for grid virtualization. Default 1 (single-column). */
+  columns?: number;
 };
 
 const POST_ESTIMATED_HEIGHT = 280;
@@ -68,13 +71,22 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export function PostFeed({ fetchPage, emptyText, renderItem, className, scrollRef }: PostFeedProps) {
+export function PostFeed({
+  fetchPage,
+  emptyText,
+  renderItem,
+  className,
+  scrollRef,
+  virtualOffsetRef,
+  columns = 1,
+}: PostFeedProps) {
   const [posts, setPosts] = useState<FeedItem[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingInitial, setLoadingInitial] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const hasMoreRef = useRef(hasMore);
@@ -211,17 +223,75 @@ export function PostFeed({ fetchPage, emptyText, renderItem, className, scrollRe
     return () => observer.disconnect();
   }, [cursor, hasMore, loadingMore, load]);
 
-  // Virtualization is opt-in: only activate when the caller provides a scroll
-  // container ref (single-column feeds like HomeView). Grid callers (ExploreView)
-  // omit scrollRef and get the original full-render path with their layout intact.
-  const useVirtual = scrollRef != null && posts.length > 0;
+  useEffect(() => {
+    const scrollEl = scrollRef?.current;
+    const offsetEl = virtualOffsetRef?.current;
+    if (!scrollEl || !offsetEl) {
+      setScrollMargin(0);
+      return;
+    }
 
-  const virtualizer = useVirtualizer({
-    count: useVirtual ? posts.length : 0,
+    const updateScrollMargin = () => {
+      const scrollRect = scrollEl.getBoundingClientRect();
+      const offsetRect = offsetEl.getBoundingClientRect();
+      const nextMargin = Math.max(0, offsetRect.top - scrollRect.top + scrollEl.scrollTop);
+      setScrollMargin((current) => (current === nextMargin ? current : nextMargin));
+    };
+
+    updateScrollMargin();
+
+    const raf = requestAnimationFrame(updateScrollMargin);
+    const onResize = () => updateScrollMargin();
+    window.addEventListener('resize', onResize);
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => updateScrollMargin())
+      : null;
+    resizeObserver?.observe(scrollEl);
+    resizeObserver?.observe(offsetEl);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', onResize);
+      resizeObserver?.disconnect();
+    };
+  }, [scrollRef, virtualOffsetRef]);
+
+  // Virtualization is opt-in: only activate when the caller provides a scroll
+  // container ref. Single-column feeds (HomeView) use per-item virtualization.
+  // Multi-column feeds (ExploreView) use row-based virtualization where posts
+  // are grouped into rows of `columns` items and each row is virtualized.
+  const useVirtual = scrollRef != null && posts.length > 0;
+  const useGridVirtual = useVirtual && columns > 1;
+
+  // Group posts into rows for grid virtualization
+  const gridRows = useMemo(() => {
+    if (!useGridVirtual) return [];
+    const rows: FeedItem[][] = [];
+    for (let i = 0; i < posts.length; i += columns) {
+      rows.push(posts.slice(i, i + columns));
+    }
+    return rows;
+  }, [posts, columns, useGridVirtual]);
+
+  // Single-column virtualizer (Home path — unchanged)
+  const singleVirtualizer = useVirtualizer({
+    count: useVirtual && !useGridVirtual ? posts.length : 0,
     getScrollElement: () => scrollRef?.current ?? null,
     estimateSize: () => POST_ESTIMATED_HEIGHT + POST_GAP,
     overscan: VIRTUALIZER_OVERSCAN,
-    enabled: useVirtual,
+    scrollMargin,
+    enabled: useVirtual && !useGridVirtual,
+  });
+
+  // Grid row virtualizer (Explore path — new)
+  const gridVirtualizer = useVirtualizer({
+    count: useGridVirtual ? gridRows.length : 0,
+    getScrollElement: () => scrollRef?.current ?? null,
+    estimateSize: () => POST_ESTIMATED_HEIGHT + POST_GAP,
+    overscan: VIRTUALIZER_OVERSCAN,
+    scrollMargin,
+    enabled: useGridVirtual,
   });
 
   const renderPostItem = (post: FeedItem, index: number) =>
@@ -243,24 +313,61 @@ export function PostFeed({ fetchPage, emptyText, renderItem, className, scrollRe
         </div>
       ) : null}
 
-      {useVirtual ? (
+      {useGridVirtual ? (
+        /* Grid row-based virtualization for multi-column feeds */
         <div
-          style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+          style={{ height: gridVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}
         >
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            const post = posts[virtualRow.index];
-            if (!post) return null;
+          {gridVirtualizer.getVirtualItems().map((virtualRow) => {
+            const row = gridRows[virtualRow.index];
+            if (!row) return null;
+            const baseIndex = virtualRow.index * columns;
             return (
               <div
-                key={post.id}
-                ref={virtualizer.measureElement}
+                key={virtualRow.index}
+                ref={gridVirtualizer.measureElement}
                 data-index={virtualRow.index}
                 style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
                   width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
+                  transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+                  paddingBottom: POST_GAP,
+                }}
+              >
+                <div
+                  className="grid items-start"
+                  style={{
+                    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                    gap: `${POST_GAP}px`,
+                  }}
+                >
+                  {row.map((post, colIdx) => renderPostItem(post, baseIndex + colIdx))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : useVirtual ? (
+        /* Single-column virtualization (Home path) */
+        <div
+          style={{ height: singleVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+        >
+          {singleVirtualizer.getVirtualItems().map((virtualRow) => {
+            const post = posts[virtualRow.index];
+            if (!post) return null;
+            return (
+              <div
+                key={post.id}
+                ref={singleVirtualizer.measureElement}
+                data-index={virtualRow.index}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start - scrollMargin}px)`,
                   paddingBottom: POST_GAP,
                 }}
               >
