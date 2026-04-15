@@ -18,6 +18,8 @@ export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 const RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS = 30_000;
 
 export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerModel {
+  const activeTab = useAppStore((state) => state.activeTab);
+  const runtimeTabActive = activeTab === 'runtime';
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const offlineTier = useAppStore((state) => state.offlineTier);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
@@ -143,7 +145,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   // (S-AICONF-006 via bindProjectionRefreshToSurface in runtime-slice bootstrap).
 
   useEffect(() => {
-    if (!panelState.hydrated) return;
+    if (!panelState.hydrated || !runtimeTabActive) return;
     void daemon.refreshRuntimeDaemonStatus();
     const timer = setInterval(() => {
       void daemon.refreshRuntimeDaemonStatus();
@@ -151,7 +153,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     return () => {
       clearInterval(timer);
     };
-  }, [daemon.refreshRuntimeDaemonStatus, panelState.hydrated]);
+  }, [daemon.refreshRuntimeDaemonStatus, panelState.hydrated, runtimeTabActive]);
 
   useEffect(() => {
     if (!panelState.hydrated || !panelState.state) return;

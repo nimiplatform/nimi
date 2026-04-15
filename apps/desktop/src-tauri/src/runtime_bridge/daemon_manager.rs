@@ -314,6 +314,11 @@ pub async fn start_async() -> Result<RuntimeBridgeDaemonStatus, String> {
     ))
 }
 
+#[cfg(test)]
+pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
+    tauri::async_runtime::block_on(start_async())
+}
+
 pub fn stop() -> Result<RuntimeBridgeDaemonStatus, String> {
     {
         let mut guard = daemon_child().lock().expect("runtime daemon lock poisoned");
@@ -346,4 +351,16 @@ pub fn config_get() -> Result<Value, String> {
 
 pub fn config_set(payload: &str) -> Result<Value, String> {
     run_runtime_cli_json(&["config", "set", "--stdin", "--json"], Some(payload))
+}
+
+pub async fn config_get_async() -> Result<Value, String> {
+    tauri::async_runtime::spawn_blocking(config_get)
+        .await
+        .map_err(|error| format!("RUNTIME_BRIDGE_CONFIG_GET_TASK_JOIN_FAILED: {error}"))?
+}
+
+pub async fn config_set_async(payload: String) -> Result<Value, String> {
+    tauri::async_runtime::spawn_blocking(move || config_set(payload.as_str()))
+        .await
+        .map_err(|error| format!("RUNTIME_BRIDGE_CONFIG_SET_TASK_JOIN_FAILED: {error}"))?
 }

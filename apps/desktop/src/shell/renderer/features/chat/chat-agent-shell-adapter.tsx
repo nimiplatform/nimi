@@ -372,6 +372,11 @@ export function useAgentConversationModeHost(
       signal: controller.signal,
       onEvent: (event) => {
         setRecentRuntimeEvents((current) => {
+          // Skip state update when the most recent entry already matches this
+          // sequence — avoids a redundant re-render on duplicate events.
+          if (current.length > 0 && current[0]?.sequence === event.sequence) {
+            return current;
+          }
           const next = [event, ...current.filter((item) => item.sequence !== event.sequence)];
           return next.slice(0, 8);
         });

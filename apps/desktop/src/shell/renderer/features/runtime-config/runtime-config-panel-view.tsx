@@ -50,31 +50,12 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
 
+  const dragCleanupRef = useRef<(() => void) | null>(null);
 
+  // Unmount safety: if the component tears down mid-drag, remove stale listeners.
   useEffect(() => {
-    const onMouseMove = (event: globalThis.MouseEvent) => {
-      if (!resizingRef.current || !containerRef.current) {
-        return;
-      }
-      const rect = containerRef.current.getBoundingClientRect();
-      const nextWidth = Math.min(
-        MAX_SIDEBAR_WIDTH,
-        Math.max(MIN_SIDEBAR_WIDTH, Math.round(event.clientX - rect.left)),
-      );
-      setSidebarWidth(nextWidth);
-    };
-
-    const onMouseUp = () => {
-      resizingRef.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      dragCleanupRef.current?.();
     };
   }, []);
 
@@ -83,6 +64,35 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
     resizingRef.current = true;
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
+
+    const cleanup = () => {
+      resizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      dragCleanupRef.current = null;
+    };
+
+    const onMouseMove = (moveEvent: globalThis.MouseEvent) => {
+      if (!resizingRef.current || !containerRef.current) {
+        return;
+      }
+      const rect = containerRef.current.getBoundingClientRect();
+      const nextWidth = Math.min(
+        MAX_SIDEBAR_WIDTH,
+        Math.max(MIN_SIDEBAR_WIDTH, Math.round(moveEvent.clientX - rect.left)),
+      );
+      setSidebarWidth(nextWidth);
+    };
+
+    const onMouseUp = () => {
+      cleanup();
+    };
+
+    dragCleanupRef.current = cleanup;
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
   };
 
   if (!state) {

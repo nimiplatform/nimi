@@ -59,6 +59,7 @@ export function AgentDiagnosticsPanel(props: {
   targetsPending: boolean;
 }) {
   const viewModel = buildAgentDiagnosticsViewModel(props);
+  const t = props.t;
   const [dailyTokenBudget, setDailyTokenBudget] = useState('');
   const [maxTokensPerHook, setMaxTokensPerHook] = useState('');
   const [statusText, setStatusText] = useState('');
@@ -105,10 +106,12 @@ export function AgentDiagnosticsPanel(props: {
       {props.activeTarget && props.runtimeInspect ? (
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-            <div className="mb-2 text-sm font-semibold text-gray-900">Runtime State</div>
+            <div className="mb-2 text-sm font-semibold text-gray-900">
+              {t('Chat.agentDiagnosticsRuntimeStateTitle', { defaultValue: 'Runtime State' })}
+            </div>
             <div className="grid gap-3">
               <label className="text-xs font-semibold text-gray-500">
-                Status text
+                {t('Chat.agentDiagnosticsStatusTextLabel', { defaultValue: 'Status text' })}
                 <input
                   type="text"
                   value={statusText}
@@ -118,7 +121,7 @@ export function AgentDiagnosticsPanel(props: {
                 />
               </label>
               <label className="text-xs font-semibold text-gray-500">
-                World context
+                {t('Chat.agentDiagnosticsWorldContextLabel', { defaultValue: 'World context' })}
                 <input
                   type="text"
                   value={worldId}
@@ -128,7 +131,7 @@ export function AgentDiagnosticsPanel(props: {
                 />
               </label>
               <label className="text-xs font-semibold text-gray-500">
-                Dyadic user
+                {t('Chat.agentDiagnosticsDyadicUserLabel', { defaultValue: 'Dyadic user' })}
                 <input
                   type="text"
                   value={userId}
@@ -140,18 +143,18 @@ export function AgentDiagnosticsPanel(props: {
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <RuntimeInspectActionButton
-                label="Apply runtime state"
+                label={t('Chat.agentDiagnosticsApplyRuntimeState', { defaultValue: 'Apply runtime state' })}
                 onClick={() => props.onUpdateRuntimeState?.({ statusText, worldId, userId })}
                 disabled={!props.onUpdateRuntimeState || props.mutationPendingAction !== null}
               />
               <RuntimeInspectActionButton
-                label="Clear world context"
+                label={t('Chat.agentDiagnosticsClearWorldContext', { defaultValue: 'Clear world context' })}
                 onClick={() => props.onClearWorldContext?.()}
                 disabled={!props.onClearWorldContext || props.mutationPendingAction !== null}
                 tone="danger"
               />
               <RuntimeInspectActionButton
-                label="Clear dyadic context"
+                label={t('Chat.agentDiagnosticsClearDyadicContext', { defaultValue: 'Clear dyadic context' })}
                 onClick={() => props.onClearDyadicContext?.()}
                 disabled={!props.onClearDyadicContext || props.mutationPendingAction !== null}
                 tone="danger"
@@ -159,16 +162,22 @@ export function AgentDiagnosticsPanel(props: {
             </div>
           </div>
           <RuntimeInspectCard
-            label="Autonomy Control"
-            value={props.runtimeInspect.autonomyEnabled === true ? 'Runtime autonomy is on' : 'Runtime autonomy is off'}
+            label={t('Chat.agentDiagnosticsAutonomyControlTitle', { defaultValue: 'Autonomy Control' })}
+            value={props.runtimeInspect.autonomyEnabled === true
+              ? t('Chat.agentDiagnosticsAutonomyOn', { defaultValue: 'Runtime autonomy is on' })
+              : t('Chat.agentDiagnosticsAutonomyOff', { defaultValue: 'Runtime autonomy is off' })}
             detail={props.runtimeInspect.autonomyEnabled === true
-              ? 'Disable autonomy when you want chat-only behavior without life-track execution.'
-              : 'Enable autonomy when this agent should resume runtime-owned life-track behavior.'}
+              ? t('Chat.agentDiagnosticsAutonomyOnDetail', {
+                defaultValue: 'Disable autonomy when you want chat-only behavior without life-track execution.',
+              })
+              : t('Chat.agentDiagnosticsAutonomyOffDetail', {
+                defaultValue: 'Enable autonomy when this agent should resume runtime-owned life-track behavior.',
+              })}
           />
           <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-xs font-semibold text-gray-500">
-                Daily token budget
+                {t('Chat.agentDiagnosticsDailyTokenBudgetLabel', { defaultValue: 'Daily token budget' })}
                 <input
                   type="number"
                   min="0"
@@ -179,7 +188,7 @@ export function AgentDiagnosticsPanel(props: {
                 />
               </label>
               <label className="text-xs font-semibold text-gray-500">
-                Max tokens per hook
+                {t('Chat.agentDiagnosticsMaxTokensPerHookLabel', { defaultValue: 'Max tokens per hook' })}
                 <input
                   type="number"
                   min="0"
@@ -192,25 +201,25 @@ export function AgentDiagnosticsPanel(props: {
             </div>
             <div className="flex flex-wrap gap-2">
               <RuntimeInspectActionButton
-                label="Refresh inspect"
+                label={t('Chat.agentDiagnosticsRefreshInspect', { defaultValue: 'Refresh inspect' })}
                 onClick={() => props.onRefreshInspect?.()}
                 disabled={!props.onRefreshInspect || props.runtimeInspectLoading || props.mutationPendingAction !== null}
               />
               <RuntimeInspectActionButton
-                label="Apply autonomy config"
+                label={t('Chat.agentDiagnosticsApplyAutonomyConfig', { defaultValue: 'Apply autonomy config' })}
                 onClick={() => props.onUpdateAutonomyConfig?.({ dailyTokenBudget, maxTokensPerHook })}
                 disabled={!props.onUpdateAutonomyConfig || props.mutationPendingAction !== null}
               />
               {props.runtimeInspect.autonomyEnabled === true ? (
                 <RuntimeInspectActionButton
-                  label="Disable autonomy"
+                  label={t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' })}
                   onClick={() => props.onDisableAutonomy?.()}
                   disabled={!props.onDisableAutonomy || props.mutationPendingAction !== null}
                   tone="danger"
                 />
               ) : (
                 <RuntimeInspectActionButton
-                  label="Enable autonomy"
+                  label={t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable autonomy' })}
                   onClick={() => props.onEnableAutonomy?.()}
                   disabled={!props.onEnableAutonomy || props.mutationPendingAction !== null}
                 />

@@ -143,13 +143,13 @@ pub async fn runtime_bridge_restart(app: AppHandle) -> Result<RuntimeBridgeDaemo
 }
 
 #[tauri::command]
-pub fn runtime_bridge_config_get() -> Result<Value, String> {
-    daemon_manager::config_get()
+pub async fn runtime_bridge_config_get() -> Result<Value, String> {
+    daemon_manager::config_get_async().await
 }
 
 #[tauri::command]
-pub fn runtime_bridge_config_set(payload: RuntimeBridgeConfigSetPayload) -> Result<Value, String> {
-    daemon_manager::config_set(payload.config_json.as_str())
+pub async fn runtime_bridge_config_set(payload: RuntimeBridgeConfigSetPayload) -> Result<Value, String> {
+    daemon_manager::config_set_async(payload.config_json).await
 }
 
 pub fn current_daemon_status() -> RuntimeBridgeDaemonStatus {

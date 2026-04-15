@@ -134,6 +134,22 @@ function parseBalanceValue(input: unknown): number {
   return raw;
 }
 
+/** Track window focus so polling queries can pause when the app is not focused. */
+function useWindowFocused(): boolean {
+  const [focused, setFocused] = useState(() => typeof document !== 'undefined' && document.hasFocus());
+  useEffect(() => {
+    const onFocus = () => setFocused(true);
+    const onBlur = () => setFocused(false);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
+  return focused;
+}
+
 function parseUnreadCount(input: unknown): number {
   if (typeof input === 'number' && Number.isFinite(input)) {
     return Math.max(0, Math.floor(input));
@@ -205,13 +221,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   if (runtimeActive) runtimeEverMountedRef.current = true;
   const runtimeEverMounted = runtimeEverMountedRef.current;
 
-  // Prefetch the runtime chunk as soon as the flag is enabled so the lazy import
-  // resolves from cache when the user first clicks the tab.
-  useEffect(() => {
-    if (flags.enableRuntimeTab) {
-      void import('@renderer/features/runtime-config/runtime-config-panel-view').catch(() => {});
-    }
-  }, [flags.enableRuntimeTab]);
   const activeModTab = props.activeTab.startsWith('mod:');
   const activeRouteExtension = useMemo(
     () => (activeModTab ? resolveRouteTabExtension(props.activeTab) : null),
@@ -224,6 +233,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     || props.activeTab === 'gift-inbox'
     || (props.activeTab === 'profile' && Boolean(selectedProfileId))
     || profileDetailOverlayOpen;
+  const windowFocused = useWindowFocused();
   const balancesQuery = useQuery({
     queryKey: ['topbar-currency-balances'],
     queryFn: async () => {
@@ -232,7 +242,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     },
     enabled: props.authStatus === 'authenticated',
     staleTime: 30_000,
-    refetchInterval: 60_000,
+    refetchInterval: windowFocused ? 60_000 : false,
   });
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.topbarUnreadCount,
@@ -242,7 +252,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     },
     enabled: props.authStatus === 'authenticated',
     staleTime: 15_000,
-    refetchInterval: 30_000,
+    refetchInterval: windowFocused ? 30_000 : false,
   });
 
   const sparkBalance = parseBalanceValue((balancesQuery.data as Record<string, unknown> | undefined)?.sparkBalance);
