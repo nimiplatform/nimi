@@ -128,13 +128,6 @@ pub(super) fn build_service_health_url(
     Ok(url.to_string())
 }
 
-pub(super) fn maybe_authenticate_request(
-    request: reqwest::blocking::RequestBuilder,
-    _service_id: &str,
-) -> reqwest::blocking::RequestBuilder {
-    request
-}
-
 pub(super) fn maybe_authenticate_async_request(
     request: reqwest::RequestBuilder,
     _service_id: &str,

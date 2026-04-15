@@ -7,8 +7,8 @@ mod managed;
 
 use self::managed::{
     bootstrap_marker_provider, build_service_health_url, is_loopback_endpoint,
-    managed_provider_strategy, maybe_authenticate_async_request, maybe_authenticate_request,
-    normalize_non_empty, parse_version_parts, port_available, resolve_effective_endpoint,
+    managed_provider_strategy, maybe_authenticate_async_request, normalize_non_empty,
+    parse_version_parts, port_available, resolve_effective_endpoint,
 };
 pub use self::managed::{is_managed_service, start_managed_service, stop_managed_service};
 
@@ -363,47 +363,6 @@ pub fn bootstrap_service_artifact(service_id: &str) -> Result<Option<String>, St
     Ok(None)
 }
 
-pub fn probe_service_endpoint_health(service_id: &str, endpoint: &str) -> Result<String, String> {
-    let artifact = find_service_artifact(service_id)
-        .ok_or_else(|| format!("LOCAL_AI_SERVICE_ARTIFACT_NOT_FOUND: serviceId={service_id}"))?;
-    let effective_endpoint = resolve_effective_endpoint(&artifact, Some(endpoint))
-        .ok_or_else(|| format!("LOCAL_AI_SERVICE_ENDPOINT_REQUIRED: serviceId={service_id}"))?;
-    let health_url = build_service_health_url(
-        effective_endpoint.as_str(),
-        artifact.health.endpoint.as_str(),
-    )?;
-    let timeout_ms = artifact.health.timeout_ms.clamp(250, 10_000);
-    let client = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_millis(timeout_ms))
-        .build()
-        .map_err(|error| {
-            format!(
-                "LOCAL_AI_SERVICE_HEALTH_HTTP_CLIENT_FAILED: serviceId={} error={error}",
-                artifact.service_id
-            )
-        })?;
-    let request = maybe_authenticate_request(
-        client.get(health_url.as_str()),
-        artifact.service_id.as_str(),
-    );
-    match request.send() {
-        Ok(response) if response.status().is_success() => Ok(format!(
-            "service endpoint healthy: serviceId={} endpoint={}",
-            artifact.service_id, health_url
-        )),
-        Ok(response) => Err(format!(
-            "LOCAL_AI_SERVICE_HEALTH_UNREACHABLE: serviceId={} endpoint={} status={}",
-            artifact.service_id,
-            health_url,
-            response.status().as_u16()
-        )),
-        Err(error) => Err(format!(
-            "LOCAL_AI_SERVICE_HEALTH_UNREACHABLE: serviceId={} endpoint={} error={error}",
-            artifact.service_id, health_url
-        )),
-    }
-}
-
 pub async fn probe_service_endpoint_health_async(
     service_id: &str,
     endpoint: &str,
@@ -440,73 +399,6 @@ pub async fn probe_service_endpoint_health_async(
             artifact.service_id, health_url
         )),
     }
-}
-
-pub fn probe_service_capability_models(
-    service_id: &str,
-    endpoint: &str,
-) -> Result<serde_json::Value, String> {
-    let artifact = find_service_artifact(service_id)
-        .ok_or_else(|| format!("LOCAL_AI_SERVICE_ARTIFACT_NOT_FOUND: serviceId={service_id}"))?;
-    let probe_endpoint = artifact
-        .health
-        .capability_probe_endpoint
-        .as_deref()
-        .ok_or_else(|| {
-            format!("LOCAL_AI_SERVICE_CAPABILITY_PROBE_UNSUPPORTED: serviceId={service_id}")
-        })?;
-    let effective_endpoint = resolve_effective_endpoint(&artifact, Some(endpoint))
-        .ok_or_else(|| format!("LOCAL_AI_SERVICE_ENDPOINT_REQUIRED: serviceId={service_id}"))?;
-    let probe_url = build_service_health_url(effective_endpoint.as_str(), probe_endpoint)?;
-    let timeout_ms = artifact.health.timeout_ms.clamp(250, 10_000);
-    let client = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_millis(timeout_ms))
-        .build()
-        .map_err(|error| {
-            format!(
-                "LOCAL_AI_SERVICE_HEALTH_HTTP_CLIENT_FAILED: serviceId={} error={error}",
-                artifact.service_id
-            )
-        })?;
-
-    let request =
-        maybe_authenticate_request(client.get(probe_url.as_str()), artifact.service_id.as_str());
-    let response = request.send().map_err(|error| {
-        format!(
-            "LOCAL_AI_SERVICE_UNREACHABLE: serviceId={} endpoint={} error={error}",
-            artifact.service_id, probe_url
-        )
-    })?;
-    if response.status() == reqwest::StatusCode::UNAUTHORIZED
-        || response.status() == reqwest::StatusCode::FORBIDDEN
-    {
-        return Err(format!(
-            "LOCAL_AI_AUTH_FAILED: serviceId={} endpoint={} status={}",
-            artifact.service_id,
-            probe_url,
-            response.status().as_u16()
-        ));
-    }
-    if !response.status().is_success() {
-        return Err(format!(
-            "LOCAL_AI_SERVICE_UNREACHABLE: serviceId={} endpoint={} status={}",
-            artifact.service_id,
-            probe_url,
-            response.status().as_u16()
-        ));
-    }
-    let body = response.text().map_err(|error| {
-        format!(
-            "LOCAL_AI_PROVIDER_INTERNAL_ERROR: serviceId={} endpoint={} error={error}",
-            artifact.service_id, probe_url
-        )
-    })?;
-    serde_json::from_str::<serde_json::Value>(body.as_str()).map_err(|error| {
-        format!(
-            "LOCAL_AI_PROVIDER_INTERNAL_ERROR: serviceId={} endpoint={} error={error}",
-            artifact.service_id, probe_url
-        )
-    })
 }
 
 pub async fn probe_service_capability_models_async(

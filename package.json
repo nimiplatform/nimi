@@ -161,7 +161,6 @@
     "nimicoding:clear": "pnpm exec nimicoding clear",
     "nimicoding:doctor": "pnpm exec nimicoding doctor",
     "nimicoding:validate-spec-governance": "pnpm exec nimicoding validate-spec-governance",
-    "nimicoding:generate-spec-derived-docs": "pnpm exec nimicoding generate-spec-derived-docs",
     "nimicoding:validate-ai-governance": "pnpm exec nimicoding validate-ai-governance",
     "nimicoding:validate-spec-audit": "pnpm exec nimicoding validate-spec-audit",
     "nimicoding:validate-spec-tree": "pnpm exec nimicoding validate-spec-tree",

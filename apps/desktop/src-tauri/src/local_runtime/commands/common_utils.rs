@@ -111,40 +111,6 @@ fn extract_probe_model_ids(payload: &serde_json::Value) -> Vec<String> {
         .collect::<Vec<_>>()
 }
 
-fn collect_probe_models_by_service(state: &LocalAiRuntimeState) -> BTreeMap<String, Vec<String>> {
-    let mut output = BTreeMap::<String, Vec<String>>::new();
-    for service in &state.services {
-        if service.status == LocalAiServiceStatus::Removed {
-            continue;
-        }
-        let endpoint = service
-            .endpoint
-            .as_deref()
-            .map(|value| value.trim())
-            .unwrap_or_default();
-        if endpoint.is_empty() {
-            continue;
-        }
-        if let Ok(payload) = probe_service_capability_models(service.service_id.as_str(), endpoint)
-        {
-            let ids = extract_probe_model_ids(&payload);
-            if !ids.is_empty() {
-                output.insert(service.service_id.clone(), ids);
-            }
-        }
-    }
-    output
-}
-
-fn refresh_state_capability_matrix_with_provider_probe(
-    app: &AppHandle,
-    state: &mut LocalAiRuntimeState,
-) {
-    let probe_models = collect_probe_models_by_service(state);
-    let profile = collect_device_profile(app);
-    refresh_state_capability_matrix_with_probe_and_device(state, &probe_models, Some(&profile));
-}
-
 async fn collect_probe_models_by_service_async(
     state: &LocalAiRuntimeState,
 ) -> BTreeMap<String, Vec<String>> {
