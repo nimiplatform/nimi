@@ -94,6 +94,7 @@ type UseAgentConversationPresentationInput = {
   selectedTargetId: string | null;
   behaviorSettings: AgentChatExperienceSettings;
   setBehaviorSettings: (value: AgentChatExperienceSettings) => void;
+  onDiagnosticsVisibilityChange?: (visible: boolean) => void;
   voiceSessionState: AgentVoiceSessionShellState;
   onVoiceSessionToggle: () => void;
   onVoiceSessionCancel: () => void;
@@ -356,6 +357,7 @@ export function useAgentConversationPresentation(
     settingsContent: (
       <div className="space-y-4">
         <ChatSettingsPanel
+          onDiagnosticsVisibilityChange={input.onDiagnosticsVisibilityChange}
           onModelSelectionChange={input.onModelSelectionChange}
           initialModelSelection={input.initialModelSelection}
           diagnosticsContent={diagnosticsContent}

@@ -5,7 +5,6 @@ import {
   type ConversationTargetSummary,
 } from '@nimiplatform/nimi-kit/features/chat';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { useRuntimeConfigPanelController } from '@renderer/features/runtime-config/runtime-config-panel-controller';
 import { useAiConversationModeHost } from './chat-ai-shell-adapter';
 import { ChatAiSessionListPanel } from './chat-ai-session-list-panel';
 import { ChatRightPanelSettings } from './chat-right-panel-settings';
@@ -38,9 +37,8 @@ export function ChatAiModeContent({
   const lastSelectedAiThread = useAppStore((state) => state.lastSelectedThreadByMode.ai ?? null);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.ai ?? null);
 
-  const runtimeConfigController = useRuntimeConfigPanelController();
   const { host } = useAiConversationModeHost({
-    runtimeConfigState: runtimeConfigController.state,
+    runtimeConfigState: null,
     runtimeFields,
     selection: aiConversationSelection,
     lastSelectedThreadId: lastSelectedAiThread,

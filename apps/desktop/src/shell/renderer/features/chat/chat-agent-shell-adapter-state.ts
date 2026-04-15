@@ -18,6 +18,7 @@ import {
 } from './chat-agent-thread-model';
 import { findRuntimeRouteModelProfile } from './chat-ai-route-view';
 import type { AgentConversationSelection } from './chat-shell-types';
+import { useAgentVisibleProjection } from './chat-agent-visible-projection-store';
 import { useConversationStreamState } from './chat-runtime-stream-ui';
 import {
   bundleQueryKey,
@@ -185,11 +186,13 @@ export function useAgentConversationShellState(
     staleTime: 60_000,
   });
   const bundle = bundleQuery.data || null;
+  const projectedBundle = useAgentVisibleProjection(activeThreadId);
+  const visibleMessages = projectedBundle?.messages || bundle?.messages || [];
   const messages = useMemo(
-    () => (bundle?.messages || [])
+    () => visibleMessages
       .map((message: AgentLocalMessageRecord) => toConversationMessageViewModel(message))
       .filter((message) => !isEmptyPendingAssistantMessage(message)),
-    [bundle?.messages],
+    [visibleMessages],
   );
   const streamState = useConversationStreamState(activeThreadId);
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;

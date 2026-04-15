@@ -14,6 +14,7 @@ import type {
   AgentSubmitDriverState,
 } from './chat-agent-shell-submit-driver';
 import { bundleQueryKey, THREADS_QUERY_KEY, upsertThreadSummary } from './chat-agent-shell-core';
+import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
 import { feedStreamEvent } from '../turns/stream-controller';
 
 type UseAgentConversationEffectsInput = {
@@ -71,6 +72,7 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
   const applyHostInteractionPatch = useCallback((threadId: string, patch: AgentHostInteractionPatch) => {
     setThreadsCache((current) => upsertThreadSummary(current, patch.bundle.thread));
     input.queryClient.setQueryData(bundleQueryKey(threadId), patch.bundle);
+    setAgentVisibleProjection(threadId, null);
     input.currentDraftTextRef.current = patch.draftText;
     input.setSelection(patch.selection);
     setFooterHostState(threadId, {
@@ -82,6 +84,9 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
   const applyDriverEffects = useCallback((threadId: string, effects: AgentSubmitDriverEffectQueue): AgentSubmitDriverState => {
     for (const streamEffect of effects.streamEffects) {
       feedStreamEvent(threadId, streamEffect);
+    }
+    if (effects.projectionEffect !== undefined) {
+      setAgentVisibleProjection(threadId, effects.projectionEffect);
     }
     for (const bundleEffect of effects.bundleEffects) {
       input.queryClient.setQueryData(bundleQueryKey(threadId), bundleEffect);

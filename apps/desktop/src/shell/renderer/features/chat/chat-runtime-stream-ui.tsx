@@ -49,10 +49,8 @@ export function useConversationStreamState(chatId: string | null): StreamState |
       return;
     }
     setState(getStreamState(chatId));
-    return subscribeStream((updated) => {
-      if (updated.chatId === chatId) {
-        setState({ ...updated });
-      }
+    return subscribeStream(chatId, (updated) => {
+      setState({ ...updated });
     });
   }, [chatId]);
 

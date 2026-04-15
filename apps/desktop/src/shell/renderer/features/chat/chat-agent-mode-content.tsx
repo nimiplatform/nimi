@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CanonicalConversationShell,
   type ConversationSetupAction,
   type ConversationTargetSummary,
 } from '@nimiplatform/nimi-kit/features/chat';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { useRuntimeConfigPanelController } from '@renderer/features/runtime-config/runtime-config-panel-controller';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
 import { ChatRightPanelCharacterRail } from './chat-right-panel-character-rail';
 import { ChatRightPanelSettings } from './chat-right-panel-settings';
@@ -29,6 +28,7 @@ export function ChatAgentModeContent({
   onSetupAction,
   onSelectTarget,
 }: ChatAgentModeContentProps) {
+  const [diagnosticsSectionVisible, setDiagnosticsSectionVisible] = useState(false);
   const authStatus = useAppStore((state) => state.auth.status);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
   const setChatViewMode = useAppStore((state) => state.setChatViewMode);
@@ -39,10 +39,11 @@ export function ChatAgentModeContent({
   const lastSelectedAgentThread = useAppStore((state) => state.lastSelectedThreadByMode.agent ?? null);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.agent ?? null);
 
-  const runtimeConfigController = useRuntimeConfigPanelController();
   const host = useAgentConversationModeHost({
     authStatus,
-    runtimeConfigState: runtimeConfigController.state,
+    diagnosticsVisible: rightPanelMode === 'settings' && !rightPanelFolded && diagnosticsSectionVisible,
+    onDiagnosticsVisibilityChange: setDiagnosticsSectionVisible,
+    runtimeConfigState: null,
     runtimeFields,
     selection: agentConversationSelection,
     lastSelectedThreadId: lastSelectedAgentThread,
@@ -70,6 +71,12 @@ export function ChatAgentModeContent({
     }
     setSelectedTargetForSource('agent', host.selectedTargetId);
   }, [host.selectedTargetId, setSelectedTargetForSource, storeSelectedTargetId]);
+  useEffect(() => {
+    if (rightPanelMode === 'settings' && !rightPanelFolded) {
+      return;
+    }
+    setDiagnosticsSectionVisible(false);
+  }, [rightPanelFolded, rightPanelMode]);
 
   const selectedTargetId = storeSelectedTargetId || host.selectedTargetId || null;
   const selectedTarget = useMemo(

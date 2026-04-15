@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -24,6 +24,7 @@ type ChatSettingsPanelProps = {
   diagnosticsContent?: ReactNode;
   presenceContent?: ReactNode;
   unavailableReason?: string;
+  onDiagnosticsVisibilityChange?: (visible: boolean) => void;
 };
 
 const SCHEDULING_STYLE: Record<string, { border: string; bg: string; text: string; icon: string }> = {
@@ -122,8 +123,15 @@ function HumanModeSettings(props: {
   modelPickerContent?: ReactNode;
   diagnosticsContent?: ReactNode;
   unavailableReason: string;
+  onDiagnosticsVisibilityChange?: (visible: boolean) => void;
 }) {
   const { t } = useTranslation();
+  useEffect(() => {
+    props.onDiagnosticsVisibilityChange?.(true);
+    return () => {
+      props.onDiagnosticsVisibilityChange?.(false);
+    };
+  }, [props.onDiagnosticsVisibilityChange]);
   const sections: ModelConfigSection[] = [
     {
       id: 'chat',
@@ -149,6 +157,7 @@ function AiModeSettings(props: {
   headerSlot?: ReactNode;
   diagnosticsContent?: ReactNode;
   unavailableReason: string;
+  onDiagnosticsVisibilityChange?: (visible: boolean) => void;
 }) {
   const { t } = useTranslation();
   const aiConfig = useAppStore((state) => state.aiConfig);
@@ -175,6 +184,13 @@ function AiModeSettings(props: {
   const diagnosticsNode = props.diagnosticsContent || (
     <DisabledSettingsNote label={props.unavailableReason} />
   );
+
+  useEffect(() => {
+    props.onDiagnosticsVisibilityChange?.(activeModuleId === 'diagnostics');
+    return () => {
+      props.onDiagnosticsVisibilityChange?.(false);
+    };
+  }, [activeModuleId, props.onDiagnosticsVisibilityChange]);
 
   if (activeModuleId) {
     return (
@@ -221,6 +237,7 @@ export function ChatSettingsPanel({
   modelPickerContent,
   diagnosticsContent,
   unavailableReason,
+  onDiagnosticsVisibilityChange,
 }: ChatSettingsPanelProps) {
   const { t } = useTranslation();
   const resolvedUnavailableReason = unavailableReason || t('Chat.settingsUnavailableReason', {
@@ -233,6 +250,7 @@ export function ChatSettingsPanel({
         headerSlot={headerSlot}
         diagnosticsContent={diagnosticsContent}
         unavailableReason={resolvedUnavailableReason}
+        onDiagnosticsVisibilityChange={onDiagnosticsVisibilityChange}
       />
     );
   }
@@ -244,6 +262,7 @@ export function ChatSettingsPanel({
         modelPickerContent={modelPickerContent}
         diagnosticsContent={diagnosticsContent}
         unavailableReason={resolvedUnavailableReason}
+        onDiagnosticsVisibilityChange={onDiagnosticsVisibilityChange}
       />
     </div>
   );

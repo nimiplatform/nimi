@@ -141,11 +141,13 @@ const VISIBLE_BUNDLE_FLUSH_TEXT = ' visible tail keeps bundle flushes on thresho
 function effectKinds(input: {
   streamEffects: unknown[];
   bundleEffects: unknown[];
+  projectionEffect?: unknown;
   hostPatchEffect: unknown | null;
 }): string[] {
   return [
     ...input.streamEffects.map(() => 'stream'),
     ...input.bundleEffects.map(() => 'bundle'),
+    ...(input.projectionEffect ? ['projection'] : []),
     ...(input.hostPatchEffect ? ['host'] : []),
   ];
 }
@@ -188,7 +190,7 @@ test('agent submit driver emits stream effects before bundle effects across reas
     updatedAtMs: 130,
   });
   state = firstBeat.finalSession;
-  assert.deepEqual(effectKinds(firstBeat), ['bundle']);
+  assert.deepEqual(effectKinds(firstBeat), ['bundle', 'projection']);
 
   const postFirstBeatText = reduceAgentSubmitDriverEvent({
     state,
@@ -199,9 +201,9 @@ test('agent submit driver emits stream effects before bundle effects across reas
     },
     updatedAtMs: 140,
   });
-  assert.deepEqual(effectKinds(postFirstBeatText), ['stream', 'bundle']);
+  assert.deepEqual(effectKinds(postFirstBeatText), ['stream', 'projection']);
   assert.equal(
-    postFirstBeatText.bundleEffects[0]?.messages.at(-1)?.contentText,
+    postFirstBeatText.projectionEffect?.messages.at(-1)?.contentText,
     `sealed first beat${VISIBLE_BUNDLE_FLUSH_TEXT}`,
   );
 });
@@ -255,7 +257,8 @@ test('agent submit driver accepts projection refresh in running state and keeps 
     },
     updatedAtMs: 150,
   });
-  assert.equal(staleDelta.bundleEffects[0]?.messages.at(-1)?.contentText, 'authoritative projection');
+  assert.deepEqual(effectKinds(staleDelta), ['stream', 'projection']);
+  assert.equal(staleDelta.projectionEffect?.messages.at(-1)?.contentText, 'authoritative projection');
 });
 
 test('agent submit driver applies projection refresh after completed terminal for follow-up commits', () => {

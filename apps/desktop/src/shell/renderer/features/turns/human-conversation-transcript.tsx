@@ -41,10 +41,8 @@ function useStreamState(chatId: string | null): StreamState | null {
       return;
     }
     setState(getStreamState(chatId));
-    return subscribeStream((updated) => {
-      if (updated.chatId === chatId) {
-        setState({ ...updated });
-      }
+    return subscribeStream(chatId, (updated) => {
+      setState({ ...updated });
     });
   }, [chatId]);
 

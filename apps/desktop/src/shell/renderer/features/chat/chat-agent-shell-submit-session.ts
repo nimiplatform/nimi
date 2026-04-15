@@ -48,6 +48,8 @@ export type AgentSubmitSessionStep = {
   state: AgentSubmitSessionState;
   streamEvent?: StreamEvent;
   visibleBundle?: AgentLocalThreadBundle;
+  projectionBundle?: AgentLocalThreadBundle;
+  persistedBundle?: AgentLocalThreadBundle;
 };
 
 export type AgentSubmitSessionProjectionRefreshResult = {
@@ -198,6 +200,7 @@ export function reduceAgentSubmitSessionEvent(
           workingBundle: pendingImageBundle,
         },
         visibleBundle: pendingImageBundle,
+        projectionBundle: pendingImageBundle,
       };
     }
     case 'reasoning-delta':
@@ -251,7 +254,8 @@ export function reduceAgentSubmitSessionEvent(
           type: 'text_delta',
           textDelta: input.event.textDelta,
         },
-        visibleBundle,
+        visibleBundle: visibleBundle,
+        projectionBundle: visibleBundle,
       };
     }
     case 'message-sealed': {
@@ -272,7 +276,9 @@ export function reduceAgentSubmitSessionEvent(
           streamedText: sealedText,
           workingBundle: visibleBundle,
         },
-        visibleBundle,
+        visibleBundle: visibleBundle,
+        projectionBundle: visibleBundle,
+        persistedBundle: visibleBundle,
       };
     }
     case 'projection-rebuilt':

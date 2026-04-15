@@ -23,6 +23,7 @@ export type AgentSubmitDriverEffectQueue = {
   finalSession: AgentSubmitDriverState;
   streamEffects: StreamEvent[];
   bundleEffects: AgentLocalThreadBundle[];
+  projectionEffect?: AgentLocalThreadBundle | null;
   hostPatchEffect: AgentHostInteractionPatch | null;
   awaitRefresh: {
     requestedProjectionVersion: string;
@@ -33,6 +34,7 @@ function createEffectQueue(input: {
   finalSession: AgentSubmitDriverState;
   streamEffects?: StreamEvent[];
   bundleEffects?: AgentLocalThreadBundle[];
+  projectionEffect?: AgentLocalThreadBundle | null;
   hostPatchEffect?: AgentHostInteractionPatch | null;
   awaitRefresh?: {
     requestedProjectionVersion: string;
@@ -42,6 +44,7 @@ function createEffectQueue(input: {
     finalSession: input.finalSession,
     streamEffects: input.streamEffects || [],
     bundleEffects: input.bundleEffects || [],
+    projectionEffect: input.projectionEffect,
     hostPatchEffect: input.hostPatchEffect || null,
     awaitRefresh: input.awaitRefresh || null,
   };
@@ -69,7 +72,8 @@ export function reduceAgentSubmitDriverEvent(input: {
   return createEffectQueue({
     finalSession: nextStep.state,
     streamEffects: nextStep.streamEvent ? [nextStep.streamEvent] : [],
-    bundleEffects: nextStep.visibleBundle ? [nextStep.visibleBundle] : [],
+    bundleEffects: nextStep.persistedBundle ? [nextStep.persistedBundle] : [],
+    projectionEffect: nextStep.projectionBundle,
     awaitRefresh: input.event.type === 'projection-rebuilt'
       ? { requestedProjectionVersion: input.event.projectionVersion }
       : null,
@@ -92,6 +96,7 @@ export function resolveAgentSubmitDriverProjectionRefresh(input: {
   });
   return createEffectQueue({
     finalSession: refreshOutcome.state,
+    projectionEffect: null,
     hostPatchEffect: refreshOutcome.hostInteractionPatch,
   });
 }
@@ -108,6 +113,7 @@ export function resolveCompletedAgentSubmitDriverCheckpoint(input: {
   });
   return createEffectQueue({
     finalSession: completed.state,
+    projectionEffect: null,
     hostPatchEffect: completed.hostInteractionPatch,
   });
 }
@@ -131,6 +137,7 @@ export function resolveInterruptedAgentSubmitDriverCheckpoint(input: {
   return createEffectQueue({
     finalSession: interrupted.state,
     streamEffects: interrupted.errorStreamEvent ? [interrupted.errorStreamEvent] : [],
+    projectionEffect: null,
     hostPatchEffect: interrupted.hostInteractionPatch,
   });
 }

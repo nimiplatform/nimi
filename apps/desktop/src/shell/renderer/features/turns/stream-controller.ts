@@ -49,7 +49,7 @@ const firstPacketTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const totalTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const terminalCleanupTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const listeners = new Set<StreamListener>();
+const listenersByChatId = new Map<string, Set<StreamListener>>();
 
 function emptyState(chatId: string): StreamState {
   return {
@@ -70,6 +70,13 @@ function emptyState(chatId: string): StreamState {
 }
 
 function notify(state: StreamState) {
+  const listeners = [
+    ...(listenersByChatId.get(state.chatId) || []),
+    ...(listenersByChatId.get('*') || []),
+  ];
+  if (listeners.length === 0) {
+    return;
+  }
   for (const listener of listeners) {
     try {
       listener(state);
@@ -150,9 +157,33 @@ export function getStreamState(chatId: string): StreamState {
   return activeStreams.get(chatId) || emptyState(chatId);
 }
 
-export function subscribeStream(listener: StreamListener): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+export function subscribeStream(chatId: string, listener: StreamListener): () => void;
+export function subscribeStream(listener: StreamListener): () => void;
+export function subscribeStream(
+  chatIdOrListener: string | StreamListener,
+  maybeListener?: StreamListener,
+): () => void {
+  const chatId = typeof chatIdOrListener === 'string' ? chatIdOrListener : '*';
+  const listener = typeof chatIdOrListener === 'function' ? chatIdOrListener : maybeListener;
+  if (!listener) {
+    return () => undefined;
+  }
+  const currentListeners = listenersByChatId.get(chatId);
+  if (currentListeners) {
+    currentListeners.add(listener);
+  } else {
+    listenersByChatId.set(chatId, new Set([listener]));
+  }
+  return () => {
+    const activeListeners = listenersByChatId.get(chatId);
+    if (!activeListeners) {
+      return;
+    }
+    activeListeners.delete(listener);
+    if (activeListeners.size === 0) {
+      listenersByChatId.delete(chatId);
+    }
+  };
 }
 
 export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_TIMEOUT_MS): AbortController {
@@ -473,5 +504,5 @@ export function clearAllStreams() {
   for (const chatId of Array.from(activeStreams.keys())) {
     clearStream(chatId);
   }
-  listeners.clear();
+  listenersByChatId.clear();
 }
