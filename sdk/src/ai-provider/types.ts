@@ -3,7 +3,7 @@ import type {
   ImageModelV3,
   LanguageModelV3,
 } from '@ai-sdk/provider';
-import type { Runtime, RuntimeCallOptions } from '../runtime/index.js';
+import type { Runtime, RuntimeCallOptions } from '../runtime/browser.js';
 import type { AiRoutePolicy } from '../types/index.js';
 
 export const ROUTE_POLICY_LOCAL = 1;

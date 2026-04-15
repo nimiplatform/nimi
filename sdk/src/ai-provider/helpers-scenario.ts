@@ -2,7 +2,7 @@ import {
   asNimiError,
   createNimiError,
   type RuntimeAiSubmitScenarioJobRequestInput,
-} from '../runtime/index.js';
+} from '../runtime/browser.js';
 import type {
   Value as ProtoValue,
 } from '../runtime/generated/google/protobuf/struct.js';

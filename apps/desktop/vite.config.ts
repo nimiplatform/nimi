@@ -132,7 +132,7 @@ export default defineConfig(({ mode }) => {
         { find: '@nimiplatform/sdk/mod/lifecycle', replacement: path.resolve(__dirname, '../../sdk/src/mod/lifecycle.ts') },
         { find: '@nimiplatform/sdk/mod/shell', replacement: path.resolve(__dirname, '../../sdk/src/mod/shell.ts') },
         { find: '@nimiplatform/sdk/mod/storage', replacement: path.resolve(__dirname, '../../sdk/src/mod/storage/index.ts') },
-        { find: '@nimiplatform/sdk/mod', replacement: path.resolve(__dirname, '../../sdk/src/mod/index.ts') },
+        { find: '@nimiplatform/sdk/mod', replacement: path.resolve(__dirname, '../../sdk/src/mod/browser.ts') },
         { find: '@nimiplatform/sdk', replacement: path.resolve(__dirname, '../../sdk/src/index.ts') },
         { find: '@nimiplatform/nimi-kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
         { find: '@nimiplatform/nimi-kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src') },
@@ -157,6 +157,9 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: path.resolve(__dirname, 'dist'),
       emptyOutDir: true,
+      modulePreload: {
+        resolveDependencies: (_filename, deps) => deps.filter((dep) => !dep.includes('vendor-three-core')),
+      },
       sourcemap: true,
       rollupOptions: {
         input: {
@@ -165,15 +168,6 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             const normalizedId = id.split(path.sep).join('/');
-            if (normalizedId.includes('/sdk/src/runtime/transports/node-grpc-impl.')) {
-              return 'sdk-node-grpc';
-            }
-            if (
-              normalizedId.includes('/node_modules/.pnpm/@grpc+grpc-js@')
-              || normalizedId.includes('/node_modules/.pnpm/@grpc+proto-loader@')
-            ) {
-              return 'sdk-node-grpc';
-            }
             if (normalizedId.includes('/sdk/src/runtime/generated/')) {
               return 'vendor-sdk-runtime-generated';
             }
@@ -198,7 +192,7 @@ export default defineConfig(({ mode }) => {
               return undefined;
             }
             if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
-              return 'vendor-react';
+              return 'vendor-misc';
             }
             if (id.includes('/react-router') || id.includes('/@remix-run/router/')) {
               return 'vendor-router';
@@ -219,6 +213,10 @@ export default defineConfig(({ mode }) => {
               id.includes('/@react-three/')
               || id.includes('/postprocessing/')
               || id.includes('/three-stdlib/')
+              || id.includes('/troika-three-text/')
+              || id.includes('/troika-three-utils/')
+              || id.includes('/maath/')
+              || id.includes('/@monogrid/gainmap-js/')
             ) {
               return 'vendor-three-react';
             }

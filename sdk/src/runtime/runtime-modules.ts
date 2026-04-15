@@ -7,7 +7,6 @@ import {
   runtimeGenerateEmbedding,
 } from './runtime-ai-text.js';
 import { FallbackPolicy } from './generated/runtime/v1/ai.js';
-import { runtimeUploadArtifact } from './runtime-ai-upload.js';
 import {
   runtimeSubmitScenarioJobForMedia,
   runtimeGetScenarioJobForMedia,
@@ -59,6 +58,7 @@ import type { RuntimeInternalContext } from './internal-context.js';
 type RuntimeInvokeWithClient = <T>(operation: (client: RuntimeClient) => Promise<T>) => Promise<T>;
 
 type RuntimeInvoke = <T>(operation: () => Promise<T>) => Promise<T>;
+type RuntimeAiUploadModule = typeof import('./runtime-ai-upload.js');
 
 type RuntimePassthroughModuleKey =
   'auth'
@@ -88,6 +88,18 @@ type RuntimeAuthEventEmitter = {
 };
 
 type RuntimeTelemetryEmitter = (name: string, data?: JsonObject) => void;
+
+let runtimeAiUploadModulePromise: Promise<RuntimeAiUploadModule> | null = null;
+
+function loadRuntimeAiUploadModule(): Promise<RuntimeAiUploadModule> {
+  if (!runtimeAiUploadModulePromise) {
+    const dynamicImport = new Function('specifier', 'return import(specifier)') as (
+      specifier: string,
+    ) => Promise<RuntimeAiUploadModule>;
+    runtimeAiUploadModulePromise = dynamicImport('./runtime-ai-upload.js');
+  }
+  return runtimeAiUploadModulePromise;
+}
 
 export type RuntimeCorePassthroughClients = {
   auth: RuntimeAuthClient;
@@ -545,11 +557,14 @@ export function createAiModule(
     listPresetVoices: async (request, optionsValue) => invokeWithClient(
       async (client) => client.ai.listPresetVoices(request, optionsValue),
     ),
-    uploadArtifact: async (uploadInput, optionsValue) => runtimeUploadArtifact(
-      ctx,
-      uploadInput as RuntimeAiUploadArtifactInput,
-      optionsValue,
-    ),
+    uploadArtifact: async (uploadInput, optionsValue) => {
+      const module = await loadRuntimeAiUploadModule();
+      return module.runtimeUploadArtifact(
+        ctx,
+        uploadInput as RuntimeAiUploadArtifactInput,
+        optionsValue,
+      );
+    },
     openRealtimeSession: async (request, optionsValue) => {
       const normalizedRequest = await withScenarioHeadSubjectUserId(
         request as RuntimeAiOpenRealtimeSessionRequestInput,

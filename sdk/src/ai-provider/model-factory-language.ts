@@ -5,7 +5,7 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
-import { createNimiError } from '../runtime/index.js';
+import { createNimiError } from '../runtime/browser.js';
 import { ReasonCode } from '../types/index.js';
 import type {
   RuntimeDefaults,

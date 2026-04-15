@@ -3,7 +3,6 @@ import { ReasonCode } from '../../types/index.js';
 import {
   RuntimeMethodIds,
 } from '../method-ids.js';
-import { createNodeGrpcTransport } from '../transports/node-grpc.js';
 import { createTauriIpcTransport } from '../transports/tauri-ipc.js';
 import type {
   RuntimeCallOptions,
@@ -43,11 +42,50 @@ import type {
   RuntimeUnaryMethodCodec,
 } from './method-codecs.js';
 
+type NodeGrpcTransportModule = typeof import('../transports/node-grpc.js');
+
+let nodeGrpcTransportModulePromise: Promise<NodeGrpcTransportModule> | null = null;
+
+function loadNodeGrpcTransportModule(): Promise<NodeGrpcTransportModule> {
+  if (!nodeGrpcTransportModulePromise) {
+    const dynamicImport = new Function('specifier', 'return import(specifier)') as (
+      specifier: string,
+    ) => Promise<NodeGrpcTransportModule>;
+    nodeGrpcTransportModulePromise = dynamicImport('../transports/node-grpc.js');
+  }
+  return nodeGrpcTransportModulePromise;
+}
+
+function createDeferredNodeGrpcTransport(
+  config: Extract<RuntimeClientConfigInternal['transport'], { type: 'node-grpc' }>,
+): RuntimeTransport {
+  let transportPromise: Promise<RuntimeTransport> | null = null;
+  const ensureTransport = async (): Promise<RuntimeTransport> => {
+    if (!transportPromise) {
+      transportPromise = loadNodeGrpcTransportModule()
+        .then((module) => module.createNodeGrpcTransport(config));
+    }
+    return transportPromise;
+  };
+  return {
+    invokeUnary: async (input) => (await ensureTransport()).invokeUnary(input),
+    openStream: async (input) => (await ensureTransport()).openStream(input),
+    closeStream: async (input) => (await ensureTransport()).closeStream(input),
+    destroy: async () => {
+      if (!transportPromise) {
+        return;
+      }
+      const transport = await transportPromise;
+      await transport.destroy();
+    },
+  };
+}
+
 function createTransport(config: RuntimeClientConfigInternal): RuntimeTransport {
   if (config.transport.type === 'tauri-ipc') {
     return createTauriIpcTransport(config.transport);
   }
-  return createNodeGrpcTransport(config.transport);
+  return createDeferredNodeGrpcTransport(config.transport);
 }
 
 export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {

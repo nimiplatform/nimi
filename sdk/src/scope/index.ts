@@ -1,4 +1,4 @@
-import { createNimiError } from '../runtime/index.js';
+import { createNimiError } from '../runtime/browser.js';
 import { normalizeText } from '../runtime/helpers.js';
 import type {
   CatalogHash,

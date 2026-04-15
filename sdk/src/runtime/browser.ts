@@ -96,4 +96,4 @@ export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './gene
 export { createTauriIpcTransport } from './transports/tauri-ipc.js';
 export { createRuntimeProtectedScopeHelper } from './protected-access.js';
 export { toProtoStruct } from './helpers.js';
-export type { Runtime } from './runtime.js';
+export { Runtime } from './runtime.js';

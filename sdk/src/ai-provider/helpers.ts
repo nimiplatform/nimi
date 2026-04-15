@@ -9,7 +9,7 @@ import {
   Runtime,
   type RuntimeCallOptions,
   type RuntimeStreamCallOptions,
-} from '../runtime/index.js';
+} from '../runtime/browser.js';
 import {
   Struct,
 } from '../runtime/generated/google/protobuf/struct.js';
