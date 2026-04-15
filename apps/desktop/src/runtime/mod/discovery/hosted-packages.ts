@@ -15,7 +15,6 @@ import * as reactModule from 'react';
 import * as reactDomModule from 'react-dom';
 import * as reactI18nextModule from 'react-i18next';
 import * as reactJsxRuntimeModule from 'react/jsx-runtime';
-import * as zodModule from 'zod';
 import * as zustandModule from 'zustand';
 
 const HOSTED_PACKAGE_REGISTRY_KEY = '__NIMI_HOSTED_MOD_PACKAGES__';
@@ -28,7 +27,8 @@ const HOSTED_PACKAGE_MODULES = new Map<string, Record<string, unknown>>([
   ['@tanstack/react-query', reactQueryModule],
   ['i18next', i18nextModule],
   ['react-i18next', reactI18nextModule],
-  ['zod', zodModule],
+  // 'zod' is populated lazily by ensureHostedPackagesReady() to keep
+  // vendor-data (371 KB) out of the main entry's static dependency graph.
   ['zustand', zustandModule],
   ['@nimiplatform/sdk', sdkRootModule],
   ['@nimiplatform/sdk/realm', sdkRealmModule],
@@ -78,6 +78,19 @@ function buildHostedPackageModuleSource(specifier: string, moduleNamespace: Reco
     ...exportLines,
     'export default module.default;',
   ].join('\n');
+}
+
+let hostedPackagesReadyPromise: Promise<void> | null = null;
+
+/** Lazily populate heavy hosted-package entries (zod, etc.) that are not
+ *  needed at startup.  Must be awaited before the first mod-load attempt. */
+export async function ensureHostedPackagesReady(): Promise<void> {
+  if (!hostedPackagesReadyPromise) {
+    hostedPackagesReadyPromise = import('zod').then((zodModule) => {
+      HOSTED_PACKAGE_MODULES.set('zod', zodModule);
+    });
+  }
+  await hostedPackagesReadyPromise;
 }
 
 export function resolveHostedPackageImportUrl(specifier: string): string | null {

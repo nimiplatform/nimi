@@ -1,13 +1,35 @@
 import React, { Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
-import { i18n, initI18n } from '@renderer/i18n';
 import '@renderer/styles.css';
-import { bindRuntimeI18n } from "@nimiplatform/sdk/mod";
-import { installSdkTauriRuntimeHook } from '@runtime/tauri-api';
-import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
+
+// All runtime modules are lazy-imported to keep vendor-data and
+// runtime-bridge out of the main entry's static dependency graph.
+// They resolve concurrently with the lazy App chunk — well before
+// App mounts and makes its first SDK / i18n call.
+const runtimeReady = Promise.all([
+    import('@runtime/tauri-api'),
+    import('@nimiplatform/sdk/mod'),
+    import('@renderer/i18n'),
+]).then(([tauriApi, sdkMod, i18nMod]) => {
+    tauriApi.installSdkTauriRuntimeHook();
+    sdkMod.bindRuntimeI18n(i18nMod.i18n);
+    return i18nMod;
+});
+
+function pingSmokeAsync(event: string, payload?: Record<string, unknown>): void {
+    void import('@renderer/bridge/runtime-bridge/macos-smoke')
+        .then((m) => m.pingDesktopMacosSmoke(event, payload))
+        .catch(() => {});
+}
+
 const App = lazy(async () => {
-    const mod = await import('@renderer/App');
+    // Start loading the App chunk immediately — in parallel with runtime
+    // hooks and i18n init — so the download overlaps with setup work.
+    const appPromise = import('@renderer/App');
+    const i18nMod = await runtimeReady;
+    await i18nMod.initI18n();
+    const mod = await appPromise;
     return { default: mod.default };
 });
 if (!import.meta.env.DEV) {
@@ -17,31 +39,30 @@ const rootElement = document.getElementById('root');
 if (!rootElement) {
     throw new Error('ROOT_MOUNT_NODE_MISSING');
 }
-installSdkTauriRuntimeHook();
-bindRuntimeI18n(i18n);
-void pingDesktopMacosSmoke('renderer-main-entry').catch(() => {});
+pingSmokeAsync('renderer-main-entry');
 window.addEventListener('error', (event) => {
-    void pingDesktopMacosSmoke('window-page-error', {
+    pingSmokeAsync('window-page-error', {
       message: event.message || '',
       filename: event.filename || '',
       lineno: event.lineno || 0,
       colno: event.colno || 0,
-    }).catch(() => {});
+    });
 });
 window.addEventListener('unhandledrejection', (event) => {
     const reason = event.reason instanceof Error
       ? event.reason.message
       : String(event.reason || 'unhandled rejection');
-    void pingDesktopMacosSmoke('window-page-error', {
+    pingSmokeAsync('window-page-error', {
       message: reason,
       type: 'unhandledrejection',
-    }).catch(() => {});
+    });
 });
-initI18n().finally(() => {
-    createRoot(rootElement).render(<Suspense fallback={null}>
-      <NimiThemeProvider accentPack="desktop-accent" defaultScheme="light">
-        <App />
-      </NimiThemeProvider>
-    </Suspense>);
-    void pingDesktopMacosSmoke('renderer-root-mounted').catch(() => {});
-});
+
+// Mount the root immediately — Suspense shows nothing until the lazy
+// App resolves (which awaits runtime hooks + i18n init internally).
+createRoot(rootElement).render(<Suspense fallback={null}>
+  <NimiThemeProvider accentPack="desktop-accent" defaultScheme="light">
+    <App />
+  </NimiThemeProvider>
+</Suspense>);
+pingSmokeAsync('renderer-root-mounted');

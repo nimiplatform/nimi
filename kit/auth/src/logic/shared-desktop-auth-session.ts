@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 const DESKTOP_AUTH_SESSION_FALLBACK_TTL_MS = 60 * 60 * 1000;
 
 export type SharedDesktopAuthUser = {
@@ -42,21 +40,64 @@ export type PersistSharedDesktopAuthSessionInput = {
   clearSession: () => Promise<void>;
 };
 
-const sharedDesktopAuthUserSchema = z.object({
-  id: z.string(),
-  displayName: z.string(),
-  email: z.string().optional(),
-  avatarUrl: z.string().optional(),
-});
+// Inline validators replacing zod schemas to keep vendor-data (371 KB)
+// out of the startup static dependency graph.  The original schemas were:
+//   z.object({ id: z.string(), displayName: z.string(), email: z.string().optional(), avatarUrl: z.string().optional() })
+//   z.object({ realmBaseUrl: z.string(), user: <above>.nullable().optional(), accessToken: z.string(), refreshToken: z.string().optional(), updatedAt: z.string(), expiresAt: z.string().optional() })
 
-const sharedDesktopAuthSessionSchema = z.object({
-  realmBaseUrl: z.string(),
-  user: sharedDesktopAuthUserSchema.nullable().optional(),
-  accessToken: z.string(),
-  refreshToken: z.string().optional(),
-  updatedAt: z.string(),
-  expiresAt: z.string().optional(),
-});
+type SafeParseResult<T> = { success: true; data: T } | { success: false };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function safeParseAuthUser(value: unknown): SafeParseResult<SharedDesktopAuthUser> {
+  if (!isRecord(value)) return { success: false };
+  if (typeof value.id !== 'string' || typeof value.displayName !== 'string') return { success: false };
+  if (value.email !== undefined && typeof value.email !== 'string') return { success: false };
+  if (value.avatarUrl !== undefined && typeof value.avatarUrl !== 'string') return { success: false };
+  const result: SharedDesktopAuthUser = { id: value.id, displayName: value.displayName };
+  if (typeof value.email === 'string') result.email = value.email;
+  if (typeof value.avatarUrl === 'string') result.avatarUrl = value.avatarUrl;
+  return { success: true, data: result };
+}
+
+function safeParseAuthSession(value: unknown): SafeParseResult<{
+  realmBaseUrl: string;
+  user?: SharedDesktopAuthUser | null;
+  accessToken: string;
+  refreshToken?: string;
+  updatedAt: string;
+  expiresAt?: string;
+}> {
+  if (!isRecord(value)) return { success: false };
+  if (typeof value.realmBaseUrl !== 'string') return { success: false };
+  if (typeof value.accessToken !== 'string') return { success: false };
+  if (typeof value.updatedAt !== 'string') return { success: false };
+  if (value.refreshToken !== undefined && typeof value.refreshToken !== 'string') return { success: false };
+  if (value.expiresAt !== undefined && typeof value.expiresAt !== 'string') return { success: false };
+
+  let user: SharedDesktopAuthUser | null | undefined;
+  if (value.user === null || value.user === undefined) {
+    user = value.user ?? undefined;
+  } else {
+    const userResult = safeParseAuthUser(value.user);
+    if (!userResult.success) return { success: false };
+    user = userResult.data;
+  }
+
+  return {
+    success: true,
+    data: {
+      realmBaseUrl: value.realmBaseUrl,
+      accessToken: value.accessToken,
+      updatedAt: value.updatedAt,
+      ...(user !== undefined ? { user } : {}),
+      ...(typeof value.refreshToken === 'string' ? { refreshToken: value.refreshToken } : {}),
+      ...(typeof value.expiresAt === 'string' ? { expiresAt: value.expiresAt } : {}),
+    },
+  };
+}
 
 function normalizeRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -156,7 +197,7 @@ export function createSharedDesktopAuthSession(input: {
 }
 
 export function parseSharedDesktopAuthSession(value: unknown): SharedDesktopAuthSession {
-  const parsed = sharedDesktopAuthSessionSchema.safeParse(value);
+  const parsed = safeParseAuthSession(value);
   if (!parsed.success) {
     throw new Error('desktop auth session payload is invalid');
   }

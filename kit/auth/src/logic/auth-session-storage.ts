@@ -1,5 +1,4 @@
 import { isWebShellMode } from '@nimiplatform/nimi-kit/core/shell-mode';
-import { z } from 'zod';
 import { resolveSessionExpiry } from './shared-desktop-auth-session.js';
 
 export const WEB_AUTH_SESSION_KEY = 'nimi.web.auth.session.v1';
@@ -10,11 +9,38 @@ export type PersistedWebAuthSession = {
   expiresAt?: string;
 };
 
-const persistedWebAuthSessionSchema = z.object({
-  user: z.record(z.string(), z.unknown()).nullable().optional(),
-  updatedAt: z.string().optional(),
-  expiresAt: z.string().optional(),
-});
+// Inline validator replacing:
+//   z.object({ user: z.record(z.string(), z.unknown()).nullable().optional(), updatedAt: z.string().optional(), expiresAt: z.string().optional() })
+function safeParsePersistedWebAuthSession(
+  value: unknown,
+): { success: true; data: { user?: Record<string, unknown> | null; updatedAt?: string; expiresAt?: string } } | { success: false } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { success: false };
+  }
+  const record = value as Record<string, unknown>;
+  if (record.updatedAt !== undefined && typeof record.updatedAt !== 'string') return { success: false };
+  if (record.expiresAt !== undefined && typeof record.expiresAt !== 'string') return { success: false };
+
+  let user: Record<string, unknown> | null | undefined;
+  if (record.user === null) {
+    user = null;
+  } else if (record.user === undefined) {
+    user = undefined;
+  } else if (typeof record.user === 'object' && !Array.isArray(record.user)) {
+    user = record.user as Record<string, unknown>;
+  } else {
+    return { success: false };
+  }
+
+  return {
+    success: true,
+    data: {
+      ...(user !== undefined ? { user } : {}),
+      ...(typeof record.updatedAt === 'string' ? { updatedAt: record.updatedAt } : {}),
+      ...(typeof record.expiresAt === 'string' ? { expiresAt: record.expiresAt } : {}),
+    },
+  };
+}
 
 function hasLocalStorage(): boolean {
   return typeof globalThis !== 'undefined' && typeof globalThis.localStorage !== 'undefined';
@@ -63,7 +89,7 @@ export function loadPersistedAuthSession(): PersistedWebAuthSession | null {
     const raw = globalThis.localStorage.getItem(WEB_AUTH_SESSION_KEY);
     if (!raw) return null;
     const rawPayload = JSON.parse(raw) as Record<string, unknown>;
-    const parsed = persistedWebAuthSessionSchema.safeParse(rawPayload);
+    const parsed = safeParsePersistedWebAuthSession(rawPayload);
     if (!parsed.success) {
       clearStoredAuthSession();
       return null;

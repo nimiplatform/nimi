@@ -3,6 +3,7 @@ import {
   loadRuntimeModFactoryFromEntryPath,
   loadRuntimeModFactoryFromSource,
 } from '../module-loader';
+import { ensureHostedPackagesReady } from '../hosted-packages';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export type LoadSideloadFactoryResult =
@@ -23,6 +24,10 @@ export async function loadSideloadRuntimeModFactory(input: {
   entryPath: string;
   readEntry: (entryPath: string) => Promise<string>;
 }): Promise<LoadSideloadFactoryResult> {
+  // Ensure lazily-loaded hosted packages (zod, etc.) are available
+  // before resolving any mod import specifiers.
+  await ensureHostedPackagesReady();
+
   const normalizeErrorMessage = (error: unknown): string =>
     error instanceof Error ? error.message : String(error || '');
 
