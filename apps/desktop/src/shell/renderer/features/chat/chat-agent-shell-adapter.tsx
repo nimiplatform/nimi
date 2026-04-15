@@ -140,6 +140,10 @@ export function useAgentConversationModeHost(
   const [runtimeInspectLoading, setRuntimeInspectLoading] = useState(false);
   const [recentRuntimeEvents, setRecentRuntimeEvents] = useState<readonly RuntimeAgentInspectEventSummary[]>([]);
   const [mutationPendingAction, setMutationPendingAction] = useState<string | null>(null);
+  // Tracks the last agentId for which inspect was fetched — used only for
+  // detecting agent changes so we can eagerly clear stale data, NOT for
+  // skipping re-fetches on panel reopen.
+  const lastInspectFetchedAgentIdRef = useRef<string | null>(null);
   const runtimeAgentMemory = useMemo(() => createRuntimeAgentMemoryAdapter({
     getSubjectUserId: requireRuntimeSubjectUserId,
   }), []);
@@ -204,14 +208,17 @@ export function useAgentConversationModeHost(
     if (!normalizedAgentId || input.authStatus !== 'authenticated') {
       setRuntimeInspect(null);
       setRuntimeInspectLoading(false);
+      lastInspectFetchedAgentIdRef.current = null;
       return;
     }
     setRuntimeInspectLoading(true);
     try {
       const snapshot = await runtimeAgentInspect.getPublicInspect(normalizedAgentId);
       setRuntimeInspect(snapshot);
+      lastInspectFetchedAgentIdRef.current = normalizedAgentId;
     } catch (error) {
       setRuntimeInspect(null);
+      lastInspectFetchedAgentIdRef.current = null;
       if (options?.surfaceErrors) {
         reportHostError(error);
       } else {
@@ -320,8 +327,21 @@ export function useAgentConversationModeHost(
   useEffect(() => {
     let cancelled = false;
     const agentId = normalizeText(activeTarget?.agentId);
-    if (input.authStatus !== 'authenticated' || !agentId || !input.diagnosticsVisible) {
+    const cachedInspectAgentId = lastInspectFetchedAgentIdRef.current;
+    if (cachedInspectAgentId && cachedInspectAgentId !== agentId) {
       setRuntimeInspect(null);
+      setRecentRuntimeEvents([]);
+      lastInspectFetchedAgentIdRef.current = null;
+    }
+    if (input.authStatus !== 'authenticated' || !agentId || !input.diagnosticsVisible) {
+      // Only clear inspect data when the agent changes or auth is lost —
+      // preserve the cached snapshot across panel visibility toggles so the
+      // user sees stale data instantly on reopen instead of a blank flash.
+      // The fetch below still runs on every reopen to refresh it.
+      if (!agentId || input.authStatus !== 'authenticated') {
+        setRuntimeInspect(null);
+        lastInspectFetchedAgentIdRef.current = null;
+      }
       setRuntimeInspectLoading(false);
       setRecentRuntimeEvents([]);
       return () => {
@@ -335,6 +355,7 @@ export function useAgentConversationModeHost(
           return;
         }
         setRuntimeInspect(snapshot);
+        lastInspectFetchedAgentIdRef.current = agentId;
         setRecentRuntimeEvents([]);
       })
       .catch((error) => {
@@ -342,6 +363,7 @@ export function useAgentConversationModeHost(
           return;
         }
         setRuntimeInspect(null);
+        lastInspectFetchedAgentIdRef.current = null;
         logRendererEvent({
           level: 'warn',
           area: 'agent-chat-shell',
@@ -360,26 +382,56 @@ export function useAgentConversationModeHost(
       cancelled = true;
     };
   }, [activeTarget?.agentId, input.authStatus, input.diagnosticsVisible, runtimeAgentInspect]);
+  // Coalesce event-driven state updates: buffer incoming events and flush at
+  // most once per EVENTS_COALESCE_MS to reduce re-render frequency while the
+  // diagnostics panel is open.  The subscription itself stays active whenever
+  // diagnosticsVisible is true so all users see the same data — only the
+  // render cadence is throttled.
   useEffect(() => {
     const agentId = normalizeText(activeTarget?.agentId);
     if (input.authStatus !== 'authenticated' || !agentId || !input.diagnosticsVisible) {
       setRecentRuntimeEvents([]);
       return;
     }
+    const EVENTS_COALESCE_MS = 2_000;
     const controller = new AbortController();
+    let pendingEvents: RuntimeAgentInspectEventSummary[] = [];
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    const flush = () => {
+      flushTimer = null;
+      const batch = pendingEvents;
+      pendingEvents = [];
+      if (batch.length === 0) {
+        return;
+      }
+      setRecentRuntimeEvents((current) => {
+        let next = [...current];
+        for (const event of batch) {
+          if (next.length > 0 && next[0]?.sequence === event.sequence) {
+            continue;
+          }
+          next = [event, ...next.filter((item) => item.sequence !== event.sequence)];
+        }
+        const sliced = next.slice(0, 8);
+        // Referential-equality bailout: if nothing changed, return the
+        // existing array so React skips the re-render.
+        if (
+          sliced.length === current.length
+          && sliced.every((item, i) => item === current[i])
+        ) {
+          return current;
+        }
+        return sliced;
+      });
+    };
     void runtimeAgentInspect.subscribePublicEvents({
       agentId,
       signal: controller.signal,
       onEvent: (event) => {
-        setRecentRuntimeEvents((current) => {
-          // Skip state update when the most recent entry already matches this
-          // sequence — avoids a redundant re-render on duplicate events.
-          if (current.length > 0 && current[0]?.sequence === event.sequence) {
-            return current;
-          }
-          const next = [event, ...current.filter((item) => item.sequence !== event.sequence)];
-          return next.slice(0, 8);
-        });
+        pendingEvents.push(event);
+        if (flushTimer === null) {
+          flushTimer = setTimeout(flush, EVENTS_COALESCE_MS);
+        }
       },
     }).catch((error) => {
       if (controller.signal.aborted) {
@@ -396,6 +448,9 @@ export function useAgentConversationModeHost(
     });
     return () => {
       controller.abort();
+      if (flushTimer !== null) {
+        clearTimeout(flushTimer);
+      }
     };
   }, [activeTarget?.agentId, input.authStatus, input.diagnosticsVisible, runtimeAgentInspect]);
   const handleEnableAutonomy = useCallback(() => {
