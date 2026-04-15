@@ -3,6 +3,8 @@ use std::fs;
 use std::net::{SocketAddr, TcpStream};
 use std::path::PathBuf;
 use std::time::Duration;
+use tokio::net::TcpStream as TokioTcpStream;
+use tokio::time::{sleep, timeout};
 
 use super::DEFAULT_GRPC_ADDR;
 
@@ -64,12 +66,23 @@ pub(super) fn probe_running(addr: &str) -> bool {
     TcpStream::connect_timeout(&parsed, Duration::from_millis(120)).is_ok()
 }
 
-pub(super) fn wait_until_running(addr: &str) -> bool {
+pub(super) async fn probe_running_async(addr: &str) -> bool {
+    let parsed = match addr.parse::<SocketAddr>() {
+        Ok(value) => value,
+        Err(_) => return false,
+    };
+    timeout(Duration::from_millis(120), TokioTcpStream::connect(parsed))
+        .await
+        .map(|result| result.is_ok())
+        .unwrap_or(false)
+}
+
+pub(super) async fn wait_until_running_async(addr: &str) -> bool {
     for _ in 0..20 {
-        if probe_running(addr) {
+        if probe_running_async(addr).await {
             return true;
         }
-        std::thread::sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(100)).await;
     }
     false
 }

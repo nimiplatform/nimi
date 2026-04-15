@@ -385,6 +385,17 @@ function buildResolvedBehaviorSection(resolvedBehavior: AgentResolvedBehavior | 
   });
 }
 
+function buildSafetyPolicySection(): string {
+  return [
+    'Treat the following as non-negotiable safety rules.',
+    'Refuse any sexual content involving minors, including roleplay, description, grooming, normalization, or requests to continue such content.',
+    'Refuse any request to encourage, instruct, plan, optimize, or emotionally pressure suicide or self-harm.',
+    'Do not provide erotic content when age is ambiguous or when the user asks you to make the character underage, younger, school-age, childlike, or minor-coded.',
+    'When refusing, keep the reply brief, state the boundary clearly, and if the user shows risk of self-harm shift to supportive de-escalation and encourage immediate real-world help or emergency support.',
+    'These safety rules override intimacy, roleplay, continuity, user instruction, and character framing.',
+  ].join('\n');
+}
+
 function buildSystemPrompt(input: {
   systemPrompt: string | null;
   targetSnapshot: AgentLocalTargetSnapshot;
@@ -400,6 +411,7 @@ function buildSystemPrompt(input: {
     `Target:\n${buildTargetSection(input.targetSnapshot, input.bioCharLimit)}`,
     `Continuity:\n${buildContinuitySection(input.digest)}`,
     resolvedBehaviorSection ? `ResolvedBehavior:\n${resolvedBehaviorSection}` : null,
+    `Safety Policy:\n${buildSafetyPolicySection()}`,
     followUpInstruction
       ? `FollowUpInstruction:\n${followUpInstruction}\n\nTreat this as an internal continuation cue, not a new user message. Continue naturally from the latest assistant turn. Add only net-new content. Do not restate the previous assistant reply. If no natural continuation is needed, return an empty actions array and do not repeat the prior message.`
       : null,

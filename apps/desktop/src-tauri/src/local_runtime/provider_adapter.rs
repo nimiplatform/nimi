@@ -318,10 +318,7 @@ pub fn with_provider_backend_hint(
 pub fn adapter_supports_capability(adapter: &LocalAiProviderAdapterKind, capability: &str) -> bool {
     match normalize_capability(capability).as_str() {
         "image" | "video" => matches!(adapter, LocalAiProviderAdapterKind::MediaNativeAdapter),
-        "stt"
-        | "tts"
-        | "audio.transcribe"
-        | "audio.synthesize" => {
+        "stt" | "tts" | "audio.transcribe" | "audio.synthesize" => {
             matches!(adapter, LocalAiProviderAdapterKind::SpeechNativeAdapter)
         }
         "music" => matches!(adapter, LocalAiProviderAdapterKind::SidecarMusicAdapter),
@@ -348,10 +345,7 @@ pub fn adapter_supports_capability_for_provider(
             matches!(adapter, LocalAiProviderAdapterKind::SpeechNativeAdapter)
                 && matches!(
                     normalize_capability(capability).as_str(),
-                    "stt"
-                        | "tts"
-                        | "audio.transcribe"
-                        | "audio.synthesize"
+                    "stt" | "tts" | "audio.transcribe" | "audio.synthesize"
                 )
         }
         "sidecar" => {
@@ -388,10 +382,7 @@ pub fn provider_available_for_capability(provider: &str, capability: &str) -> bo
         "media" => matches!(normalize_capability(capability).as_str(), "image" | "video"),
         "speech" => matches!(
             normalize_capability(capability).as_str(),
-            "stt"
-                | "tts"
-                | "audio.transcribe"
-                | "audio.synthesize"
+            "stt" | "tts" | "audio.transcribe" | "audio.synthesize"
         ),
         "sidecar" => matches!(normalize_capability(capability).as_str(), "music"),
         _ => true,

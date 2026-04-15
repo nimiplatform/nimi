@@ -8,7 +8,7 @@ use tauri::{AppHandle, Manager, State};
 
 pub use state::MenuBarShellStore;
 
-use crate::runtime_bridge;
+use crate::runtime_bridge::{self, RuntimeBridgeDaemonStatus};
 
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub const MENU_BAR_OPEN_TAB_EVENT: &str = "menu-bar://open-tab";
@@ -47,12 +47,16 @@ pub fn set_action_in_flight(app: &AppHandle, action: Option<&str>) {
     menu::apply_state(app);
 }
 
-pub fn refresh_from_daemon(app: &AppHandle) {
-    let status = runtime_bridge::current_daemon_status();
+pub fn sync_daemon_status(app: &AppHandle, status: RuntimeBridgeDaemonStatus) {
     let store = app.state::<MenuBarShellStore>();
     store.set_daemon_status(status);
     #[cfg(target_os = "macos")]
     menu::apply_state(app);
+}
+
+pub fn refresh_from_daemon(app: &AppHandle) {
+    let status = runtime_bridge::current_daemon_status();
+    sync_daemon_status(app, status);
 }
 
 pub fn request_quit(app: &AppHandle) -> Result<(), String> {

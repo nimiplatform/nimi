@@ -10,9 +10,10 @@ use std::time::{Duration, Instant};
 #[cfg(test)]
 use super::normalize_engine;
 use super::{
-    qwen_process_registry, with_asset_operation_lock, EngineAdapter, EngineHealthResult,
-    LlamaCppProcessAdapter, LocalAiAssetRecord, LocalAiAssetStatus, QWEN_TTS_GATEWAY_SCRIPT_NAME,
-    QWEN_TTS_GATEWAY_TEMPLATE, QWEN_TTS_HEALTH_POLL_INTERVAL_MS, QWEN_TTS_START_TIMEOUT_MS_DEFAULT,
+    qwen_process_registry, shared_engine_health_http_client, with_asset_operation_lock,
+    EngineAdapter, EngineHealthResult, LlamaCppProcessAdapter, LocalAiAssetRecord,
+    LocalAiAssetStatus, QWEN_TTS_GATEWAY_SCRIPT_NAME, QWEN_TTS_GATEWAY_TEMPLATE,
+    QWEN_TTS_HEALTH_POLL_INTERVAL_MS, QWEN_TTS_START_TIMEOUT_MS_DEFAULT,
     QWEN_TTS_STOP_GRACE_MS_DEFAULT, QWEN_TTS_VENV_DIR_NAME,
 };
 
@@ -138,14 +139,7 @@ impl QwenTtsPythonAdapter {
     fn wait_for_endpoint_ready(endpoint: &str, timeout: Duration) -> Result<(), String> {
         let health_url = Self::health_probe_endpoint(endpoint)
             .ok_or_else(|| "LOCAL_AI_QWEN_ENDPOINT_INVALID: qwen endpoint is empty".to_string())?;
-        let client = reqwest::blocking::Client::builder()
-            .timeout(Duration::from_secs(2))
-            .build()
-            .map_err(|error| {
-                format!(
-                    "LOCAL_AI_ENGINE_HTTP_CLIENT_FAILED: failed to create health client: {error}"
-                )
-            })?;
+        let client = shared_engine_health_http_client()?;
         let deadline = Instant::now() + timeout;
         loop {
             let last_error = match client.get(&health_url).send() {

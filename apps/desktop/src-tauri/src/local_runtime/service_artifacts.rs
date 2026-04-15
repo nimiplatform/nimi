@@ -114,9 +114,8 @@ mod tests {
             artifact.health.capability_probe_endpoint.as_deref(),
             Some("/v1/catalog")
         );
-        assert!(artifact
-            .nodes
-            .iter()
-            .any(|node| node.capability == "audio.synthesize" && node.api_path == "/v1/audio/speech"));
+        assert!(artifact.nodes.iter().any(
+            |node| node.capability == "audio.synthesize" && node.api_path == "/v1/audio/speech"
+        ));
     }
 }

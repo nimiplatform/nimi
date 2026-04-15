@@ -12,8 +12,8 @@ use super::menu;
 use super::state::MenuBarShellStore;
 use super::window;
 use super::{
-    refresh_from_daemon, set_action_in_flight, set_window_visible, MENU_BAR_OPEN_TAB_EVENT,
-    MENU_BAR_QUIT_REQUESTED_EVENT,
+    refresh_from_daemon, set_action_in_flight, set_window_visible, sync_daemon_status,
+    MENU_BAR_OPEN_TAB_EVENT, MENU_BAR_QUIT_REQUESTED_EVENT,
 };
 
 pub const MENU_ID_OPEN_NIMI: &str = "menu-bar-open-nimi";
@@ -42,6 +42,34 @@ enum RuntimeAction {
     Stop,
 }
 
+fn runtime_action_label(action: RuntimeAction) -> &'static str {
+    match action {
+        RuntimeAction::Start => "start",
+        RuntimeAction::Restart => "restart",
+        RuntimeAction::Stop => "stop",
+    }
+}
+
+fn run_runtime_action_async(app: &AppHandle, action: RuntimeAction) {
+    let app_handle = app.clone();
+    let action_label = runtime_action_label(action);
+    set_action_in_flight(&app_handle, Some(action_label));
+    menu::apply_state(&app_handle);
+    tauri::async_runtime::spawn(async move {
+        let result = match action {
+            RuntimeAction::Start => runtime_bridge::start_daemon_async().await,
+            RuntimeAction::Restart => runtime_bridge::restart_daemon_async().await,
+            RuntimeAction::Stop => runtime_bridge::stop_daemon_async().await,
+        };
+        set_action_in_flight(&app_handle, None);
+        let status = match result {
+            Ok(status) => status,
+            Err(_) => runtime_bridge::current_daemon_status_async().await,
+        };
+        sync_daemon_status(&app_handle, status);
+    });
+}
+
 pub fn handle_menu_event(app: &AppHandle, menu_id: &str) -> Result<(), String> {
     match menu_id {
         MENU_ID_OPEN_NIMI => {
@@ -59,10 +87,7 @@ pub fn handle_menu_event(app: &AppHandle, menu_id: &str) -> Result<(), String> {
                 menu::apply_state(app);
                 return Ok(());
             }
-            set_action_in_flight(app, Some("start"));
-            let _ = runtime_bridge::start_daemon();
-            set_action_in_flight(app, None);
-            refresh_from_daemon(app);
+            run_runtime_action_async(app, RuntimeAction::Start);
         }
         MENU_ID_RESTART_RUNTIME => {
             let status = runtime_bridge::current_daemon_status();
@@ -71,10 +96,7 @@ pub fn handle_menu_event(app: &AppHandle, menu_id: &str) -> Result<(), String> {
                 menu::apply_state(app);
                 return Ok(());
             }
-            set_action_in_flight(app, Some("restart"));
-            let _ = runtime_bridge::restart_daemon();
-            set_action_in_flight(app, None);
-            refresh_from_daemon(app);
+            run_runtime_action_async(app, RuntimeAction::Restart);
         }
         MENU_ID_STOP_RUNTIME => {
             let status = runtime_bridge::current_daemon_status();
@@ -83,10 +105,7 @@ pub fn handle_menu_event(app: &AppHandle, menu_id: &str) -> Result<(), String> {
                 menu::apply_state(app);
                 return Ok(());
             }
-            set_action_in_flight(app, Some("stop"));
-            let _ = runtime_bridge::stop_daemon();
-            set_action_in_flight(app, None);
-            refresh_from_daemon(app);
+            run_runtime_action_async(app, RuntimeAction::Stop);
         }
         MENU_ID_REFRESH_STATUS => refresh_from_daemon(app),
         MENU_ID_QUIT_NIMI => request_quit(app)?,

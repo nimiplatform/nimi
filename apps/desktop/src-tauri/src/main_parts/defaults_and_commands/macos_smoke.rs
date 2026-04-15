@@ -87,7 +87,10 @@ pub(crate) fn desktop_macos_smoke_report_write(
         "reportPath",
     )?;
     let artifacts_dir = require_absolute_path(
-        override_payload.artifacts_dir.as_deref().unwrap_or_default(),
+        override_payload
+            .artifacts_dir
+            .as_deref()
+            .unwrap_or_default(),
         "artifactsDir",
     )?;
     let scenario_id = normalize_optional(override_payload.scenario_id)
@@ -132,7 +135,10 @@ pub(crate) fn desktop_macos_smoke_report_write(
     });
     fs::write(
         &report_path,
-        format!("{}\n", serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?),
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?
+        ),
     )
     .map_err(|error| format!("write report failed: {error}"))?;
 
@@ -285,7 +291,9 @@ mod tests {
         let html_path = result
             .html_snapshot_path
             .expect("html snapshot path should be present");
-        assert!(fs::read_to_string(html_path).expect("read html").contains("<html>ok</html>"));
+        assert!(fs::read_to_string(html_path)
+            .expect("read html")
+            .contains("<html>ok</html>"));
         let _ = fs::remove_dir_all(temp);
     }
 

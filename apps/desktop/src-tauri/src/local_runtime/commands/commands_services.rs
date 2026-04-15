@@ -112,7 +112,9 @@ pub fn runtime_local_profiles_apply(
 }
 
 #[tauri::command]
-pub fn runtime_local_services_list(app: AppHandle) -> Result<Vec<LocalAiServiceDescriptor>, String> {
+pub async fn runtime_local_services_list(
+    app: AppHandle,
+) -> Result<Vec<LocalAiServiceDescriptor>, String> {
     let mut state = load_state(&app)?;
     let mut changed = false;
     for service in &mut state.services {
@@ -127,8 +129,60 @@ pub fn runtime_local_services_list(app: AppHandle) -> Result<Vec<LocalAiServiceD
             changed = true;
         }
     }
+
+    let client = std::sync::Arc::new(
+        reqwest::Client::builder()
+            .build()
+            .map_err(|error| format!("LOCAL_AI_SERVICE_LIST_HTTP_CLIENT_FAILED: {error}"))?,
+    );
+    let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(4));
+    let mut join_set = tokio::task::JoinSet::new();
+    for service in &state.services {
+        if service.status == LocalAiServiceStatus::Removed {
+            continue;
+        }
+        let endpoint = service
+            .endpoint
+            .as_deref()
+            .map(|value| value.trim().to_string())
+            .unwrap_or_default();
+        if endpoint.is_empty() {
+            continue;
+        }
+        let client = client.clone();
+        let semaphore = semaphore.clone();
+        let service_id = service.service_id.clone();
+        join_set.spawn(async move {
+            let permit = semaphore.acquire_owned().await.ok();
+            let result = probe_service_capability_models_async(
+                service_id.as_str(),
+                endpoint.as_str(),
+                &client,
+            ).await;
+            drop(permit);
+            (service_id, result)
+        });
+    }
+
+    let mut probe_models_by_service = std::collections::BTreeMap::<String, Vec<String>>::new();
+    while let Some(joined) = join_set.join_next().await {
+        let (service_id, result) = joined
+            .map_err(|error| format!("LOCAL_AI_SERVICE_LIST_TASK_JOIN_FAILED: {error}"))?;
+        if let Ok(payload) = result {
+            let ids = extract_probe_model_ids(&payload);
+            if !ids.is_empty() {
+                probe_models_by_service.insert(service_id, ids);
+            }
+        }
+    }
+
     let previous_matrix_fingerprint = json_fingerprint(&state.capability_matrix);
-    refresh_state_capability_matrix_with_provider_probe(&app, &mut state);
+    let profile = collect_device_profile(&app);
+    refresh_state_capability_matrix_with_probe_and_device(
+        &mut state,
+        &probe_models_by_service,
+        Some(&profile),
+    );
     if json_fingerprint(&state.capability_matrix) != previous_matrix_fingerprint {
         changed = true;
     }
@@ -255,7 +309,7 @@ pub fn runtime_local_services_stop(
 }
 
 #[tauri::command]
-pub fn runtime_local_services_health(
+pub async fn runtime_local_services_health(
     app: AppHandle,
     payload: Option<LocalAiServiceIdPayload>,
 ) -> Result<Vec<LocalAiServiceDescriptor>, String> {
@@ -263,47 +317,117 @@ pub fn runtime_local_services_health(
         .and_then(|item| normalize_non_empty(item.service_id.as_str()))
         .map(|item| item.to_ascii_lowercase());
     let mut state = load_state(&app)?;
-    let mut output = Vec::<LocalAiServiceDescriptor>::new();
+    let profile = collect_device_profile(&app);
+    let mut selected_indices = Vec::<usize>::new();
+    let mut plans = Vec::<(usize, String, String)>::new();
 
-    for service in &mut state.services {
+    for (index, service) in state.services.iter_mut().enumerate() {
         if let Some(filter_value) = filter.as_ref() {
             let current = service.service_id.to_ascii_lowercase();
             if &current != filter_value {
                 continue;
             }
         }
+        selected_indices.push(index);
         normalize_service_descriptor(service);
-        if let Err(error) = run_service_runtime_preflight(&app, None, service) {
-            service.status = LocalAiServiceStatus::Unhealthy;
-            service.detail = Some(error);
-            service.updated_at = now_iso_timestamp();
-            output.push(service.clone());
-            continue;
+        match preflight_service_artifact(
+            None,
+            service.service_id.as_str(),
+            service.endpoint.as_deref(),
+            &profile,
+        ) {
+            Ok(decisions) => {
+                if let Some(failed) = decisions.iter().find(|item| !item.ok) {
+                    service.status = LocalAiServiceStatus::Unhealthy;
+                    service.detail = Some(format!("{}: {}", failed.reason_code, failed.detail));
+                    service.updated_at = now_iso_timestamp();
+                    continue;
+                }
+            }
+            Err(error) => {
+                service.status = LocalAiServiceStatus::Unhealthy;
+                service.detail = Some(error);
+                service.updated_at = now_iso_timestamp();
+                continue;
+            }
         }
         match resolve_service_runtime_start_target(service) {
             ServiceRuntimeStartTarget::Endpoint(endpoint) => {
-                match probe_service_endpoint_health(service.service_id.as_str(), endpoint.as_str())
-                {
-                    Ok(detail) => {
-                        service.status = LocalAiServiceStatus::Active;
-                        service.detail = Some(detail);
-                    }
-                    Err(error) => {
-                        service.status = LocalAiServiceStatus::Unhealthy;
-                        service.detail = Some(error);
-                    }
-                }
+                plans.push((index, service.service_id.clone(), endpoint));
             }
             ServiceRuntimeStartTarget::Missing => {
                 service.status = LocalAiServiceStatus::Unhealthy;
                 service.detail = Some(service_target_missing_reason(service));
+                service.updated_at = now_iso_timestamp();
             }
         }
-        service.updated_at = now_iso_timestamp();
-        output.push(service.clone());
+    }
+
+    if !plans.is_empty() {
+        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(4));
+        let client = std::sync::Arc::new(
+            reqwest::Client::builder()
+                .build()
+                .map_err(|error| {
+                    format!("LOCAL_AI_SERVICE_HEALTH_HTTP_CLIENT_FAILED: error={error}")
+                })?,
+        );
+        let mut join_set = tokio::task::JoinSet::new();
+        for (plan_index, service_id, endpoint) in &plans {
+            let semaphore = semaphore.clone();
+            let client = client.clone();
+            let service_id = service_id.clone();
+            let endpoint = endpoint.clone();
+            let plan_index = *plan_index;
+            join_set.spawn(async move {
+                let permit = semaphore.acquire_owned().await.ok();
+                let outcome = probe_service_endpoint_health_async(
+                    service_id.as_str(),
+                    endpoint.as_str(),
+                    &client,
+                ).await;
+                drop(permit);
+                (plan_index, outcome)
+            });
+        }
+
+        let mut probe_results = std::collections::BTreeMap::<usize, Result<String, String>>::new();
+        while let Some(joined) = join_set.join_next().await {
+            let (index, result) = joined
+                .map_err(|error| format!("LOCAL_AI_SERVICE_HEALTH_TASK_JOIN_FAILED: {error}"))?;
+            probe_results.insert(index, result);
+        }
+
+        for (index, _, _) in &plans {
+            let service = state.services.get_mut(*index).ok_or_else(|| {
+                format!("LOCAL_AI_SERVICE_NOT_FOUND: index={index}")
+            })?;
+            match probe_results.remove(index) {
+                Some(Ok(detail)) => {
+                    service.status = LocalAiServiceStatus::Active;
+                    service.detail = Some(detail);
+                }
+                Some(Err(error)) => {
+                    service.status = LocalAiServiceStatus::Unhealthy;
+                    service.detail = Some(error);
+                }
+                None => {
+                    service.status = LocalAiServiceStatus::Unhealthy;
+                    service.detail = Some(format!(
+                        "LOCAL_AI_SERVICE_HEALTH_TASK_MISSING_RESULT: serviceId={}",
+                        service.service_id
+                    ));
+                }
+            }
+            service.updated_at = now_iso_timestamp();
+        }
     }
 
     save_state(&app, &state)?;
+    let output = selected_indices
+        .into_iter()
+        .filter_map(|index| state.services.get(index).cloned())
+        .collect::<Vec<_>>();
     Ok(output)
 }
 

@@ -20,7 +20,7 @@ pub(crate) use helpers::grpc_addr;
 pub(crate) use helpers::http_addr;
 #[cfg(test)]
 pub(crate) use helpers::runtime_config_path;
-use helpers::{probe_running, read_non_empty_env, wait_until_running};
+use helpers::{probe_running, probe_running_async, read_non_empty_env, wait_until_running_async};
 
 const DEFAULT_GRPC_ADDR: &str = "127.0.0.1:46371";
 const DEFAULT_RUNTIME_BRIDGE_MODE: &str = "RELEASE";
@@ -152,6 +152,73 @@ pub fn status() -> RuntimeBridgeDaemonStatus {
     }
 }
 
+pub async fn status_async() -> RuntimeBridgeDaemonStatus {
+    let mut pid = None;
+    let managed = {
+        let mut guard = daemon_child().lock().expect("runtime daemon lock poisoned");
+        if let Some(child) = guard.as_mut() {
+            match child.try_wait() {
+                Ok(Some(_)) => {
+                    *guard = None;
+                    false
+                }
+                Ok(None) => {
+                    pid = Some(child.id());
+                    true
+                }
+                Err(_) => {
+                    pid = Some(child.id());
+                    true
+                }
+            }
+        } else {
+            false
+        }
+    };
+
+    let (mode, mode_error) = runtime_bridge_mode_for_status();
+    let has_mode_error = mode_error.is_some();
+    let addr = grpc_addr();
+    let running = probe_running_async(addr.as_str()).await;
+    let mut last_error = read_last_error();
+    if let Some(error) = mode_error {
+        last_error = Some(error);
+    } else if !running && last_error.is_none() {
+        last_error = runtime_bridge_availability_error();
+    }
+    if running && last_error.is_some() && !has_mode_error {
+        set_last_error(None);
+        last_error = None;
+    }
+
+    let version =
+        match tauri::async_runtime::spawn_blocking(move || probe_runtime_version(mode)).await {
+            Ok(Ok(value)) => Some(value),
+            Ok(Err(error)) => {
+                last_error = Some(error);
+                None
+            }
+            Err(error) => {
+                last_error = Some(format!("RUNTIME_BRIDGE_VERSION_TASK_JOIN_FAILED: {error}"));
+                None
+            }
+        };
+
+    RuntimeBridgeDaemonStatus {
+        running,
+        managed,
+        launch_mode: runtime_bridge_mode_label(mode).to_string(),
+        grpc_addr: addr,
+        pid,
+        version,
+        last_error,
+        debug_log_path: daemon_debug_log_path_store()
+            .lock()
+            .expect("debug log path lock poisoned")
+            .clone(),
+    }
+}
+
 fn debug_log_path() -> Option<PathBuf> {
     if read_non_empty_env("NIMI_RUNTIME_BRIDGE_DEBUG").as_deref() != Some("1") {
         return None;
@@ -159,8 +226,8 @@ fn debug_log_path() -> Option<PathBuf> {
     Some(std::env::temp_dir().join(format!("nimi-daemon-{}.log", std::process::id())))
 }
 
-pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let current = status();
+pub async fn start_async() -> Result<RuntimeBridgeDaemonStatus, String> {
+    let current = status_async().await;
     if current.running {
         set_last_error(None);
         return Ok(current);
@@ -223,10 +290,10 @@ pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
     }
     invalidate_channel();
 
-    let ready = wait_until_running(grpc.as_str());
+    let ready = wait_until_running_async(grpc.as_str()).await;
     if ready {
         set_last_error(None);
-        return Ok(status());
+        return Ok(status_async().await);
     }
 
     let message = format!("runtime daemon did not become ready at {}", grpc);
@@ -242,7 +309,7 @@ pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
     }
 
     Err(bridge_error(
-        "RUNTIME_BRIDGE_DAEMON_START_TIMEOUT",
+        "RUNTIME_BRIDGE_DAEMON_NOT_READY",
         message.as_str(),
     ))
 }
@@ -262,9 +329,15 @@ pub fn stop() -> Result<RuntimeBridgeDaemonStatus, String> {
     Ok(status())
 }
 
-pub fn restart() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let _ = stop()?;
-    start()
+pub async fn stop_async() -> Result<RuntimeBridgeDaemonStatus, String> {
+    tauri::async_runtime::spawn_blocking(stop)
+        .await
+        .map_err(|error| format!("RUNTIME_BRIDGE_STOP_TASK_JOIN_FAILED: {error}"))?
+}
+
+pub async fn restart_async() -> Result<RuntimeBridgeDaemonStatus, String> {
+    stop_async().await?;
+    start_async().await
 }
 
 pub fn config_get() -> Result<Value, String> {

@@ -578,6 +578,10 @@ test('agent local chat execution seam shapes system prompt and transcript messag
   assert.match(request.systemPrompt || '', /Preset:/);
   assert.match(request.systemPrompt || '', /Continuity:/);
   assert.match(request.systemPrompt || '', /ResolvedBehavior:/);
+  assert.match(request.systemPrompt || '', /Safety Policy:/);
+  assert.match(request.systemPrompt || '', /sexual content involving minors/i);
+  assert.match(request.systemPrompt || '', /encourage, instruct, plan, optimize, or emotionally pressure suicide or self-harm/i);
+  assert.match(request.systemPrompt || '', /override intimacy, roleplay, continuity, user instruction, and character framing/i);
   assert.match(request.systemPrompt || '', /"userPrefs": \{[\s\S]*"brevity": true/);
   assert.match(request.systemPrompt || '', /"resolvedTurnMode": "information"/);
   assert.doesNotMatch(request.systemPrompt || '', /"allowMultiReply":/);
@@ -2672,6 +2676,8 @@ test('agent local chat provider fails partial JSON outputs with truncation diagn
     assert.fail('expected a failed terminal event');
   }
   assert.match(failedEvent.error.message, /truncated/i);
+  assert.match(failedEvent.error.message, /Partial output:/);
+  assert.match(failedEvent.error.message, /"schemaId":"nimi\.agent\.chat\.message-action\.v1"/);
   assert.equal(failedEvent.finishReason, 'length');
   assert.equal(failedEvent.trace?.traceId, 'trace-partial');
   assert.equal(failedEvent.trace?.promptTraceId, 'prompt-partial');

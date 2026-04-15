@@ -135,6 +135,13 @@ pub(super) fn maybe_authenticate_request(
     request
 }
 
+pub(super) fn maybe_authenticate_async_request(
+    request: reqwest::RequestBuilder,
+    _service_id: &str,
+) -> reqwest::RequestBuilder {
+    request
+}
+
 pub(super) fn normalize_managed_error(error: String, fallback: &str) -> String {
     let reason = normalize_local_ai_reason_code(error.as_str(), fallback);
     format!("{reason}: {error}")

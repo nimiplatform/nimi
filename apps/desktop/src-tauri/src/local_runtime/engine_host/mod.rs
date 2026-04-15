@@ -68,14 +68,7 @@ impl OpenAiCompatibleAdapter {
         let health_url = Self::health_probe_endpoint(endpoint).ok_or_else(|| {
             "LOCAL_AI_OPENAI_ENDPOINT_EMPTY: local runtime endpoint is empty".to_string()
         })?;
-        let client = reqwest::blocking::Client::builder()
-            .timeout(Duration::from_secs(2))
-            .build()
-            .map_err(|error| {
-                format!(
-                    "LOCAL_AI_ENGINE_HTTP_CLIENT_FAILED: failed to create health client: {error}"
-                )
-            })?;
+        let client = shared_engine_health_http_client()?;
         match client.get(&health_url).send() {
             Ok(response) if response.status().is_success() => Ok(()),
             Ok(response) => Err(format!(
@@ -145,6 +138,8 @@ impl EngineAdapter for OpenAiCompatibleAdapter {
 static LLAMA_CPP_PROCESS_REGISTRY: OnceLock<Mutex<HashMap<String, Child>>> = OnceLock::new();
 static LLAMA_CPP_ASSET_OP_LOCKS: OnceLock<Mutex<HashMap<String, Arc<Mutex<()>>>>> = OnceLock::new();
 static QWEN_TTS_PROCESS_REGISTRY: OnceLock<Mutex<HashMap<String, Child>>> = OnceLock::new();
+static ENGINE_HEALTH_HTTP_CLIENT: OnceLock<Result<reqwest::blocking::Client, String>> =
+    OnceLock::new();
 
 fn process_registry() -> &'static Mutex<HashMap<String, Child>> {
     LLAMA_CPP_PROCESS_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()))
@@ -156,6 +151,21 @@ fn qwen_process_registry() -> &'static Mutex<HashMap<String, Child>> {
 
 fn asset_operation_locks() -> &'static Mutex<HashMap<String, Arc<Mutex<()>>>> {
     LLAMA_CPP_ASSET_OP_LOCKS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub(super) fn shared_engine_health_http_client() -> Result<reqwest::blocking::Client, String> {
+    ENGINE_HEALTH_HTTP_CLIENT
+        .get_or_init(|| {
+            reqwest::blocking::Client::builder()
+                .timeout(Duration::from_secs(2))
+                .build()
+                .map_err(|error| {
+                    format!(
+                        "LOCAL_AI_ENGINE_HTTP_CLIENT_FAILED: failed to create health client: {error}"
+                    )
+                })
+        })
+        .clone()
 }
 
 fn with_asset_operation_lock<T>(

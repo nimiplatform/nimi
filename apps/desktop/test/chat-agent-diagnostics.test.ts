@@ -134,7 +134,12 @@ test('agent diagnostics view model shows truncation diagnostics for failed turns
       promptTraceId: 'prompt-partial',
       error: {
         code: 'AGENT_OUTPUT_INVALID',
-        message: 'Agent response was truncated before the structured reply completed.',
+        message: [
+          'Agent response was truncated before the structured reply completed.',
+          '',
+          'Partial output:',
+          '{"schemaId":"nimi.agent.chat.message-action.v1"',
+        ].join('\n'),
       },
       usage: {
         inputTokens: 40,
@@ -173,6 +178,8 @@ test('agent diagnostics view model shows truncation diagnostics for failed turns
   assert.equal(viewModel.emptyLabel, null);
   assert.equal(viewModel.turnCards[0]?.value, 'Suspected truncation');
   assert.match(viewModel.turnCards[0]?.detail || '', /truncated/i);
+  assert.match(viewModel.turnCards[0]?.detail || '', /Partial output:/);
+  assert.match(viewModel.turnCards[0]?.detail || '', /"schemaId":"nimi\.agent\.chat\.message-action\.v1"/);
   assert.equal(viewModel.turnCards[2]?.value, 'length');
   assert.match(viewModel.turnCards[3]?.detail || '', /parseError=Expected '\}'/);
   assert.match(viewModel.turnCards[4]?.detail || '', /promptOverflow=true/);

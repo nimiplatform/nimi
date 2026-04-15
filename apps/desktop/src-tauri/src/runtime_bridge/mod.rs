@@ -109,39 +109,36 @@ pub fn runtime_bridge_stream_close(payload: RuntimeBridgeStreamClosePayload) {
 }
 
 #[tauri::command]
-pub fn runtime_bridge_status(app: AppHandle) -> RuntimeBridgeDaemonStatus {
-    let status = crate::desktop_e2e_fixture::runtime_bridge_status_override()
-        .ok()
-        .flatten()
-        .unwrap_or_else(current_daemon_status);
-    crate::menu_bar_shell::refresh_from_daemon(&app);
+pub async fn runtime_bridge_status(app: AppHandle) -> RuntimeBridgeDaemonStatus {
+    let status = current_daemon_status_async().await;
+    crate::menu_bar_shell::sync_daemon_status(&app, status.clone());
     status
 }
 
 #[tauri::command]
-pub fn runtime_bridge_start(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
+pub async fn runtime_bridge_start(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
     crate::menu_bar_shell::set_action_in_flight(&app, Some("start"));
-    let result = start_daemon();
+    let result = start_daemon_async().await;
     crate::menu_bar_shell::set_action_in_flight(&app, None);
-    crate::menu_bar_shell::refresh_from_daemon(&app);
+    sync_menu_bar_daemon_status(&app, &result).await;
     result
 }
 
 #[tauri::command]
-pub fn runtime_bridge_stop(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
+pub async fn runtime_bridge_stop(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
     crate::menu_bar_shell::set_action_in_flight(&app, Some("stop"));
-    let result = stop_daemon();
+    let result = stop_daemon_async().await;
     crate::menu_bar_shell::set_action_in_flight(&app, None);
-    crate::menu_bar_shell::refresh_from_daemon(&app);
+    sync_menu_bar_daemon_status(&app, &result).await;
     result
 }
 
 #[tauri::command]
-pub fn runtime_bridge_restart(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
+pub async fn runtime_bridge_restart(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
     crate::menu_bar_shell::set_action_in_flight(&app, Some("restart"));
-    let result = restart_daemon();
+    let result = restart_daemon_async().await;
     crate::menu_bar_shell::set_action_in_flight(&app, None);
-    crate::menu_bar_shell::refresh_from_daemon(&app);
+    sync_menu_bar_daemon_status(&app, &result).await;
     result
 }
 
@@ -159,12 +156,25 @@ pub fn current_daemon_status() -> RuntimeBridgeDaemonStatus {
     daemon_manager::status()
 }
 
-pub fn start_daemon() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let result = daemon_manager::start();
-    if result.is_ok() {
-        channel_pool::invalidate_channel();
+pub async fn current_daemon_status_async() -> RuntimeBridgeDaemonStatus {
+    if let Some(override_status) = crate::desktop_e2e_fixture::runtime_bridge_status_override()
+        .ok()
+        .flatten()
+    {
+        return override_status;
     }
-    result
+    daemon_manager::status_async().await
+}
+
+async fn sync_menu_bar_daemon_status(
+    app: &AppHandle,
+    result: &Result<RuntimeBridgeDaemonStatus, String>,
+) {
+    let status = match result {
+        Ok(status) => status.clone(),
+        Err(_) => current_daemon_status_async().await,
+    };
+    crate::menu_bar_shell::sync_daemon_status(app, status);
 }
 
 pub fn stop_daemon() -> Result<RuntimeBridgeDaemonStatus, String> {
@@ -173,8 +183,22 @@ pub fn stop_daemon() -> Result<RuntimeBridgeDaemonStatus, String> {
     result
 }
 
-pub fn restart_daemon() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let result = daemon_manager::restart();
+pub async fn start_daemon_async() -> Result<RuntimeBridgeDaemonStatus, String> {
+    let result = daemon_manager::start_async().await;
+    if result.is_ok() {
+        channel_pool::invalidate_channel();
+    }
+    result
+}
+
+pub async fn stop_daemon_async() -> Result<RuntimeBridgeDaemonStatus, String> {
+    let result = daemon_manager::stop_async().await;
+    channel_pool::invalidate_channel();
+    result
+}
+
+pub async fn restart_daemon_async() -> Result<RuntimeBridgeDaemonStatus, String> {
+    let result = daemon_manager::restart_async().await;
     if result.is_ok() {
         channel_pool::invalidate_channel();
     }
