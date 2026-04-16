@@ -6,10 +6,12 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func TestNewHasDefaultV1Published(t *testing.T) {
+func TestNewHasDefaultCatalogVersionsPublished(t *testing.T) {
 	c := New()
-	if !c.IsPublished("sdk-v1") {
-		t.Fatal("sdk-v1 should be published by default")
+	for _, version := range []string{"sdk-v1", "sdk-v2"} {
+		if !c.IsPublished(version) {
+			t.Fatalf("%s should be published by default", version)
+		}
 	}
 }
 

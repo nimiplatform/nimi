@@ -20,7 +20,7 @@ func CreateKnowledgeBankGRPC(grpcAddr string, timeout time.Duration, req *runtim
 	if req == nil {
 		return nil, errors.New("create knowledge bank request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.CreateKnowledgeBankResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.CreateKnowledgeBankResponse, error) {
 		resp, err := client.CreateKnowledgeBank(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge create bank: %w", err)
@@ -37,7 +37,7 @@ func GetKnowledgeBankGRPC(grpcAddr string, timeout time.Duration, req *runtimev1
 	if req == nil {
 		return nil, errors.New("get knowledge bank request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.GetKnowledgeBankResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.GetKnowledgeBankResponse, error) {
 		resp, err := client.GetKnowledgeBank(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge get bank: %w", err)
@@ -54,7 +54,7 @@ func ListKnowledgeBanksGRPC(grpcAddr string, timeout time.Duration, req *runtime
 	if req == nil {
 		return nil, errors.New("list knowledge banks request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.ListKnowledgeBanksResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.ListKnowledgeBanksResponse, error) {
 		resp, err := client.ListKnowledgeBanks(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge list banks: %w", err)
@@ -71,7 +71,7 @@ func DeleteKnowledgeBankGRPC(grpcAddr string, timeout time.Duration, req *runtim
 	if req == nil {
 		return nil, errors.New("delete knowledge bank request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.DeleteKnowledgeBankResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.DeleteKnowledgeBankResponse, error) {
 		resp, err := client.DeleteKnowledgeBank(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge delete bank: %w", err)
@@ -88,7 +88,7 @@ func PutKnowledgePageGRPC(grpcAddr string, timeout time.Duration, req *runtimev1
 	if req == nil {
 		return nil, errors.New("put knowledge page request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.PutPageResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.PutPageResponse, error) {
 		resp, err := client.PutPage(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge put page: %w", err)
@@ -105,7 +105,7 @@ func GetKnowledgePageGRPC(grpcAddr string, timeout time.Duration, req *runtimev1
 	if req == nil {
 		return nil, errors.New("get knowledge page request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.GetPageResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.GetPageResponse, error) {
 		resp, err := client.GetPage(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge get page: %w", err)
@@ -122,7 +122,7 @@ func ListKnowledgePagesGRPC(grpcAddr string, timeout time.Duration, req *runtime
 	if req == nil {
 		return nil, errors.New("list knowledge pages request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.ListPagesResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.ListPagesResponse, error) {
 		resp, err := client.ListPages(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge list pages: %w", err)
@@ -139,7 +139,7 @@ func DeleteKnowledgePageGRPC(grpcAddr string, timeout time.Duration, req *runtim
 	if req == nil {
 		return nil, errors.New("delete knowledge page request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.DeletePageResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.DeletePageResponse, error) {
 		resp, err := client.DeletePage(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge delete page: %w", err)
@@ -156,7 +156,7 @@ func SearchKnowledgeKeywordGRPC(grpcAddr string, timeout time.Duration, req *run
 	if req == nil {
 		return nil, errors.New("search knowledge keyword request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.SearchKeywordResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.SearchKeywordResponse, error) {
 		resp, err := client.SearchKeyword(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge search keyword: %w", err)
@@ -173,7 +173,7 @@ func SearchKnowledgeHybridGRPC(grpcAddr string, timeout time.Duration, req *runt
 	if req == nil {
 		return nil, errors.New("search knowledge hybrid request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.SearchHybridResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.SearchHybridResponse, error) {
 		resp, err := client.SearchHybrid(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge search hybrid: %w", err)
@@ -190,7 +190,7 @@ func AddKnowledgeLinkGRPC(grpcAddr string, timeout time.Duration, req *runtimev1
 	if req == nil {
 		return nil, errors.New("add knowledge link request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.AddLinkResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.AddLinkResponse, error) {
 		resp, err := client.AddLink(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge add link: %w", err)
@@ -207,7 +207,7 @@ func RemoveKnowledgeLinkGRPC(grpcAddr string, timeout time.Duration, req *runtim
 	if req == nil {
 		return nil, errors.New("remove knowledge link request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.RemoveLinkResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.RemoveLinkResponse, error) {
 		resp, err := client.RemoveLink(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge remove link: %w", err)
@@ -224,7 +224,7 @@ func ListKnowledgeLinksGRPC(grpcAddr string, timeout time.Duration, req *runtime
 	if req == nil {
 		return nil, errors.New("list knowledge links request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.ListLinksResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.ListLinksResponse, error) {
 		resp, err := client.ListLinks(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge list links: %w", err)
@@ -241,7 +241,7 @@ func ListKnowledgeBacklinksGRPC(grpcAddr string, timeout time.Duration, req *run
 	if req == nil {
 		return nil, errors.New("list knowledge backlinks request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.ListBacklinksResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.ListBacklinksResponse, error) {
 		resp, err := client.ListBacklinks(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge list backlinks: %w", err)
@@ -258,7 +258,7 @@ func TraverseKnowledgeGraphGRPC(grpcAddr string, timeout time.Duration, req *run
 	if req == nil {
 		return nil, errors.New("traverse knowledge graph request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.TraverseGraphResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.TraverseGraphResponse, error) {
 		resp, err := client.TraverseGraph(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge traverse graph: %w", err)
@@ -275,7 +275,7 @@ func IngestKnowledgeDocumentGRPC(grpcAddr string, timeout time.Duration, req *ru
 	if req == nil {
 		return nil, errors.New("ingest knowledge document request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.IngestDocumentResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.IngestDocumentResponse, error) {
 		resp, err := client.IngestDocument(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge ingest document: %w", err)
@@ -292,7 +292,7 @@ func GetKnowledgeIngestTaskGRPC(grpcAddr string, timeout time.Duration, req *run
 	if req == nil {
 		return nil, errors.New("get knowledge ingest task request is required")
 	}
-	return withKnowledgeClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeKnowledgeServiceClient) (*runtimev1.GetIngestTaskResponse, error) {
+	return withCognitionClient(addr, timeout, req.GetContext().GetAppId(), metadataOverride, func(ctx context.Context, client runtimev1.RuntimeCognitionServiceClient) (*runtimev1.GetIngestTaskResponse, error) {
 		resp, err := client.GetIngestTask(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("runtime knowledge get ingest task: %w", err)
@@ -301,7 +301,7 @@ func GetKnowledgeIngestTaskGRPC(grpcAddr string, timeout time.Duration, req *run
 	})
 }
 
-func withKnowledgeClient[T any](addr string, timeout time.Duration, appID string, metadataOverride []*ClientMetadata, call func(context.Context, runtimev1.RuntimeKnowledgeServiceClient) (*T, error)) (*T, error) {
+func withCognitionClient[T any](addr string, timeout time.Duration, appID string, metadataOverride []*ClientMetadata, call func(context.Context, runtimev1.RuntimeCognitionServiceClient) (*T, error)) (*T, error) {
 	if timeout <= 0 {
 		timeout = 5 * time.Second
 	}
@@ -319,5 +319,5 @@ func withKnowledgeClient[T any](addr string, timeout time.Duration, appID string
 	}
 	defer conn.Close()
 
-	return call(preparedCtx, runtimev1.NewRuntimeKnowledgeServiceClient(conn))
+	return call(preparedCtx, runtimev1.NewRuntimeCognitionServiceClient(conn))
 }

@@ -3721,111 +3721,6 @@ func (x *HistoryResponse) GetNextPageToken() string {
 	return ""
 }
 
-type ReflectRequest struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	Context *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	// Canonical agent-facing scopes remain reject-on-call in Wave 2; public Reflect is infra/non-canonical only.
-	Bank          *MemoryBankLocator       `protobuf:"bytes,2,opt,name=bank,proto3" json:"bank,omitempty"`
-	Reflection    *MemoryReflectionRequest `protobuf:"bytes,3,opt,name=reflection,proto3" json:"reflection,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReflectRequest) Reset() {
-	*x = ReflectRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[45]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReflectRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReflectRequest) ProtoMessage() {}
-
-func (x *ReflectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[45]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReflectRequest.ProtoReflect.Descriptor instead.
-func (*ReflectRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{45}
-}
-
-func (x *ReflectRequest) GetContext() *MemoryRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *ReflectRequest) GetBank() *MemoryBankLocator {
-	if x != nil {
-		return x.Bank
-	}
-	return nil
-}
-
-func (x *ReflectRequest) GetReflection() *MemoryReflectionRequest {
-	if x != nil {
-		return x.Reflection
-	}
-	return nil
-}
-
-type ReflectResponse struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Result        *MemoryReflectionResult `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReflectResponse) Reset() {
-	*x = ReflectResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[46]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReflectResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReflectResponse) ProtoMessage() {}
-
-func (x *ReflectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[46]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReflectResponse.ProtoReflect.Descriptor instead.
-func (*ReflectResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{46}
-}
-
-func (x *ReflectResponse) GetResult() *MemoryReflectionResult {
-	if x != nil {
-		return x.Result
-	}
-	return nil
-}
-
 type DeleteMemoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Context       *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
@@ -3838,7 +3733,7 @@ type DeleteMemoryRequest struct {
 
 func (x *DeleteMemoryRequest) Reset() {
 	*x = DeleteMemoryRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[47]
+	mi := &file_runtime_v1_memory_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3850,7 +3745,7 @@ func (x *DeleteMemoryRequest) String() string {
 func (*DeleteMemoryRequest) ProtoMessage() {}
 
 func (x *DeleteMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[47]
+	mi := &file_runtime_v1_memory_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3863,7 +3758,7 @@ func (x *DeleteMemoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMemoryRequest.ProtoReflect.Descriptor instead.
 func (*DeleteMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{47}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *DeleteMemoryRequest) GetContext() *MemoryRequestContext {
@@ -3904,7 +3799,7 @@ type DeleteMemoryResponse struct {
 
 func (x *DeleteMemoryResponse) Reset() {
 	*x = DeleteMemoryResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[48]
+	mi := &file_runtime_v1_memory_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3916,7 +3811,7 @@ func (x *DeleteMemoryResponse) String() string {
 func (*DeleteMemoryResponse) ProtoMessage() {}
 
 func (x *DeleteMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[48]
+	mi := &file_runtime_v1_memory_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3929,7 +3824,7 @@ func (x *DeleteMemoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMemoryResponse.ProtoReflect.Descriptor instead.
 func (*DeleteMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{48}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *DeleteMemoryResponse) GetAck() *Ack {
@@ -3958,7 +3853,7 @@ type SubscribeMemoryEventsRequest struct {
 
 func (x *SubscribeMemoryEventsRequest) Reset() {
 	*x = SubscribeMemoryEventsRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[49]
+	mi := &file_runtime_v1_memory_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3970,7 +3865,7 @@ func (x *SubscribeMemoryEventsRequest) String() string {
 func (*SubscribeMemoryEventsRequest) ProtoMessage() {}
 
 func (x *SubscribeMemoryEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[49]
+	mi := &file_runtime_v1_memory_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3983,7 +3878,7 @@ func (x *SubscribeMemoryEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeMemoryEventsRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeMemoryEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{49}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *SubscribeMemoryEventsRequest) GetContext() *MemoryRequestContext {
@@ -4281,15 +4176,7 @@ const file_runtime_v1_memory_proto_rawDesc = "" +
 	"\x05query\x18\x03 \x01(\v2#.nimi.runtime.v1.MemoryHistoryQueryR\x05query\"r\n" +
 	"\x0fHistoryResponse\x127\n" +
 	"\arecords\x18\x01 \x03(\v2\x1d.nimi.runtime.v1.MemoryRecordR\arecords\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xd3\x01\n" +
-	"\x0eReflectRequest\x12?\n" +
-	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x126\n" +
-	"\x04bank\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\x04bank\x12H\n" +
-	"\n" +
-	"reflection\x18\x03 \x01(\v2(.nimi.runtime.v1.MemoryReflectionRequestR\n" +
-	"reflection\"R\n" +
-	"\x0fReflectResponse\x12?\n" +
-	"\x06result\x18\x01 \x01(\v2'.nimi.runtime.v1.MemoryReflectionResultR\x06result\"\xc5\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xc5\x01\n" +
 	"\x13DeleteMemoryRequest\x12?\n" +
 	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x126\n" +
 	"\x04bank\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\x04bank\x12\x1d\n" +
@@ -4343,20 +4230,7 @@ const file_runtime_v1_memory_proto_rawDesc = "" +
 	"!MEMORY_EVENT_TYPE_RECORD_RETAINED\x10\x03\x12$\n" +
 	" MEMORY_EVENT_TYPE_RECORD_DELETED\x10\x04\x12*\n" +
 	"&MEMORY_EVENT_TYPE_REFLECTION_COMPLETED\x10\x05\x12)\n" +
-	"%MEMORY_EVENT_TYPE_REPLICATION_UPDATED\x10\x062\xdd\x06\n" +
-	"\x14RuntimeMemoryService\x12U\n" +
-	"\n" +
-	"CreateBank\x12\".nimi.runtime.v1.CreateBankRequest\x1a#.nimi.runtime.v1.CreateBankResponse\x12L\n" +
-	"\aGetBank\x12\x1f.nimi.runtime.v1.GetBankRequest\x1a .nimi.runtime.v1.GetBankResponse\x12R\n" +
-	"\tListBanks\x12!.nimi.runtime.v1.ListBanksRequest\x1a\".nimi.runtime.v1.ListBanksResponse\x12U\n" +
-	"\n" +
-	"DeleteBank\x12\".nimi.runtime.v1.DeleteBankRequest\x1a#.nimi.runtime.v1.DeleteBankResponse\x12I\n" +
-	"\x06Retain\x12\x1e.nimi.runtime.v1.RetainRequest\x1a\x1f.nimi.runtime.v1.RetainResponse\x12I\n" +
-	"\x06Recall\x12\x1e.nimi.runtime.v1.RecallRequest\x1a\x1f.nimi.runtime.v1.RecallResponse\x12L\n" +
-	"\aHistory\x12\x1f.nimi.runtime.v1.HistoryRequest\x1a .nimi.runtime.v1.HistoryResponse\x12L\n" +
-	"\aReflect\x12\x1f.nimi.runtime.v1.ReflectRequest\x1a .nimi.runtime.v1.ReflectResponse\x12[\n" +
-	"\fDeleteMemory\x12$.nimi.runtime.v1.DeleteMemoryRequest\x1a%.nimi.runtime.v1.DeleteMemoryResponse\x12f\n" +
-	"\x15SubscribeMemoryEvents\x12-.nimi.runtime.v1.SubscribeMemoryEventsRequest\x1a\x1c.nimi.runtime.v1.MemoryEvent0\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"%MEMORY_EVENT_TYPE_REPLICATION_UPDATED\x10\x06B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_memory_proto_rawDescOnce sync.Once
@@ -4371,7 +4245,7 @@ func file_runtime_v1_memory_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_memory_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_runtime_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
+var file_runtime_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
 var file_runtime_v1_memory_proto_goTypes = []any{
 	(MemoryBankScope)(0),                    // 0: nimi.runtime.v1.MemoryBankScope
 	(MemoryRecordKind)(0),                   // 1: nimi.runtime.v1.MemoryRecordKind
@@ -4425,14 +4299,12 @@ var file_runtime_v1_memory_proto_goTypes = []any{
 	(*RecallResponse)(nil),                  // 49: nimi.runtime.v1.RecallResponse
 	(*HistoryRequest)(nil),                  // 50: nimi.runtime.v1.HistoryRequest
 	(*HistoryResponse)(nil),                 // 51: nimi.runtime.v1.HistoryResponse
-	(*ReflectRequest)(nil),                  // 52: nimi.runtime.v1.ReflectRequest
-	(*ReflectResponse)(nil),                 // 53: nimi.runtime.v1.ReflectResponse
-	(*DeleteMemoryRequest)(nil),             // 54: nimi.runtime.v1.DeleteMemoryRequest
-	(*DeleteMemoryResponse)(nil),            // 55: nimi.runtime.v1.DeleteMemoryResponse
-	(*SubscribeMemoryEventsRequest)(nil),    // 56: nimi.runtime.v1.SubscribeMemoryEventsRequest
-	(*structpb.Struct)(nil),                 // 57: google.protobuf.Struct
-	(*timestamppb.Timestamp)(nil),           // 58: google.protobuf.Timestamp
-	(*Ack)(nil),                             // 59: nimi.runtime.v1.Ack
+	(*DeleteMemoryRequest)(nil),             // 52: nimi.runtime.v1.DeleteMemoryRequest
+	(*DeleteMemoryResponse)(nil),            // 53: nimi.runtime.v1.DeleteMemoryResponse
+	(*SubscribeMemoryEventsRequest)(nil),    // 54: nimi.runtime.v1.SubscribeMemoryEventsRequest
+	(*structpb.Struct)(nil),                 // 55: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil),           // 56: google.protobuf.Timestamp
+	(*Ack)(nil),                             // 57: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_memory_proto_depIdxs = []int32{
 	0,   // 0: nimi.runtime.v1.MemoryBankLocator.scope:type_name -> nimi.runtime.v1.MemoryBankScope
@@ -4452,24 +4324,24 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	4,   // 14: nimi.runtime.v1.MemoryEmbeddingProfile.migration_policy:type_name -> nimi.runtime.v1.MemoryMigrationPolicy
 	13,  // 15: nimi.runtime.v1.MemoryBank.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
 	16,  // 16: nimi.runtime.v1.MemoryBank.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	57,  // 17: nimi.runtime.v1.MemoryBank.metadata:type_name -> google.protobuf.Struct
-	58,  // 18: nimi.runtime.v1.MemoryBank.created_at:type_name -> google.protobuf.Timestamp
-	58,  // 19: nimi.runtime.v1.MemoryBank.updated_at:type_name -> google.protobuf.Timestamp
-	58,  // 20: nimi.runtime.v1.MemoryProvenance.committed_at:type_name -> google.protobuf.Timestamp
-	58,  // 21: nimi.runtime.v1.EpisodicMemoryRecord.occurred_at:type_name -> google.protobuf.Timestamp
-	58,  // 22: nimi.runtime.v1.ObservationalMemoryRecord.observed_at:type_name -> google.protobuf.Timestamp
+	55,  // 17: nimi.runtime.v1.MemoryBank.metadata:type_name -> google.protobuf.Struct
+	56,  // 18: nimi.runtime.v1.MemoryBank.created_at:type_name -> google.protobuf.Timestamp
+	56,  // 19: nimi.runtime.v1.MemoryBank.updated_at:type_name -> google.protobuf.Timestamp
+	56,  // 20: nimi.runtime.v1.MemoryProvenance.committed_at:type_name -> google.protobuf.Timestamp
+	56,  // 21: nimi.runtime.v1.EpisodicMemoryRecord.occurred_at:type_name -> google.protobuf.Timestamp
+	56,  // 22: nimi.runtime.v1.ObservationalMemoryRecord.observed_at:type_name -> google.protobuf.Timestamp
 	1,   // 23: nimi.runtime.v1.MemoryRecordInput.kind:type_name -> nimi.runtime.v1.MemoryRecordKind
 	2,   // 24: nimi.runtime.v1.MemoryRecordInput.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
 	18,  // 25: nimi.runtime.v1.MemoryRecordInput.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
-	57,  // 26: nimi.runtime.v1.MemoryRecordInput.metadata:type_name -> google.protobuf.Struct
-	57,  // 27: nimi.runtime.v1.MemoryRecordInput.extensions:type_name -> google.protobuf.Struct
+	55,  // 26: nimi.runtime.v1.MemoryRecordInput.metadata:type_name -> google.protobuf.Struct
+	55,  // 27: nimi.runtime.v1.MemoryRecordInput.extensions:type_name -> google.protobuf.Struct
 	19,  // 28: nimi.runtime.v1.MemoryRecordInput.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
 	20,  // 29: nimi.runtime.v1.MemoryRecordInput.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
 	21,  // 30: nimi.runtime.v1.MemoryRecordInput.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
-	58,  // 31: nimi.runtime.v1.MemoryReplicationPending.enqueued_at:type_name -> google.protobuf.Timestamp
-	58,  // 32: nimi.runtime.v1.MemoryReplicationSynced.synced_at:type_name -> google.protobuf.Timestamp
-	58,  // 33: nimi.runtime.v1.MemoryReplicationConflict.detected_at:type_name -> google.protobuf.Timestamp
-	58,  // 34: nimi.runtime.v1.MemoryInvalidation.invalidated_at:type_name -> google.protobuf.Timestamp
+	56,  // 31: nimi.runtime.v1.MemoryReplicationPending.enqueued_at:type_name -> google.protobuf.Timestamp
+	56,  // 32: nimi.runtime.v1.MemoryReplicationSynced.synced_at:type_name -> google.protobuf.Timestamp
+	56,  // 33: nimi.runtime.v1.MemoryReplicationConflict.detected_at:type_name -> google.protobuf.Timestamp
+	56,  // 34: nimi.runtime.v1.MemoryInvalidation.invalidated_at:type_name -> google.protobuf.Timestamp
 	5,   // 35: nimi.runtime.v1.MemoryReplicationState.outcome:type_name -> nimi.runtime.v1.MemoryReplicationOutcome
 	23,  // 36: nimi.runtime.v1.MemoryReplicationState.pending:type_name -> nimi.runtime.v1.MemoryReplicationPending
 	24,  // 37: nimi.runtime.v1.MemoryReplicationState.synced:type_name -> nimi.runtime.v1.MemoryReplicationSynced
@@ -4480,30 +4352,30 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	2,   // 42: nimi.runtime.v1.MemoryRecord.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
 	18,  // 43: nimi.runtime.v1.MemoryRecord.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
 	27,  // 44: nimi.runtime.v1.MemoryRecord.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
-	57,  // 45: nimi.runtime.v1.MemoryRecord.metadata:type_name -> google.protobuf.Struct
-	57,  // 46: nimi.runtime.v1.MemoryRecord.extensions:type_name -> google.protobuf.Struct
+	55,  // 45: nimi.runtime.v1.MemoryRecord.metadata:type_name -> google.protobuf.Struct
+	55,  // 46: nimi.runtime.v1.MemoryRecord.extensions:type_name -> google.protobuf.Struct
 	19,  // 47: nimi.runtime.v1.MemoryRecord.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
 	20,  // 48: nimi.runtime.v1.MemoryRecord.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
 	21,  // 49: nimi.runtime.v1.MemoryRecord.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
-	58,  // 50: nimi.runtime.v1.MemoryRecord.created_at:type_name -> google.protobuf.Timestamp
-	58,  // 51: nimi.runtime.v1.MemoryRecord.updated_at:type_name -> google.protobuf.Timestamp
+	56,  // 50: nimi.runtime.v1.MemoryRecord.created_at:type_name -> google.protobuf.Timestamp
+	56,  // 51: nimi.runtime.v1.MemoryRecord.updated_at:type_name -> google.protobuf.Timestamp
 	1,   // 52: nimi.runtime.v1.MemoryRecallQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	58,  // 53: nimi.runtime.v1.MemoryRecallQuery.start_time:type_name -> google.protobuf.Timestamp
-	58,  // 54: nimi.runtime.v1.MemoryRecallQuery.end_time:type_name -> google.protobuf.Timestamp
+	56,  // 53: nimi.runtime.v1.MemoryRecallQuery.start_time:type_name -> google.protobuf.Timestamp
+	56,  // 54: nimi.runtime.v1.MemoryRecallQuery.end_time:type_name -> google.protobuf.Timestamp
 	2,   // 55: nimi.runtime.v1.MemoryRecallQuery.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
 	1,   // 56: nimi.runtime.v1.MemoryHistoryQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	58,  // 57: nimi.runtime.v1.MemoryHistoryQuery.start_time:type_name -> google.protobuf.Timestamp
-	58,  // 58: nimi.runtime.v1.MemoryHistoryQuery.end_time:type_name -> google.protobuf.Timestamp
+	56,  // 57: nimi.runtime.v1.MemoryHistoryQuery.start_time:type_name -> google.protobuf.Timestamp
+	56,  // 58: nimi.runtime.v1.MemoryHistoryQuery.end_time:type_name -> google.protobuf.Timestamp
 	28,  // 59: nimi.runtime.v1.MemoryRecallHit.record:type_name -> nimi.runtime.v1.MemoryRecord
 	1,   // 60: nimi.runtime.v1.MemoryReflectionRequest.source_kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	58,  // 61: nimi.runtime.v1.MemoryReflectionRequest.start_time:type_name -> google.protobuf.Timestamp
-	58,  // 62: nimi.runtime.v1.MemoryReflectionRequest.end_time:type_name -> google.protobuf.Timestamp
+	56,  // 61: nimi.runtime.v1.MemoryReflectionRequest.start_time:type_name -> google.protobuf.Timestamp
+	56,  // 62: nimi.runtime.v1.MemoryReflectionRequest.end_time:type_name -> google.protobuf.Timestamp
 	28,  // 63: nimi.runtime.v1.MemoryReflectionResult.created_records:type_name -> nimi.runtime.v1.MemoryRecord
-	58,  // 64: nimi.runtime.v1.MemoryReflectionResult.completed_at:type_name -> google.protobuf.Timestamp
+	56,  // 64: nimi.runtime.v1.MemoryReflectionResult.completed_at:type_name -> google.protobuf.Timestamp
 	27,  // 65: nimi.runtime.v1.MemoryReplicationObservedDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
 	6,   // 66: nimi.runtime.v1.MemoryEvent.event_type:type_name -> nimi.runtime.v1.MemoryEventType
 	13,  // 67: nimi.runtime.v1.MemoryEvent.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	58,  // 68: nimi.runtime.v1.MemoryEvent.timestamp:type_name -> google.protobuf.Timestamp
+	56,  // 68: nimi.runtime.v1.MemoryEvent.timestamp:type_name -> google.protobuf.Timestamp
 	17,  // 69: nimi.runtime.v1.MemoryEvent.bank_created:type_name -> nimi.runtime.v1.MemoryBank
 	17,  // 70: nimi.runtime.v1.MemoryEvent.bank_deleted:type_name -> nimi.runtime.v1.MemoryBank
 	28,  // 71: nimi.runtime.v1.MemoryEvent.record_retained:type_name -> nimi.runtime.v1.MemoryRecord
@@ -4513,7 +4385,7 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	7,   // 75: nimi.runtime.v1.CreateBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
 	14,  // 76: nimi.runtime.v1.CreateBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
 	16,  // 77: nimi.runtime.v1.CreateBankRequest.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	57,  // 78: nimi.runtime.v1.CreateBankRequest.metadata:type_name -> google.protobuf.Struct
+	55,  // 78: nimi.runtime.v1.CreateBankRequest.metadata:type_name -> google.protobuf.Struct
 	17,  // 79: nimi.runtime.v1.CreateBankResponse.bank:type_name -> nimi.runtime.v1.MemoryBank
 	7,   // 80: nimi.runtime.v1.GetBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
 	13,  // 81: nimi.runtime.v1.GetBankRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
@@ -4524,7 +4396,7 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	17,  // 86: nimi.runtime.v1.ListBanksResponse.banks:type_name -> nimi.runtime.v1.MemoryBank
 	7,   // 87: nimi.runtime.v1.DeleteBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
 	14,  // 88: nimi.runtime.v1.DeleteBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
-	59,  // 89: nimi.runtime.v1.DeleteBankResponse.ack:type_name -> nimi.runtime.v1.Ack
+	57,  // 89: nimi.runtime.v1.DeleteBankResponse.ack:type_name -> nimi.runtime.v1.Ack
 	7,   // 90: nimi.runtime.v1.RetainRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
 	13,  // 91: nimi.runtime.v1.RetainRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
 	22,  // 92: nimi.runtime.v1.RetainRequest.records:type_name -> nimi.runtime.v1.MemoryRecordInput
@@ -4538,41 +4410,17 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	13,  // 100: nimi.runtime.v1.HistoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
 	30,  // 101: nimi.runtime.v1.HistoryRequest.query:type_name -> nimi.runtime.v1.MemoryHistoryQuery
 	28,  // 102: nimi.runtime.v1.HistoryResponse.records:type_name -> nimi.runtime.v1.MemoryRecord
-	7,   // 103: nimi.runtime.v1.ReflectRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 104: nimi.runtime.v1.ReflectRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	33,  // 105: nimi.runtime.v1.ReflectRequest.reflection:type_name -> nimi.runtime.v1.MemoryReflectionRequest
-	34,  // 106: nimi.runtime.v1.ReflectResponse.result:type_name -> nimi.runtime.v1.MemoryReflectionResult
-	7,   // 107: nimi.runtime.v1.DeleteMemoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 108: nimi.runtime.v1.DeleteMemoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	59,  // 109: nimi.runtime.v1.DeleteMemoryResponse.ack:type_name -> nimi.runtime.v1.Ack
-	7,   // 110: nimi.runtime.v1.SubscribeMemoryEventsRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	0,   // 111: nimi.runtime.v1.SubscribeMemoryEventsRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
-	15,  // 112: nimi.runtime.v1.SubscribeMemoryEventsRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
-	38,  // 113: nimi.runtime.v1.RuntimeMemoryService.CreateBank:input_type -> nimi.runtime.v1.CreateBankRequest
-	40,  // 114: nimi.runtime.v1.RuntimeMemoryService.GetBank:input_type -> nimi.runtime.v1.GetBankRequest
-	42,  // 115: nimi.runtime.v1.RuntimeMemoryService.ListBanks:input_type -> nimi.runtime.v1.ListBanksRequest
-	44,  // 116: nimi.runtime.v1.RuntimeMemoryService.DeleteBank:input_type -> nimi.runtime.v1.DeleteBankRequest
-	46,  // 117: nimi.runtime.v1.RuntimeMemoryService.Retain:input_type -> nimi.runtime.v1.RetainRequest
-	48,  // 118: nimi.runtime.v1.RuntimeMemoryService.Recall:input_type -> nimi.runtime.v1.RecallRequest
-	50,  // 119: nimi.runtime.v1.RuntimeMemoryService.History:input_type -> nimi.runtime.v1.HistoryRequest
-	52,  // 120: nimi.runtime.v1.RuntimeMemoryService.Reflect:input_type -> nimi.runtime.v1.ReflectRequest
-	54,  // 121: nimi.runtime.v1.RuntimeMemoryService.DeleteMemory:input_type -> nimi.runtime.v1.DeleteMemoryRequest
-	56,  // 122: nimi.runtime.v1.RuntimeMemoryService.SubscribeMemoryEvents:input_type -> nimi.runtime.v1.SubscribeMemoryEventsRequest
-	39,  // 123: nimi.runtime.v1.RuntimeMemoryService.CreateBank:output_type -> nimi.runtime.v1.CreateBankResponse
-	41,  // 124: nimi.runtime.v1.RuntimeMemoryService.GetBank:output_type -> nimi.runtime.v1.GetBankResponse
-	43,  // 125: nimi.runtime.v1.RuntimeMemoryService.ListBanks:output_type -> nimi.runtime.v1.ListBanksResponse
-	45,  // 126: nimi.runtime.v1.RuntimeMemoryService.DeleteBank:output_type -> nimi.runtime.v1.DeleteBankResponse
-	47,  // 127: nimi.runtime.v1.RuntimeMemoryService.Retain:output_type -> nimi.runtime.v1.RetainResponse
-	49,  // 128: nimi.runtime.v1.RuntimeMemoryService.Recall:output_type -> nimi.runtime.v1.RecallResponse
-	51,  // 129: nimi.runtime.v1.RuntimeMemoryService.History:output_type -> nimi.runtime.v1.HistoryResponse
-	53,  // 130: nimi.runtime.v1.RuntimeMemoryService.Reflect:output_type -> nimi.runtime.v1.ReflectResponse
-	55,  // 131: nimi.runtime.v1.RuntimeMemoryService.DeleteMemory:output_type -> nimi.runtime.v1.DeleteMemoryResponse
-	37,  // 132: nimi.runtime.v1.RuntimeMemoryService.SubscribeMemoryEvents:output_type -> nimi.runtime.v1.MemoryEvent
-	123, // [123:133] is the sub-list for method output_type
-	113, // [113:123] is the sub-list for method input_type
-	113, // [113:113] is the sub-list for extension type_name
-	113, // [113:113] is the sub-list for extension extendee
-	0,   // [0:113] is the sub-list for field type_name
+	7,   // 103: nimi.runtime.v1.DeleteMemoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 104: nimi.runtime.v1.DeleteMemoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	57,  // 105: nimi.runtime.v1.DeleteMemoryResponse.ack:type_name -> nimi.runtime.v1.Ack
+	7,   // 106: nimi.runtime.v1.SubscribeMemoryEventsRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	0,   // 107: nimi.runtime.v1.SubscribeMemoryEventsRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
+	15,  // 108: nimi.runtime.v1.SubscribeMemoryEventsRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
+	109, // [109:109] is the sub-list for method output_type
+	109, // [109:109] is the sub-list for method input_type
+	109, // [109:109] is the sub-list for extension type_name
+	109, // [109:109] is the sub-list for extension extendee
+	0,   // [0:109] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_memory_proto_init() }
@@ -4629,9 +4477,9 @@ func file_runtime_v1_memory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_memory_proto_rawDesc), len(file_runtime_v1_memory_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   50,
+			NumMessages:   48,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   0,
 		},
 		GoTypes:           file_runtime_v1_memory_proto_goTypes,
 		DependencyIndexes: file_runtime_v1_memory_proto_depIdxs,

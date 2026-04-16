@@ -128,7 +128,7 @@ func (s *Service) executeVoiceWorkflowJob(
 
 	if provider == "local" {
 		localCfg := s.resolveLocalVoiceWorkflowAdapterConfig(req, resolution)
-		if strings.TrimSpace(localCfg.BaseURL) != "" && strings.EqualFold(strings.TrimSpace(resolution.WorkflowFamily), "voxcpm") {
+		if strings.TrimSpace(localCfg.BaseURL) != "" && strings.EqualFold(strings.TrimSpace(resolution.WorkflowFamily), "qwen3_tts") {
 			result, err := executeVoiceWorkflowViaLocalSpeechHost(ctx, req, resolution, localCfg)
 			if err == nil {
 				if result.Metadata == nil {
@@ -257,6 +257,15 @@ func executeVoiceWorkflowViaLocalSpeechHost(
 	resolution catalog.ResolveVoiceWorkflowResult,
 	cfg nimillm.MediaAdapterConfig,
 ) (voiceWorkflowExecutionResult, error) {
+	if req == nil || req.GetSpec() == nil {
+		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+	}
+	if err := validateVoiceWorkflowSpec(req.GetScenarioType(), req.GetSpec()); err != nil {
+		return voiceWorkflowExecutionResult{}, err
+	}
+	if err := validateVoiceWorkflowRequestAgainstMetadata(req, resolution); err != nil {
+		return voiceWorkflowExecutionResult{}, err
+	}
 	baseURL := strings.TrimSpace(cfg.BaseURL)
 	if baseURL == "" {
 		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -319,6 +328,9 @@ func executeVoiceWorkflowViaNimillm(
 		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
 	if err := validateVoiceWorkflowSpec(req.GetScenarioType(), req.GetSpec()); err != nil {
+		return voiceWorkflowExecutionResult{}, err
+	}
+	if err := validateVoiceWorkflowRequestAgainstMetadata(req, resolution); err != nil {
 		return voiceWorkflowExecutionResult{}, err
 	}
 	if err := ctx.Err(); err != nil {
@@ -411,6 +423,68 @@ func buildVoiceWorkflowPayload(
 		}
 	}
 	return payload
+}
+
+func validateVoiceWorkflowRequestAgainstMetadata(
+	req *runtimev1.SubmitScenarioJobRequest,
+	resolution catalog.ResolveVoiceWorkflowResult,
+) error {
+	options := resolution.RequestOptions
+	if options == nil {
+		return nil
+	}
+	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
+		clone := req.GetSpec().GetVoiceClone()
+		if clone == nil || clone.GetInput() == nil {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+		}
+		input := clone.GetInput()
+		if len(input.GetReferenceAudioBytes()) > 0 {
+			if options.ReferenceAudioBytesInput == nil || !*options.ReferenceAudioBytesInput {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+			}
+			if err := validateVoiceWorkflowReferenceAudioMIME(input.GetReferenceAudioMime(), options.AllowedReferenceAudioMimeTypes); err != nil {
+				return err
+			}
+		}
+		if strings.TrimSpace(input.GetReferenceAudioUri()) != "" && (options.ReferenceAudioURIInput == nil || !*options.ReferenceAudioURIInput) {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		if voiceWorkflowFieldModeRequired(options.TextPromptMode) && strings.TrimSpace(input.GetText()) == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+		}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		design := req.GetSpec().GetVoiceDesign()
+		if design == nil || design.GetInput() == nil {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+		}
+		input := design.GetInput()
+		if voiceWorkflowFieldModeRequired(options.InstructionTextMode) && strings.TrimSpace(input.GetInstructionText()) == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+		}
+		if voiceWorkflowFieldModeRequired(options.PreviewTextMode) && strings.TrimSpace(input.GetPreviewText()) == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+		}
+	}
+	return nil
+}
+
+func validateVoiceWorkflowReferenceAudioMIME(mimeType string, allowed []string) error {
+	normalized := strings.ToLower(strings.TrimSpace(mimeType))
+	if normalized == "" || len(allowed) == 0 {
+		return nil
+	}
+	for _, item := range allowed {
+		if normalized == strings.ToLower(strings.TrimSpace(item)) {
+			return nil
+		}
+	}
+	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+}
+
+func voiceWorkflowFieldModeRequired(mode string) bool {
+	return strings.EqualFold(strings.TrimSpace(mode), "required")
 }
 
 func estimateVoiceWorkflowUsage(req *runtimev1.SubmitScenarioJobRequest) *runtimev1.UsageStats {

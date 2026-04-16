@@ -303,8 +303,19 @@ function checkPagingPairsInConnectorAndGrantProto() {
 function checkMemoryProtoAdmission() {
   const rel = 'proto/runtime/v1/memory.proto';
   const content = read(rel);
+  const knowledge = read('proto/runtime/v1/knowledge.proto');
+  const cognition = read('proto/runtime/v1/cognition.proto');
 
-  expectRegex(content, /service\s+RuntimeMemoryService\s*\{[\s\S]*rpc\s+CreateBank\(CreateBankRequest\)\s+returns\s+\(CreateBankResponse\);[\s\S]*rpc\s+SubscribeMemoryEvents\(SubscribeMemoryEventsRequest\)\s+returns\s+\(stream\s+MemoryEvent\);[\s\S]*\}/m, `${rel} RuntimeMemoryService method set`);
+  if (/service\s+RuntimeMemoryService\s*\{/.test(content)) {
+    fail(`${rel} must not publish retired RuntimeMemoryService`);
+  }
+  if (/service\s+RuntimeKnowledgeService\s*\{/.test(knowledge)) {
+    fail('proto/runtime/v1/knowledge.proto must not publish retired RuntimeKnowledgeService');
+  }
+  if (/rpc\s+Reflect\s*\(/.test(content)) {
+    fail(`${rel} must not publish retired Reflect RPC`);
+  }
+  expectRegex(cognition, /service\s+RuntimeCognitionService\s*\{[\s\S]*rpc\s+CreateBank\(CreateBankRequest\)\s+returns\s+\(CreateBankResponse\);[\s\S]*rpc\s+SubscribeMemoryEvents\(SubscribeMemoryEventsRequest\)\s+returns\s+\(stream\s+MemoryEvent\);[\s\S]*rpc\s+CreateKnowledgeBank\(CreateKnowledgeBankRequest\)\s+returns\s+\(CreateKnowledgeBankResponse\);[\s\S]*rpc\s+GetIngestTask\(GetIngestTaskRequest\)\s+returns\s+\(GetIngestTaskResponse\);[\s\S]*\}/m, 'proto/runtime/v1/cognition.proto RuntimeCognitionService method set');
 
   const locator = getProtoMessageBlock(content, 'MemoryBankLocator', rel);
   assertMessageHasFields(locator, 'MemoryBankLocator', rel, ['scope', 'agent_core', 'agent_dyadic', 'world_shared', 'app_private', 'workspace_private']);

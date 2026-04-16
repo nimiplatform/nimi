@@ -50,8 +50,6 @@ import {
   ListBanksResponse,
   RecallRequest,
   RecallResponse,
-  ReflectRequest,
-  ReflectResponse,
   RetainRequest,
   RetainResponse,
 } from '../generated/runtime/v1/memory';
@@ -288,10 +286,6 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.memory.history]: {
     requestType: HistoryRequest,
     responseType: HistoryResponse,
-  },
-  [RuntimeMethodIds.memory.reflect]: {
-    requestType: ReflectRequest,
-    responseType: ReflectResponse,
   },
   [RuntimeMethodIds.memory.deleteMemory]: {
     requestType: DeleteMemoryRequest,

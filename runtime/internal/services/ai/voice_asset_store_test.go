@@ -172,12 +172,12 @@ func TestVoiceAssetStoreSubmitPersistsWorkflowFamilyMetadata(t *testing.T) {
 		workflowModelID string
 		wantFamily      string
 	}{
-		{
-			name:            "voxcpm2",
-			modelID:         "openbmb/VoxCPM2",
-			targetModelID:   "openbmb/VoxCPM2",
-			workflowModelID: "local/voxcpm-voice-design",
-			wantFamily:      "voxcpm",
+	{
+			name:            "qwen3tts",
+			modelID:         "speech/qwen3tts",
+			targetModelID:   "speech/qwen3tts",
+			workflowModelID: "qwen3-local-voice-design",
+			wantFamily:      "qwen3_tts",
 		},
 		{
 			name:            "omnivoice",

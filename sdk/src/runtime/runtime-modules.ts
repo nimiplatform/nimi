@@ -215,7 +215,6 @@ const MEMORY_METHODS = [
   'retain',
   'recall',
   'history',
-  'reflect',
   'deleteMemory',
   'subscribeEvents',
 ] as const satisfies readonly RuntimePassthroughMethod<RuntimeMemoryClient>[];

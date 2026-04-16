@@ -333,7 +333,9 @@ func inferProviderFromModel(modelID string) string {
 	switch {
 	case strings.HasPrefix(normalized, "local/"):
 		return "local"
-	case normalized == "qwen3-tts-local", normalized == "qwen3-tts", strings.Contains(normalized, "qwen/qwen3-tts-8b"):
+	case normalized == "qwen3-tts-local", normalized == "qwen3-tts", strings.Contains(normalized, "qwen/qwen3-tts"):
+		return "local"
+	case normalized == "qwen3-asr-local", normalized == "qwen3-asr", strings.Contains(normalized, "qwen/qwen3-asr"):
 		return "local"
 	case strings.Contains(normalized, "qwen3-tts"), strings.Contains(normalized, "qwen-tts"):
 		return "dashscope"

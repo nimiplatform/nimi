@@ -74,18 +74,30 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForManagedCloudR
 	if got := metadataPayload["workflowType"]; got != "tts_v2v" {
 		t.Fatalf("workflowType mismatch: got=%v", got)
 	}
-	if got := metadataPayload["supportsReferenceAudioInput"]; got != true {
-		t.Fatalf("supportsReferenceAudioInput mismatch: got=%v", got)
+	if got := metadataPayload["textPromptMode"]; got != "unsupported" {
+		t.Fatalf("textPromptMode mismatch: got=%v", got)
 	}
-	if got := metadataPayload["supportsTextPromptInput"]; got != false {
-		t.Fatalf("supportsTextPromptInput mismatch: got=%v", got)
+	if got := metadataPayload["supportsLanguageHints"]; got != false {
+		t.Fatalf("supportsLanguageHints mismatch: got=%v", got)
+	}
+	if got := metadataPayload["supportsPreferredName"]; got != true {
+		t.Fatalf("supportsPreferredName mismatch: got=%v", got)
+	}
+	if got := metadataPayload["referenceAudioUriInput"]; got != true {
+		t.Fatalf("referenceAudioUriInput mismatch: got=%v", got)
+	}
+	if got := metadataPayload["referenceAudioBytesInput"]; got != true {
+		t.Fatalf("referenceAudioBytesInput mismatch: got=%v", got)
+	}
+	if got := len(metadataPayload["allowedReferenceAudioMimeTypes"].([]any)); got == 0 {
+		t.Fatalf("allowedReferenceAudioMimeTypes must not be empty")
 	}
 	if got := metadataPayload["requiresTargetSynthesisBinding"]; got != true {
 		t.Fatalf("requiresTargetSynthesisBinding mismatch: got=%v", got)
 	}
 }
 
-func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalVoxCPMRoute(t *testing.T) {
+func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalQwenRoute(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"ok":true}`))
@@ -94,8 +106,8 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalVoxCPMRo
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{
-			LocalAssetId: "local-voxcpm2-001",
-			AssetId:      "speech/voxcpm2",
+			LocalAssetId: "local-qwen3-tts-001",
+			AssetId:      "speech/qwen3tts",
 			Engine:       "speech",
 			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			Endpoint:     server.URL + "/v1",
@@ -108,7 +120,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalVoxCPMRo
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "speech/voxcpm2",
+			ModelId:       "speech/qwen3tts",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -119,13 +131,13 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalVoxCPMRo
 			Namespace: voiceCloneRouteDescribeExtensionNamespace,
 			Payload: testProbePayload(t, map[string]any{
 				"version":            "v1",
-				"resolvedBindingRef": "binding-voice-local-voxcpm-001",
+				"resolvedBindingRef": "binding-voice-local-qwen3-001",
 			}),
 		}},
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{
 				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-					TargetModelId: "speech/voxcpm2",
+					TargetModelId: "speech/qwen3tts",
 					Input: &runtimev1.VoiceV2VInput{
 						ReferenceAudioBytes: []byte{0x01},
 						ReferenceAudioMime:  "audio/wav",
@@ -136,16 +148,16 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalVoxCPMRo
 		},
 	})
 	if err != nil {
-		t.Fatalf("execute scenario local voxcpm voice route describe probe: %v", err)
+		t.Fatalf("execute scenario local qwen3 voice route describe probe: %v", err)
 	}
-	if got := resp.GetModelResolved(); got != "speech/voxcpm2" {
+	if got := resp.GetModelResolved(); got != "speech/qwen3tts" {
 		t.Fatalf("model resolved mismatch: got=%q", got)
 	}
 	payload := decodeRouteDescribeHeader(t, transport.header)
 	if got := payload["capability"]; got != "voice_workflow.tts_v2v" {
 		t.Fatalf("capability mismatch: got=%v", got)
 	}
-	if got := payload["resolvedBindingRef"]; got != "binding-voice-local-voxcpm-001" {
+	if got := payload["resolvedBindingRef"]; got != "binding-voice-local-qwen3-001" {
 		t.Fatalf("resolvedBindingRef mismatch: got=%v", got)
 	}
 	metadataPayload, ok := payload["metadata"].(map[string]any)
@@ -155,8 +167,23 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalVoxCPMRo
 	if got := metadataPayload["workflowType"]; got != "tts_v2v" {
 		t.Fatalf("workflowType mismatch: got=%v", got)
 	}
-	if got := metadataPayload["supportsReferenceAudioInput"]; got != true {
-		t.Fatalf("supportsReferenceAudioInput mismatch: got=%v", got)
+	if got := metadataPayload["textPromptMode"]; got != "optional" {
+		t.Fatalf("textPromptMode mismatch: got=%v", got)
+	}
+	if got := metadataPayload["supportsLanguageHints"]; got != false {
+		t.Fatalf("supportsLanguageHints mismatch: got=%v", got)
+	}
+	if got := metadataPayload["supportsPreferredName"]; got != true {
+		t.Fatalf("supportsPreferredName mismatch: got=%v", got)
+	}
+	if got := metadataPayload["referenceAudioUriInput"]; got != true {
+		t.Fatalf("referenceAudioUriInput mismatch: got=%v", got)
+	}
+	if got := metadataPayload["referenceAudioBytesInput"]; got != true {
+		t.Fatalf("referenceAudioBytesInput mismatch: got=%v", got)
+	}
+	if got := len(metadataPayload["allowedReferenceAudioMimeTypes"].([]any)); got == 0 {
+		t.Fatalf("allowedReferenceAudioMimeTypes must not be empty")
 	}
 	if got := metadataPayload["requiresTargetSynthesisBinding"]; got != true {
 		t.Fatalf("requiresTargetSynthesisBinding mismatch: got=%v", got)
@@ -173,9 +200,9 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeFailsClosedForLocalNonAdmitt
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		&voiceWorkflowRouteDescribeProbe{
 			version:            "v1",
-			resolvedBindingRef: "binding-voice-local-qwen3-001",
+			resolvedBindingRef: "binding-voice-local-kokoro-001",
 		},
-		"local/qwen3-tts-local",
+		"kokoro-local",
 		nil,
 		nil,
 	)
@@ -201,9 +228,9 @@ func TestExecuteScenarioVoiceDesignRouteDescribeProbeFailsClosedForLocalNonAdmit
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 		&voiceWorkflowRouteDescribeProbe{
 			version:            "v1",
-			resolvedBindingRef: "binding-voice-local-qwen3-design-001",
+			resolvedBindingRef: "binding-voice-local-kokoro-design-001",
 		},
-		"qwen3-tts-local",
+		"kokoro-local",
 		nil,
 		nil,
 	)

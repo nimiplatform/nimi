@@ -254,13 +254,39 @@ func TestBackendGenerateVideoUsesMediaCanonicalPath(t *testing.T) {
 
 func TestBackendTranscribeForwardsScenarioExtensions(t *testing.T) {
 	var capturedExtensions map[string]any
+	var capturedFilename string
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/v1/audio/transcriptions" {
 			http.NotFound(w, r)
 			return
 		}
-		capturedExtensions = decodeMultipartExtensionsForBackendMediaTest(t, r)
+		reader, err := r.MultipartReader()
+		if err != nil {
+			t.Fatalf("MultipartReader: %v", err)
+		}
+		for {
+			part, err := reader.NextPart()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("NextPart: %v", err)
+			}
+			payload, err := io.ReadAll(part)
+			if err != nil {
+				t.Fatalf("ReadAll(%s): %v", part.FormName(), err)
+			}
+			if part.FormName() == "file" {
+				capturedFilename = part.FileName()
+				continue
+			}
+			if part.FormName() == "extensions" {
+				if err := json.Unmarshal(payload, &capturedExtensions); err != nil {
+					t.Fatalf("json.Unmarshal(extensions): %v", err)
+				}
+			}
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"text": "transcribed text",
@@ -290,6 +316,9 @@ func TestBackendTranscribeForwardsScenarioExtensions(t *testing.T) {
 	}
 	if text != "transcribed text" {
 		t.Fatalf("unexpected transcription text: %q", text)
+	}
+	if capturedFilename != "audio.wav" {
+		t.Fatalf("expected transcribe upload filename to preserve audio extension, got=%q", capturedFilename)
 	}
 	if got := strings.TrimSpace(ValueAsString(capturedExtensions["segment_mode"])); got != "detailed" {
 		t.Fatalf("expected transcription extension to be forwarded, got=%q", got)

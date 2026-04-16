@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "runtime/v1/knowledge.proto";
+import "runtime/v1/memory.proto";
+
+service RuntimeCognitionService {
+  rpc CreateBank(CreateBankRequest) returns (CreateBankResponse);
+  rpc GetBank(GetBankRequest) returns (GetBankResponse);
+  rpc ListBanks(ListBanksRequest) returns (ListBanksResponse);
+  rpc DeleteBank(DeleteBankRequest) returns (DeleteBankResponse);
+  rpc Retain(RetainRequest) returns (RetainResponse);
+  rpc Recall(RecallRequest) returns (RecallResponse);
+  rpc History(HistoryRequest) returns (HistoryResponse);
+  rpc DeleteMemory(DeleteMemoryRequest) returns (DeleteMemoryResponse);
+  rpc SubscribeMemoryEvents(SubscribeMemoryEventsRequest) returns (stream MemoryEvent);
+
+  rpc CreateKnowledgeBank(CreateKnowledgeBankRequest) returns (CreateKnowledgeBankResponse);
+  rpc GetKnowledgeBank(GetKnowledgeBankRequest) returns (GetKnowledgeBankResponse);
+  rpc ListKnowledgeBanks(ListKnowledgeBanksRequest) returns (ListKnowledgeBanksResponse);
+  rpc DeleteKnowledgeBank(DeleteKnowledgeBankRequest) returns (DeleteKnowledgeBankResponse);
+  rpc PutPage(PutPageRequest) returns (PutPageResponse);
+  rpc GetPage(GetPageRequest) returns (GetPageResponse);
+  rpc ListPages(ListPagesRequest) returns (ListPagesResponse);
+  rpc DeletePage(DeletePageRequest) returns (DeletePageResponse);
+  rpc SearchKeyword(SearchKeywordRequest) returns (SearchKeywordResponse);
+  rpc SearchHybrid(SearchHybridRequest) returns (SearchHybridResponse);
+  rpc AddLink(AddLinkRequest) returns (AddLinkResponse);
+  rpc RemoveLink(RemoveLinkRequest) returns (RemoveLinkResponse);
+  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse);
+  rpc ListBacklinks(ListBacklinksRequest) returns (ListBacklinksResponse);
+  rpc TraverseGraph(TraverseGraphRequest) returns (TraverseGraphResponse);
+  rpc IngestDocument(IngestDocumentRequest) returns (IngestDocumentResponse);
+  rpc GetIngestTask(GetIngestTaskRequest) returns (GetIngestTaskResponse);
+}

@@ -3674,27 +3674,7 @@ const file_runtime_v1_knowledge_proto_rawDesc = "" +
 	"#KNOWLEDGE_INGEST_TASK_STATUS_QUEUED\x10\x01\x12(\n" +
 	"$KNOWLEDGE_INGEST_TASK_STATUS_RUNNING\x10\x02\x12*\n" +
 	"&KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED\x10\x03\x12'\n" +
-	"#KNOWLEDGE_INGEST_TASK_STATUS_FAILED\x10\x042\xd5\f\n" +
-	"\x17RuntimeKnowledgeService\x12p\n" +
-	"\x13CreateKnowledgeBank\x12+.nimi.runtime.v1.CreateKnowledgeBankRequest\x1a,.nimi.runtime.v1.CreateKnowledgeBankResponse\x12g\n" +
-	"\x10GetKnowledgeBank\x12(.nimi.runtime.v1.GetKnowledgeBankRequest\x1a).nimi.runtime.v1.GetKnowledgeBankResponse\x12m\n" +
-	"\x12ListKnowledgeBanks\x12*.nimi.runtime.v1.ListKnowledgeBanksRequest\x1a+.nimi.runtime.v1.ListKnowledgeBanksResponse\x12p\n" +
-	"\x13DeleteKnowledgeBank\x12+.nimi.runtime.v1.DeleteKnowledgeBankRequest\x1a,.nimi.runtime.v1.DeleteKnowledgeBankResponse\x12L\n" +
-	"\aPutPage\x12\x1f.nimi.runtime.v1.PutPageRequest\x1a .nimi.runtime.v1.PutPageResponse\x12L\n" +
-	"\aGetPage\x12\x1f.nimi.runtime.v1.GetPageRequest\x1a .nimi.runtime.v1.GetPageResponse\x12R\n" +
-	"\tListPages\x12!.nimi.runtime.v1.ListPagesRequest\x1a\".nimi.runtime.v1.ListPagesResponse\x12U\n" +
-	"\n" +
-	"DeletePage\x12\".nimi.runtime.v1.DeletePageRequest\x1a#.nimi.runtime.v1.DeletePageResponse\x12^\n" +
-	"\rSearchKeyword\x12%.nimi.runtime.v1.SearchKeywordRequest\x1a&.nimi.runtime.v1.SearchKeywordResponse\x12[\n" +
-	"\fSearchHybrid\x12$.nimi.runtime.v1.SearchHybridRequest\x1a%.nimi.runtime.v1.SearchHybridResponse\x12L\n" +
-	"\aAddLink\x12\x1f.nimi.runtime.v1.AddLinkRequest\x1a .nimi.runtime.v1.AddLinkResponse\x12U\n" +
-	"\n" +
-	"RemoveLink\x12\".nimi.runtime.v1.RemoveLinkRequest\x1a#.nimi.runtime.v1.RemoveLinkResponse\x12R\n" +
-	"\tListLinks\x12!.nimi.runtime.v1.ListLinksRequest\x1a\".nimi.runtime.v1.ListLinksResponse\x12^\n" +
-	"\rListBacklinks\x12%.nimi.runtime.v1.ListBacklinksRequest\x1a&.nimi.runtime.v1.ListBacklinksResponse\x12^\n" +
-	"\rTraverseGraph\x12%.nimi.runtime.v1.TraverseGraphRequest\x1a&.nimi.runtime.v1.TraverseGraphResponse\x12a\n" +
-	"\x0eIngestDocument\x12&.nimi.runtime.v1.IngestDocumentRequest\x1a'.nimi.runtime.v1.IngestDocumentResponse\x12^\n" +
-	"\rGetIngestTask\x12%.nimi.runtime.v1.GetIngestTaskRequest\x1a&.nimi.runtime.v1.GetIngestTaskResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"#KNOWLEDGE_INGEST_TASK_STATUS_FAILED\x10\x04B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_knowledge_proto_rawDescOnce sync.Once
@@ -3833,42 +3813,8 @@ var file_runtime_v1_knowledge_proto_depIdxs = []int32{
 	51, // 64: nimi.runtime.v1.IngestDocumentResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 65: nimi.runtime.v1.GetIngestTaskRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
 	14, // 66: nimi.runtime.v1.GetIngestTaskResponse.task:type_name -> nimi.runtime.v1.KnowledgeIngestTask
-	15, // 67: nimi.runtime.v1.RuntimeKnowledgeService.CreateKnowledgeBank:input_type -> nimi.runtime.v1.CreateKnowledgeBankRequest
-	17, // 68: nimi.runtime.v1.RuntimeKnowledgeService.GetKnowledgeBank:input_type -> nimi.runtime.v1.GetKnowledgeBankRequest
-	19, // 69: nimi.runtime.v1.RuntimeKnowledgeService.ListKnowledgeBanks:input_type -> nimi.runtime.v1.ListKnowledgeBanksRequest
-	21, // 70: nimi.runtime.v1.RuntimeKnowledgeService.DeleteKnowledgeBank:input_type -> nimi.runtime.v1.DeleteKnowledgeBankRequest
-	23, // 71: nimi.runtime.v1.RuntimeKnowledgeService.PutPage:input_type -> nimi.runtime.v1.PutPageRequest
-	25, // 72: nimi.runtime.v1.RuntimeKnowledgeService.GetPage:input_type -> nimi.runtime.v1.GetPageRequest
-	27, // 73: nimi.runtime.v1.RuntimeKnowledgeService.ListPages:input_type -> nimi.runtime.v1.ListPagesRequest
-	29, // 74: nimi.runtime.v1.RuntimeKnowledgeService.DeletePage:input_type -> nimi.runtime.v1.DeletePageRequest
-	31, // 75: nimi.runtime.v1.RuntimeKnowledgeService.SearchKeyword:input_type -> nimi.runtime.v1.SearchKeywordRequest
-	33, // 76: nimi.runtime.v1.RuntimeKnowledgeService.SearchHybrid:input_type -> nimi.runtime.v1.SearchHybridRequest
-	35, // 77: nimi.runtime.v1.RuntimeKnowledgeService.AddLink:input_type -> nimi.runtime.v1.AddLinkRequest
-	37, // 78: nimi.runtime.v1.RuntimeKnowledgeService.RemoveLink:input_type -> nimi.runtime.v1.RemoveLinkRequest
-	39, // 79: nimi.runtime.v1.RuntimeKnowledgeService.ListLinks:input_type -> nimi.runtime.v1.ListLinksRequest
-	41, // 80: nimi.runtime.v1.RuntimeKnowledgeService.ListBacklinks:input_type -> nimi.runtime.v1.ListBacklinksRequest
-	43, // 81: nimi.runtime.v1.RuntimeKnowledgeService.TraverseGraph:input_type -> nimi.runtime.v1.TraverseGraphRequest
-	45, // 82: nimi.runtime.v1.RuntimeKnowledgeService.IngestDocument:input_type -> nimi.runtime.v1.IngestDocumentRequest
-	47, // 83: nimi.runtime.v1.RuntimeKnowledgeService.GetIngestTask:input_type -> nimi.runtime.v1.GetIngestTaskRequest
-	16, // 84: nimi.runtime.v1.RuntimeKnowledgeService.CreateKnowledgeBank:output_type -> nimi.runtime.v1.CreateKnowledgeBankResponse
-	18, // 85: nimi.runtime.v1.RuntimeKnowledgeService.GetKnowledgeBank:output_type -> nimi.runtime.v1.GetKnowledgeBankResponse
-	20, // 86: nimi.runtime.v1.RuntimeKnowledgeService.ListKnowledgeBanks:output_type -> nimi.runtime.v1.ListKnowledgeBanksResponse
-	22, // 87: nimi.runtime.v1.RuntimeKnowledgeService.DeleteKnowledgeBank:output_type -> nimi.runtime.v1.DeleteKnowledgeBankResponse
-	24, // 88: nimi.runtime.v1.RuntimeKnowledgeService.PutPage:output_type -> nimi.runtime.v1.PutPageResponse
-	26, // 89: nimi.runtime.v1.RuntimeKnowledgeService.GetPage:output_type -> nimi.runtime.v1.GetPageResponse
-	28, // 90: nimi.runtime.v1.RuntimeKnowledgeService.ListPages:output_type -> nimi.runtime.v1.ListPagesResponse
-	30, // 91: nimi.runtime.v1.RuntimeKnowledgeService.DeletePage:output_type -> nimi.runtime.v1.DeletePageResponse
-	32, // 92: nimi.runtime.v1.RuntimeKnowledgeService.SearchKeyword:output_type -> nimi.runtime.v1.SearchKeywordResponse
-	34, // 93: nimi.runtime.v1.RuntimeKnowledgeService.SearchHybrid:output_type -> nimi.runtime.v1.SearchHybridResponse
-	36, // 94: nimi.runtime.v1.RuntimeKnowledgeService.AddLink:output_type -> nimi.runtime.v1.AddLinkResponse
-	38, // 95: nimi.runtime.v1.RuntimeKnowledgeService.RemoveLink:output_type -> nimi.runtime.v1.RemoveLinkResponse
-	40, // 96: nimi.runtime.v1.RuntimeKnowledgeService.ListLinks:output_type -> nimi.runtime.v1.ListLinksResponse
-	42, // 97: nimi.runtime.v1.RuntimeKnowledgeService.ListBacklinks:output_type -> nimi.runtime.v1.ListBacklinksResponse
-	44, // 98: nimi.runtime.v1.RuntimeKnowledgeService.TraverseGraph:output_type -> nimi.runtime.v1.TraverseGraphResponse
-	46, // 99: nimi.runtime.v1.RuntimeKnowledgeService.IngestDocument:output_type -> nimi.runtime.v1.IngestDocumentResponse
-	48, // 100: nimi.runtime.v1.RuntimeKnowledgeService.GetIngestTask:output_type -> nimi.runtime.v1.GetIngestTaskResponse
-	84, // [84:101] is the sub-list for method output_type
-	67, // [67:84] is the sub-list for method input_type
+	67, // [67:67] is the sub-list for method output_type
+	67, // [67:67] is the sub-list for method input_type
 	67, // [67:67] is the sub-list for extension type_name
 	67, // [67:67] is the sub-list for extension extendee
 	0,  // [0:67] is the sub-list for field type_name
@@ -3908,7 +3854,7 @@ func file_runtime_v1_knowledge_proto_init() {
 			NumEnums:      2,
 			NumMessages:   47,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   0,
 		},
 		GoTypes:           file_runtime_v1_knowledge_proto_goTypes,
 		DependencyIndexes: file_runtime_v1_knowledge_proto_depIdxs,

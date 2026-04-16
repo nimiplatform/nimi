@@ -206,8 +206,6 @@ import type {
   ListBanksResponse,
   RecallRequest,
   RecallResponse,
-  ReflectRequest,
-  ReflectResponse,
   RetainRequest,
   RetainResponse,
   SubscribeMemoryEventsRequest,
@@ -393,7 +391,6 @@ export type RuntimeMemoryClient = {
   retain(request: RetainRequest, options?: RuntimeCallOptions): Promise<RetainResponse>;
   recall(request: RecallRequest, options?: RuntimeCallOptions): Promise<RecallResponse>;
   history(request: HistoryRequest, options?: RuntimeCallOptions): Promise<HistoryResponse>;
-  reflect(request: ReflectRequest, options?: RuntimeCallOptions): Promise<ReflectResponse>;
   deleteMemory(request: DeleteMemoryRequest, options?: RuntimeCallOptions): Promise<DeleteMemoryResponse>;
   subscribeEvents(
     request: SubscribeMemoryEventsRequest,

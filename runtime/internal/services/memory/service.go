@@ -53,9 +53,12 @@ type replicationObserver struct {
 	handler func(*runtimev1.MemoryEvent)
 }
 
-type Service struct {
-	runtimev1.UnimplementedRuntimeMemoryServiceServer
+type memoryEventStream interface {
+	Context() context.Context
+	Send(*runtimev1.MemoryEvent) error
+}
 
+type Service struct {
 	logger    *slog.Logger
 	statePath string
 	backend   *runtimepersistence.Backend
@@ -108,7 +111,7 @@ func New(logger *slog.Logger, cfg config.Config) (*Service, error) {
 	return svc, nil
 }
 
-func (s *Service) SubscribeMemoryEvents(req *runtimev1.SubscribeMemoryEventsRequest, stream runtimev1.RuntimeMemoryService_SubscribeMemoryEventsServer) error {
+func (s *Service) SubscribeMemoryEvents(req *runtimev1.SubscribeMemoryEventsRequest, stream memoryEventStream) error {
 	sub := s.addSubscriber(req)
 	defer s.removeSubscriber(sub.id)
 	for {

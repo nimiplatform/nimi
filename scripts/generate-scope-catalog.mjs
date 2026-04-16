@@ -22,6 +22,29 @@ const READ_PREFIXES = ['get', 'list', 'search', 'check', 'validate', 'subscribe'
 const RUNTIME_SCOPE_DOMAIN_OVERRIDES = {
   RuntimeGrantService: 'app_auth',
 };
+const COGNITION_SCOPE_FAMILIES = {
+  memory: {
+    admin: new Set(['create_bank', 'delete_bank']),
+    read: new Set(['get_bank', 'list_banks', 'recall', 'history', 'subscribe_memory_events']),
+    write: new Set(['retain', 'delete_memory']),
+  },
+  knowledge: {
+    admin: new Set(['create_knowledge_bank', 'delete_knowledge_bank']),
+    read: new Set([
+      'get_knowledge_bank',
+      'list_knowledge_banks',
+      'get_page',
+      'list_pages',
+      'search_keyword',
+      'search_hybrid',
+      'list_links',
+      'list_backlinks',
+      'traverse_graph',
+      'get_ingest_task',
+    ]),
+    write: new Set(['put_page', 'delete_page', 'add_link', 'remove_link', 'ingest_document']),
+  },
+};
 
 function toSnakeCase(value) {
   return String(value || '')
@@ -44,6 +67,18 @@ function countBraceDelta(line) {
   const opened = (source.match(/\{/g) || []).length;
   const closed = (source.match(/}/g) || []).length;
   return opened - closed;
+}
+
+function addCognitionScopeFamilies(scopes, method) {
+  for (const [domain, families] of Object.entries(COGNITION_SCOPE_FAMILIES)) {
+    for (const [level, methods] of Object.entries(families)) {
+      if (methods.has(method)) {
+        scopes.add(`runtime.${domain}.${level}`);
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 async function collectRuntimeScopes() {
@@ -75,6 +110,10 @@ async function collectRuntimeScopes() {
       const rpcMatch = /^\s*rpc\s+([A-Za-z][A-Za-z0-9_]*)\s*\(/.exec(line);
       if (rpcMatch) {
         const method = toSnakeCase(rpcMatch[1] || '');
+        if (currentService === 'RuntimeCognitionService') {
+          addCognitionScopeFamilies(scopes, method);
+          continue;
+        }
         const service = deriveRuntimeDomain(currentService);
         if (!service || !method) {
           continue;

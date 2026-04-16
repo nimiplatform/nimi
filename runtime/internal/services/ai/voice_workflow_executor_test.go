@@ -211,6 +211,78 @@ func TestStepFunVoiceCloneWorkflowRequiresText(t *testing.T) {
 	}
 }
 
+func TestVoiceWorkflowMetadataValidationRejectsUnsupportedReferenceAudioMIME(t *testing.T) {
+	req := voiceCloneRequest()
+	req.Head.ModelId = "stepfun/step-tts-2"
+	req.Spec.GetVoiceClone().TargetModelId = "stepfun/step-tts-2"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
+	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/ogg"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
+	req.Spec.GetVoiceClone().Input.Text = "Hello from the source clip."
+
+	_, err := executeVoiceWorkflowViaNimillm(
+		context.Background(),
+		"stepfun",
+		req,
+		catalog.ResolveVoiceWorkflowResult{
+			Provider:        "stepfun",
+			ModelID:         "stepfun/step-tts-2",
+			WorkflowType:    "tts_v2v",
+			WorkflowModelID: "stepfun-voice-clone",
+			RequestOptions: &catalog.VoiceWorkflowRequestOptions{
+				TextPromptMode:                 "required",
+				SupportsLanguageHints:          boolPtr(false),
+				SupportsPreferredName:          boolPtr(false),
+				ReferenceAudioURIInput:         boolPtr(true),
+				ReferenceAudioBytesInput:       boolPtr(true),
+				AllowedReferenceAudioMimeTypes: []string{"audio/wav", "audio/mpeg"},
+			},
+		},
+		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
+	)
+	if err == nil {
+		t.Fatalf("expected unsupported MIME rejection")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got reason=%v ok=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestVoiceWorkflowMetadataValidationRejectsMissingRequiredInstruction(t *testing.T) {
+	req := voiceDesignRequest()
+	req.Head.ModelId = "dashscope/qwen3-tts-vd"
+	req.Spec.GetVoiceDesign().TargetModelId = "dashscope/qwen3-tts-vd"
+	req.Spec.GetVoiceDesign().Input.InstructionText = ""
+	req.Spec.GetVoiceDesign().Input.PreviewText = "preview only"
+
+	_, err := executeVoiceWorkflowViaNimillm(
+		context.Background(),
+		"dashscope",
+		req,
+		catalog.ResolveVoiceWorkflowResult{
+			Provider:        "dashscope",
+			ModelID:         "dashscope/qwen3-tts-vd",
+			WorkflowType:    "tts_t2v",
+			WorkflowModelID: "qwen-voice-design",
+			RequestOptions: &catalog.VoiceWorkflowRequestOptions{
+				InstructionTextMode:   "required",
+				PreviewTextMode:       "optional",
+				SupportsLanguage:      boolPtr(true),
+				SupportsPreferredName: boolPtr(true),
+			},
+		},
+		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
+	)
+	if err == nil {
+		t.Fatalf("expected missing instruction rejection")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID {
+		t.Fatalf("expected AI_VOICE_INPUT_INVALID, got reason=%v ok=%v err=%v", reason, ok, err)
+	}
+}
+
 func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
 	var requestPath string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -741,7 +813,7 @@ func TestLocalVoiceWorkflowFailClose(t *testing.T) {
 	}
 }
 
-func TestSubmitScenarioJobLocalVoxCPMWorkflowReturnsAssetWithHandlePolicyMetadata(t *testing.T) {
+func TestSubmitScenarioJobLocalQwenWorkflowReturnsAssetWithHandlePolicyMetadata(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, `{"ok":true}`)
@@ -750,8 +822,8 @@ func TestSubmitScenarioJobLocalVoxCPMWorkflowReturnsAssetWithHandlePolicyMetadat
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{
-			LocalAssetId: "local-voxcpm2-001",
-			AssetId:      "speech/voxcpm2",
+			LocalAssetId: "local-qwen3-tts-001",
+			AssetId:      "speech/qwen3tts",
 			Engine:       "speech",
 			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			Endpoint:     server.URL + "/v1",
@@ -762,7 +834,7 @@ func TestSubmitScenarioJobLocalVoxCPMWorkflowReturnsAssetWithHandlePolicyMetadat
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "speech/voxcpm2",
+			ModelId:       "speech/qwen3tts",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -771,7 +843,7 @@ func TestSubmitScenarioJobLocalVoxCPMWorkflowReturnsAssetWithHandlePolicyMetadat
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{
 				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-					TargetModelId: "speech/voxcpm2",
+					TargetModelId: "speech/qwen3tts",
 					Input: &runtimev1.VoiceV2VInput{
 						ReferenceAudioBytes: []byte("voice-audio"),
 						ReferenceAudioMime:  "audio/wav",
@@ -782,14 +854,14 @@ func TestSubmitScenarioJobLocalVoxCPMWorkflowReturnsAssetWithHandlePolicyMetadat
 		},
 	})
 	if err != nil {
-		t.Fatalf("SubmitScenarioJob(local voxcpm): %v", err)
+		t.Fatalf("SubmitScenarioJob(local qwen3): %v", err)
 	}
 	if resp.GetAsset() == nil {
 		t.Fatalf("expected workflow asset")
 	}
 	metadata := resp.GetAsset().GetMetadata().GetFields()
-	if got := metadata["workflow_family"].GetStringValue(); got != "voxcpm" {
-		t.Fatalf("workflow_family=%q, want voxcpm", got)
+	if got := metadata["workflow_family"].GetStringValue(); got != "qwen3_tts" {
+		t.Fatalf("workflow_family=%q, want qwen3_tts", got)
 	}
 	if got := metadata["voice_handle_policy_id"].GetStringValue(); got != "local_runtime_session_ephemeral_default" {
 		t.Fatalf("voice_handle_policy_id=%q", got)
@@ -802,25 +874,25 @@ func TestSubmitScenarioJobLocalVoxCPMWorkflowReturnsAssetWithHandlePolicyMetadat
 	}
 }
 
-func TestExecuteVoiceWorkflowJobLocalVoxCPMFailCloseUsesFamilySpecificDetail(t *testing.T) {
+func TestExecuteVoiceWorkflowJobLocalQwenFailCloseUsesFamilySpecificDetail(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	req := voiceCloneRequest()
-	req.Head.ModelId = "speech/voxcpm2"
+	req.Head.ModelId = "speech/qwen3tts"
 	req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	req.Spec.GetVoiceClone().TargetModelId = "speech/voxcpm2"
+	req.Spec.GetVoiceClone().TargetModelId = "speech/qwen3tts"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
 	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
 
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/voxcpm2", "tts_v2v")
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts", "tts_v2v")
 	if err != nil {
-		t.Fatalf("resolveVoiceWorkflow(local voxcpm): %v", err)
+		t.Fatalf("resolveVoiceWorkflow(local qwen3): %v", err)
 	}
 	job, asset := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
 		Head:              req.GetHead(),
 		ScenarioType:      req.GetScenarioType(),
 		Spec:              req.GetSpec(),
-		ModelResolved:     "speech/voxcpm2",
+		ModelResolved:     "speech/qwen3tts",
 		Provider:          "local",
 		WorkflowModelID:   resolution.WorkflowModelID,
 		WorkflowFamily:    resolution.WorkflowFamily,
@@ -849,7 +921,7 @@ func TestExecuteVoiceWorkflowJobLocalVoxCPMFailCloseUsesFamilySpecificDetail(t *
 	if !ok {
 		t.Fatalf("expected stored job")
 	}
-	if got := storedJob.GetReasonDetail(); !strings.Contains(got, "execution plane not materialized: voxcpm") {
+	if got := storedJob.GetReasonDetail(); !strings.Contains(got, "execution plane not materialized: qwen3_tts") {
 		t.Fatalf("reason detail mismatch: %q", got)
 	}
 	storedAsset, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId())
@@ -861,7 +933,7 @@ func TestExecuteVoiceWorkflowJobLocalVoxCPMFailCloseUsesFamilySpecificDetail(t *
 	}
 }
 
-func TestExecuteVoiceWorkflowJobLocalVoxCPMSucceedsViaSpeechHost(t *testing.T) {
+func TestExecuteVoiceWorkflowJobLocalQwenSucceedsViaSpeechHost(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/voice/clone" {
@@ -875,7 +947,7 @@ func TestExecuteVoiceWorkflowJobLocalVoxCPMSucceedsViaSpeechHost(t *testing.T) {
 		if err := json.Unmarshal(body, &payload); err != nil {
 			t.Fatalf("unmarshal body: %v", err)
 		}
-		if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "speech/voxcpm2" {
+		if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "speech/qwen3tts" {
 			t.Fatalf("unexpected target_model_id: %q", got)
 		}
 		input, ok := payload["input"].(map[string]any)
@@ -886,28 +958,28 @@ func TestExecuteVoiceWorkflowJobLocalVoxCPMSucceedsViaSpeechHost(t *testing.T) {
 			t.Fatalf("unexpected preferred_name: %q", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"voice_id":"voice-local-voxcpm-001","job_id":"job-local-voxcpm-001","metadata":{"host_family":"voxcpm"}}`)
+		_, _ = io.WriteString(w, `{"voice_id":"voice-local-qwen3-001","job_id":"job-local-qwen3-001","metadata":{"host_family":"qwen3_tts"}}`)
 	}))
 	defer server.Close()
 
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
 	req := voiceCloneRequest()
-	req.Head.ModelId = "speech/voxcpm2"
+	req.Head.ModelId = "speech/qwen3tts"
 	req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	req.Spec.GetVoiceClone().TargetModelId = "speech/voxcpm2"
+	req.Spec.GetVoiceClone().TargetModelId = "speech/qwen3tts"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
 	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
 
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/voxcpm2", "tts_v2v")
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts", "tts_v2v")
 	if err != nil {
-		t.Fatalf("resolveVoiceWorkflow(local voxcpm): %v", err)
+		t.Fatalf("resolveVoiceWorkflow(local qwen3): %v", err)
 	}
 	job, asset := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
 		Head:              req.GetHead(),
 		ScenarioType:      req.GetScenarioType(),
 		Spec:              req.GetSpec(),
-		ModelResolved:     "speech/voxcpm2",
+		ModelResolved:     "speech/qwen3tts",
 		Provider:          "local",
 		WorkflowModelID:   resolution.WorkflowModelID,
 		WorkflowFamily:    resolution.WorkflowFamily,
@@ -943,10 +1015,10 @@ func TestExecuteVoiceWorkflowJobLocalVoxCPMSucceedsViaSpeechHost(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected stored asset")
 	}
-	if got := storedAsset.GetProviderVoiceRef(); got != "voice-local-voxcpm-001" {
+	if got := storedAsset.GetProviderVoiceRef(); got != "voice-local-qwen3-001" {
 		t.Fatalf("provider voice ref = %q", got)
 	}
-	if got := storedAsset.GetMetadata().GetFields()["host_family"].GetStringValue(); got != "voxcpm" {
+	if got := storedAsset.GetMetadata().GetFields()["host_family"].GetStringValue(); got != "qwen3_tts" {
 		t.Fatalf("host_family metadata = %q", got)
 	}
 	if got := storedAsset.GetMetadata().GetFields()["voice_handle_policy_delete_semantics"].GetStringValue(); got != "runtime_authoritative_delete" {
@@ -1001,4 +1073,8 @@ func voiceDesignRequest() *runtimev1.SubmitScenarioJobRequest {
 			}},
 		},
 	}
+}
+
+func boolPtr(value bool) *bool {
+	return &value
 }

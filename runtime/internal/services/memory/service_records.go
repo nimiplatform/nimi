@@ -212,18 +212,6 @@ func (s *Service) History(_ context.Context, req *runtimev1.HistoryRequest) (*ru
 	}, nil
 }
 
-func (s *Service) Reflect(_ context.Context, req *runtimev1.ReflectRequest) (*runtimev1.ReflectResponse, error) {
-	if req != nil && req.GetBank() != nil {
-		switch req.GetBank().GetScope() {
-		case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-			runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC,
-			runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_WORLD_SHARED:
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-	}
-	return nil, memoryProviderUnavailableError()
-}
-
 func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryRequest) (*runtimev1.DeleteMemoryResponse, error) {
 	if len(req.GetMemoryIds()) == 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)

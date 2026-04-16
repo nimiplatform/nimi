@@ -86,18 +86,30 @@ export type SpeechTranscribeRouteMetadata = {
   providerExtensionSchemaVersion?: string;
 };
 
+export type VoiceWorkflowFieldMode = 'unsupported' | 'optional' | 'required';
+
 export type VoiceWorkflowTtsV2vRouteMetadata = {
   workflowType: 'tts_v2v';
-  supportsReferenceAudioInput: true;
-  supportsTextPromptInput: boolean;
   requiresTargetSynthesisBinding: boolean;
+  textPromptMode: VoiceWorkflowFieldMode;
+  supportsLanguageHints: boolean;
+  supportsPreferredName: boolean;
+  referenceAudioUriInput: boolean;
+  referenceAudioBytesInput: boolean;
+  allowedReferenceAudioMimeTypes: string[];
+  providerExtensionNamespace?: string;
+  providerExtensionSchemaVersion?: string;
 };
 
 export type VoiceWorkflowTtsT2vRouteMetadata = {
   workflowType: 'tts_t2v';
-  supportsReferenceAudioInput: false;
-  supportsTextPromptInput: true;
   requiresTargetSynthesisBinding: boolean;
+  instructionTextMode: VoiceWorkflowFieldMode;
+  previewTextMode: VoiceWorkflowFieldMode;
+  supportsLanguage: boolean;
+  supportsPreferredName: boolean;
+  providerExtensionNamespace?: string;
+  providerExtensionSchemaVersion?: string;
 };
 
 export type RuntimeRouteDescribeResult =
@@ -486,37 +498,59 @@ function parseSpeechTranscribeRouteMetadata(value: unknown): SpeechTranscribeRou
 
 function parseVoiceWorkflowTtsV2vRouteMetadata(value: unknown): VoiceWorkflowTtsV2vRouteMetadata | null {
   const record = asRecord(value);
+  const textPromptMode = String(record.textPromptMode || '').trim();
+  const allowedReferenceAudioMimeTypes = Array.isArray(record.allowedReferenceAudioMimeTypes)
+    ? record.allowedReferenceAudioMimeTypes.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
   if (
     record.workflowType !== 'tts_v2v'
-    || record.supportsReferenceAudioInput !== true
-    || typeof record.supportsTextPromptInput !== 'boolean'
+    || (textPromptMode !== 'unsupported' && textPromptMode !== 'optional' && textPromptMode !== 'required')
     || typeof record.requiresTargetSynthesisBinding !== 'boolean'
+    || typeof record.supportsLanguageHints !== 'boolean'
+    || typeof record.supportsPreferredName !== 'boolean'
+    || typeof record.referenceAudioUriInput !== 'boolean'
+    || typeof record.referenceAudioBytesInput !== 'boolean'
+    || allowedReferenceAudioMimeTypes.length === 0
   ) {
     return null;
   }
   return {
     workflowType: 'tts_v2v',
-    supportsReferenceAudioInput: true,
-    supportsTextPromptInput: record.supportsTextPromptInput,
     requiresTargetSynthesisBinding: record.requiresTargetSynthesisBinding,
+    textPromptMode,
+    supportsLanguageHints: record.supportsLanguageHints,
+    supportsPreferredName: record.supportsPreferredName,
+    referenceAudioUriInput: record.referenceAudioUriInput,
+    referenceAudioBytesInput: record.referenceAudioBytesInput,
+    allowedReferenceAudioMimeTypes,
+    providerExtensionNamespace: String(record.providerExtensionNamespace || '').trim() || undefined,
+    providerExtensionSchemaVersion: String(record.providerExtensionSchemaVersion || '').trim() || undefined,
   };
 }
 
 function parseVoiceWorkflowTtsT2vRouteMetadata(value: unknown): VoiceWorkflowTtsT2vRouteMetadata | null {
   const record = asRecord(value);
+  const instructionTextMode = String(record.instructionTextMode || '').trim();
+  const previewTextMode = String(record.previewTextMode || '').trim();
   if (
     record.workflowType !== 'tts_t2v'
-    || record.supportsReferenceAudioInput !== false
-    || record.supportsTextPromptInput !== true
     || typeof record.requiresTargetSynthesisBinding !== 'boolean'
+    || (instructionTextMode !== 'unsupported' && instructionTextMode !== 'optional' && instructionTextMode !== 'required')
+    || (previewTextMode !== 'unsupported' && previewTextMode !== 'optional' && previewTextMode !== 'required')
+    || typeof record.supportsLanguage !== 'boolean'
+    || typeof record.supportsPreferredName !== 'boolean'
   ) {
     return null;
   }
   return {
     workflowType: 'tts_t2v',
-    supportsReferenceAudioInput: false,
-    supportsTextPromptInput: true,
     requiresTargetSynthesisBinding: record.requiresTargetSynthesisBinding,
+    instructionTextMode,
+    previewTextMode,
+    supportsLanguage: record.supportsLanguage,
+    supportsPreferredName: record.supportsPreferredName,
+    providerExtensionNamespace: String(record.providerExtensionNamespace || '').trim() || undefined,
+    providerExtensionSchemaVersion: String(record.providerExtensionSchemaVersion || '').trim() || undefined,
   };
 }
 

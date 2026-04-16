@@ -1875,21 +1875,6 @@ func TestMemoryServiceStartupAcceleratorCleanupRemovesExpiredAliasRows(t *testin
 	}
 }
 
-func TestMemoryServiceReflectRejectsCanonicalScopes(t *testing.T) {
-	t.Parallel()
-
-	svc, locator, _ := newCanonicalTestMemoryRecord(t)
-	_, err := svc.Reflect(context.Background(), &runtimev1.ReflectRequest{
-		Bank: locator,
-		Reflection: &runtimev1.MemoryReflectionRequest{
-			ReflectionReason: "review",
-		},
-	})
-	if status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("expected canonical Reflect rejection, got %v", err)
-	}
-}
-
 func TestMemoryServiceClusterCanonicalReviewInputsUsesPersistedEmbeddingsAndDefersSingletons(t *testing.T) {
 	t.Parallel()
 

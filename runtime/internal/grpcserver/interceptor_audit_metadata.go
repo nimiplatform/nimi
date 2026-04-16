@@ -130,13 +130,17 @@ func appIDFromRequest(req any) string {
 	if ok {
 		return strings.TrimSpace(item.GetAppId())
 	}
-	if memoryReq, ok := req.(interface{ GetContext() *runtimev1.MemoryRequestContext }); ok {
+	if memoryReq, ok := req.(interface {
+		GetContext() *runtimev1.MemoryRequestContext
+	}); ok {
 		context := memoryReq.GetContext()
 		if context != nil {
 			return strings.TrimSpace(context.GetAppId())
 		}
 	}
-	if agentReq, ok := req.(interface{ GetContext() *runtimev1.AgentRequestContext }); ok {
+	if agentReq, ok := req.(interface {
+		GetContext() *runtimev1.AgentRequestContext
+	}); ok {
 		context := agentReq.GetContext()
 		if context != nil {
 			return strings.TrimSpace(context.GetAppId())
@@ -221,8 +225,8 @@ func methodDescriptor(fullMethod string) (string, string, string) {
 		domain = "runtime.grant"
 	case strings.Contains(service, "RuntimeAuthService"):
 		domain = "runtime.auth"
-	case strings.Contains(service, "RuntimeKnowledgeService"):
-		domain = "runtime.knowledge"
+	case strings.Contains(service, "RuntimeCognitionService"):
+		domain = cognitionMethodDomain(method)
 	case strings.Contains(service, "RuntimeAppService"):
 		domain = "runtime.app"
 	case strings.Contains(service, "RuntimeAuditService"):
@@ -234,6 +238,17 @@ func methodDescriptor(fullMethod string) (string, string, string) {
 	operation := camelToSnake(method)
 	capability := domain + "." + operation
 	return domain, operation, capability
+}
+
+func cognitionMethodDomain(method string) string {
+	switch method {
+	case "CreateBank", "GetBank", "ListBanks", "DeleteBank", "Retain", "Recall", "History", "DeleteMemory", "SubscribeMemoryEvents":
+		return "runtime.memory"
+	case "CreateKnowledgeBank", "GetKnowledgeBank", "ListKnowledgeBanks", "DeleteKnowledgeBank", "PutPage", "GetPage", "ListPages", "DeletePage", "SearchKeyword", "SearchHybrid", "AddLink", "RemoveLink", "ListLinks", "ListBacklinks", "TraverseGraph", "IngestDocument", "GetIngestTask":
+		return "runtime.knowledge"
+	default:
+		return "runtime.cognition"
+	}
 }
 
 func camelToSnake(input string) string {

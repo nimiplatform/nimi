@@ -304,7 +304,6 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       retain: unary(RuntimeMethodIds.memory.retain),
       recall: unary(RuntimeMethodIds.memory.recall),
       history: unary(RuntimeMethodIds.memory.history),
-      reflect: unary(RuntimeMethodIds.memory.reflect),
       deleteMemory: unary(RuntimeMethodIds.memory.deleteMemory),
       subscribeEvents: stream(RuntimeMethodIds.memory.subscribeEvents),
     },

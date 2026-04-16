@@ -585,6 +585,9 @@ function checkNimiDesignTables(definedRuleIds) {
     'focus',
     'scrollbar',
     'toggle',
+    'material',
+    'backdrop',
+    'ambient',
   ]);
   const allowedThemeLayers = new Set(['foundation', 'accent']);
   const tokenIds = new Set();

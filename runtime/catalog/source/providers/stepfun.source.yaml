@@ -267,6 +267,13 @@ voice_workflow_models:
     workflow_type: tts_v2v
     input_contract_ref: stepfun_tts_v2v_input_v2
     output_persistence: provider_persistent
+    request_options:
+      text_prompt_mode: required
+      supports_language_hints: false
+      supports_preferred_name: false
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types: [audio/wav, audio/mpeg]
     target_model_refs:
       - step-tts-2
     langs_ref: tts_langs_v1

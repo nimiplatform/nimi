@@ -15,14 +15,14 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
-func TestLocalVoxCPMVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
-	const expectedVoiceRef = "voice-local-voxcpm-001"
+func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
+	const expectedVoiceRef = "voice-local-qwen3-001"
 
 	var synthVoice string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/v1/voice/clone":
-			_, _ = io.WriteString(w, `{"voice_id":"`+expectedVoiceRef+`","job_id":"job-local-voxcpm-001","metadata":{"host_family":"voxcpm"}}`)
+			_, _ = io.WriteString(w, `{"voice_id":"`+expectedVoiceRef+`","job_id":"job-local-qwen3-001","metadata":{"host_family":"qwen3_tts"}}`)
 		case "/v1/audio/speech":
 			defer r.Body.Close()
 			var payload map[string]any
@@ -31,7 +31,7 @@ func TestLocalVoxCPMVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 			}
 			synthVoice = strings.TrimSpace(nimillm.ValueAsString(payload["voice"]))
 			w.Header().Set("Content-Type", "audio/wav")
-			_, _ = w.Write([]byte("local-voxcpm-audio"))
+			_, _ = w.Write([]byte("local-qwen3-audio"))
 		default:
 			http.NotFound(w, r)
 		}
@@ -41,8 +41,8 @@ func TestLocalVoxCPMVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
 	svc.localModel = &fakeLocalModelLister{responses: repeatedLocalAssetResponses(&runtimev1.LocalAssetRecord{
-		LocalAssetId: "local-voxcpm2-001",
-		AssetId:      "speech/voxcpm2",
+		LocalAssetId: "local-qwen3-tts-001",
+		AssetId:      "speech/qwen3tts",
 		Engine:       "speech",
 		Capabilities: []string{"audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v"},
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
@@ -53,7 +53,7 @@ func TestLocalVoxCPMVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "speech/voxcpm2",
+			ModelId:       "speech/qwen3tts",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -63,18 +63,18 @@ func TestLocalVoxCPMVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{
 				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-					TargetModelId: "speech/voxcpm2",
+					TargetModelId: "speech/qwen3tts",
 					Input: &runtimev1.VoiceV2VInput{
 						ReferenceAudioBytes: []byte{0x01},
 						ReferenceAudioMime:  "audio/wav",
-						Text:                "hello from local voxcpm clone",
+						Text:                "hello from local qwen3 clone",
 					},
 				},
 			},
 		},
 	})
 	if err != nil {
-		t.Fatalf("SubmitScenarioJob(local voxcpm voice clone): %v", err)
+		t.Fatalf("SubmitScenarioJob(local qwen3 voice clone): %v", err)
 	}
 	job := waitScenarioJobTerminal(t, svc, submitResp.GetJob().GetJobId(), 3*time.Second)
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
@@ -83,7 +83,7 @@ func TestLocalVoxCPMVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 	assetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
 	stored, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
-		t.Fatalf("GetVoiceAsset(local voxcpm): %v", err)
+		t.Fatalf("GetVoiceAsset(local qwen3): %v", err)
 	}
 	if got := stored.GetAsset().GetProviderVoiceRef(); got != expectedVoiceRef {
 		t.Fatalf("provider_voice_ref=%q, want %q", got, expectedVoiceRef)
@@ -93,7 +93,7 @@ func TestLocalVoxCPMVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "speech/voxcpm2",
+			ModelId:       "speech/qwen3tts",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -136,7 +136,7 @@ func TestLocalVoxCPMVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 
 	deleteResp, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
-		t.Fatalf("DeleteVoiceAsset(local voxcpm): %v", err)
+		t.Fatalf("DeleteVoiceAsset(local qwen3): %v", err)
 	}
 	if deleteResp.GetAck() == nil || !deleteResp.GetAck().GetOk() {
 		t.Fatalf("delete ack must be ok")
@@ -146,7 +146,7 @@ func TestLocalVoxCPMVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "speech/voxcpm2",
+			ModelId:       "speech/qwen3tts",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,

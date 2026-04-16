@@ -551,13 +551,15 @@ func inferHostRequirements(capabilities []string) *runtimev1.LocalHostRequiremen
 			requirements.PythonRuntimeRequired = true
 			addBackends("stable-diffusion.cpp", "diffusers")
 		case "audio.transcribe":
-			addBackends("whispercpp")
+			requirements.PythonRuntimeRequired = true
+			addBackends("qwen3_asr")
 		case "audio.synthesize":
-			addBackends("kokoro")
+			requirements.PythonRuntimeRequired = true
+			addBackends("qwen3_tts")
 		case "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
 			requirements.GpuRequired = true
 			requirements.PythonRuntimeRequired = true
-			addBackends("qwen3tts")
+			addBackends("qwen3_tts")
 		}
 	}
 	if len(requiredBackends) > 0 {

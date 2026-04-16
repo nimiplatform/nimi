@@ -54,9 +54,8 @@ type ingestTaskState struct {
 	AppID string
 }
 
-// Service implements RuntimeKnowledgeService with a runtime-local Wave 1 bank/page store.
+// Service provides runtime-local knowledge backing state for cognition surfaces.
 type Service struct {
-	runtimev1.UnimplementedRuntimeKnowledgeServiceServer
 	logger  *slog.Logger
 	backend *runtimepersistence.Backend
 

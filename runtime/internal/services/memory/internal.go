@@ -25,6 +25,17 @@ func (s *Service) ManagedEmbeddingProfile() *runtimev1.MemoryEmbeddingProfile {
 	return cloneEmbeddingProfile(s.managedEmbeddingProfile)
 }
 
+func (s *Service) EnsurePublicBankEmbeddingAvailability(bank *runtimev1.MemoryBank) error {
+	if bank == nil {
+		return status.Error(codes.InvalidArgument, "memory bank is required")
+	}
+	profile := bank.GetEmbeddingProfile()
+	if profile == nil || s.embeddingAvailableForProfile(profile) {
+		return nil
+	}
+	return memoryProviderUnavailableError()
+}
+
 func (s *Service) PersistenceBackend() *runtimepersistence.Backend {
 	return s.backend
 }

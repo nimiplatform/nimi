@@ -27,7 +27,7 @@ func TestProtectedCapabilityForStream(t *testing.T) {
 		t.Fatalf("expected unrelated stream to be unprotected, got (%q,%v)", capability, required)
 	}
 
-	capability, required = protectedCapabilityForStream("/nimi.runtime.v1.RuntimeMemoryService/SubscribeMemoryEvents")
+	capability, required = protectedCapabilityForStream("/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents")
 	if !required || capability != "runtime.memory.read" {
 		t.Fatalf("expected memory events stream to require runtime.memory.read, got (%q,%v)", capability, required)
 	}
@@ -45,17 +45,17 @@ func TestProtectedCapabilityForUnaryMemoryAndAgentCore(t *testing.T) {
 		capability string
 	}{
 		{
-			method:     "/nimi.runtime.v1.RuntimeMemoryService/CreateBank",
+			method:     "/nimi.runtime.v1.RuntimeCognitionService/CreateBank",
 			request:    &runtimev1.CreateBankRequest{},
 			capability: "runtime.memory.admin",
 		},
 		{
-			method:     "/nimi.runtime.v1.RuntimeMemoryService/Recall",
+			method:     "/nimi.runtime.v1.RuntimeCognitionService/Recall",
 			request:    &runtimev1.RecallRequest{},
 			capability: "runtime.memory.read",
 		},
 		{
-			method:     "/nimi.runtime.v1.RuntimeMemoryService/DeleteMemory",
+			method:     "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory",
 			request:    &runtimev1.DeleteMemoryRequest{},
 			capability: "runtime.memory.write",
 		},
@@ -254,7 +254,7 @@ func TestStreamAuthzInterceptorUsesNestedMemoryContextAppID(t *testing.T) {
 		},
 	}
 	info := &grpc.StreamServerInfo{
-		FullMethod:     "/nimi.runtime.v1.RuntimeMemoryService/SubscribeMemoryEvents",
+		FullMethod:     "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
 		IsServerStream: true,
 	}
 

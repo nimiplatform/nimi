@@ -138,17 +138,17 @@ func TestValidateScenarioCapabilityLocalVoiceWorkflowBoundedFamilyOnly(t *testin
 	if err := svc.validateScenarioCapability(
 		context.Background(),
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-		"speech/voxcpm2",
+		"speech/qwen3tts",
 		nil,
 		nil,
 	); err != nil {
-		t.Fatalf("expected local voxcpm voice clone to stay admitted, got %v", err)
+		t.Fatalf("expected local qwen3 voice clone to stay admitted, got %v", err)
 	}
 
 	err := svc.validateScenarioCapability(
 		context.Background(),
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
-		"qwen3-tts-local",
+		"kokoro-local",
 		nil,
 		nil,
 	)

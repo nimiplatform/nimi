@@ -14,7 +14,7 @@ import { ReasonCode } from '../types/index.js';
 
 const defaultTTLSeconds = 3600;
 const refreshSkewMs = 30_000;
-const runtimeProtectedScopeCatalogVersion = 'sdk-v1';
+const runtimeProtectedScopeCatalogVersion = 'sdk-v2';
 
 type ProtectedRuntime = {
   appId: string;

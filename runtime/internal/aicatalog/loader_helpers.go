@@ -54,7 +54,7 @@ func inferWorkflowFamily(values ...string) string {
 		case strings.Contains(normalized, "omnivoice"):
 			return "omnivoice"
 		case strings.Contains(normalized, "qwen3-tts"), strings.Contains(normalized, "qwen3tts"):
-			return "qwen3tts"
+			return "qwen3_tts"
 		case strings.Contains(normalized, "cosyvoice"):
 			return "cosyvoice"
 		case strings.Contains(normalized, "f5-tts"), strings.Contains(normalized, "f5tts"):

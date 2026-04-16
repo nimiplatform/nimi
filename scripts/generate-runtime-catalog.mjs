@@ -489,6 +489,55 @@ function normalizeTranscriptionOptions(raw, provider, modelID) {
   return out;
 }
 
+function normalizeVoiceWorkflowRequestOptions(raw, provider, workflowModelID, workflowType) {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error(`${provider} workflow model ${workflowModelID} missing request_options`);
+  }
+  const normalizedWorkflowType = normalizeWorkflowType(workflowType);
+  const out = {};
+  const readExplicitBoolean = (field) => {
+    if (typeof raw[field] !== 'boolean') {
+      throw new Error(`${provider} workflow model ${workflowModelID} request_options.${field} must be explicit boolean`);
+    }
+    return raw[field];
+  };
+  const normalizeMode = (field) => {
+    const value = normalizeString(raw[field]).toLowerCase();
+    if (value !== 'unsupported' && value !== 'optional' && value !== 'required') {
+      throw new Error(`${provider} workflow model ${workflowModelID} request_options.${field} must be unsupported|optional|required`);
+    }
+    return value;
+  };
+
+  if (normalizedWorkflowType === 'tts_v2v') {
+    out.text_prompt_mode = normalizeMode('text_prompt_mode');
+    out.supports_language_hints = readExplicitBoolean('supports_language_hints');
+    out.supports_preferred_name = readExplicitBoolean('supports_preferred_name');
+    out.reference_audio_uri_input = readExplicitBoolean('reference_audio_uri_input');
+    out.reference_audio_bytes_input = readExplicitBoolean('reference_audio_bytes_input');
+    if (!out.reference_audio_uri_input && !out.reference_audio_bytes_input) {
+      throw new Error(`${provider} workflow model ${workflowModelID} must admit at least one reference audio input path`);
+    }
+    out.allowed_reference_audio_mime_types = normalizeStringArray(raw.allowed_reference_audio_mime_types).map((value) => value.toLowerCase());
+    if (out.allowed_reference_audio_mime_types.length === 0) {
+      throw new Error(`${provider} workflow model ${workflowModelID} request_options.allowed_reference_audio_mime_types must not be empty`);
+    }
+  } else if (normalizedWorkflowType === 'tts_t2v') {
+    out.instruction_text_mode = normalizeMode('instruction_text_mode');
+    out.preview_text_mode = normalizeMode('preview_text_mode');
+    out.supports_language = readExplicitBoolean('supports_language');
+    out.supports_preferred_name = readExplicitBoolean('supports_preferred_name');
+  } else {
+    throw new Error(`${provider} workflow model ${workflowModelID} uses unsupported workflow_type ${workflowType}`);
+  }
+
+  const providerExtensions = normalizeProviderExtensions(raw.provider_extensions, provider, workflowModelID, 'request_options');
+  if (providerExtensions) {
+    out.provider_extensions = providerExtensions;
+  }
+  return out;
+}
+
 function normalizeSelectionProfiles(rawProfiles, provider, modelIndex) {
   if (!Array.isArray(rawProfiles)) {
     return [];
@@ -857,6 +906,12 @@ function generateProviderCatalog(doc) {
 
     const inputContractRef = normalizeString(workflowModel?.input_contract_ref);
     const outputPersistence = normalizeString(workflowModel?.output_persistence);
+    const requestOptions = normalizeVoiceWorkflowRequestOptions(
+      workflowModel?.request_options,
+      provider,
+      workflowModelID,
+      workflowType,
+    );
     const langs = resolveLangs(workflowModel, languageProfiles, []);
     const sourceRef = resolveSourceRef(workflowModel?.source_ids, sourceIndex, fallbackSourceRef);
 
@@ -865,6 +920,7 @@ function generateProviderCatalog(doc) {
       workflow_type: workflowType,
       input_contract_ref: inputContractRef,
       output_persistence: outputPersistence,
+      request_options: requestOptions,
       target_model_refs: targetModelRefs,
       source_ref: sourceRef,
     };

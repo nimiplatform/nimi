@@ -24,7 +24,7 @@ func TestRunRuntimeAppAuthAuthorizeJSON(t *testing.T) {
 			ExternalPrincipalId:       "openclaw-agent",
 			EffectiveScopes:           []string{"read:*", "write:*"},
 			PolicyVersion:             "v1",
-			IssuedScopeCatalogVersion: "sdk-v1",
+			IssuedScopeCatalogVersion: "sdk-v2",
 			CanDelegate:               true,
 			ExpiresAt:                 timestamppb.Now(),
 			Secret:                    "secret-1",
@@ -85,9 +85,50 @@ func TestRunRuntimeAppAuthAuthorizeJSON(t *testing.T) {
 	if req.GetResourceSelectors().GetLabels()["env"] != "test" {
 		t.Fatalf("resource selectors label mismatch")
 	}
+	if got := req.GetScopeCatalogVersion(); got != "sdk-v2" {
+		t.Fatalf("scope catalog version mismatch: %q", got)
+	}
 	md := service.lastAuthorizeMetadata()
 	if got := firstMD(md, "x-nimi-caller-id"); got != "cli:app-auth-authorize" {
 		t.Fatalf("caller-id mismatch: %q", got)
+	}
+}
+
+func TestRunRuntimeAppAuthAuthorizeAllowsExplicitSDKV1(t *testing.T) {
+	service := &cmdTestRuntimeAppAuthService{
+		authorizeResponse: &runtimev1.AuthorizeExternalPrincipalResponse{
+			TokenId:                   "token-legacy",
+			AppId:                     "nimi.desktop",
+			SubjectUserId:             "user-1",
+			ExternalPrincipalId:       "legacy-agent",
+			EffectiveScopes:           []string{"read:*"},
+			PolicyVersion:             "v1",
+			IssuedScopeCatalogVersion: "sdk-v1",
+			ExpiresAt:                 timestamppb.Now(),
+		},
+	}
+	addr, shutdown := startCmdTestRuntimeAppAuthServer(t, service)
+	defer shutdown()
+
+	if err := runRuntimeAppAuth([]string{
+		"authorize",
+		"--grpc-addr", addr,
+		"--app-id", "nimi.desktop",
+		"--external-principal-id", "legacy-agent",
+		"--external-type", "agent",
+		"--subject-user-id", "user-1",
+		"--policy-mode", "preset",
+		"--preset", "full",
+		"--scope-catalog-version", "sdk-v1",
+		"--scope", "read:chat",
+		"--json",
+	}); err != nil {
+		t.Fatalf("runRuntimeAppAuth authorize with explicit sdk-v1: %v", err)
+	}
+
+	req := service.lastAuthorizeRequest()
+	if got := req.GetScopeCatalogVersion(); got != "sdk-v1" {
+		t.Fatalf("explicit scope catalog version mismatch: %q", got)
 	}
 }
 

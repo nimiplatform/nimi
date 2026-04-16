@@ -640,14 +640,14 @@ func TestRunRuntimeKnowledgeGetListAndDeletePageJSON(t *testing.T) {
 	}
 }
 
-func startCmdTestRuntimeKnowledgeServer(t *testing.T, service runtimev1.RuntimeKnowledgeServiceServer) (string, func()) {
+func startCmdTestRuntimeKnowledgeServer(t *testing.T, service runtimev1.RuntimeCognitionServiceServer) (string, func()) {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
 	server := grpc.NewServer()
-	runtimev1.RegisterRuntimeKnowledgeServiceServer(server, service)
+	runtimev1.RegisterRuntimeCognitionServiceServer(server, service)
 	go func() {
 		_ = server.Serve(listener)
 	}()
@@ -658,7 +658,7 @@ func startCmdTestRuntimeKnowledgeServer(t *testing.T, service runtimev1.RuntimeK
 }
 
 type cmdTestRuntimeKnowledgeService struct {
-	runtimev1.UnimplementedRuntimeKnowledgeServiceServer
+	runtimev1.UnimplementedRuntimeCognitionServiceServer
 
 	mu sync.Mutex
 

@@ -184,13 +184,40 @@ If `voice_workflow_models` is provided, each entry should define:
 - `workflow_type` (`tts_v2v|tts_t2v`)
 - `input_contract_ref`
 - `output_persistence`
+- `request_options`
 - `target_model_refs`
 - `langs_ref`
+
+`voice_workflow_models[].request_options` is the source-authored workflow metadata
+home for route describe / validation projection.
+
+For `tts_v2v`, `request_options` must define:
+
+- `text_prompt_mode` (`unsupported|optional|required`)
+- `supports_language_hints` (explicit boolean)
+- `supports_preferred_name` (explicit boolean)
+- `reference_audio_uri_input` (explicit boolean)
+- `reference_audio_bytes_input` (explicit boolean)
+- `allowed_reference_audio_mime_types`
+- `provider_extensions` (optional)
+
+For `tts_t2v`, `request_options` must define:
+
+- `instruction_text_mode` (`unsupported|optional|required`)
+- `preview_text_mode` (`unsupported|optional|required`)
+- `supports_language` (explicit boolean)
+- `supports_preferred_name` (explicit boolean)
+- `provider_extensions` (optional)
+
+For workflow metadata, `provider_extensions` is limited to extension
+namespace/schema identity when that identity is worth exposing cross-layer.
+It must not become the source-authoring home for runtime-private transport
+override keys such as endpoint/header/path allowlists.
 
 `model_workflow_bindings` should explicitly map synthesis model ids to compatible workflow model ids.
 
 Only providers with a real runtime voice-workflow adapter may declare workflow models and bindings.
-`local` is currently synthesize-only and must not declare voice workflows until a real local workflow engine is integrated.
+`local` workflow declarations must stay family-scoped to admitted workflow engines; generic `local speech` workflow truth is not allowed.
 
 ### 5.9 Latest-Only + Alias Compatibility Rule
 
@@ -239,7 +266,7 @@ At minimum, generator/schema validation must enforce:
 10. `runtime` metadata must fully determine endpoint/default endpoint and runtime plane facts.
 11. `selection_profiles` must reference existing models with matching capabilities.
 12. `selection_profiles[text.general]`, when present, must match `defaults.default_text_model`.
-13. `voice.request_options` and `transcription` metadata must be capability-scoped and structurally valid.
+13. `voice.request_options`, `transcription`, and `voice_workflow_models[].request_options` metadata must be capability-scoped and structurally valid.
 
 ## 7. Workflow
 

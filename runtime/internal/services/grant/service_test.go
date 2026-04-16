@@ -106,6 +106,33 @@ func TestGrantAuthorizeValidateRevoke(t *testing.T) {
 	}
 }
 
+func TestGrantAuthorizeSupportsPublishedSDKV2(t *testing.T) {
+	svc := newGrantServiceForTest()
+
+	resp, err := svc.AuthorizeExternalPrincipal(context.Background(), &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p2",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_CUSTOM,
+		Scopes:                []string{"runtime.memory.read"},
+		ResourceSelectors:     &runtimev1.ResourceSelectors{},
+		TtlSeconds:            600,
+		ScopeCatalogVersion:   "sdk-v2",
+	})
+	if err != nil {
+		t.Fatalf("authorize sdk-v2: %v", err)
+	}
+	if resp.GetIssuedScopeCatalogVersion() != "sdk-v2" {
+		t.Fatalf("expected issued_scope_catalog_version sdk-v2, got %q", resp.GetIssuedScopeCatalogVersion())
+	}
+}
+
 func TestAuthorizeExternalPrincipalUsesInternalReasonCodeWhenSecretGenerationFails(t *testing.T) {
 	svc := newGrantServiceForTest()
 	withTokenSecretFailure(t)

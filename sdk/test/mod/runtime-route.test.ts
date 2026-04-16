@@ -319,9 +319,13 @@ test('decodeRuntimeRouteDescribeResultFromMetadata decodes voice workflow typed 
     metadataKind: 'voice_workflow.tts_v2v',
     metadata: {
       workflowType: 'tts_v2v',
-      supportsReferenceAudioInput: true,
-      supportsTextPromptInput: true,
       requiresTargetSynthesisBinding: true,
+      textPromptMode: 'optional',
+      supportsLanguageHints: false,
+      supportsPreferredName: true,
+      referenceAudioUriInput: true,
+      referenceAudioBytesInput: true,
+      allowedReferenceAudioMimeTypes: ['audio/wav', 'audio/mpeg'],
     },
   }), 'utf8').toString('base64');
 
@@ -339,6 +343,8 @@ test('decodeRuntimeRouteDescribeResultFromMetadata decodes voice workflow typed 
   }
   assert.equal(parsed.metadata.workflowType, 'tts_v2v');
   assert.equal(parsed.metadata.requiresTargetSynthesisBinding, true);
+  assert.equal(parsed.metadata.textPromptMode, 'optional');
+  assert.deepEqual(parsed.metadata.allowedReferenceAudioMimeTypes, ['audio/wav', 'audio/mpeg']);
 });
 
 test('decodeRuntimeRouteDescribeResultFromMetadata fails closed on mismatched binding ref', () => {

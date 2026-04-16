@@ -28,19 +28,36 @@ type voiceWorkflowRouteDescribeProbe struct {
 	resolvedBindingRef string
 }
 
-type voiceWorkflowRouteDescribeMetadataPayload struct {
+type voiceWorkflowTtsV2vRouteDescribeMetadataPayload struct {
+	WorkflowType                   string   `json:"workflowType"`
+	RequiresTargetSynthesisBinding bool     `json:"requiresTargetSynthesisBinding"`
+	TextPromptMode                 string   `json:"textPromptMode"`
+	SupportsLanguageHints          bool     `json:"supportsLanguageHints"`
+	SupportsPreferredName          bool     `json:"supportsPreferredName"`
+	ReferenceAudioURIInput         bool     `json:"referenceAudioUriInput"`
+	ReferenceAudioBytesInput       bool     `json:"referenceAudioBytesInput"`
+	AllowedReferenceAudioMimeTypes []string `json:"allowedReferenceAudioMimeTypes"`
+	ProviderExtensionNamespace     string   `json:"providerExtensionNamespace,omitempty"`
+	ProviderExtensionSchemaVersion string   `json:"providerExtensionSchemaVersion,omitempty"`
+}
+
+type voiceWorkflowTtsT2vRouteDescribeMetadataPayload struct {
 	WorkflowType                   string `json:"workflowType"`
-	SupportsReferenceAudioInput    bool   `json:"supportsReferenceAudioInput"`
-	SupportsTextPromptInput        bool   `json:"supportsTextPromptInput"`
 	RequiresTargetSynthesisBinding bool   `json:"requiresTargetSynthesisBinding"`
+	InstructionTextMode            string `json:"instructionTextMode"`
+	PreviewTextMode                string `json:"previewTextMode"`
+	SupportsLanguage               bool   `json:"supportsLanguage"`
+	SupportsPreferredName          bool   `json:"supportsPreferredName"`
+	ProviderExtensionNamespace     string `json:"providerExtensionNamespace,omitempty"`
+	ProviderExtensionSchemaVersion string `json:"providerExtensionSchemaVersion,omitempty"`
 }
 
 type voiceWorkflowRouteDescribeResultPayload struct {
-	Capability         string                                    `json:"capability"`
-	MetadataVersion    string                                    `json:"metadataVersion"`
-	ResolvedBindingRef string                                    `json:"resolvedBindingRef"`
-	MetadataKind       string                                    `json:"metadataKind"`
-	Metadata           voiceWorkflowRouteDescribeMetadataPayload `json:"metadata"`
+	Capability         string `json:"capability"`
+	MetadataVersion    string `json:"metadataVersion"`
+	ResolvedBindingRef string `json:"resolvedBindingRef"`
+	MetadataKind       string `json:"metadataKind"`
+	Metadata           any    `json:"metadata"`
 }
 
 func voiceWorkflowRouteDescribeExtensionNamespace(scenarioType runtimev1.ScenarioType) string {
@@ -147,19 +164,71 @@ func (s *Service) describeVoiceWorkflowRouteMetadata(
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 		}
 	}
+	metadataPayload, err := buildVoiceWorkflowRouteDescribeMetadata(resolution)
+	if err != nil {
+		return nil, err
+	}
 
 	return &voiceWorkflowRouteDescribeResultPayload{
 		Capability:         capability,
 		MetadataVersion:    "v1",
 		ResolvedBindingRef: probe.resolvedBindingRef,
 		MetadataKind:       capability,
-		Metadata: voiceWorkflowRouteDescribeMetadataPayload{
-			WorkflowType:                   workflowType,
-			SupportsReferenceAudioInput:    scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
-			SupportsTextPromptInput:        resolution.SupportsTextPromptInput,
-			RequiresTargetSynthesisBinding: resolution.RequiresTargetSynthesisBinding,
-		},
+		Metadata:           metadataPayload,
 	}, nil
+}
+
+func buildVoiceWorkflowRouteDescribeMetadata(resolution catalog.ResolveVoiceWorkflowResult) (any, error) {
+	options := resolution.RequestOptions
+	if options == nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	switch strings.ToLower(strings.TrimSpace(resolution.WorkflowType)) {
+	case "tts_v2v":
+		if options.SupportsLanguageHints == nil || options.SupportsPreferredName == nil || options.ReferenceAudioURIInput == nil || options.ReferenceAudioBytesInput == nil {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		}
+		payload := voiceWorkflowTtsV2vRouteDescribeMetadataPayload{
+			WorkflowType:                   "tts_v2v",
+			RequiresTargetSynthesisBinding: resolution.RequiresTargetSynthesisBinding,
+			TextPromptMode:                 strings.TrimSpace(options.TextPromptMode),
+			SupportsLanguageHints:          *options.SupportsLanguageHints,
+			SupportsPreferredName:          *options.SupportsPreferredName,
+			ReferenceAudioURIInput:         *options.ReferenceAudioURIInput,
+			ReferenceAudioBytesInput:       *options.ReferenceAudioBytesInput,
+			AllowedReferenceAudioMimeTypes: append([]string(nil), options.AllowedReferenceAudioMimeTypes...),
+		}
+		if payload.TextPromptMode == "" || len(payload.AllowedReferenceAudioMimeTypes) == 0 {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		}
+		if options.ProviderExtensions != nil {
+			payload.ProviderExtensionNamespace = strings.TrimSpace(options.ProviderExtensions.Namespace)
+			payload.ProviderExtensionSchemaVersion = strings.TrimSpace(options.ProviderExtensions.SchemaVersion)
+		}
+		return payload, nil
+	case "tts_t2v":
+		if options.SupportsLanguage == nil || options.SupportsPreferredName == nil {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		}
+		payload := voiceWorkflowTtsT2vRouteDescribeMetadataPayload{
+			WorkflowType:                   "tts_t2v",
+			RequiresTargetSynthesisBinding: resolution.RequiresTargetSynthesisBinding,
+			InstructionTextMode:            strings.TrimSpace(options.InstructionTextMode),
+			PreviewTextMode:                strings.TrimSpace(options.PreviewTextMode),
+			SupportsLanguage:               *options.SupportsLanguage,
+			SupportsPreferredName:          *options.SupportsPreferredName,
+		}
+		if payload.InstructionTextMode == "" || payload.PreviewTextMode == "" {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		}
+		if options.ProviderExtensions != nil {
+			payload.ProviderExtensionNamespace = strings.TrimSpace(options.ProviderExtensions.Namespace)
+			payload.ProviderExtensionSchemaVersion = strings.TrimSpace(options.ProviderExtensions.SchemaVersion)
+		}
+		return payload, nil
+	default:
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+	}
 }
 
 func executeVoiceWorkflowRouteDescribeScenario(

@@ -253,16 +253,16 @@ func TestDeleteVoiceAssetDeletesFishAudioProviderModelWhenSupported(t *testing.T
 func TestDeleteVoiceAssetMarksLocalRuntimeAuthoritativeDeleteMetadata(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	const assetID = "asset-local-voxcpm-1"
+	const assetID = "asset-local-qwen3-1"
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:  assetID,
 		Provider:      "local",
-		ModelId:       "speech/voxcpm2",
-		TargetModelId: "speech/voxcpm2",
+		ModelId:       "speech/qwen3tts",
+		TargetModelId: "speech/qwen3tts",
 		Persistence:   runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL,
 		Status:        runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
 		Metadata: structFromMap(map[string]any{
-			"workflow_family":                                     "voxcpm",
+			"workflow_family":                                     "qwen3_tts",
 			"voice_handle_policy_delete_semantics":                "runtime_authoritative_delete",
 			"voice_handle_policy_runtime_reconciliation_required": false,
 		}),

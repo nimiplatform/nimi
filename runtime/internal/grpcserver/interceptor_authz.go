@@ -95,24 +95,56 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	switch fullMethod {
 	case "/nimi.runtime.v1.RuntimeModelService/RemoveModel":
 		return "runtime.model.remove", true
-	case "/nimi.runtime.v1.RuntimeMemoryService/CreateBank":
+	case "/nimi.runtime.v1.RuntimeCognitionService/CreateBank":
 		return "runtime.memory.admin", true
-	case "/nimi.runtime.v1.RuntimeMemoryService/GetBank":
+	case "/nimi.runtime.v1.RuntimeCognitionService/GetBank":
 		return "runtime.memory.read", true
-	case "/nimi.runtime.v1.RuntimeMemoryService/ListBanks":
+	case "/nimi.runtime.v1.RuntimeCognitionService/ListBanks":
 		return "runtime.memory.read", true
-	case "/nimi.runtime.v1.RuntimeMemoryService/DeleteBank":
+	case "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank":
 		return "runtime.memory.admin", true
-	case "/nimi.runtime.v1.RuntimeMemoryService/Retain":
+	case "/nimi.runtime.v1.RuntimeCognitionService/Retain":
 		return "runtime.memory.write", true
-	case "/nimi.runtime.v1.RuntimeMemoryService/Recall":
+	case "/nimi.runtime.v1.RuntimeCognitionService/Recall":
 		return "runtime.memory.read", true
-	case "/nimi.runtime.v1.RuntimeMemoryService/History":
+	case "/nimi.runtime.v1.RuntimeCognitionService/History":
 		return "runtime.memory.read", true
-	case "/nimi.runtime.v1.RuntimeMemoryService/Reflect":
+	case "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory":
 		return "runtime.memory.write", true
-	case "/nimi.runtime.v1.RuntimeMemoryService/DeleteMemory":
-		return "runtime.memory.write", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank":
+		return "runtime.knowledge.admin", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank":
+		return "runtime.knowledge.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks":
+		return "runtime.knowledge.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank":
+		return "runtime.knowledge.admin", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/PutPage":
+		return "runtime.knowledge.write", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/GetPage":
+		return "runtime.knowledge.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/ListPages":
+		return "runtime.knowledge.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/DeletePage":
+		return "runtime.knowledge.write", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword":
+		return "runtime.knowledge.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid":
+		return "runtime.knowledge.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/AddLink":
+		return "runtime.knowledge.write", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink":
+		return "runtime.knowledge.write", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/ListLinks":
+		return "runtime.knowledge.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks":
+		return "runtime.knowledge.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph":
+		return "runtime.knowledge.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument":
+		return "runtime.knowledge.write", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask":
+		return "runtime.knowledge.read", true
 	case "/nimi.runtime.v1.RuntimeAgentCoreService/InitializeAgent":
 		return "runtime.agent.admin", true
 	case "/nimi.runtime.v1.RuntimeAgentCoreService/TerminateAgent":
@@ -168,7 +200,7 @@ func protectedCapabilityForStream(fullMethod string) (string, bool) {
 	switch fullMethod {
 	case "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents":
 		return "runtime.audit.export", true
-	case "/nimi.runtime.v1.RuntimeMemoryService/SubscribeMemoryEvents":
+	case "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents":
 		return "runtime.memory.read", true
 	case "/nimi.runtime.v1.RuntimeAgentCoreService/SubscribeAgentEvents":
 		return "runtime.agent.read", true

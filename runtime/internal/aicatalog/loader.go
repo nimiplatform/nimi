@@ -787,6 +787,9 @@ func validateSnapshot(snapshot Snapshot) error {
 				return fmt.Errorf("voice workflow model %s references unknown model %s", workflowModelID, targetModelID)
 			}
 		}
+		if err := validateVoiceWorkflowRequestOptions(provider, workflowModelID, workflowType, workflowModel.RequestOptions); err != nil {
+			return err
+		}
 		key := provider + ":" + workflowModelID
 		if _, exists := workflowModelByKey[key]; exists {
 			return fmt.Errorf("duplicate voice workflow model %s", key)
@@ -981,6 +984,57 @@ func validateTranscriptionOptions(provider string, modelID string, options *Tran
 	return validateProviderExtensions(provider, modelID, "transcription", options.ProviderExtensions)
 }
 
+func validateVoiceWorkflowRequestOptions(
+	provider string,
+	workflowModelID string,
+	workflowType string,
+	options *VoiceWorkflowRequestOptions,
+) error {
+	if options == nil {
+		return fmt.Errorf("voice workflow model %s:%s missing request_options", provider, workflowModelID)
+	}
+	switch normalizeWorkflowType(workflowType) {
+	case "tts_v2v":
+		if !isAllowedVoiceWorkflowMode(options.TextPromptMode) {
+			return fmt.Errorf("voice workflow model %s:%s request_options.text_prompt_mode must be unsupported|optional|required", provider, workflowModelID)
+		}
+		if options.SupportsLanguageHints == nil {
+			return fmt.Errorf("voice workflow model %s:%s request_options.supports_language_hints must be explicit", provider, workflowModelID)
+		}
+		if options.SupportsPreferredName == nil {
+			return fmt.Errorf("voice workflow model %s:%s request_options.supports_preferred_name must be explicit", provider, workflowModelID)
+		}
+		if options.ReferenceAudioURIInput == nil {
+			return fmt.Errorf("voice workflow model %s:%s request_options.reference_audio_uri_input must be explicit", provider, workflowModelID)
+		}
+		if options.ReferenceAudioBytesInput == nil {
+			return fmt.Errorf("voice workflow model %s:%s request_options.reference_audio_bytes_input must be explicit", provider, workflowModelID)
+		}
+		if !*options.ReferenceAudioURIInput && !*options.ReferenceAudioBytesInput {
+			return fmt.Errorf("voice workflow model %s:%s must admit at least one reference audio input path", provider, workflowModelID)
+		}
+		if len(options.AllowedReferenceAudioMimeTypes) == 0 {
+			return fmt.Errorf("voice workflow model %s:%s request_options.allowed_reference_audio_mime_types must not be empty", provider, workflowModelID)
+		}
+	case "tts_t2v":
+		if !isAllowedVoiceWorkflowMode(options.InstructionTextMode) {
+			return fmt.Errorf("voice workflow model %s:%s request_options.instruction_text_mode must be unsupported|optional|required", provider, workflowModelID)
+		}
+		if !isAllowedVoiceWorkflowMode(options.PreviewTextMode) {
+			return fmt.Errorf("voice workflow model %s:%s request_options.preview_text_mode must be unsupported|optional|required", provider, workflowModelID)
+		}
+		if options.SupportsLanguage == nil {
+			return fmt.Errorf("voice workflow model %s:%s request_options.supports_language must be explicit", provider, workflowModelID)
+		}
+		if options.SupportsPreferredName == nil {
+			return fmt.Errorf("voice workflow model %s:%s request_options.supports_preferred_name must be explicit", provider, workflowModelID)
+		}
+	default:
+		return fmt.Errorf("voice workflow model %s:%s has unsupported workflow_type %q", provider, workflowModelID, workflowType)
+	}
+	return validateProviderExtensions(provider, workflowModelID, "request_options", options.ProviderExtensions)
+}
+
 func validateProviderExtensions(provider string, modelID string, field string, extensions *ProviderExtensionMetadata) error {
 	if extensions == nil {
 		return nil
@@ -999,4 +1053,13 @@ func validateNumericRange(provider string, modelID string, field string, value *
 		return fmt.Errorf("model %s:%s %s max must be >= min", provider, modelID, field)
 	}
 	return nil
+}
+
+func isAllowedVoiceWorkflowMode(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "unsupported", "optional", "required":
+		return true
+	default:
+		return false
+	}
 }

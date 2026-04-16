@@ -21,6 +21,7 @@ const suggestedHostCommand = backendKind === 'mlx'
 const suggestedDriverCommand = backendKind === 'mlx'
   ? `${fs.existsSync(defaultMLXVenvPython) ? defaultMLXVenvPython : 'python3'} ${path.join(repoRoot, 'scripts', 'voxcpm-mlx-driver.py')} --model mlx-community/VoxCPM2-4bit`
   : `python3 ${path.join(repoRoot, 'scripts', 'voxcpm-driver.py')} --model openbmb/VoxCPM2`;
+const supersededByQwen3Command = `node ${path.join(repoRoot, 'scripts', 'run-local-qwen3-live-smoke.mjs')}`;
 
 function firstNonEmpty(...values) {
   for (const value of values) {
@@ -288,6 +289,9 @@ if (speechBaseURL) {
     printCheck('speech host catalog probe', modelReady, JSON.stringify(catalog.body));
   }
 }
+
+process.stdout.write('warning: this helper targets the superseded voxcpm local speech path. prefer the qwen3 helper below.\n');
+process.stdout.write(`- ${supersededByQwen3Command}\n\n`);
 
 if (blockers.length > 0) {
   process.stdout.write('\nlocal voxcpm smoke preflight blocked:\n');

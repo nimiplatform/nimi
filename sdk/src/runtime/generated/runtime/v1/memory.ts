@@ -2,7 +2,6 @@
 // @generated from protobuf file "runtime/v1/memory.proto" (package "nimi.runtime.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
-import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import type { BinaryWriteOptions } from "@protobuf-ts/runtime";
 import type { IBinaryWriter } from "@protobuf-ts/runtime";
 import { WireType } from "@protobuf-ts/runtime";
@@ -1027,34 +1026,6 @@ export interface HistoryResponse {
      * @generated from protobuf field: string next_page_token = 2
      */
     nextPageToken: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ReflectRequest
- */
-export interface ReflectRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryRequestContext context = 1
-     */
-    context?: MemoryRequestContext;
-    /**
-     * Canonical agent-facing scopes remain reject-on-call in Wave 2; public Reflect is infra/non-canonical only.
-     *
-     * @generated from protobuf field: nimi.runtime.v1.MemoryBankLocator bank = 2
-     */
-    bank?: MemoryBankLocator;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryReflectionRequest reflection = 3
-     */
-    reflection?: MemoryReflectionRequest;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ReflectResponse
- */
-export interface ReflectResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryReflectionResult result = 1
-     */
-    result?: MemoryReflectionResult;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.DeleteMemoryRequest
@@ -4460,112 +4431,6 @@ class HistoryResponse$Type extends MessageType<HistoryResponse> {
  */
 export const HistoryResponse = new HistoryResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ReflectRequest$Type extends MessageType<ReflectRequest> {
-    constructor() {
-        super("nimi.runtime.v1.ReflectRequest", [
-            { no: 1, name: "context", kind: "message", T: () => MemoryRequestContext },
-            { no: 2, name: "bank", kind: "message", T: () => MemoryBankLocator },
-            { no: 3, name: "reflection", kind: "message", T: () => MemoryReflectionRequest }
-        ]);
-    }
-    create(value?: PartialMessage<ReflectRequest>): ReflectRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<ReflectRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReflectRequest): ReflectRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.MemoryRequestContext context */ 1:
-                    message.context = MemoryRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* nimi.runtime.v1.MemoryBankLocator bank */ 2:
-                    message.bank = MemoryBankLocator.internalBinaryRead(reader, reader.uint32(), options, message.bank);
-                    break;
-                case /* nimi.runtime.v1.MemoryReflectionRequest reflection */ 3:
-                    message.reflection = MemoryReflectionRequest.internalBinaryRead(reader, reader.uint32(), options, message.reflection);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ReflectRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.MemoryRequestContext context = 1; */
-        if (message.context)
-            MemoryRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.MemoryBankLocator bank = 2; */
-        if (message.bank)
-            MemoryBankLocator.internalBinaryWrite(message.bank, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.MemoryReflectionRequest reflection = 3; */
-        if (message.reflection)
-            MemoryReflectionRequest.internalBinaryWrite(message.reflection, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ReflectRequest
- */
-export const ReflectRequest = new ReflectRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ReflectResponse$Type extends MessageType<ReflectResponse> {
-    constructor() {
-        super("nimi.runtime.v1.ReflectResponse", [
-            { no: 1, name: "result", kind: "message", T: () => MemoryReflectionResult }
-        ]);
-    }
-    create(value?: PartialMessage<ReflectResponse>): ReflectResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<ReflectResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReflectResponse): ReflectResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.MemoryReflectionResult result */ 1:
-                    message.result = MemoryReflectionResult.internalBinaryRead(reader, reader.uint32(), options, message.result);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ReflectResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.MemoryReflectionResult result = 1; */
-        if (message.result)
-            MemoryReflectionResult.internalBinaryWrite(message.result, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ReflectResponse
- */
-export const ReflectResponse = new ReflectResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class DeleteMemoryRequest$Type extends MessageType<DeleteMemoryRequest> {
     constructor() {
         super("nimi.runtime.v1.DeleteMemoryRequest", [
@@ -4766,18 +4631,3 @@ class SubscribeMemoryEventsRequest$Type extends MessageType<SubscribeMemoryEvent
  * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeMemoryEventsRequest
  */
 export const SubscribeMemoryEventsRequest = new SubscribeMemoryEventsRequest$Type();
-/**
- * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeMemoryService
- */
-export const RuntimeMemoryService = new ServiceType("nimi.runtime.v1.RuntimeMemoryService", [
-    { name: "CreateBank", options: {}, I: CreateBankRequest, O: CreateBankResponse },
-    { name: "GetBank", options: {}, I: GetBankRequest, O: GetBankResponse },
-    { name: "ListBanks", options: {}, I: ListBanksRequest, O: ListBanksResponse },
-    { name: "DeleteBank", options: {}, I: DeleteBankRequest, O: DeleteBankResponse },
-    { name: "Retain", options: {}, I: RetainRequest, O: RetainResponse },
-    { name: "Recall", options: {}, I: RecallRequest, O: RecallResponse },
-    { name: "History", options: {}, I: HistoryRequest, O: HistoryResponse },
-    { name: "Reflect", options: {}, I: ReflectRequest, O: ReflectResponse },
-    { name: "DeleteMemory", options: {}, I: DeleteMemoryRequest, O: DeleteMemoryResponse },
-    { name: "SubscribeMemoryEvents", serverStreaming: true, options: {}, I: SubscribeMemoryEventsRequest, O: MemoryEvent }
-]);

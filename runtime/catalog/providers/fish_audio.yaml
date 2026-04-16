@@ -93,6 +93,19 @@ voice_workflow_models:
     workflow_type: tts_v2v
     input_contract_ref: fish_audio_tts_v2v_input_v1
     output_persistence: provider_persistent
+    request_options:
+      text_prompt_mode: unsupported
+      supports_language_hints: false
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types:
+        - audio/wav
+        - audio/mpeg
+        - audio/ogg
+        - audio/flac
+        - audio/mp4
+        - audio/m4a
     target_model_refs:
       - s1
       - s2-pro

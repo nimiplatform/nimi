@@ -1,6 +1,6 @@
 schema_version: 3
 provider: local
-catalog_version: 2026-03-18-local-v5
+catalog_version: 2026-04-17-local-v6
 generated_target: runtime/catalog/providers/local.yaml
 runtime:
   runtime_plane: local
@@ -30,6 +30,22 @@ sources:
     url: https://github.com/QwenLM/Qwen3-TTS/blob/main/README.md
     retrieved_at: 2026-03-05
     note: Open-source usage examples for synthesis and voice customization workflows.
+  - source_id: qwen3_tts_customvoice_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+    retrieved_at: 2026-04-17
+    note: Default local plain TTS checkpoint for first-wave local admission.
+  - source_id: qwen3_tts_base_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base
+    retrieved_at: 2026-04-17
+    note: Default local voice clone checkpoint for first-wave local admission.
+  - source_id: qwen3_tts_voicedesign_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+    retrieved_at: 2026-04-17
+    note: Default local voice design checkpoint for first-wave local admission.
+  - source_id: qwen3_asr_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
+    retrieved_at: 2026-04-17
+    note: Default local STT checkpoint for first-wave local admission.
   - source_id: cosyvoice_repo
     url: https://github.com/FunAudioLLM/CosyVoice
     retrieved_at: 2026-03-05
@@ -110,25 +126,57 @@ voice_sets:
         name: George
         langs: [en-GB]
 
-# NOTE: local source breadth is intentionally wider than current materialized
-# runtime-speech execution breadth. Inside the current runtime-speech topic,
-# admitted execution truth is still limited to:
-# - plain synth via materialized families such as kokoro
-# - plain transcribe via materialized STT family such as whispercpp
-# - the bounded voxcpm family slice
-# The remaining local speech families below are catalog evidence only until
-# their execution plane is explicitly materialized and admitted.
+# NOTE: local speech source truth is now anchored to the first-wave admitted
+# Qwen speech line:
+# - STT default lane: Qwen3-ASR-0.6B
+# - plain TTS default lane: Qwen3-TTS-12Hz-0.6B-CustomVoice
+# - voice clone default lane: Qwen3-TTS-12Hz-0.6B-Base
+# - voice design default lane: Qwen3-TTS-12Hz-1.7B-VoiceDesign
+# Other local speech families below remain catalog evidence only until their
+# own execution plane and admission proof are explicitly cut over.
 models:
   - model_id: qwen3-tts-local
-    updated_at: 2026-03-05
+    updated_at: 2026-04-17
     capabilities: [audio.synthesize]
+    source_ids: [qwen3_tts_customvoice_modelcard]
     voice:
       discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_qwen3_tts_customvoice_dynamic_voice_set
       supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
       langs_ref: short_v1
     aliases:
       - qwen3-tts
-      - Qwen/Qwen3-TTS-8B
+      - local/qwen3-tts
+      - speech/qwen3tts
+      - Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+
+  - model_id: qwen3-tts-base-local
+    updated_at: 2026-04-17
+    capabilities: [audio.synthesize]
+    source_ids: [qwen3_tts_base_modelcard]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_qwen3_tts_base_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+    aliases:
+      - local/qwen3-tts-base
+      - speech/qwen3tts-base
+      - Qwen/Qwen3-TTS-12Hz-0.6B-Base
+
+  - model_id: qwen3-tts-voicedesign-local
+    updated_at: 2026-04-17
+    capabilities: [audio.synthesize]
+    source_ids: [qwen3_tts_voicedesign_modelcard]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_qwen3_tts_voicedesign_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+    aliases:
+      - local/qwen3-tts-voicedesign
+      - speech/qwen3tts-design
+      - Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
 
   - model_id: cosyvoice2-local
     updated_at: 2026-03-05
@@ -218,6 +266,21 @@ models:
       - local/whisper-large-v3
       - speech/whisper-large-v3
 
+  - model_id: qwen3-asr-local
+    model_type: stt
+    updated_at: 2026-04-17
+    capabilities: [audio.transcribe]
+    source_ids: [qwen3_asr_modelcard]
+    transcription:
+      tiers: [core_transcript, timed_transcript]
+      response_formats: [text, json]
+      supports_language: true
+      supports_timestamps: true
+    aliases:
+      - local/qwen3-asr
+      - speech/qwen3asr
+      - Qwen/Qwen3-ASR-0.6B
+
   - model_id: flux.1-schnell-local
     model_type: image
     updated_at: 2026-03-15
@@ -283,45 +346,84 @@ models:
       - sidecar/stable-audio-open-default
 
 # NOTE: local workflow objects below are not a generic local workflow green
-# state. They currently express only the first admitted family-scoped slice:
-# voxcpm -> speech/voxcpm2.
+# state. They express only the first admitted family-scoped slice:
+# qwen3_tts -> explicit local Qwen3 target roles.
 voice_workflow_models:
-  - workflow_model_id: voxcpm-local-voice-clone
+  - workflow_model_id: qwen3-local-voice-clone
     workflow_type: tts_v2v
     input_contract_ref: local_tts_v2v_input_v1
     output_persistence: session_ephemeral
+    request_options:
+      text_prompt_mode: optional
+      supports_language_hints: false
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types: [audio/wav, audio/mpeg, audio/ogg, audio/flac, audio/mp4, audio/m4a]
     target_model_refs:
-      - voxcpm2-local
-      - local/voxcpm2
-      - speech/voxcpm2
-      - openbmb/VoxCPM2
+      - qwen3-tts-base-local
+      - local/qwen3-tts-base
+      - speech/qwen3tts-base
+      - Qwen/Qwen3-TTS-12Hz-0.6B-Base
     langs_ref: short_v1
-    source_ids: [voxcpm2_modelcard]
-  - workflow_model_id: voxcpm-local-voice-design
+    source_ids: [qwen3_tts_base_modelcard]
+  - workflow_model_id: qwen3-local-voice-design
     workflow_type: tts_t2v
     input_contract_ref: local_tts_t2v_input_v1
     output_persistence: session_ephemeral
+    request_options:
+      instruction_text_mode: required
+      preview_text_mode: optional
+      supports_language: false
+      supports_preferred_name: true
     target_model_refs:
-      - voxcpm2-local
-      - local/voxcpm2
-      - speech/voxcpm2
-      - openbmb/VoxCPM2
+      - qwen3-tts-voicedesign-local
+      - local/qwen3-tts-voicedesign
+      - speech/qwen3tts-design
+      - Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
     langs_ref: short_v1
-    source_ids: [voxcpm2_modelcard]
+    source_ids: [qwen3_tts_voicedesign_modelcard]
 
 model_workflow_bindings:
-  - model_id: voxcpm2-local
-    workflow_model_refs: [voxcpm-local-voice-clone, voxcpm-local-voice-design]
+  - model_id: qwen3-tts-local
+    workflow_model_refs: [qwen3-local-voice-clone, qwen3-local-voice-design]
     workflow_types: [tts_v2v, tts_t2v]
-  - model_id: local/voxcpm2
-    workflow_model_refs: [voxcpm-local-voice-clone, voxcpm-local-voice-design]
+  - model_id: qwen3-tts
+    workflow_model_refs: [qwen3-local-voice-clone, qwen3-local-voice-design]
     workflow_types: [tts_v2v, tts_t2v]
-  - model_id: speech/voxcpm2
-    workflow_model_refs: [voxcpm-local-voice-clone, voxcpm-local-voice-design]
+  - model_id: local/qwen3-tts
+    workflow_model_refs: [qwen3-local-voice-clone, qwen3-local-voice-design]
     workflow_types: [tts_v2v, tts_t2v]
-  - model_id: openbmb/VoxCPM2
-    workflow_model_refs: [voxcpm-local-voice-clone, voxcpm-local-voice-design]
+  - model_id: speech/qwen3tts
+    workflow_model_refs: [qwen3-local-voice-clone, qwen3-local-voice-design]
     workflow_types: [tts_v2v, tts_t2v]
+  - model_id: Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+    workflow_model_refs: [qwen3-local-voice-clone, qwen3-local-voice-design]
+    workflow_types: [tts_v2v, tts_t2v]
+  - model_id: qwen3-tts-base-local
+    workflow_model_refs: [qwen3-local-voice-clone]
+    workflow_types: [tts_v2v]
+  - model_id: local/qwen3-tts-base
+    workflow_model_refs: [qwen3-local-voice-clone]
+    workflow_types: [tts_v2v]
+  - model_id: speech/qwen3tts-base
+    workflow_model_refs: [qwen3-local-voice-clone]
+    workflow_types: [tts_v2v]
+  - model_id: Qwen/Qwen3-TTS-12Hz-0.6B-Base
+    workflow_model_refs: [qwen3-local-voice-clone]
+    workflow_types: [tts_v2v]
+  - model_id: qwen3-tts-voicedesign-local
+    workflow_model_refs: [qwen3-local-voice-design]
+    workflow_types: [tts_t2v]
+  - model_id: local/qwen3-tts-voicedesign
+    workflow_model_refs: [qwen3-local-voice-design]
+    workflow_types: [tts_t2v]
+  - model_id: speech/qwen3tts-design
+    workflow_model_refs: [qwen3-local-voice-design]
+    workflow_types: [tts_t2v]
+  - model_id: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+    workflow_model_refs: [qwen3-local-voice-design]
+    workflow_types: [tts_t2v]
 
 voice_handle_policies:
   - policy_id: local_runtime_session_ephemeral_default
@@ -331,7 +433,7 @@ voice_handle_policies:
     scope: user_scoped
     delete_semantics: runtime_authoritative_delete
     runtime_reconciliation_required: false
-    source_ids: [voxcpm2_modelcard]
+    source_ids: [qwen3_tts_base_modelcard, qwen3_tts_voicedesign_modelcard]
 
 overrides:
   models: []

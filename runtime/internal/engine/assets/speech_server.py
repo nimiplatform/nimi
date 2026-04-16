@@ -18,13 +18,12 @@ from fastapi.responses import JSONResponse, Response
 import uvicorn
 
 MODELS_ROOT_ENV = "NIMI_RUNTIME_LOCAL_MODELS_PATH"
-KOKORO_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_KOKORO_CMD"
-WHISPERCPP_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_WHISPERCPP_CMD"
-VOXCPM_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_VOXCPM_CMD"
+QWEN3_TTS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
+QWEN3_ASR_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"
 DRIVER_TIMEOUT_MS_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"
 DEFAULT_DRIVER_TIMEOUT_MS = 60_000
 DEFAULT_MODELS_ROOT = os.path.expanduser("~/.nimi/data/models")
-WORKFLOW_NOT_ADMITTED = [
+WORKFLOW_CAPABILITIES = [
     "voice_workflow.tts_v2v",
     "voice_workflow.tts_t2v",
 ]
@@ -32,7 +31,8 @@ PLAIN_SPEECH_CAPABILITIES = [
     "audio.synthesize",
     "audio.transcribe",
 ]
-VOXCPM_PREFLIGHT_CACHE: dict[tuple[str, str], tuple[bool, str]] = {}
+ADMITTED_SPEECH_CAPABILITIES = PLAIN_SPEECH_CAPABILITIES + WORKFLOW_CAPABILITIES
+QWEN3_TTS_PREFLIGHT_CACHE: dict[tuple[str, str], tuple[bool, str]] = {}
 
 
 @dataclasses.dataclass
@@ -55,15 +55,12 @@ class HostState:
     status: str
     detail: str
     models: list[SpeechModelState]
-    kokoro_configured: bool
-    kokoro_ready: bool
-    kokoro_detail: str
-    whispercpp_configured: bool
-    whispercpp_ready: bool
-    whispercpp_detail: str
-    voxcpm_configured: bool
-    voxcpm_ready: bool
-    voxcpm_detail: str
+    qwen3_tts_configured: bool
+    qwen3_tts_ready: bool
+    qwen3_tts_detail: str
+    qwen3_asr_configured: bool
+    qwen3_asr_ready: bool
+    qwen3_asr_detail: str
 
 
 def default_models_root() -> str:
@@ -178,14 +175,20 @@ def infer_runtime_native_driver(
     normalized_entry = pathlib.Path(entry_path).name.strip().lower()
     normalized_files = [item.strip().lower() for item in declared_files]
     if capability == "audio.synthesize":
-        if "voxcpm" in normalized_model or "voxcpm" in normalized_entry or any("voxcpm" in item for item in normalized_files):
-            return "voxcpm"
-        if "kokoro" in normalized_model or "kokoro" in normalized_entry or any("kokoro" in item for item in normalized_files):
-            return "kokoro"
+        if "qwen3-tts" in normalized_model or "qwen3tts" in normalized_model:
+            return "qwen3_tts"
+        if "qwen3-tts" in normalized_entry or "qwen3tts" in normalized_entry:
+            return "qwen3_tts"
+        if any("qwen3-tts" in item or "qwen3tts" in item for item in normalized_files):
+            return "qwen3_tts"
         return ""
     if capability == "audio.transcribe":
-        if "whisper" in normalized_model or "whisper" in normalized_entry or any("whisper" in item for item in normalized_files):
-            return "whispercpp"
+        if "qwen3-asr" in normalized_model or "qwen3asr" in normalized_model:
+            return "qwen3_asr"
+        if "qwen3-asr" in normalized_entry or "qwen3asr" in normalized_entry:
+            return "qwen3_asr"
+        if any("qwen3-asr" in item or "qwen3asr" in item for item in normalized_files):
+            return "qwen3_asr"
         return ""
     return ""
 
@@ -220,18 +223,18 @@ def load_entry_payload(entry_path: str) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def voxcpm_driver_preflight(command: list[str], model_id: str, entry_path: str) -> tuple[bool, str]:
+def qwen3_tts_driver_preflight(command: list[str], model_id: str, entry_path: str) -> tuple[bool, str]:
     entry_payload = load_entry_payload(entry_path)
     model_ref = str(entry_payload.get("model_ref") or "").strip() or model_id.strip()
     cache_key = (" ".join(command), model_ref)
-    cached = VOXCPM_PREFLIGHT_CACHE.get(cache_key)
+    cached = QWEN3_TTS_PREFLIGHT_CACHE.get(cache_key)
     if cached is not None:
         return cached
     try:
         response = run_driver_command(
             command,
             {
-                "driver": "voxcpm",
+                "driver": "qwen3_tts",
                 "operation": "driver.preflight",
                 "model": model_id,
                 "model_ref": model_ref,
@@ -239,24 +242,34 @@ def voxcpm_driver_preflight(command: list[str], model_id: str, entry_path: str) 
             },
         )
     except Exception as error:
-        result = (False, f"voxcpm driver preflight failed: {error}")
-        VOXCPM_PREFLIGHT_CACHE[cache_key] = result
+        result = (False, f"qwen3_tts driver preflight failed: {error}")
+        QWEN3_TTS_PREFLIGHT_CACHE[cache_key] = result
         return result
     driver_family = str(response.get("driver_family") or "").strip()
-    if driver_family and driver_family != "voxcpm":
-        result = (False, f"voxcpm driver preflight invalid family: {driver_family}")
-        VOXCPM_PREFLIGHT_CACHE[cache_key] = result
+    if driver_family and driver_family != "qwen3_tts":
+        result = (False, f"qwen3_tts driver preflight invalid family: {driver_family}")
+        QWEN3_TTS_PREFLIGHT_CACHE[cache_key] = result
         return result
-    result = (True, "voxcpm driver ready")
-    VOXCPM_PREFLIGHT_CACHE[cache_key] = result
+    result = (True, "qwen3_tts driver ready")
+    QWEN3_TTS_PREFLIGHT_CACHE[cache_key] = result
     return result
+
+
+def inferred_qwen3_workflow_capabilities(model_id: str) -> list[str]:
+    normalized = model_id.strip().lower()
+    if "qwen3-tts-base" in normalized or "qwen3tts-base" in normalized:
+        return ["voice_workflow.tts_v2v"]
+    if "voicedesign" in normalized or "qwen3tts-design" in normalized:
+        return ["voice_workflow.tts_t2v"]
+    if "qwen3-tts" in normalized or "qwen3tts" in normalized:
+        return ["voice_workflow.tts_v2v", "voice_workflow.tts_t2v"]
+    return []
 
 
 def manifest_speech_model_state(
     manifest_path: pathlib.Path,
-    kokoro_driver_state: tuple[list[str], bool, str],
-    whispercpp_driver_state: tuple[list[str], bool, str],
-    voxcpm_driver_state: tuple[list[str], bool, str],
+    qwen3_tts_driver_state: tuple[list[str], bool, str],
+    qwen3_asr_driver_state: tuple[list[str], bool, str],
 ) -> SpeechModelState | None:
     try:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -273,7 +286,7 @@ def manifest_speech_model_state(
     declared_capabilities = [
         capability
         for capability in normalized_capabilities(payload.get("capabilities"))
-        if capability in PLAIN_SPEECH_CAPABILITIES
+        if capability in ADMITTED_SPEECH_CAPABILITIES
     ]
     if not declared_capabilities:
         return None
@@ -301,46 +314,45 @@ def manifest_speech_model_state(
     ready_capabilities: list[str] = []
     capability_drivers: dict[str, str] = {}
     for capability in declared_capabilities:
+        if capability in WORKFLOW_CAPABILITIES:
+            continue
         driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files)
         if not driver_kind:
             problems.append(f"{capability} runtime-native driver unresolved")
             continue
         capability_drivers[capability] = driver_kind
         if capability == "audio.synthesize":
-            if driver_kind == "voxcpm":
-                if not voxcpm_driver_state[1]:
-                    problems.append(voxcpm_driver_state[2])
-                    continue
-                voxcpm_ready, voxcpm_detail = voxcpm_driver_preflight(
-                    voxcpm_driver_state[0],
-                    model_id,
-                    resolved_entry,
-                )
-                if not voxcpm_ready:
-                    problems.append(voxcpm_detail)
-                    continue
-                ready_capabilities.append(capability)
-                continue
-            if driver_kind != "kokoro":
+            if driver_kind != "qwen3_tts":
                 problems.append(f"audio.synthesize requires unsupported driver {driver_kind}")
                 continue
-            if not kokoro_driver_state[1]:
-                problems.append(kokoro_driver_state[2])
+            if not qwen3_tts_driver_state[1]:
+                problems.append(qwen3_tts_driver_state[2])
                 continue
-            voices_ok, voices_detail = voices_file_valid(str(bundle_dir))
-            if not voices_ok:
-                problems.append(voices_detail)
+            qwen3_tts_ready, qwen3_tts_detail = qwen3_tts_driver_preflight(
+                qwen3_tts_driver_state[0],
+                model_id,
+                resolved_entry,
+            )
+            if not qwen3_tts_ready:
+                problems.append(qwen3_tts_detail)
                 continue
             ready_capabilities.append(capability)
             continue
         if capability == "audio.transcribe":
-            if driver_kind != "whispercpp":
+            if driver_kind != "qwen3_asr":
                 problems.append(f"audio.transcribe requires unsupported driver {driver_kind}")
                 continue
-            if not whispercpp_driver_state[1]:
-                problems.append(whispercpp_driver_state[2])
+            if not qwen3_asr_driver_state[1]:
+                problems.append(qwen3_asr_driver_state[2])
                 continue
             ready_capabilities.append(capability)
+    if "audio.synthesize" in ready_capabilities and capability_drivers.get("audio.synthesize", "").strip() == "qwen3_tts":
+        derived_workflow_capabilities = inferred_qwen3_workflow_capabilities(model_id)
+        for capability in derived_workflow_capabilities:
+            if capability not in declared_capabilities:
+                declared_capabilities.append(capability)
+            if capability not in ready_capabilities:
+                ready_capabilities.append(capability)
 
     ready = len(ready_capabilities) > 0 and len(problems) == 0
     detail = "ready" if ready else "; ".join(dict.fromkeys(problems)) or "runtime-native speech driver unavailable"
@@ -360,9 +372,8 @@ def manifest_speech_model_state(
 
 def discover_speech_models(
     models_root: str,
-    kokoro_driver_state: tuple[list[str], bool, str],
-    whispercpp_driver_state: tuple[list[str], bool, str],
-    voxcpm_driver_state: tuple[list[str], bool, str],
+    qwen3_tts_driver_state: tuple[list[str], bool, str],
+    qwen3_asr_driver_state: tuple[list[str], bool, str],
 ) -> list[SpeechModelState]:
     resolved_root = pathlib.Path(models_root) / "resolved"
     if not resolved_root.exists():
@@ -371,23 +382,22 @@ def discover_speech_models(
     for manifest_path in sorted(resolved_root.glob("**/asset.manifest.json")):
         if not manifest_path.is_file():
             continue
-        state = manifest_speech_model_state(manifest_path, kokoro_driver_state, whispercpp_driver_state, voxcpm_driver_state)
+        state = manifest_speech_model_state(manifest_path, qwen3_tts_driver_state, qwen3_asr_driver_state)
         if state is not None:
             models.append(state)
     return models
 
 
 def build_host_state() -> HostState:
-    kokoro_driver_state = driver_command_state(KOKORO_DRIVER_ENV, "kokoro")
-    whispercpp_driver_state = driver_command_state(WHISPERCPP_DRIVER_ENV, "whispercpp")
-    voxcpm_driver_state = driver_command_state(VOXCPM_DRIVER_ENV, "voxcpm")
-    models = discover_speech_models(default_models_root(), kokoro_driver_state, whispercpp_driver_state, voxcpm_driver_state)
+    qwen3_tts_driver_state = driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")
+    qwen3_asr_driver_state = driver_command_state(QWEN3_ASR_DRIVER_ENV, "qwen3_asr")
+    models = discover_speech_models(default_models_root(), qwen3_tts_driver_state, qwen3_asr_driver_state)
     ready_models = [model for model in models if model.ready]
     if ready_models:
         detail = f"{len(ready_models)} ready local speech model(s) discovered"
         status = "ok"
         ready = True
-    elif not kokoro_driver_state[0] and not whispercpp_driver_state[0] and not voxcpm_driver_state[0]:
+    elif not qwen3_tts_driver_state[0] and not qwen3_asr_driver_state[0]:
         detail = "no runtime-native speech drivers configured"
         status = "not_ready"
         ready = False
@@ -399,35 +409,32 @@ def build_host_state() -> HostState:
         detail = "speech drivers configured but managed speech bundles are not ready"
         status = "not_ready"
         ready = False
-    voxcpm_ready = voxcpm_driver_state[1]
-    voxcpm_detail = voxcpm_driver_state[2]
-    voxcpm_models = [
-        model for model in models if model.capability_drivers.get("audio.synthesize", "").strip() == "voxcpm"
+    qwen3_tts_ready = qwen3_tts_driver_state[1]
+    qwen3_tts_detail = qwen3_tts_driver_state[2]
+    qwen3_tts_models = [
+        model for model in models if model.capability_drivers.get("audio.synthesize", "").strip() == "qwen3_tts"
     ]
-    if voxcpm_models:
-        ready_voxcpm_models = [
-            model for model in voxcpm_models if model.ready and "audio.synthesize" in model.ready_capabilities
+    if qwen3_tts_models:
+        ready_qwen3_tts_models = [
+            model for model in qwen3_tts_models if model.ready and "audio.synthesize" in model.ready_capabilities
         ]
-        if ready_voxcpm_models:
-            voxcpm_ready = True
-            voxcpm_detail = "voxcpm driver ready"
+        if ready_qwen3_tts_models:
+            qwen3_tts_ready = True
+            qwen3_tts_detail = "qwen3_tts driver ready"
         else:
-            voxcpm_ready = False
-            voxcpm_detail = voxcpm_models[0].detail
+            qwen3_tts_ready = False
+            qwen3_tts_detail = qwen3_tts_models[0].detail
     return HostState(
         ready=ready,
         status=status,
         detail=detail,
         models=models,
-        kokoro_configured=bool(kokoro_driver_state[0]),
-        kokoro_ready=kokoro_driver_state[1],
-        kokoro_detail=kokoro_driver_state[2],
-        whispercpp_configured=bool(whispercpp_driver_state[0]),
-        whispercpp_ready=whispercpp_driver_state[1],
-        whispercpp_detail=whispercpp_driver_state[2],
-        voxcpm_configured=bool(voxcpm_driver_state[0]),
-        voxcpm_ready=voxcpm_ready,
-        voxcpm_detail=voxcpm_detail,
+        qwen3_tts_configured=bool(qwen3_tts_driver_state[0]),
+        qwen3_tts_ready=qwen3_tts_ready,
+        qwen3_tts_detail=qwen3_tts_detail,
+        qwen3_asr_configured=bool(qwen3_asr_driver_state[0]),
+        qwen3_asr_ready=qwen3_asr_driver_state[1],
+        qwen3_asr_detail=qwen3_asr_driver_state[2],
     )
 
 
@@ -447,8 +454,21 @@ def public_model_payload(model: SpeechModelState) -> dict[str, Any]:
 
 def find_ready_model(model_id: str, capability: str) -> SpeechModelState:
     target = model_id.strip()
+    normalized_target = target.lower()
+    candidate_targets = {normalized_target}
+    if "/" in normalized_target:
+        _, suffix = normalized_target.split("/", 1)
+        if suffix:
+            candidate_targets.add(suffix)
+    elif normalized_target:
+        candidate_targets.add(f"speech/{normalized_target}")
     for model in build_host_state().models:
-        if model.model_id == target and model.ready and capability in model.ready_capabilities:
+        normalized_model_id = model.model_id.strip().lower()
+        if (
+            normalized_model_id in candidate_targets
+            and model.ready
+            and capability in model.ready_capabilities
+        ):
             return model
     raise HTTPException(
         status_code=503,
@@ -491,12 +511,8 @@ def run_driver_command(command: list[str], request_payload: dict[str, Any]) -> d
 
 def synthesize_with_driver(model: SpeechModelState, request_payload: dict[str, Any]) -> tuple[bytes, str]:
     driver_kind = model.capability_drivers.get("audio.synthesize", "").strip()
-    if driver_kind == "voxcpm":
-        command, ready, detail = driver_command_state(VOXCPM_DRIVER_ENV, "voxcpm")
-        if not ready:
-            raise RuntimeError(detail)
-    elif driver_kind == "kokoro":
-        command, ready, detail = driver_command_state(KOKORO_DRIVER_ENV, "kokoro")
+    if driver_kind == "qwen3_tts":
+        command, ready, detail = driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")
         if not ready:
             raise RuntimeError(detail)
     else:
@@ -520,9 +536,9 @@ def synthesize_with_driver(model: SpeechModelState, request_payload: dict[str, A
 
 def transcribe_with_driver(model: SpeechModelState, request_payload: dict[str, Any]) -> str:
     driver_kind = model.capability_drivers.get("audio.transcribe", "").strip()
-    if driver_kind != "whispercpp":
+    if driver_kind != "qwen3_asr":
         raise RuntimeError(f"audio.transcribe runtime-native driver unavailable: {driver_kind or 'unset'}")
-    command, ready, detail = driver_command_state(WHISPERCPP_DRIVER_ENV, "whispercpp")
+    command, ready, detail = driver_command_state(QWEN3_ASR_DRIVER_ENV, "qwen3_asr")
     if not ready:
         raise RuntimeError(detail)
     response = run_driver_command(command, request_payload)
@@ -535,8 +551,10 @@ def transcribe_with_driver(model: SpeechModelState, request_payload: dict[str, A
 def infer_workflow_family(target_model_id: str, workflow_model_id: str) -> str:
     normalized_target = target_model_id.strip().lower()
     normalized_workflow = workflow_model_id.strip().lower()
-    if "voxcpm" in normalized_target or "voxcpm" in normalized_workflow:
-        return "voxcpm"
+    if "qwen3-tts" in normalized_target or "qwen3tts" in normalized_target:
+        return "qwen3_tts"
+    if "qwen3-tts" in normalized_workflow or "qwen3tts" in normalized_workflow:
+        return "qwen3_tts"
     return ""
 
 
@@ -637,15 +655,12 @@ def create_app() -> FastAPI:
             "ready": state.ready,
             "detail": state.detail,
             "checks": {
-                "kokoro_driver": state.kokoro_configured,
-                "kokoro_driver_ready": state.kokoro_ready,
-                "kokoro_driver_detail": state.kokoro_detail,
-                "whispercpp_driver": state.whispercpp_configured,
-                "whispercpp_driver_ready": state.whispercpp_ready,
-                "whispercpp_driver_detail": state.whispercpp_detail,
-                "voxcpm_driver": state.voxcpm_configured,
-                "voxcpm_driver_ready": state.voxcpm_ready,
-                "voxcpm_driver_detail": state.voxcpm_detail,
+                "qwen3_tts_driver": state.qwen3_tts_configured,
+                "qwen3_tts_driver_ready": state.qwen3_tts_ready,
+                "qwen3_tts_driver_detail": state.qwen3_tts_detail,
+                "qwen3_asr_driver": state.qwen3_asr_configured,
+                "qwen3_asr_driver_ready": state.qwen3_asr_ready,
+                "qwen3_asr_driver_detail": state.qwen3_asr_detail,
                 "models_ready": len([model for model in state.models if model.ready]),
             },
         }
@@ -657,7 +672,7 @@ def create_app() -> FastAPI:
             "status": state.status,
             "ready": state.ready,
             "detail": state.detail,
-            "not_admitted_capabilities": WORKFLOW_NOT_ADMITTED,
+            "not_admitted_capabilities": [],
             "models": [public_model_payload(model) for model in state.models],
         }
 
@@ -779,14 +794,14 @@ def create_app() -> FastAPI:
         workflow_model_id = str(payload.get("workflow_model_id") or "").strip()
         target_model_id = str(payload.get("target_model_id") or "").strip()
         workflow_family = infer_workflow_family(target_model_id, workflow_model_id)
-        if workflow_family != "voxcpm":
+        if workflow_family != "qwen3_tts":
             return local_workflow_not_admitted_response("voice clone", workflow_family)
         try:
             model = find_ready_model(target_model_id, "audio.synthesize")
             response = run_driver_command(
-                driver_command_state(VOXCPM_DRIVER_ENV, "voxcpm")[0],
+                driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")[0],
                 {
-                    "driver": "voxcpm",
+                    "driver": "qwen3_tts",
                     "operation": "voice.clone",
                     "workflow_type": "tts_v2v",
                     "workflow_model_id": workflow_model_id,
@@ -805,7 +820,7 @@ def create_app() -> FastAPI:
         except Exception as error:
             return workflow_execution_unavailable_response(
                 "voice clone",
-                f"local voxcpm workflow execution failed: {error}",
+                f"local qwen3_tts workflow execution failed: {error}",
                 "speech_workflow_execution_failed",
             )
 
@@ -814,14 +829,14 @@ def create_app() -> FastAPI:
         workflow_model_id = str(payload.get("workflow_model_id") or "").strip()
         target_model_id = str(payload.get("target_model_id") or "").strip()
         workflow_family = infer_workflow_family(target_model_id, workflow_model_id)
-        if workflow_family != "voxcpm":
+        if workflow_family != "qwen3_tts":
             return local_workflow_not_admitted_response("voice design", workflow_family)
         try:
             model = find_ready_model(target_model_id, "audio.synthesize")
             response = run_driver_command(
-                driver_command_state(VOXCPM_DRIVER_ENV, "voxcpm")[0],
+                driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")[0],
                 {
-                    "driver": "voxcpm",
+                    "driver": "qwen3_tts",
                     "operation": "voice.design",
                     "workflow_type": "tts_t2v",
                     "workflow_model_id": workflow_model_id,
@@ -840,7 +855,7 @@ def create_app() -> FastAPI:
         except Exception as error:
             return workflow_execution_unavailable_response(
                 "voice design",
-                f"local voxcpm workflow execution failed: {error}",
+                f"local qwen3_tts workflow execution failed: {error}",
                 "speech_workflow_execution_failed",
             )
 

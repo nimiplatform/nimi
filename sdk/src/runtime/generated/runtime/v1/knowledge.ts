@@ -2,7 +2,6 @@
 // @generated from protobuf file "runtime/v1/knowledge.proto" (package "nimi.runtime.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
-import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import type { BinaryWriteOptions } from "@protobuf-ts/runtime";
 import type { IBinaryWriter } from "@protobuf-ts/runtime";
 import { WireType } from "@protobuf-ts/runtime";
@@ -4299,25 +4298,3 @@ class GetIngestTaskResponse$Type extends MessageType<GetIngestTaskResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.GetIngestTaskResponse
  */
 export const GetIngestTaskResponse = new GetIngestTaskResponse$Type();
-/**
- * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeKnowledgeService
- */
-export const RuntimeKnowledgeService = new ServiceType("nimi.runtime.v1.RuntimeKnowledgeService", [
-    { name: "CreateKnowledgeBank", options: {}, I: CreateKnowledgeBankRequest, O: CreateKnowledgeBankResponse },
-    { name: "GetKnowledgeBank", options: {}, I: GetKnowledgeBankRequest, O: GetKnowledgeBankResponse },
-    { name: "ListKnowledgeBanks", options: {}, I: ListKnowledgeBanksRequest, O: ListKnowledgeBanksResponse },
-    { name: "DeleteKnowledgeBank", options: {}, I: DeleteKnowledgeBankRequest, O: DeleteKnowledgeBankResponse },
-    { name: "PutPage", options: {}, I: PutPageRequest, O: PutPageResponse },
-    { name: "GetPage", options: {}, I: GetPageRequest, O: GetPageResponse },
-    { name: "ListPages", options: {}, I: ListPagesRequest, O: ListPagesResponse },
-    { name: "DeletePage", options: {}, I: DeletePageRequest, O: DeletePageResponse },
-    { name: "SearchKeyword", options: {}, I: SearchKeywordRequest, O: SearchKeywordResponse },
-    { name: "SearchHybrid", options: {}, I: SearchHybridRequest, O: SearchHybridResponse },
-    { name: "AddLink", options: {}, I: AddLinkRequest, O: AddLinkResponse },
-    { name: "RemoveLink", options: {}, I: RemoveLinkRequest, O: RemoveLinkResponse },
-    { name: "ListLinks", options: {}, I: ListLinksRequest, O: ListLinksResponse },
-    { name: "ListBacklinks", options: {}, I: ListBacklinksRequest, O: ListBacklinksResponse },
-    { name: "TraverseGraph", options: {}, I: TraverseGraphRequest, O: TraverseGraphResponse },
-    { name: "IngestDocument", options: {}, I: IngestDocumentRequest, O: IngestDocumentResponse },
-    { name: "GetIngestTask", options: {}, I: GetIngestTaskRequest, O: GetIngestTaskResponse }
-]);

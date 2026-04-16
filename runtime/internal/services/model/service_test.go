@@ -201,13 +201,13 @@ func TestCheckModelHealthLocalLlamaRequiresWarmProof(t *testing.T) {
 	}
 }
 
-func TestCheckModelHealthLocalSpeechWorkflowFailsClosedBeforeAdmission(t *testing.T) {
+func TestCheckModelHealthLocalSpeechWorkflowSucceedsWhenCatalogAdvertisesAdmittedCapability(t *testing.T) {
 	registry := modelregistry.New()
 	registry.Upsert(modelregistry.Entry{
 		ModelID:      "speech/qwen3tts",
 		Version:      "latest",
 		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
-		Capabilities: []string{"voice_workflow.tts_v2v"},
+		Capabilities: []string{"audio.synthesize", "voice_workflow.tts_v2v"},
 		Source:       "local",
 	})
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
@@ -217,7 +217,7 @@ func TestCheckModelHealthLocalSpeechWorkflowFailsClosedBeforeAdmission(t *testin
 		case "/healthz":
 			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
 		case "/v1/catalog":
-			_, _ = w.Write([]byte(`{"models":[{"id":"qwen3tts","ready":true}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech/qwen3tts","ready":true,"capabilities":["audio.synthesize","voice_workflow.tts_v2v"]}]}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -232,13 +232,13 @@ func TestCheckModelHealthLocalSpeechWorkflowFailsClosedBeforeAdmission(t *testin
 	if err != nil {
 		t.Fatalf("check model health: %v", err)
 	}
-	if resp.GetHealthy() {
-		t.Fatalf("local speech workflow model must fail closed before admission")
+	if !resp.GetHealthy() {
+		t.Fatalf("local admitted speech workflow model must be healthy: %+v", resp)
 	}
-	if resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+	if resp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
 	}
-	if got := resp.GetActionHint(); got != "use cloud workflow route" {
+	if got := resp.GetActionHint(); got != "" {
 		t.Fatalf("unexpected action hint: %q", got)
 	}
 }
@@ -251,7 +251,7 @@ func TestCheckModelHealthLocalSpeechRequiresTargetReadyCatalogCapability(t *test
 			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
 		case "/v1/catalog":
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech/kokoro-v1","ready":true,"capabilities":["audio.synthesize"]}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech/qwen3tts","ready":true,"capabilities":["audio.synthesize"]}]}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -261,7 +261,7 @@ func TestCheckModelHealthLocalSpeechRequiresTargetReadyCatalogCapability(t *test
 
 	registry := modelregistry.New()
 	registry.Upsert(modelregistry.Entry{
-		ModelID:      "speech/kokoro-v1",
+		ModelID:      "speech/qwen3tts",
 		Version:      "latest",
 		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 		Capabilities: []string{"audio.synthesize"},
@@ -271,7 +271,7 @@ func TestCheckModelHealthLocalSpeechRequiresTargetReadyCatalogCapability(t *test
 
 	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
 		AppId:   "nimi.desktop",
-		ModelId: "speech/kokoro-v1",
+		ModelId: "speech/qwen3tts",
 	})
 	if err != nil {
 		t.Fatalf("check model health: %v", err)
@@ -289,7 +289,7 @@ func TestCheckModelHealthLocalSpeechFailsClosedWhenCatalogMissesRequiredCapabili
 			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
 		case "/v1/catalog":
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech/kokoro-v1","ready":true,"capabilities":["audio.transcribe"]}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech/qwen3tts","ready":true,"capabilities":["audio.transcribe"]}]}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -299,7 +299,7 @@ func TestCheckModelHealthLocalSpeechFailsClosedWhenCatalogMissesRequiredCapabili
 
 	registry := modelregistry.New()
 	registry.Upsert(modelregistry.Entry{
-		ModelID:      "speech/kokoro-v1",
+		ModelID:      "speech/qwen3tts",
 		Version:      "latest",
 		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 		Capabilities: []string{"audio.synthesize"},
@@ -309,7 +309,7 @@ func TestCheckModelHealthLocalSpeechFailsClosedWhenCatalogMissesRequiredCapabili
 
 	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
 		AppId:   "nimi.desktop",
-		ModelId: "speech/kokoro-v1",
+		ModelId: "speech/qwen3tts",
 	})
 	if err != nil {
 		t.Fatalf("check model health: %v", err)
@@ -357,7 +357,7 @@ func TestCheckModelHealthLocalSpeechLocalServiceRequiresAdmittedPlainCapability(
 		responses: []*runtimev1.ListLocalAssetsResponse{{
 			Assets: []*runtimev1.LocalAssetRecord{{
 				LocalAssetId:   "speech-1",
-				LogicalModelId: "speech/kokoro-v1",
+				LogicalModelId: "speech/qwen3tts",
 				Engine:         "speech",
 				Capabilities:   []string{},
 				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
@@ -368,7 +368,7 @@ func TestCheckModelHealthLocalSpeechLocalServiceRequiresAdmittedPlainCapability(
 
 	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
 		AppId:   "nimi.desktop",
-		ModelId: "speech/kokoro-v1",
+		ModelId: "speech/qwen3tts",
 	})
 	if err != nil {
 		t.Fatalf("check model health: %v", err)
@@ -390,7 +390,7 @@ func TestCheckModelHealthLocalSpeechLocalServiceUsesAdmittedPlainCapability(t *t
 		responses: []*runtimev1.ListLocalAssetsResponse{{
 			Assets: []*runtimev1.LocalAssetRecord{{
 				LocalAssetId:   "speech-1",
-				LogicalModelId: "speech/kokoro-v1",
+				LogicalModelId: "speech/qwen3tts",
 				Engine:         "speech",
 				Capabilities:   []string{"audio.synthesize"},
 				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
@@ -401,7 +401,7 @@ func TestCheckModelHealthLocalSpeechLocalServiceUsesAdmittedPlainCapability(t *t
 
 	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
 		AppId:   "nimi.desktop",
-		ModelId: "speech/kokoro-v1",
+		ModelId: "speech/qwen3tts",
 	})
 	if err != nil {
 		t.Fatalf("check model health: %v", err)

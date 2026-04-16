@@ -386,17 +386,6 @@ message HistoryResponse {
   string next_page_token = 2;
 }
 
-message ReflectRequest {
-  MemoryRequestContext context = 1;
-  // Canonical agent-facing scopes remain reject-on-call in Wave 2; public Reflect is infra/non-canonical only.
-  MemoryBankLocator bank = 2;
-  MemoryReflectionRequest reflection = 3;
-}
-
-message ReflectResponse {
-  MemoryReflectionResult result = 1;
-}
-
 message DeleteMemoryRequest {
   MemoryRequestContext context = 1;
   MemoryBankLocator bank = 2;
@@ -414,17 +403,4 @@ message SubscribeMemoryEventsRequest {
   repeated MemoryBankScope scope_filters = 2;
   repeated MemoryBankOwnerFilter owner_filters = 3;
   string cursor = 4;
-}
-
-service RuntimeMemoryService {
-  rpc CreateBank(CreateBankRequest) returns (CreateBankResponse);
-  rpc GetBank(GetBankRequest) returns (GetBankResponse);
-  rpc ListBanks(ListBanksRequest) returns (ListBanksResponse);
-  rpc DeleteBank(DeleteBankRequest) returns (DeleteBankResponse);
-  rpc Retain(RetainRequest) returns (RetainResponse);
-  rpc Recall(RecallRequest) returns (RecallResponse);
-  rpc History(HistoryRequest) returns (HistoryResponse);
-  rpc Reflect(ReflectRequest) returns (ReflectResponse);
-  rpc DeleteMemory(DeleteMemoryRequest) returns (DeleteMemoryResponse);
-  rpc SubscribeMemoryEvents(SubscribeMemoryEventsRequest) returns (stream MemoryEvent);
 }

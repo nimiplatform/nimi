@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/nimiplatform/nimi/nimi-cognition v0.0.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/zalando/go-keyring v0.2.6
 	golang.org/x/net v0.51.0
@@ -31,3 +32,5 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
+
+replace github.com/nimiplatform/nimi/nimi-cognition => ../nimi-cognition

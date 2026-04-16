@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -13,8 +12,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 )
-
-var workflowTextPromptContractPattern = regexp.MustCompile(`(^|[._/-])(text|prompt)([._/-]|$)`)
 
 type indexedSnapshot struct {
 	catalogVersion   string
@@ -313,21 +310,13 @@ func (r *Resolver) ResolveVoiceWorkflowForSubject(subjectUserID string, provider
 			HandlePolicyDefaultTTL:         strings.TrimSpace(policy.DefaultTTL),
 			HandlePolicyDeleteSemantics:    strings.TrimSpace(policy.DeleteSemantics),
 			RuntimeReconciliationRequired:  policy.RuntimeReconciliationRequired,
-			SupportsTextPromptInput:        workflowSupportsTextPromptInput(normalizedWorkflowType, workflowModel.InputContractRef),
+			RequestOptions:                 workflowModel.RequestOptions,
 			RequiresTargetSynthesisBinding: len(binding.WorkflowModelRefs) > 0,
 			CatalogVersion:                 state.snapshot.catalogVersion,
 			Source:                         state.source,
 		}, nil
 	}
 	return ResolveVoiceWorkflowResult{}, ErrVoiceWorkflowUnsupported
-}
-
-func workflowSupportsTextPromptInput(workflowType string, inputContractRef string) bool {
-	normalizedWorkflowType := normalizeWorkflowType(workflowType)
-	if normalizedWorkflowType == "tts_t2v" {
-		return true
-	}
-	return workflowTextPromptContractPattern.MatchString(strings.ToLower(strings.TrimSpace(inputContractRef)))
 }
 
 func (r *Resolver) SupportsScenario(providerType string, modelID string, scenarioType runtimev1.ScenarioType) (bool, error) {

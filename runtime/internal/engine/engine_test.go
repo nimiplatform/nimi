@@ -539,7 +539,7 @@ func TestWaitMediaHealthySuccess(t *testing.T) {
 			_, _ = w.Write([]byte(`{"ready":true}`))
 		case "/v1/catalog":
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"models":[{"id":"flux.1-schnell","ready":true}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"flux.1-schnell","ready":true}]}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}

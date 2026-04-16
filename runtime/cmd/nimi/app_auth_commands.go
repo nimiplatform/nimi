@@ -39,7 +39,7 @@ func runRuntimeAppAuthAuthorize(args []string) error {
 	canDelegate := fs.Bool("can-delegate", false, "can delegate access")
 	maxDelegationDepth := fs.Int("max-delegation-depth", 0, "max delegation depth")
 	ttlSeconds := fs.Int("ttl-seconds", 3600, "token ttl in seconds")
-	scopeCatalogVersion := fs.String("scope-catalog-version", "sdk-v1", "scope catalog version")
+	scopeCatalogVersion := fs.String("scope-catalog-version", "sdk-v2", "scope catalog version")
 	policyOverride := fs.Bool("policy-override", false, "override policy (requires protected scope)")
 	accessTokenID := fs.String("access-token-id", "", "protected access token id")
 	accessTokenSecret := fs.String("access-token-secret", "", "protected access token secret")

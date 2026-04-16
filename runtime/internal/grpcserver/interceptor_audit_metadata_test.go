@@ -32,6 +32,30 @@ func TestMethodDescriptorMapsRealtimeServiceToRuntimeAI(t *testing.T) {
 	}
 }
 
+func TestMethodDescriptorMapsCognitionMethodsToRetainedDomains(t *testing.T) {
+	domain, operation, capability := methodDescriptor("/nimi.runtime.v1.RuntimeCognitionService/GetBank")
+	if domain != "runtime.memory" {
+		t.Fatalf("domain mismatch: %q", domain)
+	}
+	if operation != "get_bank" {
+		t.Fatalf("operation mismatch: %q", operation)
+	}
+	if capability != "runtime.memory.get_bank" {
+		t.Fatalf("capability mismatch: %q", capability)
+	}
+
+	domain, operation, capability = methodDescriptor("/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword")
+	if domain != "runtime.knowledge" {
+		t.Fatalf("domain mismatch: %q", domain)
+	}
+	if operation != "search_keyword" {
+		t.Fatalf("operation mismatch: %q", operation)
+	}
+	if capability != "runtime.knowledge.search_keyword" {
+		t.Fatalf("capability mismatch: %q", capability)
+	}
+}
+
 func TestCloneUsageReturnsTypedClone(t *testing.T) {
 	input := &runtimev1.UsageStats{InputTokens: 12}
 	cloned := cloneUsage(input)

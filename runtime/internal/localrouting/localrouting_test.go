@@ -16,7 +16,7 @@ func TestProviderSupportsCapability(t *testing.T) {
 		{provider: "media", capability: "image.generate", want: true},
 		{provider: "media", capability: "text.generate", want: false},
 		{provider: "speech", capability: "audio.transcribe", want: true},
-		{provider: "speech", capability: "voice_workflow.tts_t2v", want: false},
+		{provider: "speech", capability: "voice_workflow.tts_t2v", want: true},
 		{provider: "speech", capability: "video.generate", want: false},
 		{provider: "sidecar", capability: "music.generate", want: true},
 		{provider: "sidecar", capability: "audio.transcribe", want: false},
@@ -40,7 +40,7 @@ func TestPreferenceOrderHardCutByCapability(t *testing.T) {
 		"video.generate":   {"media"},
 		"audio.transcribe": {"speech"},
 		"audio.synthesize": {"speech"},
-		"voice_workflow.tts_t2v": {},
+		"voice_workflow.tts_t2v": {"speech"},
 		"music.generate":   {"sidecar"},
 	}
 

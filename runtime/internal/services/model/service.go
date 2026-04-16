@@ -303,13 +303,6 @@ func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, mode
 		return false, nil, false
 	}
 
-	if localSpeechWorkflowAssetRequiresAdmission(selected) {
-		return false, &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
-			ActionHint: "use cloud workflow route",
-		}, true
-	}
 	if localSpeechAssetMissingAdmittedPlainCapability(selected) {
 		return false, &runtimev1.CheckModelHealthResponse{
 			Healthy:    false,
@@ -413,9 +406,6 @@ func checkLocalNativeModelHealth(
 	item modelregistry.Entry,
 	projection modelregistry.NativeProjection,
 ) (bool, runtimev1.ReasonCode, string) {
-	if localSpeechWorkflowModelRequiresAdmission(item) {
-		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "use cloud workflow route"
-	}
 	if projection.BundleState != runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_READY {
 		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "finish local model install"
 	}
@@ -449,19 +439,6 @@ func checkLocalNativeModelHealth(
 	return true, runtimev1.ReasonCode_ACTION_EXECUTED, ""
 }
 
-func localSpeechWorkflowAssetRequiresAdmission(asset *runtimev1.LocalAssetRecord) bool {
-	if asset == nil || !strings.EqualFold(strings.TrimSpace(asset.GetEngine()), "speech") {
-		return false
-	}
-	for _, capability := range asset.GetCapabilities() {
-		switch strings.ToLower(strings.TrimSpace(capability)) {
-		case "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
-			return true
-		}
-	}
-	return false
-}
-
 func localSpeechAssetMissingAdmittedPlainCapability(asset *runtimev1.LocalAssetRecord) bool {
 	if asset == nil || !strings.EqualFold(strings.TrimSpace(asset.GetEngine()), "speech") {
 		return false
@@ -473,16 +450,6 @@ func localSpeechAssetMissingAdmittedPlainCapability(asset *runtimev1.LocalAssetR
 		}
 	}
 	return true
-}
-
-func localSpeechWorkflowModelRequiresAdmission(item modelregistry.Entry) bool {
-	for _, capability := range item.Capabilities {
-		switch strings.ToLower(strings.TrimSpace(capability)) {
-		case "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
-			return true
-		}
-	}
-	return false
 }
 
 func probeLlamaHealth(ctx context.Context) error {

@@ -107,6 +107,19 @@ type TranscriptionOptions struct {
 	ProviderExtensions  *ProviderExtensionMetadata `yaml:"provider_extensions,omitempty" json:"provider_extensions,omitempty"`
 }
 
+type VoiceWorkflowRequestOptions struct {
+	TextPromptMode                 string                     `yaml:"text_prompt_mode,omitempty" json:"text_prompt_mode,omitempty"`
+	InstructionTextMode            string                     `yaml:"instruction_text_mode,omitempty" json:"instruction_text_mode,omitempty"`
+	PreviewTextMode                string                     `yaml:"preview_text_mode,omitempty" json:"preview_text_mode,omitempty"`
+	SupportsLanguageHints          *bool                      `yaml:"supports_language_hints,omitempty" json:"supports_language_hints,omitempty"`
+	SupportsLanguage               *bool                      `yaml:"supports_language,omitempty" json:"supports_language,omitempty"`
+	SupportsPreferredName          *bool                      `yaml:"supports_preferred_name,omitempty" json:"supports_preferred_name,omitempty"`
+	ReferenceAudioURIInput         *bool                      `yaml:"reference_audio_uri_input,omitempty" json:"reference_audio_uri_input,omitempty"`
+	ReferenceAudioBytesInput       *bool                      `yaml:"reference_audio_bytes_input,omitempty" json:"reference_audio_bytes_input,omitempty"`
+	AllowedReferenceAudioMimeTypes []string                   `yaml:"allowed_reference_audio_mime_types,omitempty" json:"allowed_reference_audio_mime_types,omitempty"`
+	ProviderExtensions             *ProviderExtensionMetadata `yaml:"provider_extensions,omitempty" json:"provider_extensions,omitempty"`
+}
+
 type SelectionProfile struct {
 	Provider         string `yaml:"provider,omitempty" json:"provider,omitempty"`
 	ProfileID        string `yaml:"profile_id" json:"profile_id"`
@@ -145,13 +158,14 @@ type VoiceEntry struct {
 }
 
 type VoiceWorkflowModel struct {
-	WorkflowModelID   string    `yaml:"workflow_model_id" json:"workflow_model_id"`
-	WorkflowType      string    `yaml:"workflow_type" json:"workflow_type"`
-	InputContractRef  string    `yaml:"input_contract_ref,omitempty" json:"input_contract_ref,omitempty"`
-	OutputPersistence string    `yaml:"output_persistence,omitempty" json:"output_persistence,omitempty"`
-	TargetModelRefs   []string  `yaml:"target_model_refs" json:"target_model_refs"`
-	Langs             []string  `yaml:"langs,omitempty" json:"langs,omitempty"`
-	SourceRef         SourceRef `yaml:"source_ref" json:"source_ref"`
+	WorkflowModelID   string                       `yaml:"workflow_model_id" json:"workflow_model_id"`
+	WorkflowType      string                       `yaml:"workflow_type" json:"workflow_type"`
+	InputContractRef  string                       `yaml:"input_contract_ref,omitempty" json:"input_contract_ref,omitempty"`
+	OutputPersistence string                       `yaml:"output_persistence,omitempty" json:"output_persistence,omitempty"`
+	RequestOptions    *VoiceWorkflowRequestOptions `yaml:"request_options,omitempty" json:"request_options,omitempty"`
+	TargetModelRefs   []string                     `yaml:"target_model_refs" json:"target_model_refs"`
+	Langs             []string                     `yaml:"langs,omitempty" json:"langs,omitempty"`
+	SourceRef         SourceRef                    `yaml:"source_ref" json:"source_ref"`
 }
 
 type VoiceHandlePolicy struct {
@@ -226,7 +240,7 @@ type ResolveVoiceWorkflowResult struct {
 	HandlePolicyDefaultTTL         string
 	HandlePolicyDeleteSemantics    string
 	RuntimeReconciliationRequired  bool
-	SupportsTextPromptInput        bool
+	RequestOptions                 *VoiceWorkflowRequestOptions
 	RequiresTargetSynthesisBinding bool
 	CatalogVersion                 string
 	Source                         CatalogSource

@@ -457,14 +457,14 @@ func TestAppGRPCWrappers_MetadataAndStream(t *testing.T) {
 	}
 }
 
-func startTestRuntimeKnowledgeServer(t *testing.T, service runtimev1.RuntimeKnowledgeServiceServer) (string, func()) {
+func startTestRuntimeKnowledgeServer(t *testing.T, service runtimev1.RuntimeCognitionServiceServer) (string, func()) {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
 	server := grpc.NewServer()
-	runtimev1.RegisterRuntimeKnowledgeServiceServer(server, service)
+	runtimev1.RegisterRuntimeCognitionServiceServer(server, service)
 	go func() {
 		_ = server.Serve(listener)
 	}()
@@ -492,7 +492,7 @@ func startTestRuntimeAppServer(t *testing.T, service runtimev1.RuntimeAppService
 }
 
 type testRuntimeKnowledgeService struct {
-	runtimev1.UnimplementedRuntimeKnowledgeServiceServer
+	runtimev1.UnimplementedRuntimeCognitionServiceServer
 
 	mu sync.Mutex
 

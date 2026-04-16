@@ -18,6 +18,7 @@ import (
 
 const (
 	localHealthProbeTimeout             = 5 * time.Second
+	localSpeechHealthProbeTimeout       = 90 * time.Second
 	localRecoverySuccessThreshold       = 3
 	localRecoveryDefaultProbeInterval   = 30 * time.Second
 	localRecoverySlowProbeInterval      = 60 * time.Second
@@ -47,8 +48,10 @@ type probeRecoveryState struct {
 
 func defaultEndpointProbe(ctx context.Context, engine string, endpoint string) endpointProbeResult {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
-	case "media", "speech":
+	case "media":
 		return probeMediaEndpoint(ctx, endpoint)
+	case "speech":
+		return probeMediaEndpointWithTimeout(ctx, endpoint, localSpeechHealthProbeTimeout)
 	default:
 		return probeOpenAICompatibleEndpoint(ctx, endpoint)
 	}
@@ -135,6 +138,10 @@ func probeOpenAICompatibleEndpoint(ctx context.Context, endpoint string) endpoin
 }
 
 func probeMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResult {
+	return probeMediaEndpointWithTimeout(ctx, endpoint, localHealthProbeTimeout)
+}
+
+func probeMediaEndpointWithTimeout(ctx context.Context, endpoint string, timeout time.Duration) endpointProbeResult {
 	healthURL, err := buildMediaHealthProbeURL(endpoint)
 	if err != nil {
 		return endpointProbeResult{
@@ -152,7 +159,7 @@ func probeMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResul
 		}
 	}
 
-	probeCtx, cancel := context.WithTimeout(ctx, localHealthProbeTimeout)
+	probeCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	healthReq, err := http.NewRequestWithContext(probeCtx, http.MethodGet, healthURL, nil)

@@ -350,23 +350,3 @@ message GetIngestTaskRequest {
 message GetIngestTaskResponse {
   KnowledgeIngestTask task = 1;
 }
-
-service RuntimeKnowledgeService {
-  rpc CreateKnowledgeBank(CreateKnowledgeBankRequest) returns (CreateKnowledgeBankResponse);
-  rpc GetKnowledgeBank(GetKnowledgeBankRequest) returns (GetKnowledgeBankResponse);
-  rpc ListKnowledgeBanks(ListKnowledgeBanksRequest) returns (ListKnowledgeBanksResponse);
-  rpc DeleteKnowledgeBank(DeleteKnowledgeBankRequest) returns (DeleteKnowledgeBankResponse);
-  rpc PutPage(PutPageRequest) returns (PutPageResponse);
-  rpc GetPage(GetPageRequest) returns (GetPageResponse);
-  rpc ListPages(ListPagesRequest) returns (ListPagesResponse);
-  rpc DeletePage(DeletePageRequest) returns (DeletePageResponse);
-  rpc SearchKeyword(SearchKeywordRequest) returns (SearchKeywordResponse);
-  rpc SearchHybrid(SearchHybridRequest) returns (SearchHybridResponse);
-  rpc AddLink(AddLinkRequest) returns (AddLinkResponse);
-  rpc RemoveLink(RemoveLinkRequest) returns (RemoveLinkResponse);
-  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse);
-  rpc ListBacklinks(ListBacklinksRequest) returns (ListBacklinksResponse);
-  rpc TraverseGraph(TraverseGraphRequest) returns (TraverseGraphResponse);
-  rpc IngestDocument(IngestDocumentRequest) returns (IngestDocumentResponse);
-  rpc GetIngestTask(GetIngestTaskRequest) returns (GetIngestTaskResponse);
-}

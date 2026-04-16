@@ -12,6 +12,20 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
+func withIsolatedResolvedBundles(t *testing.T) {
+	t.Helper()
+	t.Setenv("NIMI_RUNTIME_LOCAL_MODELS_PATH", "")
+	t.Setenv("NIMI_RUNTIME_LOCAL_MODELS_ROOT", t.TempDir())
+	resolvedBundleManifestIndexMu.Lock()
+	resolvedBundleManifestIndexCache = make(map[string]*resolvedBundleManifestIndex)
+	resolvedBundleManifestIndexMu.Unlock()
+	t.Cleanup(func() {
+		resolvedBundleManifestIndexMu.Lock()
+		resolvedBundleManifestIndexCache = make(map[string]*resolvedBundleManifestIndex)
+		resolvedBundleManifestIndexMu.Unlock()
+	})
+}
+
 func TestRegistrySaveAndLoad(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "model-registry.json")
@@ -141,6 +155,7 @@ func TestSaveToFileRemovesTempFileOnRenameFailure(t *testing.T) {
 }
 
 func TestInferNativeProjectionForMediaModel(t *testing.T) {
+	withIsolatedResolvedBundles(t)
 	projection, err := InferNativeProjection(
 		"local/wan2.2-video",
 		[]string{"video.generate"},
@@ -166,10 +181,11 @@ func TestInferNativeProjectionForMediaModel(t *testing.T) {
 }
 
 func TestInferNativeProjectionForSpeechModel(t *testing.T) {
+	withIsolatedResolvedBundles(t)
 	projection, err := InferNativeProjection(
-		"speech/whisper-large-v3",
+		"speech/qwen3asr",
 		[]string{"audio.transcribe"},
-		[]string{"model.bin"},
+		[]string{"model.safetensors"},
 		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 	)
 	if err != nil {
@@ -183,17 +199,18 @@ func TestInferNativeProjectionForSpeechModel(t *testing.T) {
 		t.Fatal("speech model host requirements must be populated")
 	}
 	if projection.HostRequirements.GetGpuRequired() {
-		t.Fatal("whispercpp transcribe path should not require GPU")
+		t.Fatal("qwen3_asr transcribe path should not require GPU by default")
 	}
-	if projection.HostRequirements.GetPythonRuntimeRequired() {
-		t.Fatal("whispercpp transcribe path should not require python runtime")
+	if !projection.HostRequirements.GetPythonRuntimeRequired() {
+		t.Fatal("qwen3_asr transcribe path should require python runtime")
 	}
-	if got := projection.HostRequirements.GetRequiredBackends(); len(got) != 1 || got[0] != "whispercpp" {
+	if got := projection.HostRequirements.GetRequiredBackends(); len(got) != 1 || got[0] != "qwen3_asr" {
 		t.Fatalf("required backends mismatch: %#v", got)
 	}
 }
 
 func TestInferNativeProjectionForVoiceWorkflowModel(t *testing.T) {
+	withIsolatedResolvedBundles(t)
 	projection, err := InferNativeProjection(
 		"speech/qwen3tts",
 		[]string{"voice_workflow.tts_v2v"},
@@ -216,12 +233,13 @@ func TestInferNativeProjectionForVoiceWorkflowModel(t *testing.T) {
 	if !projection.HostRequirements.GetPythonRuntimeRequired() {
 		t.Fatal("voice workflow path should require python runtime")
 	}
-	if got := projection.HostRequirements.GetRequiredBackends(); len(got) != 1 || got[0] != "qwen3tts" {
+	if got := projection.HostRequirements.GetRequiredBackends(); len(got) != 1 || got[0] != "qwen3_tts" {
 		t.Fatalf("required backends mismatch: %#v", got)
 	}
 }
 
 func TestInferNativeProjectionForLlamaModel(t *testing.T) {
+	withIsolatedResolvedBundles(t)
 	projection, err := InferNativeProjection(
 		"llama/qwen3-chat",
 		[]string{"text.generate"},
@@ -290,6 +308,7 @@ func TestResolvedBundleManifestCandidatesStayUnderRoot(t *testing.T) {
 }
 
 func TestInferNativeProjectionUnionsHostRequirements(t *testing.T) {
+	withIsolatedResolvedBundles(t)
 	projection, err := InferNativeProjection(
 		"local/multi-modal",
 		[]string{"video.generate", "audio.transcribe"},
@@ -306,7 +325,7 @@ func TestInferNativeProjectionUnionsHostRequirements(t *testing.T) {
 		t.Fatal("expected python runtime requirement to be preserved")
 	}
 	got := projection.HostRequirements.GetRequiredBackends()
-	want := []string{"diffusers", "stable-diffusion.cpp", "whispercpp"}
+	want := []string{"diffusers", "qwen3_asr", "stable-diffusion.cpp"}
 	if len(got) != len(want) {
 		t.Fatalf("required backends mismatch: got=%v want=%v", got, want)
 	}

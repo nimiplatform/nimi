@@ -13,6 +13,11 @@ type versionState struct {
 	revoked   map[string]bool
 }
 
+var defaultPublishedVersions = []string{
+	"sdk-v1",
+	"sdk-v2",
+}
+
 // AuditCallback is invoked when the catalog performs an auditable operation.
 type AuditCallback func(operation string, version string, reasonCode runtimev1.ReasonCode)
 
@@ -30,10 +35,11 @@ func New(opts ...AuditCallback) *Catalog {
 	if len(opts) > 0 {
 		c.onAudit = opts[0]
 	}
-	// V1 default catalog seeded for SDK generated scopes.
-	c.versions["sdk-v1"] = &versionState{
-		published: true,
-		revoked:   map[string]bool{},
+	for _, version := range defaultPublishedVersions {
+		c.versions[version] = &versionState{
+			published: true,
+			revoked:   map[string]bool{},
+		}
 	}
 	return c
 }

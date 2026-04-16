@@ -239,10 +239,14 @@ func (d *Daemon) shutdown() error {
 	if memorySvc := d.grpc.MemoryService(); memorySvc != nil {
 		closeErr = memorySvc.Close()
 	}
+	var cognitionCloseErr error
+	if cognitionSvc := d.grpc.CognitionService(); cognitionSvc != nil {
+		cognitionCloseErr = cognitionSvc.Close()
+	}
 
 	d.state.SetStatus(health.StatusStopped, "stopped")
 
-	if joined := errors.Join(backupErr, httpErr, closeErr); joined != nil {
+	if joined := errors.Join(backupErr, httpErr, closeErr, cognitionCloseErr); joined != nil {
 		return fmt.Errorf("shutdown runtime: %w", joined)
 	}
 	return nil

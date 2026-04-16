@@ -26,6 +26,25 @@ func (b *Backend) isMediaBackend() bool {
 		normalized == "media"
 }
 
+func transcriptionUploadFilename(mimeType string) string {
+	switch strings.ToLower(strings.TrimSpace(mimeType)) {
+	case "audio/wav", "audio/x-wav", "audio/wave":
+		return "audio.wav"
+	case "audio/aiff", "audio/x-aiff":
+		return "audio.aiff"
+	case "audio/mpeg", "audio/mp3":
+		return "audio.mp3"
+	case "audio/mp4", "audio/m4a", "audio/x-m4a":
+		return "audio.m4a"
+	case "audio/ogg":
+		return "audio.ogg"
+	case "audio/flac", "audio/x-flac":
+		return "audio.flac"
+	default:
+		return "audio.bin"
+	}
+}
+
 // Embed sends an embeddings request.
 func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
 	type embeddingsRequest struct {
@@ -157,7 +176,7 @@ func (b *Backend) Transcribe(
 			}
 		}
 	}
-	fileWriter, err := writer.CreateFormFile("file", "audio.bin")
+	fileWriter, err := writer.CreateFormFile("file", transcriptionUploadFilename(mimeType))
 	if err != nil {
 		return "", nil, MapProviderRequestError(err)
 	}

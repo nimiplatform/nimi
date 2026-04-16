@@ -131,51 +131,50 @@ def write_driver_script(path: pathlib.Path, body: str) -> str:
 
 class SpeechServerTests(unittest.TestCase):
     def test_driver_command_state_rejects_unresolvable_executable(self) -> None:
-        old = os.environ.get(SPEECH_SERVER.KOKORO_DRIVER_ENV)
+        old = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
         try:
-            os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = "totally_missing_kokoro_driver --serve"
+            os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = "totally_missing_qwen3_tts_driver --serve"
             command, ready, detail = SPEECH_SERVER.driver_command_state(
-                SPEECH_SERVER.KOKORO_DRIVER_ENV,
-                "kokoro",
+                SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV,
+                "qwen3_tts",
             )
         finally:
             if old is None:
-                os.environ.pop(SPEECH_SERVER.KOKORO_DRIVER_ENV, None)
+                os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
             else:
-                os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = old
+                os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old
 
-        self.assertEqual(command, ["totally_missing_kokoro_driver", "--serve"])
+        self.assertEqual(command, ["totally_missing_qwen3_tts_driver", "--serve"])
         self.assertFalse(ready)
-        self.assertEqual(detail, "kokoro driver executable unresolved")
+        self.assertEqual(detail, "qwen3_tts driver executable unresolved")
 
     def test_build_host_state_discovers_ready_speech_models(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             write_manifest(
                 root,
-                "nimi/tts-kokoro",
-                "speech/kokoro-ready",
+                "nimi/tts-qwen3",
+                "speech/qwen3tts",
                 ["audio.synthesize"],
-                ["model.onnx", "voices.json"],
+                ["model.safetensors"],
                 {
-                    "model.onnx": b"fake-onnx",
-                    "voices.json": b'{"voices":["af"]}',
+                    "model.safetensors": b"fake-qwen3-tts",
                 },
-                "model.onnx",
+                "model.safetensors",
             )
             write_manifest(
                 root,
-                "nimi/stt-whisper",
-                "speech/whisper-ready",
+                "nimi/stt-qwen3-asr",
+                "speech/qwen3asr",
                 ["audio.transcribe"],
                 ["model.bin"],
                 {
-                    "model.bin": b"fake-whisper",
+                    "model.bin": b"fake-qwen3-asr",
                 },
                 "model.bin",
             )
             synth_driver = write_driver_script(
-                root / "kokoro_driver.py",
+                root / "qwen3_tts_driver.py",
                 textwrap.dedent(
                     """\
                     #!/usr/bin/env python3
@@ -185,7 +184,7 @@ class SpeechServerTests(unittest.TestCase):
                     parser.add_argument("--response", required=True)
                     args = parser.parse_args()
                     request = json.loads(pathlib.Path(args.request).read_text())
-                    assert request["driver"] == "kokoro"
+                    assert request["driver"] == "qwen3_tts"
                     output = pathlib.Path(args.response).with_name("tts.wav")
                     output.write_bytes(b"RIFFdemo")
                     pathlib.Path(args.response).write_text(json.dumps({"audio_path": str(output), "content_type": "audio/wav"}))
@@ -193,7 +192,7 @@ class SpeechServerTests(unittest.TestCase):
                 ),
             )
             stt_driver = write_driver_script(
-                root / "whisper_driver.py",
+                root / "qwen3_asr_driver.py",
                 textwrap.dedent(
                     """\
                     #!/usr/bin/env python3
@@ -203,19 +202,18 @@ class SpeechServerTests(unittest.TestCase):
                     parser.add_argument("--response", required=True)
                     args = parser.parse_args()
                     request = json.loads(pathlib.Path(args.request).read_text())
-                    assert request["driver"] == "whispercpp"
+                    assert request["driver"] == "qwen3_asr"
                     pathlib.Path(args.response).write_text(json.dumps({"text": "transcribed"}))
                     """
                 ),
             )
             old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
-            old_tts = os.environ.get(SPEECH_SERVER.KOKORO_DRIVER_ENV)
-            old_stt = os.environ.get(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV)
-            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            old_tts = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
+            old_stt = os.environ.get(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV)
             try:
                 os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
-                os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = synth_driver
-                os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = stt_driver
+                os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = synth_driver
+                os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = stt_driver
                 state = SPEECH_SERVER.build_host_state()
             finally:
                 if old_models_root is None:
@@ -223,53 +221,47 @@ class SpeechServerTests(unittest.TestCase):
                 else:
                     os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
                 if old_tts is None:
-                    os.environ.pop(SPEECH_SERVER.KOKORO_DRIVER_ENV, None)
+                    os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = old_tts
+                    os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
                 if old_stt is None:
-                    os.environ.pop(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV, None)
+                    os.environ.pop(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = old_stt
-                if old_voxcpm is None:
-                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
-                else:
-                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
+                    os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = old_stt
 
             self.assertTrue(state.ready)
             self.assertEqual(len(state.models), 2)
             self.assertEqual(
                 {model.model_id for model in state.models},
-                {"speech/kokoro-ready", "speech/whisper-ready"},
+                {"speech/qwen3tts", "speech/qwen3asr"},
             )
-            self.assertTrue(state.kokoro_ready)
-            self.assertTrue(state.whispercpp_ready)
+            self.assertTrue(state.qwen3_tts_ready)
+            self.assertTrue(state.qwen3_asr_ready)
             drivers = {model.model_id: model.capability_drivers for model in state.models}
-            self.assertEqual(drivers["speech/kokoro-ready"]["audio.synthesize"], "kokoro")
-            self.assertEqual(drivers["speech/whisper-ready"]["audio.transcribe"], "whispercpp")
+            self.assertEqual(drivers["speech/qwen3tts"]["audio.synthesize"], "qwen3_tts")
+            self.assertEqual(drivers["speech/qwen3asr"]["audio.transcribe"], "qwen3_asr")
 
     def test_build_host_state_rejects_unresolved_driver_family(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             write_manifest(
                 root,
-                "nimi/tts-piper",
-                "speech/piper-ready",
+                "nimi/tts-unsupported-local",
+                "speech/unsupported-local-synth",
                 ["audio.synthesize"],
-                ["model.onnx", "voices.json"],
+                ["model.onnx"],
                 {
                     "model.onnx": b"fake-onnx",
-                    "voices.json": b'{"voices":["af"]}',
                 },
                 "model.onnx",
             )
             old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
-            old_tts = os.environ.get(SPEECH_SERVER.KOKORO_DRIVER_ENV)
-            old_stt = os.environ.get(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV)
-            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            old_tts = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
+            old_stt = os.environ.get(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV)
             try:
                 os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
-                os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = f"{sys.executable} -c pass"
-                os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = f"{sys.executable} -c pass"
+                os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = f"{sys.executable} -c pass"
+                os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = f"{sys.executable} -c pass"
                 state = SPEECH_SERVER.build_host_state()
             finally:
                 if old_models_root is None:
@@ -277,17 +269,13 @@ class SpeechServerTests(unittest.TestCase):
                 else:
                     os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
                 if old_tts is None:
-                    os.environ.pop(SPEECH_SERVER.KOKORO_DRIVER_ENV, None)
+                    os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = old_tts
+                    os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
                 if old_stt is None:
-                    os.environ.pop(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV, None)
+                    os.environ.pop(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = old_stt
-                if old_voxcpm is None:
-                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
-                else:
-                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
+                    os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = old_stt
 
             self.assertFalse(state.ready)
             self.assertEqual(len(state.models), 1)
@@ -298,24 +286,22 @@ class SpeechServerTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             write_manifest(
                 root,
-                "nimi/tts-kokoro",
-                "speech/kokoro-ready",
+                "nimi/tts-qwen3",
+                "speech/qwen3tts-ready",
                 ["audio.synthesize"],
-                ["model.onnx", "voices.json"],
+                ["model.safetensors"],
                 {
-                    "model.onnx": b"fake-onnx",
-                    "voices.json": b'{"voices":["af"]}',
+                    "model.safetensors": b"fake-qwen3-tts",
                 },
-                "model.onnx",
+                "model.safetensors",
             )
             old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
-            old_tts = os.environ.get(SPEECH_SERVER.KOKORO_DRIVER_ENV)
-            old_stt = os.environ.get(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV)
-            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            old_tts = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
+            old_stt = os.environ.get(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV)
             try:
                 os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
-                os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = "totally_missing_kokoro_driver --serve"
-                os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = f"{sys.executable} -c pass"
+                os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = "totally_missing_qwen3_tts_driver --serve"
+                os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = f"{sys.executable} -c pass"
                 state = SPEECH_SERVER.build_host_state()
             finally:
                 if old_models_root is None:
@@ -323,37 +309,33 @@ class SpeechServerTests(unittest.TestCase):
                 else:
                     os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
                 if old_tts is None:
-                    os.environ.pop(SPEECH_SERVER.KOKORO_DRIVER_ENV, None)
+                    os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = old_tts
+                    os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
                 if old_stt is None:
-                    os.environ.pop(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV, None)
+                    os.environ.pop(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = old_stt
-                if old_voxcpm is None:
-                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
-                else:
-                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
+                    os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = old_stt
 
             self.assertFalse(state.ready)
-            self.assertFalse(state.kokoro_ready)
-            self.assertEqual(state.kokoro_detail, "kokoro driver executable unresolved")
-            self.assertIn("kokoro driver executable unresolved", state.models[0].detail)
+            self.assertFalse(state.qwen3_tts_ready)
+            self.assertEqual(state.qwen3_tts_detail, "qwen3_tts driver executable unresolved")
+            self.assertIn("qwen3_tts driver executable unresolved", state.models[0].detail)
 
-    def test_build_host_state_discovers_ready_voxcpm_model(self) -> None:
+    def test_build_host_state_discovers_ready_qwen3_tts_workflow_model(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             write_manifest(
                 root,
-                "nimi/tts-voxcpm",
-                "speech/voxcpm2",
+                "nimi/tts-qwen3-base",
+                "speech/qwen3tts-base",
                 ["audio.synthesize"],
                 ["model.safetensors"],
-                {"model.safetensors": b"fake-voxcpm"},
+                {"model.safetensors": b"fake-qwen3-tts-base"},
                 "model.safetensors",
             )
-            voxcpm_driver = write_driver_script(
-                root / "voxcpm_driver.py",
+            qwen3_tts_driver = write_driver_script(
+                root / "qwen3_tts_driver.py",
                 textwrap.dedent(
                     """\
                     #!/usr/bin/env python3
@@ -364,46 +346,47 @@ class SpeechServerTests(unittest.TestCase):
                     args = parser.parse_args()
                     request = json.loads(pathlib.Path(args.request).read_text())
                     if request["operation"] == "driver.preflight":
-                        pathlib.Path(args.response).write_text(json.dumps({"driver_family": "voxcpm"}))
+                        pathlib.Path(args.response).write_text(json.dumps({"driver_family": "qwen3_tts"}))
                     else:
                         pathlib.Path(args.response).write_text(json.dumps({"voice_id": "voice-local-001"}))
                     """
                 ),
             )
             old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
-            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            old_tts = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
             try:
                 os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
-                os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = voxcpm_driver
+                os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = qwen3_tts_driver
                 state = SPEECH_SERVER.build_host_state()
             finally:
                 if old_models_root is None:
                     os.environ.pop(SPEECH_SERVER.MODELS_ROOT_ENV, None)
                 else:
                     os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
-                if old_voxcpm is None:
-                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
+                if old_tts is None:
+                    os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
+                    os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
 
             self.assertEqual(len(state.models), 1)
-            self.assertEqual(state.models[0].capability_drivers["audio.synthesize"], "voxcpm")
+            self.assertEqual(state.models[0].capability_drivers["audio.synthesize"], "qwen3_tts")
             self.assertTrue(state.models[0].ready)
+            self.assertIn("voice_workflow.tts_v2v", state.models[0].ready_capabilities)
 
-    def test_build_host_state_rejects_voxcpm_model_when_preflight_fails(self) -> None:
+    def test_build_host_state_rejects_qwen3_tts_model_when_preflight_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             write_manifest(
                 root,
-                "nimi/tts-voxcpm",
-                "speech/voxcpm2",
+                "nimi/tts-qwen3",
+                "speech/qwen3tts",
                 ["audio.synthesize"],
                 ["model.safetensors"],
-                {"model.safetensors": b"fake-voxcpm"},
+                {"model.safetensors": b"fake-qwen3-tts"},
                 "model.safetensors",
             )
-            voxcpm_driver = write_driver_script(
-                root / "voxcpm_driver.py",
+            qwen3_tts_driver = write_driver_script(
+                root / "qwen3_tts_driver.py",
                 textwrap.dedent(
                     """\
                     #!/usr/bin/env python3
@@ -414,50 +397,50 @@ class SpeechServerTests(unittest.TestCase):
                     args = parser.parse_args()
                     request = json.loads(pathlib.Path(args.request).read_text())
                     if request["operation"] == "driver.preflight":
-                        sys.stderr.write("model type voxcpm2 not supported\\n")
+                        sys.stderr.write("model type qwen3-tts not supported\\n")
                         raise SystemExit(1)
                     pathlib.Path(args.response).write_text(json.dumps({"voice_id": "voice-local-001"}))
                     """
                 ),
             )
             old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
-            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            old_tts = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
             try:
                 os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
-                os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = voxcpm_driver
-                SPEECH_SERVER.VOXCPM_PREFLIGHT_CACHE.clear()
+                os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = qwen3_tts_driver
+                SPEECH_SERVER.QWEN3_TTS_PREFLIGHT_CACHE.clear()
                 state = SPEECH_SERVER.build_host_state()
             finally:
                 if old_models_root is None:
                     os.environ.pop(SPEECH_SERVER.MODELS_ROOT_ENV, None)
                 else:
                     os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
-                if old_voxcpm is None:
-                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
+                if old_tts is None:
+                    os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
-                SPEECH_SERVER.VOXCPM_PREFLIGHT_CACHE.clear()
+                    os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
+                SPEECH_SERVER.QWEN3_TTS_PREFLIGHT_CACHE.clear()
 
             self.assertFalse(state.ready)
-            self.assertFalse(state.voxcpm_ready)
-            self.assertIn("voxcpm driver preflight failed", state.voxcpm_detail)
+            self.assertFalse(state.qwen3_tts_ready)
+            self.assertIn("qwen3_tts driver preflight failed", state.qwen3_tts_detail)
             self.assertFalse(state.models[0].ready)
-            self.assertIn("voxcpm driver preflight failed", state.models[0].detail)
+            self.assertIn("qwen3_tts driver preflight failed", state.models[0].detail)
 
-    def test_voxcpm_workflow_routes_execute_clone_and_design(self) -> None:
+    def test_qwen3_tts_workflow_routes_execute_clone_and_design(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             write_manifest(
                 root,
-                "nimi/tts-voxcpm",
-                "speech/voxcpm2",
+                "nimi/tts-qwen3",
+                "speech/qwen3tts",
                 ["audio.synthesize"],
                 ["model.safetensors"],
-                {"model.safetensors": b"fake-voxcpm"},
+                {"model.safetensors": b"fake-qwen3-tts"},
                 "model.safetensors",
             )
             driver = write_driver_script(
-                root / "voxcpm_driver.py",
+                root / "qwen3_tts_driver.py",
                 textwrap.dedent(
                     """\
                     #!/usr/bin/env python3
@@ -469,7 +452,7 @@ class SpeechServerTests(unittest.TestCase):
                     request = json.loads(pathlib.Path(args.request).read_text())
                     op = request["operation"]
                     if op == "driver.preflight":
-                        pathlib.Path(args.response).write_text(json.dumps({"driver_family": "voxcpm"}))
+                        pathlib.Path(args.response).write_text(json.dumps({"driver_family": "qwen3_tts"}))
                     elif op == "voice.clone":
                         assert request["input"]["preferred_name"] == "clone-voice"
                         assert request["input"]["reference_audio_base64"]
@@ -483,18 +466,18 @@ class SpeechServerTests(unittest.TestCase):
                 ),
             )
             old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
-            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            old_tts = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
             try:
                 os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
-                os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = driver
+                os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = driver
                 app = SPEECH_SERVER.create_app()
                 clone_handler = next(fn for method, path, fn in app.routes if method == "POST" and path == "/v1/voice/clone")
                 design_handler = next(fn for method, path, fn in app.routes if method == "POST" and path == "/v1/voice/design")
 
                 clone_result = clone_handler(
                     {
-                        "workflow_model_id": "voxcpm-local-voice-clone",
-                        "target_model_id": "speech/voxcpm2",
+                        "workflow_model_id": "qwen3-local-voice-clone",
+                        "target_model_id": "speech/qwen3tts",
                         "input": {
                             "preferred_name": "clone-voice",
                             "reference_audio_base64": base64.b64encode(b"voice-audio").decode("ascii"),
@@ -503,8 +486,8 @@ class SpeechServerTests(unittest.TestCase):
                 )
                 design_result = design_handler(
                     {
-                        "workflow_model_id": "voxcpm-local-voice-design",
-                        "target_model_id": "speech/voxcpm2",
+                        "workflow_model_id": "qwen3-local-voice-design",
+                        "target_model_id": "speech/qwen3tts",
                         "input": {
                             "instruction_text": "warm narrator",
                             "preferred_name": "design-voice",
@@ -516,10 +499,10 @@ class SpeechServerTests(unittest.TestCase):
                     os.environ.pop(SPEECH_SERVER.MODELS_ROOT_ENV, None)
                 else:
                     os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
-                if old_voxcpm is None:
-                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
+                if old_tts is None:
+                    os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
+                    os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
 
             self.assertEqual(clone_result["voice_id"], "clone-voice-001")
             self.assertEqual(clone_result["job_id"], "job-clone-001")
@@ -529,7 +512,7 @@ class SpeechServerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             driver = write_driver_script(
-                root / "kokoro_driver.py",
+                root / "qwen3_tts_driver.py",
                 textwrap.dedent(
                     """\
                     #!/usr/bin/env python3
@@ -539,31 +522,31 @@ class SpeechServerTests(unittest.TestCase):
                     parser.add_argument("--response", required=True)
                     args = parser.parse_args()
                     request = json.loads(pathlib.Path(args.request).read_text())
-                    assert request["driver"] == "kokoro"
+                    assert request["driver"] == "qwen3_tts"
                     assert request["voice"] == "af"
                     pathlib.Path(args.response).write_text(json.dumps({"audio_base64": "UklGRmF1ZGlv", "content_type": "audio/wav"}))
                     """
                 ),
             )
             model = SPEECH_SERVER.SpeechModelState(
-                model_id="speech/kokoro-ready",
+                model_id="speech/qwen3tts-ready",
                 declared_capabilities=["audio.synthesize"],
                 ready_capabilities=["audio.synthesize"],
-                capability_drivers={"audio.synthesize": "kokoro"},
+                capability_drivers={"audio.synthesize": "qwen3_tts"},
                 ready=True,
                 detail="ready",
                 manifest_path=str(root / "asset.manifest.json"),
                 bundle_dir=str(root),
-                entry_path=str(root / "model.onnx"),
-                declared_files=["model.onnx", "voices.json"],
+                entry_path=str(root / "model.safetensors"),
+                declared_files=["model.safetensors"],
             )
-            old_tts = os.environ.get(SPEECH_SERVER.KOKORO_DRIVER_ENV)
+            old_tts = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
             try:
-                os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = driver
+                os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = driver
                 payload, mime = SPEECH_SERVER.synthesize_with_driver(
                     model,
                     {
-                        "driver": "kokoro",
+                        "driver": "qwen3_tts",
                         "operation": "audio.synthesize",
                         "model": model.model_id,
                         "voice": "af",
@@ -571,9 +554,9 @@ class SpeechServerTests(unittest.TestCase):
                 )
             finally:
                 if old_tts is None:
-                    os.environ.pop(SPEECH_SERVER.KOKORO_DRIVER_ENV, None)
+                    os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = old_tts
+                    os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
             self.assertEqual(payload, base64.b64decode("UklGRmF1ZGlv"))
             self.assertEqual(mime, "audio/wav")
 
@@ -583,7 +566,7 @@ class SpeechServerTests(unittest.TestCase):
             audio_path = root / "audio.wav"
             audio_path.write_bytes(b"fake-wav")
             driver = write_driver_script(
-                root / "whisper_driver.py",
+                root / "qwen3_asr_driver.py",
                 textwrap.dedent(
                     """\
                     #!/usr/bin/env python3
@@ -593,7 +576,7 @@ class SpeechServerTests(unittest.TestCase):
                     parser.add_argument("--response", required=True)
                     args = parser.parse_args()
                     request = json.loads(pathlib.Path(args.request).read_text())
-                    assert request["driver"] == "whispercpp"
+                    assert request["driver"] == "qwen3_asr"
                     assert request["language"] == "en"
                     assert request["response_format"] == "json"
                     assert request["timestamps"] is True
@@ -605,10 +588,10 @@ class SpeechServerTests(unittest.TestCase):
                 ),
             )
             model = SPEECH_SERVER.SpeechModelState(
-                model_id="speech/whisper-ready",
+                model_id="speech/qwen3asr-ready",
                 declared_capabilities=["audio.transcribe"],
                 ready_capabilities=["audio.transcribe"],
-                capability_drivers={"audio.transcribe": "whispercpp"},
+                capability_drivers={"audio.transcribe": "qwen3_asr"},
                 ready=True,
                 detail="ready",
                 manifest_path=str(root / "asset.manifest.json"),
@@ -616,13 +599,13 @@ class SpeechServerTests(unittest.TestCase):
                 entry_path=str(root / "model.bin"),
                 declared_files=["model.bin"],
             )
-            old_stt = os.environ.get(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV)
+            old_stt = os.environ.get(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV)
             try:
-                os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = driver
+                os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = driver
                 text = SPEECH_SERVER.transcribe_with_driver(
                     model,
                     {
-                        "driver": "whispercpp",
+                        "driver": "qwen3_asr",
                         "operation": "audio.transcribe",
                         "model": model.model_id,
                         "audio_path": str(audio_path),
@@ -635,10 +618,73 @@ class SpeechServerTests(unittest.TestCase):
                 )
             finally:
                 if old_stt is None:
-                    os.environ.pop(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV, None)
+                    os.environ.pop(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV, None)
                 else:
-                    os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = old_stt
+                    os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = old_stt
             self.assertEqual(text, "hello world")
+
+    def test_find_ready_model_accepts_bare_and_prefixed_aliases(self) -> None:
+        original_build_host_state = SPEECH_SERVER.build_host_state
+
+        def fake_build_host_state():
+            return SPEECH_SERVER.HostState(
+                status="ok",
+                ready=True,
+                detail="ready",
+                models=[
+                    SPEECH_SERVER.SpeechModelState(
+                        model_id="speech/qwen3asr",
+                        declared_capabilities=["audio.transcribe"],
+                        ready_capabilities=["audio.transcribe"],
+                        capability_drivers={"audio.transcribe": "qwen3_asr"},
+                        ready=True,
+                        detail="ready",
+                        manifest_path="manifest.json",
+                        bundle_dir="bundle",
+                        entry_path="entry.json",
+                        declared_files=["entry.json"],
+                    ),
+                    SPEECH_SERVER.SpeechModelState(
+                        model_id="speech/qwen3tts",
+                        declared_capabilities=["audio.synthesize"],
+                        ready_capabilities=["audio.synthesize"],
+                        capability_drivers={"audio.synthesize": "qwen3_tts"},
+                        ready=True,
+                        detail="ready",
+                        manifest_path="manifest.json",
+                        bundle_dir="bundle",
+                        entry_path="entry.json",
+                        declared_files=["entry.json"],
+                    ),
+                ],
+                qwen3_tts_configured=True,
+                qwen3_tts_ready=True,
+                qwen3_tts_detail="ready",
+                qwen3_asr_configured=True,
+                qwen3_asr_ready=True,
+                qwen3_asr_detail="ready",
+            )
+
+        SPEECH_SERVER.build_host_state = fake_build_host_state
+        try:
+            self.assertEqual(
+                SPEECH_SERVER.find_ready_model("speech/qwen3asr", "audio.transcribe").model_id,
+                "speech/qwen3asr",
+            )
+            self.assertEqual(
+                SPEECH_SERVER.find_ready_model("qwen3asr", "audio.transcribe").model_id,
+                "speech/qwen3asr",
+            )
+            self.assertEqual(
+                SPEECH_SERVER.find_ready_model("speech/qwen3tts", "audio.synthesize").model_id,
+                "speech/qwen3tts",
+            )
+            self.assertEqual(
+                SPEECH_SERVER.find_ready_model("qwen3tts", "audio.synthesize").model_id,
+                "speech/qwen3tts",
+            )
+        finally:
+            SPEECH_SERVER.build_host_state = original_build_host_state
 
 
 if __name__ == "__main__":

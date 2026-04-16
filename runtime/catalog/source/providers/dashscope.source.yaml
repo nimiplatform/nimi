@@ -776,6 +776,13 @@ voice_workflow_models:
     workflow_type: tts_v2v
     input_contract_ref: dashscope_tts_v2v_input_v1
     output_persistence: provider_persistent
+    request_options:
+      text_prompt_mode: unsupported
+      supports_language_hints: false
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types: [audio/wav, audio/mpeg, audio/ogg, audio/flac, audio/mp4, audio/m4a]
     target_model_refs:
       - qwen3-tts-vc
       - qwen3-tts-vc-2026-01-22
@@ -785,6 +792,11 @@ voice_workflow_models:
     workflow_type: tts_t2v
     input_contract_ref: dashscope_tts_t2v_input_v1
     output_persistence: provider_persistent
+    request_options:
+      instruction_text_mode: required
+      preview_text_mode: optional
+      supports_language: true
+      supports_preferred_name: true
     target_model_refs:
       - qwen3-tts-vd
       - qwen3-tts-vd-2026-01-26

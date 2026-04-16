@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -864,21 +865,45 @@ async function resolveSdkLiveTTSVoice(runtime: Runtime, provider: string, modelI
   return voiceId || undefined;
 }
 
+function localManagedModelsRoot(): string {
+  return envValue(['NIMI_LIVE_LOCAL_MODELS_PATH']) || resolve(homedir(), '.nimi', 'data', 'models');
+}
+
+function localManagedManifestPath(modelId: string): string {
+  const normalizedModelId = String(modelId || '').trim().replace(/^local\//i, '');
+  return resolve(localManagedModelsRoot(), 'resolved', normalizedModelId, 'asset.manifest.json');
+}
+
+async function importAndStartLocalManagedAsset(runtime: Runtime, modelId: string): Promise<void> {
+  const manifestPath = localManagedManifestPath(modelId);
+  const imported = await runtime.local.importLocalAsset({ manifestPath });
+  const localAssetId = String(imported.asset?.localAssetId || '').trim();
+  assert.ok(localAssetId, `local managed import should return localAssetId for ${modelId}`);
+  await runtime.local.startLocalAsset({ localAssetId });
+}
+
 function buildRuntimeEnvForProvider(t: { skip: (msg?: string) => void }, provider: string): Record<string, string> | null {
   const token = providerEnvToken(provider);
   if (provider === 'local') {
-    const baseURL = requiredEnvOrSkip(t, 'NIMI_LIVE_LOCAL_BASE_URL');
-    if (!baseURL) {
+    const baseURL = envValue(['NIMI_LIVE_LOCAL_BASE_URL']);
+    const speechBaseURL = envValue(['NIMI_LIVE_LOCAL_SPEECH_BASE_URL']);
+    const sidecarBaseURL = envValue(['NIMI_LIVE_LOCAL_SIDECAR_BASE_URL']);
+    const localModelsPath = envValue(['NIMI_LIVE_LOCAL_MODELS_PATH']) || resolve(homedir(), '.nimi', 'data', 'models');
+    if (!baseURL && !speechBaseURL && !sidecarBaseURL) {
+      t.skip('set NIMI_LIVE_LOCAL_BASE_URL or NIMI_LIVE_LOCAL_SPEECH_BASE_URL or NIMI_LIVE_LOCAL_SIDECAR_BASE_URL to run local sdk live smoke');
       return null;
     }
     const apiKey = String(process.env.NIMI_LIVE_LOCAL_API_KEY || '').trim();
-    const sidecarBaseURL = String(process.env.NIMI_LIVE_LOCAL_SIDECAR_BASE_URL || '').trim();
+    const speechAPIKey = String(process.env.NIMI_LIVE_LOCAL_SPEECH_API_KEY || '').trim();
     const sidecarAPIKey = String(process.env.NIMI_LIVE_LOCAL_SIDECAR_API_KEY || '').trim();
     return {
-      NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: baseURL,
+      ...(baseURL ? { NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: baseURL } : {}),
       ...(apiKey ? { NIMI_RUNTIME_LOCAL_LLAMA_API_KEY: apiKey } : {}),
+      ...(speechBaseURL ? { NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL: speechBaseURL } : {}),
+      ...(speechAPIKey ? { NIMI_RUNTIME_LOCAL_SPEECH_API_KEY: speechAPIKey } : {}),
       ...(sidecarBaseURL ? { NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL: sidecarBaseURL } : {}),
       ...(sidecarAPIKey ? { NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY: sidecarAPIKey } : {}),
+      ...(localModelsPath ? { NIMI_RUNTIME_LOCAL_MODELS_PATH: localModelsPath } : {}),
     };
   }
 
@@ -931,6 +956,22 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
   const routedModelId = route === 'cloud'
     ? normalizeCloudModelId(modelId)
     : modelId;
+
+  if (provider === 'local') {
+    const localImports = new Set<string>([routedModelId]);
+    if (capability === 'voice_clone' || capability === 'voice_design') {
+      const targetModelId = envValue([
+        `NIMI_LIVE_${providerEnvToken(provider)}_${capability === 'voice_clone' ? 'VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID' : 'VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID'}`,
+      ]) || modelId;
+      localImports.add(String(targetModelId || '').trim());
+    }
+    for (const localModelId of localImports) {
+      if (!localModelId) {
+        continue;
+      }
+      await importAndStartLocalManagedAsset(runtime, localModelId);
+    }
+  }
 
   if (capability === 'generate') {
     const model = createSdkTextModel(endpoint, route, modelId, provider);

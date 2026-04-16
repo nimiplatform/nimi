@@ -181,9 +181,13 @@ test('describeRuntimeRouteMetadata decodes voice workflow typed metadata from ru
     metadataKind: 'voice_workflow.tts_v2v',
     metadata: {
       workflowType: 'tts_v2v',
-      supportsReferenceAudioInput: true,
-      supportsTextPromptInput: true,
       requiresTargetSynthesisBinding: true,
+      textPromptMode: 'unsupported',
+      supportsLanguageHints: false,
+      supportsPreferredName: true,
+      referenceAudioUriInput: true,
+      referenceAudioBytesInput: true,
+      allowedReferenceAudioMimeTypes: ['audio/wav', 'audio/mpeg'],
     },
   }), 'utf8').toString('base64');
   const restoreTauri = installTauriRuntime(calls, {
@@ -217,6 +221,9 @@ test('describeRuntimeRouteMetadata decodes voice workflow typed metadata from ru
     }
     assert.equal(result.metadata.workflowType, 'tts_v2v');
     assert.equal(result.metadata.requiresTargetSynthesisBinding, true);
+    assert.equal(result.metadata.textPromptMode, 'unsupported');
+    assert.equal(result.metadata.referenceAudioUriInput, true);
+    assert.deepEqual(result.metadata.allowedReferenceAudioMimeTypes, ['audio/wav', 'audio/mpeg']);
 
     const unaryCall = findRuntimeBridgeUnary(calls);
     assert.ok(unaryCall);

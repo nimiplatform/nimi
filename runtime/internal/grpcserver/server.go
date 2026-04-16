@@ -26,6 +26,7 @@ import (
 	appservice "github.com/nimiplatform/nimi/runtime/internal/services/app"
 	auditservice "github.com/nimiplatform/nimi/runtime/internal/services/audit"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
+	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	grantservice "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 	knowledgeservice "github.com/nimiplatform/nimi/runtime/internal/services/knowledge"
@@ -52,6 +53,7 @@ type Server struct {
 	appService       *appservice.Service
 	localService     *localservice.Service
 	memoryService    *memoryservice.Service
+	cognitionService *cognitionservice.Service
 	agentCoreService *agentcoreservice.Service
 }
 
@@ -176,7 +178,6 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	if err != nil {
 		return nil, fmt.Errorf("init memory service: %w", err)
 	}
-	runtimev1.RegisterRuntimeMemoryServiceServer(g, memorySvc)
 	agentCoreSvc, err := agentcoreservice.New(logger, cfg.LocalStatePath, memorySvc)
 	if err != nil {
 		_ = memorySvc.Close()
@@ -291,10 +292,17 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		localSvc.Close()
 		return nil, fmt.Errorf("init knowledge service: %w", err)
 	}
+	cognitionSvc, err := cognitionservice.New(logger, cfg, memorySvc, knowledgeSvc)
+	if err != nil {
+		_ = knowledgeSvc.Close()
+		_ = memorySvc.Close()
+		localSvc.Close()
+		return nil, fmt.Errorf("init cognition service: %w", err)
+	}
 
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
-	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeSvc) // Phase 2 Draft
+	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionSvc)
 	appSvc := appservice.New(logger, appservice.WithSessionValidator(authSvc))
 	appSvc.RegisterInternalConsumer("runtime.agentcore", agentCoreSvc.ConsumeChatTrackSidecarAppMessage)
 	runtimev1.RegisterRuntimeAppServiceServer(g, appSvc) // Phase 2 Draft
@@ -312,6 +320,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		appService:       appSvc,
 		localService:     localSvc,
 		memoryService:    memorySvc,
+		cognitionService: cognitionSvc,
 		agentCoreService: agentCoreSvc,
 	}
 	s.SyncServingState()
@@ -342,6 +351,10 @@ func (s *Server) LocalService() *localservice.Service {
 
 func (s *Server) MemoryService() *memoryservice.Service {
 	return s.memoryService
+}
+
+func (s *Server) CognitionService() *cognitionservice.Service {
+	return s.cognitionService
 }
 
 func (s *Server) AgentCoreService() *agentcoreservice.Service {
@@ -412,11 +425,10 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus(runtimev1.RuntimeWorkflowService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeModelService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeLocalService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeMemoryService_ServiceDesc.ServiceName, servingStatus)
+	s.healthServer.SetServingStatus(runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAgentCoreService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeGrantService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAuthService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeKnowledgeService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAppService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeConnectorService_ServiceDesc.ServiceName, servingStatus)
 }
