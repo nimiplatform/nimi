@@ -2,7 +2,10 @@ package config
 
 import (
 	"os"
+	"sort"
 	"strings"
+
+	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
 
 type providerEnvBinding struct {
@@ -17,27 +20,43 @@ type ResolvedCloudProvider struct {
 	APIKey      string
 }
 
-var providerEnvBindings = []providerEnvBinding{
-	{canonicalID: "nimillm", baseURLKey: "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY"},
-	{canonicalID: "openai", baseURLKey: "NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_OPENAI_API_KEY"},
-	{canonicalID: "anthropic", baseURLKey: "NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY"},
-	{canonicalID: "dashscope", baseURLKey: "NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY"},
-	{canonicalID: "volcengine", baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY"},
-	{canonicalID: "azure", baseURLKey: "NIMI_RUNTIME_CLOUD_AZURE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_AZURE_API_KEY"},
-	{canonicalID: "mistral", baseURLKey: "NIMI_RUNTIME_CLOUD_MISTRAL_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_MISTRAL_API_KEY"},
-	{canonicalID: "groq", baseURLKey: "NIMI_RUNTIME_CLOUD_GROQ_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_GROQ_API_KEY"},
-	{canonicalID: "xai", baseURLKey: "NIMI_RUNTIME_CLOUD_XAI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_XAI_API_KEY"},
-	{canonicalID: "qianfan", baseURLKey: "NIMI_RUNTIME_CLOUD_QIANFAN_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_QIANFAN_API_KEY"},
-	{canonicalID: "hunyuan", baseURLKey: "NIMI_RUNTIME_CLOUD_HUNYUAN_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_HUNYUAN_API_KEY"},
-	{canonicalID: "spark", baseURLKey: "NIMI_RUNTIME_CLOUD_SPARK_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_SPARK_API_KEY"},
-	{canonicalID: "volcengine_openspeech", baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY"},
-	{canonicalID: "gemini", baseURLKey: "NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"},
-	{canonicalID: "minimax", baseURLKey: "NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY"},
-	{canonicalID: "kimi", baseURLKey: "NIMI_RUNTIME_CLOUD_KIMI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_KIMI_API_KEY"},
-	{canonicalID: "glm", baseURLKey: "NIMI_RUNTIME_CLOUD_GLM_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_GLM_API_KEY"},
-	{canonicalID: "deepseek", baseURLKey: "NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY"},
-	{canonicalID: "openrouter", baseURLKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY"},
-	{canonicalID: "openai_compatible", baseURLKey: "NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY"},
+var providerEnvBindings = buildProviderEnvBindings()
+
+func buildProviderEnvBindings() []providerEnvBinding {
+	ids := append([]string(nil), providerregistry.RemoteProviders...)
+	sort.Strings(ids)
+	out := make([]providerEnvBinding, 0, len(ids))
+	for _, providerID := range ids {
+		token := providerEnvToken(providerID)
+		if token == "" {
+			continue
+		}
+		out = append(out, providerEnvBinding{
+			canonicalID: providerID,
+			baseURLKey:  "NIMI_RUNTIME_CLOUD_" + token + "_BASE_URL",
+			apiKeyKey:   "NIMI_RUNTIME_CLOUD_" + token + "_API_KEY",
+		})
+	}
+	return out
+}
+
+func providerEnvToken(providerID string) string {
+	token := strings.TrimSpace(strings.ToUpper(providerID))
+	token = strings.ReplaceAll(token, "-", "_")
+	token = strings.ReplaceAll(token, ".", "_")
+	token = strings.ReplaceAll(token, " ", "_")
+	for strings.Contains(token, "__") {
+		token = strings.ReplaceAll(token, "__", "_")
+	}
+	return strings.Trim(token, "_")
+}
+
+func defaultRemoteProviderBaseURL(canonicalID string) string {
+	record, ok := providerregistry.Lookup(strings.TrimSpace(canonicalID))
+	if !ok || record.RuntimePlane != "remote" || record.RequiresExplicitEndpoint {
+		return ""
+	}
+	return strings.TrimSpace(record.DefaultEndpoint)
 }
 
 func resolveCloudProviders(fileTargets map[string]RuntimeFileTarget) map[string]RuntimeFileTarget {
@@ -54,12 +73,11 @@ func resolveCloudProviders(fileTargets map[string]RuntimeFileTarget) map[string]
 		}
 
 		resolvedAPIKey := resolveProviderAPIKeyWithBinding(target, binding.apiKeyKey)
-		if resolvedBase == "" && binding.canonicalID == "gemini" && resolvedAPIKey != "" {
-			resolvedBase = defaultCloudGeminiBaseURL
-		}
-
 		if resolvedBase == "" && resolvedAPIKey == "" && strings.TrimSpace(target.DefaultModel) == "" {
 			continue
+		}
+		if resolvedBase == "" {
+			resolvedBase = defaultRemoteProviderBaseURL(binding.canonicalID)
 		}
 
 		target.BaseURL = resolvedBase
@@ -138,48 +156,13 @@ func NormalizeProviderName(raw string) string {
 // ResolveCanonicalProviderID maps a config.json provider key to its canonical provider ID.
 // Returns ("", false) for local providers or unknown names.
 func ResolveCanonicalProviderID(raw string) (string, bool) {
-	switch normalizedProviderKey(raw) {
-	case "nimillm":
-		return "nimillm", true
-	case "openai":
-		return "openai", true
-	case "anthropic":
-		return "anthropic", true
-	case "dashscope":
-		return "dashscope", true
-	case "volcengine":
-		return "volcengine", true
-	case "azure":
-		return "azure", true
-	case "mistral":
-		return "mistral", true
-	case "groq":
-		return "groq", true
-	case "xai":
-		return "xai", true
-	case "qianfan":
-		return "qianfan", true
-	case "hunyuan":
-		return "hunyuan", true
-	case "spark":
-		return "spark", true
-	case "volcengine_openspeech":
-		return "volcengine_openspeech", true
-	case "gemini":
-		return "gemini", true
-	case "minimax":
-		return "minimax", true
-	case "kimi":
-		return "kimi", true
-	case "glm":
-		return "glm", true
-	case "deepseek":
-		return "deepseek", true
-	case "openrouter":
-		return "openrouter", true
-	case "openai_compatible":
-		return "openai_compatible", true
-	default:
+	canonical := normalizedProviderKey(raw)
+	if canonical == "" {
 		return "", false
 	}
+	record, ok := providerregistry.Lookup(canonical)
+	if !ok || record.RuntimePlane != "remote" {
+		return "", false
+	}
+	return canonical, true
 }

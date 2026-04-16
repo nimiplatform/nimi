@@ -18,12 +18,8 @@ func isCanonicalProviderName(raw string) bool {
 	if normalizedProviderKey(trimmed) != trimmed {
 		return false
 	}
-	switch trimmed {
-	case "nimillm", "openai", "anthropic", "dashscope", "volcengine", "azure", "mistral", "groq", "xai", "qianfan", "hunyuan", "spark", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible":
-		return true
-	default:
-		return false
-	}
+	_, ok := ResolveCanonicalProviderID(trimmed)
+	return ok
 }
 
 func normalizedProviderKey(raw string) string {

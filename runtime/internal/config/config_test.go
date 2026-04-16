@@ -780,6 +780,27 @@ func TestLoadAppliesGeminiDefaultBaseURLWhenCanonicalKeyPresent(t *testing.T) {
 	}
 }
 
+func TestLoadAppliesCatalogDefaultBaseURLForRegistryProvider(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_CLOUD_STEPFUN_API_KEY", "stepfun-key")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	target, ok := cfg.Providers["stepfun"]
+	if !ok {
+		t.Fatalf("expected env-only stepfun provider to be resolved")
+	}
+	if got := strings.TrimSpace(ResolveProviderAPIKey(target)); got != "stepfun-key" {
+		t.Fatalf("stepfun key mismatch: %q", got)
+	}
+	if got := strings.TrimSpace(target.BaseURL); got != "https://api.stepfun.ai/v1" {
+		t.Fatalf("stepfun default base mismatch: %q", got)
+	}
+}
+
 func TestResolveCanonicalProviderIDRejectsLegacyAliases(t *testing.T) {
 	if id, ok := ResolveCanonicalProviderID("alibaba"); ok || id != "" {
 		t.Fatalf("legacy alias alibaba must be rejected")
@@ -792,6 +813,55 @@ func TestResolveCanonicalProviderIDRejectsLegacyAliases(t *testing.T) {
 	}
 	if id, ok := ResolveCanonicalProviderID("openai_compatible"); !ok || id != "openai_compatible" {
 		t.Fatalf("openai_compatible canonical resolve mismatch: id=%q ok=%v", id, ok)
+	}
+}
+
+func TestResolveCanonicalProviderIDSupportsRegistryRemoteProviders(t *testing.T) {
+	if id, ok := ResolveCanonicalProviderID("stepfun"); !ok || id != "stepfun" {
+		t.Fatalf("stepfun canonical resolve mismatch: id=%q ok=%v", id, ok)
+	}
+	if id, ok := ResolveCanonicalProviderID("together"); !ok || id != "together" {
+		t.Fatalf("together canonical resolve mismatch: id=%q ok=%v", id, ok)
+	}
+	if id, ok := ResolveCanonicalProviderID("local"); ok || id != "" {
+		t.Fatalf("local must not resolve as cloud provider")
+	}
+}
+
+func TestLoadAcceptsRegistryDrivenCanonicalProviderNameInConfigFile(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "defaultCloudProvider": "together",
+  "providers": {
+    "together": {
+      "baseUrl": "https://api.together.xyz/v1",
+      "apiKey": "together-inline-key"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.DefaultCloudProvider != "together" {
+		t.Fatalf("defaultCloudProvider mismatch: %q", cfg.DefaultCloudProvider)
+	}
+	target, ok := cfg.Providers["together"]
+	if !ok {
+		t.Fatalf("expected together provider to be loaded")
+	}
+	if got := strings.TrimSpace(target.BaseURL); got != "https://api.together.xyz/v1" {
+		t.Fatalf("together base mismatch: %q", got)
+	}
+	if got := strings.TrimSpace(ResolveProviderAPIKey(target)); got != "together-inline-key" {
+		t.Fatalf("together key mismatch: %q", got)
 	}
 }
 
@@ -1148,32 +1218,6 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY",
 		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL",
 		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY",
-		"NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY",
-		"NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_OPENAI_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY",
-		"NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY",
-		"NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY",
-		"NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY",
-		"NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_GEMINI_API_KEY",
-		"NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY",
-		"NIMI_RUNTIME_CLOUD_KIMI_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_KIMI_API_KEY",
-		"NIMI_RUNTIME_CLOUD_GLM_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_GLM_API_KEY",
-		"NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY",
-		"NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY",
-		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY",
 		"NIMI_RUNTIME_AUTH_JWT_ISSUER",
 		"NIMI_RUNTIME_AUTH_JWT_AUDIENCE",
 		"NIMI_RUNTIME_AUTH_JWT_JWKS_URL",
@@ -1211,6 +1255,9 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_MODEL_CATALOG_REMOTE_URL",
 		"NIMI_RUNTIME_MODEL_CATALOG_REFRESH_INTERVAL",
 		"NIMI_RUNTIME_MODEL_CATALOG_CACHE_PATH",
+	}
+	for _, binding := range providerEnvBindings {
+		keys = append(keys, binding.baseURLKey, binding.apiKeyKey)
 	}
 	for _, key := range keys {
 		t.Setenv(key, "")
