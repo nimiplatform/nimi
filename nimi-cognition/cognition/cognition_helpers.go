@@ -9,6 +9,7 @@ import (
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
+	"github.com/nimiplatform/nimi/nimi-cognition/kernel"
 	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 	"github.com/nimiplatform/nimi/nimi-cognition/memory"
 	"github.com/nimiplatform/nimi/nimi-cognition/routine"
@@ -48,6 +49,26 @@ func validateVisibleKnowledgePages(pages []knowledge.Page) ([]knowledge.Page, er
 		return nil, err
 	}
 	return visibleKnowledgePages(pages), nil
+}
+
+func validateKnowledgePagesForService(store *storage.SQLiteBackend, pages []knowledge.Page) ([]knowledge.Page, error) {
+	for _, page := range pages {
+		if err := validateKnowledgePageRelations(page); err != nil {
+			return nil, err
+		}
+		if err := validateKnowledgePageCitations(store, page); err != nil {
+			return nil, err
+		}
+	}
+	return pages, nil
+}
+
+func validateVisibleKnowledgePagesForService(store *storage.SQLiteBackend, pages []knowledge.Page) ([]knowledge.Page, error) {
+	pages, err := validateVisibleKnowledgePages(pages)
+	if err != nil {
+		return nil, err
+	}
+	return validateKnowledgePagesForService(store, pages)
 }
 
 func validateSkillBundles(bundles []skill.Bundle) ([]skill.Bundle, error) {
@@ -105,7 +126,7 @@ func loadValidatedKnowledgePages(store *storage.SQLiteBackend, scopeID string) (
 	if err != nil {
 		return nil, err
 	}
-	return validateVisibleKnowledgePages(pages)
+	return validateVisibleKnowledgePagesForService(store, pages)
 }
 
 func loadValidatedSkillBundles(store *storage.SQLiteBackend, scopeID string) ([]skill.Bundle, error) {
@@ -125,7 +146,7 @@ func validateQueryRequired(op string, query string) error {
 
 func ensureRefsExist(store *storage.SQLiteBackend, scopeID string, refs []artifactref.Ref) error {
 	for _, ref := range refs {
-		live, err := referencedArtifactIsLive(store, scopeID, ref.ToKind, ref.ToID)
+		live, err := store.IsArtifactRefTargetLive(scopeID, ref.ToKind, ref.ToID)
 		if err != nil {
 			return err
 		}
@@ -136,47 +157,157 @@ func ensureRefsExist(store *storage.SQLiteBackend, scopeID string, refs []artifa
 	return nil
 }
 
-func referencedArtifactIsLive(store *storage.SQLiteBackend, scopeID string, kind artifactref.Kind, itemID string) (bool, error) {
-	var storageKind storage.ArtifactKind
-	switch kind {
-	case artifactref.KindMemoryRecord:
-		storageKind = storage.KindMemory
-	case artifactref.KindKnowledgePage:
-		storageKind = storage.KindKnowledge
-	case artifactref.KindSkillBundle:
-		storageKind = storage.KindSkill
-	default:
-		return false, fmt.Errorf("referenced artifact kind %s is not admitted", kind)
+func validateMemorySaveLifecycle(store *storage.SQLiteBackend, rec memory.Record) error {
+	if rec.Lifecycle != memory.RecordLifecycleActive {
+		return fmt.Errorf("illegal lifecycle mutation: memory save only admits active records, got %s", rec.Lifecycle)
 	}
-	raw, err := store.Load(scopeID, storageKind, itemID)
+	existing, err := loadOptionalMemoryRecord(store, rec.ScopeID, rec.RecordID)
 	if err != nil {
-		return false, err
+		return err
 	}
-	if raw == nil {
-		return false, nil
+	if existing != nil && existing.Lifecycle != memory.RecordLifecycleActive {
+		return fmt.Errorf("illegal lifecycle mutation: memory record %s cannot be updated from %s via public save", rec.RecordID, existing.Lifecycle)
 	}
-	switch kind {
-	case artifactref.KindMemoryRecord:
-		var rec memory.Record
-		if err := json.Unmarshal(raw, &rec); err != nil {
-			return false, fmt.Errorf("referenced artifact %s/%s is malformed: %w", kind, itemID, err)
-		}
-		return rec.Lifecycle != memory.RecordLifecycleRemoved, nil
-	case artifactref.KindKnowledgePage:
-		var page knowledge.Page
-		if err := json.Unmarshal(raw, &page); err != nil {
-			return false, fmt.Errorf("referenced artifact %s/%s is malformed: %w", kind, itemID, err)
-		}
-		return page.Lifecycle != knowledge.ProjectionLifecycleRemoved, nil
-	case artifactref.KindSkillBundle:
-		var bundle skill.Bundle
-		if err := json.Unmarshal(raw, &bundle); err != nil {
-			return false, fmt.Errorf("referenced artifact %s/%s is malformed: %w", kind, itemID, err)
-		}
-		return bundle.Status != skill.BundleStatusRemoved, nil
-	default:
-		return false, nil
+	return nil
+}
+
+func validateKnowledgeSaveLifecycle(store *storage.SQLiteBackend, page knowledge.Page) error {
+	if !knowledgeLifecycleIsWriterOwned(page.Lifecycle) {
+		return fmt.Errorf("illegal lifecycle mutation: knowledge save only admits active or stale pages, got %s", page.Lifecycle)
 	}
+	existing, err := loadOptionalKnowledgePage(store, page.ScopeID, page.PageID)
+	if err != nil {
+		return err
+	}
+	if existing != nil && !knowledgeLifecycleIsWriterOwned(existing.Lifecycle) {
+		return fmt.Errorf("illegal lifecycle mutation: knowledge page %s cannot be updated from %s via public save", page.PageID, existing.Lifecycle)
+	}
+	return nil
+}
+
+func validateKnowledgePageForWrite(store *storage.SQLiteBackend, page knowledge.Page) error {
+	if err := knowledge.ValidatePage(page); err != nil {
+		return err
+	}
+	if err := validateKnowledgeSaveLifecycle(store, page); err != nil {
+		return err
+	}
+	if err := validateKnowledgePageRelations(page); err != nil {
+		return err
+	}
+	if err := validateKnowledgePageCitations(store, page); err != nil {
+		return err
+	}
+	return ensureRefsExist(store, page.ScopeID, page.ArtifactRefs)
+}
+
+func validateSkillSaveLifecycle(store *storage.SQLiteBackend, bundle skill.Bundle) error {
+	if !skillStatusIsWriterOwned(bundle.Status) {
+		return fmt.Errorf("illegal lifecycle mutation: skill save only admits draft or active bundles, got %s", bundle.Status)
+	}
+	existing, err := loadOptionalSkillBundle(store, bundle.ScopeID, bundle.BundleID)
+	if err != nil {
+		return err
+	}
+	if existing != nil && !skillStatusIsWriterOwned(existing.Status) {
+		return fmt.Errorf("illegal lifecycle mutation: skill bundle %s cannot be updated from %s via public save", bundle.BundleID, existing.Status)
+	}
+	return nil
+}
+
+func knowledgeLifecycleIsWriterOwned(l knowledge.ProjectionLifecycle) bool {
+	return l == knowledge.ProjectionLifecycleActive || l == knowledge.ProjectionLifecycleStale
+}
+
+func skillStatusIsWriterOwned(s skill.BundleStatus) bool {
+	return s == skill.BundleStatusDraft || s == skill.BundleStatusActive
+}
+
+func knowledgePageIsLiveForRelation(page *knowledge.Page) bool {
+	if page == nil {
+		return false
+	}
+	return page.Lifecycle == knowledge.ProjectionLifecycleActive || page.Lifecycle == knowledge.ProjectionLifecycleStale
+}
+
+func validateKnowledgePageCitations(store *storage.SQLiteBackend, page knowledge.Page) error {
+	for i, citation := range page.Citations {
+		switch citation.TargetKind {
+		case knowledge.CitationTargetKindKernelRule:
+			rule, err := store.LoadKernelRuleByID(page.ScopeID, citation.TargetID)
+			if err != nil {
+				return fmt.Errorf("page %s citations[%d]: %w", page.PageID, i, err)
+			}
+			if rule == nil {
+				return fmt.Errorf("page %s citations[%d]: kernel rule %s does not exist in scope %s", page.PageID, i, citation.TargetID, page.ScopeID)
+			}
+			if rule.Lifecycle != kernel.RuleLifecycleActive {
+				return fmt.Errorf("page %s citations[%d]: kernel rule %s is not active in scope %s", page.PageID, i, citation.TargetID, page.ScopeID)
+			}
+		case knowledge.CitationTargetKindMemoryRecord:
+			live, err := store.IsArtifactRefTargetLive(page.ScopeID, artifactref.KindMemoryRecord, citation.TargetID)
+			if err != nil {
+				return fmt.Errorf("page %s citations[%d]: %w", page.PageID, i, err)
+			}
+			if !live {
+				return fmt.Errorf("page %s citations[%d]: memory record %s does not exist or is removed in scope %s", page.PageID, i, citation.TargetID, page.ScopeID)
+			}
+		default:
+			return fmt.Errorf("page %s citations[%d]: invalid citation target_kind %q", page.PageID, i, citation.TargetKind)
+		}
+	}
+	return nil
+}
+
+func loadOptionalMemoryRecord(store *storage.SQLiteBackend, scopeID string, recordID memory.RecordID) (*memory.Record, error) {
+	raw, err := store.Load(scopeID, storage.KindMemory, string(recordID))
+	if err != nil || raw == nil {
+		return nil, err
+	}
+	var rec memory.Record
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		return nil, fmt.Errorf("memory load: %w", err)
+	}
+	if err := memory.ValidateRecord(rec); err != nil {
+		return nil, fmt.Errorf("memory load: %w", err)
+	}
+	return &rec, nil
+}
+
+func loadOptionalKnowledgePage(store *storage.SQLiteBackend, scopeID string, pageID knowledge.PageID) (*knowledge.Page, error) {
+	raw, err := store.Load(scopeID, storage.KindKnowledge, string(pageID))
+	if err != nil || raw == nil {
+		return nil, err
+	}
+	var page knowledge.Page
+	if err := json.Unmarshal(raw, &page); err != nil {
+		return nil, fmt.Errorf("knowledge load: %w", err)
+	}
+	if err := knowledge.ValidatePage(page); err != nil {
+		return nil, fmt.Errorf("knowledge load: %w", err)
+	}
+	if err := validateKnowledgePageRelations(page); err != nil {
+		return nil, fmt.Errorf("knowledge load: %w", err)
+	}
+	if err := validateKnowledgePageCitations(store, page); err != nil {
+		return nil, fmt.Errorf("knowledge load: %w", err)
+	}
+	return &page, nil
+}
+
+func loadOptionalSkillBundle(store *storage.SQLiteBackend, scopeID string, bundleID skill.BundleID) (*skill.Bundle, error) {
+	raw, err := store.Load(scopeID, storage.KindSkill, string(bundleID))
+	if err != nil || raw == nil {
+		return nil, err
+	}
+	var bundle skill.Bundle
+	if err := json.Unmarshal(raw, &bundle); err != nil {
+		return nil, fmt.Errorf("skill load: %w", err)
+	}
+	if err := skill.ValidateBundle(bundle); err != nil {
+		return nil, fmt.Errorf("skill load: %w", err)
+	}
+	return &bundle, nil
 }
 
 func sortRelations(relations []knowledge.Relation) {
@@ -199,6 +330,18 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func knowledgeCitationBlockerParts(store *storage.SQLiteBackend, scopeID string, targetKind string, targetID string) ([]string, error) {
+	sources, err := store.ListKnowledgeCitationSources(scopeID, targetKind, targetID)
+	if err != nil {
+		return nil, err
+	}
+	parts := make([]string, 0, len(sources))
+	for _, source := range sources {
+		parts = append(parts, fmt.Sprintf("knowledge_citation:knowledge_page/%s(%s)", source.PageID, source.Lifecycle))
+	}
+	return parts, nil
 }
 
 func (s *workingStore) save(state working.State) {
@@ -304,6 +447,13 @@ func (a *routineArtifactAccess) ArchiveMemory(scopeID string, recordID memory.Re
 
 func (a *routineArtifactAccess) RemoveMemory(scopeID string, recordID memory.RecordID, now time.Time) error {
 	return a.memorySvc.remove(scopeID, recordID, now)
+}
+
+func (a *routineArtifactAccess) KnowledgeCitationBlockedBy(scopeID string, targetKind string, targetID string) ([]string, error) {
+	if a == nil || a.store == nil {
+		return nil, fmt.Errorf("routine context: digest persistence store is required")
+	}
+	return knowledgeCitationBlockerParts(a.store, scopeID, targetKind, targetID)
 }
 
 func (a *routineArtifactAccess) ListKnowledge(scopeID string) ([]knowledge.Page, error) {

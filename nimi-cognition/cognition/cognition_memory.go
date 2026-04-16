@@ -9,12 +9,16 @@ import (
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
+	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 	"github.com/nimiplatform/nimi/nimi-cognition/memory"
 )
 
 // Save persists a memory record.
 func (s *MemoryService) Save(rec memory.Record) error {
 	if err := memory.ValidateRecord(rec); err != nil {
+		return fmt.Errorf("memory save: %w", err)
+	}
+	if err := validateMemorySaveLifecycle(s.store, rec); err != nil {
 		return fmt.Errorf("memory save: %w", err)
 	}
 	if err := ensureRefsExist(s.store, rec.ScopeID, rec.ArtifactRefs); err != nil {
@@ -120,8 +124,17 @@ func (s *MemoryService) Delete(scopeID string, recordID memory.RecordID) error {
 		return err
 	}
 	blocking := blockingDeleteBlockers(blockers)
-	if len(blocking) > 0 {
-		return fmt.Errorf("memory delete: record %s is blocked by %s", recordID, formatDeleteBlockers(blocking))
+	citationBlockers, err := knowledgeCitationBlockerParts(s.store, scopeID, knowledge.CitationTargetKindMemoryRecord, string(recordID))
+	if err != nil {
+		return err
+	}
+	if len(blocking) > 0 || len(citationBlockers) > 0 {
+		parts := []string{}
+		if len(blocking) > 0 {
+			parts = append(parts, formatDeleteBlockers(blocking))
+		}
+		parts = append(parts, citationBlockers...)
+		return fmt.Errorf("memory delete: record %s is blocked by %s", recordID, strings.Join(parts, ", "))
 	}
 	return s.store.Delete(scopeID, storage.KindMemory, string(recordID))
 }
@@ -229,21 +242,14 @@ func (s *MemoryService) loadOptional(scopeID string, recordID memory.RecordID) (
 	if strings.TrimSpace(string(recordID)) == "" {
 		return nil, errors.New("memory load: record_id is required")
 	}
-	raw, err := s.store.Load(scopeID, storage.KindMemory, string(recordID))
+	rec, err := loadOptionalMemoryRecord(s.store, scopeID, recordID)
 	if err != nil {
 		return nil, err
 	}
-	if raw == nil {
+	if rec == nil {
 		return nil, nil
 	}
-	var rec memory.Record
-	if err := json.Unmarshal(raw, &rec); err != nil {
-		return nil, fmt.Errorf("memory load: %w", err)
-	}
-	if err := memory.ValidateRecord(rec); err != nil {
-		return nil, fmt.Errorf("memory load: %w", err)
-	}
-	return &rec, nil
+	return rec, nil
 }
 
 func (s *MemoryService) archive(scopeID string, recordID memory.RecordID, now time.Time) error {
@@ -272,8 +278,17 @@ func (s *MemoryService) remove(scopeID string, recordID memory.RecordID, now tim
 		return err
 	}
 	blocking := blockingDeleteBlockers(blockers)
-	if len(blocking) > 0 {
-		return fmt.Errorf("memory remove: record %s is blocked by %s", recordID, formatDeleteBlockers(blocking))
+	citationBlockers, err := knowledgeCitationBlockerParts(s.store, scopeID, knowledge.CitationTargetKindMemoryRecord, string(recordID))
+	if err != nil {
+		return err
+	}
+	if len(blocking) > 0 || len(citationBlockers) > 0 {
+		parts := []string{}
+		if len(blocking) > 0 {
+			parts = append(parts, formatDeleteBlockers(blocking))
+		}
+		parts = append(parts, citationBlockers...)
+		return fmt.Errorf("memory remove: record %s is blocked by %s", recordID, strings.Join(parts, ", "))
 	}
 	record.Lifecycle = memory.RecordLifecycleRemoved
 	record.UpdatedAt = now

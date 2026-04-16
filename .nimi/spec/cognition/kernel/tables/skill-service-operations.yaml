@@ -4,11 +4,11 @@ operations:
     entrypoint: SkillService.Save
     admitted_inputs: one typed skill bundle in one cognition scope
     identity_invariants: scope_id and bundle_id are explicit; create/update affects exactly one bundle
-    validation: fail-close on malformed bundle payload, empty steps, duplicate step identity, duplicate step order, illegal refs, or illegal scope crossing
+    validation: fail-close on malformed bundle payload, empty steps, duplicate step identity, duplicate step order, illegal refs, illegal scope crossing, or illegal lifecycle mutation
     retrieval_posture: not a retrieval surface
     lifecycle_effects: creates or updates one bundle and preserves explicit lifecycle visibility for later reads
     derived_view_behavior: none at write time
-    fail_closed_reasons: malformed payload, illegal scope, missing ref target, duplicate step order, duplicate step identity
+    fail_closed_reasons: malformed payload, illegal scope, missing ref target, duplicate step order, duplicate step identity, illegal lifecycle mutation
     non_ownership_boundary: does not own runtime provider/tool routing, scheduler truth, or automation execution policy
     source_rule: C-COG-056
   - operation_id: skill_load

@@ -74,7 +74,7 @@ func (b *SQLiteBackend) ListDigestRunIDs(scopeID string) ([]string, error) {
 		return nil, err
 	}
 
-	rows, err := b.db.Query(`SELECT run_id FROM digest_run WHERE scope_id = ? ORDER BY created_at DESC, run_id DESC`, scopeID)
+	rows, err := b.db.Query(`SELECT run_id FROM digest_run WHERE scope_id = ? ORDER BY created_at DESC, rowid DESC`, scopeID)
 	if err != nil {
 		return nil, fmt.Errorf("storage list digest runs: %w", err)
 	}

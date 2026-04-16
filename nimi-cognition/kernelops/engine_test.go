@@ -10,6 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/clock"
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
 	"github.com/nimiplatform/nimi/nimi-cognition/kernel"
+	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 )
 
 var ts = time.Date(2026, 4, 16, 12, 0, 0, 0, time.UTC)
@@ -183,17 +184,129 @@ func TestCommit_PersistsSnapshotsAndLog(t *testing.T) {
 	}
 }
 
-func validMemoryRecord(scopeID string, id string) any {
-	return struct {
-		RecordID  string          `json:"record_id"`
-		ScopeID   string          `json:"scope_id"`
-		Kind      string          `json:"kind"`
-		Version   int             `json:"version"`
-		Content   json.RawMessage `json:"content"`
-		Lifecycle string          `json:"lifecycle"`
-		CreatedAt time.Time       `json:"created_at"`
-		UpdatedAt time.Time       `json:"updated_at"`
-	}{
+func TestCommit_RejectsRemovedArtifactRefTarget(t *testing.T) {
+	engine, store := newTestEngine(t)
+	base := localRule("r1", "concise")
+	seedKernel(t, store, "a1", kernel.KernelTypeAgentModel, []kernel.Rule{base})
+
+	mem := validMemoryRecord("a1", "mem_removed")
+	memRaw, _ := json.Marshal(mem)
+	if err := store.Save("a1", storage.KindMemory, "mem_removed", memRaw); err != nil {
+		t.Fatalf("seed memory: %v", err)
+	}
+	memRemoved := validMemoryRecord("a1", "mem_removed")
+	memRemoved.Lifecycle = "removed"
+	memRemoved.Version = 2
+	memRemovedRaw, _ := json.Marshal(memRemoved)
+	if err := store.Save("a1", storage.KindMemory, "mem_removed", memRemovedRaw); err != nil {
+		t.Fatalf("seed removed memory: %v", err)
+	}
+
+	updated := localRule("r1", "more verbose")
+	updated.Version = 2
+	updated.ArtifactRefs = []artifactref.Ref{{
+		FromKind:  artifactref.KindKernelRule,
+		FromID:    "r1",
+		ToKind:    artifactref.KindMemoryRecord,
+		ToID:      "mem_removed",
+		Strength:  artifactref.StrengthStrong,
+		Role:      "support",
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	}}
+	_, err := engine.Commit(ResolvedPatch{
+		ResolvedPatchID: "rp_removed",
+		TargetKernel:    kernel.KernelTypeAgentModel,
+		ScopeID:         "a1",
+		ResolvedBy:      "human",
+		ResolvedAt:      ts,
+		ResolvedChanges: []ResolvedChange{{
+			RuleID:         "r1",
+			BaseVersion:    1,
+			ChangeKind:     ChangeKindUpdate,
+			ResolutionKind: ResolutionKindManualMerge,
+			FinalRule:      &updated,
+		}},
+	})
+	if err == nil || !strings.Contains(err.Error(), "missing or removed") {
+		t.Fatalf("expected removed target rejection, got %v", err)
+	}
+}
+
+func TestCommit_RejectsRuleDeactivationWhenKnowledgeCitationExists(t *testing.T) {
+	engine, store := newTestEngine(t)
+	base := localRule("r1", "concise")
+	seedKernel(t, store, "a1", kernel.KernelTypeAgentModel, []kernel.Rule{base})
+
+	pageRaw, err := json.Marshal(knowledge.Page{
+		PageID:    "p1",
+		ScopeID:   "a1",
+		Kind:      knowledge.ProjectionKindGuide,
+		Version:   1,
+		Title:     "Pinned page",
+		Body:      []byte(`"body"`),
+		Lifecycle: knowledge.ProjectionLifecycleActive,
+		Citations: []knowledge.Citation{{
+			TargetKind: knowledge.CitationTargetKindKernelRule,
+			TargetID:   "r1",
+			Strength:   kernel.RefStrong,
+		}},
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	})
+	if err != nil {
+		t.Fatalf("marshal page: %v", err)
+	}
+	if err := store.Save("a1", storage.KindKnowledge, "p1", pageRaw); err != nil {
+		t.Fatalf("seed knowledge page: %v", err)
+	}
+
+	updated := localRule("r1", "superseded")
+	updated.Version = 2
+	updated.Lifecycle = kernel.RuleLifecycleSuperseded
+	updated.SupersededBy = "r2"
+	r2 := localRule("r2", "replacement")
+
+	_, err = engine.Commit(ResolvedPatch{
+		ResolvedPatchID: "rp_cited_rule",
+		TargetKernel:    kernel.KernelTypeAgentModel,
+		ScopeID:         "a1",
+		ResolvedBy:      "human",
+		ResolvedAt:      ts,
+		ResolvedChanges: []ResolvedChange{
+			{
+				RuleID:         "r2",
+				ChangeKind:     ChangeKindAdd,
+				ResolutionKind: ResolutionKindManualMerge,
+				FinalRule:      &r2,
+			},
+			{
+				RuleID:         "r1",
+				BaseVersion:    1,
+				ChangeKind:     ChangeKindUpdate,
+				ResolutionKind: ResolutionKindManualMerge,
+				FinalRule:      &updated,
+			},
+		},
+	})
+	if err == nil || !strings.Contains(err.Error(), "cannot transition out of active") {
+		t.Fatalf("expected cited rule deactivation rejection, got %v", err)
+	}
+}
+
+type memoryRecordSeed struct {
+	RecordID  string          `json:"record_id"`
+	ScopeID   string          `json:"scope_id"`
+	Kind      string          `json:"kind"`
+	Version   int             `json:"version"`
+	Content   json.RawMessage `json:"content"`
+	Lifecycle string          `json:"lifecycle"`
+	CreatedAt time.Time       `json:"created_at"`
+	UpdatedAt time.Time       `json:"updated_at"`
+}
+
+func validMemoryRecord(scopeID string, id string) memoryRecordSeed {
+	return memoryRecordSeed{
 		RecordID:  id,
 		ScopeID:   scopeID,
 		Kind:      "experience",

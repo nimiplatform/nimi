@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
 	"github.com/nimiplatform/nimi/nimi-cognition/kernel"
@@ -39,6 +40,51 @@ func (b *SQLiteBackend) LoadMemoryRecords(scopeID string) ([]memory.Record, erro
 // LoadKnowledgePages returns all knowledge pages for a scope.
 func (b *SQLiteBackend) LoadKnowledgePages(scopeID string) ([]knowledge.Page, error) {
 	return loadJSONRows[knowledge.Page](b.db, `SELECT page_json FROM knowledge_page WHERE scope_id = ? ORDER BY updated_at DESC, page_id`, scopeID)
+}
+
+// KnowledgeCitationSource identifies one persisted knowledge page that cites a
+// target through the admitted citation surface.
+type KnowledgeCitationSource struct {
+	PageID    knowledge.PageID
+	Lifecycle knowledge.ProjectionLifecycle
+}
+
+// ListKnowledgeCitationSources returns knowledge pages in one scope that cite
+// the requested target. The result includes every persisted lifecycle except
+// deleted pages, so target mutation can remain fail-closed for durable pages.
+func (b *SQLiteBackend) ListKnowledgeCitationSources(scopeID string, targetKind string, targetID string) ([]KnowledgeCitationSource, error) {
+	if err := validateScopeID(scopeID); err != nil {
+		return nil, err
+	}
+	if err := validateItemID(targetID); err != nil {
+		return nil, err
+	}
+	switch targetKind {
+	case knowledge.CitationTargetKindKernelRule, knowledge.CitationTargetKindMemoryRecord:
+	default:
+		return nil, fmt.Errorf("knowledge citation target kind %s is not admitted", targetKind)
+	}
+	pages, err := b.LoadKnowledgePages(scopeID)
+	if err != nil {
+		return nil, err
+	}
+	sources := make([]KnowledgeCitationSource, 0)
+	for _, page := range pages {
+		if err := knowledge.ValidatePage(page); err != nil {
+			return nil, fmt.Errorf("storage load knowledge citation sources: %w", err)
+		}
+		for _, citation := range page.Citations {
+			if citation.TargetKind != targetKind || citation.TargetID != targetID {
+				continue
+			}
+			sources = append(sources, KnowledgeCitationSource{
+				PageID:    page.PageID,
+				Lifecycle: page.Lifecycle,
+			})
+			break
+		}
+	}
+	return sources, nil
 }
 
 // LoadSkillBundles returns all skill bundles for a scope.
@@ -147,11 +193,72 @@ func (b *SQLiteBackend) SaveKnowledgeIngestTask(task knowledge.IngestTask) error
 	if err := knowledge.ValidateIngestTask(task); err != nil {
 		return fmt.Errorf("storage save ingest task: %w", err)
 	}
+	tx, err := b.db.Begin()
+	if err != nil {
+		return fmt.Errorf("storage save ingest task: begin tx: %w", err)
+	}
+	defer rollback(tx)
+	if err := b.saveKnowledgeIngestTaskTx(tx, task); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// SaveKnowledgePageAndIngestTask atomically persists one knowledge page plus
+// its completed ingest task state.
+func (b *SQLiteBackend) SaveKnowledgePageAndIngestTask(page knowledge.Page, task knowledge.IngestTask) error {
+	if err := validateScopeID(page.ScopeID); err != nil {
+		return err
+	}
+	if err := validateItemID(string(page.PageID)); err != nil {
+		return err
+	}
+	if err := knowledge.ValidatePage(page); err != nil {
+		return fmt.Errorf("storage save knowledge+ingest: %w", err)
+	}
+	if err := knowledge.ValidateIngestTask(task); err != nil {
+		return fmt.Errorf("storage save knowledge+ingest: %w", err)
+	}
+	if task.ScopeID != page.ScopeID {
+		return fmt.Errorf("storage save knowledge+ingest: task scope %s does not match page scope %s", task.ScopeID, page.ScopeID)
+	}
+	if task.PageID != page.PageID {
+		return fmt.Errorf("storage save knowledge+ingest: task page %s does not match page id %s", task.PageID, page.PageID)
+	}
+	tx, err := b.db.Begin()
+	if err != nil {
+		return fmt.Errorf("storage save knowledge+ingest: begin tx: %w", err)
+	}
+	defer rollback(tx)
+	now := page.UpdatedAt
+	if task.UpdatedAt.After(now) {
+		now = task.UpdatedAt
+	}
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	if err := b.ensureScopeTx(tx, page.ScopeID, now); err != nil {
+		return err
+	}
+	pageRaw, err := json.Marshal(page)
+	if err != nil {
+		return fmt.Errorf("storage save knowledge+ingest: marshal page: %w", err)
+	}
+	if err := b.saveKnowledgeTx(tx, page.ScopeID, string(page.PageID), pageRaw); err != nil {
+		return err
+	}
+	if err := b.saveKnowledgeIngestTaskTx(tx, task); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (b *SQLiteBackend) saveKnowledgeIngestTaskTx(tx *sql.Tx, task knowledge.IngestTask) error {
 	raw, err := json.Marshal(task)
 	if err != nil {
 		return fmt.Errorf("storage save ingest task: marshal: %w", err)
 	}
-	if _, err := b.db.Exec(`INSERT INTO knowledge_ingest_task
+	if _, err := tx.Exec(`INSERT INTO knowledge_ingest_task
 		(scope_id, task_id, task_json, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(scope_id, task_id) DO UPDATE SET
@@ -404,4 +511,55 @@ func (b *SQLiteBackend) LoadKernelRuleByID(scopeID string, ruleID string) (*kern
 		return nil, fmt.Errorf("storage load kernel rule: %w", err)
 	}
 	return &rule, nil
+}
+
+// IsArtifactRefTargetLive reports whether one admitted artifact-ref target
+// exists in scope and remains non-removed.
+func (b *SQLiteBackend) IsArtifactRefTargetLive(scopeID string, kind artifactref.Kind, itemID string) (bool, error) {
+	if err := validateScopeID(scopeID); err != nil {
+		return false, err
+	}
+	if err := validateItemID(itemID); err != nil {
+		return false, err
+	}
+	var storageKind ArtifactKind
+	switch kind {
+	case artifactref.KindMemoryRecord:
+		storageKind = KindMemory
+	case artifactref.KindKnowledgePage:
+		storageKind = KindKnowledge
+	case artifactref.KindSkillBundle:
+		storageKind = KindSkill
+	default:
+		return false, fmt.Errorf("referenced artifact kind %s is not admitted", kind)
+	}
+	raw, err := b.Load(scopeID, storageKind, itemID)
+	if err != nil {
+		return false, err
+	}
+	if raw == nil {
+		return false, nil
+	}
+	switch kind {
+	case artifactref.KindMemoryRecord:
+		var rec memory.Record
+		if err := json.Unmarshal(raw, &rec); err != nil {
+			return false, fmt.Errorf("referenced artifact %s/%s is malformed: %w", kind, itemID, err)
+		}
+		return rec.Lifecycle != memory.RecordLifecycleRemoved, nil
+	case artifactref.KindKnowledgePage:
+		var page knowledge.Page
+		if err := json.Unmarshal(raw, &page); err != nil {
+			return false, fmt.Errorf("referenced artifact %s/%s is malformed: %w", kind, itemID, err)
+		}
+		return page.Lifecycle != knowledge.ProjectionLifecycleRemoved, nil
+	case artifactref.KindSkillBundle:
+		var bundle skill.Bundle
+		if err := json.Unmarshal(raw, &bundle); err != nil {
+			return false, fmt.Errorf("referenced artifact %s/%s is malformed: %w", kind, itemID, err)
+		}
+		return bundle.Status != skill.BundleStatusRemoved, nil
+	default:
+		return false, nil
+	}
 }

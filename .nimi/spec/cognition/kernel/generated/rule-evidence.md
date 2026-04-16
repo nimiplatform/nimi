@@ -26,7 +26,7 @@
 | `C-COG-001` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Authority-home rule is enforced structurally by cognition spec placement and generated projections. |
 | `C-COG-002` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Extraction and upgrade relation is now fixed at the cognition authority layer and no longer delegated to runtime. |
 | `C-COG-003` | `covered` | `cognition_spec_governance_gate`, `cognition_semantic_completeness_gate` | — |
-| `C-COG-004` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate`, `cognition_build_gate`, `cognition_test_gate`, `cognition_race_gate` | Cognition-local top-level closure is now supported by the current independent standalone audit, worker/service-path semantic alignment, failure-family behavior coverage, and current cognition gates; this remains a cognition-local evidence state rather than a repo-wide or runtime-parity completion claim. |
+| `C-COG-004` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate`, `cognition_build_gate`, `cognition_test_gate`, `cognition_race_gate` | Cognition-local top-level standalone closeout is re-closed based on worker/service lifecycle equivalence, owner-true provenance, aligned typed digest routine contract, explicit ingest persist-failure fail-close handling, reopen-safe proof, and agreement with the latest independent audit; this is not a repo-wide or global final completion verdict. |
 | `C-COG-005` | `covered` | `cognition_build_gate`, `cognition_test_gate` | — |
 | `C-COG-006` | `covered` | `cognition_build_gate`, `cognition_test_gate` | — |
 | `C-COG-007` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Memory now owns validated mutation, derived views, lifecycle-aware archive/remove/delete semantics, and explicit history without caller-owned serving metadata. |
@@ -45,7 +45,7 @@
 | `C-COG-020` | `covered` | `cognition_build_gate`, `cognition_test_gate` | — |
 | `C-COG-021` | `covered` | `cognition_spec_governance_gate`, `cognition_test_gate` | — |
 | `C-COG-022` | `covered` | `cognition_build_gate`, `cognition_test_gate` | — |
-| `C-COG-023` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Save paths reject illegal/missing/live-invalid refs across memory, knowledge, and skill, and relation roles remain fail-closed. |
+| `C-COG-023` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Typed reference integrity now covers save-time validation, target liveness, memory delete/remove blockers for admitted knowledge citations, active-only kernel-rule citation validation, and kernel-rule deactivation blockers. |
 | `C-COG-024` | `covered` | `cognition_test_gate` | — |
 | `C-COG-025` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_vet_gate` | — |
 | `C-COG-026` | `covered` | `cognition_build_gate`, `cognition_test_gate` | — |
@@ -54,7 +54,7 @@
 | `C-COG-029` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Memory, knowledge, skill, and working services now expose the admitted owner-true surfaces, including explicit history and delete where owned. |
 | `C-COG-030` | `covered` | `cognition_test_gate`, `cognition_generated_docs_gate` | Prompt now consumes only service-owned memory views plus validated knowledge and skill artifacts, and malformed advisory inputs fail closed. |
 | `C-COG-031` | `covered` | `cognition_test_gate` | — |
-| `C-COG-032` | `covered` | `cognition_test_gate` | Digest worker path remains the authoritative routine entry, and worker-path cleanup mutation now uses the same structured lifecycle-aware blocker truth as the service-owned archive/remove helpers. |
+| `C-COG-032` | `covered` | `cognition_test_gate` | Digest worker path remains the authoritative routine entry; public-surface authority now matches the admitted worker return contract, and typed routine contract plus persisted digest evidence close the admitted path while digest-package run/analyze/apply tests remain internal helper evidence rather than the primary closeout proof. |
 | `C-COG-033` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
 | `C-COG-034` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate`, `cognition_build_gate` | Runtime-overlap capability mapping is re-aligned to the redesigned standalone implementation and now matches direct behavior-tested knowledge, retrieval, and digest/refgraph semantics. |
 | `C-COG-035` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_vet_gate` | — |
@@ -67,7 +67,7 @@
 | `C-COG-042` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
 | `C-COG-043` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Knowledge service registry is now explicit and structurally validated. |
 | `C-COG-044` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Knowledge lifecycle and retrieval semantics now have direct behavior coverage for honest hybrid retrieval, delete blockers, reopen-safe state, and task interruption failure. |
-| `C-COG-045` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | First-class relation rows and persisted ingest tasks are now owner-true and directly covered by relation durability, blocker, traversal, and interrupted-ingest tests. |
+| `C-COG-045` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Same-scope relation integrity, persisted ingest lifecycle, explicit running/completed persist-failure fail-close handling, interrupted-task fail-close, and admitted worker-path proof now reach owner-true standalone level; digest-package helper-path tests remain secondary evidence, not the primary completion proof. |
 | `C-COG-046` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
 | `C-COG-047` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Reference matrix authority now matches the redesigned implementation: kernel outgoing refs to advisory artifacts are admitted, reverse refs into kernels remain forbidden, and knowledge graph truth is first-class relation-row based. |
 | `C-COG-048` | `covered` | `cognition_test_gate`, `cognition_generated_docs_gate` | Refgraph now explains cleanup through live-only support summaries, broken targets, outgoing dependency health, and remove blockers consumed by digest. |

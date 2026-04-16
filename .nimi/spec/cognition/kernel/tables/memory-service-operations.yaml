@@ -4,7 +4,7 @@ operations:
     entrypoint: MemoryService.Save
     admitted_inputs: one typed memory record in one cognition scope
     identity_invariants: scope_id and record_id are explicit; create/update affects exactly one record
-    validation: fail-close on malformed payload, illegal refs, illegal scope crossing, or caller-supplied service metadata
+    validation: fail-close on malformed payload, illegal refs, illegal scope crossing, caller-supplied service metadata, or illegal lifecycle mutation
     retrieval_posture: not a retrieval surface
     lifecycle_effects: creates or updates one memory artifact and preserves lifecycle visibility for later history reads
     derived_view_behavior: none at write time; derived support remains service-owned

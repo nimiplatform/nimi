@@ -4,11 +4,11 @@ operations:
     entrypoint: KnowledgeService.Save
     admitted_inputs: one typed knowledge page projection in one cognition scope
     identity_invariants: scope_id and page_id are explicit; create/update affects exactly one page
-    validation: fail-close on malformed page payload, illegal refs, illegal scope crossing, duplicate illegal ownership, page-embedded knowledge relations, or relation integrity violation
+    validation: fail-close on malformed page payload, illegal refs, illegal scope crossing, duplicate illegal ownership, page-embedded knowledge relations, relation integrity violation, illegal lifecycle mutation, or invalid citation provenance
     retrieval_posture: not a retrieval surface
     lifecycle_effects: creates or updates one page and preserves explicit lifecycle visibility for later reads
     derived_view_behavior: none at write time
-    fail_closed_reasons: malformed payload, illegal scope, missing ref target, illegal page identity mutation
+    fail_closed_reasons: malformed payload, illegal scope, missing ref target, illegal page identity mutation, illegal lifecycle mutation, invalid citation target
     non_ownership_boundary: does not own runtime bank auth, shared-truth replication, or Agent Core admission
     source_rule: C-COG-043
   - operation_id: knowledge_load
@@ -81,11 +81,11 @@ operations:
     entrypoint: KnowledgeService.PutRelation
     admitted_inputs: explicit scope_id plus one typed same-scope relation
     identity_invariants: source page, target page, and relation type identify one relation in one scope
-    validation: fail-close on missing source/target, cross-scope relation, blank relation type, duplicate relation, or self-link
+    validation: fail-close on missing source/target, non-live source/target, cross-scope relation, blank relation type, duplicate relation, or self-link
     retrieval_posture: not a retrieval surface
     lifecycle_effects: creates or updates one first-class relation truth row
     derived_view_behavior: none at write time
-    fail_closed_reasons: missing page, illegal scope, duplicate relation, self-link, malformed relation type
+    fail_closed_reasons: missing page, non-live page, illegal scope, duplicate relation, self-link, malformed relation type
     non_ownership_boundary: relation write does not imply cross-service citation ownership
     source_rule: C-COG-045
   - operation_id: knowledge_delete_relation

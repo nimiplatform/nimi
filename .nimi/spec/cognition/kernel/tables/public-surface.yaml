@@ -500,7 +500,7 @@ surfaces:
     entrypoint: digest.NewWorker(...).Run
     owner_surface: routine/digest
     family_scope: routine
-    return_contract: "(digest.Result, error)"
+    return_contract: "(*routine.Result, error)"
     capability_concerns: []
     notes: Authoritative digest routine entry.
     source_rule: C-COG-032

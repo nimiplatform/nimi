@@ -95,13 +95,11 @@ func (d *Digest) analyzeAccess(scopeID string, now time.Time, access routine.Art
 			return AnalysisReport{}, fmt.Errorf("digest analyze knowledge: %w", err)
 		}
 		currentSnapshot.refGraphChurn += countKnowledgeRefs(pages)
-		if counter, ok := access.(knowledgeRelationCounter); ok {
-			relCount, err := counter.CountKnowledgeRelations(scopeID)
-			if err != nil {
-				return AnalysisReport{}, err
-			}
-			currentSnapshot.refGraphChurn += relCount
+		relCount, err := access.CountKnowledgeRelations(scopeID)
+		if err != nil {
+			return AnalysisReport{}, err
 		}
+		currentSnapshot.refGraphChurn += relCount
 		for _, page := range pages {
 			if page.Lifecycle == knowledge.ProjectionLifecycleRemoved {
 				continue

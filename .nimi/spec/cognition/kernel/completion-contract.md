@@ -35,6 +35,9 @@ Fixed rules:
   be semantically equivalent to the service-owned lifecycle policy they claim
   to represent, and that equivalence must be established by behavior-level
   proof rather than inferred solely from local green gates
+- top-level completion also requires public mutation surfaces to reject illegal
+  lifecycle resurrection, relation/graph writes to non-live targets, and
+  provenance payloads that have not yet been closed into owner-true semantics
 - when redesign audit reopens `C-COG-004`, rule evidence must return to
   `deferred` until the narrower subsystem rules, their direct behavior tests,
   and a fresh independent completion review are re-established

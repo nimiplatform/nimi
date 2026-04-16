@@ -22,6 +22,9 @@ func (s *SkillService) Save(bundle skill.Bundle) error {
 	if err := skill.ValidateBundle(bundle); err != nil {
 		return fmt.Errorf("skill save: %w", err)
 	}
+	if err := validateSkillSaveLifecycle(s.store, bundle); err != nil {
+		return fmt.Errorf("skill save: %w", err)
+	}
 	if err := ensureRefsExist(s.store, bundle.ScopeID, bundle.ArtifactRefs); err != nil {
 		return fmt.Errorf("skill save: %w", err)
 	}
@@ -136,21 +139,14 @@ func (s *SkillService) loadOptional(scopeID string, bundleID skill.BundleID) (*s
 	if strings.TrimSpace(string(bundleID)) == "" {
 		return nil, errors.New("skill load: bundle_id is required")
 	}
-	raw, err := s.store.Load(scopeID, storage.KindSkill, string(bundleID))
+	bundle, err := loadOptionalSkillBundle(s.store, scopeID, bundleID)
 	if err != nil {
 		return nil, err
 	}
-	if raw == nil {
+	if bundle == nil {
 		return nil, nil
 	}
-	var bundle skill.Bundle
-	if err := json.Unmarshal(raw, &bundle); err != nil {
-		return nil, fmt.Errorf("skill load: %w", err)
-	}
-	if err := skill.ValidateBundle(bundle); err != nil {
-		return nil, fmt.Errorf("skill load: %w", err)
-	}
-	return &bundle, nil
+	return bundle, nil
 }
 
 func (s *SkillService) archive(scopeID string, bundleID skill.BundleID, now time.Time) error {

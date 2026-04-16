@@ -55,7 +55,7 @@ rules:
   - rule_id: C-COG-004
     status: covered
     evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate, cognition_build_gate, cognition_test_gate, cognition_race_gate]
-    note: Cognition-local top-level closure is now supported by the current independent standalone audit, worker/service-path semantic alignment, failure-family behavior coverage, and current cognition gates; this remains a cognition-local evidence state rather than a repo-wide or runtime-parity completion claim.
+    note: Cognition-local top-level standalone closeout is re-closed based on worker/service lifecycle equivalence, owner-true provenance, aligned typed digest routine contract, explicit ingest persist-failure fail-close handling, reopen-safe proof, and agreement with the latest independent audit; this is not a repo-wide or global final completion verdict.
   - rule_id: C-COG-005
     status: covered
     evidence_refs: [cognition_build_gate, cognition_test_gate]
@@ -116,7 +116,7 @@ rules:
   - rule_id: C-COG-023
     status: covered
     evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
-    note: Save paths reject illegal/missing/live-invalid refs across memory, knowledge, and skill, and relation roles remain fail-closed.
+    note: Typed reference integrity now covers save-time validation, target liveness, memory delete/remove blockers for admitted knowledge citations, active-only kernel-rule citation validation, and kernel-rule deactivation blockers.
   - rule_id: C-COG-024
     status: covered
     evidence_refs: [cognition_test_gate]
@@ -146,7 +146,7 @@ rules:
   - rule_id: C-COG-032
     status: covered
     evidence_refs: [cognition_test_gate]
-    note: Digest worker path remains the authoritative routine entry, and worker-path cleanup mutation now uses the same structured lifecycle-aware blocker truth as the service-owned archive/remove helpers.
+    note: Digest worker path remains the authoritative routine entry; public-surface authority now matches the admitted worker return contract, and typed routine contract plus persisted digest evidence close the admitted path while digest-package run/analyze/apply tests remain internal helper evidence rather than the primary closeout proof.
   - rule_id: C-COG-033
     status: covered
     evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
@@ -194,7 +194,7 @@ rules:
   - rule_id: C-COG-045
     status: covered
     evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
-    note: First-class relation rows and persisted ingest tasks are now owner-true and directly covered by relation durability, blocker, traversal, and interrupted-ingest tests.
+    note: Same-scope relation integrity, persisted ingest lifecycle, explicit running/completed persist-failure fail-close handling, interrupted-task fail-close, and admitted worker-path proof now reach owner-true standalone level; digest-package helper-path tests remain secondary evidence, not the primary completion proof.
   - rule_id: C-COG-046
     status: covered
     evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]

@@ -59,4 +59,4 @@
 | `prompt.format_core` | `service_method` | `PromptService.FormatCore` | `PromptService` | `prompt` | `(string, error)` | — | `C-COG-030` |
 | `prompt.format_advisory` | `service_method` | `PromptService.FormatAdvisory` | `PromptService` | `prompt` | `(string, error)` | — | `C-COG-030` |
 | `prompt.format_all` | `service_method` | `PromptService.FormatAll` | `PromptService` | `prompt` | `(string, error)` | — | `C-COG-030` |
-| `digest.worker_run` | `external_worker` | `digest.NewWorker(...).Run` | `routine/digest` | `routine` | `(digest.Result, error)` | — | `C-COG-032` |
+| `digest.worker_run` | `external_worker` | `digest.NewWorker(...).Run` | `routine/digest` | `routine` | `(*routine.Result, error)` | — | `C-COG-032` |

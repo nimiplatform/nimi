@@ -4,7 +4,7 @@
 > Source: `.nimi/spec/cognition/kernel/tables/memory-service-operations.yaml`
 | Operation | Entrypoint | Inputs | Validation | Lifecycle Effects | Fail-Close Reasons | Source |
 |---|---|---|---|---|---|---|
-| `memory_save` | `MemoryService.Save` | one typed memory record in one cognition scope | fail-close on malformed payload, illegal refs, illegal scope crossing, or caller-supplied service metadata | creates or updates one memory artifact and preserves lifecycle visibility for later history reads | malformed payload, illegal family kind, missing ref target, illegal lifecycle mutation | `C-COG-039` |
+| `memory_save` | `MemoryService.Save` | one typed memory record in one cognition scope | fail-close on malformed payload, illegal refs, illegal scope crossing, caller-supplied service metadata, or illegal lifecycle mutation | creates or updates one memory artifact and preserves lifecycle visibility for later history reads | malformed payload, illegal family kind, missing ref target, illegal lifecycle mutation | `C-COG-039` |
 | `memory_load` | `MemoryService.Load` | explicit scope_id plus record_id | fail-close on illegal scope crossing or unknown id | none | unknown record, illegal scope, malformed stored artifact | `C-COG-039` |
 | `memory_load_view` | `MemoryService.LoadView` | explicit scope_id plus record_id | fail-close if raw artifact is missing or derivation inputs are malformed | none | missing raw record, invalid refgraph inputs, illegal scope, derivation failure | `C-COG-039` |
 | `memory_list` | `MemoryService.List` | explicit scope_id with optional family-local filters admitted by implementation | fail-close on illegal scope or malformed filter | none | illegal scope, malformed filter | `C-COG-039` |

@@ -110,6 +110,15 @@ func TestValidatePage_BadCitation(t *testing.T) {
 	}
 }
 
+func TestValidatePage_BadCitationTargetKind(t *testing.T) {
+	p := validPage()
+	p.Citations = []Citation{{TargetKind: "fake_kind", TargetID: "x", Strength: kernel.RefStrong}}
+	err := ValidatePage(p)
+	if err == nil || !strings.Contains(err.Error(), "invalid citation target_kind") {
+		t.Fatalf("expected invalid citation target_kind error, got: %v", err)
+	}
+}
+
 func TestValidatePage_ArtifactRefOwnership(t *testing.T) {
 	p := validPage()
 	p.ArtifactRefs = []artifactref.Ref{{

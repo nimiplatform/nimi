@@ -127,6 +127,9 @@ func FormatKnowledgeContext(pages []knowledge.Page) string {
 		if len(p.SourceRefs) > 0 {
 			fmt.Fprintf(&b, " [sources=%d]", len(p.SourceRefs))
 		}
+		if summary := formatCitationSummary(p.Citations); summary != "" {
+			fmt.Fprintf(&b, " %s", summary)
+		}
 	}
 	return b.String()
 }
@@ -238,6 +241,30 @@ func filterActivePages(pages []knowledge.Page) []knowledge.Page {
 		}
 	}
 	return result
+}
+
+func formatCitationSummary(citations []knowledge.Citation) string {
+	if len(citations) == 0 {
+		return ""
+	}
+	var kernelRuleCount int
+	var memoryRecordCount int
+	for _, citation := range citations {
+		switch citation.TargetKind {
+		case knowledge.CitationTargetKindKernelRule:
+			kernelRuleCount++
+		case knowledge.CitationTargetKindMemoryRecord:
+			memoryRecordCount++
+		}
+	}
+	parts := []string{fmt.Sprintf("citations=%d", len(citations))}
+	if kernelRuleCount > 0 {
+		parts = append(parts, fmt.Sprintf("kernel_rules=%d", kernelRuleCount))
+	}
+	if memoryRecordCount > 0 {
+		parts = append(parts, fmt.Sprintf("memory_records=%d", memoryRecordCount))
+	}
+	return fmt.Sprintf("[%s]", strings.Join(parts, " "))
 }
 
 // --- Skill helpers ---

@@ -119,17 +119,6 @@ const (
 	lowValueBasisInvalidatedDependency = "invalidated_dependency"
 )
 
-type digestHistoryAccess interface {
-	SaveDigestRun(scopeID string, runID string, report any, candidates []storage.DigestCandidate, createdAt time.Time) error
-	LoadDigestRun(scopeID string, runID string) ([]byte, error)
-	ListDigestRunIDs(scopeID string) ([]string, error)
-	LoadDigestCandidates(scopeID string, runID string) ([]storage.DigestCandidate, error)
-}
-
-type knowledgeRelationCounter interface {
-	CountKnowledgeRelations(scopeID string) (int, error)
-}
-
 type storageArtifactAccess struct {
 	store *storage.SQLiteBackend
 	graph *refgraph.Service
@@ -201,11 +190,7 @@ func (d *Digest) runAccess(scopeID string, now time.Time, access routine.Artifac
 	report.Analysis = analysis
 	report.Applied = applied
 	report.Blocked = blocked
-	history, ok := access.(digestHistoryAccess)
-	if !ok {
-		return report, nil
-	}
-	if err := history.SaveDigestRun(scopeID, report.RunID, report, digestCandidates(report), report.StartedAt); err != nil {
+	if err := access.SaveDigestRun(scopeID, report.RunID, report, digestCandidates(report), report.StartedAt); err != nil {
 		return nil, err
 	}
 	return report, nil

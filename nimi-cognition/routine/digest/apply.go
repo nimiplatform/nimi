@@ -204,11 +204,16 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 				if err != nil {
 					return nil, nil, err
 				}
-				if len(blockers) > 0 {
+				citationBlockedBy, err := knowledgeCitationBlockedBy(access, scopeID, knowledge.CitationTargetKindMemoryRecord, candidate.ArtifactID)
+				if err != nil {
+					return nil, nil, err
+				}
+				if len(blockers) > 0 || len(citationBlockedBy) > 0 {
 					detail := candidate.Detail
 					detail.Blockers = blockers
 					detail.PriorArchiveRequired = hasArchiveFirst(blockers)
 					detail.LaterPassConfirmed = gating.laterPassConfirmed
+					blockedBy = append(blockedBy, citationBlockedBy...)
 					blocked = append(blocked, BlockedTransition{
 						Family:       "memory",
 						ArtifactKind: string(artifactref.KindMemoryRecord),

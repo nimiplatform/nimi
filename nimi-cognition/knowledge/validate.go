@@ -149,8 +149,12 @@ func ValidateIngestTask(task IngestTask) error {
 }
 
 func validateCitation(c Citation) error {
-	if c.TargetKind == "" {
+	switch c.TargetKind {
+	case CitationTargetKindKernelRule, CitationTargetKindMemoryRecord:
+	case "":
 		return errors.New("target_kind is required")
+	default:
+		return fmt.Errorf("invalid citation target_kind %q", c.TargetKind)
 	}
 	if c.TargetID == "" {
 		return errors.New("target_id is required")

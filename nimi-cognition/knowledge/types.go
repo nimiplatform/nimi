@@ -73,13 +73,13 @@ type Page struct {
 
 // Relation represents a same-scope knowledge page relation.
 type Relation struct {
-	ScopeID    string               `json:"scope_id"`
-	FromPageID PageID               `json:"from_page_id"`
-	ToPageID   PageID               `json:"to_page_id"`
-	RelationType string             `json:"relation_type"`
-	Strength   artifactref.Strength `json:"strength"`
-	CreatedAt  time.Time            `json:"created_at"`
-	UpdatedAt  time.Time            `json:"updated_at"`
+	ScopeID      string               `json:"scope_id"`
+	FromPageID   PageID               `json:"from_page_id"`
+	ToPageID     PageID               `json:"to_page_id"`
+	RelationType string               `json:"relation_type"`
+	Strength     artifactref.Strength `json:"strength"`
+	CreatedAt    time.Time            `json:"created_at"`
+	UpdatedAt    time.Time            `json:"updated_at"`
 }
 
 // TraversalHit represents one page returned by graph traversal.
@@ -93,9 +93,9 @@ type TraversalHit struct {
 
 // IngestEnvelope is the accepted standalone-local ingest input.
 type IngestEnvelope struct {
-	PageID PageID         `json:"page_id"`
-	Kind   ProjectionKind `json:"kind"`
-	Title  string         `json:"title"`
+	PageID PageID          `json:"page_id"`
+	Kind   ProjectionKind  `json:"kind"`
+	Title  string          `json:"title"`
 	Body   json.RawMessage `json:"body"`
 }
 
@@ -144,6 +144,11 @@ type HistoryEntry struct {
 
 // Citation is a reference from a knowledge projection to a kernel
 // rule or memory record.
+const (
+	CitationTargetKindKernelRule   = "kernel_rule"
+	CitationTargetKindMemoryRecord = "memory_record"
+)
+
 type Citation struct {
 	TargetKind string             `json:"target_kind"` // "kernel_rule", "memory_record"
 	TargetID   string             `json:"target_id"`

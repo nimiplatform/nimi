@@ -219,6 +219,18 @@ func TestFormatKnowledgeContext_WithPages(t *testing.T) {
 	}
 }
 
+func TestFormatKnowledgeContext_ShowsCitationSummary(t *testing.T) {
+	p := knowPage("Cited page")
+	p.Citations = []knowledge.Citation{
+		{TargetKind: knowledge.CitationTargetKindKernelRule, TargetID: "r1", Strength: "strong_ref"},
+		{TargetKind: knowledge.CitationTargetKindMemoryRecord, TargetID: "m1", Strength: "weak_ref"},
+	}
+	out := FormatKnowledgeContext([]knowledge.Page{p})
+	if !strings.Contains(out, "[citations=2 kernel_rules=1 memory_records=1]") {
+		t.Errorf("missing citation summary in:\n%s", out)
+	}
+}
+
 func TestFormatKnowledgeContext_ShowsStale(t *testing.T) {
 	p := knowPage("Old Info")
 	p.Lifecycle = knowledge.ProjectionLifecycleStale

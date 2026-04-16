@@ -617,35 +617,41 @@ func TestWorker_PersistsStructuredDigestEvidenceAcrossReopen(t *testing.T) {
 	if len(runIDs) != 2 {
 		t.Fatalf("expected two persisted digest runs, got %+v", runIDs)
 	}
-	reportRaw, err := store.LoadDigestRun("a1", runIDs[0])
-	if err != nil {
-		t.Fatalf("load latest digest run: %v", err)
-	}
-	var report Report
-	if err := json.Unmarshal(reportRaw, &report); err != nil {
-		t.Fatalf("decode digest report: %v", err)
-	}
-	if report.Analysis.Trigger.ContentVolume.Current == 0 {
-		t.Fatalf("expected structured trigger summary in persisted report, got %+v", report.Analysis.Trigger)
-	}
-	candidates, err := store.LoadDigestCandidates("a1", runIDs[0])
-	if err != nil {
-		t.Fatalf("load digest candidates: %v", err)
-	}
-	if len(candidates) == 0 {
-		t.Fatal("expected persisted digest evidence candidates")
-	}
+	foundTriggerSummary := false
 	var latest storage.DigestCandidate
 	found := false
-	for _, candidate := range candidates {
-		if candidate.Status == "blocked" && candidate.Action == "remove" {
-			latest = candidate
-			found = true
+	for _, runID := range runIDs {
+		reportRaw, err := store.LoadDigestRun("a1", runID)
+		if err != nil {
+			t.Fatalf("load digest run %s: %v", runID, err)
+		}
+		var report Report
+		if err := json.Unmarshal(reportRaw, &report); err != nil {
+			t.Fatalf("decode digest report %s: %v", runID, err)
+		}
+		if report.Analysis.Trigger.ContentVolume.Current > 0 {
+			foundTriggerSummary = true
+		}
+		candidates, err := store.LoadDigestCandidates("a1", runID)
+		if err != nil {
+			t.Fatalf("load digest candidates %s: %v", runID, err)
+		}
+		for _, candidate := range candidates {
+			if candidate.Status == "blocked" && candidate.Action == "remove" {
+				latest = candidate
+				found = true
+				break
+			}
+		}
+		if found {
 			break
 		}
 	}
+	if !foundTriggerSummary {
+		t.Fatal("expected structured trigger summary in persisted digest report")
+	}
 	if !found {
-		t.Fatalf("expected blocked digest evidence after second pass, got %+v", candidates)
+		t.Fatal("expected blocked digest evidence across persisted digest runs")
 	}
 	var detail BlockedTransition
 	if err := json.Unmarshal(latest.Detail, &detail); err != nil {

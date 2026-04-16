@@ -131,6 +131,58 @@ func TestSkillLifecyclePersistsAcrossReopen(t *testing.T) {
 	}
 }
 
+func TestSkillSaveRejectsArchivedAndRemovedLifecycleMutation(t *testing.T) {
+	c := newTestCognition(t)
+	if err := c.SkillService().Save(skill.Bundle{
+		BundleID:  "s1",
+		ScopeID:   "a1",
+		Version:   1,
+		Status:    skill.BundleStatusActive,
+		Name:      "Live skill",
+		Steps:     []skill.Step{{StepID: "st1", Instruction: "Read", Order: 1}},
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	}); err != nil {
+		t.Fatalf("save skill: %v", err)
+	}
+	ctx, err := c.NewRoutineContext("a1")
+	if err != nil {
+		t.Fatalf("new routine context: %v", err)
+	}
+	if err := ctx.Storage.ArchiveSkill("a1", "s1", ts.Add(time.Minute)); err != nil {
+		t.Fatalf("archive skill: %v", err)
+	}
+	err = c.SkillService().Save(skill.Bundle{
+		BundleID:  "s1",
+		ScopeID:   "a1",
+		Version:   2,
+		Status:    skill.BundleStatusActive,
+		Name:      "Resurrected skill",
+		Steps:     []skill.Step{{StepID: "st1", Instruction: "Read", Order: 1}},
+		CreatedAt: ts,
+		UpdatedAt: ts.Add(2 * time.Minute),
+	})
+	if err == nil || !strings.Contains(err.Error(), "illegal lifecycle mutation") {
+		t.Fatalf("expected archived skill save rejection, got %v", err)
+	}
+	if err := ctx.Storage.RemoveSkill("a1", "s1", ts.Add(3*time.Minute)); err != nil {
+		t.Fatalf("remove skill: %v", err)
+	}
+	err = c.SkillService().Save(skill.Bundle{
+		BundleID:  "s1",
+		ScopeID:   "a1",
+		Version:   3,
+		Status:    skill.BundleStatusActive,
+		Name:      "Resurrected removed skill",
+		Steps:     []skill.Step{{StepID: "st1", Instruction: "Read", Order: 1}},
+		CreatedAt: ts,
+		UpdatedAt: ts.Add(4 * time.Minute),
+	})
+	if err == nil || !strings.Contains(err.Error(), "illegal lifecycle mutation") {
+		t.Fatalf("expected removed skill save rejection, got %v", err)
+	}
+}
+
 func TestSkillDigestWorkerRemove_IgnoresRemovedSource(t *testing.T) {
 	c := newTestCognition(t)
 	if err := c.InitScope("a1"); err != nil {
@@ -153,7 +205,7 @@ func TestSkillDigestWorkerRemove_IgnoresRemovedSource(t *testing.T) {
 		BundleID:  "s1",
 		ScopeID:   "a1",
 		Version:   1,
-		Status:    skill.BundleStatusArchived,
+		Status:    skill.BundleStatusActive,
 		Name:      "Archived target",
 		Steps:     []skill.Step{{StepID: "st1", Instruction: "Read", Order: 1}},
 		CreatedAt: ts,
@@ -171,13 +223,20 @@ func TestSkillDigestWorkerRemove_IgnoresRemovedSource(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("save target skill: %v", err)
 	}
+	ctx, err := c.NewRoutineContext("a1")
+	if err != nil {
+		t.Fatalf("new routine context: %v", err)
+	}
+	if err := ctx.Storage.ArchiveSkill("a1", "s1", ts.Add(time.Minute)); err != nil {
+		t.Fatalf("archive target skill: %v", err)
+	}
 	if err := c.MemoryService().Save(memory.Record{
 		RecordID:  "m1",
 		ScopeID:   "a1",
 		Kind:      memory.RecordKindExperience,
 		Version:   1,
 		Content:   []byte(`{"summary":"removed source"}`),
-		Lifecycle: memory.RecordLifecycleArchived,
+		Lifecycle: memory.RecordLifecycleActive,
 		CreatedAt: ts,
 		UpdatedAt: ts,
 		ArtifactRefs: []artifactref.Ref{{
@@ -193,9 +252,8 @@ func TestSkillDigestWorkerRemove_IgnoresRemovedSource(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("save archived source memory: %v", err)
 	}
-	ctx, err := c.NewRoutineContext("a1")
-	if err != nil {
-		t.Fatalf("new routine context: %v", err)
+	if err := ctx.Storage.ArchiveMemory("a1", "m1", ts.Add(time.Minute)); err != nil {
+		t.Fatalf("archive source memory: %v", err)
 	}
 	if err := c.store.Delete("a1", storage.KindKnowledge, "ghost"); err != nil {
 		t.Fatalf("delete ghost page fixture: %v", err)

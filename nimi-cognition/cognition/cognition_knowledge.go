@@ -17,13 +17,7 @@ import (
 
 // Save persists a knowledge page after source-integrity checks.
 func (s *KnowledgeService) Save(page knowledge.Page) error {
-	if err := knowledge.ValidatePage(page); err != nil {
-		return fmt.Errorf("knowledge save: %w", err)
-	}
-	if err := validateKnowledgePageRelations(page); err != nil {
-		return fmt.Errorf("knowledge save: %w", err)
-	}
-	if err := ensureRefsExist(s.store, page.ScopeID, page.ArtifactRefs); err != nil {
+	if err := validateKnowledgePageForWrite(s.store, page); err != nil {
 		return fmt.Errorf("knowledge save: %w", err)
 	}
 	raw, err := json.Marshal(page)
@@ -52,7 +46,7 @@ func (s *KnowledgeService) List(scopeID string) ([]knowledge.Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	return validateVisibleKnowledgePages(pages)
+	return validateVisibleKnowledgePagesForService(s.store, pages)
 }
 
 func (s *KnowledgeService) SearchLexical(scopeID string, query string, limit int) ([]knowledge.Page, error) {
@@ -66,7 +60,7 @@ func (s *KnowledgeService) SearchLexical(scopeID string, query string, limit int
 	if err != nil {
 		return nil, err
 	}
-	return validateVisibleKnowledgePages(pages)
+	return validateVisibleKnowledgePagesForService(s.store, pages)
 }
 
 // SearchHybrid performs deterministic lexical+vector hybrid retrieval.
@@ -220,6 +214,12 @@ func (s *KnowledgeService) PutRelation(rel knowledge.Relation) error {
 	}
 	if fromPage.ScopeID != toPage.ScopeID || fromPage.ScopeID != rel.ScopeID {
 		return errors.New("knowledge relation save: cross-scope relations are not allowed")
+	}
+	if !knowledgePageIsLiveForRelation(fromPage) {
+		return fmt.Errorf("knowledge relation save: source page %s is not live", rel.FromPageID)
+	}
+	if !knowledgePageIsLiveForRelation(toPage) {
+		return fmt.Errorf("knowledge relation save: target page %s is not live", rel.ToPageID)
 	}
 	return s.store.SaveKnowledgeRelation(rel)
 }
@@ -423,21 +423,14 @@ func (s *KnowledgeService) loadOptional(scopeID string, pageID knowledge.PageID)
 	if strings.TrimSpace(string(pageID)) == "" {
 		return nil, errors.New("knowledge load: page_id is required")
 	}
-	raw, err := s.store.Load(scopeID, storage.KindKnowledge, string(pageID))
+	page, err := loadOptionalKnowledgePage(s.store, scopeID, pageID)
 	if err != nil {
 		return nil, err
 	}
-	if raw == nil {
+	if page == nil {
 		return nil, nil
 	}
-	var page knowledge.Page
-	if err := json.Unmarshal(raw, &page); err != nil {
-		return nil, fmt.Errorf("knowledge load: %w", err)
-	}
-	if err := knowledge.ValidatePage(page); err != nil {
-		return nil, fmt.Errorf("knowledge load: %w", err)
-	}
-	return &page, nil
+	return page, nil
 }
 
 func (s *KnowledgeService) archive(scopeID string, pageID knowledge.PageID, now time.Time) error {
@@ -533,6 +526,7 @@ func (s *KnowledgeService) runIngestTask(task knowledge.IngestTask, env knowledg
 	running.ProgressPercent = 25
 	running.UpdatedAt = s.clock.Now()
 	if err := s.store.SaveKnowledgeIngestTask(running); err != nil {
+		s.persistFailedIngestTask(task, env.PageID, 25, fmt.Errorf("persist running task: %w", err))
 		return
 	}
 
@@ -548,19 +542,24 @@ func (s *KnowledgeService) runIngestTask(task knowledge.IngestTask, env knowledg
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	if existing, err := s.loadOptional(task.ScopeID, env.PageID); err == nil && existing != nil {
+	existing, err := s.loadOptional(task.ScopeID, env.PageID)
+	if err != nil {
+		s.persistFailedIngestTask(running, env.PageID, 25, err)
+		return
+	}
+	if existing != nil {
+		if !knowledgeLifecycleIsWriterOwned(existing.Lifecycle) {
+			s.persistFailedIngestTask(running, env.PageID, 25, fmt.Errorf("page %s cannot be updated from %s", env.PageID, existing.Lifecycle))
+			return
+		}
 		page.Version = existing.Version + 1
 		page.CreatedAt = existing.CreatedAt
 		page.Citations = existing.Citations
 		page.SourceRefs = existing.SourceRefs
 		page.ArtifactRefs = existing.ArtifactRefs
 	}
-	if err := s.Save(page); err != nil {
-		failed := running
-		failed.Status = knowledge.IngestTaskStatusFailed
-		failed.Error = err.Error()
-		failed.UpdatedAt = s.clock.Now()
-		_ = s.store.SaveKnowledgeIngestTask(failed)
+	if err := validateKnowledgePageForWrite(s.store, page); err != nil {
+		s.persistFailedIngestTask(running, env.PageID, 25, err)
 		return
 	}
 	completed := running
@@ -569,5 +568,30 @@ func (s *KnowledgeService) runIngestTask(task knowledge.IngestTask, env knowledg
 	completed.Error = ""
 	completed.PageID = env.PageID
 	completed.UpdatedAt = s.clock.Now()
-	_ = s.store.SaveKnowledgeIngestTask(completed)
+	if err := s.store.SaveKnowledgePageAndIngestTask(page, completed); err != nil {
+		s.persistFailedIngestTask(running, env.PageID, 100, fmt.Errorf("persist completed task: %w", err))
+	}
+}
+
+func (s *KnowledgeService) persistFailedIngestTask(base knowledge.IngestTask, pageID knowledge.PageID, progress int, err error) {
+	if err == nil {
+		return
+	}
+	failed := base
+	failed.Status = knowledge.IngestTaskStatusFailed
+	failed.ProgressPercent = progress
+	failed.Error = formatKnowledgeIngestError(err)
+	failed.PageID = pageID
+	failed.UpdatedAt = s.clock.Now()
+	_ = s.store.SaveKnowledgeIngestTask(failed)
+}
+
+func formatKnowledgeIngestError(err error) string {
+	if err == nil {
+		return ""
+	}
+	if strings.HasPrefix(err.Error(), "knowledge ingest:") {
+		return err.Error()
+	}
+	return "knowledge ingest: " + err.Error()
 }

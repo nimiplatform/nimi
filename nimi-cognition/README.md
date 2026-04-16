@@ -169,11 +169,14 @@ go vet ./...
 
 ## Audit Status
 
-Cognition authority and implementation are currently in an active redesign
-iteration.
+Cognition authority and implementation are now aligned for cognition-local
+standalone completion closeout.
 
-Module gates may be green while some cognition rules remain intentionally
-`deferred` in `/.nimi/spec/cognition/kernel/tables/rule-evidence.yaml`. That
-means the module is moving toward owner-true standalone semantics, but broader
-standalone completion still depends on independent audit rather than current
-test count alone.
+`C-COG-004`, `C-COG-023`, `C-COG-032`, and `C-COG-045` are currently `covered`
+in `/.nimi/spec/cognition/kernel/tables/rule-evidence.yaml`, with direct
+behavior evidence for public lifecycle mutation, citation/provenance integrity,
+typed digest persistence, and authoritative worker-path cleanup.
+
+This is a cognition-local completion claim only. Repo-wide human-doc
+projections and broader standalone project closeout remain separate governance
+surfaces and must be kept in sync independently.

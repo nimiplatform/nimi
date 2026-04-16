@@ -14,18 +14,14 @@ import (
 )
 
 func previousDigestState(scopeID string, access routine.ArtifactAccess) (TriggerSummary, []storage.DigestCandidate, error) {
-	history, ok := access.(digestHistoryAccess)
-	if !ok {
-		return TriggerSummary{}, nil, nil
-	}
-	runIDs, err := history.ListDigestRunIDs(scopeID)
+	runIDs, err := access.ListDigestRunIDs(scopeID)
 	if err != nil {
 		return TriggerSummary{}, nil, err
 	}
 	if len(runIDs) == 0 {
 		return TriggerSummary{}, nil, nil
 	}
-	raw, err := history.LoadDigestRun(scopeID, runIDs[0])
+	raw, err := access.LoadDigestRun(scopeID, runIDs[0])
 	if err != nil {
 		return TriggerSummary{}, nil, err
 	}
@@ -35,7 +31,7 @@ func previousDigestState(scopeID string, access routine.ArtifactAccess) (Trigger
 			return TriggerSummary{}, nil, fmt.Errorf("digest previous run: decode: %w", err)
 		}
 	}
-	candidates, err := history.LoadDigestCandidates(scopeID, runIDs[0])
+	candidates, err := access.LoadDigestCandidates(scopeID, runIDs[0])
 	if err != nil {
 		return TriggerSummary{}, nil, err
 	}

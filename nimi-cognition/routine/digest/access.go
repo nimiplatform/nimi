@@ -15,6 +15,10 @@ import (
 	"github.com/nimiplatform/nimi/nimi-cognition/skill"
 )
 
+type knowledgeCitationBlockerAccess interface {
+	KnowledgeCitationBlockedBy(scopeID string, targetKind string, targetID string) ([]string, error)
+}
+
 func blockingRemoveBlockers(blockers []routine.Blocker) []routine.Blocker {
 	filtered := make([]routine.Blocker, 0, len(blockers))
 	for _, blocker := range blockers {
@@ -43,6 +47,30 @@ func formatRoutineBlockers(blockers []routine.Blocker) string {
 		parts = append(parts, part)
 	}
 	return strings.Join(parts, ", ")
+}
+
+func knowledgeCitationBlockers(store *storage.SQLiteBackend, scopeID string, targetKind string, targetID string) ([]string, error) {
+	sources, err := store.ListKnowledgeCitationSources(scopeID, targetKind, targetID)
+	if err != nil {
+		return nil, err
+	}
+	parts := make([]string, 0, len(sources))
+	for _, source := range sources {
+		parts = append(parts, fmt.Sprintf("knowledge_citation:knowledge_page/%s(%s)", source.PageID, source.Lifecycle))
+	}
+	return parts, nil
+}
+
+func knowledgeCitationBlockedBy(access routine.ArtifactAccess, scopeID string, targetKind string, targetID string) ([]string, error) {
+	blockerAccess, ok := access.(knowledgeCitationBlockerAccess)
+	if !ok {
+		return nil, nil
+	}
+	return blockerAccess.KnowledgeCitationBlockedBy(scopeID, targetKind, targetID)
+}
+
+func (a *storageArtifactAccess) KnowledgeCitationBlockedBy(scopeID string, targetKind string, targetID string) ([]string, error) {
+	return knowledgeCitationBlockers(a.store, scopeID, targetKind, targetID)
 }
 
 func toRoutineBlockers(blockers []refgraph.Blocker) []routine.Blocker {
@@ -115,8 +143,17 @@ func (a *storageArtifactAccess) RemoveMemory(scopeID string, recordID memory.Rec
 		return err
 	}
 	blocking := blockingRemoveBlockers(toRoutineBlockers(blockers))
-	if len(blocking) > 0 {
-		return fmt.Errorf("digest remove memory: record %s is blocked by %s", recordID, formatRoutineBlockers(blocking))
+	citationBlocking, err := knowledgeCitationBlockers(a.store, scopeID, knowledge.CitationTargetKindMemoryRecord, string(recordID))
+	if err != nil {
+		return err
+	}
+	if len(blocking) > 0 || len(citationBlocking) > 0 {
+		parts := []string{}
+		if len(blocking) > 0 {
+			parts = append(parts, formatRoutineBlockers(blocking))
+		}
+		parts = append(parts, citationBlocking...)
+		return fmt.Errorf("digest remove memory: record %s is blocked by %s", recordID, strings.Join(parts, ", "))
 	}
 	record.Lifecycle = memory.RecordLifecycleRemoved
 	record.UpdatedAt = now

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
+	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
 	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 	"github.com/nimiplatform/nimi/nimi-cognition/memory"
 	"github.com/nimiplatform/nimi/nimi-cognition/skill"
@@ -64,6 +65,13 @@ type ArtifactAccess interface {
 	SaveSkill(bundle skill.Bundle) error
 	ArchiveSkill(scopeID string, bundleID skill.BundleID, now time.Time) error
 	RemoveSkill(scopeID string, bundleID skill.BundleID, now time.Time) error
+
+	// Routine evidence and relation topology operations
+	SaveDigestRun(scopeID string, runID string, report any, candidates []storage.DigestCandidate, createdAt time.Time) error
+	LoadDigestRun(scopeID string, runID string) ([]byte, error)
+	ListDigestRunIDs(scopeID string) ([]string, error)
+	LoadDigestCandidates(scopeID string, runID string) ([]storage.DigestCandidate, error)
+	CountKnowledgeRelations(scopeID string) (int, error)
 }
 
 // OutgoingSummary describes local dependency health for routine cleanup logic.
