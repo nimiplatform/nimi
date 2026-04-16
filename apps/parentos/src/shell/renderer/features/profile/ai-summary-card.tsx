@@ -51,7 +51,22 @@ const DOMAIN_LABELS: Record<string, string> = {
 };
 
 function cacheKey(childId: string, domain: string) {
-  return `ai_summary_${childId}_${domain}`;
+  // v4: invalidates earlier caches captured before the finishReason-based
+  // retry path; those entries may still hold mid-sentence summaries.
+  return `ai_summary_v4_${childId}_${domain}`;
+}
+
+/**
+ * Heuristic: a well-formed summary ends with a terminal punctuation mark.
+ * If it doesn't, the model was cut off (token limit, transport, etc.) and
+ * we should not persist it to the 24h cache.
+ */
+const TERMINAL_PUNCTUATION = /[。！？\.!?"'”’）\)]\s*$/u;
+
+function looksTruncated(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return true;
+  return !TERMINAL_PUNCTUATION.test(trimmed);
 }
 
 function buildPrompt(props: AISummaryCardProps): string {
@@ -110,20 +125,50 @@ export function AISummaryCard(props: AISummaryCardProps) {
         localModelId: aiParams.localModelId,
         timeoutMs: PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
       });
-      const output = await client.runtime.ai.text.generate({
+      // Prompt asks for 2-4 sentence Chinese summary (~80-200 tokens). The
+      // user's global text.generate maxTokens can be set very low in AI
+      // settings, which would starve this surface and produce a mid-sentence
+      // cutoff. Enforce a floor so the summary always has room to complete,
+      // and auto-retry with a larger budget if the first attempt is cut off.
+      const SUMMARY_MIN_MAX_TOKENS = 512;
+      const SUMMARY_RETRY_MAX_TOKENS = 1536;
+      const runGenerate = async (budget: number) => client.runtime.ai.text.generate({
         ...aiParams,
+        maxTokens: budget,
         input: [{ role: 'user', content: buildPrompt(props) }],
         metadata: buildParentosRuntimeMetadata(surfaceId),
       });
 
+      const firstBudget = Math.max(aiParams.maxTokens ?? 0, SUMMARY_MIN_MAX_TOKENS);
+      let output = await runGenerate(firstBudget);
+      // If the model hit the token cap or text looks mid-sentence, retry
+      // once with a much larger budget so low global settings can't starve
+      // this surface.
+      if (output.finishReason === 'length' || looksTruncated(output.text)) {
+        const retryBudget = Math.max(firstBudget * 2, SUMMARY_RETRY_MAX_TOKENS);
+        try {
+          const retry = await runGenerate(retryBudget);
+          if (retry.text && retry.text.trim()) {
+            output = retry;
+          }
+        } catch { /* retry failed, fall through with first attempt */ }
+      }
+
       const filtered = filterAIResponse(output.text);
-      const text = filtered.safe ? filtered.filtered : '数据已记录，建议定期更新以获取更准确的分析。';
+      const wasTruncated = output.finishReason === 'length' || looksTruncated(output.text);
+      const baseText = filtered.safe ? filtered.filtered : '数据已记录，建议定期更新以获取更准确的分析。';
+      // Tag visibly-truncated output so the user isn't left staring at a
+      // mid-sentence summary with no indication of what happened.
+      const text = filtered.safe && wasTruncated ? `${baseText.replace(/[，、\s]+$/u, '')}…（内容较长，建议点击刷新重新生成）` : baseText;
       setSummary(text);
 
-      // Cache result
-      try {
-        await setAppSetting(cacheKey(childId, domain), JSON.stringify({ text, ts: isoNow() }), isoNow());
-      } catch { /* cache write failure is non-critical */ }
+      // Never cache a truncated response: it would pin the mid-sentence
+      // summary for 24h.
+      if (!wasTruncated) {
+        try {
+          await setAppSetting(cacheKey(childId, domain), JSON.stringify({ text, ts: isoNow() }), isoNow());
+        } catch { /* cache write failure is non-critical */ }
+      }
     } catch {
       setError(true);
     } finally {

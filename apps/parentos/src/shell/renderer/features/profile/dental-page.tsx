@@ -1,8 +1,19 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
-import { convertFileSrc } from '@tauri-apps/api/core';
-import { insertDentalRecord, getDentalRecords, upsertReminderState, saveAttachment, getAttachments } from '../../bridge/sqlite-bridge.js';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
+import {
+  insertDentalRecord,
+  updateDentalRecord,
+  deleteDentalRecord,
+  getDentalRecords,
+  upsertReminderState,
+  saveAttachment,
+  getAttachments,
+  deleteAttachment,
+} from '../../bridge/sqlite-bridge.js';
 import type { DentalRecordRow, AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
@@ -148,11 +159,258 @@ function ToothChart({ selectedTeeth, onToggle, toothSet, recordedTeeth }: {
   );
 }
 
+/* ── Tooth status overview ───────────────────────────────── */
+
+// Primary tooth → corresponding permanent successor (FDI)
+const PRIMARY_TO_PERMANENT: Record<string, string> = {
+  '55': '15', '54': '14', '53': '13', '52': '12', '51': '11',
+  '61': '21', '62': '22', '63': '23', '64': '24', '65': '25',
+  '71': '31', '72': '32', '73': '33', '74': '34', '75': '35',
+  '85': '45', '84': '44', '83': '43', '82': '42', '81': '41',
+};
+
+// Two orthogonal axes: eruption (border color) + health (fill color)
+type EruptionState = 'unerupted' | 'primary_present' | 'lost_waiting' | 'permanent_erupted';
+type HealthState = 'healthy' | 'caries' | 'treated';
+
+const ERUPTION_STYLE: Record<EruptionState, { border: string; text: string; label: string }> = {
+  unerupted:         { border: '#d4cfc3', text: '#94a3b8', label: '未萌出' },
+  primary_present:   { border: '#10b981', text: '#065f46', label: '乳牙在位' },
+  lost_waiting:      { border: '#f59e0b', text: '#92400e', label: '已脱落·待恒牙' },
+  permanent_erupted: { border: '#2563eb', text: '#1e3a8a', label: '恒牙已长出' },
+};
+
+const HEALTH_STYLE: Record<HealthState, { bg: string; text: string; label: string }> = {
+  healthy: { bg: '#ffffff', text: '',        label: '健康' },
+  caries:  { bg: '#fecaca', text: '#b91c1c', label: '龋齿' },
+  treated: { bg: '#e9d5ff', text: '#6b21a8', label: '已治疗' },
+};
+
+// Anatomical positions, referenced by primary id where a primary exists, otherwise by permanent id
+const OVERVIEW_UPPER_R = ['18', '17', '16', '55', '54', '53', '52', '51'];
+const OVERVIEW_UPPER_L = ['61', '62', '63', '64', '65', '26', '27', '28'];
+const OVERVIEW_LOWER_L = ['71', '72', '73', '74', '75', '36', '37', '38'];
+const OVERVIEW_LOWER_R = ['48', '47', '46', '85', '84', '83', '82', '81'];
+
+interface OverviewCell {
+  eruption: EruptionState;
+  health: HealthState;
+  displayId: string;
+}
+
+function deriveHealth(events: string[]): HealthState {
+  // Walk in order; later events override earlier
+  let health: HealthState = 'healthy';
+  for (const t of events) {
+    if (t === 'caries') health = 'caries';
+    else if (t === 'filling' || t === 'sealant') health = 'treated';
+  }
+  return health;
+}
+
+function computeOverviewStates(records: DentalRecordRow[]): Map<string, OverviewCell> {
+  const byTooth = new Map<string, string[]>();
+  const sorted = [...records].sort((a, b) => a.eventDate.localeCompare(b.eventDate));
+  for (const r of sorted) {
+    for (const toothId of parseDentalToothIds(r.toothId)) {
+      const arr = byTooth.get(toothId);
+      if (arr) arr.push(r.eventType);
+      else byTooth.set(toothId, [r.eventType]);
+    }
+  }
+
+  const hasAnyEvent = (id: string) => (byTooth.get(id)?.length ?? 0) > 0;
+  const hasHealthEvent = (id: string) => (byTooth.get(id) ?? []).some((t) => t === 'caries' || t === 'filling' || t === 'sealant');
+  const hasEvent = (id: string, type: string) => (byTooth.get(id) ?? []).includes(type);
+
+  const out = new Map<string, OverviewCell>();
+  const positions = [...OVERVIEW_UPPER_R, ...OVERVIEW_UPPER_L, ...OVERVIEW_LOWER_L, ...OVERVIEW_LOWER_R];
+
+  for (const posId of positions) {
+    const permId = PRIMARY_TO_PERMANENT[posId];
+    if (permId) {
+      // Any permanent event implies the permanent tooth is erupted (or being treated)
+      if (hasAnyEvent(permId)) {
+        out.set(posId, {
+          eruption: 'permanent_erupted',
+          health: deriveHealth(byTooth.get(permId) ?? []),
+          displayId: permId,
+        });
+      } else if (hasEvent(posId, 'loss')) {
+        out.set(posId, { eruption: 'lost_waiting', health: 'healthy', displayId: posId });
+      } else if (hasEvent(posId, 'eruption') || hasHealthEvent(posId)) {
+        out.set(posId, {
+          eruption: 'primary_present',
+          health: deriveHealth(byTooth.get(posId) ?? []),
+          displayId: posId,
+        });
+      } else {
+        out.set(posId, { eruption: 'unerupted', health: 'healthy', displayId: posId });
+      }
+    } else {
+      // Permanent-only position (molars / wisdom)
+      if (hasAnyEvent(posId)) {
+        out.set(posId, {
+          eruption: 'permanent_erupted',
+          health: deriveHealth(byTooth.get(posId) ?? []),
+          displayId: posId,
+        });
+      } else {
+        out.set(posId, { eruption: 'unerupted', health: 'healthy', displayId: posId });
+      }
+    }
+  }
+  return out;
+}
+
+function ToothStatusOverview({ records }: { records: DentalRecordRow[] }) {
+  const states = useMemo(() => computeOverviewStates(records), [records]);
+
+  const counts = useMemo(() => {
+    const eruption: Record<EruptionState, number> = { unerupted: 0, primary_present: 0, lost_waiting: 0, permanent_erupted: 0 };
+    const health: Record<HealthState, number> = { healthy: 0, caries: 0, treated: 0 };
+    for (const c of states.values()) {
+      eruption[c.eruption]++;
+      health[c.health]++;
+    }
+    return { eruption, health };
+  }, [states]);
+
+  const renderRow = (positions: string[]) => (
+    <div className="flex gap-1">
+      {positions.map((posId) => {
+        const cell = states.get(posId) ?? { eruption: 'unerupted', health: 'healthy', displayId: posId };
+        const er = ERUPTION_STYLE[cell.eruption];
+        const hl = HEALTH_STYLE[cell.health];
+        const textColor = hl.text || er.text;
+        const title = `${cell.displayId} ${TOOTH_NAMES[cell.displayId] ?? ''} · ${er.label}${cell.health !== 'healthy' ? ` · ${hl.label}` : ''}`;
+        return (
+          <div
+            key={posId}
+            title={title}
+            className="w-7 h-8 text-[10px] font-bold flex items-center justify-center"
+            style={{
+              background: hl.bg,
+              color: textColor,
+              border: `2px solid ${er.border}`,
+              borderRadius: '8px',
+              boxSizing: 'border-box',
+            }}
+          >
+            {cell.displayId}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const legendChip = (swatchStyle: React.CSSProperties, label: string, count: number) => (
+    <span key={label} className="flex items-center gap-1 text-[10px]" style={{ color: S.sub }}>
+      <span className="w-3 h-3" style={{ borderRadius: 3, ...swatchStyle }} />
+      {label} <span className="font-semibold" style={{ color: S.text }}>{count}</span>
+    </span>
+  );
+
+  return (
+    <div className={`${S.radius} p-4 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[15px]">🦷</span>
+        <p className="text-[13px] font-semibold" style={{ color: S.text }}>牙齿状态总览</p>
+      </div>
+
+      {/* Legend: two axes */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-[10px] font-medium shrink-0" style={{ color: S.text }}>边框·萌出</span>
+          {(['primary_present', 'lost_waiting', 'permanent_erupted', 'unerupted'] as EruptionState[]).map((s) =>
+            legendChip(
+              { background: '#fff', border: `2px solid ${ERUPTION_STYLE[s].border}`, boxSizing: 'border-box' },
+              ERUPTION_STYLE[s].label,
+              counts.eruption[s],
+            ),
+          )}
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-[10px] font-medium shrink-0" style={{ color: S.text }}>填充·健康</span>
+          {(['healthy', 'caries', 'treated'] as HealthState[]).map((s) =>
+            legendChip(
+              { background: HEALTH_STYLE[s].bg, border: s === 'healthy' ? '1px solid #e5e7eb' : 'none' },
+              HEALTH_STYLE[s].label,
+              counts.health[s],
+            ),
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center gap-1.5">
+        <p className="text-[9px]" style={{ color: S.sub }}>上颌</p>
+        <div className="flex gap-1.5 items-center">
+          <span className="text-[9px] w-4 text-right" style={{ color: S.sub }}>右</span>
+          {renderRow(OVERVIEW_UPPER_R)}
+          <span className="w-2" />
+          {renderRow(OVERVIEW_UPPER_L)}
+          <span className="text-[9px] w-4" style={{ color: S.sub }}>左</span>
+        </div>
+        <div className="w-full h-px my-1" style={{ background: S.border }} />
+        <div className="flex gap-1.5 items-center">
+          <span className="text-[9px] w-4 text-right" style={{ color: S.sub }}>右</span>
+          {renderRow(OVERVIEW_LOWER_R)}
+          <span className="w-2" />
+          {renderRow(OVERVIEW_LOWER_L)}
+          <span className="text-[9px] w-4" style={{ color: S.sub }}>左</span>
+        </div>
+        <p className="text-[9px]" style={{ color: S.sub }}>下颌</p>
+      </div>
+      <p className="text-[10px] text-center mt-3" style={{ color: S.sub }}>
+        共 32 位：20 颗乳牙位 + 12 颗恒牙磨牙/智齿位 · 鼠标悬停查看牙位详情
+      </p>
+    </div>
+  );
+}
+
 /* ── Event entry type ────────────────────────────────────── */
 
 interface EventEntry { eventType: string; toothIds: string[]; toothSet: 'primary' | 'permanent'; severity: string }
+interface PendingDentalPhoto { base64: string; mimeType: string; fileName: string }
+
+const PHOTO_MAX = 9;
+
 function makeEventEntry(ageMonths: number): EventEntry {
   return { eventType: 'eruption', toothIds: [], toothSet: ageMonths < 72 ? 'primary' : 'permanent', severity: '' };
+}
+
+function parseDentalToothIds(toothId: string | null): string[] {
+  if (!toothId) return [];
+  return toothId
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function joinDentalToothIds(toothIds: string[]): string | null {
+  const normalized = [...new Set(toothIds.map((value) => value.trim()).filter(Boolean))];
+  return normalized.length > 0 ? normalized.join(',') : null;
+}
+
+function formatDentalToothLabel(toothId: string | null): string | null {
+  const toothIds = parseDentalToothIds(toothId);
+  if (toothIds.length === 0) {
+    return null;
+  }
+  return toothIds
+    .map((id) => `${id}${TOOTH_NAMES[id] ? ` ${TOOTH_NAMES[id]}` : ''}`)
+    .join(' 路 ');
+}
+
+function buildDentalAttachmentMap(attachments: AttachmentRow[]) {
+  const next = new Map<string, AttachmentRow[]>();
+  for (const attachment of attachments) {
+    if (attachment.ownerTable !== 'dental_records') continue;
+    const existing = next.get(attachment.ownerId);
+    if (existing) existing.push(attachment);
+    else next.set(attachment.ownerId, [attachment]);
+  }
+  return next;
 }
 
 /* ── Main page ───────────────────────────────────────────── */
@@ -172,26 +430,111 @@ export default function DentalPage() {
   const [formNotes, setFormNotes] = useState('');
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
   const [addEventHover, setAddEventHover] = useState(false);
-  const [formPhotoPreview, setFormPhotoPreview] = useState<string | null>(null);
-  const [formPhotoFile, setFormPhotoFile] = useState<{ base64: string; mimeType: string; fileName: string } | null>(null);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [existingPhotoAttachments, setExistingPhotoAttachments] = useState<AttachmentRow[]>([]);
+  const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([]);
+  const [formPhotoPreviews, setFormPhotoPreviews] = useState<string[]>([]);
+  const [formPhotoFiles, setFormPhotoFiles] = useState<PendingDentalPhoto[]>([]);
   const [photoDragOver, setPhotoDragOver] = useState(false);
   const [photoDropHover, setPhotoDropHover] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
+  const isEditing = editingRecordId !== null;
+  const visibleExistingPhotoAttachments = existingPhotoAttachments.filter((attachment) => !removedAttachmentIds.includes(attachment.attachmentId));
+  const totalPhotoCount = visibleExistingPhotoAttachments.length + formPhotoFiles.length;
+
+  const appendPhotoFiles = async (files: FileList | File[]) => {
+    const list = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (list.length === 0) return;
+    const remaining = Math.max(0, PHOTO_MAX - totalPhotoCount);
+    if (remaining === 0) return;
+    const slice = list.slice(0, remaining);
+    const newPreviews: string[] = [];
+    const newFiles: PendingDentalPhoto[] = [];
+    for (const file of slice) {
+      try {
+        const dataUrl = await readImageFileAsDataUrl(file);
+        const [, base64] = dataUrl.split(',');
+        newPreviews.push(dataUrl);
+        newFiles.push({ base64: base64 ?? '', mimeType: file.type, fileName: file.name });
+      } catch { /* skip unreadable file */ }
+    }
+    if (newFiles.length === 0) return;
+    setFormPhotoPreviews((prev) => [...prev, ...newPreviews]);
+    setFormPhotoFiles((prev) => [...prev, ...newFiles]);
+  };
+
+  const removePhotoAt = (idx: number) => {
+    setFormPhotoPreviews((prev) => prev.filter((_, i) => i !== idx));
+    setFormPhotoFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const appendPhotoPaths = async (paths: string[]) => {
+    const remaining = Math.max(0, PHOTO_MAX - totalPhotoCount);
+    if (remaining === 0) return;
+    const slice = paths.slice(0, remaining);
+    const newPreviews: string[] = [];
+    const newFiles: PendingDentalPhoto[] = [];
+    for (const path of slice) {
+      try {
+        const payload = await invoke<{ fileName: string; mimeType: string; base64: string }>(
+          'read_dropped_image_as_base64',
+          { path },
+        );
+        if (!payload.base64) continue;
+        newPreviews.push(`data:${payload.mimeType};base64,${payload.base64}`);
+        newFiles.push({ base64: payload.base64, mimeType: payload.mimeType, fileName: payload.fileName });
+      } catch { /* skip non-image / unreadable */ }
+    }
+    if (newFiles.length === 0) return;
+    setFormPhotoPreviews((prev) => [...prev, ...newPreviews]);
+    setFormPhotoFiles((prev) => [...prev, ...newFiles]);
+  };
+
+  const removeExistingPhoto = (attachmentId: string) => {
+    setRemovedAttachmentIds((prev) => prev.includes(attachmentId) ? prev : [...prev, attachmentId]);
+  };
+
   const [attachmentMap, setAttachmentMap] = useState<Map<string, AttachmentRow[]>>(new Map());
+
+  const refreshDentalData = async (childId: string) => {
+    const [nextRecords, nextAttachments] = await Promise.all([
+      getDentalRecords(childId),
+      getAttachments(childId),
+    ]);
+    setRecords(nextRecords);
+    setAttachmentMap(buildDentalAttachmentMap(nextAttachments));
+  };
+
+  useEffect(() => {
+    if (!showForm) return;
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
+    void getCurrentWebview().onDragDropEvent((event) => {
+      const payload = event.payload as { type: string; paths?: string[] };
+      if (payload.type === 'enter' || payload.type === 'over') {
+        setPhotoDragOver(true);
+      } else if (payload.type === 'leave') {
+        setPhotoDragOver(false);
+      } else if (payload.type === 'drop') {
+        setPhotoDragOver(false);
+        const paths = payload.paths ?? [];
+        if (paths.length > 0) void appendPhotoPaths(paths);
+      }
+    }).then((fn) => {
+      if (cancelled) fn();
+      else unlisten = fn;
+    }).catch(catchLog('dental', 'action:register-drag-drop-failed'));
+    return () => {
+      cancelled = true;
+      if (unlisten) unlisten();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showForm]);
 
   useEffect(() => {
     if (!activeChildId) return;
-    getDentalRecords(activeChildId).then(setRecords).catch(catchLog('dental', 'action:load-dental-records-failed'));
-    getAttachments(activeChildId).then((all) => {
-      const m = new Map<string, AttachmentRow[]>();
-      for (const a of all) {
-        if (a.ownerTable !== 'dental_records') continue;
-        const existing = m.get(a.ownerId);
-        if (existing) existing.push(a);
-        else m.set(a.ownerId, [a]);
-      }
-      setAttachmentMap(m);
-    }).catch(catchLog('dental', 'action:load-dental-attachments-failed'));
+    void refreshDentalData(activeChildId).catch(catchLog('dental', 'action:load-dental-data-failed'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChildId]);
 
   // Filter event types by child age
@@ -204,14 +547,18 @@ export default function DentalPage() {
   const toothStatus = useMemo(() => {
     const m = new Map<string, string>();
     const sorted = [...records].sort((a, b) => a.eventDate.localeCompare(b.eventDate));
-    for (const r of sorted) { if (r.toothId) m.set(r.toothId, r.eventType); }
+    for (const r of sorted) {
+      for (const toothId of parseDentalToothIds(r.toothId)) {
+        m.set(toothId, r.eventType);
+      }
+    }
     return m;
   }, [records]);
 
   // Stats
   const cariesCount = records.filter((r) => r.eventType === 'caries').length;
-  const eruptedCount = new Set(records.filter((r) => r.eventType === 'eruption').map((r) => r.toothId)).size;
-  const lostCount = new Set(records.filter((r) => r.eventType === 'loss').map((r) => r.toothId)).size;
+  const eruptedCount = new Set(records.filter((r) => r.eventType === 'eruption').flatMap((r) => parseDentalToothIds(r.toothId))).size;
+  const lostCount = new Set(records.filter((r) => r.eventType === 'loss').flatMap((r) => parseDentalToothIds(r.toothId))).size;
 
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
 
@@ -237,7 +584,51 @@ export default function DentalPage() {
     setEventEntries([makeEventEntry(ageMonths)]);
     setActiveEntryIdx(0);
     setFormEventDate(new Date().toISOString().slice(0, 10));
-    setFormHospital(''); setFormNotes(''); setFormPhotoPreview(null); setFormPhotoFile(null); setShowForm(false);
+    setFormHospital('');
+    setFormNotes('');
+    setEditingRecordId(null);
+    setExistingPhotoAttachments([]);
+    setRemovedAttachmentIds([]);
+    setFormPhotoPreviews([]);
+    setFormPhotoFiles([]);
+    setPhotoDragOver(false);
+    setPhotoDropHover(false);
+    setShowForm(false);
+  };
+
+  const startEditingRecord = (record: DentalRecordRow) => {
+    setEditingRecordId(record.recordId);
+    setEventEntries([{
+      eventType: record.eventType,
+      toothIds: parseDentalToothIds(record.toothId),
+      toothSet: record.toothSet === 'permanent' ? 'permanent' : 'primary',
+      severity: record.severity ?? '',
+    }]);
+    setActiveEntryIdx(0);
+    setFormEventDate(record.eventDate.split('T')[0] ?? record.eventDate);
+    setFormHospital(record.hospital ?? '');
+    setFormNotes(record.notes ?? '');
+    setExistingPhotoAttachments(attachmentMap.get(record.recordId) ?? []);
+    setRemovedAttachmentIds([]);
+    setFormPhotoPreviews([]);
+    setFormPhotoFiles([]);
+    setPhotoDragOver(false);
+    setPhotoDropHover(false);
+    setShowForm(true);
+  };
+
+  const handleDeleteRecord = async (record: DentalRecordRow) => {
+    if (!window.confirm('删除这条口腔记录后，相关照片也会一起删除，确定继续吗？')) return;
+    try {
+      for (const attachment of attachmentMap.get(record.recordId) ?? []) {
+        await deleteAttachment(attachment.attachmentId);
+      }
+      await deleteDentalRecord(record.recordId);
+      if (editingRecordId === record.recordId) {
+        resetForm();
+      }
+      await refreshDentalData(child.childId);
+    } catch { /* bridge */ }
   };
 
   const handleSubmit = async () => {
@@ -245,13 +636,51 @@ export default function DentalPage() {
     const now = isoNow();
     const age = computeAgeMonthsAt(child.birthDate, formEventDate);
     try {
+      if (editingRecordId) {
+        const entry = eventEntries[0];
+        if (!entry) return;
+        await updateDentalRecord({
+          recordId: editingRecordId,
+          eventType: entry.eventType,
+          toothId: joinDentalToothIds(entry.toothIds),
+          toothSet: entry.toothSet,
+          eventDate: formEventDate,
+          ageMonths: age,
+          severity: NEEDS_SEVERITY.has(entry.eventType) ? (entry.severity || null) : null,
+          hospital: formHospital || null,
+          notes: formNotes || null,
+          photoPath: null,
+        });
+
+        for (const attachmentId of removedAttachmentIds) {
+          await deleteAttachment(attachmentId);
+        }
+        for (const photo of formPhotoFiles) {
+          await saveAttachment({
+            attachmentId: ulid(),
+            childId: child.childId,
+            ownerTable: 'dental_records',
+            ownerId: editingRecordId,
+            fileName: photo.fileName,
+            mimeType: photo.mimeType,
+            imageBase64: photo.base64,
+            caption: null,
+            now,
+          });
+        }
+
+        await refreshDentalData(child.childId);
+        resetForm();
+        return;
+      }
+
       const recordIds: string[] = [];
       for (const entry of eventEntries) {
         const recordId = ulid();
         recordIds.push(recordId);
         await insertDentalRecord({
           recordId, childId: child.childId, eventType: entry.eventType,
-          toothId: entry.toothIds.length > 0 ? entry.toothIds.join(',') : null, toothSet: entry.toothSet,
+          toothId: joinDentalToothIds(entry.toothIds), toothSet: entry.toothSet,
           eventDate: formEventDate, ageMonths: age,
           severity: NEEDS_SEVERITY.has(entry.eventType) ? (entry.severity || null) : null,
           hospital: formHospital || null, notes: formNotes || null, photoPath: null, now,
@@ -280,31 +709,21 @@ export default function DentalPage() {
         }
       }
 
-      // Save photo as attachment linked to the first dental record
-      if (formPhotoFile && recordIds[0]) {
-        try {
-          await saveAttachment({
-            attachmentId: ulid(), childId: child.childId,
-            ownerTable: 'dental_records', ownerId: recordIds[0],
-            fileName: formPhotoFile.fileName, mimeType: formPhotoFile.mimeType,
-            imageBase64: formPhotoFile.base64, caption: null, now,
-          });
-        } catch { /* attachment save failed, non-critical */ }
+      // Save photos as attachments linked to the first dental record
+      if (formPhotoFiles.length > 0 && recordIds[0]) {
+        for (const photo of formPhotoFiles) {
+          try {
+            await saveAttachment({
+              attachmentId: ulid(), childId: child.childId,
+              ownerTable: 'dental_records', ownerId: recordIds[0],
+              fileName: photo.fileName, mimeType: photo.mimeType,
+              imageBase64: photo.base64, caption: null, now,
+            });
+          } catch { /* attachment save failed, non-critical */ }
+        }
       }
 
-      const freshRecords = await getDentalRecords(child.childId);
-      setRecords(freshRecords);
-      // Refresh attachment map
-      getAttachments(child.childId).then((all) => {
-        const m = new Map<string, AttachmentRow[]>();
-        for (const a of all) {
-          if (a.ownerTable !== 'dental_records') continue;
-          const existing = m.get(a.ownerId);
-          if (existing) existing.push(a);
-          else m.set(a.ownerId, [a]);
-        }
-        setAttachmentMap(m);
-      }).catch(catchLog('dental', 'action:refresh-dental-attachments-failed'));
+      await refreshDentalData(child.childId);
       resetForm();
     } catch { /* bridge */ }
   };
@@ -368,6 +787,9 @@ export default function DentalPage() {
         </div>
       )}
 
+      {/* Tooth status overview — top of dental record */}
+      <ToothStatusOverview records={records} />
+
       {/* Quick stats */}
       {records.length > 0 && (
         <div className="grid grid-cols-4 gap-3 mb-5">
@@ -396,8 +818,8 @@ export default function DentalPage() {
         <div className={`w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} flex flex-col shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 pt-6 pb-3">
             <div className="flex items-center gap-2">
-              <span className="text-[20px]">🦷</span>
-              <h2 className="text-[15px] font-bold" style={{ color: S.text }}>添加口腔记录</h2>
+              <span className="text-[20px]">{isEditing ? '✏️' : '🦷'}</span>
+              <h2 className="text-[15px] font-bold" style={{ color: S.text }}>{isEditing ? '编辑口腔记录' : '添加口腔记录'}</h2>
             </div>
             <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
           </div>
@@ -509,7 +931,7 @@ export default function DentalPage() {
           })}
 
           {/* Add another event */}
-          <button onClick={addEntry}
+          <button onClick={addEntry} hidden={isEditing}
             onMouseEnter={() => setAddEventHover(true)}
             onMouseLeave={() => setAddEventHover(false)}
             className={`w-full flex items-center justify-center gap-2 py-3 text-[11px] font-medium ${S.radiusSm} cursor-pointer`}
@@ -539,89 +961,99 @@ export default function DentalPage() {
 
           {/* Photo upload */}
           <div>
-            <p className="text-[11px] mb-1" style={{ color: S.sub }}>照片</p>
+            <p className="text-[11px] mb-1" style={{ color: S.sub }}>照片 {formPhotoFiles.length > 0 ? `(${formPhotoFiles.length}/${PHOTO_MAX})` : ''}</p>
             <input
               ref={photoRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={async (e) => {
-                const file = e.target.files?.[0];
+                const files = e.target.files;
                 e.target.value = '';
-                if (!file) return;
-                try {
-                  const dataUrl = await readImageFileAsDataUrl(file);
-                  setFormPhotoPreview(dataUrl);
-                  const [, base64] = dataUrl.split(',');
-                  setFormPhotoFile({ base64: base64 ?? '', mimeType: file.type, fileName: file.name });
-                } catch { setFormPhotoPreview(null); setFormPhotoFile(null); }
+                if (!files || files.length === 0) return;
+                await appendPhotoFiles(files);
               }}
             />
-            {formPhotoPreview ? (
-              <div className="relative group">
-                <img src={formPhotoPreview} alt="preview" className={`w-full h-28 object-cover ${S.radiusSm}`} />
+            <div
+              onDragOver={(e) => { e.preventDefault(); setPhotoDragOver(true); }}
+              onDragEnter={(e) => { e.preventDefault(); setPhotoDragOver(true); }}
+              onDragLeave={() => setPhotoDragOver(false)}
+              onDrop={async (e) => {
+                e.preventDefault();
+                setPhotoDragOver(false);
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  await appendPhotoFiles(e.dataTransfer.files);
+                }
+              }}
+              className="grid grid-cols-3 gap-2"
+            >
+              {visibleExistingPhotoAttachments.map((attachment) => (
+                <div key={attachment.attachmentId} className="relative group">
+                  <img src={convertFileSrc(attachment.filePath)} alt={attachment.fileName} className={`w-full h-24 object-cover ${S.radiusSm}`} />
+                  <button
+                    type="button"
+                    onClick={() => removeExistingPhoto(attachment.attachmentId)}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {formPhotoPreviews.map((src, idx) => (
+                <div key={idx} className="relative group">
+                  <img src={src} alt={`preview-${idx}`} className={`w-full h-24 object-cover ${S.radiusSm}`} />
+                  <button
+                    type="button"
+                    onClick={() => removePhotoAt(idx)}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              {totalPhotoCount < PHOTO_MAX && (
                 <button
-                  onClick={() => { setFormPhotoPreview(null); setFormPhotoFile(null); }}
-                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white text-[11px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  type="button"
+                  onClick={() => photoRef.current?.click()}
+                  onMouseEnter={() => setPhotoDropHover(true)}
+                  onMouseLeave={() => setPhotoDropHover(false)}
+                  className={`w-full h-24 ${S.radiusSm} flex flex-col items-center justify-center gap-1.5 cursor-pointer`}
+                  style={{
+                    border: `2px dashed ${photoDragOver || photoDropHover ? '#4ECCA3' : '#d0d0cc'}`,
+                    background: '#fafaf8',
+                    transition: 'border-color 0.25s ease',
+                  }}
                 >
-                  ✕
+                  <svg
+                    width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round"
+                    style={{
+                      stroke: photoDragOver || photoDropHover ? '#1e293b' : '#b0b0aa',
+                      transform: photoDragOver || photoDropHover ? 'scale(1.15)' : 'scale(1)',
+                      transition: 'stroke 0.25s ease, transform 0.25s ease',
+                    }}
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  <span
+                    className="text-[10px] text-center px-1"
+                    style={{
+                      color: photoDragOver || photoDropHover ? '#1e293b' : '#a0a0a0',
+                      transition: 'color 0.25s ease',
+                    }}
+                  >
+                    {formPhotoFiles.length === 0 ? `点击或拖拽上传口腔照片（最多 ${PHOTO_MAX} 张）` : '添加更多'}
+                  </span>
                 </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => photoRef.current?.click()}
-                onMouseEnter={() => setPhotoDropHover(true)}
-                onMouseLeave={() => setPhotoDropHover(false)}
-                onDragOver={(e) => { e.preventDefault(); setPhotoDragOver(true); }}
-                onDragLeave={() => setPhotoDragOver(false)}
-                onDrop={async (e) => {
-                  e.preventDefault();
-                  setPhotoDragOver(false);
-                  const file = e.dataTransfer.files[0];
-                  if (!file?.type.startsWith('image/')) return;
-                  try {
-                    const dataUrl = await readImageFileAsDataUrl(file);
-                    setFormPhotoPreview(dataUrl);
-                    const [, base64] = dataUrl.split(',');
-                    setFormPhotoFile({ base64: base64 ?? '', mimeType: file.type, fileName: file.name });
-                  } catch { /* ignore */ }
-                }}
-                className={`w-full h-24 ${S.radiusSm} flex flex-col items-center justify-center gap-1.5 cursor-pointer`}
-                style={{
-                  border: `2px dashed ${photoDragOver || photoDropHover ? '#4ECCA3' : '#d0d0cc'}`,
-                  background: '#fafaf8',
-                  transition: 'border-color 0.25s ease',
-                }}
-              >
-                <svg
-                  width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round"
-                  style={{
-                    stroke: photoDragOver || photoDropHover ? '#1e293b' : '#b0b0aa',
-                    transform: photoDragOver || photoDropHover ? 'scale(1.15)' : 'scale(1)',
-                    transition: 'stroke 0.25s ease, transform 0.25s ease',
-                  }}
-                >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                <span
-                  className="text-[11px]"
-                  style={{
-                    color: photoDragOver || photoDropHover ? '#1e293b' : '#a0a0a0',
-                    transition: 'color 0.25s ease',
-                  }}
-                >
-                  点击或拖拽上传口腔照片
-                </span>
-              </button>
-            )}
+              )}
+            </div>
           </div>
           </div>
 
           <div className="px-6 pt-3 pb-5 mt-1">
             <div className="flex items-center justify-end gap-2">
               <button onClick={resetForm} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-              <button onClick={() => void handleSubmit()} className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>保存</button>
+              <button onClick={() => void handleSubmit()} className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>{isEditing ? '保存修改' : '保存'}</button>
             </div>
           </div>
         </div>
@@ -642,33 +1074,57 @@ export default function DentalPage() {
       <div className="space-y-2">
         {sortedRecords.map((r) => {
           const evtInfo = EVENT_TYPES.find((e) => e.key === r.eventType);
+          const toothLabel = formatDentalToothLabel(r.toothId);
+          const recordAttachments = attachmentMap.get(r.recordId) ?? [];
           return (
             <div key={r.recordId} className={`${S.radiusSm} p-3.5 flex items-start gap-3`}
               style={{ background: S.card, boxShadow: S.shadow, borderLeft: r.eventType === 'caries' ? '3px solid #dc2626' : `3px solid ${S.border}` }}>
               <span className="text-[16px] mt-0.5">{evtInfo?.emoji ?? '🦷'}</span>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-semibold" style={{ color: S.text }}>{evtInfo?.label ?? r.eventType}</span>
-                  {r.toothId && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#f5f3ef', color: S.sub }}>
-                      {r.toothId} {TOOTH_NAMES[r.toothId] ?? ''}
-                    </span>
-                  )}
-                  {r.severity && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${r.severity === 'severe' ? 'bg-red-100 text-red-700' : r.severity === 'moderate' ? 'bg-amber-100 text-amber-700' : ''}`}
-                      style={r.severity === 'mild' ? { background: '#f0f0ec', color: S.sub } : undefined}>
-                      {SEVERITY_LABELS[r.severity] ?? r.severity}
-                    </span>
-                  )}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <span className="text-[12px] font-semibold" style={{ color: S.text }}>{evtInfo?.label ?? r.eventType}</span>
+                    {toothLabel && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#f5f3ef', color: S.sub }}>
+                        {toothLabel}
+                      </span>
+                    )}
+                    {r.severity && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${r.severity === 'severe' ? 'bg-red-100 text-red-700' : r.severity === 'moderate' ? 'bg-amber-100 text-amber-700' : ''}`}
+                        style={r.severity === 'mild' ? { background: '#f0f0ec', color: S.sub } : undefined}>
+                        {SEVERITY_LABELS[r.severity] ?? r.severity}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => startEditingRecord(r)}
+                      className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] ${S.radiusSm}`}
+                      style={{ background: '#eef6ff', color: '#2563eb' }}
+                    >
+                      <Pencil size={12} />
+                      编辑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteRecord(r)}
+                      className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] ${S.radiusSm}`}
+                      style={{ background: '#fef2f2', color: '#dc2626' }}
+                    >
+                      <Trash2 size={12} />
+                      删除
+                    </button>
+                  </div>
                 </div>
                 <p className="text-[10px] mt-0.5" style={{ color: S.sub }}>
                   {r.eventDate.split('T')[0]} · {fmtAge(r.ageMonths)}
                   {r.hospital && ` · ${r.hospital}`}
                 </p>
                 {r.notes && <p className="text-[10px] mt-0.5" style={{ color: S.sub }}>{r.notes}</p>}
-                {(attachmentMap.get(r.recordId) ?? []).length > 0 && (
+                {recordAttachments.length > 0 && (
                   <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                    {(attachmentMap.get(r.recordId) ?? []).map((a) => (
+                    {recordAttachments.map((a) => (
                       <img key={a.attachmentId} src={convertFileSrc(a.filePath)} alt={a.fileName}
                         className={`w-24 h-16 object-cover ${S.radiusSm} cursor-pointer hover:opacity-80 transition-opacity`} />
                     ))}

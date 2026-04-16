@@ -32,6 +32,25 @@ export function insertDentalRecord(params: {
   return invoke<void>('insert_dental_record', params);
 }
 
+export function updateDentalRecord(params: {
+  recordId: string;
+  eventType: string;
+  toothId: string | null;
+  toothSet: string | null;
+  eventDate: string;
+  ageMonths: number;
+  severity: string | null;
+  hospital: string | null;
+  notes: string | null;
+  photoPath: string | null;
+}) {
+  return invoke<void>('update_dental_record', params);
+}
+
+export function deleteDentalRecord(recordId: string) {
+  return invoke<void>('delete_dental_record', { recordId });
+}
+
 export function getDentalRecords(childId: string) {
   return invoke<DentalRecordRow[]>('get_dental_records', { childId });
 }

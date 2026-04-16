@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::Serialize;
+use tauri::Manager;
 
 // Shared modules from kit/shell/tauri crate
 use nimi_kit_shell_tauri::auth_session_commands;
@@ -13,6 +14,7 @@ use nimi_kit_shell_tauri::session_logging;
 // App-local modules
 mod attachment_store;
 mod child_avatar;
+mod dropped_file;
 mod journal_audio;
 mod journal_photo;
 mod sqlite;
@@ -143,6 +145,13 @@ fn main() {
     session_logging::log_boot_marker("parentos main() entered");
 
     tauri::Builder::default()
+        .setup(|app| {
+            let nimi_data_dir = desktop_paths::resolve_nimi_data_dir()?;
+            app.state::<tauri::Scopes>()
+                .allow_directory(&nimi_data_dir, true)
+                .map_err(|error| format!("failed to allow nimi_data_dir in asset scope ({}): {error}", nimi_data_dir.display()))?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
             parentos_start_window_drag,
@@ -169,6 +178,7 @@ fn main() {
             journal_photo::save_journal_photo,
             child_avatar::save_child_avatar,
             journal_photo::delete_journal_photo,
+            dropped_file::read_dropped_image_as_base64,
             // Family & Children
             sqlite::queries::create_family,
             sqlite::queries::get_family,
@@ -223,6 +233,8 @@ fn main() {
             sqlite::queries::get_app_setting,
             // Dental Records
             sqlite::queries::insert_dental_record,
+            sqlite::queries::update_dental_record,
+            sqlite::queries::delete_dental_record,
             sqlite::queries::get_dental_records,
             // Attachments
             attachment_store::save_attachment,

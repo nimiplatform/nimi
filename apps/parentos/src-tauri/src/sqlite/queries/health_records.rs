@@ -225,6 +225,34 @@ pub fn insert_dental_record(
 }
 
 #[tauri::command]
+pub fn update_dental_record(
+    record_id: String, event_type: String,
+    tooth_id: Option<String>, tooth_set: Option<String>, event_date: String,
+    age_months: i32, severity: Option<String>, hospital: Option<String>,
+    notes: Option<String>, photo_path: Option<String>,
+) -> Result<(), String> {
+    if !is_supported_dental_event_type(event_type.trim()) {
+        return Err(format!(
+            "unsupported dental eventType \"{event_type}\"; expected eruption | loss | caries | cleaning | ortho-assessment",
+        ));
+    }
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE dental_records SET eventType=?2, toothId=?3, toothSet=?4, eventDate=?5, ageMonths=?6, severity=?7, hospital=?8, notes=?9, photoPath=?10 WHERE recordId=?1",
+        params![record_id, event_type, tooth_id, tooth_set, event_date, age_months, severity, hospital, notes, photo_path],
+    ).map_err(|e| format!("update_dental_record: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_dental_record(record_id: String) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM dental_records WHERE recordId = ?1", params![record_id])
+        .map_err(|e| format!("delete_dental_record: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn get_dental_records(child_id: String) -> Result<Vec<DentalRecord>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare("SELECT recordId, childId, eventType, toothId, toothSet, eventDate, ageMonths, severity, hospital, notes, photoPath, createdAt FROM dental_records WHERE childId = ?1 ORDER BY eventDate").map_err(|e| format!("get_dental_records: {e}"))?;
