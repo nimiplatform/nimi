@@ -86,6 +86,12 @@
 | `AI_LOCAL_MODEL_UNAVAILABLE` | `FAILED_PRECONDITION` | `local_consume_or_probe` | `grpc_status_or_payload_ok_false` | `K-LOCAL-006` |
 | `AI_LOCAL_ASSET_ALREADY_INSTALLED` | `ALREADY_EXISTS` | `install_local_model_duplicate` | `grpc_status` | `K-LOCAL-009` |
 | `AI_LOCAL_SERVICE_UNAVAILABLE` | `FAILED_PRECONDITION` | `local_service_lifecycle_or_probe` | `grpc_status_or_payload_ok_false` | `K-LOCAL-006` |
+| `AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED` | `FAILED_PRECONDITION` | `local_speech_bundle_probe_or_consume` | `grpc_status_or_payload_ok_false` | `K-ERR-011` |
+| `AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED` | `FAILED_PRECONDITION` | `local_speech_bundle_probe_or_consume` | `grpc_status_or_payload_ok_false` | `K-ERR-011` |
+| `AI_LOCAL_SPEECH_ENV_INIT_FAILED` | `FAILED_PRECONDITION` | `local_speech_bundle_prepare` | `grpc_status` | `K-ERR-011` |
+| `AI_LOCAL_SPEECH_HOST_INIT_FAILED` | `FAILED_PRECONDITION` | `local_speech_bundle_prepare` | `grpc_status` | `K-ERR-011` |
+| `AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED` | `FAILED_PRECONDITION` | `local_speech_bundle_materialize` | `grpc_status` | `K-ERR-011` |
+| `AI_LOCAL_SPEECH_BUNDLE_DEGRADED` | `FAILED_PRECONDITION` | `local_speech_bundle_probe_or_consume` | `grpc_status_or_payload_ok_false` | `K-ERR-011` |
 | `AI_LOCAL_SERVICE_ALREADY_INSTALLED` | `ALREADY_EXISTS` | `install_local_service_duplicate` | `grpc_status` | `K-LOCAL-009` |
 | `AI_LOCAL_ENDPOINT_REQUIRED` | `INVALID_ARGUMENT` | `install_or_start_local_model_endpoint_required` | `grpc_status` | `K-LENG-005` |
 | `AI_LOCAL_TEMPLATE_NOT_FOUND` | `NOT_FOUND` | `install_verified_model_template_missing` | `grpc_status` | `K-LOCAL-010` |

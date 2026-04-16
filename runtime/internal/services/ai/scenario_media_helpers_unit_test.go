@@ -58,6 +58,15 @@ func TestSanitizeScenarioJobReasonDetail_PreservesSafeProviderMetadataForUnavail
 	}
 }
 
+func TestSanitizeScenarioJobReasonDetail_LocalSpeechReasonsUseBundleAwareMessages(t *testing.T) {
+	if got := sanitizeScenarioJobReasonDetail(status.Error(codes.FailedPrecondition, "legacy failure"), runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED); got != "explicit download confirmation is required before local speech setup can continue" {
+		t.Fatalf("unexpected speech download confirmation detail: %q", got)
+	}
+	if got := sanitizeScenarioJobReasonDetail(status.Error(codes.FailedPrecondition, "legacy failure"), runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED); got != "local speech bundle is degraded and needs repair" {
+		t.Fatalf("unexpected speech degraded detail: %q", got)
+	}
+}
+
 func TestScenarioJobReasonMetadata_PreservesSafeProviderMetadataForUnavailable(t *testing.T) {
 	err := grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 		Message: "provider request failed",

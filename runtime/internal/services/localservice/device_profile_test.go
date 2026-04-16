@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -18,6 +19,16 @@ func TestProbePythonProfileSkipsWindowsStoreAlias(t *testing.T) {
 	})
 
 	localRuntimeGOOS = "windows"
+	commandName := "cmd"
+	commandArgs := func(script string) []string {
+		return []string{"/c", script}
+	}
+	if runtime.GOOS != "windows" {
+		commandName = "sh"
+		commandArgs = func(script string) []string {
+			return []string{"-c", script}
+		}
+	}
 	localRuntimeLookPath = func(name string) (string, error) {
 		switch name {
 		case "python":
@@ -32,9 +43,9 @@ func TestProbePythonProfileSkipsWindowsStoreAlias(t *testing.T) {
 	localRuntimeCommand = func(ctx context.Context, name string, args ...string) *exec.Cmd {
 		if shouldSkipPythonExecutable(name) {
 			aliasCalled = true
-			return exec.CommandContext(ctx, "cmd", "/c", "exit", "1")
+			return exec.CommandContext(ctx, commandName, commandArgs("exit 1")...)
 		}
-		return exec.CommandContext(ctx, "cmd", "/c", "echo", "Python 3.13.0")
+		return exec.CommandContext(ctx, commandName, commandArgs("echo Python 3.13.0")...)
 	}
 
 	profile := probePythonProfile()

@@ -398,6 +398,7 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 					health := modelHealth(model)
 					detail := sanitizedModelProbeDetail(fmt.Sprintf("recovery probe succeeded (%d/%d)", successes, localRecoverySuccessThreshold), s.modelRuntimeMode(localModelID), nil)
 					health.Detail = detail
+					health.ReasonCode = projectionReasonCodeForEngine(model.GetEngine(), detail)
 					result = append(result, health)
 				}
 				continue
@@ -407,6 +408,7 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 			detail := modelProbeFailureDetail(model, probe, registration)
 			detail = sanitizedModelProbeDetail(detail, s.modelRuntimeMode(localModelID), bootstrapErr)
 			health.Detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
+			health.ReasonCode = projectionReasonCodeForEngine(model.GetEngine(), health.GetDetail())
 			result = append(result, health)
 		default:
 			s.resetModelRecovery(localModelID)
@@ -593,6 +595,19 @@ func (s *Service) checkManagedSupervisedSpeechHealth(ctx context.Context, model 
 	detail := modelProbeFailureDetail(model, probe, managedLlamaRegistration{})
 	detail = sanitizedModelProbeDetail(detail, s.modelRuntimeMode(localModelID), bootstrapErr)
 	detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
+	if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		coldModel, err := s.updateModelAvailabilityAndWarmState(
+			localModelID,
+			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+			detail,
+			true,
+		)
+		if err != nil {
+			return nil, err
+		}
+		return modelHealth(coldModel), nil
+	}
 	return s.setManagedSupervisedSpeechUnhealthy(model, detail)
 }
 
@@ -714,9 +729,6 @@ func (s *Service) shouldWarmLocalModelOnStart(
 		if s.engineManagerOrNil() == nil {
 			return false
 		}
-	case "speech":
-		// speech supervised start may use runtime-owned minimal capability
-		// requests as warm proof without depending on an engine manager handle.
 	default:
 		return false
 	}

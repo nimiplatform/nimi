@@ -153,6 +153,7 @@
 | `K-ERR-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-ERR-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-ERR-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ERR-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-GATE-001` | `covered` | `runtime_kernel_consistency` |
 | `K-GATE-010` | `covered` | `runtime_kernel_consistency` |
 | `K-GATE-020` | `covered` | `runtime_kernel_consistency` |
@@ -235,6 +236,7 @@
 | `K-LOCAL-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-008a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-010a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -273,6 +275,7 @@
 | `K-MCAT-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-014a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
@@ -469,6 +472,8 @@
 | `K-AGCORE-024` | `covered` | `runtime_kernel_consistency` |
 | `K-AGCORE-025` | `covered` | `runtime_kernel_consistency` |
 | `K-AGCORE-026` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-026a` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-026b` | `covered` | `runtime_kernel_consistency` |
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
 | `K-SCHED-001` | `deferred` | — |

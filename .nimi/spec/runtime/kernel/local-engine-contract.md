@@ -39,6 +39,10 @@ Phase 1 本地执行引擎固定为：
 speech product posture:
 
 - ordinary-user canonical local speech path 固定为 `engine=speech + SUPERVISED`
+- ordinary-user canonical local speech path 必须按 bundle-shaped `Local Speech` setup surface 理解；desktop 不得把它投影成 generic verified model rows，或把 env/bootstrap/host 拆成独立用户安装对象
+- 当 ordinary-user 缺失 local speech bundle slice 时，显式 `Download` 用户确认是唯一允许的启动信号；在用户确认前，desktop/runtime 不得因 capability 选择、route 尝试或被动探测而静默执行 env/bootstrap、host bring-up 或 capability 下载
+- 用户确认后，runtime 可以复用已存在的 env/cache/host/slice；不得默认重装、重引导或重下载
+- capability materialization 必须保持按 capability 懒加载；一次 `audio.synthesize` / `audio.transcribe` 请求或点击不得顺手预取全部 speech slices
 - `speech + ATTACHED_ENDPOINT` 只允许作为高级/自托管路径存在，不得在产品语义上与 supervised 等价
 
 ## K-LENG-003 ATTACHED_ENDPOINT 约束
@@ -82,6 +86,17 @@ speech product posture:
     - runtime 不得假设 `qwen-tts` 与 `qwen-asr` 可在同一 canonical supervised env 中共装
   - `Qwen3-ASR-1.7B` 只作为 optional premium candidate 保留；在独立 premium admission 前不得自动 materialize 为 ordinary-user canonical default
   - workflow-capable local family 只有在对应 local workflow execution plane 被显式 admitted 后才能进入 canonical local speech truth；当前首轮 admitted family 边界固定为 `qwen3_tts`
+  - ordinary-user supervised local speech install/readiness 语义固定分三层，且不得塌缩成单一“speech model installed” bit：
+    1. `env/bootstrap readiness`：`qwen3_tts` / `qwen3_asr` env root、launcher、stable cache root 已就绪
+    2. `host readiness`：受管 speech host 可提供 admitted health/catalog proof
+    3. `capability materialization`：仅被请求 capability 对应的权重/工件已 materialize
+  - `env/bootstrap readiness` 与 `host readiness` 不是独立 ordinary-user install object；它们属于 runtime-owned local speech bundle download/init flow 的内部分层
+  - ordinary-user supervised path 必须先经过显式 `Download` 用户确认，才允许启动缺失的 env/bootstrap、host bring-up 或 capability materialization
+  - capability materialization 默认按 requested capability 懒加载：
+    - `audio.transcribe` 只 materialize 当前 admitted `qwen3_asr` slice
+    - `audio.synthesize` 只 materialize 当前 admitted `qwen3_tts` plain synth slice
+    - future-admitted `voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 也必须分别按自身 slice 懒加载，不得因为 plain `TTS` 已请求就自动预取
+  - runtime/desktop 必须复用已验证的 env/cache/materialized slice；除非 repair/remove 明确要求，否则不得默认重下载或重 bootstrap
 - `media.diffusers`：只在 `media` 不支持 family / artifact completeness / pipeline variant 时作为内部 fallback 启动。当前 kernel 基线仍规定 `media.diffusers` 不得作为 public engine target，不得在未完成规范修订前直接升格为 matrix-supported canonical path。
 
 资产级 supervised 规则：
@@ -419,6 +434,9 @@ v1 固定 internal reason key 集合（audit / health / structured error detail 
 `speech` 健康探测：
 
 - `speech` 的 local plain-speech truth 至少区分四层：`provider_reachability`、`engine_readiness`、`bundle_readiness`、`capability_route_readiness`。上层 truth 不得自动推出下一层 truth；`K-PROV-*` provider health 只回答 `provider_reachability`，不得直接提升为 plain-speech admitted success。
+- ordinary-user `bundle_readiness` 只证明 env/bootstrap + host 前置条件已经满足；它不得隐含所有 speech capability slices 已 materialize。
+- ordinary-user 缺失 capability slice 时，runtime/desktop 必须先投影为“需要显式 Download 确认”的 fail-closed 状态；单纯 capability 选择、route 尝试或后台 probe 不得静默启动 env/bootstrap、host init 或 model download。
+- desktop 可以把 runtime-owned speech asset/service truth 投影为 bundle-aware partial readiness，但 `/healthz`、`/v1/catalog` 或单个 helper IPC 结果都不得被升格为 Desktop-owned install truth。
 - `/healthz` 返回 ready 只证明 `engine_readiness`；`/v1/catalog` 暴露 target `logical_model_id` 的 ready entry 只在与 bundle / capability proof 共同成立时，才允许提升到 `capability_route_readiness`。
 - `audio.transcribe` 必须至少验证 STT driver 与主 artifact 完整；只有 target logical model 已 admitted 且投影一致、catalog 顶层 `ready=true`、target row `ready=true`、row capability 命中 `audio.transcribe` 时，才允许投影为 admitted local ready。
 - `audio.synthesize` 必须至少验证 TTS driver 与主 artifact 完整；只有 target logical model 已 admitted 且投影一致、catalog 顶层 `ready=true`、target row `ready=true`、row capability 命中 `audio.synthesize`，且 supervised path 下 target endpoint 与 managed speech endpoint 一致时，才允许投影为 admitted local ready。

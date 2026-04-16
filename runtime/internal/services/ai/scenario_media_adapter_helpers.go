@@ -467,6 +467,18 @@ func sanitizeScenarioJobReasonDetail(err error, reasonCode runtimev1.ReasonCode)
 	switch reasonCode {
 	case runtimev1.ReasonCode_ACTION_EXECUTED:
 		return "request canceled"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED:
+		return "local speech preflight is blocked on this host"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED:
+		return "explicit download confirmation is required before local speech setup can continue"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_ENV_INIT_FAILED:
+		return "local speech environment initialization failed"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED:
+		return "local speech host startup or probe failed"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED:
+		return "required local speech capability must be downloaded"
+	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED:
+		return "local speech bundle is degraded and needs repair"
 	case runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
 		return "provider request timed out"
 	case runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED:

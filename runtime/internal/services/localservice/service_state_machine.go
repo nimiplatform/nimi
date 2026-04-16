@@ -104,6 +104,7 @@ func (s *Service) updateModelAvailabilityAndWarmState(
 	}
 	current.UpdatedAt = now
 	current.HealthDetail = detail
+	current.ReasonCode = projectionReasonCodeForEngine(current.GetEngine(), detail)
 	s.assets[id] = cloneLocalAsset(current)
 	if nextStatus == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		delete(s.assetRuntimeModes, id)
@@ -148,6 +149,7 @@ func (s *Service) updateServiceStatus(serviceID string, status runtimev1.LocalSe
 	current.Status = status
 	current.UpdatedAt = now
 	current.Detail = detail
+	current.ReasonCode = projectionReasonCodeForEngine(current.GetEngine(), detail)
 	s.services[id] = cloneServiceDescriptor(current)
 	if status == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED {
 		delete(s.serviceRuntimeModes, id)

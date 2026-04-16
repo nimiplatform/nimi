@@ -68,7 +68,7 @@ func (s *Service) validateLocalModelRequestWithExtensions(ctx context.Context, r
 
 	localModels, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
 	if err != nil {
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return normalizeLocalModelRPCError(err)
 	}
 
 	selector := parseLocalModelSelector(resolvedModelID, modal)
@@ -105,7 +105,7 @@ func (s *Service) validateLocalModelRequestWithExtensions(ctx context.Context, r
 			LocalAssetId: selected.GetLocalAssetId(),
 		})
 		if err != nil {
-			return localModelUnavailableError(err.Error())
+			return normalizeLocalModelRPCError(err)
 		}
 		selected.Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 		if warmed != nil && strings.TrimSpace(warmed.GetEndpoint()) != "" {
@@ -121,13 +121,13 @@ func (s *Service) validateLocalModelRequestWithExtensions(ctx context.Context, r
 			LocalAssetId: selected.GetLocalAssetId(),
 		})
 		if err != nil {
-			return localModelUnavailableError(err.Error())
+			return normalizeLocalModelRPCError(err)
 		}
 		if started != nil && started.GetAsset() != nil {
 			selected = started.GetAsset()
 		}
 		if selected.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-			return localModelUnavailableError(nonActiveLocalModelStartDetail(selected))
+			return localModelUnavailableErrorFromRecord(selected)
 		}
 	}
 	s.hydrateLocalProviderFromModel(selected, warmEndpoint)
@@ -292,8 +292,32 @@ func nonActiveLocalModelStartDetail(model *runtimev1.LocalAssetRecord) string {
 	return "local model start did not reach active state: " + status
 }
 
+func localModelUnavailableErrorFromRecord(model *runtimev1.LocalAssetRecord) error {
+	if model == nil {
+		return localModelUnavailableError("")
+	}
+	detail := nonActiveLocalModelStartDetail(model)
+	if reason := model.GetReasonCode(); reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		options := grpcerr.ReasonOptions{
+			ActionHint: "inspect_local_runtime_model_health",
+			Message:    strings.TrimSpace(detail),
+		}
+		if trimmed := strings.TrimSpace(detail); trimmed != "" {
+			options.Metadata = map[string]string{
+				"provider_message": trimmed,
+			}
+		}
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, options)
+	}
+	return localModelUnavailableError(detail)
+}
+
 func localModelUnavailableError(detail string) error {
 	trimmed := strings.TrimSpace(detail)
+	reasonCode := runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
+	if speechReason, ok := localSpeechReasonCodeFromDetail(trimmed); ok {
+		reasonCode = speechReason
+	}
 	options := grpcerr.ReasonOptions{
 		ActionHint: "inspect_local_runtime_model_health",
 		Message:    trimmed,
@@ -305,9 +329,83 @@ func localModelUnavailableError(detail string) error {
 	}
 	return grpcerr.WithReasonCodeOptions(
 		codes.FailedPrecondition,
-		runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+		reasonCode,
 		options,
 	)
+}
+
+func normalizeLocalModelRPCError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if _, ok := grpcerr.ExtractReasonCode(err); ok {
+		return err
+	}
+	return localModelUnavailableError(err.Error())
+}
+
+// Compatibility-only fallback for legacy local-runtime paths that still surface
+// speech failures as detail strings without a structured reason code.
+func localSpeechReasonCodeFromDetail(detail string) (runtimev1.ReasonCode, bool) {
+	lower := strings.ToLower(strings.TrimSpace(detail))
+	if lower == "" {
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, false
+	}
+	if !looksLikeSpeechDetail(lower) {
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, false
+	}
+
+	switch {
+	case strings.Contains(lower, "explicit download confirmation is required"),
+		strings.Contains(lower, "download confirmation required"),
+		strings.Contains(lower, "awaiting download confirmation"):
+		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED, true
+	case strings.Contains(lower, "speech-backed supervised mode is unavailable on this host"),
+		strings.Contains(lower, "configure an attached endpoint instead"),
+		strings.Contains(lower, "requires windows x64"),
+		strings.Contains(lower, "requires an nvidia gpu"),
+		strings.Contains(lower, "requires a cuda-ready nvidia runtime"):
+		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED, true
+	case strings.Contains(lower, "ensure uv for speech"),
+		strings.Contains(lower, "ensure managed python for speech"),
+		strings.Contains(lower, "write speech server script"),
+		strings.Contains(lower, "install speech dependencies"),
+		strings.Contains(lower, "write speech dependency stamp"):
+		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_ENV_INIT_FAILED, true
+	case strings.Contains(lower, "speech probe missing expected model"):
+		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED, true
+	case strings.Contains(lower, "speech probe missing required capability"),
+		strings.Contains(lower, "managed bundle file"),
+		strings.Contains(lower, "managed local model entry missing"),
+		strings.Contains(lower, "managed speech endpoint missing"),
+		strings.Contains(lower, "managed speech voices invalid"),
+		strings.Contains(lower, "voices.json"):
+		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED, true
+	case strings.Contains(lower, "speech") &&
+		(strings.Contains(lower, "probe request failed") ||
+			strings.Contains(lower, "probe status not ok") ||
+			strings.Contains(lower, "probe response parse failed") ||
+			strings.Contains(lower, "catalog status not ok") ||
+			strings.Contains(lower, "catalog parse failed") ||
+			strings.Contains(lower, "connect") ||
+			strings.Contains(lower, "timed out") ||
+			strings.Contains(lower, "engine not ready")):
+		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED, true
+	default:
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, false
+	}
+}
+
+func looksLikeSpeechDetail(detail string) bool {
+	return strings.Contains(detail, "speech") ||
+		strings.Contains(detail, "audio.transcribe") ||
+		strings.Contains(detail, "audio.synthesize") ||
+		strings.Contains(detail, "voice") ||
+		strings.Contains(detail, "voices.json") ||
+		strings.Contains(detail, "tts") ||
+		strings.Contains(detail, "asr") ||
+		strings.Contains(detail, "whisper") ||
+		strings.Contains(detail, "kokoro")
 }
 
 func (s *Service) hydrateLocalProviderFromModel(model *runtimev1.LocalAssetRecord, endpointOverride string) {
@@ -460,7 +558,7 @@ func selectRunnableLocalModel(models []*runtimev1.LocalAssetRecord, selector loc
 		if selected := firstRunnableLocalModel(engineCandidates, selector.modal); selected != nil {
 			return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 		}
-		return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(engineCandidates)
+		return nil, unavailableLocalModelReason(engineCandidates), unavailableLocalModelDetail(engineCandidates)
 	}
 
 	if selector.preferLocal {
@@ -469,13 +567,13 @@ func selectRunnableLocalModel(models []*runtimev1.LocalAssetRecord, selector loc
 				return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 			}
 		}
-		return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(candidates)
+		return nil, unavailableLocalModelReason(candidates), unavailableLocalModelDetail(candidates)
 	}
 
 	if selected := firstRunnableLocalModel(candidates, selector.modal); selected != nil {
 		return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 	}
-	return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(candidates)
+	return nil, unavailableLocalModelReason(candidates), unavailableLocalModelDetail(candidates)
 }
 
 func firstRunnableLocalModel(models []*runtimev1.LocalAssetRecord, modal runtimev1.Modal) *runtimev1.LocalAssetRecord {
@@ -572,6 +670,30 @@ func unavailableLocalModelDetail(models []*runtimev1.LocalAssetRecord) string {
 		return detail
 	}
 	return fmt.Sprintf("local model %q is %s", strings.TrimSpace(selected.GetAssetId()), localModelStatusLabel(selected.GetStatus()))
+}
+
+func unavailableLocalModelReason(models []*runtimev1.LocalAssetRecord) runtimev1.ReasonCode {
+	if len(models) == 0 {
+		return runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
+	}
+	sorted := append([]*runtimev1.LocalAssetRecord(nil), models...)
+	sort.Slice(sorted, func(i, j int) bool {
+		si := localUnavailableStatusPriority(sorted[i].GetStatus())
+		sj := localUnavailableStatusPriority(sorted[j].GetStatus())
+		if si != sj {
+			return si < sj
+		}
+		pi := localEnginePriorityForModal(sorted[i].GetEngine(), runtimev1.Modal_MODAL_UNSPECIFIED)
+		pj := localEnginePriorityForModal(sorted[j].GetEngine(), runtimev1.Modal_MODAL_UNSPECIFIED)
+		if pi != pj {
+			return pi < pj
+		}
+		return sorted[i].GetLocalAssetId() < sorted[j].GetLocalAssetId()
+	})
+	if reason := sorted[0].GetReasonCode(); reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return reason
+	}
+	return runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
 }
 
 func localUnavailableStatusPriority(status runtimev1.LocalAssetStatus) int {

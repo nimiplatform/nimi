@@ -17,9 +17,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 	deviceProfile := collectDeviceProfile()
 	now := nowISO()
 
-	s.mu.RLock()
 	catalogItem := cloneCatalogItem(s.resolveCatalogItem(req))
-	s.mu.RUnlock()
 	if catalogItem != nil {
 		capabilities := normalizeAssetCapabilities(catalogItem.GetCapabilities())
 		engine := defaultLocalEngine(catalogItem.GetEngine(), capabilities)
@@ -210,12 +208,22 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 			plan.ReasonCode = "LOCAL_ENGINE_BINARY_UNAVAILABLE"
 			return
 		}
+		if isSupervisedSpeechInstallPlan(engine, mode) {
+			plan.InstallAvailable = false
+			plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED.String()
+			return
+		}
 		plan.InstallAvailable = true
 		plan.ReasonCode = "ACTION_EXECUTED"
 	default:
 		plan.InstallAvailable = false
 		plan.ReasonCode = "LOCAL_ENGINE_RUNTIME_MODE_INVALID"
 	}
+}
+
+func isSupervisedSpeechInstallPlan(engine string, mode runtimev1.LocalEngineRuntimeMode) bool {
+	return strings.EqualFold(strings.TrimSpace(engine), "speech") &&
+		normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 }
 
 func (s *Service) installLocalAssetRecord(

@@ -5,6 +5,7 @@ package nimi.runtime.v1;
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
 import "google/protobuf/struct.proto";
+import "runtime/v1/common.proto";
 
 // === Asset Kind & Status (unified from Model + Artifact) ===
 
@@ -130,6 +131,7 @@ message LocalAssetRecord {
   string local_invoke_profile_id       = 29;
   google.protobuf.Struct engine_config = 30;
   string endpoint                      = 31;
+  ReasonCode reason_code               = 32;
 
   // Passive-only fields
   google.protobuf.Struct metadata = 40;
@@ -140,6 +142,7 @@ message LocalAssetHealth {
   LocalAssetStatus status = 2;
   string detail          = 3;
   string endpoint        = 4;
+  ReasonCode reason_code = 5;
 }
 
 // === Verified Asset Descriptor (unified from Model + Artifact) ===
@@ -417,6 +420,7 @@ message LocalServiceDescriptor {
   string detail                  = 9;
   string installed_at            = 10;
   string updated_at              = 11;
+  ReasonCode reason_code         = 12;
 }
 
 // === Execution Apply Result ===

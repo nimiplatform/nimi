@@ -11,6 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { ReasonCode } from "./common";
 import { Struct } from "../../google/protobuf/struct";
 // === Source ===
 
@@ -161,6 +162,10 @@ export interface LocalAssetRecord {
      */
     endpoint: string;
     /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 32
+     */
+    reasonCode: ReasonCode;
+    /**
      * Passive-only fields
      *
      * @generated from protobuf field: google.protobuf.Struct metadata = 40
@@ -187,6 +192,10 @@ export interface LocalAssetHealth {
      * @generated from protobuf field: string endpoint = 4
      */
     endpoint: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 5
+     */
+    reasonCode: ReasonCode;
 }
 // === Verified Asset Descriptor (unified from Model + Artifact) ===
 
@@ -1059,6 +1068,10 @@ export interface LocalServiceDescriptor {
      * @generated from protobuf field: string updated_at = 11
      */
     updatedAt: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 12
+     */
+    reasonCode: ReasonCode;
 }
 // === Execution Apply Result ===
 
@@ -1942,6 +1955,7 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
             { no: 29, name: "local_invoke_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 30, name: "engine_config", kind: "message", T: () => Struct },
             { no: 31, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 32, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 40, name: "metadata", kind: "message", T: () => Struct }
         ]);
     }
@@ -1969,6 +1983,7 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         message.warmState = 0;
         message.localInvokeProfileId = "";
         message.endpoint = "";
+        message.reasonCode = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAssetRecord>(this, message, value);
         return message;
@@ -2052,6 +2067,9 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
                     break;
                 case /* string endpoint */ 31:
                     message.endpoint = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 32:
+                    message.reasonCode = reader.int32();
                     break;
                 case /* google.protobuf.Struct metadata */ 40:
                     message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
@@ -2159,6 +2177,9 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         /* string endpoint = 31; */
         if (message.endpoint !== "")
             writer.tag(31, WireType.LengthDelimited).string(message.endpoint);
+        /* nimi.runtime.v1.ReasonCode reason_code = 32; */
+        if (message.reasonCode !== 0)
+            writer.tag(32, WireType.Varint).int32(message.reasonCode);
         /* google.protobuf.Struct metadata = 40; */
         if (message.metadata)
             Struct.internalBinaryWrite(message.metadata, writer.tag(40, WireType.LengthDelimited).fork(), options).join();
@@ -2179,7 +2200,8 @@ class LocalAssetHealth$Type extends MessageType<LocalAssetHealth> {
             { no: 1, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.LocalAssetStatus", LocalAssetStatus, "LOCAL_ASSET_STATUS_"] },
             { no: 3, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
     create(value?: PartialMessage<LocalAssetHealth>): LocalAssetHealth {
@@ -2188,6 +2210,7 @@ class LocalAssetHealth$Type extends MessageType<LocalAssetHealth> {
         message.status = 0;
         message.detail = "";
         message.endpoint = "";
+        message.reasonCode = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAssetHealth>(this, message, value);
         return message;
@@ -2208,6 +2231,9 @@ class LocalAssetHealth$Type extends MessageType<LocalAssetHealth> {
                     break;
                 case /* string endpoint */ 4:
                     message.endpoint = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 5:
+                    message.reasonCode = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2233,6 +2259,9 @@ class LocalAssetHealth$Type extends MessageType<LocalAssetHealth> {
         /* string endpoint = 4; */
         if (message.endpoint !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.endpoint);
+        /* nimi.runtime.v1.ReasonCode reason_code = 5; */
+        if (message.reasonCode !== 0)
+            writer.tag(5, WireType.Varint).int32(message.reasonCode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4525,7 +4554,8 @@ class LocalServiceDescriptor$Type extends MessageType<LocalServiceDescriptor> {
             { no: 8, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.LocalServiceStatus", LocalServiceStatus, "LOCAL_SERVICE_STATUS_"] },
             { no: 9, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "installed_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 11, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
     create(value?: PartialMessage<LocalServiceDescriptor>): LocalServiceDescriptor {
@@ -4541,6 +4571,7 @@ class LocalServiceDescriptor$Type extends MessageType<LocalServiceDescriptor> {
         message.detail = "";
         message.installedAt = "";
         message.updatedAt = "";
+        message.reasonCode = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalServiceDescriptor>(this, message, value);
         return message;
@@ -4582,6 +4613,9 @@ class LocalServiceDescriptor$Type extends MessageType<LocalServiceDescriptor> {
                     break;
                 case /* string updated_at */ 11:
                     message.updatedAt = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 12:
+                    message.reasonCode = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4628,6 +4662,9 @@ class LocalServiceDescriptor$Type extends MessageType<LocalServiceDescriptor> {
         /* string updated_at = 11; */
         if (message.updatedAt !== "")
             writer.tag(11, WireType.LengthDelimited).string(message.updatedAt);
+        /* nimi.runtime.v1.ReasonCode reason_code = 12; */
+        if (message.reasonCode !== 0)
+            writer.tag(12, WireType.Varint).int32(message.reasonCode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

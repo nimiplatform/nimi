@@ -37,9 +37,14 @@ nimi-mods/
 .vscode/
 .idea/
 .cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 _external/
 .claude/settings.local.json
+.claude/launch.json
+/$HOME/
 
 # legacy execution-doc roots are archive/local-only
 dev/
@@ -57,3 +62,23 @@ apps/desktop/reports/
 .tmp/
 .nimi/local/
 .nimi/cache/
+
+# python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.python-version
+.coverage
+.coverage.*
+htmlcov/
+build/
+site/
+.eggs/
+*.egg
+*.egg-info/
+.venv/
+venv/
+env/
+ENV/

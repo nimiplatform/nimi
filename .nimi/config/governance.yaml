@@ -176,6 +176,10 @@ ai_governance:
       - archive/**
       - docs/**
       - .local/**
+      - .nimi/spec/desktop/kernel/tables/rule-evidence.rules.yaml
+      - .nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml
+      - .nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml
+      - runtime/catalog/source/providers/dashscope.source.yaml
       - "**/generated/**"
       - "**/gen/**"
       - runtime/**/*.pb.go

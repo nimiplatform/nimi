@@ -24,10 +24,14 @@ QWEN3_TTS_DRIVER = load_module()
 
 
 class FakeTTSModel:
+    def __init__(self) -> None:
+        self.custom_voice_calls = []
+
     def get_supported_speakers(self):
         return ["Ryan", "Serena"]
 
     def generate_custom_voice(self, **kwargs):
+        self.custom_voice_calls.append(kwargs)
         return [[0.1, 0.2]], 24000
 
     def generate_voice_design(self, **kwargs):
@@ -42,11 +46,15 @@ class Qwen3TTSDriverTests(unittest.TestCase):
         self._old_modules = dict(sys.modules)
         sys.modules["qwen_tts"] = types.ModuleType("qwen_tts")
         sys.modules["soundfile"] = types.ModuleType("soundfile")
+        huggingface_hub = types.ModuleType("huggingface_hub")
+        huggingface_hub.snapshot_download = lambda *args, **kwargs: "/tmp/mock-qwen3-tts-model"
+        sys.modules["huggingface_hub"] = huggingface_hub
 
     def tearDown(self) -> None:
         sys.modules.clear()
         sys.modules.update(self._old_modules)
         QWEN3_TTS_DRIVER._MODEL_CACHE.clear()
+        QWEN3_TTS_DRIVER._MODEL_PATH_CACHE.clear()
 
     def test_voice_design_handle_roundtrip(self) -> None:
         response = QWEN3_TTS_DRIVER.build_design_handle(
@@ -73,7 +81,8 @@ class Qwen3TTSDriverTests(unittest.TestCase):
         self.assertIn("audio.synthesize", response["supports"])
 
     def test_audio_synthesize_uses_custom_voice_path(self) -> None:
-        with mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model", return_value=FakeTTSModel()), \
+        model = FakeTTSModel()
+        with mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model", return_value=model), \
             mock.patch.object(QWEN3_TTS_DRIVER, "write_audio_artifact", return_value=("/tmp/out.wav", "audio/wav")):
             response = QWEN3_TTS_DRIVER.handle_request(
                 {"operation": "audio.synthesize", "input": "hello", "voice": "Ryan"},
@@ -81,6 +90,45 @@ class Qwen3TTSDriverTests(unittest.TestCase):
             )
         self.assertEqual(response["audio_path"], "/tmp/out.wav")
         self.assertEqual(response["content_type"], "audio/wav")
+        self.assertEqual(model.custom_voice_calls[0]["speaker"], "ryan")
+
+    def test_audio_synthesize_maps_user_custom_voice_to_default_speaker(self) -> None:
+        model = FakeTTSModel()
+        with mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model", return_value=model), \
+            mock.patch.object(QWEN3_TTS_DRIVER, "write_audio_artifact", return_value=("/tmp/out.wav", "audio/wav")):
+            response = QWEN3_TTS_DRIVER.handle_request(
+                {"operation": "audio.synthesize", "input": "hello", "voice": "user-custom"},
+                "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+            )
+        self.assertEqual(response["audio_path"], "/tmp/out.wav")
+        self.assertEqual(response["content_type"], "audio/wav")
+        self.assertEqual(model.custom_voice_calls[0]["speaker"], "ryan")
+
+    def test_materialize_model_ref_downloads_remote_snapshot(self) -> None:
+        with mock.patch.object(QWEN3_TTS_DRIVER, "resolve_hf_cache_dir", return_value="/tmp/hf"), \
+            mock.patch.object(sys.modules["huggingface_hub"], "snapshot_download", return_value="/tmp/qwen3-tts-model") as snapshot_download:
+            resolved = QWEN3_TTS_DRIVER.materialize_model_ref("Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
+        self.assertEqual(resolved, "/tmp/qwen3-tts-model")
+        snapshot_download.assert_called_once_with("Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", cache_dir="/tmp/hf")
+
+    def test_qwen3_tts_device_map_prefers_mps_when_available(self) -> None:
+        fake_torch = types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: False),
+            backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: True)),
+        )
+        with mock.patch.dict(sys.modules, {"torch": fake_torch}):
+            self.assertEqual(QWEN3_TTS_DRIVER.qwen3_tts_device_map(), "mps")
+
+    def test_qwen3_tts_dtype_uses_float32_on_mps(self) -> None:
+        fake_torch = types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: False),
+            backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: True)),
+            float16="float16",
+            bfloat16="bfloat16",
+            float32="float32",
+        )
+        with mock.patch.dict(sys.modules, {"torch": fake_torch}):
+            self.assertEqual(QWEN3_TTS_DRIVER.qwen3_tts_dtype(), "float32")
 
     def test_main_synthesize_writes_response_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -296,6 +296,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 					health := cloneServiceDescriptor(service)
 					detail := sanitizedServiceProbeDetail(fmt.Sprintf("recovery probe succeeded (%d/%d)", successes, localRecoverySuccessThreshold), s.serviceRuntimeMode(serviceID), nil)
 					health.Detail = detail
+					health.ReasonCode = projectionReasonCodeForEngine(service.GetEngine(), detail)
 					healthRows = append(healthRows, health)
 				}
 				continue
@@ -304,6 +305,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 			health := cloneServiceDescriptor(service)
 			detail := sanitizedServiceProbeDetail(defaultString(probe.detail, "service probe failed"), s.serviceRuntimeMode(serviceID), bootstrapErr)
 			health.Detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
+			health.ReasonCode = projectionReasonCodeForEngine(service.GetEngine(), health.GetDetail())
 			healthRows = append(healthRows, health)
 		case runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED:
 			s.resetServiceRecovery(serviceID)

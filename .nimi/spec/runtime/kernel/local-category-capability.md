@@ -98,6 +98,21 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
   - 若同一 runtime state root 允许多个 supervised llama worker 并存，必须先完成新的 spec cutover，明确 Service 拓扑、Engine truth、residency budget 与 eviction 语义
   - 在完成 cutover 前，runtime 不得把“多 worker 并驻”当作默认合法能力启用
 
+## K-LOCAL-008a Ordinary-user Local Speech Bundle Projection
+
+ordinary-user desktop local speech 可以投影为 canonical product object `Local Speech`，但该投影边界固定如下：
+
+- 它是 runtime-owned speech asset truth + service truth 上的 product projection，不是第二套 asset registry、service registry 或 catalog owner。
+- `bootstrap/env`、`host readiness`、`capability materialization` 必须保持分层：
+  - `bootstrap/env`：`qwen3_tts` / `qwen3_asr` env roots、cache root、launcher prerequisites
+  - `host readiness`：managed speech endpoint 已有受管 health/catalog proof
+  - `capability materialization`：仅当前被请求的 `audio.transcribe`、`audio.synthesize` 或 future-admitted `voice_workflow.*` slice 已 materialize
+- `bootstrap/env` 与 `host readiness` 不是独立 ordinary-user install object；它们属于同一 bundle download/init flow 的内部层。
+- 缺失 speech bundle slice 时，desktop 必须先要求显式 `Download` 用户确认；在确认前，desktop/Tauri 不得因 capability 选择、route 尝试或被动探测而静默触发 env/bootstrap、host init 或 capability download。
+- runtime 可以复用既有 env/cache/materialized slice；除非 repair/remove 明确要求，否则不得默认重下载或重 bootstrap。
+- capability materialization 必须保持按 capability 懒加载；满足一个 speech capability 不得自动预取全部 speech slices。
+- bundle projection 可以暴露 `awaiting_download_confirmation`、`initialized_but_incomplete`、`ready_partial`、`degraded` 等产品态，但这些都只是 projection label；canonical persistent lifecycle owner 仍固定为 `K-LOCAL-005`、`K-LOCAL-009`、`K-LOCAL-016` 下的 runtime truth。
+
 ## K-LOCAL-009 Install 语义
 
 `InstallVerifiedAsset` 与 `ImportLocalAsset` 的语义是注册 + 状态持久化（统一取代旧 `InstallVerifiedModel` / `InstallVerifiedArtifact` 与 `ImportLocalModel` / `ImportLocalArtifact`）：
@@ -108,6 +123,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 - 生成唯一 `local_asset_id`（ULID 格式）。
 - 初始状态为 `INSTALLED`（`K-LOCAL-005` 状态机锚点）。
 - runtime 既是注册真源，也是本地资产获取、导入、orphan scaffold/adopt、transfer/progress 与生命周期的唯一执行面；desktop 仅负责 shell-native/helper 能力。
+- ordinary-user speech bundle flow 若调用这些安装/注册 primitive，也只能作为 runtime-owned bundle projection 的底层执行步骤；desktop 不得把 primitive 调用面直接投影成第二套 speech install owner。
 - 重复安装同一 `asset_id` + `engine` + `kind` 组合时返回 `ALREADY_EXISTS` + `AI_LOCAL_ASSET_ALREADY_INSTALLED`。
 
 ## K-LOCAL-010 Verified 资产目录结构

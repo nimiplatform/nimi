@@ -227,6 +227,7 @@ func modelHealth(model *runtimev1.LocalAssetRecord) *runtimev1.LocalAssetHealth 
 		Status:       model.GetStatus(),
 		Detail:       detail,
 		Endpoint:     "",
+		ReasonCode:   projectionReasonCodeForEngine(model.GetEngine(), detail),
 	}
 }
 

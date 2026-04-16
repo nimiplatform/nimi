@@ -179,6 +179,21 @@ cut。
   - 其 workflow binding 固定收敛到 admitted `Qwen3-TTS` synth/workflow line，而不是 generic `speech`
   - 其它 local workflow family（包括 `voxcpm`、`omnivoice`）不得因为共享 `speech` engine 或共享 workflow object truth 而被隐式视为 admitted
 
+## K-MCAT-014a Desktop Local Speech Bundle Consumption
+
+runtime catalog / local admission truth for first-wave speech 必须继续保持 family-scoped 与 row-scoped：
+
+- `Qwen3-ASR` 仍是 admitted local `STT` family line
+- `Qwen3-TTS` synth / workflow rows 仍是 admitted local `qwen3_tts` family line
+- workflow binding truth 继续锚定在 admitted `Qwen3-TTS` synth/workflow line，而不是 generic `speech`
+
+desktop 可以把这些 admitted rows 消费为 ordinary-user `Local Speech` bundle projection，但必须满足：
+
+- bundle projection 只能读取/组合 runtime catalog truth 与 runtime-owned asset/service truth；不得新增第二套 bundle catalog、bundle row 或 generic local speech marketplace truth。
+- `qwen3_asr` 与 `qwen3_tts` 不得因为 desktop bundle 语义而被压扁成单一 canonical install row。
+- 显式 `Download`、env/bootstrap、host readiness、capability materialization 的 ordinary-user 产品语义必须服从 `K-LENG-*` 与 `K-LOCAL-*`；catalog 不得被 Desktop/Tauri helper 反向改写成 install truth owner。
+- bundle projection 的 admitted scope 仍固定为 first-wave local speech；不得借此把其它 speech family 或 generic speech marketplace 扩写为 canonical truth。
+
 ## K-MCAT-015 Dual Language Profile
 
 source schema 必须支持双轨语言配置：

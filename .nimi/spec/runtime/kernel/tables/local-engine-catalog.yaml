@@ -58,9 +58,18 @@ engines:
     phase1: true
     source_rule: K-LENG-004
     discovery: uv_managed_python
-    # Ordinary-user canonical local speech path. The readiness signature below
-    # applies only after an admitted plain-speech execution plane exists; the
-    # current bootstrap placeholder must remain non-ready and fail-closed.
+    # Ordinary-user canonical local speech path.
+    # Desktop consumes this as a bundle-shaped Local Speech setup surface, not
+    # as generic model-row install truth.
+    # Missing speech bundle slices must remain fail-closed until the user
+    # explicitly confirms Download. That confirmation may trigger env/bootstrap
+    # init, managed host readiness, and only the requested capability
+    # materialization.
+    # Capability downloads remain lazy/scoped; selecting one speech capability
+    # must not silently prefetch the other speech slices.
+    # The readiness signature below applies only after an admitted plain-speech
+    # execution plane exists; the current bootstrap placeholder must remain
+    # non-ready and fail-closed.
     # First-wave admitted family line:
     # - STT default lane: Qwen3-ASR-0.6B
     # - TTS default lane: Qwen3-TTS-12Hz-0.6B-CustomVoice

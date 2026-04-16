@@ -16,7 +16,26 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
+
+type staticProvider struct {
+	route runtimev1.RoutePolicy
+}
+
+func newStaticProvider(route runtimev1.RoutePolicy) provider {
+	return staticProvider{route: route}
+}
+
+func (p staticProvider) Route() runtimev1.RoutePolicy                { return p.route }
+func (p staticProvider) ResolveModelID(raw string) string            { return raw }
+func (p staticProvider) CheckModelAvailability(modelID string) error { return nil }
+func (p staticProvider) GenerateText(context.Context, string, *runtimev1.TextGenerateScenarioSpec, string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	return "", nil, runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED, nil
+}
+func (p staticProvider) Embed(context.Context, string, []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
+	return nil, nil, nil
+}
 
 func TestListPresetVoicesReturnsCatalogVoices(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
@@ -60,6 +79,13 @@ func TestListPresetVoicesInfersProviderTypeForCloudAlias(t *testing.T) {
 	}
 	if resp.GetModelResolved() == "" {
 		t.Fatalf("model resolved must be set for cloud alias")
+	}
+}
+
+func TestPresetVoiceCatalogProviderTypeNormalizesLocalSpeechProviderType(t *testing.T) {
+	got := presetVoiceCatalogProviderType(nil, newStaticProvider(runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL), "speech/qwen3tts")
+	if got != "local" {
+		t.Fatalf("presetVoiceCatalogProviderType(local speech) = %q, want %q", got, "local")
 	}
 }
 

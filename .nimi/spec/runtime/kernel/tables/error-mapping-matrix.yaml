@@ -418,6 +418,37 @@ mappings:
     surface: local_service_lifecycle_or_probe
     exit_shape: grpc_status_or_payload_ok_false
     source_rule: K-LOCAL-006
+  - reason_code: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_probe_or_consume
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-ERR-011
+  - reason_code: AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_probe_or_consume
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-ERR-011
+    note: "显式 Download 确认缺失时 fail-close；不得被 Desktop/SDK 投影成 silent bootstrap/download"
+  - reason_code: AI_LOCAL_SPEECH_ENV_INIT_FAILED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_prepare
+    exit_shape: grpc_status
+    source_rule: K-ERR-011
+  - reason_code: AI_LOCAL_SPEECH_HOST_INIT_FAILED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_prepare
+    exit_shape: grpc_status
+    source_rule: K-ERR-011
+  - reason_code: AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_materialize
+    exit_shape: grpc_status
+    source_rule: K-ERR-011
+  - reason_code: AI_LOCAL_SPEECH_BUNDLE_DEGRADED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_probe_or_consume
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-ERR-011
   - reason_code: AI_LOCAL_SERVICE_ALREADY_INSTALLED
     grpc_code: ALREADY_EXISTS
     surface: install_local_service_duplicate

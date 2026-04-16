@@ -75,9 +75,46 @@ The following remain outside runtime-owned persistent presentation truth unless 
 
 If a consumer needs these semantics, it must own them on the surface side or wait for later authority admission; runtime must not absorb them into `AgentPresentationProfile` as a generic state bag.
 
+## K-AGCORE-026a Desktop-Local Avatar Resource Non-Ownership
+
+Runtime does not own desktop-imported VRM or Live2D resource files, desktop-local avatar
+resource registries, or desktop per-agent local avatar bindings by default.
+
+Fixed rules:
+
+- desktop-local imported avatar assets under `{nimi_data_dir}` remain desktop storage
+  truth unless and until a separate admitted runtime asset ownership surface exists
+- desktop may derive a local render override from desktop-local binding while still
+  consuming runtime `AgentPresentationProfile` as the persistent cross-app baseline
+- runtime metadata, auxiliary profile fields, or generic agent settings must not be used
+  as a backdoor to smuggle desktop-local avatar registry or binding truth into
+  `AgentPresentationProfile`
+
+## K-AGCORE-026b Desktop-Local Live2D Viewport Non-Ownership
+
+Runtime does not own the desktop-local Live2D viewport lifecycle, desktop-local Live2D
+runtime packaging, or the active surface's load-fail fallback decision.
+
+Fixed rules:
+
+- runtime-owned `AgentPresentationProfile` may still provide the persistent cross-app
+  baseline presentation, but desktop-local Live2D render support must not rewrite that
+  profile as a side effect of local viewport success or failure
+- renderer-local Live2D load status, runtime-availability diagnostics, motion/runtime
+  handles, and current fallback branch must remain surface-local or desktop-local
+  implementation detail; they must not be promoted into runtime canonical presentation
+  truth
+- desktop may continue canonical render precedence after a local Live2D failure, but that
+  continuation must consume existing runtime presentation truth rather than asking runtime
+  to own the failed desktop-local viewport lifecycle
+- runtime must not be treated as the owner of desktop-imported Cubism runtime files,
+  desktop-local model staging assets, or first-wave right-rail parity policy
+
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-core-contract.md` — runtime-owned live agent lifecycle and app-facing control-plane boundary
 - `.nimi/spec/runtime/kernel/voice-contract.md` — runtime-owned `VoiceReference` and voice asset truth
 - `.nimi/local/report/ongoing/2026-04-15-agent-live-avatar-airi-audit/design.md` — topic-local authority blueprint and landing rationale
 - `.nimi/local/report/ongoing/2026-04-15-agent-live-avatar-airi-audit/preflight.md` — admitted high-risk scope and non-owner framing
+- `.nimi/local/report/ongoing/2026-04-17-desktop-agent-local-avatar-resource-binding/design.md` — desktop-local avatar binding non-owner rationale
+- `.nimi/local/report/proposal/2026-04-17-desktop-agent-live2d-render-integration/design.md` — desktop-local Live2D viewport non-owner rationale

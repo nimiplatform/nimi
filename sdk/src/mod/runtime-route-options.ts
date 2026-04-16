@@ -41,7 +41,12 @@ function inferCanonicalLocalEngine(
   if (capability === 'image.generate' || capability === 'video.generate') {
     return 'media';
   }
-  if (capability === 'audio.synthesize' || capability === 'audio.transcribe') {
+  if (
+    capability === 'audio.synthesize'
+    || capability === 'audio.transcribe'
+    || capability === 'voice_workflow.tts_v2v'
+    || capability === 'voice_workflow.tts_t2v'
+  ) {
     return 'speech';
   }
   return 'llama';

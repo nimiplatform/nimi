@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"google.golang.org/grpc/codes"
 )
 
 type fakeLocalModelLister struct {
@@ -407,6 +408,97 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected warm failure to map to local model unavailable, got=%v ok=%v", reason, ok)
 	}
+
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId: "local-speech-start",
+				AssetId:      "speech/qwen3tts",
+				Engine:       "speech",
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+				Capabilities: []string{"audio.synthesize"},
+			}},
+		}},
+		startErr: grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED),
+	}
+	err = svc.validateLocalModelRequest(context.Background(), "speech/qwen3tts", nil, runtimev1.Modal_MODAL_TTS)
+	reason, ok = grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED {
+		t.Fatalf("expected structured speech host failure to be preserved, got=%v ok=%v err=%v", reason, ok, err)
+	}
+
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId: "local-speech-degraded",
+				AssetId:      "speech/whisper-large-v3",
+				Engine:       "speech",
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+				Capabilities: []string{"audio.transcribe"},
+			}},
+		}},
+		startResp: &runtimev1.StartLocalAssetResponse{
+			Asset: &runtimev1.LocalAssetRecord{
+				LocalAssetId: "local-speech-degraded",
+				AssetId:      "speech/whisper-large-v3",
+				Engine:       "speech",
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+				Capabilities: []string{"audio.transcribe"},
+				HealthDetail: `speech probe missing required capability "audio.transcribe" for "speech/whisper-large-v3"; available_capabilities=audio.synthesize`,
+			},
+		},
+	}
+	err = svc.validateLocalModelRequest(context.Background(), "speech/whisper-large-v3", nil, runtimev1.Modal_MODAL_STT)
+	reason, ok = grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED {
+		t.Fatalf("expected speech degraded start detail to map to bundle degraded, got=%v ok=%v err=%v", reason, ok, err)
+	}
+
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId: "local-speech-capability-download",
+				AssetId:      "speech/qwen3tts",
+				Engine:       "speech",
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+				Capabilities: []string{"audio.synthesize"},
+			}},
+		}},
+		startResp: &runtimev1.StartLocalAssetResponse{
+			Asset: &runtimev1.LocalAssetRecord{
+				LocalAssetId: "local-speech-capability-download",
+				AssetId:      "speech/qwen3tts",
+				Engine:       "speech",
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+				Capabilities: []string{"audio.synthesize"},
+				HealthDetail: `speech probe missing expected model "speech/qwen3tts"; available_models=speech/qwen3-asr`,
+			},
+		},
+	}
+	err = svc.validateLocalModelRequest(context.Background(), "speech/qwen3tts", nil, runtimev1.Modal_MODAL_TTS)
+	reason, ok = grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED {
+		t.Fatalf("expected speech missing-model detail to map to capability download failed, got=%v ok=%v err=%v", reason, ok, err)
+	}
+
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId: "local-speech-projected-unhealthy",
+				AssetId:      "speech/qwen3tts",
+				Engine:       "speech",
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+				Capabilities: []string{"audio.synthesize"},
+				HealthDetail: `speech probe missing expected model "speech/qwen3tts"; available_models=speech/qwen3-asr`,
+				ReasonCode:   runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED,
+			}},
+		}},
+	}
+	err = svc.validateLocalModelRequest(context.Background(), "speech/qwen3tts", nil, runtimev1.Modal_MODAL_TTS)
+	reason, ok = grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED {
+		t.Fatalf("expected unhealthy speech projection reason to be preserved, got=%v ok=%v err=%v", reason, ok, err)
+	}
 }
 
 func TestValidateLocalModelRequestRejectsUnsupportedExplicitEngineModal(t *testing.T) {
@@ -447,6 +539,20 @@ func TestValidateLocalModelRequestIncludesUnhealthyDetail(t *testing.T) {
 	}
 	if err == nil || !strings.Contains(err.Error(), "CUDA-ready NVIDIA runtime") {
 		t.Fatalf("expected unhealthy detail in structured error payload, got %v", err)
+	}
+}
+
+func TestLocalSpeechReasonCodeFromDetailSupportsDownloadConfirmationRequired(t *testing.T) {
+	reason, ok := localSpeechReasonCodeFromDetail("Explicit download confirmation is required before local speech setup can continue.")
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED {
+		t.Fatalf("expected speech download confirmation required, got=%v ok=%v", reason, ok)
+	}
+}
+
+func TestLocalSpeechReasonCodeFromDetailIgnoresNonSpeechDetail(t *testing.T) {
+	reason, ok := localSpeechReasonCodeFromDetail("media supervised mode requires a CUDA-ready NVIDIA runtime")
+	if ok || reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		t.Fatalf("expected non-speech detail to remain unmapped, got=%v ok=%v", reason, ok)
 	}
 }
 

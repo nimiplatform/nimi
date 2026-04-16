@@ -585,6 +585,32 @@ export enum ReasonCode {
      */
     APP_MESSAGE_LOOP_DETECTED = 552,
     /**
+     * LOCAL_SPEECH family (560+)
+     *
+     * @generated from protobuf enum value: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED = 560;
+     */
+    AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED = 560,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED = 561;
+     */
+    AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED = 561,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_SPEECH_ENV_INIT_FAILED = 562;
+     */
+    AI_LOCAL_SPEECH_ENV_INIT_FAILED = 562,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_SPEECH_HOST_INIT_FAILED = 563;
+     */
+    AI_LOCAL_SPEECH_HOST_INIT_FAILED = 563,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED = 564;
+     */
+    AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED = 564,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_SPEECH_BUNDLE_DEGRADED = 565;
+     */
+    AI_LOCAL_SPEECH_BUNDLE_DEGRADED = 565,
+    /**
      * GRANT family (510+)
      *
      * @generated from protobuf enum value: GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND = 510;

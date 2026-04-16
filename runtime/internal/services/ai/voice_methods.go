@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
@@ -21,6 +22,28 @@ import (
 
 const maxListVoiceAssetsPageSize = 200
 const maxVoiceAssetReconciliationSweep = 8
+
+func presetVoiceCatalogProviderType(remoteTarget *nimillm.RemoteTarget, selectedProvider provider, modelResolved string) string {
+	if remoteTarget != nil {
+		return strings.TrimSpace(remoteTarget.ProviderType)
+	}
+	providerType := inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved, runtimev1.Modal_MODAL_TTS)
+	if providerType == "" && selectedProvider != nil && selectedProvider.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		normalizedModel := strings.ToLower(strings.TrimSpace(modelResolved))
+		if idx := strings.Index(normalizedModel, "/"); idx > 0 {
+			candidate := strings.TrimSpace(normalizedModel[:idx])
+			if localrouting.IsKnownProvider(candidate) {
+				providerType = candidate
+			}
+		}
+	}
+	if selectedProvider != nil &&
+		selectedProvider.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL &&
+		localrouting.IsKnownProvider(providerType) {
+		return "local"
+	}
+	return providerType
+}
 
 func (s *Service) GetVoiceAsset(_ context.Context, req *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetVoiceAssetId()) == "" {
@@ -291,12 +314,7 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 	}
 	s.recordRouteAutoSwitch(appID, subjectUserID, effectiveModelID, modelResolved, routeInfo)
 
-	providerType := ""
-	if remoteTarget != nil {
-		providerType = strings.TrimSpace(remoteTarget.ProviderType)
-	} else {
-		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved, runtimev1.Modal_MODAL_TTS)
-	}
+	providerType := presetVoiceCatalogProviderType(remoteTarget, selectedProvider, modelResolved)
 	voices, source, catalogVersion, err := resolveCatalogVoicesForSubject(ctx, modelResolved, providerType, s.speechCatalog)
 	if err != nil {
 		return nil, err

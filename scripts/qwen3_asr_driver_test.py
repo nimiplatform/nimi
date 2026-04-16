@@ -69,6 +69,14 @@ class Qwen3ASRDriverTests(unittest.TestCase):
         self.assertEqual(response["language"], "English")
         self.assertEqual(len(response["time_stamps"]), 1)
 
+    def test_qwen3_asr_device_map_prefers_mps_when_available(self) -> None:
+        fake_torch = types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: False),
+            backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: True)),
+        )
+        with mock.patch.dict(sys.modules, {"torch": fake_torch}):
+            self.assertEqual(QWEN3_ASR_DRIVER.qwen3_asr_device_map(), "mps")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -47,6 +47,7 @@ type localStateAssetState struct {
 	InstalledAt       string            `json:"installedAt"`
 	UpdatedAt         string            `json:"updatedAt"`
 	HealthDetail      string            `json:"healthDetail"`
+	ReasonCode        string            `json:"reasonCode,omitempty"`
 	EngineRuntimeMode int32             `json:"engineRuntimeMode,omitempty"`
 	Endpoint          string            `json:"endpoint,omitempty"`
 	// Runnable-only fields
@@ -75,6 +76,7 @@ type localStateServiceState struct {
 	LocalModelID      string   `json:"localModelId"`
 	Status            int32    `json:"status"`
 	Detail            string   `json:"detail"`
+	ReasonCode        string   `json:"reasonCode,omitempty"`
 	InstalledAt       string   `json:"installedAt"`
 	UpdatedAt         string   `json:"updatedAt"`
 	EngineRuntimeMode int32    `json:"engineRuntimeMode,omitempty"`
@@ -162,6 +164,7 @@ func (s *Service) restoreState() error {
 			InstalledAt:          item.InstalledAt,
 			UpdatedAt:            item.UpdatedAt,
 			HealthDetail:         item.HealthDetail,
+			ReasonCode:           parseProjectionReasonCode(item.ReasonCode),
 			Endpoint:             item.Endpoint,
 			Capabilities:         normalizeStringSlice(item.Capabilities),
 			LogicalModelId:       item.LogicalModelID,
@@ -211,6 +214,7 @@ func (s *Service) restoreState() error {
 			LocalModelId: item.LocalModelID,
 			Status:       runtimev1.LocalServiceStatus(item.Status),
 			Detail:       item.Detail,
+			ReasonCode:   parseProjectionReasonCode(item.ReasonCode),
 			InstalledAt:  item.InstalledAt,
 			UpdatedAt:    item.UpdatedAt,
 		}
@@ -321,6 +325,7 @@ func (s *Service) persistStateLocked() {
 			InstalledAt:          asset.GetInstalledAt(),
 			UpdatedAt:            asset.GetUpdatedAt(),
 			HealthDetail:         asset.GetHealthDetail(),
+			ReasonCode:           formatProjectionReasonCode(asset.GetReasonCode()),
 			EngineRuntimeMode:    int32(s.assetRuntimeModes[id]),
 			Endpoint:             asset.GetEndpoint(),
 			Capabilities:         append([]string(nil), asset.GetCapabilities()...),
@@ -358,6 +363,7 @@ func (s *Service) persistStateLocked() {
 			LocalModelID:      service.GetLocalModelId(),
 			Status:            int32(service.GetStatus()),
 			Detail:            service.GetDetail(),
+			ReasonCode:        formatProjectionReasonCode(service.GetReasonCode()),
 			InstalledAt:       service.GetInstalledAt(),
 			UpdatedAt:         service.GetUpdatedAt(),
 			EngineRuntimeMode: int32(s.serviceRuntimeModes[id]),
@@ -422,6 +428,25 @@ func (s *Service) persistStateLocked() {
 	if err := saveLocalStateSnapshot(path, snapshot); err != nil {
 		s.logger.Warn("persist local runtime state failed", "path", path, "error", err)
 	}
+}
+
+func parseProjectionReasonCode(raw string) runtimev1.ReasonCode {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	}
+	value, ok := runtimev1.ReasonCode_value[trimmed]
+	if !ok {
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	}
+	return runtimev1.ReasonCode(value)
+}
+
+func formatProjectionReasonCode(reason runtimev1.ReasonCode) string {
+	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return ""
+	}
+	return reason.String()
 }
 
 func loadLocalStateSnapshot(path string) (localStateSnapshot, error) {

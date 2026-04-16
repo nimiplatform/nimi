@@ -70,6 +70,8 @@ def qwen3_asr_device_map() -> str:
 
         if torch.cuda.is_available():
             return "cuda:0"
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
     except Exception:
         pass
     return "cpu"
@@ -89,6 +91,8 @@ def qwen3_asr_dtype():
         return torch.float32
     if qwen3_asr_device_map() == "cpu":
         return torch.float32
+    if qwen3_asr_device_map() == "mps":
+        return torch.float16
     return torch.bfloat16
 
 

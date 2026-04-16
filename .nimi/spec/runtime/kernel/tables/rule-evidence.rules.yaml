@@ -403,6 +403,9 @@
 - rule_id: K-ERR-010
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-ERR-011
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-GATE-001
   status: covered
   evidence_refs: [runtime_kernel_consistency]
@@ -659,6 +662,9 @@
 - rule_id: K-LOCAL-008
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-LOCAL-008a
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-LOCAL-009
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
@@ -771,6 +777,9 @@
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_catalog_drift]
 - rule_id: K-MCAT-014
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_catalog_drift]
+- rule_id: K-MCAT-014a
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_catalog_drift]
 - rule_id: K-MCAT-015
@@ -1363,6 +1372,12 @@
   status: covered
   evidence_refs: [runtime_kernel_consistency]
 - rule_id: K-AGCORE-026
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-026a
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-026b
   status: covered
   evidence_refs: [runtime_kernel_consistency]
 - rule_id: K-RPC-004a

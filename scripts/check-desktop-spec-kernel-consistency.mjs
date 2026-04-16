@@ -986,6 +986,8 @@ function checkLocalRuntimeIpcConsistency() {
   const rustPath = 'apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs';
   const tsPaths = [
     'apps/desktop/src/runtime/local-runtime/commands.ts',
+    'apps/desktop/src/runtime/local-runtime/commands-assets.ts',
+    'apps/desktop/src/runtime/local-runtime/commands-services.ts',
     'apps/desktop/src/runtime/local-runtime/commands-pickers.ts',
   ];
   if (!fileExists(tablePath) || !fileExists(rustPath) || tsPaths.some((rel) => !fileExists(rel))) {

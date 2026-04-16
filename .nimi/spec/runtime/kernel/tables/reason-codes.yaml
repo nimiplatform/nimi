@@ -7,7 +7,7 @@ numbering_note: |
   300+ AUTH, 310+ CONNECTOR, 330+ REQUEST_CREDENTIAL, 340+ APP,
   350+ MODEL, 370+ FINISH, 380+ MODEL_ROUTE, 390+ PROVIDER,
   410+ MEDIA, 420+ VOICE, 430+ MODULE, 500+ APP_AUTH, 510+ GRANT,
-  520+ PAGE, 530+ KNOWLEDGE。
+  520+ PAGE, 530+ KNOWLEDGE, 560+ LOCAL_SPEECH。
   遗留值冻结以保持线格式兼容性，不再分配 200-299 范围的新值。
   消费端指导：客户端应按 reason_code 名称（string）匹配，
   而非按数值比较。遗留编号与新编号语义等价，消费端统一处理即可。
@@ -530,3 +530,27 @@ codes:
     value: 552
     family: APP_MESSAGE
     source_rule: K-APP-005
+  - name: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
+    value: 560
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011
+  - name: AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED
+    value: 561
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011
+  - name: AI_LOCAL_SPEECH_ENV_INIT_FAILED
+    value: 562
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011
+  - name: AI_LOCAL_SPEECH_HOST_INIT_FAILED
+    value: 563
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011
+  - name: AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED
+    value: 564
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011
+  - name: AI_LOCAL_SPEECH_BUNDLE_DEGRADED
+    value: 565
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011

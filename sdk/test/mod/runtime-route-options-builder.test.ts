@@ -98,6 +98,54 @@ test('buildRuntimeRouteSelectedBinding canonicalizes local plain-speech bindings
     engine: 'speech',
     goRuntimeStatus: 'degraded',
   });
+
+  const voiceCloneSelected = buildRuntimeRouteSelectedBinding({
+    capability: 'voice_workflow.tts_v2v',
+    selectedBinding: {
+      source: 'local',
+      connectorId: '',
+      model: 'speech/qwen3tts-base',
+      modelId: 'speech/qwen3tts-base',
+      provider: 'local',
+    },
+    localModels: [],
+    connectors: [],
+    localMetadataDegraded: true,
+  });
+
+  assert.deepEqual(voiceCloneSelected, {
+    source: 'local',
+    connectorId: '',
+    model: 'speech/qwen3tts-base',
+    modelId: 'speech/qwen3tts-base',
+    provider: 'speech',
+    engine: 'speech',
+    goRuntimeStatus: 'degraded',
+  });
+
+  const voiceDesignSelected = buildRuntimeRouteSelectedBinding({
+    capability: 'voice_workflow.tts_t2v',
+    selectedBinding: {
+      source: 'local',
+      connectorId: '',
+      model: 'speech/qwen3tts-design',
+      modelId: 'speech/qwen3tts-design',
+      provider: 'local',
+    },
+    localModels: [],
+    connectors: [],
+    localMetadataDegraded: true,
+  });
+
+  assert.deepEqual(voiceDesignSelected, {
+    source: 'local',
+    connectorId: '',
+    model: 'speech/qwen3tts-design',
+    modelId: 'speech/qwen3tts-design',
+    provider: 'speech',
+    engine: 'speech',
+    goRuntimeStatus: 'degraded',
+  });
 });
 
 test('buildRuntimeRouteOptionsSnapshot picks local default first and hydrates cloud provider from connector options', () => {

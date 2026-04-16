@@ -48,80 +48,81 @@ func (s *Service) ListEngines(_ context.Context, _ *runtimev1.ListEnginesRequest
 }
 
 func (s *Service) EnsureEngine(ctx context.Context, req *runtimev1.EnsureEngineRequest) (*runtimev1.EnsureEngineResponse, error) {
-	mgr, err := s.getEngineManager()
-	if err != nil {
-		return nil, err
-	}
 	engine := strings.TrimSpace(req.GetEngine())
 	if engine == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	mgr, err := s.getEngineManager()
+	if err != nil {
+		return nil, err
+	}
 	version := strings.TrimSpace(req.GetVersion())
 	if err := mgr.EnsureEngine(ctx, engine, version); err != nil {
-		return nil, mapEngineManagerError("ensure", err)
+		return nil, mapEngineManagerError(engine, "ensure", err)
 	}
 	info, _ := mgr.EngineStatus(engine)
 	return &runtimev1.EnsureEngineResponse{Engine: engineInfoToProto(info)}, nil
 }
 
 func (s *Service) StartEngine(ctx context.Context, req *runtimev1.StartEngineRequest) (*runtimev1.StartEngineResponse, error) {
-	mgr, err := s.getEngineManager()
-	if err != nil {
-		return nil, err
-	}
 	engine := strings.TrimSpace(req.GetEngine())
 	if engine == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	mgr, err := s.getEngineManager()
+	if err != nil {
+		return nil, err
+	}
 	port := int(req.GetPort())
 	version := strings.TrimSpace(req.GetVersion())
 	if err := mgr.StartEngine(ctx, engine, port, version); err != nil {
-		return nil, mapEngineManagerError("start", err)
+		return nil, mapEngineManagerError(engine, "start", err)
 	}
 	info, _ := mgr.EngineStatus(engine)
 	return &runtimev1.StartEngineResponse{Engine: engineInfoToProto(info)}, nil
 }
 
 func (s *Service) StopEngine(_ context.Context, req *runtimev1.StopEngineRequest) (*runtimev1.StopEngineResponse, error) {
-	mgr, err := s.getEngineManager()
-	if err != nil {
-		return nil, err
-	}
 	engine := strings.TrimSpace(req.GetEngine())
 	if engine == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	mgr, err := s.getEngineManager()
+	if err != nil {
+		return nil, err
+	}
 	// Get info before stopping for response.
 	info, _ := mgr.EngineStatus(engine)
 	if err := mgr.StopEngine(engine); err != nil {
-		return nil, mapEngineManagerError("stop", err)
+		return nil, mapEngineManagerError(engine, "stop", err)
 	}
 	info.Status = "stopped"
 	return &runtimev1.StopEngineResponse{Engine: engineInfoToProto(info)}, nil
 }
 
 func (s *Service) GetEngineStatus(_ context.Context, req *runtimev1.GetEngineStatusRequest) (*runtimev1.GetEngineStatusResponse, error) {
-	mgr, err := s.getEngineManager()
-	if err != nil {
-		return nil, err
-	}
 	engine := strings.TrimSpace(req.GetEngine())
 	if engine == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	mgr, err := s.getEngineManager()
+	if err != nil {
+		return nil, err
+	}
 	info, err := mgr.EngineStatus(engine)
 	if err != nil {
-		return nil, mapEngineManagerError("status", err)
+		return nil, mapEngineManagerError(engine, "status", err)
 	}
 	return &runtimev1.GetEngineStatusResponse{Engine: engineInfoToProto(info)}, nil
 }
 
-func mapEngineManagerError(operation string, err error) error {
+func mapEngineManagerError(engine string, operation string, err error) error {
 	if err == nil {
 		return nil
 	}
 	raw := strings.TrimSpace(err.Error())
 	lower := strings.ToLower(raw)
+	speechEngine := strings.EqualFold(strings.TrimSpace(engine), "speech")
 
 	if strings.Contains(lower, "unknown engine") || strings.Contains(lower, "engine kind") {
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{
@@ -157,9 +158,34 @@ func mapEngineManagerError(operation string, err error) error {
 		strings.Contains(lower, "requires windows x64") ||
 		strings.Contains(lower, "requires an nvidia gpu") ||
 		strings.Contains(lower, "requires a cuda-ready nvidia runtime") {
+		if speechEngine {
+			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED, grpcerr.ReasonOptions{
+				Message:    "local speech preflight blocked on this host",
+				ActionHint: "configure_attached_endpoint_or_use_supported_host",
+				Metadata: map[string]string{
+					"detail": raw,
+				},
+			})
+		}
 		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    "engine supervised mode is unavailable on this host",
 			ActionHint: "configure_attached_endpoint_or_use_supported_host",
+			Metadata: map[string]string{
+				"detail": raw,
+			},
+		})
+	}
+
+	if speechEngine &&
+		(strings.Contains(lower, "download") ||
+			strings.Contains(lower, "ensure uv for speech") ||
+			strings.Contains(lower, "ensure managed python for speech") ||
+			strings.Contains(lower, "write speech server script") ||
+			strings.Contains(lower, "install speech dependencies") ||
+			strings.Contains(lower, "write speech dependency stamp")) {
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SPEECH_ENV_INIT_FAILED, grpcerr.ReasonOptions{
+			Message:    "local speech environment initialization failed",
+			ActionHint: "retry_or_repair_local_speech_environment",
 			Metadata: map[string]string{
 				"detail": raw,
 			},
@@ -191,6 +217,15 @@ func mapEngineManagerError(operation string, err error) error {
 		strings.Contains(lower, "probe") ||
 		strings.Contains(lower, "port") ||
 		strings.Contains(lower, "connect") {
+		if speechEngine {
+			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED, grpcerr.ReasonOptions{
+				Message:    "local speech host unavailable during " + operation,
+				ActionHint: "retry_or_check_local_speech_host",
+				Metadata: map[string]string{
+					"detail": raw,
+				},
+			})
+		}
 		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    "engine unavailable during " + operation,
 			ActionHint: "retry_or_check_engine_runtime",

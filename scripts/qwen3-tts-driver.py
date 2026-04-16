@@ -16,9 +16,10 @@ from typing import Any
 VOICE_DESIGN_PREFIX = "qwen3_tts:design:"
 VOICE_CLONE_PREFIX = "qwen3_tts:clone:"
 DEFAULT_TTS_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
-DEFAULT_MAX_NEW_TOKENS = 1024
+DEFAULT_MAX_NEW_TOKENS = 256
 
 _MODEL_CACHE: dict[tuple[str, str, str], Any] = {}
+_MODEL_PATH_CACHE: dict[str, str] = {}
 
 
 def fail(message: str) -> None:
@@ -89,6 +90,8 @@ def qwen3_tts_device_map() -> str:
 
         if torch.cuda.is_available():
             return "cuda"
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
     except Exception:
         pass
     return "cpu"
@@ -107,6 +110,8 @@ def qwen3_tts_dtype():
     if requested in {"float32", "fp32"}:
         return torch.float32
     if qwen3_tts_device_map() == "cpu":
+        return torch.float32
+    if qwen3_tts_device_map() == "mps":
         return torch.float32
     return torch.bfloat16
 
@@ -190,6 +195,31 @@ def cached_model_key(model_ref: str) -> tuple[str, str, str]:
     return model_ref, device_map, dtype_name
 
 
+def resolve_hf_cache_dir() -> str | None:
+    for name in ("HUGGINGFACE_HUB_CACHE", "HF_HOME"):
+        value = str(os.environ.get(name) or "").strip()
+        if value:
+            return value
+    return None
+
+
+def materialize_model_ref(model_ref: str) -> str:
+    cached = _MODEL_PATH_CACHE.get(model_ref)
+    if cached:
+        return cached
+    if os.path.isdir(model_ref):
+        _MODEL_PATH_CACHE[model_ref] = model_ref
+        return model_ref
+    try:
+        from huggingface_hub import snapshot_download
+
+        resolved = snapshot_download(model_ref, cache_dir=resolve_hf_cache_dir())
+    except Exception as error:
+        fail(f"qwen3_tts snapshot download failed: {error}")
+    _MODEL_PATH_CACHE[model_ref] = resolved
+    return resolved
+
+
 def load_qwen_tts_model(model_ref: str):
     ensure_qwen_tts_importable()
     cache_key = cached_model_key(model_ref)
@@ -200,9 +230,10 @@ def load_qwen_tts_model(model_ref: str):
         from qwen_tts import Qwen3TTSModel
     except Exception as error:
         fail(f"qwen_tts import failed: {error}")
+    resolved_model_ref = materialize_model_ref(model_ref)
     try:
         model = Qwen3TTSModel.from_pretrained(
-            model_ref,
+            resolved_model_ref,
             device_map=qwen3_tts_device_map(),
             dtype=qwen3_tts_dtype(),
         )
@@ -331,7 +362,9 @@ def model_mode(model_ref: str) -> str:
 def synthesize_with_custom_voice(model: Any, request: dict[str, Any]) -> tuple[str, str]:
     text = require_string(request, "input")
     language = normalized_language(optional_string(request, "language"))
-    speaker = normalized_speaker(optional_string(request, "voice")) or default_speaker(model)
+    speaker = normalized_speaker(optional_string(request, "voice"))
+    if speaker in {"", "user-custom", "default"}:
+        speaker = default_speaker(model)
     instruct = optional_string(request, "emotion")
     if not instruct and isinstance(request.get("extensions"), dict):
         instruct = optional_string(request["extensions"], "instruct")
