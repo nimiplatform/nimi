@@ -122,11 +122,20 @@ export const KNOWLEDGE_SOURCES: readonly KnowledgeSource[] = [
     "owner": "product",
     "lastReviewedAt": null,
     "notes": "Observation remains needs-review for expert-style generation. Advisor may only use descriptive-only local-fact prompts; Phase 2 tag suggestion remains local closed-set against spec-backed quickTags after parent confirmation."
+  },
+  {
+    "domain": "outdoor",
+    "source": "WHO Myopia Prevention Guidelines (2019), NHC Child Eye Health Guidance (2023)",
+    "sourceLevel": "international",
+    "status": "reviewed",
+    "owner": "product",
+    "lastReviewedAt": "2026-04-16",
+    "notes": "Outdoor time and myopia prevention evidence is well-established. Advisor may provide reviewed-advice on outdoor activity habits."
   }
 ] ;
 
 /** Domains that have been reviewed and can be used in AI prompts */
-export const REVIEWED_DOMAINS: readonly string[] = ["sensitivity","sleep","sexuality","digital"] ;
+export const REVIEWED_DOMAINS: readonly string[] = ["sensitivity","sleep","sexuality","digital","outdoor"] ;
 
 /** Domains that need review — rules engine and static display only, NO AI free generation */
 export const NEEDS_REVIEW_DOMAINS: readonly string[] = ["vaccine","checkup","growth","vision","milestone","nutrition","dental","observation"] ;

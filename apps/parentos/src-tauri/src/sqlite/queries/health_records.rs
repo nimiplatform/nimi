@@ -73,6 +73,11 @@ const SECTION_QUERIES: &[(&str, &str, &str)] = &[
         "SELECT COUNT(*) FROM fitness_assessments WHERE childId = ?1",
         "SELECT MAX(createdAt) FROM fitness_assessments WHERE childId = ?1",
     ),
+    (
+        "outdoor",
+        "SELECT COUNT(*) FROM outdoor_records WHERE childId = ?1",
+        "SELECT MAX(createdAt) FROM outdoor_records WHERE childId = ?1",
+    ),
 ];
 
 #[tauri::command]

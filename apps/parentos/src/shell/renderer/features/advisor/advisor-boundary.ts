@@ -3,12 +3,15 @@ import type {
   JournalEntryRow,
   MeasurementRow,
   MilestoneRecordRow,
+  OutdoorRecordRow,
   VaccineRecordRow,
 } from '../../bridge/sqlite-bridge.js';
 import {
   getJournalEntries,
   getMeasurements,
   getMilestoneRecords,
+  getOutdoorGoal,
+  getOutdoorRecords,
   getVaccineRecords,
 } from '../../bridge/sqlite-bridge.js';
 
@@ -25,6 +28,8 @@ export interface AdvisorSnapshot {
   vaccines: VaccineRecordRow[];
   milestones: MilestoneRecordRow[];
   journalEntries: JournalEntryRow[];
+  outdoorRecords: OutdoorRecordRow[];
+  outdoorGoalMinutes: number | null;
 }
 
 export interface BuildAdvisorSnapshotInput {
@@ -51,6 +56,7 @@ const DOMAIN_KEYWORDS: Record<string, string[]> = {
   checkup: ['体检', '儿保', '检查', 'checkup'],
   growth: ['身高', '体重', '头围', '百分位', '生长', 'growth'],
   vision: ['视力', '散光', '远视储备', 'vision'],
+  outdoor: ['户外', '户外活动', '户外时间', '户外目标', 'outdoor', '近视防控', '日光'],
   milestone: ['里程碑', '发育', '会不会', 'milestone'],
   nutrition: ['辅食', '营养', '吃饭', '饮食', 'nutrition'],
   dental: ['牙', '口腔', '龋', 'dental'],
@@ -118,6 +124,26 @@ function summarizeMilestones(milestones: MilestoneRecordRow[]) {
   return `已达成 ${achieved.length} 项，最近记录 ${latest.milestoneId ?? '未知里程碑'}（${latest.achievedAt.slice(0, 10)}）`;
 }
 
+function summarizeOutdoor(records: OutdoorRecordRow[], goalMinutes: number | null) {
+  if (records.length === 0) {
+    return '暂无户外活动记录';
+  }
+
+  // Compute this week's total
+  const now = new Date();
+  const day = now.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setDate(monday.getDate() + mondayOffset);
+  const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
+  const thisWeek = records.filter((r) => r.activityDate >= weekStart);
+  const thisWeekTotal = thisWeek.reduce((sum, r) => sum + r.durationMinutes, 0);
+  const goal = goalMinutes ?? 630;
+
+  return `共 ${records.length} 条记录，本周累计 ${thisWeekTotal} 分钟（目标 ${goal} 分钟/周）`;
+}
+
 function summarizeJournal(journalEntries: JournalEntryRow[]) {
   const latest = journalEntries[0];
   if (!latest) {
@@ -128,11 +154,13 @@ function summarizeJournal(journalEntries: JournalEntryRow[]) {
 }
 
 export async function buildAdvisorSnapshot(input: BuildAdvisorSnapshotInput): Promise<AdvisorSnapshot> {
-  const [measurements, vaccines, milestones, journalEntries] = await Promise.all([
+  const [measurements, vaccines, milestones, journalEntries, outdoorRecords, outdoorGoal] = await Promise.all([
     getMeasurements(input.childId),
     getVaccineRecords(input.childId),
     getMilestoneRecords(input.childId),
     getJournalEntries(input.childId, 20),
+    getOutdoorRecords(input.childId),
+    getOutdoorGoal(input.childId),
   ]);
 
   return {
@@ -148,6 +176,8 @@ export async function buildAdvisorSnapshot(input: BuildAdvisorSnapshotInput): Pr
     vaccines,
     milestones,
     journalEntries,
+    outdoorRecords,
+    outdoorGoalMinutes: outdoorGoal,
   };
 }
 
@@ -290,6 +320,10 @@ export function buildStructuredAdvisorFallback(
 
   if (allDomains.includes('observation')) {
     lines.push(`观察记录：${summarizeJournal(snapshot.journalEntries)}`);
+  }
+
+  if (allDomains.includes('outdoor') || allDomains.includes('vision')) {
+    lines.push(`户外活动：${summarizeOutdoor(snapshot.outdoorRecords, snapshot.outdoorGoalMinutes)}`);
   }
 
   if (allDomains.length === 1 && allDomains[0] === 'profile') {

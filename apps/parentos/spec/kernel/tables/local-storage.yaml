@@ -28,6 +28,7 @@ tables:
       - { name: allergies, type: TEXT, nullable: true, description: "JSON array of known allergies" }
       - { name: medicalNotes, type: TEXT, nullable: true, description: "JSON array of medical notes" }
       - { name: recorderProfiles, type: TEXT, nullable: true, description: "JSON array of recorder profiles: [{id,name}]" }
+      - { name: outdoorGoalMinutes, type: INTEGER, nullable: true, description: "Weekly outdoor goal in minutes; null = not yet configured, suggested default 630" }
       - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
       - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
     indexes:
@@ -133,6 +134,8 @@ tables:
       - { name: guidedAnswers, type: TEXT, nullable: true, description: "JSON object keyed by guided question" }
       - { name: observationDuration, type: INTEGER, nullable: true }
       - { name: keepsake, type: INTEGER, nullable: false, default: 0, description: "0 | 1" }
+      - { name: keepsakeTitle, type: TEXT, nullable: true, description: "Optional title for a keepsake entry" }
+      - { name: keepsakeReason, type: TEXT, nullable: true, description: "commemorative | first-time | achievement | persistence | character | family-moment | other" }
       - { name: recorderId, type: TEXT, nullable: true, description: "Recorder identity such as dad | mom" }
       - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
       - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
@@ -331,6 +334,22 @@ tables:
     indexes:
       - { columns: [childId, assessedAt] }
 
+  # ── 户外活动记录 ──────────────────────────────────────────
+
+  - name: outdoor_records
+    description: "Per-child daily outdoor activity duration records for weekly goal tracking."
+    columns:
+      - { name: recordId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: activityDate, type: TEXT, nullable: false, description: "ISO 8601 date (YYYY-MM-DD)" }
+      - { name: durationMinutes, type: INTEGER, nullable: false, description: "Duration in minutes, must be > 0" }
+      - { name: note, type: TEXT, nullable: true, description: "Optional short note about the activity" }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, activityDate] }
+      - { columns: [childId, createdAt] }
+
   # ── 附件归档 ─────────────────────────────────────────────
 
   - name: attachments
@@ -381,5 +400,5 @@ constraints:
   - "JSON payloads are stored as TEXT and must remain valid JSON on read/write."
   - "childId is the primary filter field for child-scoped tables."
   - "growth_reports.reportType is limited to monthly | quarterly | quarterly-letter | custom."
-  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, attachments, custom_todos."
+  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, attachments, custom_todos."
   - "children.allergies JSON array remains as a quick-access summary; allergy_records is the structured source of truth."

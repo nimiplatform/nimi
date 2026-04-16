@@ -9,7 +9,7 @@
 field_contract:
   rule:
     ruleId:          { type: string, required: true, pattern: "^PO-REM-[A-Z]{3,6}-[0-9]{3}$" }
-    domain:          { type: enum, required: true, values: [vaccine, checkup, vision, dental, bone-age, growth, nutrition, sleep, motor, language, cognitive, social, emotional, sensitivity, hygiene, safety, interest, digital, finance, sexuality, values, career, independence, relationship, posture, fitness, tanner] }
+    domain:          { type: enum, required: true, values: [vaccine, checkup, vision, dental, bone-age, growth, nutrition, sleep, motor, language, cognitive, social, emotional, sensitivity, hygiene, safety, interest, digital, finance, sexuality, values, career, independence, relationship, posture, fitness, tanner, outdoor] }
     category:        { type: enum, required: true, values: [rigid, stage, personalized] }
     #   rigid         — 刚性提醒：有国家/国际标准的确定性事项（疫苗、体检）
     #   stage         — 阶段提醒：基于发育科学的阶段性关注事项（敏感期、窗口期）
@@ -513,6 +513,34 @@ rules:
     repeatRule: { intervalMonths: 6, maxRepeats: -1 }
     source: "NHC-vision-2023"
     tags: [myopia-monitoring]
+
+  # ── Outdoor (户外) ──────────────────────────────────────
+  # Source: WHO-2019 myopia-prevention guidelines, NHC-vision-2023
+
+  - ruleId: PO-REM-OUTD-001
+    domain: outdoor
+    category: stage
+    title: "每周户外目标 — 设定目标"
+    description: "为孩子设定每周户外活动目标。每天累计 2 小时以上的户外活动有助于降低近视风险。"
+    triggerAge: { startMonths: 6, endMonths: 216 }
+    priority: P1
+    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
+    actionType: record_data
+    source: "WHO-2019, NHC-vision-2023"
+    tags: [outdoor, myopia-prevention, habit]
+
+  - ruleId: PO-REM-OUTD-002
+    domain: outdoor
+    category: stage
+    title: "户外活动记录提醒"
+    description: "定期记录孩子的户外活动时长，帮助追踪每周户外目标完成进度。"
+    triggerAge: { startMonths: 6, endMonths: 216 }
+    priority: P2
+    nurtureMode: { relaxed: hidden, balanced: silent, advanced: push }
+    actionType: record_data
+    repeatRule: { intervalMonths: 0, maxRepeats: -1 }
+    source: "WHO-2019, NHC-vision-2023"
+    tags: [outdoor, myopia-prevention, weekly-tracking]
 
   # ── Dental (牙齿) ────────────────────────────────────────
   - ruleId: PO-REM-DEN-001

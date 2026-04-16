@@ -3,6 +3,7 @@ mod custom_todos;
 mod health_measurements;
 mod health_records;
 mod journal;
+mod outdoor;
 mod reminders;
 
 pub use assessments::*;
@@ -10,6 +11,7 @@ pub use custom_todos::*;
 pub use health_measurements::*;
 pub use health_records::*;
 pub use journal::*;
+pub use outdoor::*;
 pub use reminders::*;
 
 use rusqlite::params;

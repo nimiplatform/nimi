@@ -47,6 +47,7 @@ const ARCHIVE_SECTIONS: ArchiveSection[] = [
   { sectionId: 'posture', to: '/profile/posture', emoji: '🧍', label: '体态档案', desc: '脊柱侧弯、足弓和身体姿态评估', color: '#e5f0dc' },
   { sectionId: 'tanner', to: '/profile/tanner', emoji: '🌱', label: '青春期发育', desc: 'Tanner 分期、骨龄和青春期发育追踪', color: '#e2f0dc', ageGate: (age) => age >= 84 },
   { sectionId: 'fitness', to: '/profile/fitness', emoji: '🏃', label: '体能测评', desc: '体能测试成绩和运动能力评估', color: '#fbe8d4' },
+  { sectionId: 'outdoor', to: '/profile/outdoor', emoji: '🌳', label: '每周户外目标', desc: '户外活动记录、每周进度和趋势追踪', color: '#dcf0e5' },
 ];
 
 /* ── tool routes (non-archive) ──────────────────────────── */

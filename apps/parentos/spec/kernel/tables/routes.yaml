@@ -102,6 +102,14 @@ routes:
     routeKind: archive
     summarySource: fitness_assessments
 
+  - path: /profile/outdoor
+    displayName: "每周户外目标"
+    feature: profile
+    description: "户外活动记录、每周进度追踪和历史周回顾。"
+    parent: /profile
+    routeKind: archive
+    summarySource: outdoor_records
+
   - path: /profile/report-upload
     displayName: "智能识别"
     feature: profile
@@ -115,6 +123,13 @@ routes:
     description: "文字、照片、语音观察记录与 AI 标签建议。"
     nav: true
     icon: book-open
+
+  - path: /observe
+    displayName: "专项观察"
+    feature: journal
+    description: "进入专项观察工作流，记录带维度的结构化观察。"
+    parent: /journal
+    routeKind: tool
 
   - path: /reminders
     displayName: "提醒列表"

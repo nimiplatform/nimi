@@ -6,7 +6,7 @@
  * - local-storage.yaml ↔ sqlite migration DDL stay aligned
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
@@ -140,7 +140,8 @@ export function findStorageConsistencyErrors(input: {
 
     const ddl = match[1];
     for (const column of table.columns) {
-      if (!ddl.includes(column.name)) {
+      const addColumnRegex = new RegExp(`ALTER TABLE ${table.name} ADD COLUMN ${column.name}\\b`, 'i');
+      if (!ddl.includes(column.name) && !addColumnRegex.test(input.migrationsSqlSources)) {
         errors.push(`Column '${table.name}.${column.name}' missing from sqlite migrations`);
       }
     }
@@ -247,10 +248,10 @@ export function runSpecConsistencyCheck() {
     readFileSync(resolve(ROOT, 'spec/kernel/tables/local-storage.yaml'), 'utf-8'),
   ) as { tables: StorageTable[] };
 
-  const migrationsSqlSources = [
-    resolve(ROOT, 'src-tauri/src/sqlite/migrations.rs'),
-    resolve(ROOT, 'src-tauri/src/sqlite/migrations_schema.rs'),
-  ]
+  const sqliteDir = resolve(ROOT, 'src-tauri/src/sqlite');
+  const migrationsSqlSources = readdirSync(sqliteDir)
+    .filter((entry) => entry === 'migrations.rs' || /^migrations(?:_schema|_v\d+)\.rs$/.test(entry))
+    .map((entry) => resolve(sqliteDir, entry))
     .map((path) => readFileSync(path, 'utf-8'))
     .join('\n');
 

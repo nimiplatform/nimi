@@ -294,6 +294,14 @@ features:
     tables: [local-storage.yaml#growth_reports]
     runtimeDependency: "runtime.ai.text.generate"
 
+  - featureId: PO-FEAT-047
+    name: "Weekly outdoor goal"
+    phase: 1
+    priority: P1
+    contract: profile-contract
+    description: "Track weekly outdoor activity duration per child for myopia prevention habit management."
+    tables: [local-storage.yaml#outdoor_records, local-storage.yaml#children]
+
 constraints:
   - "The current baseline preserves the reminder -> record -> review core loop."
   - "Implemented AI features must stay within typed runtime contracts and the current knowledge-source-readiness gates."

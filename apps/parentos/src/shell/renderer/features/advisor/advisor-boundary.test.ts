@@ -87,6 +87,8 @@ const snapshot = {
       updatedAt: '2025-03-11T08:00:00.000Z',
     },
   ],
+  outdoorRecords: [],
+  outdoorGoalMinutes: null,
 };
 
 describe('advisor boundary', () => {

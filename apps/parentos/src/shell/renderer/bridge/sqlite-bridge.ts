@@ -4,6 +4,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
+import type { KeepsakeReason } from '../features/journal/journal-page-helpers.js';
 
 // ── Family ──────────────────────────────────────────────────
 
@@ -293,6 +294,8 @@ export interface JournalEntryRow {
   guidedAnswers: string | null;
   observationDuration: number | null;
   keepsake: number;
+  keepsakeTitle?: string | null;
+  keepsakeReason?: KeepsakeReason | null;
   moodTag: string | null;
   recorderId: string | null;
   createdAt: string;
@@ -314,11 +317,17 @@ export function insertJournalEntry(params: {
   guidedAnswers: string | null;
   observationDuration: number | null;
   keepsake: number;
+  keepsakeTitle?: string | null;
+  keepsakeReason?: KeepsakeReason | null;
   moodTag: string | null;
   recorderId: string | null;
   now: string;
 }) {
-  return invoke<void>('insert_journal_entry', params);
+  return invoke<void>('insert_journal_entry', {
+    ...params,
+    keepsakeTitle: params.keepsakeTitle ?? null,
+    keepsakeReason: params.keepsakeReason ?? null,
+  });
 }
 
 export interface JournalTagInsertRow {
@@ -344,12 +353,18 @@ export function insertJournalEntryWithTags(params: {
   guidedAnswers: string | null;
   observationDuration: number | null;
   keepsake: number;
+  keepsakeTitle?: string | null;
+  keepsakeReason?: KeepsakeReason | null;
   moodTag: string | null;
   recorderId: string | null;
   aiTags: JournalTagInsertRow[];
   now: string;
 }) {
-  return invoke<void>('insert_journal_entry_with_tags', params);
+  return invoke<void>('insert_journal_entry_with_tags', {
+    ...params,
+    keepsakeTitle: params.keepsakeTitle ?? null,
+    keepsakeReason: params.keepsakeReason ?? null,
+  });
 }
 
 export function updateJournalEntryWithTags(params: {
@@ -367,12 +382,18 @@ export function updateJournalEntryWithTags(params: {
   guidedAnswers: string | null;
   observationDuration: number | null;
   keepsake: number;
+  keepsakeTitle?: string | null;
+  keepsakeReason?: KeepsakeReason | null;
   moodTag: string | null;
   recorderId: string | null;
   aiTags: JournalTagInsertRow[];
   now: string;
 }) {
-  return invoke<void>('update_journal_entry_with_tags', params);
+  return invoke<void>('update_journal_entry_with_tags', {
+    ...params,
+    keepsakeTitle: params.keepsakeTitle ?? null,
+    keepsakeReason: params.keepsakeReason ?? null,
+  });
 }
 
 export function getJournalEntries(childId: string, limit?: number) {
@@ -403,8 +424,20 @@ export function getJournalTags(entryId: string) {
   }>>('get_journal_tags', { entryId });
 }
 
-export function updateJournalKeepsake(entryId: string, keepsake: 0 | 1, now: string) {
-  return invoke<void>('update_journal_keepsake', { entryId, keepsake, now });
+export function updateJournalKeepsake(
+  entryId: string,
+  keepsake: 0 | 1,
+  now: string,
+  keepsakeTitle?: string | null,
+  keepsakeReason?: KeepsakeReason | null,
+) {
+  return invoke<void>('update_journal_keepsake', {
+    entryId,
+    keepsake,
+    now,
+    keepsakeTitle: keepsakeTitle ?? null,
+    keepsakeReason: keepsakeReason ?? null,
+  });
 }
 
 export function deleteJournalEntry(entryId: string) {
@@ -895,6 +928,59 @@ export function deleteCustomTodo(todoId: string) {
 
 export function getCustomTodos(childId: string) {
   return invoke<CustomTodoRow[]>('get_custom_todos', { childId });
+}
+
+// ── Outdoor Records ──────────────────────────────────────────
+
+export interface OutdoorRecordRow {
+  recordId: string;
+  childId: string;
+  activityDate: string;
+  durationMinutes: number;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function insertOutdoorRecord(params: {
+  recordId: string;
+  childId: string;
+  activityDate: string;
+  durationMinutes: number;
+  note: string | null;
+  now: string;
+}) {
+  return invoke<void>('insert_outdoor_record', params);
+}
+
+export function updateOutdoorRecord(params: {
+  recordId: string;
+  activityDate: string | null;
+  durationMinutes: number | null;
+  note: string | null;
+  now: string;
+}) {
+  return invoke<void>('update_outdoor_record', params);
+}
+
+export function deleteOutdoorRecord(recordId: string) {
+  return invoke<void>('delete_outdoor_record', { recordId });
+}
+
+export function getOutdoorRecords(childId: string, startDate?: string, endDate?: string) {
+  return invoke<OutdoorRecordRow[]>('get_outdoor_records', {
+    childId,
+    startDate: startDate ?? null,
+    endDate: endDate ?? null,
+  });
+}
+
+export function getOutdoorGoal(childId: string) {
+  return invoke<number | null>('get_outdoor_goal', { childId });
+}
+
+export function setOutdoorGoal(childId: string, goalMinutes: number, now: string) {
+  return invoke<void>('set_outdoor_goal', { childId, goalMinutes, now });
 }
 
 // ── DB Init ─────────────────────────────────────────────────

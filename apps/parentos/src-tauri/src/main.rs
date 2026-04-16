@@ -249,6 +249,13 @@ fn main() {
             sqlite::queries::insert_fitness_assessment,
             sqlite::queries::get_fitness_assessments,
             sqlite::queries::delete_fitness_assessment,
+            // Outdoor Records
+            sqlite::queries::insert_outdoor_record,
+            sqlite::queries::update_outdoor_record,
+            sqlite::queries::delete_outdoor_record,
+            sqlite::queries::get_outdoor_records,
+            sqlite::queries::get_outdoor_goal,
+            sqlite::queries::set_outdoor_goal,
             // Profile Section Summaries
             sqlite::queries::get_profile_section_summaries,
             // DB init

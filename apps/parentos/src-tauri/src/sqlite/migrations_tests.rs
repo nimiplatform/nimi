@@ -303,7 +303,7 @@ fn journal_entry_structured_fields_round_trip_through_sqlite() {
     seed_family_and_child(&conn);
 
     conn.execute(
-        "INSERT INTO journal_entries (entryId, childId, contentType, textContent, recordedAt, ageMonths, observationMode, dimensionId, selectedTags, guidedAnswers, observationDuration, keepsake, recorderId, createdAt, updatedAt) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?14)",
+        "INSERT INTO journal_entries (entryId, childId, contentType, textContent, recordedAt, ageMonths, observationMode, dimensionId, selectedTags, guidedAnswers, observationDuration, keepsake, keepsakeTitle, keepsakeReason, recorderId, createdAt, updatedAt) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?16)",
         params![
             "entry-1",
             "child-1",
@@ -317,6 +317,8 @@ fn journal_entry_structured_fields_round_trip_through_sqlite() {
             "{\"q1\":\"answer\"}",
             5,
             1,
+            "First solo puzzle",
+            "achievement",
             "rec-1",
             "2026-02-01T00:00:00.000Z"
         ],
@@ -325,7 +327,7 @@ fn journal_entry_structured_fields_round_trip_through_sqlite() {
 
     let row = conn
         .query_row(
-            "SELECT observationMode, dimensionId, selectedTags, keepsake, recorderId FROM journal_entries WHERE entryId = ?1",
+            "SELECT observationMode, dimensionId, selectedTags, keepsake, keepsakeTitle, keepsakeReason, recorderId FROM journal_entries WHERE entryId = ?1",
             params!["entry-1"],
             |row| {
                 Ok((
@@ -334,6 +336,8 @@ fn journal_entry_structured_fields_round_trip_through_sqlite() {
                     row.get::<_, Option<String>>(2)?,
                     row.get::<_, i64>(3)?,
                     row.get::<_, Option<String>>(4)?,
+                    row.get::<_, Option<String>>(5)?,
+                    row.get::<_, Option<String>>(6)?,
                 ))
             },
         )
@@ -343,7 +347,50 @@ fn journal_entry_structured_fields_round_trip_through_sqlite() {
     assert_eq!(row.1.as_deref(), Some("PO-OBS-CONC-001"));
     assert_eq!(row.2.as_deref(), Some("[\"focus\",\"blocks\"]"));
     assert_eq!(row.3, 1);
-    assert_eq!(row.4.as_deref(), Some("rec-1"));
+    assert_eq!(row.4.as_deref(), Some("First solo puzzle"));
+    assert_eq!(row.5.as_deref(), Some("achievement"));
+    assert_eq!(row.6.as_deref(), Some("rec-1"));
+}
+
+#[test]
+fn migration_v7_adds_keepsake_metadata_columns_to_existing_journal_entries() {
+    let conn = Connection::open_in_memory().expect("open in-memory db");
+    conn.execute_batch("PRAGMA foreign_keys=ON;")
+        .expect("enable foreign keys");
+    conn.execute_batch(V1_SCHEMA_SQL)
+        .expect("create baseline schema");
+    conn.execute_batch(
+        "CREATE TABLE _schema_version (
+            version INTEGER NOT NULL,
+            applied_at TEXT NOT NULL
+        );",
+    )
+    .expect("create schema version table");
+    conn.execute(
+        "INSERT INTO _schema_version (version, applied_at) VALUES (?1, ?2)",
+        params![6i64, "2026-01-01T00:00:00.000Z"],
+    )
+    .expect("seed schema version");
+
+    run_migrations(&conn).expect("run migrations");
+
+    let keepsake_title_exists: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('journal_entries') WHERE name = 'keepsakeTitle'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("query keepsakeTitle column");
+    let keepsake_reason_exists: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('journal_entries') WHERE name = 'keepsakeReason'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("query keepsakeReason column");
+
+    assert_eq!(keepsake_title_exists, 1);
+    assert_eq!(keepsake_reason_exists, 1);
 }
 
 #[test]

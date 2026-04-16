@@ -123,6 +123,8 @@ pub(super) const V1_SCHEMA_SQL: &str = r#"
             guidedAnswers       TEXT,
             observationDuration INTEGER,
             keepsake            INTEGER NOT NULL DEFAULT 0,
+            keepsakeTitle       TEXT,
+            keepsakeReason      TEXT,
             recorderId          TEXT,
             createdAt           TEXT NOT NULL,
             updatedAt           TEXT NOT NULL

@@ -40,6 +40,8 @@ Journal entries must round-trip the typed SQLite shape:
 | `guidedAnswers` | `Record<string, string> \| null` |
 | `observationDuration` | `integer \| null` |
 | `keepsake` | `0 \| 1` |
+| `keepsakeTitle` | `string \| null` |
+| `keepsakeReason` | `commemorative \| first-time \| achievement \| persistence \| character \| family-moment \| other \| null` |
 | `recorderId` | `string \| null` |
 
 JSON-backed arrays and objects must be serialized as TEXT and decoded through typed bridge helpers.
@@ -56,11 +58,13 @@ Journal guidance is structured and table-backed. It must not expand into free-fo
 
 ## PO-JOUR-003 Recorder and Keepsake Semantics
 
-`recorderId` and `keepsake` are first-class fields.
+`recorderId`, `keepsake`, and keepsake metadata are first-class fields.
 
 - `recorderId` may be `null` when no recorder profile is selected
 - non-null `recorderId` must match one of the child's `recorderProfiles` when profiles exist
 - `keepsake = 1` marks a journal entry for keepsake-focused filtering only; it does not create a separate storage path
+- `keepsakeTitle` is an optional short title for keepsake recall and may be `null`
+- `keepsakeReason` is optional and, when present, must be one of `commemorative | first-time | achievement | persistence | character | family-moment | other`
 
 ## PO-JOUR-004 Content-Type Integrity
 

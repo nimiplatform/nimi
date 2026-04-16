@@ -52,6 +52,8 @@ const {
   getVaccineRecordsMock,
   getMilestoneRecordsMock,
   getJournalEntriesMock,
+  getOutdoorRecordsMock,
+  getOutdoorGoalMock,
   loadParentosRuntimeRouteOptionsMock,
   generateMock,
   streamMock,
@@ -166,6 +168,8 @@ const {
       updatedAt: '2026-04-02T00:00:00.000Z',
     },
   ]),
+  getOutdoorRecordsMock: vi.fn(async () => []),
+  getOutdoorGoalMock: vi.fn(async () => null),
   loadParentosRuntimeRouteOptionsMock: vi.fn(async () => ({
     capability: 'text.generate',
     selected: null,
@@ -251,6 +255,8 @@ vi.mock('../../bridge/sqlite-bridge.js', () => ({
   getVaccineRecords: getVaccineRecordsMock,
   getMilestoneRecords: getMilestoneRecordsMock,
   getJournalEntries: getJournalEntriesMock,
+  getOutdoorRecords: getOutdoorRecordsMock,
+  getOutdoorGoal: getOutdoorGoalMock,
 }));
 
 vi.mock('@nimiplatform/sdk', () => ({
@@ -311,6 +317,8 @@ describe('AdvisorPage', () => {
     getVaccineRecordsMock.mockClear();
     getMilestoneRecordsMock.mockClear();
     getJournalEntriesMock.mockClear();
+    getOutdoorRecordsMock.mockClear();
+    getOutdoorGoalMock.mockClear();
     loadParentosRuntimeRouteOptionsMock.mockClear();
     generateMock.mockReset();
     streamMock.mockReset();
