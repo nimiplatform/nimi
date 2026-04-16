@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: true
 defaults:
   provider: azure
+  default_text_model: gpt-5.2
   model_type: chat
   capabilities: []
   pricing:
@@ -33,6 +34,14 @@ sources:
     url: https://learn.microsoft.com/en-us/azure/foundry/openai/quotas-limits
     retrieved_at: 2026-03-05
     note: Azure OpenAI quotas and throughput limits per model family.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: gpt-5.2
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Only admitted Azure text route in the current source set.
 
 models:
   - model_id: gpt-5.2

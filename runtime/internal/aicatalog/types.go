@@ -69,19 +69,69 @@ type VideoGenerationCapability struct {
 	Outputs    VideoGenerationOutputs `yaml:"outputs" json:"outputs"`
 }
 
+type NumericRange struct {
+	Min float64 `yaml:"min" json:"min"`
+	Max float64 `yaml:"max" json:"max"`
+}
+
+type ProviderExtensionMetadata struct {
+	Namespace     string `yaml:"namespace" json:"namespace"`
+	SchemaVersion string `yaml:"schema_version" json:"schema_version"`
+}
+
+type VoiceRenderHintsSchema struct {
+	Stability       *NumericRange `yaml:"stability,omitempty" json:"stability,omitempty"`
+	SimilarityBoost *NumericRange `yaml:"similarity_boost,omitempty" json:"similarity_boost,omitempty"`
+	Style           *NumericRange `yaml:"style,omitempty" json:"style,omitempty"`
+	Speed           *NumericRange `yaml:"speed,omitempty" json:"speed,omitempty"`
+	UseSpeakerBoost bool          `yaml:"use_speaker_boost,omitempty" json:"use_speaker_boost,omitempty"`
+}
+
+type VoiceRequestOptions struct {
+	TimingModes        []string                   `yaml:"timing_modes,omitempty" json:"timing_modes,omitempty"`
+	AudioFormats       []string                   `yaml:"audio_formats,omitempty" json:"audio_formats,omitempty"`
+	SupportsLanguage   bool                       `yaml:"supports_language,omitempty" json:"supports_language,omitempty"`
+	SupportsEmotion    bool                       `yaml:"supports_emotion,omitempty" json:"supports_emotion,omitempty"`
+	VoiceRenderHints   *VoiceRenderHintsSchema    `yaml:"voice_render_hints,omitempty" json:"voice_render_hints,omitempty"`
+	ProviderExtensions *ProviderExtensionMetadata `yaml:"provider_extensions,omitempty" json:"provider_extensions,omitempty"`
+}
+
+type TranscriptionOptions struct {
+	Tiers               []string                   `yaml:"tiers,omitempty" json:"tiers,omitempty"`
+	ResponseFormats     []string                   `yaml:"response_formats,omitempty" json:"response_formats,omitempty"`
+	SupportsLanguage    bool                       `yaml:"supports_language,omitempty" json:"supports_language,omitempty"`
+	SupportsPrompt      bool                       `yaml:"supports_prompt,omitempty" json:"supports_prompt,omitempty"`
+	SupportsTimestamps  bool                       `yaml:"supports_timestamps,omitempty" json:"supports_timestamps,omitempty"`
+	SupportsDiarization bool                       `yaml:"supports_diarization,omitempty" json:"supports_diarization,omitempty"`
+	MaxSpeakerCount     int                        `yaml:"max_speaker_count,omitempty" json:"max_speaker_count,omitempty"`
+	ProviderExtensions  *ProviderExtensionMetadata `yaml:"provider_extensions,omitempty" json:"provider_extensions,omitempty"`
+}
+
+type SelectionProfile struct {
+	Provider         string `yaml:"provider,omitempty" json:"provider,omitempty"`
+	ProfileID        string `yaml:"profile_id" json:"profile_id"`
+	Capability       string `yaml:"capability" json:"capability"`
+	ModelID          string `yaml:"model_id" json:"model_id"`
+	ReviewedAt       string `yaml:"reviewed_at" json:"reviewed_at"`
+	FreshnessSLADays int    `yaml:"freshness_sla_days" json:"freshness_sla_days"`
+	Rationale        string `yaml:"rationale,omitempty" json:"rationale,omitempty"`
+}
+
 type ModelEntry struct {
-	Provider           string                     `yaml:"provider" json:"provider"`
-	ModelID            string                     `yaml:"model_id" json:"model_id"`
-	ApiModelID         string                     `yaml:"api_model_id,omitempty" json:"api_model_id,omitempty"`
-	ModelType          string                     `yaml:"model_type" json:"model_type"`
-	UpdatedAt          string                     `yaml:"updated_at" json:"updated_at"`
-	Capabilities       []string                   `yaml:"capabilities" json:"capabilities"`
-	Pricing            Pricing                    `yaml:"pricing" json:"pricing"`
-	VoiceSetID         string                     `yaml:"voice_set_id,omitempty" json:"voice_set_id,omitempty"`
-	VoiceDiscoveryMode string                     `yaml:"voice_discovery_mode,omitempty" json:"voice_discovery_mode,omitempty"`
-	VoiceRefKinds      []string                   `yaml:"voice_ref_kinds,omitempty" json:"voice_ref_kinds,omitempty"`
-	VideoGeneration    *VideoGenerationCapability `yaml:"video_generation,omitempty" json:"video_generation,omitempty"`
-	SourceRef          SourceRef                  `yaml:"source_ref" json:"source_ref"`
+	Provider            string                     `yaml:"provider" json:"provider"`
+	ModelID             string                     `yaml:"model_id" json:"model_id"`
+	ApiModelID          string                     `yaml:"api_model_id,omitempty" json:"api_model_id,omitempty"`
+	ModelType           string                     `yaml:"model_type" json:"model_type"`
+	UpdatedAt           string                     `yaml:"updated_at" json:"updated_at"`
+	Capabilities        []string                   `yaml:"capabilities" json:"capabilities"`
+	Pricing             Pricing                    `yaml:"pricing" json:"pricing"`
+	VoiceSetID          string                     `yaml:"voice_set_id,omitempty" json:"voice_set_id,omitempty"`
+	VoiceDiscoveryMode  string                     `yaml:"voice_discovery_mode,omitempty" json:"voice_discovery_mode,omitempty"`
+	VoiceRefKinds       []string                   `yaml:"voice_ref_kinds,omitempty" json:"voice_ref_kinds,omitempty"`
+	VoiceRequestOptions *VoiceRequestOptions       `yaml:"voice_request_options,omitempty" json:"voice_request_options,omitempty"`
+	Transcription       *TranscriptionOptions      `yaml:"transcription,omitempty" json:"transcription,omitempty"`
+	VideoGeneration     *VideoGenerationCapability `yaml:"video_generation,omitempty" json:"video_generation,omitempty"`
+	SourceRef           SourceRef                  `yaml:"source_ref" json:"source_ref"`
 }
 
 type VoiceEntry struct {
@@ -127,6 +177,7 @@ type ProviderDocument struct {
 	Provider              string                 `yaml:"provider" json:"provider"`
 	CatalogVersion        string                 `yaml:"catalog_version" json:"catalog_version"`
 	DefaultTextModel      string                 `yaml:"default_text_model,omitempty" json:"default_text_model,omitempty"`
+	SelectionProfiles     []SelectionProfile     `yaml:"selection_profiles,omitempty" json:"selection_profiles,omitempty"`
 	Models                []ModelEntry           `yaml:"models" json:"models"`
 	Voices                []VoiceEntry           `yaml:"voices,omitempty" json:"voices,omitempty"`
 	VoiceWorkflowModels   []VoiceWorkflowModel   `yaml:"voice_workflow_models,omitempty" json:"voice_workflow_models,omitempty"`
@@ -138,6 +189,7 @@ type ProviderDocument struct {
 
 type Snapshot struct {
 	CatalogVersion        string
+	SelectionProfiles     []SelectionProfile
 	Models                []ModelEntry
 	Voices                []VoiceEntry
 	VoiceWorkflowModels   []VoiceWorkflowModel

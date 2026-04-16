@@ -34,3 +34,8 @@ runtime_catalog_drift:
   command: pnpm check:runtime-catalog-drift
   path: scripts/check-runtime-catalog-drift.mjs
   description: Runtime catalog definition consistency and drift detection.
+runtime_selection_freshness:
+  type: static_gate
+  command: pnpm check:runtime-selection-freshness
+  path: scripts/check-runtime-selection-freshness.mjs
+  description: Reviewed selection profile freshness, capability fit, and default-model projection validation.

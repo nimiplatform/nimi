@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: xai
+  default_text_model: grok-4
   model_type: chat
   capabilities: []
   pricing:
@@ -25,6 +26,20 @@ sources:
     url: https://docs.x.ai/docs/models
     retrieved_at: 2026-03-05
     note: xAI official models documentation.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: grok-4
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general xAI text route in the admitted set.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: grok-3-mini
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Compact xAI text route for lower-cost and lower-latency tasks.
 
 models:
   - model_id: grok-4

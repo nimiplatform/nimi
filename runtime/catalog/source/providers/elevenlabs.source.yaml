@@ -77,6 +77,10 @@ models:
       voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
       langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, ogg, wav]
+        supports_language: true
     source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
   - model_id: eleven_multilingual_v2
     updated_at: 2026-03-05
@@ -86,6 +90,10 @@ models:
       voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
       langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, ogg, wav]
+        supports_language: true
     source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
   - model_id: eleven_flash_v2_5
     updated_at: 2026-03-05
@@ -95,6 +103,10 @@ models:
       voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
       langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, ogg, wav]
+        supports_language: true
     source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
   - model_id: eleven_turbo_v2_5
     updated_at: 2026-03-05
@@ -104,6 +116,10 @@ models:
       voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
       langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, ogg, wav]
+        supports_language: true
     source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
   - model_id: eleven_multilingual_sts_v2
     updated_at: 2026-03-10

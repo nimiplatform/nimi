@@ -39,6 +39,26 @@ sources:
     retrieved_at: 2026-03-18
     note: Claude Sonnet 4.5 announcement and capabilities.
 
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: claude-sonnet-4-6
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Balanced default for general chat and multimodal text use.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: claude-haiku-4-5
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lowest-latency Claude track.
+  - profile_id: text.reasoning
+    capability: text.generate
+    model_id: claude-opus-4-6
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Highest reasoning-quality Claude track.
+
 models:
   - model_id: claude-opus-4-6
     model_type: chat

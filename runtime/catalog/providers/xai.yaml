@@ -1,6 +1,7 @@
 version: 1
 provider: xai
 catalog_version: 2026-03-18-xai-v2
+default_text_model: grok-4
 models:
   - model_id: grok-4
     provider: xai
@@ -92,3 +93,18 @@ models:
       retrieved_at: 2026-03-05
       note: xAI official models documentation.
 voices: []
+selection_profiles:
+  - provider: xai
+    profile_id: text.general
+    capability: text.generate
+    model_id: grok-4
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general xAI text route in the admitted set.
+  - provider: xai
+    profile_id: text.fast
+    capability: text.generate
+    model_id: grok-3-mini
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Compact xAI text route for lower-cost and lower-latency tasks.

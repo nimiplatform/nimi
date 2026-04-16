@@ -61,6 +61,10 @@ models:
       voice_set_ref: neural-defaults-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, ogg, wav, pcm]
+        supports_language: true
 
 overrides:
   models: []

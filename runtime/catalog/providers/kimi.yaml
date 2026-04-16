@@ -1,6 +1,7 @@
 version: 1
 provider: kimi
 catalog_version: 2026-03-05-kimi-v1
+default_text_model: kimi-k2.5
 models:
   - model_id: kimi-k2.5
     provider: kimi
@@ -71,3 +72,11 @@ models:
       retrieved_at: 2026-03-05
       note: Kimi official changelog with model release notes.
 voices: []
+selection_profiles:
+  - provider: kimi
+    profile_id: text.general
+    capability: text.generate
+    model_id: kimi-k2.5
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current stable Kimi text route in the admitted set.

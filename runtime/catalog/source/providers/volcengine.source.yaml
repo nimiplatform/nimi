@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: volcengine
+  default_text_model: doubao-seed-2-0-pro-260215
   model_type: video
   capabilities: []
   pricing:
@@ -53,6 +54,20 @@ sources:
 language_profiles:
   region_v1: [zh-cn, en-us]
   short_v1: [zh, en]
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: doubao-seed-2-0-pro-260215
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general Volcengine text route in the admitted set.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: doubao-seed-2-0-mini-260215
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lightweight Volcengine text route for lower-latency general tasks.
 
 voice_sets:
   - voice_set_id: openspeech-streaming-v1

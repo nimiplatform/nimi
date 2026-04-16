@@ -1,6 +1,7 @@
 version: 1
 provider: azure
 catalog_version: 2026-03-05-azure-v1
+default_text_model: gpt-5.2
 models:
   - model_id: gpt-5.2
     provider: azure
@@ -55,3 +56,11 @@ models:
       retrieved_at: 2026-03-05
       note: Azure OpenAI release notes including GPT-image-1.5.
 voices: []
+selection_profiles:
+  - provider: azure
+    profile_id: text.general
+    capability: text.generate
+    model_id: gpt-5.2
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Only admitted Azure text route in the current source set.

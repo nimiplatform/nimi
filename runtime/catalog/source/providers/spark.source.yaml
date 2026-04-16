@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: spark
+  default_text_model: spark-x1
   model_type: chat
   capabilities: []
   pricing:
@@ -29,6 +30,20 @@ sources:
     url: https://www.xfyun.cn/doc/spark/x1.html
     retrieved_at: 2026-03-05
     note: iFlytek Spark X1 reasoning model documentation.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: spark-x1
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general Spark text route in the admitted set.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: spark-lite-max
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lite-tier Spark text route for faster general tasks.
 
 models:
   - model_id: spark-x1

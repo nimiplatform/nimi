@@ -187,6 +187,7 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 		Provider:              provider,
 		CatalogVersion:        strings.TrimSpace(parsed.CatalogVersion),
 		DefaultTextModel:      strings.TrimSpace(parsed.DefaultTextModel),
+		SelectionProfiles:     append([]SelectionProfile(nil), parsed.SelectionProfiles...),
 		Models:                append([]ModelEntry(nil), parsed.Models...),
 		Voices:                append([]VoiceEntry(nil), parsed.Voices...),
 		VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), parsed.VoiceWorkflowModels...),
@@ -259,6 +260,7 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 	}
 
 	if overlay &&
+		len(doc.SelectionProfiles) == 0 &&
 		len(doc.Models) == 0 &&
 		len(doc.Voices) == 0 &&
 		len(doc.VoiceWorkflowModels) == 0 &&
@@ -357,6 +359,9 @@ func mergeProviderDocument(base ProviderDocument, overlays ...overlayDocument) (
 		if strings.TrimSpace(overlay.updatedAt) != "" {
 			lastOverlayUpdatedAt = strings.TrimSpace(overlay.updatedAt)
 		}
+		if len(overlay.doc.SelectionProfiles) > 0 {
+			mergedDoc.SelectionProfiles = append([]SelectionProfile(nil), overlay.doc.SelectionProfiles...)
+		}
 
 		for _, model := range overlay.doc.Models {
 			key := normalizeID(model.ModelID)
@@ -439,6 +444,7 @@ func mergeProviderDocument(base ProviderDocument, overlays ...overlayDocument) (
 
 	snapshot := Snapshot{
 		CatalogVersion:        mergedDoc.CatalogVersion,
+		SelectionProfiles:     append([]SelectionProfile(nil), mergedDoc.SelectionProfiles...),
 		Models:                append([]ModelEntry(nil), mergedDoc.Models...),
 		Voices:                append([]VoiceEntry(nil), mergedDoc.Voices...),
 		VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), mergedDoc.VoiceWorkflowModels...),
@@ -490,9 +496,11 @@ func buildSnapshotFromProviderDocuments(providerDocs map[string]mergedProviderDo
 	voiceWorkflowModels := make([]VoiceWorkflowModel, 0, 8)
 	modelWorkflowBindings := make([]ModelWorkflowBinding, 0, 8)
 	voiceHandlePolicies := make([]VoiceHandlePolicy, 0, 8)
+	selectionProfiles := make([]SelectionProfile, 0, 8)
 	versionTokens := make([]string, 0, len(providers))
 	for _, provider := range providers {
 		doc := providerDocs[provider].document
+		selectionProfiles = append(selectionProfiles, doc.SelectionProfiles...)
 		models = append(models, doc.Models...)
 		voices = append(voices, doc.Voices...)
 		voiceWorkflowModels = append(voiceWorkflowModels, doc.VoiceWorkflowModels...)
@@ -511,6 +519,7 @@ func buildSnapshotFromProviderDocuments(providerDocs map[string]mergedProviderDo
 
 	snapshot := Snapshot{
 		CatalogVersion:        catalogVersion,
+		SelectionProfiles:     selectionProfiles,
 		Models:                models,
 		Voices:                voices,
 		VoiceWorkflowModels:   voiceWorkflowModels,
@@ -556,6 +565,7 @@ func cloneProviderDocument(doc ProviderDocument) ProviderDocument {
 		Provider:              doc.Provider,
 		CatalogVersion:        doc.CatalogVersion,
 		DefaultTextModel:      doc.DefaultTextModel,
+		SelectionProfiles:     append([]SelectionProfile(nil), doc.SelectionProfiles...),
 		Models:                append([]ModelEntry(nil), doc.Models...),
 		Voices:                append([]VoiceEntry(nil), doc.Voices...),
 		VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), doc.VoiceWorkflowModels...),
@@ -633,6 +643,22 @@ func validateSnapshot(snapshot Snapshot) error {
 			voiceSetRefs[provider+":"+normalizeID(model.VoiceSetID)] = struct{}{}
 			ttsModelRefs[key] = struct{}{}
 		}
+		if model.VoiceRequestOptions != nil {
+			if !modelRequiresVoice(model) {
+				return fmt.Errorf("model %s:%s declares voice_request_options without audio.synthesize support", provider, modelID)
+			}
+			if err := validateVoiceRequestOptions(provider, modelID, model.VoiceRequestOptions); err != nil {
+				return err
+			}
+		}
+		if model.Transcription != nil {
+			if !modelHasCapability(model, "audio.transcribe") {
+				return fmt.Errorf("model %s:%s declares transcription metadata without audio.transcribe support", provider, modelID)
+			}
+			if err := validateTranscriptionOptions(provider, modelID, model.Transcription); err != nil {
+				return err
+			}
+		}
 		if modelRequiresVideoGeneration(model) && model.VideoGeneration == nil {
 			return fmt.Errorf("model %s:%s missing video_generation", provider, modelID)
 		}
@@ -709,6 +735,31 @@ func validateSnapshot(snapshot Snapshot) error {
 			continue
 		}
 		return fmt.Errorf("tts model %s has no mapped voices", modelKey)
+	}
+	for _, profile := range snapshot.SelectionProfiles {
+		provider := normalizeProvider(profile.Provider)
+		profileID := strings.TrimSpace(profile.ProfileID)
+		capability := strings.TrimSpace(profile.Capability)
+		modelID := normalizeID(profile.ModelID)
+		if provider == "" || profileID == "" || capability == "" || modelID == "" {
+			return fmt.Errorf("selection profile missing provider/profile_id/capability/model_id")
+		}
+		if !providerregistry.Contains(provider) {
+			return fmt.Errorf("selection profile %s references unknown provider %s", profileID, provider)
+		}
+		if profile.FreshnessSLADays <= 0 {
+			return fmt.Errorf("selection profile %s:%s must declare freshness_sla_days > 0", provider, profileID)
+		}
+		if strings.TrimSpace(profile.ReviewedAt) == "" {
+			return fmt.Errorf("selection profile %s:%s missing reviewed_at", provider, profileID)
+		}
+		model, ok := modelSet[provider+":"+modelID]
+		if !ok {
+			return fmt.Errorf("selection profile %s:%s references unknown model %s", provider, profileID, profile.ModelID)
+		}
+		if !modelHasCapability(model, capability) {
+			return fmt.Errorf("selection profile %s:%s references model %s without capability %s", provider, profileID, profile.ModelID, capability)
+		}
 	}
 
 	workflowModelByKey := make(map[string]VoiceWorkflowModel, len(snapshot.VoiceWorkflowModels))
@@ -837,5 +888,115 @@ func validateSnapshot(snapshot Snapshot) error {
 		return errors.New("voice_handle_policies must not be empty when voice_workflow_models exist")
 	}
 
+	return nil
+}
+
+func modelHasCapability(model ModelEntry, capability string) bool {
+	return normalizeCapabilitySet(model.Capabilities)[strings.ToLower(strings.TrimSpace(capability))]
+}
+
+func normalizeCapabilitySet(values []string) map[string]bool {
+	out := make(map[string]bool, len(values))
+	for _, value := range values {
+		normalized := strings.ToLower(strings.TrimSpace(value))
+		if normalized == "" {
+			continue
+		}
+		out[normalized] = true
+	}
+	return out
+}
+
+func validateVoiceRequestOptions(provider string, modelID string, options *VoiceRequestOptions) error {
+	if options == nil {
+		return nil
+	}
+	if len(options.TimingModes) == 0 {
+		return fmt.Errorf("model %s:%s voice_request_options.timing_modes must not be empty", provider, modelID)
+	}
+	if len(options.AudioFormats) == 0 {
+		return fmt.Errorf("model %s:%s voice_request_options.audio_formats must not be empty", provider, modelID)
+	}
+	allowedTimingModes := map[string]struct{}{
+		"none": {},
+		"word": {},
+		"char": {},
+	}
+	for _, mode := range options.TimingModes {
+		normalized := strings.ToLower(strings.TrimSpace(mode))
+		if _, ok := allowedTimingModes[normalized]; !ok {
+			return fmt.Errorf("model %s:%s voice_request_options.timing_modes contains unsupported value %q", provider, modelID, mode)
+		}
+	}
+	if err := validateProviderExtensions(provider, modelID, "voice_request_options", options.ProviderExtensions); err != nil {
+		return err
+	}
+	return validateVoiceRenderHints(provider, modelID, options.VoiceRenderHints)
+}
+
+func validateVoiceRenderHints(provider string, modelID string, hints *VoiceRenderHintsSchema) error {
+	if hints == nil {
+		return nil
+	}
+	for field, value := range map[string]*NumericRange{
+		"stability":        hints.Stability,
+		"similarity_boost": hints.SimilarityBoost,
+		"style":            hints.Style,
+		"speed":            hints.Speed,
+	} {
+		if err := validateNumericRange(provider, modelID, "voice_render_hints."+field, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateTranscriptionOptions(provider string, modelID string, options *TranscriptionOptions) error {
+	if options == nil {
+		return nil
+	}
+	if len(options.Tiers) == 0 {
+		return fmt.Errorf("model %s:%s transcription.tiers must not be empty", provider, modelID)
+	}
+	if len(options.ResponseFormats) == 0 {
+		return fmt.Errorf("model %s:%s transcription.response_formats must not be empty", provider, modelID)
+	}
+	allowedTiers := map[string]struct{}{
+		"core_transcript":          {},
+		"timed_transcript":         {},
+		"speaker_aware_transcript": {},
+	}
+	for _, tier := range options.Tiers {
+		normalized := strings.ToLower(strings.TrimSpace(tier))
+		if _, ok := allowedTiers[normalized]; !ok {
+			return fmt.Errorf("model %s:%s transcription.tiers contains unsupported value %q", provider, modelID, tier)
+		}
+	}
+	if options.MaxSpeakerCount < 0 {
+		return fmt.Errorf("model %s:%s transcription.max_speaker_count must be >= 0", provider, modelID)
+	}
+	if options.MaxSpeakerCount > 0 && !options.SupportsDiarization {
+		return fmt.Errorf("model %s:%s transcription.max_speaker_count requires supports_diarization=true", provider, modelID)
+	}
+	return validateProviderExtensions(provider, modelID, "transcription", options.ProviderExtensions)
+}
+
+func validateProviderExtensions(provider string, modelID string, field string, extensions *ProviderExtensionMetadata) error {
+	if extensions == nil {
+		return nil
+	}
+	if strings.TrimSpace(extensions.Namespace) == "" || strings.TrimSpace(extensions.SchemaVersion) == "" {
+		return fmt.Errorf("model %s:%s %s.provider_extensions must include namespace and schema_version", provider, modelID, field)
+	}
+	return nil
+}
+
+func validateNumericRange(provider string, modelID string, field string, value *NumericRange) error {
+	if value == nil {
+		return nil
+	}
+	if value.Max < value.Min {
+		return fmt.Errorf("model %s:%s %s max must be >= min", provider, modelID, field)
+	}
 	return nil
 }

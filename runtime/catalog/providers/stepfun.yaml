@@ -1,6 +1,7 @@
 version: 1
 provider: stepfun
 catalog_version: 2026-03-10-stepfun-v3
+default_text_model: step-3.5-flash
 models:
   - model_id: step-3.5-flash
     provider: stepfun
@@ -782,6 +783,21 @@ voices:
       url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
       retrieved_at: 2026-03-10
       note: StepFun TTS API reference with preset voices and extra_body controls.
+selection_profiles:
+  - provider: stepfun
+    profile_id: text.general
+    capability: text.generate
+    model_id: step-3.5-flash
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current StepFun flagship text route in the admitted set.
+  - provider: stepfun
+    profile_id: text.fast
+    capability: text.generate
+    model_id: step-2-mini
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Ultra-fast StepFun text route for latency-sensitive tasks.
 voice_workflow_models:
   - workflow_model_id: stepfun-voice-clone
     workflow_type: tts_v2v

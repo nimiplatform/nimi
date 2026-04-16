@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: true
 defaults:
   provider: cohere
+  default_text_model: command-r-plus
   model_type: chat
   capabilities: []
   pricing:
@@ -29,6 +30,20 @@ sources:
     url: https://docs.cohere.com/docs/embed
     retrieved_at: 2026-03-05
     note: Cohere Embed v4 documentation.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: command-r-plus
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current Cohere text default in the admitted set.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: command-r
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lower-cost Cohere text route for faster general tasks.
 
 models:
   - model_id: command-r-plus

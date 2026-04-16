@@ -1,6 +1,7 @@
 version: 1
 provider: glm
 catalog_version: 2026-03-05-glm-v1
+default_text_model: glm-4.7
 models:
   - model_id: glm-4.7
     provider: glm
@@ -72,3 +73,11 @@ models:
       retrieved_at: 2026-03-05
       note: GLM image generation async API documentation.
 voices: []
+selection_profiles:
+  - provider: glm
+    profile_id: text.general
+    capability: text.generate
+    model_id: glm-4.7
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Only admitted GLM text route in the current source set.

@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: mistral
+  default_text_model: mistral-large-latest
   model_type: chat
   capabilities: []
   pricing:
@@ -33,6 +34,20 @@ sources:
     url: https://docs.mistral.ai/capabilities/function_calling/
     retrieved_at: 2026-03-05
     note: Mistral chat examples using mistral-large-latest.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: mistral-large-latest
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general Mistral text route in the admitted set.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: mistral-small-latest
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Cost-efficient Mistral text route for fast general tasks.
 
 models:
   - model_id: mistral-large-latest

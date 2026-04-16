@@ -36,6 +36,8 @@ export type RuntimeRouteBinding = {
 
 export type RuntimeRouteMetadataKind =
   | 'text.generate'
+  | 'audio.synthesize'
+  | 'audio.transcribe'
   | 'voice_workflow.tts_v2v'
   | 'voice_workflow.tts_t2v';
 
@@ -46,6 +48,42 @@ export type TextGenerateRouteMetadata = {
   supportsAudioInput: boolean;
   supportsVideoInput: boolean;
   supportsArtifactRefInput: boolean;
+};
+
+export type RuntimeNumericRange = {
+  min: number;
+  max: number;
+};
+
+export type SpeechSynthesizeVoiceRenderHintsRouteMetadata = {
+  stability?: RuntimeNumericRange;
+  similarityBoost?: RuntimeNumericRange;
+  style?: RuntimeNumericRange;
+  speed?: RuntimeNumericRange;
+  useSpeakerBoost?: boolean;
+};
+
+export type SpeechSynthesizeRouteMetadata = {
+  supportedAudioFormats: string[];
+  defaultAudioFormat?: string;
+  supportedTimingModes: Array<'none' | 'word' | 'char'>;
+  supportsLanguage: boolean;
+  supportsEmotion: boolean;
+  voiceRenderHints?: SpeechSynthesizeVoiceRenderHintsRouteMetadata;
+  providerExtensionNamespace?: string;
+  providerExtensionSchemaVersion?: string;
+};
+
+export type SpeechTranscribeRouteMetadata = {
+  tiers: string[];
+  supportedResponseFormats: string[];
+  supportsLanguage: boolean;
+  supportsPrompt: boolean;
+  supportsTimestamps: boolean;
+  supportsDiarization: boolean;
+  maxSpeakerCount?: number;
+  providerExtensionNamespace?: string;
+  providerExtensionSchemaVersion?: string;
 };
 
 export type VoiceWorkflowTtsV2vRouteMetadata = {
@@ -69,6 +107,20 @@ export type RuntimeRouteDescribeResult =
     resolvedBindingRef: RuntimeRouteResolvedBindingRef;
     metadataKind: 'text.generate';
     metadata: TextGenerateRouteMetadata;
+  }
+  | {
+    capability: 'audio.synthesize';
+    metadataVersion: RuntimeRouteMetadataVersion;
+    resolvedBindingRef: RuntimeRouteResolvedBindingRef;
+    metadataKind: 'audio.synthesize';
+    metadata: SpeechSynthesizeRouteMetadata;
+  }
+  | {
+    capability: 'audio.transcribe';
+    metadataVersion: RuntimeRouteMetadataVersion;
+    resolvedBindingRef: RuntimeRouteResolvedBindingRef;
+    metadataKind: 'audio.transcribe';
+    metadata: SpeechTranscribeRouteMetadata;
   }
   | {
     capability: 'voice_workflow.tts_v2v';
@@ -159,6 +211,8 @@ export function parseRuntimeRouteMetadataKind(value: unknown): RuntimeRouteMetad
   const capability = parseRuntimeCanonicalCapability(value);
   if (
     capability === 'text.generate'
+    || capability === 'audio.synthesize'
+    || capability === 'audio.transcribe'
     || capability === 'voice_workflow.tts_v2v'
     || capability === 'voice_workflow.tts_t2v'
   ) {
@@ -328,6 +382,108 @@ function parseTextGenerateRouteMetadata(value: unknown): TextGenerateRouteMetada
   };
 }
 
+function parseRuntimeNumericRange(value: unknown): RuntimeNumericRange | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  const record = asRecord(value);
+  const min = Number(record.min);
+  const max = Number(record.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max < min) {
+    return undefined;
+  }
+  return { min, max };
+}
+
+function parseSpeechSynthesizeRouteMetadata(value: unknown): SpeechSynthesizeRouteMetadata | null {
+  const record = asRecord(value);
+  const supportedAudioFormats = Array.isArray(record.supportedAudioFormats)
+    ? record.supportedAudioFormats.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  const supportedTimingModesRaw = Array.isArray(record.supportedTimingModes)
+    ? record.supportedTimingModes.map((item) => String(item || '').trim())
+    : [];
+  const supportedTimingModes = supportedTimingModesRaw.filter((mode): mode is 'none' | 'word' | 'char' => (
+    mode === 'none' || mode === 'word' || mode === 'char'
+  ));
+  if (
+    supportedAudioFormats.length === 0
+    || supportedTimingModes.length !== supportedTimingModesRaw.length
+    || supportedTimingModes.length === 0
+    || typeof record.supportsLanguage !== 'boolean'
+    || typeof record.supportsEmotion !== 'boolean'
+  ) {
+    return null;
+  }
+  const hintsRecord = asRecord(record.voiceRenderHints);
+  const voiceRenderHints: SpeechSynthesizeVoiceRenderHintsRouteMetadata = {};
+  const stability = parseRuntimeNumericRange(hintsRecord.stability);
+  const similarityBoost = parseRuntimeNumericRange(hintsRecord.similarityBoost);
+  const style = parseRuntimeNumericRange(hintsRecord.style);
+  const speed = parseRuntimeNumericRange(hintsRecord.speed);
+  if (stability) {
+    voiceRenderHints.stability = stability;
+  }
+  if (similarityBoost) {
+    voiceRenderHints.similarityBoost = similarityBoost;
+  }
+  if (style) {
+    voiceRenderHints.style = style;
+  }
+  if (speed) {
+    voiceRenderHints.speed = speed;
+  }
+  if (typeof hintsRecord.useSpeakerBoost === 'boolean') {
+    voiceRenderHints.useSpeakerBoost = hintsRecord.useSpeakerBoost;
+  }
+  return {
+    supportedAudioFormats,
+    defaultAudioFormat: String(record.defaultAudioFormat || '').trim() || undefined,
+    supportedTimingModes,
+    supportsLanguage: record.supportsLanguage,
+    supportsEmotion: record.supportsEmotion,
+    ...(Object.keys(voiceRenderHints).length > 0 ? { voiceRenderHints } : {}),
+    providerExtensionNamespace: String(record.providerExtensionNamespace || '').trim() || undefined,
+    providerExtensionSchemaVersion: String(record.providerExtensionSchemaVersion || '').trim() || undefined,
+  };
+}
+
+function parseSpeechTranscribeRouteMetadata(value: unknown): SpeechTranscribeRouteMetadata | null {
+  const record = asRecord(value);
+  const tiers = Array.isArray(record.tiers)
+    ? record.tiers.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  const supportedResponseFormats = Array.isArray(record.supportedResponseFormats)
+    ? record.supportedResponseFormats.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  const maxSpeakerCountNumeric = Number(record.maxSpeakerCount);
+  if (
+    tiers.length === 0
+    || supportedResponseFormats.length === 0
+    || typeof record.supportsLanguage !== 'boolean'
+    || typeof record.supportsPrompt !== 'boolean'
+    || typeof record.supportsTimestamps !== 'boolean'
+    || typeof record.supportsDiarization !== 'boolean'
+    || (
+      String(record.maxSpeakerCount || '').trim() !== ''
+      && (!Number.isFinite(maxSpeakerCountNumeric) || maxSpeakerCountNumeric < 0)
+    )
+  ) {
+    return null;
+  }
+  return {
+    tiers,
+    supportedResponseFormats,
+    supportsLanguage: record.supportsLanguage,
+    supportsPrompt: record.supportsPrompt,
+    supportsTimestamps: record.supportsTimestamps,
+    supportsDiarization: record.supportsDiarization,
+    ...(Number.isFinite(maxSpeakerCountNumeric) && maxSpeakerCountNumeric > 0 ? { maxSpeakerCount: maxSpeakerCountNumeric } : {}),
+    providerExtensionNamespace: String(record.providerExtensionNamespace || '').trim() || undefined,
+    providerExtensionSchemaVersion: String(record.providerExtensionSchemaVersion || '').trim() || undefined,
+  };
+}
+
 function parseVoiceWorkflowTtsV2vRouteMetadata(value: unknown): VoiceWorkflowTtsV2vRouteMetadata | null {
   const record = asRecord(value);
   if (
@@ -431,6 +587,30 @@ export function parseRuntimeRouteDescribeResult(value: unknown): RuntimeRouteDes
       metadataVersion: 'v1',
       resolvedBindingRef,
       metadataKind: 'text.generate',
+      metadata,
+    };
+  }
+
+  if (capability === 'audio.synthesize') {
+    const metadata = parseSpeechSynthesizeRouteMetadata(record.metadata);
+    if (!metadata) return null;
+    return {
+      capability: 'audio.synthesize',
+      metadataVersion: 'v1',
+      resolvedBindingRef,
+      metadataKind: 'audio.synthesize',
+      metadata,
+    };
+  }
+
+  if (capability === 'audio.transcribe') {
+    const metadata = parseSpeechTranscribeRouteMetadata(record.metadata);
+    if (!metadata) return null;
+    return {
+      capability: 'audio.transcribe',
+      metadataVersion: 'v1',
+      resolvedBindingRef,
+      metadataKind: 'audio.transcribe',
       metadata,
     };
   }

@@ -1,6 +1,7 @@
 version: 1
 provider: hunyuan
 catalog_version: 2026-03-05-hunyuan-v1
+default_text_model: hunyuan-turbo
 models:
   - model_id: hunyuan-turbo
     provider: hunyuan
@@ -54,3 +55,11 @@ models:
       retrieved_at: 2026-03-05
       note: Tencent Hunyuan model overview.
 voices: []
+selection_profiles:
+  - provider: hunyuan
+    profile_id: text.general
+    capability: text.generate
+    model_id: hunyuan-turbo
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Only admitted Hunyuan text route in the current source set.

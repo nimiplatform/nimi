@@ -132,7 +132,7 @@ function main() {
     canonicalCapabilityTokens,
   );
   checkDocPhrases(
-    path.join(repoRoot, 'spec', 'runtime', 'kernel', 'model-catalog-contract.md'),
+    path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-contract.md'),
     [
       { label: 'when capability includes `tts`', regex: /when capability includes `tts`/ },
       { label: 'when capability includes `video_generation`', regex: /when capability includes `video_generation`/ },

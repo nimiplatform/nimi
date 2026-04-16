@@ -1,6 +1,7 @@
 version: 1
 provider: mistral
 catalog_version: 2026-03-18-mistral-v3
+default_text_model: mistral-large-latest
 models:
   - model_id: mistral-large-latest
     provider: mistral
@@ -125,3 +126,18 @@ models:
       retrieved_at: 2026-03-05
       note: Mistral embeddings capability documentation.
 voices: []
+selection_profiles:
+  - provider: mistral
+    profile_id: text.general
+    capability: text.generate
+    model_id: mistral-large-latest
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general Mistral text route in the admitted set.
+  - provider: mistral
+    profile_id: text.fast
+    capability: text.generate
+    model_id: mistral-small-latest
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Cost-efficient Mistral text route for fast general tasks.

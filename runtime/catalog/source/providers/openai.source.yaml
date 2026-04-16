@@ -75,6 +75,26 @@ sources:
 language_profiles:
   short_v1: [en, zh, ja, ko, es, fr, de]
 
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: gpt-5.2
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best default OpenAI chat route for general users.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: gpt-4o-mini
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Fast and inexpensive OpenAI text path.
+  - profile_id: text.reasoning
+    capability: text.generate
+    model_id: gpt-5.2-pro
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Highest-quality OpenAI reasoning track currently admitted.
+
 voice_sets:
   - voice_set_id: default-tts-v1
     langs_ref: short_v1
@@ -104,6 +124,9 @@ models:
       voice_set_ref: default-tts-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3]
 
   - model_id: gpt-audio-mini
     updated_at: 2026-03-05
@@ -121,6 +144,9 @@ models:
       voice_set_ref: default-tts-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3]
 
   - model_id: tts-1
     updated_at: 2026-03-05
@@ -138,6 +164,9 @@ models:
       voice_set_ref: default-tts-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3]
 
   - model_id: gpt-4o-transcribe
     model_type: stt
@@ -151,6 +180,11 @@ models:
       as_of: 2026-03-18
       notes: Speech-to-text. Input = audio tokens. Per 1M tokens.
     source_ids: [openai_speech_to_text_doc, openai_models_doc]
+    transcription:
+      tiers: [core_transcript]
+      response_formats: [text, json]
+      supports_language: true
+      supports_prompt: true
 
   - model_id: gpt-4o-mini-transcribe
     model_type: stt
@@ -164,6 +198,11 @@ models:
       as_of: 2026-03-18
       notes: Speech-to-text (mini). Input = audio tokens. Per 1M tokens.
     source_ids: [openai_speech_to_text_doc, openai_models_doc]
+    transcription:
+      tiers: [core_transcript]
+      response_formats: [text, json]
+      supports_language: true
+      supports_prompt: true
 
   - model_id: whisper-1
     model_type: stt
@@ -177,6 +216,11 @@ models:
       as_of: 2026-03-18
       notes: Legacy STT. Approximate per-token equivalent of $0.006/minute. Per 1M tokens.
     source_ids: [openai_speech_to_text_doc, openai_models_doc]
+    transcription:
+      tiers: [core_transcript]
+      response_formats: [text, json]
+      supports_language: true
+      supports_prompt: true
 
   - model_id: gpt-5.2
     model_type: chat

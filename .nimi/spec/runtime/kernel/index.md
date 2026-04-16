@@ -53,6 +53,7 @@
 | `runtime-memory-service-contract.md` | `K-MEM-*` | Runtime-owned memory substrate、bank scope、provider boundary、Realm replication |
 | `runtime-memory-substrate-contract.md` | `K-MEMSUB-*` | Runtime-private local memory substrate / Hindsight bridge、health、daemon boundary、runtime-owned typed overlay |
 | `runtime-agent-core-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、agent memory policy |
+| `agent-presentation-contract.md` | `K-AGCORE-*` | Runtime-owned persistent `AgentPresentationProfile` truth、default avatar binding、and non-owner boundary for transient avatar state |
 | `app-messaging-contract.md` | `K-APP-*` | 应用间消息、事件流 |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
 | `config-contract.md` | `K-CFG-*` | 配置路径、优先级、secret policy、写入语义 |

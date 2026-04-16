@@ -67,6 +67,9 @@
 - rule_id: K-MMPROV-023
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
+- rule_id: K-MMPROV-023a
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-MMPROV-024
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]

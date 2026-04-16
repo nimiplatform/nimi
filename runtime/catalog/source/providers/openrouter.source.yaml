@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: openrouter
+  default_text_model: openrouter/auto
   model_type: chat
   capabilities: []
   pricing:
@@ -29,6 +30,14 @@ sources:
     url: https://openrouter.ai/docs/docs/routing/auto-model-selection
     retrieved_at: 2026-03-05
     note: OpenRouter Auto Router model ID and routing behavior.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: openrouter/auto
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Only admitted OpenRouter text route in the current source set.
 
 models:
   - model_id: openrouter/auto

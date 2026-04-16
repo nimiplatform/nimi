@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: true
 defaults:
   provider: bedrock
+  default_text_model: anthropic.claude-sonnet-4-6-v1:0
   model_type: chat
   capabilities: []
   pricing:
@@ -25,6 +26,26 @@ sources:
     url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
     retrieved_at: 2026-03-05
     note: Amazon Bedrock supported foundation models.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: anthropic.claude-sonnet-4-6-v1:0
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current balanced Bedrock text route in the admitted set.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: amazon.nova-lite-v1:0
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lite-tier Bedrock text route for lower-latency general tasks.
+  - profile_id: text.reasoning
+    capability: text.generate
+    model_id: anthropic.claude-opus-4-6-v1:0
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Highest-quality admitted Bedrock reasoning route.
 
 models:
   - model_id: anthropic.claude-opus-4-6-v1:0

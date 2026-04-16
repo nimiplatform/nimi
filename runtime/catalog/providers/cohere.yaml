@@ -1,6 +1,7 @@
 version: 1
 provider: cohere
 catalog_version: 2026-03-18-cohere-v2
+default_text_model: command-r-plus
 models:
   - model_id: command-r-plus
     provider: cohere
@@ -54,3 +55,18 @@ models:
       retrieved_at: 2026-03-05
       note: Cohere Embed v4 documentation.
 voices: []
+selection_profiles:
+  - provider: cohere
+    profile_id: text.general
+    capability: text.generate
+    model_id: command-r-plus
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current Cohere text default in the admitted set.
+  - provider: cohere
+    profile_id: text.fast
+    capability: text.generate
+    model_id: command-r
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lower-cost Cohere text route for faster general tasks.

@@ -12,6 +12,7 @@
 | `runtime_proto_linkage` | `static_gate` | `pnpm check:runtime-proto-spec-linkage` | `scripts/check-runtime-proto-spec-linkage.mjs` | Proto definition and spec rule linkage validation. |
 | `runtime_provider_checks` | `static_gate` | `pnpm check:runtime-provider-capability-token-canonicalization && pnpm check:runtime-provider-activation-alignment && pnpm check:runtime-provider-endpoint-ssot` | `scripts/check-runtime-provider-capability-token-canonicalization.mjs` | Provider catalog, capability token, activation, and endpoint single-source-of-truth validation. |
 | `runtime_catalog_drift` | `static_gate` | `pnpm check:runtime-catalog-drift` | `scripts/check-runtime-catalog-drift.mjs` | Runtime catalog definition consistency and drift detection. |
+| `runtime_selection_freshness` | `static_gate` | `pnpm check:runtime-selection-freshness` | `scripts/check-runtime-selection-freshness.mjs` | Reviewed selection profile freshness, capability fit, and default-model projection validation. |
 
 ## Rule Coverage Matrix
 
@@ -287,6 +288,7 @@
 | `K-MCAT-027` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-028` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-029` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-030` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift`, `runtime_selection_freshness` |
 | `K-MODEL-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -461,6 +463,11 @@
 | `K-AGCORE-019` | `deferred` | — |
 | `K-AGCORE-020` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-AGCORE-021` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AGCORE-022` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-023` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-024` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-025` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-026` | `covered` | `runtime_kernel_consistency` |
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
 | `K-RPC-004c` | `deferred` | — |
@@ -508,6 +515,7 @@
 | `K-MMPROV-021` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-022` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-023` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-023a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MMPROV-024` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-025` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-026` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |

@@ -21,6 +21,16 @@ models:
       note: Google Cloud Text-to-Speech documentation.
     voice_set_id: google_cloud_tts:chirp3-defaults-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - wav
+        - mulaw
+        - alaw
+      supports_language: true
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref

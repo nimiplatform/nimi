@@ -72,6 +72,7 @@ Apps may:
 
 - initialize agents
 - read state and memory projections
+- read runtime-owned `AgentPresentationProfile` projection
 - update state through admitted commands
 - configure autonomy
 - subscribe to agent events
@@ -82,6 +83,7 @@ Apps may not:
 - own renderer-local canonical memory truth
 - directly schedule life-track execution
 - directly mutate canonical agent bank scopes through Memory Service
+- write thread-local avatar interaction state back as runtime-owned presentation truth
 
 ## K-AGCORE-006 Public Surface
 
@@ -114,6 +116,7 @@ Primary semantic outputs on this surface must use Nimi-owned typed messages:
 - implementation-facing transport must reserve typed families for `NextHookIntent`, `HookOutcome`, canonical memory candidate/view, and constrained state mutation payloads
 - admitted implementation-facing transport must expose hook outcome detail as typed completed / failed / canceled / rescheduled / rejected families, and app-facing state mutation as a typed command/patch union rather than full-state replacement
 - no public Agent Core method may admit proactive initiate-chat, public truth read/write, or public posture mutation unless a later rule explicitly admits those surfaces
+- runtime-owned `AgentPresentationProfile` projection may be exposed on agent read surfaces, but transient avatar/session state must remain out of the public runtime truth model
 
 Typed family registry is defined by `tables/runtime-agent-core-typed-family.yaml`.
 

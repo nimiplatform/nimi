@@ -17,10 +17,10 @@ const sourceReadmePath = path.join(repoRoot, 'runtime', 'catalog', 'source', 'RE
 const scanRoots = [
   path.join(repoRoot, 'runtime', 'catalog', 'source'),
   path.join(repoRoot, 'runtime', 'catalog', 'providers'),
-  path.join(repoRoot, 'spec', 'runtime', 'kernel', 'model-catalog-contract.md'),
-  path.join(repoRoot, 'spec', 'runtime', 'kernel', 'voice-contract.md'),
-  path.join(repoRoot, 'spec', 'runtime', 'kernel', 'tables', 'tts-provider-capability-matrix.yaml'),
-  path.join(repoRoot, 'spec', 'runtime', 'kernel', 'tables', 'connector-rpc-field-rules.yaml'),
+  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-contract.md'),
+  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'voice-contract.md'),
+  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'tts-provider-capability-matrix.yaml'),
+  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'connector-rpc-field-rules.yaml'),
 ];
 
 let failed = false;

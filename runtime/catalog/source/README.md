@@ -35,6 +35,7 @@ Each `*.source.yaml` should contain:
 - `generated_target`
 - `runtime`
 - `defaults`
+- `selection_profiles` (optional)
 - `sources`
 - `language_profiles`
 - `voice_sets` (optional)
@@ -61,6 +62,7 @@ Required model-level fields:
 Optional model-level capability blocks:
 
 - `voice` (for `audio.synthesize` models)
+- `transcription` (for `audio.transcribe` models)
 - `video_generation` (for `video.generate` models)
 
 Canonical capability tokens are:
@@ -110,6 +112,15 @@ When a model declares `audio.synthesize`, `voice` must be defined:
 - `supports_voice_ref_kinds`
 - `langs_ref`
 
+`voice.request_options` may define route-describe metadata for plain TTS:
+
+- `timing_modes`
+- `audio_formats`
+- `supports_language`
+- `supports_emotion`
+- `voice_render_hints` (optional)
+- `provider_extensions` (optional)
+
 ### 5.3 Discovery Semantics
 
 - `static_catalog`: preset voices are fully enumerated in source and flattened snapshot.
@@ -127,6 +138,19 @@ When a model declares `video.generate`, `video_generation` must be defined:
 - `limits`
 - `options`
 - `outputs`
+
+### 5.4a STT Capability Metadata Rule
+
+When a model declares `audio.transcribe`, it may define `transcription`:
+
+- `tiers`
+- `response_formats`
+- `supports_language`
+- `supports_prompt`
+- `supports_timestamps`
+- `supports_diarization`
+- `max_speaker_count` (optional)
+- `provider_extensions` (optional)
 
 ### 5.5 Voice Set Rule
 
@@ -177,6 +201,28 @@ For cloud providers, source catalogs should prioritize latest canonical models:
 - Do not create speculative aliases.
 - Older model generations should only be carried forward as explicit compatibility aliases, not as separately maintained primary entries.
 
+### 5.10 Reviewed Selection Profile Rule
+
+`selection_profiles` is the source-authored reviewed recommendation layer for
+"best current" provider defaults.
+
+Each profile should declare:
+
+- `profile_id`
+- `capability`
+- `model_id`
+- `reviewed_at`
+- `freshness_sla_days`
+- `rationale` (recommended)
+
+Compatibility rule:
+
+- `selection_profiles[text.general]` is the reviewed text default
+- generated snapshot `default_text_model` is projected from that reviewed choice
+- while migration remains incremental, `defaults.default_text_model` may remain
+  as a same-value compatibility field only
+- if both are present and differ, generator must fail-close
+
 ## 6. Validation Requirements
 
 At minimum, generator/schema validation must enforce:
@@ -191,6 +237,9 @@ At minimum, generator/schema validation must enforce:
 8. Providers that declare `voice_workflow_models` must also have a routable runtime voice adapter.
 9. `voice.discovery_mode` must be one of `static_catalog|dynamic_user_scoped`.
 10. `runtime` metadata must fully determine endpoint/default endpoint and runtime plane facts.
+11. `selection_profiles` must reference existing models with matching capabilities.
+12. `selection_profiles[text.general]`, when present, must match `defaults.default_text_model`.
+13. `voice.request_options` and `transcription` metadata must be capability-scoped and structurally valid.
 
 ## 7. Workflow
 
@@ -203,6 +252,7 @@ At minimum, generator/schema validation must enforce:
 Drift check commands:
 
 - `pnpm check:runtime-catalog-drift`
+- `pnpm check:runtime-selection-freshness`
 - `pnpm check:runtime-provider-yaml-first-hardcut`
 - `pnpm check:runtime-provider-endpoint-ssot`
 

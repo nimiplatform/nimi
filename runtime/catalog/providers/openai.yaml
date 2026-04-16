@@ -22,6 +22,11 @@ models:
       note: OpenAI text-to-speech documentation.
     voice_set_id: openai:default-tts-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
@@ -44,6 +49,11 @@ models:
       note: OpenAI text-to-speech documentation.
     voice_set_id: openai:default-tts-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
@@ -66,6 +76,11 @@ models:
       note: OpenAI text-to-speech documentation.
     voice_set_id: openai:default-tts-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
@@ -86,6 +101,14 @@ models:
       url: https://platform.openai.com/docs/guides/speech-to-text
       retrieved_at: 2026-03-05
       note: OpenAI speech-to-text documentation.
+    transcription:
+      tiers:
+        - core_transcript
+      response_formats:
+        - text
+        - json
+      supports_language: true
+      supports_prompt: true
   - model_id: gpt-4o-mini-transcribe
     provider: openai
     model_type: stt
@@ -103,6 +126,14 @@ models:
       url: https://platform.openai.com/docs/guides/speech-to-text
       retrieved_at: 2026-03-05
       note: OpenAI speech-to-text documentation.
+    transcription:
+      tiers:
+        - core_transcript
+      response_formats:
+        - text
+        - json
+      supports_language: true
+      supports_prompt: true
   - model_id: whisper-1
     provider: openai
     model_type: stt
@@ -120,6 +151,14 @@ models:
       url: https://platform.openai.com/docs/guides/speech-to-text
       retrieved_at: 2026-03-05
       note: OpenAI speech-to-text documentation.
+    transcription:
+      tiers:
+        - core_transcript
+      response_formats:
+        - text
+        - json
+      supports_language: true
+      supports_prompt: true
   - model_id: gpt-5.2
     provider: openai
     model_type: chat
@@ -450,3 +489,25 @@ voices:
       url: https://platform.openai.com/docs/guides/text-to-speech
       retrieved_at: 2026-03-05
       note: OpenAI text-to-speech documentation.
+selection_profiles:
+  - provider: openai
+    profile_id: text.general
+    capability: text.generate
+    model_id: gpt-5.2
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best default OpenAI chat route for general users.
+  - provider: openai
+    profile_id: text.fast
+    capability: text.generate
+    model_id: gpt-4o-mini
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Fast and inexpensive OpenAI text path.
+  - provider: openai
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: gpt-5.2-pro
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Highest-quality OpenAI reasoning track currently admitted.

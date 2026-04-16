@@ -67,6 +67,26 @@ sources:
     retrieved_at: 2026-03-05
     note: Gemini 3.1 Flash Image preview model card.
 
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: gemini-3-flash-preview
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Balanced Gemini default for general multimodal chat.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: gemini-3.1-flash-lite-preview
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lowest-cost low-latency Gemini text track.
+  - profile_id: text.reasoning
+    capability: text.generate
+    model_id: gemini-3.1-pro-preview
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Strongest current Gemini reasoning track.
+
 models:
   - model_id: gemini-2.5-pro
     model_type: chat
@@ -93,6 +113,10 @@ models:
       as_of: 2026-03-18
       notes: Fast model. Non-thinking tokens. Per 1M tokens.
     source_ids: [gemini_2_5_flash_doc, gemini_audio_understanding_doc, gemini_models_doc]
+    transcription:
+      tiers: [core_transcript]
+      response_formats: [text, json]
+      supports_language: true
 
   - model_id: gemini-embedding-001
     model_type: embedding

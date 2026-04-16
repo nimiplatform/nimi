@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_s_rules: 136
+  total_s_rules: 138
   audit_date: "2026-03-23"
   sdk_version: "0.4.0"
 
@@ -498,6 +498,14 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "App-facing selector-read stable methods live on the SDK composition surface and must not be published as runtime-subpath daemon convenience or RPC parity"
+  - rule_id: S-RUNTIME-103
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Persistent agent presentation profile may project only through runtime.agentCore.* and must not create a parallel top-level runtime avatar surface"
+  - rule_id: S-RUNTIME-104
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Transient avatar interaction state remains above SDK runtime; consistency gate records the explicit downstream ownership boundary"
 
   # --- Scope Contract (S-SCOPE) ---
   - rule_id: S-SCOPE-001

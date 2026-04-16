@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: true
 defaults:
   provider: together
+  default_text_model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
   model_type: chat
   capabilities: []
   pricing:
@@ -25,6 +26,26 @@ sources:
     url: https://docs.together.ai/docs/serverless-models
     retrieved_at: 2026-03-05
     note: Together AI serverless model catalog.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general Together text route in the admitted set.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: meta-llama/Llama-4-Scout-17B-16E-Instruct
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lower-cost Together text route for fast general tasks.
+  - profile_id: text.reasoning
+    capability: text.generate
+    model_id: deepseek-ai/DeepSeek-R1
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Dedicated reasoning-oriented Together text route in the admitted set.
 
 models:
   - model_id: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8

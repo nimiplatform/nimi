@@ -21,6 +21,15 @@ models:
       note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
     voice_set_id: elevenlabs:default-voices-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - pcm
+        - ogg
+        - wav
+      supports_language: true
     voice_ref_kinds:
       - provider_voice_ref
       - voice_asset_id
@@ -44,6 +53,15 @@ models:
       note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
     voice_set_id: elevenlabs:default-voices-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - pcm
+        - ogg
+        - wav
+      supports_language: true
     voice_ref_kinds:
       - provider_voice_ref
       - voice_asset_id
@@ -67,6 +85,15 @@ models:
       note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
     voice_set_id: elevenlabs:default-voices-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - pcm
+        - ogg
+        - wav
+      supports_language: true
     voice_ref_kinds:
       - provider_voice_ref
       - voice_asset_id
@@ -90,6 +117,15 @@ models:
       note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
     voice_set_id: elevenlabs:default-voices-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - pcm
+        - ogg
+        - wav
+      supports_language: true
     voice_ref_kinds:
       - provider_voice_ref
       - voice_asset_id

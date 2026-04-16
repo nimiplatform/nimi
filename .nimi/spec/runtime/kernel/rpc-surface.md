@@ -437,7 +437,7 @@ route capability surface 的职责固定拆分如下：
 - `capability`：canonical capability token（必须来自 `K-MCAT-024`）
 - `metadataVersion`：固定为 `v1`
 - `resolvedBindingRef`：由 `runtime.route.resolve(...)` 产生并可复核的 resolved binding reference；`describe` 不接受 Desktop heuristically assembled route
-- `metadataKind`：`text.generate | voice_workflow.tts_v2v | voice_workflow.tts_t2v`
+- `metadataKind`：`text.generate | audio.synthesize | audio.transcribe | voice_workflow.tts_v2v | voice_workflow.tts_t2v`
 - `metadata`：与 `metadataKind` 对应的 typed object
 
 `metadataKind=text.generate` 时，`metadata` 最小必填字段固定为：
@@ -463,6 +463,35 @@ route capability surface 的职责固定拆分如下：
 - `supportsTextPromptInput: true`
 - `requiresTargetSynthesisBinding: boolean`
 
+`metadataKind=audio.synthesize` 时，`metadata` 最小必填字段固定为：
+
+- `supportedAudioFormats: string[]`
+- `supportedTimingModes: ('none' | 'word' | 'char')[]`
+- `supportsLanguage: boolean`
+- `supportsEmotion: boolean`
+
+可选字段：
+
+- `defaultAudioFormat`
+- `voiceRenderHints`
+- `providerExtensionNamespace`
+- `providerExtensionSchemaVersion`
+
+`metadataKind=audio.transcribe` 时，`metadata` 最小必填字段固定为：
+
+- `tiers: string[]`
+- `supportedResponseFormats: string[]`
+- `supportsLanguage: boolean`
+- `supportsPrompt: boolean`
+- `supportsTimestamps: boolean`
+- `supportsDiarization: boolean`
+
+可选字段：
+
+- `maxSpeakerCount`
+- `providerExtensionNamespace`
+- `providerExtensionSchemaVersion`
+
 Phase 1 未在本规则列出的 capability，不得借由自由对象、provider raw payload 或 Desktop 本地推导补充稳定 metadata contract。
 
 ## K-RPC-018 Route Describe Producer Derivation Rules
@@ -477,6 +506,10 @@ Phase 1 未在本规则列出的 capability，不得借由自由对象、provide
   - 单向派生自 `K-MMPROV-037` 的 typed reasoning capability truth。
 - `voice_workflow.tts_v2v | voice_workflow.tts_t2v`
   - 单向派生自 `K-MMPROV-019`、`K-MMPROV-020`、`K-MCAT-013`、`K-MCAT-014`、`K-MCAT-021` 以及 local `speech` capability truth（含 `K-LOCAL-017`）。
+- `audio.synthesize`
+  - 单向派生自 source-authored `voice.request_options` + resolved model `audio.synthesize` catalog truth。
+- `audio.transcribe`
+  - 单向派生自 source-authored `transcription` + resolved model `audio.transcribe` catalog truth。
 
 若 producer 需要读取 catalog projection、本地 capability resolver、或 workflow binding matrix，该读取仍属于 Runtime 内部单向投影，不得形成 Desktop-owned metadata cache truth。
 

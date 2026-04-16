@@ -30,6 +30,8 @@ Voice 工作流类型以 `tables/voice-enums.yaml` `workflow_types` 为唯一事
 
 引用类型以 `tables/voice-enums.yaml` `reference_kinds` 为事实源。
 
+`VoiceReference` may be embedded by runtime-owned `AgentPresentationProfile` as a default voice binding. That reuse does not transfer voice workflow, discovery, or asset ownership out of `K-VOICE-*`.
+
 ## K-VOICE-004 VoiceAsset Contract
 
 `VoiceAsset` 是 runtime-managed voice resource object，最小必填字段：

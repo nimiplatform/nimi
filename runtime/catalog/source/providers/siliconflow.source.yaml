@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: true
 defaults:
   provider: siliconflow
+  default_text_model: deepseek-ai/DeepSeek-V3
   model_type: chat
   capabilities: []
   pricing:
@@ -25,6 +26,20 @@ sources:
     url: https://docs.siliconflow.cn/cn/userguides/models
     retrieved_at: 2026-03-05
     note: SiliconFlow model catalog and supported models.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: deepseek-ai/DeepSeek-V3
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general SiliconFlow text route in the admitted set.
+  - profile_id: text.reasoning
+    capability: text.generate
+    model_id: deepseek-ai/DeepSeek-R1
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Dedicated reasoning-oriented SiliconFlow text route in the admitted set.
 
 models:
   - model_id: deepseek-ai/DeepSeek-V3

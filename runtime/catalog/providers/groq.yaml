@@ -1,6 +1,7 @@
 version: 1
 provider: groq
 catalog_version: 2026-03-18-groq-v3
+default_text_model: meta-llama/llama-4-maverick-17b-128e-instruct
 models:
   - model_id: meta-llama/llama-4-scout-17b-16e-instruct
     provider: groq
@@ -126,3 +127,25 @@ models:
       retrieved_at: 2026-03-18
       note: Groq Whisper Large v3 Turbo model documentation.
 voices: []
+selection_profiles:
+  - provider: groq
+    profile_id: text.general
+    capability: text.generate
+    model_id: meta-llama/llama-4-maverick-17b-128e-instruct
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general Groq text route in the admitted set.
+  - provider: groq
+    profile_id: text.fast
+    capability: text.generate
+    model_id: meta-llama/llama-4-scout-17b-16e-instruct
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lower-cost Groq text route for latency-sensitive tasks.
+  - provider: groq
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: deepseek-r1-distill-llama-70b
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Dedicated reasoning-oriented Groq text route in the admitted set.

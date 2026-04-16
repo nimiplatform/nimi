@@ -182,13 +182,34 @@ function collectProviderCapabilities(sourceDoc) {
   return [...capabilitySet].sort((left, right) => left.localeCompare(right));
 }
 
+function readSelectionProfileDefaultTextModel(sourceDoc) {
+  const profiles = Array.isArray(sourceDoc?.selection_profiles) ? sourceDoc.selection_profiles : [];
+  for (const profile of profiles) {
+    const profileID = String(profile?.profile_id || '').trim().toLowerCase();
+    if (profileID !== 'text.general') {
+      continue;
+    }
+    return String(profile?.model_id || '').trim();
+  }
+  return '';
+}
+
 function readRuntimeMetadata(sourceDoc, providerID) {
   const runtime = sourceDoc?.runtime && typeof sourceDoc.runtime === 'object' ? sourceDoc.runtime : {};
   const runtimePlane = String(runtime?.runtime_plane || '').trim();
   const managedConnectorSupported = Boolean(runtime?.managed_connector_supported);
   const inlineSupported = Boolean(runtime?.inline_supported);
   const defaultEndpoint = String(runtime?.default_endpoint || '').trim();
-  const defaultTextModel = String(sourceDoc?.defaults?.default_text_model || '').trim();
+  const sourceDefaultTextModel = String(sourceDoc?.defaults?.default_text_model || '').trim();
+  const selectionProfileDefaultTextModel = readSelectionProfileDefaultTextModel(sourceDoc);
+  if (
+    selectionProfileDefaultTextModel
+    && sourceDefaultTextModel
+    && selectionProfileDefaultTextModel.toLowerCase() !== sourceDefaultTextModel.toLowerCase()
+  ) {
+    throw new Error(`provider ${providerID} defaults.default_text_model must match selection_profiles[text.general]`);
+  }
+  const defaultTextModel = selectionProfileDefaultTextModel || sourceDefaultTextModel;
   const requiresExplicitEndpoint = Boolean(runtime?.requires_explicit_endpoint);
 
   if (runtimePlane !== 'local' && runtimePlane !== 'remote') {

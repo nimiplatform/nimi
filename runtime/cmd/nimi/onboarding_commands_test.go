@@ -612,7 +612,7 @@ func TestRunRuntimeProviderSetDefaultRequiresModelWithoutCatalogDefault(t *testi
 	configPath := filepath.Join(homeDir, ".nimi", "config.json")
 	setCmdTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
-	err := runRuntimeProvider([]string{"set", "groq", "--api-key", "groq-inline-key", "--default"})
+	err := runRuntimeProvider([]string{"set", "stability", "--api-key", "stability-inline-key", "--default"})
 	if err == nil {
 		t.Fatalf("expected provider default-model validation error")
 	}

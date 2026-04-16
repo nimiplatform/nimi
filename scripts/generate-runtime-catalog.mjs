@@ -332,6 +332,221 @@ function normalizeVideoGeneration(raw) {
   };
 }
 
+function normalizeNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function normalizeNumericRange(raw, provider, modelID, field) {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const min = normalizeNumber(raw.min);
+  const max = normalizeNumber(raw.max);
+  if (min === null || max === null) {
+    throw new Error(`${provider} model ${modelID} ${field} must include numeric min/max`);
+  }
+  if (max < min) {
+    throw new Error(`${provider} model ${modelID} ${field} max must be >= min`);
+  }
+  return { min, max };
+}
+
+function normalizeProviderExtensions(raw, provider, modelID, field) {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const namespace = normalizeString(raw.namespace);
+  const schemaVersion = normalizeString(raw.schema_version);
+  if (!namespace || !schemaVersion) {
+    throw new Error(`${provider} model ${modelID} ${field}.provider_extensions must include namespace and schema_version`);
+  }
+  return {
+    namespace,
+    schema_version: schemaVersion,
+  };
+}
+
+function normalizeVoiceRenderHints(raw, provider, modelID) {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const out = {};
+  const stability = normalizeNumericRange(raw.stability, provider, modelID, 'voice.request_options.voice_render_hints.stability');
+  const similarityBoost = normalizeNumericRange(raw.similarity_boost, provider, modelID, 'voice.request_options.voice_render_hints.similarity_boost');
+  const style = normalizeNumericRange(raw.style, provider, modelID, 'voice.request_options.voice_render_hints.style');
+  const speed = normalizeNumericRange(raw.speed, provider, modelID, 'voice.request_options.voice_render_hints.speed');
+  if (stability) {
+    out.stability = stability;
+  }
+  if (similarityBoost) {
+    out.similarity_boost = similarityBoost;
+  }
+  if (style) {
+    out.style = style;
+  }
+  if (speed) {
+    out.speed = speed;
+  }
+  if (Boolean(raw.use_speaker_boost)) {
+    out.use_speaker_boost = true;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+function normalizeVoiceRequestOptions(raw, provider, modelID) {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const timingModes = normalizeStringArray(raw.timing_modes).map((value) => value.toLowerCase());
+  const audioFormats = normalizeStringArray(raw.audio_formats).map((value) => value.toLowerCase());
+  const allowedTimingModes = new Set(['none', 'word', 'char']);
+  if (timingModes.length === 0) {
+    throw new Error(`${provider} model ${modelID} voice.request_options.timing_modes must not be empty`);
+  }
+  if (audioFormats.length === 0) {
+    throw new Error(`${provider} model ${modelID} voice.request_options.audio_formats must not be empty`);
+  }
+  for (const mode of timingModes) {
+    if (!allowedTimingModes.has(mode)) {
+      throw new Error(`${provider} model ${modelID} voice.request_options.timing_modes contains unsupported value: ${mode}`);
+    }
+  }
+  const out = {
+    timing_modes: timingModes,
+    audio_formats: audioFormats,
+  };
+  if (Boolean(raw.supports_language)) {
+    out.supports_language = true;
+  }
+  if (Boolean(raw.supports_emotion)) {
+    out.supports_emotion = true;
+  }
+  const hints = normalizeVoiceRenderHints(raw.voice_render_hints, provider, modelID);
+  if (hints) {
+    out.voice_render_hints = hints;
+  }
+  const providerExtensions = normalizeProviderExtensions(raw.provider_extensions, provider, modelID, 'voice.request_options');
+  if (providerExtensions) {
+    out.provider_extensions = providerExtensions;
+  }
+  return out;
+}
+
+function normalizeTranscriptionOptions(raw, provider, modelID) {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const tiers = normalizeStringArray(raw.tiers).map((value) => value.toLowerCase());
+  const responseFormats = normalizeStringArray(raw.response_formats).map((value) => value.toLowerCase());
+  const allowedTiers = new Set(['core_transcript', 'timed_transcript', 'speaker_aware_transcript']);
+  if (tiers.length === 0) {
+    throw new Error(`${provider} model ${modelID} transcription.tiers must not be empty`);
+  }
+  if (responseFormats.length === 0) {
+    throw new Error(`${provider} model ${modelID} transcription.response_formats must not be empty`);
+  }
+  for (const tier of tiers) {
+    if (!allowedTiers.has(tier)) {
+      throw new Error(`${provider} model ${modelID} transcription.tiers contains unsupported value: ${tier}`);
+    }
+  }
+  const maxSpeakerCountRaw = raw.max_speaker_count;
+  let maxSpeakerCount = null;
+  if (typeof maxSpeakerCountRaw !== 'undefined' && maxSpeakerCountRaw !== null && String(maxSpeakerCountRaw).trim() !== '') {
+    const numeric = Number(maxSpeakerCountRaw);
+    if (!Number.isInteger(numeric) || numeric < 0) {
+      throw new Error(`${provider} model ${modelID} transcription.max_speaker_count must be a non-negative integer`);
+    }
+    maxSpeakerCount = numeric;
+  }
+  const out = {
+    tiers,
+    response_formats: responseFormats,
+  };
+  if (Boolean(raw.supports_language)) {
+    out.supports_language = true;
+  }
+  if (Boolean(raw.supports_prompt)) {
+    out.supports_prompt = true;
+  }
+  if (Boolean(raw.supports_timestamps)) {
+    out.supports_timestamps = true;
+  }
+  if (Boolean(raw.supports_diarization)) {
+    out.supports_diarization = true;
+  }
+  if (maxSpeakerCount !== null) {
+    if (!out.supports_diarization) {
+      throw new Error(`${provider} model ${modelID} transcription.max_speaker_count requires supports_diarization=true`);
+    }
+    out.max_speaker_count = maxSpeakerCount;
+  }
+  const providerExtensions = normalizeProviderExtensions(raw.provider_extensions, provider, modelID, 'transcription');
+  if (providerExtensions) {
+    out.provider_extensions = providerExtensions;
+  }
+  return out;
+}
+
+function normalizeSelectionProfiles(rawProfiles, provider, modelIndex) {
+  if (!Array.isArray(rawProfiles)) {
+    return [];
+  }
+  const out = [];
+  const seen = new Set();
+  for (const raw of rawProfiles) {
+    if (!raw || typeof raw !== 'object') {
+      throw new Error(`${provider} selection_profiles entries must be objects`);
+    }
+    const profileID = normalizeString(raw.profile_id);
+    const capability = normalizeString(raw.capability).toLowerCase();
+    const modelID = normalizeString(raw.model_id);
+    const reviewedAt = normalizeString(raw.reviewed_at);
+    const rationale = normalizeString(raw.rationale);
+    const freshnessSLADays = Number(raw.freshness_sla_days);
+    if (!profileID || !capability || !modelID || !reviewedAt) {
+      throw new Error(`${provider} selection profile must include profile_id/capability/model_id/reviewed_at`);
+    }
+    if (!Number.isInteger(freshnessSLADays) || freshnessSLADays <= 0) {
+      throw new Error(`${provider} selection profile ${profileID} freshness_sla_days must be a positive integer`);
+    }
+    if (!canonicalModelCapabilities.has(capability)) {
+      throw new Error(`${provider} selection profile ${profileID} uses non-canonical capability token: ${capability}`);
+    }
+    const dedupeKey = profileID.toLowerCase();
+    if (seen.has(dedupeKey)) {
+      throw new Error(`${provider} duplicate selection profile id: ${profileID}`);
+    }
+    seen.add(dedupeKey);
+    const model = modelIndex.get(modelID.toLowerCase());
+    if (!model) {
+      throw new Error(`${provider} selection profile ${profileID} references unknown model ${modelID}`);
+    }
+    const modelCapabilities = normalizeStringArray(model.capabilities).map((value) => value.toLowerCase());
+    if (!modelCapabilities.includes(capability)) {
+      throw new Error(`${provider} selection profile ${profileID} references model ${modelID} without capability ${capability}`);
+    }
+    out.push({
+      provider,
+      profile_id: profileID,
+      capability,
+      model_id: modelID,
+      reviewed_at: reviewedAt,
+      freshness_sla_days: freshnessSLADays,
+      ...(rationale ? { rationale } : {}),
+    });
+  }
+  return out;
+}
+
+function selectionProfileModelID(selectionProfiles, profileID) {
+  const match = Array.isArray(selectionProfiles)
+    ? selectionProfiles.find((entry) => normalizeString(entry?.profile_id).toLowerCase() === String(profileID || '').trim().toLowerCase())
+    : null;
+  return normalizeString(match?.model_id);
+}
+
 function normalizeWorkflowType(value) {
   const normalized = normalizeString(value).toLowerCase();
   if (!normalized) {
@@ -400,6 +615,8 @@ function generateProviderCatalog(doc) {
     const supportsVoiceRefKinds = normalizeStringArray(voiceConfig.supports_voice_ref_kinds || model?.supports_voice_ref_kinds);
     const voiceLangsRef = normalizeString(voiceConfig.langs_ref || model?.langs_ref);
     const staticVoiceSetRef = normalizeString(voiceConfig.voice_set_ref || model?.preset_voice_set_ref || model?.voice_set_id);
+    const voiceRequestOptions = normalizeVoiceRequestOptions(voiceConfig.request_options, provider, canonicalModelID);
+    const transcription = normalizeTranscriptionOptions(model?.transcription, provider, canonicalModelID);
     const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped']);
     if (discoveryMode && !allowedDiscoveryModes.has(discoveryMode)) {
       throw new Error(`${provider} model ${canonicalModelID} has unsupported voice discovery_mode: ${discoveryMode}`);
@@ -443,6 +660,12 @@ function generateProviderCatalog(doc) {
     const modelSourceRef = resolveSourceRef(modelSourceIDs, sourceIndex, fallbackSourceRef);
 
     const videoGeneration = normalizeVideoGeneration(model?.video_generation);
+    if (voiceRequestOptions && !requiresVoice) {
+      throw new Error(`${provider} model ${canonicalModelID} declares voice.request_options without audio.synthesize support`);
+    }
+    if (transcription && !capabilities.map((value) => value.toLowerCase()).includes('audio.transcribe')) {
+      throw new Error(`${provider} model ${canonicalModelID} declares transcription metadata without audio.transcribe support`);
+    }
 
     for (const entryModelID of expandedModelIDs) {
       const normalizedKey = entryModelID.toLowerCase();
@@ -463,6 +686,12 @@ function generateProviderCatalog(doc) {
       if (resolvedVoiceSetID) {
         modelEntry.voice_set_id = resolvedVoiceSetID;
         modelEntry.voice_discovery_mode = dynamicVoiceSet ? dynamicVoiceSetMode : 'static_catalog';
+      }
+      if (voiceRequestOptions) {
+        modelEntry.voice_request_options = voiceRequestOptions;
+      }
+      if (transcription) {
+        modelEntry.transcription = transcription;
       }
       if (videoGeneration) {
         modelEntry.video_generation = videoGeneration;
@@ -587,6 +816,18 @@ function generateProviderCatalog(doc) {
       throw new Error(`${provider} model ${model.model_id} has no generated voice mapping`);
     }
   }
+
+  const modelIndex = new Map(modelsOut.map((model) => [normalizeString(model.model_id).toLowerCase(), model]));
+  const selectionProfilesOut = normalizeSelectionProfiles(doc?.selection_profiles, provider, modelIndex);
+  const derivedDefaultTextModel = selectionProfileModelID(selectionProfilesOut, 'text.general');
+  if (
+    derivedDefaultTextModel
+    && defaultTextModel
+    && derivedDefaultTextModel.toLowerCase() !== defaultTextModel.toLowerCase()
+  ) {
+    throw new Error(`${provider} defaults.default_text_model must match selection_profiles[text.general]`);
+  }
+  const projectedDefaultTextModel = derivedDefaultTextModel || defaultTextModel;
 
   const workflowModelTypeByID = new Map();
   const workflowModelsOut = [];
@@ -732,10 +973,13 @@ function generateProviderCatalog(doc) {
     version: 1,
     provider,
     catalog_version: catalogVersion,
-    default_text_model: defaultTextModel || undefined,
+    default_text_model: projectedDefaultTextModel || undefined,
     models: modelsOut,
     voices: voicesOut,
   };
+  if (selectionProfilesOut.length > 0) {
+    result.selection_profiles = selectionProfilesOut;
+  }
   if (workflowModelsOut.length > 0) {
     result.voice_workflow_models = workflowModelsOut;
   }

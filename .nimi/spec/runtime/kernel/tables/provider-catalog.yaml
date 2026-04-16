@@ -12,7 +12,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: azure
     default_endpoint: null
-    default_text_model: null
+    default_text_model: gpt-5.2
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
   - provider: azure_speech
@@ -22,17 +22,17 @@ providers:
     source_rule: K-MCAT-027
   - provider: bedrock
     default_endpoint: null
-    default_text_model: null
+    default_text_model: anthropic.claude-sonnet-4-6-v1:0
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
   - provider: cohere
     default_endpoint: null
-    default_text_model: null
+    default_text_model: command-r-plus
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
   - provider: dashscope
     default_endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1
-    default_text_model: null
+    default_text_model: qwen3-max
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: deepseek
@@ -47,7 +47,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: fireworks
     default_endpoint: null
-    default_text_model: null
+    default_text_model: accounts/fireworks/models/llama4-maverick-instruct-basic
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
   - provider: fish_audio
@@ -67,7 +67,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: glm
     default_endpoint: https://open.bigmodel.cn/api/paas/v4
-    default_text_model: null
+    default_text_model: glm-4.7
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: google_cloud_tts
@@ -82,12 +82,12 @@ providers:
     source_rule: K-MCAT-027
   - provider: groq
     default_endpoint: https://api.groq.com/openai/v1
-    default_text_model: null
+    default_text_model: meta-llama/llama-4-maverick-17b-128e-instruct
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: hunyuan
     default_endpoint: https://api.hunyuan.cloud.tencent.com/v1
-    default_text_model: null
+    default_text_model: hunyuan-turbo
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: ideogram
@@ -97,7 +97,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: kimi
     default_endpoint: https://api.moonshot.cn/v1
-    default_text_model: null
+    default_text_model: kimi-k2.5
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: kling
@@ -117,12 +117,12 @@ providers:
     source_rule: K-MCAT-027
   - provider: minimax
     default_endpoint: https://api.minimax.chat/v1
-    default_text_model: null
+    default_text_model: MiniMax-M2.5
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: mistral
     default_endpoint: https://api.mistral.ai/v1
-    default_text_model: null
+    default_text_model: mistral-large-latest
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: mubert
@@ -147,12 +147,12 @@ providers:
     source_rule: K-MCAT-027
   - provider: openrouter
     default_endpoint: https://openrouter.ai/api/v1
-    default_text_model: null
+    default_text_model: openrouter/auto
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: perplexity
     default_endpoint: null
-    default_text_model: null
+    default_text_model: sonar-pro
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
   - provider: pika
@@ -162,7 +162,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: qianfan
     default_endpoint: https://qianfan.baidubce.com/v2
-    default_text_model: null
+    default_text_model: ernie-5.0
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: runway
@@ -172,7 +172,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: siliconflow
     default_endpoint: null
-    default_text_model: null
+    default_text_model: deepseek-ai/DeepSeek-V3
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
   - provider: soundverse
@@ -182,7 +182,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: spark
     default_endpoint: https://spark-api-open.xf-yun.com/v1
-    default_text_model: null
+    default_text_model: spark-x1
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: stability
@@ -192,7 +192,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: stepfun
     default_endpoint: https://api.stepfun.ai/v1
-    default_text_model: null
+    default_text_model: step-3.5-flash
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: suno
@@ -202,12 +202,12 @@ providers:
     source_rule: K-MCAT-027
   - provider: together
     default_endpoint: null
-    default_text_model: null
+    default_text_model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
     requires_explicit_endpoint: true
     source_rule: K-MCAT-027
   - provider: volcengine
     default_endpoint: https://ark.cn-beijing.volces.com/api/v3
-    default_text_model: null
+    default_text_model: doubao-seed-2-0-pro-260215
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
   - provider: volcengine_openspeech
@@ -217,6 +217,6 @@ providers:
     source_rule: K-MCAT-027
   - provider: xai
     default_endpoint: https://api.x.ai/v1
-    default_text_model: null
+    default_text_model: grok-4
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027

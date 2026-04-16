@@ -1,0 +1,92 @@
+version: 1
+defaults:
+  timeout_ms: 15000
+  report_output: .nimi/local/report/ongoing/2026-04-16-provider-upgrade-discovery/provider-model-discovery-latest.md
+providers:
+  openai:
+    adapter: openai_compat_models
+  deepseek:
+    adapter: openai_compat_models
+  glm:
+    adapter: openai_compat_models
+  groq:
+    adapter: openai_compat_models
+  xai:
+    adapter: openai_compat_models
+  dashscope:
+    adapter: openai_compat_models
+  stepfun:
+    adapter: openai_compat_models
+  kimi:
+    adapter: openai_compat_models
+  minimax:
+    adapter: openai_compat_models
+  volcengine:
+    adapter: openai_compat_models
+  mistral:
+    adapter: openai_compat_models
+  perplexity:
+    adapter: openai_compat_models
+    endpoint:
+      absolute_url: https://api.perplexity.ai/v1
+    normalize:
+      strip_prefixes: [perplexity/]
+      exclude_patterns:
+        - '^[^/]+/.+$'
+  openrouter:
+    adapter: openai_compat_models
+    auth:
+      kind: optional_bearer_provider_api_key
+    endpoint:
+      query:
+        output_modalities: text
+    compare:
+      detect_new_models: false
+      note: aggregate catalog; only missing admitted source models should trigger review
+  anthropic:
+    adapter: anthropic_models_v1
+  gemini:
+    adapter: google_generative_models_v1beta
+  cohere:
+    adapter: cohere_models_v1
+  together:
+    adapter: together_models_v1
+    compare:
+      detect_new_models: false
+      note: aggregate catalog; suppress upstream churn and keep missing-source checks
+  fireworks:
+    adapter: fireworks_models_v1
+    endpoint:
+      query:
+        pageSize: "200"
+    response:
+      item_filters:
+        - field: public
+          equals: true
+        - field: supportsServerless
+          equals: true
+    pagination:
+      request_query_param: pageToken
+      response_token_path: nextPageToken
+      max_pages: 20
+    compare:
+      detect_new_models: false
+      note: public serverless catalog is aggregate and paginated; suppress upstream churn and keep missing-source checks
+  elevenlabs:
+    adapter: elevenlabs_models_v1
+  siliconflow:
+    adapter: openai_compat_models
+    endpoint:
+      absolute_url: https://api.siliconflow.cn/v1
+    request_variants:
+      - label: chat
+        endpoint:
+          query:
+            sub_type: chat
+      - label: embedding
+        endpoint:
+          query:
+            sub_type: embedding
+    compare:
+      detect_new_models: false
+      note: aggregate catalog; limit discovery to admitted chat+embedding subtypes, suppress upstream churn, and keep missing-source checks

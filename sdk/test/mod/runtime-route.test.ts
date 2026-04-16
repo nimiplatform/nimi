@@ -212,6 +212,76 @@ test('parseRuntimeRouteDescribeResult accepts text.generate typed metadata', () 
   });
 });
 
+test('parseRuntimeRouteDescribeResult accepts audio.synthesize typed metadata', () => {
+  const parsed = parseRuntimeRouteDescribeResult({
+    capability: 'audio.synthesize',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-speech-001',
+    metadataKind: 'audio.synthesize',
+    metadata: {
+      supportedAudioFormats: ['mp3', 'wav'],
+      defaultAudioFormat: 'mp3',
+      supportedTimingModes: ['none'],
+      supportsLanguage: true,
+      supportsEmotion: false,
+      voiceRenderHints: {
+        speed: { min: 0.5, max: 2.0 },
+      },
+    },
+  });
+
+  assert.deepEqual(parsed, {
+    capability: 'audio.synthesize',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-speech-001',
+    metadataKind: 'audio.synthesize',
+    metadata: {
+      supportedAudioFormats: ['mp3', 'wav'],
+      defaultAudioFormat: 'mp3',
+      supportedTimingModes: ['none'],
+      supportsLanguage: true,
+      supportsEmotion: false,
+      voiceRenderHints: {
+        speed: { min: 0.5, max: 2.0 },
+      },
+      providerExtensionNamespace: undefined,
+      providerExtensionSchemaVersion: undefined,
+    },
+  });
+});
+
+test('decodeRuntimeRouteDescribeResultFromMetadata decodes audio.transcribe typed payload from response metadata', () => {
+  const encoded = Buffer.from(JSON.stringify({
+    capability: 'audio.transcribe',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-stt-001',
+    metadataKind: 'audio.transcribe',
+    metadata: {
+      tiers: ['core_transcript'],
+      supportedResponseFormats: ['text', 'json'],
+      supportsLanguage: true,
+      supportsPrompt: false,
+      supportsTimestamps: false,
+      supportsDiarization: false,
+    },
+  }), 'utf8').toString('base64');
+
+  const parsed = decodeRuntimeRouteDescribeResultFromMetadata({
+    metadata: {
+      [RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encoded,
+    },
+    expectedCapability: 'audio.transcribe',
+    expectedResolvedBindingRef: 'binding-stt-001',
+  });
+
+  assert.equal(parsed.metadataKind, 'audio.transcribe');
+  if (parsed.metadataKind !== 'audio.transcribe') {
+    assert.fail('expected audio.transcribe metadata');
+  }
+  assert.deepEqual(parsed.metadata.tiers, ['core_transcript']);
+  assert.deepEqual(parsed.metadata.supportedResponseFormats, ['text', 'json']);
+});
+
 test('decodeRuntimeRouteDescribeResultFromMetadata decodes typed payload from response metadata', () => {
   const encoded = Buffer.from(JSON.stringify({
     capability: 'text.generate',

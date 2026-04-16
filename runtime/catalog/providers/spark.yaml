@@ -1,6 +1,7 @@
 version: 1
 provider: spark
 catalog_version: 2026-03-05-spark-v1
+default_text_model: spark-x1
 models:
   - model_id: spark-x1
     provider: spark
@@ -54,3 +55,18 @@ models:
       retrieved_at: 2026-03-05
       note: iFlytek Spark Lite API documentation.
 voices: []
+selection_profiles:
+  - provider: spark
+    profile_id: text.general
+    capability: text.generate
+    model_id: spark-x1
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general Spark text route in the admitted set.
+  - provider: spark
+    profile_id: text.fast
+    capability: text.generate
+    model_id: spark-lite-max
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lite-tier Spark text route for faster general tasks.

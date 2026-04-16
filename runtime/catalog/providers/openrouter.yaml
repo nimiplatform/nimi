@@ -1,6 +1,7 @@
 version: 1
 provider: openrouter
 catalog_version: 2026-03-05-openrouter-v1
+default_text_model: openrouter/auto
 models:
   - model_id: openrouter/auto
     provider: openrouter
@@ -20,3 +21,11 @@ models:
       retrieved_at: 2026-03-05
       note: OpenRouter Auto Router model ID and routing behavior.
 voices: []
+selection_profiles:
+  - provider: openrouter
+    profile_id: text.general
+    capability: text.generate
+    model_id: openrouter/auto
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Only admitted OpenRouter text route in the current source set.

@@ -1,6 +1,7 @@
 version: 1
 provider: perplexity
 catalog_version: 2026-03-18-perplexity-v2
+default_text_model: sonar-pro
 models:
   - model_id: sonar-pro
     provider: perplexity
@@ -88,3 +89,25 @@ models:
       retrieved_at: 2026-03-18
       note: Perplexity Sonar Deep Research model card.
 voices: []
+selection_profiles:
+  - provider: perplexity
+    profile_id: text.general
+    capability: text.generate
+    model_id: sonar-pro
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general Perplexity text route in the admitted set.
+  - provider: perplexity
+    profile_id: text.fast
+    capability: text.generate
+    model_id: sonar
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lower-cost Perplexity text route for fast general tasks.
+  - provider: perplexity
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: sonar-reasoning-pro
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Dedicated reasoning-oriented Perplexity text route in the admitted set.

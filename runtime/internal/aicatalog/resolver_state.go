@@ -572,7 +572,8 @@ func overlayUsesVoiceSet(models []ModelEntry, voiceSetID string) bool {
 }
 
 func providerDocumentIsEmptyOverlay(doc ProviderDocument) bool {
-	return len(doc.Models) == 0 &&
+	return len(doc.SelectionProfiles) == 0 &&
+		len(doc.Models) == 0 &&
 		len(doc.Voices) == 0 &&
 		len(doc.VoiceWorkflowModels) == 0 &&
 		len(doc.ModelWorkflowBindings) == 0 &&

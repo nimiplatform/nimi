@@ -11,6 +11,7 @@ runtime:
 resolution_mode: model_anchor_v2
 defaults:
   provider: dashscope
+  default_text_model: qwen3-max
   model_type: tts
   capabilities: []
   pricing:
@@ -50,6 +51,26 @@ sources:
 language_profiles:
   region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
   short_v1: [zh, en, de, it, pt, es, ja, ko, fr, ru]
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: qwen3-max
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Highest-tier provider-native DashScope text route in the admitted set.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: qwen3.5-flash
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Explicit flash-tier DashScope text route for latency-sensitive tasks.
+  - profile_id: text.reasoning
+    capability: text.generate
+    model_id: kimi-k2-thinking
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Explicit thinking-oriented text route in the current DashScope catalog set.
 
 voice_sets:
   - voice_set_id: tts_voice_set

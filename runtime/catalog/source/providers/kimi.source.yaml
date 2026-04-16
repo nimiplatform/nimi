@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: kimi
+  default_text_model: kimi-k2.5
   model_type: chat
   capabilities: []
   pricing:
@@ -33,6 +34,14 @@ sources:
     url: https://platform.moonshot.cn/blog/posts/kimi-api-quick-start-guide
     retrieved_at: 2026-03-05
     note: Kimi API quickstart with OpenAI-compatible chat model examples.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: kimi-k2.5
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current stable Kimi text route in the admitted set.
 
 models:
   - model_id: kimi-k2.5

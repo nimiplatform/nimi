@@ -1,6 +1,7 @@
 version: 1
 provider: dashscope
 catalog_version: 2026-03-07-dashscope-v3
+default_text_model: qwen3-max
 models:
   - model_id: qwen-tts
     provider: dashscope
@@ -2894,6 +2895,28 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
+selection_profiles:
+  - provider: dashscope
+    profile_id: text.general
+    capability: text.generate
+    model_id: qwen3-max
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Highest-tier provider-native DashScope text route in the admitted set.
+  - provider: dashscope
+    profile_id: text.fast
+    capability: text.generate
+    model_id: qwen3.5-flash
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Explicit flash-tier DashScope text route for latency-sensitive tasks.
+  - provider: dashscope
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: kimi-k2-thinking
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Explicit thinking-oriented text route in the current DashScope catalog set.
 voice_workflow_models:
   - workflow_model_id: qwen-voice-enrollment
     workflow_type: tts_v2v

@@ -1,6 +1,7 @@
 version: 1
 provider: qianfan
 catalog_version: 2026-03-05-qianfan-v1
+default_text_model: ernie-5.0
 models:
   - model_id: ernie-5.0
     provider: qianfan
@@ -54,3 +55,18 @@ models:
       retrieved_at: 2026-03-05
       note: Qianfan Embedding-V1 model page.
 voices: []
+selection_profiles:
+  - provider: qianfan
+    profile_id: text.general
+    capability: text.generate
+    model_id: ernie-5.0
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current Qianfan text default in the admitted set.
+  - provider: qianfan
+    profile_id: text.fast
+    capability: text.generate
+    model_id: ernie-4.5-turbo-128k
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Turbo-tier Qianfan text route for faster general tasks.

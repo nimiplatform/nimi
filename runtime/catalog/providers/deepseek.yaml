@@ -55,3 +55,18 @@ models:
       retrieved_at: 2026-03-05
       note: DeepSeek API documentation home and model matrix.
 voices: []
+selection_profiles:
+  - provider: deepseek
+    profile_id: text.general
+    capability: text.generate
+    model_id: deepseek-chat
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best default tradeoff for broad DeepSeek chat use.
+  - provider: deepseek
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: deepseek-reasoner
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Preferred reasoning-heavy DeepSeek route.

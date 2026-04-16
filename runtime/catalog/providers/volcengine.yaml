@@ -1,6 +1,7 @@
 version: 1
 provider: volcengine
 catalog_version: 2026-03-05-volcengine-v3
+default_text_model: doubao-seed-2-0-pro-260215
 models:
   - model_id: doubao-tts
     provider: volcengine
@@ -528,3 +529,18 @@ voices:
       url: https://www.volcengine.com/docs/6561/1257584
       retrieved_at: 2026-03-05
       note: Volcengine OpenSpeech TTS documentation.
+selection_profiles:
+  - provider: volcengine
+    profile_id: text.general
+    capability: text.generate
+    model_id: doubao-seed-2-0-pro-260215
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general Volcengine text route in the admitted set.
+  - provider: volcengine
+    profile_id: text.fast
+    capability: text.generate
+    model_id: doubao-seed-2-0-mini-260215
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lightweight Volcengine text route for lower-latency general tasks.

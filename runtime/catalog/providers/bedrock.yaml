@@ -1,6 +1,7 @@
 version: 1
 provider: bedrock
 catalog_version: 2026-03-18-bedrock-v2
+default_text_model: anthropic.claude-sonnet-4-6-v1:0
 models:
   - model_id: anthropic.claude-opus-4-6-v1:0
     provider: bedrock
@@ -181,3 +182,25 @@ models:
       retrieved_at: 2026-03-05
       note: Amazon Bedrock supported foundation models.
 voices: []
+selection_profiles:
+  - provider: bedrock
+    profile_id: text.general
+    capability: text.generate
+    model_id: anthropic.claude-sonnet-4-6-v1:0
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current balanced Bedrock text route in the admitted set.
+  - provider: bedrock
+    profile_id: text.fast
+    capability: text.generate
+    model_id: amazon.nova-lite-v1:0
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lite-tier Bedrock text route for lower-latency general tasks.
+  - provider: bedrock
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: anthropic.claude-opus-4-6-v1:0
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Highest-quality admitted Bedrock reasoning route.

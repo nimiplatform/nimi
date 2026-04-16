@@ -1,6 +1,7 @@
 version: 1
 provider: fireworks
 catalog_version: 2026-03-05-fireworks-v1
+default_text_model: accounts/fireworks/models/llama4-maverick-instruct-basic
 models:
   - model_id: accounts/fireworks/models/llama4-maverick-instruct-basic
     provider: fireworks
@@ -143,3 +144,25 @@ models:
       retrieved_at: 2026-03-05
       note: Fireworks AI model catalog.
 voices: []
+selection_profiles:
+  - provider: fireworks
+    profile_id: text.general
+    capability: text.generate
+    model_id: accounts/fireworks/models/llama4-maverick-instruct-basic
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Best current general Fireworks text route in the admitted set.
+  - provider: fireworks
+    profile_id: text.fast
+    capability: text.generate
+    model_id: accounts/fireworks/models/llama4-scout-instruct-basic
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lower-cost Llama 4 route for faster Fireworks text tasks.
+  - provider: fireworks
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: accounts/fireworks/models/deepseek-r1
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Dedicated reasoning route in the admitted Fireworks set.

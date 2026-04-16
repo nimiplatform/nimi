@@ -21,6 +21,15 @@ models:
       note: Azure Speech text-to-speech baseline capability.
     voice_set_id: azure_speech:neural-defaults-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - wav
+        - pcm
+      supports_language: true
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref

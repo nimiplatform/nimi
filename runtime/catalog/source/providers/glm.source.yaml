@@ -10,6 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: glm
+  default_text_model: glm-4.7
   model_type: chat
   capabilities: []
   pricing:
@@ -37,6 +38,14 @@ sources:
     url: https://docs.bigmodel.cn/cn/guide/models/sound-and-video/glm-asr-2512
     retrieved_at: 2026-03-05
     note: GLM-ASR-2512 speech-to-text model documentation.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: glm-4.7
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Only admitted GLM text route in the current source set.
 
 models:
   - model_id: glm-4.7

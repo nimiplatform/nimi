@@ -40,6 +40,13 @@ models:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash
       retrieved_at: 2026-03-05
       note: Gemini 2.5 Flash model card.
+    transcription:
+      tiers:
+        - core_transcript
+      response_formats:
+        - text
+        - json
+      supports_language: true
   - model_id: gemini-embedding-001
     provider: gemini
     model_type: embedding
@@ -163,3 +170,25 @@ models:
       retrieved_at: 2026-03-05
       note: Gemini 3.1 Flash Image preview model card.
 voices: []
+selection_profiles:
+  - provider: gemini
+    profile_id: text.general
+    capability: text.generate
+    model_id: gemini-3-flash-preview
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Balanced Gemini default for general multimodal chat.
+  - provider: gemini
+    profile_id: text.fast
+    capability: text.generate
+    model_id: gemini-3.1-flash-lite-preview
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Lowest-cost low-latency Gemini text track.
+  - provider: gemini
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: gemini-3.1-pro-preview
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Strongest current Gemini reasoning track.
