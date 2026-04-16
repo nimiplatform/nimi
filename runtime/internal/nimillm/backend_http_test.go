@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -112,6 +113,83 @@ func TestBackendGenerateTextUsesFlexibleMessageExtraction(t *testing.T) {
 	}
 	if got, want := text, "这本书是《三体：地球往事》。\n它讲的是背叛、生存与死亡。"; got != want {
 		t.Fatalf("text mismatch: got=%q want=%q", got, want)
+	}
+}
+
+func TestBackendGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing.T) {
+	var capturedPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"choices":[{"finish_reason":"stop","message":{"content":"hello from gemini"}}],
+			"usage":{"prompt_tokens":2,"completion_tokens":3,"total_tokens":5}
+		}`))
+	}))
+	defer server.Close()
+
+	backend := NewBackend("gemini", server.URL+"/openai", "", 5*time.Second)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+
+	text, _, _, err := backend.GenerateText(
+		context.Background(),
+		"gemini-2.5-flash",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+	)
+	if err != nil {
+		t.Fatalf("unexpected generate error: %v", err)
+	}
+	if capturedPath != "/openai/chat/completions" {
+		t.Fatalf("expected Gemini-compatible chat path, got %q", capturedPath)
+	}
+	if text != "hello from gemini" {
+		t.Fatalf("unexpected text: %q", text)
+	}
+}
+
+func TestBackendStreamGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing.T) {
+	var capturedPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"hello\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
+	}))
+	defer server.Close()
+
+	backend := NewBackend("gemini", server.URL+"/openai", "", 5*time.Second)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+
+	var full strings.Builder
+	_, _, err := backend.StreamGenerateText(
+		context.Background(),
+		"gemini-2.5-flash",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+		func(part string) error {
+			full.WriteString(part)
+			return nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected stream error: %v", err)
+	}
+	if capturedPath != "/openai/chat/completions" {
+		t.Fatalf("expected Gemini-compatible stream path, got %q", capturedPath)
+	}
+	if full.String() != "hello" {
+		t.Fatalf("unexpected stream text: %q", full.String())
 	}
 }
 

@@ -119,6 +119,23 @@ func normalizeBackendBaseURL(baseURL string) string {
 	return trimmed
 }
 
+func resolveOpenAICompatiblePath(baseURL string, resource string) string {
+	normalizedBase := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(baseURL), "/"))
+	normalizedResource := strings.TrimSpace(resource)
+	if normalizedResource == "" {
+		return ""
+	}
+	if !strings.HasPrefix(normalizedResource, "/") {
+		normalizedResource = "/" + normalizedResource
+	}
+	// Gemini's OpenAI-compatible endpoint already ends at `/openai`, so
+	// appending `/v1/...` produces an invalid `/openai/v1/...` path.
+	if strings.HasSuffix(normalizedBase, "/openai") {
+		return normalizedResource
+	}
+	return "/v1" + normalizedResource
+}
+
 // WithRequestOverrides returns a shallow clone with overridden endpoint and API key.
 func (b *Backend) WithRequestOverrides(endpoint string, apiKey string) *Backend {
 	return b.WithRequestOverridesWithPolicy(endpoint, apiKey, b.allowLoopbackEndpoint)
@@ -232,7 +249,7 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 	}
 
 	respBody := map[string]any{}
-	if err := b.postJSON(ctx, "/v1/chat/completions", reqBody, &respBody); err != nil {
+	if err := b.postJSON(ctx, resolveOpenAICompatiblePath(b.baseURL, "/chat/completions"), reqBody, &respBody); err != nil {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	choices, ok := respBody["choices"].([]any)
@@ -335,7 +352,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}
-	endpoint := b.baseURL + "/v1/chat/completions"
+	endpoint := b.baseURL + resolveOpenAICompatiblePath(b.baseURL, "/chat/completions")
 	request, err := b.newRequest(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err

@@ -70,6 +70,22 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 		return codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, "replenish_provider_balance_or_skip_live_test"
 	}
 
+	authFailed := containsAnyToken(
+		normalized,
+		"api key not valid",
+		"api key invalid",
+		"invalid api key",
+		"invalid_api_key",
+		"api_key_invalid",
+		"invalid authentication",
+		"invalid auth",
+		"authentication failed",
+		"auth failed",
+	)
+	if authFailed {
+		return codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, "refresh_provider_api_key_or_reconnect_connector"
+	}
+
 	modelNotFound := containsAnyToken(
 		normalized,
 		"model not found",
@@ -208,9 +224,13 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 	switch statusCode {
 	case http.StatusBadRequest:
 		grpcCode, reasonCode, actionHint := classifyProviderBadRequest(providerMessage)
+		message := genericProviderFailure
+		if reasonCode == runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+			message = genericAuthFailure
+		}
 		return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
 			ActionHint: actionHint,
-			Message:    genericProviderFailure,
+			Message:    message,
 			Metadata:   metadata,
 		})
 	case http.StatusUnauthorized, http.StatusForbidden:

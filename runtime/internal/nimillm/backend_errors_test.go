@@ -87,6 +87,35 @@ func TestMapProviderHTTPError_BadRequestQuotaExceededMapsRateLimited(t *testing.
 	}
 }
 
+func TestMapProviderHTTPError_BadRequestAPIKeyInvalidMapsAuthFailed(t *testing.T) {
+	err := MapProviderHTTPError(400, map[string]any{
+		"error": map[string]any{
+			"message": "API key not valid. Please pass a valid API key.",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 400 invalid API key")
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", reason)
+	}
+	if strings.Contains(strings.ToLower(st.Message()), "api key not valid") {
+		t.Fatalf("provider detail leaked in status message: %q", st.Message())
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "refresh_provider_api_key_or_reconnect_connector" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+	if metadata["provider_message"] != "API key not valid. Please pass a valid API key." {
+		t.Fatalf("unexpected provider_message: %q", metadata["provider_message"])
+	}
+}
+
 func TestMapProviderHTTPError_ProviderInternal(t *testing.T) {
 	err := MapProviderHTTPError(500, nil)
 	st, ok := status.FromError(err)

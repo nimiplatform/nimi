@@ -935,6 +935,51 @@ func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 	}
 }
 
+func TestTestConnectorRemotePropagatesProviderAuthFailure(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/models" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, `{"error":{"message":"API key not valid. Please pass a valid API key."}}`)
+	}))
+	t.Cleanup(server.Close)
+
+	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers: map[string]nimillm.ProviderCredentials{
+			"openai": {BaseURL: server.URL, APIKey: "cloud-key"},
+		},
+		HTTPTimeout: 5 * time.Second,
+	}, nil, nil))
+
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		Endpoint: server.URL,
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+
+	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
+		ConnectorId: created.GetConnector().GetConnectorId(),
+	})
+	if err != nil {
+		t.Fatalf("TestConnector: %v", err)
+	}
+	if resp.GetAck().GetOk() {
+		t.Fatalf("expected probe failure")
+	}
+	if resp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", resp.GetAck().GetReasonCode())
+	}
+}
+
 func TestTestConnectorSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
 	svc := newTestService(t)
 	if _, err := svc.store.Create(ConnectorRecord{

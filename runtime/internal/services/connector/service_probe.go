@@ -85,9 +85,13 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 		_, listErr := backend.ListModels(ctx)
 		if listErr != nil {
 			s.logger.Warn("connector test probe failed", "connector_id", connectorID, "error", listErr)
-			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, auditPayload)
+			reasonCode := runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
+			if extracted, ok := grpcerr.ExtractReasonCode(listErr); ok {
+				reasonCode = extracted
+			}
+			s.emitAudit(ctx, "connector.test", reasonCode, auditPayload)
 			return &runtimev1.TestConnectorResponse{
-				Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
+				Ack: &runtimev1.Ack{Ok: false, ReasonCode: reasonCode},
 			}, nil
 		}
 	}
