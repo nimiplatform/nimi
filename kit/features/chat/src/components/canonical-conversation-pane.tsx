@@ -6,6 +6,7 @@ export const CANONICAL_STAGE_SURFACE_WIDTH_CLASS = 'max-w-[min(1240px,calc(100vw
 export type CanonicalConversationPaneProps = {
   selectedTarget: ConversationTargetSummary;
   characterData?: ConversationCharacterData | null;
+  chrome?: 'card' | 'transparent';
   viewMode: ConversationViewMode;
   onBackToTargets: () => void;
   onViewModeChange: (mode: ConversationViewMode) => void;
@@ -17,11 +18,14 @@ export type CanonicalConversationPaneProps = {
 };
 
 export function CanonicalConversationPane(props: CanonicalConversationPaneProps) {
-  const themeBackground = props.characterData?.theme?.roomAura || 'radial-gradient(circle at top, rgba(16,185,129,0.14), transparent 72%)';
+  const themeBackground = props.chrome === 'transparent'
+    ? 'transparent'
+    : props.characterData?.theme?.roomAura || 'radial-gradient(circle at top, rgba(16,185,129,0.14), transparent 72%)';
   return (
     <section
       className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
       data-canonical-conversation-pane="true"
+      data-conversation-pane-chrome={props.chrome || 'card'}
       style={{ background: themeBackground }}
     >
       <div className="flex min-h-0 flex-1 flex-col">

@@ -59,6 +59,8 @@ export function resolveAvatarBackendLabel(backendKind: AvatarBackendKind): strin
   switch (backendKind) {
     case 'vrm':
       return 'VRM';
+    case 'live2d':
+      return 'Live2D';
     case 'video':
       return 'Video';
     case 'canvas2d':
@@ -127,6 +129,15 @@ export function resolveAvatarStageRendererModel(input: {
         mediaUrl: concreteAssetRef,
         posterUrl: input.imageUrl || null,
         backendLabel: resolveAvatarBackendLabel('vrm'),
+        prefersMotion: true,
+      };
+    case 'live2d':
+      return {
+        kind: 'live2d',
+        assetRef: presentation.avatarAssetRef,
+        mediaUrl: concreteAssetRef,
+        posterUrl: input.imageUrl || null,
+        backendLabel: resolveAvatarBackendLabel('live2d'),
         prefersMotion: true,
       };
     case 'video':

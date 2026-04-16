@@ -1,10 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
 import { AmbientBackground, Surface } from '../src/index.js';
 
+const stylesCss = fs.readFileSync(path.join(import.meta.dirname, '../src/styles.css'), 'utf8');
+
 test('Surface without material prop defaults to solid (emits solid marker, no glass class)', () => {
   const html = renderToStaticMarkup(<Surface tone="card">plain</Surface>);
   expect(html).toMatch(/class="[^"]*\bnimi-material-solid\b[^"]*"/u);
+  expect(html).toMatch(/data-nimi-material="solid"/);
+  expect(html).toMatch(/data-nimi-tone="card"/);
   expect(html).not.toMatch(/nimi-material-glass-regular/);
   expect(html).not.toMatch(/nimi-material-glass-thick/);
 });
@@ -20,6 +26,8 @@ test('Surface material="glass-regular" applies the regular glass class', () => {
   const html = renderToStaticMarkup(
     <Surface tone="card" material="glass-regular">regular</Surface>,
   );
+  expect(html).toMatch(/data-nimi-material="glass-regular"/);
+  expect(html).toMatch(/data-nimi-tone="card"/);
   expect(html).toMatch(/nimi-material-glass-regular/);
   expect(html).not.toMatch(/nimi-material-glass-thick/);
 });
@@ -28,6 +36,7 @@ test('Surface material="glass-thick" applies the thick glass class', () => {
   const html = renderToStaticMarkup(
     <Surface tone="card" material="glass-thick">thick</Surface>,
   );
+  expect(html).toMatch(/data-nimi-material="glass-thick"/);
   expect(html).toMatch(/nimi-material-glass-thick/);
   expect(html).not.toMatch(/nimi-material-glass-regular/);
 });
@@ -62,6 +71,7 @@ test('AmbientBackground variant="none" emits primitive contract classes but no a
     </AmbientBackground>,
   );
   expect(html).toMatch(/content/);
+  expect(html).toMatch(/data-nimi-ambient-variant="none"/);
   // Primitive contract: root slot and variant marker are always present.
   expect(hasClass(html, 'nimi-ambient-root')).toBe(true);
   expect(hasClass(html, 'nimi-ambient-variant-none')).toBe(true);
@@ -79,6 +89,8 @@ test('AmbientBackground variant="minimal" renders the gradient layer and minimal
       <span>content</span>
     </AmbientBackground>,
   );
+  expect(html).toMatch(/data-nimi-ambient-variant="minimal"/);
+  expect(html).toMatch(/data-nimi-ambient-layer="minimal"/);
   expect(hasClass(html, 'nimi-ambient-root')).toBe(true);
   expect(hasClass(html, 'nimi-ambient-variant-minimal')).toBe(true);
   expect(hasClass(html, 'nimi-ambient-minimal')).toBe(true);
@@ -95,6 +107,9 @@ test('AmbientBackground variant="mesh" renders mesh layer, three halos, and mesh
       <span>content</span>
     </AmbientBackground>,
   );
+  expect(html).toMatch(/data-nimi-ambient-variant="mesh"/);
+  expect(html).toMatch(/data-nimi-ambient-layer="mesh"/);
+  expect((html.match(/data-nimi-ambient-layer="halo"/gu) ?? []).length).toBe(3);
   expect(hasClass(html, 'nimi-ambient-root')).toBe(true);
   expect(hasClass(html, 'nimi-ambient-variant-mesh')).toBe(true);
   expect(hasClass(html, 'nimi-ambient-mesh')).toBe(true);
@@ -135,4 +150,12 @@ test('AmbientBackground user style cannot overwrite positioning / isolation', ()
   // Consumer-provided properties that do not collide with the contract
   // are preserved.
   expect(html).toMatch(/padding:\s*24px/);
+});
+
+test('material/ambient fallback rules are authored in shared kit CSS', () => {
+  expect(stylesCss).toMatch(/@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\)/);
+  expect(stylesCss).toMatch(/\[data-nimi-material="glass-regular"\]\[data-nimi-tone="panel"\]/);
+  expect(stylesCss).toMatch(/@media \(prefers-reduced-transparency: reduce\)/);
+  expect(stylesCss).toMatch(/\[data-nimi-ambient-variant="mesh"\] \[data-nimi-ambient-layer="halo"\]/);
+  expect(stylesCss).toMatch(/\[data-nimi-ambient-variant="mesh"\] \[data-nimi-ambient-layer="mesh"\]/);
 });

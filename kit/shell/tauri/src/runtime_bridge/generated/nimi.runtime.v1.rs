@@ -182,6 +182,13 @@ pub enum ReasonCode {
     AppMessagePayloadTooLarge = 550,
     AppMessageRateLimited = 551,
     AppMessageLoopDetected = 552,
+    /// LOCAL_SPEECH family (560+)
+    AiLocalSpeechPreflightBlocked = 560,
+    AiLocalSpeechDownloadConfirmationRequired = 561,
+    AiLocalSpeechEnvInitFailed = 562,
+    AiLocalSpeechHostInitFailed = 563,
+    AiLocalSpeechCapabilityDownloadFailed = 564,
+    AiLocalSpeechBundleDegraded = 565,
     /// GRANT family (510+)
     GrantTokenChainRootNotFound = 510,
     GrantTokenChainRootRequired = 511,
@@ -327,6 +334,16 @@ impl ReasonCode {
             Self::AppMessagePayloadTooLarge => "APP_MESSAGE_PAYLOAD_TOO_LARGE",
             Self::AppMessageRateLimited => "APP_MESSAGE_RATE_LIMITED",
             Self::AppMessageLoopDetected => "APP_MESSAGE_LOOP_DETECTED",
+            Self::AiLocalSpeechPreflightBlocked => "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED",
+            Self::AiLocalSpeechDownloadConfirmationRequired => {
+                "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED"
+            }
+            Self::AiLocalSpeechEnvInitFailed => "AI_LOCAL_SPEECH_ENV_INIT_FAILED",
+            Self::AiLocalSpeechHostInitFailed => "AI_LOCAL_SPEECH_HOST_INIT_FAILED",
+            Self::AiLocalSpeechCapabilityDownloadFailed => {
+                "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED"
+            }
+            Self::AiLocalSpeechBundleDegraded => "AI_LOCAL_SPEECH_BUNDLE_DEGRADED",
             Self::GrantTokenChainRootNotFound => "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
             Self::GrantTokenChainRootRequired => "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
             Self::PageTokenInvalid => "PAGE_TOKEN_INVALID",
@@ -490,6 +507,18 @@ impl ReasonCode {
             "APP_MESSAGE_PAYLOAD_TOO_LARGE" => Some(Self::AppMessagePayloadTooLarge),
             "APP_MESSAGE_RATE_LIMITED" => Some(Self::AppMessageRateLimited),
             "APP_MESSAGE_LOOP_DETECTED" => Some(Self::AppMessageLoopDetected),
+            "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED" => {
+                Some(Self::AiLocalSpeechPreflightBlocked)
+            }
+            "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED" => {
+                Some(Self::AiLocalSpeechDownloadConfirmationRequired)
+            }
+            "AI_LOCAL_SPEECH_ENV_INIT_FAILED" => Some(Self::AiLocalSpeechEnvInitFailed),
+            "AI_LOCAL_SPEECH_HOST_INIT_FAILED" => Some(Self::AiLocalSpeechHostInitFailed),
+            "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED" => {
+                Some(Self::AiLocalSpeechCapabilityDownloadFailed)
+            }
+            "AI_LOCAL_SPEECH_BUNDLE_DEGRADED" => Some(Self::AiLocalSpeechBundleDegraded),
             "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GrantTokenChainRootNotFound),
             "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GrantTokenChainRootRequired),
             "PAGE_TOKEN_INVALID" => Some(Self::PageTokenInvalid),
@@ -5297,6 +5326,8 @@ pub struct LocalAssetRecord {
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
     #[prost(string, tag = "31")]
     pub endpoint: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "32")]
+    pub reason_code: i32,
     /// Passive-only fields
     #[prost(message, optional, tag = "40")]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
@@ -5311,6 +5342,8 @@ pub struct LocalAssetHealth {
     pub detail: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
     pub endpoint: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalVerifiedAssetDescriptor {
@@ -5763,6 +5796,8 @@ pub struct LocalServiceDescriptor {
     pub installed_at: ::prost::alloc::string::String,
     #[prost(string, tag = "11")]
     pub updated_at: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "12")]
+    pub reason_code: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalExecutionApplyResult {

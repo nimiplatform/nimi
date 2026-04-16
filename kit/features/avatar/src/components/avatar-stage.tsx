@@ -127,6 +127,24 @@ const renderVideoAvatarStage: AvatarStageBackendRenderer = ({ label, renderer })
   ) : null
 );
 
+const renderLive2dAvatarStage: AvatarStageBackendRenderer = ({ label, renderer }) => (
+  <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(226,232,240,0.94)_55%,rgba(203,213,225,0.84))]">
+    {renderer.posterUrl ? (
+      <img
+        src={renderer.posterUrl}
+        alt={label}
+        className="absolute inset-0 h-full w-full object-cover opacity-34"
+      />
+    ) : null}
+    <span className="absolute inset-[14%] rounded-[42%] border border-white/80 bg-[radial-gradient(circle,rgba(255,255,255,0.92),rgba(219,234,254,0.42))] shadow-[0_18px_40px_rgba(15,23,42,0.08)]" />
+    <span className="absolute inset-x-[28%] top-[16%] h-[44%] rounded-[44%_44%_38%_38%] border border-cyan-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(224,242,254,0.72))]" />
+    <span className="absolute inset-x-[24%] bottom-[16%] top-[42%] rounded-[999px_999px_34%_34%] border border-sky-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(224,242,254,0.54))]" />
+    <span className="absolute bottom-3 rounded-full border border-white/80 bg-slate-900/84 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
+      Live2D
+    </span>
+  </div>
+);
+
 const renderCanvasAvatarStage: AvatarStageBackendRenderer = ({ fallback, snapshot }) => (
   <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(236,253,245,0.9)_48%,rgba(191,219,254,0.82))]">
     <span className="absolute inset-0 opacity-80 [background-image:linear-gradient(rgba(255,255,255,0.38)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.38)_1px,transparent_1px)] [background-size:18px_18px]" />
@@ -141,10 +159,11 @@ const renderCanvasAvatarStage: AvatarStageBackendRenderer = ({ fallback, snapsho
   </div>
 );
 
-const DEFAULT_RENDERERS: Record<'sprite2d' | 'video' | 'vrm' | 'canvas2d', AvatarStageBackendRenderer> = {
+const DEFAULT_RENDERERS: Record<'sprite2d' | 'video' | 'vrm' | 'live2d' | 'canvas2d', AvatarStageBackendRenderer> = {
   sprite2d: renderSpriteAvatarStage,
   video: renderVideoAvatarStage,
   vrm: createVrmAvatarRenderer(),
+  live2d: renderLive2dAvatarStage,
   canvas2d: renderCanvasAvatarStage,
 };
 

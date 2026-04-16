@@ -42,6 +42,25 @@ describe('avatar headless renderer resolution', () => {
     });
   });
 
+  it('keeps live2d asset refs while allowing a separate poster image', () => {
+    const renderer = resolveAvatarStageRendererModel({
+      presentation: {
+        backendKind: 'live2d',
+        avatarAssetRef: 'desktop-avatar://resource-2/avatar.model3.json',
+        idlePreset: 'companion.idle.soft',
+      },
+      imageUrl: 'https://cdn.nimi.test/avatar-poster.png',
+    });
+
+    expect(renderer).toMatchObject({
+      kind: 'live2d',
+      mediaUrl: 'desktop-avatar://resource-2/avatar.model3.json',
+      posterUrl: 'https://cdn.nimi.test/avatar-poster.png',
+      backendLabel: 'Live2D',
+      prefersMotion: true,
+    });
+  });
+
   it('falls back to non-media canvas renderer for fallback profiles', () => {
     const renderer = resolveAvatarStageRendererModel({
       presentation: {
@@ -63,6 +82,7 @@ describe('avatar headless renderer resolution', () => {
     expect(resolveAvatarBackendLabel('sprite2d')).toBe('Sprite');
     expect(resolveAvatarBackendLabel('canvas2d')).toBe('Canvas');
     expect(resolveAvatarBackendLabel('vrm')).toBe('VRM');
+    expect(resolveAvatarBackendLabel('live2d')).toBe('Live2D');
     expect(resolveAvatarBackendLabel('video')).toBe('Video');
   });
 });

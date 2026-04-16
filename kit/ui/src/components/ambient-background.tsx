@@ -28,9 +28,9 @@ import { cn, type AmbientVariant } from '../design-tokens.js';
  * styling from a stylesheet. See preflight-w2.md §Scope Amendment
  * 2026-04-17 for the rationale.
  *
- * Known follow-on (out of W2): `@supports not (backdrop-filter)` and
- * `@media (prefers-reduced-transparency: reduce)` downgrades for glass
- * materials and ambient mesh are not authored in this wave.
+ * W6 follow-on closed the remaining fallback gap by pairing primitive marker
+ * classes with non-generator data attributes that authored CSS can target for
+ * reduced-transparency and no-backdrop downgrade behavior.
  */
 type AmbientBackgroundProps<T extends ElementType = 'div'> = {
   as?: T;
@@ -99,10 +99,16 @@ export function AmbientBackground<T extends ElementType = 'div'>(
   if (variant === 'mesh') {
     layers = (
       <>
-        <div aria-hidden="true" className="nimi-ambient-mesh" style={MESH_LAYER_STYLE} />
+        <div
+          aria-hidden="true"
+          className="nimi-ambient-mesh"
+          data-nimi-ambient-layer="mesh"
+          style={MESH_LAYER_STYLE}
+        />
         <div
           aria-hidden="true"
           className="nimi-ambient-halo animate-pulse motion-reduce:animate-none"
+          data-nimi-ambient-layer="halo"
           style={{
             ...HALO_BASE_STYLE,
             width: 500,
@@ -115,6 +121,7 @@ export function AmbientBackground<T extends ElementType = 'div'>(
         <div
           aria-hidden="true"
           className="nimi-ambient-halo animate-pulse motion-reduce:animate-none"
+          data-nimi-ambient-layer="halo"
           style={{
             ...HALO_BASE_STYLE,
             width: 600,
@@ -128,6 +135,7 @@ export function AmbientBackground<T extends ElementType = 'div'>(
         <div
           aria-hidden="true"
           className="nimi-ambient-halo animate-pulse motion-reduce:animate-none"
+          data-nimi-ambient-layer="halo"
           style={{
             ...HALO_BASE_STYLE,
             width: 400,
@@ -141,12 +149,24 @@ export function AmbientBackground<T extends ElementType = 'div'>(
       </>
     );
   } else if (variant === 'minimal') {
-    layers = <div aria-hidden="true" className="nimi-ambient-minimal" style={MINIMAL_LAYER_STYLE} />;
+    layers = (
+      <div
+        aria-hidden="true"
+        className="nimi-ambient-minimal"
+        data-nimi-ambient-layer="minimal"
+        style={MINIMAL_LAYER_STYLE}
+      />
+    );
   }
 
   return createElement(
     Component,
-    { className: rootClass, style: mergedRootStyle, ...rest },
+    {
+      ...rest,
+      className: rootClass,
+      style: mergedRootStyle,
+      'data-nimi-ambient-variant': variant,
+    },
     layers,
     children,
   );

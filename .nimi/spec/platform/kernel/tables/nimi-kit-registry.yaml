@@ -199,7 +199,7 @@ modules:
     kind: feature
     surface_level: headless+ui+runtime
     adapter_contract: AvatarPresentationAdapter + AvatarInteractionAdapter + RuntimeAgentPresentationAdapter
-    description: Reusable avatar stage surface with normalized headless presentation contracts, default UI shell, runtime-backed persistent agent presentation projection binding, and an optional VRM renderer surface for backend-specific first-party adapters
+    description: Reusable avatar stage surface with normalized headless presentation contracts, default UI shell, runtime-backed persistent agent presentation projection binding, and optional backend renderer seams including the shipped VRM surface and admitted future Live2D backend family
     dependencies: [kit.ui, sdk]
     peer_dependencies: [react]
     exports:
@@ -223,6 +223,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-071
+    notes: Live2D backend family is admitted at the contract level, but no `./features/avatar/live2d` export is treated as shipped until it is explicitly registered and added to kit package exports. The first concrete Live2D viewport may remain desktop-local.
   - id: kit.features.model-picker
     subpath: /features/model-picker
     kind: feature

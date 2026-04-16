@@ -514,7 +514,7 @@ export function CanonicalTranscriptView({
   return (
     <div
       ref={scrollRootRef}
-      className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-5"
+      className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-0"
       data-canonical-transcript-root="true"
       onScroll={handleScroll}
       onWheelCapture={handleWheelCapture}

@@ -72,13 +72,15 @@ export function Surface<T extends ElementType = 'div'>(props: SurfaceProps<T>) {
   return createElement(
     Component,
     {
+      ...rest,
+      'data-nimi-material': material,
+      'data-nimi-tone': tone,
       className: cn(
         surfaceVariants({ tone, elevation, padding, material }),
         interactive && 'cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]',
         active && 'bg-[var(--nimi-surface-active)]',
         className,
       ),
-      ...rest,
     },
     children,
   );

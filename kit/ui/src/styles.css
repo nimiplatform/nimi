@@ -81,8 +81,92 @@ button:not(:disabled),
  * rather than `.nimi-surface--card`) and is enforced by
  * `pnpm check:nimi-ui-pattern`.
  *
- * Backdrop-filter unsupported / prefers-reduced-transparency fallbacks
- * are deferred as a follow-on from this wave. See
- * `.nimi/local/report/ongoing/2026-04-16-kit-glass-material-and-parentos-alignment/preflight-w2.md`
- * §Scope Amendment 2026-04-17.
+ * W6 closes the fallback gap using non-generator data attributes emitted by
+ * the primitives (`data-nimi-material`, `data-nimi-tone`,
+ * `data-nimi-ambient-variant`, `data-nimi-ambient-layer`) so no handwritten
+ * `.nimi-*` selector bodies are reintroduced.
  */
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-nimi-material="glass-regular"],
+  [data-nimi-material="glass-thick"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  [data-nimi-material="glass-regular"][data-nimi-tone="canvas"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="canvas"] {
+    background: var(--nimi-surface-canvas) !important;
+    border-color: var(--nimi-border-subtle) !important;
+  }
+
+  [data-nimi-material="glass-regular"][data-nimi-tone="panel"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="panel"] {
+    background: var(--nimi-surface-panel) !important;
+    border-color: var(--nimi-border-subtle) !important;
+  }
+
+  [data-nimi-material="glass-regular"][data-nimi-tone="card"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="card"] {
+    background: var(--nimi-surface-card) !important;
+    border-color: var(--nimi-border-subtle) !important;
+  }
+
+  [data-nimi-material="glass-regular"][data-nimi-tone="overlay"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="overlay"] {
+    background: var(--nimi-surface-overlay) !important;
+    border-color: var(--nimi-border-subtle) !important;
+  }
+
+  [data-nimi-material="glass-regular"][data-nimi-tone="hero"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="hero"] {
+    background: var(--nimi-surface-hero) !important;
+    border-color: var(--nimi-border-strong) !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-nimi-material="glass-regular"],
+  [data-nimi-material="glass-thick"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  [data-nimi-material="glass-regular"][data-nimi-tone="canvas"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="canvas"] {
+    background: var(--nimi-surface-canvas) !important;
+    border-color: var(--nimi-border-subtle) !important;
+  }
+
+  [data-nimi-material="glass-regular"][data-nimi-tone="panel"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="panel"] {
+    background: var(--nimi-surface-panel) !important;
+    border-color: var(--nimi-border-subtle) !important;
+  }
+
+  [data-nimi-material="glass-regular"][data-nimi-tone="card"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="card"] {
+    background: var(--nimi-surface-card) !important;
+    border-color: var(--nimi-border-subtle) !important;
+  }
+
+  [data-nimi-material="glass-regular"][data-nimi-tone="overlay"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="overlay"] {
+    background: var(--nimi-surface-overlay) !important;
+    border-color: var(--nimi-border-subtle) !important;
+  }
+
+  [data-nimi-material="glass-regular"][data-nimi-tone="hero"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="hero"] {
+    background: var(--nimi-surface-hero) !important;
+    border-color: var(--nimi-border-strong) !important;
+  }
+
+  [data-nimi-ambient-variant="mesh"] [data-nimi-ambient-layer="halo"] {
+    display: none !important;
+  }
+
+  [data-nimi-ambient-variant="mesh"] [data-nimi-ambient-layer="mesh"] {
+    background: linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%) !important;
+  }
+}

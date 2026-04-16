@@ -122,7 +122,7 @@
 
 - `kit/features/avatar` is the admitted reusable avatar surface for agent presentation in Nimi apps.
 - It must publish aggregate, `/headless`, `/ui`, and `/runtime` surfaces on the single `@nimiplatform/nimi-kit` package.
-- It may additionally publish backend-specific optional renderer surfaces such as `/vrm` when those surfaces preserve the same avatar semantic contracts and do not force heavyweight renderer/runtime assumptions into the default `ui` surface.
+- It may additionally publish backend-specific optional renderer surfaces such as `/vrm` and future `/live2d` surfaces when those surfaces preserve the same avatar semantic contracts and do not force heavyweight renderer/runtime assumptions into the default `ui` surface.
 - `headless` owns normalized avatar presentation inputs, transient interaction-state contracts, and reusable controller logic.
 - `ui` owns the default opinionated avatar stage shell that consuming apps may place without rebuilding a parallel baseline renderer shell.
 - `runtime` may bind `getPlatformClient().runtime` only for runtime-owned persistent agent presentation projection; it must not absorb app stores, platform bridges, or renderer-local transient state ownership.
@@ -136,6 +136,62 @@
 - The module must not import app stores, Tauri/Electron bridges, or runtime internal code directly.
 - Surface-specific placement, permissions, and orchestration remain app-owned; avatar renderer semantics remain reusable kit-owned.
 - Runtime-aware avatar helpers must fail closed when required presentation profile fields are absent or unresolved; they must not invent fallback avatar assets, provider voices, or surface-local pseudo-success truth.
+
+## P-KIT-073 — Desktop Local Avatar Binding Consumer Boundary
+
+`kit/features/avatar` may consume desktop-local bound presentation results, but it does
+not own desktop avatar import, storage, registry, or per-agent binding semantics.
+
+Fixed rules:
+
+- kit avatar surfaces may render a desktop-local override that has already been resolved
+  by desktop-local authority, but they must not become the canonical home for how local
+  VRM or Live2D files are imported, stored, or attached to an agent
+- backend-specific optional surfaces such as `/vrm` remain renderer seams only; admitting
+  future Live2D rendering does not by itself admit desktop-local storage or import truth
+- kit must not require consumers to point directly at Downloads paths or arbitrary local
+  files as persistent product truth; any local-file override must arrive as an already
+  resolved consumer input
+
+## P-KIT-073a — Live2D Backend Admission Posture
+
+`kit/features/avatar` admits Live2D as part of the reusable avatar backend family, while
+keeping the first shipped viewport implementation desktop-local.
+
+Fixed rules:
+
+- the admitted reusable kit truth is the backend seam and semantic consume boundary, not
+  a requirement that the first concrete Live2D viewport ship from kit immediately
+- a desktop app may ship the first concrete Live2D viewport locally while still consuming
+  the same `kit/features/avatar` stage semantics and normalized presentation inputs
+- Live2D backend admission here does not widen kit into owner of desktop-local fallback
+  policy, local runtime packaging, or desktop-only viewport lifecycle
+- a future exported `/live2d` surface must be registered and shipped explicitly before
+  consumers may treat it as an available package export; this rule admits the backend
+  family now without fabricating a shipped export
+- first-wave Live2D admission is bounded to avatar-stage rendering semantics; pointer
+  interaction parity, camera choreography, authoring flows, and backend-specific model
+  inspection behavior remain deferred unless later admitted explicitly
+
+## P-KIT-074 — Desktop Pointer Interaction Consumer Boundary
+
+`kit/features/avatar` may consume desktop-resolved pointer-follow inputs for an active
+avatar surface, but it does not own desktop-local pointer intake or pointer-truth
+authority.
+
+Fixed rules:
+
+- kit avatar surfaces may consume already-resolved attention targets, hover
+  escalation, and bounded pointer-follow inputs, but they must not become the
+  canonical home for DOM pointer capture, stage-bound measurement, or desktop
+  smoothing / clamp policy
+- backend-specific optional surfaces such as `/vrm` remain renderer seams only;
+  they must not become the semantic owner of pointer interaction truth,
+  speaking-vs-pointer precedence, or right-rail stop-line policy
+- reusable kit contracts may expose admitted interaction-state fields needed by
+  consumers, but raw pointer vectors and hover-lifecycle ownership remain with
+  the consuming desktop surface unless a later platform authority explicitly
+  widens that boundary
 
 ## P-KIT-080 — Adapter Injection Contract
 

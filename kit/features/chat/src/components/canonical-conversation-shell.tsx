@@ -45,6 +45,7 @@ export type CanonicalConversationShellRenderContext = {
 
 export type CanonicalConversationShellProps = {
   className?: string;
+  chrome?: 'card' | 'transparent';
   sourceFilter: ConversationSourceFilter;
   availableSources?: readonly ConversationSourceKind[];
   targets: readonly ConversationTargetSummary[];
@@ -197,11 +198,14 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
   return (
     <div
       className={cn(
-        'conversation-root relative flex min-h-0 w-full flex-1 overflow-hidden rounded-2xl',
-        'bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.14),_transparent_38%),linear-gradient(180deg,_rgba(248,250,252,0.98),_rgba(241,245,249,0.94))]',
+        'conversation-root relative flex min-h-0 w-full flex-1 overflow-hidden',
+        props.chrome === 'transparent'
+          ? 'rounded-none bg-transparent'
+          : 'rounded-2xl bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.14),_transparent_38%),linear-gradient(180deg,_rgba(248,250,252,0.98),_rgba(241,245,249,0.94))]',
         props.className,
       )}
       data-conversation-shell="canonical"
+      data-conversation-shell-chrome={props.chrome || 'card'}
       data-ui-version="v5-room"
     >
       <ConversationAnimationStyles />
@@ -255,6 +259,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
             <CanonicalConversationPane
               selectedTarget={props.selectedTarget}
               characterData={props.characterData}
+              chrome={props.chrome}
               viewMode={props.viewMode}
               onBackToTargets={() => {
                 props.onSelectTarget(null);
