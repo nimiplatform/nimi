@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { ChildProfile, NurtureMode } from '../../app-shell/app-store.js';
 import {
   getAllergyRecords,
+  getCustomTodos,
   getGrowthReports,
   getJournalEntries,
   getMeasurements,
@@ -10,10 +11,10 @@ import {
   getSleepRecords,
   getVaccineRecords,
 } from '../../bridge/sqlite-bridge.js';
-import type { MeasurementRow, SleepRecordRow, VaccineRecordRow } from '../../bridge/sqlite-bridge.js';
+import type { CustomTodoRow, MeasurementRow, SleepRecordRow, VaccineRecordRow } from '../../bridge/sqlite-bridge.js';
 import type { ReminderAgenda } from '../../engine/reminder-engine.js';
 import { mapReminderStateRow, type ReminderState } from '../../engine/reminder-engine.js';
-import { MILESTONE_CATALOG } from '../../knowledge-base/index.js';
+import { MILESTONE_CATALOG, OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
 
 export interface AllergyRec {
   allergen: string;
@@ -43,9 +44,11 @@ export interface DashData {
     recordedAt: string;
     observationMode: string | null;
     keepsake: number;
+    dimensionId: string | null;
   }>;
   sleepRecords: SleepRecordRow[];
   allergyRecords: AllergyRec[];
+  customTodos: CustomTodoRow[];
   latestMonthlyReport: MonthlyReportSummary | null;
 }
 
@@ -58,6 +61,7 @@ const EMPTY: DashData = {
   journalEntries: [],
   sleepRecords: [],
   allergyRecords: [],
+  customTodos: [],
   latestMonthlyReport: null,
 };
 
@@ -73,15 +77,16 @@ export function useDash(childId: string | null) {
     }
 
     setLoading(true);
-    const [rs, ms, vs, mi, jo, sl, al, rp] = await Promise.allSettled([
+    const [rs, ms, vs, mi, jo, sl, al, rp, ct] = await Promise.allSettled([
       getReminderStates(childId),
       getMeasurements(childId),
       getVaccineRecords(childId),
       getMilestoneRecords(childId),
-      getJournalEntries(childId, 8),
+      getJournalEntries(childId, 50),
       getSleepRecords(childId, 14),
       getAllergyRecords(childId),
       getGrowthReports(childId),
+      getCustomTodos(childId),
     ]);
 
     const now = new Date();
@@ -108,6 +113,7 @@ export function useDash(childId: string | null) {
               recordedAt: entry.recordedAt,
               observationMode: entry.observationMode,
               keepsake: entry.keepsake,
+              dimensionId: entry.dimensionId,
             }))
           : [],
       sleepRecords: sl.status === 'fulfilled' ? sl.value : [],
@@ -121,6 +127,7 @@ export function useDash(childId: string | null) {
               notes: item.notes,
             }))
           : [],
+      customTodos: ct.status === 'fulfilled' ? ct.value : [],
       latestMonthlyReport:
         thisMonthReport
           ? {
@@ -185,6 +192,46 @@ export interface RecentLineItem {
   badge: string;
 }
 
+export interface SleepTrendPoint {
+  date: string;
+  durationMinutes: number;
+  bedtime: string | null;
+  wakeTime: string | null;
+}
+
+export interface SleepTrendSummary {
+  points: SleepTrendPoint[];
+  avgDurationMinutes: number | null;
+  latestBedtime: string | null;
+  latestWakeTime: string | null;
+  totalRecords: number;
+}
+
+export interface MilestoneTimelineItem {
+  milestoneId: string;
+  title: string;
+  domain: string;
+  achievedAt?: string;
+  typicalAgeLabel: string;
+}
+
+export interface MilestoneTimelineSummary {
+  recentlyAchieved: MilestoneTimelineItem[];
+  upcoming: MilestoneTimelineItem[];
+}
+
+export interface DimensionDistributionItem {
+  dimensionId: string;
+  displayName: string;
+  count: number;
+  ratio: number;
+}
+
+export interface ObservationDistributionSummary {
+  items: DimensionDistributionItem[];
+  totalEntries: number;
+}
+
 export interface TimelineHomeViewModel {
   recentChanges: RecentChangeItem[];
   dataGapAlert: DataGapAlertItem | null;
@@ -194,8 +241,12 @@ export interface TimelineHomeViewModel {
     metrics: GrowthSnapshotMetric[];
     trends: GrowthTrendItem[];
   };
+  sleepTrend: SleepTrendSummary;
+  milestoneTimeline: MilestoneTimelineSummary;
+  observationDistribution: ObservationDistributionSummary;
   recentLines: RecentLineItem[];
 }
+
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const milestoneById = new Map(MILESTONE_CATALOG.map((item) => [item.milestoneId, item]));
@@ -236,30 +287,103 @@ export function latestByType(measurements: MeasurementRow[]) {
   return latest;
 }
 
-export function wkActivity(
-  journalEntries: DashData['journalEntries'],
-  measurements: MeasurementRow[],
-  sleepRecords: SleepRecordRow[],
-): number[] {
-  const now = new Date();
-  const dayOfWeek = (now.getDay() + 6) % 7;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - dayOfWeek);
-  monday.setHours(0, 0, 0, 0);
-  const counts = [0, 0, 0, 0, 0, 0, 0];
 
-  const add = (value: string) => {
-    const date = new Date(value);
-    if (date >= monday) {
-      const index = (date.getDay() + 6) % 7;
-      counts[index] = (counts[index] ?? 0) + 1;
-    }
+export function buildSleepTrend(sleepRecords: SleepRecordRow[]): SleepTrendSummary {
+  const sorted = [...sleepRecords].sort((a, b) => a.sleepDate.localeCompare(b.sleepDate));
+  const points: SleepTrendPoint[] = sorted
+    .filter((r) => r.durationMinutes != null && r.durationMinutes > 0)
+    .map((r) => ({
+      date: r.sleepDate,
+      durationMinutes: r.durationMinutes!,
+      bedtime: r.bedtime,
+      wakeTime: r.wakeTime,
+    }));
+
+  const totalDuration = points.reduce((sum, p) => sum + p.durationMinutes, 0);
+  const avgDurationMinutes = points.length > 0 ? Math.round(totalDuration / points.length) : null;
+  const latest = sorted[sorted.length - 1] ?? null;
+
+  return {
+    points,
+    avgDurationMinutes,
+    latestBedtime: latest?.bedtime ?? null,
+    latestWakeTime: latest?.wakeTime ?? null,
+    totalRecords: sorted.length,
   };
+}
 
-  journalEntries.forEach((entry) => add(entry.recordedAt));
-  measurements.forEach((measurement) => add(measurement.measuredAt));
-  sleepRecords.forEach((record) => add(record.sleepDate));
-  return counts;
+export function buildMilestoneTimeline(
+  milestoneRecords: DashData['milestoneRecords'],
+  ageMonths: number,
+): MilestoneTimelineSummary {
+  const achievedIds = new Set(
+    milestoneRecords.filter((r) => r.achievedAt).map((r) => r.milestoneId),
+  );
+
+  const recentlyAchieved: MilestoneTimelineItem[] = milestoneRecords
+    .filter((r) => r.achievedAt && isWithinDays(r.achievedAt, 60))
+    .sort((a, b) => (b.achievedAt ?? '').localeCompare(a.achievedAt ?? ''))
+    .slice(0, 3)
+    .map((r) => {
+      const catalogEntry = milestoneById.get(r.milestoneId);
+      return {
+        milestoneId: r.milestoneId,
+        title: catalogEntry?.title ?? r.milestoneId,
+        domain: catalogEntry?.domain ?? 'unknown',
+        achievedAt: r.achievedAt!,
+        typicalAgeLabel: catalogEntry
+          ? formatAgeLabel(catalogEntry.typicalAge.medianMonths)
+          : '',
+      };
+    });
+
+  const upcoming: MilestoneTimelineItem[] = MILESTONE_CATALOG
+    .filter((m) => {
+      if (achievedIds.has(m.milestoneId)) return false;
+      // Show milestones whose typical range overlaps with [ageMonths, ageMonths + 6]
+      return m.typicalAge.rangeStart <= ageMonths + 6 && m.typicalAge.rangeEnd >= ageMonths;
+    })
+    .sort((a, b) => a.typicalAge.medianMonths - b.typicalAge.medianMonths)
+    .slice(0, 3)
+    .map((m) => ({
+      milestoneId: m.milestoneId,
+      title: m.title,
+      domain: m.domain,
+      typicalAgeLabel: formatAgeLabel(m.typicalAge.medianMonths),
+    }));
+
+  return { recentlyAchieved, upcoming };
+}
+
+export function buildObservationDistribution(
+  journalEntries: DashData['journalEntries'],
+): ObservationDistributionSummary {
+  const windowMs = 30 * DAY_MS;
+  const cutoff = Date.now() - windowMs;
+
+  const counts = new Map<string, number>();
+  let totalEntries = 0;
+
+  for (const entry of journalEntries) {
+    if (!entry.dimensionId) continue;
+    if (new Date(entry.recordedAt).getTime() < cutoff) continue;
+    counts.set(entry.dimensionId, (counts.get(entry.dimensionId) ?? 0) + 1);
+    totalEntries += 1;
+  }
+
+  const dimById = new Map(OBSERVATION_DIMENSIONS.map((d) => [d.dimensionId, d]));
+
+  const items: DimensionDistributionItem[] = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([dimensionId, count]) => ({
+      dimensionId,
+      displayName: dimById.get(dimensionId)?.displayName ?? dimensionId,
+      count,
+      ratio: totalEntries > 0 ? count / totalEntries : 0,
+    }));
+
+  return { items, totalEntries };
 }
 
 export function fmtRel(value: string) {
@@ -461,7 +585,7 @@ export function buildRecentChanges(d: DashData, _child: ChildProfile, _ageMonths
 }
 
 function hasVisibleGrowthReminder(agenda: ReminderAgenda) {
-  const visible = [...agenda.todayFocus, ...agenda.thisWeek, ...agenda.overdueSummary.items];
+  const visible = [...agenda.todayFocus, ...agenda.upcoming, ...agenda.overdueSummary.items];
   return visible.some((reminder) => ['growth', 'checkup', 'nutrition'].includes(reminder.rule.domain));
 }
 
@@ -593,21 +717,24 @@ export function buildTimelineHomeViewModel(params: {
     recentChanges: buildRecentChanges(params.d, params.child, params.ageMonths),
     dataGapAlert: buildDataGapAlert(params.d, params.child, params.ageMonths, params.child.nurtureMode, params.agenda),
     growthSnapshot: buildGrowthSnapshot(params.d.measurements),
+    sleepTrend: buildSleepTrend(params.d.sleepRecords),
+    milestoneTimeline: buildMilestoneTimeline(params.d.milestoneRecords, params.ageMonths),
+    observationDistribution: buildObservationDistribution(params.d.journalEntries),
     recentLines: buildRecentLines(params.d.journalEntries),
   };
 }
 
 export const C = {
-  bg: '#E5ECEA',
+  bg: '#f1f5f9',
   card: '#ffffff',
-  accent: '#c8e64a',
-  accentDim: '#c8e64a66',
-  text: '#1a2b4a',
-  sub: '#8a8f9a',
-  brand: '#EEF3F1',
-  cardProfile: '#86AFDA',
-  shadow: '0 2px 12px rgba(0,0,0,0.06)',
-  radius: 'rounded-[18px]',
+  accent: '#4ECCA3',
+  accentDim: '#4ECCA344',
+  text: '#1e293b',
+  sub: '#475569',
+  brand: '#f1f5f9',
+  cardProfile: '#818CF8',
+  shadow: '0 8px 32px rgba(31,38,135,0.04)',
+  radius: 'rounded-[24px]',
 } as const;
 
 interface QuickLink {
@@ -677,8 +804,6 @@ export const DOMAIN_ROUTES: Record<string, string> = {
   fitness: '/profile/fitness',
   tanner: '/profile/tanner',
 };
-
-export const DAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
 export function fmtDate() {
   return new Date().toLocaleDateString('zh-CN', {

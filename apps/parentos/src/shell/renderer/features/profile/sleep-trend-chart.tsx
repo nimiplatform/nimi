@@ -42,7 +42,7 @@ export function SleepTrendChart({
           <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
           <XAxis dataKey="date" tick={{ fontSize: 10, fill: S.sub }} tickLine={false} axisLine={false} />
           <YAxis tick={{ fontSize: 10, fill: S.sub }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
-          <ReferenceArea y1={refLo} y2={refHi} fill="#94A533" fillOpacity={0.08} />
+          <ReferenceArea y1={refLo} y2={refHi} fill="#1e293b" fillOpacity={0.08} />
           <Tooltip
             contentStyle={{ fontSize: 11, borderRadius: 8, border: `1px solid ${S.border}`, boxShadow: S.shadow }}
             formatter={(value: number) => [`${value}h`, '睡眠时长']}

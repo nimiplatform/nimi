@@ -147,7 +147,7 @@ export function GrowthCurveControls({
                 </button>
                 <div
                   className="pointer-events-none absolute left-0 top-8 z-50 w-[280px] rounded-xl p-3 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover/std:pointer-events-auto group-hover/std:opacity-100 whitespace-pre-line"
-                  style={{ background: '#1a2b4a', color: '#e8e5e0', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}
+                  style={{ background: '#1e293b', color: '#f1f5f9', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}
                 >
                   {getGrowthStandardTooltip(standard)}
                 </div>

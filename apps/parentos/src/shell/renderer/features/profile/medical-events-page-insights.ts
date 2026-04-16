@@ -12,6 +12,7 @@ import { filterAIResponse } from '../../engine/ai-safety-filter.js';
 import {
   buildParentosRuntimeMetadata,
   ensureParentosLocalRuntimeReady,
+  PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
   resolveParentosTextRuntimeConfig,
 } from '../settings/parentos-ai-runtime.js';
 import { EVENT_TYPE_LABELS, SEVERITY_LABELS } from './medical-events-page-shared.js';
@@ -87,7 +88,7 @@ export function useMedicalEventsInsights(
       await ensureParentosLocalRuntimeReady({
         route: insightParams.route,
         localModelId: insightParams.localModelId,
-        timeoutMs: 60_000,
+        timeoutMs: PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
       });
       const output = await client.runtime.ai.text.generate({
         ...insightParams,
@@ -136,7 +137,7 @@ export function useMedicalEventsInsights(
       await ensureParentosLocalRuntimeReady({
         route: eventParams.route,
         localModelId: eventParams.localModelId,
-        timeoutMs: 60_000,
+        timeoutMs: PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
       });
       const output = await client.runtime.ai.text.generate({
         ...eventParams,

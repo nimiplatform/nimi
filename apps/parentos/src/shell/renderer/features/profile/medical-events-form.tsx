@@ -97,7 +97,7 @@ export function MedicalEventsForm({
       <div className="w-[520px] max-h-[85vh] flex flex-col rounded-2xl shadow-xl" style={{ background: '#f4f5f0' }} onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
           <div className="flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px]" style={{ background: '#EEF3F1' }}>
+            <span className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px]" style={{ background: '#f1f5f9' }}>
               {EVENT_TYPE_ICONS[formEventType] ?? '🏥'}
             </span>
             <h2 className="text-[16px] font-bold" style={{ color: S.text }}>{editingEventId ? '编辑就医记录' : '新增就医记录'}</h2>
@@ -118,7 +118,7 @@ export function MedicalEventsForm({
                 event.target.value = '';
               }}
             />
-            <div className="mx-6 mb-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'linear-gradient(135deg, #EEF3F1, #e8f0e8)', border: `1px solid ${S.border}` }}>
+            <div className="mx-6 mb-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'linear-gradient(135deg, #f1f5f9, #e8f0e8)', border: `1px solid ${S.border}` }}>
               <span className="text-[22px]">{ocrLoading ? '⏳' : '🤖'}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-semibold" style={{ color: S.text }}>智能录入</p>
@@ -196,7 +196,7 @@ export function MedicalEventsForm({
                 value={formHospital}
                 onChange={(event) => setFormHospital(event.target.value)}
                 placeholder="医院/诊所名称"
-                className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50"
+                className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50"
                 style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }}
               />
             </div>
@@ -212,7 +212,7 @@ export function MedicalEventsForm({
                   value={formTitle}
                   onChange={(event) => setFormTitle(event.target.value)}
                   placeholder="如：手足口病、急性上呼吸道感染"
-                  className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50"
+                  className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50"
                   style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }}
                 />
               </div>
@@ -292,7 +292,7 @@ export function MedicalEventsForm({
                       placeholder={item.unit}
                       value={formLabValues[item.key] ?? ''}
                       onChange={(event) => setFormLabValues({ ...formLabValues, [item.key]: event.target.value })}
-                      className="flex-1 rounded-xl px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50"
+                      className="flex-1 rounded-xl px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50"
                       style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8' }}
                     />
                     <span className="text-[10px] w-14 shrink-0" style={{ color: S.sub }}>{item.unit}</span>
@@ -323,10 +323,10 @@ export function MedicalEventsForm({
                       <button onClick={() => setFormMeds((prev) => prev.filter((_, itemIndex) => itemIndex !== index))} className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center hover:bg-red-50 transition-colors" style={{ color: S.sub }}>✕</button>
                     </div>
                     <div className="flex items-center gap-2">
-                      <input value={med.dose} onChange={(event) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, dose: event.target.value } : item))} placeholder="剂量" className="w-16 rounded-lg px-2 py-1.5 text-[12px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fff', color: S.text }} />
-                      <span className="text-[11px] px-2 py-1 rounded-lg" style={{ background: '#EEF3F1', color: S.accent }}>{med.unit || '次'}</span>
-                      <input value={med.frequency} onChange={(event) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, frequency: event.target.value } : item))} placeholder="频次（如每日3次）" className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[12px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fff', color: S.text }} />
-                      <input value={med.days} onChange={(event) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, days: event.target.value } : item))} placeholder="天" className="w-12 rounded-lg px-2 py-1.5 text-[12px] outline-none text-center transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fff', color: S.text }} />
+                      <input value={med.dose} onChange={(event) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, dose: event.target.value } : item))} placeholder="剂量" className="w-16 rounded-lg px-2 py-1.5 text-[12px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fff', color: S.text }} />
+                      <span className="text-[11px] px-2 py-1 rounded-lg" style={{ background: '#f1f5f9', color: S.accent }}>{med.unit || '次'}</span>
+                      <input value={med.frequency} onChange={(event) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, frequency: event.target.value } : item))} placeholder="频次（如每日3次）" className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[12px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fff', color: S.text }} />
+                      <input value={med.days} onChange={(event) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, days: event.target.value } : item))} placeholder="天" className="w-12 rounded-lg px-2 py-1.5 text-[12px] outline-none text-center transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fff', color: S.text }} />
                       <span className="text-[11px] shrink-0" style={{ color: S.sub }}>天</span>
                     </div>
                     {med.tags.length > 0 ? (
@@ -358,7 +358,7 @@ export function MedicalEventsForm({
                 onChange={(event) => setFormNotes(event.target.value)}
                 placeholder="医嘱、复诊安排、其他需要记录的信息..."
                 rows={2}
-                className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 resize-none"
+                className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 resize-none"
                 style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }}
               />
             </div>

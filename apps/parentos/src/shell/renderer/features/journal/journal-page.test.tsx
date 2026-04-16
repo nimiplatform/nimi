@@ -234,13 +234,13 @@ describe('JournalPage', () => {
       expect(screen.getByRole('button', { name: /语音记事/i })).toBeTruthy();
     });
 
-    expect(screen.getByRole('button', { name: /保存并让 ai 分析/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^保存$/i })).toBeTruthy();
     expect(getComposerTextarea()).toBeTruthy();
     expect(screen.queryByRole('button', { name: /专项观察/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /阶段复盘/i })).toBeNull();
   });
 
-  it('saves a text journal entry from the current composer', async () => {
+  it('saves a text journal entry via the confirmation modal', async () => {
     renderPage();
 
     fireEvent.change(getComposerTextarea(), {
@@ -248,7 +248,19 @@ describe('JournalPage', () => {
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /保存并让 ai 分析/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^保存$/i }));
+    });
+
+    // Modal opens with text preview
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /保存随手记/i })).toBeTruthy();
+    });
+
+    // Confirm save inside the modal
+    await act(async () => {
+      const modalSaveButtons = screen.getAllByRole('button', { name: /^保存/ });
+      const confirmBtn = modalSaveButtons.find((btn) => btn.closest('[role="dialog"]'));
+      fireEvent.click(confirmBtn!);
     });
 
     await waitFor(() => {
@@ -271,7 +283,17 @@ describe('JournalPage', () => {
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /保存并让 ai 分析/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^保存$/i }));
+    });
+
+    // Confirm in modal
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /保存随手记/i })).toBeTruthy();
+    });
+    await act(async () => {
+      const modalSaveButtons = screen.getAllByRole('button', { name: /^保存/ });
+      const confirmBtn = modalSaveButtons.find((btn) => btn.closest('[role="dialog"]'));
+      fireEvent.click(confirmBtn!);
     });
 
     await waitFor(() => {
@@ -285,32 +307,36 @@ describe('JournalPage', () => {
     });
   });
 
-  it('auto-suggests tags after the draft stabilizes', async () => {
+  it('triggers AI tag analysis in save confirmation modal, not during writing', async () => {
     renderPage();
-
-    await waitFor(() => {
-      expect(hasJournalTaggingRuntimeMock).toHaveBeenCalled();
-    });
 
     fireEvent.change(getComposerTextarea(), {
       target: { value: '她刚刚主动把玩具递给了朋友，并且耐心等待对方回应。' },
     });
 
+    // AI should NOT be triggered while typing
+    expect(suggestJournalTagsMock).not.toHaveBeenCalled();
+
+    // Click save — modal opens
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1700));
+      fireEvent.click(screen.getByRole('button', { name: /^保存$/i }));
     });
 
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /保存随手记/i })).toBeTruthy();
+    });
+
+    // AI analysis is triggered inside the modal
     await waitFor(() => {
       expect(suggestJournalTagsMock).toHaveBeenCalledTimes(1);
     });
 
     expect(suggestJournalTagsMock.mock.calls[0]?.[0]).toMatchObject({
       draftText: '她刚刚主动把玩具递给了朋友，并且耐心等待对方回应。',
-      candidateDimensions: [expect.objectContaining({ dimensionId: 'PO-OBS-SOCL-001' })],
     });
   });
 
-  it('restores an interrupted local draft after re-entering the page', async () => {
+  it('silently restores a recent local draft without showing the banner', async () => {
     vi.useFakeTimers();
     const view = renderPage();
 
@@ -332,9 +358,30 @@ describe('JournalPage', () => {
 
     renderPage();
 
+    // Recent draft (< 5 min) is auto-restored — no banner shown
+    expect(screen.queryByRole('button', { name: /继续编辑/i })).toBeNull();
+    expect((getComposerTextarea() as HTMLTextAreaElement).value).toBe('先记下来');
+  });
+
+  it('shows the recovery banner for old drafts', async () => {
+    window.localStorage.setItem('parentos:journal-draft:child-1', JSON.stringify({
+      version: 1,
+      childId: 'child-1',
+      textContent: '很久前的草稿',
+      selectedDimension: null,
+      selectedTags: [],
+      selectedRecorderId: 'rec-1',
+      keepsake: false,
+      moodTag: null,
+      subjectiveNotes: '',
+      updatedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+    }));
+
+    renderPage();
+
     fireEvent.click(await screen.findByRole('button', { name: /继续编辑/i }));
 
-    expect((getComposerTextarea() as HTMLTextAreaElement).value).toBe('先记下来');
+    expect((getComposerTextarea() as HTMLTextAreaElement).value).toBe('很久前的草稿');
   });
 
   it('surfaces the draft restore banner again when the page regains focus', async () => {
@@ -378,7 +425,17 @@ describe('JournalPage', () => {
     vi.useRealTimers();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /保存并让 ai 分析/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^保存$/i }));
+    });
+
+    // Confirm in modal
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /保存随手记/i })).toBeTruthy();
+    });
+    await act(async () => {
+      const modalSaveButtons = screen.getAllByRole('button', { name: /^保存/ });
+      const confirmBtn = modalSaveButtons.find((btn) => btn.closest('[role="dialog"]'));
+      fireEvent.click(confirmBtn!);
     });
 
     await waitFor(() => {

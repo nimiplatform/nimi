@@ -53,7 +53,7 @@ function GuidanceItem({
             to={aiUrl}
             title="向AI顾问咨询"
             className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-[rgba(0,0,0,0.08)]"
-            style={{ color: '#86AFDA' }}
+            style={{ color: '#BDE0F5' }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -75,7 +75,7 @@ function GuidanceItem({
             <div>
               <p className="text-[10px] font-semibold mb-0.5" style={{ color: S.text }}>推荐资源：</p>
               {detail.resources.map((resource, index) => (
-                <p key={index} className="text-[10px] leading-relaxed" style={{ color: '#86AFDA' }}>📖 {resource}</p>
+                <p key={index} className="text-[10px] leading-relaxed" style={{ color: '#BDE0F5' }}>📖 {resource}</p>
               ))}
             </div>
           ) : null}
@@ -142,7 +142,7 @@ export function TannerGuidePanel({
             </div>
           ))}
           <div className="pt-3 border-t space-y-1" style={{ borderColor: S.border }}>
-            <p className="text-[9px] font-medium" style={{ color: '#8a8f9a' }}>参考文献标注</p>
+            <p className="text-[9px] font-medium" style={{ color: '#475569' }}>参考文献标注</p>
             <p className="text-[8px]" style={{ color: '#b0b5bc' }}>[A] 中枢性性早熟诊断与治疗专家共识（2022）— 中华儿科杂志 2023;61(1)</p>
             <p className="text-[8px]" style={{ color: '#b0b5bc' }}>[B] 中国居民膳食营养素参考摄入量（2023版）— 中国营养学会</p>
             <p className="text-[8px]" style={{ color: '#b0b5bc' }}>[C] Marshall &amp; Tanner, Arch Dis Child 1969;44:291 (女孩)</p>

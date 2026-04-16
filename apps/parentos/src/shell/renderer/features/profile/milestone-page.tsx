@@ -62,11 +62,11 @@ function RadarChart({ data }: { data: Array<{ label: string; pct: number; color:
       {/* Grid rings */}
       {rings.map((s) => (
         <polygon key={s} points={Array.from({ length: n }, (_, i) => pointAt(i, r * s).join(',')).join(' ')}
-          fill="none" stroke="#e8e5e0" strokeWidth="0.5" />
+          fill="none" stroke="#f1f5f9" strokeWidth="0.5" />
       ))}
       {/* Axes */}
       {axes.map(([x, y], i) => (
-        <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#e8e5e0" strokeWidth="0.5" />
+        <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#f1f5f9" strokeWidth="0.5" />
       ))}
       {/* Data polygon */}
       <polygon points={dataPts.map((p) => p.join(',')).join(' ')}
@@ -149,7 +149,7 @@ function RecordModal({ milestone, record, childId, ageMonths, onSave, onClose }:
             <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>记录小故事 ✏️</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
               placeholder="例如：第一次找到藏起来的球，开心地咯咯笑..."
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`} rows={3}
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`} rows={3}
               style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
           </div>
           <div>
@@ -296,21 +296,21 @@ export default function MilestonePage() {
               </svg>
             </div>
             <div className="pointer-events-none absolute left-0 top-7 z-50 w-[340px] rounded-xl p-4 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              style={{ background: '#1a2b4a', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+              style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
               <p className="text-[12px] font-semibold text-white mb-2.5">数据参考文献</p>
               <ul className="space-y-2.5">
                 <li>
-                  <span className="text-[#c8e64a] font-medium">大运动 · 精细动作 · 语言 · 认知</span>
+                  <span className="text-[#4ECCA3] font-medium">大运动 · 精细动作 · 语言 · 认知</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">CDC Developmental Milestones (2022 updated).</span>
                   <span className="block text-[10px] text-[#7a8090]">Zubler JM, et al. Evidence-Informed Milestones for Developmental Surveillance. MMWR 2022;71(1):1-4</span>
                 </li>
                 <li>
-                  <span className="text-[#c8e64a] font-medium">社交情绪 · 自理能力</span>
+                  <span className="text-[#4ECCA3] font-medium">社交情绪 · 自理能力</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">Ages &amp; Stages Questionnaires (ASQ-3), 3rd Edition.</span>
                   <span className="block text-[10px] text-[#7a8090]">Squires J, Bricker D. Paul H. Brookes Publishing, 2009</span>
                 </li>
                 <li>
-                  <span className="text-[#c8e64a] font-medium">中国儿童发育参考</span>
+                  <span className="text-[#4ECCA3] font-medium">中国儿童发育参考</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会.《0-6岁儿童健康管理技术规范》· 首都儿科研究所《0-6岁儿童发育行为评估量表》</span>
                 </li>
               </ul>

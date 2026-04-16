@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
-import { ChatMarkdownRenderer } from '@nimiplatform/nimi-kit/features/chat/ui';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { S } from '../../app-shell/page-style.js';
 import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
 import { NEEDS_REVIEW_DOMAINS, REVIEWED_DOMAINS } from '../../knowledge-base/index.js';
@@ -30,13 +29,42 @@ import {
 import {
   buildParentosRuntimeMetadata,
   ensureParentosLocalRuntimeReady,
+  PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
   resolveParentosTextRuntimeConfig,
 } from '../settings/parentos-ai-runtime.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-
-/* design tokens imported from shared page-style */
+import { AdvisorSidebar } from './advisor-sidebar.js';
+import { AdvisorTranscript } from './advisor-transcript.js';
+import { AdvisorComposer } from './advisor-composer.js';
+import { AdvisorEmptyState } from './advisor-empty-state.js';
+import { AdvisorJournalContext, type JournalEntryAdvisorContext } from './advisor-journal-context.js';
 
 type StreamingState = 'idle' | 'streaming';
+
+type AdvisorLocationState = {
+  journalEntryContext?: JournalEntryAdvisorContext;
+} | null;
+
+/* ── contextual opening message for reminder topics ──────── */
+
+function buildTopicOpening(
+  topic: string, desc: string,
+  childName: string, ageMonths: number, gender: string,
+): string {
+  const ageY = Math.floor(ageMonths / 12);
+  const ageR = ageMonths % 12;
+  const ageStr = (ageY > 0 ? `${ageY}岁` : '') + (ageR > 0 ? `${ageR}个月` : '');
+  const genderStr = gender === 'female' ? '女孩' : '男孩';
+
+  return `我的孩子${childName}，${genderStr}，目前${ageStr}。
+
+我想了解关于「${topic}」的内容：${desc}
+
+请帮我：
+1. 结合${childName}目前的年龄和发育阶段，说明这件事的重要性
+2. 具体讲解应该如何进行
+3. 需要注意哪些事项`;
+}
 
 function padDateSegment(value: number) {
   return String(value).padStart(2, '0');
@@ -59,37 +87,42 @@ function formatAdvisorConversationDate(value: string) {
   ].join('-');
 }
 
-function formatAdvisorMessageTime(value: string) {
+function formatAdvisorContextDateTime(value: string) {
   const date = parseAdvisorDisplayDate(value);
   if (!date) {
-    return value.split('T')[1]?.split('.')[0] ?? value;
+    return value.replace('T', ' ').slice(0, 16);
   }
   return [
-    padDateSegment(date.getHours()),
-    padDateSegment(date.getMinutes()),
-    padDateSegment(date.getSeconds()),
-  ].join(':');
+    formatAdvisorConversationDate(value),
+    `${padDateSegment(date.getHours())}:${padDateSegment(date.getMinutes())}`,
+  ].join(' ');
 }
 
-/* ── contextual opening message for reminder topics ──────── */
+function buildJournalEntryOpening(
+  childName: string,
+  context: JournalEntryAdvisorContext,
+) {
+  const lines = [
+    `我想围绕 ${childName} 的一条成长随记继续聊聊。`,
+    `记录时间：${formatAdvisorContextDateTime(context.recordedAt)}`,
+  ];
 
-function buildTopicOpening(
-  topic: string, desc: string,
-  childName: string, ageMonths: number, gender: string,
-): string {
-  const ageY = Math.floor(ageMonths / 12);
-  const ageR = ageMonths % 12;
-  const ageStr = (ageY > 0 ? `${ageY}岁` : '') + (ageR > 0 ? `${ageR}个月` : '');
-  const genderStr = gender === 'female' ? '女孩' : '男孩';
+  if (context.dimensionName) {
+    lines.push(`成长方向：${context.dimensionName}`);
+  }
+  if (context.recorderName) {
+    lines.push(`记录人：${context.recorderName}`);
+  }
+  if (context.tags.length > 0) {
+    lines.push(`标签：${context.tags.join('、')}`);
+  }
 
-  return `我的孩子${childName}，${genderStr}，目前${ageStr}。
+  lines.push(`内容：${context.textContent?.trim() || '这条随记以语音或图片为主，当前没有附带文字内容。'}`);
+  lines.push('');
+  lines.push('请先基于这条随记本身，温和地帮我整理其中值得留意的内容。');
+  lines.push('不要做诊断或下结论；如果信息还不够，也请告诉我接下来可以补充哪些细节。');
 
-我想了解关于「${topic}」的内容：${desc}
-
-请帮我：
-1. 结合${childName}目前的年龄和发育阶段，说明这件事的重要性
-2. 具体讲解应该如何进行
-3. 需要注意哪些事项`;
+  return lines.join('\n');
 }
 
 function buildSystemPrompt(
@@ -184,6 +217,16 @@ function shouldAppendAdvisorSources(strategy: AdvisorPromptStrategy, domains: st
   return strategy === 'reviewed-advice' && domains.length > 0;
 }
 
+function shouldRetryAdvisorWithNonStreaming(route: 'local' | 'cloud' | undefined, streamedText: string, error: unknown) {
+  if (route !== 'cloud') {
+    return false;
+  }
+  if (streamedText.trim()) {
+    return false;
+  }
+  return !(error instanceof DOMException && error.name === 'AbortError');
+}
+
 function buildAdvisorRuntimeFailureNote(error: unknown) {
   const normalized = asNimiError(error, { source: 'runtime' });
   const providerMessage = typeof normalized.details?.provider_message === 'string'
@@ -199,6 +242,8 @@ function buildAdvisorRuntimeFailureNote(error: unknown) {
 export default function AdvisorPage() {
   const { activeChildId, children } = useAppStore();
   const child = children.find((item) => item.childId === activeChildId);
+  const location = useLocation();
+  const journalEntryContext = (location.state as AdvisorLocationState | undefined)?.journalEntryContext ?? null;
   const [searchParams, setSearchParams] = useSearchParams();
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
@@ -211,10 +256,33 @@ export default function AdvisorPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const topicHandledRef = useRef<string | null>(null);
+  const journalHandledRef = useRef<string | null>(null);
+  const [pendingJournalContext, setPendingJournalContext] = useState<JournalEntryAdvisorContext | null>(null);
 
   const saveAssistantMsg = async (convId: string, content: string, contextSnapshot: string | null) => {
     await insertAiMessage({ messageId: ulid(), conversationId: convId, role: 'assistant', content, contextSnapshot, now: isoNow() });
     setMessages(await getAiMessages(convId));
+  };
+
+  const startConversationWithOpening = async (params: {
+    title: string | null;
+    question: string;
+    ageMonthsAtRequest: number;
+  }) => {
+    if (!child) {
+      return;
+    }
+    const convId = ulid();
+    const now = isoNow();
+    await createConversation({ conversationId: convId, childId: child.childId, title: params.title, now });
+    setActiveConvId(convId);
+    setConversations(await getConversations(child.childId));
+
+    await runAdvisorTurn({
+      conversationId: convId,
+      question: params.question,
+      ageMonthsAtRequest: params.ageMonthsAtRequest,
+    });
   };
 
   const runAdvisorTurn = async (params: {
@@ -261,16 +329,16 @@ export default function AdvisorPage() {
       const rt = client.runtime;
       const ac = new AbortController();
       abortRef.current = ac;
-      const aiParams = await resolveParentosTextRuntimeConfig('parentos.advisor', { temperature: 0.5, maxTokens: 1024 });
+      const aiParams = await resolveParentosTextRuntimeConfig('parentos.advisor', { temperature: 0.5, maxTokens: 4096 });
       await ensureParentosLocalRuntimeReady({
         route: aiParams.route,
         localModelId: aiParams.localModelId,
-        timeoutMs: 60_000,
+        timeoutMs: PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
       });
-      const out = await rt.ai.text.stream({
+      const runtimeInput = {
         ...aiParams,
         input: [{
-          role: 'user',
+          role: 'user' as const,
           content: buildAdvisorRuntimeInput(strategy, params.question, domains, snapshot),
         }],
         system: buildAdvisorSystemPrompt(
@@ -281,17 +349,32 @@ export default function AdvisorPage() {
           strategy,
           domains,
         ),
-        signal: ac.signal,
         metadata: buildParentosRuntimeMetadata('parentos.advisor'),
-      });
+      };
       let full = '';
-      for await (const part of out.stream) {
-        if (part.type === 'delta') {
-          full += part.text;
-          setStreamingContent(full);
-        } else if (part.type === 'error') {
-          throw new Error(String(part.error));
+      try {
+        const out = await rt.ai.text.stream({
+          ...runtimeInput,
+          signal: ac.signal,
+        });
+        for await (const part of out.stream) {
+          if (part.type === 'delta') {
+            full += part.text;
+            setStreamingContent(full);
+          } else if (part.type === 'error') {
+            throw part.error;
+          }
         }
+      } catch (streamErr) {
+        if (!shouldRetryAdvisorWithNonStreaming(aiParams.route, full, streamErr)) {
+          throw streamErr;
+        }
+        if (ac.signal.aborted) {
+          throw new DOMException('The operation was aborted.', 'AbortError');
+        }
+        const generated = await rt.ai.text.generate(runtimeInput);
+        full = generated.text;
+        setStreamingContent(full);
       }
       const filtered = filterAIResponse(full);
       if (!filtered.safe) {
@@ -343,6 +426,7 @@ export default function AdvisorPage() {
 
   // ── Handle incoming topic from reminder panel ─────────────
   useEffect(() => {
+    if (runtimeAvailable === null) return;
     const topic = searchParams.get('topic');
     const desc = searchParams.get('desc') ?? '';
     const record = searchParams.get('record');
@@ -357,14 +441,8 @@ export default function AdvisorPage() {
 
     (async () => {
       try {
-        const convId = ulid();
-        const now = isoNow();
-        await createConversation({ conversationId: convId, childId: child.childId, title: topic, now });
-        setActiveConvId(convId);
-        setConversations(await getConversations(child.childId));
-
-        await runAdvisorTurn({
-          conversationId: convId,
+        await startConversationWithOpening({
+          title: topic,
           question: opening,
           ageMonthsAtRequest: am,
         });
@@ -372,7 +450,16 @@ export default function AdvisorPage() {
     })();
   }, [searchParams, child, runtimeAvailable]);
 
-  if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
+  useEffect(() => {
+    if (!child || !journalEntryContext || journalHandledRef.current === journalEntryContext.entryId) {
+      return;
+    }
+    journalHandledRef.current = journalEntryContext.entryId;
+    setRecordRoute(null);
+    setPendingJournalContext(journalEntryContext);
+  }, [child, journalEntryContext]);
+
+  if (!child) return <div className="p-8 text-slate-400">请先添加孩子</div>;
 
   const ageMonths = computeAgeMonths(child.birthDate);
 
@@ -385,9 +472,30 @@ export default function AdvisorPage() {
     } catch { /* bridge */ }
   };
 
+  const handleStartJournalConversation = async (starterQuestion: string) => {
+    if (!child || !pendingJournalContext) return;
+    const am = computeAgeMonths(child.birthDate);
+    const contextLines = buildJournalEntryOpening(child.displayName, pendingJournalContext);
+    const fullQuestion = `${contextLines}\n\n${starterQuestion}`;
+    const title = `随记 ${formatAdvisorConversationDate(pendingJournalContext.recordedAt)}`;
+    setPendingJournalContext(null);
+    try {
+      await startConversationWithOpening({
+        title,
+        question: fullQuestion,
+        ageMonthsAtRequest: am,
+      });
+    } catch { /* bridge */ }
+  };
+
   const handleSend = async () => {
-    if (!input.trim() || !activeConvId || streamingState === 'streaming') return;
+    if (!input.trim() || streamingState === 'streaming') return;
     const q = input.trim(); setInput('');
+    if (pendingJournalContext && !activeConvId) {
+      await handleStartJournalConversation(q);
+      return;
+    }
+    if (!activeConvId) return;
     try {
       await runAdvisorTurn({
         conversationId: activeConvId,
@@ -398,101 +506,43 @@ export default function AdvisorPage() {
   };
 
   return (
-    <div className="flex h-full" style={{ paddingTop: S.topPad }}>
-      {/* Conversation sidebar */}
-      <div className="w-56 p-3 flex flex-col" style={{ borderRight: `1px solid ${S.border}`, background: '#fafbfa' }}>
-        <button onClick={handleNewConversation}
-          className="w-full px-3 py-2.5 text-[13px] text-white rounded-xl font-medium hover:opacity-90 mb-3"
-          style={{ background: S.blue, boxShadow: '0 2px 8px rgba(134,175,218,0.3)' }}>
-          + 新对话
-        </button>
-        <div className="flex-1 overflow-auto space-y-1">
-          {conversations.map((conv) => (
-            <button key={conv.conversationId} onClick={() => { setActiveConvId(conv.conversationId); setRecordRoute(null); }}
-              className={`w-full text-left px-3 py-2.5 rounded-xl text-[12px] transition-colors ${activeConvId === conv.conversationId ? 'text-white' : 'hover:bg-black/[0.04]'}`}
-              style={activeConvId === conv.conversationId ? { background: S.blue, color: '#fff' } : { color: S.text }}>
-              <p className="truncate font-medium">{conv.title ?? '新对话'}</p>
-              <p className="text-[10px] mt-0.5 opacity-60">{formatAdvisorConversationDate(conv.lastMessageAt)}</p>
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="flex h-full gap-4 px-4" style={{ paddingTop: 16 }}>
+      <AdvisorSidebar
+        conversations={conversations}
+        activeConvId={activeConvId}
+        onSelectConversation={(id) => { setActiveConvId(id); setRecordRoute(null); }}
+        onNewConversation={handleNewConversation}
+      />
 
-      {/* Chat area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {!activeConvId ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: '#f0ede8' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c0bdb8" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </div>
-            <p className="text-[14px] font-medium" style={{ color: S.text }}>选择或创建一个对话</p>
-            <p className="text-[12px]" style={{ color: S.sub }}>AI 顾问基于 {child.displayName} 的档案和本地记录工作</p>
-            {runtimeAvailable === false && (
-              <p className="text-[11px] mt-1" style={{ color: '#e67e22' }}>nimi runtime 未连接，将使用本地结构化事实</p>
-            )}
-          </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {!activeConvId && pendingJournalContext ? (
+          <AdvisorJournalContext
+            context={pendingJournalContext}
+            onSelectStarter={handleStartJournalConversation}
+          />
+        ) : !activeConvId ? (
+          <AdvisorEmptyState
+            childName={child.displayName}
+            runtimeAvailable={runtimeAvailable}
+          />
         ) : (
           <>
-            {/* Messages */}
-            <div className="flex-1 overflow-auto p-6 space-y-4">
-              {messages.map((msg) => (
-                <div key={msg.messageId} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] ${S.radius} px-4 py-3 text-[13px] leading-relaxed`}
-                    style={msg.role === 'user' ? { background: S.blue, color: '#fff' } : { background: S.card, color: S.text, boxShadow: S.shadow }}>
-                    {msg.role === 'user' ? (
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
-                    ) : (
-                      <ChatMarkdownRenderer content={msg.content} appearance="canonical" />
-                    )}
-                    <p className="text-[10px] mt-1.5 opacity-50">{formatAdvisorMessageTime(msg.createdAt)}</p>
-                  </div>
-                </div>
-              ))}
-              {streamingState === 'streaming' && streamingContent && (
-                <div className="flex justify-start">
-                  <div className={`max-w-[75%] ${S.radius} px-4 py-3 text-[13px] leading-relaxed`} style={{ background: S.card, color: S.text, boxShadow: S.shadow }}>
-                    <ChatMarkdownRenderer content={streamingContent} appearance="canonical" />
-                    <p className="text-[10px] mt-1.5 animate-pulse" style={{ color: S.blue }}>生成中...</p>
-                  </div>
-                </div>
-              )}
-              {streamingState === 'streaming' && !streamingContent && (
-                <div className="flex justify-start">
-                  <div className={`${S.radius} px-4 py-3 text-[13px] animate-pulse`} style={{ background: '#f0ede8', color: S.sub }}>AI 正在思考...</div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Record data button — shown when navigated from a reminder */}
-            {recordRoute && (
-              <div className="px-6 pb-2">
-                <Link to={recordRoute}
-                  className={`flex items-center justify-center gap-2 w-full py-3 ${S.radius} text-[13px] font-medium text-white transition-all hover:opacity-90`}
-                  style={{ background: S.accent, boxShadow: '0 2px 8px rgba(148,165,51,0.3)' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-                  去记录数据
-                </Link>
-              </div>
-            )}
-
-            {/* Input */}
-            <div className="px-6 py-4" style={{ borderTop: `1px solid ${S.border}` }}>
-              <div className="flex gap-3">
-                <input value={input} onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
-                  placeholder="输入问题..." className={`flex-1 ${S.radius} px-4 py-2.5 text-[13px] border-0 outline-none`}
-                  style={{ background: '#f0ede8', color: S.text }} disabled={streamingState === 'streaming'} />
-                {streamingState === 'streaming' ? (
-                  <button onClick={() => abortRef.current?.abort()} className="px-5 py-2.5 rounded-xl text-[13px] font-medium text-white" style={{ background: '#e67e22' }}>停止</button>
-                ) : (
-                  <button onClick={() => void handleSend()} disabled={!input.trim()}
-                    className="px-5 py-2.5 rounded-xl text-[13px] font-medium text-white disabled:opacity-40 transition-all hover:opacity-90" style={{ background: S.blue }}>发送</button>
-                )}
-              </div>
-            </div>
+            <AdvisorTranscript
+              messages={messages}
+              streamingState={streamingState}
+              streamingContent={streamingContent}
+              onStopGenerating={() => abortRef.current?.abort()}
+              messagesEndRef={messagesEndRef}
+            />
+            <AdvisorComposer
+              value={input}
+              onChange={setInput}
+              onSend={handleSend}
+              onStop={() => abortRef.current?.abort()}
+              disabled={streamingState === 'streaming'}
+              isStreaming={streamingState === 'streaming'}
+              recordRoute={recordRoute}
+            />
           </>
         )}
       </div>

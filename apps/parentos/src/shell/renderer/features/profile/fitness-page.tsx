@@ -211,7 +211,7 @@ export default function FitnessPage() {
       <input
         type={opts?.type ?? 'number'} step={opts?.step} min={opts?.min} placeholder={opts?.placeholder ?? '--'}
         value={value} onChange={(e) => onChange(e.target.value)}
-        className={`${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 ${opts?.className ?? ''}`}
+        className={`${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${opts?.className ?? ''}`}
         style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }}
       />
     </label>
@@ -330,7 +330,7 @@ export default function FitnessPage() {
           <div>
             <label className="text-[11px] mb-1 block font-medium" style={{ color: S.sub }}>备注</label>
             <input placeholder="记录一些观察..." value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
               style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }} />
           </div>
           </div>

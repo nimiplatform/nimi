@@ -19,13 +19,13 @@ function assetUrl(path: string): string {
 /* ── design tokens ───────────────────────────────────────── */
 
 const S = {
-  bg: '#E5ECEA',
+  bg: '#f1f5f9',
   card: '#ffffff',
-  text: '#1a2b4a',
-  sub: '#8a8f9a',
-  blue: '#86AFDA',
-  accent: '#94A533',
-  border: '#e8e5e0',
+  text: '#1e293b',
+  sub: '#475569',
+  blue: '#BDE0F5',
+  accent: '#1e293b',
+  border: '#f1f5f9',
   shadow: '0 2px 12px rgba(0,0,0,0.06)',
   radius: 'rounded-[18px]',
   radiusSm: 'rounded-[14px]',
@@ -64,7 +64,8 @@ interface FormState {
   nurtureMode: NurtureMode;
   allergies: string;
   medicalNotes: string;
-  recorders: RecorderProfile[];
+  recorder: RecorderProfile;
+  customRecorderName: string;
   avatarFile: File | null;
   avatarPreview: string | null;
 }
@@ -72,7 +73,8 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   displayName: '', gender: 'male', birthDate: '', birthWeightKg: '', birthHeightCm: '',
   birthHeadCircCm: '', nurtureMode: 'balanced', allergies: '', medicalNotes: '',
-  recorders: [{ id: ulid(), name: '妈妈', emoji: '👩' }],
+  recorder: { id: ulid(), name: '妈妈', emoji: '👩' },
+  customRecorderName: '',
   avatarFile: null, avatarPreview: null,
 };
 
@@ -81,9 +83,9 @@ function parseCsvList(value: string) {
   return items.length > 0 ? JSON.stringify(items) : null;
 }
 
-function serializeRecorders(recorders: RecorderProfile[]) {
-  const items = recorders.filter((r) => r.name.trim()).map((r) => ({ id: r.id, name: r.name.trim() }));
-  return items.length > 0 ? JSON.stringify(items) : null;
+function serializeRecorder(recorder: RecorderProfile) {
+  const name = recorder.name.trim();
+  return name ? JSON.stringify([{ id: recorder.id, name }]) : null;
 }
 
 const MODE_LABELS: Record<string, string> = { relaxed: '轻松养', balanced: '均衡养', advanced: '进阶养' };
@@ -130,7 +132,7 @@ export default function ChildrenSettingsPage() {
         birthHeadCircCm: form.birthHeadCircCm ? parseFloat(form.birthHeadCircCm) : null,
         avatarPath, nurtureMode: form.nurtureMode, nurtureModeOverrides: null,
         allergies: parseCsvList(form.allergies), medicalNotes: parseCsvList(form.medicalNotes),
-        recorderProfiles: serializeRecorders(form.recorders), now,
+        recorderProfiles: serializeRecorder(form.recorder), now,
       });
       await refreshChildren(fid); resetForm();
     } catch { /* bridge */ }
@@ -150,7 +152,7 @@ export default function ChildrenSettingsPage() {
         avatarPath: avatarPath ?? null, nurtureMode: form.nurtureMode,
         nurtureModeOverrides: existing.nurtureModeOverrides ? JSON.stringify(existing.nurtureModeOverrides) : null,
         allergies: parseCsvList(form.allergies), medicalNotes: parseCsvList(form.medicalNotes),
-        recorderProfiles: serializeRecorders(form.recorders), now: isoNow(),
+        recorderProfiles: serializeRecorder(form.recorder), now: isoNow(),
       });
       await refreshChildren(existing.familyId); resetForm();
     } catch { /* bridge */ }
@@ -173,7 +175,13 @@ export default function ChildrenSettingsPage() {
       birthWeightKg: c.birthWeightKg?.toString() ?? '', birthHeightCm: c.birthHeightCm?.toString() ?? '',
       birthHeadCircCm: c.birthHeadCircCm?.toString() ?? '', nurtureMode: c.nurtureMode,
       allergies: c.allergies?.join(', ') ?? '', medicalNotes: c.medicalNotes?.join(', ') ?? '',
-      recorders: c.recorderProfiles?.map((r) => ({ ...r, emoji: recorderEmoji(r.name) })) ?? [],
+      recorder: c.recorderProfiles?.[0]
+        ? { ...c.recorderProfiles[0], emoji: recorderEmoji(c.recorderProfiles[0].name) }
+        : { id: ulid(), name: '妈妈', emoji: '👩' },
+      customRecorderName: (() => {
+        const first = c.recorderProfiles?.[0];
+        return first && !RECORDER_PRESETS.some((p) => p.name === first.name) ? first.name : '';
+      })(),
       avatarFile: null, avatarPreview: c.avatarPath ? assetUrl(c.avatarPath) : null,
     });
     setEditingId(childId); setShowForm(true);
@@ -196,32 +204,33 @@ export default function ChildrenSettingsPage() {
     setCropImageUrl(null);
   };
 
-  const addRecorder = (preset?: { name: string; emoji: string }) => {
-    const newR: RecorderProfile = preset
-      ? { id: ulid(), name: preset.name, emoji: preset.emoji }
-      : { id: ulid(), name: '', emoji: '👤' };
-    setForm((prev) => ({ ...prev, recorders: [...prev.recorders, newR] }));
+  const selectRecorder = (preset: { name: string; emoji: string }) => {
+    setForm((prev) => ({ ...prev, recorder: { ...prev.recorder, name: preset.name, emoji: preset.emoji }, customRecorderName: '' }));
   };
 
-  const updateRecorder = (id: string, name: string) => {
-    setForm((prev) => ({
-      ...prev,
-      recorders: prev.recorders.map((r) =>
-        r.id === id ? { ...r, name, emoji: recorderEmoji(name) } : r,
-      ),
-    }));
+  const selectCustomRecorder = () => {
+    setForm((prev) => ({ ...prev, recorder: { ...prev.recorder, name: prev.customRecorderName || '', emoji: '👤' } }));
   };
 
-  const removeRecorder = (id: string) => {
-    setForm((prev) => ({ ...prev, recorders: prev.recorders.filter((r) => r.id !== id) }));
-  };
-
-  const inp = 'w-full rounded-xl border-0 px-3.5 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#86AFDA]/40';
+  const inp = 'w-full rounded-xl border-0 px-3.5 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#BDE0F5]/40';
   const inputBg = { background: '#f5f3ef', color: S.text };
 
-  // Which presets are not yet added
-  const usedNames = new Set(form.recorders.map((r) => r.name));
-  const availablePresets = RECORDER_PRESETS.filter((p) => !usedNames.has(p.name));
+  /** For number inputs: seed from placeholder on first arrow click, then let native step take over */
+  const numChange = (field: 'birthWeightKg' | 'birthHeightCm' | 'birthHeadCircCm', placeholder: string, step: number) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      let v = e.target.value;
+      if (!form[field] && v !== '') {
+        // First interaction via spinner arrows on an empty field: native browser steps from 0.
+        // Detect that and seed from placeholder instead.
+        const parsed = parseFloat(v);
+        if (parsed === step || parsed === -step) {
+          v = String(Math.round((parseFloat(placeholder) + (parsed > 0 ? step : -step)) * 100) / 100);
+        }
+      }
+      setForm({ ...form, [field]: v });
+    };
+
+  const isCustom = !RECORDER_PRESETS.some((p) => p.name === form.recorder.name);
 
   return (
     <div className="min-h-full p-6" style={{ background: 'transparent' }}>
@@ -402,19 +411,19 @@ export default function ChildrenSettingsPage() {
               <div>
                 <label className="text-[11px] block mb-1.5" style={{ color: S.sub }}>体重 (kg)</label>
                 <input type="number" step="0.01" value={form.birthWeightKg}
-                  onChange={(e) => setForm({ ...form, birthWeightKg: e.target.value })}
+                  onChange={numChange('birthWeightKg', '3.50', 0.01)}
                   className={inp} style={inputBg} placeholder="3.50" />
               </div>
               <div>
                 <label className="text-[11px] block mb-1.5" style={{ color: S.sub }}>身长 (cm)</label>
                 <input type="number" step="0.1" value={form.birthHeightCm}
-                  onChange={(e) => setForm({ ...form, birthHeightCm: e.target.value })}
+                  onChange={numChange('birthHeightCm', '50.0', 0.1)}
                   className={inp} style={inputBg} placeholder="50.0" />
               </div>
               <div>
                 <label className="text-[11px] block mb-1.5" style={{ color: S.sub }}>头围 (cm)</label>
                 <input type="number" step="0.1" value={form.birthHeadCircCm}
-                  onChange={(e) => setForm({ ...form, birthHeadCircCm: e.target.value })}
+                  onChange={numChange('birthHeadCircCm', '34.0', 0.1)}
                   className={inp} style={inputBg} placeholder="34.0" />
               </div>
             </div>
@@ -434,40 +443,35 @@ export default function ChildrenSettingsPage() {
               </div>
             </div>
 
-            {/* Recorder profiles */}
+            {/* Recorder profile (single select) */}
             <p className="text-[12px] font-semibold mb-3" style={{ color: S.sub }}>记录者</p>
-            <div className="space-y-2 mb-3">
-              {form.recorders.map((r) => (
-                <div key={r.id} className="flex items-center gap-3">
-                  <span className="text-[20px] w-8 text-center shrink-0">{r.emoji}</span>
-                  <input value={r.name} onChange={(e) => updateRecorder(r.id, e.target.value)}
-                    className={`flex-1 ${inp}`} style={inputBg} placeholder="输入名称" />
-                  <button onClick={() => removeRecorder(r.id)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-red-50"
-                    style={{ color: '#dc2626' }} title="移除">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {RECORDER_PRESETS.map((p) => {
+                const active = form.recorder.name === p.name;
+                return (
+                  <button key={p.name} onClick={() => selectRecorder(p)}
+                    className={`${S.radiusSm} px-3.5 py-2 text-[12px] flex items-center gap-1.5 transition-all`}
+                    style={active
+                      ? { background: S.blue, color: '#fff', boxShadow: '0 2px 8px rgba(134,175,218,0.3)' }
+                      : { background: '#f5f3ef', color: S.text }}>
+                    <span>{p.emoji}</span> {p.name}
                   </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Quick add preset recorders */}
-            <div className="flex flex-wrap gap-2 mb-5">
-              {availablePresets.map((p) => (
-                <button key={p.name} onClick={() => addRecorder(p)}
-                  className={`${S.radiusSm} px-3 py-1.5 text-[12px] flex items-center gap-1.5 transition-colors hover:opacity-80`}
-                  style={{ background: '#f5f3ef', color: S.text }}>
-                  <span>{p.emoji}</span> {p.name}
-                </button>
-              ))}
-              <button onClick={() => addRecorder()}
-                className={`${S.radiusSm} px-3 py-1.5 text-[12px] flex items-center gap-1 transition-colors hover:opacity-80`}
-                style={{ background: '#f5f3ef', color: S.sub }}>
-                + 自定义
+                );
+              })}
+              <button onClick={selectCustomRecorder}
+                className={`${S.radiusSm} px-3.5 py-2 text-[12px] flex items-center gap-1 transition-all`}
+                style={isCustom
+                  ? { background: S.blue, color: '#fff', boxShadow: '0 2px 8px rgba(134,175,218,0.3)' }
+                  : { background: '#f5f3ef', color: S.sub }}>
+                👤 自定义
               </button>
             </div>
+            {isCustom && (
+              <input value={form.customRecorderName}
+                onChange={(e) => setForm((prev) => ({ ...prev, customRecorderName: e.target.value, recorder: { ...prev.recorder, name: e.target.value, emoji: '👤' } }))}
+                className={inp} style={inputBg} placeholder="输入自定义记录者名称" />
+            )}
+            <div className="mb-5" />
 
             {/* Actions */}
             <div className="flex gap-3 pt-2" style={{ borderTop: `1px solid ${S.border}` }}>

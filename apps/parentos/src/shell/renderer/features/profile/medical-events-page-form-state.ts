@@ -11,6 +11,7 @@ import { EVENT_TYPE_LABELS, LAB_ITEMS, parseLabReport, type LabReportData } from
 import {
   buildParentosRuntimeMetadata,
   ensureParentosLocalRuntimeReady,
+  PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
   resolveParentosTextRuntimeConfig,
 } from '../settings/parentos-ai-runtime.js';
 import type {
@@ -105,7 +106,7 @@ export function useMedicalEventsFormState(
       await ensureParentosLocalRuntimeReady({
         route: ocrParams.route,
         localModelId: ocrParams.localModelId,
-        timeoutMs: 60_000,
+        timeoutMs: PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
       });
       const output = await client.runtime.ai.text.generate({
         ...ocrParams,

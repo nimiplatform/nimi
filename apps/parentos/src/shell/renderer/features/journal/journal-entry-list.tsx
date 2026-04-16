@@ -30,7 +30,7 @@ export function JournalEntryList({ child, entries, onEdit }: JournalEntryListPro
               {onEdit && (
                 <button onClick={() => onEdit(entry.entryId)} title="编辑"
                   className="ml-auto w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:bg-gray-100"
-                  style={{ color: '#8a94a6' }}>
+                  style={{ color: '#475569' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                   </svg>

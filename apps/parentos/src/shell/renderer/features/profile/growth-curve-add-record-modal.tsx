@@ -49,7 +49,7 @@ export function GrowthCurveAddRecordModal({
   const bmi = hasBMI ? computeBMI(height, weight) : null;
   const bmiMeta = bmi != null ? bmiLabel(bmi) : null;
 
-  const inputCls = `w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`;
+  const inputCls = `w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`;
   const inputSty = {
     borderColor: S.border,
     borderWidth: 1,
@@ -201,7 +201,7 @@ export function GrowthCurveAddRecordModal({
                 }}
                 className={`w-full h-24 ${S.radiusSm} flex flex-col items-center justify-center gap-1.5 cursor-pointer`}
                 style={{
-                  border: `2px dashed ${dropActive ? '#c8e64a' : '#d0d0cc'}`,
+                  border: `2px dashed ${dropActive ? '#4ECCA3' : '#d0d0cc'}`,
                   background: '#fafaf8',
                   transition: 'border-color 0.25s ease',
                 }}
@@ -214,7 +214,7 @@ export function GrowthCurveAddRecordModal({
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   style={{
-                    stroke: dropActive ? '#94A533' : '#b0b0aa',
+                    stroke: dropActive ? '#1e293b' : '#b0b0aa',
                     transform: dropActive ? 'scale(1.15)' : 'scale(1)',
                     transition: 'stroke 0.25s ease, transform 0.25s ease',
                   }}
@@ -224,7 +224,7 @@ export function GrowthCurveAddRecordModal({
                 <span
                   className="text-[11px]"
                   style={{
-                    color: dropActive ? '#94A533' : '#a0a0a0',
+                    color: dropActive ? '#1e293b' : '#a0a0a0',
                     transition: 'color 0.25s ease',
                   }}
                 >

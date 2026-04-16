@@ -143,7 +143,7 @@ export function AvatarCropModal({ imageUrl, onConfirm, onCancel }: AvatarCropMod
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
       <div className="rounded-[18px] p-6 w-[360px]" style={{ background: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
-        <h3 className="text-[15px] font-semibold mb-4" style={{ color: '#1a2b4a' }}>调整头像</h3>
+        <h3 className="text-[15px] font-semibold mb-4" style={{ color: '#1e293b' }}>调整头像</h3>
 
         {/* Crop area */}
         <div className="flex justify-center mb-4">
@@ -165,29 +165,29 @@ export function AvatarCropModal({ imageUrl, onConfirm, onCancel }: AvatarCropMod
 
         {/* Zoom slider */}
         <div className="flex items-center gap-3 mb-5 px-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a8f9a" strokeWidth="2" strokeLinecap="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" /><path d="M8 11h6" />
           </svg>
           <input type="range" min={minScale} max={maxScale} step={0.01} value={scale}
             onChange={(e) => handleScaleChange(parseFloat(e.target.value))}
-            className="flex-1 accent-[#94A533]" />
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a8f9a" strokeWidth="2" strokeLinecap="round">
+            className="flex-1 accent-[#1e293b]" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" /><path d="M8 11h6M11 8v6" />
           </svg>
         </div>
 
-        <p className="text-[11px] text-center mb-4" style={{ color: '#8a8f9a' }}>拖动图片调整位置，滑块缩放大小</p>
+        <p className="text-[11px] text-center mb-4" style={{ color: '#475569' }}>拖动图片调整位置，滑块缩放大小</p>
 
         {/* Actions */}
         <div className="flex gap-3">
           <button onClick={handleConfirm}
             className="flex-1 py-2.5 rounded-full text-[13px] font-medium text-white transition-all hover:opacity-90"
-            style={{ background: '#86AFDA' }}>
+            style={{ background: '#BDE0F5' }}>
             确认
           </button>
           <button onClick={onCancel}
             className="flex-1 py-2.5 rounded-full text-[13px] font-medium transition-colors"
-            style={{ background: '#f5f3ef', color: '#1a2b4a' }}>
+            style={{ background: '#f5f3ef', color: '#1e293b' }}>
             取消
           </button>
         </div>

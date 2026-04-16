@@ -2,15 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
-import { getMeasurements, getProfileSectionSummaries } from '../../bridge/sqlite-bridge.js';
-import type { MeasurementRow, SectionSummary } from '../../bridge/sqlite-bridge.js';
+import { getProfileSectionSummaries } from '../../bridge/sqlite-bridge.js';
+import type { SectionSummary } from '../../bridge/sqlite-bridge.js';
 
 /* ── design tokens ──────────────────────────────────────── */
 
+import { GLASS } from '../../app-shell/page-style.js';
+
 const C = {
-  bg: '#E5ECEA', text: '#1a2b4a', sub: '#8a8f9a',
-  card: '#ffffff', accent: '#94A533', shadow: '0 2px 12px rgba(0,0,0,0.06)',
+  bg: '#f1f5f9', text: '#1e293b', sub: '#475569',
+  card: '#ffffff', accent: '#1e293b',
+  shadow: '0 8px 32px rgba(31,38,135,0.04)',
 } as const;
+
+const glassStyle = GLASS;
 
 /* ── section registry (archive routes only) ─────────────── */
 
@@ -85,61 +90,11 @@ function orderSections(sections: ArchiveSection[], ageMonths: number): ArchiveSe
   return [...top, ...rest];
 }
 
-/* ── growth snapshot ─────────────────────────────────────── */
-
-/** Age threshold: ≤36 months shows head-circ, >36 months shows BMI */
-const SNAPSHOT_AGE_THRESHOLD = 36;
-
-interface SnapshotItem { label: string; value: string; date: string | null }
-
-function latestByType(ms: MeasurementRow[]) {
-  const m = new Map<string, MeasurementRow>();
-  for (const r of ms) {
-    const e = m.get(r.typeId);
-    if (!e || r.measuredAt > e.measuredAt) m.set(r.typeId, r);
-  }
-  return m;
-}
-
-function buildGrowthSnapshot(latest: Map<string, MeasurementRow>, ageMonths: number): SnapshotItem[] {
-  const h = latest.get('height');
-  const w = latest.get('weight');
-
-  const items: SnapshotItem[] = [
-    { label: '身高', value: h ? `${h.value} cm` : '--', date: h?.measuredAt ?? null },
-    { label: '体重', value: w ? `${w.value} kg` : '--', date: w?.measuredAt ?? null },
-  ];
-
-  if (ageMonths <= SNAPSHOT_AGE_THRESHOLD) {
-    const hc = latest.get('head-circumference');
-    items.push({ label: '头围', value: hc ? `${hc.value} cm` : '--', date: hc?.measuredAt ?? null });
-  } else {
-    // Prefer recorded BMI; fall back to computed from latest height + weight
-    const bmi = latest.get('bmi');
-    if (bmi) {
-      items.push({ label: 'BMI', value: bmi.value.toFixed(1), date: bmi.measuredAt });
-    } else if (h && w) {
-      const heightM = h.value / 100;
-      const computed = w.value / (heightM * heightM);
-      items.push({ label: 'BMI', value: computed.toFixed(1), date: null });
-    } else {
-      items.push({ label: 'BMI', value: '--', date: null });
-    }
-  }
-
-  return items;
-}
-
 /* ── helpers ─────────────────────────────────────────────── */
 
 function pctComplete(child: { birthWeightKg: number | null; birthHeightCm: number | null; birthHeadCircCm: number | null; avatarPath: string | null; allergies: string[] | null; medicalNotes: string[] | null; recorderProfiles: Array<{ id: string; name: string }> | null }) {
   const f = [child.birthWeightKg, child.birthHeightCm, child.birthHeadCircCm, child.avatarPath, child.allergies, child.medicalNotes, child.recorderProfiles];
   return Math.round((f.filter((v) => v != null).length / f.length) * 100);
-}
-
-function formatShortDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 function formatRelativeDate(iso: string): string {
@@ -167,16 +122,12 @@ export default function ProfilePage() {
   const [summaries, setSummaries] = useState<SectionSummary[]>([]);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
 
   const loadData = useCallback((childId: string) => {
     setLoading(true);
     setSummaryError(null);
-    Promise.all([
-      getProfileSectionSummaries(childId),
-      getMeasurements(childId),
-    ])
-      .then(([sumData, msData]) => { setSummaries(sumData); setMeasurements(msData); setLoading(false); })
+    getProfileSectionSummaries(childId)
+      .then((sumData) => { setSummaries(sumData); setLoading(false); })
       .catch((e) => { setSummaryError(String(e)); setLoading(false); });
   }, []);
 
@@ -211,59 +162,41 @@ export default function ProfilePage() {
     return orderSections(visible, ageMonths);
   }, [ageMonths]);
 
-  // Growth snapshot
-  const snapshot = useMemo(() => {
-    const latest = latestByType(measurements);
-    return buildGrowthSnapshot(latest, ageMonths);
-  }, [measurements, ageMonths]);
-
   return (
-    <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
-      <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 86 }}>
+    <div className="h-full overflow-y-auto hide-scrollbar" style={{ background: 'transparent' }}>
+      <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 16 }}>
 
         {/* ── Profile header card ────────────────────────────── */}
-        <div className="rounded-[18px] p-6 mb-6 relative overflow-hidden" style={{ background: '#86AFDA', boxShadow: C.shadow }}>
+        <div className="relative overflow-hidden p-6 mb-6" style={{ ...glassStyle, background: 'rgba(255,255,255,0.7)' }}>
           <div className="flex items-center gap-5">
             {/* Avatar */}
             {activeChild.avatarPath ? (
-              <img src={convertFileSrc(activeChild.avatarPath)} alt="" className="w-[72px] h-[72px] rounded-full object-cover border-[3px]" style={{ borderColor: 'rgba(255,255,255,0.5)' }} />
+              <img src={convertFileSrc(activeChild.avatarPath)} alt="" className="w-[72px] h-[72px] rounded-full object-cover border-2" style={{ borderColor: 'rgba(226,232,240,0.3)', boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }} />
             ) : (
-              <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center border-[3px]" style={{ background: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.5)' }}>
-                <span className="text-2xl font-bold text-white">{activeChild.displayName.charAt(0)}</span>
+              <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center" style={{ background: '#1e293b', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>
+                <span className="text-2xl font-semibold text-white">{activeChild.displayName.charAt(0)}</span>
               </div>
             )}
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-white">{activeChild.displayName}</h1>
-              <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>{activeChild.displayName}</h1>
+              <p className="text-[12px] mt-0.5" style={{ color: '#475569' }}>
                 {ageY > 0 ? `${ageY}岁` : ''}{ageR > 0 ? `${ageR}个月` : ''} · {activeChild.gender === 'male' ? '男孩' : '女孩'} · 出生 {activeChild.birthDate}
               </p>
               {/* Profile completeness */}
               <div className="flex items-center gap-2 mt-2">
-                <div className="flex-1 h-[5px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.25)' }}>
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: '#c8e64a' }} />
+                <div className="flex-1 h-[5px] rounded-full overflow-hidden" style={{ background: '#F0F4F8' }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: '#4ECCA3' }} />
                 </div>
-                <span className="text-[10px] text-white/70">{pct}%</span>
+                <span className="text-[10px]" style={{ color: '#475569' }}>{pct}%</span>
               </div>
             </div>
             {/* Edit button */}
-            <Link to="/settings/children" className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors hover:bg-white/30" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
+            <Link to="/settings/children" className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium text-white transition-all hover:-translate-y-0.5" style={{ background: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
               编辑
             </Link>
           </div>
-        </div>
-
-        {/* ── Growth snapshot ─────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {snapshot.map((item) => (
-            <div key={item.label} className="rounded-[14px] p-3 text-center" style={{ background: C.card, boxShadow: C.shadow }}>
-              <p className="text-[18px] font-bold" style={{ color: C.text }}>{loading ? '-' : item.value}</p>
-              <p className="text-[10px] mt-0.5" style={{ color: C.sub }}>
-                {item.label}{!loading && item.date ? ` · ${formatShortDate(item.date)}` : ''}
-              </p>
-            </div>
-          ))}
         </div>
 
         {/* ── Summary load error ─────────────────────────────── */}
@@ -289,8 +222,8 @@ export default function ProfilePage() {
 
             return (
               <Link key={s.to} to={s.to}
-                className="flex items-start gap-3 rounded-[14px] p-4 transition-all duration-200 hover:scale-[1.01] hover:shadow-md"
-                style={{ background: C.card, boxShadow: C.shadow }}>
+                className="flex items-start gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5"
+                style={glassStyle}>
                 <div className="w-[42px] h-[42px] rounded-[12px] flex items-center justify-center text-[20px] shrink-0" style={{ background: s.color }}>
                   {s.emoji}
                 </div>
@@ -312,8 +245,8 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 gap-3 mt-3">
           {CROSS_LINKS.map((t) => (
             <Link key={t.to} to={t.to}
-              className="flex items-center gap-3 rounded-[14px] p-4 transition-all duration-200 hover:scale-[1.01] hover:shadow-md"
-              style={{ background: C.card, boxShadow: C.shadow }}>
+              className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5"
+              style={glassStyle}>
               <span className="text-[20px]">{t.emoji}</span>
               <div className="min-w-0 flex-1">
                 <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
@@ -333,8 +266,8 @@ export default function ProfilePage() {
             <div className="grid grid-cols-2 gap-3">
               {TOOL_ENTRIES.map((t) => (
                 <Link key={t.to} to={t.to}
-                  className="flex items-center gap-3 rounded-[14px] p-4 transition-all duration-200 hover:scale-[1.01] hover:shadow-md"
-                  style={{ background: C.card, boxShadow: C.shadow, borderLeft: `3px solid ${C.accent}` }}>
+                  className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5"
+                  style={{ ...glassStyle, borderLeft: `3px solid ${C.accent}` }}>
                   <span className="text-[20px]">{t.emoji}</span>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{t.label}</h3>

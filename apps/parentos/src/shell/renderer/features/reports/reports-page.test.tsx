@@ -26,6 +26,12 @@ const {
   getVaccineRecordsMock,
   getJournalEntriesMock,
   getReminderStatesMock,
+  getSleepRecordsMock,
+  getDentalRecordsMock,
+  getAllergyRecordsMock,
+  getMedicalEventsMock,
+  getFitnessAssessmentsMock,
+  getTannerAssessmentsMock,
 } = vi.hoisted(() => ({
   getGrowthReportsMock: vi.fn(async () => [...reportStore].sort((left, right) => right.periodStart.localeCompare(left.periodStart))),
   insertGrowthReportMock: vi.fn(async (params: {
@@ -114,6 +120,16 @@ const {
       updatedAt: '2026-04-01T00:00:00.000Z',
     },
   ]),
+  getSleepRecordsMock: vi.fn().mockResolvedValue([]),
+  getDentalRecordsMock: vi.fn().mockResolvedValue([]),
+  getAllergyRecordsMock: vi.fn().mockResolvedValue([]),
+  getMedicalEventsMock: vi.fn().mockResolvedValue([]),
+  getFitnessAssessmentsMock: vi.fn().mockResolvedValue([]),
+  getTannerAssessmentsMock: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@nimiplatform/sdk', () => ({
+  getPlatformClient: () => ({ runtime: null }),
 }));
 
 vi.mock('../../bridge/sqlite-bridge.js', () => ({
@@ -124,6 +140,12 @@ vi.mock('../../bridge/sqlite-bridge.js', () => ({
   getVaccineRecords: getVaccineRecordsMock,
   getJournalEntries: getJournalEntriesMock,
   getReminderStates: getReminderStatesMock,
+  getSleepRecords: getSleepRecordsMock,
+  getDentalRecords: getDentalRecordsMock,
+  getAllergyRecords: getAllergyRecordsMock,
+  getMedicalEvents: getMedicalEventsMock,
+  getFitnessAssessments: getFitnessAssessmentsMock,
+  getTannerAssessments: getTannerAssessmentsMock,
 }));
 
 describe('ReportsPage', () => {

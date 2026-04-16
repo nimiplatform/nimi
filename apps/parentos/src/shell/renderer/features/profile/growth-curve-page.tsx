@@ -13,6 +13,7 @@ import { canRenderWHOLMS, loadWHOLMS, type WHOLMSDataset, type GrowthStandard } 
 import { AISummaryCard } from './ai-summary-card.js';
 import {
   analyzeCheckupSheetOCR,
+  getCheckupOCRDisplayMessage,
   hasCheckupOCRRuntime,
   readImageFileAsDataUrl,
 } from './checkup-ocr.js';
@@ -235,9 +236,11 @@ export default function GrowthCurvePage() {
       const result = await analyzeCheckupSheetOCR({ imageUrl: ocrImageDataUrl });
       setOCRCandidates(result.measurements.map((candidate) => ({ ...candidate, selected: true })));
       setOCRStatus('review');
-    } catch {
+    } catch (error) {
       setOCRStatus('idle');
       setOCRCandidates([]);
+      setOCRError(getCheckupOCRDisplayMessage(error));
+      return;
       setOCRError('OCR 提取失败或返回了不合法的结构化结果。');
     }
   };
@@ -299,26 +302,26 @@ export default function GrowthCurvePage() {
               </svg>
             </div>
             <div className="pointer-events-none absolute left-0 top-7 z-50 w-[360px] rounded-xl p-4 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              style={{ background: '#1a2b4a', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+              style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
               <p className="text-[12px] font-semibold text-white mb-2.5">数据参考文献</p>
               <ul className="space-y-2.5">
                 <li>
-                  <span className="text-[#c8e64a] font-medium">身高 · 体重 · BMI 百分位曲线（0-5岁）</span>
+                  <span className="text-[#4ECCA3] font-medium">身高 · 体重 · BMI 百分位曲线（0-5岁）</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">WHO Child Growth Standards (2006). Length/height-for-age, weight-for-age, BMI-for-age.</span>
                   <span className="block text-[10px] text-[#7a8090]">World Health Organization Multicentre Growth Reference Study Group</span>
                 </li>
                 <li>
-                  <span className="text-[#c8e64a] font-medium">身高 · 体重 · BMI 百分位曲线（5-19岁）</span>
+                  <span className="text-[#4ECCA3] font-medium">身高 · 体重 · BMI 百分位曲线（5-19岁）</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">WHO Growth References (2007). Height-for-age, weight-for-age, BMI-for-age references for school-age children and adolescents.</span>
                   <span className="block text-[10px] text-[#7a8090]">de Onis M, et al. Bull World Health Organ 2007;85:660-667</span>
                 </li>
                 <li>
-                  <span className="text-[#c8e64a] font-medium">头围百分位曲线（0-36月）</span>
+                  <span className="text-[#4ECCA3] font-medium">头围百分位曲线（0-36月）</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">WHO Child Growth Standards (2006). Head circumference-for-age.</span>
                   <span className="block text-[10px] text-[#7a8090]">覆盖: 0-36个月 · 分男/女 · P3-P97 百分位线</span>
                 </li>
                 <li>
-                  <span className="text-[#c8e64a] font-medium">骨龄评估</span>
+                  <span className="text-[#4ECCA3] font-medium">骨龄评估</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">Greulich-Pyle Atlas / Tanner-Whitehouse 3 (TW3) 骨龄评估标准</span>
                 </li>
               </ul>
@@ -330,13 +333,13 @@ export default function GrowthCurvePage() {
         <div className="flex items-center gap-2">
           <button onClick={() => setShowOCR(!showOCR)}
             className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
-            style={{ background: showOCR ? S.sub : '#86AFDA', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
+            style={{ background: showOCR ? S.sub : '#BDE0F5', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
             </svg>
             {showOCR ? '关闭识别' : '智能识别'}
             <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-normal text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 z-50"
-              style={{ background: '#1a2b4a' }}>
+              style={{ background: '#1e293b' }}>
               拍照/上传体检单，自动识别数据
             </span>
           </button>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
@@ -12,6 +12,7 @@ import {
   updateJournalEntryWithTags,
   updateJournalKeepsake,
   deleteJournalEntry,
+  insertCustomTodo,
   type JournalEntryRow,
   type JournalTagInsertRow,
 } from '../../bridge/sqlite-bridge.js';
@@ -28,14 +29,11 @@ import { hasVoiceTranscriptionRuntime, transcribeVoiceObservation } from './voic
 import { resolveVoiceObservationPayload } from './voice-observation.js';
 import {
   hasJournalTaggingRuntime,
-  suggestJournalTags,
-  type JournalTagSuggestion,
 } from './ai-journal-tagging.js';
 import {
   type CaptureMode,
   type VoiceDraft,
   type PhotoDraft,
-  type TagSuggestionStatus,
   EMPTY_VOICE_DRAFT,
   EMOJI_CATEGORIES,
   type EmojiCategory,
@@ -43,10 +41,11 @@ import {
   blobToBase64,
   parseSelectedTags,
 } from './journal-page-helpers.js';
-import { PhotoBar, VoiceCapture } from './journal-sub-components.js';
+import { PhotoBar, SaveConfirmationModal, VoiceCapture } from './journal-sub-components.js';
 import { JournalEntryTimeline } from './journal-entry-timeline.js';
 import { completeReminderByRule } from '../../engine/reminder-actions.js';
 import { getGuidedPrompts, type GuidedPromptContext } from './journal-guided-prompts.js';
+import { getExperimentSuggestion, type ExperimentTemplate } from './journal-experiment-templates.js';
 import { REMINDER_RULES } from '../../knowledge-base/index.js';
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 
@@ -146,6 +145,16 @@ function formatJournalDraftTime(iso: string) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
+/** Auto-restore drafts saved within this window instead of showing the recovery banner. */
+const DRAFT_AUTO_RESTORE_AGE_MS = 5 * 60 * 1000;
+
+function isRecentJournalDraft(updatedAt: string): boolean {
+  if (!updatedAt) return false;
+  const savedTime = new Date(updatedAt).getTime();
+  if (Number.isNaN(savedTime)) return false;
+  return Date.now() - savedTime < DRAFT_AUTO_RESTORE_AGE_MS;
 }
 
 /* ── Emoji Picker (portal) ── */
@@ -285,6 +294,7 @@ function DeleteJournalEntryModal({
    ════════════════════════════════════════════════════════════ */
 
 export default function JournalPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((item) => item.childId === activeChildId);
@@ -300,10 +310,11 @@ export default function JournalPage() {
   const [voiceDraft, setVoiceDraft] = useState<VoiceDraft>(EMPTY_VOICE_DRAFT);
   const [voiceRuntimeAvailable, setVoiceRuntimeAvailable] = useState<boolean | null>(null);
   const [taggingRuntimeAvailable, setTaggingRuntimeAvailable] = useState<boolean | null>(null);
-  const [tagSuggestionStatus, setTagSuggestionStatus] = useState<TagSuggestionStatus>('idle');
-  const [confirmedSuggestion, setConfirmedSuggestion] = useState<JournalTagSuggestion | null>(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [postSaveExperiment, setPostSaveExperiment] = useState<ExperimentTemplate | null>(null);
+  const [addingTodo, setAddingTodo] = useState(false);
   const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([]);
   const [entryFilter, setEntryFilter] = useState<'all' | 'keepsake'>('all');
   const [showEmoji, setShowEmoji] = useState(false);
@@ -318,7 +329,6 @@ export default function JournalPage() {
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const recorderSessionRef = useRef<VoiceRecordingSession | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const autoSuggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftAutosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousChildIdRef = useRef<string | null>(null);
   const skipLocalDraftPersistRef = useRef(false);
@@ -338,7 +348,17 @@ export default function JournalPage() {
     [ageMonths],
   );
 
-  const currentDimension = activeDimensions.find((item) => item.dimensionId === selectedDimension) ?? null;
+  // Pre-select dimension from URL param (e.g., from observe page)
+  useEffect(() => {
+    const paramDimensionId = searchParams.get('dimensionId');
+    if (paramDimensionId && activeDimensions.some((d) => d.dimensionId === paramDimensionId)) {
+      setSelectedDimension(paramDimensionId);
+      const next = new URLSearchParams(searchParams);
+      next.delete('dimensionId');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, activeDimensions, setSearchParams]);
+
   const editingEntry = useMemo(
     () => editingEntryId ? entries.find((entry) => entry.entryId === editingEntryId) ?? null : null,
     [editingEntryId, entries],
@@ -393,20 +413,6 @@ export default function JournalPage() {
     }
   }, [captureMode]);
 
-  // Auto-trigger AI tag suggestion after user stops typing (1.5s debounce, >=10 chars)
-  useEffect(() => {
-    if (autoSuggestTimer.current) clearTimeout(autoSuggestTimer.current);
-    if (
-      draftTextForTagging.length >= 10 &&
-      tagSuggestionStatus === 'idle' &&
-      taggingRuntimeAvailable !== false
-    ) {
-      autoSuggestTimer.current = setTimeout(() => {
-        void handleSuggestTags();
-      }, 1500);
-    }
-    return () => { if (autoSuggestTimer.current) clearTimeout(autoSuggestTimer.current); };
-  }, [draftTextForTagging, tagSuggestionStatus, taggingRuntimeAvailable]);
 
   useEffect(() => {
     const nextChildId = child?.childId ?? null;
@@ -432,8 +438,6 @@ export default function JournalPage() {
         setMoodTag(null);
         setSubjectiveNotes('');
         setSubmitError(null);
-        setTagSuggestionStatus('idle');
-        setConfirmedSuggestion(null);
         recorderSessionRef.current?.cancel();
         recorderSessionRef.current = null;
         setVoiceDraft((prev) => { revokeVoicePreviewUrl(prev.previewUrl); return EMPTY_VOICE_DRAFT; });
@@ -454,11 +458,16 @@ export default function JournalPage() {
     }
 
     const storedDraft = readJournalLocalDraft(nextChildId);
-    setRestorableDraft(storedDraft);
-    setLastAutosavedAt(storedDraft?.updatedAt ?? null);
-    setLastSavedDraftSignature(storedDraft
-      ? serializeJournalLocalDraft(toJournalLocalDraftPayload(storedDraft))
-      : null);
+    if (storedDraft && isRecentJournalDraft(storedDraft.updatedAt)) {
+      // Silently restore recent drafts — no banner interruption
+      restoreLocalDraft(storedDraft);
+    } else {
+      setRestorableDraft(storedDraft);
+      setLastAutosavedAt(storedDraft?.updatedAt ?? null);
+      setLastSavedDraftSignature(storedDraft
+        ? serializeJournalLocalDraft(toJournalLocalDraftPayload(storedDraft))
+        : null);
+    }
   }, [child?.childId, editingEntryId]);
 
   useEffect(() => {
@@ -481,6 +490,9 @@ export default function JournalPage() {
       }
       return;
     }
+
+    // Dismiss the recovery banner immediately when the user starts typing
+    if (restorableDraft) setRestorableDraft(null);
 
     if (currentLocalDraftSignature && currentLocalDraftSignature === lastSavedDraftSignature) return;
 
@@ -561,10 +573,6 @@ export default function JournalPage() {
 
   /* ── Helpers ── */
 
-  const resetSuggestionMetadata = () => {
-    setTagSuggestionStatus('idle');
-    setConfirmedSuggestion(null);
-  };
 
   const clearReminderSearchParams = () => {
     const next = new URLSearchParams(searchParams);
@@ -577,18 +585,12 @@ export default function JournalPage() {
     setSelectedDimension(nextDimensionId);
     if (!nextDimensionId) {
       setSelectedTags([]);
-      resetSuggestionMetadata();
       return;
     }
     const nextDimension = activeDimensions.find((item) => item.dimensionId === nextDimensionId);
-    if (!nextDimension) { setSelectedTags([]); resetSuggestionMetadata(); return; }
+    if (!nextDimension) { setSelectedTags([]); return; }
     const allowedTags = new Set(nextDimension.quickTags);
     setSelectedTags((prev) => prev.filter((tag) => allowedTags.has(tag)));
-    setConfirmedSuggestion((prev) => {
-      if (!prev || prev.dimensionId !== nextDimensionId) return null;
-      return { dimensionId: prev.dimensionId, tags: prev.tags.filter((tag) => allowedTags.has(tag)) };
-    });
-    setTagSuggestionStatus((prev) => (prev === 'failed' ? 'idle' : prev));
   };
 
   const clearVoiceDraft = () => {
@@ -649,7 +651,6 @@ export default function JournalPage() {
     setMoodTag(nextPayload.moodTag);
     setSubjectiveNotes(nextPayload.subjectiveNotes);
     setSubmitError(null);
-    resetSuggestionMetadata();
     clearVoiceDraft();
     clearPhotoDrafts();
     setRestorableDraft(null);
@@ -670,7 +671,7 @@ export default function JournalPage() {
     setCaptureMode('text'); setTextContent(''); setSelectedDimension(null); setSelectedTags([]);
     setSelectedRecorderId(child?.recorderProfiles?.[0]?.id ?? null);
     setEditingEntryId(null);
-    setKeepsake(false); setMoodTag(null); setSubjectiveNotes(''); setSubmitError(null); resetSuggestionMetadata(); clearVoiceDraft(); clearPhotoDrafts();
+    setKeepsake(false); setMoodTag(null); setSubjectiveNotes(''); setSubmitError(null); clearVoiceDraft(); clearPhotoDrafts();
   };
 
   const reloadEntries = async () => {
@@ -683,6 +684,27 @@ export default function JournalPage() {
       await updateJournalKeepsake(entry.entryId, entry.keepsake === 1 ? 0 : 1, isoNow());
       await reloadEntries();
     } catch { /* bridge unavailable */ }
+  };
+
+  const handleAddExperimentTodo = async () => {
+    if (!postSaveExperiment || !child) return;
+    setAddingTodo(true);
+    try {
+      await insertCustomTodo({
+        todoId: ulid(),
+        childId: child.childId,
+        title: postSaveExperiment.title,
+        dueDate: null,
+        now: isoNow(),
+      });
+      setPostSaveExperiment(null);
+    } catch { /* non-critical */ } finally {
+      setAddingTodo(false);
+    }
+  };
+
+  const handleDismissExperiment = () => {
+    setPostSaveExperiment(null);
   };
 
   const handleDeleteEntry = async () => {
@@ -705,13 +727,6 @@ export default function JournalPage() {
     } finally {
       setDeleting(false);
     }
-  };
-
-  const buildConfirmedAiTags = (): JournalTagInsertRow[] => {
-    if (!confirmedSuggestion || !confirmedSuggestion.dimensionId || confirmedSuggestion.dimensionId !== selectedDimension) return [];
-    return confirmedSuggestion.tags.filter((tag) => selectedTags.includes(tag)).map((tag) => ({
-      tagId: ulid(), domain: 'observation', tag, source: 'ai', confidence: null,
-    }));
   };
 
   /* ── Submit ── */
@@ -742,6 +757,7 @@ export default function JournalPage() {
   const saveJournalEntry = async (payload: {
     entryId: string; contentType: string; textContent: string | null;
     voicePath: string | null; photoPaths: string | null; recordedAt: string; now: string;
+    aiTags: JournalTagInsertRow[];
   }) => {
     const params = {
       entryId: payload.entryId, childId: child.childId,
@@ -753,7 +769,7 @@ export default function JournalPage() {
       guidedAnswers: subjectiveNotes.trim() ? JSON.stringify({ _subjective: subjectiveNotes.trim() }) : null,
       observationDuration: null,
       keepsake: keepsake ? 1 : 0, moodTag, recorderId: selectedRecorderId,
-      aiTags: buildConfirmedAiTags(), now: payload.now,
+      aiTags: payload.aiTags, now: payload.now,
     };
     if (editingEntryId) {
       await updateJournalEntryWithTags(params);
@@ -775,7 +791,7 @@ export default function JournalPage() {
     return merged.length > 0 ? JSON.stringify(merged) : null;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (aiTags?: JournalTagInsertRow[]) => {
     const now = isoNow();
     setSubmitError(null);
     setSaving(true);
@@ -800,6 +816,7 @@ export default function JournalPage() {
             entryId, contentType,
             textContent: textContent.trim() || null,
             voicePath: preservedVoicePath, photoPaths: mergedPhotoPaths, recordedAt, now,
+            aiTags: aiTags ?? [],
           });
         } else {
           if (!voiceDraft.blob || !voiceDraft.mimeType || voiceDraft.status === 'recording' || voiceDraft.status === 'transcribing') {
@@ -811,7 +828,7 @@ export default function JournalPage() {
             const savedAudio = await saveJournalVoiceAudio({ childId: child.childId, entryId, mimeType: voiceDraft.mimeType, audioBase64 });
             savedVoicePath = savedAudio.path;
             const payload = resolveVoiceObservationPayload({ voicePath: savedVoicePath, transcript: voiceDraft.transcript });
-            await saveJournalEntry({ entryId, contentType: payload.contentType, textContent: payload.textContent, voicePath: payload.voicePath, photoPaths: mergedPhotoPaths, recordedAt, now });
+            await saveJournalEntry({ entryId, contentType: payload.contentType, textContent: payload.textContent, voicePath: payload.voicePath, photoPaths: mergedPhotoPaths, recordedAt, now, aiTags: aiTags ?? [] });
           } catch (error) {
             if (savedVoicePath) await deleteJournalVoiceAudio(savedVoicePath).catch(catchLog('journal', 'action:rollback-delete-voice-failed', 'warn'));
             throw error;
@@ -833,6 +850,7 @@ export default function JournalPage() {
         }).catch(catchLog('journal', 'action:complete-reminder-after-journal-failed', 'warn'));
         clearReminderSearchParams();
       }
+      const savedDimensionId = selectedDimension;
       if (!editingEntryId) {
         skipLocalDraftPersistRef.current = true;
         clearJournalLocalDraft(child.childId);
@@ -841,6 +859,9 @@ export default function JournalPage() {
         setLastSavedDraftSignature(null);
       }
       resetComposer();
+      if (!editingEntryId) {
+        setPostSaveExperiment(getExperimentSuggestion(savedDimensionId));
+      }
     } catch {
       setSubmitError('保存失败，请检查本地运行时状态后重试。');
     } finally {
@@ -851,8 +872,7 @@ export default function JournalPage() {
   /* ── Voice ── */
 
   const handleStartRecording = async () => {
-    setSubmitError(null); clearVoiceDraft(); resetSuggestionMetadata();
-    try {
+    setSubmitError(null); clearVoiceDraft();    try {
       recorderSessionRef.current = await startVoiceRecording();
       setVoiceDraft({ status: 'recording', blob: null, mimeType: null, previewUrl: null, transcript: '', error: null });
     } catch {
@@ -867,8 +887,7 @@ export default function JournalPage() {
     try {
       const result = await session.stop();
       recorderSessionRef.current = null;
-      resetSuggestionMetadata();
-      setVoiceDraft({ status: 'ready', blob: result.blob, mimeType: result.mimeType, previewUrl: result.previewUrl, transcript: '', error: null });
+           setVoiceDraft({ status: 'ready', blob: result.blob, mimeType: result.mimeType, previewUrl: result.previewUrl, transcript: '', error: null });
     } catch {
       recorderSessionRef.current = null;
       setVoiceDraft({ ...EMPTY_VOICE_DRAFT, status: 'transcription-failed', error: '录音失败，请重试。' });
@@ -881,35 +900,9 @@ export default function JournalPage() {
     setVoiceDraft((prev) => ({ ...prev, status: 'transcribing', error: null }));
     try {
       const result = await transcribeVoiceObservation({ audioBlob: voiceDraft.blob, mimeType: voiceDraft.mimeType });
-      resetSuggestionMetadata();
-      setVoiceDraft((prev) => ({ ...prev, status: 'transcribed', transcript: result.transcript, error: null }));
+           setVoiceDraft((prev) => ({ ...prev, status: 'transcribed', transcript: result.transcript, error: null }));
     } catch {
       setVoiceDraft((prev) => ({ ...prev, status: 'transcription-failed', transcript: '', error: '转写失败，仍可保存语音记录。' }));
-    }
-  };
-
-  const handleSuggestTags = async () => {
-    if (!draftTextForTagging) return;
-    const candidateDimensions = selectedDimension && currentDimension ? [currentDimension] : activeDimensions;
-    if (candidateDimensions.length === 0) {
-      setTagSuggestionStatus('failed');
-      return;
-    }
-    setTagSuggestionStatus('suggesting');
-    try {
-      const suggestion = await suggestJournalTags({ draftText: draftTextForTagging, candidateDimensions });
-      if (suggestion.dimensionId) {
-        const sugDim = candidateDimensions.find((item) => item.dimensionId === suggestion.dimensionId);
-        const nextTags = suggestion.tags.filter((tag) => sugDim?.quickTags.includes(tag) ?? false);
-        applyDimensionSelection(suggestion.dimensionId);
-        setSelectedTags((prev) => [...new Set([...prev, ...nextTags])]);
-        setConfirmedSuggestion({ dimensionId: suggestion.dimensionId, tags: nextTags });
-      } else {
-        setConfirmedSuggestion({ dimensionId: null, tags: [] });
-      }
-      setTagSuggestionStatus('ready');
-    } catch {
-      setConfirmedSuggestion(null); setTagSuggestionStatus('failed');
     }
   };
 
@@ -932,7 +925,7 @@ export default function JournalPage() {
      ════════════════════════════════════════════════════════ */
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
+    <div className={`${S.container} hide-scrollbar`} style={{ paddingTop: 16, minHeight: '100%' }}>
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-xl font-bold" style={{ color: S.text }}>成长随记</h1>
@@ -943,7 +936,7 @@ export default function JournalPage() {
       </div>
 
       {/* ── Capture area ── */}
-      <section className={`${S.radius} mb-6 overflow-hidden`} style={{ background: S.card, boxShadow: S.shadow }}>
+      <section className="mb-6 overflow-hidden" style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
         {/* Hidden photo input */}
         <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
           onChange={(e) => { handleAddPhotos(e.target.files); e.target.value = ''; }} />
@@ -1040,7 +1033,7 @@ export default function JournalPage() {
 
             {/* Textarea */}
             <textarea ref={textareaRef} value={textContent}
-              onChange={(e) => { setTextContent(e.target.value); resetSuggestionMetadata(); }}
+              onChange={(e) => { setTextContent(e.target.value); if (postSaveExperiment) setPostSaveExperiment(null); }}
               placeholder={guidedContext ? '参考上面的引导问题，记录你观察到的情况...' : '他刚刚做了什么？说了什么？如果遇到了困难，他是如何解决的...'}
               className="w-full resize-none px-5 py-3 text-[13px] leading-relaxed outline-none"
               style={{ background: S.card, minHeight: 120, border: 'none' }} rows={5} />
@@ -1055,7 +1048,7 @@ export default function JournalPage() {
             {/* ── Toolbar ── */}
             <div className="flex items-center gap-1 px-4 py-2.5" style={{ borderTop: `1px solid ${S.border}` }}>
               {/* Voice toggle */}
-              <button type="button" onClick={() => { setCaptureMode('voice'); setTextContent(''); resetSuggestionMetadata(); }}
+              <button type="button" onClick={() => { setCaptureMode('voice'); setTextContent(''); }}
                 className={`${S.radiusSm} px-3 py-1.5 text-[11px] flex items-center gap-1.5 transition-colors hover:bg-[#f0f0ec]`}
                 style={{ background: '#f5f3ef', color: S.sub }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -1122,12 +1115,14 @@ export default function JournalPage() {
               ) : null}
               <div className="flex-1" />
               {/* Save */}
-              <button type="button" onClick={() => void handleSubmit()} disabled={saving || !canSaveText}
+              <button type="button"
+                onClick={() => { if (taggingRuntimeAvailable !== false && !editingEntry) { setShowSaveModal(true); } else { void handleSubmit(); } }}
+                disabled={saving || !canSaveText}
                 className={`${S.radiusSm} px-5 py-2 text-[12px] font-medium disabled:opacity-30 transition-colors`}
                 style={canSaveText
                   ? { background: S.accent, color: '#fff' }
                   : { background: '#f0f0ec', color: S.sub }}>
-                {saving ? '保存中...' : editingEntry ? '保存修改' : '保存并让 AI 分析'}
+                {saving ? '保存中...' : editingEntry ? '保存修改' : '保存'}
               </button>
             </div>
           </>
@@ -1158,8 +1153,7 @@ export default function JournalPage() {
                 onStart={() => void handleStartRecording()} onStop={() => void handleStopRecording()}
                 onTranscribe={() => void handleTranscribe()} onClear={() => { clearVoiceDraft(); setCaptureMode('text'); }}
                 onTranscriptChange={(t) => {
-                  resetSuggestionMetadata();
-                  setVoiceDraft((prev) => ({
+                                   setVoiceDraft((prev) => ({
                     ...prev, transcript: t,
                     status: t.trim().length > 0 ? 'transcribed' : prev.status === 'transcribed' ? 'ready' : prev.status,
                   }));
@@ -1192,10 +1186,12 @@ export default function JournalPage() {
                   {draftStatusLabel}
                 </span>
               ) : null}
-              <button type="button" onClick={() => void handleSubmit()} disabled={saving || !canSaveVoice}
+              <button type="button"
+                onClick={() => { if (taggingRuntimeAvailable !== false && !editingEntry) { setShowSaveModal(true); } else { void handleSubmit(); } }}
+                disabled={saving || !canSaveVoice}
                 className={`${S.radiusSm} px-5 py-2 text-[12px] font-medium text-white disabled:opacity-50`}
                 style={{ background: S.accent }}>
-                {saving ? '保存中...' : editingEntry ? '保存修改' : '保存并让 AI 分析'}
+                {saving ? '保存中...' : editingEntry ? '保存修改' : '保存'}
               </button>
             </div>
           </div>
@@ -1205,12 +1201,53 @@ export default function JournalPage() {
         {submitError && <p className="text-[11px] px-5 pb-3 text-red-500">{submitError}</p>}
       </section>
 
+      {/* ── Post-save experiment suggestion ── */}
+      {postSaveExperiment && (
+        <section className="mx-5 mb-4 rounded-[14px] p-4" style={{ background: '#f8faf0', border: `1px solid ${S.accent}30` }}>
+          <p className="text-[12px] font-medium mb-2" style={{ color: S.text }}>
+            试试这个小实验
+          </p>
+          <p className="text-[12px] leading-relaxed mb-3" style={{ color: S.text }}>
+            {postSaveExperiment.title}
+          </p>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => void handleAddExperimentTodo()} disabled={addingTodo}
+              className="rounded-full px-3.5 py-1.5 text-[11px] font-medium transition-opacity disabled:opacity-50"
+              style={{ background: S.accent, color: '#fff' }}>
+              {addingTodo ? '添加中...' : '添加到待办'}
+            </button>
+            <button type="button" onClick={handleDismissExperiment}
+              className="rounded-full px-3 py-1.5 text-[11px] transition-colors hover:bg-black/[0.04]"
+              style={{ color: S.sub }}>
+              跳过
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* ── Timeline entries ── */}
       <JournalEntryTimeline
         entries={entries}
         entryFilter={entryFilter}
         onFilterChange={setEntryFilter}
         recorderProfiles={child.recorderProfiles}
+        onAskAiAboutEntry={(entry) => {
+          const dimensionName = OBSERVATION_DIMENSIONS.find((item) => item.dimensionId === entry.dimensionId)?.displayName ?? null;
+          const recorderName = child.recorderProfiles?.find((item) => item.id === entry.recorderId)?.name ?? null;
+          navigate('/advisor', {
+            state: {
+              journalEntryContext: {
+                entryId: entry.entryId,
+                recordedAt: entry.recordedAt,
+                contentType: entry.contentType,
+                textContent: entry.textContent,
+                dimensionName,
+                tags: parseSelectedTags(entry.selectedTags),
+                recorderName,
+              },
+            },
+          });
+        }}
         onEditEntry={(entry) => {
           setEditingEntryId(entry.entryId);
           setCaptureMode('text');
@@ -1221,8 +1258,7 @@ export default function JournalPage() {
           setKeepsake(entry.keepsake === 1);
           setMoodTag(entry.moodTag);
           clearReminderSearchParams();
-          resetSuggestionMetadata();
-          try {
+                   try {
             const ga = entry.guidedAnswers ? JSON.parse(entry.guidedAnswers) as Record<string, string> : null;
             setSubjectiveNotes(ga?._subjective ?? '');
           } catch { setSubjectiveNotes(''); }
@@ -1239,6 +1275,17 @@ export default function JournalPage() {
           onConfirm={() => void handleDeleteEntry()}
         />
       ) : null}
+      {showSaveModal && (
+        <SaveConfirmationModal
+          textPreview={captureMode === 'text' ? textContent.trim() : voiceDraft.transcript.trim()}
+          selectedDimension={selectedDimension}
+          selectedTags={selectedTags}
+          dimensions={activeDimensions}
+          draftTextForTagging={draftTextForTagging}
+          onConfirm={(aiTags) => { setShowSaveModal(false); void handleSubmit(aiTags); }}
+          onCancel={() => setShowSaveModal(false)}
+        />
+      )}
     </div>
   );
 }

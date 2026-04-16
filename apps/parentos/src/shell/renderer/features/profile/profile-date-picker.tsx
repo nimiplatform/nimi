@@ -332,7 +332,7 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
 /* ── ProfileDatePicker (public API) ── */
 
 export function ProfileDatePicker({
-  value, onChange, className = '', style, size = 'normal', allowClear = false, maxDate,
+  value, onChange, className = '', style, size = 'normal', allowClear = false, maxDate, autoOpenNonce,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -341,6 +341,7 @@ export function ProfileDatePicker({
   size?: 'normal' | 'small';
   allowClear?: boolean;
   maxDate?: string;
+  autoOpenNonce?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -381,6 +382,11 @@ export function ProfileDatePicker({
     requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)));
   };
 
+  useEffect(() => {
+    if (autoOpenNonce === undefined) return;
+    openPanel();
+  }, [autoOpenNonce]);
+
   const toggle = () => { if (open) setOpen(false); else openPanel(); };
 
   const handleTriggerClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -394,7 +400,7 @@ export function ProfileDatePicker({
     <div ref={wrapRef} className="relative">
       <div className="group/field relative flex items-center cursor-pointer" onClick={handleTriggerClick}>
         <input type="text" readOnly value={formatDateDisplay(value)}
-          className={`w-full ${S.radiusSm} ${sizeClass} outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 cursor-pointer ${className}`}
+          className={`w-full ${S.radiusSm} ${sizeClass} outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 cursor-pointer ${className}`}
           style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8', ...style }} />
         <div className={`absolute right-2 flex items-center gap-1 ${size === 'small' ? 'text-[11px]' : ''}`}>
           {allowClear && value && (
@@ -404,7 +410,7 @@ export function ProfileDatePicker({
             </button>
           )}
           <Calendar size={size === 'small' ? 14 : 16} strokeWidth={1.5}
-            className={`transition-colors ${open ? 'text-[#94A533]' : 'text-gray-400 group-focus-within/field:text-[#94A533]'}`} />
+            className={`transition-colors ${open ? 'text-[#1e293b]' : 'text-gray-400 group-focus-within/field:text-[#1e293b]'}`} />
         </div>
       </div>
 

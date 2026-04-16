@@ -2,6 +2,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   buildParentosRuntimeMetadata,
   ensureParentosLocalRuntimeReady,
+  PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
   resolveParentosSpeechTranscribeRuntimeConfig,
 } from '../settings/parentos-ai-runtime.js';
 
@@ -60,7 +61,7 @@ export async function transcribeVoiceObservation(input: {
   await ensureParentosLocalRuntimeReady({
     route: aiParams.route,
     localModelId: aiParams.localModelId,
-    timeoutMs: 60_000,
+    timeoutMs: PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
   });
   const output = await client.runtime.media.stt.transcribe({
     ...aiParams,

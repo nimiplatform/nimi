@@ -4,12 +4,14 @@ import { S } from '../../app-shell/page-style.js';
 import { ProfileDatePicker } from '../profile/profile-date-picker.js';
 import { useAppStore } from '../../app-shell/app-store.js';
 import {
-  getGrowthReports, getJournalEntries, getMeasurements, getMilestoneRecords,
-  getReminderStates, getVaccineRecords, insertGrowthReport,
+  getAllergyRecords, getDentalRecords, getFitnessAssessments, getGrowthReports,
+  getJournalEntries, getMeasurements, getMedicalEvents, getMilestoneRecords,
+  getReminderStates, getSleepRecords, getTannerAssessments, getVaccineRecords, insertGrowthReport,
   updateGrowthReportContent,
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
+import { generateNarrativeReportForPeriod } from './narrative-prompt.js';
 import {
   buildStructuredGrowthReport, parseReportContent,
   type GrowthReportType, type NarrativeReportContent, type ParsedReportContent,
@@ -43,6 +45,56 @@ function deriveReportType(preset: PeriodPreset): GrowthReportType {
   if (preset === 'this-month' || preset === 'last-month') return 'monthly';
   if (preset === 'this-quarter' || preset === 'last-quarter') return 'quarterly-letter';
   return 'custom';
+}
+
+function normalizeDateValue(value: string) {
+  const normalized = value.trim().replace(/\//g, '-');
+  if (!normalized) return null;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return null;
+  return normalized;
+}
+
+function resolvePeriodBounds(start: string, end: string) {
+  const normalizedStart = normalizeDateValue(start);
+  const normalizedEnd = normalizeDateValue(end);
+  if (!normalizedStart || !normalizedEnd) return null;
+  const startDate = new Date(`${normalizedStart}T00:00:00.000Z`);
+  const endDate = new Date(`${normalizedEnd}T23:59:59.999Z`);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || startDate > endDate) {
+    return null;
+  }
+  return {
+    startLabel: normalizedStart,
+    endLabel: normalizedEnd,
+    start: startDate.toISOString(),
+    end: endDate.toISOString(),
+  };
+}
+
+function buildNarrativeTitle(childName: string, reportType: GrowthReportType) {
+  switch (reportType) {
+    case 'monthly':
+      return `${childName}的月度成长报告`;
+    case 'quarterly':
+      return `${childName}的季度成长报告`;
+    case 'quarterly-letter':
+      return `${childName}的季度成长来信`;
+    case 'custom':
+    default:
+      return `${childName}的综合成长报告`;
+  }
+}
+
+async function getAvailableReportsRuntime() {
+  try {
+    const { getPlatformClient } = await import('@nimiplatform/sdk');
+    const client = getPlatformClient();
+    if (!client.runtime?.appId || !client.runtime.ai?.text?.stream) return null;
+    return client.runtime;
+  } catch {
+    return null;
+  }
 }
 
 function reportBadgeLabel(c: ParsedReportContent): string {
@@ -97,7 +149,7 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
   const editField = (f: 'opening' | 'milestoneReplay' | 'closingMessage', v: string) => onContentUpdate?.({ ...content, [f]: v });
 
   return (<div className="space-y-4">
-    <div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+    <div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
       <h2 className="text-[20px] font-bold leading-tight" style={{ color: S.text }}>{content.title}</h2>
       <p className="text-[12px] mt-1" style={{ color: S.sub }}>{content.subtitle}</p>
       {content.format === 'narrative-ai' && <span className="text-[10px] px-2 py-0.5 rounded-full mt-2 inline-block" style={{ background: '#f0f5e6', color: S.accent }}>AI 撰写</span>}
@@ -107,7 +159,7 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
       {canEdit ? <EditableText text={content.opening} onSave={(v) => editField('opening', v)} /> : <p className="text-[14px] leading-[1.8] italic" style={{ color: S.text }}>{content.opening}</p>}
     </div>)}
 
-    {content.narrativeSections.map((section) => (<div key={section.id} className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+    {content.narrativeSections.map((section) => (<div key={section.id} className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
       <h3 className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>{section.title}</h3>
       {canEdit ? <EditableText text={section.narrative} onSave={(v) => editSection(section.id, v)} /> : <p className="text-[14px] leading-[1.8]" style={{ color: S.text }}>{section.narrative}</p>}
       {section.dataPoints && section.dataPoints.length > 0 && (<div className="mt-3 flex flex-wrap gap-3">
@@ -125,17 +177,17 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
     </div>)}
 
     {((content.highlights?.length ?? 0) > 0 || (content.watchNext?.length ?? 0) > 0) && (<div className="grid gap-3 sm:grid-cols-2">
-      {content.highlights && content.highlights.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+      {content.highlights && content.highlights.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
         <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>🌟 本月亮点</h3>
         <ul className="space-y-2">{content.highlights.map((h, i) => <li key={i} className={`${S.radiusSm} px-3 py-2 text-[13px]`} style={{ background: '#f0f5e6', color: S.text }}>{h}</li>)}</ul>
       </div>)}
-      {content.watchNext && content.watchNext.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+      {content.watchNext && content.watchNext.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
         <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>👀 下月留意</h3>
         <ul className="space-y-2">{content.watchNext.map((w, i) => <li key={i} className={`${S.radiusSm} px-3 py-2 text-[13px]`} style={{ background: '#fefce8', color: S.text }}>{w}</li>)}</ul>
       </div>)}
     </div>)}
 
-    {content.trendSignals.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+    {content.trendSignals.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
       <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>趋势信号</h3>
       <div className="grid gap-3 sm:grid-cols-2">{content.trendSignals.map((sig) => (<div key={sig.id} className={`${S.radiusSm} p-3`} style={{ background: S.bg, border: `1px solid ${S.border}` }}>
         <h4 className="text-[12px] font-semibold" style={{ color: S.text }}>{sig.title}</h4>
@@ -143,7 +195,7 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
       </div>))}</div>
     </div>)}
 
-    {content.actionItems.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+    {content.actionItems.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
       <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>下一步行动</h3>
       <div className="space-y-2">{content.actionItems.map((a) => (<Link key={a.id} to={a.linkTo ?? '/advisor'} className={`flex items-center gap-3 ${S.radiusSm} px-4 py-3 transition-colors hover:opacity-90`} style={{ background: '#f0f5e6', border: `1px solid ${S.accent}40` }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={S.accent} strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
@@ -155,7 +207,7 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
       {canEdit ? <EditableText text={content.closingMessage} onSave={(v) => editField('closingMessage', v)} /> : <p className="text-[14px] leading-[1.8]" style={{ color: S.text }}>{content.closingMessage}</p>}
     </div>)}
 
-    <div className={`${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
+    <div className={`${S.radius} p-4`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
       <p className="text-[11px]" style={{ color: S.sub }}>数据来源：{content.sources.join('，')}</p>
       <p className="text-[11px] mt-1" style={{ color: '#92400e' }}>{content.safetyNote}</p>
     </div>
@@ -166,15 +218,15 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
 
 function StructuredViewer({ content }: { content: StructuredGrowthReportContent }) {
   return (<div className="space-y-4">
-    <div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+    <div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
       <h2 className="text-[20px] font-bold" style={{ color: S.text }}>{content.title}</h2>
       <p className="text-[12px] mt-1" style={{ color: S.sub }}>{content.subtitle}</p>
       <p className="text-[11px] mt-3" style={{ color: '#92400e' }}>{content.safetyNote}</p>
     </div>
-    {content.metrics.length > 0 && <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{content.metrics.map((m) => (<div key={m.id} className={`${S.radiusSm} p-3`} style={{ background: S.card, boxShadow: S.shadow }}><div className="text-[10px] uppercase" style={{ color: S.sub }}>{m.label}</div><div className="mt-1 text-[18px] font-semibold" style={{ color: S.text }}>{m.value}</div>{m.detail && <div className="text-[10px]" style={{ color: S.sub }}>{m.detail}</div>}</div>))}</div>}
-    {content.overview.length > 0 && <div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}><h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>概览</h3><ul className="space-y-2">{content.overview.map((item) => <li key={item} className={`${S.radiusSm} px-3 py-2 text-[12px]`} style={{ background: S.bg, color: S.text }}>{item}</li>)}</ul></div>}
-    <div className="grid gap-3 sm:grid-cols-2">{content.sections.map((sec) => (<div key={sec.id} className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}><h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>{sec.title}</h3><ul className="space-y-2">{sec.items.map((item) => <li key={item} className={`${S.radiusSm} px-3 py-2 text-[12px]`} style={{ background: S.bg, color: S.text }}>{item}</li>)}</ul></div>))}</div>
-    <div className={`${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}><p className="text-[11px]" style={{ color: S.sub }}>数据来源：{content.sources.join('，')}</p></div>
+    {content.metrics.length > 0 && <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{content.metrics.map((m) => (<div key={m.id} className={`${S.radiusSm} p-3`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}><div className="text-[10px] uppercase" style={{ color: S.sub }}>{m.label}</div><div className="mt-1 text-[18px] font-semibold" style={{ color: S.text }}>{m.value}</div>{m.detail && <div className="text-[10px]" style={{ color: S.sub }}>{m.detail}</div>}</div>))}</div>}
+    {content.overview.length > 0 && <div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}><h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>概览</h3><ul className="space-y-2">{content.overview.map((item) => <li key={item} className={`${S.radiusSm} px-3 py-2 text-[12px]`} style={{ background: S.bg, color: S.text }}>{item}</li>)}</ul></div>}
+    <div className="grid gap-3 sm:grid-cols-2">{content.sections.map((sec) => (<div key={sec.id} className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}><h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>{sec.title}</h3><ul className="space-y-2">{sec.items.map((item) => <li key={item} className={`${S.radiusSm} px-3 py-2 text-[12px]`} style={{ background: S.bg, color: S.text }}>{item}</li>)}</ul></div>))}</div>
+    <div className={`${S.radius} p-4`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}><p className="text-[11px]" style={{ color: S.sub }}>数据来源：{content.sources.join('，')}</p></div>
   </div>);
 }
 
@@ -196,6 +248,7 @@ export default function ReportsPage() {
   const [periodEnd, setPeriodEnd] = useState('');
   const [generateState, setGenerateState] = useState<GenerateState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
 
@@ -207,7 +260,7 @@ export default function ReportsPage() {
     return () => { cancelled = true; };
   }, [child]);
 
-  if (!child) return <div style={{ minHeight: '100vh' }}><div className={S.container} style={{ paddingTop: S.topPad }}><p style={{ color: S.sub }}>请先添加孩子档案。</p></div></div>;
+  if (!child) return <div style={{ minHeight: '100vh' }}><div className={S.container} style={{ paddingTop: 16 }}><p style={{ color: S.sub }}>请先添加孩子档案。</p></div></div>;
 
   const activeChild = child;
   const latestReport = reports[0] ?? null;
@@ -228,20 +281,87 @@ export default function ReportsPage() {
   };
 
   const handleGenerate = async () => {
-    if (!periodStart || !periodEnd) { setErrorMessage('请选择报告时间范围。'); return; }
-    setGenerateState('saving'); setErrorMessage(null);
+    const bounds = resolvePeriodBounds(periodStart, periodEnd);
+    if (!bounds) { setErrorMessage('请选择有效的报告时间范围。'); return; }
+    setGenerateState('saving'); setErrorMessage(null); setInfoMessage(null);
     try {
       const now = isoNow();
+      const reportType = deriveReportType(periodPreset);
+      const runtime = await getAvailableReportsRuntime();
       const [measurements, milestones, vaccines, journalEntries, reminderStates] = await Promise.all([
         getMeasurements(activeChild.childId), getMilestoneRecords(activeChild.childId),
         getVaccineRecords(activeChild.childId), getJournalEntries(activeChild.childId, 200), getReminderStates(activeChild.childId),
       ]);
-      const report = buildStructuredGrowthReport({ child: activeChild, reportType: deriveReportType(periodPreset), now, measurements, milestones, vaccines, journalEntries, reminderStates });
+      let report: ReturnType<typeof buildStructuredGrowthReport> | Awaited<ReturnType<typeof generateNarrativeReportForPeriod>> | null = null;
+
+      if (runtime) {
+        try {
+          const [sleepRecords, dentalRecords, allergyRecords, medicalEvents, fitnessAssessments, tannerAssessments] = await Promise.all([
+            getSleepRecords(activeChild.childId), getDentalRecords(activeChild.childId), getAllergyRecords(activeChild.childId),
+            getMedicalEvents(activeChild.childId), getFitnessAssessments(activeChild.childId), getTannerAssessments(activeChild.childId),
+          ]);
+          const narrativeReport = await generateNarrativeReportForPeriod({
+            child: activeChild,
+            period: { start: bounds.start, end: bounds.end },
+            data: {
+              measurements,
+              milestones,
+              vaccines,
+              journalEntries,
+              reminderStates,
+              sleepRecords,
+              dentalRecords,
+              allergyRecords,
+              medicalEvents,
+              fitnessAssessments,
+              tannerAssessments,
+            },
+            runtime,
+            reportType,
+          });
+          report = {
+            ...narrativeReport,
+            reportType,
+            periodStart: bounds.start,
+            periodEnd: bounds.end,
+            content: {
+              ...narrativeReport.content,
+              reportType,
+              title: buildNarrativeTitle(activeChild.displayName, reportType),
+              subtitle: `${bounds.startLabel} 至 ${bounds.endLabel}`,
+            },
+          };
+        } catch (error) {
+          catchLog('reports', 'action:generate-ai-report-failed', 'warn')(error);
+          setInfoMessage('AI 综合报告暂时不可用，已回退为本地结构化报告。');
+        }
+      } else {
+        setInfoMessage('当前未连通 AI，已生成本地结构化报告。');
+      }
+
+      if (!report) {
+        report = buildStructuredGrowthReport({
+          child: activeChild,
+          reportType,
+          now,
+          periodStart: bounds.start,
+          periodEnd: bounds.end,
+          measurements,
+          milestones,
+          vaccines,
+          journalEntries,
+          reminderStates,
+        });
+      }
       const reportId = ulid();
       await insertGrowthReport({ reportId, childId: activeChild.childId, reportType: report.reportType, periodStart: report.periodStart, periodEnd: report.periodEnd, ageMonthsStart: report.ageMonthsStart, ageMonthsEnd: report.ageMonthsEnd, content: JSON.stringify(report.content), generatedAt: now, now });
       setReports(await getGrowthReports(activeChild.childId)); setExpandedReportId(reportId); setGenerateState('idle');
       setTimeout(() => { if (typeof viewerRef.current?.scrollIntoView === 'function') viewerRef.current.scrollIntoView({ behavior: 'smooth' }); }, 100);
-    } catch { setGenerateState('error'); setErrorMessage('报告生成失败，请重试。'); }
+    } catch (error) {
+      catchLog('reports', 'action:generate-report-failed')(error);
+      setGenerateState('error');
+      setErrorMessage('报告生成失败，请重试。');
+    }
   };
 
   const handleCopy = (content: ParsedReportContent) => {
@@ -249,14 +369,15 @@ export default function ReportsPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh' }}>
-      <div className={S.container} style={{ paddingTop: S.topPad }}>
+    <div className="hide-scrollbar overflow-y-auto" style={{ minHeight: '100vh' }}>
+      <div className={S.container} style={{ paddingTop: 16 }}>
         <div className="mb-5">
           <h1 className="text-[18px] font-bold" style={{ color: S.text }}>成长报告</h1>
           <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>基于本地数据自动生成，每月更新</p>
         </div>
 
         {errorMessage && <div className={`mb-4 ${S.radiusSm} px-4 py-3 text-[13px]`} style={{ border: '1px solid #fed7d7', background: '#fff5f5', color: '#c53030' }}>{errorMessage}</div>}
+        {infoMessage && <div className={`mb-4 ${S.radiusSm} px-4 py-3 text-[13px]`} style={{ border: `1px solid ${S.border}`, background: '#f7faf2', color: S.text }}>{infoMessage}</div>}
 
         {latestContent && latestReport ? (
           <div className="mb-6">
@@ -264,7 +385,7 @@ export default function ReportsPage() {
             <div className="mt-3"><button onClick={() => handleCopy(latestContent!)} className={`${S.radiusSm} px-4 py-2 text-[12px] font-medium`} style={{ background: S.card, border: `1px solid ${S.border}`, color: S.text }}>{copied ? '已复制 ✓' : '复制文本'}</button></div>
           </div>
         ) : (
-          <div className={`${S.radius} p-8 text-center mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
+          <div className={`${S.radius} p-8 text-center mb-6`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
             <p className="text-[14px]" style={{ color: S.sub }}>还没有成长报告</p>
             <p className="text-[12px] mt-1" style={{ color: S.sub }}>报告会在首页自动生成，也可以在下方手动创建</p>
           </div>
@@ -299,7 +420,7 @@ export default function ReportsPage() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
             高级选项 · 手动生成报告
           </button>
-          {showAdvanced && (<div className={`${S.radius} p-5 mt-3`} style={{ background: S.card, boxShadow: S.shadow }}>
+          {showAdvanced && (<div className={`${S.radius} p-5 mt-3`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
             <div className="mb-3">
               <p className="text-[11px] font-medium mb-2" style={{ color: S.sub }}>时间范围</p>
               <div className="flex flex-wrap gap-2">{PRESET_OPTIONS.map((p) => <button key={p.id} onClick={() => handlePresetChange(p.id)} className="px-3 py-1 rounded-full text-[11px] transition-colors" style={periodPreset === p.id ? { background: S.accent, color: '#fff' } : { background: S.bg, color: S.text, border: `1px solid ${S.border}` }}>{p.label}</button>)}</div>

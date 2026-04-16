@@ -35,6 +35,7 @@ export interface VisionRecord {
   date: string;
   ageMonths: number;
   data: Map<string, number>;
+  measurementsByType: Map<string, MeasurementRow>;
 }
 
 /** Group eye measurements by date into VisionRecord cards */
@@ -44,8 +45,12 @@ export function groupByDate(ms: MeasurementRow[]): VisionRecord[] {
   for (const m of eye) {
     const d = m.measuredAt.split('T')[0] ?? m.measuredAt;
     let rec = map.get(d);
-    if (!rec) { rec = { date: d, ageMonths: m.ageMonths, data: new Map() }; map.set(d, rec); }
+    if (!rec) {
+      rec = { date: d, ageMonths: m.ageMonths, data: new Map(), measurementsByType: new Map() };
+      map.set(d, rec);
+    }
     rec.data.set(m.typeId, m.value);
+    rec.measurementsByType.set(m.typeId, m);
   }
   return [...map.values()].sort((a, b) => b.date.localeCompare(a.date)); // newest first
 }

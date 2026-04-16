@@ -37,7 +37,7 @@ export function TannerTimeline({
 
         return (
           <div key={assessment.assessmentId} className={`${S.radius} overflow-hidden`} style={{ boxShadow: S.shadow }}>
-            <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #6a82a8, #86AFDA)' }}>
+            <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #6a82a8, #BDE0F5)' }}>
               <div className="flex items-center gap-3">
                 <span className="text-[13px] font-semibold text-white">{assessment.assessedAt.split('T')[0]}</span>
                 <span className="text-[10px] text-white/60">{fmtAge(assessment.ageMonths)}</span>
@@ -61,7 +61,7 @@ export function TannerTimeline({
               </div>
               <div className={`${S.radiusSm} p-3`} style={{ background: phChanged ? '#f0fdf4' : '#f8faf9', border: `1px solid ${phChanged ? '#86efac' : S.border}` }}>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white" style={{ background: '#86AFDA' }}>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white" style={{ background: '#BDE0F5' }}>
                     {assessment.pubicHairStage ?? '-'}
                   </span>
                   <span className="text-[11px] font-semibold" style={{ color: S.text }}>PH期 阴毛</span>

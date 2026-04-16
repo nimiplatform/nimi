@@ -38,24 +38,24 @@ describe('parseJournalTagSuggestion', () => {
     });
   });
 
-  it('fails closed for unknown dimension ids', () => {
-    expect(() => parseJournalTagSuggestion(JSON.stringify({
+  it('returns empty for unknown dimension ids', () => {
+    expect(parseJournalTagSuggestion(JSON.stringify({
       dimensionId: 'PO-OBS-UNKNOWN',
       tags: [],
-    }), candidateDimensions)).toThrow(/unknown dimensionId/);
+    }), candidateDimensions)).toEqual({ dimensionId: null, tags: [] });
   });
 
-  it('fails closed for tags outside the allowed quick-tag vocabulary', () => {
-    expect(() => parseJournalTagSuggestion(JSON.stringify({
+  it('filters out tags outside the allowed quick-tag vocabulary', () => {
+    expect(parseJournalTagSuggestion(JSON.stringify({
       dimensionId: 'PO-OBS-SOCL-001',
-      tags: ['Invented tag'],
-    }), candidateDimensions)).toThrow(/unsupported tag/);
+      tags: ['Invented tag', 'Shared toys'],
+    }), candidateDimensions)).toEqual({ dimensionId: 'PO-OBS-SOCL-001', tags: ['Shared toys'] });
   });
 
-  it('fails closed when tags are returned without a dimension', () => {
-    expect(() => parseJournalTagSuggestion(JSON.stringify({
+  it('returns empty when tags are returned without a dimension', () => {
+    expect(parseJournalTagSuggestion(JSON.stringify({
       dimensionId: null,
       tags: ['Shared toys'],
-    }), candidateDimensions)).toThrow(/without a dimensionId/);
+    }), candidateDimensions)).toEqual({ dimensionId: null, tags: [] });
   });
 });

@@ -112,16 +112,16 @@ export default function TannerPage() {
               </svg>
             </div>
             <div className="pointer-events-none absolute left-0 top-7 z-50 w-[320px] rounded-xl p-4 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              style={{ background: '#1a2b4a', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+              style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
               <p className="text-[12px] font-semibold text-white mb-2">参考标准</p>
               <ul className="space-y-2">
                 <li>
-                  <span className="text-[#c8e64a] font-medium">Tanner 分期标准</span>
+                  <span className="text-[#4ECCA3] font-medium">Tanner 分期标准</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">Marshall WA, Tanner JM. Variations in pattern of pubertal changes in girls/boys.</span>
                   <span className="block text-[10px] text-[#7a8090]">Arch Dis Child 1969;44:291-303 / 1970;45:13-23</span>
                 </li>
                 <li>
-                  <span className="text-[#c8e64a] font-medium">中国儿童青春期参考</span>
+                  <span className="text-[#4ECCA3] font-medium">中国儿童青春期参考</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">中华医学会儿科学分会内分泌遗传代谢学组. 中枢性性早熟诊断与治疗专家共识（2022）</span>
                 </li>
               </ul>

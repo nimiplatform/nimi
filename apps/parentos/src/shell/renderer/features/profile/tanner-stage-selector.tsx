@@ -36,7 +36,7 @@ export function TannerStageSelector({
                 <div className="flex items-center gap-2">
                   <div
                     className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
-                    style={active ? { background: 'rgba(255,255,255,0.25)', color: '#fff' } : { background: '#e8e5e0', color: S.sub }}
+                    style={active ? { background: 'rgba(255,255,255,0.25)', color: '#fff' } : { background: '#f1f5f9', color: S.sub }}
                   >
                     {stage.stage}
                   </div>
@@ -47,7 +47,7 @@ export function TannerStageSelector({
                       setExpandedStage(expanded ? null : stage.stage);
                     }}
                     className="text-[9px] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
-                    style={active ? { background: 'rgba(255,255,255,0.2)', color: '#fff' } : { background: '#e8e5e0', color: S.sub }}
+                    style={active ? { background: 'rgba(255,255,255,0.2)', color: '#fff' } : { background: '#f1f5f9', color: S.sub }}
                   >
                     {expanded ? '收起' : '如何判断?'}
                   </span>

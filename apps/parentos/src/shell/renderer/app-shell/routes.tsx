@@ -16,6 +16,7 @@ const TannerPage = lazy(() => import('../features/profile/tanner-page.js'));
 const FitnessPage = lazy(() => import('../features/profile/fitness-page.js'));
 const ReportUploadPage = lazy(() => import('../features/profile/report-upload-page.js'));
 const JournalPage = lazy(() => import('../features/journal/journal-page.js'));
+const ObservePage = lazy(() => import('../features/observe/observe-page.js'));
 const AdvisorPage = lazy(() => import('../features/advisor/advisor-page.js'));
 const ReportsPage = lazy(() => import('../features/reports/reports-page.js'));
 const RemindersPage = lazy(() => import('../features/reminders/reminders-page.js'));
@@ -52,6 +53,7 @@ export function AppRoutes() {
         <Route path="/profile/fitness" element={<FitnessPage />} />
         <Route path="/profile/report-upload" element={<ReportUploadPage />} />
         <Route path="/journal" element={<JournalPage />} />
+        <Route path="/observe" element={<ObservePage />} />
         <Route path="/advisor" element={<AdvisorPage />} />
         <Route path="/reminders" element={<RemindersPage />} />
         <Route path="/reports" element={<ReportsPage />} />

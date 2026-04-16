@@ -14,6 +14,7 @@ import { filterAIResponse } from '../../engine/ai-safety-filter.js';
 import {
   buildParentosRuntimeMetadata,
   ensureParentosLocalRuntimeReady,
+  PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
   resolveParentosTextRuntimeConfig,
 } from '../settings/parentos-ai-runtime.js';
 
@@ -107,7 +108,7 @@ export function AISummaryCard(props: AISummaryCardProps) {
       await ensureParentosLocalRuntimeReady({
         route: aiParams.route,
         localModelId: aiParams.localModelId,
-        timeoutMs: 60_000,
+        timeoutMs: PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
       });
       const output = await client.runtime.ai.text.generate({
         ...aiParams,

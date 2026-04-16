@@ -230,10 +230,10 @@ export function TimePickerInput({
           type="text"
           readOnly
           value={value}
-          className={`w-full ${S.radiusSm} ${isSmall ? 'pl-2 pr-7' : 'pl-3 pr-8'} ${py} text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 cursor-pointer ${isSmall ? 'bg-white' : ''}`}
+          className={`w-full ${S.radiusSm} ${isSmall ? 'pl-2 pr-7' : 'pl-3 pr-8'} ${py} text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 cursor-pointer ${isSmall ? 'bg-white' : ''}`}
           style={isSmall ? { borderColor: S.border, borderWidth: 1, borderStyle: 'solid' } : inputSty}
         />
-        <Icon size={iconSize} strokeWidth={1.5} className={`absolute ${isSmall ? 'right-2' : 'right-2.5'} text-gray-400 transition-colors cursor-pointer ${open ? 'text-[#94A533]' : 'group-focus-within/field:text-[#94A533]'}`} />
+        <Icon size={iconSize} strokeWidth={1.5} className={`absolute ${isSmall ? 'right-2' : 'right-2.5'} text-gray-400 transition-colors cursor-pointer ${open ? 'text-[#1e293b]' : 'group-focus-within/field:text-[#1e293b]'}`} />
       </div>
 
       <PickerPortal open={open}>
@@ -331,7 +331,7 @@ export function DatePickerInput({
           className={`${inputCls()} cursor-pointer`}
           style={inputSty}
         />
-        <Calendar size={16} strokeWidth={1.5} className={`absolute right-2.5 transition-colors cursor-pointer ${open ? 'text-[#94A533]' : 'text-gray-400 group-focus-within/field:text-[#94A533]'}`} />
+        <Calendar size={16} strokeWidth={1.5} className={`absolute right-2.5 transition-colors cursor-pointer ${open ? 'text-[#1e293b]' : 'text-gray-400 group-focus-within/field:text-[#1e293b]'}`} />
       </div>
 
       <PickerPortal open={open}>

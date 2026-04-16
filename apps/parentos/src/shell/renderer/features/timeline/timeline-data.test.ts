@@ -2,7 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChildProfile } from '../../app-shell/app-store.js';
 import type { ActiveReminder, ReminderAgenda } from '../../engine/reminder-engine.js';
 import type { DashData } from './timeline-data.js';
-import { buildDataGapAlert, buildRecentChanges } from './timeline-data.js';
+import {
+  buildDataGapAlert,
+  buildMilestoneTimeline,
+  buildObservationDistribution,
+  buildRecentChanges,
+  buildSleepTrend,
+  buildTimelineHomeViewModel,
+} from './timeline-data.js';
 
 function makeChild(overrides: Partial<ChildProfile> = {}): ChildProfile {
   return {
@@ -36,6 +43,7 @@ function makeDash(overrides: Partial<DashData> = {}): DashData {
     journalEntries: [],
     sleepRecords: [],
     allergyRecords: [],
+    customTodos: [],
     latestMonthlyReport: null,
     ...overrides,
   };
@@ -48,8 +56,7 @@ function makeAgenda(overrides: Partial<ReminderAgenda> = {}): ReminderAgenda {
     todayFocus: [],
     p0Overflow: { count: 0, items: [] },
     onboardingCatchup: { count: 0, items: [] },
-    thisWeek: [],
-    stageFocus: [],
+    upcoming: [],
     history: [],
     overdueSummary: { count: 0, items: [] },
     ...overrides,
@@ -149,6 +156,7 @@ describe('timeline home view model helpers', () => {
             recordedAt: '2026-04-14T08:00:00.000Z',
             observationMode: null,
             keepsake: 0,
+            dimensionId: null,
           },
         ],
       }),
@@ -276,4 +284,166 @@ describe('timeline home view model helpers', () => {
     const missingBaseline = buildDataGapAlert(makeDash(), child, 6, 'balanced', makeAgenda());
     expect(missingBaseline?.id).toBe('growth_missing_baseline');
   });
+
+  it('builds sleep trend with average duration and latest times', () => {
+    const trend = buildSleepTrend([
+      {
+        recordId: 'sleep-1',
+        childId: 'child-1',
+        sleepDate: '2026-04-14',
+        bedtime: '21:00',
+        wakeTime: '07:00',
+        durationMinutes: 600,
+        napCount: null,
+        napMinutes: null,
+        quality: 'good',
+        ageMonths: 10,
+        notes: null,
+        createdAt: '2026-04-14T08:00:00.000Z',
+      },
+      {
+        recordId: 'sleep-2',
+        childId: 'child-1',
+        sleepDate: '2026-04-15',
+        bedtime: '21:30',
+        wakeTime: '06:30',
+        durationMinutes: 540,
+        napCount: null,
+        napMinutes: null,
+        quality: 'good',
+        ageMonths: 10,
+        notes: null,
+        createdAt: '2026-04-15T08:00:00.000Z',
+      },
+    ]);
+
+    expect(trend.totalRecords).toBe(2);
+    expect(trend.points).toHaveLength(2);
+    expect(trend.avgDurationMinutes).toBe(570);
+    expect(trend.latestBedtime).toBe('21:30');
+    expect(trend.latestWakeTime).toBe('06:30');
+  });
+
+  it('builds milestone timeline with recently achieved and upcoming items', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-16T10:00:00.000Z'));
+
+    const timeline = buildMilestoneTimeline(
+      [
+        { milestoneId: 'PO-MS-GMOT-001', achievedAt: '2026-04-10T08:00:00.000Z' },
+        { milestoneId: 'PO-MS-GMOT-002', achievedAt: '2026-03-20T08:00:00.000Z' },
+      ],
+      4,
+    );
+
+    expect(timeline.recentlyAchieved.length).toBeGreaterThan(0);
+    expect(timeline.recentlyAchieved[0]?.milestoneId).toBe('PO-MS-GMOT-001');
+    expect(timeline.upcoming.length).toBeGreaterThan(0);
+    // All upcoming milestones should not be achieved yet
+    const achievedIds = new Set(['PO-MS-GMOT-001', 'PO-MS-GMOT-002']);
+    for (const item of timeline.upcoming) {
+      expect(achievedIds.has(item.milestoneId)).toBe(false);
+    }
+  });
+
+  it('builds observation dimension distribution from journal entries', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-16T10:00:00.000Z'));
+
+    const dist = buildObservationDistribution([
+      {
+        entryId: 'j-1',
+        contentType: 'text',
+        textContent: 'Note 1',
+        recordedAt: '2026-04-14T08:00:00.000Z',
+        observationMode: null,
+        keepsake: 0,
+        dimensionId: 'PO-OBS-MOVE-001',
+      },
+      {
+        entryId: 'j-2',
+        contentType: 'text',
+        textContent: 'Note 2',
+        recordedAt: '2026-04-13T08:00:00.000Z',
+        observationMode: null,
+        keepsake: 0,
+        dimensionId: 'PO-OBS-MOVE-001',
+      },
+      {
+        entryId: 'j-3',
+        contentType: 'text',
+        textContent: 'Note 3',
+        recordedAt: '2026-04-12T08:00:00.000Z',
+        observationMode: null,
+        keepsake: 0,
+        dimensionId: 'PO-OBS-LANG-001',
+      },
+      {
+        entryId: 'j-4',
+        contentType: 'text',
+        textContent: 'No dimension',
+        recordedAt: '2026-04-11T08:00:00.000Z',
+        observationMode: null,
+        keepsake: 0,
+        dimensionId: null,
+      },
+    ]);
+
+    expect(dist.totalEntries).toBe(3);
+    expect(dist.items).toHaveLength(2);
+    expect(dist.items[0]?.dimensionId).toBe('PO-OBS-MOVE-001');
+    expect(dist.items[0]?.count).toBe(2);
+    expect(dist.items[1]?.dimensionId).toBe('PO-OBS-LANG-001');
+    expect(dist.items[1]?.count).toBe(1);
+  });
+
+  it('builds full view model with new card data', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-16T10:00:00.000Z'));
+
+    const child = makeChild();
+    const homeVm = buildTimelineHomeViewModel({
+      child,
+      ageMonths: 10,
+      d: makeDash({
+        sleepRecords: [
+          {
+            recordId: 'sleep-1',
+            childId: child.childId,
+            sleepDate: '2026-04-16',
+            bedtime: '21:00',
+            wakeTime: '07:00',
+            durationMinutes: 600,
+            napCount: null,
+            napMinutes: null,
+            quality: 'good',
+            ageMonths: 10,
+            notes: null,
+            createdAt: '2026-04-16T08:00:00.000Z',
+          },
+        ],
+        milestoneRecords: [
+          { milestoneId: 'PO-MS-GMOT-003', achievedAt: '2026-04-10T08:00:00.000Z' },
+        ],
+        journalEntries: [
+          {
+            entryId: 'j-1',
+            contentType: 'text',
+            textContent: 'Observation',
+            recordedAt: '2026-04-14T08:00:00.000Z',
+            observationMode: null,
+            keepsake: 0,
+            dimensionId: 'PO-OBS-MOVE-001',
+          },
+        ],
+      }),
+      agenda: makeAgenda(),
+    });
+
+    expect(homeVm.sleepTrend.totalRecords).toBe(1);
+    expect(homeVm.sleepTrend.avgDurationMinutes).toBe(600);
+    expect(homeVm.milestoneTimeline.recentlyAchieved).toHaveLength(1);
+    expect(homeVm.observationDistribution.totalEntries).toBe(1);
+  });
+
 });

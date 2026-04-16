@@ -79,7 +79,7 @@ export function SleepRecordForm({
       <section className={`w-[480px] max-h-[85vh] overflow-y-auto ${S.radius} shadow-xl flex flex-col`} style={{ background: S.card }} onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between px-6 pt-6 pb-3">
           <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#EEF3F1' }}>
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#f1f5f9' }}>
               <Moon size={18} strokeWidth={1.5} style={{ color: S.accent }} />
             </span>
             <h2 className="text-[15px] font-bold" style={{ color: S.text }}>{isEditing ? '编辑睡眠记录' : '新增睡眠记录'}</h2>
@@ -114,7 +114,7 @@ export function SleepRecordForm({
               夜醒次数
               <div className="group/field relative flex items-center w-32">
                 <input type="number" min="0" max="20" placeholder="0" value={formNightWakings} onChange={(event) => setFormNightWakings(event.target.value)} className={inputCls()} style={inputSty} />
-                <Moon size={16} strokeWidth={1.5} className="absolute right-2.5 pointer-events-none text-gray-400 transition-colors group-focus-within/field:text-[#94A533]" />
+                <Moon size={16} strokeWidth={1.5} className="absolute right-2.5 pointer-events-none text-gray-400 transition-colors group-focus-within/field:text-[#1e293b]" />
               </div>
             </label>
           ) : null}
@@ -159,13 +159,13 @@ export function SleepRecordForm({
               onMouseLeave={() => setNapAddHover(false)}
               className={`flex flex-col items-center justify-center gap-1 w-full mt-2 py-3 ${S.radiusSm} cursor-pointer`}
               style={{
-                border: `2px dashed ${napAddHover ? '#c8e64a' : '#d0d0cc'}`,
+                border: `2px dashed ${napAddHover ? '#4ECCA3' : '#d0d0cc'}`,
                 background: '#fafaf8',
                 transition: 'border-color 0.25s ease',
               }}
             >
-              <Plus size={18} strokeWidth={1.5} style={{ color: napAddHover ? '#94A533' : '#b0b0aa', transform: napAddHover ? 'scale(1.15)' : 'scale(1)', transition: 'color 0.25s ease, transform 0.25s ease' }} />
-              <span className="text-[11px] font-medium" style={{ color: napAddHover ? '#94A533' : '#a0a0a0', transition: 'color 0.25s ease' }}>
+              <Plus size={18} strokeWidth={1.5} style={{ color: napAddHover ? '#1e293b' : '#b0b0aa', transform: napAddHover ? 'scale(1.15)' : 'scale(1)', transition: 'color 0.25s ease, transform 0.25s ease' }} />
+              <span className="text-[11px] font-medium" style={{ color: napAddHover ? '#1e293b' : '#a0a0a0', transition: 'color 0.25s ease' }}>
                 添加{tier === 'infant' || tier === 'toddler' ? '小睡' : '午睡'}
               </span>
             </button>
@@ -186,7 +186,7 @@ export function SleepRecordForm({
                 placeholder="补充今天的睡眠细节..."
                 value={formNotes}
                 onChange={(event) => setFormNotes(event.target.value)}
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={inputSty}
               />
             </div>

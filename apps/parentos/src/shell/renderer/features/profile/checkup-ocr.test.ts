@@ -6,14 +6,14 @@ describe('checkup OCR parser', () => {
     const parsed = parseCheckupOCRResponse(JSON.stringify({
       measurements: [
         {
-          typeId: 'height',
-          value: 102.4,
+          typeId: 'axial-length-right',
+          value: 24.12,
           measuredAt: '2026-03-01',
-          notes: 'Row 1',
+          notes: 'AL OD',
         },
         {
-          typeId: 'weight',
-          value: 16.2,
+          typeId: 'corneal-k1-left',
+          value: 43.75,
           measuredAt: '2026-03-01',
           notes: null,
         },
@@ -22,16 +22,59 @@ describe('checkup OCR parser', () => {
 
     expect(parsed.measurements).toEqual([
       {
-        typeId: 'height',
-        value: 102.4,
+        typeId: 'axial-length-right',
+        value: 24.12,
         measuredAt: '2026-03-01',
-        notes: 'Row 1',
+        notes: 'AL OD',
       },
       {
-        typeId: 'weight',
-        value: 16.2,
+        typeId: 'corneal-k1-left',
+        value: 43.75,
         measuredAt: '2026-03-01',
         notes: null,
+      },
+    ]);
+  });
+
+  it('accepts OCR output wrapped in markdown code fences', () => {
+    const parsed = parseCheckupOCRResponse([
+      '```json',
+      JSON.stringify({
+        measurements: [
+          {
+            typeId: 'acd-right',
+            value: 3.77,
+            measuredAt: '2026-04-04',
+            notes: 'ACD OD',
+          },
+        ],
+      }, null, 2),
+      '```',
+    ].join('\n'));
+
+    expect(parsed.measurements).toEqual([
+      {
+        typeId: 'acd-right',
+        value: 3.77,
+        measuredAt: '2026-04-04',
+        notes: 'ACD OD',
+      },
+    ]);
+  });
+
+  it('accepts OCR output with surrounding prose when it still contains a JSON object', () => {
+    const parsed = parseCheckupOCRResponse([
+      'Here is the extracted result.',
+      '{"measurements":[{"typeId":"lt-left","value":4.21,"measuredAt":"2026-04-04","notes":"LT OS"}]}',
+      'Only explicit values were kept.',
+    ].join('\n'));
+
+    expect(parsed.measurements).toEqual([
+      {
+        typeId: 'lt-left',
+        value: 4.21,
+        measuredAt: '2026-04-04',
+        notes: 'LT OS',
       },
     ]);
   });
@@ -60,5 +103,14 @@ describe('checkup OCR parser', () => {
         },
       ],
     }))).toThrow(/YYYY-MM-DD/);
+  });
+
+  it('surfaces a readable error when OCR output does not contain valid JSON', () => {
+    try {
+      parseCheckupOCRResponse('ACD: 3.77\nAL OD: 24.12');
+      throw new Error('expected parser to reject invalid OCR output');
+    } catch (error) {
+      expect((error as Error).message).not.toMatch(/Unexpected token/);
+    }
   });
 });

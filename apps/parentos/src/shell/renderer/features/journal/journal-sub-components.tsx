@@ -1,4 +1,10 @@
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { S } from '../../app-shell/page-style.js';
+import type { JournalTagInsertRow } from '../../bridge/sqlite-bridge.js';
+import { ulid } from '../../bridge/ulid.js';
+import type { ObservationDimension } from '../../knowledge-base/index.js';
+import { suggestJournalTags } from './ai-journal-tagging.js';
 import type { JournalTagSuggestion } from './ai-journal-tagging.js';
 import type { PhotoDraft, TagSuggestionStatus, VoiceDraft } from './journal-page-helpers.js';
 
@@ -165,5 +171,233 @@ export function VoiceCapture({ voiceDraft, recordingSupported, voiceRuntimeAvail
           style={{ border: `1px solid ${S.border}` }} rows={3} />
       )}
     </div>
+  );
+}
+
+/* ── SaveConfirmationModal ── */
+
+export interface SaveConfirmationModalProps {
+  textPreview: string;
+  selectedDimension: string | null;
+  selectedTags: string[];
+  dimensions: readonly ObservationDimension[];
+  draftTextForTagging: string;
+  onConfirm: (aiTags: JournalTagInsertRow[]) => void;
+  onCancel: () => void;
+}
+
+export function SaveConfirmationModal({
+  textPreview, selectedDimension, selectedTags, dimensions,
+  draftTextForTagging, onConfirm, onCancel,
+}: SaveConfirmationModalProps) {
+  const [aiStatus, setAiStatus] = useState<TagSuggestionStatus>('idle');
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<JournalTagSuggestion | null>(null);
+  const [selectedAiTags, setSelectedAiTags] = useState<Set<string>>(new Set());
+  const ranRef = useRef(false);
+
+  useEffect(() => {
+    if (ranRef.current) return;
+    ranRef.current = true;
+    if (draftTextForTagging.trim().length < 10) return;
+
+    const candidateDimensions = selectedDimension
+      ? dimensions.filter((d) => d.dimensionId === selectedDimension)
+      : dimensions;
+    if (candidateDimensions.length === 0) return;
+
+    setAiStatus('suggesting');
+    suggestJournalTags({ draftText: draftTextForTagging, candidateDimensions })
+      .then((suggestion) => {
+        if (suggestion.dimensionId) {
+          const dim = candidateDimensions.find((d) => d.dimensionId === suggestion.dimensionId);
+          const validTags = suggestion.tags.filter((tag) => dim?.quickTags.includes(tag) ?? false);
+          setAiSuggestion({ dimensionId: suggestion.dimensionId, tags: validTags });
+          setSelectedAiTags(new Set(validTags));
+        } else {
+          setAiSuggestion({ dimensionId: null, tags: [] });
+        }
+        setAiStatus('ready');
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn('[journal] AI tag analysis failed:', msg);
+        setAiError(msg);
+        setAiSuggestion(null);
+        setAiStatus('failed');
+      });
+  }, [draftTextForTagging, selectedDimension, dimensions]);
+
+  const handleToggleAiTag = (tag: string) => {
+    setSelectedAiTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag); else next.add(tag);
+      return next;
+    });
+  };
+
+  const handleRetry = () => {
+    ranRef.current = false;
+    setAiStatus('idle');
+    setAiError(null);
+    setAiSuggestion(null);
+    setSelectedAiTags(new Set());
+    // Re-trigger via effect dependency — force by toggling ref
+    setTimeout(() => { ranRef.current = false; }, 0);
+    // Inline retry instead
+    const candidateDimensions = selectedDimension
+      ? dimensions.filter((d) => d.dimensionId === selectedDimension)
+      : dimensions;
+    if (candidateDimensions.length === 0) return;
+    setAiStatus('suggesting');
+    suggestJournalTags({ draftText: draftTextForTagging, candidateDimensions })
+      .then((suggestion) => {
+        if (suggestion.dimensionId) {
+          const dim = candidateDimensions.find((d) => d.dimensionId === suggestion.dimensionId);
+          const validTags = suggestion.tags.filter((tag) => dim?.quickTags.includes(tag) ?? false);
+          setAiSuggestion({ dimensionId: suggestion.dimensionId, tags: validTags });
+          setSelectedAiTags(new Set(validTags));
+        } else {
+          setAiSuggestion({ dimensionId: null, tags: [] });
+        }
+        setAiStatus('ready');
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn('[journal] AI tag analysis retry failed:', msg);
+        setAiError(msg);
+        setAiSuggestion(null);
+        setAiStatus('failed');
+      });
+  };
+
+  const handleConfirm = () => {
+    const aiTags: JournalTagInsertRow[] = [];
+    if (aiSuggestion?.dimensionId) {
+      for (const tag of selectedAiTags) {
+        if (aiSuggestion.tags.includes(tag)) {
+          aiTags.push({ tagId: ulid(), domain: 'observation', tag, source: 'ai', confidence: null });
+        }
+      }
+    }
+    onConfirm(aiTags);
+  };
+
+  const manualDim = selectedDimension ? dimensions.find((d) => d.dimensionId === selectedDimension) : null;
+  const aiDim = aiSuggestion?.dimensionId ? dimensions.find((d) => d.dimensionId === aiSuggestion.dimensionId) : null;
+  const aiReady = aiStatus === 'ready' && aiSuggestion?.dimensionId && aiDim && aiSuggestion.tags.length > 0;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.28)] p-4" onClick={onCancel}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="保存随手记"
+        className={`${S.radius} w-full max-w-[480px] p-5`}
+        style={{ background: S.card, boxShadow: S.shadow }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <h3 className="mb-4 text-[16px] font-semibold" style={{ color: S.text }}>保存随手记</h3>
+
+        {/* Text preview */}
+        <div className={`${S.radiusSm} mb-4 max-h-[160px] overflow-y-auto p-3`}
+          style={{ background: '#fafaf8', border: `1px solid ${S.border}` }}>
+          <p className="whitespace-pre-wrap text-[12px] leading-relaxed" style={{ color: S.sub }}>
+            {textPreview || '（无文字内容）'}
+          </p>
+        </div>
+
+        {/* Manual dimension + tags (display-only) */}
+        {(manualDim || selectedTags.length > 0) && (
+          <div className="mb-4">
+            <p className="mb-1.5 text-[11px] font-medium" style={{ color: S.sub }}>已选分类</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {manualDim && (
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{ background: S.accent + '20', color: S.accent }}>
+                  {manualDim.displayName}
+                </span>
+              )}
+              {selectedTags.map((tag) => (
+                <span key={tag} className="rounded-full px-2 py-0.5 text-[10px]"
+                  style={{ background: '#f0f0ec', color: S.text }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI tag analysis section */}
+        <div className="mb-5">
+          <p className="mb-1.5 text-[11px] font-medium" style={{ color: S.sub }}>AI 成长关键词</p>
+
+          {aiStatus === 'suggesting' && (
+            <div className="flex items-center gap-2 py-2">
+              <div className="h-3 w-3 animate-pulse rounded-full" style={{ background: S.accent }} />
+              <span className="text-[11px]" style={{ color: S.sub }}>AI 正在分析成长关键词...</span>
+            </div>
+          )}
+
+          {aiStatus === 'failed' && (
+            <div className="py-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px]" style={{ color: S.sub }}>AI 分析暂不可用</span>
+                <button onClick={handleRetry} className="text-[10px] underline" style={{ color: S.accent }}>重试</button>
+              </div>
+              {aiError && (
+                <p className="mt-1 text-[9px] break-all" style={{ color: '#b45309' }}>{aiError}</p>
+              )}
+            </div>
+          )}
+
+          {aiStatus === 'ready' && !aiReady && (
+            <p className="py-2 text-[10px]" style={{ color: S.sub }}>AI 未识别到成长关键词</p>
+          )}
+
+          {aiReady && (
+            <div className={`flex flex-wrap items-center gap-2 px-2 py-2 ${S.radiusSm}`}
+              style={{ background: '#f4f7ea', border: `1px solid ${S.accent}30` }}>
+              <span className="shrink-0 text-[10px]" style={{ color: S.accent }}>✨</span>
+              {aiDim && selectedDimension !== aiSuggestion!.dimensionId && (
+                <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                  style={{ background: S.accent + '20', color: S.accent }}>
+                  成长方向 · {aiDim.displayName}
+                </span>
+              )}
+              {aiSuggestion!.tags.map((tag) => (
+                <button key={tag} onClick={() => handleToggleAiTag(tag)}
+                  className="rounded-full px-2 py-0.5 text-[10px] transition-colors"
+                  style={selectedAiTags.has(tag)
+                    ? { background: S.accent, color: '#fff' }
+                    : { background: '#fff', color: S.accent, border: `1px solid ${S.accent}40` }}>
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {aiStatus === 'idle' && draftTextForTagging.trim().length < 10 && (
+            <p className="py-2 text-[10px]" style={{ color: S.sub }}>文字内容较短，跳过 AI 分析</p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2">
+          <button type="button" onClick={onCancel}
+            className={`${S.radiusSm} px-4 py-2 text-[12px] transition-colors`}
+            style={{ background: '#f3f4f6', color: S.sub }}>
+            取消
+          </button>
+          <button type="button" onClick={handleConfirm}
+            className={`${S.radiusSm} px-4 py-2 text-[12px] font-medium text-white transition-colors`}
+            style={{ background: S.accent }}>
+            {aiStatus === 'suggesting' ? '保存（跳过 AI 分析）' : '保存'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

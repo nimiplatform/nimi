@@ -93,6 +93,8 @@ export interface StructuredGrowthReportSnapshot {
   child: ChildProfile;
   reportType: GrowthReportType;
   now: string;
+  periodStart?: string;
+  periodEnd?: string;
   measurements: MeasurementRow[];
   milestones: MilestoneRecordRow[];
   vaccines: VaccineRecordRow[];
@@ -254,8 +256,21 @@ function buildOverview(
 }
 
 export function buildStructuredGrowthReport(snapshot: StructuredGrowthReportSnapshot): BuiltStructuredGrowthReport {
-  const { child, reportType, now, measurements, milestones, vaccines, journalEntries, reminderStates } = snapshot;
-  const period = getReportPeriod(reportType, now);
+  const {
+    child,
+    reportType,
+    now,
+    periodStart,
+    periodEnd,
+    measurements,
+    milestones,
+    vaccines,
+    journalEntries,
+    reminderStates,
+  } = snapshot;
+  const period = periodStart && periodEnd
+    ? { start: periodStart, end: periodEnd }
+    : getReportPeriod(reportType, now);
   const ageMonthsStart = computeAgeMonthsAt(child.birthDate, period.start);
   const ageMonthsEnd = computeAgeMonthsAt(child.birthDate, period.end);
 

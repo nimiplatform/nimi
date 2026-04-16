@@ -82,13 +82,13 @@ export function GrowthCurveChartPanel({
                       if (span > 24) return age % 6 === 0 ? `${Math.floor(age / 12)}岁${age % 12 > 0 ? `${age % 12}月` : ''}` : '';
                       return `${age}月`;
                     }}
-                    label={{ value: span > 24 ? '年龄' : '月龄', position: 'insideBottom', offset: -10, style: { fontSize: 11, fill: '#8a8f9a' } }}
-                    tick={{ fontSize: 10, fill: '#8a8f9a' }}
+                    label={{ value: span > 24 ? '年龄' : '月龄', position: 'insideBottom', offset: -10, style: { fontSize: 11, fill: '#475569' } }}
+                    tick={{ fontSize: 10, fill: '#475569' }}
                   />
                   <YAxis
                     domain={yDomain}
-                    label={{ value: unit, angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#8a8f9a' } }}
-                    tick={{ fontSize: 10, fill: '#8a8f9a' }}
+                    label={{ value: unit, angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#475569' } }}
+                    tick={{ fontSize: 10, fill: '#475569' }}
                   />
                   <Tooltip
                     cursor={false}
@@ -113,13 +113,13 @@ export function GrowthCurveChartPanel({
                       return (
                         <div
                           className="rounded-xl p-3 shadow-lg pointer-events-none"
-                          style={{ background: '#fff', border: '1px solid #e8e5e0', minWidth: 160 }}
+                          style={{ background: '#fff', border: '1px solid #f1f5f9', minWidth: 160 }}
                         >
-                          <p className="text-[11px] font-medium" style={{ color: '#8a8f9a' }}>
+                          <p className="text-[11px] font-medium" style={{ color: '#475569' }}>
                             {formatAgeLabel(age)}
                             {point?.date ? ` (${point.date})` : ''}
                           </p>
-                          <p className="text-[18px] font-bold mt-1" style={{ color: '#1a2b4a' }}>{value} {unit}</p>
+                          <p className="text-[18px] font-bold mt-1" style={{ color: '#1e293b' }}>{value} {unit}</p>
                           {hint ? <p className="text-[11px] mt-1.5" style={{ color: hint.color }}>{hint.text}</p> : null}
                         </div>
                       );

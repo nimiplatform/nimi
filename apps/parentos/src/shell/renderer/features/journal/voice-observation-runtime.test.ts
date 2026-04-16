@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '../../app-shell/app-store.js';
+import { PARENTOS_AI_SCOPE_REF } from '../settings/parentos-ai-config.js';
 import { hasVoiceTranscriptionRuntime, transcribeVoiceObservation } from './voice-observation-runtime.js';
 
 const {
@@ -70,6 +71,23 @@ describe('voice observation runtime', () => {
   });
 
   it('uses the typed local STT surface and returns transcript text', async () => {
+    useAppStore.setState({
+      aiConfig: {
+        scopeRef: PARENTOS_AI_SCOPE_REF,
+        capabilities: {
+          selectedBindings: {
+            'audio.transcribe': {
+              source: 'local',
+              connectorId: '',
+              model: 'whisper-large-v3',
+            },
+          },
+          localProfileRefs: {},
+          selectedParams: {},
+        },
+        profileOrigin: null,
+      },
+    });
     transcribeMock.mockResolvedValue({
       text: '观察到他愿意轮流搭积木。',
       artifacts: [{ artifactId: 'artifact-1', mimeType: 'text/plain', displayName: 'transcript' }],
@@ -105,7 +123,7 @@ describe('voice observation runtime', () => {
     }));
     expect(warmLocalAssetMock).toHaveBeenCalledWith({
       localAssetId: 'local-whisper-large-v3',
-      timeoutMs: 60000,
+      timeoutMs: 180000,
     });
     expect(result.transcript).toBe('观察到他愿意轮流搭积木。');
     expect(result.trace.routeDecision).toBe('local');

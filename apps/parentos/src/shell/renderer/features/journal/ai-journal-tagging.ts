@@ -4,6 +4,7 @@ import type { ObservationDimension } from '../../knowledge-base/index.js';
 import {
   buildParentosRuntimeMetadata,
   ensureParentosLocalRuntimeReady,
+  PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
   resolveParentosTextRuntimeConfig,
 } from '../settings/parentos-ai-runtime.js';
 
@@ -72,14 +73,31 @@ function buildInput(
   ];
 }
 
+function extractJson(raw: string): string {
+  let text = raw.trim();
+  // Strip markdown code fences (```json ... ``` or ``` ... ```)
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) text = fenceMatch[1]!.trim();
+  // Extract the first JSON object if surrounded by prose
+  const braceStart = text.indexOf('{');
+  const braceEnd = text.lastIndexOf('}');
+  if (braceStart !== -1 && braceEnd > braceStart) {
+    text = text.slice(braceStart, braceEnd + 1);
+  }
+  return text;
+}
+
 export function parseJournalTagSuggestion(
   raw: string,
   candidateDimensions: readonly ObservationDimension[],
 ): JournalTagSuggestion {
-  const payload = JSON.parse(raw.trim()) as {
-    dimensionId?: unknown;
-    tags?: unknown;
-  };
+  let payload: { dimensionId?: unknown; tags?: unknown };
+  try {
+    payload = JSON.parse(extractJson(raw)) as typeof payload;
+  } catch (err) {
+    console.warn('[journal] AI tagging JSON parse failed. Raw output:', raw.slice(0, 300), err instanceof Error ? err.message : '');
+    return { dimensionId: null, tags: [] };
+  }
 
   const candidateDimensionMap = new Map(
     candidateDimensions.map((dimension) => [dimension.dimensionId, dimension]),
@@ -89,31 +107,24 @@ export function parseJournalTagSuggestion(
   const dimensionId = rawDimensionId == null ? null : String(rawDimensionId).trim();
 
   if (dimensionId !== null && !candidateDimensionMap.has(dimensionId)) {
-    throw new Error(`journal AI tagging returned unknown dimensionId "${dimensionId}"`);
+    return { dimensionId: null, tags: [] };
   }
 
   if (!Array.isArray(payload.tags)) {
-    throw new Error('journal AI tagging response is missing tags');
+    return { dimensionId: null, tags: [] };
   }
 
   const uniqueTags = [...new Set(payload.tags.map((tag) => String(tag).trim()).filter(Boolean))];
   if (dimensionId === null) {
-    if (uniqueTags.length > 0) {
-      throw new Error('journal AI tagging returned tags without a dimensionId');
-    }
     return { dimensionId: null, tags: [] };
   }
 
   const allowedTags = new Set(candidateDimensionMap.get(dimensionId)?.quickTags ?? []);
-  for (const tag of uniqueTags) {
-    if (!allowedTags.has(tag)) {
-      throw new Error(`journal AI tagging returned unsupported tag "${tag}"`);
-    }
-  }
+  const validTags = uniqueTags.filter((tag) => allowedTags.has(tag));
 
   return {
     dimensionId,
-    tags: uniqueTags,
+    tags: validTags,
   };
 }
 
@@ -138,17 +149,21 @@ export async function suggestJournalTags(input: {
     throw new Error('ParentOS journal AI tagging runtime is unavailable');
   }
 
-  const aiParams = await resolveParentosTextRuntimeConfig('parentos.journal.ai-tagging', { temperature: 0, maxTokens: 500 });
+  const aiParams = await resolveParentosTextRuntimeConfig('parentos.journal.ai-tagging', { temperature: 0, maxTokens: 1024 });
   await ensureParentosLocalRuntimeReady({
     route: aiParams.route,
     localModelId: aiParams.localModelId,
-    timeoutMs: 60_000,
+    timeoutMs: PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
   });
   const output = await client.runtime.ai.text.generate({
     ...aiParams,
     input: buildInput(draftText, candidateDimensions),
     metadata: buildParentosRuntimeMetadata('parentos.journal.ai-tagging'),
   });
+
+  if (typeof output.text === 'string' && output.text.trim()) {
+    console.debug('[journal] AI tagging raw response:', output.text.slice(0, 500));
+  }
 
   return parseJournalTagSuggestion(output.text, input.candidateDimensions);
 }

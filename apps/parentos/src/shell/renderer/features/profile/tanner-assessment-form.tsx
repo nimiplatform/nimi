@@ -74,7 +74,7 @@ export function TannerAssessmentForm({
                     key={value}
                     onClick={() => setFormAssessedBy(value)}
                     className={`flex-1 py-2 text-[11px] font-medium ${S.radiusSm} transition-all`}
-                    style={formAssessedBy === value ? { background: '#86AFDA', color: '#fff' } : { background: '#f5f3ef', color: S.sub }}
+                    style={formAssessedBy === value ? { background: '#BDE0F5', color: '#fff' } : { background: '#f5f3ef', color: S.sub }}
                   >
                     {ASSESSED_BY_LABELS[value]}
                   </button>
@@ -97,7 +97,7 @@ export function TannerAssessmentForm({
                 value={formBoneAge}
                 onChange={(event) => setFormBoneAge(event.target.value)}
                 placeholder="如 12.5"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ background: '#fafaf8', color: S.text }}
               />
             </div>
@@ -109,7 +109,7 @@ export function TannerAssessmentForm({
                 value={formBodyFat}
                 onChange={(event) => setFormBodyFat(event.target.value)}
                 placeholder="如 18.5"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ background: '#fafaf8', color: S.text }}
               />
             </div>
@@ -121,7 +121,7 @@ export function TannerAssessmentForm({
               value={formNotes}
               onChange={(event) => setFormNotes(event.target.value)}
               placeholder="如：与上次对比有进展..."
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
               style={{ background: '#fafaf8', color: S.text }}
             />
           </div>

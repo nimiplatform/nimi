@@ -10,6 +10,7 @@ import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 import {
   analyzeCheckupSheetOCR,
+  getCheckupOCRDisplayMessage,
   hasCheckupOCRRuntime,
   readImageFileAsDataUrl,
   type OCRMeasurementCandidate,
@@ -143,7 +144,7 @@ export default function ReportUploadPage() {
       setImageName(file.name);
       setStatus('idle');
       setCandidates([]);
-    } catch {
+    } catch (error) {
       setError('无法读取图片，请重新选择');
     }
   };
@@ -161,8 +162,9 @@ export default function ReportUploadPage() {
       }
       setCandidates(result.measurements.map((c) => ({ ...c, selected: true })));
       setStatus('review');
-    } catch {
+    } catch (error) {
       setError('AI 识别失败，请重试或检查网络连接');
+      setError(getCheckupOCRDisplayMessage(error));
       setStatus('idle');
     }
   };
@@ -420,7 +422,7 @@ export default function ReportUploadPage() {
       {/* ── Importing spinner ──────────────────────────────── */}
       {status === 'importing' && (
         <div className={`${S.radius} p-8 flex flex-col items-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <span className="inline-block w-8 h-8 border-3 border-[#e8e5e0] border-t-[#94A533] rounded-full animate-spin mb-3" />
+          <span className="inline-block w-8 h-8 border-3 border-[#f1f5f9] border-t-[#1e293b] rounded-full animate-spin mb-3" />
           <p className="text-[13px]" style={{ color: S.text }}>正在导入数据...</p>
         </div>
       )}

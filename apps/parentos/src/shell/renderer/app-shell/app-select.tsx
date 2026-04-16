@@ -23,7 +23,7 @@ export interface AppSelectProps {
 /* ── Chevron SVG ── */
 
 const CHEVRON = (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8a8f9a" strokeWidth="2" strokeLinecap="round">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round">
     <path d="M6 9l6 6 6-6" />
   </svg>
 );
@@ -93,9 +93,9 @@ function SelectPopover({
             key={opt.value + idx}
             disabled={opt.disabled}
             onClick={() => { if (!opt.disabled) onSelect(opt.value); }}
-            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-[12px] transition-colors hover:bg-[#f5f3ef] disabled:opacity-40 disabled:cursor-default"
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-[12px] transition-colors hover:bg-[#f1f5f9] disabled:opacity-40 disabled:cursor-default"
             style={{
-              ...(active ? { background: '#EEF3F1' } : undefined),
+              ...(active ? { background: '#f1f5f9' } : undefined),
               color: S.text,
               opacity: open ? 1 : 0,
               transform: open ? 'translateY(0)' : 'translateY(-4px)',
@@ -154,9 +154,9 @@ export function AppSelect({ value, onChange, options, placeholder, className, st
         ref={btnRef}
         type="button"
         onClick={() => open ? closeMenu() : openMenu()}
-        className={`rounded-[10px] px-3 py-1.5 text-[12px] cursor-pointer bg-[#f9faf7] hover:bg-[#f0f2ee] transition-colors flex items-center gap-1 text-left ${className ?? ''}`}
+        className={`rounded-[10px] px-3 py-1.5 text-[12px] cursor-pointer bg-[#f1f5f9] hover:bg-[#f1f5f9] transition-colors flex items-center gap-1 text-left ${className ?? ''}`}
         style={{
-          borderWidth: 1, borderStyle: 'solid', borderColor: '#e8e5e0',
+          borderWidth: 1, borderStyle: 'solid', borderColor: '#f1f5f9',
           color: selectedLabel ? S.text : S.sub,
           ...style,
         }}

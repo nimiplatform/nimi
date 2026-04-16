@@ -7,8 +7,8 @@ import { seedMockData, type SeedProgress } from '../../infra/mock-seed.js';
 /* ── design tokens (aligned with dashboard C) ──────────────── */
 
 const C = {
-  bg: '#E5ECEA', card: '#ffffff', text: '#1a2b4a', sub: '#8a8f9a',
-  accent: '#94A533', blue: '#86AFDA', danger: '#e25555',
+  bg: '#f1f5f9', card: '#ffffff', text: '#1e293b', sub: '#475569',
+  accent: '#1e293b', blue: '#BDE0F5', danger: '#e25555',
   shadow: '0 2px 12px rgba(0,0,0,0.06)', radius: 'rounded-[18px]',
 } as const;
 

@@ -68,13 +68,13 @@ function VaccineRecordModal({ rule, childId, birthDate, onSave, onClose }: {
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>疫苗批号</label>
               <input value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
             </div>
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>接种机构</label>
               <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
             </div>
           </div>
@@ -82,7 +82,7 @@ function VaccineRecordModal({ rule, childId, birthDate, onSave, onClose }: {
             <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>不良反应记录</label>
             <textarea value={reaction} onChange={(e) => setReaction(e.target.value)}
               placeholder="如有不良反应请记录..."
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`} rows={2}
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`} rows={2}
               style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
           </div>
         </div>
@@ -181,7 +181,7 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
           <div>
             <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>疫苗名称 *</label>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：流感疫苗、水痘疫苗"
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
               style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -192,7 +192,7 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>接种机构</label>
               <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
           </div>
@@ -200,13 +200,13 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>疫苗批号</label>
               <input value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>不良反应</label>
               <input value={reaction} onChange={(e) => setReaction(e.target.value)} placeholder="如有请记录"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
           </div>
@@ -234,7 +234,7 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
             {remindOption === 'custom' && (
               <div className="flex items-center gap-2 mt-2">
                 <input type="number" min="1" max="120" value={customMonths} onChange={(e) => setCustomMonths(e.target.value)}
-                  placeholder="月数" className={`w-20 ${S.radiusSm} px-2 py-1.5 text-[12px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                  placeholder="月数" className={`w-20 ${S.radiusSm} px-2 py-1.5 text-[12px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                   style={{ background: '#fafaf8', border: `1px solid ${S.border}`, color: S.text }} />
                 <span className="text-[11px]" style={{ color: S.sub }}>个月后提醒</span>
               </div>
@@ -318,12 +318,12 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
                 style={{ background: S.card, border: `1px solid ${S.border}` }}>
                 {/* Quick-mark circle */}
                 <button onClick={() => handleQuickMark(r.ruleId)}
-                  className="w-[20px] h-[20px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all hover:border-[#94A533] hover:bg-[#94A533]/10"
+                  className="w-[20px] h-[20px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all hover:border-[#1e293b] hover:bg-[#1e293b]/10"
                   style={{ borderColor: '#c5cad0' }}
                   title="点击标记为已接种" />
                 <span className="flex-1 text-[11px]" style={{ color: S.text }}>{r.title}</span>
                 <button onClick={() => onRecord(r.ruleId)}
-                  className={`px-2.5 py-1 text-[10px] font-medium ${S.radiusSm} transition-colors hover:bg-[#e8e5e0]`}
+                  className={`px-2.5 py-1 text-[10px] font-medium ${S.radiusSm} transition-colors hover:bg-[#f1f5f9]`}
                   style={{ background: '#f0f0ec', color: S.sub }}>
                   补录
                 </button>
@@ -344,7 +344,7 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
                     </div>
                     <span className="flex-1 text-[11px] line-through" style={{ color: '#b0b5a0' }}>{r.title}</span>
                     <button onClick={() => onRecord(r.ruleId)}
-                      className={`px-2.5 py-1 text-[10px] ${S.radiusSm} transition-colors hover:bg-[#e8e5e0]`}
+                      className={`px-2.5 py-1 text-[10px] ${S.radiusSm} transition-colors hover:bg-[#f1f5f9]`}
                       style={{ color: S.sub }}>
                       补录详情
                     </button>
@@ -447,21 +447,21 @@ export default function VaccinePage() {
               </svg>
             </div>
             <div className="pointer-events-none absolute left-0 top-7 z-50 w-[360px] rounded-xl p-4 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              style={{ background: '#1a2b4a', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+              style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
               <p className="text-[12px] font-semibold text-white mb-2.5">数据参考文献</p>
               <ul className="space-y-2.5">
                 <li>
-                  <span className="text-[#c8e64a] font-medium">国家免疫规划疫苗（免费）</span>
+                  <span className="text-[#4ECCA3] font-medium">国家免疫规划疫苗（免费）</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会. 国家免疫规划疫苗儿童免疫程序及说明（2021年版）.</span>
                   <span className="block text-[10px] text-[#7a8090]">国卫办疾控函〔2021〕196号</span>
                 </li>
                 <li>
-                  <span className="text-[#c8e64a] font-medium">非免疫规划疫苗（自费推荐）</span>
+                  <span className="text-[#4ECCA3] font-medium">非免疫规划疫苗（自费推荐）</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">中华预防医学会. 非免疫规划疫苗使用指南（2023版）.</span>
                   <span className="block text-[10px] text-[#7a8090]">中华流行病学杂志 2023;44(10):1521-1570 · 含流感、HPV、水痘、轮状病毒等推荐接种方案</span>
                 </li>
                 <li>
-                  <span className="text-[#c8e64a] font-medium">WHO 全球免疫立场文件</span>
+                  <span className="text-[#4ECCA3] font-medium">WHO 全球免疫立场文件</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">WHO Position Papers on Vaccines. Weekly Epidemiological Record (WER).</span>
                   <span className="block text-[10px] text-[#7a8090]">覆盖: BCG · 乙肝 · 百白破 · 脊灰 · 麻腮风 · 流脑 · 乙脑 · 甲肝等</span>
                 </li>
@@ -639,7 +639,7 @@ export default function VaccinePage() {
                         </div>
                         {done ? (
                           <button onClick={() => setRecordingRuleId(r.ruleId)}
-                            className="text-[10px] shrink-0 px-2 py-1 rounded-full hover:bg-[#e8e5e0] transition-colors"
+                            className="text-[10px] shrink-0 px-2 py-1 rounded-full hover:bg-[#f1f5f9] transition-colors"
                             style={{ color: S.sub }}>修改</button>
                         ) : (
                           <button onClick={() => setRecordingRuleId(r.ruleId)}
@@ -683,7 +683,7 @@ export default function VaccinePage() {
                 </div>
                 {done ? (
                   <button onClick={() => setRecordingRuleId(r.ruleId)}
-                    className={`px-3 py-1 text-[11px] font-medium ${S.radiusSm} transition-colors hover:bg-[#e8e5e0]`}
+                    className={`px-3 py-1 text-[11px] font-medium ${S.radiusSm} transition-colors hover:bg-[#f1f5f9]`}
                     style={{ color: S.sub }}>修改</button>
                 ) : (
                   <button onClick={() => setRecordingRuleId(r.ruleId)}

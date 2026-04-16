@@ -138,6 +138,7 @@ describe('ChildrenSettingsPage', () => {
     const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
 
+    // Single-select: clicking 爸爸 switches recorder from default 妈妈 to 爸爸
     fireEvent.click(screen.getByRole('button', { name: /爸爸/i }));
     fireEvent.click(screen.getByRole('button', { name: /添加$/i }));
 
@@ -148,9 +149,8 @@ describe('ChildrenSettingsPage', () => {
     });
 
     const profiles = useAppStore.getState().children[0]?.recorderProfiles;
-    expect(profiles).toHaveLength(2);
-    expect(profiles![0]!.name).toBe('妈妈');
-    expect(profiles![1]!.name).toBe('爸爸');
+    expect(profiles).toHaveLength(1);
+    expect(profiles![0]!.name).toBe('爸爸');
   });
 
   it('deletes a child with confirmation', async () => {

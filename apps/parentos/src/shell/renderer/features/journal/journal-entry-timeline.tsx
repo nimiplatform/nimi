@@ -19,6 +19,7 @@ export interface JournalEntryTimelineProps {
   onFilterChange: (filter: 'all' | 'keepsake') => void;
   recorderProfiles: RecorderProfile[] | null | undefined;
   onEditEntry: (entry: JournalEntryRow) => void;
+  onAskAiAboutEntry?: (entry: JournalEntryRow) => void;
   onDeleteEntry?: (entry: JournalEntryRow) => void;
   onToggleKeepsake?: (entry: JournalEntryRow) => void;
 }
@@ -36,6 +37,7 @@ export function JournalEntryTimeline({
   onFilterChange,
   recorderProfiles,
   onEditEntry,
+  onAskAiAboutEntry,
   onDeleteEntry,
   onToggleKeepsake,
 }: JournalEntryTimelineProps) {
@@ -130,6 +132,21 @@ export function JournalEntryTimeline({
                               <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: '#f5f3ef', color: S.sub }}>
                                 {recorderName}
                               </span>
+                            ) : null}
+                            {onAskAiAboutEntry ? (
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onAskAiAboutEntry(entry);
+                                }}
+                                className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors hover:opacity-90"
+                                style={{ background: '#e0ecff', color: '#295ea6' }}
+                                aria-label="和 AI 聊这条记录"
+                                title="和 AI 聊这条记录"
+                              >
+                                AI
+                              </button>
                             ) : null}
                             <button
                               onClick={(event) => {

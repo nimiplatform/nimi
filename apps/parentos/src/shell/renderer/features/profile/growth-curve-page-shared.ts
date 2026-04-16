@@ -146,7 +146,7 @@ export function getPercentileHint(
   if (refs.p90 != null && value >= refs.p90) return { text: '超过同龄 90% 的孩子', color: '#22c55e' };
   if (refs.p75 != null && value >= refs.p75) return { text: '超过同龄 75% 的孩子', color: '#22c55e' };
   if (refs.p50 != null && value >= refs.p50) return { text: '处于同龄中等偏上水平', color: '#22c55e' };
-  if (refs.p25 != null && value >= refs.p25) return { text: '处于同龄平均水平', color: '#8a8f9a' };
+  if (refs.p25 != null && value >= refs.p25) return { text: '处于同龄平均水平', color: '#475569' };
   if (refs.p10 != null && value >= refs.p10) return { text: '偏低，建议关注', color: '#f59e0b' };
   if (refs.p3 != null && value >= refs.p3) return { text: '明显偏低，建议咨询专业人士', color: '#ef4444' };
   if (refs.p3 != null) return { text: '低于同龄 97% 的孩子，建议就医评估', color: '#ef4444' };

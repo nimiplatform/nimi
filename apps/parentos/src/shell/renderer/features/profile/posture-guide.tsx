@@ -170,7 +170,7 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
   return (
     <div className={`${S.radius} mb-5 overflow-hidden`} style={{ boxShadow: S.shadow }}>
       {/* Step header */}
-      <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, #6f8f2c, #94A533)' }}>
+      <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, #6f8f2c, #1e293b)' }}>
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] text-white/60">体态观察指引</span>
           <button onClick={onClose} className="w-6 h-6 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">✕</button>

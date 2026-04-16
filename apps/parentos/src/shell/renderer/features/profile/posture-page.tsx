@@ -311,7 +311,7 @@ export default function PosturePage() {
           {/* Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-2">
             <div className="flex items-center gap-2.5">
-              <span className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px]" style={{ background: '#EEF3F1' }}>🧍</span>
+              <span className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px]" style={{ background: '#f1f5f9' }}>🧍</span>
               <h2 className="text-[16px] font-bold" style={{ color: S.text }}>添加体态记录</h2>
             </div>
             <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors" style={{ color: S.sub }}>✕</button>
@@ -478,7 +478,7 @@ export default function PosturePage() {
                         <input type="number" step="1" min="0" max="90" value={formCobb}
                           onChange={(e) => setFormCobb(e.target.value)} placeholder="来自 X 光报告"
                           disabled={!isMedical}
-                          className="flex-1 rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 disabled:cursor-not-allowed"
+                          className="flex-1 rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 disabled:cursor-not-allowed"
                           style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: isMedical ? '#fafaf8' : '#f5f3ef', color: S.text }} />
                         <span className="text-[13px] shrink-0" style={{ color: S.sub }}>°</span>
                         {formCobb && parseFloat(formCobb) > 0 && (() => {
@@ -494,7 +494,7 @@ export default function PosturePage() {
                     <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>补充备注</p>
                     <textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="其他观察到的情况..."
                       rows={2}
-                      className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 resize-none"
+                      className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 resize-none"
                       style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
                   </div>
                 </>

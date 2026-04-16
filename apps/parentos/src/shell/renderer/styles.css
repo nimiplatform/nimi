@@ -48,29 +48,29 @@
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 @theme {
-  --font-sans: "Noto Sans SC", "Inter", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
+  --font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
 }
 
 :root {
-  --color-primary: #1e3a5f;
-  --color-primary-light: #2d5a8e;
-  --color-navy-light: #2d5a8e;
+  --color-primary: #1e293b;
+  --color-primary-light: #334155;
+  --color-navy-light: #334155;
   --color-surface: #ffffff;
-  --color-surface-secondary: #f8fafc;
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #64748b;
-  --color-border: #e2e8f0;
+  --color-surface-secondary: #f1f5f9;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #475569;
+  --color-border: rgba(255,255,255,0.7);
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
-  --color-accent: #c5e84d;
-  --color-bg-dashboard: #ececee;
-  --color-navy: #1e3a5f;
+  --color-accent: #4ECCA3;
+  --color-bg-dashboard: #f1f5f9;
+  --color-navy: #1e293b;
 
   /* ParentOS font overrides — Chinese-first premium stack */
   --font-display: "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
   --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif;
-  --nimi-font-sans: "Noto Sans SC", "Inter", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
+  --nimi-font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
 
   /* Chinese-optimized typography overrides */
   --nimi-type-body-line-height: 1.7;
@@ -86,9 +86,9 @@
 html, body, #root {
   height: 100%;
   margin: 0;
-  font-family: "Noto Sans SC", "Inter", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
+  font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
   color: var(--color-text-primary);
-  background: var(--color-surface);
+  background: var(--color-bg-dashboard);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -132,6 +132,39 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 
+/* Dashboard center column — hidden scrollbar */
+.hide-scrollbar {
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Advisor composer textarea — scrollbar hidden until overflow, subtle on hover */
+.advisor-composer-textarea {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.advisor-composer-textarea:hover {
+  scrollbar-color: rgba(0,0,0,0.12) transparent;
+}
+.advisor-composer-textarea::-webkit-scrollbar {
+  width: 4px;
+}
+.advisor-composer-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+.advisor-composer-textarea::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+.advisor-composer-textarea:hover::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+}
+.advisor-composer-textarea::-webkit-scrollbar-button {
+  display: none;
+}
+
 /* Time picker scroll columns — hidden scrollbar */
 .time-picker-col {
   scrollbar-width: none;
@@ -147,7 +180,22 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   100% { transform: rotateY(0deg); }
 }
 
-/* Dashboard page background — shared gradient */
+@keyframes customTodoSlideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-todo-slide-down {
+  animation: customTodoSlideDown 220ms ease-out both;
+}
+
+/* Dashboard page background — welcome-page match */
 .bg-dashboard {
-  background: linear-gradient(180deg, rgba(229, 236, 234, 0.6) 0%, #E5ECEA 100%);
+  background: #f1f5f9;
 }

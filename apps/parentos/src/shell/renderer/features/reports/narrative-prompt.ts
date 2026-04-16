@@ -3,6 +3,7 @@ import type { TextStreamInput, TextStreamOutput } from '@nimiplatform/sdk/runtim
 import {
   buildParentosRuntimeMetadata,
   ensureParentosLocalRuntimeReady,
+  PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
   resolveParentosTextRuntimeConfig,
 } from '../settings/parentos-ai-runtime.js';
 import type {
@@ -14,7 +15,13 @@ import { isoNow } from '../../bridge/ulid.js';
 import { filterAIResponse } from '../../engine/ai-safety-filter.js';
 import { MILESTONE_CATALOG, NEEDS_REVIEW_DOMAINS, REVIEWED_DOMAINS, REMINDER_RULES } from '../../knowledge-base/index.js';
 import { buildMeasurementComparisons, buildSleepComparison, buildStructuredTrendSignals } from './trend-analysis.js';
-import { buildNarrativeActionItems, type NarrativeReportContent, type NarrativeSection, type BuiltStructuredGrowthReport } from './structured-report.js';
+import {
+  buildNarrativeActionItems,
+  type BuiltStructuredGrowthReport,
+  type GrowthReportType,
+  type NarrativeReportContent,
+  type NarrativeSection,
+} from './structured-report.js';
 
 /* ── Types ── */
 
@@ -33,6 +40,32 @@ export interface AllDomainData {
 }
 
 interface ReportPeriod { start: string; end: string }
+
+function buildReportTitle(childName: string, reportType: GrowthReportType) {
+  switch (reportType) {
+    case 'monthly':
+      return `${childName}的月度成长报告`;
+    case 'quarterly':
+      return `${childName}的季度成长报告`;
+    case 'quarterly-letter':
+      return `${childName}的季度成长来信`;
+    case 'custom':
+    default:
+      return `${childName}的综合成长报告`;
+  }
+}
+
+function buildReportLabel(reportType: GrowthReportType, period: ReportPeriod) {
+  if (reportType === 'monthly') {
+    return new Date(period.end).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
+  }
+  if (reportType === 'quarterly' || reportType === 'quarterly-letter') {
+    const date = new Date(period.end);
+    const quarter = Math.floor(date.getMonth() / 3) + 1;
+    return `${date.getFullYear()}年Q${quarter}`;
+  }
+  return `${period.start.slice(0, 10)} 至 ${period.end.slice(0, 10)}`;
+}
 
 /* ── Helpers ── */
 
@@ -227,25 +260,32 @@ type RuntimeAI = {
   };
 };
 
-export async function generateNarrativeReport(
-  child: ChildProfile, period: ReportPeriod, data: AllDomainData, runtime: RuntimeAI, signal?: AbortSignal,
-): Promise<BuiltStructuredGrowthReport> {
+export async function generateNarrativeReportForPeriod(input: {
+  child: ChildProfile;
+  period: ReportPeriod;
+  data: AllDomainData;
+  runtime: RuntimeAI;
+  reportType: GrowthReportType;
+  signal?: AbortSignal;
+}): Promise<BuiltStructuredGrowthReport> {
+  const { child, period, data, runtime, reportType, signal } = input;
   const now = isoNow();
   const ageMonthsStart = computeAgeMonthsAt(child.birthDate, period.start);
   const ageMonthsEnd = computeAgeMonthsAt(child.birthDate, period.end);
 
   const snapshot = buildReportDataSnapshot(child, period, data);
-  const monthLabel = new Date(period.end).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
+  const periodLabel = buildReportLabel(reportType, period);
+  const monthLabel = periodLabel;
 
   const aiParams = await resolveParentosTextRuntimeConfig('parentos.report', { temperature: 0.7, maxTokens: 2048 });
   await ensureParentosLocalRuntimeReady({
     route: aiParams.route,
     localModelId: aiParams.localModelId,
-    timeoutMs: 60_000,
+    timeoutMs: PARENTOS_LOCAL_RUNTIME_WARM_TIMEOUT_MS,
   });
   const out = await runtime.ai.text.stream({
     ...aiParams,
-    input: [{ role: 'user', content: buildReportUserMessage(child.displayName, monthLabel, snapshot) }],
+    input: [{ role: 'user', content: buildReportUserMessage(child.displayName, periodLabel, snapshot) }],
     system: buildReportSystemPrompt(child.displayName),
     signal,
     metadata: buildParentosRuntimeMetadata('parentos.report'),
@@ -254,7 +294,7 @@ export async function generateNarrativeReport(
   let full = '';
   for await (const p of out.stream) {
     if (p.type === 'delta' && p.text) full += p.text;
-    else if (p.type === 'error') throw new Error(String(p.error));
+    else if (p.type === 'error') throw p.error;
   }
 
   const aiOutput = parseAiReportResponse(full);
@@ -298,5 +338,18 @@ export async function generateNarrativeReport(
     safetyNote: '本报告由AI基于本地数据撰写，仅供参考。如有疑问请咨询专业人士。',
   };
 
-  return { reportType: 'monthly', periodStart: period.start, periodEnd: period.end, ageMonthsStart, ageMonthsEnd, content };
+  return { reportType, periodStart: period.start, periodEnd: period.end, ageMonthsStart, ageMonthsEnd, content };
+}
+
+export async function generateNarrativeReport(
+  child: ChildProfile, period: ReportPeriod, data: AllDomainData, runtime: RuntimeAI, signal?: AbortSignal,
+): Promise<BuiltStructuredGrowthReport> {
+  return generateNarrativeReportForPeriod({
+    child,
+    period,
+    data,
+    runtime,
+    reportType: 'monthly',
+    signal,
+  });
 }

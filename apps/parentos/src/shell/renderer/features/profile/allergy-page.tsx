@@ -173,7 +173,7 @@ export default function AllergyPage() {
     } catch { /* bridge */ }
   };
 
-  const sevColor = (s: string) => s === 'severe' ? '#dc2626' : s === 'moderate' ? '#d97706' : '#94A533';
+  const sevColor = (s: string) => s === 'severe' ? '#dc2626' : s === 'moderate' ? '#d97706' : '#1e293b';
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-5">
@@ -224,7 +224,7 @@ export default function AllergyPage() {
               <div>
                 <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>过敏原 <span style={{ color: '#dc2626' }}>*</span></p>
                 <input value={formAllergen} onChange={(e) => setFormAllergen(e.target.value)} placeholder="输入过敏原名称"
-                  className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                  className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                   style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
               </div>
 
@@ -320,7 +320,7 @@ export default function AllergyPage() {
                   ))}
                   <input value={formCustomSymptom} onChange={(e) => setFormCustomSymptom(e.target.value)}
                     placeholder="自定义症状..."
-                    className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 w-32`}
+                    className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 w-32`}
                     style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
                 </div>
               )}
@@ -355,20 +355,20 @@ export default function AllergyPage() {
                     onMouseLeave={() => setPhotoHover(false)}
                     className={`w-full h-20 ${S.radiusSm} flex flex-col items-center justify-center gap-1.5 cursor-pointer`}
                     style={{
-                      border: `2px dashed ${photoHover ? '#c8e64a' : '#d0d0cc'}`,
+                      border: `2px dashed ${photoHover ? '#4ECCA3' : '#d0d0cc'}`,
                       background: '#fafaf8',
                       transition: 'border-color 0.25s ease',
                     }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round"
                       style={{
-                        stroke: photoHover ? '#94A533' : '#b0b0aa',
+                        stroke: photoHover ? '#1e293b' : '#b0b0aa',
                         transform: photoHover ? 'scale(1.15)' : 'scale(1)',
                         transition: 'stroke 0.25s ease, transform 0.25s ease',
                       }}>
                       <rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="12" cy="12" r="3" /><path d="M3 8h2l2-3h10l2 3h2" />
                     </svg>
                     <span className="text-[11px]" style={{
-                      color: photoHover ? '#94A533' : '#a0a0a0',
+                      color: photoHover ? '#1e293b' : '#a0a0a0',
                       transition: 'color 0.25s ease',
                     }}>点击拍照或选择照片</span>
                   </button>
@@ -403,7 +403,7 @@ export default function AllergyPage() {
                       ))}
                       <input value={formCustomTreatment} onChange={(e) => setFormCustomTreatment(e.target.value)}
                         placeholder="自定义..."
-                        className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 w-28`}
+                        className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 w-28`}
                         style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
                     </div>
                   </div>
@@ -458,7 +458,7 @@ export default function AllergyPage() {
                   <div>
                     <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>补充备注</p>
                     <textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="其他需要记录的信息..."
-                      className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 resize-none`} rows={2}
+                      className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 resize-none`} rows={2}
                       style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
                   </div>
                 </div>
@@ -518,8 +518,8 @@ export default function AllergyPage() {
 /* ── Allergy record card ─────────────────────────────────── */
 
 function AllergyCard({ record: r, onMarkOutgrown }: { record: AllergyRecordRow; onMarkOutgrown?: () => void }) {
-  const sevColor = r.severity === 'severe' ? '#dc2626' : r.severity === 'moderate' ? '#d97706' : '#94A533';
-  const statusStyle = r.status === 'active' ? { background: '#fef2f2', color: '#dc2626' } : r.status === 'outgrown' ? { background: '#f0fdf4', color: '#16a34a' } : { background: '#f5f3ef', color: '#8a8f9a' };
+  const sevColor = r.severity === 'severe' ? '#dc2626' : r.severity === 'moderate' ? '#d97706' : '#1e293b';
+  const statusStyle = r.status === 'active' ? { background: '#fef2f2', color: '#dc2626' } : r.status === 'outgrown' ? { background: '#f0fdf4', color: '#16a34a' } : { background: '#f5f3ef', color: '#475569' };
 
   // Parse structured notes
   const symptoms = r.notes?.match(/症状: ([^|]+)/)?.[1];

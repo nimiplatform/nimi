@@ -83,7 +83,7 @@ function ToothChart({ selectedTeeth, onToggle, toothSet, recordedTeeth }: {
     if (sel.has(id)) return { bg: S.accent, color: '#fff' };
     const evt = recordedTeeth.get(id);
     if (evt === 'caries') return { bg: '#fecaca', color: '#dc2626' };
-    if (evt === 'loss') return { bg: '#e8e5e0', color: '#8a8f9a' };
+    if (evt === 'loss') return { bg: '#f1f5f9', color: '#475569' };
     if (evt === 'eruption') return { bg: '#d1fae5', color: '#059669' };
     if (evt === 'filling' || evt === 'sealant') return { bg: '#dbeafe', color: '#2563eb' };
     return { bg: '#f5f3ef', color: S.text };
@@ -113,7 +113,7 @@ function ToothChart({ selectedTeeth, onToggle, toothSet, recordedTeeth }: {
         </p>
         <div className="flex gap-1">
           {[
-            { c: '#d1fae5', l: '萌出' }, { c: '#e8e5e0', l: '脱落' },
+            { c: '#d1fae5', l: '萌出' }, { c: '#f1f5f9', l: '脱落' },
             { c: '#fecaca', l: '龋齿' }, { c: '#dbeafe', l: '治疗' },
           ].map((x) => (
             <span key={x.l} className="flex items-center gap-0.5 text-[9px]" style={{ color: S.sub }}>
@@ -328,19 +328,19 @@ export default function DentalPage() {
               </svg>
             </div>
             <div className="pointer-events-none absolute left-0 top-7 z-50 w-[320px] rounded-xl p-4 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              style={{ background: '#1a2b4a', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+              style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
               <p className="text-[12px] font-semibold text-white mb-2">参考标准</p>
               <ul className="space-y-2">
                 <li>
-                  <span className="text-[#c8e64a] font-medium">牙位编号 (FDI)</span>
+                  <span className="text-[#4ECCA3] font-medium">牙位编号 (FDI)</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">国际牙科联合会 (FDI) 两位数标记法 · ISO 3950</span>
                 </li>
                 <li>
-                  <span className="text-[#c8e64a] font-medium">乳牙萌出时间表</span>
+                  <span className="text-[#4ECCA3] font-medium">乳牙萌出时间表</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">American Academy of Pediatric Dentistry (AAPD). Eruption charts, 2023.</span>
                 </li>
                 <li>
-                  <span className="text-[#c8e64a] font-medium">口腔检查建议</span>
+                  <span className="text-[#4ECCA3] font-medium">口腔检查建议</span>
                   <span className="block text-[10px] text-[#a0a8b4] mt-0.5">国家卫健委《儿童口腔保健指导技术规范》· 建议每半年口腔检查</span>
                 </li>
               </ul>
@@ -413,7 +413,7 @@ export default function DentalPage() {
             <div>
               <p className="text-[11px] mb-1" style={{ color: S.sub }}>医院/诊所</p>
               <input value={formHospital} onChange={(e) => setFormHospital(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`} style={{ background: '#fafaf8', color: S.text }} />
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`} style={{ background: '#fafaf8', color: S.text }} />
             </div>
           </div>
 
@@ -514,14 +514,14 @@ export default function DentalPage() {
             onMouseLeave={() => setAddEventHover(false)}
             className={`w-full flex items-center justify-center gap-2 py-3 text-[11px] font-medium ${S.radiusSm} cursor-pointer`}
             style={{
-              border: `2px dashed ${addEventHover ? '#c8e64a' : '#d0d0cc'}`,
+              border: `2px dashed ${addEventHover ? '#4ECCA3' : '#d0d0cc'}`,
               background: addEventHover ? '#f9fbf4' : '#fafaf8',
               color: addEventHover ? S.accent : S.sub,
               transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
             }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round"
               style={{
-                stroke: addEventHover ? '#94A533' : '#b0b0aa',
+                stroke: addEventHover ? '#1e293b' : '#b0b0aa',
                 transform: addEventHover ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
                 transition: 'stroke 0.25s ease, transform 0.3s ease',
               }}>
@@ -534,7 +534,7 @@ export default function DentalPage() {
           <div>
             <p className="text-[11px] mb-1" style={{ color: S.sub }}>备注</p>
             <input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="选填"
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`} style={{ background: '#fafaf8', color: S.text }} />
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`} style={{ background: '#fafaf8', color: S.text }} />
           </div>
 
           {/* Photo upload */}
@@ -589,7 +589,7 @@ export default function DentalPage() {
                 }}
                 className={`w-full h-24 ${S.radiusSm} flex flex-col items-center justify-center gap-1.5 cursor-pointer`}
                 style={{
-                  border: `2px dashed ${photoDragOver || photoDropHover ? '#c8e64a' : '#d0d0cc'}`,
+                  border: `2px dashed ${photoDragOver || photoDropHover ? '#4ECCA3' : '#d0d0cc'}`,
                   background: '#fafaf8',
                   transition: 'border-color 0.25s ease',
                 }}
@@ -597,7 +597,7 @@ export default function DentalPage() {
                 <svg
                   width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round"
                   style={{
-                    stroke: photoDragOver || photoDropHover ? '#94A533' : '#b0b0aa',
+                    stroke: photoDragOver || photoDropHover ? '#1e293b' : '#b0b0aa',
                     transform: photoDragOver || photoDropHover ? 'scale(1.15)' : 'scale(1)',
                     transition: 'stroke 0.25s ease, transform 0.25s ease',
                   }}
@@ -607,7 +607,7 @@ export default function DentalPage() {
                 <span
                   className="text-[11px]"
                   style={{
-                    color: photoDragOver || photoDropHover ? '#94A533' : '#a0a0a0',
+                    color: photoDragOver || photoDropHover ? '#1e293b' : '#a0a0a0',
                     transition: 'color 0.25s ease',
                   }}
                 >

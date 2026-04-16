@@ -27,6 +27,21 @@ type StoredMessage = {
 
 const conversationStore: StoredConversation[] = [];
 const messageStore: StoredMessage[] = [];
+const defaultLocalAIConfig = {
+  scopeRef: { kind: 'app' as const, ownerId: 'parentos', surfaceId: 'app' },
+  capabilities: {
+    selectedBindings: {
+      'text.generate': {
+        source: 'local' as const,
+        connectorId: '',
+        model: 'qwen3',
+      },
+    },
+    localProfileRefs: {},
+    selectedParams: {},
+  },
+  profileOrigin: null,
+};
 
 const {
   createConversationMock,
@@ -38,6 +53,7 @@ const {
   getMilestoneRecordsMock,
   getJournalEntriesMock,
   loadParentosRuntimeRouteOptionsMock,
+  generateMock,
   streamMock,
   warmLocalAssetMock,
   getPlatformClientMock,
@@ -171,9 +187,59 @@ const {
     },
     connectors: [],
   })),
+  generateMock: vi.fn(),
   streamMock: vi.fn(),
   warmLocalAssetMock: vi.fn(async () => ({})),
   getPlatformClientMock: vi.fn(),
+}));
+
+vi.mock('@nimiplatform/nimi-kit/features/chat/ui', () => {
+  /** Minimal markdown renderer that converts **bold** and - list items. */
+  function SimpleMd({ content }: { content: string }) {
+    const lines = content.split('\n');
+    const elements: React.ReactNode[] = [];
+    let listItems: string[] = [];
+
+    const flushList = () => {
+      if (listItems.length > 0) {
+        elements.push(<ul key={`ul-${elements.length}`}>{listItems.map((li, i) => <li key={i}>{li}</li>)}</ul>);
+        listItems = [];
+      }
+    };
+
+    for (const line of lines) {
+      if (line.startsWith('- ')) {
+        listItems.push(line.slice(2));
+        continue;
+      }
+      flushList();
+      const boldMatch = line.match(/^\*\*(.+)\*\*$/);
+      if (boldMatch) {
+        elements.push(<p key={elements.length}><strong>{boldMatch[1]}</strong></p>);
+      } else if (line.trim()) {
+        elements.push(<p key={elements.length}>{line}</p>);
+      }
+    }
+    flushList();
+    return <div>{elements}</div>;
+  }
+
+  return {
+    CanonicalMessageBubble: ({ message }: { message: { text: string; role: string } }) => (
+      <div data-testid={`bubble-${message.role}`}><SimpleMd content={message.text} /></div>
+    ),
+    CanonicalTypingBubble: ({ thinkingLabel }: { thinkingLabel?: string }) => (
+      <div>{thinkingLabel ?? 'Thinking…'}</div>
+    ),
+    ChatMarkdownRenderer: SimpleMd,
+  };
+});
+
+vi.mock('@nimiplatform/nimi-kit/ui', () => ({
+  ScrollArea: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
 }));
 
 vi.mock('../../bridge/sqlite-bridge.js', () => ({
@@ -191,6 +257,14 @@ vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => getPlatformClientMock(),
 }));
 
+vi.mock('@nimiplatform/sdk/runtime', () => ({
+  asNimiError: (err: unknown) => ({
+    reasonCode: (err as Record<string, unknown>)?.reasonCode ?? 'UNKNOWN',
+    message: (err as Record<string, unknown>)?.message ?? '',
+    details: (err as Record<string, unknown>)?.details ?? {},
+  }),
+}));
+
 vi.mock('../../infra/parentos-runtime-route-options.js', () => ({
   loadParentosRuntimeRouteOptions: loadParentosRuntimeRouteOptionsMock,
 }));
@@ -203,30 +277,22 @@ function createStreamOutput(text: string) {
   };
 }
 
-function renderAdvisorPage() {
+function createStreamErrorOutput(error: unknown) {
+  return {
+    stream: (async function* stream() {
+      yield { type: 'error' as const, error };
+    })(),
+  };
+}
+
+function renderAdvisorPage(
+  initialEntries: Array<string | { pathname: string; state?: unknown }> = ['/'],
+) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <AdvisorPage />
     </MemoryRouter>,
   );
-}
-
-function formatLocalDateForAssertion(value: string) {
-  const date = new Date(value);
-  return [
-    String(date.getFullYear()),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0'),
-  ].join('-');
-}
-
-function formatLocalTimeForAssertion(value: string) {
-  const date = new Date(value);
-  return [
-    String(date.getHours()).padStart(2, '0'),
-    String(date.getMinutes()).padStart(2, '0'),
-    String(date.getSeconds()).padStart(2, '0'),
-  ].join(':');
 }
 
 describe('AdvisorPage', () => {
@@ -246,6 +312,7 @@ describe('AdvisorPage', () => {
     getMilestoneRecordsMock.mockClear();
     getJournalEntriesMock.mockClear();
     loadParentosRuntimeRouteOptionsMock.mockClear();
+    generateMock.mockReset();
     streamMock.mockReset();
     warmLocalAssetMock.mockReset();
     getPlatformClientMock.mockReturnValue({
@@ -256,6 +323,7 @@ describe('AdvisorPage', () => {
         },
         ai: {
           text: {
+            generate: generateMock,
             stream: streamMock,
           },
         },
@@ -286,7 +354,7 @@ describe('AdvisorPage', () => {
           updatedAt: '2026-01-01T00:00:00.000Z',
         },
       ],
-      aiConfig: null,
+      aiConfig: defaultLocalAIConfig,
     });
   });
 
@@ -305,7 +373,7 @@ describe('AdvisorPage', () => {
 
     renderAdvisorPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /\+ 新对话/i }));
+    fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
     await waitFor(() => {
       expect(screen.getByPlaceholderText('输入问题...')).toBeTruthy();
     });
@@ -330,7 +398,7 @@ describe('AdvisorPage', () => {
     expect(streamInput.input[0]?.content).toContain('当前本地记录概况');
     expect(warmLocalAssetMock).toHaveBeenCalledWith({
       localAssetId: 'local-qwen3',
-      timeoutMs: 60000,
+      timeoutMs: 180000,
     });
 
     const userCall = insertAiMessageMock.mock.calls.find((call) => call[0].role === 'user')?.[0];
@@ -356,12 +424,66 @@ describe('AdvisorPage', () => {
     });
   });
 
+  it('shows journal context preview and starts conversation on starter click', async () => {
+    streamMock.mockResolvedValue(createStreamOutput('我先帮你整理一下这条随记里值得继续留意的部分。'));
+
+    renderAdvisorPage([{
+      pathname: '/advisor',
+      state: {
+        journalEntryContext: {
+          entryId: 'journal-entry-1',
+          recordedAt: '2026-04-05T09:48:00.000Z',
+          contentType: 'text',
+          textContent: '午睡前自己把玩具收好了，还主动和我说想先去洗手。',
+          dimensionName: 'Self care',
+          tags: ['Independent cleanup'],
+          recorderName: 'Mom',
+        },
+      },
+    }]);
+
+    // Should show context preview instead of auto-sending
+    await waitFor(() => {
+      expect(screen.getByText('关于这条随记，你想聊什么？')).toBeTruthy();
+      expect(screen.getByText(/午睡前自己把玩具收好了/)).toBeTruthy();
+      expect(screen.getByText('Self care')).toBeTruthy();
+      expect(screen.getByText('Independent cleanup')).toBeTruthy();
+    });
+
+    // No conversation created yet
+    expect(createConversationMock).not.toHaveBeenCalled();
+
+    // Click a starter to begin conversation
+    fireEvent.click(screen.getByText('请帮我整理这条记录的关键信息'));
+
+    await waitFor(() => {
+      expect(createConversationMock).toHaveBeenCalledTimes(1);
+      expect(streamMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createConversationMock.mock.calls[0]?.[0]).toMatchObject({
+      childId: 'child-1',
+      title: '随记 2026-04-05',
+    });
+
+    const userCall = insertAiMessageMock.mock.calls.find((call) => call[0].role === 'user')?.[0];
+    expect(userCall?.content).toContain('成长随记继续聊聊');
+    expect(userCall?.content).toContain('Self care');
+    expect(userCall?.content).toContain('Independent cleanup');
+    expect(userCall?.content).toContain('午睡前自己把玩具收好了');
+    expect(userCall?.content).toContain('请帮我整理这条记录的关键信息');
+
+    await waitFor(() => {
+      expect(screen.getByText(/我先帮你整理一下这条随记/)).toBeTruthy();
+    });
+  });
+
   it('assembles reviewed-domain runtime prompts from the frozen snapshot', async () => {
     streamMock.mockResolvedValue(createStreamOutput('睡眠节律目前比较稳定。'));
 
     renderAdvisorPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /\+ 新对话/i }));
+    fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
     await waitFor(() => {
       expect(screen.getByPlaceholderText('输入问题...')).toBeTruthy();
     });
@@ -405,7 +527,7 @@ describe('AdvisorPage', () => {
 
     renderAdvisorPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /\+ 新对话/i }));
+    fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
     await waitFor(() => {
       expect(screen.getByPlaceholderText('输入问题...')).toBeTruthy();
     });
@@ -444,7 +566,7 @@ describe('AdvisorPage', () => {
 
     renderAdvisorPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /\+ 新对话/i }));
+    fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
     await waitFor(() => {
       expect(screen.getByPlaceholderText('输入问题...')).toBeTruthy();
     });
@@ -485,7 +607,7 @@ describe('AdvisorPage', () => {
 
     renderAdvisorPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /\+ 新对话/i }));
+    fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
     await waitFor(() => {
       expect(screen.getByPlaceholderText('输入问题...')).toBeTruthy();
     });
@@ -501,7 +623,81 @@ describe('AdvisorPage', () => {
     expect(screen.getByText(/connect: connection refused/)).toBeTruthy();
   });
 
-  it('renders conversation dates and message times in local time instead of raw UTC slices', async () => {
+  it('retries cloud advisor chat with generate when the stream fails before any text arrives', async () => {
+    useAppStore.setState({
+      aiConfig: {
+        scopeRef: { kind: 'app', ownerId: 'parentos', surfaceId: 'app' },
+        capabilities: {
+          selectedBindings: {
+            'text.generate': {
+              source: 'cloud',
+              connectorId: 'connector-1',
+              model: 'gpt-5.4',
+            },
+          },
+          localProfileRefs: {},
+          selectedParams: {},
+        },
+        profileOrigin: null,
+      },
+    });
+    streamMock.mockResolvedValue(createStreamErrorOutput({
+      reasonCode: 'AI_STREAM_BROKEN',
+      message: 'retry stream request',
+    }));
+    generateMock.mockResolvedValue({
+      text: 'cloud fallback reply',
+      finishReason: 'stop',
+      usage: {},
+      trace: {
+        routeDecision: 'cloud',
+        modelResolved: 'cloud/gpt-5.4',
+      },
+    });
+
+    renderAdvisorPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('输入问题...')).toBeTruthy();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('输入问题...'), {
+      target: { value: 'hello' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+
+    await waitFor(() => {
+      expect(streamMock).toHaveBeenCalledTimes(1);
+      expect(generateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const streamInput = streamMock.mock.calls[0]?.[0] as {
+      route: string;
+      model: string;
+      connectorId?: string;
+    };
+    expect(streamInput.route).toBe('cloud');
+    expect(streamInput.model).toBe('cloud/gpt-5.4');
+    expect(streamInput.connectorId).toBe('connector-1');
+
+    const generateInput = generateMock.mock.calls[0]?.[0] as {
+      route: string;
+      model: string;
+      connectorId?: string;
+    };
+    expect(generateInput.route).toBe('cloud');
+    expect(generateInput.model).toBe('cloud/gpt-5.4');
+    expect(generateInput.connectorId).toBe('connector-1');
+    expect(warmLocalAssetMock).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(screen.getByText('cloud fallback reply')).toBeTruthy();
+    });
+    expect(screen.queryByText(/已退回本地结构化事实/)).toBeNull();
+  });
+
+  it('renders conversation list and message content without raw UTC slices', async () => {
     conversationStore.push({
       conversationId: 'conv-local-time',
       childId: 'child-1',
@@ -532,8 +728,9 @@ describe('AdvisorPage', () => {
       expect(screen.getByText('本地时间显示检查')).toBeTruthy();
     });
 
-    expect(screen.getByText(formatLocalDateForAssertion('2026-04-14T16:39:14.000Z'))).toBeTruthy();
-    expect(screen.getByText(formatLocalTimeForAssertion('2026-04-14T16:41:55.000Z'))).toBeTruthy();
+    // Sidebar shows Chinese relative time instead of raw date strings
+    // Raw UTC segments must not leak to the UI
+    expect(screen.queryByText('16:39:14')).toBeNull();
     expect(screen.queryByText('16:41:55')).toBeNull();
   });
 });
