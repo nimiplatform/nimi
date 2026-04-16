@@ -258,9 +258,11 @@ export function useAgentConversationPresentation(
       : null,
     labels: {
       emptyEyebrow: 'Agent',
-      emptyTitle: input.t('Chat.agentTranscriptEmptyTitle', { defaultValue: 'Start the local agent conversation' }),
+      emptyTitle: input.t('Chat.agentTranscriptEmptyTitle', {
+        defaultValue: 'Say hello when you are ready',
+      }),
       emptyDescription: input.t('Chat.agentTranscriptEmpty', {
-        defaultValue: 'Send a message to start the local agent conversation.',
+        defaultValue: 'Say hello, ask a question, or start with whatever is on your mind.',
       }),
       loadingLabel: input.t('Chat.agentTranscriptLoading', { defaultValue: 'Loading local agent conversation…' }),
     },

@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent, type ReactNode, type ComponentType } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Bell, LogOut, type LucideProps } from 'lucide-react';
+import { AmbientBackground, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths } from './app-store.js';
 import { startParentosWindowDrag } from '../bridge/window-drag.js';
 import { clearAuthSession as clearPersistedAuthSession } from '../bridge/index.js';
 import { setAppSetting } from '../bridge/sqlite-bridge.js';
 import { syncParentOSLocalDataScope } from '../infra/parentos-bootstrap.js';
 import { isoNow } from '../bridge/ulid.js';
-import { BG, GLASS } from './page-style.js';
 
 const textMain = '#1e293b';
 const textMuted = '#475569';
@@ -77,16 +77,14 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
       </button>
 
       {mounted && (
-        <div
-          className="absolute right-0 top-12 z-50 w-64 overflow-hidden py-2"
+        <Surface
+          as="div"
+          material="glass-thick"
+          padding="none"
+          tone="card"
+          className="absolute right-0 top-12 z-50 w-64 overflow-hidden py-2 border-[var(--nimi-material-glass-thick-border)] rounded-[16px] shadow-[0_8px_32px_rgba(78,204,163,0.1)]"
           onTransitionEnd={() => { if (!open) setMounted(false); }}
           style={{
-            background: 'rgba(255,255,255,0.92)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(78,204,163,0.2)',
-            borderRadius: 16,
-            boxShadow: '0 8px 32px rgba(78,204,163,0.1)',
             opacity: open ? 1 : 0,
             transform: open ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.97)',
             transformOrigin: 'top right',
@@ -193,7 +191,7 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
               退出登录
             </button>
           </div>
-        </div>
+        </Surface>
       )}
     </div>
   );
@@ -220,7 +218,7 @@ export function ShellLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="isolate flex h-full" style={{ background: BG, overflow: 'hidden' }}>
+    <AmbientBackground variant="mesh" className="isolate flex h-full overflow-hidden">
       {/* Sidebar — transparent, shares global bg */}
       <nav
         className="relative z-30 flex w-[62px] shrink-0 flex-col items-center overflow-visible pb-5"
@@ -244,8 +242,8 @@ export function ShellLayout({ children }: { children: ReactNode }) {
             >
               <item.Icon size={19} strokeWidth={1.8} />
               <span
-                className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap px-3 py-1.5 text-[11px] font-medium opacity-0 transition-opacity duration-100 group-hover:opacity-100"
-                style={{ ...GLASS, background: 'rgba(255,255,255,0.85)', color: textMain }}
+                className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap px-3 py-1.5 text-[11px] font-medium opacity-0 transition-opacity duration-100 group-hover:opacity-100 bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)] rounded-[var(--nimi-radius-xl)] nimi-material-glass-thick"
+                style={{ color: textMain }}
               >
                 {item.label}
               </span>
@@ -290,6 +288,6 @@ export function ShellLayout({ children }: { children: ReactNode }) {
           <div className="h-full">{children}</div>
         </main>
       </div>
-    </div>
+    </AmbientBackground>
   );
 }

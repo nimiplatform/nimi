@@ -1,6 +1,7 @@
 export * from './design-tokens.js';
 export * from './theme.js';
 export * from './components/surface.js';
+export * from './components/ambient-background.js';
 export * from './components/button.js';
 export * from './components/dialog.js';
 export * from './components/popover.js';

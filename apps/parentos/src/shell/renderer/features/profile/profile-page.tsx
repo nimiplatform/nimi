@@ -1,21 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import { getProfileSectionSummaries } from '../../bridge/sqlite-bridge.js';
 import type { SectionSummary } from '../../bridge/sqlite-bridge.js';
 
 /* ── design tokens ──────────────────────────────────────── */
 
-import { GLASS } from '../../app-shell/page-style.js';
-
 const C = {
   bg: '#f1f5f9', text: '#1e293b', sub: '#475569',
   card: '#ffffff', accent: '#1e293b',
   shadow: '0 8px 32px rgba(31,38,135,0.04)',
 } as const;
-
-const glassStyle = GLASS;
 
 /* ── section registry (archive routes only) ─────────────── */
 
@@ -168,7 +165,7 @@ export default function ProfilePage() {
       <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 16 }}>
 
         {/* ── Profile header card ────────────────────────────── */}
-        <div className="relative overflow-hidden p-6 mb-6" style={{ ...glassStyle, background: 'rgba(255,255,255,0.7)' }}>
+        <Surface as="div" material="glass-thick" padding="none" tone="card" className="relative overflow-hidden p-6 mb-6 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
           <div className="flex items-center gap-5">
             {/* Avatar */}
             {activeChild.avatarPath ? (
@@ -198,7 +195,7 @@ export default function ProfilePage() {
               编辑
             </Link>
           </div>
-        </div>
+        </Surface>
 
         {/* ── Summary load error ─────────────────────────────── */}
         {summaryError && (
@@ -222,9 +219,8 @@ export default function ProfilePage() {
             const desc = alt?.desc ?? s.desc;
 
             return (
-              <Link key={s.to} to={s.to}
-                className="flex items-start gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5"
-                style={glassStyle}>
+              <Surface key={s.to} as={Link} to={s.to} material="glass-regular" padding="none" tone="card"
+                className="flex items-start gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
                 <div className="w-[42px] h-[42px] rounded-[12px] flex items-center justify-center text-[20px] shrink-0" style={{ background: s.color }}>
                   {s.emoji}
                 </div>
@@ -237,7 +233,7 @@ export default function ProfilePage() {
                   <p className="text-[11px] mt-0.5 leading-snug" style={{ color: C.sub }}>{desc}</p>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-1"><path d="M9 18l6-6-6-6" /></svg>
-              </Link>
+              </Surface>
             );
           })}
         </div>
@@ -245,16 +241,15 @@ export default function ProfilePage() {
         {/* ── Cross links ───────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3 mt-3">
           {CROSS_LINKS.map((t) => (
-            <Link key={t.to} to={t.to}
-              className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5"
-              style={glassStyle}>
+            <Surface key={t.to} as={Link} to={t.to} material="glass-regular" padding="none" tone="card"
+              className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
               <span className="text-[20px]">{t.emoji}</span>
               <div className="min-w-0 flex-1">
                 <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
                 <p className="text-[11px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" className="shrink-0"><path d="M9 18l6-6-6-6" /></svg>
-            </Link>
+            </Surface>
           ))}
         </div>
 
@@ -266,16 +261,16 @@ export default function ProfilePage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {TOOL_ENTRIES.map((t) => (
-                <Link key={t.to} to={t.to}
-                  className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5"
-                  style={{ ...glassStyle, borderLeft: `3px solid ${C.accent}` }}>
+                <Surface key={t.to} as={Link} to={t.to} material="glass-regular" padding="none" tone="card"
+                  className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]"
+                  style={{ borderLeft: `3px solid ${C.accent}` }}>
                   <span className="text-[20px]">{t.emoji}</span>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
                     <p className="text-[11px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
                   </div>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" className="shrink-0"><path d="M9 18l6-6-6-6" /></svg>
-                </Link>
+                </Surface>
               ))}
             </div>
           </>

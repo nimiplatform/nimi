@@ -1,7 +1,6 @@
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationRow } from '../../bridge/sqlite-bridge.js';
 import { formatRelativeTimeCn } from './advisor-theme.js';
-import { GLASS } from '../../app-shell/page-style.js';
 
 export type AdvisorSidebarProps = {
   conversations: ConversationRow[];
@@ -17,9 +16,12 @@ export function AdvisorSidebar({
   onNewConversation,
 }: AdvisorSidebarProps) {
   return (
-    <div
+    <Surface
+      as="div"
+      material="glass-regular"
+      padding="none"
+      tone="card"
       className="mt-2 mb-10 flex w-56 shrink-0 flex-col p-3"
-      style={GLASS}
     >
       {/* New conversation button */}
       <button
@@ -70,6 +72,6 @@ export function AdvisorSidebar({
           })}
         </div>
       </ScrollArea>
-    </div>
+    </Surface>
   );
 }

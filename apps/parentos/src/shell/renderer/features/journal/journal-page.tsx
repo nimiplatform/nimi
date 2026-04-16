@@ -1273,13 +1273,7 @@ export default function JournalPage() {
             zIndex: 0,
           }}
         />
-      <section className="relative overflow-hidden" style={{
-        background: 'rgba(255,255,255,0.55)',
-        backdropFilter: 'blur(28px)',
-        WebkitBackdropFilter: 'blur(28px)',
-        border: '1px solid rgba(226,232,240,0.45)',
-        boxShadow: '0 8px 32px rgba(31,38,135,0.06), 0 1.5px 0 rgba(255,255,255,0.7) inset',
-        borderRadius: 24,
+      <section className="relative overflow-hidden nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.06),0_1.5px_0_rgba(255,255,255,0.7)_inset] rounded-[24px]" style={{
         zIndex: 1,
       }}>
         {/* Hidden photo input */}

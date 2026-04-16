@@ -80,6 +80,8 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.match(chatAiModeContentSource, /threadAdapter\.listThreads/);
   assert.match(chatHumanModeContentSource, /setSelectedTargetForSource\('human', host\.selectedTargetId\)/);
   assert.match(chatAgentModeContentSource, /setSelectedTargetForSource\('agent', host\.selectedTargetId\)/);
+  assert.match(chatAgentModeContentSource, /ChatRightPanelAvatarStageRail/);
+  assert.doesNotMatch(chatAgentModeContentSource, /ChatRightPanelUtilityRail/);
   assert.match(chatSidebarTargetsSource, /source: 'ai'/);
   assert.match(chatSidebarTargetsSource, /source: 'human'/);
   assert.match(chatSidebarTargetsSource, /source: 'agent'/);

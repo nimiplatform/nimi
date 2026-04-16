@@ -55,7 +55,7 @@ function resolvePresenceState(characterData: ConversationCharacterData | null | 
     return { label: 'Listening to you...', busy: false };
   }
   return {
-    label: target.isOnline === false ? 'Offline' : 'Quietly here with you',
+    label: target.isOnline === false ? 'Offline' : 'Here with you',
     busy: Boolean(interactionState?.busy ?? characterData?.presenceBusy),
   };
 }

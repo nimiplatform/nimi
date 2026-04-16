@@ -29,6 +29,35 @@ export type AgentConversationSurfaceState = {
   };
 };
 
+function clampUnit(value: number | null | undefined): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(value, 1));
+}
+
+function resolveSpeakingEmotion(input: {
+  amplitude: number;
+  visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
+}): 'joy' | 'focus' | 'calm' {
+  const amplitude = clampUnit(input.amplitude);
+  switch (input.visemeId) {
+    case 'ee':
+    case 'ih':
+      return 'focus';
+    case 'oh':
+    case 'ou':
+      return amplitude > 0.54 ? 'joy' : 'calm';
+    case 'aa':
+      return amplitude < 0.24 ? 'calm' : 'joy';
+    default:
+      if (amplitude < 0.22) {
+        return 'calm';
+      }
+      return amplitude > 0.56 ? 'joy' : 'focus';
+  }
+}
+
 export function resolveAgentConversationSurfaceState(input: {
   composerReady: boolean;
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -88,9 +117,12 @@ export function resolveAgentConversationSurfaceState(input: {
         phase: 'speaking' as const,
         busy: true,
         label: input.labels.voiceSpeakingLabel,
-        emotion: 'joy' as const,
-        amplitude: activeVoicePlayback.amplitude,
-        visemeId: activeVoicePlayback.visemeId || undefined,
+        emotion: resolveSpeakingEmotion({
+          amplitude: activeVoicePlayback.amplitude,
+          visemeId: activeVoicePlayback.visemeId,
+        }),
+        amplitude: clampUnit(activeVoicePlayback.amplitude),
+        ...(activeVoicePlayback.visemeId ? { visemeId: activeVoicePlayback.visemeId } : {}),
       }
     : input.voiceSessionState.status === 'listening'
       ? {

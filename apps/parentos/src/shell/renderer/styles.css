@@ -70,29 +70,19 @@
   /* ParentOS font overrides — Chinese-first premium stack */
   --font-display: "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
   --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif;
-  --nimi-font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
-
-  /* Chinese-optimized typography overrides */
-  --nimi-type-body-line-height: 1.7;
-  --nimi-type-body-letter-spacing: 0.02em;
-  --nimi-type-body-sm-line-height: 1.6;
-  --nimi-type-body-sm-letter-spacing: 0.01em;
-  --nimi-type-caption-line-height: 1.5;
-  --nimi-type-label-line-height: 1.4;
-  --nimi-type-page-title-letter-spacing: -0.01em;
-  --nimi-type-section-title-line-height: 1.35;
 }
 
 html, body, #root {
   height: 100%;
   margin: 0;
-  font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
   color: var(--color-text-primary);
   background: var(--color-bg-dashboard);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1, "liga" 1;
+  line-height: var(--nimi-type-body-cjk-line-height);
+  letter-spacing: var(--nimi-type-body-cjk-letter-spacing);
 }
 
 /* Thin blue scrollbar — hidden by default, visible on hover */

@@ -1,27 +1,9 @@
-/** Shell background — aurora mesh gradient with subtle blue/pink/purple ambient glow */
-export const BG = [
-  'radial-gradient(ellipse at 0% 0%, rgba(191,219,254,0.45) 0%, transparent 50%)',
-  'radial-gradient(ellipse at 100% 0%, rgba(221,214,254,0.3) 0%, transparent 50%)',
-  'radial-gradient(ellipse at 100% 100%, rgba(252,231,243,0.35) 0%, transparent 50%)',
-  'radial-gradient(ellipse at 0% 100%, rgba(167,243,208,0.2) 0%, transparent 50%)',
-  'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
-].join(', ');
-
-/** Glass card style — shared across all bento cards */
-export const GLASS = {
-  background: 'rgba(255,255,255,0.45)',
-  backdropFilter: 'blur(24px)',
-  WebkitBackdropFilter: 'blur(24px)',
-  border: '1px solid rgba(226,232,240,0.3)',
-  boxShadow: '0 8px 32px rgba(31,38,135,0.04)',
-  borderRadius: 24,
-} as const;
-
-/** Stronger glass for hero / profile cards */
-export const GLASS_SOLID = {
-  ...GLASS,
-  background: 'rgba(255,255,255,0.7)',
-} as const;
+// W3 (2026-04-17): `BG`, `GLASS`, and `GLASS_SOLID` removed per
+// preflight-w3.md. Aurora mesh and glass material are now consumed
+// through kit primitives:
+//   - `<AmbientBackground variant="mesh">` (P-DESIGN-023)
+//   - `<Surface material="glass-regular" | "glass-thick">` (P-DESIGN-022)
+// ParentOS no longer defines a local parallel material language.
 
 export const S = {
   bg: '#F1F5F9',

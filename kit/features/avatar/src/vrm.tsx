@@ -26,6 +26,7 @@ export type AvatarVrmViewportRenderer = (
 
 export type AvatarVrmViewportComponentProps = {
   input: AvatarVrmViewportRenderInput;
+  chrome?: 'default' | 'minimal';
 };
 
 export type AvatarVrmViewportComponent = ComponentType<AvatarVrmViewportComponentProps>;

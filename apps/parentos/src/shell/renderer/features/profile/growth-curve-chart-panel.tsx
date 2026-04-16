@@ -161,12 +161,8 @@ export function GrowthCurveChartPanel({
                       }) : null;
                       return (
                         <div
-                          className="rounded-2xl px-4 py-3 pointer-events-none"
+                          className="rounded-2xl px-4 py-3 pointer-events-none nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
                           style={{
-                            background: 'rgba(255,255,255,0.92)',
-                            backdropFilter: 'blur(12px)',
-                            border: '1px solid rgba(226,232,240,0.5)',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
                             minWidth: 160,
                           }}
                         >

@@ -1,6 +1,6 @@
 import { createElement, type ComponentPropsWithoutRef, type ElementType, type ReactNode } from 'react';
 import { cva } from 'class-variance-authority';
-import { cn, type SurfaceElevation, type SurfaceTone } from '../design-tokens.js';
+import { cn, type SurfaceElevation, type SurfaceMaterial, type SurfaceTone } from '../design-tokens.js';
 
 type SurfacePadding = 'none' | 'sm' | 'md' | 'lg';
 
@@ -27,11 +27,17 @@ export const surfaceVariants = cva(
         md: 'p-4',
         lg: 'p-6',
       },
+      material: {
+        solid: 'nimi-material-solid',
+        'glass-regular': 'nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]',
+        'glass-thick': 'nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)]',
+      },
     },
     defaultVariants: {
       tone: 'panel',
       elevation: 'base',
       padding: 'md',
+      material: 'solid',
     },
   },
 );
@@ -41,6 +47,7 @@ type SurfaceProps<T extends ElementType = 'div'> = {
   tone?: SurfaceTone;
   elevation?: SurfaceElevation;
   padding?: SurfacePadding;
+  material?: SurfaceMaterial;
   interactive?: boolean;
   active?: boolean;
   children?: ReactNode;
@@ -53,6 +60,7 @@ export function Surface<T extends ElementType = 'div'>(props: SurfaceProps<T>) {
     tone = 'panel',
     elevation = 'base',
     padding = 'md',
+    material = 'solid',
     interactive = false,
     active = false,
     children,
@@ -65,7 +73,7 @@ export function Surface<T extends ElementType = 'div'>(props: SurfaceProps<T>) {
     Component,
     {
       className: cn(
-        surfaceVariants({ tone, elevation, padding }),
+        surfaceVariants({ tone, elevation, padding, material }),
         interactive && 'cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]',
         active && 'bg-[var(--nimi-surface-active)]',
         className,

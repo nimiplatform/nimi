@@ -331,6 +331,63 @@ test('agent visible state prefers active thread voice playback cues for speaking
   });
 });
 
+test('agent visible state derives focused speaking emotion from front visemes', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    activeThreadId: 'thread-1',
+    submittingThreadId: null,
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+    voicePlaybackState: {
+      threadId: 'thread-1',
+      messageId: 'assistant-voice-3',
+      active: true,
+      amplitude: 0.44,
+      visemeId: 'ee',
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'speaking',
+    busy: true,
+    label: 'Speaking…',
+    emotion: 'focus',
+    amplitude: 0.44,
+    visemeId: 'ee',
+  });
+});
+
+test('agent visible state keeps quiet speaking tails calm when amplitude is low and viseme is absent', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    activeThreadId: 'thread-1',
+    submittingThreadId: null,
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+    voicePlaybackState: {
+      threadId: 'thread-1',
+      messageId: 'assistant-voice-4',
+      active: true,
+      amplitude: 0.18,
+      visemeId: null,
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'speaking',
+    busy: true,
+    label: 'Speaking…',
+    emotion: 'calm',
+    amplitude: 0.18,
+  });
+});
+
 test('agent visible state ignores voice playback cues from a different thread', () => {
   const surfaceState = resolveSurfaceState({
     composerReady: true,

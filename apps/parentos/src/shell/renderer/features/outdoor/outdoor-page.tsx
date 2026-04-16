@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { useAppStore } from '../../app-shell/app-store.js';
-import { S, GLASS, GLASS_SOLID } from '../../app-shell/page-style.js';
+import { S } from '../../app-shell/page-style.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import {
   getOutdoorRecords,
@@ -164,7 +164,7 @@ export function OutdoorPage() {
   if (goalMinutes === null && !showGoalSetup) {
     return (
       <div className={S.container} style={{ paddingTop: S.topPad }}>
-        <div className="mx-auto max-w-lg" style={{ ...GLASS_SOLID, padding: 32 }}>
+        <div className="mx-auto max-w-lg nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 32 }}>
           <h2 className="mb-4 text-[18px] font-semibold" style={{ color: textMain }}>每周户外目标</h2>
           <p className="mb-3 text-[13px] leading-relaxed" style={{ color: textMuted }}>
             充足的户外活动时间是保护视力的重要方式。研究表明，每天累计 2 小时以上的户外活动有助于降低近视风险。
@@ -189,7 +189,7 @@ export function OutdoorPage() {
   if (showGoalSetup) {
     return (
       <div className={S.container} style={{ paddingTop: S.topPad }}>
-        <div className="mx-auto max-w-lg" style={{ ...GLASS_SOLID, padding: 32 }}>
+        <div className="mx-auto max-w-lg nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 32 }}>
           <h2 className="mb-4 text-[18px] font-semibold" style={{ color: textMain }}>设定每周户外目标</h2>
           <p className="mb-4 text-[13px]" style={{ color: textMuted }}>建议每周 630 分钟（约每天 90 分钟）</p>
           <div className="mb-4 flex items-center gap-3">
@@ -261,7 +261,7 @@ export function OutdoorPage() {
       </div>
 
       {/* Progress card */}
-      <div className="mb-6" style={{ ...GLASS_SOLID, padding: 24 }}>
+      <div className="mb-6 nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 24 }}>
         <div className="mb-3 flex items-end justify-between">
           <div>
             <p className="text-[22px] font-bold tabular-nums" style={{ color: textMain }}>
@@ -298,7 +298,7 @@ export function OutdoorPage() {
       </div>
 
       {/* 7-day bar chart */}
-      <div className="mb-6" style={{ ...GLASS, padding: 24 }}>
+      <div className="mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 24 }}>
         <h3 className="mb-4 text-[14px] font-semibold" style={{ color: textMain }}>每日户外时长</h3>
         <div style={{ height: 160 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -320,7 +320,7 @@ export function OutdoorPage() {
       </div>
 
       {/* 4-week trend */}
-      <div className="mb-6" style={{ ...GLASS, padding: 24 }}>
+      <div className="mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 24 }}>
         <h3 className="mb-4 text-[14px] font-semibold" style={{ color: textMain }}>最近 4 周</h3>
         <div className="space-y-3">
           {recentWeeks.map((week) => {
@@ -349,7 +349,7 @@ export function OutdoorPage() {
       </div>
 
       {/* Week records list */}
-      <div className="mb-6" style={{ ...GLASS, padding: 24 }}>
+      <div className="mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 24 }}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[14px] font-semibold" style={{ color: textMain }}>
             {selectedWeekStart === currentWeekStart ? '本周记录' : '当周记录'}
@@ -464,13 +464,13 @@ function RecordModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-[4px]"
+      style={{ background: 'rgba(0,0,0,0.3)' }}
       onClick={onClose}
     >
       <div
-        className="w-80"
-        style={{ ...GLASS_SOLID, padding: 24, borderRadius: 20 }}
+        className="w-80 nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]"
+        style={{ padding: 24, borderRadius: 20 }}
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="mb-4 text-[15px] font-semibold" style={{ color: textMain }}>

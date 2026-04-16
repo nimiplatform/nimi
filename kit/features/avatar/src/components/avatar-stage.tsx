@@ -21,6 +21,7 @@ export type AvatarStageProps = {
   imageUrl?: string | null;
   fallbackLabel?: string | null;
   statusLabel?: ReactNode;
+  showStatusBadge?: boolean;
   tone?: AvatarStageTone;
   size?: AvatarStageSize;
   className?: string;
@@ -153,6 +154,7 @@ export function AvatarStage({
   imageUrl,
   fallbackLabel,
   statusLabel,
+  showStatusBadge = true,
   tone,
   size = 'md',
   className,
@@ -235,10 +237,7 @@ export function AvatarStage({
           style,
         })}
       </div>
-      <span className="absolute right-1 top-1 inline-flex rounded-full border border-white/70 bg-slate-950/72 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_6px_18px_rgba(15,23,42,0.18)]">
-        {renderer.backendLabel}
-      </span>
-      {badgeLabel ? (
+      {showStatusBadge && badgeLabel ? (
         <span
           className={cn(
             'absolute bottom-[-10px] left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border font-semibold shadow-[0_10px_24px_rgba(15,23,42,0.08)]',

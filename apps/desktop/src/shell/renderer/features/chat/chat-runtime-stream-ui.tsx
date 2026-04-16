@@ -15,8 +15,12 @@ import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 import {
   parseAgentVoicePlaybackCueEnvelope,
   resolveAgentVoicePlaybackCueFromEnvelope,
+  type AgentVoicePlaybackCueEnvelope,
 } from './chat-agent-voice-playback-envelope';
-import { resolveAgentVoicePlaybackCue } from './chat-agent-voice-playback-state';
+import {
+  resolveAgentVoicePlaybackCue,
+  resolveAgentVoicePlaybackEstimatedFrame,
+} from './chat-agent-voice-playback-state';
 
 function normalizeReasoningText(value: unknown): string | null {
   const normalized = typeof value === 'string' ? value.trim() : '';
@@ -169,6 +173,13 @@ export function RuntimeVoiceMessageContent(props: {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const rafRef = useRef<number | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const estimatorFrameRef = useRef<{
+    cue: {
+      amplitude: number;
+      visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
+    };
+    stableFrames: number;
+  } | null>(null);
   const toggleTranscript = useCallback(() => setTranscriptVisible((previous) => !previous), []);
 
   const emitPlaybackState = useCallback((active: boolean, amplitude = 0, visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null = null) => {
@@ -186,8 +197,34 @@ export function RuntimeVoiceMessageContent(props: {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    estimatorFrameRef.current = null;
     emitPlaybackState(false);
   }, [emitPlaybackState]);
+
+  const resolveFrameCue = useCallback((input: {
+    playbackCueEnvelope: AgentVoicePlaybackCueEnvelope | null;
+    currentTimeSeconds: number;
+    timeDomainSamples: Uint8Array;
+    frequencySamples?: Uint8Array;
+  }) => {
+    if (input.playbackCueEnvelope) {
+      return {
+        source: 'envelope' as const,
+        cue: resolveAgentVoicePlaybackCueFromEnvelope(
+          input.playbackCueEnvelope,
+          input.currentTimeSeconds,
+        ),
+      };
+    }
+    return {
+      source: 'estimator' as const,
+      cue: resolveAgentVoicePlaybackCue(
+        input.timeDomainSamples,
+        input.currentTimeSeconds,
+        input.frequencySamples,
+      ),
+    };
+  }, []);
 
   const startPlaybackSampling = useCallback(() => {
     const audio = audioRef.current;
@@ -200,10 +237,11 @@ export function RuntimeVoiceMessageContent(props: {
           stopPlaybackSampling();
           return;
         }
-        const cue = resolveAgentVoicePlaybackCueFromEnvelope(
+        const cue = resolveFrameCue({
           playbackCueEnvelope,
-          audioRef.current.currentTime,
-        );
+          currentTimeSeconds: audioRef.current.currentTime,
+          timeDomainSamples: new Uint8Array(0),
+        }).cue;
         emitPlaybackState(true, cue.amplitude, cue.visemeId);
         rafRef.current = typeof requestAnimationFrame === 'function'
           ? requestAnimationFrame(tick)
@@ -233,13 +271,23 @@ export function RuntimeVoiceMessageContent(props: {
     void context.resume();
     const analyser = analyserRef.current;
     const samples = new Uint8Array(analyser.fftSize);
+    const frequencySamples = new Uint8Array(analyser.frequencyBinCount);
     const tick = () => {
       if (!audioRef.current || audioRef.current.paused || audioRef.current.ended) {
         stopPlaybackSampling();
         return;
       }
       analyser.getByteTimeDomainData(samples);
-      const cue = resolveAgentVoicePlaybackCue(samples, audioRef.current.currentTime);
+      analyser.getByteFrequencyData(frequencySamples);
+      const frame = resolveRuntimeVoicePlaybackFrameCue({
+        playbackCueEnvelope: null,
+        currentTimeSeconds: audioRef.current.currentTime,
+        timeDomainSamples: samples,
+        frequencySamples,
+        previousEstimatorFrame: estimatorFrameRef.current,
+      });
+      estimatorFrameRef.current = frame.estimatorFrame;
+      const cue = frame.cue;
       emitPlaybackState(true, cue.amplitude, cue.visemeId);
       rafRef.current = typeof requestAnimationFrame === 'function'
         ? requestAnimationFrame(tick)
@@ -247,7 +295,7 @@ export function RuntimeVoiceMessageContent(props: {
     };
     stopPlaybackSampling();
     tick();
-  }, [emitPlaybackState, playbackCueEnvelope, stopPlaybackSampling]);
+  }, [emitPlaybackState, playbackCueEnvelope, resolveFrameCue, stopPlaybackSampling]);
 
   useEffect(() => () => {
     stopPlaybackSampling();
@@ -300,6 +348,44 @@ export function RuntimeVoiceMessageContent(props: {
       </div>
     </div>
   );
+}
+
+export function resolveRuntimeVoicePlaybackFrameCue(input: {
+  playbackCueEnvelope: AgentVoicePlaybackCueEnvelope | null;
+  currentTimeSeconds: number;
+  timeDomainSamples: Uint8Array;
+  frequencySamples?: Uint8Array;
+  previousEstimatorFrame?: {
+    cue: {
+      amplitude: number;
+      visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
+    };
+    stableFrames: number;
+  } | null;
+}) {
+  if (input.playbackCueEnvelope) {
+    return {
+      source: 'envelope' as const,
+      cue: resolveAgentVoicePlaybackCueFromEnvelope(
+        input.playbackCueEnvelope,
+        input.currentTimeSeconds,
+      ),
+      estimatorFrame: null,
+    };
+  }
+  const estimatorFrame = resolveAgentVoicePlaybackEstimatedFrame({
+    previous: input.previousEstimatorFrame || null,
+    nextCue: resolveAgentVoicePlaybackCue(
+      input.timeDomainSamples,
+      input.currentTimeSeconds,
+      input.frequencySamples,
+    ),
+  });
+  return {
+    source: 'estimator' as const,
+    cue: estimatorFrame.cue,
+    estimatorFrame,
+  };
 }
 
 export function RuntimeAgentDebugMessageAccessory(props: {

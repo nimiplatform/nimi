@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths, type ChildProfile } from '../../app-shell/app-store.js';
 import { parseReportContent } from '../reports/structured-report.js';
-import { GLASS, GLASS_SOLID } from '../../app-shell/page-style.js';
 import {
   buildQuickLinks,
   describeNurtureMode,
@@ -32,15 +32,24 @@ export function Cd({
   children,
   cls = '',
   style,
+  material = 'glass-regular',
 }: {
   children: React.ReactNode;
   cls?: string;
   style?: React.CSSProperties;
+  material?: 'glass-regular' | 'glass-thick';
 }) {
   return (
-    <div className={`p-7 transition-transform hover:-translate-y-0.5 ${cls}`} style={{ ...GLASS, ...style }}>
+    <Surface
+      as="div"
+      material={material}
+      padding="none"
+      tone="card"
+      className={`p-7 transition-transform hover:-translate-y-0.5 ${cls}`}
+      style={style}
+    >
       {children}
-    </div>
+    </Surface>
   );
 }
 
@@ -97,9 +106,9 @@ function ChildSwitchPopover({ child, childList }: { child: ChildProfile; childLi
         </svg>
       </button>
       {mounted ? (
-        <div className="absolute right-0 top-9 min-w-[200px] p-1.5"
+        <Surface as="div" material="glass-thick" padding="none" tone="card" className="absolute right-0 top-9 min-w-[200px] p-1.5"
           onTransitionEnd={() => { if (!open) setMounted(false); }}
-          style={{ ...GLASS, background: 'rgba(255,255,255,0.85)', opacity: open ? 1 : 0, transform: open ? 'translateY(0)' : 'translateY(4px) scale(0.98)', transformOrigin: 'top right', transition: 'opacity 0.15s ease, transform 0.15s ease', pointerEvents: open ? 'auto' : 'none' }}>
+          style={{ opacity: open ? 1 : 0, transform: open ? 'translateY(0)' : 'translateY(4px) scale(0.98)', transformOrigin: 'top right', transition: 'opacity 0.15s ease, transform 0.15s ease', pointerEvents: open ? 'auto' : 'none' }}>
           {childList.map((item, index) => {
             const isActive = item.childId === child.childId;
             return (
@@ -114,7 +123,7 @@ function ChildSwitchPopover({ child, childList }: { child: ChildProfile; childLi
               </button>
             );
           })}
-        </div>
+        </Surface>
       ) : null}
     </div>
   );
@@ -124,7 +133,7 @@ function ChildSwitchPopover({ child, childList }: { child: ChildProfile; childLi
 
 export function ChildContextCard({ child, childList, ageMonths }: { child: ChildProfile; childList: ChildProfile[]; ageMonths: number }) {
   return (
-    <div className="col-span-2 row-span-2 relative z-10 overflow-visible" style={GLASS_SOLID}>
+    <Surface as="div" material="glass-thick" padding="none" tone="card" className="col-span-2 row-span-2 relative z-10 overflow-visible">
       <div className="relative flex h-full flex-col items-center px-6 pb-7 pt-10">
         <ChildSwitchPopover child={child} childList={childList} />
 
@@ -157,7 +166,7 @@ export function ChildContextCard({ child, childList, ageMonths }: { child: Child
           查看完整档案 <span>→</span>
         </Link>
       </div>
-    </div>
+    </Surface>
   );
 }
 
@@ -168,7 +177,7 @@ export function RecentChangesHeroCard({ items }: { items: RecentChangeItem[] }) 
   const secondary = items.slice(1);
 
   return (
-    <Cd cls="col-span-6 row-span-2" style={GLASS_SOLID}>
+    <Cd cls="col-span-6 row-span-2" material="glass-thick">
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-medium tracking-wide" style={{ color: textMuted }}>最近 7 天</p>

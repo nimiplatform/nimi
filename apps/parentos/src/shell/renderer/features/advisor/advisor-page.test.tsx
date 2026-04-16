@@ -243,6 +243,9 @@ vi.mock('@nimiplatform/nimi-kit/ui', () => ({
   ScrollArea: ({ children, className }: { children: React.ReactNode; className?: string }) => (
     <div className={className}>{children}</div>
   ),
+  Surface: ({ children, className, style }: { children?: React.ReactNode; className?: string; style?: React.CSSProperties }) => (
+    <div className={className} style={style}>{children}</div>
+  ),
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
 }));
 

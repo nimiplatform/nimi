@@ -6,7 +6,7 @@ import {
 } from '@nimiplatform/nimi-kit/features/chat';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
-import { ChatRightPanelCharacterRail } from './chat-right-panel-character-rail';
+import { ChatRightPanelAvatarStageRail } from './chat-right-panel-avatar-stage-rail';
 import { ChatRightPanelSettings } from './chat-right-panel-settings';
 
 export type ChatAgentModeContentProps = {
@@ -108,7 +108,7 @@ export function ChatAgentModeContent({
       return host.rightPanelContent;
     }
     return (
-      <ChatRightPanelCharacterRail
+      <ChatRightPanelAvatarStageRail
         selectedTarget={selectedTarget}
         characterData={host.characterData}
         onToggleSettings={onToggleRightPanelSettings}

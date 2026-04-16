@@ -149,7 +149,7 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
   const editField = (f: 'opening' | 'milestoneReplay' | 'closingMessage', v: string) => onContentUpdate?.({ ...content, [f]: v });
 
   return (<div className="space-y-4">
-    <div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+    <div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
       <h2 className="text-[20px] font-bold leading-tight" style={{ color: S.text }}>{content.title}</h2>
       <p className="text-[12px] mt-1" style={{ color: S.sub }}>{content.subtitle}</p>
       {content.format === 'narrative-ai' && <span className="text-[10px] px-2 py-0.5 rounded-full mt-2 inline-block" style={{ background: '#f0f5e6', color: S.accent }}>AI 撰写</span>}
@@ -159,7 +159,7 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
       {canEdit ? <EditableText text={content.opening} onSave={(v) => editField('opening', v)} /> : <p className="text-[14px] leading-[1.8] italic" style={{ color: S.text }}>{content.opening}</p>}
     </div>)}
 
-    {content.narrativeSections.map((section) => (<div key={section.id} className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+    {content.narrativeSections.map((section) => (<div key={section.id} className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
       <h3 className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>{section.title}</h3>
       {canEdit ? <EditableText text={section.narrative} onSave={(v) => editSection(section.id, v)} /> : <p className="text-[14px] leading-[1.8]" style={{ color: S.text }}>{section.narrative}</p>}
       {section.dataPoints && section.dataPoints.length > 0 && (<div className="mt-3 flex flex-wrap gap-3">
@@ -177,17 +177,17 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
     </div>)}
 
     {((content.highlights?.length ?? 0) > 0 || (content.watchNext?.length ?? 0) > 0) && (<div className="grid gap-3 sm:grid-cols-2">
-      {content.highlights && content.highlights.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+      {content.highlights && content.highlights.length > 0 && (<div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
         <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>🌟 本月亮点</h3>
         <ul className="space-y-2">{content.highlights.map((h, i) => <li key={i} className={`${S.radiusSm} px-3 py-2 text-[13px]`} style={{ background: '#f0f5e6', color: S.text }}>{h}</li>)}</ul>
       </div>)}
-      {content.watchNext && content.watchNext.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+      {content.watchNext && content.watchNext.length > 0 && (<div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
         <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>👀 下月留意</h3>
         <ul className="space-y-2">{content.watchNext.map((w, i) => <li key={i} className={`${S.radiusSm} px-3 py-2 text-[13px]`} style={{ background: '#fefce8', color: S.text }}>{w}</li>)}</ul>
       </div>)}
     </div>)}
 
-    {content.trendSignals.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+    {content.trendSignals.length > 0 && (<div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
       <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>趋势信号</h3>
       <div className="grid gap-3 sm:grid-cols-2">{content.trendSignals.map((sig) => (<div key={sig.id} className={`${S.radiusSm} p-3`} style={{ background: S.bg, border: `1px solid ${S.border}` }}>
         <h4 className="text-[12px] font-semibold" style={{ color: S.text }}>{sig.title}</h4>
@@ -195,7 +195,7 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
       </div>))}</div>
     </div>)}
 
-    {content.actionItems.length > 0 && (<div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+    {content.actionItems.length > 0 && (<div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
       <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>下一步行动</h3>
       <div className="space-y-2">{content.actionItems.map((a) => (<Link key={a.id} to={a.linkTo ?? '/advisor'} className={`flex items-center gap-3 ${S.radiusSm} px-4 py-3 transition-colors hover:opacity-90`} style={{ background: '#f0f5e6', border: `1px solid ${S.accent}40` }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={S.accent} strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
@@ -207,7 +207,7 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
       {canEdit ? <EditableText text={content.closingMessage} onSave={(v) => editField('closingMessage', v)} /> : <p className="text-[14px] leading-[1.8]" style={{ color: S.text }}>{content.closingMessage}</p>}
     </div>)}
 
-    <div className={`${S.radius} p-4`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+    <div className={`${S.radius} p-4 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
       <p className="text-[11px]" style={{ color: S.sub }}>数据来源：{content.sources.join('，')}</p>
       <p className="text-[11px] mt-1" style={{ color: '#92400e' }}>{content.safetyNote}</p>
     </div>
@@ -218,15 +218,15 @@ function NarrativeViewer({ content, reportId, onContentUpdate }: { content: Narr
 
 function StructuredViewer({ content }: { content: StructuredGrowthReportContent }) {
   return (<div className="space-y-4">
-    <div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+    <div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
       <h2 className="text-[20px] font-bold" style={{ color: S.text }}>{content.title}</h2>
       <p className="text-[12px] mt-1" style={{ color: S.sub }}>{content.subtitle}</p>
       <p className="text-[11px] mt-3" style={{ color: '#92400e' }}>{content.safetyNote}</p>
     </div>
-    {content.metrics.length > 0 && <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{content.metrics.map((m) => (<div key={m.id} className={`${S.radiusSm} p-3`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}><div className="text-[10px] uppercase" style={{ color: S.sub }}>{m.label}</div><div className="mt-1 text-[18px] font-semibold" style={{ color: S.text }}>{m.value}</div>{m.detail && <div className="text-[10px]" style={{ color: S.sub }}>{m.detail}</div>}</div>))}</div>}
-    {content.overview.length > 0 && <div className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}><h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>概览</h3><ul className="space-y-2">{content.overview.map((item) => <li key={item} className={`${S.radiusSm} px-3 py-2 text-[12px]`} style={{ background: S.bg, color: S.text }}>{item}</li>)}</ul></div>}
-    <div className="grid gap-3 sm:grid-cols-2">{content.sections.map((sec) => (<div key={sec.id} className={`${S.radius} p-5`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}><h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>{sec.title}</h3><ul className="space-y-2">{sec.items.map((item) => <li key={item} className={`${S.radiusSm} px-3 py-2 text-[12px]`} style={{ background: S.bg, color: S.text }}>{item}</li>)}</ul></div>))}</div>
-    <div className={`${S.radius} p-4`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}><p className="text-[11px]" style={{ color: S.sub }}>数据来源：{content.sources.join('，')}</p></div>
+    {content.metrics.length > 0 && <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{content.metrics.map((m) => (<div key={m.id} className={`${S.radiusSm} p-3 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}><div className="text-[10px] uppercase" style={{ color: S.sub }}>{m.label}</div><div className="mt-1 text-[18px] font-semibold" style={{ color: S.text }}>{m.value}</div>{m.detail && <div className="text-[10px]" style={{ color: S.sub }}>{m.detail}</div>}</div>))}</div>}
+    {content.overview.length > 0 && <div className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}><h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>概览</h3><ul className="space-y-2">{content.overview.map((item) => <li key={item} className={`${S.radiusSm} px-3 py-2 text-[12px]`} style={{ background: S.bg, color: S.text }}>{item}</li>)}</ul></div>}
+    <div className="grid gap-3 sm:grid-cols-2">{content.sections.map((sec) => (<div key={sec.id} className={`${S.radius} p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}><h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>{sec.title}</h3><ul className="space-y-2">{sec.items.map((item) => <li key={item} className={`${S.radiusSm} px-3 py-2 text-[12px]`} style={{ background: S.bg, color: S.text }}>{item}</li>)}</ul></div>))}</div>
+    <div className={`${S.radius} p-4 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}><p className="text-[11px]" style={{ color: S.sub }}>数据来源：{content.sources.join('，')}</p></div>
   </div>);
 }
 
@@ -385,7 +385,7 @@ export default function ReportsPage() {
             <div className="mt-3"><button onClick={() => handleCopy(latestContent!)} className={`${S.radiusSm} px-4 py-2 text-[12px] font-medium`} style={{ background: S.card, border: `1px solid ${S.border}`, color: S.text }}>{copied ? '已复制 ✓' : '复制文本'}</button></div>
           </div>
         ) : (
-          <div className={`${S.radius} p-8 text-center mb-6`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+          <div className={`${S.radius} p-8 text-center mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
             <p className="text-[14px]" style={{ color: S.sub }}>还没有成长报告</p>
             <p className="text-[12px] mt-1" style={{ color: S.sub }}>报告会在首页自动生成，也可以在下方手动创建</p>
           </div>
@@ -420,7 +420,7 @@ export default function ReportsPage() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
             高级选项 · 手动生成报告
           </button>
-          {showAdvanced && (<div className={`${S.radius} p-5 mt-3`} style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+          {showAdvanced && (<div className={`${S.radius} p-5 mt-3 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]`}>
             <div className="mb-3">
               <p className="text-[11px] font-medium mb-2" style={{ color: S.sub }}>时间范围</p>
               <div className="flex flex-wrap gap-2">{PRESET_OPTIONS.map((p) => <button key={p.id} onClick={() => handlePresetChange(p.id)} className="px-3 py-1 rounded-full text-[11px] transition-colors" style={periodPreset === p.id ? { background: S.accent, color: '#fff' } : { background: S.bg, color: S.text, border: `1px solid ${S.border}` }}>{p.label}</button>)}</div>

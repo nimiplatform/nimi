@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import {
   deleteCustomTodo,
@@ -28,7 +29,6 @@ import {
 import type { ReminderActionType } from '../../engine/reminder-actions.js';
 import { loadAllFreqOverrides, type FreqOverrideMap } from '../../engine/reminder-freq-overrides.js';
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
-import { GLASS } from '../../app-shell/page-style.js';
 
 const textMain = '#1e293b';
 const textMuted = '#475569';
@@ -116,7 +116,7 @@ function SectionCard({ title, hint, count, children, collapsible = false, defaul
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   return (
-    <section className="p-7 transition-transform hover:-translate-y-0.5" style={GLASS}>
+    <Surface as="section" material="glass-regular" padding="none" tone="card" className="p-7 transition-transform hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
       <div className="flex items-end justify-between gap-3 mb-5">
         <div>
           <h2 className="text-[16px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.3px' }}>{title}</h2>
@@ -140,7 +140,7 @@ function SectionCard({ title, hint, count, children, collapsible = false, defaul
         </div>
       </div>
       {!collapsible || !collapsed ? children : null}
-    </section>
+    </Surface>
   );
 }
 
@@ -313,7 +313,7 @@ export default function RemindersPage() {
         </div>
 
         {/* Hero section — glass card */}
-        <section className="p-7" style={{ ...GLASS, background: 'rgba(255,255,255,0.7)' }}>
+        <Surface as="section" material="glass-thick" padding="none" tone="card" className="p-7 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
           <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-5 items-stretch">
             <TodayHero
               reminder={agenda.todayFocus[0] ?? null}
@@ -327,7 +327,7 @@ export default function RemindersPage() {
               <SummaryTile label="逾期汇总" value={String(agenda.overdueSummary.count)} hint="较早的逾期事项折叠在这里。" tone={{ bg: 'rgba(239,68,68,0.05)', fg: '#ef4444' }} />
             </div>
           </div>
-        </section>
+        </Surface>
 
         {/* Today */}
         <SectionCard count={agenda.todayFocus.length} title="今日事项" hint="默认折叠，需要时再展开查看今天的完整事项和操作。" collapsible defaultCollapsed>

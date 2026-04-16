@@ -373,6 +373,7 @@ export type CanonicalTranscriptViewProps = {
   emptyEyebrow?: string;
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyStateVariant?: 'default' | 'compact';
   historyIntro?: string | null;
   /** Non-blocking banner rendered above the message list (does not replace messages). */
   bannerContent?: ReactNode;
@@ -406,6 +407,7 @@ export function CanonicalTranscriptView({
   emptyEyebrow = 'This Moment',
   emptyTitle = 'Start the first turn',
   emptyDescription = 'The transcript stays empty until the first exchange is created.',
+  emptyStateVariant = 'default',
   historyIntro = null,
   bannerContent,
   content,
@@ -441,6 +443,7 @@ export function CanonicalTranscriptView({
     footerVisible: false,
   });
   const showEmptyState = !loading && !error && messages.length === 0 && !content;
+  const compactEmptyState = emptyStateVariant === 'compact';
   const lastMessage = messages[messages.length - 1] || null;
   const footerVisible = Boolean(footerContent) && !pendingFirstBeat && !loading && !error;
 
@@ -540,21 +543,40 @@ export function CanonicalTranscriptView({
         ) : null}
 
         {!loading && !error && showEmptyState ? (
-          <section className="rounded-[30px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(239,247,247,0.88))] px-6 py-7 text-center shadow-[0_20px_52px_rgba(15,23,42,0.08)]">
-            <p className={cn('text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700/70')}>
+          <section
+            className={cn(
+              'border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(239,247,247,0.88))] shadow-[0_20px_52px_rgba(15,23,42,0.08)]',
+              compactEmptyState
+                ? 'mr-auto max-w-[620px] rounded-[22px] border-white/65 bg-[linear-gradient(135deg,rgba(255,255,255,0.84),rgba(244,248,248,0.68))] px-5 py-4 text-left shadow-[0_12px_26px_rgba(15,23,42,0.05)]'
+                : 'rounded-[30px] px-6 py-7 text-center',
+            )}
+          >
+            <p className={cn(
+              'font-semibold uppercase tracking-[0.2em] text-emerald-700/70',
+              compactEmptyState ? 'text-[9px]' : 'text-[11px]',
+            )}>
               {emptyEyebrow}
             </p>
-            <h2 className="mt-3 text-[30px] font-black tracking-tight text-slate-950">
+            <h2 className={cn(
+              'mt-3 font-black tracking-tight text-slate-950',
+              compactEmptyState ? 'text-[20px]' : 'text-[30px]',
+            )}>
               {emptyTitle}
             </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-600">
+            <p className={cn(
+              'mt-3 text-slate-600',
+              compactEmptyState ? 'max-w-[520px] text-[14px] leading-6 text-slate-500' : 'mx-auto max-w-xl text-sm leading-7',
+            )}>
               {emptyDescription}
             </p>
             {onSeedFirstTurn ? (
               <button
                 type="button"
                 onClick={onSeedFirstTurn}
-                className="mt-5 inline-flex h-11 items-center rounded-full bg-gradient-to-br from-emerald-400 via-teal-400 to-emerald-500 px-5 text-sm font-semibold text-white shadow-[0_18px_36px_rgba(78,204,163,0.3)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_22px_44px_rgba(78,204,163,0.4)]"
+                className={cn(
+                  'mt-5 inline-flex h-11 items-center rounded-full bg-gradient-to-br from-emerald-400 via-teal-400 to-emerald-500 px-5 text-sm font-semibold text-white shadow-[0_18px_36px_rgba(78,204,163,0.3)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_22px_44px_rgba(78,204,163,0.4)]',
+                  compactEmptyState ? 'self-start' : '',
+                )}
               >
                 Start the conversation
               </button>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { AmbientBackground, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { S } from '../../app-shell/page-style.js';
 import { C } from './timeline-data.js';
@@ -30,15 +31,6 @@ const TRUST = [
 
 /* ── styles ──────────────────────────────────────────────── */
 
-const glass = {
-  background: 'rgba(255,255,255,0.45)',
-  backdropFilter: 'blur(24px)',
-  WebkitBackdropFilter: 'blur(24px)',
-  border: '1px solid rgba(255,255,255,0.7)',
-  boxShadow: '0 8px 32px rgba(31,38,135,0.04)',
-  borderRadius: 24,
-} as const;
-
 const textMain = '#1e293b';
 const textMuted = '#475569';
 
@@ -57,33 +49,7 @@ export function WelcomePage() {
   const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
 
   return (
-    <div className="relative flex h-full" style={{ background: '#f1f5f9', overflow: 'hidden' }}>
-
-      {/* ── ambient lights ── */}
-      <div
-        className="pointer-events-none absolute animate-pulse"
-        style={{
-          width: 500, height: 500, borderRadius: '50%',
-          background: '#bfdbfe', filter: 'blur(120px)', opacity: 0.5,
-          top: -100, left: -100,
-        }}
-      />
-      <div
-        className="pointer-events-none absolute animate-pulse"
-        style={{
-          width: 600, height: 600, borderRadius: '50%',
-          background: '#fce7f3', filter: 'blur(120px)', opacity: 0.5,
-          bottom: -100, right: '5%', animationDelay: '-5s',
-        }}
-      />
-      <div
-        className="pointer-events-none absolute animate-pulse"
-        style={{
-          width: 400, height: 400, borderRadius: '50%',
-          background: '#e0f2fe', filter: 'blur(120px)', opacity: 0.5,
-          top: '20%', left: '30%', animationDelay: '-10s',
-        }}
-      />
+    <AmbientBackground variant="mesh" className="relative flex h-full overflow-hidden">
 
       {/* ── main scrollable content ── */}
       <div
@@ -101,9 +67,12 @@ export function WelcomePage() {
           </header>
 
           {/* ── hero ── */}
-          <section
+          <Surface
+            as="section"
+            material="glass-thick"
+            padding="none"
+            tone="card"
             className="relative overflow-hidden p-12"
-            style={{ ...glass, background: 'rgba(255,255,255,0.7)' }}
           >
             <div className="flex items-center justify-between">
               <div style={{ maxWidth: 420 }}>
@@ -182,7 +151,7 @@ export function WelcomePage() {
                 <span>👶</span><span>🌱</span>
               </div>
             </div>
-          </section>
+          </Surface>
 
           {/* ── bento feature cards ── */}
           <section>
@@ -191,10 +160,13 @@ export function WelcomePage() {
             </h2>
             <div className="grid grid-cols-3 gap-6">
               {BENTO.map((item) => (
-                <div
+                <Surface
+                  as="div"
                   key={item.title}
+                  material="glass-regular"
+                  padding="none"
+                  tone="card"
                   className="p-7 transition-transform hover:-translate-y-1"
-                  style={glass}
                 >
                   <div
                     className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl text-[22px]"
@@ -204,7 +176,7 @@ export function WelcomePage() {
                   </div>
                   <h3 className="text-[17px] font-semibold" style={{ color: textMain }}>{item.title}</h3>
                   <p className="mt-2.5 text-[14px] leading-relaxed" style={{ color: textMuted }}>{item.desc}</p>
-                </div>
+                </Surface>
               ))}
             </div>
           </section>
@@ -228,6 +200,6 @@ export function WelcomePage() {
 
         </div>
       </div>
-    </div>
+    </AmbientBackground>
   );
 }
