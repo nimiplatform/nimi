@@ -1,0 +1,9 @@
+admissions: []
+admission_rules:
+  - explicit_manager_owned_decision_required_before_canonical_high_risk_admission
+  - mechanically_valid_packet_identity_required_before_canonical_high_risk_admission
+  - canonical_high_risk_admission_requires_explicit_write_to_tracked_truth
+semantic_constraints:
+  - canonical_admission_records_must_not_promote_operational_runtime_state
+  - canonical_admission_records_must_use_one_record_per_topic_id
+  - canonical_admission_records_must_use_iso_8601_utc_admitted_at

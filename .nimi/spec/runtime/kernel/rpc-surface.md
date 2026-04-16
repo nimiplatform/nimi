@@ -19,8 +19,7 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 - `RuntimeWorkflowService`（`K-WF-*`）
 - `RuntimeAuditService`（`K-AUDIT-*`）
 - `RuntimeModelService`（`K-MODEL-*`）
-- `RuntimeKnowledgeService`（`K-KNOW-*`）
-- `RuntimeMemoryService`（`K-MEM-*`, `K-RPC-004a`）
+- `RuntimeCognitionService`（`K-MEM-*`, `K-KNOW-*`, `K-RPC-004a`）
 - `RuntimeAgentCoreService`（`K-AGCORE-*`, `K-RPC-004b`）
 - `RuntimeAppService`（`K-APP-*`）
 
@@ -151,9 +150,10 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 
 `WarmLocalAsset` 的语义限定为 runtime-owned 的”就绪/预热”路径：允许解析已安装 local model / local service，并在首次真实请求前触发最小执行以加载模型。对于 chat/text，本地模型在 `status in {installed, active}` 时可被选择，runtime 在首次真实 text 请求前负责 warm，不得要求 desktop 先行维持第二套 start/stop 真源。
 
-## K-RPC-004a RuntimeMemoryService 方法集合
+## K-RPC-004a RuntimeCognitionService 方法集合
 
-`RuntimeMemoryService` 是 runtime-owned memory substrate 的唯一稳定 RPC 面。
+`RuntimeCognitionService` 是 runtime-facing cognition overlap 的唯一稳定
+RPC 面。
 
 方法固定为：
 
@@ -164,24 +164,52 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 5. `Retain`
 6. `Recall`
 7. `History`
-8. `Reflect`
-9. `DeleteMemory`
-10. `SubscribeMemoryEvents`
+8. `DeleteMemory`
+9. `SubscribeMemoryEvents`
+10. `CreateKnowledgeBank`
+11. `GetKnowledgeBank`
+12. `ListKnowledgeBanks`
+13. `DeleteKnowledgeBank`
+14. `PutPage`
+15. `GetPage`
+16. `ListPages`
+17. `DeletePage`
+18. `SearchKeyword`
+19. `SearchHybrid`
+20. `AddLink`
+21. `RemoveLink`
+22. `ListLinks`
+23. `ListBacklinks`
+24. `TraverseGraph`
+25. `IngestDocument`
+26. `GetIngestTask`
 
 固定约束：
 
-- public surface 只暴露 Nimi-owned memory contract，不暴露 provider-native API truth
-- `Working memory` 不属于 RuntimeMemoryService 方法范围
-- canonical agent memory scope 的直接写入不得通过 app direct path 完成
-- `Retain` / `Recall` / `History` / `SubscribeMemoryEvents` 的 primary semantic payload 必须使用 typed memory messages；`metadata` / `extensions` 才允许动态 envelope
-- `CreateBank` / `DeleteBank` 的 app-facing路径只服务 infra scopes；canonical scopes 通过 runtime internal provisioning path 建立
+- `RuntimeCognitionService` 取代 `RuntimeMemoryService` 与
+  `RuntimeKnowledgeService` 作为唯一 runtime-facing cognition service
+  topology
+- public surface 只暴露 Nimi-owned typed contract；provider-native API truth、
+  cognition internal storage、以及 runtime-private review/bank/replication
+  truth 均不得外露
+- `Working memory` 不属于 `RuntimeCognitionService` 方法范围
+- public app-facing 路径只服务 infra scopes；canonical scopes 通过
+  runtime-private typed path 由 runtime-owned owner 消费
+- `Reflect` 被明确退休，不再属于 steady-state public RPC；canonical review
+  仍由 `RuntimeAgentCoreService` 与 retained runtime-private memory depth 拥有
+- absorbed memory/knowledge 方法族必须保留 fail-close 语义；不得以
+  adapter-first 方式重新引入 dual-owner public surface
 
 最小 access matrix：
 
 - `CreateBank` / `DeleteBank`：`runtime.memory.admin`
 - `GetBank` / `ListBanks` / `Recall` / `History` / `SubscribeMemoryEvents`：`runtime.memory.read`
-- `Retain` / `Reflect` / `DeleteMemory`：`runtime.memory.write`
-- `RuntimeAgentCoreService` 通过 runtime internal path 调用 `RuntimeMemoryService` 时，不经 app-facing public authz surface
+- `Retain` / `DeleteMemory`：`runtime.memory.write`
+- `GetKnowledgeBank` / `ListKnowledgeBanks` / `GetPage` / `ListPages` / `SearchKeyword` / `SearchHybrid` / `ListLinks` / `ListBacklinks` / `TraverseGraph` / `GetIngestTask`：`runtime.knowledge.read`
+- `PutPage` / `DeletePage` / `AddLink` / `RemoveLink` / `IngestDocument`：`runtime.knowledge.write`
+- `CreateKnowledgeBank` / `DeleteKnowledgeBank`：`runtime.knowledge.admin`
+- runtime-owned internal callers 使用 runtime-private typed path 时，不经
+  app-facing public authz surface
 
 ## K-RPC-004b RuntimeAgentCoreService 方法集合
 
@@ -218,55 +246,6 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 - `GetAgent` / `ListAgents` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
 - `UpdateAgentState` / `WriteAgentMemory` / `CancelHook`：`runtime.agent.write`
 - `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`
-
-## K-RPC-004c RuntimeKnowledgeService 方法集合
-
-`RuntimeKnowledgeService` 是 runtime-local knowledge substrate 的唯一稳定
-design-first RPC 面。
-
-Wave 1 + Wave 2A + Wave 2B + Wave 2C 方法固定为：
-
-1. `CreateKnowledgeBank`
-2. `GetKnowledgeBank`
-3. `ListKnowledgeBanks`
-4. `DeleteKnowledgeBank`
-5. `PutPage`
-6. `GetPage`
-7. `ListPages`
-8. `DeletePage`
-9. `SearchKeyword`
-10. `SearchHybrid`
-11. `AddLink`
-12. `RemoveLink`
-13. `ListLinks`
-14. `ListBacklinks`
-15. `TraverseGraph`
-16. `IngestDocument`
-17. `GetIngestTask`
-
-固定约束：
-
-- Wave 1 只 admitted runtime-local infra-scoped knowledge slice
-- Wave 2A 只 admitted retrieval expansion；不 admitted graph / ingest / AgentCore / shared truth / citation redesign
-- Wave 2B 只 admitted same-bank graph / backlink expansion；不 admitted cross-bank relation truth、cross-service citation、shared truth、AgentCore、ingest redesign
-- Wave 2C 只 admitted single-document async ingest + task polling；不 admitted batch ingest、timeline/version、workflow-service reuse、AgentCore、shared truth、或 citation redesign
-- bank owner shape 必须 typed；非法 scope/owner 组合必须 fail close
-- page 读写删继承 bank authorization
-- graph read/write 同样继承 bank authorization，并且只允许同 bank page relation
-- ingest task acceptance and task reads must remain bank-scoped and runtime-local
-- `ListKnowledgeBanks` / `ListPages` / `ListLinks` / `ListBacklinks` / `TraverseGraph` 必须遵守 `K-PAGE-*`
-- `CreateKnowledgeBank` / `DeleteKnowledgeBank` / `PutPage` / `DeletePage` / `AddLink` / `RemoveLink` / `IngestDocument` 必须写入 `K-AUDIT-*` 覆盖的审计事件
-- `SearchKeyword` 保持 lexical / FTS-only 语义
-- `SearchHybrid` 必须 fail close，且不得静默降级为 `SearchKeyword`
-- `GetIngestTask` 必须返回显式 task status / progress projection；不得伪装为 synchronous `PutPage`
-- public proto、runtime implementation、CLI、SDK projection 必须与这 17 个方法同次对齐；旧 `BuildIndex` / `SearchIndex` / `DeleteIndex` 仅允许出现在迁移映射中
-
-最小 access matrix：
-
-- `GetKnowledgeBank` / `ListKnowledgeBanks` / `GetPage` / `ListPages` / `SearchKeyword` / `SearchHybrid` / `ListLinks` / `ListBacklinks` / `TraverseGraph`：`runtime.knowledge.read`
-- `GetIngestTask`：`runtime.knowledge.read`
-- `PutPage` / `DeletePage` / `AddLink` / `RemoveLink` / `IngestDocument`：`runtime.knowledge.write`
-- `CreateKnowledgeBank` / `DeleteKnowledgeBank`：`runtime.knowledge.admin`
 
 ## K-RPC-005 Design 名称与 Proto 名称映射
 
@@ -452,16 +431,40 @@ route capability surface 的职责固定拆分如下：
 `metadataKind=voice_workflow.tts_v2v` 时，`metadata` 最小必填字段固定为：
 
 - `workflowType: 'tts_v2v'`
-- `supportsReferenceAudioInput: true`
-- `supportsTextPromptInput: boolean`
 - `requiresTargetSynthesisBinding: boolean`
+- `textPromptMode: 'unsupported' | 'optional' | 'required'`
+- `supportsLanguageHints: boolean`
+- `supportsPreferredName: boolean`
+- `referenceAudioUriInput: boolean`
+- `referenceAudioBytesInput: boolean`
+- `allowedReferenceAudioMimeTypes: string[]`
+
+可选字段：
+
+- `providerExtensionNamespace`
+- `providerExtensionSchemaVersion`
+
+这两个字段只暴露 extension namespace/schema identity，不暴露具体
+extension-key allowlist、transport override 键或 runtime-private schema
+内容。
 
 `metadataKind=voice_workflow.tts_t2v` 时，`metadata` 最小必填字段固定为：
 
 - `workflowType: 'tts_t2v'`
-- `supportsReferenceAudioInput: false`
-- `supportsTextPromptInput: true`
 - `requiresTargetSynthesisBinding: boolean`
+- `instructionTextMode: 'unsupported' | 'optional' | 'required'`
+- `previewTextMode: 'unsupported' | 'optional' | 'required'`
+- `supportsLanguage: boolean`
+- `supportsPreferredName: boolean`
+
+可选字段：
+
+- `providerExtensionNamespace`
+- `providerExtensionSchemaVersion`
+
+这两个字段只暴露 extension namespace/schema identity，不暴露具体
+extension-key allowlist、transport override 键或 runtime-private schema
+内容。
 
 `metadataKind=audio.synthesize` 时，`metadata` 最小必填字段固定为：
 
@@ -505,7 +508,7 @@ Phase 1 未在本规则列出的 capability，不得借由自由对象、provide
 - `text.generate.supportsThinking | traceModeSupport`
   - 单向派生自 `K-MMPROV-037` 的 typed reasoning capability truth。
 - `voice_workflow.tts_v2v | voice_workflow.tts_t2v`
-  - 单向派生自 `K-MMPROV-019`、`K-MMPROV-020`、`K-MCAT-013`、`K-MCAT-014`、`K-MCAT-021` 以及 local `speech` capability truth（含 `K-LOCAL-017`）。
+  - 单向派生自 source-authored workflow `request_options` + `K-MMPROV-019`、`K-MMPROV-020`、`K-MCAT-013`、`K-MCAT-014`、`K-MCAT-021` 以及 local `speech` capability truth（含 `K-LOCAL-017`）。
 - `audio.synthesize`
   - 单向派生自 source-authored `voice.request_options` + resolved model `audio.synthesize` catalog truth。
 - `audio.transcribe`
@@ -523,6 +526,7 @@ Phase 1 未在本规则列出的 capability，不得借由自由对象、provide
 - 缺失本规则要求的 typed field、discriminator、枚举值，或字段类型非法
 - producer 无法从 runtime truth 导出 Phase 1 要求的 metadata 最小集
 - workflow binding / synthesis binding compatibility 需要显式证明但未能解析
+- workflow metadata 只能通过 `input_contract_ref` naming、runtime hardcoded allowlist、或 app-local heuristic 才能推断
 
 fail-close 时不得：
 
@@ -546,11 +550,12 @@ fail-close 时不得：
 - `resolve(...)` 对 workflow capability 必须解析 workflow model binding；当 binding matrix 要求目标 synthesis model 时，还必须显式解析 compatibility，而不是继承 `audio.synthesize` 的任意 route。
 - `checkHealth(...)` 对 workflow capability 必须检查 workflow driver/readiness；当 `requiresTargetSynthesisBinding=true` 时，还必须把目标 synthesis binding readiness 作为同一路径的组成条件。
 - `describe(...)` 对 workflow capability 只返回 workflow metadata；不得返回 `audio.synthesize` 的 voice list/synthesis metadata 代替。
+- workflow metadata 必须继续单向派生自 source-authored workflow metadata；不得借用 plain `audio.synthesize` / `audio.transcribe` metadata，亦不得因 provider/engine 共享同一 `speech` host 就推断 workflow metadata 存在。
 - 任一 workflow capability 缺失独立 selection、resolution、health、或 metadata truth 时必须 fail-close，不得降级到 `audio.synthesize` 成功路径。
 - 对 local workflow execution admitted wave，workflow success 也必须保持 family-scoped：
-  - 首轮 admitted family 当前固定为 `voxcpm`
-  - `resolve(...)` / `checkHealth(...)` / `describe(...)` 对 `voxcpm` 的成功不得被解释为 generic local workflow success
-  - 其它 local workflow family（包括 `omnivoice`）在未独立 admitted 前必须继续 fail-close
+  - 首轮 admitted family 当前固定为 `qwen3_tts`
+  - `resolve(...)` / `checkHealth(...)` / `describe(...)` 对 `qwen3_tts` 的成功不得被解释为 generic local workflow success
+  - 其它 local workflow family（包括 `voxcpm`、`omnivoice`）在未独立 admitted 前必须继续 fail-close
 
 ## K-RPC-022 VoiceAsset Lifecycle Boundary
 

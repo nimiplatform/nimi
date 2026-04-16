@@ -68,13 +68,13 @@
 | `ListUsageStats` | RuntimeAuditService | 是（K-PAGE-005） | bucket_start DESC | app_id, subject_user_id, caller_kind, caller_id, capability, model_id | K-AUDIT-008 |
 | `ListAIProviderHealth` | RuntimeAuditService | 否（全量返回） | provider_name ASC | — | K-AUDIT-013 |
 | `ListModels` | RuntimeModelService | 是（K-PAGE-005） | model_id ASC | status_filter | K-MODEL-004 |
-| `ListKnowledgeBanks` | RuntimeKnowledgeService | 是（K-PAGE-005） | scope ASC, bank_id ASC | scope_filter, app_id, workspace_id | K-KNOW-005 |
-| `ListPages` | RuntimeKnowledgeService | 是（K-PAGE-005） | updated_at DESC, page_id ASC | bank_id（必填）, entity_type, slug_prefix | K-KNOW-005 |
-| `SearchHybrid` | RuntimeKnowledgeService | 是（K-PAGE-005） | score DESC, page_id ASC | bank_id（必填）, query（必填）, entity_type | K-KNOW-005 |
-| `ListLinks` | RuntimeKnowledgeService | 是（K-PAGE-005） | updated_at DESC, link_id ASC | bank_id（必填）, from_page_id（必填）, link_type | K-KNOW-005 |
-| `ListBacklinks` | RuntimeKnowledgeService | 是（K-PAGE-005） | updated_at DESC, link_id ASC | bank_id（必填）, to_page_id（必填）, link_type | K-KNOW-005 |
-| `TraverseGraph` | RuntimeKnowledgeService | 是（K-PAGE-005） | depth ASC, page_id ASC | bank_id（必填）, root_page_id（必填）, link_type, max_depth | K-KNOW-005 |
-| `ListBanks` | RuntimeMemoryService | 是（K-PAGE-005） | scope ASC, bank_id ASC | scope_filter, app_id, workspace_id, agent_id, world_id | K-MEM-002/K-MEM-006 |
+| `ListKnowledgeBanks` | RuntimeCognitionService | 是（K-PAGE-005） | scope ASC, bank_id ASC | scope_filter, app_id, workspace_id | K-KNOW-005 |
+| `ListPages` | RuntimeCognitionService | 是（K-PAGE-005） | updated_at DESC, page_id ASC | bank_id（必填）, entity_type, slug_prefix | K-KNOW-005 |
+| `SearchHybrid` | RuntimeCognitionService | 是（K-PAGE-005） | score DESC, page_id ASC | bank_id（必填）, query（必填）, entity_type | K-KNOW-005 |
+| `ListLinks` | RuntimeCognitionService | 是（K-PAGE-005） | updated_at DESC, link_id ASC | bank_id（必填）, from_page_id（必填）, link_type | K-KNOW-005 |
+| `ListBacklinks` | RuntimeCognitionService | 是（K-PAGE-005） | updated_at DESC, link_id ASC | bank_id（必填）, to_page_id（必填）, link_type | K-KNOW-005 |
+| `TraverseGraph` | RuntimeCognitionService | 是（K-PAGE-005） | depth ASC, page_id ASC | bank_id（必填）, root_page_id（必填）, link_type, max_depth | K-KNOW-005 |
+| `ListBanks` | RuntimeCognitionService | 是（K-PAGE-005） | scope ASC, bank_id ASC | scope_filter, app_id, workspace_id, agent_id, world_id | K-MEM-002/K-MEM-006 |
 | `ListAgents` | RuntimeAgentCoreService | 是（K-PAGE-005） | created_at DESC, agent_id ASC | lifecycle_status, autonomy_enabled | K-AGCORE-006 |
 | `ListPendingHooks` | RuntimeAgentCoreService | 是（K-PAGE-005） | scheduled_for ASC, hook_id ASC | agent_id（必填）, trigger_filter, status_filter | K-AGCORE-003/K-AGCORE-006 |
 | `SearchCatalogModels` | RuntimeLocalService | 是（K-PAGE-005） | verified DESC, title ASC（K-LOCAL-021） | query（必填）, category_filter, engine_filter | K-LOCAL-030 |

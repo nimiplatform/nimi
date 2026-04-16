@@ -16,7 +16,8 @@ It owns:
 - agent memory policy
 - agent event emission
 
-It consumes `RuntimeMemoryService` and must not be collapsed into a memory engine.
+It consumes `RuntimeCognitionService` plus retained runtime-private memory depth
+and must not be collapsed into a cognition or memory engine.
 
 ## K-AGCORE-002 Chat Track / Life Track Split
 
@@ -62,7 +63,9 @@ Fixed rules:
 
 - canonical classes continue to align to Realm `PUBLIC_SHARED`, `WORLD_SHARED`, and `DYADIC`
 - infra scopes wider than canonical classes must not be reinterpreted as canonical memory by apps
-- `RuntimeMemoryService` stores and recalls memory; `RuntimeAgentCoreService` owns semantic admission
+- `RuntimeCognitionService` serves the runtime-facing overlap slice, while
+  retained runtime-private memory depth stores canonical truth; in both cases
+  `RuntimeAgentCoreService` owns semantic admission
 
 ## K-AGCORE-005 App Consumer Boundary
 
@@ -138,7 +141,10 @@ Fixed rules:
 
 Fixed rules:
 
-- agent initialization requires runtime-owned local prerequisites to be available; if Agent Core cannot rely on Memory Service or required local substrate, the call must fail with `UNAVAILABLE`
+- agent initialization requires runtime-owned local prerequisites to be
+  available; if Agent Core cannot rely on `RuntimeCognitionService`, retained
+  runtime-private memory depth, or the required local substrate, the call must
+  fail with `UNAVAILABLE`
 - the required local memory substrate boundary referenced here is the runtime-private contract in `K-MEMSUB-*`, not a public local-engine target
 - Realm replication unavailability does not authorize pseudo-success; initialization may proceed only when local bootstrap truth is sufficient and pending replication remains observable
 - Life Track model failure, memory write failure, or scheduler admission failure must produce an observable agent event or reasoned rejection
@@ -223,7 +229,8 @@ Fixed rules:
 
 ## K-AGCORE-014 Replication Event Projection Source
 
-`RuntimeAgentCoreService` must project replication events from the committed `RuntimeMemoryService` replication update source.
+`RuntimeAgentCoreService` must project replication events from the committed
+retained runtime-private memory replication update source.
 
 Fixed rules:
 
@@ -278,7 +285,8 @@ It does not own:
 Fixed rules:
 
 - canonical review for `AGENT_CORE`, `AGENT_DYADIC`, and admitted `WORLD_SHARED` scopes must execute through an Agent Core owned runtime-private review path
-- public `RuntimeMemoryService.Reflect` must not become the canonical review scheduler by implication
+- retired public `Reflect` semantics on the runtime cognition cutover path must
+  not be reintroduced as the canonical review scheduler by implication
 - canonical review must use a dedicated runtime-private review executor contract rather than extending the admitted `Life Turn` result contract
 - admitted review output is limited to narrative candidates, truth candidates, optional relation candidates, summary, token usage, and review-window metadata
 - extracting review storage mechanics into a runtime-owned internal memory library does not transfer review ownership, scheduling, admission policy, or recovery semantics away from Agent Core
@@ -298,18 +306,24 @@ Fixed rules:
 
 ## K-AGCORE-018 Runtime-Private Canonical Truth Read Boundary
 
-`RuntimeAgentCoreService` must consume admitted truth and review-input data through a runtime-private typed read boundary provided by `RuntimeMemoryService`.
+`RuntimeAgentCoreService` must consume admitted truth and review-input data
+through a runtime-private typed read boundary provided by retained
+runtime-private memory depth.
 
 Fixed rules:
 
 - Agent Core must not read admitted truths, narrative context, canonical review inputs, or review checkpoints by direct database access
 - runtime-private truth read surfaces must return typed runtime contract data rather than raw store rows or provider-native blobs
-- Agent Core must continue to consume this boundary through the Memory Service owned facade even if the underlying mechanics are implemented by a runtime-owned internal library
+- Agent Core must continue to consume this boundary through the retained
+  runtime-private memory facade even if the underlying mechanics are implemented
+  by a runtime-owned internal library
 - prompt assembly may inject admitted truths and narrative context from this runtime-private read path, but that does not create a public truth API
 
 ## K-AGCORE-019 Canonical Review Coordination Model
 
-`RuntimeAgentCoreService` owns cross-owner coordination for canonical review runs, while `RuntimeMemoryService` owns atomic persistence of Memory Service state.
+`RuntimeAgentCoreService` owns cross-owner coordination for canonical review
+runs, while retained runtime-private memory depth owns atomic persistence of
+memory state.
 
 Fixed rules:
 
@@ -347,7 +361,7 @@ It owns:
 It does not own:
 
 - direct persistence of raw chat transcript as canonical memory truth
-- `RuntimeMemoryService` retain mechanics or downstream dedup storage behavior
+- retained runtime-private memory dedup mechanics or downstream storage behavior
 - truth-level supersession once conflicting durable memory has already been
   committed across separate windows
 

@@ -8,21 +8,21 @@ boundaries:
     source_rule: C-COG-033
   - concern_id: runtime_bank_lifecycle
     cognition_owner: none
-    runtime_owner: full
-    admitted_bridge: cognition_may_export_artifacts_only_through_explicit_adapter_logic
+    runtime_owner: retained_runtime_private_memory_depth
+    admitted_bridge: runtime_cognition_service_may_consume_bank_truth_only_through_explicit_runtime_private_adapter_logic
     forbidden_owner_inversion: cognition_must_not_claim_runtime_bank_or_replication_truth
     source_rule: C-COG-033
   - concern_id: local_memory_artifacts
     cognition_owner: standalone_local_cognition
-    runtime_owner: runtime_operational_memory
-    admitted_bridge: overlap_requires_explicit_mapping_and_no_semantic_downgrade
-    forbidden_owner_inversion: silent_shared_owner_or_low_strength_clone_not_admitted
+    runtime_owner: runtime_cognition_service_for_public_overlap_plus_retained_runtime_private_memory_depth_for_bank_provider_review_replication_truth
+    admitted_bridge: overlap_requires_explicit_mapping_no_semantic_downgrade_and_no_dual_runtime_owner
+    forbidden_owner_inversion: silent_shared_owner_low_strength_clone_or_reopened_runtime_memory_service_topology_not_admitted
     source_rule: C-COG-033
   - concern_id: local_knowledge_projections
     cognition_owner: standalone_local_cognition
-    runtime_owner: runtime_local_knowledge_service
-    admitted_bridge: overlap_requires_explicit_mapping_and_no_semantic_downgrade
-    forbidden_owner_inversion: runtime_must_not_continue_owning_cognition_projection_truth
+    runtime_owner: runtime_cognition_service_for_public_overlap
+    admitted_bridge: overlap_requires_explicit_mapping_no_semantic_downgrade_and_no_reopened_runtime_knowledge_service_topology
+    forbidden_owner_inversion: runtime_must_not_continue_owning_cognition_projection_truth_through_a_second_service_owner
     source_rule: C-COG-033
   - concern_id: working_state
     cognition_owner: full
@@ -44,7 +44,7 @@ boundaries:
     source_rule: C-COG-033
   - concern_id: replication_review_provider
     cognition_owner: none
-    runtime_owner: full
+    runtime_owner: retained_runtime_private_depth
     admitted_bridge: cognition_may_ignore_runtime_only_truth_without_losing_validity
     forbidden_owner_inversion: cognition_must_not_require_runtime_replication_review_or_provider_truth_to_be_complete
     source_rule: C-COG-033

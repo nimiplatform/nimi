@@ -117,6 +117,12 @@ rules:
   - rule_id: P-DESIGN-021
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
+  - rule_id: P-DESIGN-022
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift]
+  - rule_id: P-DESIGN-023
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift]
   - rule_id: P-DESIGN-090
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]

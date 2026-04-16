@@ -14,6 +14,10 @@ Fixed rules:
 - every matrix row must declare runtime source contract, runtime capability,
   cognition owner surface, parity mode, required floor, admitted shape, and
   forbidden downgrade
+- runtime source contracts may point either to the absorbed
+  `RuntimeCognitionService` authority now recorded under `K-MEM-*` / `K-KNOW-*`
+  or to explicit retained runtime-private depth when that deeper floor remains
+  outside the public replacement topology
 - upgrade-matrix rows govern capability closure, not package similarity or
   terminology reuse
 - if a runtime overlap concern is missing from the matrix, cognition must not
@@ -28,6 +32,8 @@ Fixed rules:
 
 - standalone-native API naming is admitted only when each overlapping runtime
   concern remains explicitly mapped to an equal-or-stronger cognition surface
+- runtime topology replacement does not permit the matrix to hide retained
+  runtime-private depth behind a vague "future cleanup" story
 - `parity` means cognition preserves runtime semantic floor without weakening
   fail-closed behavior
 - `upgrade` means cognition strengthens the runtime concern while still making

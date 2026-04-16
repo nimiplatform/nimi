@@ -158,6 +158,13 @@ DashScope published voices for these models MUST be represented in `runtime/cata
 - `target_model_refs`
 - `langs_ref`
 
+若 `request_options.provider_extensions` 被声明，它只承载 extension
+namespace/schema identity，用于 route describe / consumer-facing metadata
+identity 投影。workflow extension 的具体 transport override key allowlist
+（例如 endpoint/header/path 覆写键）不得在 source catalog 中升格为
+canonical truth；若未来需要 source-authored key truth，必须另起 authority
+cut。
+
 ## K-MCAT-014 Binding Matrix Contract
 
 `model_workflow_bindings` 必须声明创建模型与合成模型兼容矩阵，禁止 provider 端隐式兼容关系。
@@ -168,9 +175,9 @@ DashScope published voices for these models MUST be represented in `runtime/cata
 - 若 binding truth 要求 target synthesis model，则 runtime `resolve / describe / checkHealth` 都必须显式消费该矩阵
 - local/cloud 跨 plane 复用默认不成立；若要 admitted，必须由 authority 显式声明，而不是由 runtime/SDK/Desktop 猜测
 - 当 local workflow execution 进入 first-family admission 时，binding truth 仍必须保持 family-scoped，而不是 generic `local speech` scoped：
-  - 首轮 admitted family 当前固定为 `voxcpm`
-  - 其 target synthesis binding 固定收敛到 `speech/voxcpm2`
-  - 其它 local workflow family（例如 `omnivoice`）不得因为共享 `speech` engine 或共享 workflow object truth 而被隐式视为 admitted
+  - 首轮 admitted family 当前固定为 `qwen3_tts`
+  - 其 workflow binding 固定收敛到 admitted `Qwen3-TTS` synth/workflow line，而不是 generic `speech`
+  - 其它 local workflow family（包括 `voxcpm`、`omnivoice`）不得因为共享 `speech` engine 或共享 workflow object truth 而被隐式视为 admitted
 
 ## K-MCAT-015 Dual Language Profile
 
@@ -371,3 +378,31 @@ source provider SSOT 可以声明两类受控扩展 truth：
 - `voice.request_options` 只能出现在 `audio.synthesize` model 上
 - `transcription` 只能出现在 `audio.transcribe` model 上
 - runtime route describe metadata 只能单向派生自这些 source-authored fields，不得由 Desktop/SDK/provider live probing 生成第二份语义真相
+
+## K-MCAT-031 First-Wave Local Qwen Speech Freeze
+
+first-wave local live chat voice bundle 的 source/catalog freeze 固定如下：
+
+- default local `STT` lane:
+  - `Qwen3-ASR-0.6B`
+- optional premium `STT` candidate:
+  - `Qwen3-ASR-1.7B`
+  - 但在独立 premium admission 前继续保持 deferred，不得自动视为已 admitted
+- default local plain synth lane:
+  - `Qwen3-TTS-12Hz-0.6B-CustomVoice`
+- default local clone workflow lane:
+  - `Qwen3-TTS-12Hz-0.6B-Base`
+- default local design workflow lane:
+  - `Qwen3-TTS-12Hz-1.7B-VoiceDesign`
+
+约束：
+
+- 上述 freeze 是 first-wave admitted default mapping，而不是 generic `Qwen3`
+  family 自动覆盖规则
+- local source/snapshot/binding truth 必须显式表达 plain synth / clone /
+  design 三者的 subrole，不得只写成一个模糊的 `qwen3-tts` bucket
+- first-wave local install/bootstrap truth 必须显式允许 split env topology：
+  `Qwen3-TTS` synth/workflow line 与 `Qwen3-ASR` line 不得被隐式压成一个 shared
+  canonical Python env
+- cloud plain `TTS` 是否同步迁移到 `qwen3-tts-*` 不属于本规则自动推出的结果；
+  若要调整，必须由独立 reviewed source/default truth 显式声明

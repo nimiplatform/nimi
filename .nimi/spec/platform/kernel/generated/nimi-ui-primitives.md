@@ -4,7 +4,7 @@
 > Source: `.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml`
 | Primitive ID | Family | Component | Slots | Class Groups | Source |
 |---|---|---|---|---|---|
-| `primitive.surface` | `surface` | `Surface` | `root` | `tone`, `elevation`, `state` | `P-DESIGN-011` |
+| `primitive.surface` | `surface` | `Surface` | `root` | `tone`, `elevation`, `state`, `material` | `P-DESIGN-011` |
 | `primitive.action` | `action` | `Button` | `root`, `leadingIcon`, `trailingIcon`, `icon` | `tone`, `size`, `modifier`, `state`, `compound` | `P-DESIGN-012` |
 | `primitive.icon_action` | `action` | `IconButton` |  |  | `P-DESIGN-012` |
 | `primitive.overlay` | `overlay` | `OverlayShell` | `backdrop`, `panel`, `title`, `content`, `footer`, `tooltipLayer`, `tooltipBubble` | `kind_backdrop`, `kind_panel` | `P-DESIGN-013` |
@@ -16,3 +16,4 @@
 | `primitive.toggle` | `toggle` | `Toggle` | `root`, `thumb` | `state`, `compound` | `P-DESIGN-010` |
 | `primitive.select_field` | `field` | `SelectField` | `root`, `select`, `chevron` |  | `P-DESIGN-015` |
 | `primitive.avatar` | `avatar` | `Avatar` | `root`, `image`, `fallback` | `size`, `shape`, `tone` | `P-DESIGN-010` |
+| `primitive.ambient_background` | `surface` | `AmbientBackground` | `root`, `mesh_layer`, `minimal_layer`, `halo` | `variant` | `P-DESIGN-023` |

@@ -1096,3 +1096,163 @@ tokens:
     primitive_family: toggle
     source_rule: P-DESIGN-010
     theme_layer: foundation
+  - id: material.glass_regular.bg
+    category: material
+    semantic_name: Glass regular background
+    css_var: --nimi-material-glass-regular-bg
+    ts_token: glassRegularBg
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: material.glass_regular.border
+    category: material
+    semantic_name: Glass regular border
+    css_var: --nimi-material-glass-regular-border
+    ts_token: glassRegularBorder
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: material.glass_thick.bg
+    category: material
+    semantic_name: Glass thick background
+    css_var: --nimi-material-glass-thick-bg
+    ts_token: glassThickBg
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: material.glass_thick.border
+    category: material
+    semantic_name: Glass thick border
+    css_var: --nimi-material-glass-thick-border
+    ts_token: glassThickBorder
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: backdrop.blur_regular
+    category: backdrop
+    semantic_name: Backdrop blur regular
+    css_var: --nimi-backdrop-blur-regular
+    ts_token: blurRegular
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: backdrop.blur_strong
+    category: backdrop
+    semantic_name: Backdrop blur strong
+    css_var: --nimi-backdrop-blur-strong
+    ts_token: blurStrong
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: ambient.mesh.color_1
+    category: ambient
+    semantic_name: Ambient mesh color slot 1
+    css_var: --nimi-ambient-mesh-color-1
+    ts_token: meshColor1
+    primitive_family: surface
+    source_rule: P-DESIGN-023
+    theme_layer: foundation
+  - id: ambient.mesh.color_2
+    category: ambient
+    semantic_name: Ambient mesh color slot 2
+    css_var: --nimi-ambient-mesh-color-2
+    ts_token: meshColor2
+    primitive_family: surface
+    source_rule: P-DESIGN-023
+    theme_layer: foundation
+  - id: ambient.mesh.color_3
+    category: ambient
+    semantic_name: Ambient mesh color slot 3
+    css_var: --nimi-ambient-mesh-color-3
+    ts_token: meshColor3
+    primitive_family: surface
+    source_rule: P-DESIGN-023
+    theme_layer: foundation
+  - id: ambient.mesh.color_4
+    category: ambient
+    semantic_name: Ambient mesh color slot 4
+    css_var: --nimi-ambient-mesh-color-4
+    ts_token: meshColor4
+    primitive_family: surface
+    source_rule: P-DESIGN-023
+    theme_layer: foundation
+  - id: ambient.mesh.base_start
+    category: ambient
+    semantic_name: Ambient mesh base gradient start
+    css_var: --nimi-ambient-mesh-base-start
+    ts_token: meshBaseStart
+    primitive_family: surface
+    source_rule: P-DESIGN-023
+    theme_layer: foundation
+  - id: ambient.mesh.base_end
+    category: ambient
+    semantic_name: Ambient mesh base gradient end
+    css_var: --nimi-ambient-mesh-base-end
+    ts_token: meshBaseEnd
+    primitive_family: surface
+    source_rule: P-DESIGN-023
+    theme_layer: foundation
+  - id: typography.body.cjk_line_height
+    category: typography
+    semantic_name: Body CJK line height
+    css_var: --nimi-type-body-cjk-line-height
+    ts_token: bodyCjkLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body.cjk_letter_spacing
+    category: typography
+    semantic_name: Body CJK letter spacing
+    css_var: --nimi-type-body-cjk-letter-spacing
+    ts_token: bodyCjkLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body_sm.cjk_line_height
+    category: typography
+    semantic_name: Body small CJK line height
+    css_var: --nimi-type-body-sm-cjk-line-height
+    ts_token: bodySmCjkLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body_sm.cjk_letter_spacing
+    category: typography
+    semantic_name: Body small CJK letter spacing
+    css_var: --nimi-type-body-sm-cjk-letter-spacing
+    ts_token: bodySmCjkLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.caption.cjk_line_height
+    category: typography
+    semantic_name: Caption CJK line height
+    css_var: --nimi-type-caption-cjk-line-height
+    ts_token: captionCjkLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.label.cjk_line_height
+    category: typography
+    semantic_name: Label CJK line height
+    css_var: --nimi-type-label-cjk-line-height
+    ts_token: labelCjkLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.page_title.cjk_letter_spacing
+    category: typography
+    semantic_name: Page title CJK letter spacing
+    css_var: --nimi-type-page-title-cjk-letter-spacing
+    ts_token: pageTitleCjkLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.section_title.cjk_line_height
+    category: typography
+    semantic_name: Section title CJK line height
+    css_var: --nimi-type-section-title-cjk-line-height
+    ts_token: sectionTitleCjkLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation

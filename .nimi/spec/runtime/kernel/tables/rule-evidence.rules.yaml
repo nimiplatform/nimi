@@ -821,6 +821,9 @@
 - rule_id: K-MCAT-030
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_catalog_drift, runtime_selection_freshness]
+- rule_id: K-MCAT-031
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_catalog_drift]
 - rule_id: K-MODEL-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
@@ -1362,14 +1365,10 @@
 - rule_id: K-AGCORE-026
   status: covered
   evidence_refs: [runtime_kernel_consistency]
-# Runtime RPC additions for memory and agent core
 - rule_id: K-RPC-004a
   status: deferred
   evidence_refs: []
 - rule_id: K-RPC-004b
-  status: deferred
-  evidence_refs: []
-- rule_id: K-RPC-004c
   status: deferred
   evidence_refs: []
 # Scheduling five-state judgement (K-SCHED-*)

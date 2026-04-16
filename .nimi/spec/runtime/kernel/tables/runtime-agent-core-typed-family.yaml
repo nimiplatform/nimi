@@ -15,7 +15,7 @@ families:
   - family: CANONICAL_MEMORY_VIEW
     source_rule: K-AGCORE-006
     mutable_by_app: false
-    description: Typed agent-facing recall/result family projected from RuntimeMemoryService into Agent Core reads.
+    description: Typed agent-facing recall/result family projected from retained runtime-private memory depth into Agent Core reads.
   - family: CONSTRAINED_STATE_MUTATION
     source_rule: K-AGCORE-006
     mutable_by_app: true

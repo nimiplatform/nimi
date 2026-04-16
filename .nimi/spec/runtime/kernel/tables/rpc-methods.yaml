@@ -219,9 +219,27 @@ services:
         type: unary
       - name: CheckModelHealth
         type: unary
-  - name: RuntimeKnowledgeService
-    source_rule: K-KNOW-003
+  - name: RuntimeCognitionService
+    source_rule: K-RPC-004a
     methods:
+      - name: CreateBank
+        type: unary
+      - name: GetBank
+        type: unary
+      - name: ListBanks
+        type: unary
+      - name: DeleteBank
+        type: unary
+      - name: Retain
+        type: unary
+      - name: Recall
+        type: unary
+      - name: History
+        type: unary
+      - name: DeleteMemory
+        type: unary
+      - name: SubscribeMemoryEvents
+        type: server_stream
       - name: CreateKnowledgeBank
         type: unary
       - name: GetKnowledgeBank
@@ -262,29 +280,6 @@ services:
       - name: SendAppMessage
         type: unary
       - name: SubscribeAppMessages
-        type: server_stream
-  - name: RuntimeMemoryService
-    source_rule: K-RPC-004a
-    methods:
-      - name: CreateBank
-        type: unary
-      - name: GetBank
-        type: unary
-      - name: ListBanks
-        type: unary
-      - name: DeleteBank
-        type: unary
-      - name: Retain
-        type: unary
-      - name: Recall
-        type: unary
-      - name: History
-        type: unary
-      - name: Reflect
-        type: unary
-      - name: DeleteMemory
-        type: unary
-      - name: SubscribeMemoryEvents
         type: server_stream
   - name: RuntimeAgentCoreService
     source_rule: K-RPC-004b

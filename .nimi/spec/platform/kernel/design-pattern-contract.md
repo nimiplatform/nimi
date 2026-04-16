@@ -4,7 +4,7 @@
 
 ## P-DESIGN-001 — Foundation Authority
 
-- The Nimi design pattern is the single authoritative source for shared visual and interaction contracts across `desktop`, `forge`, `relay`, and `overtone`.
+- The Nimi design pattern is the single authoritative source for shared visual and interaction contracts across `desktop`, `forge`, `relay`, `overtone`, and `parentos`.
 - Cross-app design authority must live in `.nimi/spec/platform/kernel/design-pattern-contract.md` and the structured fact sources under `.nimi/spec/platform/kernel/tables/`.
 - App-local design prose may describe art direction, but must not redefine shared primitive families, token taxonomies, or governance rules.
 
@@ -18,7 +18,7 @@
 ## P-DESIGN-003 — Semantic Token Taxonomy
 
 - Shared semantic tokens must be declared in `tables/nimi-ui-tokens.yaml`.
-- Required token categories are `surface`, `text`, `action`, `overlay`, `sidebar`, `field`, `status`, `radius`, `spacing`, `typography`, `stroke`, `elevation`, `motion`, `z`, `sizing`, `border`, `opacity`, `focus`, `scrollbar`, and `toggle`.
+- Required token categories are `surface`, `text`, `action`, `overlay`, `sidebar`, `field`, `status`, `radius`, `spacing`, `typography`, `stroke`, `elevation`, `motion`, `z`, `sizing`, `border`, `opacity`, `focus`, `scrollbar`, `toggle`, `material`, `backdrop`, and `ambient`.
 - Semantic tokens must declare whether they are `foundation` or `accent` layer tokens.
 - Theme pack values must be declared in `tables/nimi-ui-themes.yaml`; app code must not invent parallel token registries for governed surfaces.
 
@@ -123,6 +123,24 @@
   - `desktop world-detail`
   - Overtone waveform / transport-bar signature visualization surfaces
 - Controlled exceptions must still consume shared semantic tokens and may not define an independent token system.
+
+## P-DESIGN-022 — Material Layering Contract
+
+- Material is an axis orthogonal to the surface `tone` family declared in P-DESIGN-011. Governed surfaces that are not `solid` must declare both a tone and a material.
+- Allowed materials are `solid`, `glass-regular`, and `glass-thick`. `solid` is the default and preserves backwards compatibility for surfaces that do not declare a material.
+- `glass-regular` and `glass-thick` must resolve background fill, border color, and backdrop-filter blur strength through semantic `material.*` and `backdrop.*` tokens declared in `tables/nimi-ui-tokens.yaml`. Governed modules must not inline `rgba(...)` material values or inline `backdrop-filter` declarations.
+- Material tokens are `foundation`-layer tokens. Every `material.*` and `backdrop.*` token must declare both light and dark values in `tables/nimi-ui-themes.yaml`.
+- Material tokens must stay neutral. Accent expression is delivered through accent packs per P-DESIGN-002 and must not be welded into material values.
+- Governed modules that consume a glass material must provide a `@supports not (backdrop-filter: blur(1px))` fallback that preserves legibility without requiring backdrop-filter, and must honor the `prefers-reduced-transparency` media feature by downgrading to a `solid` material.
+
+## P-DESIGN-023 — Ambient Background Contract
+
+- Ambient backgrounds are first-class governed surfaces, not decorative absolute-positioned elements authored per app.
+- Allowed ambient variants are `mesh`, `minimal`, and `none`. `none` is the default and imposes no ambient treatment.
+- `mesh` composes a radial-gradient aurora field plus soft blurred color halos. Its color slots and radii must resolve through `ambient.*` tokens declared in `tables/nimi-ui-tokens.yaml`; governed modules must not inline raw gradient stacks or hex halo colors.
+- Ambient color-slot tokens are `foundation`-layer tokens with neutral defaults in the shared light and dark schemes. Accent packs may override any ambient slot to express product identity without changing the composition structure; overrides remain opt-in and must not remove the foundation default.
+- Every `ambient.*` token must declare both light and dark values in `tables/nimi-ui-themes.yaml`.
+- Governed modules that render ambient `mesh` must honor `prefers-reduced-motion` by disabling halo animation and must honor `prefers-reduced-transparency` by falling back to `minimal` or `none`.
 
 ## P-DESIGN-090 — Nimi Design Hard Gate
 

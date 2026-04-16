@@ -7,6 +7,7 @@ packs:
       - forge
       - relay
       - overtone
+      - parentos
     source_rule: P-DESIGN-002
     values:
       surface.app_background: "#f5f7fa"
@@ -137,6 +138,26 @@ packs:
       scrollbar.radius: "999px"
       scrollbar.size: "8px"
       toggle.off_bg: "#d1d5db"
+      material.glass_regular.bg: "rgba(255,255,255,0.45)"
+      material.glass_regular.border: "rgba(226,232,240,0.30)"
+      material.glass_thick.bg: "rgba(255,255,255,0.70)"
+      material.glass_thick.border: "rgba(226,232,240,0.40)"
+      backdrop.blur_regular: "24px"
+      backdrop.blur_strong: "32px"
+      ambient.mesh.color_1: "rgba(191,219,254,0.45)"
+      ambient.mesh.color_2: "rgba(221,214,254,0.30)"
+      ambient.mesh.color_3: "rgba(252,231,243,0.35)"
+      ambient.mesh.color_4: "rgba(167,243,208,0.20)"
+      ambient.mesh.base_start: "#f8fafc"
+      ambient.mesh.base_end: "#f1f5f9"
+      typography.body.cjk_line_height: "1.7"
+      typography.body.cjk_letter_spacing: "0.02em"
+      typography.body_sm.cjk_line_height: "1.6"
+      typography.body_sm.cjk_letter_spacing: "0.01em"
+      typography.caption.cjk_line_height: "1.5"
+      typography.label.cjk_line_height: "1.4"
+      typography.page_title.cjk_letter_spacing: "-0.01em"
+      typography.section_title.cjk_line_height: "1.35"
   - theme_id: nimi-dark
     pack_kind: foundation
     applies_to_apps:
@@ -144,6 +165,7 @@ packs:
       - forge
       - relay
       - overtone
+      - parentos
     source_rule: P-DESIGN-002
     values:
       surface.app_background: "#081019"
@@ -274,6 +296,26 @@ packs:
       scrollbar.radius: "999px"
       scrollbar.size: "8px"
       toggle.off_bg: "#4b5563"
+      material.glass_regular.bg: "rgba(15,23,42,0.45)"
+      material.glass_regular.border: "rgba(51,65,85,0.30)"
+      material.glass_thick.bg: "rgba(15,23,42,0.70)"
+      material.glass_thick.border: "rgba(51,65,85,0.40)"
+      backdrop.blur_regular: "24px"
+      backdrop.blur_strong: "32px"
+      ambient.mesh.color_1: "rgba(30,64,124,0.35)"
+      ambient.mesh.color_2: "rgba(76,29,149,0.28)"
+      ambient.mesh.color_3: "rgba(131,24,67,0.28)"
+      ambient.mesh.color_4: "rgba(6,78,59,0.24)"
+      ambient.mesh.base_start: "#0f172a"
+      ambient.mesh.base_end: "#020617"
+      typography.body.cjk_line_height: "1.7"
+      typography.body.cjk_letter_spacing: "0.02em"
+      typography.body_sm.cjk_line_height: "1.6"
+      typography.body_sm.cjk_letter_spacing: "0.01em"
+      typography.caption.cjk_line_height: "1.5"
+      typography.label.cjk_line_height: "1.4"
+      typography.page_title.cjk_letter_spacing: "-0.01em"
+      typography.section_title.cjk_line_height: "1.35"
   - theme_id: desktop-accent
     pack_kind: accent
     applies_to_apps:

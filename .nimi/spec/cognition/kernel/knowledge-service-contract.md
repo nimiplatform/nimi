@@ -65,5 +65,8 @@ Fixed rules:
   replication, workflow-service truth, or Agent Core admission
 - relation integrity and ingest progress remain cognition-owned only for the
   standalone local projection path
+- runtime-facing republication of overlapping knowledge semantics must route
+  through `RuntimeCognitionService`; retired `RuntimeKnowledgeService` topology
+  must not be restored as the future steady state
 - same-scope local graph ownership does not authorize cognition to absorb
   runtime shared citation or runtime review semantics

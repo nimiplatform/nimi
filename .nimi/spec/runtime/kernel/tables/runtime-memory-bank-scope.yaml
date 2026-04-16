@@ -27,11 +27,11 @@ scopes:
     direct_app_access: true
     public_bank_create_allowed: true
     canonical_agent_scope: false
-    description: App-owned private memory bank accessible through RuntimeMemoryService.
+    description: App-owned private memory bank accessible through RuntimeCognitionService.
   - scope: WORKSPACE_PRIVATE
     source_rule: K-MEM-002
     owner_kind: workspace
     direct_app_access: true
     public_bank_create_allowed: true
     canonical_agent_scope: false
-    description: Workspace-owned private memory bank accessible through RuntimeMemoryService.
+    description: Workspace-owned private memory bank accessible through RuntimeCognitionService.

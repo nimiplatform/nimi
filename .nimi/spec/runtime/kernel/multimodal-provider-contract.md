@@ -64,7 +64,7 @@ local provider 的能力暴露必须与本地 engine/capability 合同一致。
 
 - runtime 到 `speech` engine 的私有协议必须直接承接 runtime canonical speech 与 voice workflow spec，不得伪装成 OpenAI-compatible TTS/STT workflow 成功语义。
 - `speech` engine 私有协议固定为：`GET /healthz`、`GET /v1/catalog`、`POST /v1/audio/transcriptions`、`POST /v1/audio/speech`、`POST /v1/voice/clone`、`POST /v1/voice/design`。
-- `speech` 只允许暴露真实 ready 的 STT/TTS/voice workflow 模型目录；缺失 `qwen3tts` 等 workflow bundle 时必须 fail-close。
+- `speech` 只允许暴露真实 ready 的 STT/TTS/voice workflow 模型目录；缺失 admitted `Qwen3-ASR` / `Qwen3-TTS` bundle 或 target workflow bundle 时必须 fail-close。
 - `speech` supervised host 必须显式区分 placeholder state 与 admitted plain-speech state：
   - placeholder state 下，`GET /healthz` 只回答 host 可达与 placeholder state；不得伪装 execution-plane ready。
   - admitted plain-speech state 下，`GET /healthz` 只有在 local plain-speech minimum admitted proof 成立后，才允许返回 `ready=true`。
@@ -72,12 +72,12 @@ local provider 的能力暴露必须与本地 engine/capability 合同一致。
 - 在 admitted local plain-speech execution plane 尚未 materialize 前，`POST /v1/audio/transcriptions` 与 `POST /v1/audio/speech` 必须继续 fail-close 为 plain-speech execution-plane unavailable，而不是 generic speech success 或 silent downgrade。
 - `speech` 的 public diagnostics / detail 不得暴露 raw request payload、runtime-private bootstrap path、或 raw probe URL；若需要更细原因字段，只允许进入 runtime-private detail / audit surface。
 - 在 local workflow execution plane 尚未 admitted 前，`/v1/voice/clone` 与 `/v1/voice/design` 必须明确返回 capability-not-admitted / fail-close 语义，而不是 generic speech success 或静默降级。
-- plain-speech admitted driver family（例如当前 `kokoro` / `whispercpp`）不得被隐式提升为 workflow-family admission truth；后续 workflow-capable local family（例如 `voxcpm` / `omnivoice`）若要 admitted，必须拥有独立的 workflow model / binding / handle policy truth。
+- plain-speech admitted driver family 不得被隐式提升为 workflow-family admission truth；后续 workflow-capable local family（包括历史讨论过的 `voxcpm`、`omnivoice`）若要 admitted，必须拥有独立的 workflow model / binding / handle policy truth。
 - workflow-capable TTS family 的成功结果不得替代 `audio.transcribe` 验收；speech 全链路成功必须继续保留独立 STT family truth。
 - 当 local workflow execution 进入 first-family admitted wave 时：
   - `/v1/voice/clone` 与 `/v1/voice/design` 只允许对 admitted family 返回成功
-  - 当前首轮 admitted family 边界固定为 `voxcpm`
-  - unsupported local workflow family（包括 `omnivoice`）必须继续返回 family-scoped fail-close，而不是 generic local speech success
+  - 当前首轮 admitted family 边界固定为 `qwen3_tts`
+  - unsupported local workflow family（包括 `voxcpm`、`omnivoice`）必须继续返回 family-scoped fail-close，而不是 generic local speech success
   - `GET /healthz` 与 `GET /v1/catalog` 仍不得把某一 admitted workflow family 的成功投影为 generic local workflow-ready
 
 ## K-MMPROV-011 Workflow External Async
@@ -165,6 +165,12 @@ Voice 工作流 canonical 输入字段（`tts_v2v` / `tts_t2v`）由 `multimodal
 对 `tts_v2v`，canonical 输入允许可选 `v2v.text`。当 provider 明确要求提供参考音频的 transcript / text 描述时，必须显式透传并在缺失时 fail-close；禁止 runtime 伪造 transcript。
 
 provider extension 若暴露 `base_url` 覆写入口，仅允许与当前 provider 基线 endpoint 保持同一 scheme、host 与 canonical base path。不得借由 same-origin 不同 path 的覆写把请求转发到管理端点、私有运维路径或其它非 voice workflow API 面。
+
+当前 workflow provider extension 中仅用于 transport / adapter routing 的键，
+包括 `api_key_header`、`base_url`、`headers`、`workflow_paths`、
+`clone_paths`、`design_paths`、`preview_paths`、`create_paths`，属于
+runtime-private validation / execution detail。它们不得被 source catalog、
+snapshot、或 app-facing route describe 升格为 canonical provider truth。
 
 ## K-MMPROV-020 Voice Workflow Fail-Close
 

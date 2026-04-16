@@ -198,6 +198,10 @@ Fixed rules:
 
 - runtime integration must be expressed as bridge / adapter / consumer behavior
 - runtime contracts may constrain how runtime-owned services interact with cognition, but not redefine cognition authority
+- when runtime republishes overlapping cognition-backed memory/knowledge
+  semantics, the only admitted runtime-facing owner surface is
+  `RuntimeCognitionService`; retired `RuntimeMemoryService` /
+  `RuntimeKnowledgeService` topology must not be restored as steady state
 - cognition must remain viable as a standalone project even when runtime is not present
 - any extracted runtime implementation that remains only valid with runtime-owned semantics is not admitted as completed cognition
 

@@ -289,6 +289,7 @@
 | `K-MCAT-028` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-029` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-030` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift`, `runtime_selection_freshness` |
+| `K-MCAT-031` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MODEL-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -470,7 +471,6 @@
 | `K-AGCORE-026` | `covered` | `runtime_kernel_consistency` |
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
-| `K-RPC-004c` | `deferred` | — |
 | `K-SCHED-001` | `deferred` | — |
 | `K-SCHED-002` | `deferred` | — |
 | `K-SCHED-003` | `deferred` | — |

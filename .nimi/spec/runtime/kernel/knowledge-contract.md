@@ -1,19 +1,24 @@
-# Knowledge Contract
+# Retired Runtime Knowledge Topology Contract
 
 > Owner Domain: `K-KNOW-*`
 
-## K-KNOW-001 RuntimeKnowledgeService Authority Home
+## K-KNOW-001 Retired RuntimeKnowledgeService Topology
 
-`RuntimeKnowledgeService` is the runtime-owned authority for **runtime-local
-knowledge banks and knowledge pages** in Wave 1.
+`RuntimeKnowledgeService` is retired as a future runtime-facing public service
+topology.
 
-Wave 1 owns:
+The runtime-facing knowledge projection slice is now absorbed into
+`RuntimeCognitionService`.
+
+This contract continues to define the semantic floor for the absorbed
+runtime-local knowledge projection family:
 
 - runtime-local knowledge bank lifecycle
 - runtime-local knowledge page lifecycle
-- keyword-based knowledge search
+- keyword and hybrid knowledge retrieval
+- same-bank relation and ingest semantics
 
-Wave 1 does not own:
+It still does not own:
 
 - Realm/shared knowledge truth
 - knowledge replication or sync backlog truth
@@ -43,9 +48,11 @@ Fixed rules:
 - illegal scope/owner combinations must fail close
 - page access inherits bank authorization; Wave 1 does not admit a separate page owner model
 
-## K-KNOW-003 RuntimeKnowledgeService Public Surface
+## K-KNOW-003 Superseded Knowledge Public Surface Baseline
 
-`RuntimeKnowledgeService` admits the following public operations:
+The following public operations are superseded as a standalone service topology
+and are now admitted only as the absorbed knowledge family on
+`RuntimeCognitionService`:
 
 1. `CreateKnowledgeBank`
 2. `GetKnowledgeBank`
@@ -67,7 +74,8 @@ Fixed rules:
 
 Fixed rules:
 
-- this Wave 1 local slice replaces the older design-first 3-method index draft as the admitted design authority
+- this absorbed knowledge slice replaces the older design-first 3-method index
+  draft as the admitted design authority
 - `CreateKnowledgeBank` / `DeleteKnowledgeBank` are admitted only for Wave 1 infra scopes
 - `PutPage` creates or updates one page inside one admitted bank
 - `DeletePage` is page-level delete; `DeleteKnowledgeBank` is bank-level delete
@@ -82,12 +90,14 @@ Fixed rules:
 - Wave 2C admits only single-document async ingest plus explicit task polling
 - `IngestDocument` accepts one runtime-local document payload and returns one ingest task rather than synchronously returning a page write result
 - `GetIngestTask` is the only admitted Wave 2C progress surface; Wave 2C does not admit ingest event streams or batch task lists
-- public proto, runtime implementation, CLI, and SDK method projection must stay aligned to this admitted surface
+- public proto, runtime implementation, CLI, and SDK projection must align to
+  this admitted surface through `RuntimeCognitionService`
 - legacy `BuildIndex` / `SearchIndex` / `DeleteIndex` names remain migration-only and must not be treated as stable public contract
 
 ## K-KNOW-004 SearchKeyword Semantics
 
-`SearchKeyword` is lexical / FTS-only in Wave 1.
+`SearchKeyword` remains lexical / FTS-only on the runtime-facing absorbed
+knowledge family.
 
 Fixed rules:
 
@@ -100,7 +110,8 @@ Fixed rules:
 
 ## K-KNOW-004a SearchHybrid Semantics
 
-`SearchHybrid` is a runtime-local Wave 2A retrieval-expansion surface.
+`SearchHybrid` remains a runtime-local retrieval-expansion surface on the
+absorbed knowledge family.
 
 Fixed rules:
 
@@ -114,8 +125,9 @@ Fixed rules:
 
 ## K-KNOW-004b Graph / Backlink Semantics
 
-`AddLink` / `RemoveLink` / `ListLinks` / `ListBacklinks` / `TraverseGraph` are a
-runtime-local Wave 2B same-bank graph expansion.
+`AddLink` / `RemoveLink` / `ListLinks` / `ListBacklinks` / `TraverseGraph`
+remain a runtime-local same-bank graph expansion on the absorbed knowledge
+family.
 
 Fixed rules:
 
@@ -132,8 +144,8 @@ Fixed rules:
 
 ## K-KNOW-004c Ingest / Progress Semantics
 
-`IngestDocument` / `GetIngestTask` are a runtime-local Wave 2C async ingest
-surface.
+`IngestDocument` / `GetIngestTask` remain a runtime-local async ingest surface
+on the absorbed knowledge family.
 
 Fixed rules:
 
@@ -187,7 +199,7 @@ KnowledgeService 的跨域消费契约状态：
 |---|---|---|
 | **SDK 方法投影** | admitted / landed | 保持 Wave 1 SDK 方法投影与 runtime proto / reason-code / pagination 语义对齐 |
 | **Desktop UI Spec** | admitted / landed | 保持 Knowledge Wave 1 UI spec 与 Runtime-path authz / unavailable / pagination / method surface 对齐 |
-| **knowledge-base mod (Desktop host sqlite)** | 独立实现 | KB mod 当前不消费 RuntimeKnowledgeService；Wave 1 不要求该 mod 迁移，只要求不再把旧 index-only draft当作 Runtime 稳定目标 |
+| **knowledge-base mod (Desktop host sqlite)** | 独立实现 | KB mod 当前不消费 RuntimeCognitionService；Wave 1 不要求该 mod 迁移，只要求不再把旧 index-only draft或 RuntimeKnowledgeService 当作 Runtime 稳定目标 |
 
 > **设计完整性注意**：当前 admitted knowledge slice 只定义 runtime-local infra-scoped ownership；AgentCore integration、shared truth、cross-service citation redesign 仍未交付。Runtime、CLI、SDK、Desktop UI spec 已就绪，但 Desktop/Forge 产品消费实现仍属于后续交付。
 >
@@ -214,12 +226,16 @@ Current admitted surface之外，以下内容仍明确 deferred：
 
 ## K-KNOW-007 Standalone Cognition Boundary
 
-`RuntimeKnowledgeService` is not the semantic owner of standalone cognition.
+Retained runtime knowledge projection semantics are not the semantic owner of
+standalone cognition.
 
 Fixed rules:
 
-- runtime knowledge remains the runtime-owned authority for runtime-local bank/page/search/graph/ingest semantics on the runtime path
+- runtime-facing knowledge projection semantics now route through
+  `RuntimeCognitionService`, while this file preserves the absorbed semantic
+  floor for runtime-local bank/page/search/graph/ingest behavior
 - extracted standalone cognition knowledge semantics must live under cognition authority rather than being redefined here
 - cognition knowledge upgrade and no-downgrade requirements are governed by `.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`, `.nimi/spec/cognition/kernel/knowledge-service-contract.md`, and `.nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml`
 - runtime knowledge must not absorb cognition kernel, working-state, prompt, or routine ownership by extension
-- shared page or relation mechanics do not make runtime knowledge the continuing owner of cognition knowledge projections
+- shared page or relation mechanics do not make the retired runtime knowledge
+  topology the continuing owner of cognition knowledge projections

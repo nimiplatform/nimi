@@ -65,5 +65,8 @@ Fixed rules:
   replication truth, canonical review scheduling, or runtime event streaming
 - standalone memory may expose lifecycle and history semantics, but that does
   not make it a runtime replication owner
+- runtime-facing republication of overlapping memory semantics must route
+  through `RuntimeCognitionService`; retired `RuntimeMemoryService` topology
+  must not be restored as the future steady state
 - derived-view support does not permit caller-owned mutation of service-owned
   ranking or cleanup posture

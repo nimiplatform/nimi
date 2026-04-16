@@ -73,6 +73,24 @@ primitives:
           styles:
             background: var(--nimi-surface-active)
             border-color: var(--nimi-border-strong)
+      material:
+        - id: solid
+          class_name: nimi-material-solid
+          styles: {}
+        - id: glass-regular
+          class_name: nimi-material-glass-regular
+          styles:
+            background: var(--nimi-material-glass-regular-bg)
+            border-color: var(--nimi-material-glass-regular-border)
+            backdrop-filter: blur(var(--nimi-backdrop-blur-regular))
+            -webkit-backdrop-filter: blur(var(--nimi-backdrop-blur-regular))
+        - id: glass-thick
+          class_name: nimi-material-glass-thick
+          styles:
+            background: var(--nimi-material-glass-thick-bg)
+            border-color: var(--nimi-material-glass-thick-border)
+            backdrop-filter: blur(var(--nimi-backdrop-blur-strong))
+            -webkit-backdrop-filter: blur(var(--nimi-backdrop-blur-strong))
     source_rule: P-DESIGN-011
   - id: primitive.action
     family: action
@@ -809,3 +827,49 @@ primitives:
           styles:
             background: color-mix(in srgb, var(--nimi-action-primary-bg) var(--nimi-opacity-subtle-fill), transparent)
     source_rule: P-DESIGN-010
+  - id: primitive.ambient_background
+    family: surface
+    component: AmbientBackground
+    slots:
+      - id: root
+        class_name: nimi-ambient-root
+        styles:
+          position: relative
+          isolation: isolate
+      - id: mesh_layer
+        class_name: nimi-ambient-mesh
+        styles:
+          position: absolute
+          inset: 0
+          pointer-events: none
+          z-index: 0
+          background: "radial-gradient(ellipse at 0% 0%, var(--nimi-ambient-mesh-color-1) 0%, transparent 50%), radial-gradient(ellipse at 100% 0%, var(--nimi-ambient-mesh-color-2) 0%, transparent 50%), radial-gradient(ellipse at 100% 100%, var(--nimi-ambient-mesh-color-3) 0%, transparent 50%), radial-gradient(ellipse at 0% 100%, var(--nimi-ambient-mesh-color-4) 0%, transparent 50%), linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%)"
+      - id: minimal_layer
+        class_name: nimi-ambient-minimal
+        styles:
+          position: absolute
+          inset: 0
+          pointer-events: none
+          z-index: 0
+          background: "linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%)"
+      - id: halo
+        class_name: nimi-ambient-halo
+        styles:
+          position: absolute
+          border-radius: 50%
+          filter: blur(120px)
+          opacity: "0.5"
+          pointer-events: none
+          z-index: 0
+    class_groups:
+      variant:
+        - id: mesh
+          class_name: nimi-ambient-variant-mesh
+          styles: {}
+        - id: minimal
+          class_name: nimi-ambient-variant-minimal
+          styles: {}
+        - id: none
+          class_name: nimi-ambient-variant-none
+          styles: {}
+    source_rule: P-DESIGN-023

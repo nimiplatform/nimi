@@ -20,6 +20,9 @@
 - `IMAGE/TTS/STT` 与同名执行模态映射。
 - `CUSTOM` 的 capability 来自模型元数据声明。
 - `TTS` / `STT` 只映射 plain speech capability；不得把 `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 视为由 `TTS` category 自动隐含。
+- first-wave local `Qwen3-TTS` workflow line 不改变上述规则；即使 `Qwen3-TTS`
+  同时承担 plain synth / clone / design，workflow capability 仍必须显式声明为
+  `voice_workflow.*`，不得通过 `TTS` category 自动推导。
 
 local category / local manifest token 到 canonical capability token 的正式映射以 `tables/capability-vocabulary-mapping.yaml` 为唯一事实源；本规则只定义语义边界，不复制第二套映射表。
 

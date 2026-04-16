@@ -8,7 +8,11 @@ Phase 1 本地执行引擎固定为：
 
 - `llama`：`llama.cpp` / `llama-server`，负责 `text.generate`、`text.embed`、`image.understand`、`audio.understand`
 - `media`：`stable-diffusion.cpp` 主 driver，负责 `image.generate`、`image.edit`、`video.generate`、`i2v`
-- `speech`：本地语音引擎族。当前 admitted baseline 只覆盖 `audio.transcribe` 与 `audio.synthesize`；`voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 只有在真实本地 workflow execution plane 被显式 cutover admitted 后才能升格为 local truth。当前首轮 admitted local workflow family 边界固定为 `voxcpm`，不得被扩写成 generic local workflow truth。
+- `speech`：本地语音引擎族。当前 ordinary-user admitted baseline 固定围绕 first-wave `Qwen3` family line：
+  - `audio.transcribe` default lane: `Qwen3-ASR-0.6B`
+  - `audio.synthesize` default lane: `Qwen3-TTS-12Hz-0.6B-CustomVoice`
+  - `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 只有在真实本地 workflow execution plane 被显式 cutover admitted 后才能升格为 local truth
+  - 当前首轮 admitted local workflow family 边界固定为 `qwen3_tts`，不得被扩写成 generic local workflow truth
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`
 
 `media.diffusers` 仅允许作为 `media` 的 runtime 内部 fallback driver；不是 public engine target。若要把 `media.diffusers` 升格为 matrix-supported canonical backend family，必须在同一轮 cutover 中同步修订 `K-LENG-004`、`K-MMPROV-010`、`K-PROV-002` 的对应规则。
@@ -66,7 +70,18 @@ speech product posture:
 
 - `llama`：管理 `llama.cpp` / `llama-server`、GPU layers、context/batch policy、warmup。
 - `media`：管理 image/video 执行 backend。`engine=media` 不能按引擎名整体决定 host support；必须结合 `asset_family`、`backend_class`、`backend_family` 与 `tables/local-image-supervised-backend-matrix.yaml` v2 matrix resolver 输出判断真实受管 backend。
-- `speech`：管理 `whispercpp`、`kokoro` 等 Phase 1 语音 driver，并负责当前 admitted 语音基础能力探测。ordinary-user supervised truth 当前只承认 `audio.transcribe` / `audio.synthesize`；在 admitted local plain-speech execution plane 尚未 materialize 前，speech supervised `/healthz` 与 `/v1/catalog` 必须保持 placeholder/non-ready，plain-speech write routes 必须 fail-close。workflow-capable local family 只有在对应 local workflow execution plane 被显式 admitted 后才能进入 canonical local speech truth；当前首轮 admitted family 边界固定为 `voxcpm`。
+- `speech`：管理 first-wave local speech supervised families，并负责当前 admitted 语音基础能力探测。ordinary-user supervised truth 当前只承认 `audio.transcribe` / `audio.synthesize`；在 admitted local plain-speech execution plane 尚未 materialize 前，speech supervised `/healthz` 与 `/v1/catalog` 必须保持 placeholder/non-ready，plain-speech write routes 必须 fail-close。first-wave supervised family line 固定为：
+  - `qwen3_asr`：default local `STT` family，普通用户默认 lane 为 `Qwen3-ASR-0.6B`
+  - `qwen3_tts`：default local synth / workflow family
+    - plain synth default lane: `Qwen3-TTS-12Hz-0.6B-CustomVoice`
+    - clone workflow default lane: `Qwen3-TTS-12Hz-0.6B-Base`
+    - design workflow default lane: `Qwen3-TTS-12Hz-1.7B-VoiceDesign`
+  - first-wave local `Qwen3` speech env topology 固定为 explicit split supervised envs：
+    - `Qwen3-TTS` synth / workflow checkpoints 共享同一 `qwen3_tts` env line
+    - `Qwen3-ASR` 使用独立 `qwen3_asr` env line
+    - runtime 不得假设 `qwen-tts` 与 `qwen-asr` 可在同一 canonical supervised env 中共装
+  - `Qwen3-ASR-1.7B` 只作为 optional premium candidate 保留；在独立 premium admission 前不得自动 materialize 为 ordinary-user canonical default
+  - workflow-capable local family 只有在对应 local workflow execution plane 被显式 admitted 后才能进入 canonical local speech truth；当前首轮 admitted family 边界固定为 `qwen3_tts`
 - `media.diffusers`：只在 `media` 不支持 family / artifact completeness / pipeline variant 时作为内部 fallback 启动。当前 kernel 基线仍规定 `media.diffusers` 不得作为 public engine target，不得在未完成规范修订前直接升格为 matrix-supported canonical path。
 
 资产级 supervised 规则：
@@ -410,7 +425,7 @@ v1 固定 internal reason key 集合（audit / health / structured error detail 
 - placeholder host 与 admitted plain-speech host 必须显式分离：在 admitted local plain-speech execution plane 尚未 materialize 前，speech canonical HTTP surface 可以存在，但必须保持 non-ready / fail-close；不得借 `ACTIVE`、`READY`、generic health 或静态 catalog 投影成 admitted success。
 - speech supervised data-boundary minimum 属于 admitted contract：temp files 必须有 bounded lifecycle；public detail 不得暴露 raw bootstrap path、raw probe URL 或 raw request payload；reference audio、transcription text、voice design prompt 不得因 generic logging 默认进入长期保留路径。
 - 当未来 local workflow 被 admission 时，`voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 必须验证 workflow driver 可用；在 admission 之前，缺失独立 workflow readiness truth 时必须 fail-close，不得投影为 local admitted success。
-- 对 first admitted local workflow wave，workflow driver/readiness truth 也必须保持 family-scoped：当前只允许 `voxcpm` 进入 admitted execution proof，其成功不得隐式放宽到其它 local workflow family。
+- 对 first admitted local workflow wave，workflow driver/readiness truth 也必须保持 family-scoped：当前只允许 `qwen3_tts` 进入 admitted execution proof，其成功不得隐式放宽到其它 local workflow family。
 
 `sidecar` 当前不进入标准 supervised 健康探测，attached endpoint 的可用性由实际 music 请求 fail-close。
 

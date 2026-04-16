@@ -80,8 +80,7 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 - `RuntimeWorkflowService`（`K-WF-*`）
 - `RuntimeAuditService`（`K-AUDIT-*`）
 - `RuntimeModelService`（`K-MODEL-*`）
-- `RuntimeKnowledgeService`（`K-KNOW-*`）
-- `RuntimeMemoryService`（`K-MEM-*`, `K-RPC-004a`）
+- `RuntimeCognitionService`（`K-MEM-*`, `K-KNOW-*`, `K-RPC-004a`）
 - `RuntimeAgentCoreService`（`K-AGCORE-*`, `K-RPC-004b`）
 - `RuntimeAppService`（`K-APP-*`）
 
@@ -3602,6 +3601,10 @@ Fixed rules:
 - every matrix row must declare runtime source contract, runtime capability,
   cognition owner surface, parity mode, required floor, admitted shape, and
   forbidden downgrade
+- runtime source contracts may point either to the absorbed
+  `RuntimeCognitionService` authority now recorded under `K-MEM-*` / `K-KNOW-*`
+  or to explicit retained runtime-private depth when that deeper floor remains
+  outside the public replacement topology
 - upgrade-matrix rows govern capability closure, not package similarity or
   terminology reuse
 - if a runtime overlap concern is missing from the matrix, cognition must not
@@ -3616,6 +3619,8 @@ Fixed rules:
 
 - standalone-native API naming is admitted only when each overlapping runtime
   concern remains explicitly mapped to an equal-or-stronger cognition surface
+- runtime topology replacement does not permit the matrix to hide retained
+  runtime-private depth behind a vague "future cleanup" story
 - `parity` means cognition preserves runtime semantic floor without weakening
   fail-closed behavior
 - `upgrade` means cognition strengthens the runtime concern while still making
@@ -3634,6 +3639,10 @@ Fixed rules:
 - every admitted runtime/cognition overlap concern must declare cognition owner, runtime owner, admitted bridge direction, and forbidden owner inversion
 - bridge registry rows define coexistence boundaries, not implementation sharing permission by default
 - runtime bridge registration must not collapse cognition and runtime into one owner surface
+- runtime-facing republication of overlap semantics must point to
+  `RuntimeCognitionService` plus explicit retained runtime-private depth rather
+  than reviving `RuntimeMemoryService` / `RuntimeKnowledgeService` as
+  co-equal steady-state owners
 
 **C-COG-016 — Runtime Bridge Boundary**
 
@@ -3643,6 +3652,10 @@ Fixed rules:
 
 - runtime integration must be expressed as bridge / adapter / consumer behavior
 - runtime contracts may constrain how runtime-owned services interact with cognition, but not redefine cognition authority
+- when runtime republishes overlapping cognition-backed memory/knowledge
+  semantics, the only admitted runtime-facing owner surface is
+  `RuntimeCognitionService`; retired `RuntimeMemoryService` /
+  `RuntimeKnowledgeService` topology must not be restored as steady state
 - cognition must remain viable as a standalone project even when runtime is not present
 - any extracted runtime implementation that remains only valid with runtime-owned semantics is not admitted as completed cognition
 
@@ -4074,10 +4087,19 @@ Fixed rules:
 | RemoveModel | unary |
 | CheckModelHealth | unary |
 
-**RuntimeKnowledgeService**
+**RuntimeCognitionService**
 
 | 方法 | 类型 |
 |---|---|
+| CreateBank | unary |
+| GetBank | unary |
+| ListBanks | unary |
+| DeleteBank | unary |
+| Retain | unary |
+| Recall | unary |
+| History | unary |
+| DeleteMemory | unary |
+| SubscribeMemoryEvents | server_stream |
 | CreateKnowledgeBank | unary |
 | GetKnowledgeBank | unary |
 | ListKnowledgeBanks | unary |
@@ -4102,21 +4124,6 @@ Fixed rules:
 |---|---|
 | SendAppMessage | unary |
 | SubscribeAppMessages | server_stream |
-
-**RuntimeMemoryService**
-
-| 方法 | 类型 |
-|---|---|
-| CreateBank | unary |
-| GetBank | unary |
-| ListBanks | unary |
-| DeleteBank | unary |
-| Retain | unary |
-| Recall | unary |
-| History | unary |
-| Reflect | unary |
-| DeleteMemory | unary |
-| SubscribeMemoryEvents | server_stream |
 
 **RuntimeAgentCoreService**
 
@@ -4583,13 +4590,13 @@ Fixed rules:
 | Concern | Cognition Owner | Runtime Owner | Admitted Bridge | Forbidden Owner Inversion |
 |---|---|---|---|---|
 | local_model_kernels | full | none | runtime_consumes_only_explicit_cognition_outputs | runtime_must_not_own_kernel_truth_or_mutation |
-| runtime_bank_lifecycle | none | full | cognition_may_export_artifacts_only_through_explicit_adapter_logic | cognition_must_not_claim_runtime_bank_or_replication_truth |
-| local_memory_artifacts | standalone_local_cognition | runtime_operational_memory | overlap_requires_explicit_mapping_and_no_semantic_downgrade | silent_shared_owner_or_low_strength_clone_not_admitted |
-| local_knowledge_projections | standalone_local_cognition | runtime_local_knowledge_service | overlap_requires_explicit_mapping_and_no_semantic_downgrade | runtime_must_not_continue_owning_cognition_projection_truth |
+| runtime_bank_lifecycle | none | retained_runtime_private_memory_depth | runtime_cognition_service_may_consume_bank_truth_only_through_explicit_runtime_private_adapter_logic | cognition_must_not_claim_runtime_bank_or_replication_truth |
+| local_memory_artifacts | standalone_local_cognition | runtime_cognition_service_for_public_overlap_plus_retained_runtime_private_memory_depth_for_bank_provider_review_replication_truth | overlap_requires_explicit_mapping_no_semantic_downgrade_and_no_dual_runtime_owner | silent_shared_owner_low_strength_clone_or_reopened_runtime_memory_service_topology_not_admitted |
+| local_knowledge_projections | standalone_local_cognition | runtime_cognition_service_for_public_overlap | overlap_requires_explicit_mapping_no_semantic_downgrade_and_no_reopened_runtime_knowledge_service_topology | runtime_must_not_continue_owning_cognition_projection_truth_through_a_second_service_owner |
 | working_state | full | none | runtime_may_consume_transient_outputs_only_if_explicitly_adapted | runtime_hook_or_control_plane_state_must_not_be_smuggled_in_as_working_state |
 | prompt_serving | full | none | runtime_may_consume_formatted_context_as_a_consumer | runtime_must_not_redefine_kernel_vs_advisory_serving_order |
 | cleanup_and_digest | standalone_cognition_routine | runtime_memory_hygiene_only | coexistence_requires_explicit_non_owner_boundary | runtime_hygiene_must_not_be_treated_as_cognition_digest_owner |
-| replication_review_provider | none | full | cognition_may_ignore_runtime_only_truth_without_losing_validity | cognition_must_not_require_runtime_replication_review_or_provider_truth_to_be_complete |
+| replication_review_provider | none | retained_runtime_private_depth | cognition_may_ignore_runtime_only_truth_without_losing_validity | cognition_must_not_require_runtime_replication_review_or_provider_truth_to_be_complete |
 
 ### 13.14 Cognition — Rule Evidence
 

@@ -45,21 +45,16 @@ service_mappings:
   mapping_status: aligned
   phase: phase2
   source_rule: K-MODEL-004
-- design_service: RuntimeKnowledgeService
-  proto_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
+  proto_service: RuntimeCognitionService
   mapping_status: aligned
   phase: phase2
-  source_rule: K-RPC-004c
+  source_rule: K-RPC-004a
 - design_service: RuntimeAppService
   proto_service: RuntimeAppService
   mapping_status: aligned
   phase: phase2
   source_rule: K-APP-001
-- design_service: RuntimeMemoryService
-  proto_service: RuntimeMemoryService
-  mapping_status: aligned
-  phase: phase2
-  source_rule: K-RPC-004a
 - design_service: RuntimeAgentCoreService
   proto_service: RuntimeAgentCoreService
   mapping_status: aligned
@@ -546,89 +541,89 @@ method_mappings:
   proto_service: RuntimeModelService
   proto_method: CheckModelHealth
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: CreateKnowledgeBank
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: CreateKnowledgeBank
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: GetKnowledgeBank
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: GetKnowledgeBank
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: ListKnowledgeBanks
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: ListKnowledgeBanks
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: DeleteKnowledgeBank
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: DeleteKnowledgeBank
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: PutPage
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: PutPage
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: GetPage
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: GetPage
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: ListPages
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: ListPages
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: DeletePage
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: DeletePage
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: SearchKeyword
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: SearchKeyword
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: SearchHybrid
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: SearchHybrid
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: AddLink
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: AddLink
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: RemoveLink
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: RemoveLink
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: ListLinks
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: ListLinks
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: ListBacklinks
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: ListBacklinks
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: TraverseGraph
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: TraverseGraph
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: IngestDocument
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: IngestDocument
   mapping_status: aligned
-- design_service: RuntimeKnowledgeService
+- design_service: RuntimeCognitionService
   design_method: GetIngestTask
-  proto_service: RuntimeKnowledgeService
+  proto_service: RuntimeCognitionService
   proto_method: GetIngestTask
   mapping_status: aligned
 - design_service: RuntimeAppService
@@ -641,54 +636,49 @@ method_mappings:
   proto_service: RuntimeAppService
   proto_method: SubscribeAppMessages
   mapping_status: aligned
-- design_service: RuntimeMemoryService
+- design_service: RuntimeCognitionService
   design_method: CreateBank
-  proto_service: RuntimeMemoryService
+  proto_service: RuntimeCognitionService
   proto_method: CreateBank
   mapping_status: aligned
-- design_service: RuntimeMemoryService
+- design_service: RuntimeCognitionService
   design_method: GetBank
-  proto_service: RuntimeMemoryService
+  proto_service: RuntimeCognitionService
   proto_method: GetBank
   mapping_status: aligned
-- design_service: RuntimeMemoryService
+- design_service: RuntimeCognitionService
   design_method: ListBanks
-  proto_service: RuntimeMemoryService
+  proto_service: RuntimeCognitionService
   proto_method: ListBanks
   mapping_status: aligned
-- design_service: RuntimeMemoryService
+- design_service: RuntimeCognitionService
   design_method: DeleteBank
-  proto_service: RuntimeMemoryService
+  proto_service: RuntimeCognitionService
   proto_method: DeleteBank
   mapping_status: aligned
-- design_service: RuntimeMemoryService
+- design_service: RuntimeCognitionService
   design_method: Retain
-  proto_service: RuntimeMemoryService
+  proto_service: RuntimeCognitionService
   proto_method: Retain
   mapping_status: aligned
-- design_service: RuntimeMemoryService
+- design_service: RuntimeCognitionService
   design_method: Recall
-  proto_service: RuntimeMemoryService
+  proto_service: RuntimeCognitionService
   proto_method: Recall
   mapping_status: aligned
-- design_service: RuntimeMemoryService
+- design_service: RuntimeCognitionService
   design_method: History
-  proto_service: RuntimeMemoryService
+  proto_service: RuntimeCognitionService
   proto_method: History
   mapping_status: aligned
-- design_service: RuntimeMemoryService
-  design_method: Reflect
-  proto_service: RuntimeMemoryService
-  proto_method: Reflect
-  mapping_status: aligned
-- design_service: RuntimeMemoryService
+- design_service: RuntimeCognitionService
   design_method: DeleteMemory
-  proto_service: RuntimeMemoryService
+  proto_service: RuntimeCognitionService
   proto_method: DeleteMemory
   mapping_status: aligned
-- design_service: RuntimeMemoryService
+- design_service: RuntimeCognitionService
   design_method: SubscribeMemoryEvents
-  proto_service: RuntimeMemoryService
+  proto_service: RuntimeCognitionService
   proto_method: SubscribeMemoryEvents
   mapping_status: aligned
 - design_service: RuntimeAgentCoreService

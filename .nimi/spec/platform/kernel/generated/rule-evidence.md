@@ -41,6 +41,8 @@
 | `P-DESIGN-019` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
 | `P-DESIGN-020` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
 | `P-DESIGN-021` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
+| `P-DESIGN-022` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift` | — |
+| `P-DESIGN-023` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift` | — |
 | `P-DESIGN-090` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
 | `P-ARCH-001` | `covered` | `platform_kernel_consistency` | structural only; multi-participant orchestration behavior still requires integration coverage |
 | `P-ARCH-002` | `covered` | `platform_kernel_consistency` | — |

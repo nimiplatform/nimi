@@ -1,19 +1,24 @@
-# Runtime Memory Service Contract
+# Runtime Cognition And Retained Memory Depth Contract
 
 > Owner Domain: `K-MEM-*`
 
-## K-MEM-001 RuntimeMemoryService Authority Home
+## K-MEM-001 RuntimeCognitionService Authority Home And Retained Memory Depth
 
-`RuntimeMemoryService` is the runtime-owned authority for local operational memory infrastructure.
+`RuntimeCognitionService` is the sole admitted runtime-facing cognition owner
+surface on the runtime path.
+
+This authority home also records the retained runtime-private memory depth that
+remains outside that public service topology.
 
 It owns:
 
-- bank lifecycle
-- bank isolation
-- retain / recall / history / reflect operations
+- the runtime-facing memory overlap slice republished through
+  `RuntimeCognitionService`
+- bank lifecycle and bank isolation truth
 - embedding profile binding
-- provider bridge
+- provider bridge and substrate truth
 - runtime-owned replication into Realm
+- runtime-private narrative / lineage / canonical read-commit boundaries
 
 It does not own:
 
@@ -22,17 +27,32 @@ It does not own:
 - agent canonical memory semantics
 - account authn/authz truth
 
-`Working memory` is outside this service. Prompt assembly state, tool traces, turn plans, and other runtime execution scratch state must remain outside Memory Service truth.
+Fixed rules:
+
+- `RuntimeCognitionService` replaces `RuntimeMemoryService` and
+  `RuntimeKnowledgeService` as the future runtime-facing public topology
+- no second runtime-facing memory/knowledge owner surface may remain admitted in
+  steady state beside `RuntimeCognitionService`
+- retained runtime-private memory depth must stay explicit; topology
+  replacement must not collapse Agent Core, bank/access, provider, replication,
+  workflow, or canonical review truth into cognition by implication
+
+`Working memory` remains outside retained runtime memory truth. Prompt assembly
+state, tool traces, turn plans, and other runtime execution scratch state must
+remain outside this retained memory authority.
 
 ## K-MEM-002 Bank Scope And Isolation
 
-`RuntimeMemoryService` bank scope is defined by `tables/runtime-memory-bank-scope.yaml`.
+Retained runtime memory bank scope is defined by
+`tables/runtime-memory-bank-scope.yaml`.
 
 Fixed rules:
 
 - every memory unit belongs to exactly one bank
 - banks are isolated from one another
 - admitted implementation-facing transport must expose a scope-typed bank locator family with dedicated owner branches for `AGENT_CORE`, `AGENT_DYADIC`, `WORLD_SHARED`, `APP_PRIVATE`, and `WORKSPACE_PRIVATE`
+- `APP_PRIVATE` and `WORKSPACE_PRIVATE` are the infra-only locator branches on
+  the public app-facing runtime cognition path
 - runtime may internally normalize these scopes through a typed-principal descriptor model only if the admitted public locator family, owner-role meaning, and locator-key compatibility remain unchanged
 - cross-scope owner combinations (for example, a `WORLD_SHARED` bank carrying an app-private owner shape) must not appear as a normal public contract form
 - `AGENT_CORE`, `AGENT_DYADIC`, and `WORLD_SHARED` are canonical-agent-facing scopes
@@ -45,17 +65,22 @@ Account identity may constrain access, but account must not become the physical 
 
 ## K-MEM-003 Provider Boundary
 
-The runtime public memory contract is provider-agnostic.
+The runtime memory path remains provider-agnostic across both the retained
+runtime-private depth and the runtime-facing `RuntimeCognitionService` memory
+family.
 
 Fixed rules:
 
-- public memory RPC and SDK surfaces must expose Nimi-owned operation names and types
+- runtime-facing memory RPC and SDK surfaces must expose Nimi-owned operation
+  names and types through `RuntimeCognitionService`
 - primary semantic memory payloads must use Nimi-owned typed messages; dynamic envelopes are limited to metadata, attributes, or extensions fields
 - admitted implementation-facing transport must reserve a typed memory record family for `episodic`, `semantic`, and `observational` records rather than collapsing durable memory into a free-form blob payload
 - provider-native wire shapes, bank config fields, and provider-specific storage semantics must remain internal
 - extracting memory mechanics into a runtime-owned internal library or subpackage is not provider admission and must not create a new public engine-facing naming or proto layer
 - memory is explicit opt-in rather than a baseline product capability; when enabled without an attached override, the default experimental substrate is runtime-managed `Hindsight`
-- public `Reflect` remains a substrate-owned synchronous memory operation and must not be reinterpreted as canonical review scheduling for agent-facing scopes
+- retired public `Reflect` must not be reintroduced as a substrate-owned
+  pseudo-review surface; canonical review remains runtime-private under
+  `RuntimeAgentCoreService`
 - runtime-private substrate connectivity, feature floor, and typed identity overlay requirements are governed by `K-MEMSUB-*`
 - provider engines must not own account auth, app authz, agent ownership, or canonical memory semantics
 
@@ -103,9 +128,9 @@ Realm-originated governance operations remain authoritative for the replicated p
 - runtime must not continue serving a locally cached canonical memory item as valid after a replicated invalidation is observed
 - local operational authority does not permit runtime to override or ignore an admitted replicated governance decision
 
-## K-MEM-006 Public Surface
+## K-MEM-006 RuntimeCognitionService Public Memory Family
 
-`RuntimeMemoryService` admits the following public operations:
+`RuntimeCognitionService` admits the absorbed runtime-facing memory family:
 
 - `CreateBank`
 - `GetBank`
@@ -114,27 +139,29 @@ Realm-originated governance operations remain authoritative for the replicated p
 - `Retain`
 - `Recall`
 - `History`
-- `Reflect`
 - `DeleteMemory`
 - `SubscribeMemoryEvents`
 
-Access rules:
+Fixed rules:
 
-- authorized apps may directly use infra scopes admitted to them
-- apps must not directly mutate canonical agent memory scopes
-- canonical agent memory writes route through `RuntimeAgentCoreService`
-- extracting implementation logic into runtime-owned internal libraries must not change these public RPC names, wire shapes, or access rules
-- app-facing `CreateBank` may omit an embedding profile; runtime must preserve the resulting null-profile truth rather than silently inventing a bound profile
-- app-facing `CreateBank` / `DeleteBank` must reject canonical agent-facing scopes
-- admitted implementation-facing transport for `CreateBank` / `DeleteBank` must keep infra-only locator branches explicit rather than treating canonical scope rejection as an untyped afterthought
-- implementation-facing transport must encode bank locator invariants strongly enough that illegal scope/owner combinations are not treated as a normal public contract shape
-- public `Reflect` must reject canonical agent-facing scopes (`AGENT_CORE`, `AGENT_DYADIC`, `WORLD_SHARED`) rather than silently widening into Agent Core owned review behavior
-- public `Recall` may project canonical record hits plus additive narrative projections where later admitted in proto; admitted truths and behavioral posture remain outside this public Memory Service surface
-- when public `Recall` projects a stale narrative, the stale state must remain explicit in the typed projection rather than being silently widened into admitted truth
+- these operations are now admitted only on `RuntimeCognitionService`; they
+  must not be written back as a separate future public service
+- `Reflect` is retired from the public steady-state surface and survives only as
+  a re-audit baseline for the cutover
+- app-facing access remains infra-scoped; canonical agent-facing scopes remain
+  runtime-private and must not be widened back into a public memory service by
+  migration convenience
+- app-facing bank creation may still omit an embedding profile, and runtime must
+  preserve that null-profile truth
+- runtime-facing memory reads may expose additive narrative projections, but
+  canonical truth, review admission, and replication truth remain outside the
+  public service surface
+- extracting implementation logic into runtime-owned internal libraries must not
+  recreate `RuntimeMemoryService` as a second public owner surface
 
 ## K-MEM-007 Failure Model
 
-`RuntimeMemoryService` must fail-close on substrate unavailability.
+Retained runtime memory depth must fail-close on substrate unavailability.
 
 Fixed rules:
 
@@ -148,7 +175,8 @@ Fixed rules:
 
 ## K-MEM-008 Replication State And Conflict Semantics
 
-`RuntimeMemoryService` replication semantics must remain explicit at the contract layer.
+Retained runtime memory replication semantics must remain explicit at the
+contract layer.
 
 Replication outcomes are defined by `tables/runtime-memory-replication-outcome.yaml`.
 
@@ -163,7 +191,8 @@ Fixed rules:
 
 ## K-MEM-009 Replication Lifecycle Observation Path
 
-`RuntimeMemoryService` owns the runtime-private replication lifecycle store and committed transition path for local memory records.
+Retained runtime-private memory depth owns the replication lifecycle store and
+committed transition path for local memory records.
 
 Fixed rules:
 
@@ -176,7 +205,8 @@ Fixed rules:
 
 ## K-MEM-010 Replication Backlog Truth
 
-`RuntimeMemoryService` owns the runtime-private replication backlog for canonical memory records whose replication remains operationally pending.
+Retained runtime-private memory depth owns the replication backlog for canonical
+memory records whose replication remains operationally pending.
 
 Fixed rules:
 
@@ -184,14 +214,17 @@ Fixed rules:
 - canonical writes that admit `replication=pending` must enqueue exactly one backlog item for the `(bank locator, memory_id)` pair in the same committed local mutation path
 - infra scopes must not enter the replication backlog
 - backlog items must retain at least local version, basis version, enqueue time, last attempt time, attempt count, and local backlog status
-- for the current extraction shape, backlog claim/replay ownership on `RuntimeMemoryService` is the intended steady-state boundary; internal helper extraction must not create a second backlog or replay owner
+- backlog claim/replay ownership remains on retained runtime-private memory
+  depth; internal helper extraction must not create a second backlog or replay
+  owner
 - until a later Realm memory redesign admits real bridge transport, backlog truth is deferred bridge telemetry only and must not be treated as product-ready cloud sync
 - runtime-private bridge loops may claim backlog items for single-owner processing only on explicit internal paths; normal daemon startup must not imply active Realm synchronization
 - terminal replication outcomes committed through `K-MEM-009` must remove or terminalize the corresponding backlog item in the same committed state transition
 
 ## K-MEM-011 Derived Projection Lineage And Cascade
 
-`RuntimeMemoryService` owns the runtime-private storage truth for derived memory projections and their source lineage.
+Retained runtime-private memory depth owns the storage truth for derived memory
+projections and their source lineage.
 
 It owns:
 
@@ -216,11 +249,14 @@ Fixed rules:
 - `invalidated` and `stale` are not interchangeable: `invalidated` derived outputs fail closed out of default serving paths, while `stale` narrative projections may remain as additive projections with explicit stale state
 - stale narrative projection is tolerated adaptation lag rather than admitted truth; runtime must not silently treat a stale narrative as an admitted truth row or canonical source record
 - runtime may later suppress, replace, or further down-rank stale narrative projections through admitted runtime-owned review or decay policy, but that later lifecycle must not silently promote narrative projection into canonical memory
-- public memory recall may expose admitted narrative projections, but admitted truths remain runtime-private and are consumed through Agent Core owned internal paths only
+- runtime-facing cognition recall may expose admitted narrative projections, but
+  admitted truths remain runtime-private and are consumed through Agent Core
+  owned internal paths only
 
 ## K-MEM-012 Runtime-Private Canonical Read And Review Commit Boundary
 
-`RuntimeMemoryService` owns the runtime-private typed read and commit boundary consumed by `RuntimeAgentCoreService` for canonical review.
+Retained runtime-private memory depth owns the typed read and commit boundary
+consumed by `RuntimeAgentCoreService` for canonical review.
 
 Fixed rules:
 
@@ -228,25 +264,34 @@ Fixed rules:
 - runtime-private read surfaces must return typed runtime contract data, not raw SQLite rows or provider-native blobs
 - review result commit must be idempotent by `review_run_id`
 - all Memory Service owned narrative / truth / lineage mutations for a canonical review run must commit atomically before Agent Core publishes follow-up checkpoint or event truth
-- the typed facade may be implemented by a runtime-owned internal memory library, but that library must remain behind the Memory Service owned runtime-private boundary
-- the review boundary must not require distributed transactions across Agent Core and Memory Service
+- the typed facade may be implemented by a runtime-owned internal memory
+  library, but that library must remain behind the retained runtime-private
+  memory boundary
+- the review boundary must not require distributed transactions across Agent
+  Core and retained runtime-private memory depth
 
 ## K-MEM-013 Retain-Time Duplicate Suppression On Eligible Banks
 
 ## K-MEM-014 Standalone Cognition Boundary
 
-`RuntimeMemoryService` is not the semantic owner of standalone cognition.
+Retained runtime memory depth is not the semantic owner of standalone
+cognition.
 
 Fixed rules:
 
-- runtime memory remains the runtime-owned authority for bank, provider, replication, and runtime-private review/substrate semantics on the runtime path
+- retained runtime memory remains the runtime-owned authority for bank,
+  provider, replication, and runtime-private review/substrate semantics on the
+  runtime path
 - extracted standalone cognition semantics must live under the cognition authority home rather than being redefined here
 - cognition memory upgrade and no-downgrade requirements are governed by `.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`, `.nimi/spec/cognition/kernel/memory-service-contract.md`, and `.nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml`
 - runtime memory must not absorb cognition kernel, prompt, working-state, or routine ownership by implementation convenience
-- overlapping record mechanics or adapter reuse do not make runtime memory the continuing owner of cognition memory semantics
+- runtime-facing overlap memory semantics are now owned by
+  `RuntimeCognitionService`; overlapping record mechanics or adapter reuse do
+  not make retained runtime memory the continuing public owner of cognition
+  memory semantics
 
-`RuntimeMemoryService` may admit a narrow retain-time duplicate suppression rule
-for already-stabilized semantic memory candidates.
+Retained runtime-private memory depth may admit a narrow retain-time duplicate
+suppression rule for already-stabilized semantic memory candidates.
 
 It owns:
 

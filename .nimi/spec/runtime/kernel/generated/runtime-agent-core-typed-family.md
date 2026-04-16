@@ -14,6 +14,6 @@
 - `NEXT_HOOK_INTENT`: Typed scheduler-request payload emitted by Life Track and interpreted by host-owned admission.
 - `HOOK_OUTCOME`: Typed result family covering completed, failed, canceled, or rescheduled hook execution.
 - `CANONICAL_MEMORY_CANDIDATE`: Typed candidate family for memory admission before canonical write policy accepts or rejects it.
-- `CANONICAL_MEMORY_VIEW`: Typed agent-facing recall/result family projected from RuntimeMemoryService into Agent Core reads.
+- `CANONICAL_MEMORY_VIEW`: Typed agent-facing recall/result family projected from retained runtime-private memory depth into Agent Core reads.
 - `CONSTRAINED_STATE_MUTATION`: Typed command/patch family for admitted public state changes; arbitrary full-state blob replacement is forbidden.
 - `AGENT_EVENT`: Typed event family covering lifecycle, hook, memory, budget, and replication-related observability.

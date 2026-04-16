@@ -161,12 +161,21 @@ Source: `K-MODEL-004`
 | `RemoveModel` | `unary` |
 | `CheckModelHealth` | `unary` |
 
-## RuntimeKnowledgeService
+## RuntimeCognitionService
 
-Source: `K-KNOW-003`
+Source: `K-RPC-004a`
 
 | Method | Type |
 |---|---|
+| `CreateBank` | `unary` |
+| `GetBank` | `unary` |
+| `ListBanks` | `unary` |
+| `DeleteBank` | `unary` |
+| `Retain` | `unary` |
+| `Recall` | `unary` |
+| `History` | `unary` |
+| `DeleteMemory` | `unary` |
+| `SubscribeMemoryEvents` | `server_stream` |
 | `CreateKnowledgeBank` | `unary` |
 | `GetKnowledgeBank` | `unary` |
 | `ListKnowledgeBanks` | `unary` |
@@ -193,23 +202,6 @@ Source: `K-APP-001`
 |---|---|
 | `SendAppMessage` | `unary` |
 | `SubscribeAppMessages` | `server_stream` |
-
-## RuntimeMemoryService
-
-Source: `K-RPC-004a`
-
-| Method | Type |
-|---|---|
-| `CreateBank` | `unary` |
-| `GetBank` | `unary` |
-| `ListBanks` | `unary` |
-| `DeleteBank` | `unary` |
-| `Retain` | `unary` |
-| `Recall` | `unary` |
-| `History` | `unary` |
-| `Reflect` | `unary` |
-| `DeleteMemory` | `unary` |
-| `SubscribeMemoryEvents` | `server_stream` |
 
 ## RuntimeAgentCoreService
 

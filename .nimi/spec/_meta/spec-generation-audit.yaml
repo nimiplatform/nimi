@@ -6086,3 +6086,430 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/index.md
+      file_class: domain_guides
+      source_refs:
+        - .nimi/spec/cognition/index.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/cognition-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/cognition-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/completion-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/completion-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/coverage-review.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/coverage-review.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/family-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/family-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/index.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/index.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/knowledge-service-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/knowledge-service-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/memory-service-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/memory-service-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/prompt-serving-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/prompt-serving-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/reference-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/reference-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/runtime-bridge-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/runtime-bridge-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/runtime-upgrade-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/runtime-upgrade-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/skill-service-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/skill-service-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/surface-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/cognition/kernel/surface-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/desktop/kernel/agent-avatar-surface-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/desktop/kernel/agent-avatar-surface-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/desktop/kernel/knowledge-ui-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/desktop/kernel/knowledge-ui-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/agent-presentation-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/agent-presentation-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/admitted-reference-matrix.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/artifact-families.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/completion-gates.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/index.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/knowledge-service-operations.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/memory-service-operations.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/prompt-serving-lanes.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/public-surface.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/rule-evidence.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/runtime-bridge-boundary.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/runtime-capability-upgrade-matrix.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/generated/skill-service-operations.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/artifact-families.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/completion-gates.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/memory-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/public-surface.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/public-surface.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/rule-evidence.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/realm/kernel/generated/object-write-authorization.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
+        - .nimi/spec/realm/kernel/tables/asset-contract.yaml
+        - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
+        - .nimi/spec/realm/kernel/tables/binding-contract.yaml
+        - .nimi/spec/realm/kernel/tables/bundle-contract.yaml
+        - .nimi/spec/realm/kernel/tables/chat-contract.yaml
+        - .nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml
+        - .nimi/spec/realm/kernel/tables/domain-enums.yaml
+        - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
+        - .nimi/spec/realm/kernel/tables/economy-contract.yaml
+        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
+        - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
+        - .nimi/spec/realm/kernel/tables/resource-contract.yaml
+        - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
+        - .nimi/spec/realm/kernel/tables/rule-evidence.yaml
+        - .nimi/spec/realm/kernel/tables/social-contract.yaml
+        - .nimi/spec/realm/kernel/tables/transit-contract.yaml
+        - .nimi/spec/realm/kernel/tables/truth-contract.yaml
+        - .nimi/spec/realm/kernel/tables/under-spec-registry.yaml
+        - .nimi/spec/realm/kernel/tables/world-history-contract.yaml
+        - .nimi/spec/realm/kernel/tables/world-state-contract.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []

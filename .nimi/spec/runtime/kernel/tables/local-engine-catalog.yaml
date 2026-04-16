@@ -61,6 +61,11 @@ engines:
     # Ordinary-user canonical local speech path. The readiness signature below
     # applies only after an admitted plain-speech execution plane exists; the
     # current bootstrap placeholder must remain non-ready and fail-closed.
+    # First-wave admitted family line:
+    # - STT default lane: Qwen3-ASR-0.6B
+    # - TTS default lane: Qwen3-TTS-12Hz-0.6B-CustomVoice
+    # - local workflow family boundary: qwen3_tts only
+    # - env topology: split qwen3_tts env + qwen3_asr env; do not assume one shared speech env
     # `health_response` below therefore describes the admitted-state readiness
     # signature, not the current placeholder fact surface.
     supported_platforms:

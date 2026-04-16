@@ -50,10 +50,11 @@
 - 每个版本固定 scope 集合，不可变。新增 scope 需发布新版本。
 - `ValidateAppAccessToken` 响应包含 `issued_scope_catalog_version`，用于检测版本漂移。
 
-**Phase 1 约束**：
+**Current implementation 约束**：
 
-- Phase 1 仅支持单版本（`sdk-v1`），不存在版本协商。版本化基础设施（`issued_scope_catalog_version` 字段）为 Phase 2 多版本协商预留，Phase 1 实现仅需硬编码 `sdk-v1`。
-- 已签发 token 的 scope 按签发时版本评估（old token + new catalog = old version evaluation）。
+- runtime 保持显式 published scope catalog versions；旧 token 继续按签发时版本评估（old token + new catalog = old version evaluation）。
+- cognition-era public facade 对齐后，active runtime protected access 必须使用 `sdk-v2`；保留 `sdk-v1` 仅用于既有已签发 token / 兼容评估，不得把新的 facade 集合静默回写到 `sdk-v1`。
+- 当前仍不存在版本协商；调用方必须显式提供已发布的 `scope_catalog_version`。
 - 多版本协商协议列为 deferred decision。
 
 ## K-GRANT-009 Scope 前缀识别规则
