@@ -5,6 +5,7 @@ import {
   type ModelConfigSection,
 } from '@nimiplatform/nimi-kit/features/model-config';
 import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { S } from '../../app-shell/page-style.js';
 import {
@@ -12,9 +13,11 @@ import {
   PARENTOS_CAPABILITIES,
   bindingFromConfig,
   createEmptyParentosAIConfig,
+  type ParentosCapabilityId,
 } from './parentos-ai-config.js';
 import { getParentosAIConfigService } from './parentos-ai-config-service.js';
 import {
+  ParentosBindingEditor,
   ParentosSpeechTranscribeParamsEditor,
   ParentosTextGenerateParamsEditor,
 } from './parentos-model-config-editors.js';
@@ -71,9 +74,38 @@ export default function AiSettingsPage() {
     surface.aiConfig.update(PARENTOS_AI_SCOPE_REF, next);
   }, [config, surface]);
 
+  const updateBinding = useCallback((capabilityId: ParentosCapabilityId, binding: RuntimeRouteBinding | null) => {
+    updateConfig((current) => ({
+      ...current,
+      capabilities: {
+        ...current.capabilities,
+        selectedBindings: {
+          ...current.capabilities.selectedBindings,
+          [capabilityId]: binding,
+        },
+      },
+    }));
+  }, [updateConfig]);
+
+  const updateParams = useCallback((capabilityId: ParentosCapabilityId, params: Record<string, unknown>) => {
+    updateConfig((current) => ({
+      ...current,
+      capabilities: {
+        ...current.capabilities,
+        selectedParams: {
+          ...current.capabilities.selectedParams,
+          [capabilityId]: params,
+        },
+      },
+    }));
+  }, [updateConfig]);
+
   const sections = useMemo<ModelConfigSection[]>(() => {
     const textParams = (config.capabilities.selectedParams['text.generate'] || {}) as Record<string, unknown>;
     const transcribeParams = (config.capabilities.selectedParams['audio.transcribe'] || {}) as Record<string, unknown>;
+    const textBinding = bindingFromConfig(config, 'text.generate');
+    const visionBinding = bindingFromConfig(config, 'text.generate.vision');
+    const speechBinding = bindingFromConfig(config, 'audio.transcribe');
 
     return [
       {
@@ -84,47 +116,48 @@ export default function AiSettingsPage() {
             capabilityId: 'text.generate',
             routeCapability: 'text.generate',
             label: 'AI 对话模型',
-            detail: '用于成长顾问、日志标签、报告生成、体检 OCR 等',
-            binding: bindingFromConfig(config, 'text.generate'),
+            detail: '用于成长提问、日志标签与分析报告生成',
+            binding: textBinding,
             provider: providers['text.generate'] || null,
-            onBindingChange: (binding) => updateConfig((current) => ({
-              ...current,
-              capabilities: {
-                ...current.capabilities,
-                selectedBindings: {
-                  ...current.capabilities.selectedBindings,
-                  'text.generate': binding,
-                },
-              },
-            })),
+            onBindingChange: (binding) => updateBinding('text.generate', binding),
             placeholder: '选择模型',
             runtimeNotReadyLabel: runtimeStatusLabel,
             editor: (
               <ParentosTextGenerateParamsEditor
-                binding={bindingFromConfig(config, 'text.generate')}
-                onBindingChange={(binding) => updateConfig((current) => ({
-                  ...current,
-                  capabilities: {
-                    ...current.capabilities,
-                    selectedBindings: {
-                      ...current.capabilities.selectedBindings,
-                      'text.generate': binding,
-                    },
-                  },
-                }))}
+                binding={textBinding}
+                onBindingChange={(binding) => updateBinding('text.generate', binding)}
                 pickerAvailable={Boolean(providers['text.generate'])}
                 pickerUnavailableHint={pickerUnavailableHint}
                 params={textParams}
-                onChange={(params) => updateConfig((current) => ({
-                  ...current,
-                  capabilities: {
-                    ...current.capabilities,
-                    selectedParams: {
-                      ...current.capabilities.selectedParams,
-                      'text.generate': params,
-                    },
-                  },
-                }))}
+                onChange={(params) => updateParams('text.generate', params)}
+              />
+            ),
+            showEditorWhen: 'always',
+            showClearButton: true,
+            clearSelectionLabel: '清除模型选择',
+          },
+        ],
+      },
+      {
+        id: 'vision',
+        title: '智能识别',
+        items: [
+          {
+            capabilityId: 'text.generate.vision',
+            routeCapability: 'text.generate.vision',
+            label: '智能识别模型',
+            detail: '单独用于验光单、眼轴单、体检单等图片识别，不再跟随聊天模型',
+            binding: visionBinding,
+            provider: providers['text.generate.vision'] || null,
+            onBindingChange: (binding) => updateBinding('text.generate.vision', binding),
+            placeholder: '选择模型',
+            runtimeNotReadyLabel: runtimeStatusLabel,
+            editor: (
+              <ParentosBindingEditor
+                binding={visionBinding}
+                onBindingChange={(binding) => updateBinding('text.generate.vision', binding)}
+                pickerAvailable={Boolean(providers['text.generate.vision'])}
+                pickerUnavailableHint={pickerUnavailableHint}
               />
             ),
             showEditorWhen: 'always',
@@ -142,46 +175,19 @@ export default function AiSettingsPage() {
             routeCapability: 'audio.transcribe',
             label: '语音转写模型',
             detail: '用于语音观察记录转文字',
-            binding: bindingFromConfig(config, 'audio.transcribe'),
+            binding: speechBinding,
             provider: providers['audio.transcribe'] || null,
-            onBindingChange: (binding) => updateConfig((current) => ({
-              ...current,
-              capabilities: {
-                ...current.capabilities,
-                selectedBindings: {
-                  ...current.capabilities.selectedBindings,
-                  'audio.transcribe': binding,
-                },
-              },
-            })),
+            onBindingChange: (binding) => updateBinding('audio.transcribe', binding),
             placeholder: '选择模型',
             runtimeNotReadyLabel: runtimeStatusLabel,
             editor: (
               <ParentosSpeechTranscribeParamsEditor
-                binding={bindingFromConfig(config, 'audio.transcribe')}
-                onBindingChange={(binding) => updateConfig((current) => ({
-                  ...current,
-                  capabilities: {
-                    ...current.capabilities,
-                    selectedBindings: {
-                      ...current.capabilities.selectedBindings,
-                      'audio.transcribe': binding,
-                    },
-                  },
-                }))}
+                binding={speechBinding}
+                onBindingChange={(binding) => updateBinding('audio.transcribe', binding)}
                 pickerAvailable={Boolean(providers['audio.transcribe'])}
                 pickerUnavailableHint={pickerUnavailableHint}
                 params={transcribeParams}
-                onChange={(params) => updateConfig((current) => ({
-                  ...current,
-                  capabilities: {
-                    ...current.capabilities,
-                    selectedParams: {
-                      ...current.capabilities.selectedParams,
-                      'audio.transcribe': params,
-                    },
-                  },
-                }))}
+                onChange={(params) => updateParams('audio.transcribe', params)}
               />
             ),
             showEditorWhen: 'always',
@@ -191,7 +197,7 @@ export default function AiSettingsPage() {
         ],
       },
     ];
-  }, [config, pickerUnavailableHint, providers, runtimeStatusLabel, updateConfig]);
+  }, [config, pickerUnavailableHint, providers, runtimeStatusLabel, updateBinding, updateParams]);
 
   return (
     <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>

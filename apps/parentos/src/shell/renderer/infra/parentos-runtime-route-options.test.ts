@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '../app-shell/app-store.js';
 
 const listLocalAssetsMock = vi.fn();
+const listConnectorsMock = vi.fn();
+const listConnectorModelsMock = vi.fn();
 const logRendererEventMock = vi.fn();
 
 vi.mock('@nimiplatform/sdk', () => ({
@@ -13,8 +15,8 @@ vi.mock('@nimiplatform/sdk', () => ({
     },
     domains: {
       runtimeAdmin: {
-        listConnectors: vi.fn(),
-        listConnectorModels: vi.fn(),
+        listConnectors: listConnectorsMock,
+        listConnectorModels: listConnectorModelsMock,
       },
     },
   }),
@@ -30,7 +32,16 @@ const { loadParentosRuntimeRouteOptions } = await import('./parentos-runtime-rou
 describe('parentos-runtime-route-options', () => {
   beforeEach(() => {
     listLocalAssetsMock.mockReset();
+    listConnectorsMock.mockReset();
+    listConnectorModelsMock.mockReset();
     logRendererEventMock.mockReset();
+    listConnectorsMock.mockResolvedValue({
+      connectors: [],
+    });
+    listConnectorModelsMock.mockResolvedValue({
+      models: [],
+      nextPageToken: '',
+    });
     useAppStore.setState({
       runtimeDefaults: {
         webBaseUrl: '',
@@ -195,5 +206,159 @@ describe('parentos-runtime-route-options', () => {
       goRuntimeLocalModelId: 'local-gemma',
       goRuntimeStatus: 'active',
     });
+  });
+
+  it('includes cloud connector options and preserves selected cloud bindings', async () => {
+    useAppStore.setState({
+      aiConfig: {
+        scopeRef: { kind: 'app', ownerId: 'app.nimi.parentos', surfaceId: 'settings.ai' },
+        capabilities: {
+          selectedBindings: {
+            'text.generate': {
+              source: 'cloud',
+              connectorId: 'openai-main',
+              model: 'gpt-5.4',
+            },
+          },
+          localProfileRefs: {},
+          selectedParams: {},
+        },
+        profileOrigin: null,
+      },
+    });
+    listConnectorsMock.mockResolvedValue({
+      connectors: [{
+        connectorId: 'openai-main',
+        label: 'OpenAI',
+        provider: 'openai',
+        kind: 2,
+      }],
+    });
+    listConnectorModelsMock.mockResolvedValue({
+      models: [{
+        available: true,
+        modelId: 'gpt-5.4',
+        capabilities: ['text.generate'],
+      }],
+      nextPageToken: '',
+    });
+
+    const snapshot = await loadParentosRuntimeRouteOptions('text.generate');
+
+    expect(snapshot.selected).toEqual({
+      source: 'cloud',
+      connectorId: 'openai-main',
+      model: 'gpt-5.4',
+      provider: 'openai',
+    });
+    expect(snapshot.connectors).toEqual([{
+      id: 'openai-main',
+      label: 'OpenAI',
+      provider: 'openai',
+      models: ['gpt-5.4'],
+      modelCapabilities: {
+        'gpt-5.4': ['text.generate'],
+      },
+      modelProfiles: [],
+    }]);
+  });
+
+  it('preserves multimodal text capability hints for local and cloud OCR routing', async () => {
+    listLocalAssetsMock.mockResolvedValue({
+      assets: [{
+        localAssetId: 'local-gemma-vision',
+        assetId: 'gemma-4-vision',
+        logicalModelId: 'gemma-4-vision',
+        engine: 'llama',
+        status: 'active',
+        kind: 1,
+        capabilities: ['text.generate.vision'],
+      }],
+      nextPageToken: '',
+    });
+    listConnectorsMock.mockResolvedValue({
+      connectors: [{
+        connectorId: 'openai-main',
+        label: 'OpenAI',
+        provider: 'openai',
+        kind: 2,
+      }],
+    });
+    listConnectorModelsMock.mockResolvedValue({
+      models: [{
+        available: true,
+        modelId: 'gpt-5.4',
+        capabilities: ['vision'],
+      }],
+      nextPageToken: '',
+    });
+
+    const snapshot = await loadParentosRuntimeRouteOptions('text.generate');
+
+    expect(snapshot.local.models[0]?.capabilities).toEqual(['text.generate.vision', 'text.generate']);
+    expect(snapshot.connectors[0]?.modelCapabilities).toEqual({
+      'gpt-5.4': ['text.generate.vision', 'text.generate'],
+    });
+  });
+
+  it('loads a dedicated vision snapshot from the standalone OCR binding', async () => {
+    useAppStore.setState({
+      aiConfig: {
+        scopeRef: { kind: 'app', ownerId: 'app.nimi.parentos', surfaceId: 'settings.ai' },
+        capabilities: {
+          selectedBindings: {
+            'text.generate.vision': {
+              source: 'cloud',
+              connectorId: 'vision-main',
+              model: 'gpt-5.4-vision',
+            },
+          },
+          localProfileRefs: {},
+          selectedParams: {},
+        },
+        profileOrigin: null,
+      },
+    });
+    listLocalAssetsMock.mockResolvedValue({
+      assets: [{
+        localAssetId: 'local-gemma-vision',
+        assetId: 'gemma-4-vision',
+        logicalModelId: 'gemma-4-vision',
+        engine: 'llama',
+        status: 'active',
+        kind: 1,
+        capabilities: ['text.generate.vision'],
+      }],
+      nextPageToken: '',
+    });
+    listConnectorsMock.mockResolvedValue({
+      connectors: [{
+        connectorId: 'vision-main',
+        label: 'OpenAI',
+        provider: 'openai',
+        kind: 2,
+      }],
+    });
+    listConnectorModelsMock.mockResolvedValue({
+      models: [{
+        available: true,
+        modelId: 'gpt-5.4-vision',
+        capabilities: ['vision'],
+      }],
+      nextPageToken: '',
+    });
+
+    const snapshot = await loadParentosRuntimeRouteOptions('text.generate.vision');
+
+    expect(snapshot.capability).toBe('text.generate');
+    expect(snapshot.selected).toEqual({
+      source: 'cloud',
+      connectorId: 'vision-main',
+      model: 'gpt-5.4-vision',
+      provider: 'openai',
+    });
+    expect(snapshot.local.models).toHaveLength(1);
+    expect(snapshot.local.models[0]?.capabilities).toEqual(['text.generate.vision', 'text.generate']);
+    expect(snapshot.connectors[0]?.models).toEqual(['gpt-5.4-vision']);
   });
 });

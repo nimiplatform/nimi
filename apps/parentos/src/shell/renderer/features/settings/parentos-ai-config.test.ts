@@ -35,6 +35,12 @@ describe('parentos-ai-config persistence', () => {
             model: 'gpt-5.4',
             provider: 'openai',
           },
+          'text.generate.vision': {
+            source: 'cloud',
+            connectorId: 'connector-vision',
+            model: 'gpt-5.4-vision',
+            provider: 'openai',
+          },
           'audio.transcribe': null,
         },
         localProfileRefs: {
@@ -61,9 +67,15 @@ describe('parentos-ai-config persistence', () => {
       capabilities: {
         selectedBindings: {
           'text.generate': expect.objectContaining({
-            source: 'local',
-            connectorId: '',
+            source: 'cloud',
+            connectorId: 'connector-1',
             model: 'gpt-5.4',
+            provider: 'openai',
+          }),
+          'text.generate.vision': expect.objectContaining({
+            source: 'cloud',
+            connectorId: 'connector-vision',
+            model: 'gpt-5.4-vision',
             provider: 'openai',
           }),
           'audio.transcribe': null,
@@ -111,6 +123,11 @@ describe('parentos-ai-config persistence', () => {
       scopeRef: PARENTOS_AI_SCOPE_REF,
       capabilities: {
         selectedBindings: {
+          'text.generate.vision': {
+            source: 'cloud',
+            connectorId: 'openai-vision',
+            model: 'gpt-5.4-vision',
+          },
           'audio.transcribe': {
             source: 'local',
             connectorId: '',
@@ -130,6 +147,11 @@ describe('parentos-ai-config persistence', () => {
         scopeRef: PARENTOS_AI_SCOPE_REF,
         capabilities: {
           selectedBindings: {
+            'text.generate.vision': {
+              source: 'cloud',
+              connectorId: 'openai-vision',
+              model: 'gpt-5.4-vision',
+            },
             'audio.transcribe': {
               source: 'local',
               connectorId: '',
@@ -145,7 +167,7 @@ describe('parentos-ai-config persistence', () => {
     );
   });
 
-  it('normalizes persisted cloud bindings back to local-only ParentOS config', () => {
+  it('preserves persisted cloud bindings for ParentOS capability settings', () => {
     const parsed = parsePersistedParentosAIConfig(JSON.stringify({
       scopeRef: PARENTOS_AI_SCOPE_REF,
       capabilities: {
@@ -163,8 +185,8 @@ describe('parentos-ai-config persistence', () => {
     }));
 
     expect(parsed?.capabilities.selectedBindings['text.generate']).toEqual({
-      source: 'local',
-      connectorId: '',
+      source: 'cloud',
+      connectorId: 'openai-main',
       model: 'gpt-5.4',
     });
   });

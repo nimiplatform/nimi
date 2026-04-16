@@ -47,6 +47,7 @@ function generateReminderRules() {
       nurtureMode: { relaxed: string; balanced: string; advanced: string };
       actionType: string;
       repeatRule?: { intervalMonths: number; maxRepeats: number };
+      expiryMonths?: number;
       source: string;
       tags?: string[];
     }>;
@@ -76,6 +77,7 @@ export interface ReminderRule {
   nurtureMode: { relaxed: ReminderVisibility; balanced: ReminderVisibility; advanced: ReminderVisibility };
   actionType: ActionType;
   repeatRule?: { intervalMonths: number; maxRepeats: number };
+  expiryMonths?: number;
   source: string;
   tags?: string[];
 }

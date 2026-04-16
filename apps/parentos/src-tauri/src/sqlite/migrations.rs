@@ -13,14 +13,17 @@ mod migrations_v3;
 mod migrations_v4;
 #[path = "migrations_v5.rs"]
 mod migrations_v5;
+#[path = "migrations_v6.rs"]
+mod migrations_v6;
 
 use migrations_schema::V1_SCHEMA_SQL;
 use migrations_v2::apply_v2;
 use migrations_v3::apply_v3;
 use migrations_v4::apply_v4;
 use migrations_v5::apply_v5;
+use migrations_v6::apply_v6;
 
-const SCHEMA_VERSION: u32 = 5;
+const SCHEMA_VERSION: u32 = 6;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), String> {
     ensure_schema_version_table(conn)?;
@@ -56,6 +59,11 @@ pub fn run_migrations(conn: &Connection) -> Result<(), String> {
         record_schema_version(conn, 5)?;
     }
 
+    if current_version < 6 {
+        apply_v6(conn)?;
+        record_schema_version(conn, 6)?;
+    }
+
     repair_missing_tables(conn)?;
 
     Ok(())
@@ -63,26 +71,19 @@ pub fn run_migrations(conn: &Connection) -> Result<(), String> {
 
 fn repair_missing_tables(conn: &Connection) -> Result<(), String> {
     // Some pre-release local databases were stamped with a newer schema version
-    // before all idempotent table migrations had landed. Re-run the missing-table
-    // repairs so existing installs can self-heal on startup.
-    if !table_exists(conn, "sleep_records")? {
-        apply_v4(conn)?;
-    }
-
-    if !table_exists(conn, "attachments")? {
-        apply_v5(conn)?;
-    }
-
+    // before the full set of idempotent table definitions had landed. Re-run the
+    // current CREATE TABLE / CREATE INDEX blocks so existing installs can self-heal
+    // even when they are already marked at the latest schema version.
+    // Order matters here: older reminder_states tables can be missing the v3
+    // columns that newer v1 repair indexes reference. Hydrate those columns first,
+    // then replay the broad CREATE TABLE / CREATE INDEX definitions.
+    apply_v3(conn)?;
+    apply_v2(conn)?;
+    apply_v1(conn)?;
+    apply_v4(conn)?;
+    apply_v5(conn)?;
+    apply_v6(conn)?;
     Ok(())
-}
-
-fn table_exists(conn: &Connection, table_name: &str) -> Result<bool, String> {
-    conn.query_row(
-        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",
-        [table_name],
-        |row| row.get(0),
-    )
-    .map_err(|e| format!("migration: failed to check for table {table_name}: {e}"))
 }
 
 fn ensure_schema_version_table(conn: &Connection) -> Result<(), String> {

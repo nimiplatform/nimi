@@ -124,6 +124,35 @@ describe('reminder engine eligibility', () => {
     expect(reminders).toHaveLength(0);
   });
 
+  it('lets a follow-up rule take over after a narrow recommendation window expires', () => {
+    const recommendationWindowRule = {
+      ...baseRule,
+      ruleId: 'PO-REM-TEST-212',
+      domain: 'dental',
+      actionType: 'go_hospital',
+      triggerAge: { startMonths: 84, endMonths: 96 },
+      expiryMonths: 0,
+    } as ReminderRule & { expiryMonths: number };
+
+    const followupRule: ReminderRule = {
+      ...baseRule,
+      ruleId: 'PO-REM-TEST-213',
+      domain: 'dental',
+      actionType: 'go_hospital',
+      triggerAge: { startMonths: 97, endMonths: 144 },
+    };
+
+    const reminders = computeEligibleReminders([recommendationWindowRule, followupRule], makeContext({
+      birthDate: '2016-11-01',
+      ageMonths: 113,
+      localToday: '2026-04-16',
+      profileCreatedAt: '2024-01-01T00:00:00.000Z',
+    }), []);
+
+    expect(reminders.map((item) => item.rule.ruleId)).toEqual(['PO-REM-TEST-213']);
+    expect(reminders[0]?.lifecycle).toBe('due');
+  });
+
   it('derives reminder kind only from actionType', () => {
     expect(toReminderKind({ actionType: 'read_guide' })).toBe('guidance');
     expect(toReminderKind({ actionType: 'go_hospital' })).toBe('task');
@@ -146,7 +175,7 @@ describe('reminder engine orchestration', () => {
     expect(agenda.p0Overflow.items[0]?.rule.ruleId).toBe('PO-REM-TEST-304');
   });
 
-  it('limits non-P0 today items and keeps overflow in thisWeek', () => {
+  it('limits non-P0 today items and keeps overflow in upcoming', () => {
     const rules: ReminderRule[] = [
       { ...baseRule, ruleId: 'PO-REM-TEST-401', domain: 'growth', actionType: 'record_data' },
       { ...baseRule, ruleId: 'PO-REM-TEST-402', domain: 'vision', actionType: 'record_data', title: 'Vision task' },
@@ -156,7 +185,7 @@ describe('reminder engine orchestration', () => {
     const agenda = buildReminderAgenda(rules, makeContext({ nurtureMode: 'relaxed' }), []);
 
     expect(agenda.todayFocus).toHaveLength(2);
-    expect(agenda.thisWeek).toHaveLength(1);
+    expect(agenda.upcoming).toHaveLength(1);
   });
 
   it('keeps same-day planned items stable and inserts new P0 items', () => {
@@ -196,6 +225,17 @@ describe('reminder engine orchestration', () => {
     expect(agenda.overdueSummary.count).toBeGreaterThanOrEqual(1);
   });
 
+  it('includes guidance reminders in upcoming bucket', () => {
+    const rules: ReminderRule[] = [
+      { ...baseRule, ruleId: 'PO-REM-TEST-605', domain: 'relationship', actionType: 'observe', title: 'Guidance item' },
+    ];
+
+    const agenda = buildReminderAgenda(rules, makeContext(), []);
+
+    expect(agenda.upcoming.map((item) => item.rule.ruleId)).toContain('PO-REM-TEST-605');
+    expect(agenda.upcoming[0]?.kind).toBe('guidance');
+  });
+
   it('applies frequency overrides to agenda generation', () => {
     const rules: ReminderRule[] = [
       {
@@ -217,7 +257,7 @@ describe('reminder engine orchestration', () => {
 
     expect([
       ...agenda.todayFocus.map((item) => item.repeatIndex),
-      ...agenda.thisWeek.map((item) => item.repeatIndex),
+      ...agenda.upcoming.map((item) => item.repeatIndex),
     ]).toContain(1);
   });
 
@@ -234,8 +274,167 @@ describe('reminder engine orchestration', () => {
 
     expect(agenda.onboardingCatchup.count).toBe(1);
     expect(agenda.todayFocus).toHaveLength(0);
-    expect(agenda.thisWeek).toHaveLength(0);
+    expect(agenda.upcoming).toHaveLength(0);
     expect(agenda.overdueSummary.count).toBe(0);
+  });
+});
+
+describe('repeat instance expiry with persisted state', () => {
+  const growthRule: ReminderRule = {
+    ...baseRule,
+    ruleId: 'PO-REM-TEST-GRO',
+    domain: 'growth',
+    actionType: 'record_data',
+    priority: 'P2',
+    triggerAge: { startMonths: 36, endMonths: 216 },
+    repeatRule: { intervalMonths: 6, maxRepeats: -1 },
+  };
+
+  it('expires orphan persisted-state instances far beyond the hard ceiling', () => {
+    // Child is ~154 months (12y10m). An old instance at repeatIndex 2
+    // (triggerAge 48, effectiveEnd 53) has an uncompleted persisted state.
+    // Without the fix this would surface as "逾期 3000+ 天".
+    const states = [
+      makeState({
+        ruleId: 'PO-REM-TEST-GRO',
+        repeatIndex: 2,
+        scheduledDate: '2018-06-01',
+      }),
+    ];
+
+    const reminders = computeEligibleReminders(
+      [growthRule],
+      makeContext({
+        birthDate: '2013-06-15',
+        ageMonths: 154,
+        localToday: '2026-04-15',
+        profileCreatedAt: '2020-01-01T00:00:00.000Z',
+      }),
+      states,
+    );
+
+    // The old instance (repeatIndex 2) should be expired.
+    // Only recent instances near the child's current age should remain.
+    const indices = reminders.filter((r) => r.lifecycle !== 'completed').map((r) => r.repeatIndex);
+    expect(indices).not.toContain(2);
+    expect(indices.some((i) => i >= 17)).toBe(true);
+  });
+
+  it('keeps persisted-state instances within the hard ceiling', () => {
+    // An instance snoozed recently should survive the ceiling check.
+    // Use ageMonths=148 so instance 19 (triggerAge 150) is not yet eligible,
+    // making the snoozed instance 18 the dedup winner.
+    const states = [
+      makeState({
+        ruleId: 'PO-REM-TEST-GRO',
+        repeatIndex: 18,
+        snoozedUntil: '2026-04-20',
+      }),
+    ];
+
+    const reminders = computeEligibleReminders(
+      [growthRule],
+      makeContext({
+        birthDate: '2013-06-15',
+        ageMonths: 148,
+        localToday: '2025-10-15',
+        profileCreatedAt: '2020-01-01T00:00:00.000Z',
+      }),
+      states,
+    );
+
+    const indices = reminders.map((r) => r.repeatIndex);
+    expect(indices).toContain(18);
+  });
+
+  it('dedup drops orphan when a newer sibling is completed', () => {
+    // Old orphan state + recent completed states → dedup should discard
+    // the old uncompleted instance because the user has clearly moved on.
+    const states = [
+      makeState({
+        ruleId: 'PO-REM-TEST-GRO',
+        stateId: 'orphan',
+        repeatIndex: 15,
+        scheduledDate: '2024-01-01',
+      }),
+      makeState({
+        ruleId: 'PO-REM-TEST-GRO',
+        stateId: 'done-17',
+        repeatIndex: 17,
+        completedAt: '2025-07-01T10:00:00.000Z',
+        status: 'completed',
+      }),
+      makeState({
+        ruleId: 'PO-REM-TEST-GRO',
+        stateId: 'done-18',
+        repeatIndex: 18,
+        completedAt: '2026-01-01T10:00:00.000Z',
+        status: 'completed',
+      }),
+    ];
+
+    const agenda = buildReminderAgenda(
+      [growthRule],
+      makeContext({
+        birthDate: '2013-06-15',
+        ageMonths: 154,
+        localToday: '2026-04-15',
+        profileCreatedAt: '2020-01-01T00:00:00.000Z',
+      }),
+      states,
+    );
+
+    // The orphan at index 15 must not appear anywhere in the active agenda
+    const allActive = [
+      ...agenda.todayFocus,
+      ...agenda.upcoming,
+      ...agenda.overdueSummary.items,
+      ...agenda.p0Overflow.items,
+    ];
+    const groIndices = allActive
+      .filter((r) => r.rule.ruleId === 'PO-REM-TEST-GRO')
+      .map((r) => r.repeatIndex);
+    expect(groIndices).not.toContain(15);
+  });
+
+  it('dedup keeps uncompleted instance when no newer sibling is completed', () => {
+    // If only an older sibling is completed, the uncompleted one should stay.
+    const states = [
+      makeState({
+        ruleId: 'PO-REM-TEST-GRO',
+        stateId: 'done-16',
+        repeatIndex: 16,
+        completedAt: '2025-01-01T10:00:00.000Z',
+        status: 'completed',
+      }),
+      makeState({
+        ruleId: 'PO-REM-TEST-GRO',
+        stateId: 'active-17',
+        repeatIndex: 17,
+        scheduledDate: '2025-08-01',
+      }),
+    ];
+
+    const reminders = computeEligibleReminders(
+      [growthRule],
+      makeContext({
+        birthDate: '2013-06-15',
+        ageMonths: 154,
+        localToday: '2026-04-15',
+        profileCreatedAt: '2020-01-01T00:00:00.000Z',
+      }),
+      states,
+    );
+
+    // Instance 19 wins dedup (highest uncompleted), but instance 17 should
+    // at least pass eligibility — the dedup picks 19 over it, which is fine.
+    // The key assertion: the dedup result contains an uncompleted instance
+    // (not dropped by the orphan check).
+    const uncompleted = reminders.filter(
+      (r) => r.rule.ruleId === 'PO-REM-TEST-GRO' && r.lifecycle !== 'completed' && r.lifecycle !== 'not_applicable',
+    );
+    expect(uncompleted.length).toBeGreaterThanOrEqual(1);
+    expect(uncompleted[0]!.repeatIndex).toBe(19);
   });
 });
 

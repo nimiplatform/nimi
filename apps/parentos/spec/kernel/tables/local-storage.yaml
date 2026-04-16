@@ -2,7 +2,7 @@ schema_version: 1
 
 tables:
   - name: families
-    description: "Single local family profile."
+    description: "Single local family profile per account-scoped ParentOS database."
     columns:
       - { name: familyId, type: TEXT, pk: true, description: "ULID" }
       - { name: displayName, type: TEXT, nullable: false }
@@ -12,7 +12,7 @@ tables:
       - { columns: [familyId], unique: true }
 
   - name: children
-    description: "Child profiles stored under one local family."
+    description: "Child profiles stored under one local family within the account-scoped database."
     columns:
       - { name: childId, type: TEXT, pk: true, description: "ULID" }
       - { name: familyId, type: TEXT, nullable: false, fk: "families.familyId" }
@@ -349,6 +349,22 @@ tables:
       - { columns: [childId, ownerTable, ownerId] }
       - { columns: [childId, createdAt] }
 
+  # ── 自定义待办 ──────────────────────────────────────────
+
+  - name: custom_todos
+    description: "User-created custom todo items per child."
+    columns:
+      - { name: todoId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: title, type: TEXT, nullable: false }
+      - { name: dueDate, type: TEXT, nullable: true, description: "ISO 8601 date" }
+      - { name: completedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, completedAt] }
+      - { columns: [childId, dueDate] }
+
   # ── 以下为已有系统表 ────────────────────────────────────
 
   - name: app_settings
@@ -359,10 +375,11 @@ tables:
       - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
 
 constraints:
+  - "ParentOS local storage is account-scoped: each authenticated subject resolves a dedicated SQLite database file, and rows from one subject must not be read from another subject's database."
   - "All ULID fields use ULID identifiers."
   - "All datetime fields use ISO 8601 strings."
   - "JSON payloads are stored as TEXT and must remain valid JSON on read/write."
   - "childId is the primary filter field for child-scoped tables."
   - "growth_reports.reportType is limited to monthly | quarterly | quarterly-letter | custom."
-  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, attachments."
+  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, attachments, custom_todos."
   - "children.allergies JSON array remains as a quick-access summary; allergy_records is the structured source of truth."

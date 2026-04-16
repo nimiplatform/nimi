@@ -153,15 +153,10 @@ function EditorShell(props: { title: string; hint: string; children: ReactNode }
 }
 
 function normalizeBinding(binding: RuntimeRouteBinding | null): RuntimeRouteBinding {
-  const current = binding || {
+  return binding || {
     source: 'local',
     connectorId: '',
     model: '',
-  };
-  return {
-    ...current,
-    source: 'local',
-    connectorId: '',
   };
 }
 
@@ -175,8 +170,7 @@ function patchBinding(
     ...current,
     ...patch,
   } satisfies RuntimeRouteBinding;
-  next.source = 'local';
-  next.connectorId = '';
+  next.source = nextSource === 'cloud' ? 'cloud' : 'local';
 
   if (nextSource !== 'local') {
     next.localModelId = undefined;
@@ -213,18 +207,27 @@ function BindingEditor(props: {
     <EditorShell
       title="模型绑定"
       hint={props.pickerAvailable
-        ? 'ParentOS 只允许本地运行时模型。你可以使用上方选择器，或直接手动填写本地 model id。'
-        : (props.pickerUnavailableHint || '当前 runtime 本地模型列表不可用，请直接手动填写本地 model id。')}
+        ? '可以使用上方选择器选择本地或云端模型，也可直接手动填写 model id。'
+        : (props.pickerUnavailableHint || '当前 runtime 模型列表不可用，请直接手动填写 model id。')}
     >
-      <FieldRow label="Model" tooltip="本地运行时实际使用的 model id。">
+      <FieldRow label="Model" tooltip="当前绑定使用的 model id。">
         <FieldInput
           value={current.model}
           onChange={(value) => update({ model: value })}
-          placeholder="例如 local/Gemma-4-27B-it-Q4_K_M"
+          placeholder="例如 gpt-5.4 或 local/Gemma-4-27B-it-Q4_K_M"
         />
       </FieldRow>
     </EditorShell>
   );
+}
+
+export function ParentosBindingEditor(props: {
+  binding: RuntimeRouteBinding | null;
+  onBindingChange: (binding: RuntimeRouteBinding | null) => void;
+  pickerAvailable: boolean;
+  pickerUnavailableHint?: string;
+}) {
+  return <BindingEditor {...props} />;
 }
 
 export function ParentosTextGenerateParamsEditor(props: {

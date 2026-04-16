@@ -20,6 +20,7 @@ export interface ReminderRule {
   nurtureMode: { relaxed: ReminderVisibility; balanced: ReminderVisibility; advanced: ReminderVisibility };
   actionType: ActionType;
   repeatRule?: { intervalMonths: number; maxRepeats: number };
+  expiryMonths?: number;
   source: string;
   tags?: string[];
 }
@@ -977,11 +978,34 @@ export const REMINDER_RULES: readonly ReminderRule[] = [
     "ruleId": "PO-REM-DEN-004",
     "domain": "dental",
     "category": "stage",
-    "title": "正畸评估最佳时机",
-    "description": "7-8 岁是正畸初评的推荐时间，可发现早期咬合问题。",
+    "title": "正畸初评推荐窗口",
+    "description": "7-8 岁适合完成一次正畸初评，可较早了解咬合、牙列和换牙情况。",
     "triggerAge": {
       "startMonths": 84,
       "endMonths": 96
+    },
+    "expiryMonths": 0,
+    "priority": "P2",
+    "nurtureMode": {
+      "relaxed": "silent",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "source": "AAO-2023",
+    "tags": [
+      "orthodontics"
+    ]
+  },
+  {
+    "ruleId": "PO-REM-DEN-005",
+    "domain": "dental",
+    "category": "stage",
+    "title": "安排一次正畸初评",
+    "description": "如果之前还没做过正畸初评，可在近期安排一次口腔正畸检查，帮助了解咬合和恒牙萌出情况。",
+    "triggerAge": {
+      "startMonths": 97,
+      "endMonths": 168
     },
     "priority": "P2",
     "nurtureMode": {

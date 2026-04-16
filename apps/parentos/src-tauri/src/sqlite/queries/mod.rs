@@ -1,10 +1,12 @@
 mod assessments;
+mod custom_todos;
 mod health_measurements;
 mod health_records;
 mod journal;
 mod reminders;
 
 pub use assessments::*;
+pub use custom_todos::*;
 pub use health_measurements::*;
 pub use health_records::*;
 pub use journal::*;
@@ -174,7 +176,12 @@ pub fn create_family(family_id: String, display_name: String, now: String) -> Re
 pub fn get_family() -> Result<Option<Family>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
-        .prepare("SELECT familyId, displayName, createdAt, updatedAt FROM families LIMIT 1")
+        .prepare(
+            "SELECT familyId, displayName, createdAt, updatedAt
+             FROM families
+             ORDER BY updatedAt DESC, createdAt DESC
+             LIMIT 1",
+        )
         .map_err(|e| format!("get_family: {e}"))?;
     let result = stmt
         .query_row([], |row| {
@@ -183,6 +190,42 @@ pub fn get_family() -> Result<Option<Family>, String> {
                 display_name: row.get(1)?,
                 created_at: row.get(2)?,
                 updated_at: row.get(3)?,
+            })
+        })
+        .ok();
+    Ok(result)
+}
+
+#[tauri::command]
+pub fn get_child(child_id: String) -> Result<Option<Child>, String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT childId, familyId, displayName, gender, birthDate, birthWeightKg, birthHeightCm, birthHeadCircCm, avatarPath, nurtureMode, nurtureModeOverrides, allergies, medicalNotes, recorderProfiles, createdAt, updatedAt
+             FROM children
+             WHERE childId = ?1
+             LIMIT 1",
+        )
+        .map_err(|e| format!("get_child: {e}"))?;
+    let result = stmt
+        .query_row(params![child_id], |row| {
+            Ok(Child {
+                child_id: row.get(0)?,
+                family_id: row.get(1)?,
+                display_name: row.get(2)?,
+                gender: row.get(3)?,
+                birth_date: row.get(4)?,
+                birth_weight_kg: row.get(5)?,
+                birth_height_cm: row.get(6)?,
+                birth_head_circ_cm: row.get(7)?,
+                avatar_path: row.get(8)?,
+                nurture_mode: row.get(9)?,
+                nurture_mode_overrides: row.get(10)?,
+                allergies: row.get(11)?,
+                medical_notes: row.get(12)?,
+                recorder_profiles: row.get(13)?,
+                created_at: row.get(14)?,
+                updated_at: row.get(15)?,
             })
         })
         .ok();

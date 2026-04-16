@@ -172,6 +172,7 @@ fn main() {
             // Family & Children
             sqlite::queries::create_family,
             sqlite::queries::get_family,
+            sqlite::queries::get_child,
             sqlite::queries::create_child,
             sqlite::queries::get_children,
             sqlite::queries::update_child,
@@ -189,6 +190,13 @@ fn main() {
             sqlite::queries::upsert_reminder_state,
             sqlite::queries::get_reminder_states,
             sqlite::queries::get_active_reminders,
+            // Custom Todos
+            sqlite::queries::insert_custom_todo,
+            sqlite::queries::update_custom_todo,
+            sqlite::queries::complete_custom_todo,
+            sqlite::queries::uncomplete_custom_todo,
+            sqlite::queries::delete_custom_todo,
+            sqlite::queries::get_custom_todos,
             // Vaccine Records
             sqlite::queries::insert_vaccine_record,
             sqlite::queries::get_vaccine_records,

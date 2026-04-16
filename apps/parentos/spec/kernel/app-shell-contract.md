@@ -25,12 +25,14 @@ Governing fact sources:
 The desktop shell bootstrap path must execute in this order:
 
 1. initialize SDK/runtime access needed by the app shell
-2. initialize SQLite-backed local storage
-3. load family, child, and app-setting rows from local storage
-4. derive the active child from persisted local state or the first available child
-5. render shell routes after local prerequisites are ready
+2. resolve the current local storage scope from the authenticated subject when available, otherwise use the anonymous local scope
+3. initialize the SQLite-backed local storage for that scope
+4. load family, child, and app-setting rows from the scoped local storage
+5. derive the active child from persisted local state or the first available child
+6. render shell routes after local prerequisites are ready
 
 Bootstrap is local-first. ParentOS must not require cloud hydration before local family and child data become usable.
+Authenticated sessions must switch into that subject's dedicated local database before shell data is hydrated.
 
 ## PO-SHELL-002 Route Registration
 
@@ -48,7 +50,7 @@ The shell-level state required for the current baseline is:
 
 | Field | Type | Invariant |
 |---|---|---|
-| `familyId` | `string \| null` | `null` only when no local family exists yet |
+| `familyId` | `string \| null` | `null` only when no local family exists yet in the current local storage scope |
 | `children` | `ChildRecord[]` | rows are projected from `local-storage.yaml#children` without dropping required fields |
 | `activeChildId` | `string \| null` | must reference an item in `children` when not `null` |
 | `nurtureMode` | `relaxed \| balanced \| advanced` | value must come from `nurture-modes.yaml` |
@@ -67,9 +69,11 @@ Nurture mode settings are child-scoped and must round-trip through the `children
 
 ## PO-SHELL-005 Family and Child Selection
 
-The shell must support a single local family with multiple children.
+The shell must support a single local family with multiple children inside each account-scoped local database.
 
 - child create, edit, and delete flows operate on the local SQLite store
+- authenticated account switches must clear in-memory family and child state, switch to the new subject-scoped SQLite database, and then reload that account's local rows
+- one authenticated subject must not see another subject's local family, children, or app settings through shell state reuse
 - switching the active child refreshes profile, timeline, journal, advisor, and reports views from that child's local records
 - deleting a child must rely on storage-layer cascade behavior for dependent rows
 

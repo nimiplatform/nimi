@@ -8,6 +8,7 @@ import '@nimiplatform/nimi-kit/auth/styles.css';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { createParentOSDesktopBrowserAuthAdapter } from './parentos-auth-adapter.js';
 import { parentosTauriOAuthBridge } from '../../bridge/index.js';
+import { syncParentOSLocalDataScope } from '../../infra/parentos-bootstrap.js';
 
 export function ParentOSLoginPage() {
   const adapter = useMemo(() => createParentOSDesktopBrowserAuthAdapter(), []);
@@ -48,12 +49,15 @@ export function ParentOSLoginPage() {
           const store = useAppStore.getState();
           if (!user || !user.id) {
             store.clearAuthSession();
+            void syncParentOSLocalDataScope(null);
             return;
           }
 
+          const nextUserId = String(user.id);
+          const previousUserId = store.auth.user?.id ?? null;
           store.setAuthSession(
             {
-              id: String(user.id),
+              id: nextUserId,
               displayName: String(user.displayName || user.name || ''),
               email: user.email ? String(user.email) : undefined,
               avatarUrl: user.avatarUrl ? String(user.avatarUrl) : undefined,
@@ -61,6 +65,9 @@ export function ParentOSLoginPage() {
             token,
             refreshToken || '',
           );
+          if (previousUserId !== nextUserId) {
+            void syncParentOSLocalDataScope(nextUserId);
+          }
         },
       }}
       desktopBrowserAuth={{

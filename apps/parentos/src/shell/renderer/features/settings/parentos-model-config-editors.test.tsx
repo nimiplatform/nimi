@@ -27,7 +27,7 @@ describe('parentos-model-config-editors', () => {
       </TooltipProvider>,
     );
 
-    const modelInput = screen.getByPlaceholderText('例如 local/Gemma-4-27B-it-Q4_K_M');
+    const modelInput = screen.getByPlaceholderText('例如 gpt-5.4 或 local/Gemma-4-27B-it-Q4_K_M');
     fireEvent.change(modelInput, { target: { value: 'local/Gemma-4-27B-it-Q6_K' } });
 
     expect(onBindingChange).toHaveBeenLastCalledWith({
@@ -36,6 +36,39 @@ describe('parentos-model-config-editors', () => {
       model: 'local/Gemma-4-27B-it-Q6_K',
       modelId: 'local/Gemma-4-27B-it-Q6_K',
       localModelId: undefined,
+    });
+  });
+
+  it('preserves cloud route bindings when a cloud model is edited manually', async () => {
+    const onBindingChange = vi.fn();
+
+    render(
+      <TooltipProvider>
+        <ParentosTextGenerateParamsEditor
+          binding={{
+            source: 'cloud',
+            connectorId: 'openai-main',
+            model: 'gpt-5.4',
+            modelId: 'gpt-5.4',
+            provider: 'openai',
+          }}
+          onBindingChange={onBindingChange}
+          pickerAvailable
+          params={{}}
+          onChange={() => {}}
+        />
+      </TooltipProvider>,
+    );
+
+    const modelInput = screen.getByPlaceholderText('例如 gpt-5.4 或 local/Gemma-4-27B-it-Q4_K_M');
+    fireEvent.change(modelInput, { target: { value: 'gpt-5.4-mini' } });
+
+    expect(onBindingChange).toHaveBeenLastCalledWith({
+      source: 'cloud',
+      connectorId: 'openai-main',
+      model: 'gpt-5.4-mini',
+      modelId: 'gpt-5.4-mini',
+      provider: 'openai',
     });
   });
 });

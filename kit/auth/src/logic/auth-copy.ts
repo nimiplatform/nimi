@@ -23,6 +23,7 @@ export const AUTH_COPY = {
   passwordMismatch: '两次输入的密码不一致',
   setPasswordSuccess: '注册成功。',
   setPasswordFailed: '设置密码失败，请重试。',
+  setPasswordFinalizeFailed: '密码已设置成功，但系统未完成登录。请直接使用邮箱和密码登录。',
   requestOtpFailed: '发送验证码失败，请重试。',
   resendOtpFailed: '重新发送验证码失败，请重试。',
   otpCodeRequired: '请输入 6 位验证码',

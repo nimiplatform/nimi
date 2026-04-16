@@ -121,7 +121,7 @@ export const KNOWLEDGE_SOURCES: readonly KnowledgeSource[] = [
     "status": "needs-review",
     "owner": "product",
     "lastReviewedAt": null,
-    "notes": "Observation remains needs-review for free-form generation. Phase 2 only allows local closed-set dimension/tag suggestion against spec-backed quickTags after parent confirmation."
+    "notes": "Observation remains needs-review for expert-style generation. Advisor may only use descriptive-only local-fact prompts; Phase 2 tag suggestion remains local closed-set against spec-backed quickTags after parent confirmation."
   }
 ] ;
 

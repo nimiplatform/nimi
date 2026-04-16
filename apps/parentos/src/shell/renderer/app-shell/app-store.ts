@@ -48,6 +48,7 @@ interface AppState {
   setBootstrapReady: (ready: boolean) => void;
   setBootstrapError: (error: string | null) => void;
   setRuntimeDefaults: (defaults: RuntimeDefaults) => void;
+  clearLocalData: () => void;
 
   activeChildId: string | null;
   setActiveChildId: (id: string | null) => void;
@@ -81,11 +82,21 @@ export const useAppStore = create<AppState>((set) => ({
   clearAuthSession() {
     set({
       auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' },
+      familyId: null,
+      children: [],
+      activeChildId: null,
+      aiConfig: null,
     });
   },
   setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
   setBootstrapError: (error) => set({ bootstrapError: error }),
   setRuntimeDefaults: (defaults) => set({ runtimeDefaults: defaults }),
+  clearLocalData: () => set({
+    familyId: null,
+    children: [],
+    activeChildId: null,
+    aiConfig: null,
+  }),
 
   activeChildId: null,
   setActiveChildId: (id) => set({ activeChildId: id }),

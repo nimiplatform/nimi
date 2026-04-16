@@ -2,16 +2,41 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShellLayout } from './shell-layout.js';
 import { useAppStore } from './app-store.js';
 
+const { setAppSettingMock } = vi.hoisted(() => ({
+  setAppSettingMock: vi.fn().mockResolvedValue(undefined),
+}));
+const { syncParentOSLocalDataScopeMock } = vi.hoisted(() => ({
+  syncParentOSLocalDataScopeMock: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../bridge/sqlite-bridge.js', () => ({
+  setAppSetting: setAppSettingMock,
+}));
+vi.mock('../infra/parentos-bootstrap.js', () => ({
+  syncParentOSLocalDataScope: syncParentOSLocalDataScopeMock,
+}));
+
 describe('ShellLayout', () => {
   beforeEach(() => {
+    syncParentOSLocalDataScopeMock.mockReset();
     useAppStore.setState({
       bootstrapReady: true,
       familyId: 'family-1',
       activeChildId: 'child-1',
+      auth: {
+        status: 'authenticated',
+        user: {
+          id: 'user-1',
+          displayName: 'Parent User',
+          email: 'parent@example.com',
+        },
+        token: 'token',
+        refreshToken: 'refresh-token',
+      },
       children: [
         {
           childId: 'child-1',
@@ -56,6 +81,7 @@ describe('ShellLayout', () => {
   afterEach(() => {
     useAppStore.setState({
       bootstrapReady: false,
+      auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' },
       familyId: null,
       activeChildId: null,
       children: [],
@@ -74,7 +100,7 @@ describe('ShellLayout', () => {
     expect(container.querySelector('a[href="/reports"]')).toBeTruthy();
     expect(screen.getByTestId('shell-main-drag-region')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'M' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开账号菜单' }));
     fireEvent.click(await screen.findByRole('button', { name: /Niko/i }));
 
     await waitFor(() => {
@@ -100,5 +126,23 @@ describe('ShellLayout', () => {
     expect(nav?.className).toContain('z-30');
     expect(nav?.className).toContain('overflow-visible');
     expect(main?.className).toContain('z-0');
+  });
+
+  it('syncs ParentOS local data scope back to anonymous on logout', async () => {
+    render(
+      <MemoryRouter>
+        <ShellLayout>
+          <div>APP_CONTENT</div>
+        </ShellLayout>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '打开账号菜单' }));
+    fireEvent.click(await screen.findByRole('button', { name: '退出登录' }));
+
+    await waitFor(() => {
+      expect(syncParentOSLocalDataScopeMock).toHaveBeenCalledWith(null);
+    });
+    expect(useAppStore.getState().auth.user).toBeNull();
   });
 });

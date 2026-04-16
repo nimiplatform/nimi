@@ -20,6 +20,10 @@ export function getFamily() {
   } | null>('get_family');
 }
 
+export function getChild(childId: string) {
+  return invoke<ChildRow | null>('get_child', { childId });
+}
+
 // ── Children ────────────────────────────────────────────────
 
 export interface ChildRow {
@@ -846,8 +850,55 @@ export function getProfileSectionSummaries(childId: string) {
   return invoke<SectionSummary[]>('get_profile_section_summaries', { childId });
 }
 
+// ── Custom Todos ──────────────────────────────────────────
+
+export interface CustomTodoRow {
+  todoId: string;
+  childId: string;
+  title: string;
+  dueDate: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function insertCustomTodo(params: {
+  todoId: string;
+  childId: string;
+  title: string;
+  dueDate: string | null;
+  now: string;
+}) {
+  return invoke<void>('insert_custom_todo', params);
+}
+
+export function updateCustomTodo(params: {
+  todoId: string;
+  title: string;
+  dueDate: string | null;
+  now: string;
+}) {
+  return invoke<void>('update_custom_todo', params);
+}
+
+export function completeCustomTodo(todoId: string, now: string) {
+  return invoke<void>('complete_custom_todo', { todoId, now });
+}
+
+export function uncompleteCustomTodo(todoId: string, now: string) {
+  return invoke<void>('uncomplete_custom_todo', { todoId, now });
+}
+
+export function deleteCustomTodo(todoId: string) {
+  return invoke<void>('delete_custom_todo', { todoId });
+}
+
+export function getCustomTodos(childId: string) {
+  return invoke<CustomTodoRow[]>('get_custom_todos', { childId });
+}
+
 // ── DB Init ─────────────────────────────────────────────────
 
-export function dbInit() {
-  return invoke<void>('db_init');
+export function dbInit(subjectUserId?: string | null) {
+  return invoke<void>('db_init', { subjectUserId: subjectUserId ?? null });
 }

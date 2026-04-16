@@ -10,13 +10,15 @@ import {
   persistSharedDesktopAuthSession,
   resolveDesktopBootstrapAuthSession,
 } from '@nimiplatform/nimi-kit/auth';
-import { dbInit, getFamily, getChildren } from '../bridge/sqlite-bridge.js';
+import { dbInit, getAppSetting, getChild, getChildren, getFamily } from '../bridge/sqlite-bridge.js';
 import { mapChildRow } from '../bridge/mappers.js';
 import { bootstrapParentOSAuthSession } from './parentos-bootstrap-auth.js';
 import { loadPersistedParentosAIConfig } from '../features/settings/parentos-ai-config.js';
 import { describeError, logRendererEvent } from './telemetry/renderer-log.js';
 
 let bootstrapPromise: Promise<void> | null = null;
+let localDataSyncPromise: Promise<void> = Promise.resolve();
+const ACTIVE_CHILD_SETTING_KEYS = ['activeChildId', 'inspection:last-active-child-id'] as const;
 
 function toAuthUser(user: Record<string, unknown> | null) {
   if (!user) {
@@ -60,6 +62,57 @@ export async function ensureParentOSBootstrapReady(): Promise<void> {
   if (!nextStore.bootstrapReady) {
     throw new Error(nextStore.bootstrapError || 'ParentOS bootstrap did not complete');
   }
+}
+
+async function loadPersistedActiveChildId(): Promise<string | null> {
+  for (const key of ACTIVE_CHILD_SETTING_KEYS) {
+    const value = String(await getAppSetting(key) || '').trim();
+    if (value) {
+      return value;
+    }
+  }
+  return null;
+}
+
+async function loadScopedLocalData(subjectUserId?: string | null): Promise<void> {
+  const store = useAppStore.getState();
+  store.clearLocalData();
+
+  await dbInit(subjectUserId);
+
+  const persistedAIConfig = await loadPersistedParentosAIConfig();
+  if (persistedAIConfig) {
+    useAppStore.getState().setAIConfig(persistedAIConfig);
+  }
+
+  const persistedActiveChildId = await loadPersistedActiveChildId();
+  const persistedActiveChild = persistedActiveChildId
+    ? await getChild(persistedActiveChildId)
+    : null;
+  const familyId = persistedActiveChild?.familyId
+    ?? (await getFamily())?.familyId
+    ?? null;
+  if (!familyId) {
+    return;
+  }
+
+  useAppStore.getState().setFamilyId(familyId);
+  const rows = await getChildren(familyId);
+  const children = rows.map(mapChildRow);
+  useAppStore.getState().setChildren(children);
+  if (children.length > 0) {
+    const resolvedActiveChildId = children.find((child) => child.childId === persistedActiveChildId)?.childId
+      ?? children[0]!.childId;
+    useAppStore.getState().setActiveChildId(resolvedActiveChildId);
+  }
+}
+
+export function syncParentOSLocalDataScope(subjectUserId?: string | null): Promise<void> {
+  const normalizedSubjectUserId = String(subjectUserId || '').trim() || null;
+  localDataSyncPromise = localDataSyncPromise
+    .catch(() => undefined)
+    .then(() => loadScopedLocalData(normalizedSubjectUserId));
+  return localDataSyncPromise;
 }
 
 async function doRunParentOSBootstrap(): Promise<void> {
@@ -140,6 +193,7 @@ async function doRunParentOSBootstrap(): Promise<void> {
         getSubjectUserId: () => useAppStore.getState().auth.user?.id ?? '',
         getCurrentUser: () => useAppStore.getState().auth.user,
         setAuthSession: (user, accessToken, refreshToken) => {
+          const previousUserId = useAppStore.getState().auth.user?.id ?? null;
           bootstrapAccessToken = String(accessToken || '').trim();
           if (refreshToken !== undefined) {
             bootstrapRefreshToken = String(refreshToken || '').trim();
@@ -151,10 +205,19 @@ async function doRunParentOSBootstrap(): Promise<void> {
           }
           useAppStore.getState().setAuthSession(normalizedUser, accessToken, refreshToken || '');
           persistDesktopSession(normalizedUser, accessToken, refreshToken);
+          if (previousUserId !== normalizedUser.id) {
+            void syncParentOSLocalDataScope(normalizedUser.id);
+          }
         },
         clearAuthSession: () => {
+          const previousUserId = useAppStore.getState().auth.user?.id ?? null;
           useAppStore.getState().clearAuthSession();
           clearDesktopSession();
+          if (previousUserId) {
+            void syncParentOSLocalDataScope(null);
+          } else {
+            useAppStore.getState().clearLocalData();
+          }
         },
       },
     });
@@ -172,21 +235,7 @@ async function doRunParentOSBootstrap(): Promise<void> {
 
     // Step 5: Local data bootstrap (SQLite)
     try {
-      await dbInit();
-      const persistedAIConfig = await loadPersistedParentosAIConfig();
-      if (persistedAIConfig) {
-        useAppStore.getState().setAIConfig(persistedAIConfig);
-      }
-      const family = await getFamily();
-      if (family) {
-        useAppStore.getState().setFamilyId(family.familyId);
-        const rows = await getChildren(family.familyId);
-        const children = rows.map(mapChildRow);
-        useAppStore.getState().setChildren(children);
-        if (children.length > 0) {
-          useAppStore.getState().setActiveChildId(children[0]!.childId);
-        }
-      }
+      await syncParentOSLocalDataScope(useAppStore.getState().auth.user?.id ?? null);
     } catch (error) {
       logRendererEvent({
         level: 'warn',

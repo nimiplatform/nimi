@@ -33,10 +33,12 @@ function createSetters() {
     loginError: string | null;
     view: string | null;
     authSessionCalls: number;
+    pendingTokensCleared: boolean;
   } = {
     loginError: null,
     view: null,
     authSessionCalls: 0,
+    pendingTokensCleared: false,
   };
   const setters: AuthMenuSetters = {
     setView: (view) => {
@@ -46,7 +48,9 @@ function createSetters() {
     setLoginError: (error) => {
       state.loginError = error;
     },
-    setPendingTokens: () => undefined,
+    setPendingTokens: (tokens) => {
+      state.pendingTokensCleared = tokens === null;
+    },
     setOtpCode: () => undefined,
     setOtpResendCountdown: () => undefined,
     setTempToken: () => undefined,
@@ -155,7 +159,7 @@ describe('auth menu handlers', () => {
     expect(state.view).toBe('main');
   });
 
-  it('fails closed when password setup cannot reload the latest user', async () => {
+  it('continues password setup when reloading the latest user fails', async () => {
     const { state, setters } = createSetters();
     const adapter = createAdapter({
       updatePassword: async () => undefined,
@@ -178,7 +182,39 @@ describe('auth menu handlers', () => {
       adapter,
     );
 
-    expect(state.loginError).toBe(AUTH_COPY.setPasswordFailed);
+    expect(state.loginError).toBeNull();
+    expect(state.authSessionCalls).toBe(1);
+    expect(state.pendingTokensCleared).toBe(true);
+  });
+
+  it('tells the user to sign in directly when password setup succeeds but login finalization fails', async () => {
+    const { state, setters } = createSetters();
+    const adapter = createAdapter({
+      updatePassword: async () => undefined,
+      applyToken: async (token) => {
+        if (token) {
+          throw new Error('persist session failed');
+        }
+      },
+    });
+
+    await handleSetPasswordAfterOtp(
+      createEvent(),
+      'secret123',
+      'secret123',
+      {
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        user: { id: 'user-1' },
+      } as never,
+      setters,
+      createDesktopContext(),
+      adapter,
+    );
+
+    expect(state.loginError).toBe(AUTH_COPY.setPasswordFinalizeFailed);
+    expect(state.view).toBe('main');
     expect(state.authSessionCalls).toBe(0);
+    expect(state.pendingTokensCleared).toBe(true);
   });
 });

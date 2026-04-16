@@ -305,15 +305,17 @@ export async function handleSetPasswordAfterOtp(
     return;
   }
 
-  setters.setPending(true);
-  setters.setLoginError(null);
-  try {
-    await adapter.updatePassword(password);
+  const finalizePendingTokens = async (): Promise<void> => {
+    let latestUserRecord: AuthTokensDto['user'] | null = null;
+    try {
+      const latestUser = await adapter.loadCurrentUser();
+      latestUserRecord = latestUser && typeof latestUser === 'object'
+        ? (latestUser as AuthTokensDto['user'])
+        : null;
+    } catch {
+      latestUserRecord = null;
+    }
 
-    const latestUser = await adapter.loadCurrentUser();
-    const latestUserRecord = latestUser && typeof latestUser === 'object'
-      ? (latestUser as AuthTokensDto['user'])
-      : null;
     const finalizedTokens: AuthTokensDto = latestUserRecord
       ? {
           ...pendingTokens,
@@ -339,7 +341,22 @@ export async function handleSetPasswordAfterOtp(
         : pendingTokens;
 
     setters.setPendingTokens(null);
-    await applyTokens(finalizedTokens, AUTH_COPY.setPasswordSuccess, setters, desktopCtx, adapter);
+    try {
+      await applyTokens(finalizedTokens, AUTH_COPY.setPasswordSuccess, setters, desktopCtx, adapter);
+    } catch (error) {
+      await adapter.applyToken('');
+      setters.setView('main');
+      setters.setLoginError(
+        toAuthUiErrorMessage(error, AUTH_COPY.setPasswordFinalizeFailed),
+      );
+    }
+  };
+
+  setters.setPending(true);
+  setters.setLoginError(null);
+  try {
+    await adapter.updatePassword(password);
+    await finalizePendingTokens();
   } catch (error) {
     setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.setPasswordFailed));
   } finally {

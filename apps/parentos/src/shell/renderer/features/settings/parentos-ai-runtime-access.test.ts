@@ -70,6 +70,37 @@ describe('parentos-ai-runtime access helpers', () => {
     });
   });
 
+  it('reads dedicated vision bindings without falling back to chat bindings', () => {
+    useAppStore.setState({
+      aiConfig: {
+        scopeRef: PARENTOS_AI_SCOPE_REF,
+        capabilities: {
+          selectedBindings: {
+            'text.generate': {
+              source: 'cloud',
+              connectorId: 'openai-main',
+              model: 'gpt-5.4-mini',
+            },
+            'text.generate.vision': {
+              source: 'cloud',
+              connectorId: 'openai-vision',
+              model: 'gpt-5.4-vision',
+            },
+          },
+          localProfileRefs: {},
+          selectedParams: {},
+        },
+        profileOrigin: null,
+      },
+    });
+
+    expect(resolveParentosBinding('text.generate.vision')).toEqual({
+      model: 'gpt-5.4-vision',
+      route: 'cloud',
+      connectorId: 'openai-vision',
+    });
+  });
+
   it('builds stable ParentOS runtime metadata for governed surfaces', () => {
     expect(buildParentosRuntimeMetadata('parentos.advisor')).toEqual({
       callerKind: 'third-party-app',
@@ -78,7 +109,7 @@ describe('parentos-ai-runtime access helpers', () => {
     });
   });
 
-  it('keeps governed surfaces local even when a cloud binding is present', () => {
+  it('preserves cloud route bindings for governed ParentOS surfaces', () => {
     useAppStore.setState({
       aiConfig: {
         scopeRef: PARENTOS_AI_SCOPE_REF,
@@ -98,9 +129,9 @@ describe('parentos-ai-runtime access helpers', () => {
     });
 
     expect(resolveParentosTextSurfaceConfig('parentos.report')).toEqual({
-      model: 'auto',
-      route: 'local',
-      connectorId: undefined,
+      model: 'gpt-5.4',
+      route: 'cloud',
+      connectorId: 'openai-main',
       temperature: undefined,
       topP: undefined,
       maxTokens: undefined,

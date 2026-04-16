@@ -51,6 +51,7 @@ describe('AiSettingsPage', () => {
     await waitFor(() => {
       expect(screen.getByText('AI 模型设置')).toBeTruthy();
       expect(screen.getByText('AI 对话')).toBeTruthy();
+      expect(screen.getByText('智能识别')).toBeTruthy();
       expect(screen.getByText('语音')).toBeTruthy();
     });
 

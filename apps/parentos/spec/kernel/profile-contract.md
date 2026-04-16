@@ -251,6 +251,12 @@ Beyond the base vision types (`vision-left`, `vision-right`, `hyperopia-reserve`
 - `axial-length-left`, `axial-length-right` — axial length (眼轴长度, mm)
 - `corneal-curvature-left`, `corneal-curvature-right` — average corneal curvature (角膜曲率, diopters)
 
+- `iop-left`, `iop-right` 鈥?intraocular pressure (IOP, mmHg)
+- `corneal-k1-left`, `corneal-k1-right` 鈥?flat corneal curvature (K1)
+- `corneal-k2-left`, `corneal-k2-right` 鈥?steep corneal curvature (K2)
+- `acd-left`, `acd-right` 鈥?anterior chamber depth (ACD, mm)
+- `lt-left`, `lt-right` 鈥?lens thickness (LT, mm)
+
 Axial length is the most predictive indicator for myopia progression. For school-age children, monitoring axial length every 6 months is more informative than visual acuity testing alone.
 
 ## PO-PROF-015 Lab Result Measurements

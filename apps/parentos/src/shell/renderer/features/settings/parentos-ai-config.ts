@@ -17,7 +17,7 @@ export const PARENTOS_AI_SCOPE_REF: AIScopeRef = {
 
 const PARENTOS_AI_CONFIG_SETTING_KEY = 'parentos.ai.config';
 
-export type ParentosCapabilityId = 'text.generate' | 'audio.transcribe';
+export type ParentosCapabilityId = 'text.generate' | 'text.generate.vision' | 'audio.transcribe';
 
 export const PARENTOS_CAPABILITIES: Array<{
   id: ParentosCapabilityId;
@@ -25,8 +25,24 @@ export const PARENTOS_CAPABILITIES: Array<{
   label: string;
   detail: string;
 }> = [
-  { id: 'text.generate', routeCapability: 'text.generate', label: 'AI 对话', detail: '用于成长顾问、日志标签、报告生成、体检 OCR 等' },
-  { id: 'audio.transcribe', routeCapability: 'audio.transcribe', label: '语音转写', detail: '用于语音观察记录' },
+  {
+    id: 'text.generate',
+    routeCapability: 'text.generate',
+    label: 'AI 对话',
+    detail: '用于成长提问、日志标签与分析报告生成',
+  },
+  {
+    id: 'text.generate.vision',
+    routeCapability: 'text.generate.vision',
+    label: '智能识别',
+    detail: '用于验光单、眼轴单、体检单等图片识别',
+  },
+  {
+    id: 'audio.transcribe',
+    routeCapability: 'audio.transcribe',
+    label: '语音转写',
+    detail: '用于语音观察记录',
+  },
 ];
 
 export function createEmptyParentosAIConfig(): AIConfig {
@@ -44,11 +60,7 @@ export function bindingFromConfig(config: AIConfig, capabilityId: ParentosCapabi
   if (!binding) {
     return null;
   }
-  return {
-    ...binding,
-    source: 'local',
-    connectorId: '',
-  };
+  return normalizeBindingForParentosConfig(binding);
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -145,13 +157,19 @@ function normalizeSelectedBindings(
     if (!binding) {
       continue;
     }
-    normalized[capabilityId] = {
-      ...binding,
-      source: 'local',
-      connectorId: '',
-    };
+    normalized[capabilityId] = normalizeBindingForParentosConfig(binding);
   }
   return normalized;
+}
+
+function normalizeBindingForParentosConfig(binding: RuntimeRouteBinding): RuntimeRouteBinding {
+  const source = binding.source === 'cloud' ? 'cloud' : 'local';
+  return {
+    ...binding,
+    source,
+    connectorId: source === 'cloud' ? trimString(binding.connectorId) : '',
+    model: trimString(binding.model),
+  };
 }
 
 function normalizeProfileOrigin(value: unknown): AIProfileRef | null {

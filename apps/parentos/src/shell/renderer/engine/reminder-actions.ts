@@ -3,7 +3,7 @@ import { isoNow, ulid } from '../bridge/ulid.js';
 import type { ActiveReminder, ReminderAgenda, ReminderKind, ReminderState } from './reminder-engine.js';
 import { getLocalToday, reminderKey } from './reminder-engine.js';
 
-export type ReminderActionType = 'complete' | 'acknowledge' | 'schedule' | 'snooze' | 'mark_not_applicable' | 'dismiss_today';
+export type ReminderActionType = 'complete' | 'acknowledge' | 'schedule' | 'snooze' | 'mark_not_applicable' | 'dismiss_today' | 'restore';
 
 export interface ReminderActionInput {
   childId: string;
@@ -143,6 +143,26 @@ export async function applyReminderAction(input: ReminderActionInput) {
           surfaceRank: null,
           lastSurfacedAt: previous?.lastSurfacedAt ?? null,
           surfaceCount: previous?.surfaceCount ?? 0,
+          now,
+        }),
+      );
+      return;
+    case 'restore':
+      await upsertReminderState(
+        buildRow({
+          childId: input.childId,
+          ruleId: reminder.rule.ruleId,
+          repeatIndex: reminder.repeatIndex,
+          previous,
+          status: 'active',
+          completedAt: null,
+          snoozedUntil: null,
+          scheduledDate: null,
+          notApplicable: 0,
+          plannedForDate: null,
+          surfaceRank: null,
+          lastSurfacedAt: null,
+          surfaceCount: 0,
           now,
         }),
       );

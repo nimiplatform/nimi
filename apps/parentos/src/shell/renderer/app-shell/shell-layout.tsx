@@ -1,9 +1,16 @@
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent, type ReactNode, type ComponentType } from 'react';
-import { NavLink } from 'react-router-dom';
-import { Home, User, BookText, MessageCircle, TrendingUp, Settings, type LucideProps } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Search, Bell, LogOut, type LucideProps } from 'lucide-react';
 import { useAppStore, computeAgeMonths } from './app-store.js';
 import { startParentosWindowDrag } from '../bridge/window-drag.js';
-import { BG } from './page-style.js';
+import { clearAuthSession as clearPersistedAuthSession } from '../bridge/index.js';
+import { setAppSetting } from '../bridge/sqlite-bridge.js';
+import { syncParentOSLocalDataScope } from '../infra/parentos-bootstrap.js';
+import { isoNow } from '../bridge/ulid.js';
+import { BG, GLASS } from './page-style.js';
+
+const textMain = '#1e293b';
+const textMuted = '#475569';
 
 const navItems: Array<{ to: string; label: string; Icon: ComponentType<LucideProps> }> = [
   { to: '/timeline', label: '首页', Icon: Home },
@@ -14,81 +21,178 @@ const navItems: Array<{ to: string; label: string; Icon: ComponentType<LucidePro
   { to: '/settings', label: '设置', Icon: Settings },
 ];
 
-/* ── Child avatar popover (matches dashboard card switcher) ── */
+/* ── Account Avatar Menu ───────────────────────────────────── */
 
-function ChildAvatarPicker({ childList, activeChildId, activeChild, onSwitch }: {
+const accountMenuItems = [
+  { id: 'profile', label: '档案', icon: User, route: '/profile' },
+  { id: 'settings', label: '设置', icon: Settings, route: '/settings' },
+] as const;
+
+function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
   childList: Array<{ childId: string; displayName: string; birthDate: string; gender: string }>;
   activeChildId: string | null;
-  activeChild: { displayName: string } | undefined;
-  onSwitch: (id: string) => void;
+  onSwitchChild: (id: string) => void;
 }) {
+  const authUser = useAppStore((s) => s.auth.user);
+  const clearAuth = useAppStore((s) => s.clearAuthSession);
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const openPicker = () => { setMounted(true); requestAnimationFrame(() => setOpen(true)); };
-  const closePicker = () => setOpen(false);
+  const openMenu = () => { setMounted(true); requestAnimationFrame(() => setOpen(true)); };
+  const closeMenu = () => setOpen(false);
 
-  // Click outside to close
   useEffect(() => {
     if (!open) return;
-    const handler = (e: globalThis.MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) closePicker(); };
+    const handler = (e: globalThis.MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) closeMenu();
+    };
+    const escHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMenu(); };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('keydown', escHandler);
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('keydown', escHandler); };
   }, [open]);
 
+  const handleLogout = async () => {
+    closeMenu();
+    try { await clearPersistedAuthSession(); } catch { /* best-effort */ }
+    clearAuth();
+    void syncParentOSLocalDataScope(null);
+  };
+
+  const displayName = authUser?.displayName || '用户';
+  const initial = displayName.charAt(0).toUpperCase();
+
   return (
-    <div ref={ref} className="relative z-40 mt-auto">
-      <button onClick={() => open ? closePicker() : openPicker()}
-        className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all hover:shadow-md"
-        style={{ background: '#86AFDA', color: '#fff' }}>
-        {activeChild?.displayName.charAt(0) ?? '?'}
+    <div ref={ref} className="relative z-40">
+      <button
+        onClick={() => open ? closeMenu() : openMenu()}
+        aria-expanded={open}
+        aria-label="打开账号菜单"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-semibold transition-all hover:-translate-y-0.5"
+        style={{ background: textMain, color: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}
+      >
+        {initial}
       </button>
 
-      {childList.length > 1 && mounted && (
+      {mounted && (
         <div
-          className="absolute bottom-12 left-0 z-50 min-w-[190px] rounded-xl p-1.5"
+          className="absolute right-0 top-12 z-50 w-64 overflow-hidden py-2"
           onTransitionEnd={() => { if (!open) setMounted(false); }}
           style={{
-            background: '#fff',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            background: 'rgba(255,255,255,0.92)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            border: '1px solid rgba(78,204,163,0.2)',
+            borderRadius: 16,
+            boxShadow: '0 8px 32px rgba(78,204,163,0.1)',
             opacity: open ? 1 : 0,
-            transform: open ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.95)',
-            transformOrigin: 'bottom left',
-            transition: 'opacity 0.2s ease, transform 0.2s ease',
+            transform: open ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.97)',
+            transformOrigin: 'top right',
+            transition: 'opacity 0.18s ease, transform 0.18s ease',
             pointerEvents: open ? 'auto' : 'none',
-          }}>
-          {childList.map((c, idx) => {
-            const am = computeAgeMonths(c.birthDate);
-            const y = Math.floor(am / 12);
-            const m = am % 12;
-            const isActive = c.childId === activeChildId;
-            return (
-              <button key={c.childId}
-                onClick={() => { onSwitch(c.childId); closePicker(); }}
-                className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-left transition-colors hover:bg-[#f5f3ef]"
+          }}
+        >
+          {/* ── User info header ── */}
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold text-white"
+              style={{ background: textMain }}
+            >
+              {initial}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold" style={{ color: textMain }}>
+                {displayName}
+              </p>
+              {authUser?.email ? (
+                <p className="truncate text-xs" style={{ color: textMuted }}>{authUser.email}</p>
+              ) : null}
+            </div>
+          </div>
+
+          {/* ── Child switcher (only when multiple children) ── */}
+          {childList.length > 1 && (
+            <>
+              <div className="mx-3 border-t" style={{ borderColor: 'rgba(78,204,163,0.2)' }} />
+              <div className="px-1.5 py-1.5">
+                <p className="px-3 py-1 text-[11px] font-medium" style={{ color: textMuted }}>切换孩子</p>
+                {childList.map((c, idx) => {
+                  const am = computeAgeMonths(c.birthDate);
+                  const y = Math.floor(am / 12);
+                  const m = am % 12;
+                  const isActive = c.childId === activeChildId;
+                  return (
+                    <button key={c.childId}
+                      onClick={() => { onSwitchChild(c.childId); closeMenu(); }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors"
+                      style={{
+                        background: isActive ? 'rgba(78,204,163,0.1)' : undefined,
+                        opacity: open ? 1 : 0,
+                        transform: open ? 'translateY(0)' : 'translateY(3px)',
+                        transition: `opacity 0.18s ease ${idx * 0.03}s, transform 0.18s ease ${idx * 0.03}s`,
+                      }}
+                    >
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+                        style={{ background: isActive ? '#4ECCA3' : '#f1f5f9', color: isActive ? '#fff' : textMain }}>
+                        {c.displayName.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block truncate text-[12px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>{c.displayName}</span>
+                        <span className="block text-[10px]" style={{ color: textMuted }}>
+                          {y > 0 ? `${y}岁` : ''}{m > 0 ? `${m}个月` : ''} · {c.gender === 'female' ? '女孩' : '男孩'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* ── Divider ── */}
+          <div className="mx-3 border-t" style={{ borderColor: 'rgba(78,204,163,0.2)' }} />
+
+          {/* ── Menu items ── */}
+          <div className="px-1.5 py-1.5">
+            {accountMenuItems.map((item, idx) => (
+              <button
+                key={item.id}
+                onClick={() => { closeMenu(); navigate(item.route); }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition-all hover:bg-[#4ECCA3]/5"
                 style={{
-                  ...(isActive ? { background: '#EEF3F1' } : undefined),
+                  color: '#374151',
                   opacity: open ? 1 : 0,
-                  transform: open ? 'translateY(0)' : 'translateY(4px)',
-                  transition: `opacity 0.2s ease ${idx * 0.03}s, transform 0.2s ease ${idx * 0.03}s`,
-                }}>
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
-                  style={{ background: isActive ? '#86AFDA' : '#e0e4e8', color: isActive ? '#fff' : '#1a2b4a' }}>
-                  {c.displayName.charAt(0)}
-                </div>
-                <div className="min-w-0">
-                  <span className="block text-[12px] font-medium truncate" style={{ color: '#1a2b4a' }}>{c.displayName}</span>
-                  <span className="block text-[10px]" style={{ color: '#8a8f9a' }}>
-                    {y > 0 ? `${y}岁` : ''}{m > 0 ? `${m}个月` : ''} · {c.gender === 'female' ? '女孩' : '男孩'}
-                  </span>
-                </div>
-                {isActive && (
-                  <svg className="ml-auto shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#86AFDA" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
-                )}
+                  transform: open ? 'translateY(0)' : 'translateY(3px)',
+                  transition: `opacity 0.18s ease ${idx * 0.03}s, transform 0.18s ease ${idx * 0.03}s`,
+                }}
+              >
+                <item.icon size={18} strokeWidth={1.8} style={{ color: '#9ca3af' }} />
+                {item.label}
               </button>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* ── Divider ── */}
+          <div className="mx-3 border-t" style={{ borderColor: '#f3f4f6' }} />
+
+          {/* ── Logout ── */}
+          <div className="px-1.5 py-1.5">
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition-all hover:bg-red-50"
+              style={{
+                color: '#e25555',
+                opacity: open ? 1 : 0,
+                transform: open ? 'translateY(0)' : 'translateY(3px)',
+                transition: `opacity 0.18s ease ${accountMenuItems.length * 0.03}s, transform 0.18s ease ${accountMenuItems.length * 0.03}s`,
+              }}
+            >
+              <LogOut size={18} strokeWidth={1.8} style={{ color: '#e25555' }} />
+              退出登录
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -97,86 +201,104 @@ function ChildAvatarPicker({ childList, activeChildId, activeChild, onSwitch }: 
 
 export function ShellLayout({ children }: { children: ReactNode }) {
   const { children: childList, activeChildId, setActiveChildId } = useAppStore();
-  const activeChild = childList.find((c) => c.childId === activeChildId);
+
+  useEffect(() => {
+    const now = isoNow();
+    const value = activeChildId ?? '';
+    void Promise.all([
+      setAppSetting('activeChildId', value, now),
+      setAppSetting('inspection:last-active-child-id', value, now),
+    ]).catch(() => {});
+  }, [activeChildId]);
+
   const handleWindowDragMouseDown = (event: ReactMouseEvent<HTMLElement>) => {
-    if (event.button !== 0) {
-      return;
-    }
+    if (event.button !== 0) return;
+    const tag = (event.target as HTMLElement).tagName;
+    const interactive = (event.target as HTMLElement).closest('a, button, input, select, textarea, [role="button"], [tabindex]');
+    if (interactive || tag === 'A' || tag === 'BUTTON' || tag === 'INPUT') return;
     void startParentosWindowDrag();
   };
 
   return (
-    <div className="isolate flex h-full" style={{ background: BG }}>
-      {/* Narrow icon sidebar */}
-      <nav className="relative z-30 flex w-[72px] shrink-0 flex-col items-center overflow-visible py-4" style={{ background: 'transparent' }}>
-        {/* Greeting — above nav icons, left-aligned with them, overflows right */}
-        <div className="w-[42px] self-center mb-5 relative" onMouseDown={handleWindowDragMouseDown}>
-          <div className="whitespace-nowrap">
-            <h1 className="text-[18px] font-bold leading-tight" style={{ color: '#1a2b4a' }}>记录成长，科学育娃</h1>
-            <p className="text-[11px] mt-0.5" style={{ color: '#8a94a6' }}>
-              {new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-            </p>
-          </div>
-        </div>
-
-        {/* Nav items */}
-        <div className="flex flex-1 flex-col items-center gap-[10px]">
+    <div className="isolate flex h-full" style={{ background: BG, overflow: 'hidden' }}>
+      {/* Sidebar — transparent, shares global bg */}
+      <nav
+        className="relative z-30 flex w-[62px] shrink-0 flex-col items-center overflow-visible pb-5"
+        style={{ background: 'transparent', paddingTop: 128 }}
+      >
+        <div className="flex flex-1 flex-col items-center gap-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `group relative flex items-center justify-center w-[42px] h-[42px] rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? 'text-white'
-                    : 'hover:bg-black/[0.04]'
+                `group relative flex items-center justify-center w-[40px] h-[40px] rounded-[12px] transition-all duration-150 ${
+                  isActive ? '' : 'hover:bg-white/40'
                 }`
               }
               style={({ isActive }) =>
                 isActive
-                  ? { background: '#94A533', color: '#fff' }
-                  : { color: '#8a94a6' }
+                  ? { background: textMain, color: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }
+                  : { color: '#64748b' }
               }
             >
-              <item.Icon size={20} strokeWidth={1.8} />
-              {/* Green tooltip on hover */}
-              <span className="pointer-events-none absolute left-[54px] z-50 whitespace-nowrap rounded-md px-2.5 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-                style={{ background: '#94A533' }}>
+              <item.Icon size={19} strokeWidth={1.8} />
+              <span
+                className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap px-3 py-1.5 text-[11px] font-medium opacity-0 transition-opacity duration-100 group-hover:opacity-100"
+                style={{ ...GLASS, background: 'rgba(255,255,255,0.85)', color: textMain }}
+              >
                 {item.label}
               </span>
             </NavLink>
           ))}
         </div>
 
-        {/* Child avatar + popover switcher */}
-        {childList.length > 0 && (
-          <ChildAvatarPicker
-            childList={childList}
-            activeChildId={activeChildId}
-            activeChild={activeChild}
-            onSwitch={setActiveChildId}
-          />
-        )}
+        <div className="mt-auto" />
       </nav>
 
-      {/* Main content */}
-      <main className="relative z-0 min-w-0 flex-1 overflow-hidden"
-        onMouseDown={(e) => {
-          // Only trigger window drag on empty/non-interactive areas in the top drag region
-          if (e.button !== 0) return;
-          const rect = e.currentTarget.getBoundingClientRect();
-          if (e.clientY - rect.top > 72) return; // only top 72px
-          const tag = (e.target as HTMLElement).tagName;
-          const interactive = (e.target as HTMLElement).closest('a, button, input, select, textarea, [role="button"], [tabindex]');
-          if (interactive || tag === 'A' || tag === 'BUTTON' || tag === 'INPUT') return;
-          void startParentosWindowDrag();
-        }}
-        data-testid="shell-main-drag-region"
-      >
-        <div className="h-full">
-          {children}
-        </div>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Top bar */}
+        <header
+          className="z-20 flex h-[60px] shrink-0 items-center gap-4 px-6"
+          style={{ background: 'transparent' }}
+          onMouseDown={handleWindowDragMouseDown}
+        >
+          <h1 className="text-[17px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.3px' }}>ParentOS</h1>
+
+          {/* Search — glass pill */}
+          <div className="ml-6 flex h-[36px] flex-1 max-w-[360px] items-center gap-2.5 rounded-full px-4"
+            style={{ ...GLASS, background: 'rgba(255,255,255,0.6)' }}>
+            <Search size={15} strokeWidth={1.8} style={{ color: '#64748b' }} />
+            <input type="text" placeholder="搜索..."
+              className="min-w-0 flex-1 border-0 bg-transparent text-[13px] outline-none placeholder:text-[#64748b]"
+              style={{ color: textMain }} />
+          </div>
+
+          <div className="ml-auto flex items-center gap-3">
+            <button className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:bg-white/40"
+              style={{ color: '#64748b' }}>
+              <Bell size={17} strokeWidth={1.8} />
+            </button>
+
+            <AccountAvatarMenu childList={childList} activeChildId={activeChildId} onSwitchChild={setActiveChildId} />
+          </div>
+        </header>
+
+        <main className="relative z-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+          onMouseDown={(e) => {
+            if (e.button !== 0) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            if (e.clientY - rect.top > 40) return;
+            const tag = (e.target as HTMLElement).tagName;
+            const interactive = (e.target as HTMLElement).closest('a, button, input, select, textarea, [role="button"], [tabindex]');
+            if (interactive || tag === 'A' || tag === 'BUTTON' || tag === 'INPUT') return;
+            void startParentosWindowDrag();
+          }}
+          data-testid="shell-main-drag-region"
+        >
+          <div className="h-full">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

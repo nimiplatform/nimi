@@ -88,8 +88,7 @@ export interface ReminderAgenda {
     count: number;
     items: ActiveReminder[];
   };
-  thisWeek: ActiveReminder[];
-  stageFocus: ActiveReminder[];
+  upcoming: ActiveReminder[];
   history: ReminderHistoryItem[];
   overdueSummary: {
     count: number;
@@ -208,17 +207,6 @@ function todayCap(mode: NurtureMode) {
   }
 }
 
-function stageCap(mode: NurtureMode) {
-  switch (mode) {
-    case 'relaxed':
-      return 1;
-    case 'advanced':
-      return 3;
-    default:
-      return 2;
-  }
-}
-
 function resurfacingGap(surfaceCount: number) {
   if (surfaceCount <= 0) return 0;
   if (surfaceCount === 1) return 1;
@@ -251,6 +239,14 @@ function deriveExpiryMonths(rule: GenReminderRule, intervalMonths?: number) {
   return Math.max(baseWindowMonths * 2, 3);
 }
 
+/** Hard ceiling: even with persisted state, expire instances whose window ended
+ *  more than this many months ago. Prevents stale orphan instances from
+ *  resurfacing indefinitely (e.g. "逾期 3000+ 天"). 1.5× the normal expiry
+ *  (floor 12 months) gives snoozed/scheduled items room without keeping
+ *  truly ancient instances alive. */
+const PERSISTED_STATE_EXPIRY_FACTOR = 1.5;
+const PERSISTED_STATE_EXPIRY_FLOOR = 12;
+
 function isEligibleRepeatInstance(
   triggerAge: number,
   effectiveEndMonths: number,
@@ -258,7 +254,13 @@ function isEligibleRepeatInstance(
   ageMonths: number,
   hasPersistedState: boolean,
 ) {
-  if (hasPersistedState) return true;
+  if (hasPersistedState) {
+    if (expiryMonths != null) {
+      const hardCeiling = Math.max(expiryMonths * PERSISTED_STATE_EXPIRY_FACTOR, PERSISTED_STATE_EXPIRY_FLOOR);
+      if (ageMonths > effectiveEndMonths + hardCeiling) return false;
+    }
+    return true;
+  }
   if (ageMonths < triggerAge - 1) return false;
   if (expiryMonths != null && ageMonths > effectiveEndMonths + expiryMonths) return false;
   return true;
@@ -427,6 +429,7 @@ export function computeEligibleReminders(
   // Completed / not_applicable instances are preserved for history.
   const deduped: ActiveReminder[] = [];
   const latestByRule = new Map<string, ActiveReminder>();
+  const highestCompletedIndex = new Map<string, number>();
 
   for (const reminder of reminders) {
     if (!reminder.rule.repeatRule) {
@@ -435,6 +438,14 @@ export function computeEligibleReminders(
     }
     if (reminder.lifecycle === 'completed' || reminder.lifecycle === 'not_applicable') {
       deduped.push(reminder);
+      // Track the highest completed repeatIndex per rule so we can detect
+      // orphan uncompleted instances that sit below a completed sibling.
+      if (reminder.lifecycle === 'completed') {
+        const prev = highestCompletedIndex.get(reminder.rule.ruleId) ?? -1;
+        if (reminder.repeatIndex > prev) {
+          highestCompletedIndex.set(reminder.rule.ruleId, reminder.repeatIndex);
+        }
+      }
       continue;
     }
     const existing = latestByRule.get(reminder.rule.ruleId);
@@ -442,7 +453,11 @@ export function computeEligibleReminders(
       latestByRule.set(reminder.rule.ruleId, reminder);
     }
   }
-  for (const reminder of latestByRule.values()) {
+  for (const [ruleId, reminder] of latestByRule) {
+    // Drop orphan instances: if a newer sibling was already completed the user
+    // has moved on — showing the old uncompleted one would just be noise.
+    const completedIdx = highestCompletedIndex.get(ruleId) ?? -1;
+    if (completedIdx > reminder.repeatIndex) continue;
     deduped.push(reminder);
   }
 
@@ -486,19 +501,15 @@ function isTaskTodayCandidate(reminder: ActiveReminder, localToday: string) {
   return false;
 }
 
-function isTaskThisWeekCandidate(reminder: ActiveReminder) {
-  if (reminder.kind !== 'task') return false;
+function isUpcomingCandidate(reminder: ActiveReminder) {
   if (reminder.lifecycle === 'completed' || reminder.lifecycle === 'not_applicable' || reminder.lifecycle === 'snoozed') return false;
+  // Severely overdue items (>30 days) belong in the overdue summary, not here
+  if (reminder.lifecycle === 'overdue' && reminder.overdueDays > 30) return false;
+  if (reminder.kind === 'guidance') return true;
+  // Tasks: scheduled, recently overdue, or starting within 30 days
   if (reminder.lifecycle === 'scheduled') return true;
   if (reminder.lifecycle === 'overdue') return true;
-  return reminder.daysUntilStart >= 0 && reminder.daysUntilStart <= 7;
-}
-
-function isStageFocusCandidate(reminder: ActiveReminder) {
-  return reminder.kind === 'guidance'
-    && reminder.lifecycle !== 'completed'
-    && reminder.lifecycle !== 'not_applicable'
-    && reminder.lifecycle !== 'snoozed';
+  return reminder.daysUntilStart >= 0 && reminder.daysUntilStart <= 30;
 }
 
 export function buildReminderAgenda(
@@ -576,17 +587,12 @@ export function buildReminderAgenda(
     todayKeys.add(key);
   }
 
-  const thisWeek = normalEligible
-    .filter((reminder) => isTaskThisWeekCandidate(reminder))
+  const upcoming = normalEligible
+    .filter((reminder) => isUpcomingCandidate(reminder))
     .filter((reminder) => !todayKeys.has(reminderKey(reminder.rule.ruleId, reminder.repeatIndex)))
     .filter((reminder) => !p0OverflowKeys.has(reminderKey(reminder.rule.ruleId, reminder.repeatIndex)))
     .sort(compareWeekReminder)
-    .slice(0, 12);
-
-  const stageFocus = normalEligible
-    .filter((reminder) => isStageFocusCandidate(reminder))
-    .sort(compareTodayReminder)
-    .slice(0, stageCap(context.nurtureMode));
+    .slice(0, 15);
 
   const history: ReminderHistoryItem[] = [];
   for (const state of states) {
@@ -659,8 +665,7 @@ export function buildReminderAgenda(
       count: onboardingCatchupItems.length,
       items: onboardingCatchupItems,
     },
-    thisWeek,
-    stageFocus,
+    upcoming,
     history,
     overdueSummary: {
       count: overdueSummaryItems.length,

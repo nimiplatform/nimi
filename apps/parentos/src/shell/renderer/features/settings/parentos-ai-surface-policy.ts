@@ -27,7 +27,7 @@ export interface ParentosAISurfacePolicy {
 const EXACT_SURFACE_POLICIES: Record<Exclude<ParentosAISurfaceId, `parentos.profile.summary.${string}`>, ParentosAISurfacePolicy> = {
   'parentos.advisor': {
     surfaceId: 'parentos.advisor',
-    localOnly: true,
+    localOnly: false,
     inputKind: 'structured-local',
     requiresSafetyFilter: true,
     requiresStructuredFallback: true,
@@ -35,7 +35,7 @@ const EXACT_SURFACE_POLICIES: Record<Exclude<ParentosAISurfaceId, `parentos.prof
   },
   'parentos.report': {
     surfaceId: 'parentos.report',
-    localOnly: true,
+    localOnly: false,
     inputKind: 'structured-local',
     requiresSafetyFilter: true,
     requiresStructuredFallback: false,
@@ -43,7 +43,7 @@ const EXACT_SURFACE_POLICIES: Record<Exclude<ParentosAISurfaceId, `parentos.prof
   },
   'parentos.profile.checkup-ocr': {
     surfaceId: 'parentos.profile.checkup-ocr',
-    localOnly: true,
+    localOnly: false,
     inputKind: 'ocr-extract',
     requiresSafetyFilter: false,
     requiresStructuredFallback: false,
@@ -51,7 +51,7 @@ const EXACT_SURFACE_POLICIES: Record<Exclude<ParentosAISurfaceId, `parentos.prof
   },
   'parentos.medical.ocr-intake': {
     surfaceId: 'parentos.medical.ocr-intake',
-    localOnly: true,
+    localOnly: false,
     inputKind: 'ocr-extract',
     requiresSafetyFilter: false,
     requiresStructuredFallback: false,
@@ -59,7 +59,7 @@ const EXACT_SURFACE_POLICIES: Record<Exclude<ParentosAISurfaceId, `parentos.prof
   },
   'parentos.medical.smart-insight': {
     surfaceId: 'parentos.medical.smart-insight',
-    localOnly: true,
+    localOnly: false,
     inputKind: 'structured-local',
     requiresSafetyFilter: true,
     requiresStructuredFallback: false,
@@ -67,7 +67,7 @@ const EXACT_SURFACE_POLICIES: Record<Exclude<ParentosAISurfaceId, `parentos.prof
   },
   'parentos.medical.event-analysis': {
     surfaceId: 'parentos.medical.event-analysis',
-    localOnly: true,
+    localOnly: false,
     inputKind: 'structured-local',
     requiresSafetyFilter: true,
     requiresStructuredFallback: false,
@@ -75,7 +75,7 @@ const EXACT_SURFACE_POLICIES: Record<Exclude<ParentosAISurfaceId, `parentos.prof
   },
   'parentos.journal.ai-tagging': {
     surfaceId: 'parentos.journal.ai-tagging',
-    localOnly: true,
+    localOnly: false,
     inputKind: 'closed-set',
     requiresSafetyFilter: false,
     requiresStructuredFallback: false,
@@ -83,7 +83,7 @@ const EXACT_SURFACE_POLICIES: Record<Exclude<ParentosAISurfaceId, `parentos.prof
   },
   'parentos.journal.voice-observation': {
     surfaceId: 'parentos.journal.voice-observation',
-    localOnly: true,
+    localOnly: false,
     inputKind: 'stt',
     requiresSafetyFilter: false,
     requiresStructuredFallback: false,
@@ -95,7 +95,7 @@ export function getParentosAISurfacePolicy(surfaceId: ParentosAISurfaceId): Pare
   if (surfaceId.startsWith('parentos.profile.summary.')) {
     return {
       surfaceId,
-      localOnly: true,
+      localOnly: false,
       inputKind: 'structured-local',
       requiresSafetyFilter: true,
       requiresStructuredFallback: false,
