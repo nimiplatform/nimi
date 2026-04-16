@@ -164,8 +164,6 @@ describe('timeline home view model helpers', () => {
           },
         ],
       }),
-      child,
-      10,
     );
 
     expect(changes).toHaveLength(3);
@@ -206,8 +204,6 @@ describe('timeline home view model helpers', () => {
           },
         ],
       }),
-      child,
-      10,
     );
 
     expect(changes[0]?.title).toBe('体重已更新');
@@ -240,8 +236,6 @@ describe('timeline home view model helpers', () => {
           createdAt: `${sleepDate}T08:00:00.000Z`,
         })),
       }),
-      child,
-      10,
     );
 
     expect(changes).toHaveLength(1);
@@ -273,19 +267,17 @@ describe('timeline home view model helpers', () => {
       ],
     });
 
-    const alert = buildDataGapAlert(staleDash, child, 10, 'balanced', makeAgenda());
+    const alert = buildDataGapAlert(staleDash, 10, makeAgenda());
     expect(alert?.id).toBe('growth_freshness_gap');
 
     const suppressed = buildDataGapAlert(
       staleDash,
-      child,
       10,
-      'relaxed',
       makeAgenda({ todayFocus: [makeReminder('growth')] }),
     );
     expect(suppressed).toBeNull();
 
-    const missingBaseline = buildDataGapAlert(makeDash(), child, 6, 'balanced', makeAgenda());
+    const missingBaseline = buildDataGapAlert(makeDash(), 6, makeAgenda());
     expect(missingBaseline?.id).toBe('growth_missing_baseline');
   });
 

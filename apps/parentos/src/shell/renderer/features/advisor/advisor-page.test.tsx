@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '../../app-shell/app-store.js';
@@ -609,7 +610,7 @@ describe('AdvisorPage', () => {
 
   it('surfaces normalized runtime error details in the fallback note', async () => {
     streamMock.mockRejectedValue({
-      reasonCode: 'AI_PROVIDER_UNAVAILABLE',
+      reasonCode: ReasonCode.AI_PROVIDER_UNAVAILABLE,
       message: 'provider request failed',
       details: {
         provider_message: 'dial tcp 127.0.0.1:8321: connect: connection refused',
@@ -653,7 +654,7 @@ describe('AdvisorPage', () => {
       },
     });
     streamMock.mockResolvedValue(createStreamErrorOutput({
-      reasonCode: 'AI_STREAM_BROKEN',
+      reasonCode: ReasonCode.AI_STREAM_BROKEN,
       message: 'retry stream request',
     }));
     generateMock.mockResolvedValue({
