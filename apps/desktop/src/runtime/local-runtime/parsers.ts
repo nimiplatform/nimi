@@ -146,6 +146,7 @@ export function parseAssetRecord(value: unknown): LocalRuntimeAssetRecord {
     installedAt: asString(record.installedAt),
     updatedAt: asString(record.updatedAt),
     healthDetail: asString(record.healthDetail) || undefined,
+    reasonCode: asString(record.reasonCode) || undefined,
     // Runnable-only
     capabilities,
     logicalModelId: asString(record.logicalModelId) || undefined,
@@ -588,6 +589,7 @@ export function parseServiceDescriptor(value: unknown): LocalRuntimeServiceDescr
     localAssetId: asString(record.localAssetId) || undefined,
     status: normalizeServiceStatus(record.status),
     detail: asString(record.detail) || undefined,
+    reasonCode: asString(record.reasonCode) || undefined,
     installedAt: asString(record.installedAt),
     updatedAt: asString(record.updatedAt),
   };

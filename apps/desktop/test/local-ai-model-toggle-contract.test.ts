@@ -232,6 +232,7 @@ test('installed attached-loopback assets expose a repair flow instead of forcing
 
 test('installed unhealthy assets surface runtime health detail in the model list', () => {
   assert.match(catalogCardSource, /asset\.status === 'unhealthy' && String\(asset\.healthDetail \|\| ''\)\.trim\(\)/);
+  assert.match(catalogCardSource, /asset\.status === 'unhealthy' && String\(asset\.reasonCode \|\| ''\)\.trim\(\)/);
   assert.match(catalogCardSource, /text-\[var\(--nimi-status-danger\)\]/);
 });
 

@@ -37,6 +37,29 @@ import {
   resolveWorkflowJobStatus,
   toRuntimeVoiceReference,
 } from './chat-agent-runtime-voice-helpers';
+import { chatRuntimeReasonCodeMessage } from './chat-runtime-error-message';
+
+function normalizeWorkflowReasonCode(value: unknown): string {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  switch (Number(value || 0)) {
+    case 560:
+      return ReasonCode.AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED;
+    case 561:
+      return ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED;
+    case 562:
+      return ReasonCode.AI_LOCAL_SPEECH_ENV_INIT_FAILED;
+    case 563:
+      return ReasonCode.AI_LOCAL_SPEECH_HOST_INIT_FAILED;
+    case 564:
+      return ReasonCode.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED;
+    case 565:
+      return ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED;
+    default:
+      return '';
+  }
+}
 
 export async function synthesizeChatAgentVoiceRuntime(
   input: ChatAgentVoiceRuntimeInvokeInput,
@@ -238,10 +261,12 @@ export async function pollChatAgentVoiceWorkflowRuntime(
     ),
   });
   const workflowStatus = resolveWorkflowJobStatus(Number(response.job?.status || 0));
+  const reasonCode = normalizeWorkflowReasonCode(response.job?.reasonCode);
+  const reasonDetail = normalizeText(response.job?.reasonDetail);
   return {
     workflowStatus,
     traceId: normalizeText(response.job?.traceId) || null,
-    message: normalizeText(response.job?.reasonDetail) || normalizeText(response.job?.reasonCode) || null,
+    message: chatRuntimeReasonCodeMessage(reasonCode) || reasonDetail || reasonCode || null,
   };
 }
 

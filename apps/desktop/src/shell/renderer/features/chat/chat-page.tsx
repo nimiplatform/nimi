@@ -214,7 +214,7 @@ export function ChatPage() {
   } as const;
 
   return (
-    <div data-testid={E2E_IDS.chatPage} className="relative flex min-h-0 flex-1">
+    <div data-testid={E2E_IDS.chatPage} data-chat-page-layout="split" className="relative flex min-h-0 min-w-0 flex-1">
       {chatMode === 'human' ? <ChatHumanModeContent {...sharedProps} /> : null}
       {chatMode === 'ai' ? <ChatAiModeContent {...sharedProps} /> : null}
       {chatMode === 'agent' ? <ChatAgentModeContent {...sharedProps} /> : null}

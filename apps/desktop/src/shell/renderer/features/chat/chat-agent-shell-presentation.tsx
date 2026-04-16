@@ -18,6 +18,7 @@ import type {
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 import { ChatSettingsPanel } from './chat-settings-panel';
 import { RuntimeStreamFooter } from './chat-runtime-stream-ui';
+import { ChatAgentAvatarBindingSettings } from './chat-agent-avatar-binding-settings';
 import { cancelStream } from '../turns/stream-controller';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
@@ -380,6 +381,12 @@ export function useAgentConversationPresentation(
           onModelSelectionChange={input.onModelSelectionChange}
           initialModelSelection={input.initialModelSelection}
           diagnosticsContent={diagnosticsContent}
+          presenceContent={(
+            <ChatAgentAvatarBindingSettings
+              agentId={selectedTargetId || input.activeTarget?.agentId || null}
+              agentName={characterData.name || input.activeTarget?.displayName || null}
+            />
+          )}
         />
       </div>
     ),

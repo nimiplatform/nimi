@@ -14,6 +14,7 @@ import { useGlobalAuditData } from './runtime-config-use-global-audit-data.js';
 import { ExternalAgentAccessPanel } from './runtime-config-external-agent-access';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
+import { localSpeechReasonSummary } from './runtime-config-model-center-utils';
 import { Button, Card, DaemonStatusBadge, Input, StatusBadge } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
 
@@ -427,6 +428,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
               {sortedNodeMatrix.map((row) => {
                 const runtimeSupportClass = String(row.providerHints?.extra?.runtime_support_class || '').trim();
                 const runtimeSupportDetail = String(row.providerHints?.extra?.runtime_support_detail || '').trim();
+                const speechReasonSummary = localSpeechReasonSummary(row.reasonCode);
                 return (
                   <div key={`node-matrix-${row.nodeId}`} className="rounded-xl bg-[var(--nimi-surface-panel)] p-3 ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]">
                     <p className="text-xs font-medium text-[var(--nimi-text-primary)]">
@@ -443,6 +445,9 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                       <p className="text-xs text-[var(--nimi-text-secondary)]">runtimeSupportDetail={runtimeSupportDetail}</p>
                     ) : null}
                     {row.policyGate ? <p className="text-xs text-[var(--nimi-text-secondary)]">policyGate={row.policyGate}</p> : null}
+                    {!row.available && speechReasonSummary ? (
+                      <p className="text-xs text-[var(--nimi-status-warning)]">{speechReasonSummary}</p>
+                    ) : null}
                     {!row.available && row.reasonCode ? (
                       <p className="text-xs text-[var(--nimi-status-warning)]">reason={row.reasonCode}</p>
                     ) : null}

@@ -271,6 +271,50 @@ test('buildSelectedBinding infers speech engine for local audio.transcribe bindi
   assert.equal(selected?.goRuntimeStatus, 'degraded');
 });
 
+test('buildSelectedBinding infers speech engine for local voice clone bindings without explicit engine', () => {
+  const selected = buildSelectedBinding({
+    capability: 'voice_workflow.tts_v2v',
+    selectedBinding: {
+      source: 'local',
+      connectorId: '',
+      model: 'speech/qwen3tts-base',
+      modelId: 'speech/qwen3tts-base',
+      provider: 'local',
+    },
+    localModels: [],
+    connectors: [],
+    localMetadataDegraded: true,
+  });
+
+  assert.ok(selected);
+  assert.equal(selected?.source, 'local');
+  assert.equal(selected?.engine, 'speech');
+  assert.equal(selected?.provider, 'speech');
+  assert.equal(selected?.goRuntimeStatus, 'degraded');
+});
+
+test('buildSelectedBinding infers speech engine for local voice design bindings without explicit engine', () => {
+  const selected = buildSelectedBinding({
+    capability: 'voice_workflow.tts_t2v',
+    selectedBinding: {
+      source: 'local',
+      connectorId: '',
+      model: 'speech/qwen3tts-design',
+      modelId: 'speech/qwen3tts-design',
+      provider: 'local',
+    },
+    localModels: [],
+    connectors: [],
+    localMetadataDegraded: true,
+  });
+
+  assert.ok(selected);
+  assert.equal(selected?.source, 'local');
+  assert.equal(selected?.engine, 'speech');
+  assert.equal(selected?.provider, 'speech');
+  assert.equal(selected?.goRuntimeStatus, 'degraded');
+});
+
 test('loadRuntimeRouteOptions preserves media routing for managed image workflow models', async () => {
   const options = await loadRuntimeRouteOptions({
     capability: 'image.generate',

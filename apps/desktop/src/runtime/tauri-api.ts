@@ -1,4 +1,4 @@
-import { invoke as tauriCoreInvoke, type InvokeArgs } from '@tauri-apps/api/core';
+import { convertFileSrc as tauriConvertFileSrc, invoke as tauriCoreInvoke, type InvokeArgs } from '@tauri-apps/api/core';
 import { listen as tauriEventListen } from '@tauri-apps/api/event';
 
 export type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
@@ -101,4 +101,12 @@ export async function listenTauri(
     return typeof unsubscribe === 'function' ? unsubscribe : () => {};
   }
   return await tauriEventListen(eventName, handler);
+}
+
+export function convertTauriFileSrc(fileUrl: string): string {
+  const value = tauriGlobal();
+  if (typeof value.window === 'undefined' || !value.window?.__TAURI_INTERNALS__) {
+    return fileUrl;
+  }
+  return tauriConvertFileSrc(fileUrl);
 }

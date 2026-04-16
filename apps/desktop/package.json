@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@proj-airi/unplugin-live2d-sdk": "0.1.7",
     "@tailwindcss/vite": "^4.2.1",
     "@tauri-apps/cli": "^2.10.1",
     "@types/node": "^25.5.0",
@@ -78,6 +79,8 @@
     "ai": "6.0.116",
     "ajv": "^8.18.0",
     "i18next": "^25.8.18",
+    "pixi-live2d-display": "0.4.0",
+    "pixi.js": "6.5.10",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-i18next": "^16.5.8",

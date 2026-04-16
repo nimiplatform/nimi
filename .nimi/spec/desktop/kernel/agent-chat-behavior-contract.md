@@ -15,7 +15,7 @@ message-action envelope、follow-up-turn action、以及 model-generated modalit
 semantics 固定由 `agent-chat-message-action-contract.md`
 （`D-LLM-027` ~ `D-LLM-033`）拥有；本文件只保留 single-message / turn-mode /
 experience-policy truth。avatar transient surface semantics 固定由
-`agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-058`）拥有。
+`agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-064`）拥有。
 
 ## D-LLM-022 — Canonical Behavior Authority Home
 
@@ -33,7 +33,7 @@ adjacent authority 边界固定为：
   message-action envelope、follow-up-turn action、以及 model-generated modality prompt
   payload truth
 - `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）继续拥有 capability selection / projection / execution snapshot truth
-- `agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-058`）继续拥有 avatar transient surface / interaction-state truth
+- `agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-064`）继续拥有 avatar transient surface / interaction-state truth
 - `ai-profile-config-contract.md` 继续拥有 `AIConfig` / `AISnapshot` authority
 - `state-contract.md` 继续拥有 persistence/store ownership
 - `streaming-consumption-contract.md` 继续拥有 stream lifecycle / cancel / retry semantics
@@ -176,6 +176,44 @@ Relationship to D-LLM-025:
 - D-LLM-025 single-message semantics is preserved in group context. Each agent response in a group turn is exactly one message.
 - A single incoming group message may trigger zero, one, or multiple agent responses (fan-out across different agents), but each individual agent response remains a single message.
 
+## D-LLM-026c — Local Avatar Binding Non-Owner Boundary
+
+Desktop agent chat behavior may consume the result of desktop-local avatar binding, but
+it does not own local avatar registry truth, binding truth, or import/storage truth.
+
+Fixed rules:
+
+- behavior/state may drive which live avatar cues are shown, but it must not own which
+  local VRM or Live2D resource is bound to an agent
+- local avatar binding changes render selection and presentation override resolution; it
+  does not change single-message semantics, turn-mode semantics, or resolved experience
+  policy truth
+- settings surfaces that edit local avatar bindings must route those writes through the
+  desktop-local avatar authority and IPC surface rather than reusing behavior settings
+  persistence as a parallel storage home
+
+## D-LLM-026d — Pointer Interaction Non-Owner Boundary
+
+Desktop agent chat behavior may continue to resolve high-level interaction phase and
+voice-related cues that the avatar surface consumes, but it does not own desktop-local
+pointer intake or right-rail-local pointer interaction truth.
+
+Fixed rules:
+
+- generic behavior may resolve `idle` / `thinking` / `listening` / `speaking`
+  posture and voice-related cue inputs, but it must not own pointer enter /
+  leave semantics, normalized pointer coordinates, hover escalation, or
+  gaze-follow state for the right rail
+- generic chat interaction-summary truth must remain narrow behavior-facing
+  summary truth; it must not silently widen into a carrier for raw pointer
+  vectors, stage bounds, or hover persistence
+- pointer interaction may influence how the avatar surface presents the current
+  behavior state, but it must not mutate single-message semantics, turn-mode
+  semantics, or resolved experience policy truth
+- any future broader cross-surface or non-chat pointer semantics require a new
+  admitted authority cut; they must not be backfilled through behavior summary
+  fields or settings persistence
+
 ## Fact Sources
 
 - `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md` — D-LLM-027 ~ D-LLM-033 message/action authority boundary
@@ -197,3 +235,4 @@ Relationship to D-LLM-025:
 - `.nimi/spec/realm/kernel/agent-memory-contract.md` — R-MEM-003 DYADIC isolation (referenced by D-LLM-026b)
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-002 scope lifecycle (referenced by D-LLM-026b)
 - `.nimi/spec/realm/kernel/truth-contract.md` — R-TRUTH-003 Agent truth boundary (referenced by D-LLM-026b)
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` — desktop-local avatar registry / binding and render-precedence ownership

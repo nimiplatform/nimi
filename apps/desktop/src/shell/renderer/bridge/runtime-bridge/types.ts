@@ -179,6 +179,27 @@ export {
 } from './chat-ai-parsers.js';
 
 export type {
+  DesktopAgentAvatarResourceKind,
+  DesktopAgentAvatarResourceStatus,
+  DesktopAgentAvatarResourceRecord,
+  DesktopAgentAvatarBindingRecord,
+  DesktopAgentAvatarImportResult,
+  DesktopAgentAvatarImportVrmInput,
+  DesktopAgentAvatarImportLive2dInput,
+  DesktopAgentAvatarBindingSetInput,
+} from './chat-agent-avatar-types.js';
+
+export {
+  parseDesktopAgentAvatarResourceRecord,
+  parseDesktopAgentAvatarResourceRecords,
+  parseDesktopAgentAvatarBindingRecord,
+  parseDesktopAgentAvatarImportResult,
+  parseDesktopAgentAvatarImportVrmInput,
+  parseDesktopAgentAvatarImportLive2dInput,
+  parseDesktopAgentAvatarBindingSetInput,
+} from './chat-agent-avatar-parsers.js';
+
+export type {
   AgentLocalBeatModality,
   AgentLocalBeatStatus,
   AgentLocalCancelTurnInput,

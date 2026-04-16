@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { SidebarAffordanceChevron, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
 import { getSettingsMenuSections } from './settings-assets.js';
@@ -97,7 +97,7 @@ export function SettingsPanelBody() {
   };
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 bg-white" data-testid="panel:settings">
+    <div ref={containerRef} className="flex min-h-0 flex-1 gap-4 px-5 pb-5 pt-4" data-testid="panel:settings">
       <SidebarShell width={sidebarWidth} data-testid="panel:settings-sidebar">
         <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Navigation.settings')}</h1>} className="px-6" />
         <ScrollArea className="flex-1" contentClassName="space-y-5 px-3 pb-3 pt-2">
@@ -134,9 +134,14 @@ export function SettingsPanelBody() {
         />
       </SidebarShell>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
+      <Surface
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+      >
         {renderSettingsPage(selectedId)}
-      </div>
+      </Surface>
     </div>
   );
 }

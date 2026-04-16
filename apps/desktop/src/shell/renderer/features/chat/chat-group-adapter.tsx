@@ -349,6 +349,7 @@ export function useGroupConversationModeHost(
         participants={participants}
         currentUserId={currentUserId}
         chatId={selectedGroupId}
+        embedded
         onAgentSlotChanged={() => {
           if (selectedGroupId) {
             void queryClient.invalidateQueries({ queryKey: ['group-chats'] });

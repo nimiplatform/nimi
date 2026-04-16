@@ -146,7 +146,11 @@ export function ChatContactsSidebar({
   const createGroupLabel = t('Chat.createGroupShortcut', { defaultValue: 'New Group' });
 
   return (
-    <aside data-testid={E2E_IDS.chatList} className="flex h-full w-14 shrink-0 flex-col items-center border-l border-slate-200/60 bg-[var(--nimi-app-background,#f3f1ee)] py-2">
+    <aside
+      data-testid={E2E_IDS.chatList}
+      data-chat-contacts-sidebar-chrome="transparent"
+      className="ml-4 mr-1 flex h-full w-14 shrink-0 flex-col items-center bg-transparent py-2"
+    >
       <ScrollArea
         className="w-full flex-1 px-1 py-1"
         viewportClassName="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"

@@ -1,8 +1,9 @@
-import { defineConfig, loadEnv, searchForWorkspaceRoot } from 'vite';
+import { defineConfig, loadEnv, searchForWorkspaceRoot, type PluginOption } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { DownloadLive2DSDK } from '@proj-airi/unplugin-live2d-sdk/vite';
 
 function resolveOptionalAbsoluteDir(raw: string | undefined, envName: string): string | null {
   const normalized = String(raw || '').trim();
@@ -73,7 +74,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_NIMI_DESKTOP_VERSION': JSON.stringify(desktopPackageVersion()),
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('desktop'),
     },
-    publicDir: false,
+    publicDir: path.resolve(__dirname, 'src/shell/renderer/public'),
     optimizeDeps: {
       // Force Vite to prebundle the react-three -> zustand/traditional chain so
       // the browser never evaluates the raw CJS shim entry as native ESM.
@@ -143,6 +144,7 @@ export default defineConfig(({ mode }) => {
       ],
     },
     plugins: [
+      DownloadLive2DSDK() as unknown as PluginOption,
       react(),
       tailwindcss(),
     ],
@@ -227,6 +229,13 @@ export default defineConfig(({ mode }) => {
               || id.includes('/engine.io-parser/')
             ) {
               return 'vendor-socket';
+            }
+            if (
+              id.includes('/pixi.js/')
+              || id.includes('/@pixi/')
+              || id.includes('/pixi-live2d-display/')
+            ) {
+              return 'vendor-live2d';
             }
             if (id.includes('/ajv/') || id.includes('/zod/') || id.includes('/yaml/')) {
               return 'vendor-data';

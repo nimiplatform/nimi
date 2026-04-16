@@ -2,6 +2,7 @@ import { Suspense, lazy, useState, useEffect, type ReactNode, type MouseEvent } 
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
+import { AmbientBackground, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { desktopBridge } from '@renderer/bridge';
@@ -15,24 +16,6 @@ const MainLayout = lazy(async () => {
   const mod = await import('@renderer/app-shell/layouts/main-layout');
   return { default: mod.MainLayout };
 });
-
-function SharedScreenBackdrop() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,#f8fcfb_0%,#f3faf7_45%,#f6f8fc_100%)]" />
-      <div className="absolute left-1/2 top-1/2 h-[44rem] w-[44rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(74,201,165,0.12)_0%,rgba(74,201,165,0)_72%)]" />
-      <div className="absolute left-[14%] top-[18%] h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(74,201,165,0.12)_0%,rgba(74,201,165,0)_72%)] blur-[10px]" />
-      <div className="absolute bottom-[14%] right-[12%] h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(136,146,255,0.12)_0%,rgba(136,146,255,0)_74%)] blur-[14px]" />
-      <div className="absolute right-[20%] top-[12%] h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(194,179,255,0.16)_0%,rgba(194,179,255,0)_74%)] blur-[6px]" />
-      <div className="absolute left-[22%] top-[64%] h-24 w-24 rounded-full bg-[radial-gradient(circle,rgba(74,201,165,0.12)_0%,rgba(74,201,165,0)_74%)] blur-[6px]" />
-      <div className="absolute inset-0 opacity-[0.18]" style={{
-        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(123, 142, 168, 0.22) 1px, transparent 0)',
-        backgroundSize: '28px 28px',
-      }}
-      />
-    </div>
-  );
-}
 
 function NimiLogoMark({ className = 'h-12 w-12' }: { className?: string }) {
   return (
@@ -80,7 +63,10 @@ function SharedStatusShell(props: {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-[#1f2937]">
+    <AmbientBackground
+      variant="mesh"
+      className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]"
+    >
       <div
         aria-hidden
         className="absolute inset-x-0 top-0 z-20 h-8"
@@ -104,37 +90,51 @@ function SharedStatusShell(props: {
           40% { transform: translateY(-4px); opacity: 1; }
         }
       `}</style>
-      <SharedScreenBackdrop />
       <div className="relative z-10 flex min-h-screen items-center justify-center p-6">
-        <section className="w-full max-w-[460px] rounded-[32px] border border-white/80 bg-white/[0.78] px-8 py-10 shadow-[0_28px_90px_rgba(31,41,55,0.08)] backdrop-blur-xl sm:px-10 sm:py-11">
+        <Surface
+          as="section"
+          tone="hero"
+          material="glass-thick"
+          padding="none"
+          className="w-full max-w-[460px] rounded-[32px] px-8 py-10 shadow-[0_28px_90px_rgba(15,23,42,0.10)] sm:px-10 sm:py-11"
+        >
           <div className="flex flex-col items-center text-center">
             <div className="relative mb-8 flex h-24 w-24 items-center justify-center">
-              <div className="absolute inset-0 rounded-[30px] border border-[#7bdcc5]/40" style={{ animation: 'nimi-pulse 2.8s ease-in-out infinite' }} />
-              <div className="absolute inset-[-8px] rounded-[36px] border border-dashed border-[#b9e9de]" style={{ animation: 'nimi-spin 18s linear infinite' }} />
-              <div className="absolute inset-[-16px] rounded-[42px] border border-white/90" style={{ animation: 'nimi-pulse 3.4s ease-in-out infinite' }} />
               <div
-                className="relative flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/90 bg-white shadow-[0_18px_40px_rgba(31,55,122,0.14)]"
+                className="absolute inset-0 rounded-[30px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,white)]"
+                style={{ animation: 'nimi-pulse 2.8s ease-in-out infinite' }}
+              />
+              <div
+                className="absolute inset-[-8px] rounded-[36px] border border-dashed border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,white)]"
+                style={{ animation: 'nimi-spin 18s linear infinite' }}
+              />
+              <div
+                className="absolute inset-[-16px] rounded-[42px] border border-white/90"
+                style={{ animation: 'nimi-pulse 3.4s ease-in-out infinite' }}
+              />
+              <div
+                className="relative flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/85 bg-[color-mix(in_srgb,var(--nimi-surface-card)_88%,white)] shadow-[0_18px_40px_rgba(31,55,122,0.14)]"
                 style={{ animation: 'nimi-float 3.2s ease-in-out infinite' }}
               >
                 <NimiLogoMark />
               </div>
             </div>
-            <div className="mb-3 rounded-full border border-[#d9e8e3] bg-[#f5fbf8] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#4d7a74]">
+            <div className="mb-3 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,white)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[color-mix(in_srgb,var(--nimi-action-primary-bg)_68%,var(--nimi-text-primary))]">
               {props.eyebrow}
             </div>
-            <h1 className="text-[30px] font-semibold tracking-[-0.03em] text-[#1f2937]">
+            <h1 className="text-[30px] font-semibold tracking-[-0.03em] text-[var(--nimi-text-primary)]">
               {props.title}
             </h1>
             {props.description ? (
-              <p className="mt-3 max-w-[28rem] text-sm leading-6 text-[#667085]">
+              <p className="mt-3 max-w-[28rem] text-sm leading-6 text-[var(--nimi-text-secondary)]">
                 {props.description}
               </p>
             ) : null}
             {props.children}
           </div>
-        </section>
+        </Surface>
       </div>
-    </div>
+    </AmbientBackground>
   );
 }
 
@@ -197,7 +197,7 @@ function BootstrapErrorScreen({ message }: { message: string }) {
     >
       <div
         data-testid={E2E_IDS.appBootstrapErrorScreen}
-        className="mt-8 rounded-2xl border border-[#f3d1d1] bg-[#fff6f6] px-4 py-3 text-sm text-[#a14646]"
+        className="mt-8 rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,white)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,white)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]"
       >
         Runtime bootstrap stopped before the app shell became available.
       </div>

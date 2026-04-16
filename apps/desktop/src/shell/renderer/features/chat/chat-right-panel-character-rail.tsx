@@ -10,8 +10,12 @@ import {
 } from '@nimiplatform/nimi-kit/features/avatar';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { DESKTOP_AGENT_AVATAR_RENDERERS } from './chat-agent-avatar-renderers';
+import { ChatRightColumn, ChatRightColumnCard, ChatRightColumnCardTitle } from './chat-right-column-primitives';
+import { ChatRightPanelSettings } from './chat-right-panel-settings';
 
 const NO_BIO_FALLBACK = 'This Agent has no public bio.';
+const UTILITY_RAIL_BUTTON_BASE_CLASS =
+  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border transition-all duration-150 shadow-[0_8px_18px_rgba(15,23,42,0.08)]';
 
 // ---------------------------------------------------------------------------
 // Right-panel header with settings toggle
@@ -157,8 +161,7 @@ function UtilityIconButton(props: {
       disabled={props.disabled}
       onClick={props.disabled ? undefined : props.onClick}
       className={cn(
-        'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-        'border transition-all duration-150 shadow-[0_8px_18px_rgba(15,23,42,0.08)]',
+        UTILITY_RAIL_BUTTON_BASE_CLASS,
         props.active
           ? 'border-emerald-400 bg-emerald-500 text-white'
           : 'border-slate-200/80 bg-white/92 text-slate-500',
@@ -197,7 +200,7 @@ export type ChatRightPanelCharacterRailProps = {
   onThinkingToggle?: () => void;
   onToggleFold?: () => void;
   handsFreeState?: ChatRightPanelHandsFreeState;
-  hideFooterControls?: boolean;
+  settingsContent?: ReactNode;
   children?: ReactNode;
 };
 
@@ -217,14 +220,11 @@ export function ChatRightPanelUtilityRail(props: ChatRightPanelUtilityRailProps)
 
   return (
     <aside
-      className="relative flex w-[72px] shrink-0 flex-col border-l border-slate-200/60 bg-[linear-gradient(180deg,rgba(250,252,252,0.86),rgba(244,247,248,0.92))]"
+      className="relative flex w-[72px] shrink-0 flex-col"
       data-right-panel="agent-utility-rail"
+      data-utility-rail-chrome="transparent"
     >
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute right-[-18px] top-10 h-24 w-24 rounded-full bg-mint-100/35 blur-3xl" />
-        <div className="absolute bottom-16 left-[-10px] h-28 w-28 rounded-full bg-sky-100/35 blur-3xl" />
-      </div>
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-end gap-2 px-3 py-4">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-end gap-2 px-3 py-4">
         {props.handsFreeState ? (
           <Tooltip
             content={handsFreeActive
@@ -313,6 +313,7 @@ export function ChatRightPanelUtilityRail(props: ChatRightPanelUtilityRailProps)
 }
 
 export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailProps) {
+  const { t } = useTranslation();
   const theme = props.characterData?.theme;
   const supportingCopy = String(props.characterData?.bio || props.selectedTarget.bio || '').trim() || NO_BIO_FALLBACK;
   const handsFreeActive = props.handsFreeState?.mode === 'hands-free';
@@ -360,85 +361,70 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
   const presenceBusy = phase === 'thinking' || phase === 'speaking' || handsFreeListening;
 
   return (
-    <aside
-      className="relative flex min-h-0 w-[400px] shrink-0 flex-col overflow-hidden border-l border-slate-200/60 bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))]"
-      data-right-panel="character-rail"
-    >
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-40px] top-[-32px] h-32 w-32 rounded-full bg-mint-100/50 blur-3xl" />
-        <div className="absolute bottom-12 right-[-36px] h-36 w-36 rounded-full bg-sky-100/50 blur-3xl" />
-      </div>
-      <div className="relative z-10 flex h-full min-h-0 flex-col">
-        <div className="flex min-h-0 flex-1 items-center justify-center px-5 pb-4 pt-5">
-          <div className="w-full max-w-[300px] space-y-5 text-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative">
-                <span
-                  className="absolute inset-[-16px] rounded-full opacity-60 blur-3xl"
-                  style={{ background: theme?.accentSoft || 'rgba(167, 243, 208, 0.55)' }}
-                />
-                {handsFreeActive ? (
-                  <>
-                    <span
-                      className="hf-ripple-ring pointer-events-none absolute inset-[-8px] rounded-full border-2"
-                      style={{
-                        borderColor: rippleColor,
-                        animation: handsFreeListening
-                          ? 'hf-ripple 2.4s cubic-bezier(0.22,1,0.36,1) infinite'
-                          : 'hf-ripple-glow 3s ease-in-out infinite',
-                      }}
-                    />
-                    <span
-                      className="hf-ripple-ring pointer-events-none absolute inset-[-8px] rounded-full border-2"
-                      style={{
-                        borderColor: rippleColor,
-                        animation: handsFreeListening
-                          ? 'hf-ripple 2.4s cubic-bezier(0.22,1,0.36,1) 0.8s infinite'
-                          : 'hf-ripple-glow 3s ease-in-out 1s infinite',
-                      }}
-                    />
-                    <span
-                      className="hf-ripple-ring pointer-events-none absolute inset-[-8px] rounded-full border-2"
-                      style={{
-                        borderColor: rippleColor,
-                        animation: handsFreeListening
-                          ? 'hf-ripple 2.4s cubic-bezier(0.22,1,0.36,1) 1.6s infinite'
-                          : 'hf-ripple-glow 3s ease-in-out 2s infinite',
-                      }}
-                    />
-                    <span
-                      className="hf-ripple-glow pointer-events-none absolute inset-[-12px] rounded-full"
-                      style={{
-                        background: `radial-gradient(circle, ${rippleColor}, transparent 70%)`,
-                        animation: 'hf-ripple-glow 3s ease-in-out infinite',
-                      }}
-                    />
-                  </>
-                ) : null}
-                <span
-                  className="absolute inset-[-8px] rounded-full border border-white/75"
-                  style={{ boxShadow: `0 16px 40px ${theme?.accentSoft || 'rgba(16,185,129,0.18)'}` }}
-                />
-                <AvatarStage
-                  snapshot={avatarSnapshot}
-                  label={props.characterData?.name || props.selectedTarget.title}
-                  imageUrl={avatarImageUrl}
-                  fallbackLabel={props.characterData?.avatarFallback || props.selectedTarget.avatarFallback || props.selectedTarget.title}
-                  showStatusBadge={false}
-                  size="lg"
-                  renderers={DESKTOP_AGENT_AVATAR_RENDERERS}
-                  className="relative"
-                />
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 bg-white/86 px-3 py-1.5 text-[11px] font-semibold text-emerald-800 shadow-[0_8px_18px_rgba(15,23,42,0.06)]">
-                  <span className={cn('inline-block h-2.5 w-2.5 rounded-full bg-emerald-500/90', presenceBusy ? 'animate-pulse' : '')} />
-                  <span>{presenceLabel}</span>
-                </span>
-              </div>
+    <ChatRightColumn data-chat-mode-column="human">
+      <ChatRightColumnCard cardKey="primary" className="px-5 py-5">
+        <div className="space-y-5 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <span
+                className="absolute inset-[-16px] rounded-full opacity-60 blur-3xl"
+                style={{ background: theme?.accentSoft || 'rgba(167, 243, 208, 0.55)' }}
+              />
+              {handsFreeActive ? (
+                <>
+                  <span
+                    className="hf-ripple-ring pointer-events-none absolute inset-[-8px] rounded-full border-2"
+                    style={{
+                      borderColor: rippleColor,
+                      animation: handsFreeListening
+                        ? 'hf-ripple 2.4s cubic-bezier(0.22,1,0.36,1) infinite'
+                        : 'hf-ripple-glow 3s ease-in-out infinite',
+                    }}
+                  />
+                  <span
+                    className="hf-ripple-ring pointer-events-none absolute inset-[-8px] rounded-full border-2"
+                    style={{
+                      borderColor: rippleColor,
+                      animation: handsFreeListening
+                        ? 'hf-ripple 2.4s cubic-bezier(0.22,1,0.36,1) 0.8s infinite'
+                        : 'hf-ripple-glow 3s ease-in-out 1s infinite',
+                    }}
+                  />
+                  <span
+                    className="hf-ripple-ring pointer-events-none absolute inset-[-8px] rounded-full border-2"
+                    style={{
+                      borderColor: rippleColor,
+                      animation: handsFreeListening
+                        ? 'hf-ripple 2.4s cubic-bezier(0.22,1,0.36,1) 1.6s infinite'
+                        : 'hf-ripple-glow 3s ease-in-out 2s infinite',
+                    }}
+                  />
+                  <span
+                    className="hf-ripple-glow pointer-events-none absolute inset-[-12px] rounded-full"
+                    style={{
+                      background: `radial-gradient(circle, ${rippleColor}, transparent 70%)`,
+                      animation: 'hf-ripple-glow 3s ease-in-out infinite',
+                    }}
+                  />
+                </>
+              ) : null}
+              <span
+                className="absolute inset-[-8px] rounded-full border border-white/75"
+                style={{ boxShadow: `0 16px 40px ${theme?.accentSoft || 'rgba(16,185,129,0.18)'}` }}
+              />
+              <AvatarStage
+                snapshot={avatarSnapshot}
+                label={props.characterData?.name || props.selectedTarget.title}
+                imageUrl={avatarImageUrl}
+                fallbackLabel={props.characterData?.avatarFallback || props.selectedTarget.avatarFallback || props.selectedTarget.title}
+                showStatusBadge={false}
+                size="lg"
+                renderers={DESKTOP_AGENT_AVATAR_RENDERERS}
+                className="relative"
+              />
             </div>
-            <div className="space-y-2.5 text-center">
-              <p className="text-[2rem] font-black leading-tight tracking-tight text-slate-950">
+            <div className="space-y-2">
+              <p className="text-[1.8rem] font-black leading-tight tracking-tight text-slate-950">
                 {props.characterData?.name || props.selectedTarget.title}
               </p>
               {props.characterData?.handle || props.selectedTarget.handle ? (
@@ -446,17 +432,38 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
                   {props.characterData?.handle || props.selectedTarget.handle}
                 </p>
               ) : null}
-              <p className="line-clamp-4 px-2 text-sm leading-6 text-slate-500">
-                {supportingCopy}
-              </p>
             </div>
-            {props.children}
           </div>
         </div>
-        {props.hideFooterControls ? null : (
-          <RightPanelHeader onToggleSettings={props.onToggleSettings} settingsActive={props.settingsActive} thinkingState={props.thinkingState} onThinkingToggle={props.onThinkingToggle} onToggleFold={props.onToggleFold} handsFreeState={props.handsFreeState} />
-        )}
-      </div>
-    </aside>
+      </ChatRightColumnCard>
+
+      <ChatRightColumnCard cardKey="status" className="px-4 py-4">
+        <ChatRightColumnCardTitle
+          title={t('Chat.presenceCardTitle', { defaultValue: 'Presence' })}
+          subtitle={supportingCopy}
+        />
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 bg-white/86 px-3 py-1.5 text-[11px] font-semibold text-emerald-800 shadow-[0_8px_18px_rgba(15,23,42,0.06)]">
+            <span className={cn('inline-block h-2.5 w-2.5 rounded-full bg-emerald-500/90', presenceBusy ? 'animate-pulse' : '')} />
+            <span>{presenceLabel}</span>
+          </span>
+        </div>
+        {props.children ? <div className="mt-4">{props.children}</div> : null}
+      </ChatRightColumnCard>
+
+      <ChatRightPanelSettings
+        onToggleSettings={props.onToggleSettings}
+        thinkingState={props.thinkingState}
+        onThinkingToggle={props.onThinkingToggle}
+        onToggleFold={props.onToggleFold}
+        handsFreeState={props.handsFreeState}
+        expanded={props.settingsActive}
+        collapsedSummary={t('Chat.humanSettingsCollapsedSummary', {
+          defaultValue: 'Profile, diagnostics, and conversation controls stay docked here.',
+        })}
+      >
+        {props.settingsContent ?? null}
+      </ChatRightPanelSettings>
+    </ChatRightColumn>
   );
 }

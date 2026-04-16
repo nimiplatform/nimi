@@ -288,66 +288,92 @@ export function ProfilePanel() {
 
   if (loading) {
     return (
-      <Surface data-testid={E2E_IDS.panel('profile')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
-        <ContactDetailLoadingState label={i18n.t('ProfileView.loading')} />
-      </Surface>
+      <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
+        <Surface
+          tone="panel"
+          material="glass-regular"
+          padding="none"
+          className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        >
+          <ContactDetailLoadingState label={i18n.t('ProfileView.loading')} />
+        </Surface>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Surface data-testid={E2E_IDS.panel('profile')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
-        <ContactDetailErrorState
-          backLabel={i18n.t('Common.back')}
-          label={i18n.t('ProfileView.error')}
-          onClose={navigateBack}
-        />
-      </Surface>
+      <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
+        <Surface
+          tone="panel"
+          material="glass-regular"
+          padding="none"
+          className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        >
+          <ContactDetailErrorState
+            backLabel={i18n.t('Common.back')}
+            label={i18n.t('ProfileView.error')}
+            onClose={navigateBack}
+          />
+        </Surface>
+      </div>
     );
   }
 
   if (!profile) {
     return (
-      <Surface data-testid={E2E_IDS.panel('profile')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
-        <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
+      <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
+        <Surface
+          tone="panel"
+          material="glass-regular"
+          padding="none"
+          className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 text-sm text-[var(--nimi-text-secondary)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        >
           {i18n.t('Profile.noProfileDataAvailable', { defaultValue: 'No profile data available' })}
-        </div>
-      </Surface>
+        </Surface>
+      </div>
     );
   }
 
   return (
-    <Surface data-testid={E2E_IDS.panel('profile')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+    <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
       {feedback ? (
         <div className="px-6 pt-4">
           <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
         </div>
       ) : null}
-      <ContactDetailView
-        profile={profile}
-        isOwnProfile={isOwnProfile}
-        isBlockedProfile={isBlockedProfile}
-        loading={loading}
-        error={error}
-        onClose={navigateBack}
-        onMessage={() => {
-          void onMessage();
-        }}
-        onAddFriend={!isOwnProfile && !isBlockedProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
-          void onAddFriend();
-        } : undefined}
-        canAddFriend={!addFriendBlocked}
-        addFriendHint={addFriendHint}
-        onSendGift={() => setGiftModalOpen(true)}
-        onBlock={!isOwnProfile && !isBlockedProfile ? () => {
-          void onBlockProfile();
-        } : undefined}
-        onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => {
-          void onRemoveProfile();
-        } : undefined}
-        showMessageButton={!isOwnProfile && !profile.isAgent && !isBlockedProfile}
-        onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
-      />
+      <Surface
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="min-h-0 flex-1 overflow-hidden rounded-[2rem] border-white/60 shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
+      >
+        <ContactDetailView
+          profile={profile}
+          isOwnProfile={isOwnProfile}
+          isBlockedProfile={isBlockedProfile}
+          loading={loading}
+          error={error}
+          onClose={navigateBack}
+          onMessage={() => {
+            void onMessage();
+          }}
+          onAddFriend={!isOwnProfile && !isBlockedProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
+            void onAddFriend();
+          } : undefined}
+          canAddFriend={!addFriendBlocked}
+          addFriendHint={addFriendHint}
+          onSendGift={() => setGiftModalOpen(true)}
+          onBlock={!isOwnProfile && !isBlockedProfile ? () => {
+            void onBlockProfile();
+          } : undefined}
+          onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => {
+            void onRemoveProfile();
+          } : undefined}
+          showMessageButton={!isOwnProfile && !profile.isAgent && !isBlockedProfile}
+          onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
+        />
+      </Surface>
       <SendGiftModal
         open={giftModalOpen && !isOwnProfile && !isBlockedProfile}
         receiverId={profile?.id || ''}
@@ -360,6 +386,6 @@ export function ProfilePanel() {
           setFeedback(null);
         }}
       />
-    </Surface>
+    </div>
   );
 }

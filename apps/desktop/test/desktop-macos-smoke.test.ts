@@ -109,6 +109,74 @@ test('desktop macos smoke chat memory bind scenario follows the expected step or
   });
 });
 
+test('desktop macos smoke tester speech bundle scenario follows the expected step order', async () => {
+  const clicked: string[] = [];
+  const waited: string[] = [];
+  const writtenReports: Array<Record<string, unknown>> = [];
+
+  await runDesktopMacosSmokeScenario('tester.speech-bundle-panels', {
+    async waitForTestId(id) {
+      waited.push(id);
+    },
+    async clickByTestId(id) {
+      clicked.push(id);
+    },
+    async readAttributeByTestId() {
+      return null;
+    },
+    async readTextByTestId() {
+      return '';
+    },
+    async writeReport(payload) {
+      writtenReports.push(payload as unknown as Record<string, unknown>);
+    },
+    currentRoute() {
+      return '/tester';
+    },
+    currentHtml() {
+      return '<html>tester</html>';
+    },
+  });
+
+  assert.deepEqual(clicked, [
+    E2E_IDS.navTab('tester'),
+    E2E_IDS.testerCapabilityTab('audio.synthesize'),
+    E2E_IDS.testerCapabilityTab('audio.transcribe'),
+    E2E_IDS.testerCapabilityTab('voice.clone'),
+    E2E_IDS.testerCapabilityTab('voice.design'),
+  ]);
+  assert.deepEqual(waited, [
+    E2E_IDS.panel('tester'),
+    E2E_IDS.testerPanel('audio.synthesize'),
+    E2E_IDS.testerInput('audio-synthesize-text'),
+    E2E_IDS.testerPanel('audio.transcribe'),
+    E2E_IDS.testerInput('audio-transcribe-file'),
+    E2E_IDS.testerPanel('voice.clone'),
+    E2E_IDS.testerInput('voice-clone-file'),
+    E2E_IDS.testerPanel('voice.design'),
+    E2E_IDS.testerInput('voice-design-instruction'),
+  ]);
+  assert.equal(writtenReports.length, 1);
+  assert.deepEqual(writtenReports[0], {
+    ok: true,
+    steps: [
+      'open-tester-tab',
+      'wait-tester-panel',
+      'open-tts-panel',
+      'wait-tts-input',
+      'open-stt-panel',
+      'wait-stt-input',
+      'open-voice-clone-panel',
+      'wait-voice-clone-input',
+      'open-voice-design-panel',
+      'wait-voice-design-input',
+      'write-pass-report',
+    ],
+    route: '/tester',
+    htmlSnapshot: '<html>tester</html>',
+  });
+});
+
 test('desktop macos smoke fails closed for unknown scenarios and emits a fail report', async () => {
   const reports: Array<Record<string, unknown>> = [];
 

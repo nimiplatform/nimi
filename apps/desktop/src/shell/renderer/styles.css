@@ -17,11 +17,11 @@
 /* ---- Chrome-style tab primitive ---- */
 
 .chrome-tab {
-  --tab-bg: rgba(255, 255, 255, 0.08);
-  --tab-hover-bg: rgba(255, 255, 255, 0.16);
-  --tab-active-bg: #ffffff;
-  --tab-color: rgba(255, 255, 255, 0.82);
-  --tab-active-color: #1f2328;
+  --tab-bg: rgba(255, 255, 255, 0.24);
+  --tab-hover-bg: rgba(255, 255, 255, 0.38);
+  --tab-active-bg: color-mix(in srgb, var(--nimi-action-primary-bg) 12%, white);
+  --tab-color: var(--nimi-text-secondary);
+  --tab-active-color: var(--nimi-text-primary);
   position: relative;
   display: inline-flex;
   align-items: flex-end;
@@ -42,18 +42,23 @@
   padding: 0 14px 0 22px;
   background: var(--tab-bg);
   color: var(--tab-color);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 999px;
-  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, padding-right 180ms ease;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, border-color 180ms ease, padding-right 180ms ease;
 }
 
 .chrome-tab:hover .chrome-tab__body {
   background: var(--tab-hover-bg);
+  border-color: rgba(255, 255, 255, 0.58);
   padding-right: 32px;
 }
 
 .chrome-tab.active .chrome-tab__body {
   background: var(--tab-active-bg);
+  border-color: color-mix(in srgb, var(--nimi-action-primary-bg) 22%, white);
   color: var(--tab-active-color);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
 
@@ -97,7 +102,7 @@
 }
 
 .chrome-tab:not(.active):hover .chrome-tab__close {
-  color: rgba(255, 255, 255, 0.94);
+  color: var(--nimi-text-primary);
 }
 
 .chrome-tab__close:hover {

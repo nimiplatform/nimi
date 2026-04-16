@@ -126,6 +126,7 @@ export function parseAssetHealth(value: unknown): LocalRuntimeAssetHealth {
     status: normalizeAssetStatus(record.status),
     detail: asString(record.detail),
     endpoint: asString(record.endpoint),
+    reasonCode: asString(record.reasonCode) || undefined,
   };
 }
 

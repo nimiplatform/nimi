@@ -28,6 +28,7 @@ import { AudioTranscribePanel } from './panels/panel-audio-transcribe.js';
 import { TextStreamPanel } from './panels/panel-text-stream.js';
 import { VoiceClonePanel, VoiceDesignPanel } from './panels/panel-voice-stubs.js';
 import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig, createEmptyTesterAIConfig } from './tester-ai-config';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 const SIDEBAR_GROUPS: Array<{ label: string; ids: CapabilityId[] }> = [
   { label: 'Text', ids: ['text.generate', 'text.stream', 'text.embed'] },
@@ -353,13 +354,18 @@ export function TesterPage() {
                 const labels = CAPABILITY_LABELS[capability.id];
                 const isActive = activeCapability === capability.id;
                 return (
-                  <SidebarItem
+                  <div
                     key={capability.id}
-                    kind="nav-row"
-                    active={isActive}
+                    data-testid={E2E_IDS.testerCapabilityTab(capability.id)}
                     onClick={() => setActiveCapability(capability.id)}
-                    label={labels.label}
-                  />
+                  >
+                    <SidebarItem
+                      kind="nav-row"
+                      active={isActive}
+                      onClick={() => setActiveCapability(capability.id)}
+                      label={labels.label}
+                    />
+                  </div>
                 );
               })}
             </SidebarSection>

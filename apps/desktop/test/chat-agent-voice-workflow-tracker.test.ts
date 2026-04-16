@@ -171,6 +171,7 @@ function createScenarioJobResponse(input: {
   status: ScenarioJobStatus;
   traceId: string;
   reasonDetail?: string;
+  reasonCode?: number | string;
 }): TestGetScenarioJobResponse {
   return {
     job: {
@@ -181,7 +182,7 @@ function createScenarioJobResponse(input: {
       modelResolved: 'qwen3-tts-vd',
       status: input.status,
       providerJobId: '',
-      reasonCode: 0,
+      reasonCode: input.reasonCode ?? 0,
       reasonDetail: input.reasonDetail || '',
       retryCount: 0,
       artifacts: [],
@@ -504,5 +505,39 @@ test('voice workflow tracker marks the current-thread message failed when the jo
   assert.equal(result.updatedMessage?.status, 'error');
   assert.equal(result.updatedMessage?.error?.code, 'AGENT_VOICE_WORKFLOW_FAILED');
   assert.match(result.updatedMessage?.error?.message || '', /Provider rejected/i);
+  assert.equal(harness.updateTurnBeatCalls[0]?.status, 'failed');
+});
+
+test('voice workflow tracker maps local speech bundle reasons to user-facing failure copy', async () => {
+  const message = createWorkflowMessage({
+    workflowStatus: 'running',
+  });
+  const harness = createStoreHarness(message);
+
+  const result = await reconcileAgentChatVoiceWorkflowMessage({
+    message,
+    voiceExecutionSnapshot: createVoiceExecutionSnapshot(),
+    storeClient: harness.storeClient,
+    runtimeDeps: createRuntimeDeps({
+      client: {
+        ai: {
+          async getScenarioJob() {
+            return createScenarioJobResponse({
+              status: ScenarioJobStatus.FAILED,
+              traceId: 'trace-workflow-failed',
+              reasonCode: 561,
+              reasonDetail: 'speech bundle download confirmation required',
+            });
+          },
+        },
+      },
+    }),
+    now: () => 1001,
+  });
+
+  assert.equal(result.stillPending, false);
+  assert.equal(result.updatedMessage?.status, 'error');
+  assert.equal(result.updatedMessage?.error?.code, 'AGENT_VOICE_WORKFLOW_FAILED');
+  assert.equal(result.updatedMessage?.error?.message, 'Local Speech requires explicit download confirmation before continuing.');
   assert.equal(harness.updateTurnBeatCalls[0]?.status, 'failed');
 });

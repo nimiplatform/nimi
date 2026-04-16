@@ -24,6 +24,16 @@
 | `start_window_drag` | `ui` | Start native window drag operation | `D-IPC-005` |
 | `menu_bar_sync_runtime_health` | `ui` | Sync menu bar runtime/provider health summary from renderer to Tauri backend | `D-IPC-005` |
 | `menu_bar_complete_quit` | `ui` | Finalize explicit app quit after renderer cleanup | `D-IPC-005` |
+| `desktop_agent_avatar_resource_import_vrm` | `agent-avatar` | Import a VRM avatar file into desktop-local avatar resource storage under nimi_data | `D-IPC-017` |
+| `desktop_agent_avatar_resource_pick_vrm` | `agent-avatar` | Open a desktop-native file picker constrained for selecting a VRM avatar source file | `D-IPC-017` |
+| `desktop_agent_avatar_resource_pick_live2d` | `agent-avatar` | Open a desktop-native folder picker for selecting a Live2D runtime directory | `D-IPC-017` |
+| `desktop_agent_avatar_resource_import_live2d` | `agent-avatar` | Import a Live2D runtime directory or manifest root into desktop-local avatar resource storage under nimi_data | `D-IPC-017` |
+| `desktop_agent_avatar_resource_list` | `agent-avatar` | List desktop-local avatar resource records available for per-agent binding | `D-IPC-017` |
+| `desktop_agent_avatar_resource_delete` | `agent-avatar` | Delete a desktop-local avatar resource record and its managed imported assets | `D-IPC-017` |
+| `desktop_agent_avatar_resource_read_asset` | `agent-avatar` | Read a desktop-local avatar resource entry as binary payload for renderer-local live avatar loading | `D-IPC-017` |
+| `desktop_agent_avatar_binding_get` | `agent-avatar` | Read the desktop-local avatar binding for a specific agentId | `D-IPC-017` |
+| `desktop_agent_avatar_binding_set` | `agent-avatar` | Bind a desktop-local avatar resource record to a specific agentId | `D-IPC-017` |
+| `desktop_agent_avatar_binding_clear` | `agent-avatar` | Clear the desktop-local avatar binding for a specific agentId | `D-IPC-017` |
 | `runtime_mod_append_audit` | `mod-local` | Append mod audit record | `D-IPC-007` |
 | `runtime_mod_query_audit` | `mod-local` | Query mod audit records | `D-IPC-007` |
 | `runtime_mod_delete_audit` | `mod-local` | Delete mod audit record | `D-IPC-007` |
@@ -86,7 +96,7 @@
 | `runtime_local_audits_list` | `local-runtime` | Host helper surface for local AI audit listing; shipped product paths must treat runtime audit state as authoritative | `D-IPC-011` |
 | `runtime_local_pick_asset_manifest_path` | `local-runtime` | Pick a local AI asset.manifest.json path under the runtime models root via native file dialog | `D-IPC-011` |
 | `runtime_local_pick_asset_directory` | `local-runtime` | Pick a local asset bundle directory for bundle import or rescan helper flows | `D-IPC-011` |
-| `runtime_local_assets_install_verified` | `local-runtime` | Install a verified asset through the runtime-authoritative verified asset catalog | `D-IPC-011` |
+| `runtime_local_assets_install_verified` | `local-runtime` | Install a verified asset through the runtime-authoritative verified asset catalog; ordinary-user local speech flows still require explicit Download confirmation and runtime-owned bundle projection | `D-IPC-011` |
 | `runtime_local_assets_import` | `local-runtime` | Import a local asset from an asset.manifest.json file | `D-IPC-011` |
 | `runtime_local_models_catalog_search` | `local-runtime` | Host catalog helper; catalog/install-plan truth must remain runtime-owned | `D-IPC-011` |
 | `runtime_local_models_catalog_list_variants` | `local-runtime` | Host catalog helper for model variants; not a local model state truth source | `D-IPC-011` |
@@ -96,13 +106,13 @@
 | `runtime_local_recommendation_feed_get` | `local-runtime` | Read capability-scoped host recommendation feed; helper-only and not a local model truth source | `D-IPC-011` |
 | `runtime_local_profiles_apply` | `local-runtime` | Apply a resolved local AI profile after host confirmation without creating Desktop-owned local model truth | `D-IPC-011` |
 | `runtime_local_services_list` | `local-runtime` | Host helper surface for local service listing; shipped product paths must treat RuntimeLocalService as the service truth source | `D-IPC-011` |
-| `runtime_local_services_install` | `local-runtime` | Host service install helper; shipped product install truth must come from RuntimeLocalService | `D-IPC-011` |
-| `runtime_local_services_start` | `local-runtime` | Host service start helper; shipped product lifecycle truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_services_install` | `local-runtime` | Host service install helper; shipped product install truth must come from RuntimeLocalService and must not imply Desktop-owned local speech install truth | `D-IPC-011` |
+| `runtime_local_services_start` | `local-runtime` | Host service start helper; shipped product lifecycle truth must come from RuntimeLocalService and must not bypass explicit Download-gated speech bundle flows | `D-IPC-011` |
 | `runtime_local_services_stop` | `local-runtime` | Host service stop helper; shipped product lifecycle truth must come from RuntimeLocalService | `D-IPC-011` |
-| `runtime_local_services_health` | `local-runtime` | Host service health helper; shipped product health truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_services_health` | `local-runtime` | Host service health helper; shipped product health truth must come from RuntimeLocalService and may only feed a runtime-owned speech bundle projection | `D-IPC-011` |
 | `runtime_local_services_remove` | `local-runtime` | Host service removal helper; shipped product removal truth must come from RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_nodes_catalog_list` | `local-runtime` | Host node-catalog helper; node availability truth remains runtime-owned | `D-IPC-011` |
-| `runtime_local_assets_install` | `local-runtime` | Install an asset from catalog parameters; execution truth is RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_assets_install` | `local-runtime` | Install an asset from catalog parameters; execution truth is RuntimeLocalService and must not create Desktop-owned speech bundle truth | `D-IPC-011` |
 | `runtime_local_assets_import_file` | `local-runtime` | Import a local asset file; execution truth is RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_assets_import_bundle` | `local-runtime` | Import a local asset bundle directory; execution truth is RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_assets_remove` | `local-runtime` | Remove an installed asset; execution truth is RuntimeLocalService | `D-IPC-011` |
@@ -119,4 +129,5 @@
 | `runtime_local_assets_reveal_in_folder` | `local-runtime` | Reveal installed asset files in system file manager | `D-IPC-011` |
 | `runtime_local_assets_reveal_root_folder` | `local-runtime` | Reveal the runtime models root folder in the system file manager | `D-IPC-011` |
 | `runtime_local_assets_scan_unregistered` | `local-runtime` | Host-local unregistered asset helper; if shipped product paths have runtime scan coverage, runtime remains the only truth source | `D-IPC-011` |
+| `runtime_local_assets_scaffold_orphan` | `local-runtime` | Host-local orphan intake helper that promotes an explicitly reviewed loose asset file into runtime-managed storage via RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_assets_rescan_bundle` | `local-runtime` | Re-scan a previously imported asset bundle directory; execution truth is RuntimeLocalService | `D-IPC-011` |

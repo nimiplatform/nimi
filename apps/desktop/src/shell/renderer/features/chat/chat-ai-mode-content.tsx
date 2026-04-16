@@ -7,7 +7,6 @@ import {
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useAiConversationModeHost } from './chat-ai-shell-adapter';
 import { ChatAiSessionListPanel } from './chat-ai-session-list-panel';
-import { ChatRightPanelSettings } from './chat-right-panel-settings';
 
 export type ChatAiModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
@@ -73,35 +72,10 @@ export function ChatAiModeContent({
 
   const canonicalMessages = host.messages || [];
 
-  const rightPanelNode = useMemo(() => {
-    if (!selectedTarget || rightPanelFolded) {
-      return null;
-    }
-    if (rightPanelMode === 'settings') {
-      return (
-        <ChatRightPanelSettings onToggleSettings={onToggleRightPanelSettings} thinkingState={host.thinkingState} onThinkingToggle={host.onThinkingToggle}>
-          {host.settingsContent ?? null}
-        </ChatRightPanelSettings>
-      );
-    }
-    const threadSummaries = host.adapter.threadAdapter.listThreads();
-    const threads = Array.isArray(threadSummaries) ? threadSummaries : [];
-    return (
-      <ChatAiSessionListPanel
-        threads={threads}
-        activeThreadId={host.activeThreadId}
-        onSelectThread={(threadId) => host.onSelectThread?.(threadId)}
-        onCreateThread={host.onCreateThread ? () => void host.onCreateThread!() : undefined}
-        onArchiveThread={host.onArchiveThread ? (id) => void host.onArchiveThread!(id) : undefined}
-        onRenameThread={host.onRenameThread}
-        onToggleSettings={onToggleRightPanelSettings}
-        settingsActive={false}
-        thinkingState={host.thinkingState}
-        onThinkingToggle={host.onThinkingToggle}
-        onToggleFold={onToggleRightPanelFold}
-      />
-    );
-  }, [host, selectedTarget, rightPanelMode, rightPanelFolded, onToggleRightPanelSettings, onToggleRightPanelFold]);
+  const threadSummaries = useMemo(() => {
+    const summaries = host.adapter.threadAdapter.listThreads();
+    return Array.isArray(summaries) ? summaries : [];
+  }, [host.adapter.threadAdapter]);
 
   const handleViewModeChange = useCallback((mode: 'stage' | 'chat') => {
     if (!selectedTarget) {
@@ -111,28 +85,49 @@ export function ChatAiModeContent({
   }, [selectedTarget, setChatViewMode]);
 
   return (
-    <CanonicalConversationShell
-      className="min-h-0 flex-1"
-      hideTargetPane
-      hideCharacterRail
-      rightPanel={rightPanelNode}
-      sourceFilter="all"
-      targets={allTargets}
-      selectedTargetId={selectedTargetId}
-      selectedTarget={selectedTarget}
-      onSelectTarget={onSelectTarget}
-      viewMode={currentViewMode}
-      onViewModeChange={handleViewModeChange}
-      setupState={host.adapter.setupState}
-      setupDescription={host.setupDescription}
-      onSetupAction={onSetupAction}
-      characterData={host.characterData}
-      messages={canonicalMessages}
-      transcriptProps={host.transcriptProps}
-      stagePanelProps={host.stagePanelProps}
-      topContent={host.topContent}
-      composer={host.composerContent}
-      auxiliaryOverlayContent={host.auxiliaryOverlayContent}
-    />
+    <div className="flex min-h-0 min-w-0 flex-1">
+      <CanonicalConversationShell
+        className="min-h-0 flex-1"
+        chrome="transparent"
+        hideTargetPane
+        hideCharacterRail
+        sourceFilter="all"
+        targets={allTargets}
+        selectedTargetId={selectedTargetId}
+        selectedTarget={selectedTarget}
+        onSelectTarget={onSelectTarget}
+        viewMode={currentViewMode}
+        onViewModeChange={handleViewModeChange}
+        setupState={host.adapter.setupState}
+        setupDescription={host.setupDescription}
+        onSetupAction={onSetupAction}
+        characterData={host.characterData}
+        messages={canonicalMessages}
+        transcriptProps={host.transcriptProps}
+        stagePanelProps={host.stagePanelProps}
+        topContent={host.topContent}
+        composer={host.composerContent}
+        auxiliaryOverlayContent={host.auxiliaryOverlayContent}
+      />
+      {selectedTarget && !rightPanelFolded ? (
+        <ChatAiSessionListPanel
+          threads={threadSummaries}
+          activeThreadId={host.activeThreadId}
+          onSelectThread={(threadId) => host.onSelectThread?.(threadId)}
+          onCreateThread={host.onCreateThread ? () => void host.onCreateThread!() : undefined}
+          onArchiveThread={host.onArchiveThread ? (id) => void host.onArchiveThread!(id) : undefined}
+          onRenameThread={host.onRenameThread}
+          onToggleSettings={onToggleRightPanelSettings}
+          settingsActive={rightPanelMode === 'settings'}
+          thinkingState={host.thinkingState}
+          onThinkingToggle={host.onThinkingToggle}
+          onToggleFold={onToggleRightPanelFold}
+          assistantTitle={host.characterData?.name || selectedTarget.title}
+          assistantHandle={host.characterData?.handle || selectedTarget.handle}
+          assistantBio={host.characterData?.bio || selectedTarget.bio}
+          settingsContent={host.settingsContent ?? null}
+        />
+      ) : null}
+    </div>
   );
 }

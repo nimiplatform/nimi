@@ -3,16 +3,20 @@ import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import { VRMExpressionPresetName, VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
+import { VRMExpressionPresetName, VRMHumanBoneName, VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { AvatarVrmViewportComponentProps } from '@nimiplatform/nimi-kit/features/avatar/vrm';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import {
+  parseDesktopAgentAvatarAssetRef,
+  type DesktopAgentAvatarAssetRef,
   resolveChatAgentAvatarVrmAssetUrl,
   resolveChatAgentAvatarVrmExpressionWeights,
   resolveChatAgentAvatarVrmViewportState,
   type ChatAgentAvatarVrmViewportState,
 } from './chat-agent-avatar-vrm-viewport-state';
+import type { ChatAgentAvatarPointerInteractionState } from './chat-agent-avatar-pointer-interaction';
+import { readDesktopAgentAvatarResourceAsset } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-store';
 
 type AnimatedAvatarObject = {
   rotation: { x: number; y: number };
@@ -20,10 +24,55 @@ type AnimatedAvatarObject = {
   scale: { setScalar: (value: number) => void };
 };
 
+type AnimatedEyeObject = {
+  position: { x: number; y: number };
+};
+
 type LoadedVrmState =
   | { status: 'idle' | 'loading'; vrm: null; error: null }
   | { status: 'ready'; vrm: VRM; error: null }
   | { status: 'error'; vrm: null; error: string };
+
+type ChatAgentAvatarVrmViewportProps = AvatarVrmViewportComponentProps & {
+  pointerInteraction?: ChatAgentAvatarPointerInteractionState | null;
+};
+
+function applyIdlePose(vrm: VRM) {
+  const humanoid = vrm.humanoid;
+  const leftUpperArm = humanoid.getNormalizedBoneNode(VRMHumanBoneName.LeftUpperArm);
+  const rightUpperArm = humanoid.getNormalizedBoneNode(VRMHumanBoneName.RightUpperArm);
+  const leftLowerArm = humanoid.getNormalizedBoneNode(VRMHumanBoneName.LeftLowerArm);
+  const rightLowerArm = humanoid.getNormalizedBoneNode(VRMHumanBoneName.RightLowerArm);
+  const spine = humanoid.getNormalizedBoneNode(VRMHumanBoneName.Spine);
+  const chest = humanoid.getNormalizedBoneNode(VRMHumanBoneName.Chest);
+  const neck = humanoid.getNormalizedBoneNode(VRMHumanBoneName.Neck);
+
+  if (leftUpperArm) {
+    leftUpperArm.rotation.z = THREE.MathUtils.degToRad(58);
+    leftUpperArm.rotation.x = THREE.MathUtils.degToRad(8);
+  }
+  if (rightUpperArm) {
+    rightUpperArm.rotation.z = THREE.MathUtils.degToRad(-58);
+    rightUpperArm.rotation.x = THREE.MathUtils.degToRad(8);
+  }
+  if (leftLowerArm) {
+    leftLowerArm.rotation.z = THREE.MathUtils.degToRad(-18);
+    leftLowerArm.rotation.y = THREE.MathUtils.degToRad(4);
+  }
+  if (rightLowerArm) {
+    rightLowerArm.rotation.z = THREE.MathUtils.degToRad(18);
+    rightLowerArm.rotation.y = THREE.MathUtils.degToRad(-4);
+  }
+  if (spine) {
+    spine.rotation.x = THREE.MathUtils.degToRad(3);
+  }
+  if (chest) {
+    chest.rotation.x = THREE.MathUtils.degToRad(2);
+  }
+  if (neck) {
+    neck.rotation.x = THREE.MathUtils.degToRad(-2);
+  }
+}
 
 function AvatarBust({
   state,
@@ -32,12 +81,20 @@ function AvatarBust({
 }) {
   const groupRef = useRef<AnimatedAvatarObject | null>(null);
   const shouldersRef = useRef<AnimatedAvatarObject | null>(null);
+  const leftEyeRef = useRef<AnimatedEyeObject | null>(null);
+  const rightEyeRef = useRef<AnimatedEyeObject | null>(null);
+  const followRef = useRef({ headX: 0, headY: 0, eyeX: 0, eyeY: 0 });
 
-  useFrame((renderState) => {
+  useFrame((renderState, delta) => {
+    followRef.current.headX = THREE.MathUtils.damp(followRef.current.headX, state.headFollowX, 8.8, delta);
+    followRef.current.headY = THREE.MathUtils.damp(followRef.current.headY, state.headFollowY, 8.8, delta);
+    followRef.current.eyeX = THREE.MathUtils.damp(followRef.current.eyeX, state.eyeFollowX, 10.2, delta);
+    followRef.current.eyeY = THREE.MathUtils.damp(followRef.current.eyeY, state.eyeFollowY, 10.2, delta);
+    const ambientWeight = THREE.MathUtils.clamp(1 - state.pointerInfluence * 0.82, 0.18, 1);
     if (groupRef.current) {
-      groupRef.current.rotation.y = Math.sin(renderState.clock.elapsedTime * 0.45 * state.motionSpeed) * 0.18;
-      groupRef.current.rotation.x = Math.cos(renderState.clock.elapsedTime * 0.28 * state.motionSpeed) * 0.06;
-      groupRef.current.position.y = Math.sin(renderState.clock.elapsedTime * 0.65 * state.motionSpeed) * 0.08;
+      groupRef.current.rotation.y = Math.sin(renderState.clock.elapsedTime * 0.45 * state.motionSpeed) * 0.18 * ambientWeight + followRef.current.headX;
+      groupRef.current.rotation.x = Math.cos(renderState.clock.elapsedTime * 0.28 * state.motionSpeed) * 0.06 * ambientWeight + followRef.current.headY;
+      groupRef.current.position.y = Math.sin(renderState.clock.elapsedTime * 0.65 * state.motionSpeed) * 0.08 * (0.55 + ambientWeight * 0.45);
     }
     if (shouldersRef.current) {
       const breathing = 1 + Math.sin(renderState.clock.elapsedTime * (0.8 + state.amplitude * 0.6)) * (0.02 + state.amplitude * 0.018);
@@ -48,6 +105,14 @@ function AvatarBust({
       groupRef.current.scale.setScalar(speakingPulse);
     } else if (groupRef.current) {
       groupRef.current.scale.setScalar(1);
+    }
+    if (leftEyeRef.current) {
+      leftEyeRef.current.position.x = -0.22 + followRef.current.eyeX;
+      leftEyeRef.current.position.y = 0.52 + followRef.current.eyeY;
+    }
+    if (rightEyeRef.current) {
+      rightEyeRef.current.position.x = 0.22 + followRef.current.eyeX;
+      rightEyeRef.current.position.y = 0.52 + followRef.current.eyeY;
     }
   });
 
@@ -75,11 +140,11 @@ function AvatarBust({
         <sphereGeometry args={[0.16, 24, 24]} />
         <meshBasicMaterial color={state.phase === 'speaking' ? state.accentColor : '#f97316'} transparent opacity={0.9} />
       </mesh>
-      <mesh position={[-0.22, 0.52, 0.54]} scale={[0.12, state.phase === 'thinking' ? 0.05 : 0.08, 0.06]}>
+      <mesh ref={leftEyeRef} position={[-0.22, 0.52, 0.54]} scale={[0.12, state.phase === 'thinking' ? 0.05 : 0.08, 0.06]}>
         <sphereGeometry args={[1, 18, 18]} />
         <meshBasicMaterial color="#0f172a" />
       </mesh>
-      <mesh position={[0.22, 0.52, 0.54]} scale={[0.12, state.phase === 'thinking' ? 0.05 : 0.08, 0.06]}>
+      <mesh ref={rightEyeRef} position={[0.22, 0.52, 0.54]} scale={[0.12, state.phase === 'thinking' ? 0.05 : 0.08, 0.06]}>
         <sphereGeometry args={[1, 18, 18]} />
         <meshBasicMaterial color="#0f172a" />
       </mesh>
@@ -98,36 +163,64 @@ function RuntimeVrmModel({
 }: {
   vrm: VRM;
   state: ChatAgentAvatarVrmViewportState;
-  input: AvatarVrmViewportComponentProps['input'];
+  input: ChatAgentAvatarVrmViewportProps['input'];
 }) {
   const rootRef = useRef<AnimatedAvatarObject | null>(null);
+  const followRef = useRef({ headX: 0, headY: 0, eyeX: 0, eyeY: 0 });
   const expressionWeights = useMemo(
     () => resolveChatAgentAvatarVrmExpressionWeights(input),
     [input],
   );
+  const bones = useMemo(() => ({
+    neck: vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.Neck),
+    head: vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.Head),
+    leftEye: vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.LeftEye),
+    rightEye: vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.RightEye),
+  }), [vrm]);
   const transform = useMemo(() => {
     const box = new THREE.Box3().setFromObject(vrm.scene);
     const size = new THREE.Vector3();
-    const center = new THREE.Vector3();
     box.getSize(size);
-    box.getCenter(center);
     const height = size.y > 0 ? size.y : 1.8;
-    const scale = 2.85 / height;
+    const scale = 2.95 / height;
+    const desiredBottom = -2.02;
     return {
       scale,
       position: new THREE.Vector3(
-        -center.x * scale,
-        -center.y * scale - 1.35,
-        -center.z * scale,
+        -(box.min.x + size.x / 2) * scale,
+        desiredBottom - box.min.y * scale,
+        -(box.min.z + size.z / 2) * scale + 0.08,
       ),
     };
   }, [vrm]);
 
   useFrame((renderState, delta) => {
+    followRef.current.headX = THREE.MathUtils.damp(followRef.current.headX, state.headFollowX, 8.2, delta);
+    followRef.current.headY = THREE.MathUtils.damp(followRef.current.headY, state.headFollowY, 8.2, delta);
+    followRef.current.eyeX = THREE.MathUtils.damp(followRef.current.eyeX, state.eyeFollowX, 9.6, delta);
+    followRef.current.eyeY = THREE.MathUtils.damp(followRef.current.eyeY, state.eyeFollowY, 9.6, delta);
+    const ambientWeight = THREE.MathUtils.clamp(1 - state.pointerInfluence * 0.78, 0.24, 1);
+
     if (rootRef.current) {
-      rootRef.current.rotation.y = Math.sin(renderState.clock.elapsedTime * 0.3 * state.motionSpeed) * 0.1;
-      rootRef.current.rotation.x = Math.cos(renderState.clock.elapsedTime * 0.22 * state.motionSpeed) * 0.03;
-      rootRef.current.position.y = Math.sin(renderState.clock.elapsedTime * 0.4 * state.motionSpeed) * 0.04;
+      rootRef.current.rotation.y = Math.sin(renderState.clock.elapsedTime * 0.3 * state.motionSpeed) * 0.1 * ambientWeight;
+      rootRef.current.rotation.x = Math.cos(renderState.clock.elapsedTime * 0.22 * state.motionSpeed) * 0.03 * ambientWeight;
+      rootRef.current.position.y = Math.sin(renderState.clock.elapsedTime * 0.4 * state.motionSpeed) * 0.04 * (0.65 + ambientWeight * 0.35);
+    }
+    if (bones.neck) {
+      bones.neck.rotation.x = THREE.MathUtils.degToRad(-2) + followRef.current.headY * 0.42;
+      bones.neck.rotation.y = followRef.current.headX * 0.55;
+    }
+    if (bones.head) {
+      bones.head.rotation.x = followRef.current.headY * 0.75;
+      bones.head.rotation.y = followRef.current.headX * 0.82;
+    }
+    if (bones.leftEye) {
+      bones.leftEye.rotation.x = followRef.current.eyeY;
+      bones.leftEye.rotation.y = followRef.current.eyeX;
+    }
+    if (bones.rightEye) {
+      bones.rightEye.rotation.x = followRef.current.eyeY;
+      bones.rightEye.rotation.y = followRef.current.eyeX;
     }
 
     const expressionManager = vrm.expressionManager;
@@ -167,24 +260,25 @@ function AvatarScene({
   loadedVrm,
 }: {
   state: ChatAgentAvatarVrmViewportState;
-  input: AvatarVrmViewportComponentProps['input'];
+  input: ChatAgentAvatarVrmViewportProps['input'];
   loadedVrm: LoadedVrmState;
 }) {
   return (
     <>
-      <color attach="background" args={['#000000']} />
-      <fog attach="fog" args={['#e0f2fe', 5, 10]} />
-      <ambientLight intensity={0.65} />
-      <directionalLight position={[2.5, 3, 3]} intensity={2.2} color="#ffffff" />
-      <pointLight position={[-3, 1.5, 2]} intensity={1.4} color={state.accentColor} />
-      <pointLight position={[0, -2, 2]} intensity={0.8} color={state.glowColor} />
+      <color attach="background" args={['#edf3f7']} />
+      <fog attach="fog" args={['#e5eef4', 6.8, 11.8]} />
+      <ambientLight intensity={0.74} color="#f5f8fb" />
+      <directionalLight position={[1.45, 2.8, 4.2]} intensity={1.08} color="#fff5ea" />
+      <directionalLight position={[-2.2, 1.9, 2.7]} intensity={0.42} color="#d9e9fa" />
+      <pointLight position={[0.3, 1.2, -2.4]} intensity={0.18} color="#c7e5ff" />
+      <pointLight position={[0, -1.1, 2.1]} intensity={0.08} color={state.glowColor} />
       <Sparkles
-        count={24}
-        scale={3.2}
-        size={2.2}
-        speed={state.sparklesSpeed}
+        count={6}
+        scale={2.8}
+        size={1.2}
+        speed={Math.max(0.08, state.sparklesSpeed * 0.32)}
         color={state.glowColor}
-        opacity={0.45}
+        opacity={0.08}
       />
       {loadedVrm.status === 'ready' ? (
         <RuntimeVrmModel vrm={loadedVrm.vrm} state={state} input={input} />
@@ -195,16 +289,16 @@ function AvatarScene({
       )}
       <EffectComposer>
         <Bloom
-          luminanceThreshold={0.18}
+          luminanceThreshold={0.92}
           mipmapBlur
           intensity={loadedVrm.status === 'ready'
             ? state.phase === 'speaking'
-              ? 1.1 + state.amplitude * 0.3
-              : 0.85
+              ? 0.045 + state.amplitude * 0.02
+              : 0.01
             : state.phase === 'speaking'
-              ? 1.35 + state.amplitude * 0.5
-              : 1.05}
-          radius={0.72}
+              ? 0.08 + state.amplitude * 0.03
+              : 0.02}
+          radius={0.26}
         />
       </EffectComposer>
     </>
@@ -214,12 +308,21 @@ function AvatarScene({
 export default function ChatAgentAvatarVrmViewport({
   input,
   chrome = 'default',
-}: AvatarVrmViewportComponentProps) {
-  const state = useMemo(() => resolveChatAgentAvatarVrmViewportState(input), [input]);
-  const assetUrl = useMemo(
+  pointerInteraction,
+}: ChatAgentAvatarVrmViewportProps) {
+  const state = useMemo(
+    () => resolveChatAgentAvatarVrmViewportState(input, pointerInteraction),
+    [input, pointerInteraction],
+  );
+  const desktopAssetRef = useMemo<DesktopAgentAvatarAssetRef | null>(
+    () => parseDesktopAgentAvatarAssetRef(input.assetRef),
+    [input.assetRef],
+  );
+  const networkAssetUrl = useMemo(
     () => resolveChatAgentAvatarVrmAssetUrl(input.assetRef),
     [input.assetRef],
   );
+  const [assetUrl, setAssetUrl] = useState<string | null>(networkAssetUrl);
   const [loadedVrm, setLoadedVrm] = useState<LoadedVrmState>({
     status: assetUrl ? 'loading' : 'idle',
     vrm: null,
@@ -227,12 +330,57 @@ export default function ChatAgentAvatarVrmViewport({
   });
 
   useEffect(() => {
-    if (!assetUrl) {
-      setLoadedVrm({
-        status: 'idle',
-        vrm: null,
-        error: null,
+    if (!desktopAssetRef) {
+      setAssetUrl(networkAssetUrl);
+      return undefined;
+    }
+    let active = true;
+    let objectUrl: string | null = null;
+
+    setAssetUrl(null);
+    setLoadedVrm({
+      status: 'loading',
+      vrm: null,
+      error: null,
+    });
+
+    void readDesktopAgentAvatarResourceAsset(desktopAssetRef.resourceId)
+      .then((asset) => {
+        if (!active) {
+          return;
+        }
+        const binary = Uint8Array.from(atob(asset.base64), (character) => character.charCodeAt(0));
+        objectUrl = URL.createObjectURL(new Blob([binary], { type: asset.mimeType || 'model/gltf-binary' }));
+        setAssetUrl(objectUrl);
+      })
+      .catch((error: unknown) => {
+        if (!active) {
+          return;
+        }
+        setLoadedVrm({
+          status: 'error',
+          vrm: null,
+          error: error instanceof Error ? error.message : 'Failed to load desktop avatar asset.',
+        });
       });
+
+    return () => {
+      active = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [desktopAssetRef, networkAssetUrl]);
+
+  useEffect(() => {
+    if (!assetUrl) {
+      setLoadedVrm((previous) => previous.status === 'loading'
+        ? previous
+        : {
+            status: 'idle',
+            vrm: null,
+            error: null,
+          });
       return undefined;
     }
 
@@ -265,6 +413,7 @@ export default function ChatAgentAvatarVrmViewport({
 
         retainedVrm = vrm;
         VRMUtils.rotateVRM0(vrm);
+        applyIdlePose(vrm);
         vrm.scene.traverse((object: { frustumCulled: boolean }) => {
           object.frustumCulled = false;
         });
@@ -301,6 +450,15 @@ export default function ChatAgentAvatarVrmViewport({
     };
   }, [assetUrl]);
 
+  const debugLines = chrome === 'minimal' && loadedVrm.status !== 'ready'
+    ? [
+      `status: ${loadedVrm.status}`,
+      `assetRef: ${input.assetRef || 'none'}`,
+      `assetUrl: ${assetUrl || 'none'}`,
+      loadedVrm.error ? `error: ${loadedVrm.error}` : null,
+    ].filter(Boolean)
+    : [];
+
   const showPosterFallback = chrome === 'minimal'
     && loadedVrm.status !== 'ready'
     && Boolean(input.posterUrl);
@@ -314,6 +472,7 @@ export default function ChatAgentAvatarVrmViewport({
           : 'bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(224,231,255,0.88)_45%,rgba(186,230,253,0.7)_68%,rgba(14,165,233,0.16))]',
       )}
       data-desktop-agent-vrm-viewport="true"
+      data-avatar-pointer-hovered={pointerInteraction?.hovered ? 'true' : 'false'}
     >
       {input.posterUrl ? (
         <img
@@ -352,9 +511,14 @@ export default function ChatAgentAvatarVrmViewport({
           </div>
         ) : (
           <Canvas
-            camera={{ position: [0, 0.15, 4.4], fov: 28 }}
+            camera={{ position: [0, 0.58, 5.05], fov: 25 }}
             dpr={[1, 1.8]}
             gl={{ antialias: true, alpha: true }}
+            onCreated={({ gl }) => {
+              gl.outputColorSpace = THREE.SRGBColorSpace;
+              gl.toneMapping = THREE.ACESFilmicToneMapping;
+              gl.toneMappingExposure = 0.92;
+            }}
           >
             <Suspense fallback={null}>
               <AvatarScene state={state} input={input} loadedVrm={loadedVrm} />
@@ -409,6 +573,18 @@ export default function ChatAgentAvatarVrmViewport({
             {state.assetLabel}
           </span>
         </>
+      ) : null}
+      {chrome === 'minimal' && debugLines.length > 0 ? (
+        <div
+          className="absolute inset-x-3 bottom-3 rounded-2xl border border-amber-200/70 bg-white/88 px-3 py-2 text-[10px] leading-4 text-amber-900 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm"
+          data-avatar-vrm-debug="true"
+        >
+          {debugLines.map((line) => (
+            <div key={line} className="truncate font-mono">
+              {line}
+            </div>
+          ))}
+        </div>
       ) : null}
     </div>
   );

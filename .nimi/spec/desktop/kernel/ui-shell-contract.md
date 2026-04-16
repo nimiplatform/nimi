@@ -306,6 +306,60 @@ desktop sidebar family 的视觉与交互 contract 固定为共享 token + primi
 - resizable sidebar 的动态宽度必须通过共享 `SidebarShell` / `SidebarResizeHandle` 处理；feature 代码不得用独立的 sidebar inline style 重新定义视觉 contract。
 - search、primary action、active row、section label 与 trailing affordance 必须在三个治理内 sidebar 上保持同一家族的一致语义与交互反馈。
 
+## D-SHELL-026 — Desktop Material Baseline Adoption
+
+Desktop renderer 在采用平台 material / ambient 语言时，必须把该语言视为
+Desktop shell baseline 的视觉表达，而不是每个 route 独立发明的一次性皮肤。
+
+- Desktop 对 platform `P-DESIGN-022` / `P-DESIGN-023` 的消费只允许通过
+  admitted kit surface（如 `AmbientBackground`、`Surface material=*`）或与其
+  等价的 token-backed shared primitive facade 完成。
+- Desktop baseline shell 不得创建独立的 app-local material registry、
+  ambient gradient registry、或第二套 shell visual contract 来“解释”同一组
+  material token。
+- Desktop shell visual baseline 继续服从 `D-SHELL-015` ~ `D-SHELL-025`
+  的 taxonomy；material 是这些 baseline surface 的表达轴之一，不是新的
+  route ownership 或 layout ownership。
+- `desktop-accent` 继续承担 Desktop identity；accent 不得焊死进
+  material/background truth。
+
+## D-SHELL-027 — Shell Ambient Ownership And Rollout Order
+
+Desktop ambient 的 canonical owner 固定为 shell frame，而不是 baseline /
+secondary route 各自重复的局部背景实现。
+
+- Ambient 默认属于 Desktop shell root、main layout host、以及后续 admitted
+  shell-level chrome surface；baseline / secondary route 不得各自复制整页
+  ambient mesh，除非后续 preflight 把它作为受控例外显式准入。
+- shell ambient 的首选语义是“一个应用壳里的连续空间”，而不是“每个页面一张
+  独立海报”。route content 应被视为浮在 shell ambient 之上的受控 surface。
+- redesign rollout order 固定如下：
+  1. shell frame / navigation chrome
+  2. baseline route cohort: `home`, `explore`, `contacts`, `notification`,
+     `profile`
+  3. dense operational cohort: `settings`, `runtime-config`, equivalent admin /
+     operations surfaces
+  4. chat / agent surfaces only after a separate admitted decision packet
+- 在上述顺序被新的 admitted wave 明确改写前，任何实现波都不得跳过 shell frame
+  直接重做 chat、runtime-config、或其他更高耦合 surface。
+
+## D-SHELL-028 — Dense Surface Downgrade And Exception Preservation
+
+Desktop 的 material adoption 必须承认操作密度差异：不是所有 surface 都应该
+默认玻璃化。
+
+- `settings`、`runtime-config`、local-model center、audit / diagnostics /
+  inspector-like panels，以及其他以扫描效率、数据密度、可读性为首要目标的
+  operational surface，默认采用 `solid`-first policy。
+- 这些 dense operational surfaces 只有在后续 admitted packet 明确证明局部
+  glass 使用不会损害 contrast、scan speed、reduced-transparency behavior 或
+  performance 时，才允许引入窄范围 `glass-regular` / `glass-thick`。
+- `chat` 与 `agent` surface 不因本规则自动获得 glass admission；它们属于单独
+  decision surface，必须在后续 wave 里显式决定。
+- `world-detail` 继续是 `D-SHELL-020` 所定义的 controlled exception。
+  Desktop shell redesign 不得把它降格为 baseline pilot，也不得把它的
+  exception-specific art direction 反向扩散到 baseline shell。
+
 ## Fact Sources
 
 - `tables/app-tabs.yaml` — 导航 Tab 枚举

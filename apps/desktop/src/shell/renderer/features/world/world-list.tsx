@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
@@ -8,13 +7,6 @@ import { prefetchWorldDetailAndHistory, worldListQueryKey } from './world-detail
 import { prefetchWorldDetailPanel } from './world-detail-route-state';
 import { isMainWorld, toWorldListItem } from './world-list-model';
 import { WorldChronoPanel } from './world-list-chrono-panel';
-
-const ICON_SEARCH = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
 
 const DEFAULT_TAG_STYLE: { bg: string; text: string } = { bg: 'bg-gray-100', text: 'text-gray-600' };
 
@@ -38,7 +30,7 @@ function getTagStyle(type: string, value?: string): { bg: string; text: string }
 export function WorldList() {
   const { t } = useTranslation();
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const [searchText, setSearchText] = useState('');
+  const searchText = '';
 
   const openWorldDetail = (worldId: string) => {
     prefetchWorldDetailPanel();
@@ -56,16 +48,8 @@ export function WorldList() {
 
   const worlds = worldsQuery.data || [];
 
-  const filteredWorlds = searchText.trim()
-    ? worlds.filter(
-        (w) =>
-          w.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          (w.description && w.description.toLowerCase().includes(searchText.toLowerCase())),
-      )
-    : worlds;
-
   const mainWorld = worlds.find((w) => isMainWorld(w));
-  const subWorlds = filteredWorlds.filter((w) => !isMainWorld(w));
+  const subWorlds = worlds.filter((w) => !isMainWorld(w));
 
   if (worldsQuery.isPending) {
     return (
@@ -129,48 +113,13 @@ export function WorldList() {
   }
 
   return (
-    <div
-      className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #1B1530 0%, #231E3B 14%, #312A4F 36%, #E7EDF6 100%)' }}
-    >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[460px] bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.18),_transparent_42%),radial-gradient(circle_at_18%_20%,_rgba(168,85,247,0.16),_transparent_28%),radial-gradient(circle_at_82%_18%,_rgba(56,189,248,0.14),_transparent_24%)]" />
-      {/* Header bar */}
-      <div className="relative shrink-0 px-6 py-6">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="nimi-type-page-title" style={{ color: '#F8FAFF' }}>{t('World.title')}</h1>
-            <span className="text-xs" style={{ color: 'rgba(226,232,240,0.78)' }}>
-              {t('World.syncedFromDesktop', { defaultValue: 'Synced from Desktop' })}
-            </span>
-          </div>
-          <div className="w-[340px] shrink-0">
-            <div className="group relative">
-              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-white/45 transition-colors group-focus-within:text-emerald-300">
-                {ICON_SEARCH}
-              </span>
-              <input
-                type="search"
-                value={searchText}
-                onChange={(event) => {
-                  setSearchText(event.target.value);
-                }}
-                placeholder={t('World.searchByNameOrDescription', {
-                  defaultValue: 'Search worlds by name or description...',
-                })}
-                className="w-full rounded-full border border-white/12 bg-white/10 py-2.5 pl-11 pr-5 text-sm text-white placeholder:text-white/45 shadow-[0_18px_40px_rgba(6,10,24,0.22)] outline-none backdrop-blur-xl transition-all focus:border-emerald-300/40 focus:bg-white/14 focus:shadow-[0_18px_50px_rgba(16,185,129,0.14)] focus:ring-4 focus:ring-emerald-300/10"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Scrollable content */}
       <ScrollArea className="flex-1" viewportClassName="" contentClassName="px-6 pb-10 pt-2">
         <div className="mx-auto max-w-6xl">
           {/* Main World Card */}
           {mainWorld && !searchText && (
             <div className="mb-24">
-              <h2 className={`nimi-type-section-title mb-4`} style={{ fontFamily: 'var(--font-display)', color: '#F8FAFF' }}>{t('World.mainWorld')}</h2>
                 <div
                   onClick={() => openWorldDetail(mainWorld.id)}
                   onMouseEnter={() => {
@@ -309,9 +258,6 @@ export function WorldList() {
 
           {/* Sub Worlds Grid */}
           <div className="pt-8">
-            <h2 className={`nimi-type-section-title mb-6`} style={{ fontFamily: 'var(--font-display)', color: searchText ? '#1A1A1A' : '#F8FAFF' }}>
-              {searchText ? t('World.searchResults') : t('World.subWorlds')}
-            </h2>
             {subWorlds.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16" style={{ color: '#888888' }}>
                 <svg

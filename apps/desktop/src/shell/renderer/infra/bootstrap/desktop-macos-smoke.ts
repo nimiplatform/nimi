@@ -113,6 +113,39 @@ export async function runDesktopMacosSmokeScenario(
           htmlSnapshot: deps.currentHtml(),
         });
         return;
+      case 'tester.speech-bundle-panels':
+        record('open-tester-tab');
+        await deps.clickByTestId(E2E_IDS.navTab('tester'));
+        record('wait-tester-panel');
+        await deps.waitForTestId(E2E_IDS.panel('tester'));
+        record('open-tts-panel');
+        await deps.clickByTestId(E2E_IDS.testerCapabilityTab('audio.synthesize'));
+        record('wait-tts-input');
+        await deps.waitForTestId(E2E_IDS.testerPanel('audio.synthesize'));
+        await deps.waitForTestId(E2E_IDS.testerInput('audio-synthesize-text'));
+        record('open-stt-panel');
+        await deps.clickByTestId(E2E_IDS.testerCapabilityTab('audio.transcribe'));
+        record('wait-stt-input');
+        await deps.waitForTestId(E2E_IDS.testerPanel('audio.transcribe'));
+        await deps.waitForTestId(E2E_IDS.testerInput('audio-transcribe-file'));
+        record('open-voice-clone-panel');
+        await deps.clickByTestId(E2E_IDS.testerCapabilityTab('voice.clone'));
+        record('wait-voice-clone-input');
+        await deps.waitForTestId(E2E_IDS.testerPanel('voice.clone'));
+        await deps.waitForTestId(E2E_IDS.testerInput('voice-clone-file'));
+        record('open-voice-design-panel');
+        await deps.clickByTestId(E2E_IDS.testerCapabilityTab('voice.design'));
+        record('wait-voice-design-input');
+        await deps.waitForTestId(E2E_IDS.testerPanel('voice.design'));
+        await deps.waitForTestId(E2E_IDS.testerInput('voice-design-instruction'));
+        record('write-pass-report');
+        await deps.writeReport({
+          ok: true,
+          steps,
+          route: deps.currentRoute(),
+          htmlSnapshot: deps.currentHtml(),
+        });
+        return;
       default:
         throw new Error(`unknown macOS smoke scenario: ${scenarioId}`);
     }

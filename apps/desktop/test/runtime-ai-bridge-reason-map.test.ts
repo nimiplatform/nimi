@@ -21,6 +21,7 @@ test('runtime ai bridge keeps model-not-found reason distinguishable', () => {
 test('runtime ai bridge maps modality and media option numeric reason codes', () => {
   assert.equal(extractRuntimeReasonCode(new Error('rpc error reason=351')), 'AI_MODALITY_NOT_SUPPORTED');
   assert.equal(extractRuntimeReasonCode(new Error('rpc error reason=411')), 'AI_MEDIA_OPTION_UNSUPPORTED');
+  assert.equal(extractRuntimeReasonCode(new Error('rpc error reason=561')), 'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED');
 });
 
 test('runtime ai bridge keeps media-option reason distinguishable', () => {

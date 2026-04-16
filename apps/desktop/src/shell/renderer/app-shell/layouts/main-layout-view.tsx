@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { AmbientBackground, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { resolveRouteTabExtension } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
@@ -20,6 +20,11 @@ import { MainLayoutTopBar } from './main-layout-topbar';
 import { SidebarTooltipButton } from './main-layout-sidebar-tooltip-button';
 import { OfflineShellStrip } from './offline-shell-strip';
 import { ScenarioJobStatusHost } from '@renderer/features/turns/scenario-job-status-host';
+import {
+  SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
+  SHELL_CHROME_MENU_ITEM_BASE_CLASS,
+  SHELL_CHROME_OVERLAY_CLASS,
+} from './shell-chrome-classes';
 import {
   getCoreNavItems,
   getQuickNavItems,
@@ -229,7 +234,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const immersiveRoute = String(activeRouteExtension?.extension.shellMode || '').trim().toLowerCase() === 'immersive';
   const hidePrimaryRail = immersiveRoute
     || props.activeTab === 'agent-detail'
-    || props.activeTab === 'world-detail'
     || props.activeTab === 'gift-inbox'
     || (props.activeTab === 'profile' && Boolean(selectedProfileId))
     || profileDetailOverlayOpen;
@@ -306,17 +310,15 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       const menuMaxHeight = Math.min(480, window.innerHeight - 100);
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      
       // Horizontal positioning
       const clampedLeft = Math.min(
         Math.max(12, rect.right - menuWidth),
         Math.max(12, viewportWidth - menuWidth - 12),
       );
-      
       // Vertical positioning - check if there's enough space below
       const spaceBelow = viewportHeight - rect.bottom - 12;
       const spaceAbove = rect.top - 12;
-      
+
       let top: number;
       if (spaceBelow >= menuMaxHeight || spaceBelow >= spaceAbove) {
         // Show below if there's enough space or more space than above
@@ -325,7 +327,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         // Show above when there's not enough space below
         top = Math.max(12, rect.top - menuMaxHeight - 6);
       }
-      
       setCollapsedSettingsMenuPosition({
         top,
         left: clampedLeft,
@@ -345,7 +346,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       imageUrl={props.userAvatarUrl}
       name={props.displayName}
       kind="human"
-      sizeClassName="h-8 w-8"
+      sizeClassName="h-10 w-10"
       className="shrink-0"
       textClassName="text-xs"
     />
@@ -422,7 +423,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   };
 
   return (
-    <div data-testid={E2E_IDS.mainShell} className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--nimi-app-background)]">
+    <AmbientBackground
+      data-testid={E2E_IDS.mainShell}
+      variant="mesh"
+      className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--nimi-surface-canvas)]"
+    >
       <MainLayoutTopBar
         authStatus={props.authStatus}
         enableModWorkspaceTabs={flags.enableModWorkspaceTabs}
@@ -444,16 +449,17 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         onMouseDown={props.onTitlebarMouseDown}
       />
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3">
         {hidePrimaryRail || isAnonymousShell ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
-            className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}
+            className={`flex h-full shrink-0 flex-col transition-[width] duration-200 ${sidebarWidthClass}`}
           >
-            <div className="flex h-14 shrink-0 items-center justify-center">
+            <div className="flex h-16 shrink-0 items-center justify-center">
               <SidebarTooltipButton
                 label={t('Navigation.home', { defaultValue: 'Home' })}
                 dataTestId={E2E_IDS.navTab('home')}
+                className={`flex h-11 w-11 items-center justify-center ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} border border-white/55 bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition-transform duration-150 hover:-translate-y-0.5`}
                 onClick={() => {
                   setSettingsMenuOpen(false);
                   props.onNav('home');
@@ -465,41 +471,40 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             <nav className="flex-1">
               <ScrollArea className="flex-1" viewportClassName="pt-2">
                 <div className="flex flex-col gap-1">
-                {primaryCoreNavItems.map((item) => (
-                  <NavLink
-                    key={item.id}
-                    item={item}
-                    active={props.activeTab === item.id}
-                    collapsed
-                    onClick={() => props.onNav(item.id)}
-                  />
-                ))}
-                {quickNavItems.map((item) => (
-                  <NavLink
-                    key={item.id}
-                    item={item}
-                    active={props.activeTab === item.id}
-                    collapsed
-                    onClick={() => props.onNav(item.id)}
-                  />
-                ))}
-                {flags.enableModUi ? (
-                  <NavLink
-                    item={modsNavItem}
-                    active={props.activeTab === 'mods' || activeModTab}
-                    collapsed
-                    badge={modsHasIssues ? <span className="inline-flex h-2 w-2 rounded-full bg-orange-500" /> : null}
-                    onClick={() => props.onNav('mods')}
-                  />
-                ) : null}
+                  {primaryCoreNavItems.map((item) => (
+                    <NavLink
+                      key={item.id}
+                      item={item}
+                      active={props.activeTab === item.id}
+                      collapsed
+                      onClick={() => props.onNav(item.id)}
+                    />
+                  ))}
+                  {quickNavItems.map((item) => (
+                    <NavLink
+                      key={item.id}
+                      item={item}
+                      active={props.activeTab === item.id}
+                      collapsed
+                      onClick={() => props.onNav(item.id)}
+                    />
+                  ))}
+                  {flags.enableModUi ? (
+                    <NavLink
+                      item={modsNavItem}
+                      active={props.activeTab === 'mods' || activeModTab}
+                      collapsed
+                      badge={modsHasIssues ? <span className="inline-flex h-2 w-2 rounded-full bg-[var(--nimi-status-warning)]" /> : null}
+                      onClick={() => props.onNav('mods')}
+                    />
+                  ) : null}
                 </div>
               </ScrollArea>
             </nav>
-
           </aside>
         )}
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <OfflineShellStrip />
           <DesktopReleaseStrip />
           <StatusBanner />
@@ -621,119 +626,126 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       {settingsMenuOpen ? (
         <div
           ref={settingsMenuRef}
-          className="fixed z-[11010] flex max-h-[calc(100vh-100px)] w-64 flex-col overflow-hidden rounded-2xl border border-[#4ECCA3]/20 bg-white py-2 shadow-2xl shadow-[#4ECCA3]/10"
+          className="fixed z-[11010]"
           style={{
             top: `${collapsedSettingsMenuPosition?.top ?? 76}px`,
             left: `${collapsedSettingsMenuPosition?.left ?? 81}px`,
           }}
         >
-          <div className="flex items-center gap-3 px-4 py-3">
-            <EntityAvatar
-              imageUrl={props.userAvatarUrl}
-              name={props.displayName}
-              kind="human"
-              sizeClassName="h-10 w-10"
-              textClassName="text-sm font-semibold"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-gray-900">{props.displayName}</p>
-              <p className="truncate text-xs text-gray-500">{props.userEmail || props.displayName.toLowerCase().replace(/\s+/g, '.') + '@nimi.app'}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                persistStoredSettingsSelected('profile');
-                props.onNav('settings');
-                setSettingsMenuOpen(false);
-              }}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-[#4ECCA3]/10 hover:text-[#4ECCA3]"
-              title={t('Layout.editProfile', { defaultValue: 'Edit Profile' })}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/20 to-transparent" />
-
-          <ScrollArea className="flex-1">
-            <div className="px-2">
+          <Surface
+            tone="overlay"
+            material="glass-thick"
+            padding="none"
+            className={`flex max-h-[calc(100vh-100px)] w-64 flex-col overflow-hidden py-2 ${SHELL_CHROME_OVERLAY_CLASS}`}
+          >
+            <div className="flex items-center gap-3 px-4 py-3">
+              <EntityAvatar
+                imageUrl={props.userAvatarUrl}
+                name={props.displayName}
+                kind="human"
+                sizeClassName="h-10 w-10"
+                textClassName="text-sm font-semibold"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{props.displayName}</p>
+                <p className="truncate text-xs text-[var(--nimi-text-secondary)]">{props.userEmail || props.displayName.toLowerCase().replace(/\s+/g, '.') + '@nimi.app'}</p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
-                  openSettingsSubmenuItem('profile');
-                }}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
-                  isSettingsMenuItemActive('profile')
-                    ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
-                    : 'text-gray-700 hover:bg-[#4ECCA3]/5'
-                }`}
-              >
-                <span className={`w-4 shrink-0 ${isSettingsMenuItemActive('profile') ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
-                  {renderShellNavIcon('profile')}
-                </span>
-                <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS.profile ?? '', 'Profile')}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              </button>
-
-              {SETTINGS_SUBMENU_ITEMS.filter((item) => item.id !== 'logout' && item.id !== 'profile').map((item) => {
-                const active = isSettingsMenuItemActive(item.id);
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      openSettingsSubmenuItem(item.id);
-                    }}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
-                      active
-                        ? 'bg-[#4ECCA3]/10 text-[#2F7D6B]'
-                        : 'text-gray-700 hover:bg-[#4ECCA3]/5'
-                    }`}
-                  >
-                    <span className={`w-4 shrink-0 ${active ? 'text-[#4ECCA3]' : 'text-gray-400'}`}>
-                      {renderShellNavIcon(item.icon)}
-                    </span>
-                    <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id] ?? '', item.label)}</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent" />
-
-            <div className="px-2 pb-2">
-              <button
-                type="button"
-                onClick={() => {
-                  props.onLogout();
+                  persistStoredSettingsSelected('profile');
+                  props.onNav('settings');
                   setSettingsMenuOpen(false);
                 }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] text-gray-700 transition-all hover:bg-[#4ECCA3]/5"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)]"
+                title={t('Layout.editProfile', { defaultValue: 'Edit Profile' })}
               >
-                <span className="w-4 shrink-0 text-gray-400">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
-                  </svg>
-                </span>
-                <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.logout', 'Log out')}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-                  <path d="m9 18 6-6-6-6" />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
                 </svg>
               </button>
             </div>
-          </ScrollArea>
+
+            <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,white)] to-transparent" />
+
+            <ScrollArea className="flex-1">
+              <div className="px-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    openSettingsSubmenuItem('profile');
+                  }}
+                  className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} ${
+                    isSettingsMenuItemActive('profile')
+                      ? 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]'
+                      : 'text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,white)]'
+                  }`}
+                >
+                  <span className={`w-4 shrink-0 ${isSettingsMenuItemActive('profile') ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)]'}`}>
+                    {renderShellNavIcon('profile')}
+                  </span>
+                  <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS.profile ?? '', 'Profile')}</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color-mix(in_srgb,var(--nimi-text-secondary)_45%,white)]">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </button>
+
+                {SETTINGS_SUBMENU_ITEMS.filter((item) => item.id !== 'logout' && item.id !== 'profile').map((item) => {
+                  const active = isSettingsMenuItemActive(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        openSettingsSubmenuItem(item.id);
+                      }}
+                      className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} ${
+                        active
+                          ? 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]'
+                          : 'text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,white)]'
+                      }`}
+                    >
+                      <span className={`w-4 shrink-0 ${active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)]'}`}>
+                        {renderShellNavIcon(item.icon)}
+                      </span>
+                      <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id] ?? '', item.label)}</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color-mix(in_srgb,var(--nimi-text-secondary)_45%,white)]">
+                        <path d="m9 18 6-6-6-6" />
+                      </svg>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--nimi-text-secondary)_14%,white)] to-transparent" />
+
+              <div className="px-2 pb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    props.onLogout();
+                    setSettingsMenuOpen(false);
+                  }}
+                  className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,white)]`}
+                >
+                  <span className="w-4 shrink-0 text-[var(--nimi-text-secondary)]">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                  </span>
+                  <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.logout', 'Log out')}</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color-mix(in_srgb,var(--nimi-text-secondary)_45%,white)]">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </button>
+              </div>
+            </ScrollArea>
+          </Surface>
         </div>
       ) : null}
-    </div>
+    </AmbientBackground>
   );
 }

@@ -2,10 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  parseDesktopAgentAvatarAssetRef,
   resolveChatAgentAvatarVrmAssetUrl,
   resolveChatAgentAvatarVrmExpressionWeights,
   resolveChatAgentAvatarVrmViewportState,
 } from '../src/shell/renderer/features/chat/chat-agent-avatar-vrm-viewport-state.js';
+import type { ChatAgentAvatarPointerInteractionState } from '../src/shell/renderer/features/chat/chat-agent-avatar-pointer-interaction.js';
+
+function assertCloseTo(actual: number, expected: number, epsilon = 1e-9) {
+  assert.ok(
+    Math.abs(actual - expected) <= epsilon,
+    `expected ${actual} to be within ${epsilon} of ${expected}`,
+  );
+}
 
 test('avatar vrm viewport state clamps amplitude and derives speaking motion state', () => {
   const state = resolveChatAgentAvatarVrmViewportState({
@@ -38,6 +47,7 @@ test('avatar vrm viewport state clamps amplitude and derives speaking motion sta
   assert.equal(state.assetLabel, 'airi.vrm');
   assert.ok(state.motionSpeed > 2);
   assert.equal(state.accentColor, '#38bdf8');
+  assert.equal(state.pointerInfluence, 0);
 });
 
 test('avatar vrm viewport state uses stable idle defaults when interaction detail is sparse', () => {
@@ -68,9 +78,121 @@ test('avatar vrm viewport state uses stable idle defaults when interaction detai
   assert.equal(state.sparklesSpeed, 0.25);
 });
 
+test('avatar vrm viewport state derives bounded pointer-follow offsets under idle hover', () => {
+  const pointerInteraction: ChatAgentAvatarPointerInteractionState = {
+    hovered: true,
+    normalizedX: 2,
+    normalizedY: -2,
+    interactionBoost: 'engaged',
+  };
+  const state = resolveChatAgentAvatarVrmViewportState({
+    label: 'Companion',
+    assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+    posterUrl: null,
+    idlePreset: null,
+    expressionProfileRef: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+    style: undefined,
+    snapshot: {
+      presentation: {
+        backendKind: 'vrm',
+        avatarAssetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+      },
+      interaction: {
+        phase: 'idle',
+        attentionTarget: 'pointer',
+      },
+    },
+  }, pointerInteraction);
+
+  assertCloseTo(state.pointerInfluence, 0.5616);
+  assertCloseTo(state.headFollowX, 0.134784);
+  assertCloseTo(state.headFollowY, 0.078624);
+  assertCloseTo(state.eyeFollowX, 0.050544);
+  assertCloseTo(state.eyeFollowY, 0.033696);
+  assert.ok(state.motionSpeed > 0.35);
+});
+
+test('avatar vrm viewport state reduces pointer influence while speaking to preserve readability', () => {
+  const pointerInteraction: ChatAgentAvatarPointerInteractionState = {
+    hovered: true,
+    normalizedX: 0.9,
+    normalizedY: -0.4,
+    interactionBoost: 'engaged',
+  };
+  const state = resolveChatAgentAvatarVrmViewportState({
+    label: 'Companion',
+    assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+    posterUrl: null,
+    idlePreset: null,
+    expressionProfileRef: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+    style: undefined,
+    snapshot: {
+      presentation: {
+        backendKind: 'vrm',
+        avatarAssetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+      },
+      interaction: {
+        phase: 'speaking',
+        attentionTarget: 'pointer',
+        amplitude: 0.9,
+      },
+    },
+  }, pointerInteraction);
+
+  assertCloseTo(state.pointerInfluence, 0.20952);
+  assert.ok(state.headFollowX < 0.05);
+  assert.ok(state.motionSpeed > 2.5);
+});
+
 test('avatar vrm viewport state resolves concrete asset urls only for non-fallback refs', () => {
   assert.equal(resolveChatAgentAvatarVrmAssetUrl('fallback://airi-shell'), null);
+  assert.equal(resolveChatAgentAvatarVrmAssetUrl('desktop-avatar://resource-1/AliciaSolid.vrm'), null);
   assert.equal(resolveChatAgentAvatarVrmAssetUrl(' https://cdn.nimi.test/avatars/airi.vrm '), 'https://cdn.nimi.test/avatars/airi.vrm');
+});
+
+test('avatar vrm viewport state parses desktop-local avatar refs', () => {
+  assert.deepEqual(
+    parseDesktopAgentAvatarAssetRef('desktop-avatar://resource-1/AliciaSolid.vrm'),
+    {
+      resourceId: 'resource-1',
+      filename: 'AliciaSolid.vrm',
+    },
+  );
+  assert.equal(parseDesktopAgentAvatarAssetRef('https://cdn.nimi.test/avatars/airi.vrm'), null);
+});
+
+test('avatar vrm viewport state converts file urls to tauri asset urls when tauri runtime is present', () => {
+  const runtimeGlobal = globalThis as typeof globalThis & {
+    __NIMI_TAURI_RUNTIME__?: unknown;
+    window?: Window & typeof globalThis;
+  };
+  const previousRuntime = runtimeGlobal.__NIMI_TAURI_RUNTIME__;
+  const previousWindow = runtimeGlobal.window;
+  try {
+    runtimeGlobal.__NIMI_TAURI_RUNTIME__ = {};
+    runtimeGlobal.window = {
+      __TAURI_INTERNALS__: {
+        convertFileSrc: (path: string, protocol = 'asset') => `${protocol}://localhost/${path}`,
+      },
+    } as unknown as Window & typeof globalThis;
+    const resolved = resolveChatAgentAvatarVrmAssetUrl('file:///Users/snwozy/Downloads/AliciaSolid.vrm');
+    assert.equal(resolved, 'asset://localhost//Users/snwozy/Downloads/AliciaSolid.vrm');
+  } finally {
+    if (previousRuntime === undefined) {
+      delete runtimeGlobal.__NIMI_TAURI_RUNTIME__;
+    } else {
+      runtimeGlobal.__NIMI_TAURI_RUNTIME__ = previousRuntime;
+    }
+    if (previousWindow === undefined) {
+      Reflect.deleteProperty(runtimeGlobal as Record<string, unknown>, 'window');
+    } else {
+      runtimeGlobal.window = previousWindow;
+    }
+  }
 });
 
 test('avatar vrm viewport state maps emotion and viseme cues into expression weights', () => {

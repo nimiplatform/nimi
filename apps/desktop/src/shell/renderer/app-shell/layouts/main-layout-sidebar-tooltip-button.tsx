@@ -1,4 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { SHELL_CHROME_TOOLTIP_CLASS } from './shell-chrome-classes';
 
 export function SidebarTooltipButton({
   label,
@@ -45,8 +47,12 @@ export function SidebarTooltipButton({
         {children}
       </button>
       {tooltipPos ? (
-        <span
-          className="fixed z-[9999] whitespace-nowrap rounded-md bg-[#4ECCA3] px-2 py-1 text-xs text-white shadow-lg pointer-events-none"
+        <Surface
+          as="span"
+          tone="overlay"
+          material="glass-thick"
+          padding="none"
+          className={SHELL_CHROME_TOOLTIP_CLASS}
           style={{
             top: tooltipPos.top,
             left: tooltipPos.left,
@@ -54,7 +60,7 @@ export function SidebarTooltipButton({
           }}
         >
           {label}
-        </span>
+        </Surface>
       ) : null}
     </>
   );

@@ -142,3 +142,30 @@ test('toBridgeNimiError maps DESKTOP_HTTP_FETCH_UNAVAILABLE reason code', () => 
     'This feature is not available in the current environment.',
   );
 });
+
+test('toBridgeNimiError maps AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED reason code', () => {
+  const error = toBridgeNimiError(JSON.stringify({
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
+    actionHint: 'show_download_confirmation',
+    message: 'explicit local speech download confirmation is required',
+  }));
+  assert.equal(error.reasonCode, ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED);
+  assert.equal(error.actionHint, 'show_download_confirmation');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'Local Speech requires explicit download confirmation before continuing.',
+  );
+});
+
+test('toBridgeNimiError maps AI_LOCAL_SPEECH_ENV_INIT_FAILED reason code', () => {
+  const error = toBridgeNimiError(JSON.stringify({
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_ENV_INIT_FAILED,
+    details: { capability: 'audio.synthesize' },
+    message: 'local speech env init failed',
+  }));
+  assert.equal(error.reasonCode, ReasonCode.AI_LOCAL_SPEECH_ENV_INIT_FAILED);
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'Local Speech environment initialization failed. Retry or repair the local speech setup.',
+  );
+});

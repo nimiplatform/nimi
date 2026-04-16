@@ -249,6 +249,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - `runtime_local_profiles_resolve` / `runtime_local_profiles_apply`：profile 解析与应用。
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
 - `runtime_local_assets_scan_unregistered`：host-local intake helper。若产品路径已通过 runtime `ScanUnregisteredAssets` 获得同等结果，则前者不得再被当作权威扫描源。
+- `runtime_local_assets_scaffold_orphan`：对经过显式 review 的 loose/orphan asset 执行 host-assisted intake，并调用 runtime `ScaffoldOrphanAsset` 将文件迁入 runtime-managed storage；不得形成第二套 Desktop-owned asset registry。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
 - `runtime_local_pick_asset_directory`：选取 bundle 目录，供 bundle import / rescan helper 使用。
 - `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：host helper 命令保留仅为 tooling / bridge 对接；产品审计真相仍由 runtime 持有。
@@ -263,6 +264,9 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - local asset inventory 的 list、verified list、install、import、remove、health/readiness、intake、transfer session 与 progress 必须固定走 `RuntimeLocalService` typed APIs。
 - `Active Downloads` / `Active Imports` 必须来自 runtime-owned transfer plane（`ListLocalTransfers` + `WatchLocalTransfers`），不得再以 Tauri `runtime_local_downloads_*` 或 `local-runtime://download-progress` 为真源。
 - Tauri `runtime_local_*` 命令若仍存在于 shipped app，只能作为 shell-native/helper IPC；不得暴露或暗示 Desktop/Tauri local runtime state 是本地模型真源。
+- ordinary-user local speech product flow 必须表现为单一 `Local Speech` bundle projection；`runtime_local_services_*`、`runtime_local_assets_*` 与 `runtime_local_downloads_*` 只能作为 helper plumbing，不得把 env/bootstrap、host readiness 或 capability materialization 暗示成 Desktop/Tauri-owned install truth。
+- ordinary-user local speech 的 env/bootstrap、host init、capability materialization 只能在显式 `Download` 用户确认后启动；capability 选择、route 尝试、被动刷新或 recommendation helper 不得静默触发后台下载/初始化。
+- helper IPC 若返回 speech 相关状态，只能被 renderer 投影为 runtime-owned bundle state；不得据此创建独立 Desktop persisted speech bundle owner。
 - Desktop Local Model Center 不得再暴露手动 start/stop toggle；本地模型 readiness 必须直接反映 runtime 状态。
 - 自动纳管只适用于 go-runtime 已有结构化 local model record 的模型，以及 verified/catalog/manual-download 已携带显式 declaration 的 intake 来源。
 - 用户直接 copy 到 `~/.nimi/models` 的裸文件必须统一进入 `runtime_local_assets_scan_unregistered` intake：
@@ -302,6 +306,62 @@ Desktop 作为 mod developer host 时，开发态 source 管理与 reload 能力
 - diagnostics：`runtime_mod_diagnostics_list` — 列出 source 扫描结果、重复 `mod id` 冲突、最近 reload 结果。
 
 这些命令属于平台管理操作，不属于 mod 业务 API，不得要求第三方作者直接操作环境变量或文件系统约定来替代。
+
+## D-IPC-017 — Desktop Local Avatar Import And Binding 命令面
+
+Desktop-local agent avatar resource import and per-agent binding must use explicit
+desktop IPC commands rather than direct renderer filesystem writes.
+
+Admitted desktop-local command families are:
+
+- source picking:
+  `desktop_agent_avatar_resource_pick_vrm`,
+  `desktop_agent_avatar_resource_pick_live2d`
+- resource import / registry:
+  `desktop_agent_avatar_resource_import_vrm`,
+  `desktop_agent_avatar_resource_import_live2d`,
+  `desktop_agent_avatar_resource_list`,
+  `desktop_agent_avatar_resource_delete`,
+  `desktop_agent_avatar_resource_read_asset`
+- per-agent local binding:
+  `desktop_agent_avatar_binding_get`,
+  `desktop_agent_avatar_binding_set`,
+  `desktop_agent_avatar_binding_clear`
+
+Fixed rules:
+
+- these commands are desktop-local only and write into storage rooted at
+  `{nimi_data_dir}`; they must not delegate imported avatar file ownership to runtime
+- renderer must not bypass this surface by persisting Downloads paths, arbitrary
+  external paths, or ad hoc JSON blobs directly from client code
+- when renderer-local live avatar loading needs binary bytes for a desktop-local
+  resource, it must obtain them through admitted desktop IPC rather than guessing
+  `asset://` / external file URL reachability from WebView code
+- command payloads may reference user-selected source paths for import intake, but the
+  resulting admitted local resource record must point to normalized desktop-owned
+  storage rather than the original source location
+- admitting `live2d` import commands here does not imply runtime canonical Live2D
+  ownership or renderer support is already shipped
+- IPC binding commands only update desktop-local binding truth; they must not mutate
+  runtime-owned `AgentPresentationProfile`
+
+## D-IPC-017a — Live2D Render Admission Boundary
+
+Wave 1 Live2D render admission does not create a new canonical import or persistence path.
+
+Fixed rules:
+
+- the existing desktop-local avatar import, registry, binding, and asset-read commands are
+  the only admitted canonical bridge surface for a desktop-local Live2D resource in Wave 1
+- Live2D render admission does not by itself admit a runtime-owned Live2D asset service,
+  hidden host-side renderer daemon, or app-private filesystem bypass outside this command
+  family
+- if later desktop-local Live2D runtime packaging or helper commands are required, they
+  must land as explicit new IPC authority rather than being smuggled into renderer code or
+  treated as implicit consequences of `desktop_agent_avatar_resource_read_asset`
+- renderer-side fallback behavior after Live2D load failure remains a desktop surface
+  concern; IPC commands may provide bytes or structured errors, but they do not become the
+  owner of backend parity policy or fallback order
 
 ## Fact Sources
 

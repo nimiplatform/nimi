@@ -46,3 +46,29 @@ test('chat runtime error message keeps readable provider messages when present',
     message: 'Upstream provider rejected the request body.',
   });
 });
+
+test('chat runtime error message maps local speech bundle reasons to user-facing copy', () => {
+  const speechError = createNimiError({
+    message: 'runtime call failed',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
+    actionHint: 'confirm_download',
+    source: 'runtime',
+  });
+
+  assert.deepEqual(toChatAiRuntimeError(speechError), {
+    code: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
+    message: 'Local Speech requires explicit download confirmation before continuing.',
+  });
+
+  const degradedSpeechError = createNimiError({
+    message: 'runtime call failed',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED,
+    actionHint: 'repair_local_speech',
+    source: 'runtime',
+  });
+
+  assert.deepEqual(toChatAgentRuntimeError(degradedSpeechError), {
+    code: ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED,
+    message: 'Local Speech is degraded and must be repaired before continuing.',
+  });
+});

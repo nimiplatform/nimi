@@ -18,7 +18,7 @@ dotenvy = "0.15"
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "blocking", "stream", "form", "query"] }
 dirs = "6"
 rfd = "0.17"
-tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png"] }
 rusqlite = { version = "0.38", features = ["bundled"] }
 serde_yaml = "0.9"
 webbrowser = "1"

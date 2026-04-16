@@ -32,6 +32,7 @@ export type LocalRuntimeAssetRecord = {
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
+  reasonCode?: string;
   // Runnable-only
   capabilities?: string[];
   logicalModelId?: string;
@@ -50,6 +51,7 @@ export type LocalRuntimeAssetHealth = {
   status: LocalRuntimeAssetStatus;
   detail: string;
   endpoint: string;
+  reasonCode?: string;
 };
 
 export type LocalRuntimeInstallPayload = {
@@ -379,6 +381,7 @@ export type LocalRuntimeServiceDescriptor = {
   localAssetId?: string;
   status: LocalRuntimeServiceStatus;
   detail?: string;
+  reasonCode?: string;
   installedAt: string;
   updatedAt: string;
 };

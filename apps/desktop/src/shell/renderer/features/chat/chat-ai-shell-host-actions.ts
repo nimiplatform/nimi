@@ -341,7 +341,7 @@ export function useAiConversationHostActions(
     let terminalError: ConversationTurnError | null = null;
     let completionEvent: Extract<ConversationTurnEvent, { type: 'turn-completed' }> | null = null;
     let userMessagePersisted = false;
-    let recoveredMissingThread = false;
+    let recoveredMissingThread: boolean;
     let threadPersisted = !(
       input.ephemeralThread
       && input.activeThreadId

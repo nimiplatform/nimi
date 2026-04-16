@@ -24,6 +24,7 @@ export type LocalRuntimeAssetRecord = {
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
+  reasonCode?: string;
   capabilities?: string[];
   logicalModelId?: string;
   family?: string;
@@ -39,6 +40,7 @@ export type LocalRuntimeAssetHealth = {
   status: LocalRuntimeAssetStatus;
   detail: string;
   endpoint: string;
+  reasonCode?: string;
 };
 
 export type LocalRuntimeAssetsHealthResult = {

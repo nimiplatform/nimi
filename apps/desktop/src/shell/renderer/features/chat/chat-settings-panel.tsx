@@ -155,6 +155,7 @@ function HumanModeSettings(props: {
 
 function AiModeSettings(props: {
   headerSlot?: ReactNode;
+  presenceContent?: ReactNode;
   diagnosticsContent?: ReactNode;
   unavailableReason: string;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
@@ -216,6 +217,7 @@ function AiModeSettings(props: {
   return (
     <div className="space-y-5">
       {props.headerSlot}
+      {props.presenceContent}
       <ChatSettingsSummaryHome
         sections={sections}
         profile={profile}
@@ -236,6 +238,7 @@ export function ChatSettingsPanel({
   headerSlot,
   modelPickerContent,
   diagnosticsContent,
+  presenceContent,
   unavailableReason,
   onDiagnosticsVisibilityChange,
 }: ChatSettingsPanelProps) {
@@ -248,6 +251,7 @@ export function ChatSettingsPanel({
     return (
       <AiModeSettings
         headerSlot={headerSlot}
+        presenceContent={presenceContent}
         diagnosticsContent={diagnosticsContent}
         unavailableReason={resolvedUnavailableReason}
         onDiagnosticsVisibilityChange={onDiagnosticsVisibilityChange}

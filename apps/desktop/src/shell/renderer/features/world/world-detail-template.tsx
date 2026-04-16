@@ -60,11 +60,11 @@ type WorldDetailPageBodyProps = WorldDetailPageProps & {
 
 function WorldDetailLoadingState() {
   return (
-    <div className="min-h-screen bg-[#0a0f0c] px-5 py-6 text-[#e8f5ee]">
+    <div className="px-5 py-6">
       <div className="mx-auto max-w-[1400px] space-y-5">
-        <div className="h-[360px] animate-pulse rounded-[28px] bg-[#0f1713]" />
-        <div className="h-[520px] animate-pulse rounded-[24px] bg-[#0f1713]" />
-        <div className="h-[520px] animate-pulse rounded-[22px] bg-[#0f1713]" />
+        <div className="h-[360px] animate-pulse rounded-[28px] bg-slate-200/40" />
+        <div className="h-[520px] animate-pulse rounded-[24px] bg-slate-200/40" />
+        <div className="h-[520px] animate-pulse rounded-[22px] bg-slate-200/40" />
       </div>
     </div>
   );
@@ -73,12 +73,12 @@ function WorldDetailLoadingState() {
 function WorldDetailErrorState({ onBack }: { onBack?: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[#0a0f0c] px-6">
+    <div className="relative flex flex-1 items-center justify-center px-6 py-12">
       {onBack ? (
         <button
           type="button"
           onClick={onBack}
-          className="absolute left-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] backdrop-blur-md transition-all hover:border-[#4ECCA3]/40 hover:bg-black/65"
+          className="absolute left-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-white/70 text-[#1f8f69] backdrop-blur-md transition-all hover:border-[#4ECCA3]/40 hover:bg-white/90"
           aria-label={t('WorldDetail.xianxia.v2.hero.back')}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -86,14 +86,13 @@ function WorldDetailErrorState({ onBack }: { onBack?: () => void }) {
           </svg>
         </button>
       ) : null}
-      <span className="text-sm text-red-400">{t('WorldDetail.error')}</span>
+      <span className="text-sm text-red-500">{t('WorldDetail.error')}</span>
     </div>
   );
 }
 
 function WorldDetailSurface({
   children,
-  prefersReducedMotion,
 }: {
   children: ReactNode;
   prefersReducedMotion: boolean;
@@ -101,33 +100,8 @@ function WorldDetailSurface({
   return (
     <>
       <style>{statusGlowStyles}</style>
-      <div className="relative min-h-screen overflow-x-hidden bg-[#0a0f0c] font-sans text-[#e8f5ee]" data-testid="world-detail-root">
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0d1f16] via-[#0a0f0c] to-[#050705]" />
-          <div
-            className="absolute inset-0 opacity-25"
-            style={{
-              backgroundImage: 'radial-gradient(circle, rgba(78, 204, 163, 0.28) 1px, transparent 1px)',
-              backgroundSize: '42px 42px',
-            }}
-          />
-          <div
-            className="absolute -right-40 -top-36 h-[560px] w-[560px] rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(78, 204, 163, 0.16) 0%, transparent 68%)',
-              animation: prefersReducedMotion ? undefined : 'pulse-glow 4.5s ease-in-out infinite',
-            }}
-          />
-          <div
-            className="absolute -left-32 top-1/3 h-[480px] w-[480px] rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(78, 204, 163, 0.08) 0%, transparent 68%)',
-              animation: prefersReducedMotion ? undefined : 'pulse-glow 5.5s ease-in-out infinite 0.8s',
-            }}
-          />
-        </div>
-
-        <div className="relative z-10 mx-auto flex w-full max-w-[1400px] flex-col gap-5 px-5 py-6">
+      <div className="relative font-sans" data-testid="world-detail-root">
+        <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 px-5 py-6">
           {children}
         </div>
       </div>

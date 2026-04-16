@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import { SidebarAffordanceChevron, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
@@ -23,7 +23,7 @@ import { useRuntimeConfigPanelController } from './runtime-config-panel-controll
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 
 function RuntimeSkeletonBlock({ className }: { className: string }) {
-  return <div className={`animate-pulse rounded-2xl bg-[var(--nimi-surface-card)] ${className}`} />;
+  return <div className={`animate-pulse rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] ${className}`} />;
 }
 
 const RUNTIME_SECTION_LABEL_KEY: Record<(typeof RUNTIME_SIDEBAR_ITEMS)[number]['section'], string> = {
@@ -97,7 +97,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   if (!state) {
     return (
-      <div className="flex min-h-0 flex-1 bg-white">
+      <div className="flex min-h-0 flex-1 gap-4 px-5 pb-5 pt-4">
         <aside className="flex w-[224px] shrink-0 flex-col bg-white px-4 py-4">
           <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
           <div className="mt-5 space-y-3">
@@ -106,7 +106,13 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             ))}
           </div>
         </aside>
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
+        <Surface
+          as="main"
+          tone="panel"
+          material="glass-regular"
+          padding="none"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        >
           <div className="flex h-14 shrink-0 items-center justify-between px-6">
             <RuntimeSkeletonBlock className="h-8 w-40 rounded-xl" />
             <div className="flex items-center gap-2">
@@ -114,7 +120,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               <RuntimeSkeletonBlock className="h-7 w-20 rounded-full" />
             </div>
           </div>
-          <ScrollArea className="flex-1 bg-white" viewportClassName="bg-white" contentClassName="mx-auto max-w-5xl space-y-6 p-6">
+          <ScrollArea className="flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto w-full max-w-5xl space-y-6 px-5 py-5">
             <RuntimeSkeletonBlock className="h-36 w-full" />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <RuntimeSkeletonBlock className="h-48 w-full" />
@@ -122,7 +128,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             </div>
             <RuntimeSkeletonBlock className="h-64 w-full" />
           </ScrollArea>
-        </main>
+        </Surface>
       </div>
     );
   }
@@ -139,7 +145,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   }, {});
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 bg-white">
+    <div ref={containerRef} className="flex min-h-0 flex-1 gap-4 px-5 pb-5 pt-4">
       <SidebarShell
         width={sidebarWidth}
         data-testid={E2E_IDS.panel('runtime-sidebar')}
@@ -177,8 +183,14 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         />
       </SidebarShell>
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
-        <div className="flex h-14 shrink-0 items-center bg-white px-6">
+      <Surface
+        as="main"
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+      >
+        <div className="flex h-14 shrink-0 items-center px-6">
           <div className="flex w-full items-center justify-between">
             <h2 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{pageMeta.name}</h2>
             <div className="flex items-center gap-2">
@@ -196,9 +208,9 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </div>
         </div>
 
-        <ScrollArea className="flex-1 bg-white" viewportClassName="bg-white">
+        <ScrollArea className="flex-1" viewportClassName="bg-transparent">
           {model.pageFeedback ? (
-            <div className="mx-auto max-w-5xl px-6 pt-3">
+            <div className="mx-auto max-w-5xl px-5 pt-3">
               <InlineFeedback
                 feedback={model.pageFeedback}
                 title={t('runtimeConfig.panel.statusTitle', { defaultValue: 'Runtime status' })}
@@ -267,7 +279,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             </>
           )}
         </ScrollArea>
-      </main>
+      </Surface>
     </div>
   );
 }

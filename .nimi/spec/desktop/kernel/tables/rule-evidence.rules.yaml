@@ -390,6 +390,10 @@
     - desktop_kernel_consistency
     - desktop_lint_gate
     - desktop_test_gate
+- rule_id: D-IPC-017
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
 - rule_id: D-LLM-001
   status: covered
   evidence_refs:
@@ -497,6 +501,30 @@
   evidence_refs:
     - desktop_kernel_consistency
 - rule_id: D-LLM-058
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-059
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-060
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-061
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-062
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-063
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-064
   status: covered
   evidence_refs:
     - desktop_kernel_consistency
@@ -926,6 +954,24 @@
     - desktop_spec_docs_drift_gate
     - desktop_design_contract_gate
     - desktop_test_gate
+- rule_id: D-SHELL-026
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
+- rule_id: D-SHELL-027
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
+- rule_id: D-SHELL-028
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
 - rule_id: D-STATE-001
   status: covered
   evidence_refs:

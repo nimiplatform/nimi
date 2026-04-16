@@ -34,7 +34,12 @@ pub fn default_adapter_for_capability(capability: &str) -> LocalAiProviderAdapte
     match normalize_capability(capability).as_str() {
         "chat" | "embedding" => LocalAiProviderAdapterKind::OpenaiCompatAdapter,
         "image" | "video" => LocalAiProviderAdapterKind::MediaNativeAdapter,
-        "stt" | "tts" | "audio.transcribe" | "audio.synthesize" => {
+        "stt"
+        | "tts"
+        | "audio.transcribe"
+        | "audio.synthesize"
+        | "voice_workflow.tts_v2v"
+        | "voice_workflow.tts_t2v" => {
             LocalAiProviderAdapterKind::SpeechNativeAdapter
         }
         "music" => LocalAiProviderAdapterKind::SidecarMusicAdapter,
@@ -115,8 +120,9 @@ fn speech_probe_model_matches_capability(model_id: &str, capability: &str) -> bo
                 || normalized.contains("stt")
                 || normalized.contains("transcrib")
         }
-        "tts" | "audio.synthesize" => {
+        "tts" | "audio.synthesize" | "voice_workflow.tts_v2v" | "voice_workflow.tts_t2v" => {
             normalized.contains("kokoro")
+                || normalized.contains("qwen3")
                 || normalized.contains("tts")
                 || normalized.contains("voice")
                 || normalized.contains("speech")
@@ -153,10 +159,26 @@ pub fn infer_backend_hint_for_provider(
         {
             Some("whispercpp".to_string())
         }
-        ("speech", "tts") | ("speech", "audio.synthesize")
+        ("speech", "stt") | ("speech", "audio.transcribe")
+            if normalized_model.contains("qwen3-asr") =>
+        {
+            Some("qwen3_asr".to_string())
+        }
+        ("speech", "tts")
+        | ("speech", "audio.synthesize")
+        | ("speech", "voice_workflow.tts_v2v")
+        | ("speech", "voice_workflow.tts_t2v")
             if normalized_model.contains("kokoro") =>
         {
             Some("kokoro".to_string())
+        }
+        ("speech", "tts")
+        | ("speech", "audio.synthesize")
+        | ("speech", "voice_workflow.tts_v2v")
+        | ("speech", "voice_workflow.tts_t2v")
+            if normalized_model.contains("qwen3-tts") =>
+        {
+            Some("qwen3_tts".to_string())
         }
         ("media", "image") if normalized_model.contains("flux") => Some("sdcpp".to_string()),
         ("media", "video") if normalized_model.contains("wan") => Some("sdcpp".to_string()),
@@ -318,7 +340,12 @@ pub fn with_provider_backend_hint(
 pub fn adapter_supports_capability(adapter: &LocalAiProviderAdapterKind, capability: &str) -> bool {
     match normalize_capability(capability).as_str() {
         "image" | "video" => matches!(adapter, LocalAiProviderAdapterKind::MediaNativeAdapter),
-        "stt" | "tts" | "audio.transcribe" | "audio.synthesize" => {
+        "stt"
+        | "tts"
+        | "audio.transcribe"
+        | "audio.synthesize"
+        | "voice_workflow.tts_v2v"
+        | "voice_workflow.tts_t2v" => {
             matches!(adapter, LocalAiProviderAdapterKind::SpeechNativeAdapter)
         }
         "music" => matches!(adapter, LocalAiProviderAdapterKind::SidecarMusicAdapter),
@@ -345,7 +372,12 @@ pub fn adapter_supports_capability_for_provider(
             matches!(adapter, LocalAiProviderAdapterKind::SpeechNativeAdapter)
                 && matches!(
                     normalize_capability(capability).as_str(),
-                    "stt" | "tts" | "audio.transcribe" | "audio.synthesize"
+                    "stt"
+                        | "tts"
+                        | "audio.transcribe"
+                        | "audio.synthesize"
+                        | "voice_workflow.tts_v2v"
+                        | "voice_workflow.tts_t2v"
                 )
         }
         "sidecar" => {
@@ -382,7 +414,12 @@ pub fn provider_available_for_capability(provider: &str, capability: &str) -> bo
         "media" => matches!(normalize_capability(capability).as_str(), "image" | "video"),
         "speech" => matches!(
             normalize_capability(capability).as_str(),
-            "stt" | "tts" | "audio.transcribe" | "audio.synthesize"
+            "stt"
+                | "tts"
+                | "audio.transcribe"
+                | "audio.synthesize"
+                | "voice_workflow.tts_v2v"
+                | "voice_workflow.tts_t2v"
         ),
         "sidecar" => matches!(normalize_capability(capability).as_str(), "music"),
         _ => true,
@@ -422,36 +459,44 @@ mod tests {
             Some("sdcpp".to_string())
         );
         assert_eq!(
-            infer_backend_hint_for_provider("speech", "stt", Some("whisper-large-v3")),
-            Some("whispercpp".to_string())
+            infer_backend_hint_for_provider("speech", "stt", Some("qwen3-asr-0.6b")),
+            Some("qwen3_asr".to_string())
+        );
+        assert_eq!(
+            infer_backend_hint_for_provider(
+                "speech",
+                "voice_workflow.tts_t2v",
+                Some("qwen3-tts-12hz-1.7b-voicedesign")
+            ),
+            Some("qwen3_tts".to_string())
         );
     }
 
     #[test]
     fn with_provider_backend_hint_preserves_runtime_metadata_only() {
         let mut hints = default_provider_hints_for_provider_capability("speech", "tts");
-        with_provider_backend_hint("speech", &mut hints, Some("kokoro".to_string()), "tts");
+        with_provider_backend_hint("speech", &mut hints, Some("qwen3_tts".to_string()), "tts");
         let speech = hints
             .and_then(|value| value.speech)
             .expect("speech payload");
-        assert_eq!(speech.backend.as_deref(), Some("kokoro"));
+        assert_eq!(speech.backend.as_deref(), Some("qwen3_tts"));
         assert!(speech.family.is_none());
     }
 
     #[test]
-    fn speech_provider_no_longer_admits_local_workflow_capabilities() {
-        assert!(!provider_available_for_capability(
+    fn speech_provider_admits_local_workflow_capabilities() {
+        assert!(provider_available_for_capability(
             "speech",
             "voice_workflow.tts_t2v"
         ));
-        assert!(!adapter_supports_capability_for_provider(
+        assert!(adapter_supports_capability_for_provider(
             "speech",
             &LocalAiProviderAdapterKind::SpeechNativeAdapter,
             "voice_workflow.tts_v2v"
         ));
         assert_eq!(
             infer_backend_hint_for_provider("speech", "voice_workflow.tts_t2v", Some("qwen3-tts")),
-            None
+            Some("qwen3_tts".to_string())
         );
     }
 }

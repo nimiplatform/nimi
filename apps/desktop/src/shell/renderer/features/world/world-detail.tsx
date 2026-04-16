@@ -506,7 +506,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   });
 
   return (
-    <ScrollArea className="h-full bg-[#f8fafb]" viewportClassName="bg-[#f8fafb]">
+    <ScrollArea className="h-full bg-transparent" viewportClassName="bg-transparent">
       {feedback ? (
         <div className="mx-auto w-full max-w-[1400px] px-5 pt-5">
           <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />

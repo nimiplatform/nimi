@@ -115,15 +115,15 @@ export function ContactDetailViewContent(input: {
   return (
     <div
       data-testid={E2E_IDS.profileDetailSurface}
-      className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]"
+      className="flex h-full min-h-0 flex-1 flex-col"
     >
       <ScrollArea
         ref={scrollContainerRef}
         className="flex-1"
-        contentClassName={input.fullBleed ? 'flex min-h-full w-full flex-col' : 'mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6'}
+        contentClassName={input.fullBleed ? 'flex min-h-full w-full flex-col' : 'flex min-h-full w-full flex-col pb-6'}
       >
-          <section className="relative overflow-hidden rounded-[34px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
-            <div className="relative h-[220px] px-8 py-7" style={headerStyle}>
+          <section className="relative">
+            <div className="relative h-[220px] overflow-hidden rounded-t-[34px] px-8 py-7" style={headerStyle}>
               {canVisitWorld ? (
                 <button
                   type="button"
@@ -134,18 +134,13 @@ export function ContactDetailViewContent(input: {
               ) : null}
               {!profile.worldBannerUrl ? (
                 <>
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.34),transparent_36%)]" />
                   <div className="pointer-events-none absolute -left-6 top-4 h-40 w-44 rounded-full bg-[#73e0bc]/24 blur-[44px]" />
                   <div className="pointer-events-none absolute left-[34%] top-[-2%] h-36 w-40 rounded-full bg-[#a98fff]/20 blur-[48px]" />
                   <div className="pointer-events-none absolute right-[10%] top-[-1%] h-36 w-42 rounded-full bg-[#edf369]/22 blur-[52px]" />
-                  <div className="pointer-events-none absolute left-[55%] top-[3%] h-24 w-34 rounded-full bg-white/22 blur-[42px]" />
                   <div className="pointer-events-none absolute left-[14%] top-[46%] h-52 w-44 rounded-full bg-[#3db6ea]/18 blur-[54px]" />
                   <div className="pointer-events-none absolute right-[18%] bottom-[-10%] h-48 w-44 rounded-full bg-[#57d7c2]/22 blur-[52px]" />
-                  <div className="pointer-events-none absolute right-[0%] top-[24%] h-56 w-24 rounded-full bg-white/20 blur-[46px]" />
                 </>
               ) : null}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.28),transparent_32%)]" />
-              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white/82 to-transparent" />
 
               <div className="relative z-10 flex items-start justify-between gap-4">
                 <IconButton
@@ -186,7 +181,7 @@ export function ContactDetailViewContent(input: {
             <div className="relative px-8 pb-8">
               <div className="-mt-20 grid gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
                 <div className="min-w-0">
-                  <div className="rounded-[30px] border border-white/38 bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
+                  <div className="rounded-[30px] bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
                     <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-8">
                       <div className="flex shrink-0 flex-col items-center gap-3 lg:pt-[6px]">
                           <div className="group relative cursor-pointer">
@@ -475,23 +470,26 @@ export function ContactDetailViewContent(input: {
                           </div>
                         ) : null}
 
-                        <ContactDetailTabs
-                          activeTab={activeTab}
-                          isBlockedProfile={input.isBlockedProfile}
-                          isOwnProfile={input.isOwnProfile}
-                          onSetActiveTab={setActiveTab}
-                          profileId={profile.id}
-                          tabButtonRefs={tabButtonRefs}
-                          tabIndicator={tabIndicator}
-                          tabListRef={tabListRef}
-                          visitedTabs={visitedTabs}
-                        />
                       </div>
                     </section>
                   </div>
                 </div>
 
                 <aside className="hidden xl:block" />
+              </div>
+
+              <div className="mt-6 rounded-[30px] bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
+                <ContactDetailTabs
+                  activeTab={activeTab}
+                  isBlockedProfile={input.isBlockedProfile}
+                  isOwnProfile={input.isOwnProfile}
+                  onSetActiveTab={setActiveTab}
+                  profileId={profile.id}
+                  tabButtonRefs={tabButtonRefs}
+                  tabIndicator={tabIndicator}
+                  tabListRef={tabListRef}
+                  visitedTabs={visitedTabs}
+                />
               </div>
             </div>
           </section>

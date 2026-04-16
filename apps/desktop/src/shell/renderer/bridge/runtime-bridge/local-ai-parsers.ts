@@ -65,6 +65,7 @@ export function parseLocalRuntimeAssetRecord(value: unknown): LocalRuntimeAssetR
     installedAt: parseRequiredString(record.installedAt, 'installedAt', 'local_runtime asset'),
     updatedAt: parseRequiredString(record.updatedAt, 'updatedAt', 'local_runtime asset'),
     healthDetail: parseOptionalString(record.healthDetail),
+    reasonCode: parseOptionalString(record.reasonCode),
   };
 }
 
@@ -139,6 +140,7 @@ export function parseLocalRuntimeAssetsHealthResult(value: unknown): LocalRuntim
         status,
         detail: String(row.detail || '').trim(),
         endpoint: String(row.endpoint || '').trim(),
+        reasonCode: parseOptionalString(row.reasonCode),
       };
     }),
   };

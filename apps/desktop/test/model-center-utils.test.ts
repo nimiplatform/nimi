@@ -7,6 +7,8 @@ import {
   formatDownloadPhaseLabel,
   formatEta,
   formatSpeed,
+  localSpeechReasonSummary,
+  planBlockingHint,
   resolveSelectedRuntimeProfileTarget,
   normalizeCapabilityOption,
   normalizeInstallEngine,
@@ -20,6 +22,7 @@ import {
   statusLabel,
   type ProgressSessionState,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-model-center-utils';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 // ---------------------------------------------------------------------------
 // statusLabel
@@ -133,6 +136,33 @@ describe('formatSpeed', () => {
 
   test('512 → "512 B/s"', () => {
     assert.equal(formatSpeed(512), '512 B/s');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// localSpeechReasonSummary / planBlockingHint
+// ---------------------------------------------------------------------------
+
+describe('speech blocking summaries', () => {
+  test('maps speech download confirmation reason to user-facing summary', () => {
+    assert.equal(
+      localSpeechReasonSummary(ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED),
+      'Explicit download confirmation is required before Local Speech setup can continue.',
+    );
+  });
+
+  test('planBlockingHint prefers speech reason summary over generic host fallback', () => {
+    const plan = {
+      installAvailable: false,
+      warnings: [],
+      reasonCode: ReasonCode.AI_LOCAL_SPEECH_HOST_INIT_FAILED,
+      engineRuntimeMode: 'supervised',
+      engine: 'speech',
+    } as unknown as NonNullable<Parameters<typeof planBlockingHint>[0]>;
+    assert.equal(
+      planBlockingHint(plan),
+      'Local Speech host startup or probe failed.',
+    );
   });
 });
 

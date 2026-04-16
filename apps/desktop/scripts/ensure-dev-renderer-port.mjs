@@ -20,7 +20,7 @@ function runCommand(command, args) {
     const stderr = typeof error?.stderr === 'string' ? error.stderr.trim() : '';
     const stdout = typeof error?.stdout === 'string' ? error.stdout.trim() : '';
     const details = stderr || stdout || error?.message || String(error);
-    throw new Error(details);
+    throw new Error(details, { cause: error });
   }
 }
 

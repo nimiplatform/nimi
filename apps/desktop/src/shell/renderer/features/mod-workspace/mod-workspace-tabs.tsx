@@ -51,8 +51,8 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
               onClick={() => setActiveTab('mods')}
               className={`mb-0 flex h-[30px] w-[30px] items-center justify-center rounded-[8px] border transition-colors ${
                 activeTab === 'mods'
-                  ? 'border-white/70 bg-[#f7fbfd] text-[#4ECCA3] shadow-[0_10px_24px_rgba(15,23,42,0.08)]'
-                  : 'border-white/8 bg-[rgba(255,255,255,0.03)] text-[rgba(255,255,255,0.82)] hover:bg-[rgba(255,255,255,0.08)]'
+                  ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,white)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] text-[var(--nimi-action-primary-bg)] shadow-[0_10px_24px_rgba(15,23,42,0.08)]'
+                  : 'border-white/40 bg-white/24 text-[var(--nimi-text-secondary)] hover:bg-white/38 hover:text-[var(--nimi-text-primary)]'
               }`}
               aria-label={i18n.t('Navigation.mods', { defaultValue: 'Mods' })}
               title={i18n.t('Navigation.mods', { defaultValue: 'Mods' })}
@@ -72,15 +72,15 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
                   onClose={() => closeModWorkspaceTab(tab.tabId)}
                   leading={(
                     <span
-                      className={`h-2 w-2 shrink-0 rounded-full ${
-                        active
-                          ? (tab.fused ? 'bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.14)]' : 'bg-[#4ECCA3] shadow-[0_0_0_3px_rgba(78,204,163,0.16)]')
-                          : tab.fused
-                            ? 'bg-red-300/95'
-                            : 'bg-white/68'
-                      }`}
-                    />
-                  )}
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      active
+                        ? (tab.fused ? 'bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.14)]' : 'bg-[var(--nimi-action-primary-bg)] shadow-[0_0_0_3px_rgba(78,204,163,0.16)]')
+                        : tab.fused
+                          ? 'bg-red-300/95'
+                            : 'bg-[color-mix(in_srgb,var(--nimi-text-secondary)_45%,white)]'
+                    }`}
+                  />
+                )}
                   trailing={tab.fused ? (
                     <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                       active ? 'bg-red-500 text-white' : 'bg-red-500/85 text-white'
@@ -88,11 +88,11 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
                       CRASH
                     </span>
                   ) : undefined}
-                  inactiveBg="rgba(255,255,255,0.06)"
-                  inactiveHoverBg="rgba(255,255,255,0.12)"
-                  activeBg="#f7fbfd"
-                  inactiveColor="rgba(255,255,255,0.78)"
-                  activeColor="#1A1D1F"
+                  inactiveBg="rgba(255,255,255,0.24)"
+                  inactiveHoverBg="rgba(255,255,255,0.38)"
+                  activeBg="color-mix(in srgb, var(--nimi-action-primary-bg) 12%, white)"
+                  inactiveColor="var(--nimi-text-secondary)"
+                  activeColor="var(--nimi-text-primary)"
                   className="mb-0"
                   style={undefined}
                 />

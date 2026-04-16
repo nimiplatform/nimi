@@ -7,6 +7,10 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
+function readRepoFile(relativePath: string): string {
+  return fs.readFileSync(path.join(import.meta.dirname, '..', '..', '..', relativePath), 'utf8');
+}
+
 const conversationCapabilitySource = readWorkspaceFile('src/shell/renderer/features/chat/conversation-capability.ts');
 const runtimeSliceSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/runtime-slice.ts');
 const storeTypesSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/store-types.ts');
@@ -24,8 +28,10 @@ const chatHumanAdapterSource = readWorkspaceFile('src/shell/renderer/features/ch
 const chatAiModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-mode-content.tsx');
 const chatAgentModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatHumanModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
+const chatGroupModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatSidebarTargetsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-sidebar-targets.ts');
 const chatSettingsPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+const canonicalConversationShellSource = readRepoFile('kit/features/chat/src/components/canonical-conversation-shell.tsx');
 const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
 
 test('chat unified shell a2: main layout mounts the dedicated chat page host', () => {
@@ -43,7 +49,7 @@ test('chat unified shell a2: AI host stays enterable and submit-time route gatin
   assert.doesNotMatch(chatAiAdapterSource, /resolveAiConversationSetupStateFromProjection/);
   assert.match(chatAiAdapterSource, /toRuntimeRouteBindingFromPickerSelection/);
   assert.match(chatAiAdapterSource, /handleModelSelectionChange/);
-  assert.match(chatAiModeContentSource, /ChatRightPanelSettings/);
+  assert.match(chatAiModeContentSource, /ChatAiSessionListPanel/);
   assert.match(chatAiModeContentSource, /host\.settingsContent/);
   assert.match(chatAiModeContentSource, /setChatSetupState/);
   assert.doesNotMatch(chatPageSource, /aiRouteReadinessPending/);
@@ -52,6 +58,7 @@ test('chat unified shell a2: AI host stays enterable and submit-time route gatin
 
 test('chat unified shell a2: chat page mounts the canonical target-first shell', () => {
   assert.match(chatPageSource, /useChatTargetsForSidebar/);
+  assert.match(chatPageSource, /data-chat-page-layout="split"/);
   assert.match(chatPageSource, /ChatHumanModeContent/);
   assert.match(chatPageSource, /ChatAiModeContent/);
   assert.match(chatPageSource, /ChatAgentModeContent/);
@@ -62,11 +69,15 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.doesNotMatch(chatPageSource, /profileDrawer=\{/);
   assert.doesNotMatch(chatPageSource, /rightSidebar=\{/);
   assert.match(chatPageSource, /onSelectTarget/);
-  for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource]) {
+  for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource, chatGroupModeContentSource]) {
     assert.match(source, /CanonicalConversationShell/);
+    assert.match(source, /chrome="transparent"/);
     assert.match(source, /hideTargetPane/);
     assert.match(source, /hideCharacterRail/);
     assert.match(source, /sourceFilter="all"/);
+    assert.doesNotMatch(source, /rightPanel=\{/);
+  }
+  for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource]) {
     assert.match(source, /setChatViewMode/);
     assert.match(source, /setChatSetupState/);
     assert.match(source, /setupState=\{host\.adapter\.setupState\}/);
@@ -81,6 +92,8 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.match(chatHumanModeContentSource, /setSelectedTargetForSource\('human', host\.selectedTargetId\)/);
   assert.match(chatAgentModeContentSource, /setSelectedTargetForSource\('agent', host\.selectedTargetId\)/);
   assert.match(chatAgentModeContentSource, /ChatRightPanelAvatarStageRail/);
+  assert.match(chatHumanModeContentSource, /ChatRightPanelCharacterRail/);
+  assert.match(chatGroupModeContentSource, /ChatGroupRightColumn/);
   assert.doesNotMatch(chatAgentModeContentSource, /ChatRightPanelUtilityRail/);
   assert.match(chatSidebarTargetsSource, /source: 'ai'/);
   assert.match(chatSidebarTargetsSource, /source: 'human'/);
@@ -100,6 +113,12 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.doesNotMatch(chatPageSource, /renderStagePanel=/);
   assert.doesNotMatch(chatPageSource, /fallbackMessages/);
   assert.doesNotMatch(chatPageSource, /<ConversationShell/);
+});
+
+test('chat unified shell a2: canonical conversation shell supports transparent chrome for page-level chat layout', () => {
+  assert.match(canonicalConversationShellSource, /chrome\?: 'card' \| 'transparent'/);
+  assert.match(canonicalConversationShellSource, /data-conversation-shell-chrome=/);
+  assert.match(canonicalConversationShellSource, /props\.chrome === 'transparent'/);
 });
 
 test('chat unified shell a2: host contract only exposes canonical data and section props', () => {

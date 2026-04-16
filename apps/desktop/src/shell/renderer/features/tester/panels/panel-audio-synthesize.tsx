@@ -2,12 +2,13 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { SelectField, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import type { CapabilityState, VoiceOption } from '../tester-types.js';
-import { asString, stripArtifacts, toArtifactPreviewUri, toPrettyJson } from '../tester-utils.js';
+import { asString } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
 import { makeEmptyDiagnostics } from '../tester-state.js';
-import { getRuntimeClient, resolveCallParams, bindingToRouteInfo } from '../tester-runtime.js';
 import { DiagnosticsPanel, ErrorBox, RawJsonSection, RunButton } from '../tester-diagnostics.js';
 import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
+import { buildTesterSpeechFailure, runTesterAudioSynthesize } from '../tester-speech-actions.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 type AudioSynthesizePanelProps = {
   state: CapabilityState;
@@ -65,51 +66,29 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
     const binding = resolveEffectiveBinding(state.snapshot, state.binding) || undefined;
     const requestParams: Record<string, unknown> = { text, voice, audioFormat, ...(binding ? { binding } : {}) };
     try {
-      const callParams = await resolveCallParams(binding);
-      const routeInfo = bindingToRouteInfo(binding);
-      const result = await getRuntimeClient().media.tts.synthesize({
-        model: callParams.model,
-        route: callParams.route,
-        connectorId: callParams.connectorId,
-        text,
-        voice,
-        audioFormat,
-        metadata: callParams.metadata,
-      });
-      const elapsed = Date.now() - t0;
-      const artifact = result.artifacts[0];
-      const audioUri = toArtifactPreviewUri({ uri: artifact?.uri, bytes: artifact?.bytes, mimeType: artifact?.mimeType });
+      const result = await runTesterAudioSynthesize({ binding, text, voice, audioFormat });
       onStateChange((prev) => ({
         ...prev,
         busy: false,
-        result: 'passed',
-        output: { audioUri, mimeType: asString(artifact?.mimeType), durationMs: Number(artifact?.durationMs || 0) },
-        rawResponse: toPrettyJson({ request: requestParams, response: stripArtifacts(result) }),
-        diagnostics: {
-          requestParams,
-          resolvedRoute: routeInfo,
-          responseMetadata: {
-            jobId: (result.job as unknown as Record<string, unknown>)?.jobId as string | undefined,
-            artifactCount: result.artifacts.length,
-            traceId: result.trace?.traceId,
-            modelResolved: result.trace?.modelResolved,
-            elapsed,
-          },
-        },
+        result: result.result,
+        output: result.output,
+        rawResponse: result.rawResponse,
+        diagnostics: result.diagnostics,
       }));
     } catch (error) {
-      const elapsed = Date.now() - t0;
-      const baseMessage = error instanceof Error ? error.message : String(error || t('Tester.audioSynthesize.failed'));
-      const details = (error as Record<string, unknown> | null)?.details as Record<string, unknown> | undefined;
-      const providerMessage = details?.provider_message as string | undefined;
-      const message = providerMessage ? `${baseMessage} [provider: ${providerMessage}]` : baseMessage;
+      const failed = buildTesterSpeechFailure(error, {
+        fallbackMessage: t('Tester.audioSynthesize.failed'),
+        requestParams,
+        binding,
+        elapsed: Date.now() - t0,
+      });
       onStateChange((prev) => ({
         ...prev,
         busy: false,
-        result: 'failed',
-        error: message,
-        rawResponse: toPrettyJson({ request: requestParams, error: message, details }),
-        diagnostics: { requestParams, resolvedRoute: bindingToRouteInfo(binding), responseMetadata: { elapsed } },
+        result: failed.result,
+        error: failed.error,
+        rawResponse: failed.rawResponse,
+        diagnostics: failed.diagnostics,
       }));
     }
   }, [audioFormat, manualVoiceId, onStateChange, selectedVoiceId, state.binding, state.snapshot, text, t]);
@@ -130,8 +109,10 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
   ];
 
   return (
-    <div className="flex flex-col gap-3">
-      <TextareaField className="font-mono text-xs" textareaClassName="h-20" value={text} onChange={(event) => setText(event.target.value)} placeholder={t('Tester.audioSynthesize.textPlaceholder')} />
+    <div data-testid={E2E_IDS.testerPanel('audio.synthesize')} className="flex flex-col gap-3">
+      <div data-testid={E2E_IDS.testerInput('audio-synthesize-text')}>
+        <TextareaField className="font-mono text-xs" textareaClassName="h-20" value={text} onChange={(event) => setText(event.target.value)} placeholder={t('Tester.audioSynthesize.textPlaceholder')} />
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-1 text-xs">
           <span className="text-[var(--nimi-text-muted)]">{t('Tester.audioSynthesize.presetVoice')}</span>

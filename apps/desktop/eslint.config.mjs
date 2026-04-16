@@ -29,6 +29,8 @@ export default defineConfig([
     'src-tauri/target/**',
     'node_modules/**',
     '.corepack-cache/**',
+    'src/shell/renderer/.cache/**',
+    'src/shell/renderer/public/assets/**',
     '*.config.ts',
     '*.config.mjs',
   ]),

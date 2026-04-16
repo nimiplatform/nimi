@@ -8,7 +8,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
+import { i18n } from '@renderer/i18n';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   type NotificationFilterTab,
@@ -19,16 +19,16 @@ import {
   isGiftReviewable,
   toNotificationListView,
 } from './notification-model.js';
-
-type ReviewRating = RealmModel<'ReviewRating'>;
-type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
 import {
   invalidateNotificationQueries,
   notificationQueryKeys,
   patchNotificationUnreadCaches,
 } from './notification-query.js';
+import { formatNotificationTime, parseUnreadCount, toErrorMessage } from './notification-panel-helpers.js';
 import { RejectGiftDialog } from './notification-reject-gift-dialog.js';
 import { getActionLabel, getBadgeDefaultLabel } from './notification-panel-labels.js';
+
+type ReviewRating = RealmModel<'ReviewRating'>;
 
 const PAGE_SIZE = 20;
 const FILTER_TABS: NotificationFilterTab[] = ['all', 'gift', 'request', 'mention', 'like', 'system'];
@@ -45,36 +45,6 @@ type PendingItemAction = {
   itemId: string;
   action: ItemActionKind;
 };
-
-function parseUnreadCount(value: UnreadNotificationCountDto | null | undefined): number {
-  const total = Number(value?.total);
-  if (!Number.isFinite(total) || total < 0) {
-    return 0;
-  }
-  return Math.floor(total);
-}
-
-function formatNotificationTime(input: string): string {
-  const date = new Date(input);
-  if (Number.isNaN(date.getTime())) {
-    return '--';
-  }
-  const diffMs = Date.now() - date.getTime();
-  if (diffMs < 7 * 24 * 60 * 60 * 1000) {
-    return formatRelativeLocaleTime(date);
-  }
-  return formatLocaleDate(date, { month: 'short', day: 'numeric' });
-}
-
-function toErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error) {
-    const message = error.message.trim();
-    if (message) {
-      return message;
-    }
-  }
-  return fallback;
-}
 
 export function NotificationPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
@@ -551,75 +521,88 @@ export function NotificationPanel() {
 
   if (authStatus !== 'authenticated') {
     return (
-      <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 items-center justify-center bg-white text-sm text-gray-500">
-        {t('NotificationPanel.loginRequired')}
+      <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
+        <Surface
+          tone="panel"
+          material="glass-regular"
+          className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 text-sm text-[var(--nimi-text-secondary)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        >
+          {t('NotificationPanel.loginRequired')}
+        </Surface>
       </div>
     );
   }
 
   return (
-    <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 flex-col bg-white">
-      <div className="mx-auto w-full max-w-4xl px-6">
-        <div className="flex h-14 shrink-0 items-center justify-between">
-          <h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">
-            {t('NotificationPanel.title', { defaultValue: 'Notifications' })}
-          </h1>
-          <Button
-            tone="ghost"
-            size="sm"
-            disabled={markingAllRead || unreadCount <= 0}
-            onClick={() => {
-              void markAllRead();
-            }}
-          >
-            {markingAllRead
-              ? t('NotificationPanel.markingAllRead', { defaultValue: 'Marking...' })
-              : t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2 pb-4">
-        {FILTER_TABS.map((tab) => (
-          <Button
-            key={tab}
-            onClick={() => setActiveFilter(tab)}
-            tone={activeFilter === tab ? 'primary' : 'secondary'}
-            size="sm"
-          >
-            {t(`NotificationPanel.filters.${tab}`, {
-              defaultValue: tab,
-            })}
-          </Button>
-        ))}
-        </div>
-        {feedback ? (
-          <div className="pb-4">
-            <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+    <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
+      <div className="mx-auto w-full max-w-4xl">
+        <Surface
+          tone="panel"
+          material="glass-regular"
+          padding="none"
+          className="rounded-[1.75rem] border-white/60 px-5 py-4 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        >
+          <div className="flex h-14 shrink-0 items-center justify-between">
+            <h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">
+              {t('NotificationPanel.title', { defaultValue: 'Notifications' })}
+            </h1>
+            <Button
+              tone="ghost"
+              size="sm"
+              disabled={markingAllRead || unreadCount <= 0}
+              onClick={() => {
+                void markAllRead();
+              }}
+            >
+              {markingAllRead
+                ? t('NotificationPanel.markingAllRead', { defaultValue: 'Marking...' })
+                : t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
+            </Button>
           </div>
-        ) : null}
+
+          <div className="flex flex-wrap items-center gap-2 pb-1">
+          {FILTER_TABS.map((tab) => (
+            <Button
+              key={tab}
+              onClick={() => setActiveFilter(tab)}
+              tone={activeFilter === tab ? 'primary' : 'secondary'}
+              size="sm"
+            >
+              {t(`NotificationPanel.filters.${tab}`, {
+                defaultValue: tab,
+              })}
+            </Button>
+          ))}
+          </div>
+          {feedback ? (
+            <div className="pt-4">
+              <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+            </div>
+          ) : null}
+        </Surface>
       </div>
 
       <ScrollArea
-        className="min-h-0 flex-1 bg-white"
-        viewportClassName="bg-white"
-        contentClassName="mx-auto max-w-4xl space-y-3 px-6 py-4"
+        className="min-h-0 flex-1"
+        viewportClassName="bg-transparent"
+        contentClassName="mx-auto w-full max-w-4xl space-y-3 px-1 py-5"
       >
         {notificationsQuery.isPending && items.length === 0 ? (
-          <Surface tone="card" elevation="base" className="rounded-2xl p-8 text-center text-sm text-gray-400">
+          <Surface tone="panel" material="glass-regular" elevation="base" className="rounded-2xl border-white/60 p-8 text-center text-sm text-[var(--nimi-text-secondary)]">
             <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-mint-200 border-t-mint-500" />
             {t('NotificationPanel.loading', { defaultValue: 'Loading notifications...' })}
           </Surface>
         ) : null}
 
         {notificationsQuery.isError && items.length === 0 ? (
-          <Surface tone="card" elevation="base" className="rounded-2xl border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">
+          <Surface tone="panel" material="glass-regular" elevation="base" className="rounded-2xl border-red-200/70 p-8 text-center text-sm text-red-700">
             {t('NotificationPanel.loadError', { defaultValue: 'Failed to load notifications' })}
           </Surface>
         ) : null}
 
         {!notificationsQuery.isPending && !notificationsQuery.isError && filteredItems.length === 0 ? (
-          <Surface tone="card" elevation="base" className="rounded-2xl p-8 text-center text-sm text-gray-400">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+          <Surface tone="panel" material="glass-regular" elevation="base" className="rounded-2xl border-white/60 p-8 text-center text-sm text-[var(--nimi-text-secondary)]">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] text-[var(--nimi-action-primary-bg)]">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -653,11 +636,12 @@ export function NotificationPanel() {
                 }
               }}
               tone="card"
+              material="glass-regular"
               elevation="base"
               padding="none"
               interactive={!itemBusy}
               active={!item.isRead}
-              className={`group relative cursor-pointer rounded-2xl p-4 ${itemBusy ? 'pointer-events-none' : ''}`}
+              className={`group relative cursor-pointer rounded-2xl border-white/60 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.05)] ${itemBusy ? 'pointer-events-none' : ''}`}
             >
               {!item.isRead ? (
                 <div className="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-mint-500 shadow-sm" />
@@ -707,17 +691,17 @@ export function NotificationPanel() {
                   </div>
 
                   {showBody ? (
-                    <div className="mt-2 inline-block max-w-full rounded-xl rounded-tl-sm bg-gray-100 px-3 py-2">
-                      <p className="line-clamp-2 text-sm text-gray-600">"{body}"</p>
+                    <div className="mt-2 inline-block max-w-full rounded-xl rounded-tl-sm bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,white)] px-3 py-2">
+                      <p className="line-clamp-2 text-sm text-[var(--nimi-text-secondary)]">"{body}"</p>
                     </div>
                   ) : null}
 
                   {showGiftMessage ? (
-                    <div className="mt-2 inline-block max-w-full rounded-xl rounded-tl-sm bg-mint-50 px-3 py-2">
-                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-mint-700">
+                    <div className="mt-2 inline-block max-w-full rounded-xl rounded-tl-sm bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] px-3 py-2">
+                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--nimi-action-primary-bg)]">
                         {t('NotificationPanel.senderMessage', { defaultValue: 'Sender message' })}
                       </p>
-                      <p className="line-clamp-3 text-sm text-mint-900">"{giftMessage}"</p>
+                      <p className="line-clamp-3 text-sm text-[var(--nimi-text-primary)]">"{giftMessage}"</p>
                     </div>
                   ) : null}
 

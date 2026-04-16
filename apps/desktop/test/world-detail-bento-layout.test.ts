@@ -245,7 +245,7 @@ test('overview and content boundaries stay explicit after the refactor', () => {
 
 test('world detail visuals honor reduced motion and expose visual card roots', () => {
   assert.match(worldPrimitivesSource, /matchMedia\('\(prefers-reduced-motion: reduce\)'\)/);
-  assert.match(worldTemplateSource, /animation: prefersReducedMotion \? undefined : 'pulse-glow/);
+  assert.doesNotMatch(worldTemplateSource, /pulse-glow/);
   assert.match(worldOverviewSource, /animation: prefersReducedMotion \? undefined : 'float-card/);
   assert.match(worldVisualsSource, /dataTestId="world-detail-realm-constellation"/);
 });

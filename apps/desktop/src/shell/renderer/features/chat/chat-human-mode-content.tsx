@@ -7,7 +7,6 @@ import {
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useHumanConversationModeHost } from './chat-human-adapter';
 import { ChatRightPanelCharacterRail } from './chat-right-panel-character-rail';
-import { ChatRightPanelSettings } from './chat-right-panel-settings';
 
 export type ChatHumanModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
@@ -90,33 +89,6 @@ export function ChatHumanModeContent({
 
   const canonicalMessages = host.messages || [];
 
-  const rightPanelNode = useMemo(() => {
-    if (!selectedTarget || rightPanelFolded) {
-      return null;
-    }
-    if (rightPanelMode === 'settings') {
-      return (
-        <ChatRightPanelSettings onToggleSettings={onToggleRightPanelSettings} thinkingState={host.thinkingState} onThinkingToggle={host.onThinkingToggle}>
-          {host.settingsContent ?? null}
-        </ChatRightPanelSettings>
-      );
-    }
-    if (host.rightPanelContent) {
-      return host.rightPanelContent;
-    }
-    return (
-      <ChatRightPanelCharacterRail
-        selectedTarget={selectedTarget}
-        characterData={host.characterData}
-        onToggleSettings={onToggleRightPanelSettings}
-        settingsActive={false}
-        thinkingState={host.thinkingState}
-        onThinkingToggle={host.onThinkingToggle}
-        onToggleFold={onToggleRightPanelFold}
-      />
-    );
-  }, [host, selectedTarget, rightPanelMode, rightPanelFolded, onToggleRightPanelSettings, onToggleRightPanelFold]);
-
   const handleViewModeChange = useCallback((mode: 'stage' | 'chat') => {
     if (!selectedTarget) {
       return;
@@ -125,28 +97,42 @@ export function ChatHumanModeContent({
   }, [selectedTarget, setChatViewMode]);
 
   return (
-    <CanonicalConversationShell
-      className="min-h-0 flex-1"
-      hideTargetPane
-      hideCharacterRail
-      rightPanel={rightPanelNode}
-      sourceFilter="all"
-      targets={allTargets}
-      selectedTargetId={selectedTargetId}
-      selectedTarget={selectedTarget}
-      onSelectTarget={onSelectTarget}
-      viewMode={currentViewMode}
-      onViewModeChange={handleViewModeChange}
-      setupState={host.adapter.setupState}
-      setupDescription={host.setupDescription}
-      onSetupAction={onSetupAction}
-      characterData={host.characterData}
-      messages={canonicalMessages}
-      transcriptProps={host.transcriptProps}
-      stagePanelProps={host.stagePanelProps}
-      topContent={host.topContent}
-      composer={host.composerContent}
-      auxiliaryOverlayContent={host.auxiliaryOverlayContent}
-    />
+    <div className="flex min-h-0 min-w-0 flex-1">
+      <CanonicalConversationShell
+        className="min-h-0 flex-1"
+        chrome="transparent"
+        hideTargetPane
+        hideCharacterRail
+        sourceFilter="all"
+        targets={allTargets}
+        selectedTargetId={selectedTargetId}
+        selectedTarget={selectedTarget}
+        onSelectTarget={onSelectTarget}
+        viewMode={currentViewMode}
+        onViewModeChange={handleViewModeChange}
+        setupState={host.adapter.setupState}
+        setupDescription={host.setupDescription}
+        onSetupAction={onSetupAction}
+        characterData={host.characterData}
+        messages={canonicalMessages}
+        transcriptProps={host.transcriptProps}
+        stagePanelProps={host.stagePanelProps}
+        topContent={host.topContent}
+        composer={host.composerContent}
+        auxiliaryOverlayContent={host.auxiliaryOverlayContent}
+      />
+      {selectedTarget && !rightPanelFolded ? (
+        <ChatRightPanelCharacterRail
+          selectedTarget={selectedTarget}
+          characterData={host.characterData}
+          onToggleSettings={onToggleRightPanelSettings}
+          settingsActive={rightPanelMode === 'settings'}
+          thinkingState={host.thinkingState}
+          onThinkingToggle={host.onThinkingToggle}
+          onToggleFold={onToggleRightPanelFold}
+          settingsContent={host.settingsContent ?? null}
+        />
+      ) : null}
+    </div>
   );
 }

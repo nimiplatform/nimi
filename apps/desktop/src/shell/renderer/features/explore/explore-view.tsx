@@ -48,7 +48,7 @@ type ExploreViewProps = {
 };
 
 function ExploreSkeletonBlock({ className }: { className: string }) {
-  return <div className={`animate-pulse rounded-3xl bg-white/80 ${className}`} />;
+  return <div className={`animate-pulse rounded-3xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)] ${className}`} />;
 }
 
 export function ExploreView(props: ExploreViewProps) {
@@ -122,14 +122,19 @@ export function ExploreView(props: ExploreViewProps) {
 
   if (props.loading) {
     return (
-      <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-sidebar-canvas)]">
-        <div className="shrink-0 px-6 py-4">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
+      <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
+        <div className="shrink-0">
+          <Surface
+            tone="panel"
+            material="glass-regular"
+            padding="none"
+            className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 rounded-[1.75rem] border-white/60 px-5 py-4 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+          >
             <ExploreSkeletonBlock className="h-9 w-40 rounded-xl" />
             <ExploreSkeletonBlock className="h-11 w-[300px] rounded-full" />
-          </div>
+          </Surface>
         </div>
-        <ScrollArea className="flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto max-w-6xl space-y-10 px-6 py-8">
+        <ScrollArea className="flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto w-full max-w-6xl space-y-10 px-1 py-5">
             <section className="space-y-3">
               <ExploreSkeletonBlock className="h-6 w-24 rounded-lg" />
               <ExploreSkeletonBlock className="h-[280px] w-full rounded-[2rem]" />
@@ -172,7 +177,7 @@ export function ExploreView(props: ExploreViewProps) {
   }
 
   return (
-    <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-sidebar-canvas)]">
+    <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
       <style>{`
         @keyframes top-agents-slide-forward {
           from { opacity: 0; transform: translateX(18px); }
@@ -184,26 +189,37 @@ export function ExploreView(props: ExploreViewProps) {
         }
       `}</style>
       {/* Header bar */}
-      <div className="shrink-0 px-6 py-4">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
+      <div className="shrink-0">
+        <Surface
+          tone="panel"
+          material="glass-regular"
+          padding="none"
+          className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 rounded-[1.75rem] border-white/60 px-5 py-4 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        >
           <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>
             {t('Explore.pageTitle')}
           </h1>
           <div className="w-[300px] shrink-0">
-            <Surface tone="card" elevation="base" padding="none" className="group relative flex h-11 items-center rounded-full border-white/70 px-4">
-              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-mint-600">
+            <Surface
+              tone="panel"
+              material="glass-thick"
+              elevation="base"
+              padding="none"
+              className="group relative flex h-11 items-center rounded-full border-white/70 px-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]"
+            >
+              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[var(--nimi-text-secondary)] transition-colors group-focus-within:text-[var(--nimi-action-primary-bg)]">
                 {ICON_SEARCH}
               </span>
               <input
                 type="search"
-                className="w-full bg-transparent py-2.5 pl-7 pr-1 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:ring-0"
+                className="w-full bg-transparent py-2.5 pl-7 pr-1 text-sm text-[var(--nimi-text-primary)] outline-none placeholder:text-[var(--nimi-text-secondary)] focus:ring-0"
                 placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, agents, posts...' })}
                 value={props.searchText}
                 onChange={(e) => props.onSearchTextChange(e.target.value)}
               />
             </Surface>
           </div>
-        </div>
+        </Surface>
       </div>
 
       {/* Scrollable content */}
@@ -211,7 +227,7 @@ export function ExploreView(props: ExploreViewProps) {
         ref={scrollContainerRef}
         className="min-h-0 flex-1"
         viewportClassName="bg-transparent"
-        contentClassName="mx-auto max-w-6xl px-6 py-8"
+        contentClassName="mx-auto w-full max-w-6xl px-1 py-5"
         viewportRef={feedScrollRef}
       >
           {/* World Banner Carousel */}
@@ -274,7 +290,7 @@ export function ExploreView(props: ExploreViewProps) {
                         <polyline points="15 18 9 12 15 6" />
                       </svg>
                     )}
-                    className="absolute left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 hover:text-white"
+                    className="absolute left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full border border-white/25 bg-white/18 text-white backdrop-blur-sm hover:bg-white/28 hover:text-white"
                     aria-label={t('Explore.previousBanner', { defaultValue: 'Previous banner' })}
                   />
                 )}
@@ -301,7 +317,7 @@ export function ExploreView(props: ExploreViewProps) {
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
                     )}
-                    className="absolute right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 hover:text-white"
+                    className="absolute right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full border border-white/25 bg-white/18 text-white backdrop-blur-sm hover:bg-white/28 hover:text-white"
                     aria-label={t('Explore.nextBanner', { defaultValue: 'Next banner' })}
                   />
                 )}
@@ -347,7 +363,7 @@ export function ExploreView(props: ExploreViewProps) {
                         <polyline points="15 18 9 12 15 6" />
                       </svg>
                     )}
-                    className="h-7 w-7 shrink-0 text-gray-400 hover:text-gray-700"
+                    className="h-8 w-8 shrink-0 rounded-full border border-white/55 bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] text-[var(--nimi-text-secondary)] shadow-[0_10px_24px_rgba(15,23,42,0.05)] hover:text-[var(--nimi-action-primary-bg)]"
                     aria-label={hasNextTopAgentsPage
                       ? t('Explore.nextTopAgentsPage', { defaultValue: 'Next top agents page' })
                       : t('Explore.previousTopAgentsPage', { defaultValue: 'Previous top agents page' })}
@@ -415,7 +431,7 @@ export function ExploreView(props: ExploreViewProps) {
             <polyline points="5 12 12 5 19 12" />
           </svg>
         )}
-        className="fixed bottom-6 right-6 z-50 h-12 w-12 text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900"
+        className="fixed bottom-6 right-6 z-50 h-12 w-12 ring-1 ring-white/45 bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] text-[var(--nimi-text-secondary)] shadow-[0_18px_40px_rgba(15,23,42,0.12)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] hover:text-[var(--nimi-text-primary)]"
         aria-label={t('Explore.backToTop', { defaultValue: 'Back to top' })}
         title={t('Explore.backToTop', { defaultValue: 'Back to top' })}
       />

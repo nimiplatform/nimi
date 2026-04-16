@@ -107,6 +107,56 @@ commands:
     description: Finalize explicit app quit after renderer cleanup
     source_rule: D-IPC-005
 
+  - command: desktop_agent_avatar_resource_import_vrm
+    module: agent-avatar
+    description: Import a VRM avatar file into desktop-local avatar resource storage under nimi_data
+    source_rule: D-IPC-017
+
+  - command: desktop_agent_avatar_resource_pick_vrm
+    module: agent-avatar
+    description: Open a desktop-native file picker constrained for selecting a VRM avatar source file
+    source_rule: D-IPC-017
+
+  - command: desktop_agent_avatar_resource_pick_live2d
+    module: agent-avatar
+    description: Open a desktop-native folder picker for selecting a Live2D runtime directory
+    source_rule: D-IPC-017
+
+  - command: desktop_agent_avatar_resource_import_live2d
+    module: agent-avatar
+    description: Import a Live2D runtime directory or manifest root into desktop-local avatar resource storage under nimi_data
+    source_rule: D-IPC-017
+
+  - command: desktop_agent_avatar_resource_list
+    module: agent-avatar
+    description: List desktop-local avatar resource records available for per-agent binding
+    source_rule: D-IPC-017
+
+  - command: desktop_agent_avatar_resource_delete
+    module: agent-avatar
+    description: Delete a desktop-local avatar resource record and its managed imported assets
+    source_rule: D-IPC-017
+
+  - command: desktop_agent_avatar_resource_read_asset
+    module: agent-avatar
+    description: Read a desktop-local avatar resource entry as binary payload for renderer-local live avatar loading
+    source_rule: D-IPC-017
+
+  - command: desktop_agent_avatar_binding_get
+    module: agent-avatar
+    description: Read the desktop-local avatar binding for a specific agentId
+    source_rule: D-IPC-017
+
+  - command: desktop_agent_avatar_binding_set
+    module: agent-avatar
+    description: Bind a desktop-local avatar resource record to a specific agentId
+    source_rule: D-IPC-017
+
+  - command: desktop_agent_avatar_binding_clear
+    module: agent-avatar
+    description: Clear the desktop-local avatar binding for a specific agentId
+    source_rule: D-IPC-017
+
   # Mod local (runtime_mod::commands)
   - command: runtime_mod_append_audit
     module: mod-local
@@ -423,7 +473,7 @@ commands:
 
   - command: runtime_local_assets_install_verified
     module: local-runtime
-    description: Install a verified asset through the runtime-authoritative verified asset catalog
+    description: Install a verified asset through the runtime-authoritative verified asset catalog; ordinary-user local speech flows still require explicit Download confirmation and runtime-owned bundle projection
     source_rule: D-IPC-011
 
   - command: runtime_local_assets_import
@@ -473,12 +523,12 @@ commands:
 
   - command: runtime_local_services_install
     module: local-runtime
-    description: Host service install helper; shipped product install truth must come from RuntimeLocalService
+    description: Host service install helper; shipped product install truth must come from RuntimeLocalService and must not imply Desktop-owned local speech install truth
     source_rule: D-IPC-011
 
   - command: runtime_local_services_start
     module: local-runtime
-    description: Host service start helper; shipped product lifecycle truth must come from RuntimeLocalService
+    description: Host service start helper; shipped product lifecycle truth must come from RuntimeLocalService and must not bypass explicit Download-gated speech bundle flows
     source_rule: D-IPC-011
 
   - command: runtime_local_services_stop
@@ -488,7 +538,7 @@ commands:
 
   - command: runtime_local_services_health
     module: local-runtime
-    description: Host service health helper; shipped product health truth must come from RuntimeLocalService
+    description: Host service health helper; shipped product health truth must come from RuntimeLocalService and may only feed a runtime-owned speech bundle projection
     source_rule: D-IPC-011
 
   - command: runtime_local_services_remove
@@ -503,7 +553,7 @@ commands:
 
   - command: runtime_local_assets_install
     module: local-runtime
-    description: Install an asset from catalog parameters; execution truth is RuntimeLocalService
+    description: Install an asset from catalog parameters; execution truth is RuntimeLocalService and must not create Desktop-owned speech bundle truth
     source_rule: D-IPC-011
 
   - command: runtime_local_assets_import_file
@@ -584,6 +634,11 @@ commands:
   - command: runtime_local_assets_scan_unregistered
     module: local-runtime
     description: Host-local unregistered asset helper; if shipped product paths have runtime scan coverage, runtime remains the only truth source
+    source_rule: D-IPC-011
+
+  - command: runtime_local_assets_scaffold_orphan
+    module: local-runtime
+    description: Host-local orphan intake helper that promotes an explicitly reviewed loose asset file into runtime-managed storage via RuntimeLocalService
     source_rule: D-IPC-011
 
   - command: runtime_local_assets_rescan_bundle

@@ -2,10 +2,11 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button as KitButton,
-  SettingsCard as KitSettingsCard,
   SettingsPageShell as KitSettingsPageShell,
   SettingsSectionTitle as KitSettingsSectionTitle,
   StatusBadge as KitStatusBadge,
+  Surface,
+  cn,
 } from '@nimiplatform/nimi-kit/ui';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
@@ -23,9 +24,18 @@ export function Card({
   style?: CSSProperties;
 }) {
   return (
-    <KitSettingsCard className={className} style={style}>
+    <Surface
+      tone="card"
+      material="solid"
+      padding="none"
+      className={cn(
+        'rounded-2xl border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,white)] shadow-[0_10px_22px_rgba(15,23,42,0.04)]',
+        className,
+      )}
+      style={style}
+    >
       {children}
-    </KitSettingsCard>
+    </Surface>
   );
 }
 
@@ -45,7 +55,12 @@ export function PageShell({
   contentClassName?: string;
 }) {
   return (
-    <KitSettingsPageShell footer={footer} contentClassName={contentClassName}>
+    <KitSettingsPageShell
+      footer={footer}
+      scrollClassName="bg-transparent"
+      viewportClassName="bg-transparent"
+      contentClassName={cn('w-full max-w-4xl px-5 py-5', contentClassName)}
+    >
       {children}
     </KitSettingsPageShell>
   );
@@ -124,7 +139,7 @@ export function SaveFooter({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex shrink-0 items-center justify-end gap-3 bg-white px-6 py-4">
+    <div className="flex shrink-0 items-center justify-end gap-3 border-t border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] px-6 py-4">
       {showCancel ? (
         <Button variant="secondary" onClick={onCancel}>
           {t('Common.cancel')}

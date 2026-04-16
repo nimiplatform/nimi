@@ -232,6 +232,25 @@ export function planInstallAvailable(plan: LocalRuntimeInstallPlanDescriptor | n
   return plan == null ? true : Boolean(plan.installAvailable);
 }
 
+export function localSpeechReasonSummary(reasonCode: string | undefined): string {
+  switch (String(reasonCode || '').trim()) {
+    case ReasonCode.AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED:
+      return 'Local Speech preflight is blocked on this host.';
+    case ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED:
+      return 'Explicit download confirmation is required before Local Speech setup can continue.';
+    case ReasonCode.AI_LOCAL_SPEECH_ENV_INIT_FAILED:
+      return 'Local Speech environment initialization failed.';
+    case ReasonCode.AI_LOCAL_SPEECH_HOST_INIT_FAILED:
+      return 'Local Speech host startup or probe failed.';
+    case ReasonCode.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED:
+      return 'The required Local Speech capability is missing and must be downloaded.';
+    case ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED:
+      return 'The Local Speech bundle is degraded and needs repair.';
+    default:
+      return '';
+  }
+}
+
 export function planBlocksCanonicalImageImport(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): boolean {
   const reasonCode = String(plan?.reasonCode || '').trim();
   return reasonCode === ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE;
@@ -251,6 +270,10 @@ export function planBlockingHint(plan: LocalRuntimeInstallPlanDescriptor | null 
   const warning = String(plan?.warnings?.[0] || '').trim();
   if (warning) {
     return warning;
+  }
+  const speechReasonSummary = localSpeechReasonSummary(plan?.reasonCode);
+  if (speechReasonSummary) {
+    return speechReasonSummary;
   }
   if (planRequiresAttachedEndpointInput(plan)) {
     return `Attached endpoint required for ${String(plan?.engine || 'this runtime').trim() || 'this runtime'}.`;

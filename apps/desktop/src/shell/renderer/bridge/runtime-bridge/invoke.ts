@@ -92,6 +92,12 @@ const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string 
   AI_LOCAL_ENDPOINT_REQUIRED: { key: 'BridgeErrors.codes.AI_LOCAL_ENDPOINT_REQUIRED', defaultValue: 'Local AI endpoint configuration is missing.' },
   AI_LOCAL_TEMPLATE_NOT_FOUND: { key: 'BridgeErrors.codes.AI_LOCAL_TEMPLATE_NOT_FOUND', defaultValue: 'Local AI template was not found.' },
   AI_LOCAL_MANIFEST_INVALID: { key: 'BridgeErrors.codes.AI_LOCAL_MANIFEST_INVALID', defaultValue: 'Local AI manifest is invalid.' },
+  AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED', defaultValue: 'Local Speech cannot initialize until local prerequisites are satisfied.' },
+  AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED', defaultValue: 'Local Speech requires explicit download confirmation before continuing.' },
+  AI_LOCAL_SPEECH_ENV_INIT_FAILED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_ENV_INIT_FAILED', defaultValue: 'Local Speech environment initialization failed. Retry or repair the local speech setup.' },
+  AI_LOCAL_SPEECH_HOST_INIT_FAILED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_HOST_INIT_FAILED', defaultValue: 'Local Speech service startup failed. Check the local speech environment and try again.' },
+  AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED', defaultValue: 'The required Local Speech capability download failed. Retry that capability download.' },
+  AI_LOCAL_SPEECH_BUNDLE_DEGRADED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_BUNDLE_DEGRADED', defaultValue: 'Local Speech is degraded and must be repaired before continuing.' },
 
   // Phase 1: Auth & Session reason codes
   AUTH_TOKEN_INVALID: { key: 'BridgeErrors.codes.AUTH_TOKEN_INVALID', defaultValue: 'Authentication token is invalid.' },

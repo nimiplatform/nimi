@@ -11,6 +11,7 @@ import {
   useGroupCanonicalStagePanelProps,
   useGroupCanonicalTranscriptProps,
 } from './chat-group-canonical-components';
+import { ChatGroupRightColumn } from './chat-group-right-column';
 
 export type ChatGroupModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
@@ -24,10 +25,10 @@ export type ChatGroupModeContentProps = {
 
 export function ChatGroupModeContent({
   allTargets,
-  rightPanelMode: _rightPanelMode,
+  rightPanelMode,
   rightPanelFolded,
-  onToggleRightPanelFold: _onToggleRightPanelFold,
-  onToggleRightPanelSettings: _onToggleRightPanelSettings,
+  onToggleRightPanelFold,
+  onToggleRightPanelSettings,
   onSetupAction,
   onSelectTarget,
 }: ChatGroupModeContentProps) {
@@ -103,40 +104,46 @@ export function ChatGroupModeContent({
   const transcriptProps = useGroupCanonicalTranscriptProps();
   const stagePanelProps = useGroupCanonicalStagePanelProps();
 
-  const rightPanelNode = useMemo(() => {
-    if (!selectedTarget || rightPanelFolded) return null;
-    if (host.rightPanelContent) return host.rightPanelContent;
-    return null;
-  }, [host.rightPanelContent, selectedTarget, rightPanelFolded]);
-
   const handleViewModeChange = useCallback((mode: 'stage' | 'chat') => {
     if (!selectedTarget) return;
     setChatViewMode('group', selectedTarget.id, mode);
   }, [selectedTarget, setChatViewMode]);
 
   return (
-    <CanonicalConversationShell
-      className="min-h-0 flex-1"
-      hideTargetPane
-      hideCharacterRail
-      rightPanel={rightPanelNode}
-      sourceFilter="all"
-      targets={allTargets}
-      selectedTargetId={selectedTargetId}
-      selectedTarget={selectedTarget}
-      onSelectTarget={onSelectTarget}
-      viewMode={currentViewMode}
-      onViewModeChange={handleViewModeChange}
-      setupState={host.adapter.setupState}
-      setupDescription={host.setupDescription}
-      onSetupAction={onSetupAction}
-      characterData={host.characterData}
-      messages={canonicalMessages}
-      transcriptProps={transcriptProps}
-      stagePanelProps={stagePanelProps}
-      topContent={host.topContent}
-      composer={host.composerContent}
-      auxiliaryOverlayContent={host.auxiliaryOverlayContent}
-    />
+    <div className="flex min-h-0 min-w-0 flex-1">
+      <CanonicalConversationShell
+        className="min-h-0 flex-1"
+        chrome="transparent"
+        hideTargetPane
+        hideCharacterRail
+        sourceFilter="all"
+        targets={allTargets}
+        selectedTargetId={selectedTargetId}
+        selectedTarget={selectedTarget}
+        onSelectTarget={onSelectTarget}
+        viewMode={currentViewMode}
+        onViewModeChange={handleViewModeChange}
+        setupState={host.adapter.setupState}
+        setupDescription={host.setupDescription}
+        onSetupAction={onSetupAction}
+        characterData={host.characterData}
+        messages={canonicalMessages}
+        transcriptProps={transcriptProps}
+        stagePanelProps={stagePanelProps}
+        topContent={host.topContent}
+        composer={host.composerContent}
+        auxiliaryOverlayContent={host.auxiliaryOverlayContent}
+      />
+      {selectedTarget && !rightPanelFolded ? (
+        <ChatGroupRightColumn
+          selectedTarget={selectedTarget}
+          characterData={host.characterData}
+          primaryContent={host.rightPanelContent}
+          settingsActive={rightPanelMode === 'settings'}
+          onToggleSettings={onToggleRightPanelSettings}
+          onToggleFold={onToggleRightPanelFold}
+        />
+      ) : null}
+    </div>
   );
 }

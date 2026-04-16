@@ -29,8 +29,14 @@ function SkeletonBlock(props: { className: string }) {
 
 function ContactsLoadingSkeleton() {
   return (
-    <Surface data-testid={E2E_IDS.panel('contacts')} tone="canvas" padding="none" className="flex h-full rounded-none border-0">
-      <Surface as="aside" tone="panel" padding="none" className="relative flex w-[320px] shrink-0 flex-col rounded-none border-y-0 border-l-0 border-r border-slate-200">
+    <div data-testid={E2E_IDS.panel('contacts')} className="flex h-full gap-4 px-5 pb-5 pt-4">
+      <Surface
+        as="aside"
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="relative flex w-[320px] shrink-0 flex-col rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+      >
         <div className="flex h-14 shrink-0 items-center px-4">
           <SkeletonBlock className="h-7 w-28 rounded-lg" />
         </div>
@@ -63,7 +69,13 @@ function ContactsLoadingSkeleton() {
         </ScrollArea>
       </Surface>
 
-      <Surface as="main" tone="card" padding="none" className="flex min-w-0 flex-1 flex-col rounded-none border-0 p-8">
+      <Surface
+        as="main"
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="flex min-w-0 flex-1 flex-col rounded-[2rem] border-white/60 p-8 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+      >
         <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
           <div className="mb-8 flex items-center gap-4">
             <SkeletonBlock className="h-20 w-20 shrink-0" />
@@ -98,7 +110,7 @@ function ContactsLoadingSkeleton() {
           </div>
         </div>
       </Surface>
-    </Surface>
+    </div>
   );
 }
 
@@ -375,17 +387,24 @@ export function ContactsView(props: ContactsViewProps) {
 
   if (props.error) {
     return (
-      <Surface data-testid={E2E_IDS.panel('contacts')} tone="canvas" padding="none" className="flex h-full items-center justify-center rounded-none border-0">
-        <span className="text-sm text-red-600">{t('Contacts.loadError')}</span>
-      </Surface>
+      <div data-testid={E2E_IDS.panel('contacts')} className="flex h-full px-5 pb-5 pt-4">
+        <Surface
+          tone="panel"
+          material="glass-regular"
+          className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 text-sm text-red-600 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        >
+          {t('Contacts.loadError')}
+        </Surface>
+      </div>
     );
   }
 
   return (
-    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="flex h-full bg-white text-[var(--nimi-text-primary)]">
+    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="flex h-full gap-4 px-5 pb-5 pt-4 text-[var(--nimi-text-primary)]">
       {/* 左侧联系人列表 */}
       <SidebarShell
         width={sidebarWidth}
+        className="rounded-[2rem] border border-white/60 border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         data-testid={E2E_IDS.panel('contacts')}
       >
         <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Contacts.title')}</h1>} />
@@ -468,10 +487,16 @@ export function ContactsView(props: ContactsViewProps) {
       </SidebarShell>
 
       {/* 右侧详情区 - 使用共享 profile 详情页 */}
-      <main className="flex min-w-0 flex-1 flex-col bg-white">
+      <Surface
+        as="main"
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+      >
         <ScrollArea
-          className="flex min-w-0 flex-1 flex-col bg-white"
-          viewportClassName="bg-white"
+          className="flex min-w-0 flex-1 flex-col"
+          viewportClassName="bg-transparent"
         >
         {props.feedback ? (
           <div className="px-6 pt-4">
@@ -541,7 +566,7 @@ export function ContactsView(props: ContactsViewProps) {
             showMessageButton={!selectedProfile?.isAgent}
           />
         ) : selectedContact && profileError ? (
-          <div className="flex h-full items-center justify-center bg-white">
+          <div className="flex h-full items-center justify-center bg-transparent px-6 py-6">
             <ContactDetailErrorState
               backLabel={t('Common.back')}
               label={t('ProfileView.error')}
@@ -553,24 +578,28 @@ export function ContactsView(props: ContactsViewProps) {
             />
           </div>
         ) : selectedContact ? (
-          <div className="flex h-full items-center justify-center bg-white">
+          <div className="flex h-full items-center justify-center bg-transparent px-6 py-6">
             <ContactDetailLoadingState label={t('ProfileView.loading', { defaultValue: 'Loading profile...' })} />
           </div>
         ) : (
           // 空状态 - 显示 Nimi Logo
-          <div className="h-full flex items-center justify-center bg-white">
-            <div className="text-center">
+          <div className="flex h-full items-center justify-center bg-transparent px-6 py-6">
+            <Surface
+              tone="panel"
+              material="glass-regular"
+              className="flex min-h-[420px] w-full max-w-2xl items-center justify-center rounded-[2rem] border-white/60"
+            >
               {/* Nimi Logo */}
               <img
                 src={nimiLogo}
                 alt="Nimi"
                 className="mx-auto w-64 h-64 object-contain"
               />
-            </div>
+            </Surface>
           </div>
         )}
         </ScrollArea>
-      </main>
+      </Surface>
 
       {/* Block 确认对话框 */}
       {blockingContact && (

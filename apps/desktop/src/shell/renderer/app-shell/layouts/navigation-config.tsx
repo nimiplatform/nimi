@@ -1,9 +1,14 @@
 import type { ReactNode } from 'react';
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import {
+  SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
+  SHELL_CHROME_TOOLTIP_CLASS,
+} from './shell-chrome-classes';
 
 export type NavItem = { id: AppTab | string; label: string; icon: ReactNode };
 
@@ -196,7 +201,6 @@ export function NavLink({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
   const translatedLabel = t(`Navigation.${String(item.id)}`, { defaultValue: item.label });
-  
   const handleMouseEnter = () => {
     if (buttonRef.current && collapsed) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -206,11 +210,9 @@ export function NavLink({
       });
     }
   };
-  
   const handleMouseLeave = () => {
     setTooltipPos(null);
   };
-  
   return (
     <>
       <button
@@ -220,24 +222,31 @@ export function NavLink({
         onClick={onClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`relative flex w-full items-center text-sm transition-colors ${
-          active ? 'font-medium' : 'text-gray-700'
-        } ${collapsed ? 'h-11 justify-center' : 'gap-3 rounded-[10px] px-3 py-2'}`}
+        className={`relative flex items-center text-sm transition-all duration-150 ${
+          active
+            ? 'font-semibold text-[var(--nimi-text-primary)]'
+            : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
+        } ${collapsed
+          ? `mx-auto h-12 w-12 justify-center ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`
+          : `w-full gap-3 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} px-3 py-2.5`
+        } ${active
+          ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,white)] shadow-[0_10px_24px_rgba(15,23,42,0.06)]'
+          : 'hover:bg-[var(--nimi-sidebar-item-hover)]'
+        }`}
       >
-        <span 
-          className={`relative flex items-center justify-center ${collapsed ? 'h-8 w-8' : ''} transition-all duration-200 ${
-            active 
-              ? 'text-mint-500' 
-              : 'text-gray-400 hover:bg-mint-100 hover:text-gray-600'
+        <span
+          className={`relative flex items-center justify-center ${collapsed ? 'h-9 w-9 rounded-[14px]' : ''} transition-all duration-200 ${
+            active
+              ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] text-[var(--nimi-action-primary-bg)]'
+              : 'text-[var(--nimi-text-secondary)]'
           }`}
-          style={{ borderRadius: '10px' }}
         >
           {item.icon}
         </span>
         {collapsed ? null : <span className="flex-1 text-left">{translatedLabel}</span>}
         {collapsed ? null : badge}
         {collapsed && badge ? (
-          <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-orange-500" />
+          <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-[var(--nimi-status-warning)]" />
         ) : null}
         {collapsed ? (
           <span className="sr-only">{translatedLabel}</span>
@@ -245,16 +254,20 @@ export function NavLink({
       </button>
       {/* Custom Tooltip - Fixed position to escape overflow */}
       {collapsed && tooltipPos ? (
-        <span 
-          className="fixed px-2 py-1 rounded-md bg-[#4ECCA3] text-white text-xs whitespace-nowrap z-[9999] shadow-lg pointer-events-none"
-          style={{ 
+        <Surface
+          as="span"
+          tone="overlay"
+          material="glass-thick"
+          padding="none"
+          className={SHELL_CHROME_TOOLTIP_CLASS}
+          style={{
             top: tooltipPos.top,
             left: tooltipPos.left,
             transform: 'translateY(-50%)',
           }}
         >
           {translatedLabel}
-        </span>
+        </Surface>
       ) : null}
     </>
   );

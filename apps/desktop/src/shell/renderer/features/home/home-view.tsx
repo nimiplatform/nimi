@@ -13,14 +13,19 @@ import { prepareHomeFeedItems } from './utils';
 function PublishingPostCard() {
   const { t } = useTranslation();
   return (
-    <div className="mb-6 rounded-[2rem] border border-[#4ECCA3]/30 bg-white p-5 shadow-sm opacity-80">
+    <Surface
+      tone="panel"
+      material="glass-regular"
+      padding="none"
+      className="mb-6 rounded-[2rem] border-white/60 px-5 py-5 opacity-90 shadow-[0_18px_44px_rgba(15,23,42,0.08)]"
+    >
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 animate-pulse rounded-full bg-[#4ECCA3]/20" />
+        <div className="h-10 w-10 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,white)]" />
         <div className="space-y-1">
-          <div className="h-4 w-24 animate-pulse rounded bg-[#4ECCA3]/20" />
-          <div className="h-3 w-16 animate-pulse rounded bg-[#4ECCA3]/20" />
+          <div className="h-4 w-24 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,white)]" />
+          <div className="h-3 w-16 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,white)]" />
         </div>
-        <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-[#4ECCA3]">
+        <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-[var(--nimi-action-primary-bg)]">
           <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
             <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
@@ -29,11 +34,11 @@ function PublishingPostCard() {
         </span>
       </div>
       <div className="mt-4 space-y-2">
-        <div className="h-4 w-full animate-pulse rounded bg-[#4ECCA3]/10" />
-        <div className="h-4 w-[90%] animate-pulse rounded bg-[#4ECCA3]/10" />
+        <div className="h-4 w-full animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)]" />
+        <div className="h-4 w-[90%] animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)]" />
       </div>
-      <div className="mt-4 h-[200px] w-full animate-pulse rounded-2xl bg-[#4ECCA3]/10" />
-    </div>
+      <div className="mt-4 h-[200px] w-full animate-pulse rounded-2xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)]" />
+    </Surface>
   );
 }
 
@@ -124,16 +129,21 @@ export function HomeView(props: HomeViewProps) {
   }, []);
 
   return (
-    <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col">
+    <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
       {/* Top bar */}
-      <Surface tone="canvas" padding="none" className="flex h-14 shrink-0 items-center gap-3 rounded-none border-0 border-b border-slate-200 px-6">
+      <Surface
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="flex h-14 shrink-0 items-center gap-3 rounded-[1.75rem] border-white/60 px-5 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+      >
         <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Home.pageTitle')}</h1>
       </Surface>
 
       <ScrollArea
-        className="flex-1 bg-gray-50"
-        viewportClassName="bg-gray-50"
-        contentClassName="mx-auto max-w-2xl px-6 py-0"
+        className="flex-1"
+        viewportClassName="bg-transparent"
+        contentClassName="mx-auto w-full max-w-2xl px-1 py-4"
         viewportRef={feedScrollRef}
       >
           {/* Create Post Prompt */}
@@ -141,19 +151,20 @@ export function HomeView(props: HomeViewProps) {
             as="button"
             type="button"
             onClick={() => setCreatePostOpen(true)}
-            tone="card"
+            tone="panel"
+            material="glass-regular"
             elevation="base"
             padding="none"
             interactive
-            className="mt-4 flex w-full items-center gap-3 rounded-[1.5rem] border border-slate-200 px-4 py-3 text-left"
+            className="mt-2 flex w-full items-center gap-3 rounded-[1.75rem] border-white/60 px-4 py-3 text-left shadow-[0_16px_36px_rgba(15,23,42,0.06)]"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-50 text-cyan-500">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] text-[var(--nimi-action-primary-bg)]">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </div>
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-[var(--nimi-text-secondary)]">
               {t('Home.composePrompt', { defaultValue: "What's on your mind?" })}
             </span>
           </Surface>
@@ -236,7 +247,7 @@ export function HomeView(props: HomeViewProps) {
         )}
         tone="primary"
         onClick={() => setCreatePostOpen(true)}
-        className="fixed bottom-6 right-6 z-50 h-12 w-12 shadow-lg shadow-[#4ECCA3]/30 hover:shadow-xl hover:shadow-[#4ECCA3]/40"
+        className="fixed bottom-6 right-6 z-50 h-12 w-12 ring-1 ring-white/45 shadow-[0_18px_40px_rgba(15,23,42,0.16)]"
         aria-label={t('Home.createPost', { defaultValue: 'Create Post' })}
       />
     </div>

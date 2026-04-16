@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { resolveChatAgentLiveAvatarRailModel } from '../src/shell/renderer/features/chat/chat-agent-live-avatar-rail-model.js';
+import { createIdleChatAgentAvatarPointerInteractionState } from '../src/shell/renderer/features/chat/chat-agent-avatar-pointer-interaction.js';
 
-test('agent live avatar rail model falls back to desktop-local mock VRM presentation when no live backend exists', () => {
+test('agent live avatar rail model prefers desktop-local bound VRM resource when present', () => {
   const model = resolveChatAgentLiveAvatarRailModel({
     selectedTarget: {
       id: 'agent-1',
@@ -36,14 +37,80 @@ test('agent live avatar rail model falls back to desktop-local mock VRM presenta
         visemeId: 'ee',
       },
     },
+    localResource: {
+      resourceId: 'resource-1',
+      kind: 'vrm',
+      displayName: 'Bound Avatar',
+      sourceFilename: 'bound.vrm',
+      storedPath: '/tmp/bound-avatar',
+      fileUrl: 'file:///tmp/bound-avatar/bound.vrm',
+      posterPath: null,
+      importedAtMs: 100,
+      updatedAtMs: 100,
+      status: 'ready',
+    },
   });
 
   assert.equal(model.presentation.backendKind, 'vrm');
-  assert.match(model.presentation.avatarAssetRef, /^(fallback:\/\/agent-live-rail\/|file:\/\/.*AliciaSolid\.vrm$)/);
+  assert.equal(model.presentation.avatarAssetRef, 'desktop-avatar://resource-1/bound.vrm');
+  assert.equal(model.fallbackPresentation.backendKind, 'sprite2d');
   assert.equal(model.viewportInput.posterUrl, 'https://cdn.nimi.test/companion.png');
   assert.equal(model.snapshot.interaction.phase, 'speaking');
   assert.equal(model.snapshot.interaction.actionCue, 'Speaking…');
   assert.equal(model.snapshot.interaction.visemeId, 'ee');
+  assert.equal(model.snapshot.interaction.attentionTarget, 'camera');
+});
+
+test('agent live avatar rail model prefers desktop-local bound Live2D resource when present', () => {
+  const model = resolveChatAgentLiveAvatarRailModel({
+    selectedTarget: {
+      id: 'agent-live2d',
+      source: 'agent',
+      canonicalSessionId: 'thread-live2d',
+      title: 'Airi',
+      handle: '@airi',
+      bio: 'live2d companion',
+      avatarUrl: 'https://cdn.nimi.test/airi.png',
+      avatarFallback: 'A',
+      previewText: null,
+      updatedAt: null,
+      unreadCount: 0,
+      status: 'active',
+      isOnline: null,
+      metadata: {},
+    },
+    characterData: {
+      name: 'Airi',
+      avatarUrl: 'https://cdn.nimi.test/airi.png',
+      avatarPresentationProfile: {
+        backendKind: 'sprite2d',
+        avatarAssetRef: 'https://cdn.nimi.test/airi.png',
+      },
+      interactionState: {
+        phase: 'idle',
+        label: 'Here with you',
+        emotion: 'calm',
+      },
+    },
+    localResource: {
+      resourceId: 'resource-live2d',
+      kind: 'live2d',
+      displayName: 'Airi Live2D',
+      sourceFilename: 'airi.model3.json',
+      storedPath: '/tmp/airi-live2d',
+      fileUrl: 'file:///tmp/airi-live2d/airi.model3.json',
+      posterPath: null,
+      importedAtMs: 100,
+      updatedAtMs: 100,
+      status: 'ready',
+    },
+  });
+
+  assert.equal(model.presentation.backendKind, 'live2d');
+  assert.equal(model.presentation.avatarAssetRef, 'desktop-avatar://resource-live2d/airi.model3.json');
+  assert.equal(model.fallbackPresentation.backendKind, 'sprite2d');
+  assert.equal(model.fallbackSnapshot.presentation.backendKind, 'sprite2d');
+  assert.equal(model.viewportInput.assetRef, 'desktop-avatar://resource-live2d/airi.model3.json');
 });
 
 test('agent live avatar rail model preserves runtime-backed VRM presentation when present', () => {
@@ -82,5 +149,109 @@ test('agent live avatar rail model preserves runtime-backed VRM presentation whe
   assert.equal(model.presentation.backendKind, 'vrm');
   assert.equal(model.presentation.avatarAssetRef, 'https://cdn.nimi.test/scout.vrm');
   assert.equal(model.viewportInput.assetRef, 'https://cdn.nimi.test/scout.vrm');
+  assert.equal(model.fallbackPresentation.backendKind, 'vrm');
   assert.equal(model.snapshot.interaction.actionCue, 'Here with you');
+});
+
+test('agent live avatar rail model preserves voice phase while admitting pointer attention locally', () => {
+  const model = resolveChatAgentLiveAvatarRailModel({
+    selectedTarget: {
+      id: 'agent-4',
+      source: 'agent',
+      canonicalSessionId: 'thread-4',
+      title: 'Guide',
+      handle: '@guide',
+      bio: null,
+      avatarUrl: 'https://cdn.nimi.test/guide.png',
+      avatarFallback: 'G',
+      previewText: null,
+      updatedAt: null,
+      unreadCount: 0,
+      status: 'active',
+      isOnline: null,
+      metadata: {},
+    },
+    characterData: {
+      name: 'Guide',
+      interactionState: {
+        phase: 'speaking',
+        label: 'Speaking…',
+        emotion: 'focus',
+        amplitude: 0.7,
+        visemeId: 'ee',
+      },
+    },
+    pointerInteraction: {
+      hovered: true,
+      normalizedX: 0.55,
+      normalizedY: -0.35,
+      interactionBoost: 'engaged',
+    },
+  });
+
+  assert.equal(model.snapshot.interaction.phase, 'speaking');
+  assert.equal(model.snapshot.interaction.attentionTarget, 'pointer');
+  assert.equal(model.pointerInteraction.interactionBoost, 'engaged');
+});
+
+test('agent live avatar rail model falls back to idle pointer state when none is provided', () => {
+  const model = resolveChatAgentLiveAvatarRailModel({
+    selectedTarget: {
+      id: 'agent-5',
+      source: 'agent',
+      canonicalSessionId: 'thread-5',
+      title: 'Poster',
+      handle: '@poster',
+      bio: null,
+      avatarUrl: null,
+      avatarFallback: 'P',
+      previewText: null,
+      updatedAt: null,
+      unreadCount: 0,
+      status: 'active',
+      isOnline: null,
+      metadata: {},
+    },
+    characterData: {
+      name: 'Poster',
+      interactionState: {
+        phase: 'idle',
+      },
+    },
+  });
+
+  assert.deepEqual(model.pointerInteraction, createIdleChatAgentAvatarPointerInteractionState());
+  assert.equal(model.snapshot.interaction.attentionTarget, 'camera');
+});
+
+test('agent live avatar rail model falls back to sprite presentation when no local binding or runtime live backend exists', () => {
+  const model = resolveChatAgentLiveAvatarRailModel({
+    selectedTarget: {
+      id: 'agent-3',
+      source: 'agent',
+      canonicalSessionId: 'thread-3',
+      title: 'Poster',
+      handle: '@poster',
+      bio: null,
+      avatarUrl: 'https://cdn.nimi.test/poster.png',
+      avatarFallback: 'P',
+      previewText: null,
+      updatedAt: null,
+      unreadCount: 0,
+      status: 'active',
+      isOnline: null,
+      metadata: {},
+    },
+    characterData: {
+      name: 'Poster',
+      avatarUrl: 'https://cdn.nimi.test/poster.png',
+      interactionState: {
+        phase: 'idle',
+      },
+    },
+  });
+
+  assert.equal(model.presentation.backendKind, 'sprite2d');
+  assert.equal(model.presentation.avatarAssetRef, 'https://cdn.nimi.test/poster.png');
+  assert.equal(model.viewportInput.posterUrl, 'https://cdn.nimi.test/poster.png');
 });

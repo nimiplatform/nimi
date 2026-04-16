@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    chat_agent_store, chat_ai_store, desktop_release, desktop_updates, external_agent_gateway,
-    local_runtime, menu_bar_shell, runtime_bridge, runtime_mod,
+    chat_agent_store, chat_ai_store, desktop_agent_avatar_store, desktop_release, desktop_updates,
+    external_agent_gateway, local_runtime, menu_bar_shell, runtime_bridge, runtime_mod,
 };
 
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
@@ -358,6 +358,16 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             chat_agent_store::chat_agent_commit_turn_result,
             chat_agent_store::chat_agent_cancel_turn,
             chat_agent_store::chat_agent_rebuild_projection,
+            desktop_agent_avatar_store::desktop_agent_avatar_resource_pick_vrm,
+            desktop_agent_avatar_store::desktop_agent_avatar_resource_pick_live2d,
+            desktop_agent_avatar_store::desktop_agent_avatar_resource_import_vrm,
+            desktop_agent_avatar_store::desktop_agent_avatar_resource_import_live2d,
+            desktop_agent_avatar_store::desktop_agent_avatar_resource_list,
+            desktop_agent_avatar_store::desktop_agent_avatar_resource_delete,
+            desktop_agent_avatar_store::desktop_agent_avatar_resource_read_asset,
+            desktop_agent_avatar_store::desktop_agent_avatar_binding_get,
+            desktop_agent_avatar_store::desktop_agent_avatar_binding_set,
+            desktop_agent_avatar_store::desktop_agent_avatar_binding_clear,
             external_agent_gateway::external_agent_issue_token,
             external_agent_gateway::external_agent_revoke_token,
             external_agent_gateway::external_agent_list_tokens,
