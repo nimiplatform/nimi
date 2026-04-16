@@ -5,6 +5,7 @@ import {
   createRuntimeProtectedScopeHelper,
   MemoryCanonicalClass,
 } from '@nimiplatform/sdk/runtime';
+import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { summarizeCanonicalMemoryView } from './runtime-agent-memory';
 
@@ -18,6 +19,7 @@ export type RuntimeAgentPendingHookInspect = {
 
 export type RuntimeAgentInspectSnapshot = {
   lifecycleStatus: string | null;
+  presentationProfile?: AvatarPresentationProfile | null;
   executionState: string | null;
   statusText: string | null;
   activeWorldId: string | null;
@@ -126,6 +128,87 @@ function timestampToIso(timestamp?: { seconds: string; nanos: number }): string 
 function normalizeOptionalNumber(value: unknown): number | null {
   const normalized = Number(value);
   return Number.isFinite(normalized) ? normalized : null;
+}
+
+type ProtoStructLike = {
+  fields?: Record<string, ProtoValueLike>;
+};
+
+type ProtoValueLike = {
+  kind?: {
+    oneofKind?: 'nullValue' | 'numberValue' | 'stringValue' | 'boolValue' | 'structValue' | 'listValue';
+    nullValue?: number;
+    numberValue?: number;
+    stringValue?: string;
+    boolValue?: boolean;
+    structValue?: ProtoStructLike;
+    listValue?: {
+      values?: ProtoValueLike[];
+    };
+  };
+};
+
+function protoValueToJson(value?: ProtoValueLike): unknown {
+  switch (value?.kind?.oneofKind) {
+    case 'boolValue':
+      return value.kind.boolValue ?? false;
+    case 'numberValue':
+      return value.kind.numberValue ?? 0;
+    case 'stringValue':
+      return value.kind.stringValue ?? '';
+    case 'structValue':
+      return protoStructToJson(value.kind.structValue);
+    case 'listValue':
+      return (value.kind.listValue?.values || []).map((item) => protoValueToJson(item));
+    default:
+      return null;
+  }
+}
+
+function protoStructToJson(value?: ProtoStructLike): Record<string, unknown> {
+  const output: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value?.fields || {})) {
+    output[key] = protoValueToJson(item);
+  }
+  return output;
+}
+
+function parseAvatarBackendKind(value: unknown): AvatarPresentationProfile['backendKind'] | null {
+  const normalized = normalizeText(value);
+  if (
+    normalized === 'vrm'
+    || normalized === 'sprite2d'
+    || normalized === 'canvas2d'
+    || normalized === 'video'
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
+function parseAvatarPresentationProfile(value: unknown): AvatarPresentationProfile | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const backendKind = parseAvatarBackendKind(record.backendKind);
+  const avatarAssetRef = normalizeText(record.avatarAssetRef);
+  if (!backendKind || !avatarAssetRef) {
+    return null;
+  }
+  return {
+    backendKind,
+    avatarAssetRef,
+    expressionProfileRef: normalizeText(record.expressionProfileRef) || null,
+    idlePreset: normalizeText(record.idlePreset) || null,
+    interactionPolicyRef: normalizeText(record.interactionPolicyRef) || null,
+    defaultVoiceReference: normalizeText(record.defaultVoiceReference) || null,
+  };
+}
+
+function readAgentPresentationProfile(metadata?: ProtoStructLike): AvatarPresentationProfile | null {
+  const json = protoStructToJson(metadata);
+  return parseAvatarPresentationProfile(json.presentationProfile);
 }
 
 function formatLifecycleStatus(value: unknown): string | null {
@@ -424,6 +507,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         .filter(Boolean) as RuntimeAgentCanonicalMemoryInspect[];
       return {
         lifecycleStatus: formatLifecycleStatus(agentResponse.agent?.lifecycleStatus),
+        presentationProfile: readAgentPresentationProfile(agentResponse.agent?.metadata),
         executionState: formatExecutionState(stateResponse.state?.executionState),
         statusText: normalizeText(stateResponse.state?.statusText) || null,
         activeWorldId: activeWorldId || null,
@@ -447,6 +531,28 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
       };
     } catch (error) {
       throw normalizeRuntimeError(error, 'inspect_runtime_agent_core');
+    }
+  };
+
+  const getPresentationProfile = async (agentId: string): Promise<AvatarPresentationProfile | null> => {
+    const normalizedAgentId = normalizeText(agentId);
+    if (!normalizedAgentId) {
+      throw new Error('AGENT_ID_REQUIRED');
+    }
+    const runtime = getRuntime();
+    const subjectUserId = await resolveSubjectUserId();
+    const protectedScopes = getProtectedAccess();
+    try {
+      const response = await protectedScopes.withScopes(['runtime.agent.read'], (options) => runtime.agentCore.getAgent({
+        context: {
+          appId: runtime.appId,
+          subjectUserId,
+        },
+        agentId: normalizedAgentId,
+      }, options));
+      return readAgentPresentationProfile(response.agent?.metadata);
+    } catch (error) {
+      throw normalizeRuntimeError(error, 'inspect_runtime_agent_presentation');
     }
   };
 
@@ -783,6 +889,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     cancelHook,
     disableAutonomy,
     enableAutonomy,
+    getPresentationProfile,
     getPublicInspect,
     setAutonomyConfig,
     subscribePublicEvents,

@@ -1,4 +1,5 @@
 import type { JsonObject } from './shared.js';
+import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
 
 export type AgentLocalMessageRole = 'system' | 'user' | 'assistant';
 export type AgentLocalMessageStatus = 'pending' | 'complete' | 'error';
@@ -13,6 +14,7 @@ export type AgentLocalTargetSnapshot = {
   displayName: string;
   handle: string;
   avatarUrl: string | null;
+  presentationProfile?: AvatarPresentationProfile | null;
   worldId: string | null;
   worldName: string | null;
   bio: string | null;

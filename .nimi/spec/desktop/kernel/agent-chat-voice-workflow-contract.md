@@ -29,6 +29,8 @@ schema truth、或 state persistence mechanics。
 voice session truth；`conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）
 继续拥有 `voice_workflow.*` readiness truth；`llm-adapter-contract.md`
 （`D-LLM-005`）继续拥有 runtime-aligned voice route/API truth；
+`agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-058`）继续拥有 richer workflow
+signals 如何变成 avatar transient surface cues 的 truth；
 `.nimi/spec/runtime/kernel/voice-contract.md`（`K-VOICE-*`）继续拥有 `voice_workflow.tts_v2v`、
 `voice_workflow.tts_t2v`、`VoiceReference`、`VoiceAsset`、scenario job lifecycle、
 `ListPresetVoices`、以及 `ListVoiceAssets` 的 runtime canonical truth。
@@ -62,6 +64,8 @@ adjacent authority 边界固定为：
 - `agent-chat-voice-session-contract.md`（`D-LLM-040` ~ `D-LLM-046`）继续拥有 explicit
   voice session entry / exit、same-thread live continuity、listening mode、
   interruption、以及 transcript / caption truth
+- `agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-058`）继续拥有 workflow
+  progress / return-path 如何映射为 avatar surface cues 的 truth
 - `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）继续拥有
   `voice_workflow.*` selection / projection / execution snapshot truth，而不是 workflow
   product meaning

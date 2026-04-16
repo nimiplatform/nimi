@@ -191,7 +191,9 @@ function createScenarioJobResponse(input: {
   } as unknown as TestGetScenarioJobResponse;
 }
 
-function createExecuteScenarioResponse(): TestExecuteScenarioResponse {
+function createExecuteScenarioResponse(input: {
+  artifactOverrides?: Record<string, unknown>;
+} = {}): TestExecuteScenarioResponse {
   return {
     finishReason: 1,
     routeDecision: RoutePolicy.CLOUD,
@@ -211,6 +213,7 @@ function createExecuteScenarioResponse(): TestExecuteScenarioResponse {
       height: 0,
       sampleRateHz: 0,
       channels: 0,
+      ...input.artifactOverrides,
     }],
     trace: {
       traceId: 'trace-playback-ready',
@@ -300,6 +303,108 @@ test('voice workflow tracker projects playback back into the current thread when
   assert.equal(metadata?.artifactId, 'artifact-voice-ready');
   assert.equal(harness.updateTurnBeatCalls[0]?.status, 'delivered');
   assert.equal(harness.updateTurnBeatCalls[0]?.artifactId, 'artifact-voice-ready');
+});
+
+test('voice workflow tracker keeps playback cue envelope parity with plain synth playback', async () => {
+  const message = createWorkflowMessage({
+    workflowStatus: 'running',
+  });
+  const harness = createStoreHarness(message);
+
+  const result = await reconcileAgentChatVoiceWorkflowMessage({
+    message,
+    voiceExecutionSnapshot: createVoiceExecutionSnapshot(),
+    storeClient: harness.storeClient,
+    runtimeDeps: createRuntimeDeps({
+      client: {
+        appId: 'desktop-test',
+        ai: {
+          async getScenarioJob() {
+            return createScenarioJobResponse({
+              status: ScenarioJobStatus.COMPLETED,
+              traceId: 'trace-workflow-complete',
+            });
+          },
+          async executeScenario() {
+            return createExecuteScenarioResponse({
+              artifactOverrides: {
+                metadata: {
+                  fields: {
+                    timing: {
+                      kind: {
+                        oneofKind: 'structValue',
+                        structValue: {
+                          fields: {
+                            mouthCues: {
+                              kind: {
+                                oneofKind: 'listValue',
+                                listValue: {
+                                  values: [
+                                    {
+                                      kind: {
+                                        oneofKind: 'structValue',
+                                        structValue: {
+                                          fields: {
+                                            start: { kind: { oneofKind: 'numberValue', numberValue: 0 } },
+                                            end: { kind: { oneofKind: 'numberValue', numberValue: 110 } },
+                                            viseme: { kind: { oneofKind: 'stringValue', stringValue: 'aa' } },
+                                            amplitude: { kind: { oneofKind: 'numberValue', numberValue: 0.34 } },
+                                          },
+                                        },
+                                      },
+                                    },
+                                    {
+                                      kind: {
+                                        oneofKind: 'structValue',
+                                        structValue: {
+                                          fields: {
+                                            start: { kind: { oneofKind: 'numberValue', numberValue: 110 } },
+                                            end: { kind: { oneofKind: 'numberValue', numberValue: 240 } },
+                                            phoneme: { kind: { oneofKind: 'stringValue', stringValue: 'oh' } },
+                                            weight: { kind: { oneofKind: 'numberValue', numberValue: 0.62 } },
+                                          },
+                                        },
+                                      },
+                                    },
+                                  ],
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            });
+          },
+        },
+      },
+    }),
+    now: () => 500,
+  });
+
+  assert.equal(result.updatedMessage?.kind, 'voice');
+  const metadata = parseAgentChatVoiceWorkflowMetadata(result.updatedMessage?.metadataJson);
+  assert.deepEqual(metadata?.playbackCueEnvelope, {
+    version: 'v1',
+    source: 'provider',
+    cues: [
+      {
+        offsetMs: 0,
+        durationMs: 110,
+        amplitude: 0.34,
+        visemeId: 'aa',
+      },
+      {
+        offsetMs: 110,
+        durationMs: 130,
+        amplitude: 0.62,
+        visemeId: 'oh',
+      },
+    ],
+  });
 });
 
 test('voice workflow tracker completes honestly as text when no current voice route is configured', async () => {

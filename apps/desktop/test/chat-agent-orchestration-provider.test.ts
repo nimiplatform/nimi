@@ -223,6 +223,7 @@ function createRuntimeAdapter(overrides: Partial<AgentLocalChatRuntimeAdapter>):
         mimeType: 'audio/mpeg',
         artifactId: 'artifact-voice-default',
         traceId: 'trace-voice',
+        playbackCueEnvelope: null,
       };
     },
     async submitVoiceWorkflow() {
@@ -1995,6 +1996,7 @@ test('agent local chat provider executes voice actions and keeps video deferred 
           mimeType: 'audio/mpeg',
           artifactId: 'artifact-voice-1',
           traceId: 'trace-voice-1',
+          playbackCueEnvelope: null,
         };
       },
       async generateImage() {
@@ -2957,6 +2959,24 @@ test('agent local chat continuity adapter commits canonical voice projection mes
       artifactId: 'voice-artifact-1',
       sourceMessageId: 'turn-voice-1:message:0',
       sourceActionId: 'action-voice-1',
+      playbackCueEnvelope: {
+        version: 'v1',
+        source: 'runtime',
+        cues: [
+          {
+            offsetMs: 0,
+            durationMs: 140,
+            amplitude: 0.24,
+            visemeId: 'aa',
+          },
+          {
+            offsetMs: 140,
+            durationMs: 160,
+            amplitude: 0.58,
+            visemeId: 'ou',
+          },
+        ],
+      },
     },
   });
 
@@ -3043,6 +3063,24 @@ test('agent local chat continuity adapter commits canonical voice projection mes
           artifactId: 'voice-artifact-1',
           metadataJson: {
             playbackPrompt: '轻声说晚安',
+            playbackCueEnvelope: {
+              version: 'v1',
+              source: 'runtime',
+              cues: [
+                {
+                  offsetMs: 0,
+                  durationMs: 140,
+                  amplitude: 0.24,
+                  visemeId: 'aa',
+                },
+                {
+                  offsetMs: 140,
+                  durationMs: 160,
+                  amplitude: 0.58,
+                  visemeId: 'ou',
+                },
+              ],
+            },
             sourceActionId: 'action-voice-1',
             sourceMessageId: 'turn-voice-1:message:0',
             transcriptText: '晚安，记得早点休息。',

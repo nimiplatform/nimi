@@ -1,5 +1,10 @@
 import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import type { AgentVoiceWorkflowCapability } from './conversation-capability';
+import type { AgentVoicePlaybackCueEnvelope } from './chat-agent-voice-playback-envelope';
+import {
+  parseAgentVoicePlaybackCueEnvelope,
+  toAgentVoicePlaybackCueEnvelopeJson,
+} from './chat-agent-voice-playback-envelope';
 
 export type AgentChatVoiceWorkflowType = 'tts_v2v' | 'tts_t2v';
 
@@ -46,6 +51,7 @@ export type AgentChatVoiceWorkflowMessageMetadata = {
   mediaUrl?: string | null;
   mediaMimeType?: string | null;
   artifactId?: string | null;
+  playbackCueEnvelope?: AgentVoicePlaybackCueEnvelope | null;
 };
 
 function normalizeText(value: unknown): string {
@@ -104,6 +110,9 @@ export function toAgentChatVoiceWorkflowMetadataJson(
     mediaUrl: metadata.mediaUrl || null,
     mediaMimeType: metadata.mediaMimeType || null,
     artifactId: metadata.artifactId || null,
+    playbackCueEnvelope: metadata.playbackCueEnvelope
+      ? toAgentVoicePlaybackCueEnvelopeJson(metadata.playbackCueEnvelope)
+      : null,
   };
 }
 
@@ -169,5 +178,6 @@ export function parseAgentChatVoiceWorkflowMetadata(
     mediaUrl: normalizeText(record.mediaUrl) || null,
     mediaMimeType: normalizeText(record.mediaMimeType) || null,
     artifactId: normalizeText(record.artifactId) || null,
+    playbackCueEnvelope: parseAgentVoicePlaybackCueEnvelope(record.playbackCueEnvelope),
   };
 }

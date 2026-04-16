@@ -1,3 +1,5 @@
+import { resolveAgentVoicePlaybackAmplitude } from './chat-agent-voice-playback-state';
+
 type MediaStreamTrackLike = {
   stop: () => void;
 };
@@ -57,11 +59,13 @@ type StartAgentVoiceCaptureSessionDeps = {
   ) => MediaRecorderLike;
   isTypeSupportedImpl?: (mimeType: string) => boolean;
   autoStopMode?: 'manual' | 'silence';
+  onLevelChange?: (amplitude: number) => void;
   silenceWindowMs?: number;
   silenceThreshold?: number;
   createSilenceAutoStopHandleImpl?: (input: {
     stream: MediaStreamLike;
     requestStop: () => void;
+    onLevelChange?: (amplitude: number) => void;
     silenceWindowMs: number;
     silenceThreshold: number;
     createAudioContextImpl?: () => AudioContextLike;
@@ -176,6 +180,7 @@ function stopTracks(stream: MediaStreamLike | null) {
 function createSilenceAutoStopHandle(input: {
   stream: MediaStreamLike;
   requestStop: () => void;
+  onLevelChange?: (amplitude: number) => void;
   silenceWindowMs: number;
   silenceThreshold: number;
   createAudioContextImpl?: () => AudioContextLike;
@@ -223,12 +228,9 @@ function createSilenceAutoStopHandle(input: {
     }
     try {
       analyser.getByteTimeDomainData(samples);
-      let sumSquares = 0;
-      for (const sample of samples) {
-        const normalized = (sample - 128) / 128;
-        sumSquares += normalized * normalized;
-      }
-      const rms = Math.sqrt(sumSquares / samples.length);
+      const amplitude = resolveAgentVoicePlaybackAmplitude(samples);
+      input.onLevelChange?.(amplitude);
+      const rms = amplitude / 3.2;
       const nowMs = now();
       if (rms >= input.silenceThreshold) {
         observedSpeech = true;
@@ -242,6 +244,62 @@ function createSilenceAutoStopHandle(input: {
     } catch {
       dispose();
       input.requestStop();
+    }
+  };
+
+  timerId = setTimer(poll, SILENCE_POLL_INTERVAL_MS);
+  return { dispose };
+}
+
+function createVoiceLevelMonitorHandle(input: {
+  stream: MediaStreamLike;
+  onLevelChange: (amplitude: number) => void;
+  createAudioContextImpl?: () => AudioContextLike;
+  setTimeoutImpl?: (handler: () => void, timeoutMs: number) => unknown;
+  clearTimeoutImpl?: (timerId: unknown) => void;
+}): AgentVoiceCaptureAutoStopHandle {
+  const createAudioContext = input.createAudioContextImpl || null;
+  if (!createAudioContext) {
+    throw new Error('Voice level monitoring is unavailable because Web Audio is not supported.');
+  }
+  const audioContext = createAudioContext();
+  const source = audioContext.createMediaStreamSource(input.stream);
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 2048;
+  source.connect(analyser);
+  void audioContext.resume?.();
+
+  const setTimer = input.setTimeoutImpl || ((handler: () => void, timeoutMs: number) => setTimeout(handler, timeoutMs));
+  const clearTimer = input.clearTimeoutImpl || ((timerId: unknown) => clearTimeout(timerId as ReturnType<typeof setTimeout>));
+  const samples = new Uint8Array(analyser.fftSize);
+  let disposed = false;
+  let timerId: unknown = null;
+
+  const dispose = () => {
+    if (disposed) {
+      return;
+    }
+    disposed = true;
+    input.onLevelChange(0);
+    if (timerId !== null) {
+      clearTimer(timerId);
+      timerId = null;
+    }
+    source.disconnect?.();
+    analyser.disconnect?.();
+    void audioContext.close?.();
+  };
+
+  const poll = () => {
+    if (disposed) {
+      return;
+    }
+    try {
+      analyser.getByteTimeDomainData(samples);
+      input.onLevelChange(resolveAgentVoicePlaybackAmplitude(samples));
+      timerId = setTimer(poll, SILENCE_POLL_INTERVAL_MS);
+    } catch {
+      dispose();
     }
   };
 
@@ -267,6 +325,7 @@ export async function startAgentVoiceCaptureSession(
   let resolveStop: ((value: AgentVoiceCaptureResult) => void) | null = null;
   let rejectStop: ((reason?: unknown) => void) | null = null;
   let autoStopHandle: AgentVoiceCaptureAutoStopHandle | null = null;
+  let levelMonitorHandle: AgentVoiceCaptureAutoStopHandle | null = null;
 
   const ensureStopPromise = () => {
     if (!stopPromise) {
@@ -294,6 +353,8 @@ export async function startAgentVoiceCaptureSession(
   const cleanup = () => {
     autoStopHandle?.dispose();
     autoStopHandle = null;
+    levelMonitorHandle?.dispose();
+    levelMonitorHandle = null;
     recorder.ondataavailable = null;
     recorder.onerror = null;
     recorder.onstop = null;
@@ -358,6 +419,7 @@ export async function startAgentVoiceCaptureSession(
       autoStopHandle = buildAutoStopHandle({
         stream,
         requestStop,
+        onLevelChange: deps.onLevelChange,
         silenceWindowMs,
         silenceThreshold,
         createAudioContextImpl: resolveCreateAudioContext(deps) || undefined,
@@ -368,6 +430,18 @@ export async function startAgentVoiceCaptureSession(
     } catch (error) {
       stopTracks(stream);
       throw error;
+    }
+  } else if (deps.onLevelChange) {
+    try {
+      levelMonitorHandle = createVoiceLevelMonitorHandle({
+        stream,
+        onLevelChange: deps.onLevelChange,
+        createAudioContextImpl: resolveCreateAudioContext(deps) || undefined,
+        setTimeoutImpl: deps.setTimeoutImpl,
+        clearTimeoutImpl: deps.clearTimeoutImpl,
+      });
+    } catch {
+      deps.onLevelChange(0);
     }
   }
 

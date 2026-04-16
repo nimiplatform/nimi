@@ -16,6 +16,7 @@ import type {
   AgentVoiceWorkflowCapability,
   AISnapshot,
 } from './conversation-capability';
+import type { AgentVoicePlaybackCueEnvelope } from './chat-agent-voice-playback-envelope';
 import type {
   ChatAgentVoiceWorkflowReferenceAudio,
   ChatAgentVoiceWorkflowSubmitInput,
@@ -96,7 +97,13 @@ export interface AgentLocalChatRuntimeAdapter {
   }>;
   synthesizeVoice: (
     request: AgentLocalChatVoiceRequest,
-  ) => Promise<{ mediaUrl: string; mimeType: string; artifactId: string | null; traceId: string }>;
+  ) => Promise<{
+    mediaUrl: string;
+    mimeType: string;
+    artifactId: string | null;
+    traceId: string;
+    playbackCueEnvelope: AgentVoicePlaybackCueEnvelope | null;
+  }>;
   submitVoiceWorkflow: (
     request: AgentLocalChatVoiceWorkflowRequest,
   ) => Promise<{

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
 
 export const CONVERSATION_MODES = ['ai', 'human', 'agent', 'group'] as const;
 export type ConversationMode = (typeof CONVERSATION_MODES)[number];
@@ -188,6 +189,7 @@ export type ChatComposerAttachmentsSlot<TAttachment = never> =
 
 export type ConversationCharacterData = {
   avatarUrl?: string | null;
+  avatarPresentationProfile?: AvatarPresentationProfile | null;
   avatarFallback?: string;
   name: string;
   handle?: string | null;
@@ -213,6 +215,9 @@ export type ConversationInteractionStateSummary = {
   phase?: ConversationInteractionPhase | null;
   busy?: boolean;
   label?: string | null;
+  emotion?: 'neutral' | 'joy' | 'focus' | 'calm' | 'playful' | 'concerned' | 'surprised' | null;
+  amplitude?: number | null;
+  visemeId?: string | null;
 };
 
 export type ConversationPresenceTheme = {

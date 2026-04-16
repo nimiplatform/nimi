@@ -184,6 +184,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 **SDK gRPC 路径**（D-BOOT-004 → SDK Runtime client）：
 - 应用层 Runtime 能力：AI 推理（ExecuteScenario、StreamScenario）、Connector 管理（CreateConnector、ListConnectors 等）、Auth/Grant（RegisterApp、OpenSession 等）、场景任务（SubmitScenarioJob 等）
 - 本地资产控制面：`RuntimeLocalService` 负责 local asset inventory 的 list、import/install、health/readiness、intake、audit、transfer session 与 progress watch；`StartLocalAsset` / `StopLocalAsset` 保留为 runtime 维护能力，不是 Desktop 产品主路径
+- agent presentation projection：runtime-owned persistent `AgentPresentationProfile` 通过 `runtime.agentCore.*` 暴露；Desktop avatar current-surface state 不得借道升格为 IPC canonical truth
 - Phase 1 健康监控（GetRuntimeHealth、ListAIProviderHealth、SubscribeRuntimeHealthEvents、SubscribeAIProviderHealthEvents）— 见 S-TRANSPORT-007 Mode D Phase 1 投影
 - Phase 2 服务（Workflow、Knowledge、Audit、AppMessage、Script）
 
@@ -206,6 +207,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 **分界原则**：
 - SDK 路径承载**应用逻辑 RPC**——调用语义与平台无关，独立 SDK 消费者可复用。
 - SDK 路径同时承载 local model 控制面真源；desktop 不得以 Tauri host state 取代 `RuntimeLocalService`。
+- avatar persistent presentation profile 属于 SDK/runtime path；avatar transient interaction state 属于 renderer surface-local truth，不得发明第二套 Tauri command owner。
 - IPC 桥路径承载**平台管理操作与原生壳能力**——依赖 Tauri backend 进程管理/文件选择/系统集成能力，与 Desktop 生命周期耦合。
 - 独立 SDK 消费者（无 Tauri 环境）需通过 `nimi` CLI 或外部工具完成 IPC 桥路径的等效操作（如 `nimi daemon start`、`nimi config set`、`nimi local install`）。
 

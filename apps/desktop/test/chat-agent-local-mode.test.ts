@@ -79,6 +79,7 @@ test('agent local mode filters social snapshot to agent friends and fails close 
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,
+    presentationProfile: null,
     worldId: 'world-1',
     worldName: 'World One',
     bio: 'friend agent',
@@ -111,6 +112,7 @@ test('agent local mode keeps one thread per agent when restoring selection', () 
         displayName: 'Agent One',
         handle: 'agent-one',
         avatarUrl: null,
+        presentationProfile: null,
         worldId: null,
         worldName: null,
         bio: null,
@@ -129,6 +131,7 @@ test('agent local mode keeps one thread per agent when restoring selection', () 
         displayName: 'Agent Two',
         handle: 'agent-two',
         avatarUrl: null,
+        presentationProfile: null,
         worldId: null,
         worldName: null,
         bio: null,
@@ -1166,6 +1169,7 @@ test('agent voice runtime returns cached playback artifact from audio.synthesize
     text?: unknown;
     route?: unknown;
     audioFormat?: unknown;
+    timingMode?: unknown;
   }> = [];
 
   const result = await synthesizeChatAgentVoiceRuntime({
@@ -1188,6 +1192,21 @@ test('agent voice runtime returns cached playback artifact from audio.synthesize
                 artifactId: 'voice-artifact-1',
                 mimeType: 'audio/mpeg',
                 uri: 'file:///tmp/voice-turn-1.mp3',
+                speechAlignment: {
+                  unit: 2,
+                  tokens: [
+                    {
+                      token: '晚',
+                      startMs: '0',
+                      endMs: '120',
+                    },
+                    {
+                      token: '安',
+                      startMs: '120',
+                      endMs: '260',
+                    },
+                  ],
+                },
               }],
               trace: {
                 traceId: 'trace-voice-1',
@@ -1203,9 +1222,28 @@ test('agent voice runtime returns cached playback artifact from audio.synthesize
   assert.equal(capturedRequests[0]?.text, '晚安，记得早点休息。');
   assert.equal(capturedRequests[0]?.route, 'local');
   assert.equal(capturedRequests[0]?.audioFormat, 'mp3');
+  assert.equal(capturedRequests[0]?.timingMode, 'char');
   assert.equal(result.mediaUrl, 'file:///tmp/voice-turn-1.mp3');
   assert.equal(result.mimeType, 'audio/mpeg');
   assert.equal(result.artifactId, 'voice-artifact-1');
+  assert.deepEqual(result.playbackCueEnvelope, {
+    version: 'v1',
+    source: 'runtime',
+    cues: [
+      {
+        offsetMs: 0,
+        durationMs: 120,
+        amplitude: 0.44,
+        visemeId: 'ih',
+      },
+      {
+        offsetMs: 120,
+        durationMs: 140,
+        amplitude: 0.44,
+        visemeId: 'oh',
+      },
+    ],
+  });
 });
 
 test('agent image runtime injects managed image workflow profile entries for local-import z_image_turbo routes', async () => {

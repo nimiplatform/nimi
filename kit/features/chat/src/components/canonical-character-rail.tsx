@@ -1,5 +1,11 @@
 import type { RefObject } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
+import {
+  AvatarStage,
+  createAvatarStageSnapshot,
+  resolveAvatarPresentationProfile,
+  resolveSpriteAvatarImageUrl,
+} from '@nimiplatform/nimi-kit/features/avatar';
 import type { ConversationCharacterData, ConversationTargetSummary } from '../types.js';
 export const CANONICAL_NO_BIO_FALLBACK = 'This Agent has no public bio.';
 
@@ -89,6 +95,37 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
   const presenceBackground = 'rgba(255,255,255,0.86)';
   const presenceDot = theme?.accentStrong || '#34d399';
   const relationshipState = props.characterData?.relationshipState || 'new';
+  const avatarPresentationProfile = resolveAvatarPresentationProfile({
+    presentation: props.characterData?.avatarPresentationProfile,
+    fallbackAssetRef: props.characterData?.avatarUrl || null,
+    fallbackProfileRef: 'fallback://character',
+  });
+  const avatarImageUrl = resolveSpriteAvatarImageUrl(
+    avatarPresentationProfile,
+    props.characterData?.avatarUrl || null,
+  );
+  const avatarSnapshot = createAvatarStageSnapshot(
+    avatarPresentationProfile,
+    {
+      phase: props.characterData?.interactionState?.phase === 'loading'
+        ? 'transitioning'
+        : props.characterData?.interactionState?.phase === 'thinking'
+          ? 'thinking'
+          : props.characterData?.interactionState?.phase === 'listening'
+            ? 'listening'
+            : props.characterData?.interactionState?.phase === 'speaking'
+              ? 'speaking'
+              : 'idle',
+      emotion: props.characterData?.interactionState?.emotion || undefined,
+      actionCue: presenceState.label,
+      amplitude: typeof props.characterData?.interactionState?.amplitude === 'number'
+        ? props.characterData.interactionState.amplitude
+        : props.characterData?.interactionState?.busy
+          ? 0.42
+          : 0.08,
+      visemeId: props.characterData?.interactionState?.visemeId || undefined,
+    },
+  );
 
   return (
     <aside
@@ -138,15 +175,15 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
                 className="absolute inset-[-12px] rounded-full border border-white/75"
                 style={{ boxShadow: `0 22px 56px ${theme?.accentSoft || 'rgba(16,185,129,0.18)'}` }}
               />
-              <span className="relative flex h-44 w-44 items-center justify-center overflow-hidden rounded-full border border-white/90 bg-white/82 shadow-[0_24px_60px_rgba(15,23,42,0.12)]">
-                {props.characterData?.avatarUrl ? (
-                  <img src={props.characterData.avatarUrl} alt={props.characterData.name} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-6xl font-black text-slate-900">
-                    {props.characterData?.avatarFallback || props.selectedTarget.avatarFallback || props.selectedTarget.title.charAt(0) || '?'}
-                  </span>
-                )}
-              </span>
+              <AvatarStage
+                snapshot={avatarSnapshot}
+                label={props.characterData?.name || props.selectedTarget.title}
+                imageUrl={avatarImageUrl}
+                fallbackLabel={props.characterData?.avatarFallback || props.selectedTarget.avatarFallback || props.selectedTarget.title}
+                statusLabel={presenceState.label}
+                size="lg"
+                className="relative"
+              />
             </button>
           </div>
           <div className="shrink-0 space-y-4 pb-4 text-center">

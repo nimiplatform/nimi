@@ -72,6 +72,7 @@ export async function synthesizeChatAgentVoiceRuntime(
     route: resolved.source,
     connectorId: normalizeText(resolved.connectorId) || undefined,
     audioFormat: 'mp3',
+    timingMode: 'char',
     metadata,
     signal: input.signal,
   });
@@ -86,6 +87,7 @@ export async function synthesizeChatAgentVoiceRuntime(
   return {
     ...media,
     traceId: normalizeText(response.trace?.traceId) || normalizeText(metadata.traceId),
+    playbackCueEnvelope: media.playbackCueEnvelope,
   };
 }
 
@@ -297,7 +299,7 @@ export async function synthesizeChatAgentVoiceReferenceRuntime(
           pitch: 0,
           volume: 0,
           emotion: '',
-          timingMode: 0,
+          timingMode: 3,
           voiceRef: toRuntimeVoiceReference(input.voiceReference),
         },
       },
@@ -324,6 +326,7 @@ export async function synthesizeChatAgentVoiceReferenceRuntime(
     ...media,
     traceId: normalizeText((response as { trace?: { traceId?: string } }).trace?.traceId)
       || normalizeText(callOptions.metadata.traceId),
+    playbackCueEnvelope: media.playbackCueEnvelope,
   };
 }
 

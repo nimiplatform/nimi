@@ -67,6 +67,7 @@
     "@ai-sdk/openai-compatible": "2.0.35",
     "@nimiplatform/nimi-kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
+    "@pixiv/three-vrm": "3.4.4",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",

@@ -14,7 +14,8 @@
 message-action envelope、follow-up-turn action、以及 model-generated modality prompt
 semantics 固定由 `agent-chat-message-action-contract.md`
 （`D-LLM-027` ~ `D-LLM-033`）拥有；本文件只保留 single-message / turn-mode /
-experience-policy truth。
+experience-policy truth。avatar transient surface semantics 固定由
+`agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-058`）拥有。
 
 ## D-LLM-022 — Canonical Behavior Authority Home
 
@@ -32,6 +33,7 @@ adjacent authority 边界固定为：
   message-action envelope、follow-up-turn action、以及 model-generated modality prompt
   payload truth
 - `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）继续拥有 capability selection / projection / execution snapshot truth
+- `agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-058`）继续拥有 avatar transient surface / interaction-state truth
 - `ai-profile-config-contract.md` 继续拥有 `AIConfig` / `AISnapshot` authority
 - `state-contract.md` 继续拥有 persistence/store ownership
 - `streaming-consumption-contract.md` 继续拥有 stream lifecycle / cancel / retry semantics

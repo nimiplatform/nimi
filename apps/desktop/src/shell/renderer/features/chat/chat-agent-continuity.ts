@@ -16,6 +16,7 @@ import type {
   AgentLocalChatVoiceState,
   AgentLocalTextMessageState,
 } from './chat-agent-turn-plan';
+import { toAgentVoicePlaybackCueEnvelopeJson } from './chat-agent-voice-playback-envelope';
 import { loadDesktopAgentRuntimeMemoryContext } from './chat-agent-runtime-memory';
 
 type AgentLocalChatStoreClient = Pick<
@@ -212,6 +213,11 @@ function buildVoiceProjectionMessage(
     playbackPrompt: voiceState.prompt,
     sourceMessageId: voiceState.sourceMessageId,
     sourceActionId: voiceState.sourceActionId,
+    ...((voiceState.status === 'complete' && voiceState.playbackCueEnvelope)
+      ? {
+        playbackCueEnvelope: toAgentVoicePlaybackCueEnvelopeJson(voiceState.playbackCueEnvelope),
+      }
+      : {}),
   };
   const shouldRenderAsVoice = voiceState.status === 'complete'
     && Boolean(voiceState.mediaUrl);

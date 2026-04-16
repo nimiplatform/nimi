@@ -52,6 +52,14 @@ function sampleTarget(): AgentLocalTargetSnapshot {
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,
+    presentationProfile: {
+      backendKind: 'canvas2d',
+      avatarAssetRef: 'fallback://companion',
+      expressionProfileRef: null,
+      idlePreset: null,
+      interactionPolicyRef: null,
+      defaultVoiceReference: null,
+    },
     worldId: null,
     worldName: null,
     bio: 'friend agent',
@@ -153,21 +161,37 @@ function createSubmitSession() {
 function resolveSurfaceState(input: {
   composerReady: boolean;
   activeTarget: AgentLocalTargetSnapshot | null;
+  activeThreadId?: string | null;
   submittingThreadId: string | null;
   footerViewState: AgentFooterViewState;
   voiceSessionState?: AgentVoiceSessionShellState;
+  voiceCaptureState?: {
+    active: boolean;
+    amplitude: number;
+  } | null;
+  voicePlaybackState?: {
+    threadId: string;
+    messageId: string;
+    active: boolean;
+    amplitude: number;
+    visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
+  } | null;
 }) {
   return resolveAgentConversationSurfaceState({
     ...input,
+    activeThreadId: input.activeThreadId ?? 'thread-1',
     labels: {
       title: 'Agent Chat',
       sendingDisabledReason: 'The agent is replying…',
       composerPlaceholderWithTarget: `Talk to ${input.activeTarget?.displayName || 'this agent'}…`,
       composerPlaceholderWithoutTarget: 'Select an agent to start chatting…',
+      voiceSpeakingLabel: 'Speaking…',
       voiceHandsFreeLabel: 'Hands-free on (foreground only)',
       voiceListeningLabel: 'Listening',
       voiceTranscribingLabel: 'Transcribing…',
     },
+    voiceCaptureState: input.voiceCaptureState ?? null,
+    voicePlaybackState: input.voicePlaybackState ?? null,
     voiceSessionState: input.voiceSessionState || {
       status: 'idle',
       mode: 'push-to-talk',
@@ -193,7 +217,10 @@ test('agent visible state disables composer and marks character thinking while s
   assert.deepEqual(surfaceState.character.interactionState, {
     phase: 'thinking',
     busy: true,
+    emotion: 'focus',
+    amplitude: 0.42,
   });
+  assert.deepEqual(surfaceState.character.avatarPresentationProfile, sampleTarget().presentationProfile);
   assert.equal(surfaceState.footer.shouldRender, true);
   assert.equal(surfaceState.footer.pendingFirstBeat, true);
 });
@@ -215,6 +242,8 @@ test('agent visible state falls back to targetless placeholder and idle characte
   assert.deepEqual(surfaceState.character.interactionState, {
     phase: 'idle',
     busy: false,
+    emotion: 'neutral',
+    amplitude: 0.08,
   });
   assert.equal(surfaceState.footer.shouldRender, false);
 });
@@ -239,6 +268,93 @@ test('agent visible state surfaces foreground hands-free as an admitted idle lab
     phase: 'idle',
     busy: false,
     label: 'Hands-free on (foreground only)',
+    emotion: 'calm',
+    amplitude: 0.14,
+  });
+});
+
+test('agent visible state uses live microphone amplitude while listening', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    submittingThreadId: null,
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+    voiceSessionState: {
+      status: 'listening',
+      mode: 'push-to-talk',
+      message: null,
+    },
+    voiceCaptureState: {
+      active: true,
+      amplitude: 0.47,
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'listening',
+    busy: true,
+    label: 'Listening',
+    emotion: 'calm',
+    amplitude: 0.47,
+  });
+});
+
+test('agent visible state prefers active thread voice playback cues for speaking avatar state', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    activeThreadId: 'thread-1',
+    submittingThreadId: null,
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+    voicePlaybackState: {
+      threadId: 'thread-1',
+      messageId: 'assistant-voice-1',
+      active: true,
+      amplitude: 0.58,
+      visemeId: 'oh',
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'speaking',
+    busy: true,
+    label: 'Speaking…',
+    emotion: 'joy',
+    amplitude: 0.58,
+    visemeId: 'oh',
+  });
+});
+
+test('agent visible state ignores voice playback cues from a different thread', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    activeThreadId: 'thread-1',
+    submittingThreadId: null,
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+    voicePlaybackState: {
+      threadId: 'thread-2',
+      messageId: 'assistant-voice-2',
+      active: true,
+      amplitude: 0.88,
+      visemeId: 'aa',
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'idle',
+    busy: false,
+    emotion: 'neutral',
+    amplitude: 0.08,
   });
 });
 

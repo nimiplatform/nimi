@@ -50,6 +50,43 @@ function createRuntimeMock() {
         return {
           agent: {
             lifecycleStatus: 2,
+            metadata: {
+              fields: {
+                presentationProfile: {
+                  kind: {
+                    oneofKind: 'structValue',
+                    structValue: {
+                      fields: {
+                        backendKind: {
+                          kind: {
+                            oneofKind: 'stringValue',
+                            stringValue: 'sprite2d',
+                          },
+                        },
+                        avatarAssetRef: {
+                          kind: {
+                            oneofKind: 'stringValue',
+                            stringValue: 'https://cdn.nimi.test/agents/agent-1.png',
+                          },
+                        },
+                        idlePreset: {
+                          kind: {
+                            oneofKind: 'stringValue',
+                            stringValue: 'companion.idle.soft',
+                          },
+                        },
+                        defaultVoiceReference: {
+                          kind: {
+                            oneofKind: 'stringValue',
+                            stringValue: 'voice://agent-1/default',
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
             autonomy: {
               enabled: true,
               usedTokensInWindow: '88',
@@ -420,6 +457,14 @@ test('runtime agent inspect adapter projects public state and pending hook summa
   const snapshot = await adapter.getPublicInspect('agent-1');
 
   assert.equal(snapshot.lifecycleStatus, 'active');
+  assert.deepEqual(snapshot.presentationProfile, {
+    backendKind: 'sprite2d',
+    avatarAssetRef: 'https://cdn.nimi.test/agents/agent-1.png',
+    expressionProfileRef: null,
+    idlePreset: 'companion.idle.soft',
+    interactionPolicyRef: null,
+    defaultVoiceReference: 'voice://agent-1/default',
+  });
   assert.equal(snapshot.executionState, 'life-pending');
   assert.equal(snapshot.statusText, 'waiting to follow up');
   assert.equal(snapshot.activeWorldId, 'world-1');
@@ -469,6 +514,28 @@ test('runtime agent inspect adapter projects public state and pending hook summa
     tokenId: 'protected-token-id',
     secret: 'protected-token-secret',
   });
+});
+
+test('runtime agent inspect adapter projects persistent presentation profile without loading inspect extras', async () => {
+  const { runtime, calls } = createRuntimeMock();
+  const adapter = createRuntimeAgentInspectAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+  });
+
+  const profile = await adapter.getPresentationProfile('agent-1');
+
+  assert.deepEqual(profile, {
+    backendKind: 'sprite2d',
+    avatarAssetRef: 'https://cdn.nimi.test/agents/agent-1.png',
+    expressionProfileRef: null,
+    idlePreset: 'companion.idle.soft',
+    interactionPolicyRef: null,
+    defaultVoiceReference: 'voice://agent-1/default',
+  });
+  assert.equal(calls.getAgent.length, 1);
+  assert.equal(calls.getAgentState.length, 0);
+  assert.equal(calls.queryMemory.length, 0);
 });
 
 test('runtime agent inspect adapter enables and disables autonomy through admitted runtime writes', async () => {

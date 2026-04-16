@@ -118,6 +118,25 @@
 - Default UI surfaces should cover baseline styling and baseline interaction behavior so consuming apps do not need to rebuild the same shell.
 - Runtime and realm are distinct first-party seams and must not be treated as interchangeable labels.
 
+## P-KIT-071 — Avatar Feature Module
+
+- `kit/features/avatar` is the admitted reusable avatar surface for agent presentation in Nimi apps.
+- It must publish aggregate, `/headless`, `/ui`, and `/runtime` surfaces on the single `@nimiplatform/nimi-kit` package.
+- It may additionally publish backend-specific optional renderer surfaces such as `/vrm` when those surfaces preserve the same avatar semantic contracts and do not force heavyweight renderer/runtime assumptions into the default `ui` surface.
+- `headless` owns normalized avatar presentation inputs, transient interaction-state contracts, and reusable controller logic.
+- `ui` owns the default opinionated avatar stage shell that consuming apps may place without rebuilding a parallel baseline renderer shell.
+- `runtime` may bind `getPlatformClient().runtime` only for runtime-owned persistent agent presentation projection; it must not absorb app stores, platform bridges, or renderer-local transient state ownership.
+- Optional backend-specific renderer surfaces must remain renderer-implementation seams only; they must not re-own persistent presentation truth, transient interaction truth, or app-specific placement policy.
+- `kit/features/chat` and app-local shells may consume `kit/features/avatar`, but they must not re-own avatar semantics or create a parallel chat-private avatar contract.
+
+## P-KIT-072 — Avatar Ownership Hardcut
+
+- `kit/features/avatar` consumes runtime-owned persistent `AgentPresentationProfile` truth and app-owned / desktop-owned transient `AvatarInteractionState`; it does not own either canonical layer.
+- The module must not own canonical agent identity, canonical memory, voice workflow truth, voice asset truth, thread continuity truth, or app-specific permission policy.
+- The module must not import app stores, Tauri/Electron bridges, or runtime internal code directly.
+- Surface-specific placement, permissions, and orchestration remain app-owned; avatar renderer semantics remain reusable kit-owned.
+- Runtime-aware avatar helpers must fail closed when required presentation profile fields are absent or unresolved; they must not invent fallback avatar assets, provider voices, or surface-local pseudo-success truth.
+
 ## P-KIT-080 — Adapter Injection Contract
 
 - Every feature module must publish its adapter contract in the registry before adoption.

@@ -34,6 +34,7 @@
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
 | `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 resolved message / action truth |
 | `agent-chat-behavior-contract.md` | `D-LLM-*` | Agent chat generic behavior semantics、single-message / turn-mode / experience-policy authority；不拥有 message-action truth |
+| `agent-avatar-surface-contract.md` | `D-LLM-*` | Agent avatar transient surface authority：`AvatarInteractionState`、chat/avatar landing semantics、and reusable kit avatar consumer boundary |
 | `agent-chat-message-action-contract.md` | `D-LLM-*` | Agent chat single-message / unified action envelope authority、model-generated modality prompt semantics、follow-up-turn defer boundary |
 | `agent-chat-voice-executor-contract.md` | `D-LLM-*` | Agent chat resolved voice action consumption、`audio.synthesize` first-packet execution semantics、playback-ready speech artifact outcome authority；不拥有 voice workflow / voice asset / broader session truth |
 | `agent-chat-voice-session-contract.md` | `D-LLM-*` | Agent chat broader voice session authority：explicit entry / exit、same-thread text/voice continuity、admitted listening modes（`push-to-talk` / foreground `hands-free`）、interruption、transcript/caption rules；不拥有 voice executor / workflow / wake-word / background continuation truth |

@@ -233,6 +233,77 @@ test('describeRuntimeRouteMetadata decodes voice workflow typed metadata from ru
   }
 });
 
+test('describeRuntimeRouteMetadata decodes audio.synthesize typed metadata from runtime response header', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const encoded = Buffer.from(JSON.stringify({
+    capability: 'audio.synthesize',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-speech-cloud-001',
+    metadataKind: 'audio.synthesize',
+    metadata: {
+      supportedAudioFormats: ['mp3'],
+      defaultAudioFormat: 'mp3',
+      supportedTimingModes: ['none'],
+      supportsLanguage: true,
+      supportsEmotion: false,
+    },
+  }), 'utf8').toString('base64');
+  const restoreTauri = installTauriRuntime(calls, {
+    'x-nimi-route-describe-result': encoded,
+  });
+
+  try {
+    clearPlatformClient();
+    await createPlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      subjectUserIdProvider: () => 'subject-user-001',
+    });
+
+    const result = await describeRuntimeRouteMetadata({
+      modId: 'core:runtime',
+      capability: 'audio.synthesize',
+      resolvedBindingRef: 'binding-speech-cloud-001',
+      resolvedBinding: {
+        capability: 'audio.synthesize',
+        source: 'cloud',
+        provider: 'openai',
+        model: 'gpt-audio',
+        modelId: 'gpt-audio',
+        connectorId: 'connector-openai',
+      },
+    });
+
+    assert.equal(result.metadataKind, 'audio.synthesize');
+    if (result.metadataKind !== 'audio.synthesize') {
+      assert.fail('expected audio.synthesize route metadata');
+    }
+    assert.deepEqual(result.metadata.supportedAudioFormats, ['mp3']);
+
+    const unaryCall = findRuntimeBridgeUnary(calls);
+    assert.ok(unaryCall);
+    const requestBytesBase64 = String(unaryCall?.payload.requestBytesBase64 || '').trim();
+    const requestText = Buffer.from(requestBytesBase64, 'base64').toString('utf8');
+    assert.equal(requestText.includes('nimi.scenario.speech_synthesize.route_describe'), true);
+    assert.equal(requestText.includes('runtime.route.describe(audio.synthesize)'), true);
+  } finally {
+    clearPlatformClient();
+    restoreTauri();
+  }
+});
+
+test('speech transcribe route describe probe keeps binary placeholder payload in source spec', () => {
+  const source = readFileSync(
+    new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-route-describe.ts', import.meta.url),
+    'utf8',
+  );
+
+  assert.equal(source.includes("SPEECH_TRANSCRIBE_ROUTE_DESCRIBE_PROBE_NAMESPACE = 'nimi.scenario.speech_transcribe.route_describe'"), true);
+  assert.equal(source.includes("oneofKind: 'speechTranscribe'"), true);
+  assert.equal(source.includes("oneofKind: 'audioBytes'"), true);
+  assert.equal(source.includes("mimeType: 'audio/wav'"), true);
+  assert.equal(source.includes("responseFormat: 'json'"), true);
+});
+
 test('voice clone route describe probe keeps explicit placeholder fields in source payload', () => {
   const source = readFileSync(
     new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-route-describe.ts', import.meta.url),

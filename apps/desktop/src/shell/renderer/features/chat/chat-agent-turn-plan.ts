@@ -9,6 +9,7 @@ import type {
   AgentVoiceWorkflowCapability,
   AISnapshot,
 } from './conversation-capability';
+import type { AgentVoicePlaybackCueEnvelope } from './chat-agent-voice-playback-envelope';
 import type { AgentChatVoiceWorkflowMessageMetadata } from './chat-agent-voice-workflow';
 
 export type AgentLocalChatImageState =
@@ -93,6 +94,7 @@ export type AgentLocalChatVoiceState =
     sourceMessageId: string;
     sourceActionId: string;
     metadata?: AgentChatVoiceWorkflowMessageMetadata | null;
+    playbackCueEnvelope?: AgentVoicePlaybackCueEnvelope | null;
   };
 
 export type AgentVoiceWorkflowIntent = {

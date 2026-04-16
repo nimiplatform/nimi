@@ -194,6 +194,35 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-070
+  - id: kit.features.avatar
+    subpath: /features/avatar
+    kind: feature
+    surface_level: headless+ui+runtime
+    adapter_contract: AvatarPresentationAdapter + AvatarInteractionAdapter + RuntimeAgentPresentationAdapter
+    description: Reusable avatar stage surface with normalized headless presentation contracts, default UI shell, runtime-backed persistent agent presentation projection binding, and an optional VRM renderer surface for backend-specific first-party adapters
+    dependencies: [kit.ui, sdk]
+    peer_dependencies: [react]
+    exports:
+      - ./features/avatar
+      - ./features/avatar/headless
+      - ./features/avatar/runtime
+      - ./features/avatar/ui
+      - ./features/avatar/vrm
+    headless_exports:
+      - ./features/avatar/headless
+      - ./features/avatar/runtime
+    ui_exports:
+      - ./features/avatar/ui
+      - ./features/avatar/vrm
+    planned_consumers: [desktop, web]
+    reuse_entrypoints:
+      - ./features/avatar/ui
+      - ./features/avatar/headless
+      - ./features/avatar/runtime
+      - ./features/avatar/vrm
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-071
   - id: kit.features.model-picker
     subpath: /features/model-picker
     kind: feature

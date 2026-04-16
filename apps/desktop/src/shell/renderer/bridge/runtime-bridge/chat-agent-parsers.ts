@@ -4,6 +4,7 @@ import {
   parseOptionalString,
   parseRequiredString,
 } from './shared.js';
+import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
 import type {
   AgentLocalBeatModality,
   AgentLocalBeatStatus,
@@ -150,6 +151,32 @@ function parseOwnershipType(
   throw new Error(`${errorPrefix}: ownershipType is invalid`);
 }
 
+function parseAvatarBackendKind(
+  value: unknown,
+  errorPrefix: string,
+): AvatarPresentationProfile['backendKind'] {
+  const normalized = parseRequiredString(value, 'backendKind', errorPrefix);
+  if (normalized === 'vrm' || normalized === 'sprite2d' || normalized === 'canvas2d' || normalized === 'video') {
+    return normalized;
+  }
+  throw new Error(`${errorPrefix}: backendKind is invalid`);
+}
+
+function parseAvatarPresentationProfile(value: unknown, errorPrefix: string): AvatarPresentationProfile | null {
+  if (value == null) {
+    return null;
+  }
+  const record = assertRecord(value, `${errorPrefix}: presentationProfile is invalid`);
+  return {
+    backendKind: parseAvatarBackendKind(record.backendKind, errorPrefix),
+    avatarAssetRef: parseRequiredString(record.avatarAssetRef, 'avatarAssetRef', errorPrefix),
+    expressionProfileRef: parseOptionalString(record.expressionProfileRef) || null,
+    idlePreset: parseOptionalString(record.idlePreset) || null,
+    interactionPolicyRef: parseOptionalString(record.interactionPolicyRef) || null,
+    defaultVoiceReference: parseOptionalString(record.defaultVoiceReference) || null,
+  };
+}
+
 export function parseAgentLocalTargetSnapshot(value: unknown): AgentLocalTargetSnapshot {
   const record = assertRecord(value, 'chat_agent target snapshot is invalid');
   return {
@@ -157,6 +184,7 @@ export function parseAgentLocalTargetSnapshot(value: unknown): AgentLocalTargetS
     displayName: parseRequiredString(record.displayName, 'displayName', 'chat_agent target snapshot'),
     handle: parseRequiredString(record.handle, 'handle', 'chat_agent target snapshot'),
     avatarUrl: parseOptionalString(record.avatarUrl) || null,
+    presentationProfile: parseAvatarPresentationProfile(record.presentationProfile, 'chat_agent target snapshot'),
     worldId: parseOptionalString(record.worldId) || null,
     worldName: parseOptionalString(record.worldName) || null,
     bio: parseOptionalString(record.bio) || null,

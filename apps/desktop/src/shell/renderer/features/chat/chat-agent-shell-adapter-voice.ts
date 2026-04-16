@@ -78,6 +78,10 @@ export function useAgentConversationVoiceSession(
   latestVoiceCaptureByThreadRef: MutableRefObject<Record<string, ChatAgentVoiceWorkflowReferenceAudio | undefined>>;
   onVoiceSessionCancel: () => void;
   onVoiceSessionToggle: () => void;
+  voiceCaptureState: {
+    active: boolean;
+    amplitude: number;
+  } | null;
   voiceSessionState: AgentVoiceSessionShellState;
 } {
   const [voiceSessionState, setVoiceSessionState] = useState<AgentVoiceSessionShellState>(
@@ -89,6 +93,10 @@ export function useAgentConversationVoiceSession(
   const latestVoiceCaptureByThreadRef = useRef<Record<string, ChatAgentVoiceWorkflowReferenceAudio | undefined>>({});
   const voiceCaptureSessionRef = useRef<AgentVoiceCaptureSession | null>(null);
   const voiceTranscribeAbortRef = useRef<AbortController | null>(null);
+  const [voiceCaptureState, setVoiceCaptureState] = useState<{
+    active: boolean;
+    amplitude: number;
+  } | null>(null);
 
   useEffect(() => {
     const resetVoiceSession = () => {
@@ -96,6 +104,7 @@ export function useAgentConversationVoiceSession(
       voiceTranscribeAbortRef.current = null;
       voiceCaptureSessionRef.current?.cancel();
       voiceCaptureSessionRef.current = null;
+      setVoiceCaptureState(null);
       setVoiceSessionState(createInitialAgentVoiceSessionShellState());
     };
     resetVoiceSession();
@@ -237,8 +246,23 @@ export function useAgentConversationVoiceSession(
       }
       const captureSession = await startAgentVoiceCaptureSession(
         params.mode === 'hands-free'
-          ? { autoStopMode: 'silence' }
-          : undefined,
+          ? {
+            autoStopMode: 'silence',
+            onLevelChange: (amplitude) => {
+              setVoiceCaptureState({
+                active: true,
+                amplitude,
+              });
+            },
+          }
+          : {
+            onLevelChange: (amplitude) => {
+              setVoiceCaptureState({
+                active: true,
+                amplitude,
+              });
+            },
+          },
       );
       voiceCaptureSessionRef.current = captureSession;
       setVoiceSessionState({
@@ -272,15 +296,17 @@ export function useAgentConversationVoiceSession(
         return;
       }
       if (voiceSessionState.status === 'listening') {
-        const captureSession = voiceCaptureSessionRef.current;
-        if (!captureSession) {
-          setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(voiceSessionState.mode));
-          return;
-        }
-        voiceCaptureSessionRef.current = null;
-        const activeMode = voiceSessionState.mode;
-        setVoiceSessionState({
-          status: 'transcribing',
+      const captureSession = voiceCaptureSessionRef.current;
+      if (!captureSession) {
+        setVoiceCaptureState(null);
+        setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(voiceSessionState.mode));
+        return;
+      }
+      voiceCaptureSessionRef.current = null;
+      setVoiceCaptureState(null);
+      const activeMode = voiceSessionState.mode;
+      setVoiceSessionState({
+        status: 'transcribing',
           mode: activeMode,
           message: null,
         });
@@ -321,8 +347,10 @@ export function useAgentConversationVoiceSession(
               return;
             }
           }
+          setVoiceCaptureState(null);
           setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(activeMode));
         } catch (error) {
+          setVoiceCaptureState(null);
           if ((error as Error | null)?.name === 'AbortError') {
             setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(activeMode));
             return;
@@ -378,6 +406,7 @@ export function useAgentConversationVoiceSession(
     voiceTranscribeAbortRef.current = null;
     voiceCaptureSessionRef.current?.cancel();
     voiceCaptureSessionRef.current = null;
+    setVoiceCaptureState(null);
     setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(voiceSessionState.mode));
   }, [voiceSessionState.mode]);
 
@@ -440,6 +469,7 @@ export function useAgentConversationVoiceSession(
     latestVoiceCaptureByThreadRef,
     onVoiceSessionCancel: handleVoiceSessionCancel,
     onVoiceSessionToggle: handleVoiceSessionToggle,
+    voiceCaptureState,
     voiceSessionState,
   };
 }

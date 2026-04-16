@@ -26,6 +26,8 @@ action envelope 与 model-generated prompt payload truth；
 `agent-chat-voice-workflow-contract.md`（`D-LLM-047` ~ `D-LLM-052`）继续拥有 richer
 voice workflow admission、voice identity / `VoiceReference`、preset/custom voice
 selection、以及 workflow return-path truth；
+`agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-058`）继续拥有 current-surface
+avatar interaction-state truth；
 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）继续拥有
 `audio.synthesize`、`audio.transcribe`、`voice_workflow.*` 的 readiness truth；
 `llm-adapter-contract.md`（`D-LLM-005`）继续拥有 runtime-aligned TTS / STT route 和 API
@@ -57,6 +59,8 @@ adjacent authority 边界固定为：
 - `agent-chat-voice-workflow-contract.md`（`D-LLM-047` ~ `D-LLM-052`）继续拥有 richer
   workflow admission、voice identity / `VoiceReference`、preset/custom voice
   selection、以及 workflow result return-path truth
+- `agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-058`）继续拥有 voice-session
+  signals 如何映射为 avatar interaction-state 的 transient surface truth
 - `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）继续拥有
   `audio.synthesize`、`audio.transcribe`、`voice_workflow.*` projection / snapshot truth，
   而不是 session product meaning

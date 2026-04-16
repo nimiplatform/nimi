@@ -2,9 +2,14 @@ import type {
   ConversationMessageViewModel,
   ConversationThreadSummary,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
+import {
+  resolveSpriteAvatarImageUrl,
+  type AvatarPresentationProfile,
+} from '@nimiplatform/nimi-kit/features/avatar/headless';
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
+  AgentLocalUpdateThreadMetadataInput,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import {
@@ -30,6 +35,137 @@ function parseOwnershipType(value: unknown): AgentLocalTargetSnapshot['ownership
   return null;
 }
 
+function parseAvatarBackendKind(value: unknown): AvatarPresentationProfile['backendKind'] | null {
+  const normalized = parseOptionalString(value);
+  if (
+    normalized === 'vrm'
+    || normalized === 'sprite2d'
+    || normalized === 'canvas2d'
+    || normalized === 'video'
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
+function parsePresentationProfile(value: unknown): AvatarPresentationProfile | null {
+  const record = parseOptionalJsonObject(value);
+  const backendKind = parseAvatarBackendKind(record?.backendKind);
+  const avatarAssetRef = parseOptionalString(record?.avatarAssetRef);
+  if (!backendKind || !avatarAssetRef) {
+    return null;
+  }
+  return {
+    backendKind,
+    avatarAssetRef,
+    expressionProfileRef: parseOptionalString(record?.expressionProfileRef) || null,
+    idlePreset: parseOptionalString(record?.idlePreset) || null,
+    interactionPolicyRef: parseOptionalString(record?.interactionPolicyRef) || null,
+    defaultVoiceReference: parseOptionalString(record?.defaultVoiceReference) || null,
+  };
+}
+
+function resolveTargetPresentationProfile(input: {
+  record: Record<string, unknown>;
+  agentProfile: Record<string, unknown> | null;
+  avatarUrl: string | null;
+}): AvatarPresentationProfile | null {
+  const explicitPresentation = parsePresentationProfile(input.record.presentationProfile)
+    || parsePresentationProfile(input.agentProfile?.presentationProfile);
+  if (explicitPresentation) {
+    return explicitPresentation;
+  }
+  if (!input.avatarUrl) {
+    return null;
+  }
+  return {
+    backendKind: 'sprite2d',
+    avatarAssetRef: input.avatarUrl,
+    expressionProfileRef: null,
+    idlePreset: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+  };
+}
+
+export function mergeAgentTargetWithPresentationProfile(
+  target: AgentLocalTargetSnapshot | null,
+  presentationProfile: AvatarPresentationProfile | null | undefined,
+): AgentLocalTargetSnapshot | null {
+  if (!target) {
+    return null;
+  }
+  const nextPresentationProfile = presentationProfile || target.presentationProfile || null;
+  const nextAvatarUrl = resolveSpriteAvatarImageUrl(nextPresentationProfile, target.avatarUrl || null);
+  if (nextPresentationProfile === (target.presentationProfile || null) && nextAvatarUrl === (target.avatarUrl || null)) {
+    return target;
+  }
+  return {
+    ...target,
+    avatarUrl: nextAvatarUrl,
+    presentationProfile: nextPresentationProfile,
+  };
+}
+
+function arePresentationProfilesEqual(
+  left: AvatarPresentationProfile | null | undefined,
+  right: AvatarPresentationProfile | null | undefined,
+): boolean {
+  if (!left && !right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  return left.backendKind === right.backendKind
+    && left.avatarAssetRef === right.avatarAssetRef
+    && (left.expressionProfileRef || null) === (right.expressionProfileRef || null)
+    && (left.idlePreset || null) === (right.idlePreset || null)
+    && (left.interactionPolicyRef || null) === (right.interactionPolicyRef || null)
+    && (left.defaultVoiceReference || null) === (right.defaultVoiceReference || null);
+}
+
+export function areAgentTargetSnapshotsEquivalent(
+  left: AgentLocalTargetSnapshot | null | undefined,
+  right: AgentLocalTargetSnapshot | null | undefined,
+): boolean {
+  if (!left && !right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  return left.agentId === right.agentId
+    && left.displayName === right.displayName
+    && left.handle === right.handle
+    && (left.avatarUrl || null) === (right.avatarUrl || null)
+    && (left.worldId || null) === (right.worldId || null)
+    && (left.worldName || null) === (right.worldName || null)
+    && (left.bio || null) === (right.bio || null)
+    && (left.ownershipType || null) === (right.ownershipType || null)
+    && arePresentationProfilesEqual(left.presentationProfile, right.presentationProfile);
+}
+
+export function buildAgentThreadMetadataUpdate(input: {
+  thread: AgentLocalThreadSummary | null;
+  target: AgentLocalTargetSnapshot | null;
+}): AgentLocalUpdateThreadMetadataInput | null {
+  if (!input.thread || !input.target || input.thread.agentId !== input.target.agentId) {
+    return null;
+  }
+  if (areAgentTargetSnapshotsEquivalent(input.thread.targetSnapshot, input.target)) {
+    return null;
+  }
+  return {
+    id: input.thread.id,
+    title: input.thread.title,
+    updatedAtMs: input.thread.updatedAtMs,
+    lastMessageAtMs: input.thread.lastMessageAtMs,
+    archivedAtMs: input.thread.archivedAtMs,
+    targetSnapshot: input.target,
+  };
+}
+
 function parseAgentFriendTarget(value: unknown): AgentLocalTargetSnapshot {
   const record = assertRecord(value, 'agent friend target is invalid');
   if (record.isAgent !== true) {
@@ -37,11 +173,17 @@ function parseAgentFriendTarget(value: unknown): AgentLocalTargetSnapshot {
   }
   const world = parseOptionalJsonObject(record.world) ?? null;
   const agentProfile = parseOptionalJsonObject(record.agentProfile) ?? null;
+  const avatarUrl = parseOptionalString(record.avatarUrl) || parseOptionalString(agentProfile?.avatarUrl) || null;
   return {
     agentId: parseRequiredString(record.id, 'id', 'agent friend target'),
     displayName: parseRequiredString(record.displayName, 'displayName', 'agent friend target'),
     handle: parseRequiredString(record.handle, 'handle', 'agent friend target'),
-    avatarUrl: parseOptionalString(record.avatarUrl) || null,
+    avatarUrl,
+    presentationProfile: resolveTargetPresentationProfile({
+      record,
+      agentProfile,
+      avatarUrl,
+    }),
     worldId: parseOptionalString(record.worldId)
       || parseOptionalString(world?.id)
       || null,

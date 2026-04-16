@@ -17,6 +17,7 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/hook-capability-contract.md',
   '.nimi/spec/desktop/kernel/mod-governance-contract.md',
   '.nimi/spec/desktop/kernel/llm-adapter-contract.md',
+  '.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md',
   '.nimi/spec/desktop/kernel/menu-bar-shell-contract.md',
   '.nimi/spec/desktop/kernel/ui-shell-contract.md',
   '.nimi/spec/desktop/kernel/error-boundary-contract.md',

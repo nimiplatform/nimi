@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   ChatStreamStatus,
@@ -12,6 +12,11 @@ import {
   type StreamState,
 } from '../turns/stream-controller';
 import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
+import {
+  parseAgentVoicePlaybackCueEnvelope,
+  resolveAgentVoicePlaybackCueFromEnvelope,
+} from './chat-agent-voice-playback-envelope';
+import { resolveAgentVoicePlaybackCue } from './chat-agent-voice-playback-state';
 
 function normalizeReasoningText(value: unknown): string | null {
   const normalized = typeof value === 'string' ? value.trim() : '';
@@ -146,12 +151,113 @@ export function RuntimeVoiceMessageContent(props: {
   showTranscriptLabel: string;
   hideTranscriptLabel: string;
   transcriptUnavailableLabel: string;
+  onPlaybackStateChange?: (state: {
+    messageId: string;
+    threadId: string;
+    active: boolean;
+    amplitude: number;
+    visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
+  }) => void;
 }) {
   const metadata = (props.message.metadata as Record<string, unknown> | undefined) || {};
   const voiceUrl = normalizeText(metadata.voiceUrl);
   const transcript = normalizeText(metadata.voiceTranscript);
+  const playbackCueEnvelope = parseAgentVoicePlaybackCueEnvelope(metadata.playbackCueEnvelope);
   const [transcriptVisible, setTranscriptVisible] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const toggleTranscript = useCallback(() => setTranscriptVisible((previous) => !previous), []);
+
+  const emitPlaybackState = useCallback((active: boolean, amplitude = 0, visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null = null) => {
+    props.onPlaybackStateChange?.({
+      messageId: props.message.id,
+      threadId: props.message.sessionId,
+      active,
+      amplitude,
+      visemeId,
+    });
+  }, [props.message.id, props.message.sessionId, props.onPlaybackStateChange]);
+
+  const stopPlaybackSampling = useCallback(() => {
+    if (rafRef.current !== null && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    emitPlaybackState(false);
+  }, [emitPlaybackState]);
+
+  const startPlaybackSampling = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+    if (playbackCueEnvelope) {
+      const tick = () => {
+        if (!audioRef.current || audioRef.current.paused || audioRef.current.ended) {
+          stopPlaybackSampling();
+          return;
+        }
+        const cue = resolveAgentVoicePlaybackCueFromEnvelope(
+          playbackCueEnvelope,
+          audioRef.current.currentTime,
+        );
+        emitPlaybackState(true, cue.amplitude, cue.visemeId);
+        rafRef.current = typeof requestAnimationFrame === 'function'
+          ? requestAnimationFrame(tick)
+          : null;
+      };
+      stopPlaybackSampling();
+      tick();
+      return;
+    }
+    if (typeof AudioContext === 'undefined') {
+      emitPlaybackState(true, 0.26, 'aa');
+      return;
+    }
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+    }
+    const context = audioContextRef.current;
+    if (!analyserRef.current) {
+      analyserRef.current = context.createAnalyser();
+      analyserRef.current.fftSize = 2048;
+    }
+    if (!sourceNodeRef.current) {
+      sourceNodeRef.current = context.createMediaElementSource(audio);
+      sourceNodeRef.current.connect(analyserRef.current);
+      analyserRef.current.connect(context.destination);
+    }
+    void context.resume();
+    const analyser = analyserRef.current;
+    const samples = new Uint8Array(analyser.fftSize);
+    const tick = () => {
+      if (!audioRef.current || audioRef.current.paused || audioRef.current.ended) {
+        stopPlaybackSampling();
+        return;
+      }
+      analyser.getByteTimeDomainData(samples);
+      const cue = resolveAgentVoicePlaybackCue(samples, audioRef.current.currentTime);
+      emitPlaybackState(true, cue.amplitude, cue.visemeId);
+      rafRef.current = typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame(tick)
+        : null;
+    };
+    stopPlaybackSampling();
+    tick();
+  }, [emitPlaybackState, playbackCueEnvelope, stopPlaybackSampling]);
+
+  useEffect(() => () => {
+    stopPlaybackSampling();
+    sourceNodeRef.current?.disconnect();
+    analyserRef.current?.disconnect();
+    void audioContextRef.current?.close();
+    sourceNodeRef.current = null;
+    analyserRef.current = null;
+    audioContextRef.current = null;
+  }, [stopPlaybackSampling]);
 
   if (!voiceUrl) {
     return transcript ? <p className="whitespace-pre-wrap">{transcript}</p> : null;
@@ -171,7 +277,15 @@ export function RuntimeVoiceMessageContent(props: {
           {transcriptVisible ? props.hideTranscriptLabel : props.showTranscriptLabel}
         </button>
       </div>
-      <audio controls preload="metadata" className="w-full">
+      <audio
+        ref={audioRef}
+        controls
+        preload="metadata"
+        className="w-full"
+        onPlay={startPlaybackSampling}
+        onPause={stopPlaybackSampling}
+        onEnded={stopPlaybackSampling}
+      >
         <source src={voiceUrl} />
       </audio>
       <div className="space-y-1">

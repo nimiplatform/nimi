@@ -104,6 +104,7 @@ export async function reconcileAgentChatVoiceWorkflowMessage(input: {
         mediaUrl: playback.mediaUrl,
         mediaMimeType: playback.mimeType,
         artifactId: playback.artifactId,
+        playbackCueEnvelope: playback.playbackCueEnvelope,
         message: completedMetadata.transcriptText,
       };
       updatedMessage = await storeClient.updateMessage({

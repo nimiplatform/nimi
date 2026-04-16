@@ -18,6 +18,7 @@ import type {
 import type {
   ChatThinkingPreference,
 } from './chat-thinking';
+import type { AgentVoicePlaybackCueEnvelope } from './chat-agent-voice-playback-envelope';
 
 export type ChatAgentRuntimeInvokeInput = {
   agentId: string;
@@ -87,6 +88,7 @@ export type ChatAgentVoiceRuntimeInvokeResult = {
   mimeType: string;
   artifactId: string | null;
   traceId: string;
+  playbackCueEnvelope: AgentVoicePlaybackCueEnvelope | null;
 };
 
 export type ChatAgentVoiceWorkflowReferenceAudio = {

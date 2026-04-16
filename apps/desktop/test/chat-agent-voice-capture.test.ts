@@ -119,3 +119,61 @@ test('hands-free voice capture fails close when silence detection support is mis
     /silence detection is not supported/i,
   );
 });
+
+test('agent voice capture session emits live level callbacks while recording', async () => {
+  const scheduled: Array<() => void> = [];
+  const observedLevels: number[] = [];
+  const stream = {
+    getTracks: () => [{
+      stop: () => undefined,
+    }],
+  };
+  let sampleIndex = 0;
+  const analyser = {
+    fftSize: 8,
+    getByteTimeDomainData: (data: Uint8Array) => {
+      const frames = [
+        [128, 128, 128, 128, 128, 128, 128, 128],
+        [128, 190, 64, 196, 60, 188, 70, 182],
+      ];
+      const frame = frames[Math.min(sampleIndex, frames.length - 1)]!;
+      sampleIndex += 1;
+      data.set(frame);
+    },
+    disconnect: () => undefined,
+  };
+  const audioContext = {
+    createAnalyser: () => analyser,
+    createMediaStreamSource: () => ({
+      connect: () => undefined,
+      disconnect: () => undefined,
+    }),
+    resume: async () => undefined,
+    close: async () => undefined,
+  };
+  const session = await startAgentVoiceCaptureSession({
+    getUserMediaImpl: async () => stream,
+    createMediaRecorderImpl: (_stream, options) => new FakeMediaRecorder(
+      new Blob([new Uint8Array([4, 5, 6])], { type: options?.mimeType || 'audio/webm' }),
+      options?.mimeType,
+    ),
+    isTypeSupportedImpl: (mimeType) => mimeType === 'audio/webm',
+    createAudioContextImpl: () => audioContext,
+    setTimeoutImpl: (handler) => {
+      scheduled.push(handler);
+      return scheduled.length;
+    },
+    clearTimeoutImpl: () => undefined,
+    onLevelChange: (amplitude) => {
+      observedLevels.push(amplitude);
+    },
+  });
+
+  scheduled.shift()?.();
+  scheduled.shift()?.();
+  await session.stop();
+
+  assert.ok(observedLevels.some((level) => level === 0));
+  assert.ok(observedLevels.some((level) => level > 0.25));
+  assert.equal(observedLevels.at(-1), 0);
+});

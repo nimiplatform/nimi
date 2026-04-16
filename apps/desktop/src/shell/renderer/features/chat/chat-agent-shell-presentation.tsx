@@ -96,6 +96,17 @@ type UseAgentConversationPresentationInput = {
   setBehaviorSettings: (value: AgentChatExperienceSettings) => void;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
   voiceSessionState: AgentVoiceSessionShellState;
+  voiceCaptureState: {
+    active: boolean;
+    amplitude: number;
+  } | null;
+  voicePlaybackState: {
+    threadId: string;
+    messageId: string;
+    active: boolean;
+    amplitude: number;
+    visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
+  } | null;
   onVoiceSessionToggle: () => void;
   onVoiceSessionCancel: () => void;
   onEnterHandsFreeVoiceSession: () => void;
@@ -155,7 +166,10 @@ export function useAgentConversationPresentation(
   const surfaceState = useMemo(() => resolveAgentConversationSurfaceState({
     composerReady: input.composerReady,
     activeTarget: input.activeTarget,
+    activeThreadId: input.activeThreadId,
     submittingThreadId: input.submittingThreadId,
+    voiceCaptureState: input.voiceCaptureState,
+    voicePlaybackState: input.voicePlaybackState,
     voiceSessionState: input.voiceSessionState,
     footerViewState,
     labels: {
@@ -168,6 +182,9 @@ export function useAgentConversationPresentation(
       composerPlaceholderWithoutTarget: input.t('Chat.agentComposerNoTargetPlaceholder', {
         defaultValue: 'Select an agent to start chatting…',
       }),
+      voiceSpeakingLabel: input.t('Chat.voiceSessionSpeaking', {
+        defaultValue: 'Speaking…',
+      }),
       voiceHandsFreeLabel: input.t('Chat.voiceSessionHandsFreeActive', {
         defaultValue: 'Hands-free on (foreground only)',
       }),
@@ -178,7 +195,7 @@ export function useAgentConversationPresentation(
         defaultValue: 'Transcribing…',
       }),
     },
-  }), [footerViewState, input.activeTarget, input.composerReady, input.submittingThreadId, input.t, input.voiceSessionState]);
+  }), [footerViewState, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, input.voiceCaptureState, input.voicePlaybackState, input.voiceSessionState]);
   const characterData = useMemo(() => ({
     ...surfaceState.character,
     theme: {

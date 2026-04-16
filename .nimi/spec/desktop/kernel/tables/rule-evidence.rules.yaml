@@ -476,6 +476,30 @@
     - desktop_kernel_consistency
     - desktop_rust_test_gate
   note: "Download atomicity & staging; Rust backend coverage"
+- rule_id: D-LLM-053
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-054
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-055
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-056
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-057
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+- rule_id: D-LLM-058
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
 - rule_id: D-MBAR-001
   status: covered
   evidence_refs:

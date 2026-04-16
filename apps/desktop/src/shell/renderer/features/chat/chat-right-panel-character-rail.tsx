@@ -2,7 +2,14 @@ import type { ReactNode } from 'react';
 import { cn, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { ConversationCharacterData, ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
+import {
+  AvatarStage,
+  createAvatarStageSnapshot,
+  resolveAvatarPresentationProfile,
+  resolveSpriteAvatarImageUrl,
+} from '@nimiplatform/nimi-kit/features/avatar';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { DESKTOP_AGENT_AVATAR_RENDERERS } from './chat-agent-avatar-renderers';
 
 const NO_BIO_FALLBACK = 'This Agent has no public bio.';
 
@@ -166,6 +173,42 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
   const handsFreeActive = props.handsFreeState?.mode === 'hands-free';
   const handsFreeListening = handsFreeActive && props.handsFreeState?.status === 'listening';
   const rippleColor = theme?.accentSoft || 'rgba(16,185,129,0.35)';
+  const avatarPresentationProfile = resolveAvatarPresentationProfile({
+    presentation: props.characterData?.avatarPresentationProfile,
+    fallbackAssetRef: props.characterData?.avatarUrl || null,
+    fallbackProfileRef: 'fallback://agent-right-panel',
+  });
+  const avatarImageUrl = resolveSpriteAvatarImageUrl(
+    avatarPresentationProfile,
+    props.characterData?.avatarUrl || null,
+  );
+  const avatarSnapshot = createAvatarStageSnapshot(
+    avatarPresentationProfile,
+    {
+      phase: props.characterData?.interactionState?.phase === 'loading'
+        ? 'transitioning'
+        : props.characterData?.interactionState?.phase === 'thinking'
+          ? 'thinking'
+          : props.characterData?.interactionState?.phase === 'listening'
+            ? 'listening'
+            : props.characterData?.interactionState?.phase === 'speaking'
+              ? 'speaking'
+              : handsFreeListening
+                ? 'listening'
+                : 'idle',
+      emotion: props.characterData?.interactionState?.emotion || (handsFreeActive ? 'calm' : undefined),
+      actionCue: props.characterData?.interactionState?.label
+        || (handsFreeActive ? 'Hands-free ready' : 'Quietly here'),
+      amplitude: typeof props.characterData?.interactionState?.amplitude === 'number'
+        ? props.characterData.interactionState.amplitude
+        : handsFreeListening
+          ? 0.6
+          : handsFreeActive
+            ? 0.18
+            : 0.08,
+      visemeId: props.characterData?.interactionState?.visemeId || undefined,
+    },
+  );
 
   return (
     <aside
@@ -229,15 +272,16 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
                 className="absolute inset-[-8px] rounded-full border border-white/75"
                 style={{ boxShadow: `0 16px 40px ${theme?.accentSoft || 'rgba(16,185,129,0.18)'}` }}
               />
-              <span className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-white/90 bg-white/82 shadow-[0_16px_40px_rgba(15,23,42,0.12)]">
-                {props.characterData?.avatarUrl ? (
-                  <img src={props.characterData.avatarUrl} alt={props.characterData.name} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-4xl font-black text-slate-900">
-                    {props.characterData?.avatarFallback || props.selectedTarget.avatarFallback || props.selectedTarget.title.charAt(0) || '?'}
-                  </span>
-                )}
-              </span>
+              <AvatarStage
+                snapshot={avatarSnapshot}
+                label={props.characterData?.name || props.selectedTarget.title}
+                imageUrl={avatarImageUrl}
+                fallbackLabel={props.characterData?.avatarFallback || props.selectedTarget.avatarFallback || props.selectedTarget.title}
+                statusLabel={props.characterData?.interactionState?.label || (handsFreeActive ? 'Hands-free ready' : null)}
+                size="md"
+                renderers={DESKTOP_AGENT_AVATAR_RENDERERS}
+                className="relative"
+              />
             </div>
           </div>
           {/* Character info */}

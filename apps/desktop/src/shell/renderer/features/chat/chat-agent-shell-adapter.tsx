@@ -13,10 +13,12 @@ import {
   type CanonicalMessageAccessorySlot,
   ConversationOrchestrationRegistry,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
+import type { AgentLocalThreadBundle } from '@renderer/bridge/runtime-bridge/types';
 import { type RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 import {
@@ -48,7 +50,12 @@ import {
 } from '../settings/settings-storage';
 import { resolveAgentChatBehavior } from './chat-agent-behavior-resolver';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { upsertBundleDraft, toErrorMessage } from './chat-agent-shell-core';
+import {
+  bundleQueryKey,
+  upsertBundleDraft,
+  upsertThreadSummary,
+  toErrorMessage,
+} from './chat-agent-shell-core';
 import { useAgentConversationPresentation } from './chat-agent-shell-presentation';
 import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
@@ -63,6 +70,10 @@ import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voi
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
 import { useAgentConversationMessageMenu } from './chat-agent-shell-adapter-menu';
 import { resolveAgentChatRequestedMaxOutputTokens } from './chat-ai-route-view';
+import {
+  buildAgentThreadMetadataUpdate,
+  mergeAgentTargetWithPresentationProfile,
+} from './chat-agent-thread-model';
 import {
   createRuntimeAgentMemoryAdapter,
   type CanonicalMemoryBankStatus,
@@ -138,6 +149,7 @@ export function useAgentConversationModeHost(
   const [canonicalMemoryLoading, setCanonicalMemoryLoading] = useState(false);
   const [runtimeInspect, setRuntimeInspect] = useState<RuntimeAgentInspectSnapshot | null>(null);
   const [runtimeInspectLoading, setRuntimeInspectLoading] = useState(false);
+  const [runtimePresentationProfile, setRuntimePresentationProfile] = useState<AvatarPresentationProfile | null>(null);
   const [recentRuntimeEvents, setRecentRuntimeEvents] = useState<readonly RuntimeAgentInspectEventSummary[]>([]);
   const [mutationPendingAction, setMutationPendingAction] = useState<string | null>(null);
   // Tracks the last agentId for which inspect was fetched — used only for
@@ -256,7 +268,7 @@ export function useAgentConversationModeHost(
     input.setSelection(selection);
   }, [input]);
   const {
-    activeTarget,
+    activeTarget: shellActiveTarget,
     activeThreadId,
     agentResolution,
     agentRouteReady,
@@ -282,6 +294,94 @@ export function useAgentConversationModeHost(
     lastSelectedThreadId: input.lastSelectedThreadId,
     selection: input.selection,
   });
+  const activeTarget = useMemo(
+    () => mergeAgentTargetWithPresentationProfile(shellActiveTarget, runtimePresentationProfile),
+    [runtimePresentationProfile, shellActiveTarget],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const agentId = normalizeText(shellActiveTarget?.agentId);
+    if (input.authStatus !== 'authenticated' || !agentId) {
+      setRuntimePresentationProfile(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void runtimeAgentInspect.getPresentationProfile(agentId)
+      .then((profile) => {
+        if (!cancelled) {
+          setRuntimePresentationProfile(profile);
+        }
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setRuntimePresentationProfile(null);
+        logRendererEvent({
+          level: 'warn',
+          area: 'agent-chat-shell',
+          message: 'action:host-error',
+          details: {
+            error: error instanceof Error ? error.message : String(error || ''),
+            action: 'load-runtime-agent-presentation',
+            agentId,
+          },
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [input.authStatus, runtimeAgentInspect, shellActiveTarget?.agentId]);
+
+  useEffect(() => {
+    const metadataUpdate = buildAgentThreadMetadataUpdate({
+      thread: selectedThreadRecord,
+      target: activeTarget,
+    });
+    if (!metadataUpdate) {
+      return;
+    }
+    let cancelled = false;
+    void chatAgentStoreClient.updateThreadMetadata(metadataUpdate)
+      .then((updatedThread) => {
+        if (cancelled) {
+          return;
+        }
+        queryClient.setQueryData(['chat-agent-threads'], (current: typeof threads | undefined) => (
+          upsertThreadSummary(current || [], updatedThread)
+        ));
+        queryClient.setQueryData(bundleQueryKey(updatedThread.id), (current: AgentLocalThreadBundle | undefined) => {
+          if (!current || current.thread.id !== updatedThread.id) {
+            return current;
+          }
+          return {
+            ...current,
+            thread: updatedThread,
+          };
+        });
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        logRendererEvent({
+          level: 'warn',
+          area: 'agent-chat-shell',
+          message: 'action:host-error',
+          details: {
+            error: error instanceof Error ? error.message : String(error || ''),
+            action: 'sync-agent-thread-target-snapshot',
+            threadId: metadataUpdate.id,
+            agentId: metadataUpdate.targetSnapshot.agentId,
+          },
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTarget, queryClient, selectedThreadRecord, threads]);
 
   useEffect(() => {
     let cancelled = false;
@@ -737,6 +837,37 @@ export function useAgentConversationModeHost(
     () => createReasoningMessageContentRenderer(reasoningLabel),
     [reasoningLabel],
   );
+  const [voicePlaybackState, setVoicePlaybackState] = useState<{
+    threadId: string;
+    messageId: string;
+    active: boolean;
+    amplitude: number;
+    visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
+  } | null>(null);
+  const handleVoicePlaybackStateChange = useCallback((nextState: {
+    threadId: string;
+    messageId: string;
+    active: boolean;
+    amplitude: number;
+    visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
+  }) => {
+    setVoicePlaybackState((current) => {
+      if (nextState.active) {
+        return nextState;
+      }
+      if (current?.messageId === nextState.messageId) {
+        return null;
+      }
+      return current;
+    });
+  }, []);
+  useEffect(() => {
+    setVoicePlaybackState((current) => (
+      current && activeThreadId && current.threadId !== activeThreadId
+        ? null
+        : current
+    ));
+  }, [activeThreadId]);
   const renderMessageContent = useMemo(() => (
     (
       message: Parameters<NonNullable<typeof renderReasoningMessageContent>>[0],
@@ -761,12 +892,13 @@ export function useAgentConversationModeHost(
             showTranscriptLabel={t('Chat.voiceTranscribe', { defaultValue: 'Transcribe voice' })}
             hideTranscriptLabel={t('Chat.voiceCollapseTranscript', { defaultValue: 'Collapse transcript' })}
             transcriptUnavailableLabel={t('Chat.voiceInspectTranscriptUnavailable', { defaultValue: 'No transcript available for this voice beat.' })}
+            onPlaybackStateChange={handleVoicePlaybackStateChange}
           />
         );
       }
       return renderReasoningMessageContent(message, context);
     }
-  ), [renderReasoningMessageContent, t]);
+  ), [handleVoicePlaybackStateChange, renderReasoningMessageContent, t]);
   const renderMessageAccessory = useMemo<CanonicalMessageAccessorySlot>(() => (
     (message) => {
       if ((message.kind || 'text') !== 'text' || (message.role !== 'assistant' && message.role !== 'agent')) {
@@ -840,6 +972,7 @@ export function useAgentConversationModeHost(
     latestVoiceCaptureByThreadRef,
     onVoiceSessionCancel,
     onVoiceSessionToggle,
+    voiceCaptureState,
     voiceSessionState,
   } = useAgentConversationVoiceSession({
     activeTarget,
@@ -974,6 +1107,8 @@ export function useAgentConversationModeHost(
     setBehaviorSettings,
     onDiagnosticsVisibilityChange: input.onDiagnosticsVisibilityChange,
     voiceSessionState,
+    voiceCaptureState,
+    voicePlaybackState,
     onVoiceSessionToggle,
     onVoiceSessionCancel,
     onEnterHandsFreeVoiceSession: handsFreeState.onEnter,

@@ -162,6 +162,7 @@ export async function runResolvedEnvelopeActions(input: {
               mediaUrl: generatedVoice.mediaUrl,
               mimeType: generatedVoice.mimeType,
               artifactId: generatedVoice.artifactId,
+              playbackCueEnvelope: generatedVoice.playbackCueEnvelope,
             };
             await input.onEvent({
               type: 'artifact-ready',

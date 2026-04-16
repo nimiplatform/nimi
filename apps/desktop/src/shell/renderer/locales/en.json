@@ -960,6 +960,7 @@
     "voiceSessionHandsFreeEnter": "Enter hands-free",
     "voiceSessionHandsFreeExit": "Exit hands-free",
     "voiceSessionListening": "Listening",
+    "voiceSessionSpeaking": "Speaking…",
     "voiceSessionTranscribing": "Transcribing…",
     "voiceSessionTargetRequired": "Select an agent before starting voice input.",
     "voiceSessionRouteRequired": "Voice input is unavailable because no transcribe route is configured.",

@@ -11,13 +11,17 @@ export type AgentConversationSurfaceState = {
   character: {
     name: string;
     avatarUrl: string | null;
+    avatarPresentationProfile: AgentLocalTargetSnapshot['presentationProfile'];
     avatarFallback: string;
     handle: string | null;
     bio: string | null;
     interactionState: {
-      phase: 'thinking' | 'idle' | 'listening' | 'loading';
+      phase: 'thinking' | 'idle' | 'listening' | 'loading' | 'speaking';
       busy: boolean;
       label?: string;
+      emotion?: 'neutral' | 'joy' | 'focus' | 'calm' | 'playful' | 'concerned' | 'surprised';
+      amplitude?: number;
+      visemeId?: string;
     };
   };
   footer: AgentFooterViewState & {
@@ -29,6 +33,18 @@ export function resolveAgentConversationSurfaceState(input: {
   composerReady: boolean;
   activeTarget: AgentLocalTargetSnapshot | null;
   submittingThreadId: string | null;
+  voiceCaptureState: {
+    active: boolean;
+    amplitude: number;
+  } | null;
+  voicePlaybackState: {
+    threadId: string;
+    messageId: string;
+    active: boolean;
+    amplitude: number;
+    visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
+  } | null;
+  activeThreadId: string | null;
   voiceSessionState: AgentVoiceSessionShellState;
   footerViewState: AgentFooterViewState;
   labels: {
@@ -36,6 +52,7 @@ export function resolveAgentConversationSurfaceState(input: {
     sendingDisabledReason: string;
     composerPlaceholderWithTarget: string;
     composerPlaceholderWithoutTarget: string;
+    voiceSpeakingLabel: string;
     voiceHandsFreeLabel: string;
     voiceListeningLabel: string;
     voiceTranscribingLabel: string;
@@ -43,32 +60,67 @@ export function resolveAgentConversationSurfaceState(input: {
 }): AgentConversationSurfaceState {
   const isSubmitting = Boolean(input.submittingThreadId);
   const displayName = input.activeTarget?.displayName || input.labels.title;
+  const activeVoiceCapture = input.voiceCaptureState?.active
+    ? input.voiceCaptureState
+    : null;
+  const activeVoicePlayback = input.voicePlaybackState?.active
+    && input.activeThreadId
+    && input.voicePlaybackState.threadId === input.activeThreadId
+      ? input.voicePlaybackState
+      : null;
   const interactionState = isSubmitting
     ? {
       phase: 'thinking' as const,
       busy: true,
+      emotion: 'focus' as const,
+      amplitude: 0.42,
     }
+    : activeVoiceCapture
+      ? {
+        phase: 'listening' as const,
+        busy: true,
+        label: input.labels.voiceListeningLabel,
+        emotion: 'calm' as const,
+        amplitude: activeVoiceCapture.amplitude,
+      }
+    : activeVoicePlayback
+      ? {
+        phase: 'speaking' as const,
+        busy: true,
+        label: input.labels.voiceSpeakingLabel,
+        emotion: 'joy' as const,
+        amplitude: activeVoicePlayback.amplitude,
+        visemeId: activeVoicePlayback.visemeId || undefined,
+      }
     : input.voiceSessionState.status === 'listening'
       ? {
         phase: 'listening' as const,
         busy: true,
         label: input.labels.voiceListeningLabel,
+        emotion: 'calm' as const,
+        amplitude: 0.3,
       }
       : input.voiceSessionState.status === 'transcribing'
         ? {
           phase: 'loading' as const,
           busy: true,
           label: input.labels.voiceTranscribingLabel,
+          emotion: 'focus' as const,
+          amplitude: 0.18,
         }
         : input.voiceSessionState.mode === 'hands-free'
           ? {
             phase: 'idle' as const,
             busy: false,
             label: input.labels.voiceHandsFreeLabel,
+            emotion: 'calm' as const,
+            amplitude: 0.14,
           }
         : {
           phase: 'idle' as const,
           busy: false,
+          emotion: 'neutral' as const,
+          amplitude: 0.08,
         };
   return {
     composer: input.composerReady
@@ -83,6 +135,7 @@ export function resolveAgentConversationSurfaceState(input: {
     character: {
       name: displayName || 'Agent',
       avatarUrl: input.activeTarget?.avatarUrl || null,
+      avatarPresentationProfile: input.activeTarget?.presentationProfile || null,
       avatarFallback: (displayName || 'A').charAt(0).toUpperCase() || 'A',
       handle: input.activeTarget?.handle ? `@${input.activeTarget.handle}` : null,
       bio: input.activeTarget?.bio || null,

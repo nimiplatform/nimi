@@ -19,9 +19,13 @@ import { buildRuntimeCallOptions } from '@runtime/llm-adapter/execution/runtime-
 
 const ROUTE_DESCRIBE_PROBE_TIMEOUT_MS = 30_000;
 const TEXT_GENERATE_ROUTE_DESCRIBE_PROBE_NAMESPACE = 'nimi.scenario.text_generate.route_describe';
+const SPEECH_SYNTHESIZE_ROUTE_DESCRIBE_PROBE_NAMESPACE = 'nimi.scenario.speech_synthesize.route_describe';
+const SPEECH_TRANSCRIBE_ROUTE_DESCRIBE_PROBE_NAMESPACE = 'nimi.scenario.speech_transcribe.route_describe';
 const VOICE_CLONE_ROUTE_DESCRIBE_PROBE_NAMESPACE = 'nimi.scenario.voice_clone.route_describe';
 const VOICE_DESIGN_ROUTE_DESCRIBE_PROBE_NAMESPACE = 'nimi.scenario.voice_design.route_describe';
 const TEXT_GENERATE_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(text.generate)';
+const SPEECH_SYNTHESIZE_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(audio.synthesize)';
+const SPEECH_TRANSCRIBE_ROUTE_DESCRIBE_PROBE_BYTES = new Uint8Array([0x01]);
 const VOICE_CLONE_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(voice_workflow.tts_v2v)';
 const VOICE_DESIGN_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(voice_workflow.tts_t2v)';
 const VOICE_CLONE_ROUTE_DESCRIBE_REFERENCE_AUDIO_URI = 'https://nimi.invalid/route-describe-reference.wav';
@@ -33,6 +37,8 @@ const VOICE_DESIGN_ROUTE_DESCRIBE_PREFERRED_NAME = 'runtime-route-describe-probe
 
 type RouteDescribeCapability =
   | 'text.generate'
+  | 'audio.synthesize'
+  | 'audio.transcribe'
   | 'voice_workflow.tts_v2v'
   | 'voice_workflow.tts_t2v';
 
@@ -83,6 +89,10 @@ function buildDescribeProbeExtensions(
 ) {
   const namespace = capability === 'text.generate'
     ? TEXT_GENERATE_ROUTE_DESCRIBE_PROBE_NAMESPACE
+    : capability === 'audio.synthesize'
+      ? SPEECH_SYNTHESIZE_ROUTE_DESCRIBE_PROBE_NAMESPACE
+      : capability === 'audio.transcribe'
+        ? SPEECH_TRANSCRIBE_ROUTE_DESCRIBE_PROBE_NAMESPACE
     : capability === 'voice_workflow.tts_v2v'
       ? VOICE_CLONE_ROUTE_DESCRIBE_PROBE_NAMESPACE
       : VOICE_DESIGN_ROUTE_DESCRIBE_PROBE_NAMESPACE;
@@ -128,6 +138,48 @@ function buildDescribeProbeSpec(
     };
   }
 
+  if (capability === 'audio.synthesize') {
+    return {
+      spec: {
+        oneofKind: 'speechSynthesize' as const,
+        speechSynthesize: {
+          text: SPEECH_SYNTHESIZE_ROUTE_DESCRIBE_PROBE_TEXT,
+          language: '',
+          audioFormat: '',
+          sampleRateHz: 0,
+          speed: 0,
+          pitch: 0,
+          volume: 0,
+          emotion: '',
+          timingMode: 0,
+        },
+      },
+    };
+  }
+
+  if (capability === 'audio.transcribe') {
+    return {
+      spec: {
+        oneofKind: 'speechTranscribe' as const,
+        speechTranscribe: {
+          language: '',
+          timestamps: false,
+          diarization: false,
+          speakerCount: 0,
+          prompt: '',
+          audioSource: {
+            source: {
+              oneofKind: 'audioBytes' as const,
+              audioBytes: SPEECH_TRANSCRIBE_ROUTE_DESCRIBE_PROBE_BYTES,
+            },
+          },
+          mimeType: 'audio/wav',
+          responseFormat: 'json',
+        },
+      },
+    };
+  }
+
   if (capability === 'voice_workflow.tts_v2v') {
     return {
       spec: {
@@ -166,6 +218,12 @@ function buildDescribeProbeSpec(
 function toRouteDescribeScenarioType(capability: RouteDescribeCapability): ScenarioType {
   if (capability === 'text.generate') {
     return ScenarioType.TEXT_GENERATE;
+  }
+  if (capability === 'audio.synthesize') {
+    return ScenarioType.SPEECH_SYNTHESIZE;
+  }
+  if (capability === 'audio.transcribe') {
+    return ScenarioType.SPEECH_TRANSCRIBE;
   }
   if (capability === 'voice_workflow.tts_v2v') {
     return ScenarioType.VOICE_CLONE;

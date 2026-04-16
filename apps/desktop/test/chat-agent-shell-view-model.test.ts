@@ -6,6 +6,10 @@ import {
   resolveAgentSelectedTargetId,
   resolveAgentTargetSummaries,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-view-model.js';
+import {
+  buildAgentThreadMetadataUpdate,
+  mergeAgentTargetWithPresentationProfile,
+} from '../src/shell/renderer/features/chat/chat-agent-thread-model.js';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadSummary,
@@ -71,6 +75,37 @@ test('agent shell view model resolves target summaries from agent targets and th
     handle: '@scout',
     avatarUrl: 'https://example.com/scout.png',
   }]);
+});
+
+test('agent shell view model prefers persisted thread snapshot avatar for target summaries', () => {
+  const summaries = resolveAgentTargetSummaries({
+    targets: sampleTargets(),
+    threads: [{
+      ...sampleThreads()[0]!,
+      targetSnapshot: {
+        ...sampleThreads()[0]!.targetSnapshot,
+        avatarUrl: 'https://cdn.nimi.test/runtime/companion.png',
+        presentationProfile: {
+          backendKind: 'sprite2d',
+          avatarAssetRef: 'https://cdn.nimi.test/runtime/companion.png',
+          expressionProfileRef: null,
+          idlePreset: 'companion.idle.soft',
+          interactionPolicyRef: null,
+          defaultVoiceReference: 'voice://agent-1/default',
+        },
+      },
+    }],
+  });
+
+  assert.equal(summaries[0]?.avatarUrl, 'https://cdn.nimi.test/runtime/companion.png');
+  assert.deepEqual((summaries[0]?.metadata as Record<string, unknown>)?.presentationProfile, {
+    backendKind: 'sprite2d',
+    avatarAssetRef: 'https://cdn.nimi.test/runtime/companion.png',
+    expressionProfileRef: null,
+    idlePreset: 'companion.idle.soft',
+    interactionPolicyRef: null,
+    defaultVoiceReference: 'voice://agent-1/default',
+  });
 });
 
 test('agent shell view model resolves canonical messages with user/agent sender metadata', () => {
@@ -182,6 +217,16 @@ test('agent shell view model maps voice messages to canonical voice kinds and pr
         kind: 'voice',
         voiceUrl: 'file:///tmp/agent-voice.mp3',
         voiceTranscript: '你好呀，我在这里。',
+        playbackCueEnvelope: {
+          version: 'v1',
+          source: 'provider',
+          cues: [{
+            offsetMs: 0,
+            durationMs: 120,
+            amplitude: 0.42,
+            visemeId: 'aa',
+          }],
+        },
       },
     }],
     activeThreadId: 'thread-agent-1',
@@ -196,6 +241,16 @@ test('agent shell view model maps voice messages to canonical voice kinds and pr
   assert.equal(messages[0]?.kind, 'voice');
   assert.equal((messages[0]?.metadata as Record<string, unknown>)?.voiceUrl, 'file:///tmp/agent-voice.mp3');
   assert.equal((messages[0]?.metadata as Record<string, unknown>)?.voiceTranscript, '你好呀，我在这里。');
+  assert.deepEqual((messages[0]?.metadata as Record<string, unknown>)?.playbackCueEnvelope, {
+    version: 'v1',
+    source: 'provider',
+    cues: [{
+      offsetMs: 0,
+      durationMs: 120,
+      amplitude: 0.42,
+      visemeId: 'aa',
+    }],
+  });
 });
 
 test('agent shell view model resolves selected target id fail-close', () => {
@@ -210,6 +265,59 @@ test('agent shell view model resolves selected target id fail-close', () => {
   assert.equal(resolveAgentSelectedTargetId({
     selectionAgentId: null,
     activeTargetId: null,
+  }), null);
+});
+
+test('agent shell view model merges runtime presentation profile onto desktop target snapshots', () => {
+  const merged = mergeAgentTargetWithPresentationProfile(sampleTargets()[0]!, {
+    backendKind: 'sprite2d',
+    avatarAssetRef: 'https://cdn.nimi.test/runtime/companion.png',
+    expressionProfileRef: null,
+    idlePreset: 'companion.idle.soft',
+    interactionPolicyRef: null,
+    defaultVoiceReference: 'voice://agent-1/default',
+  });
+
+  assert.equal(merged?.avatarUrl, 'https://cdn.nimi.test/runtime/companion.png');
+  assert.deepEqual(merged?.presentationProfile, {
+    backendKind: 'sprite2d',
+    avatarAssetRef: 'https://cdn.nimi.test/runtime/companion.png',
+    expressionProfileRef: null,
+    idlePreset: 'companion.idle.soft',
+    interactionPolicyRef: null,
+    defaultVoiceReference: 'voice://agent-1/default',
+  });
+});
+
+test('agent shell view model emits thread metadata update when authoritative target snapshot changes', () => {
+  const thread = sampleThreads()[0]!;
+  const mergedTarget = mergeAgentTargetWithPresentationProfile(thread.targetSnapshot, {
+    backendKind: 'sprite2d',
+    avatarAssetRef: 'https://cdn.nimi.test/runtime/companion.png',
+    expressionProfileRef: null,
+    idlePreset: 'companion.idle.soft',
+    interactionPolicyRef: null,
+    defaultVoiceReference: 'voice://agent-1/default',
+  });
+  const update = buildAgentThreadMetadataUpdate({
+    thread,
+    target: mergedTarget,
+  });
+
+  assert.deepEqual(update, {
+    id: 'thread-agent-1',
+    title: 'Companion',
+    updatedAtMs: 100,
+    lastMessageAtMs: 90,
+    archivedAtMs: null,
+    targetSnapshot: mergedTarget,
+  });
+  assert.equal(buildAgentThreadMetadataUpdate({
+    thread: {
+      ...thread,
+      targetSnapshot: mergedTarget!,
+    },
+    target: mergedTarget,
   }), null);
 });
 

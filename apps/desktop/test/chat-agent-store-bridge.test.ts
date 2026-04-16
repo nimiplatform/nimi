@@ -74,6 +74,7 @@ function sampleTarget(): AgentLocalTargetSnapshot {
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,
+    presentationProfile: null,
     worldId: 'world-1',
     worldName: 'World One',
     bio: 'friend agent',
