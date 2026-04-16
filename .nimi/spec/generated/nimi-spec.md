@@ -3882,6 +3882,9 @@ Fixed rules:
   be semantically equivalent to the service-owned lifecycle policy they claim
   to represent, and that equivalence must be established by behavior-level
   proof rather than inferred solely from local green gates
+- top-level completion also requires public mutation surfaces to reject illegal
+  lifecycle resurrection, relation/graph writes to non-live targets, and
+  provenance payloads that have not yet been closed into owner-true semantics
 - when redesign audit reopens `C-COG-004`, rule evidence must return to
   `deferred` until the narrower subsystem rules, their direct behavior tests,
   and a fresh independent completion review are re-established
@@ -4483,7 +4486,7 @@ Fixed rules:
 | prompt.format_core | service_method | PromptService.FormatCore | PromptService | prompt | (string, error) | — |
 | prompt.format_advisory | service_method | PromptService.FormatAdvisory | PromptService | prompt | (string, error) | — |
 | prompt.format_all | service_method | PromptService.FormatAll | PromptService | prompt | (string, error) | — |
-| digest.worker_run | external_worker | digest.NewWorker(...).Run | routine/digest | routine | (digest.Result, error) | — |
+| digest.worker_run | external_worker | digest.NewWorker(...).Run | routine/digest | routine | (*routine.Result, error) | — |
 
 ### 13.7 Cognition — Runtime Capability Upgrade Matrix
 
@@ -4507,7 +4510,7 @@ Fixed rules:
 
 | Operation | Entrypoint | Inputs | Validation | Lifecycle Effects | Fail-Close Reasons |
 |---|---|---|---|---|---|
-| memory_save | MemoryService.Save | one typed memory record in one cognition scope | fail-close on malformed payload, illegal refs, illegal scope crossing, or caller-supplied service metadata | creates or updates one memory artifact and preserves lifecycle visibility for later history reads | malformed payload, illegal family kind, missing ref target, illegal lifecycle mutation |
+| memory_save | MemoryService.Save | one typed memory record in one cognition scope | fail-close on malformed payload, illegal refs, illegal scope crossing, caller-supplied service metadata, or illegal lifecycle mutation | creates or updates one memory artifact and preserves lifecycle visibility for later history reads | malformed payload, illegal family kind, missing ref target, illegal lifecycle mutation |
 | memory_load | MemoryService.Load | explicit scope_id plus record_id | fail-close on illegal scope crossing or unknown id | none | unknown record, illegal scope, malformed stored artifact |
 | memory_load_view | MemoryService.LoadView | explicit scope_id plus record_id | fail-close if raw artifact is missing or derivation inputs are malformed | none | missing raw record, invalid refgraph inputs, illegal scope, derivation failure |
 | memory_list | MemoryService.List | explicit scope_id with optional family-local filters admitted by implementation | fail-close on illegal scope or malformed filter | none | illegal scope, malformed filter |
@@ -4522,14 +4525,14 @@ Fixed rules:
 
 | Operation | Entrypoint | Inputs | Validation | Lifecycle Effects | Fail-Close Reasons |
 |---|---|---|---|---|---|
-| knowledge_save | KnowledgeService.Save | one typed knowledge page projection in one cognition scope | fail-close on malformed page payload, illegal refs, illegal scope crossing, duplicate illegal ownership, page-embedded knowledge relations, or relation integrity violation | creates or updates one page and preserves explicit lifecycle visibility for later reads | malformed payload, illegal scope, missing ref target, illegal page identity mutation |
+| knowledge_save | KnowledgeService.Save | one typed knowledge page projection in one cognition scope | fail-close on malformed page payload, illegal refs, illegal scope crossing, duplicate illegal ownership, page-embedded knowledge relations, relation integrity violation, illegal lifecycle mutation, or invalid citation provenance | creates or updates one page and preserves explicit lifecycle visibility for later reads | malformed payload, illegal scope, missing ref target, illegal page identity mutation, illegal lifecycle mutation, invalid citation target |
 | knowledge_load | KnowledgeService.Load | explicit scope_id plus page_id | fail-close on illegal scope or unknown id | none | unknown page, illegal scope, malformed stored artifact |
 | knowledge_list | KnowledgeService.List | explicit scope_id with optional admitted filters | fail-close on illegal scope or malformed filter | none | illegal scope, malformed filter |
 | knowledge_delete | KnowledgeService.Delete | explicit scope_id plus page_id | fail-close on illegal scope, unknown page, or blocked lifecycle transition | explicit delete/archive/remove visibility required | unknown page, illegal scope, blocked lifecycle transition, active relation blocker |
 | knowledge_history | KnowledgeService.History | explicit scope_id plus page_id or scope-local filter | fail-close on illegal scope, malformed filter, or unknown target | none | illegal scope, malformed filter, unknown target |
 | knowledge_search_lexical | KnowledgeService.SearchLexical | explicit scope_id plus lexical query | fail-close on illegal scope or malformed query | none | illegal scope, malformed query, unavailable lexical substrate |
 | knowledge_search_hybrid | KnowledgeService.SearchHybrid | explicit scope_id plus hybrid query and admitted hybrid options | fail-close on illegal scope, malformed query, or unavailable hybrid capability | none | illegal scope, malformed query, hybrid capability unavailable, missing embedding substrate, corrupt embedding substrate |
-| knowledge_put_relation | KnowledgeService.PutRelation | explicit scope_id plus one typed same-scope relation | fail-close on missing source/target, cross-scope relation, blank relation type, duplicate relation, or self-link | creates or updates one first-class relation truth row | missing page, illegal scope, duplicate relation, self-link, malformed relation type |
+| knowledge_put_relation | KnowledgeService.PutRelation | explicit scope_id plus one typed same-scope relation | fail-close on missing source/target, non-live source/target, cross-scope relation, blank relation type, duplicate relation, or self-link | creates or updates one first-class relation truth row | missing page, non-live page, illegal scope, duplicate relation, self-link, malformed relation type |
 | knowledge_delete_relation | KnowledgeService.DeleteRelation | explicit scope_id plus relation identity | fail-close on illegal scope, unknown relation, or malformed relation identity | explicit relation removal | unknown relation, illegal scope, malformed relation identity |
 | knowledge_list_relations | KnowledgeService.ListRelations | explicit scope_id plus page_id | fail-close on illegal scope, unknown page, or malformed pagination/filter input | none | illegal scope, unknown page, malformed filter |
 | knowledge_list_backlinks | KnowledgeService.ListBacklinks | explicit scope_id plus page_id | fail-close on illegal scope, unknown page, or malformed pagination/filter input | none | illegal scope, unknown page, malformed filter |
@@ -4552,7 +4555,7 @@ Fixed rules:
 
 | Operation | Entrypoint | Inputs | Validation | Lifecycle Effects | Fail-Close Reasons |
 |---|---|---|---|---|---|
-| skill_save | SkillService.Save | one typed skill bundle in one cognition scope | fail-close on malformed bundle payload, empty steps, duplicate step identity, duplicate step order, illegal refs, or illegal scope crossing | creates or updates one bundle and preserves explicit lifecycle visibility for later reads | malformed payload, illegal scope, missing ref target, duplicate step order, duplicate step identity |
+| skill_save | SkillService.Save | one typed skill bundle in one cognition scope | fail-close on malformed bundle payload, empty steps, duplicate step identity, duplicate step order, illegal refs, illegal scope crossing, or illegal lifecycle mutation | creates or updates one bundle and preserves explicit lifecycle visibility for later reads | malformed payload, illegal scope, missing ref target, duplicate step order, duplicate step identity, illegal lifecycle mutation |
 | skill_load | SkillService.Load | explicit scope_id plus bundle_id | fail-close on illegal scope, unknown id, or malformed stored bundle | none | unknown bundle, illegal scope, malformed stored bundle |
 | skill_list | SkillService.List | explicit scope_id with optional admitted filters | fail-close on illegal scope or malformed filter | none | illegal scope, malformed filter |
 | skill_search | SkillService.Search | explicit scope_id plus lexical query | fail-close on illegal scope, empty query, or malformed filter input | none | illegal scope, empty query, malformed filter, unavailable lexical substrate |
@@ -4595,7 +4598,7 @@ Fixed rules:
 | C-COG-001 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Authority-home rule is enforced structurally by cognition spec placement and generated projections. |
 | C-COG-002 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Extraction and upgrade relation is now fixed at the cognition authority layer and no longer delegated to runtime. |
 | C-COG-003 | covered | `cognition_spec_governance_gate`, `cognition_semantic_completeness_gate` | — |
-| C-COG-004 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate`, `cognition_build_gate`, `cognition_test_gate`, `cognition_race_gate` | Cognition-local top-level closure is now supported by the current independent standalone audit, worker/service-path semantic alignment, failure-family behavior coverage, and current cognition gates; this remains a cognition-local evidence state rather than a repo-wide or runtime-parity completion claim. |
+| C-COG-004 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate`, `cognition_build_gate`, `cognition_test_gate`, `cognition_race_gate` | Cognition-local top-level standalone closeout is re-closed based on worker/service lifecycle equivalence, owner-true provenance, aligned typed digest routine contract, explicit ingest persist-failure fail-close handling, reopen-safe proof, and agreement with the latest independent audit; this is not a repo-wide or global final completion verdict. |
 | C-COG-005 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
 | C-COG-006 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
 | C-COG-007 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Memory now owns validated mutation, derived views, lifecycle-aware archive/remove/delete semantics, and explicit history without caller-owned serving metadata. |
@@ -4614,7 +4617,7 @@ Fixed rules:
 | C-COG-020 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
 | C-COG-021 | covered | `cognition_spec_governance_gate`, `cognition_test_gate` | — |
 | C-COG-022 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
-| C-COG-023 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Save paths reject illegal/missing/live-invalid refs across memory, knowledge, and skill, and relation roles remain fail-closed. |
+| C-COG-023 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Typed reference integrity now covers save-time validation, target liveness, memory delete/remove blockers for admitted knowledge citations, active-only kernel-rule citation validation, and kernel-rule deactivation blockers. |
 | C-COG-024 | covered | `cognition_test_gate` | — |
 | C-COG-025 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_vet_gate` | — |
 | C-COG-026 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
@@ -4623,7 +4626,7 @@ Fixed rules:
 | C-COG-029 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Memory, knowledge, skill, and working services now expose the admitted owner-true surfaces, including explicit history and delete where owned. |
 | C-COG-030 | covered | `cognition_test_gate`, `cognition_generated_docs_gate` | Prompt now consumes only service-owned memory views plus validated knowledge and skill artifacts, and malformed advisory inputs fail closed. |
 | C-COG-031 | covered | `cognition_test_gate` | — |
-| C-COG-032 | covered | `cognition_test_gate` | Digest worker path remains the authoritative routine entry, and worker-path cleanup mutation now uses the same structured lifecycle-aware blocker truth as the service-owned archive/remove helpers. |
+| C-COG-032 | covered | `cognition_test_gate` | Digest worker path remains the authoritative routine entry; public-surface authority now matches the admitted worker return contract, and typed routine contract plus persisted digest evidence close the admitted path while digest-package run/analyze/apply tests remain internal helper evidence rather than the primary closeout proof. |
 | C-COG-033 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
 | C-COG-034 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate`, `cognition_build_gate` | Runtime-overlap capability mapping is re-aligned to the redesigned standalone implementation and now matches direct behavior-tested knowledge, retrieval, and digest/refgraph semantics. |
 | C-COG-035 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_vet_gate` | — |
@@ -4636,7 +4639,7 @@ Fixed rules:
 | C-COG-042 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
 | C-COG-043 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Knowledge service registry is now explicit and structurally validated. |
 | C-COG-044 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Knowledge lifecycle and retrieval semantics now have direct behavior coverage for honest hybrid retrieval, delete blockers, reopen-safe state, and task interruption failure. |
-| C-COG-045 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | First-class relation rows and persisted ingest tasks are now owner-true and directly covered by relation durability, blocker, traversal, and interrupted-ingest tests. |
+| C-COG-045 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Same-scope relation integrity, persisted ingest lifecycle, explicit running/completed persist-failure fail-close handling, interrupted-task fail-close, and admitted worker-path proof now reach owner-true standalone level; digest-package helper-path tests remain secondary evidence, not the primary completion proof. |
 | C-COG-046 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
 | C-COG-047 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Reference matrix authority now matches the redesigned implementation: kernel outgoing refs to advisory artifacts are admitted, reverse refs into kernels remain forbidden, and knowledge graph truth is first-class relation-row based. |
 | C-COG-048 | covered | `cognition_test_gate`, `cognition_generated_docs_gate` | Refgraph now explains cleanup through live-only support summaries, broken targets, outgoing dependency health, and remove blockers consumed by digest. |
