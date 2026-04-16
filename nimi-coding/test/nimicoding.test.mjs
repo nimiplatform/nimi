@@ -843,6 +843,8 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(impactedSurfaceMatrix, /phase2_impacted_surface_matrix:/);
     assert.match(agents, /nimicoding:managed:agents:start/);
     assert.match(claude, /nimicoding:managed:claude:start/);
+    assert.match(agents, /AI-context-efficient/);
+    assert.match(claude, /AI-context-efficient/);
     assert.match(handoffJson, /"skill":/);
     await assert.rejects(readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.prompt.md"), "utf8"));
     assert.match(result.stdout, /4\. Paste Prompt/);

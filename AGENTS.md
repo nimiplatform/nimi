@@ -26,5 +26,5 @@
 - Treat `.nimi/config/{skill-manifest,host-profile,host-adapter,external-execution-artifacts,skill-installer}.yaml`, `.nimi/methodology/{skill-runtime,skill-installer-result,skill-handoff}.yaml`, and admitted adapter profiles under `adapters/**/profile.yaml` as the bridge to external AI/skill execution.
 - Standalone nimicoding is boundary-complete for bootstrap, handoff, validation, projection, and explicit admission only; do not assume packaged run-kernel, provider, scheduler, notification, or automation ownership.
 - Treat `.nimi/config/installer-evidence.yaml`, `.nimi/methodology/skill-installer-summary-projection.yaml`, and `.nimi/local/**` high-risk artifacts as operational/local-only projections, not semantic truth promotion.
-- Default posture: use packetized execution only when risk justifies it, keep inline manager-worker by default, keep continuity-agnostic semantics, and do not treat this block as a replacement for project-specific rules.
+- Default posture: use packetized execution only when risk justifies it, keep inline manager-worker by default, keep continuity-agnostic semantics, keep code changes AI-context-efficient by splitting responsibilities before concentrating unrelated logic into one file, and do not treat this block as a replacement for project-specific rules.
 <!-- nimicoding:managed:agents:end -->
