@@ -9,6 +9,12 @@ generate_drift_migration_checklist:
       post_cutover_canonical_input_root: .nimi/spec/runtime/kernel
       post_cutover_generated_output_root: .nimi/spec/runtime/kernel/generated
       update_phase: phase_3_preparation
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope cognition
+      current_canonical_input_root: spec/cognition/kernel
+      current_generated_output_root: spec/cognition/kernel/generated
+      post_cutover_canonical_input_root: .nimi/spec/cognition/kernel
+      post_cutover_generated_output_root: .nimi/spec/cognition/kernel/generated
+      update_phase: phase_3_preparation
     - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk
       current_canonical_input_root: spec/sdk/kernel
       current_generated_output_root: spec/sdk/kernel/generated
@@ -69,6 +75,12 @@ generate_drift_migration_checklist:
       post_cutover_canonical_input_root: .nimi/spec/runtime/kernel
       post_cutover_generated_output_root: .nimi/spec/runtime/kernel/generated
       update_phase: phase_3_preparation
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope cognition --check
+      current_canonical_input_root: spec/cognition/kernel
+      current_generated_output_root: spec/cognition/kernel/generated
+      post_cutover_canonical_input_root: .nimi/spec/cognition/kernel
+      post_cutover_generated_output_root: .nimi/spec/cognition/kernel/generated
+      update_phase: phase_3_preparation
     - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check
       current_canonical_input_root: spec/sdk/kernel
       current_generated_output_root: spec/sdk/kernel/generated
@@ -97,6 +109,12 @@ generate_drift_migration_checklist:
       current_canonical_input_root: spec/runtime/kernel
       current_generated_output_root: none
       post_cutover_canonical_input_root: .nimi/spec/runtime/kernel
+      post_cutover_generated_output_root: none
+      update_phase: phase_5_flip
+    - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope cognition-consistency
+      current_canonical_input_root: spec/cognition/kernel
+      current_generated_output_root: none
+      post_cutover_canonical_input_root: .nimi/spec/cognition/kernel
       post_cutover_generated_output_root: none
       update_phase: phase_5_flip
     - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency

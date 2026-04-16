@@ -204,6 +204,7 @@
 | `K-KNOW-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KNOW-005a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KNOW-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KNOW-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -430,6 +431,7 @@
 | `K-MEM-011` | `deferred` | — |
 | `K-MEM-012` | `deferred` | — |
 | `K-MEM-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MEM-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MEMSUB-001` | `deferred` | — |
 | `K-MEMSUB-002` | `deferred` | — |
 | `K-MEMSUB-003` | `deferred` | — |
@@ -458,6 +460,7 @@
 | `K-AGCORE-018` | `deferred` | — |
 | `K-AGCORE-019` | `deferred` | — |
 | `K-AGCORE-020` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AGCORE-021` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
 | `K-RPC-004c` | `deferred` | — |

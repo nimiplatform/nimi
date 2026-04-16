@@ -1,0 +1,56 @@
+version: 1
+families:
+  - family_id: agent_model_kernel
+    allowed_outgoing_refs: [memory_substrate, knowledge_projections, skill_artifacts]
+    allowed_incoming_refs: []
+    forbidden_cross_family_refs: [agent_model_kernel, world_model_kernel, working_state]
+    forbidden_cross_scope_refs: true
+    missing_target_on_save: reject
+    missing_target_on_archive: none
+    missing_target_on_remove: none
+    source_rule: C-COG-047
+  - family_id: world_model_kernel
+    allowed_outgoing_refs: [memory_substrate, knowledge_projections, skill_artifacts]
+    allowed_incoming_refs: []
+    forbidden_cross_family_refs: [agent_model_kernel, world_model_kernel, working_state]
+    forbidden_cross_scope_refs: true
+    missing_target_on_save: reject
+    missing_target_on_archive: none
+    missing_target_on_remove: none
+    source_rule: C-COG-047
+  - family_id: memory_substrate
+    allowed_outgoing_refs: [memory_substrate, knowledge_projections, skill_artifacts]
+    allowed_incoming_refs: [memory_substrate, knowledge_projections, skill_artifacts]
+    forbidden_cross_family_refs: [agent_model_kernel, world_model_kernel, working_state]
+    forbidden_cross_scope_refs: true
+    missing_target_on_save: reject
+    missing_target_on_archive: archive_block
+    missing_target_on_remove: remove_block
+    source_rule: C-COG-047
+  - family_id: knowledge_projections
+    allowed_outgoing_refs: [memory_substrate, knowledge_projections, skill_artifacts]
+    allowed_incoming_refs: [memory_substrate, knowledge_projections, skill_artifacts]
+    forbidden_cross_family_refs: [agent_model_kernel, world_model_kernel, working_state]
+    forbidden_cross_scope_refs: true
+    missing_target_on_save: reject
+    missing_target_on_archive: archive_block
+    missing_target_on_remove: remove_block
+    source_rule: C-COG-047
+  - family_id: skill_artifacts
+    allowed_outgoing_refs: [memory_substrate, knowledge_projections, skill_artifacts]
+    allowed_incoming_refs: [memory_substrate, knowledge_projections, skill_artifacts]
+    forbidden_cross_family_refs: [agent_model_kernel, world_model_kernel, working_state]
+    forbidden_cross_scope_refs: true
+    missing_target_on_save: reject
+    missing_target_on_archive: archive_block
+    missing_target_on_remove: remove_block
+    source_rule: C-COG-047
+  - family_id: working_state
+    allowed_outgoing_refs: []
+    allowed_incoming_refs: []
+    forbidden_cross_family_refs: [agent_model_kernel, world_model_kernel, memory_substrate, knowledge_projections, skill_artifacts]
+    forbidden_cross_scope_refs: true
+    missing_target_on_save: reject
+    missing_target_on_archive: none
+    missing_target_on_remove: none
+    source_rule: C-COG-047

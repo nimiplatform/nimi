@@ -1,0 +1,248 @@
+version: 1
+rule_compliance:
+  total_c_rules: 58
+  audit_date: "2026-04-16"
+
+evidence_catalog:
+  cognition_spec_governance_gate:
+    type: static_gate
+    command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope cognition-consistency
+    path: .nimi/spec/cognition/kernel
+    description: Cognition kernel rule integrity and domain-local governance validation.
+  cognition_generated_docs_gate:
+    type: static_gate
+    command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope cognition --check
+    path: .nimi/spec/cognition/kernel/generated
+    description: Cognition kernel generated-doc drift and projection validation.
+  cognition_semantic_completeness_gate:
+    type: static_gate
+    command: pnpm check:spec-semantic-completeness
+    path: .nimi/spec
+    description: Repo-wide kernel semantic completeness validation including cognition rules.
+  cognition_build_gate:
+    type: build_gate
+    command: cd nimi-cognition && go build ./...
+    path: nimi-cognition/go.mod
+    description: Standalone cognition module build validation.
+  cognition_test_gate:
+    type: test_gate
+    command: cd nimi-cognition && go test ./...
+    path: nimi-cognition/go.mod
+    description: Standalone cognition behavioral test suite.
+  cognition_vet_gate:
+    type: static_gate
+    command: cd nimi-cognition && go vet ./...
+    path: nimi-cognition/go.mod
+    description: Standalone cognition static analysis gate.
+  cognition_race_gate:
+    type: test_gate
+    command: cd nimi-cognition && go test -race ./...
+    path: nimi-cognition/go.mod
+    description: Standalone cognition race-safety and reopen-safe concurrent execution gate.
+
+rules:
+  - rule_id: C-COG-001
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+    note: Authority-home rule is enforced structurally by cognition spec placement and generated projections.
+  - rule_id: C-COG-002
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+    note: Extraction and upgrade relation is now fixed at the cognition authority layer and no longer delegated to runtime.
+  - rule_id: C-COG-003
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_semantic_completeness_gate]
+  - rule_id: C-COG-004
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate, cognition_build_gate, cognition_test_gate, cognition_race_gate]
+    note: Cognition-local top-level closure is now supported by the current independent standalone audit, worker/service-path semantic alignment, failure-family behavior coverage, and current cognition gates; this remains a cognition-local evidence state rather than a repo-wide or runtime-parity completion claim.
+  - rule_id: C-COG-005
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate]
+  - rule_id: C-COG-006
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate]
+  - rule_id: C-COG-007
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: Memory now owns validated mutation, derived views, lifecycle-aware archive/remove/delete semantics, and explicit history without caller-owned serving metadata.
+  - rule_id: C-COG-008
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: Knowledge service now owns first-class relation rows, lexical-plus-vector hybrid retrieval, and queued/running/completed/failed ingest lifecycle with direct behavior coverage.
+  - rule_id: C-COG-009
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate]
+  - rule_id: C-COG-010
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate]
+  - rule_id: C-COG-011
+    status: covered
+    evidence_refs: [cognition_test_gate, cognition_generated_docs_gate]
+  - rule_id: C-COG-012
+    status: covered
+    evidence_refs: [cognition_test_gate, cognition_generated_docs_gate]
+  - rule_id: C-COG-013
+    status: covered
+    evidence_refs: [cognition_test_gate]
+  - rule_id: C-COG-014
+    status: covered
+    evidence_refs: [cognition_test_gate]
+  - rule_id: C-COG-015
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_vet_gate]
+    note: Public surface now aligns to owner-true cognition services only, including lifecycle-aware routine entry and service-grade skill/history semantics.
+  - rule_id: C-COG-016
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+  - rule_id: C-COG-017
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_vet_gate]
+  - rule_id: C-COG-018
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate]
+  - rule_id: C-COG-019
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+  - rule_id: C-COG-020
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate]
+  - rule_id: C-COG-021
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_test_gate]
+  - rule_id: C-COG-022
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate]
+  - rule_id: C-COG-023
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: Save paths reject illegal/missing/live-invalid refs across memory, knowledge, and skill, and relation roles remain fail-closed.
+  - rule_id: C-COG-024
+    status: covered
+    evidence_refs: [cognition_test_gate]
+  - rule_id: C-COG-025
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_vet_gate]
+  - rule_id: C-COG-026
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate]
+  - rule_id: C-COG-027
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate]
+  - rule_id: C-COG-028
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate]
+  - rule_id: C-COG-029
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: Memory, knowledge, skill, and working services now expose the admitted owner-true surfaces, including explicit history and delete where owned.
+  - rule_id: C-COG-030
+    status: covered
+    evidence_refs: [cognition_test_gate, cognition_generated_docs_gate]
+    note: Prompt now consumes only service-owned memory views plus validated knowledge and skill artifacts, and malformed advisory inputs fail closed.
+  - rule_id: C-COG-031
+    status: covered
+    evidence_refs: [cognition_test_gate]
+  - rule_id: C-COG-032
+    status: covered
+    evidence_refs: [cognition_test_gate]
+    note: Digest worker path remains the authoritative routine entry, and worker-path cleanup mutation now uses the same structured lifecycle-aware blocker truth as the service-owned archive/remove helpers.
+  - rule_id: C-COG-033
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+  - rule_id: C-COG-034
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate, cognition_build_gate]
+    note: Runtime-overlap capability mapping is re-aligned to the redesigned standalone implementation and now matches direct behavior-tested knowledge, retrieval, and digest/refgraph semantics.
+  - rule_id: C-COG-035
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_vet_gate]
+  - rule_id: C-COG-036
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+  - rule_id: C-COG-037
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+    note: Runtime overlap concerns are now enumerated in the upgrade matrix and checked structurally.
+  - rule_id: C-COG-038
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+    note: Capability parity interpretation is now explicit and no longer left to implementation convention.
+  - rule_id: C-COG-039
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+    note: Memory service registry is now explicit and structurally validated.
+  - rule_id: C-COG-040
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: Memory mutation now distinguishes archive, remove, and explicit delete with blocker checks and observable history.
+  - rule_id: C-COG-041
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: Memory retrieval now separates raw records from derived views, excludes removed artifacts from list/search, and keeps removed lifecycle observable through load/history.
+  - rule_id: C-COG-042
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+  - rule_id: C-COG-043
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+    note: Knowledge service registry is now explicit and structurally validated.
+  - rule_id: C-COG-044
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: Knowledge lifecycle and retrieval semantics now have direct behavior coverage for honest hybrid retrieval, delete blockers, reopen-safe state, and task interruption failure.
+  - rule_id: C-COG-045
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: First-class relation rows and persisted ingest tasks are now owner-true and directly covered by relation durability, blocker, traversal, and interrupted-ingest tests.
+  - rule_id: C-COG-046
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+  - rule_id: C-COG-047
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+    note: "Reference matrix authority now matches the redesigned implementation: kernel outgoing refs to advisory artifacts are admitted, reverse refs into kernels remain forbidden, and knowledge graph truth is first-class relation-row based."
+  - rule_id: C-COG-048
+    status: covered
+    evidence_refs: [cognition_test_gate, cognition_generated_docs_gate]
+    note: Refgraph now explains cleanup through live-only support summaries, broken targets, outgoing dependency health, and remove blockers consumed by digest.
+  - rule_id: C-COG-049
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: Missing-target handling now rejects invalid save paths and preserves explicit archive/remove blockers through refgraph-backed cleanup evaluation.
+  - rule_id: C-COG-050
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+    note: Prompt lane registry is now explicit and structurally validated.
+  - rule_id: C-COG-051
+    status: covered
+    evidence_refs: [cognition_test_gate, cognition_generated_docs_gate]
+    note: Prompt separation now rests on strict lane-local inputs, validated advisory artifacts, and service-owned memory views rather than formatting-only convention.
+  - rule_id: C-COG-052
+    status: covered
+    evidence_refs: [cognition_test_gate, cognition_generated_docs_gate]
+    note: Prompt rendering now fails close on malformed advisory projections and forbidden advisory derivation inputs.
+  - rule_id: C-COG-053
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate, cognition_semantic_completeness_gate]
+    note: Completion gates are now explicit and included in generated cognition views.
+  - rule_id: C-COG-054
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+    note: Evidence honesty is re-established for the narrowed subsystem set; restored rules now require direct behavior tests on the authoritative worker/service path, and any future top-level regression must reopen C-COG-004 until a fresh cognition-local audit re-closes it.
+  - rule_id: C-COG-055
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_build_gate, cognition_test_gate]
+    note: Runtime independence is supported by cognition authority plus standalone build/test/race evidence, but it remains only one input to top-level completion and does not by itself close C-COG-004.
+  - rule_id: C-COG-056
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: Skill service operation registry is now explicit and aligned to validated save/load/list/search/delete/history/list_ids behavior.
+  - rule_id: C-COG-057
+    status: covered
+    evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
+    note: Skill now owns strict step validation plus explicit archive/remove/delete lifecycle semantics with visible history and removed-state retrieval behavior.
+  - rule_id: C-COG-058
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_build_gate, cognition_test_gate]
+    note: Skill remains cognition-owned advisory retrieval/lifecycle only and does not absorb runtime execution-policy or scheduler ownership.

@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import YAML from 'yaml';
 
-const RULE_HEADING_RE = /^##\s+((?:K|S|D|P|R|F)-[A-Z]+-\d{3}[a-z]?)\b(?:\s+[—-]\s+(.*)|\s+(.*))?$/;
+const RULE_HEADING_RE = /^##\s+((?:C|K|S|D|P|R|F)-[A-Z]+-\d{3}[a-z]?)\b(?:\s+[—-]\s+(.*)|\s+(.*))?$/;
 
 export function parseKernelRules(content) {
   const rules = new Map();
@@ -417,6 +417,108 @@ export function renderResearchSources(doc) {
   return `${out}\n`;
 }
 
+export function renderArtifactFamilies(doc) {
+  const families = Array.isArray(doc?.families) ? doc.families : [];
+  let out = '| Family | Truth Weight | Persistence | Prompt Lane | Cleanup Lane | Owner Surface |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const family of families) {
+    out += `| ${family.family_id || '—'} | ${family.truth_weight || '—'} | ${family.persistence_mode || '—'} | ${family.prompt_lane || '—'} | ${family.cleanup_lane || '—'} | ${family.public_owner_surface || '—'} |\n`;
+  }
+  return `${out}\n`;
+}
+
+export function renderPublicSurface(doc) {
+  const surfaces = Array.isArray(doc?.surfaces) ? doc.surfaces : [];
+  let out = '| Surface ID | Kind | Entrypoint | Owner | Family Scope | Return Contract | Capability Concerns |\n';
+  out += '|---|---|---|---|---|---|---|\n';
+  for (const surface of surfaces) {
+    const concerns = Array.isArray(surface?.capability_concerns) ? surface.capability_concerns.join(', ') : '—';
+    out += `| ${surface.surface_id || '—'} | ${surface.surface_kind || '—'} | ${surface.entrypoint || '—'} | ${surface.owner_surface || '—'} | ${surface.family_scope || '—'} | ${surface.return_contract || '—'} | ${concerns || '—'} |\n`;
+  }
+  return `${out}\n`;
+}
+
+export function renderRuntimeBridgeBoundary(doc) {
+  const boundaries = Array.isArray(doc?.boundaries) ? doc.boundaries : [];
+  let out = '| Concern | Cognition Owner | Runtime Owner | Admitted Bridge | Forbidden Owner Inversion |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const boundary of boundaries) {
+    out += `| ${boundary.concern_id || '—'} | ${boundary.cognition_owner || '—'} | ${boundary.runtime_owner || '—'} | ${boundary.admitted_bridge || '—'} | ${boundary.forbidden_owner_inversion || '—'} |\n`;
+  }
+  return `${out}\n`;
+}
+
+export function renderRuntimeCapabilityUpgradeMatrix(doc) {
+  const capabilities = Array.isArray(doc?.capabilities) ? doc.capabilities : [];
+  let out = '| Concern | Runtime Source | Parity Mode | Cognition Owner Surface | Required Floor | Forbidden Downgrade |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const capability of capabilities) {
+    out += `| ${capability.concern_id || '—'} | ${capability.runtime_source_contract || '—'} | ${capability.parity_mode || '—'} | ${capability.cognition_owner_surface || '—'} | ${capability.required_floor || '—'} | ${capability.forbidden_downgrade || '—'} |\n`;
+  }
+  return `${out}\n`;
+}
+
+export function renderServiceOperations(doc) {
+  const operations = Array.isArray(doc?.operations) ? doc.operations : [];
+  let out = '| Operation | Entrypoint | Inputs | Validation | Lifecycle Effects | Fail-Close Reasons |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const operation of operations) {
+    out += `| ${operation.operation_id || '—'} | ${operation.entrypoint || '—'} | ${operation.admitted_inputs || '—'} | ${operation.validation || '—'} | ${operation.lifecycle_effects || '—'} | ${operation.fail_closed_reasons || '—'} |\n`;
+  }
+  return `${out}\n`;
+}
+
+export function renderAdmittedReferenceMatrix(doc) {
+  const families = Array.isArray(doc?.families) ? doc.families : [];
+  let out = '| Family | Allowed Outgoing | Allowed Incoming | Missing Target On Save | Missing Target On Archive | Missing Target On Remove |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const family of families) {
+    const outgoing = Array.isArray(family?.allowed_outgoing_refs) ? family.allowed_outgoing_refs.join(', ') : '—';
+    const incoming = Array.isArray(family?.allowed_incoming_refs) ? family.allowed_incoming_refs.join(', ') : '—';
+    out += `| ${family.family_id || '—'} | ${outgoing || '—'} | ${incoming || '—'} | ${family.missing_target_on_save || '—'} | ${family.missing_target_on_archive || '—'} | ${family.missing_target_on_remove || '—'} |\n`;
+  }
+  return `${out}\n`;
+}
+
+export function renderPromptServingLanes(doc) {
+  const lanes = Array.isArray(doc?.lanes) ? doc.lanes : [];
+  let out = '| Lane | Order | Families | Inputs | Derived Source | Forbidden Inputs |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const lane of lanes) {
+    const families = Array.isArray(lane?.admitted_families) ? lane.admitted_families.join(', ') : '—';
+    const forbidden = Array.isArray(lane?.forbidden_inputs) ? lane.forbidden_inputs.join(', ') : '—';
+    out += `| ${lane.lane_id || '—'} | ${lane.serving_order || '—'} | ${families || '—'} | ${lane.admitted_inputs || '—'} | ${lane.derived_view_source || '—'} | ${forbidden || '—'} |\n`;
+  }
+  return `${out}\n`;
+}
+
+export function renderCompletionGates(doc) {
+  const gates = Array.isArray(doc?.gates) ? doc.gates : [];
+  let out = '| Gate | Closure Class | Statement | Minimum Evidence | Failure Condition |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const gate of gates) {
+    out += `| ${gate.gate_id || '—'} | ${gate.closure_class || '—'} | ${gate.gate_statement || '—'} | ${gate.minimum_evidence || '—'} | ${gate.failure_condition || '—'} |\n`;
+  }
+  return `${out}\n`;
+}
+
+export function renderRuleEvidence(doc) {
+  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  let out = '| Rule ID | Status | Evidence Refs | Note |\n';
+  out += '|---|---|---|---|\n';
+  for (const rule of rules) {
+    const ruleID = String(rule?.rule_id || '').trim();
+    if (!ruleID) continue;
+    const status = String(rule?.status || '').trim() || 'unknown';
+    const refs = Array.isArray(rule?.evidence_refs)
+      ? rule.evidence_refs.map((value) => `\`${String(value)}\``).join(', ')
+      : '—';
+    const note = String(rule?.note || '').trim() || '—';
+    out += `| ${ruleID} | ${status} | ${refs} | ${note} |\n`;
+  }
+  return `${out}\n`;
+}
+
 export function renderGraduationLog(doc) {
   const entries = doc?.entries || [];
   if (entries.length === 0) {
@@ -444,6 +546,20 @@ export const runtimeKernelFiles = [
   'proto-governance-contract.md',
   'ai-profile-execution-contract.md',
   'world-evolution-engine-contract.md',
+];
+
+export const cognitionKernelFiles = [
+  'cognition-contract.md',
+  'family-contract.md',
+  'surface-contract.md',
+  'runtime-bridge-contract.md',
+  'runtime-upgrade-contract.md',
+  'memory-service-contract.md',
+  'knowledge-service-contract.md',
+  'skill-service-contract.md',
+  'reference-contract.md',
+  'prompt-serving-contract.md',
+  'completion-contract.md',
 ];
 
 export const sdkKernelFiles = [

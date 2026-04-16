@@ -233,6 +233,18 @@ Fixed rules:
 
 ## K-MEM-013 Retain-Time Duplicate Suppression On Eligible Banks
 
+## K-MEM-014 Standalone Cognition Boundary
+
+`RuntimeMemoryService` is not the semantic owner of standalone cognition.
+
+Fixed rules:
+
+- runtime memory remains the runtime-owned authority for bank, provider, replication, and runtime-private review/substrate semantics on the runtime path
+- extracted standalone cognition semantics must live under the cognition authority home rather than being redefined here
+- cognition memory upgrade and no-downgrade requirements are governed by `.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`, `.nimi/spec/cognition/kernel/memory-service-contract.md`, and `.nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml`
+- runtime memory must not absorb cognition kernel, prompt, working-state, or routine ownership by implementation convenience
+- overlapping record mechanics or adapter reuse do not make runtime memory the continuing owner of cognition memory semantics
+
 `RuntimeMemoryService` may admit a narrow retain-time duplicate suppression rule
 for already-stabilized semantic memory candidates.
 

@@ -1,0 +1,167 @@
+version: 1
+operations:
+  - operation_id: knowledge_save
+    entrypoint: KnowledgeService.Save
+    admitted_inputs: one typed knowledge page projection in one cognition scope
+    identity_invariants: scope_id and page_id are explicit; create/update affects exactly one page
+    validation: fail-close on malformed page payload, illegal refs, illegal scope crossing, duplicate illegal ownership, page-embedded knowledge relations, or relation integrity violation
+    retrieval_posture: not a retrieval surface
+    lifecycle_effects: creates or updates one page and preserves explicit lifecycle visibility for later reads
+    derived_view_behavior: none at write time
+    fail_closed_reasons: malformed payload, illegal scope, missing ref target, illegal page identity mutation
+    non_ownership_boundary: does not own runtime bank auth, shared-truth replication, or Agent Core admission
+    source_rule: C-COG-043
+  - operation_id: knowledge_load
+    entrypoint: KnowledgeService.Load
+    admitted_inputs: explicit scope_id plus page_id
+    identity_invariants: loads exactly one page from one scope
+    validation: fail-close on illegal scope or unknown id
+    retrieval_posture: typed page read only; not graph expansion by implication
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: unknown page, illegal scope, malformed stored artifact
+    non_ownership_boundary: page load does not imply runtime citation or ingestion progress ownership
+    source_rule: C-COG-043
+  - operation_id: knowledge_list
+    entrypoint: KnowledgeService.List
+    admitted_inputs: explicit scope_id with optional admitted filters
+    identity_invariants: lists pages from exactly one scope
+    validation: fail-close on illegal scope or malformed filter
+    retrieval_posture: ordered page listing with explicit implementation-owned ordering semantics
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: illegal scope, malformed filter
+    non_ownership_boundary: page list must not impersonate graph traversal or hybrid retrieval
+    source_rule: C-COG-043
+  - operation_id: knowledge_delete
+    entrypoint: KnowledgeService.Delete
+    admitted_inputs: explicit scope_id plus page_id
+    identity_invariants: deletes or lifecycle-transitions exactly one page in one scope
+    validation: fail-close on illegal scope, unknown page, or blocked lifecycle transition
+    retrieval_posture: not a retrieval surface
+    lifecycle_effects: explicit delete/archive/remove visibility required
+    derived_view_behavior: subsequent retrieval must expose lifecycle outcome explicitly
+    fail_closed_reasons: unknown page, illegal scope, blocked lifecycle transition, active relation blocker
+    non_ownership_boundary: local page deletion does not claim runtime shared invalidation ownership
+    source_rule: C-COG-044
+  - operation_id: knowledge_history
+    entrypoint: KnowledgeService.History
+    admitted_inputs: explicit scope_id plus page_id or scope-local filter
+    identity_invariants: history remains local to one page or one scope-owned page lineage set
+    validation: fail-close on illegal scope, malformed filter, or unknown target
+    retrieval_posture: lifecycle/history read with explicit ordering semantics
+    lifecycle_effects: none
+    derived_view_behavior: may include relation/lifecycle evidence only when marked as service-owned history data
+    fail_closed_reasons: illegal scope, malformed filter, unknown target
+    non_ownership_boundary: history does not imply runtime timeline/version/revert ownership
+    source_rule: C-COG-044
+  - operation_id: knowledge_search_lexical
+    entrypoint: KnowledgeService.SearchLexical
+    admitted_inputs: explicit scope_id plus lexical query
+    identity_invariants: lexical search remains within one scope
+    validation: fail-close on illegal scope or malformed query
+    retrieval_posture: lexical retrieval only
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: illegal scope, malformed query, unavailable lexical substrate
+    non_ownership_boundary: lexical search must not masquerade as hybrid or graph retrieval
+    source_rule: C-COG-044
+  - operation_id: knowledge_search_hybrid
+    entrypoint: KnowledgeService.SearchHybrid
+    admitted_inputs: explicit scope_id plus hybrid query and admitted hybrid options
+    identity_invariants: hybrid search remains within one scope
+    validation: fail-close on illegal scope, malformed query, or unavailable hybrid capability
+    retrieval_posture: lexical-plus-vector hybrid retrieval distinct from lexical search and relation traversal
+    lifecycle_effects: none
+    derived_view_behavior: may include hybrid ranking metadata only when marked as service-owned derived retrieval data
+    fail_closed_reasons: illegal scope, malformed query, hybrid capability unavailable, missing embedding substrate, corrupt embedding substrate
+    non_ownership_boundary: hybrid retrieval does not transfer provider or runtime ranking ownership into cognition
+    source_rule: C-COG-044
+  - operation_id: knowledge_put_relation
+    entrypoint: KnowledgeService.PutRelation
+    admitted_inputs: explicit scope_id plus one typed same-scope relation
+    identity_invariants: source page, target page, and relation type identify one relation in one scope
+    validation: fail-close on missing source/target, cross-scope relation, blank relation type, duplicate relation, or self-link
+    retrieval_posture: not a retrieval surface
+    lifecycle_effects: creates or updates one first-class relation truth row
+    derived_view_behavior: none at write time
+    fail_closed_reasons: missing page, illegal scope, duplicate relation, self-link, malformed relation type
+    non_ownership_boundary: relation write does not imply cross-service citation ownership
+    source_rule: C-COG-045
+  - operation_id: knowledge_delete_relation
+    entrypoint: KnowledgeService.DeleteRelation
+    admitted_inputs: explicit scope_id plus relation identity
+    identity_invariants: removes exactly one same-scope relation
+    validation: fail-close on illegal scope, unknown relation, or malformed relation identity
+    retrieval_posture: not a retrieval surface
+    lifecycle_effects: explicit relation removal
+    derived_view_behavior: none
+    fail_closed_reasons: unknown relation, illegal scope, malformed relation identity
+    non_ownership_boundary: relation delete remains local graph truth only
+    source_rule: C-COG-045
+  - operation_id: knowledge_list_relations
+    entrypoint: KnowledgeService.ListRelations
+    admitted_inputs: explicit scope_id plus page_id
+    identity_invariants: returns outgoing same-scope relations for one page
+    validation: fail-close on illegal scope, unknown page, or malformed pagination/filter input
+    retrieval_posture: outgoing relation read only
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: illegal scope, unknown page, malformed filter
+    non_ownership_boundary: relation listing does not imply backlink or traversal by default
+    source_rule: C-COG-045
+  - operation_id: knowledge_list_backlinks
+    entrypoint: KnowledgeService.ListBacklinks
+    admitted_inputs: explicit scope_id plus page_id
+    identity_invariants: returns incoming same-scope relations for one page
+    validation: fail-close on illegal scope, unknown page, or malformed pagination/filter input
+    retrieval_posture: backlink read only
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: illegal scope, unknown page, malformed filter
+    non_ownership_boundary: backlink reads remain standalone-local graph projections only
+    source_rule: C-COG-045
+  - operation_id: knowledge_traverse
+    entrypoint: KnowledgeService.Traverse
+    admitted_inputs: explicit scope_id plus root_page_id and explicit bounded depth
+    identity_invariants: traverses one same-scope graph rooted at one page
+    validation: fail-close on illegal scope, unknown root, malformed depth, or unsupported traversal options
+    retrieval_posture: graph traversal read with explicit boundary and ordering semantics
+    lifecycle_effects: none
+    derived_view_behavior: may project traversal path metadata only when marked as service-owned retrieval data
+    fail_closed_reasons: illegal scope, unknown root, invalid depth, malformed traversal options
+    non_ownership_boundary: traversal does not imply cross-scope or cross-service citation truth
+    source_rule: C-COG-045
+  - operation_id: knowledge_ingest_document
+    entrypoint: KnowledgeService.IngestDocument
+    admitted_inputs: explicit scope_id plus one typed ingest envelope
+    identity_invariants: accepts one document into one cognition scope
+    validation: fail-close on malformed envelope, missing content, illegal scope, or unsupported ingest mode
+    retrieval_posture: not a retrieval surface
+    lifecycle_effects: persists a queued task immediately and may create or update pages only through explicit ingest task lifecycle
+    derived_view_behavior: none at accept time
+    fail_closed_reasons: illegal scope, malformed envelope, missing content, ingest capability unavailable
+    non_ownership_boundary: ingest acceptance does not imply workflow-service or batch-ingest ownership
+    source_rule: C-COG-045
+  - operation_id: knowledge_get_ingest_task
+    entrypoint: KnowledgeService.GetIngestTask
+    admitted_inputs: explicit scope_id plus task_id
+    identity_invariants: reads one ingest task in one scope
+    validation: fail-close on illegal scope or unknown task
+    retrieval_posture: persisted progress/task-state read only
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: illegal scope, unknown task
+    non_ownership_boundary: task progress does not imply runtime workflow or event-stream ownership
+    source_rule: C-COG-045
+  - operation_id: knowledge_list_ids
+    entrypoint: KnowledgeService.ListIDs
+    admitted_inputs: explicit scope_id
+    identity_invariants: returns page identifiers from exactly one scope
+    validation: fail-close on illegal scope
+    retrieval_posture: identifier-only projection; not a lifecycle or retrieval substitute
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: illegal scope
+    non_ownership_boundary: identifier listing must not be treated as lexical/hybrid/graph parity
+    source_rule: C-COG-043

@@ -3,6 +3,8 @@ profile_id: nimi
 spec_governance:
   canonical_root: .nimi/spec
   validate_commands:
+    cognition-consistency:
+      - node scripts/check-cognition-spec-kernel-consistency.mjs
     runtime-consistency:
       - node scripts/check-runtime-spec-kernel-consistency.mjs
     sdk-consistency:
@@ -16,6 +18,8 @@ spec_governance:
     future-consistency:
       - node scripts/check-future-spec-kernel-consistency.mjs
   generate_commands:
+    cognition:
+      - node scripts/generate-cognition-spec-kernel-docs.mjs
     runtime:
       - node scripts/generate-runtime-spec-kernel-docs.mjs
     sdk:
@@ -271,6 +275,12 @@ ai_governance:
         depth_base: scripts
         warning_depth: 3
         error_depth: 4
+      - id: nimi_cognition
+        include:
+          - nimi-cognition/**
+        depth_base: nimi-cognition
+        warning_depth: 4
+        error_depth: 5
     exclude:
       - _external/**
       - .cache/**

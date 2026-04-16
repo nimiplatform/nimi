@@ -1,0 +1,79 @@
+version: 1
+operations:
+  - operation_id: skill_save
+    entrypoint: SkillService.Save
+    admitted_inputs: one typed skill bundle in one cognition scope
+    identity_invariants: scope_id and bundle_id are explicit; create/update affects exactly one bundle
+    validation: fail-close on malformed bundle payload, empty steps, duplicate step identity, duplicate step order, illegal refs, or illegal scope crossing
+    retrieval_posture: not a retrieval surface
+    lifecycle_effects: creates or updates one bundle and preserves explicit lifecycle visibility for later reads
+    derived_view_behavior: none at write time
+    fail_closed_reasons: malformed payload, illegal scope, missing ref target, duplicate step order, duplicate step identity
+    non_ownership_boundary: does not own runtime provider/tool routing, scheduler truth, or automation execution policy
+    source_rule: C-COG-056
+  - operation_id: skill_load
+    entrypoint: SkillService.Load
+    admitted_inputs: explicit scope_id plus bundle_id
+    identity_invariants: loads exactly one validated bundle from one scope
+    validation: fail-close on illegal scope, unknown id, or malformed stored bundle
+    retrieval_posture: typed advisory bundle read only
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: unknown bundle, illegal scope, malformed stored bundle
+    non_ownership_boundary: load does not imply runtime execution-policy truth
+    source_rule: C-COG-056
+  - operation_id: skill_list
+    entrypoint: SkillService.List
+    admitted_inputs: explicit scope_id with optional admitted filters
+    identity_invariants: lists validated visible bundles from exactly one scope
+    validation: fail-close on illegal scope or malformed filter
+    retrieval_posture: ordered advisory bundle listing with removed bundles excluded by default
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: illegal scope, malformed filter
+    non_ownership_boundary: list output must not masquerade as execution-policy readiness
+    source_rule: C-COG-057
+  - operation_id: skill_search
+    entrypoint: SkillService.Search
+    admitted_inputs: explicit scope_id plus lexical query
+    identity_invariants: searches validated visible bundles inside exactly one scope
+    validation: fail-close on illegal scope, empty query, or malformed filter input
+    retrieval_posture: FTS-backed lexical advisory bundle retrieval only, with removed bundles excluded by default
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: illegal scope, empty query, malformed filter, unavailable lexical substrate
+    non_ownership_boundary: lexical skill search does not imply runtime planner or scheduler ownership
+    source_rule: C-COG-057
+  - operation_id: skill_delete
+    entrypoint: SkillService.Delete
+    admitted_inputs: explicit scope_id plus bundle_id
+    identity_invariants: explicitly deletes exactly one bundle in one scope
+    validation: fail-close on illegal scope, unknown bundle, or active inbound cleanup blocker
+    retrieval_posture: not a retrieval surface
+    lifecycle_effects: performs explicit destructive delete only after lifecycle-aware cleanup blockers are absent; delete is distinct from archive/remove
+    derived_view_behavior: subsequent reads must expose deletion explicitly through load failure and retained history
+    fail_closed_reasons: unknown bundle, illegal scope, active inbound blocker, illegal lifecycle transition
+    non_ownership_boundary: local delete does not claim runtime automation invalidation ownership
+    source_rule: C-COG-057
+  - operation_id: skill_history
+    entrypoint: SkillService.History
+    admitted_inputs: explicit scope_id plus bundle_id
+    identity_invariants: history remains local to one bundle in one scope
+    validation: fail-close on illegal scope or unknown target
+    retrieval_posture: lifecycle/history read with explicit chronological ordering
+    lifecycle_effects: none
+    derived_view_behavior: may include lifecycle transition evidence only when marked as service-owned history data
+    fail_closed_reasons: illegal scope, unknown bundle
+    non_ownership_boundary: history does not imply runtime workflow log or execution timeline ownership
+    source_rule: C-COG-057
+  - operation_id: skill_list_ids
+    entrypoint: SkillService.ListIDs
+    admitted_inputs: explicit scope_id
+    identity_invariants: returns visible bundle identifiers from exactly one scope
+    validation: fail-close on illegal scope
+    retrieval_posture: identifier-only projection; not a lifecycle or execution substitute
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: illegal scope
+    non_ownership_boundary: identifier listing must not be treated as runtime execution registry parity
+    source_rule: C-COG-056

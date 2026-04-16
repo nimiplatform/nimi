@@ -53,12 +53,14 @@ spec_authority_cutover_readiness:
           - pnpm check:spec-semantic-completeness
           - pnpm check:runtime-proto-spec-linkage
           - pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency
+          - pnpm exec nimicoding validate-spec-governance --profile nimi --scope cognition-consistency
           - pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency
           - pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
           - pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency
           - pnpm exec nimicoding validate-spec-governance --profile nimi --scope realm-consistency
           - pnpm exec nimicoding validate-spec-governance --profile nimi --scope future-consistency
           - pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check
+          - pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope cognition --check
           - pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check
           - pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check
           - pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform --check

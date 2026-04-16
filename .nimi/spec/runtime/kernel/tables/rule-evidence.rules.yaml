@@ -569,6 +569,9 @@
 - rule_id: K-KNOW-006
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-KNOW-007
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-LENG-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
@@ -1249,6 +1252,9 @@
 - rule_id: K-MEM-013
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-MEM-014
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 # Runtime memory local substrate (K-MEMSUB-*)
 - rule_id: K-MEMSUB-001
   status: deferred
@@ -1333,6 +1339,9 @@
   status: deferred
   evidence_refs: []
 - rule_id: K-AGCORE-020
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-AGCORE-021
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 # Runtime RPC additions for memory and agent core

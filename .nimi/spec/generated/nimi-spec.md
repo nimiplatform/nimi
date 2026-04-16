@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-04-14
+> 生成时间: 2026-04-16
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -20,7 +20,8 @@
 9. [SDK 架构](#9-sdk-架构)
 10. [Desktop 架构](#10-desktop-架构)
 11. [Future 能力规划](#11-future-能力规划)
-12. [附录：参考表](#12-附录参考表)
+12. [Standalone Cognition](#12-standalone-cognition)
+13. [附录：参考表](#13-附录参考表)
 
 ---
 
@@ -3369,11 +3370,565 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 
 ---
 
-## 12. 附录：参考表
+## 12. Standalone Cognition
+
+`nimi-cognition` 现在是一个独立 spec domain，而不是 runtime 的继续 owner。它来自 runtime memory / knowledge 能力的抽离与升级，但 authority 已经单独落在 `/.nimi/spec/cognition/kernel/**`，runtime 只能 bridge/consume，不能反向定义 cognition 语义。
+
+**C-COG-001 — Standalone Cognition Authority Home**
+
+`nimi-cognition` is the authority home for standalone local cognition.
+
+It owns:
+
+- standalone cognition object model
+- local cognition semantic boundary
+- standalone cognition public surface
+- local cognition mutation / retrieval / cleanup semantics
+- local cognition prompt/context separation
+- local cognition working-state semantics
+- external routine boundary for standalone cognition
+
+It does not own:
+
+- runtime bank lifecycle truth
+- runtime provider bridge truth
+- runtime replication truth
+- runtime canonical review truth
+- runtime live agent lifecycle truth
+- Realm shared-truth governance
+
+**C-COG-002 — Runtime Extraction And Upgrade Relation**
+
+`nimi-cognition` is extracted from runtime-local memory / knowledge capabilities and upgraded into a standalone cognition domain.
+
+Fixed rules:
+
+- cognition is not a runtime subchapter, helper package, or internal extraction detail
+- cognition authority must remain independently specifiable without importing runtime ownership as a prerequisite
+- overlap with runtime memory or runtime knowledge does not permit cognition capability downgrade
+- where cognition covers capability already present in runtime memory / knowledge, the cognition contract must be at least equally explicit and fail-closed
+- shared implementation heritage does not make runtime the continuing semantic owner of cognition
+
+**C-COG-003 — No Parallel Truth**
+
+The standalone cognition authority must live in `/.nimi/spec/cognition/kernel/**`.
+
+Fixed rules:
+
+- local reports, baseline proposals, and implementation code are not authority once cognition kernel rules are admitted here
+- runtime kernel documents may reference cognition boundary rules, but they must not redefine cognition object ownership
+- cognition implementation must align to this contract rather than reinterpreting the contract through package layout or test shape
+
+它也不是一个 MVP 或试验性旁支。standalone cognition 的 admitted 完成标准是：不能降级 runtime 已拥有的 overlapping 能力，不能靠 façade、类型外形、宽松测试或伪 metadata 营造完成感。
+
+**C-COG-004 — Standalone Completion Standard**
+
+`nimi-cognition` is not admitted as an MVP, skeleton, or design probe.
+
+Fixed rules:
+
+- standalone cognition must target production-grade semantic closure
+- pseudo-implemented surfaces, fake success payloads, placeholder cleanup semantics, and compatibility-shaped non-owners are not admitted
+- a package or service surface is incomplete unless its mutation, retrieval, persistence, cleanup, and formatting semantics are all explicitly closed or explicitly out of scope
+- “tests pass” is not completion evidence if the tested behavior is semantically weaker than admitted cognition rules
+- cognition-local top-level completion may be covered when an independent standalone audit, matching behavior-level proof, and current cognition authority all agree that no owner-path semantic blocker remains
+- cognition-local top-level completion does not imply repo-wide final closeout or parity with runtime's deeper overlapping service maturity
+
+**C-COG-015 — Public Surface Completeness**
+
+If a standalone cognition surface is public, it must be semantically complete within its admitted role.
+
+Fixed rules:
+
+- public cognition services must expose only owner-true surfaces
+- compatibility wrappers that preserve known-wrong ownership are not admitted as steady-state public contract
+- optional capability claims must not appear in the contract unless real wiring, semantics, and failure behavior exist
+- typed API shape alone does not count as service-level completion
+
+**C-COG-017 — Failure Model**
+
+Standalone cognition must fail close on semantic violations.
+
+Fixed rules:
+
+- malformed payloads, illegal refs, illegal lifecycle transitions, and illegal scope crossings must be rejected explicitly
+- pseudo-success, best-effort mutation, or silent downgrade are not admitted
+- retrieval surfaces must keep degraded capability explicit; they must not quietly pretend parity they do not have
+- cleanup and formatting paths must not invent service-owned metadata without explicit derivation logic
+
+其对象模型以 kernel 为中心，同时保留 memory / knowledge / skill / working 的明确边界。artifact family registry、reference matrix、public surface、runtime upgrade matrix 与 runtime bridge boundary 现在都已经单独入表，不再靠 package 命名暗示语义。cleanup、prompt serving 与 external routine 都必须服从这一分层，而不是重新把 runtime service ownership 偷渡回来。
+
+**C-COG-005 — Top-Level Object Model**
+
+Standalone cognition is centered on the following first-order local artifact families:
+
+- `agent_model_kernel`
+- `world_model_kernel`
+- `memory_substrate`
+- `knowledge_projections`
+- `skill_artifacts`
+- `working_state`
+
+Fixed rules:
+
+- kernels are primary local model artifacts, not generic containers
+- memory, knowledge, and skill remain distinct advisory families and must not collapse into kernel truth
+- working state is a first-order local cognition family even when transient
+- prompt serving, retrieval, cleanup, and routines must respect these family boundaries
+
+**C-COG-006 — Kernel Boundary**
+
+Kernel semantics are local-model semantics, not external truth governance.
+
+Fixed rules:
+
+- kernel scope contains exactly one local agent kernel and one local world kernel per cognition scope
+- kernels begin at admitted `incoming_patch` mutation surface rather than upstream observation capture
+- source observation, candidate generation, and external truth arbitration remain outside kernel ownership
+- kernel rule state must keep independent anchor-binding, alignment, and lifecycle axes
+- kernel mutation must remain fail-closed through the admitted `status / diff / merge / resolve / commit / log` surface
+
+**C-COG-019 — Family Registry**
+
+The authoritative standalone cognition family registry is `tables/artifact-families.yaml`.
+
+Fixed rules:
+
+- every admitted cognition family must appear exactly once in the registry
+- every registered family must declare truth weight, persistence mode, prompt lane, cleanup lane, and owner surface
+- adding a new cognition family requires an admitted kernel rule rather than ad hoc package growth
+- family registration is semantic admission, not a naming convenience for packages or folders
+
+**C-COG-020 — Scope And Identity Model**
+
+Every durable cognition artifact belongs to exactly one cognition scope.
+
+Fixed rules:
+
+- kernels, memory records, knowledge pages, and skill bundles are scope-owned artifacts
+- family-local identifiers must be unique within one scope
+- cross-scope references are not admitted
+- one cognition scope contains exactly one `agent_model_kernel` and one `world_model_kernel`
+- deleting a cognition scope must remove durable scope-owned artifacts and clear transient working state for that scope
+
+**C-COG-023 — Typed Reference Integrity**
+
+Cross-artifact references must remain typed and fail-closed.
+
+Fixed rules:
+
+- reference targets must be expressed as typed family-qualified artifact references rather than untyped free-form links
+- save paths must reject missing targets, illegal target families, and illegal scope crossings
+- cross-family references are admitted only where the cognition family contract explicitly permits them
+- admitted cross-family reference permission is defined by `tables/admitted-reference-matrix.yaml`
+- storing an artifact with unresolvable or illegal references is not admitted as partial success
+
+**C-COG-010 — Working State Boundary**
+
+`working_state` is transient cognition scaffolding.
+
+Fixed rules:
+
+- working state is not durable truth by default
+- working state must not absorb runtime hook lifecycle, autonomy policy, control-plane state, or replication truth
+- if working state is not persisted, that transient boundary must be explicit and testable
+- if a future rule admits persistent working state, that persistence must be declared explicitly rather than smuggled in through a generic artifact store
+
+**C-COG-011 — Prompt Boundary**
+
+Prompt/context serving must preserve kernel primacy without rewriting cognition semantics.
+
+Fixed rules:
+
+- prompt serving must keep kernel context distinct from advisory context
+- prompt serving must not promote advisory artifacts into kernel truth
+- prompt serving must consume service-owned derived views where support or cleanup metadata is shown
+- prompt serving must not read working state or external routine evidence unless a later rule explicitly admits those lanes
+
+**C-COG-027 — Root Facade Surface**
+
+The root `cognition.Cognition` facade must remain exact and owner-true.
+
+Fixed rules:
+
+- the admitted root facade methods are:
+  - `KernelService`
+  - `MemoryService`
+  - `KnowledgeService`
+  - `SkillService`
+  - `WorkingService`
+  - `PromptService`
+  - `KernelEngine`
+  - `NewRoutineContext`
+  - `InitScope`
+  - `DeleteScope`
+  - `ListScopes`
+  - `Close`
+- digest facade methods, compatibility wrappers, and optional capability claims without real wiring are not admitted
+- root facade growth requires cognition kernel admission rather than convenience aggregation
+
+**C-COG-029 — Advisory Family Service Surfaces**
+
+Advisory family services must keep artifact truth and derived serving truth distinct.
+
+Fixed rules:
+
+- `MemoryService` admits raw artifact save/load/list/search, explicit delete, explicit history/lineage read, and derived view reads
+- `KnowledgeService` admits typed page lifecycle, lexical retrieval, lexical-plus-vector hybrid retrieval, first-class relation graph ownership, ingest/progress lifecycle, and history reads over validated knowledge projections
+- `SkillService` admits typed bundle save/load/list/lexical-search, explicit delete, and explicit history reads over validated skill artifacts
+- `WorkingService` admits only `Save`, `Load`, and `Clear` over transient working state
+- advisory family services must not silently inherit runtime review, replication, or event-stream ownership
+
+**C-COG-013 — External Routine Boundary**
+
+Standalone cognition routines are external workers acting on cognition-owned artifact families.
+
+Fixed rules:
+
+- routines are not core cognition commands
+- routines must not directly mutate kernels
+- routine execution must use a typed non-kernel access contract
+- if cognition admits a routine worker path, that path is the authoritative external execution entry rather than a façade-owned pseudo-service
+
+**C-COG-037 — Runtime Capability Upgrade Matrix**
+
+The authoritative runtime-to-cognition upgrade matrix is
+`tables/runtime-capability-upgrade-matrix.yaml`.
+
+Fixed rules:
+
+- every overlap concern inherited from runtime memory or runtime knowledge must
+  appear exactly once in the upgrade matrix
+- every matrix row must declare runtime source contract, runtime capability,
+  cognition owner surface, parity mode, required floor, admitted shape, and
+  forbidden downgrade
+- upgrade-matrix rows govern capability closure, not package similarity or
+  terminology reuse
+- if a runtime overlap concern is missing from the matrix, cognition must not
+  claim completion for that capability family
+
+**C-COG-038 — Capability Parity Interpretation**
+
+Standalone cognition uses capability parity, not method-name parity, when
+upgrading runtime memory and runtime knowledge.
+
+Fixed rules:
+
+- standalone-native API naming is admitted only when each overlapping runtime
+  concern remains explicitly mapped to an equal-or-stronger cognition surface
+- `parity` means cognition preserves runtime semantic floor without weakening
+  fail-closed behavior
+- `upgrade` means cognition strengthens the runtime concern while still making
+  the overlap mapping explicit
+- `explicitly_out_of_scope` is admitted only when the matrix declares why the
+  omitted runtime concern does not damage standalone cognition completeness
+- a smaller or vaguer cognition surface must not claim parity solely because the
+  overall project is “standalone”
+
+**C-COG-033 — Runtime Bridge Registry**
+
+The authoritative runtime bridge registry is `tables/runtime-bridge-boundary.yaml`.
+
+Fixed rules:
+
+- every admitted runtime/cognition overlap concern must declare cognition owner, runtime owner, admitted bridge direction, and forbidden owner inversion
+- bridge registry rows define coexistence boundaries, not implementation sharing permission by default
+- runtime bridge registration must not collapse cognition and runtime into one owner surface
+
+**C-COG-016 — Runtime Bridge Boundary**
+
+Runtime may consume or bridge standalone cognition, but runtime does not own cognition semantics.
+
+Fixed rules:
+
+- runtime integration must be expressed as bridge / adapter / consumer behavior
+- runtime contracts may constrain how runtime-owned services interact with cognition, but not redefine cognition authority
+- cognition must remain viable as a standalone project even when runtime is not present
+- any extracted runtime implementation that remains only valid with runtime-owned semantics is not admitted as completed cognition
+
+memory / knowledge 现在不再只靠方法名册描述，而是补成了 service-grade contract：runtime overlap concern 先进入 upgrade matrix，再通过 operation registry 落成 behavior-level contract。prompt 和 completion 也分别有 lane registry 与 completion gates，避免“文档结构完整，但完成度口径仍然虚”的问题。
+
+**C-COG-039 — Memory Service Operation Registry**
+
+The authoritative standalone cognition memory operation registry is
+`tables/memory-service-operations.yaml`.
+
+Fixed rules:
+
+- every admitted memory service operation must appear in the registry exactly
+  once
+- every registered memory operation must declare admitted inputs, identity
+  invariants, validation posture, retrieval posture, lifecycle effects,
+  derived-view behavior, fail-closed reasons, and non-ownership boundary
+- memory capability admission must be grounded in this registry rather than
+  inferred from implementation naming alone
+
+**C-COG-040 — Memory Artifact Mutation And Deletion Semantics**
+
+Standalone cognition memory owns local artifact mutation over memory records.
+
+Fixed rules:
+
+- memory save paths must validate scope identity, record identity, and
+  family-specific payload shape before commit
+- save semantics may admit create-or-update behavior, but create/update
+  ambiguity must remain explicit in operation-level contract and history output
+- explicit delete semantics are required for public memory ownership; silent
+  disappearance is not admitted as a delete contract
+- archive or remove lifecycle changes triggered by digest must remain observable
+  through memory history or lifecycle-bearing views
+- caller-owned payload must not persist service-owned support, cleanup, drift,
+  or serving metadata as if it were raw memory truth
+
+**C-COG-041 — Memory Retrieval, History, And Derived View Semantics**
+
+Standalone cognition memory retrieval must remain service-grade and explainable.
+
+Fixed rules:
+
+- raw artifact reads and derived serving-view reads must remain separate
+  contracts
+- retrieval posture must declare at least lexical retrieval behavior, derived
+  support, lineage, invalidation, and cleanup-signal posture, and ordering
+  semantics for list/search surfaces
+- history or lineage reads must expose lifecycle-relevant transitions rather
+  than forcing clients to infer them from current snapshot state
+- derived views may project support or cleanup signals only when those fields
+  are recomputed by a service-owned derivation path
+- derived views may expose lineage and invalidation only when those fields are
+  recomputed from live refs and current dependency state at read time
+- memory retrieval must not silently pretend parity with runtime recall/history
+  while exposing only a weaker storage lookup
+
+**C-COG-043 — Knowledge Service Operation Registry**
+
+The authoritative standalone cognition knowledge operation registry is
+`tables/knowledge-service-operations.yaml`.
+
+Fixed rules:
+
+- every admitted knowledge service operation must appear in the registry exactly
+  once
+- every registered knowledge operation must declare admitted inputs, identity
+  invariants, validation posture, retrieval posture, lifecycle effects,
+  derived-view behavior, fail-closed reasons, and non-ownership boundary
+- same-scope relation, retrieval, and ingest capability claims must be grounded
+  in this registry rather than inferred from package names alone
+
+**C-COG-044 — Knowledge Page Lifecycle And Retrieval Semantics**
+
+Standalone cognition knowledge owns local projection lifecycle and retrieval.
+
+Fixed rules:
+
+- save/update semantics must remain explicit for one page in one cognition scope
+- explicit delete semantics are required for knowledge ownership; page removal
+  must not be represented as silent index disappearance
+- lexical retrieval and hybrid retrieval must remain distinct contracts when
+  both are admitted
+- retrieval posture must declare ordering, fail-close behavior, and whether the
+  returned projection is page truth, first-class relation truth, hybrid ranking,
+  or ingest task state
+- cognition knowledge must not claim parity with runtime-local knowledge if it
+  reduces page lifecycle and retrieval semantics to a generic blob search
+
+**C-COG-045 — Knowledge Relation, Ingest, And Progress Semantics**
+
+Standalone cognition knowledge may admit same-scope graph and ingest capability
+only through explicit owner-true contracts.
+
+Fixed rules:
+
+- relation write paths must validate source page, target page, relation type,
+  scope equality, and duplicate/self-link constraints before commit
+- relation truth must remain first-class and must not be represented by
+  page-embedded pseudo-relations inside `Page.ArtifactRefs`
+- backlink and traversal reads must declare traversal boundary, ordering, and
+  fail-close behavior explicitly
+- ingest capability must declare accepted input envelope, task/progress model,
+  and page-write effects rather than collapsing ingest into a hidden side effect
+- admitted ingest lifecycle is `queued -> running -> completed/failed`, and
+  interrupted local tasks must become explicit failed-state evidence on reopen
+- if a knowledge capability is not on the public surface, it must be placed on
+  an explicit external routine path or explicit deferral list rather than left
+  implicit
+
+**C-COG-047 — Admitted Reference Matrix**
+
+The authoritative standalone cognition reference matrix is
+`tables/admitted-reference-matrix.yaml`.
+
+Fixed rules:
+
+- every registered cognition family must appear exactly once in the reference
+  matrix
+- the matrix must declare allowed outgoing refs, allowed incoming refs,
+  forbidden cross-family refs, cross-scope prohibition, and missing-target
+  effects per family
+- cross-family reference admission must be defined by this matrix rather than
+  inferred from storage convenience or permissive tests
+- kernel rules may own outgoing refs to standalone advisory artifacts only where
+  the matrix explicitly admits `memory_substrate`, `knowledge_projections`, and
+  `skill_artifacts` as kernel targets
+- kernels remain forbidden as incoming reference targets; advisory artifacts must
+  not claim kernel ownership by storing reverse refs into kernel families
+
+**C-COG-048 — Refgraph Explainability Boundary**
+
+Standalone cognition refgraph is the explainability authority for local static
+artifact relations.
+
+Fixed rules:
+
+- cleanup proposals must remain traceable to broken refs, incoming support,
+  outgoing dependency health, and remove blockers
+- refgraph explainability must remain explicit and queryable rather than hidden
+  inside digest heuristics
+- refgraph owns only local static relation truth; it does not absorb runtime
+  review, replication, alias, or provider-ranking semantics
+- first-class `knowledge_relation` rows are part of cognition-local relation
+  truth and must participate in backlink, traversal, delete blocker, and digest
+  cleanup reasoning
+- remove blockers must distinguish strong vs weak inbound support and must not
+  flatten both classes into one generic blocker string
+- removed sources do not contribute live support; removed targets remain visible
+  as broken dependency evidence
+
+**C-COG-049 — Missing-Target And Cleanup Blocking Semantics**
+
+Missing-target behavior must remain family-specific and fail-closed.
+
+Fixed rules:
+
+- when a family marks missing targets as `reject`, save-time mutation must fail
+  before commit
+- archive or remove blocking caused by missing or incoming relations must remain
+  explicit in cleanup reasoning
+- cleanup blocking must not be silently bypassed by forcing a generic remove
+  path through storage ownership alone
+- digest `remove` requires prior archival plus a later pass confirmation; same-
+  pass archive-and-remove is not admitted
+
+**C-COG-050 — Prompt Serving Lane Registry**
+
+The authoritative prompt-lane registry is `tables/prompt-serving-lanes.yaml`.
+
+Fixed rules:
+
+- every admitted prompt lane must declare serving order, admitted families,
+  admitted inputs, derived-view source, and forbidden inputs
+- prompt lanes govern cognition serving semantics, not just formatter output
+  layout
+- prompt-lane admission must remain explicit even when formatting happens inside
+  one `PromptService`
+
+**C-COG-051 — Prompt Separation And Derived Metadata Rule**
+
+Standalone cognition prompt serving must preserve family truth ordering.
+
+Fixed rules:
+
+- kernel truth remains in a dedicated core lane and must never be merged
+  implicitly into advisory context
+- advisory lanes may consume only validated artifacts or service-owned derived
+  views
+- working state and routine evidence are excluded from prompt serving unless a
+  later cognition rule explicitly admits them
+- cleanup, support, or serving signals may appear in prompt output only when
+  they come from explicit derivation logic rather than caller-persisted metadata
+
+**C-COG-052 — Prompt Failure Model**
+
+Prompt serving must fail close on lane or derivation violations.
+
+Fixed rules:
+
+- missing required kernel artifacts, illegal lane mixing, malformed derived
+  views, or forbidden prompt inputs must surface explicit failure rather than
+  best-effort rendering
+- formatter convenience must not override family-truth ordering
+- prompt output must not silently imply kernel truth from advisory-only inputs
+
+**C-COG-053 — Completion Gate Registry**
+
+The authoritative standalone cognition completion gates are
+`tables/completion-gates.yaml`.
+
+Fixed rules:
+
+- every cognition completion gate must declare exactly one closure class
+- admitted closure classes are `semantic_closure`, `implementation_closure`, and
+  `runtime_independence`
+- completion gates must remain explicit and enumerable rather than inferred from
+  test count or package count
+
+**C-COG-054 — Semantic And Implementation Closure Separation**
+
+Standalone cognition completion must distinguish semantic closure from current
+implementation status.
+
+Fixed rules:
+
+- semantic closure is satisfied only when owner surface, failure model, cleanup,
+  retrieval, and formatting semantics are decision-complete
+- production-grade completion additionally requires one admitted durable backend
+  path rather than parallel low-strength persistence surfaces
+- `C-COG-004=covered` records a cognition-local evidence state, not a global or
+  final project-completion verdict
+- implementation closure is satisfied only when admitted semantics have matching
+  code paths, reopen-safe persistence/recovery evidence, and behavior-level
+  proof strong enough to justify `covered`
+- top-level completion requires authoritative routine worker mutation paths to
+  be semantically equivalent to the service-owned lifecycle policy they claim
+  to represent, and that equivalence must be established by behavior-level
+  proof rather than inferred solely from local green gates
+- when redesign audit reopens `C-COG-004`, rule evidence must return to
+  `deferred` until the narrower subsystem rules, their direct behavior tests,
+  and a fresh independent completion review are re-established
+- `C-COG-004` may be restored to `covered` only when:
+  - authoritative worker and service owner paths are semantically aligned
+  - legacy low-strength cleanup helpers are no longer part of admitted truth
+  - fail-closed behavior is covered across admitted retrieval and cleanup
+    failure families
+  - a fresh independent standalone audit agrees the remaining gaps are no
+    longer semantic blockers
+- once `C-COG-004` is `covered`, any new durable backend path or newly admitted
+  public cognition surface requires prior cognition authority update plus a
+  fresh completion audit rather than automatic inheritance of existing closeout
+- rule evidence must use `deferred` whenever admitted semantics outpace current
+  implementation or available proof
+- if prompt, digest, or refgraph proof regresses from behavior-level evidence to
+  formatting-only, best-effort, or weak-string evidence, affected rule evidence
+  must be downgraded before production-grade closeout can still be claimed
+
+**C-COG-055 — Runtime Independence Completion Gate**
+
+Standalone cognition completion requires runtime independence in both authority
+and operation.
+
+Fixed rules:
+
+- standalone cognition must remain spec-complete without importing runtime as a
+  prerequisite owner
+- build, retrieval, prompt, cleanup, and mutation semantics must not require
+  runtime-owned provider, replication, review, or lifecycle truth to appear
+  complete
+- build/test/race gates are necessary runtime-independence evidence, but they do
+  not by themselves prove top-level standalone semantic closure
+- race-safe standalone execution evidence must remain part of the completion
+  gate for production-grade closeout
+- runtime bridge presence may strengthen coexistence but must not become a
+  hidden completion dependency
+- repo-wide non-cognition governance drift must be recorded explicitly rather
+  than misreported as cognition completion failure
+
+---
+
+## 13. 附录：参考表
 
 以下表格从 YAML 事实源自动渲染。YAML 文件是权威数据源；如需修改，请编辑 YAML 后重新生成。
 
-### 12.1 Runtime — RPC 方法列表
+### 13.1 Runtime — RPC 方法列表
 
 **AIService**
 
@@ -3579,7 +4134,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | WriteAgentMemory | unary |
 | SubscribeAgentEvents | server_stream |
 
-### 12.2 Runtime — ReasonCode 错误码表
+### 13.2 Runtime — ReasonCode 错误码表
 
 | 名称 | 值 | 族 |
 |---|---:|---|
@@ -3712,7 +4267,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | APP_MESSAGE_RATE_LIMITED | 551 | APP_MESSAGE |
 | APP_MESSAGE_LOOP_DETECTED | 552 | APP_MESSAGE |
 
-### 12.3 Runtime — 错误映射矩阵
+### 13.3 Runtime — 错误映射矩阵
 
 | ReasonCode | gRPC Code | 场景 | 出口形态 |
 |---|---|---|---|
@@ -3847,7 +4402,256 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | KNOWLEDGE_GRAPH_DEPTH_INVALID | INVALID_ARGUMENT | traverse_knowledge_graph_invalid_depth | grpc_status |
 | KNOWLEDGE_INGEST_TASK_NOT_FOUND | NOT_FOUND | get_knowledge_ingest_task_missing | grpc_status |
 
-### 12.4 Runtime — Key Source 真值表
+### 13.4 Cognition — Artifact Families
+
+| Family | Truth Weight | Persistence | Prompt Lane | Cleanup Lane | Owner Surface |
+|---|---|---|---|---|---|
+| agent_model_kernel | primary_local_model | durable_sqlite | core | none | KernelService |
+| world_model_kernel | primary_local_model | durable_sqlite | core | none | KernelService |
+| memory_substrate | advisory_memory | durable_sqlite | advisory_derived_view | digest_archive_remove | MemoryService |
+| knowledge_projections | advisory_knowledge | durable_sqlite | advisory_validated_artifact | digest_archive_remove | KnowledgeService |
+| skill_artifacts | advisory_skill | durable_sqlite | advisory_validated_artifact | digest_archive_remove | SkillService |
+| working_state | transient_scaffolding | transient_in_memory | excluded | explicit_clear_only | WorkingService |
+
+### 13.5 Cognition — Admitted Reference Matrix
+
+| Family | Allowed Outgoing | Allowed Incoming | Missing Target On Save | Missing Target On Archive | Missing Target On Remove |
+|---|---|---|---|---|---|
+| agent_model_kernel | memory_substrate, knowledge_projections, skill_artifacts | — | reject | none | none |
+| world_model_kernel | memory_substrate, knowledge_projections, skill_artifacts | — | reject | none | none |
+| memory_substrate | memory_substrate, knowledge_projections, skill_artifacts | memory_substrate, knowledge_projections, skill_artifacts | reject | archive_block | remove_block |
+| knowledge_projections | memory_substrate, knowledge_projections, skill_artifacts | memory_substrate, knowledge_projections, skill_artifacts | reject | archive_block | remove_block |
+| skill_artifacts | memory_substrate, knowledge_projections, skill_artifacts | memory_substrate, knowledge_projections, skill_artifacts | reject | archive_block | remove_block |
+| working_state | — | — | reject | none | none |
+
+### 13.6 Cognition — Public Surface
+
+| Surface ID | Kind | Entrypoint | Owner | Family Scope | Return Contract | Capability Concerns |
+|---|---|---|---|---|---|---|
+| cognition.new | constructor | New | cognition | root | *Cognition | — |
+| cognition.with_clock | option | WithClock | cognition | root | Option | — |
+| cognition.kernel_service | facade_accessor | KernelService | Cognition | kernel | *KernelService | — |
+| cognition.memory_service | facade_accessor | MemoryService | Cognition | memory_substrate | *MemoryService | — |
+| cognition.knowledge_service | facade_accessor | KnowledgeService | Cognition | knowledge_projections | *KnowledgeService | — |
+| cognition.skill_service | facade_accessor | SkillService | Cognition | skill_artifacts | *SkillService | — |
+| cognition.working_service | facade_accessor | WorkingService | Cognition | working_state | *WorkingService | — |
+| cognition.prompt_service | facade_accessor | PromptService | Cognition | prompt | *PromptService | — |
+| cognition.kernel_engine | facade_accessor | KernelEngine | Cognition | kernel | *kernelops.Engine | — |
+| cognition.new_routine_context | facade_method | NewRoutineContext | Cognition | routine | routine.Context | — |
+| cognition.init_scope | facade_method | InitScope | Cognition | root | error | — |
+| cognition.delete_scope | facade_method | DeleteScope | Cognition | root | error | — |
+| cognition.list_scopes | facade_method | ListScopes | Cognition | root | []string | — |
+| cognition.close | facade_method | Close | Cognition | root | error | — |
+| kernel.init | service_method | KernelService.Init | KernelService | kernel | error | — |
+| kernel.load | service_method | KernelService.Load | KernelService | kernel | (*kernel.Kernel, []kernel.Rule, error) | — |
+| kernel.engine | service_method | KernelService.Engine | KernelService | kernel | *kernelops.Engine | — |
+| memory.save | service_method | MemoryService.Save | MemoryService | memory_substrate | error | memory_artifact_mutation, memory_failure_model |
+| memory.load | service_method | MemoryService.Load | MemoryService | memory_substrate | (*memory.Record, error) | memory_retrieval_recall |
+| memory.load_view | service_method | MemoryService.LoadView | MemoryService | memory_substrate | (*memory.View, error) | memory_derived_serving_view |
+| memory.list | service_method | MemoryService.List | MemoryService | memory_substrate | ([]memory.Record, error) | memory_retrieval_recall |
+| memory.list_views | service_method | MemoryService.ListViews | MemoryService | memory_substrate | ([]memory.View, error) | memory_derived_serving_view |
+| memory.search_lexical | service_method | MemoryService.SearchLexical | MemoryService | memory_substrate | ([]memory.Record, error) | memory_retrieval_recall |
+| memory.search_views | service_method | MemoryService.SearchViews | MemoryService | memory_substrate | ([]memory.View, error) | memory_retrieval_recall, memory_derived_serving_view |
+| memory.delete | service_method | MemoryService.Delete | MemoryService | memory_substrate | error | memory_artifact_mutation, memory_delete_visibility |
+| memory.history | service_method | MemoryService.History | MemoryService | memory_substrate | ([]memory.HistoryEntry, error) | memory_history_lineage, memory_delete_visibility |
+| memory.list_ids | service_method | MemoryService.ListIDs | MemoryService | memory_substrate | ([]string, error) | memory_retrieval_recall |
+| knowledge.save | service_method | KnowledgeService.Save | KnowledgeService | knowledge_projections | error | knowledge_page_lifecycle, knowledge_delete_update_visibility, knowledge_failure_model |
+| knowledge.load | service_method | KnowledgeService.Load | KnowledgeService | knowledge_projections | (*knowledge.Page, error) | knowledge_page_lifecycle |
+| knowledge.list | service_method | KnowledgeService.List | KnowledgeService | knowledge_projections | ([]knowledge.Page, error) | knowledge_page_lifecycle |
+| knowledge.delete | service_method | KnowledgeService.Delete | KnowledgeService | knowledge_projections | error | knowledge_page_lifecycle, knowledge_delete_update_visibility |
+| knowledge.history | service_method | KnowledgeService.History | KnowledgeService | knowledge_projections | ([]knowledge.HistoryEntry, error) | knowledge_delete_update_visibility |
+| knowledge.search_lexical | service_method | KnowledgeService.SearchLexical | KnowledgeService | knowledge_projections | ([]knowledge.Page, error) | knowledge_lexical_retrieval |
+| knowledge.search_hybrid | service_method | KnowledgeService.SearchHybrid | KnowledgeService | knowledge_projections | ([]knowledge.Page, error) | knowledge_hybrid_retrieval |
+| knowledge.put_relation | service_method | KnowledgeService.PutRelation | KnowledgeService | knowledge_projections | error | knowledge_relation_graph |
+| knowledge.delete_relation | service_method | KnowledgeService.DeleteRelation | KnowledgeService | knowledge_projections | error | knowledge_relation_graph |
+| knowledge.list_relations | service_method | KnowledgeService.ListRelations | KnowledgeService | knowledge_projections | ([]knowledge.Relation, error) | knowledge_relation_graph |
+| knowledge.list_backlinks | service_method | KnowledgeService.ListBacklinks | KnowledgeService | knowledge_projections | ([]knowledge.Relation, error) | knowledge_relation_graph |
+| knowledge.traverse | service_method | KnowledgeService.Traverse | KnowledgeService | knowledge_projections | ([]knowledge.TraversalHit, error) | knowledge_relation_graph |
+| knowledge.ingest_document | service_method | KnowledgeService.IngestDocument | KnowledgeService | knowledge_projections | (*knowledge.IngestTask, error) | knowledge_ingest_progress |
+| knowledge.get_ingest_task | service_method | KnowledgeService.GetIngestTask | KnowledgeService | knowledge_projections | (*knowledge.IngestTask, error) | knowledge_ingest_progress |
+| knowledge.list_ids | service_method | KnowledgeService.ListIDs | KnowledgeService | knowledge_projections | ([]string, error) | knowledge_page_lifecycle |
+| skill.save | service_method | SkillService.Save | SkillService | skill_artifacts | error | — |
+| skill.load | service_method | SkillService.Load | SkillService | skill_artifacts | (*skill.Bundle, error) | — |
+| skill.list | service_method | SkillService.List | SkillService | skill_artifacts | ([]skill.Bundle, error) | — |
+| skill.search | service_method | SkillService.Search | SkillService | skill_artifacts | ([]skill.Bundle, error) | — |
+| skill.delete | service_method | SkillService.Delete | SkillService | skill_artifacts | error | — |
+| skill.history | service_method | SkillService.History | SkillService | skill_artifacts | ([]skill.HistoryEntry, error) | — |
+| skill.list_ids | service_method | SkillService.ListIDs | SkillService | skill_artifacts | ([]string, error) | — |
+| working.save | service_method | WorkingService.Save | WorkingService | working_state | error | — |
+| working.load | service_method | WorkingService.Load | WorkingService | working_state | (*working.State, error) | — |
+| working.clear | service_method | WorkingService.Clear | WorkingService | working_state | error | — |
+| prompt.format_core | service_method | PromptService.FormatCore | PromptService | prompt | (string, error) | — |
+| prompt.format_advisory | service_method | PromptService.FormatAdvisory | PromptService | prompt | (string, error) | — |
+| prompt.format_all | service_method | PromptService.FormatAll | PromptService | prompt | (string, error) | — |
+| digest.worker_run | external_worker | digest.NewWorker(...).Run | routine/digest | routine | (digest.Result, error) | — |
+
+### 13.7 Cognition — Runtime Capability Upgrade Matrix
+
+| Concern | Runtime Source | Parity Mode | Cognition Owner Surface | Required Floor | Forbidden Downgrade |
+|---|---|---|---|---|---|
+| memory_artifact_mutation | K-MEM-006 | upgrade | MemoryService.Save + MemoryService.Delete | explicit typed record mutation, explicit delete semantics, and no caller-forged service metadata | save/list/search-only storage without explicit delete and lifecycle contract is not admitted |
+| memory_retrieval_recall | K-MEM-006 | parity | MemoryService.Load + MemoryService.List + MemoryService.SearchLexical + MemoryService.SearchViews | explicit lexical retrieval posture, ordering semantics, and truthful distinction between raw records and served projections | generic lookup without retrieval posture or explicit derived-view contract is not admitted |
+| memory_history_lineage | K-MEM-011 | upgrade | MemoryService.History | history or lineage reads must expose lifecycle-relevant transitions instead of forcing snapshot inference | current-state-only storage cannot claim parity with runtime lineage-bearing memory |
+| memory_delete_visibility | K-MEM-008 | upgrade | MemoryService.Delete + MemoryService.History | local delete, archive, and remove outcomes must remain explicit and queryable even without runtime replication | silent disappearance or hidden digest cleanup is not admitted |
+| memory_derived_serving_view | K-MEM-011 | upgrade | MemoryService.LoadView + MemoryService.ListViews + MemoryService.SearchViews | derived serving data must remain service-owned and explainable rather than caller-persisted truth | persisting support or cleanup fields as caller-owned memory payload is not admitted |
+| memory_failure_model | K-MEM-007 | parity | MemoryService.* | malformed payloads, illegal refs, illegal transitions, and missing required derived context must fail explicitly | best-effort mutation, synthetic success, or silent downgrade is not admitted |
+| knowledge_page_lifecycle | K-KNOW-003 | upgrade | KnowledgeService.Save + KnowledgeService.Load + KnowledgeService.List + KnowledgeService.Delete | one-scope page lifecycle with explicit update/delete visibility and fail-closed validation | generic blob save/search without explicit page lifecycle is not admitted |
+| knowledge_lexical_retrieval | K-KNOW-004 | parity | KnowledgeService.SearchLexical | lexical retrieval must remain explicit, local, ordered, and fail-closed | search that hides lexical posture behind a generic list/search surface is not admitted |
+| knowledge_hybrid_retrieval | K-KNOW-004a | parity | KnowledgeService.SearchHybrid | hybrid capability must be explicit, must not silently fall back to lexical search, and must keep unavailable states explicit | silently downgrading to lexical retrieval is not admitted |
+| knowledge_relation_graph | K-KNOW-004b | upgrade | KnowledgeService.PutRelation + KnowledgeService.DeleteRelation + KnowledgeService.ListRelations + KnowledgeService.ListBacklinks + KnowledgeService.Traverse | same-scope relation integrity, backlink visibility, traversal boundary, and duplicate/self-link rejection must remain explicit | storing ad hoc refs without explicit relation surfaces or graph semantics is not admitted |
+| knowledge_ingest_progress | K-KNOW-004c | upgrade | KnowledgeService.IngestDocument + KnowledgeService.GetIngestTask | ingest must declare accepted envelope, task state, progress visibility, and page-write effects | hidden asynchronous writes without task/progress contract are not admitted |
+| knowledge_delete_update_visibility | K-KNOW-003 | upgrade | KnowledgeService.Save + KnowledgeService.Delete + KnowledgeService.History | update and delete outcomes must remain explicit and queryable through lifecycle-bearing reads | clients must not infer delete/update solely from missing search hits |
+| knowledge_failure_model | K-KNOW-005 | parity | KnowledgeService.* | invalid refs, malformed ingest envelopes, illegal traversal bounds, and unavailable hybrid capability must fail explicitly | permissive graph writes, silent ingest coercion, or lexical fallback masquerading as hybrid search are not admitted |
+
+### 13.8 Cognition — Memory Service Operations
+
+| Operation | Entrypoint | Inputs | Validation | Lifecycle Effects | Fail-Close Reasons |
+|---|---|---|---|---|---|
+| memory_save | MemoryService.Save | one typed memory record in one cognition scope | fail-close on malformed payload, illegal refs, illegal scope crossing, or caller-supplied service metadata | creates or updates one memory artifact and preserves lifecycle visibility for later history reads | malformed payload, illegal family kind, missing ref target, illegal lifecycle mutation |
+| memory_load | MemoryService.Load | explicit scope_id plus record_id | fail-close on illegal scope crossing or unknown id | none | unknown record, illegal scope, malformed stored artifact |
+| memory_load_view | MemoryService.LoadView | explicit scope_id plus record_id | fail-close if raw artifact is missing or derivation inputs are malformed | none | missing raw record, invalid refgraph inputs, illegal scope, derivation failure |
+| memory_list | MemoryService.List | explicit scope_id with optional family-local filters admitted by implementation | fail-close on illegal scope or malformed filter | none | illegal scope, malformed filter |
+| memory_list_views | MemoryService.ListViews | explicit scope_id with optional filters admitted by implementation | fail-close on illegal scope or malformed filter | none | illegal scope, malformed filter, derivation failure |
+| memory_search_lexical | MemoryService.SearchLexical | explicit scope_id plus lexical query | fail-close on empty or malformed query when query is required by the admitted implementation | none | illegal scope, malformed query, unavailable lexical substrate |
+| memory_search_views | MemoryService.SearchViews | explicit scope_id plus retrieval query | fail-close on illegal scope, malformed query, or derivation failure | none | illegal scope, malformed query, unavailable derivation inputs |
+| memory_delete | MemoryService.Delete | explicit scope_id plus record_id | fail-close on illegal scope, unknown id, or blocked lifecycle transition | explicit local delete/archive/remove visibility required | unknown record, illegal scope, blocked lifecycle transition, active cleanup blocker |
+| memory_history | MemoryService.History | explicit scope_id plus record_id or scope-local filter | fail-close on illegal scope, malformed filter, or unknown target | none | illegal scope, malformed filter, unknown target |
+| memory_list_ids | MemoryService.ListIDs | explicit scope_id | fail-close on illegal scope | none | illegal scope |
+
+### 13.9 Cognition — Knowledge Service Operations
+
+| Operation | Entrypoint | Inputs | Validation | Lifecycle Effects | Fail-Close Reasons |
+|---|---|---|---|---|---|
+| knowledge_save | KnowledgeService.Save | one typed knowledge page projection in one cognition scope | fail-close on malformed page payload, illegal refs, illegal scope crossing, duplicate illegal ownership, page-embedded knowledge relations, or relation integrity violation | creates or updates one page and preserves explicit lifecycle visibility for later reads | malformed payload, illegal scope, missing ref target, illegal page identity mutation |
+| knowledge_load | KnowledgeService.Load | explicit scope_id plus page_id | fail-close on illegal scope or unknown id | none | unknown page, illegal scope, malformed stored artifact |
+| knowledge_list | KnowledgeService.List | explicit scope_id with optional admitted filters | fail-close on illegal scope or malformed filter | none | illegal scope, malformed filter |
+| knowledge_delete | KnowledgeService.Delete | explicit scope_id plus page_id | fail-close on illegal scope, unknown page, or blocked lifecycle transition | explicit delete/archive/remove visibility required | unknown page, illegal scope, blocked lifecycle transition, active relation blocker |
+| knowledge_history | KnowledgeService.History | explicit scope_id plus page_id or scope-local filter | fail-close on illegal scope, malformed filter, or unknown target | none | illegal scope, malformed filter, unknown target |
+| knowledge_search_lexical | KnowledgeService.SearchLexical | explicit scope_id plus lexical query | fail-close on illegal scope or malformed query | none | illegal scope, malformed query, unavailable lexical substrate |
+| knowledge_search_hybrid | KnowledgeService.SearchHybrid | explicit scope_id plus hybrid query and admitted hybrid options | fail-close on illegal scope, malformed query, or unavailable hybrid capability | none | illegal scope, malformed query, hybrid capability unavailable, missing embedding substrate, corrupt embedding substrate |
+| knowledge_put_relation | KnowledgeService.PutRelation | explicit scope_id plus one typed same-scope relation | fail-close on missing source/target, cross-scope relation, blank relation type, duplicate relation, or self-link | creates or updates one first-class relation truth row | missing page, illegal scope, duplicate relation, self-link, malformed relation type |
+| knowledge_delete_relation | KnowledgeService.DeleteRelation | explicit scope_id plus relation identity | fail-close on illegal scope, unknown relation, or malformed relation identity | explicit relation removal | unknown relation, illegal scope, malformed relation identity |
+| knowledge_list_relations | KnowledgeService.ListRelations | explicit scope_id plus page_id | fail-close on illegal scope, unknown page, or malformed pagination/filter input | none | illegal scope, unknown page, malformed filter |
+| knowledge_list_backlinks | KnowledgeService.ListBacklinks | explicit scope_id plus page_id | fail-close on illegal scope, unknown page, or malformed pagination/filter input | none | illegal scope, unknown page, malformed filter |
+| knowledge_traverse | KnowledgeService.Traverse | explicit scope_id plus root_page_id and explicit bounded depth | fail-close on illegal scope, unknown root, malformed depth, or unsupported traversal options | none | illegal scope, unknown root, invalid depth, malformed traversal options |
+| knowledge_ingest_document | KnowledgeService.IngestDocument | explicit scope_id plus one typed ingest envelope | fail-close on malformed envelope, missing content, illegal scope, or unsupported ingest mode | persists a queued task immediately and may create or update pages only through explicit ingest task lifecycle | illegal scope, malformed envelope, missing content, ingest capability unavailable |
+| knowledge_get_ingest_task | KnowledgeService.GetIngestTask | explicit scope_id plus task_id | fail-close on illegal scope or unknown task | none | illegal scope, unknown task |
+| knowledge_list_ids | KnowledgeService.ListIDs | explicit scope_id | fail-close on illegal scope | none | illegal scope |
+
+### 13.10 Cognition — Prompt Serving Lanes
+
+| Lane | Order | Families | Inputs | Derived Source | Forbidden Inputs |
+|---|---|---|---|---|---|
+| core_kernel | 1 | agent_model_kernel, world_model_kernel | KernelService.Load through PromptService.FormatCore or FormatAll | none | memory_substrate, knowledge_projections, skill_artifacts, working_state, routine_evidence |
+| advisory_memory | 2 | memory_substrate | MemoryService.LoadView, MemoryService.ListViews, or MemoryService.SearchViews through PromptService.FormatAdvisory or FormatAll | service_owned_memory_view | raw_caller_persisted_support_metadata, working_state, routine_evidence |
+| advisory_knowledge | 3 | knowledge_projections | validated knowledge pages through PromptService.FormatAdvisory or FormatAll | validated_artifact_only | working_state, routine_evidence, malformed_relation_projection |
+| advisory_skill | 4 | skill_artifacts | validated skill bundles through PromptService.FormatAdvisory or FormatAll | validated_artifact_only | working_state, routine_evidence, runtime_execution_policy_truth |
+| combined_render | 5 | agent_model_kernel, world_model_kernel, memory_substrate, knowledge_projections, skill_artifacts | PromptService.FormatAll preserving lane boundaries | lane_local_only | working_state, routine_evidence, lane_merging_without_markers |
+
+### 13.11 Cognition — Skill Service Operations
+
+| Operation | Entrypoint | Inputs | Validation | Lifecycle Effects | Fail-Close Reasons |
+|---|---|---|---|---|---|
+| skill_save | SkillService.Save | one typed skill bundle in one cognition scope | fail-close on malformed bundle payload, empty steps, duplicate step identity, duplicate step order, illegal refs, or illegal scope crossing | creates or updates one bundle and preserves explicit lifecycle visibility for later reads | malformed payload, illegal scope, missing ref target, duplicate step order, duplicate step identity |
+| skill_load | SkillService.Load | explicit scope_id plus bundle_id | fail-close on illegal scope, unknown id, or malformed stored bundle | none | unknown bundle, illegal scope, malformed stored bundle |
+| skill_list | SkillService.List | explicit scope_id with optional admitted filters | fail-close on illegal scope or malformed filter | none | illegal scope, malformed filter |
+| skill_search | SkillService.Search | explicit scope_id plus lexical query | fail-close on illegal scope, empty query, or malformed filter input | none | illegal scope, empty query, malformed filter, unavailable lexical substrate |
+| skill_delete | SkillService.Delete | explicit scope_id plus bundle_id | fail-close on illegal scope, unknown bundle, or active inbound cleanup blocker | performs explicit destructive delete only after lifecycle-aware cleanup blockers are absent; delete is distinct from archive/remove | unknown bundle, illegal scope, active inbound blocker, illegal lifecycle transition |
+| skill_history | SkillService.History | explicit scope_id plus bundle_id | fail-close on illegal scope or unknown target | none | illegal scope, unknown bundle |
+| skill_list_ids | SkillService.ListIDs | explicit scope_id | fail-close on illegal scope | none | illegal scope |
+
+### 13.12 Cognition — Completion Gates
+
+| Gate | Closure Class | Statement | Minimum Evidence | Failure Condition |
+|---|---|---|---|---|
+| no_downgrade_gate | semantic_closure | every runtime overlap concern claimed by cognition must map to equal-or-stronger standalone semantics | runtime capability upgrade matrix plus corresponding cognition contract coverage | missing overlap concern, weaker admitted shape, or silent scope drop |
+| fail_closed_gate | semantic_closure | malformed payloads, illegal refs, illegal scope crossings, and unavailable admitted capabilities fail explicitly | service contracts and operation registries define fail-closed reasons | pseudo-success, silent fallback, or best-effort mutation is still admitted |
+| prompt_correctness_gate | semantic_closure | prompt serving preserves core/advisory lanes and only uses admitted derived inputs | prompt lane registry and prompt-serving contract | working state, routine evidence, or caller-persisted metadata can enter prompt truth silently |
+| cleanup_explainability_gate | semantic_closure | digest cleanup remains explainable through refgraph, lifecycle, and explicit blocking reasons | reference matrix plus digest/refgraph contracts | cleanup cannot be traced to explicit support or blocking truth |
+| derived_view_ownership_gate | implementation_closure | service-owned derived views are computed by service paths and never caller-persisted as raw truth | memory operation registry, prompt-serving contract, and implementation evidence | raw artifacts still accept or persist service-owned derived metadata |
+| capability_surface_gate | implementation_closure | public surface exposes the admitted capability matrix and operation registries without silent gaps | public surface table, operation registries, and implementation-aligned evidence | runtime overlap capability is absent from public or external-worker surface without explicit deferral |
+| single_durable_backend_gate | implementation_closure | standalone cognition admits exactly one production durable backend path and does not retain weaker parallel persistence surfaces | storage implementation, README/AGENTS alignment, and code search free of retired backend entrypoints | multiple durable backends remain implied or supported on the admitted standalone path |
+| reopen_recovery_gate | implementation_closure | lifecycle visibility, retrieval, prompt admissibility, ingest progress, and digest evidence survive close-and-reopen cycles | reopen-focused behavior tests over memory, knowledge, skill, prompt, and digest persistence | reopen changes lifecycle visibility, drops evidence, or reintroduces removed artifacts into visible serving surfaces |
+| runtime_independence_gate | runtime_independence | standalone cognition remains complete without runtime-owned provider, replication, review, or lifecycle truth | cognition contracts, explicit top-level blocker review, and standalone build/test evidence | runtime semantics are required for cognition mutation, retrieval, prompt, or cleanup correctness, or runtime independence is inferred from build/test success alone |
+| race_stability_gate | runtime_independence | standalone cognition remains race-safe under its own build and test execution without runtime-owned serialization guarantees | standalone `go test -race ./...` evidence | production-grade closeout depends on hidden single-thread assumptions or runtime-side synchronization |
+
+### 13.13 Cognition — Runtime Bridge Boundary
+
+| Concern | Cognition Owner | Runtime Owner | Admitted Bridge | Forbidden Owner Inversion |
+|---|---|---|---|---|
+| local_model_kernels | full | none | runtime_consumes_only_explicit_cognition_outputs | runtime_must_not_own_kernel_truth_or_mutation |
+| runtime_bank_lifecycle | none | full | cognition_may_export_artifacts_only_through_explicit_adapter_logic | cognition_must_not_claim_runtime_bank_or_replication_truth |
+| local_memory_artifacts | standalone_local_cognition | runtime_operational_memory | overlap_requires_explicit_mapping_and_no_semantic_downgrade | silent_shared_owner_or_low_strength_clone_not_admitted |
+| local_knowledge_projections | standalone_local_cognition | runtime_local_knowledge_service | overlap_requires_explicit_mapping_and_no_semantic_downgrade | runtime_must_not_continue_owning_cognition_projection_truth |
+| working_state | full | none | runtime_may_consume_transient_outputs_only_if_explicitly_adapted | runtime_hook_or_control_plane_state_must_not_be_smuggled_in_as_working_state |
+| prompt_serving | full | none | runtime_may_consume_formatted_context_as_a_consumer | runtime_must_not_redefine_kernel_vs_advisory_serving_order |
+| cleanup_and_digest | standalone_cognition_routine | runtime_memory_hygiene_only | coexistence_requires_explicit_non_owner_boundary | runtime_hygiene_must_not_be_treated_as_cognition_digest_owner |
+| replication_review_provider | none | full | cognition_may_ignore_runtime_only_truth_without_losing_validity | cognition_must_not_require_runtime_replication_review_or_provider_truth_to_be_complete |
+
+### 13.14 Cognition — Rule Evidence
+
+| Rule ID | Status | Evidence Refs | Note |
+|---|---|---|---|
+| C-COG-001 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Authority-home rule is enforced structurally by cognition spec placement and generated projections. |
+| C-COG-002 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Extraction and upgrade relation is now fixed at the cognition authority layer and no longer delegated to runtime. |
+| C-COG-003 | covered | `cognition_spec_governance_gate`, `cognition_semantic_completeness_gate` | — |
+| C-COG-004 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate`, `cognition_build_gate`, `cognition_test_gate`, `cognition_race_gate` | Cognition-local top-level closure is now supported by the current independent standalone audit, worker/service-path semantic alignment, failure-family behavior coverage, and current cognition gates; this remains a cognition-local evidence state rather than a repo-wide or runtime-parity completion claim. |
+| C-COG-005 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
+| C-COG-006 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
+| C-COG-007 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Memory now owns validated mutation, derived views, lifecycle-aware archive/remove/delete semantics, and explicit history without caller-owned serving metadata. |
+| C-COG-008 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Knowledge service now owns first-class relation rows, lexical-plus-vector hybrid retrieval, and queued/running/completed/failed ingest lifecycle with direct behavior coverage. |
+| C-COG-009 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
+| C-COG-010 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
+| C-COG-011 | covered | `cognition_test_gate`, `cognition_generated_docs_gate` | — |
+| C-COG-012 | covered | `cognition_test_gate`, `cognition_generated_docs_gate` | — |
+| C-COG-013 | covered | `cognition_test_gate` | — |
+| C-COG-014 | covered | `cognition_test_gate` | — |
+| C-COG-015 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_vet_gate` | Public surface now aligns to owner-true cognition services only, including lifecycle-aware routine entry and service-grade skill/history semantics. |
+| C-COG-016 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
+| C-COG-017 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_vet_gate` | — |
+| C-COG-018 | covered | `cognition_spec_governance_gate` | — |
+| C-COG-019 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
+| C-COG-020 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
+| C-COG-021 | covered | `cognition_spec_governance_gate`, `cognition_test_gate` | — |
+| C-COG-022 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
+| C-COG-023 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Save paths reject illegal/missing/live-invalid refs across memory, knowledge, and skill, and relation roles remain fail-closed. |
+| C-COG-024 | covered | `cognition_test_gate` | — |
+| C-COG-025 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_vet_gate` | — |
+| C-COG-026 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
+| C-COG-027 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
+| C-COG-028 | covered | `cognition_build_gate`, `cognition_test_gate` | — |
+| C-COG-029 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Memory, knowledge, skill, and working services now expose the admitted owner-true surfaces, including explicit history and delete where owned. |
+| C-COG-030 | covered | `cognition_test_gate`, `cognition_generated_docs_gate` | Prompt now consumes only service-owned memory views plus validated knowledge and skill artifacts, and malformed advisory inputs fail closed. |
+| C-COG-031 | covered | `cognition_test_gate` | — |
+| C-COG-032 | covered | `cognition_test_gate` | Digest worker path remains the authoritative routine entry, and worker-path cleanup mutation now uses the same structured lifecycle-aware blocker truth as the service-owned archive/remove helpers. |
+| C-COG-033 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
+| C-COG-034 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate`, `cognition_build_gate` | Runtime-overlap capability mapping is re-aligned to the redesigned standalone implementation and now matches direct behavior-tested knowledge, retrieval, and digest/refgraph semantics. |
+| C-COG-035 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_vet_gate` | — |
+| C-COG-036 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
+| C-COG-037 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Runtime overlap concerns are now enumerated in the upgrade matrix and checked structurally. |
+| C-COG-038 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Capability parity interpretation is now explicit and no longer left to implementation convention. |
+| C-COG-039 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Memory service registry is now explicit and structurally validated. |
+| C-COG-040 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Memory mutation now distinguishes archive, remove, and explicit delete with blocker checks and observable history. |
+| C-COG-041 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Memory retrieval now separates raw records from derived views, excludes removed artifacts from list/search, and keeps removed lifecycle observable through load/history. |
+| C-COG-042 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
+| C-COG-043 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Knowledge service registry is now explicit and structurally validated. |
+| C-COG-044 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Knowledge lifecycle and retrieval semantics now have direct behavior coverage for honest hybrid retrieval, delete blockers, reopen-safe state, and task interruption failure. |
+| C-COG-045 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | First-class relation rows and persisted ingest tasks are now owner-true and directly covered by relation durability, blocker, traversal, and interrupted-ingest tests. |
+| C-COG-046 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
+| C-COG-047 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Reference matrix authority now matches the redesigned implementation: kernel outgoing refs to advisory artifacts are admitted, reverse refs into kernels remain forbidden, and knowledge graph truth is first-class relation-row based. |
+| C-COG-048 | covered | `cognition_test_gate`, `cognition_generated_docs_gate` | Refgraph now explains cleanup through live-only support summaries, broken targets, outgoing dependency health, and remove blockers consumed by digest. |
+| C-COG-049 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Missing-target handling now rejects invalid save paths and preserves explicit archive/remove blockers through refgraph-backed cleanup evaluation. |
+| C-COG-050 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Prompt lane registry is now explicit and structurally validated. |
+| C-COG-051 | covered | `cognition_test_gate`, `cognition_generated_docs_gate` | Prompt separation now rests on strict lane-local inputs, validated advisory artifacts, and service-owned memory views rather than formatting-only convention. |
+| C-COG-052 | covered | `cognition_test_gate`, `cognition_generated_docs_gate` | Prompt rendering now fails close on malformed advisory projections and forbidden advisory derivation inputs. |
+| C-COG-053 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate`, `cognition_semantic_completeness_gate` | Completion gates are now explicit and included in generated cognition views. |
+| C-COG-054 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Evidence honesty is re-established for the narrowed subsystem set; restored rules now require direct behavior tests on the authoritative worker/service path, and any future top-level regression must reopen C-COG-004 until a fresh cognition-local audit re-closes it. |
+| C-COG-055 | covered | `cognition_spec_governance_gate`, `cognition_build_gate`, `cognition_test_gate` | Runtime independence is supported by cognition authority plus standalone build/test/race evidence, but it remains only one input to top-level completion and does not by itself close C-COG-004. |
+| C-COG-056 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Skill service operation registry is now explicit and aligned to validated save/load/list/search/delete/history/list_ids behavior. |
+| C-COG-057 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Skill now owns strict step validation plus explicit archive/remove/delete lifecycle semantics with visible history and removed-state retrieval behavior. |
+| C-COG-058 | covered | `cognition_spec_governance_gate`, `cognition_build_gate`, `cognition_test_gate` | Skill remains cognition-owned advisory retrieval/lifecycle only and does not absorb runtime execution-policy or scheduler ownership. |
+
+### 13.15 Runtime — Key Source 真值表
 
 | 场景 | key_source | connector_id | inline 凭据 | 有效 | 错误码 |
 |---|---|---|---|---|---|
@@ -3859,7 +4663,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | inline_missing_required_endpoint | inline | forbidden | required_non_empty_requires_explicit_endpoint_provider/missing_or_empty/required_non_empty | 否 | AI_REQUEST_CREDENTIAL_MISSING |
 | conflict_connector_and_inline | inline_or_managed | required_non_empty | required_non_empty/optional/required_non_empty | 否 | AI_REQUEST_CREDENTIAL_CONFLICT |
 
-### 12.5 Runtime — 状态机
+### 13.16 Runtime — 状态机
 
 **connector_status**
 
@@ -3944,7 +4748,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | FAILED | PULLING | retry_pull |
 | FAILED | REMOVED | remove_failed_model |
 
-### 12.6 Runtime — 本地引擎目录
+### 13.17 Runtime — 本地引擎目录
 
 | 引擎 | 默认 Endpoint | 运行模式 | 协议 |
 |---|---|---|---|
@@ -3956,7 +4760,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | speech | — | supervised | nimi_runtime_speech |
 | sidecar | — | attached_endpoint | nimi_music_http |
 
-### 12.7 Runtime — 本地适配器路由
+### 13.18 Runtime — 本地适配器路由
 
 | Provider | Capability | Adapter |
 |---|---|---|
@@ -3977,7 +4781,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | sidecar | music.generate | sidecar_music_adapter |
 | * | * | openai_compat_adapter |
 
-### 12.8 SDK — 错误码
+### 13.19 SDK — 错误码
 
 | 名称 | 族 | 描述 |
 |---|---|---|
@@ -4043,12 +4847,12 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | RUNTIME_UNAVAILABLE | SDK_SYNTHETIC_REASON | — |
 | RUNTIME_BRIDGE_DAEMON_UNAVAILABLE | SDK_SYNTHETIC_REASON | — |
 
-### 12.9 SDK — 导入边界
+### 13.20 SDK — 导入边界
 
 | 子路径 | 禁止导入 | 基线规则 |
 |---|---|---|
 
-### 12.10 SDK — Runtime 方法投影分组
+### 13.21 SDK — Runtime 方法投影分组
 
 **ai_service_projection** → AIService
 
@@ -4221,7 +5025,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 - WriteAgentMemory
 - SubscribeAgentEvents
 
-### 12.11 Desktop — 启动阶段
+### 13.22 Desktop — 启动阶段
 
 | 阶段 | 顺序 | 描述 |
 |---|---|---|
@@ -4234,7 +5038,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | auth-session | 7 | Bootstrap authentication session (token exchange or anonymous fallback) |
 | bootstrap-ready | 8 | Set bootstrapReady=true, clear bootstrapError, emit completion log |
 
-### 12.12 Desktop — IPC 命令
+### 13.23 Desktop — IPC 命令
 
 | 命令 | 描述 |
 |---|---|
@@ -4355,7 +5159,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | runtime_local_assets_scan_unregistered | Host-local unregistered asset helper; if shipped product paths have runtime scan coverage, runtime remains the only truth source |
 | runtime_local_assets_rescan_bundle | Re-scan a previously imported asset bundle directory; execution truth is RuntimeLocalService |
 
-### 12.13 Desktop — App Tabs
+### 13.24 Desktop — App Tabs
 
 | Tab ID | 名称 | Nav Group | Feature Gate |
 |---|---|---|---|
@@ -4377,7 +5181,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | terms-of-service | Terms of Service | detail | — |
 | mod:* | Mod Workspace | mod | enableModWorkspaceTabs |
 
-### 12.14 Desktop — Store Slices
+### 13.25 Desktop — Store Slices
 
 | Slice | 描述 | Factory |
 |---|---|---|
@@ -4386,7 +5190,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | mod-workspace | Mod workspace tabs, fused mod tracking, mod failures | createModWorkspaceSlice |
 | ui | Active tab, selected IDs, profile detail overlay state, navigation history, status banner | createUiSlice |
 
-### 12.15 Desktop — Hook 子系统
+### 13.26 Desktop — Hook 子系统
 
 | 子系统 | Namespace | 描述 |
 |---|---|---|
@@ -4397,7 +5201,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | storage | storage.files.*|storage.sqlite.* | Host-managed per-mod file and sqlite persistence |
 | inter-mod | inter-mod.request.*|inter-mod.provide.* | Cross-mod RPC-style request/provide channels |
 
-### 12.16 Desktop — UI Slots
+### 13.27 Desktop — UI Slots
 
 | 槽位 | 描述 |
 |---|---|
@@ -4410,7 +5214,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | ui-extension.app.content.routes | App content area for mod-provided routes |
 | ui-extension.runtime.devtools.panel | Runtime devtools panel for debug/inspection tools |
 
-### 12.17 Desktop — Turn Hook Points
+### 13.28 Desktop — Turn Hook Points
 
 | Hook Point | 执行顺序 | 描述 |
 |---|---|---|
@@ -4419,7 +5223,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | post-state | 3 | After state update — response postprocessing, side effects |
 | pre-commit | 4 | Before commit to persistence — final validation, audit logging |
 
-### 12.18 Desktop — Hook Capability Allowlists
+### 13.29 Desktop — Hook Capability Allowlists
 
 | Source Type | 能力模式 | 描述 |
 |---|---|---|
@@ -4429,7 +5233,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | sideload | event.publish.*, data.query.*, ui.register.*, inter-mod.request.*, storage.files.read, storage.files.write, storage.files.delete, storage.files.list, storage.sqlite.query, storage.sqlite.execute, storage.sqlite.transaction, runtime.ai.text.generate, runtime.ai.text.stream, runtime.ai.embedding.generate, runtime.media.image.generate, runtime.media.image.stream, runtime.media.video.generate, runtime.media.video.stream, runtime.media.tts.list.voices, runtime.media.tts.synthesize, runtime.media.tts.stream, runtime.media.stt.transcribe, runtime.media.jobs.submit, runtime.media.jobs.get, runtime.media.jobs.cancel, runtime.media.jobs.subscribe, runtime.media.jobs.get.artifacts, runtime.voice.get.asset, runtime.voice.list.assets, runtime.voice.delete.asset, runtime.voice.list.preset.voices, runtime.route.list.options, runtime.route.resolve, runtime.route.check.health, runtime.route.describe, runtime.local.assets.list, runtime.local.profiles.list, runtime.local.profiles.install.request, runtime.profile.read.agent, action.discover.*, action.dry-run.*, action.verify.*, action.commit.*, audit.read.self, meta.read.self | Locally installed mods and catalog-installed mods share the sideload capability envelope; catalog provenance does not elevate permissions |
 | codegen | runtime.ai.text.generate, runtime.ai.text.stream, ui.register.ui-extension.app.*, data.register.data-api.user-*.*.*, data.query.data-api.user-*.*.*, audit.read.self, meta.read.self | AI-generated mods with minimal capabilities |
 
-### 12.19 Desktop — Mod 生命周期状态
+### 13.30 Desktop — Mod 生命周期状态
 
 | 状态 | 描述 |
 |---|---|
@@ -4442,7 +5246,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | UPDATING | Mod transitioning between versions |
 | ROLLBACK_DISABLED | Mod disabled due to failed update, awaiting rollback or removal |
 
-### 12.20 Desktop — Mod 内核阶段
+### 13.31 Desktop — Mod 内核阶段
 
 | 阶段 | 顺序 | 描述 |
 |---|---|---|
@@ -4455,7 +5259,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | lifecycle | 7 | Execute lifecycle transitions (enable, disable, uninstall) |
 | audit | 8 | Write audit decision record and emit events |
 
-### 12.21 Desktop — Feature Flags
+### 13.32 Desktop — Feature Flags
 
 | Flag | Desktop 默认 | Web 默认 | 描述 |
 |---|---|---|---|
@@ -4467,7 +5271,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | enableMenuBarShell | true | false | Enable menu bar runtime entry shell; true on macOS desktop and false on non-macOS desktop or web |
 | enableRuntimeBootstrap | true | false | Execute full runtime bootstrap sequence (hook runtime, mods, external agent) |
 
-### 12.22 Desktop — 数据同步流
+### 13.33 Desktop — 数据同步流
 
 | 领域 | 方法 | 描述 |
 |---|---|---|
@@ -4485,7 +5289,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | settings | loadMySettings, updateMySettings, loadMyNotificationSettings, updateMyNotificationSettings, loadMyCreatorEligibility | User settings and notification preferences |
 | agent | loadMyAgents | Agent listing only; Agent LLM route/memory stays in host data capabilities for mods |
 
-### 12.23 Desktop — 错误码
+### 13.34 Desktop — 错误码
 
 | Error Code | Domain | 描述 |
 |---|---|---|
@@ -4532,7 +5336,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | LOCAL_LIFECYCLE_WRITE_DENIED | runtime | Source has no permission for model lifecycle write operations |
 | RUNTIME_ROUTE_CAPABILITY_MISMATCH | runtime | Route-bound local model lacks required capability |
 
-### 12.24 Desktop — Retry Status Codes
+### 13.35 Desktop — Retry Status Codes
 
 | Status Code | 原因 |
 |---|---|
@@ -4544,7 +5348,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | 503 | Service Unavailable |
 | 504 | Gateway Timeout |
 
-### 12.25 Desktop — Log Areas
+### 13.36 Desktop — Log Areas
 
 | Area | 描述 |
 |---|---|
@@ -4559,7 +5363,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | auth | Authentication session lifecycle events |
 | net | Network retry events and error normalization |
 
-### 12.26 Future — Backlog Items
+### 13.37 Future — Backlog Items
 
 | Item ID | Title | Priority | Category | Status |
 |---|---|---|---|---|
@@ -4621,7 +5425,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | F-AGUI-003 | Agent UI 安全组件目录与富文本硬化 | medium | security | proposed |
 | F-AGRT-001 | World Evolution Engine | high | platform | accepted |
 
-### 12.27 Future — Research Sources
+### 13.38 Future — Research Sources
 
 | Source ID | 标题 | 路径 |
 |---|---|---|
@@ -4631,7 +5435,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | RESEARCH-AGRT-003 | World Evolution Engine P-ARCH-002 Derived Constraints | — |
 | RESEARCH-AGRT-004 | World Evolution Engine Spec Intake Readiness | — |
 
-### 12.28 Future — Graduation Log
+### 13.39 Future — Graduation Log
 
 | Item ID | 毕业日期 | 目标 Spec |
 |---|---|---|

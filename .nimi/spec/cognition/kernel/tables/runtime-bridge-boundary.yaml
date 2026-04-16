@@ -1,0 +1,50 @@
+version: 1
+boundaries:
+  - concern_id: local_model_kernels
+    cognition_owner: full
+    runtime_owner: none
+    admitted_bridge: runtime_consumes_only_explicit_cognition_outputs
+    forbidden_owner_inversion: runtime_must_not_own_kernel_truth_or_mutation
+    source_rule: C-COG-033
+  - concern_id: runtime_bank_lifecycle
+    cognition_owner: none
+    runtime_owner: full
+    admitted_bridge: cognition_may_export_artifacts_only_through_explicit_adapter_logic
+    forbidden_owner_inversion: cognition_must_not_claim_runtime_bank_or_replication_truth
+    source_rule: C-COG-033
+  - concern_id: local_memory_artifacts
+    cognition_owner: standalone_local_cognition
+    runtime_owner: runtime_operational_memory
+    admitted_bridge: overlap_requires_explicit_mapping_and_no_semantic_downgrade
+    forbidden_owner_inversion: silent_shared_owner_or_low_strength_clone_not_admitted
+    source_rule: C-COG-033
+  - concern_id: local_knowledge_projections
+    cognition_owner: standalone_local_cognition
+    runtime_owner: runtime_local_knowledge_service
+    admitted_bridge: overlap_requires_explicit_mapping_and_no_semantic_downgrade
+    forbidden_owner_inversion: runtime_must_not_continue_owning_cognition_projection_truth
+    source_rule: C-COG-033
+  - concern_id: working_state
+    cognition_owner: full
+    runtime_owner: none
+    admitted_bridge: runtime_may_consume_transient_outputs_only_if_explicitly_adapted
+    forbidden_owner_inversion: runtime_hook_or_control_plane_state_must_not_be_smuggled_in_as_working_state
+    source_rule: C-COG-033
+  - concern_id: prompt_serving
+    cognition_owner: full
+    runtime_owner: none
+    admitted_bridge: runtime_may_consume_formatted_context_as_a_consumer
+    forbidden_owner_inversion: runtime_must_not_redefine_kernel_vs_advisory_serving_order
+    source_rule: C-COG-033
+  - concern_id: cleanup_and_digest
+    cognition_owner: standalone_cognition_routine
+    runtime_owner: runtime_memory_hygiene_only
+    admitted_bridge: coexistence_requires_explicit_non_owner_boundary
+    forbidden_owner_inversion: runtime_hygiene_must_not_be_treated_as_cognition_digest_owner
+    source_rule: C-COG-033
+  - concern_id: replication_review_provider
+    cognition_owner: none
+    runtime_owner: full
+    admitted_bridge: cognition_may_ignore_runtime_only_truth_without_losing_validity
+    forbidden_owner_inversion: cognition_must_not_require_runtime_replication_review_or_provider_truth_to_be_complete
+    source_rule: C-COG-033

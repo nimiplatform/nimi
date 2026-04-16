@@ -1,0 +1,62 @@
+version: 1
+gates:
+  - gate_id: no_downgrade_gate
+    closure_class: semantic_closure
+    gate_statement: every runtime overlap concern claimed by cognition must map to equal-or-stronger standalone semantics
+    minimum_evidence: runtime capability upgrade matrix plus corresponding cognition contract coverage
+    failure_condition: missing overlap concern, weaker admitted shape, or silent scope drop
+    source_rule: C-COG-053
+  - gate_id: fail_closed_gate
+    closure_class: semantic_closure
+    gate_statement: malformed payloads, illegal refs, illegal scope crossings, and unavailable admitted capabilities fail explicitly
+    minimum_evidence: service contracts and operation registries define fail-closed reasons
+    failure_condition: pseudo-success, silent fallback, or best-effort mutation is still admitted
+    source_rule: C-COG-053
+  - gate_id: prompt_correctness_gate
+    closure_class: semantic_closure
+    gate_statement: prompt serving preserves core/advisory lanes and only uses admitted derived inputs
+    minimum_evidence: prompt lane registry and prompt-serving contract
+    failure_condition: working state, routine evidence, or caller-persisted metadata can enter prompt truth silently
+    source_rule: C-COG-053
+  - gate_id: cleanup_explainability_gate
+    closure_class: semantic_closure
+    gate_statement: digest cleanup remains explainable through refgraph, lifecycle, and explicit blocking reasons
+    minimum_evidence: reference matrix plus digest/refgraph contracts
+    failure_condition: cleanup cannot be traced to explicit support or blocking truth
+    source_rule: C-COG-053
+  - gate_id: derived_view_ownership_gate
+    closure_class: implementation_closure
+    gate_statement: service-owned derived views are computed by service paths and never caller-persisted as raw truth
+    minimum_evidence: memory operation registry, prompt-serving contract, and implementation evidence
+    failure_condition: raw artifacts still accept or persist service-owned derived metadata
+    source_rule: C-COG-053
+  - gate_id: capability_surface_gate
+    closure_class: implementation_closure
+    gate_statement: public surface exposes the admitted capability matrix and operation registries without silent gaps
+    minimum_evidence: public surface table, operation registries, and implementation-aligned evidence
+    failure_condition: runtime overlap capability is absent from public or external-worker surface without explicit deferral
+    source_rule: C-COG-053
+  - gate_id: single_durable_backend_gate
+    closure_class: implementation_closure
+    gate_statement: standalone cognition admits exactly one production durable backend path and does not retain weaker parallel persistence surfaces
+    minimum_evidence: storage implementation, README/AGENTS alignment, and code search free of retired backend entrypoints
+    failure_condition: multiple durable backends remain implied or supported on the admitted standalone path
+    source_rule: C-COG-053
+  - gate_id: reopen_recovery_gate
+    closure_class: implementation_closure
+    gate_statement: lifecycle visibility, retrieval, prompt admissibility, ingest progress, and digest evidence survive close-and-reopen cycles
+    minimum_evidence: reopen-focused behavior tests over memory, knowledge, skill, prompt, and digest persistence
+    failure_condition: reopen changes lifecycle visibility, drops evidence, or reintroduces removed artifacts into visible serving surfaces
+    source_rule: C-COG-053
+  - gate_id: runtime_independence_gate
+    closure_class: runtime_independence
+    gate_statement: standalone cognition remains complete without runtime-owned provider, replication, review, or lifecycle truth
+    minimum_evidence: cognition contracts, explicit top-level blocker review, and standalone build/test evidence
+    failure_condition: runtime semantics are required for cognition mutation, retrieval, prompt, or cleanup correctness, or runtime independence is inferred from build/test success alone
+    source_rule: C-COG-053
+  - gate_id: race_stability_gate
+    closure_class: runtime_independence
+    gate_statement: standalone cognition remains race-safe under its own build and test execution without runtime-owned serialization guarantees
+    minimum_evidence: standalone `go test -race ./...` evidence
+    failure_condition: production-grade closeout depends on hidden single-thread assumptions or runtime-side synchronization
+    source_rule: C-COG-053

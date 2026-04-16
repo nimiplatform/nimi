@@ -319,6 +319,18 @@ Fixed rules:
 
 ## K-AGCORE-020 Chat/Life Evidence To Canonical Memory Admission Boundary
 
+## K-AGCORE-021 Standalone Cognition Consumption Boundary
+
+`RuntimeAgentCoreService` may consume standalone cognition through explicit bridge paths, but it does not own cognition semantics.
+
+Fixed rules:
+
+- agent core remains the runtime owner of live agent execution, canonical admission, and runtime-private posture/hook truth
+- if runtime consumes standalone cognition kernels, prompt context, or advisory outputs, that consumption must remain adapter-owned rather than semantic ownership
+- cognition runtime bridge and prompt-serving boundaries are governed by `.nimi/spec/cognition/kernel/runtime-bridge-contract.md`, `.nimi/spec/cognition/kernel/prompt-serving-contract.md`, and `.nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml`
+- agent core must not redefine cognition object model, cleanup semantics, or standalone public surface by implementation convention
+- runtime/private cognition consumption does not authorize collapsing cognition authority back into runtime contracts
+
 `RuntimeAgentCoreService` owns the runtime-private stabilization boundary between
 chat/life conversational evidence and canonical memory candidate admission.
 

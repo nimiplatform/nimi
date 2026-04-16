@@ -390,3 +390,42 @@ Realm 规范采用 kernel + domain 的两层结构，覆盖 Realm Truth、World 
 
 1. `.nimi/spec/future/kernel/graduation-contract.md` — 毕业条件与流程
 2. `.nimi/spec/future/kernel/tables/graduation-log.yaml` — 记录毕业日志
+
+## Standalone Cognition
+
+`nimi-cognition` 是从 runtime memory / knowledge 语义中抽离并升级后的独立 authority domain；runtime 可以 bridge/consume，但不再 continuing-own 这部分语义。
+
+- Kernel（唯一事实源）：`.nimi/spec/cognition/kernel/`
+- Tables（事实源）：`.nimi/spec/cognition/kernel/tables/`
+- Generated（自动生成视图）：`.nimi/spec/cognition/kernel/generated/`
+
+### 收口 cognition object model / family boundary
+
+1. `.nimi/spec/cognition/kernel/cognition-contract.md`
+2. `.nimi/spec/cognition/kernel/family-contract.md`
+3. `.nimi/spec/cognition/kernel/tables/artifact-families.yaml`
+4. `.nimi/spec/cognition/kernel/tables/admitted-reference-matrix.yaml`
+
+### 收口 standalone public surface
+
+1. `.nimi/spec/cognition/kernel/surface-contract.md`
+2. `.nimi/spec/cognition/kernel/memory-service-contract.md`
+3. `.nimi/spec/cognition/kernel/knowledge-service-contract.md`
+4. `.nimi/spec/cognition/kernel/prompt-serving-contract.md`
+5. `.nimi/spec/cognition/kernel/completion-contract.md`
+6. `.nimi/spec/cognition/kernel/tables/public-surface.yaml`
+7. `.nimi/spec/cognition/kernel/tables/memory-service-operations.yaml`
+8. `.nimi/spec/cognition/kernel/tables/knowledge-service-operations.yaml`
+9. `.nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml`
+10. `.nimi/spec/cognition/kernel/tables/completion-gates.yaml`
+11. `nimi-cognition/cognition/cognition.go`
+
+### 收口 runtime bridge boundary
+
+1. `.nimi/spec/cognition/kernel/runtime-bridge-contract.md`
+2. `.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`
+3. `.nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml`
+4. `.nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml`
+5. `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md`
+6. `.nimi/spec/runtime/kernel/knowledge-contract.md`
+7. `.nimi/spec/runtime/kernel/runtime-agent-core-contract.md`

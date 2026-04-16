@@ -6,11 +6,11 @@ const cwd = process.cwd();
 const specRoot = path.join(cwd, '.nimi', 'spec');
 const allowlistPath = path.join(cwd, 'scripts', 'spec-semantic-completeness-allowlist.json');
 
-const RULE_HEADING_RE = /^##\s+((?:K|S|D|P|R|F)-[A-Z]+-\d{3})\b/gmu;
-const RULE_REF_RE = /\b(?:K|S|D|P|R|F)-[A-Z]+-\d{3}\b/g;
-const RULELIKE_NON_FAMILY_RE = /(?<![KSDPRF]-)\b[A-Z][A-Z0-9]{1,15}(?:-[A-Z0-9]{1,15})?-\d{3}[a-z]?\b/g;
-const COMPANION_RULE_HEADING_RE = /^##\s+(?:K|S|D|P|R|F)-[A-Z]+-\d{3}\b/gmu;
-const ANCHOR_RULE_RE = /\b(?:K|S|D|P|R|F)-[A-Z]+-\d{3}\b/g;
+const RULE_HEADING_RE = /^##\s+((?:C|K|S|D|P|R|F)-[A-Z]+-\d{3})\b/gmu;
+const RULE_REF_RE = /\b(?:C|K|S|D|P|R|F)-[A-Z]+-\d{3}\b/g;
+const RULELIKE_NON_FAMILY_RE = /(?<![CKSDPRF]-)\b[A-Z][A-Z0-9]{1,15}(?:-[A-Z0-9]{1,15})?-\d{3}[a-z]?\b/g;
+const COMPANION_RULE_HEADING_RE = /^##\s+(?:C|K|S|D|P|R|F)-[A-Z]+-\d{3}\b/gmu;
+const ANCHOR_RULE_RE = /\b(?:C|K|S|D|P|R|F)-[A-Z]+-\d{3}\b/g;
 
 const LEGACY_PREFIXES = [
   'CONN',
@@ -27,7 +27,7 @@ const LEGACY_PREFIXES = [
 ];
 
 const LEGACY_INLINE_RE = new RegExp(
-  `(?<![KSDPRF]-)\\b(?:${LEGACY_PREFIXES.join('|')})-\\d{3}\\b`,
+  `(?<![CKSDPRF]-)\\b(?:${LEGACY_PREFIXES.join('|')})-\\d{3}\\b`,
   'g',
 );
 

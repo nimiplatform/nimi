@@ -1,0 +1,50 @@
+version: 1
+families:
+  - family_id: agent_model_kernel
+    truth_weight: primary_local_model
+    persistence_mode: durable_sqlite
+    prompt_lane: core
+    cleanup_lane: none
+    public_owner_surface: KernelService
+    notes: Exactly one per scope; mutation remains kernelops-governed.
+    source_rule: C-COG-019
+  - family_id: world_model_kernel
+    truth_weight: primary_local_model
+    persistence_mode: durable_sqlite
+    prompt_lane: core
+    cleanup_lane: none
+    public_owner_surface: KernelService
+    notes: Exactly one per scope; mutation remains kernelops-governed.
+    source_rule: C-COG-019
+  - family_id: memory_substrate
+    truth_weight: advisory_memory
+    persistence_mode: durable_sqlite
+    prompt_lane: advisory_derived_view
+    cleanup_lane: digest_archive_remove
+    public_owner_surface: MemoryService
+    notes: Raw records persist; support and cleanup signals are derived at service time.
+    source_rule: C-COG-019
+  - family_id: knowledge_projections
+    truth_weight: advisory_knowledge
+    persistence_mode: durable_sqlite
+    prompt_lane: advisory_validated_artifact
+    cleanup_lane: digest_archive_remove
+    public_owner_surface: KnowledgeService
+    notes: Projection and relation integrity remain local and fail-closed.
+    source_rule: C-COG-019
+  - family_id: skill_artifacts
+    truth_weight: advisory_skill
+    persistence_mode: durable_sqlite
+    prompt_lane: advisory_validated_artifact
+    cleanup_lane: digest_archive_remove
+    public_owner_surface: SkillService
+    notes: Advisory-only; must not backdoor runtime execution truth.
+    source_rule: C-COG-019
+  - family_id: working_state
+    truth_weight: transient_scaffolding
+    persistence_mode: transient_in_memory
+    prompt_lane: excluded
+    cleanup_lane: explicit_clear_only
+    public_owner_surface: WorkingService
+    notes: One current state per scope; excluded from digest, prompt, and durable search.
+    source_rule: C-COG-019

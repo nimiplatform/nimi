@@ -211,3 +211,15 @@ Current admitted surface之外，以下内容仍明确 deferred：
 - timeline management
 - version history / revert
 - relation-based memory-to-knowledge citation redesign
+
+## K-KNOW-007 Standalone Cognition Boundary
+
+`RuntimeKnowledgeService` is not the semantic owner of standalone cognition.
+
+Fixed rules:
+
+- runtime knowledge remains the runtime-owned authority for runtime-local bank/page/search/graph/ingest semantics on the runtime path
+- extracted standalone cognition knowledge semantics must live under cognition authority rather than being redefined here
+- cognition knowledge upgrade and no-downgrade requirements are governed by `.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`, `.nimi/spec/cognition/kernel/knowledge-service-contract.md`, and `.nimi/spec/cognition/kernel/tables/runtime-capability-upgrade-matrix.yaml`
+- runtime knowledge must not absorb cognition kernel, working-state, prompt, or routine ownership by extension
+- shared page or relation mechanics do not make runtime knowledge the continuing owner of cognition knowledge projections

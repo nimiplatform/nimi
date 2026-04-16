@@ -1,0 +1,37 @@
+version: 1
+lanes:
+  - lane_id: core_kernel
+    serving_order: 1
+    admitted_families: [agent_model_kernel, world_model_kernel]
+    admitted_inputs: KernelService.Load through PromptService.FormatCore or FormatAll
+    derived_view_source: none
+    forbidden_inputs: [memory_substrate, knowledge_projections, skill_artifacts, working_state, routine_evidence]
+    source_rule: C-COG-050
+  - lane_id: advisory_memory
+    serving_order: 2
+    admitted_families: [memory_substrate]
+    admitted_inputs: MemoryService.LoadView, MemoryService.ListViews, or MemoryService.SearchViews through PromptService.FormatAdvisory or FormatAll
+    derived_view_source: service_owned_memory_view
+    forbidden_inputs: [raw_caller_persisted_support_metadata, working_state, routine_evidence]
+    source_rule: C-COG-050
+  - lane_id: advisory_knowledge
+    serving_order: 3
+    admitted_families: [knowledge_projections]
+    admitted_inputs: validated knowledge pages through PromptService.FormatAdvisory or FormatAll
+    derived_view_source: validated_artifact_only
+    forbidden_inputs: [working_state, routine_evidence, malformed_relation_projection]
+    source_rule: C-COG-050
+  - lane_id: advisory_skill
+    serving_order: 4
+    admitted_families: [skill_artifacts]
+    admitted_inputs: validated skill bundles through PromptService.FormatAdvisory or FormatAll
+    derived_view_source: validated_artifact_only
+    forbidden_inputs: [working_state, routine_evidence, runtime_execution_policy_truth]
+    source_rule: C-COG-050
+  - lane_id: combined_render
+    serving_order: 5
+    admitted_families: [agent_model_kernel, world_model_kernel, memory_substrate, knowledge_projections, skill_artifacts]
+    admitted_inputs: PromptService.FormatAll preserving lane boundaries
+    derived_view_source: lane_local_only
+    forbidden_inputs: [working_state, routine_evidence, lane_merging_without_markers]
+    source_rule: C-COG-050

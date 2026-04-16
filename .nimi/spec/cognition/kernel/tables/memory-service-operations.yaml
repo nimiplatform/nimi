@@ -1,0 +1,112 @@
+version: 1
+operations:
+  - operation_id: memory_save
+    entrypoint: MemoryService.Save
+    admitted_inputs: one typed memory record in one cognition scope
+    identity_invariants: scope_id and record_id are explicit; create/update affects exactly one record
+    validation: fail-close on malformed payload, illegal refs, illegal scope crossing, or caller-supplied service metadata
+    retrieval_posture: not a retrieval surface
+    lifecycle_effects: creates or updates one memory artifact and preserves lifecycle visibility for later history reads
+    derived_view_behavior: none at write time; derived support remains service-owned
+    fail_closed_reasons: malformed payload, illegal family kind, missing ref target, illegal lifecycle mutation
+    non_ownership_boundary: does not own runtime provider, replication, review, or event-stream truth
+    source_rule: C-COG-039
+  - operation_id: memory_load
+    entrypoint: MemoryService.Load
+    admitted_inputs: explicit scope_id plus record_id
+    identity_invariants: loads exactly one raw record from one scope
+    validation: fail-close on illegal scope crossing or unknown id
+    retrieval_posture: raw artifact read only; no derived support or cleanup metadata implied
+    lifecycle_effects: none
+    derived_view_behavior: not admitted on this surface
+    fail_closed_reasons: unknown record, illegal scope, malformed stored artifact
+    non_ownership_boundary: does not widen into derived serving semantics
+    source_rule: C-COG-039
+  - operation_id: memory_load_view
+    entrypoint: MemoryService.LoadView
+    admitted_inputs: explicit scope_id plus record_id
+    identity_invariants: loads one derived serving view for one raw record
+    validation: fail-close if raw artifact is missing or derivation inputs are malformed
+    retrieval_posture: service-owned derived read with explicit support, lineage, invalidation, and cleanup posture
+    lifecycle_effects: none
+    derived_view_behavior: recomputes support summary, live incoming lineage, invalidation reasons, and cleanup signals at read time
+    fail_closed_reasons: missing raw record, invalid refgraph inputs, illegal scope, derivation failure
+    non_ownership_boundary: caller may not persist returned support/cleanup fields as raw truth
+    source_rule: C-COG-039
+  - operation_id: memory_list
+    entrypoint: MemoryService.List
+    admitted_inputs: explicit scope_id with optional family-local filters admitted by implementation
+    identity_invariants: lists raw records from exactly one scope
+    validation: fail-close on illegal scope or malformed filter
+    retrieval_posture: raw snapshot listing with explicit ordering semantics documented by implementation
+    lifecycle_effects: none
+    derived_view_behavior: not admitted on this surface
+    fail_closed_reasons: illegal scope, malformed filter
+    non_ownership_boundary: raw listing must not masquerade as recall/ranking truth
+    source_rule: C-COG-039
+  - operation_id: memory_list_views
+    entrypoint: MemoryService.ListViews
+    admitted_inputs: explicit scope_id with optional filters admitted by implementation
+    identity_invariants: lists derived views for records in exactly one scope
+    validation: fail-close on illegal scope or malformed filter
+    retrieval_posture: service-owned derived listing with explicit ordering, support, lineage, invalidation, and cleanup posture
+    lifecycle_effects: none
+    derived_view_behavior: each row recomputes support summary, lineage, invalidation reasons, and cleanup signals
+    fail_closed_reasons: illegal scope, malformed filter, derivation failure
+    non_ownership_boundary: derived listing does not transfer ranking truth to caller-owned persistence
+    source_rule: C-COG-039
+  - operation_id: memory_search_lexical
+    entrypoint: MemoryService.SearchLexical
+    admitted_inputs: explicit scope_id plus lexical query
+    identity_invariants: searches memory records inside exactly one scope
+    validation: fail-close on empty or malformed query when query is required by the admitted implementation
+    retrieval_posture: lexical retrieval only; no silent vector or runtime recall widening
+    lifecycle_effects: none
+    derived_view_behavior: not admitted on this surface
+    fail_closed_reasons: illegal scope, malformed query, unavailable lexical substrate
+    non_ownership_boundary: lexical retrieval does not claim runtime provider or recall ownership
+    source_rule: C-COG-039
+  - operation_id: memory_search_views
+    entrypoint: MemoryService.SearchViews
+    admitted_inputs: explicit scope_id plus retrieval query
+    identity_invariants: searches derived views inside exactly one scope
+    validation: fail-close on illegal scope, malformed query, or derivation failure
+    retrieval_posture: service-owned derived retrieval with explicit support, lineage, invalidation, and cleanup posture
+    lifecycle_effects: none
+    derived_view_behavior: support summary, lineage, invalidation reasons, and cleanup signals are recomputed per hit
+    fail_closed_reasons: illegal scope, malformed query, unavailable derivation inputs
+    non_ownership_boundary: derived search must not read caller-persisted support metadata
+    source_rule: C-COG-039
+  - operation_id: memory_delete
+    entrypoint: MemoryService.Delete
+    admitted_inputs: explicit scope_id plus record_id
+    identity_invariants: deletes or lifecycle-transitions exactly one record in one scope
+    validation: fail-close on illegal scope, unknown id, or blocked lifecycle transition
+    retrieval_posture: not a retrieval surface
+    lifecycle_effects: explicit local delete/archive/remove visibility required
+    derived_view_behavior: subsequent derived reads must reflect deletion or lifecycle transition explicitly
+    fail_closed_reasons: unknown record, illegal scope, blocked lifecycle transition, active cleanup blocker
+    non_ownership_boundary: local delete does not claim runtime replication invalidation ownership
+    source_rule: C-COG-040
+  - operation_id: memory_history
+    entrypoint: MemoryService.History
+    admitted_inputs: explicit scope_id plus record_id or scope-local filter
+    identity_invariants: history is scoped to one record or one scope-owned lineage set
+    validation: fail-close on illegal scope, malformed filter, or unknown target
+    retrieval_posture: lifecycle and lineage read with explicit ordering semantics
+    lifecycle_effects: none
+    derived_view_behavior: may include derived-view transition evidence only when marked as service-owned history data
+    fail_closed_reasons: illegal scope, malformed filter, unknown target
+    non_ownership_boundary: history surface does not imply runtime review or replication backlog ownership
+    source_rule: C-COG-041
+  - operation_id: memory_list_ids
+    entrypoint: MemoryService.ListIDs
+    admitted_inputs: explicit scope_id
+    identity_invariants: returns identifiers from exactly one scope
+    validation: fail-close on illegal scope
+    retrieval_posture: identifier-only projection; not a semantic retrieval substitute
+    lifecycle_effects: none
+    derived_view_behavior: none
+    fail_closed_reasons: illegal scope
+    non_ownership_boundary: identifier listing must not be treated as recall or history parity
+    source_rule: C-COG-039

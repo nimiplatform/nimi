@@ -1,0 +1,506 @@
+version: 1
+surfaces:
+  - surface_id: cognition.new
+    surface_kind: constructor
+    entrypoint: New
+    owner_surface: cognition
+    family_scope: root
+    return_contract: "*Cognition"
+    capability_concerns: []
+    notes: Constructs the standalone cognition root.
+    source_rule: C-COG-026
+  - surface_id: cognition.with_clock
+    surface_kind: option
+    entrypoint: WithClock
+    owner_surface: cognition
+    family_scope: root
+    return_contract: "Option"
+    capability_concerns: []
+    notes: Standalone-local test/config injection only.
+    source_rule: C-COG-026
+  - surface_id: cognition.kernel_service
+    surface_kind: facade_accessor
+    entrypoint: KernelService
+    owner_surface: Cognition
+    family_scope: kernel
+    return_contract: "*KernelService"
+    capability_concerns: []
+    notes: Root accessor only.
+    source_rule: C-COG-027
+  - surface_id: cognition.memory_service
+    surface_kind: facade_accessor
+    entrypoint: MemoryService
+    owner_surface: Cognition
+    family_scope: memory_substrate
+    return_contract: "*MemoryService"
+    capability_concerns: []
+    notes: Root accessor only.
+    source_rule: C-COG-027
+  - surface_id: cognition.knowledge_service
+    surface_kind: facade_accessor
+    entrypoint: KnowledgeService
+    owner_surface: Cognition
+    family_scope: knowledge_projections
+    return_contract: "*KnowledgeService"
+    capability_concerns: []
+    notes: Root accessor only.
+    source_rule: C-COG-027
+  - surface_id: cognition.skill_service
+    surface_kind: facade_accessor
+    entrypoint: SkillService
+    owner_surface: Cognition
+    family_scope: skill_artifacts
+    return_contract: "*SkillService"
+    capability_concerns: []
+    notes: Root accessor only.
+    source_rule: C-COG-027
+  - surface_id: cognition.working_service
+    surface_kind: facade_accessor
+    entrypoint: WorkingService
+    owner_surface: Cognition
+    family_scope: working_state
+    return_contract: "*WorkingService"
+    capability_concerns: []
+    notes: Root accessor only.
+    source_rule: C-COG-027
+  - surface_id: cognition.prompt_service
+    surface_kind: facade_accessor
+    entrypoint: PromptService
+    owner_surface: Cognition
+    family_scope: prompt
+    return_contract: "*PromptService"
+    capability_concerns: []
+    notes: Root accessor only.
+    source_rule: C-COG-027
+  - surface_id: cognition.kernel_engine
+    surface_kind: facade_accessor
+    entrypoint: KernelEngine
+    owner_surface: Cognition
+    family_scope: kernel
+    return_contract: "*kernelops.Engine"
+    capability_concerns: []
+    notes: Direct kernel mutation surface exposure.
+    source_rule: C-COG-027
+  - surface_id: cognition.new_routine_context
+    surface_kind: facade_method
+    entrypoint: NewRoutineContext
+    owner_surface: Cognition
+    family_scope: routine
+    return_contract: "routine.Context"
+    capability_concerns: []
+    notes: Authoritative external routine entry.
+    source_rule: C-COG-027
+  - surface_id: cognition.init_scope
+    surface_kind: facade_method
+    entrypoint: InitScope
+    owner_surface: Cognition
+    family_scope: root
+    return_contract: "error"
+    capability_concerns: []
+    notes: Initializes the two kernels for one scope.
+    source_rule: C-COG-027
+  - surface_id: cognition.delete_scope
+    surface_kind: facade_method
+    entrypoint: DeleteScope
+    owner_surface: Cognition
+    family_scope: root
+    return_contract: "error"
+    capability_concerns: []
+    notes: Deletes durable scope data and clears transient working state.
+    source_rule: C-COG-027
+  - surface_id: cognition.list_scopes
+    surface_kind: facade_method
+    entrypoint: ListScopes
+    owner_surface: Cognition
+    family_scope: root
+    return_contract: "[]string"
+    capability_concerns: []
+    notes: Lists known cognition scopes.
+    source_rule: C-COG-027
+  - surface_id: cognition.close
+    surface_kind: facade_method
+    entrypoint: Close
+    owner_surface: Cognition
+    family_scope: root
+    return_contract: "error"
+    capability_concerns: []
+    notes: Closes durable store and clears transient working state.
+    source_rule: C-COG-027
+  - surface_id: kernel.init
+    surface_kind: service_method
+    entrypoint: KernelService.Init
+    owner_surface: KernelService
+    family_scope: kernel
+    return_contract: "error"
+    capability_concerns: []
+    notes: Creates an empty kernel if absent.
+    source_rule: C-COG-028
+  - surface_id: kernel.load
+    surface_kind: service_method
+    entrypoint: KernelService.Load
+    owner_surface: KernelService
+    family_scope: kernel
+    return_contract: "(*kernel.Kernel, []kernel.Rule, error)"
+    capability_concerns: []
+    notes: Loads one typed kernel aggregate.
+    source_rule: C-COG-028
+  - surface_id: kernel.engine
+    surface_kind: service_method
+    entrypoint: KernelService.Engine
+    owner_surface: KernelService
+    family_scope: kernel
+    return_contract: "*kernelops.Engine"
+    capability_concerns: []
+    notes: Returns kernel mutation engine.
+    source_rule: C-COG-028
+  - surface_id: memory.save
+    surface_kind: service_method
+    entrypoint: MemoryService.Save
+    owner_surface: MemoryService
+    family_scope: memory_substrate
+    return_contract: "error"
+    capability_concerns: [memory_artifact_mutation, memory_failure_model]
+    notes: Saves one validated memory record.
+    source_rule: C-COG-029
+  - surface_id: memory.load
+    surface_kind: service_method
+    entrypoint: MemoryService.Load
+    owner_surface: MemoryService
+    family_scope: memory_substrate
+    return_contract: "(*memory.Record, error)"
+    capability_concerns: [memory_retrieval_recall]
+    notes: Loads one raw memory record.
+    source_rule: C-COG-029
+  - surface_id: memory.load_view
+    surface_kind: service_method
+    entrypoint: MemoryService.LoadView
+    owner_surface: MemoryService
+    family_scope: memory_substrate
+    return_contract: "(*memory.View, error)"
+    capability_concerns: [memory_derived_serving_view]
+    notes: Loads one derived memory serving view.
+    source_rule: C-COG-029
+  - surface_id: memory.list
+    surface_kind: service_method
+    entrypoint: MemoryService.List
+    owner_surface: MemoryService
+    family_scope: memory_substrate
+    return_contract: "([]memory.Record, error)"
+    capability_concerns: [memory_retrieval_recall]
+    notes: Lists raw memory records in one scope.
+    source_rule: C-COG-029
+  - surface_id: memory.list_views
+    surface_kind: service_method
+    entrypoint: MemoryService.ListViews
+    owner_surface: MemoryService
+    family_scope: memory_substrate
+    return_contract: "([]memory.View, error)"
+    capability_concerns: [memory_derived_serving_view]
+    notes: Lists derived memory views in one scope.
+    source_rule: C-COG-029
+  - surface_id: memory.search_lexical
+    surface_kind: service_method
+    entrypoint: MemoryService.SearchLexical
+    owner_surface: MemoryService
+    family_scope: memory_substrate
+    return_contract: "([]memory.Record, error)"
+    capability_concerns: [memory_retrieval_recall]
+    notes: Performs lexical retrieval over raw memory records.
+    source_rule: C-COG-029
+  - surface_id: memory.search_views
+    surface_kind: service_method
+    entrypoint: MemoryService.SearchViews
+    owner_surface: MemoryService
+    family_scope: memory_substrate
+    return_contract: "([]memory.View, error)"
+    capability_concerns: [memory_retrieval_recall, memory_derived_serving_view]
+    notes: Searches service-owned derived memory views.
+    source_rule: C-COG-029
+  - surface_id: memory.delete
+    surface_kind: service_method
+    entrypoint: MemoryService.Delete
+    owner_surface: MemoryService
+    family_scope: memory_substrate
+    return_contract: "error"
+    capability_concerns: [memory_artifact_mutation, memory_delete_visibility]
+    notes: Performs explicit local delete or lifecycle transition for one record.
+    source_rule: C-COG-029
+  - surface_id: memory.history
+    surface_kind: service_method
+    entrypoint: MemoryService.History
+    owner_surface: MemoryService
+    family_scope: memory_substrate
+    return_contract: "([]memory.HistoryEntry, error)"
+    capability_concerns: [memory_history_lineage, memory_delete_visibility]
+    notes: Returns lifecycle/history view for one record or scope-owned lineage slice.
+    source_rule: C-COG-029
+  - surface_id: memory.list_ids
+    surface_kind: service_method
+    entrypoint: MemoryService.ListIDs
+    owner_surface: MemoryService
+    family_scope: memory_substrate
+    return_contract: "([]string, error)"
+    capability_concerns: [memory_retrieval_recall]
+    notes: Lists record identifiers in one scope.
+    source_rule: C-COG-029
+  - surface_id: knowledge.save
+    surface_kind: service_method
+    entrypoint: KnowledgeService.Save
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "error"
+    capability_concerns: [knowledge_page_lifecycle, knowledge_delete_update_visibility, knowledge_failure_model]
+    notes: Saves one validated knowledge page projection.
+    source_rule: C-COG-029
+  - surface_id: knowledge.load
+    surface_kind: service_method
+    entrypoint: KnowledgeService.Load
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "(*knowledge.Page, error)"
+    capability_concerns: [knowledge_page_lifecycle]
+    notes: Loads one knowledge page.
+    source_rule: C-COG-029
+  - surface_id: knowledge.list
+    surface_kind: service_method
+    entrypoint: KnowledgeService.List
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "([]knowledge.Page, error)"
+    capability_concerns: [knowledge_page_lifecycle]
+    notes: Lists knowledge pages in one scope.
+    source_rule: C-COG-029
+  - surface_id: knowledge.delete
+    surface_kind: service_method
+    entrypoint: KnowledgeService.Delete
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "error"
+    capability_concerns: [knowledge_page_lifecycle, knowledge_delete_update_visibility]
+    notes: Performs explicit local delete or lifecycle transition for one page.
+    source_rule: C-COG-029
+  - surface_id: knowledge.history
+    surface_kind: service_method
+    entrypoint: KnowledgeService.History
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "([]knowledge.HistoryEntry, error)"
+    capability_concerns: [knowledge_delete_update_visibility]
+    notes: Returns lifecycle/history view for one page or scope-owned page slice.
+    source_rule: C-COG-029
+  - surface_id: knowledge.search_lexical
+    surface_kind: service_method
+    entrypoint: KnowledgeService.SearchLexical
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "([]knowledge.Page, error)"
+    capability_concerns: [knowledge_lexical_retrieval]
+    notes: Performs lexical retrieval over knowledge pages.
+    source_rule: C-COG-029
+  - surface_id: knowledge.search_hybrid
+    surface_kind: service_method
+    entrypoint: KnowledgeService.SearchHybrid
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "([]knowledge.Page, error)"
+    capability_concerns: [knowledge_hybrid_retrieval]
+    notes: Performs hybrid retrieval over knowledge pages.
+    source_rule: C-COG-029
+  - surface_id: knowledge.put_relation
+    surface_kind: service_method
+    entrypoint: KnowledgeService.PutRelation
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "error"
+    capability_concerns: [knowledge_relation_graph]
+    notes: Adds or upserts one same-scope page relation.
+    source_rule: C-COG-029
+  - surface_id: knowledge.delete_relation
+    surface_kind: service_method
+    entrypoint: KnowledgeService.DeleteRelation
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "error"
+    capability_concerns: [knowledge_relation_graph]
+    notes: Removes one same-scope page relation.
+    source_rule: C-COG-029
+  - surface_id: knowledge.list_relations
+    surface_kind: service_method
+    entrypoint: KnowledgeService.ListRelations
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "([]knowledge.Relation, error)"
+    capability_concerns: [knowledge_relation_graph]
+    notes: Lists outgoing same-scope relations for one page.
+    source_rule: C-COG-029
+  - surface_id: knowledge.list_backlinks
+    surface_kind: service_method
+    entrypoint: KnowledgeService.ListBacklinks
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "([]knowledge.Relation, error)"
+    capability_concerns: [knowledge_relation_graph]
+    notes: Lists incoming same-scope backlinks for one page.
+    source_rule: C-COG-029
+  - surface_id: knowledge.traverse
+    surface_kind: service_method
+    entrypoint: KnowledgeService.Traverse
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "([]knowledge.TraversalHit, error)"
+    capability_concerns: [knowledge_relation_graph]
+    notes: Traverses the same-scope knowledge graph from one root page.
+    source_rule: C-COG-029
+  - surface_id: knowledge.ingest_document
+    surface_kind: service_method
+    entrypoint: KnowledgeService.IngestDocument
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "(*knowledge.IngestTask, error)"
+    capability_concerns: [knowledge_ingest_progress]
+    notes: Accepts one standalone-local knowledge ingest task.
+    source_rule: C-COG-029
+  - surface_id: knowledge.get_ingest_task
+    surface_kind: service_method
+    entrypoint: KnowledgeService.GetIngestTask
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "(*knowledge.IngestTask, error)"
+    capability_concerns: [knowledge_ingest_progress]
+    notes: Reads one standalone-local knowledge ingest task.
+    source_rule: C-COG-029
+  - surface_id: knowledge.list_ids
+    surface_kind: service_method
+    entrypoint: KnowledgeService.ListIDs
+    owner_surface: KnowledgeService
+    family_scope: knowledge_projections
+    return_contract: "([]string, error)"
+    capability_concerns: [knowledge_page_lifecycle]
+    notes: Lists knowledge page identifiers in one scope.
+    source_rule: C-COG-029
+  - surface_id: skill.save
+    surface_kind: service_method
+    entrypoint: SkillService.Save
+    owner_surface: SkillService
+    family_scope: skill_artifacts
+    return_contract: "error"
+    capability_concerns: []
+    notes: Saves one validated skill bundle with fail-closed step/order/ref validation.
+    source_rule: C-COG-029
+  - surface_id: skill.load
+    surface_kind: service_method
+    entrypoint: SkillService.Load
+    owner_surface: SkillService
+    family_scope: skill_artifacts
+    return_contract: "(*skill.Bundle, error)"
+    capability_concerns: []
+    notes: Loads one validated skill bundle; removed bundles remain loadable until explicit delete.
+    source_rule: C-COG-029
+  - surface_id: skill.list
+    surface_kind: service_method
+    entrypoint: SkillService.List
+    owner_surface: SkillService
+    family_scope: skill_artifacts
+    return_contract: "([]skill.Bundle, error)"
+    capability_concerns: []
+    notes: Lists validated visible skill bundles in one scope; removed bundles are excluded.
+    source_rule: C-COG-029
+  - surface_id: skill.search
+    surface_kind: service_method
+    entrypoint: SkillService.Search
+    owner_surface: SkillService
+    family_scope: skill_artifacts
+    return_contract: "([]skill.Bundle, error)"
+    capability_concerns: []
+    notes: Searches validated visible skill bundles lexically inside one scope.
+    source_rule: C-COG-029
+  - surface_id: skill.delete
+    surface_kind: service_method
+    entrypoint: SkillService.Delete
+    owner_surface: SkillService
+    family_scope: skill_artifacts
+    return_contract: "error"
+    capability_concerns: []
+    notes: Performs explicit destructive delete after refgraph blocker checks; distinct from archive/remove.
+    source_rule: C-COG-029
+  - surface_id: skill.history
+    surface_kind: service_method
+    entrypoint: SkillService.History
+    owner_surface: SkillService
+    family_scope: skill_artifacts
+    return_contract: "([]skill.HistoryEntry, error)"
+    capability_concerns: []
+    notes: Returns service-owned lifecycle history including archived, removed, and deleted transitions.
+    source_rule: C-COG-029
+  - surface_id: skill.list_ids
+    surface_kind: service_method
+    entrypoint: SkillService.ListIDs
+    owner_surface: SkillService
+    family_scope: skill_artifacts
+    return_contract: "([]string, error)"
+    capability_concerns: []
+    notes: Lists visible skill bundle identifiers in one scope.
+    source_rule: C-COG-029
+  - surface_id: working.save
+    surface_kind: service_method
+    entrypoint: WorkingService.Save
+    owner_surface: WorkingService
+    family_scope: working_state
+    return_contract: "error"
+    capability_concerns: []
+    notes: Replaces current transient working state for one scope.
+    source_rule: C-COG-029
+  - surface_id: working.load
+    surface_kind: service_method
+    entrypoint: WorkingService.Load
+    owner_surface: WorkingService
+    family_scope: working_state
+    return_contract: "(*working.State, error)"
+    capability_concerns: []
+    notes: Reads current transient working state.
+    source_rule: C-COG-029
+  - surface_id: working.clear
+    surface_kind: service_method
+    entrypoint: WorkingService.Clear
+    owner_surface: WorkingService
+    family_scope: working_state
+    return_contract: "error"
+    capability_concerns: []
+    notes: Clears current transient working state.
+    source_rule: C-COG-029
+  - surface_id: prompt.format_core
+    surface_kind: service_method
+    entrypoint: PromptService.FormatCore
+    owner_surface: PromptService
+    family_scope: prompt
+    return_contract: "(string, error)"
+    capability_concerns: []
+    notes: Renders kernel-only prompt context.
+    source_rule: C-COG-030
+  - surface_id: prompt.format_advisory
+    surface_kind: service_method
+    entrypoint: PromptService.FormatAdvisory
+    owner_surface: PromptService
+    family_scope: prompt
+    return_contract: "(string, error)"
+    capability_concerns: []
+    notes: Renders advisory-only prompt context.
+    source_rule: C-COG-030
+  - surface_id: prompt.format_all
+    surface_kind: service_method
+    entrypoint: PromptService.FormatAll
+    owner_surface: PromptService
+    family_scope: prompt
+    return_contract: "(string, error)"
+    capability_concerns: []
+    notes: Renders combined prompt while preserving core/advisory split.
+    source_rule: C-COG-030
+  - surface_id: digest.worker_run
+    surface_kind: external_worker
+    entrypoint: digest.NewWorker(...).Run
+    owner_surface: routine/digest
+    family_scope: routine
+    return_contract: "(digest.Result, error)"
+    capability_concerns: []
+    notes: Authoritative digest routine entry.
+    source_rule: C-COG-032

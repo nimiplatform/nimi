@@ -1,0 +1,119 @@
+version: 1
+capabilities:
+  - concern_id: memory_artifact_mutation
+    runtime_source_contract: K-MEM-006
+    runtime_capability: typed retain/delete mutation over local memory records
+    cognition_owner_surface: MemoryService.Save + MemoryService.Delete
+    parity_mode: upgrade
+    required_floor: explicit typed record mutation, explicit delete semantics, and no caller-forged service metadata
+    admitted_shape: standalone memory artifact mutation with family validation, lifecycle visibility, and archive-aware delete posture
+    forbidden_downgrade: save/list/search-only storage without explicit delete and lifecycle contract is not admitted
+    source_rule: C-COG-037
+  - concern_id: memory_retrieval_recall
+    runtime_source_contract: K-MEM-006
+    runtime_capability: recall over local memory records with explicit serving posture
+    cognition_owner_surface: MemoryService.Load + MemoryService.List + MemoryService.SearchLexical + MemoryService.SearchViews
+    parity_mode: parity
+    required_floor: explicit lexical retrieval posture, ordering semantics, and truthful distinction between raw records and served projections
+    admitted_shape: standalone-local memory retrieval with separate raw and derived surfaces
+    forbidden_downgrade: generic lookup without retrieval posture or explicit derived-view contract is not admitted
+    source_rule: C-COG-037
+  - concern_id: memory_history_lineage
+    runtime_source_contract: K-MEM-011
+    runtime_capability: explicit lineage/history for derived outputs and lifecycle transitions
+    cognition_owner_surface: MemoryService.History
+    parity_mode: upgrade
+    required_floor: history or lineage reads must expose lifecycle-relevant transitions instead of forcing snapshot inference
+    admitted_shape: standalone history surface over mutation and digest-driven lifecycle changes
+    forbidden_downgrade: current-state-only storage cannot claim parity with runtime lineage-bearing memory
+    source_rule: C-COG-037
+  - concern_id: memory_delete_visibility
+    runtime_source_contract: K-MEM-008
+    runtime_capability: explicit replication/delete/invalidation visibility
+    cognition_owner_surface: MemoryService.Delete + MemoryService.History
+    parity_mode: upgrade
+    required_floor: local delete, archive, and remove outcomes must remain explicit and queryable even without runtime replication
+    admitted_shape: standalone local lifecycle visibility with explicit delete/archive/remove history instead of replication invalidation
+    forbidden_downgrade: silent disappearance or hidden digest cleanup is not admitted
+    source_rule: C-COG-037
+  - concern_id: memory_derived_serving_view
+    runtime_source_contract: K-MEM-011
+    runtime_capability: service-owned derived projection with explicit source lineage and stale visibility
+    cognition_owner_surface: MemoryService.LoadView + MemoryService.ListViews + MemoryService.SearchViews
+    parity_mode: upgrade
+    required_floor: derived serving data must remain service-owned and explainable rather than caller-persisted truth
+    admitted_shape: support, lineage, invalidation, and cleanup signals recomputed from standalone refgraph, lifecycle state, and digest-visible dependency health
+    forbidden_downgrade: persisting support or cleanup fields as caller-owned memory payload is not admitted
+    source_rule: C-COG-037
+  - concern_id: memory_failure_model
+    runtime_source_contract: K-MEM-007
+    runtime_capability: fail-close on unavailable or invalid memory operations
+    cognition_owner_surface: MemoryService.*
+    parity_mode: parity
+    required_floor: malformed payloads, illegal refs, illegal transitions, and missing required derived context must fail explicitly
+    admitted_shape: standalone-local semantic fail-close without provider fallback or pseudo-success
+    forbidden_downgrade: best-effort mutation, synthetic success, or silent downgrade is not admitted
+    source_rule: C-COG-037
+  - concern_id: knowledge_page_lifecycle
+    runtime_source_contract: K-KNOW-003
+    runtime_capability: explicit page create/update/list/get/delete lifecycle
+    cognition_owner_surface: KnowledgeService.Save + KnowledgeService.Load + KnowledgeService.List + KnowledgeService.Delete
+    parity_mode: upgrade
+    required_floor: one-scope page lifecycle with explicit update/delete visibility and fail-closed validation
+    admitted_shape: standalone knowledge projection lifecycle with typed page identity and explicit delete
+    forbidden_downgrade: generic blob save/search without explicit page lifecycle is not admitted
+    source_rule: C-COG-037
+  - concern_id: knowledge_lexical_retrieval
+    runtime_source_contract: K-KNOW-004
+    runtime_capability: lexical keyword retrieval over local knowledge pages
+    cognition_owner_surface: KnowledgeService.SearchLexical
+    parity_mode: parity
+    required_floor: lexical retrieval must remain explicit, local, ordered, and fail-closed
+    admitted_shape: standalone lexical projection retrieval over validated pages
+    forbidden_downgrade: search that hides lexical posture behind a generic list/search surface is not admitted
+    source_rule: C-COG-037
+  - concern_id: knowledge_hybrid_retrieval
+    runtime_source_contract: K-KNOW-004a
+    runtime_capability: hybrid retrieval distinct from lexical-only search
+    cognition_owner_surface: KnowledgeService.SearchHybrid
+    parity_mode: parity
+    required_floor: hybrid capability must be explicit, must not silently fall back to lexical search, and must keep unavailable states explicit
+    admitted_shape: standalone lexical-plus-vector hybrid retrieval with deterministic local embeddings, standalone-local ranking, and explicit embedding-substrate failure
+    forbidden_downgrade: silently downgrading to lexical retrieval is not admitted
+    source_rule: C-COG-037
+  - concern_id: knowledge_relation_graph
+    runtime_source_contract: K-KNOW-004b
+    runtime_capability: same-bank relation write/read/backlink/traverse graph semantics
+    cognition_owner_surface: KnowledgeService.PutRelation + KnowledgeService.DeleteRelation + KnowledgeService.ListRelations + KnowledgeService.ListBacklinks + KnowledgeService.Traverse
+    parity_mode: upgrade
+    required_floor: same-scope relation integrity, backlink visibility, traversal boundary, and duplicate/self-link rejection must remain explicit
+    admitted_shape: standalone same-scope local relation graph over first-class relation rows, validated knowledge projections, and refgraph-backed cleanup gating
+    forbidden_downgrade: storing ad hoc refs without explicit relation surfaces or graph semantics is not admitted
+    source_rule: C-COG-037
+  - concern_id: knowledge_ingest_progress
+    runtime_source_contract: K-KNOW-004c
+    runtime_capability: explicit document ingest plus progress/task visibility
+    cognition_owner_surface: KnowledgeService.IngestDocument + KnowledgeService.GetIngestTask
+    parity_mode: upgrade
+    required_floor: ingest must declare accepted envelope, task state, progress visibility, and page-write effects
+    admitted_shape: standalone local queued/running/completed/failed ingest lifecycle with persisted task state, reopen-safe interruption failure, and worker-owned page writes
+    forbidden_downgrade: hidden asynchronous writes without task/progress contract are not admitted
+    source_rule: C-COG-037
+  - concern_id: knowledge_delete_update_visibility
+    runtime_source_contract: K-KNOW-003
+    runtime_capability: explicit page update/delete visibility rather than index disappearance
+    cognition_owner_surface: KnowledgeService.Save + KnowledgeService.Delete + KnowledgeService.History
+    parity_mode: upgrade
+    required_floor: update and delete outcomes must remain explicit and queryable through lifecycle-bearing reads
+    admitted_shape: standalone page lifecycle history over projection updates, archive, and remove transitions
+    forbidden_downgrade: clients must not infer delete/update solely from missing search hits
+    source_rule: C-COG-037
+  - concern_id: knowledge_failure_model
+    runtime_source_contract: K-KNOW-005
+    runtime_capability: fail-close authorization/integrity/unavailable behavior over knowledge operations
+    cognition_owner_surface: KnowledgeService.*
+    parity_mode: parity
+    required_floor: invalid refs, malformed ingest envelopes, illegal traversal bounds, and unavailable hybrid capability must fail explicitly
+    admitted_shape: standalone-local fail-close knowledge semantics without runtime ownership leakage
+    forbidden_downgrade: permissive graph writes, silent ingest coercion, or lexical fallback masquerading as hybrid search are not admitted
+    source_rule: C-COG-037
