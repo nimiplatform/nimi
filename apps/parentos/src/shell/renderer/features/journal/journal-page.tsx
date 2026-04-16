@@ -34,11 +34,14 @@ import {
   type CaptureMode,
   type VoiceDraft,
   type PhotoDraft,
+  type KeepsakeReason,
   EMPTY_VOICE_DRAFT,
   EMOJI_CATEGORIES,
+  KEEPSAKE_REASON_OPTIONS,
   type EmojiCategory,
   fileToBase64,
   blobToBase64,
+  getKeepsakeReasonLabel,
   parseSelectedTags,
 } from './journal-page-helpers.js';
 import { PhotoBar, SaveConfirmationModal, VoiceCapture } from './journal-sub-components.js';
@@ -57,6 +60,8 @@ type JournalLocalDraftPayload = {
   selectedTags: string[];
   selectedRecorderId: string | null;
   keepsake: boolean;
+  keepsakeTitle: string;
+  keepsakeReason: KeepsakeReason | null;
   moodTag: string | null;
   subjectiveNotes: string;
 };
@@ -84,6 +89,8 @@ function toJournalLocalDraftPayload(record: JournalLocalDraftRecord): JournalLoc
     selectedTags: record.selectedTags,
     selectedRecorderId: record.selectedRecorderId,
     keepsake: record.keepsake,
+    keepsakeTitle: record.keepsakeTitle,
+    keepsakeReason: record.keepsakeReason,
     moodTag: record.moodTag,
     subjectiveNotes: record.subjectiveNotes,
   };
@@ -94,6 +101,8 @@ function hasMeaningfulJournalLocalDraft(payload: JournalLocalDraftPayload) {
     || payload.selectedDimension !== null
     || payload.selectedTags.length > 0
     || payload.keepsake
+    || payload.keepsakeTitle.trim().length > 0
+    || payload.keepsakeReason !== null
     || payload.moodTag !== null
     || payload.subjectiveNotes.trim().length > 0;
 }
@@ -113,6 +122,8 @@ function readJournalLocalDraft(childId: string): JournalLocalDraftRecord | null 
       selectedTags: Array.isArray(parsed.selectedTags) ? parsed.selectedTags.map((tag) => String(tag)) : [],
       selectedRecorderId: typeof parsed.selectedRecorderId === 'string' ? parsed.selectedRecorderId : null,
       keepsake: parsed.keepsake === true,
+      keepsakeTitle: typeof parsed.keepsakeTitle === 'string' ? parsed.keepsakeTitle : '',
+      keepsakeReason: typeof parsed.keepsakeReason === 'string' ? parsed.keepsakeReason as KeepsakeReason : null,
       moodTag: typeof parsed.moodTag === 'string' ? parsed.moodTag : null,
       subjectiveNotes: typeof parsed.subjectiveNotes === 'string' ? parsed.subjectiveNotes : '',
       updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : '',
@@ -149,6 +160,7 @@ function formatJournalDraftTime(iso: string) {
 
 /** Auto-restore drafts saved within this window instead of showing the recovery banner. */
 const DRAFT_AUTO_RESTORE_AGE_MS = 5 * 60 * 1000;
+const KEEPSAKE_KEYWORDS = ['第一次', '获奖', '完成', '通过', '读完', '坚持'];
 
 function isRecentJournalDraft(updatedAt: string): boolean {
   if (!updatedAt) return false;
@@ -289,9 +301,234 @@ function DeleteJournalEntryModal({
   );
 }
 
+function _LegacyKeepsakePromptModal({
+  open,
+  title,
+  reason,
+  saving,
+  onTitleChange,
+  onReasonChange,
+  onSkip,
+  onSave,
+}: {
+  open: boolean;
+  title: string;
+  reason: KeepsakeReason | null;
+  saving: boolean;
+  onTitleChange: (value: string) => void;
+  onReasonChange: (value: KeepsakeReason | null) => void;
+  onSkip: () => void;
+  onSave: () => void;
+}) {
+  if (!open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.28)] p-4" onClick={onSkip}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="补充珍藏信息"
+        className={`${S.radius} w-full max-w-[440px] p-5`}
+        style={{ background: S.card, boxShadow: S.shadow }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-4">
+          <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>这条已经加入珍藏</h3>
+          <p className="mt-1 text-[12px] leading-relaxed" style={{ color: S.sub }}>
+            可以顺手补充一个标题或珍藏原因，之后回顾会更清楚。现在跳过也没关系。
+          </p>
+        </div>
+        <div className="space-y-3">
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-medium" style={{ color: S.text }}>标题（可选）</span>
+            <input
+              type="text"
+              value={title}
+              maxLength={60}
+              onChange={(event) => onTitleChange(event.target.value)}
+              placeholder="比如：第一次独立完成早餐"
+              className={`${S.radiusSm} w-full px-3 py-2 text-[12px] outline-none`}
+              style={{ border: `1px solid ${S.border}`, background: '#fff' }}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-medium" style={{ color: S.text }}>为什么值得珍藏（可选）</span>
+            <select
+              value={reason ?? ''}
+              onChange={(event) => onReasonChange(event.target.value ? event.target.value as KeepsakeReason : null)}
+              className={`${S.radiusSm} w-full px-3 py-2 text-[12px] outline-none`}
+              style={{ border: `1px solid ${S.border}`, background: '#fff' }}
+            >
+              <option value="">暂不选择</option>
+              {KEEPSAKE_REASON_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onSkip}
+            disabled={saving}
+            className={`${S.radiusSm} px-4 py-2 text-[12px] transition-colors disabled:opacity-50`}
+            style={{ background: '#f3f4f6', color: S.sub }}
+          >
+            跳过
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className={`${S.radiusSm} px-4 py-2 text-[12px] font-medium text-white transition-colors disabled:opacity-50`}
+            style={{ background: S.accent }}
+          >
+            {saving ? '保存中...' : '保存补充信息'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 /* ════════════════════════════════════════════════════════════
    MAIN PAGE
    ════════════════════════════════════════════════════════════ */
+
+function KeepsakePromptModal({
+  open,
+  title,
+  reason,
+  saving,
+  onTitleChange,
+  onReasonChange,
+  onSkip,
+  onSave,
+}: {
+  open: boolean;
+  title: string;
+  reason: KeepsakeReason | null;
+  saving: boolean;
+  onTitleChange: (value: string) => void;
+  onReasonChange: (value: KeepsakeReason | null) => void;
+  onSkip: () => void;
+  onSave: () => void;
+}) {
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.25)' }}
+      onClick={onSkip}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="补充珍藏信息"
+        className={`w-full max-w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} flex flex-col shadow-xl`}
+        style={{ background: S.card }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 pt-6 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[20px]">⭐</span>
+            <h3 className="text-[15px] font-bold" style={{ color: S.text }}>这条已经加入珍藏</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onSkip}
+            disabled={saving}
+            className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[#f0f0ec] disabled:opacity-50"
+            style={{ color: S.sub }}
+            aria-label="关闭"
+            title="关闭"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="px-6 pb-2 space-y-4 flex-1">
+          <div
+            className={`${S.radiusSm} px-4 py-3`}
+            style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.18)' }}
+          >
+            <p className="text-[12px] font-medium" style={{ color: '#92400e' }}>补充珍藏信息</p>
+            <p className="mt-1 text-[11px] leading-relaxed" style={{ color: S.sub }}>
+              可以顺手补充一个标题或珍藏原因，之后在回顾时会更清楚。现在跳过也没关系。
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="mb-1 text-[11px]" style={{ color: S.sub }}>标题（可选）</p>
+              <input
+                type="text"
+                value={title}
+                maxLength={60}
+                onChange={(event) => onTitleChange(event.target.value)}
+                placeholder="比如：第一次独自上台分享"
+                className={`${S.radiusSm} w-full px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                style={{ background: '#fafaf8', color: S.text }}
+              />
+            </div>
+
+            <div>
+              <p className="mb-1 text-[11px]" style={{ color: S.sub }}>为什么值得珍藏（可选）</p>
+              <select
+                value={reason ?? ''}
+                onChange={(event) => onReasonChange(event.target.value ? event.target.value as KeepsakeReason : null)}
+                className={`${S.radiusSm} w-full px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                style={{ background: '#fafaf8', color: S.text }}
+              >
+                <option value="">暂不选择</option>
+                {KEEPSAKE_REASON_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {reason ? (
+            <div className="flex justify-start">
+              <span
+                className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                style={{ background: '#fef3c7', color: '#a16207' }}
+              >
+                {getKeepsakeReasonLabel(reason)}
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-1 px-6 pt-3 pb-5">
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onSkip}
+              disabled={saving}
+              className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4] disabled:opacity-50`}
+              style={{ background: '#f0f0ec', color: S.sub }}
+            >
+              跳过
+            </button>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving}
+              className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
+              style={{ background: S.accent }}
+            >
+              {saving ? '保存中...' : '保存补充信息'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
 
 export default function JournalPage() {
   const navigate = useNavigate();
@@ -305,6 +542,8 @@ export default function JournalPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedRecorderId, setSelectedRecorderId] = useState<string | null>(null);
   const [keepsake, setKeepsake] = useState(false);
+  const [keepsakeTitle, setKeepsakeTitle] = useState('');
+  const [keepsakeReason, setKeepsakeReason] = useState<KeepsakeReason | null>(null);
   const [moodTag, setMoodTag] = useState<string | null>(null);
   const [subjectiveNotes, setSubjectiveNotes] = useState('');
   const [voiceDraft, setVoiceDraft] = useState<VoiceDraft>(EMPTY_VOICE_DRAFT);
@@ -326,6 +565,10 @@ export default function JournalPage() {
   const [lastSavedDraftSignature, setLastSavedDraftSignature] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<JournalEntryRow | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingKeepsakePromptEntry, setPendingKeepsakePromptEntry] = useState<JournalEntryRow | null>(null);
+  const [promptKeepsakeTitle, setPromptKeepsakeTitle] = useState('');
+  const [promptKeepsakeReason, setPromptKeepsakeReason] = useState<KeepsakeReason | null>(null);
+  const [savingKeepsakePrompt, setSavingKeepsakePrompt] = useState(false);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const recorderSessionRef = useRef<VoiceRecordingSession | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -359,6 +602,17 @@ export default function JournalPage() {
     }
   }, [searchParams, activeDimensions, setSearchParams]);
 
+  useEffect(() => {
+    const requestedFilter = searchParams.get('filter');
+    if (requestedFilter === 'keepsake') {
+      setEntryFilter('keepsake');
+      return;
+    }
+    if (requestedFilter === 'all') {
+      setEntryFilter('all');
+    }
+  }, [searchParams]);
+
   const editingEntry = useMemo(
     () => editingEntryId ? entries.find((entry) => entry.entryId === editingEntryId) ?? null : null,
     [editingEntryId, entries],
@@ -371,6 +625,8 @@ export default function JournalPage() {
     selectedTags,
     selectedRecorderId,
     keepsake,
+    keepsakeTitle,
+    keepsakeReason,
     moodTag,
     subjectiveNotes,
   });
@@ -383,6 +639,24 @@ export default function JournalPage() {
   const draftTextForTagging = captureMode === 'text'
     ? textContent.trim()
     : voiceDraft.transcript.trim();
+  const keepsakeSuggestion = useMemo(() => {
+    if (keepsake) return null;
+
+    const keyword = KEEPSAKE_KEYWORDS.find((item) => draftTextForTagging.includes(item));
+    if (keyword) {
+      return `这条里提到了“${keyword}”，如果这是值得纪念的时刻，可以顺手标记为珍藏。`;
+    }
+
+    if (photoDrafts.length > 0 && draftTextForTagging.length >= 24) {
+      return '这条同时有照片和较完整的描述，看起来很适合珍藏。';
+    }
+
+    if (draftTextForTagging.length >= 60) {
+      return '这条记录已经比较完整，如果想以后更容易回顾，可以标记为珍藏。';
+    }
+
+    return null;
+  }, [draftTextForTagging, keepsake, photoDrafts.length]);
 
   /* ── Effects ── */
 
@@ -435,6 +709,8 @@ export default function JournalPage() {
         setSelectedRecorderId(child?.recorderProfiles?.[0]?.id ?? null);
         setEditingEntryId(null);
         setKeepsake(false);
+        setKeepsakeTitle('');
+        setKeepsakeReason(null);
         setMoodTag(null);
         setSubjectiveNotes('');
         setSubmitError(null);
@@ -581,7 +857,24 @@ export default function JournalPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const applyDimensionSelection = (nextDimensionId: string | null) => {
+  const toggleComposerKeepsake = () => {
+    setKeepsake((prev) => {
+      if (prev) {
+        setKeepsakeTitle('');
+        setKeepsakeReason(null);
+      }
+      return !prev;
+    });
+  };
+
+  const closeKeepsakePrompt = () => {
+    setPendingKeepsakePromptEntry(null);
+    setPromptKeepsakeTitle('');
+    setPromptKeepsakeReason(null);
+    setSavingKeepsakePrompt(false);
+  };
+
+  const _applyDimensionSelection = (nextDimensionId: string | null) => {
     setSelectedDimension(nextDimensionId);
     if (!nextDimensionId) {
       setSelectedTags([]);
@@ -637,6 +930,8 @@ export default function JournalPage() {
       selectedTags: nextTags,
       selectedRecorderId: draft.selectedRecorderId,
       keepsake: draft.keepsake,
+      keepsakeTitle: draft.keepsakeTitle,
+      keepsakeReason: draft.keepsakeReason,
       moodTag: draft.moodTag,
       subjectiveNotes: draft.subjectiveNotes,
     };
@@ -648,6 +943,8 @@ export default function JournalPage() {
     setSelectedTags(nextPayload.selectedTags);
     setSelectedRecorderId(nextPayload.selectedRecorderId ?? child?.recorderProfiles?.[0]?.id ?? null);
     setKeepsake(nextPayload.keepsake);
+    setKeepsakeTitle(nextPayload.keepsakeTitle);
+    setKeepsakeReason(nextPayload.keepsakeReason);
     setMoodTag(nextPayload.moodTag);
     setSubjectiveNotes(nextPayload.subjectiveNotes);
     setSubmitError(null);
@@ -671,7 +968,8 @@ export default function JournalPage() {
     setCaptureMode('text'); setTextContent(''); setSelectedDimension(null); setSelectedTags([]);
     setSelectedRecorderId(child?.recorderProfiles?.[0]?.id ?? null);
     setEditingEntryId(null);
-    setKeepsake(false); setMoodTag(null); setSubjectiveNotes(''); setSubmitError(null); clearVoiceDraft(); clearPhotoDrafts();
+    setKeepsake(false); setKeepsakeTitle(''); setKeepsakeReason(null); setMoodTag(null); setSubjectiveNotes(''); setSubmitError(null); clearVoiceDraft(); clearPhotoDrafts();
+    closeKeepsakePrompt();
   };
 
   const reloadEntries = async () => {
@@ -681,9 +979,35 @@ export default function JournalPage() {
 
   const handleToggleKeepsake = async (entry: JournalEntryRow) => {
     try {
-      await updateJournalKeepsake(entry.entryId, entry.keepsake === 1 ? 0 : 1, isoNow());
+      const nextKeepsake = entry.keepsake === 1 ? 0 : 1;
+      await updateJournalKeepsake(entry.entryId, nextKeepsake, isoNow());
       await reloadEntries();
+      if (nextKeepsake === 1 && !entry.keepsakeTitle && !entry.keepsakeReason) {
+        setPendingKeepsakePromptEntry({ ...entry, keepsake: 1 });
+        setPromptKeepsakeTitle('');
+        setPromptKeepsakeReason(null);
+      } else {
+        closeKeepsakePrompt();
+      }
     } catch { /* bridge unavailable */ }
+  };
+
+  const handleSaveKeepsakePrompt = async () => {
+    if (!pendingKeepsakePromptEntry) return;
+    setSavingKeepsakePrompt(true);
+    try {
+      await updateJournalKeepsake(
+        pendingKeepsakePromptEntry.entryId,
+        1,
+        isoNow(),
+        promptKeepsakeTitle.trim() || null,
+        promptKeepsakeReason,
+      );
+      await reloadEntries();
+      closeKeepsakePrompt();
+    } catch {
+      setSavingKeepsakePrompt(false);
+    }
   };
 
   const handleAddExperimentTodo = async () => {
@@ -769,6 +1093,8 @@ export default function JournalPage() {
       guidedAnswers: subjectiveNotes.trim() ? JSON.stringify({ _subjective: subjectiveNotes.trim() }) : null,
       observationDuration: null,
       keepsake: keepsake ? 1 : 0, moodTag, recorderId: selectedRecorderId,
+      keepsakeTitle: keepsake ? keepsakeTitle.trim() || null : null,
+      keepsakeReason: keepsake ? keepsakeReason : null,
       aiTags: payload.aiTags, now: payload.now,
     };
     if (editingEntryId) {
@@ -936,7 +1262,26 @@ export default function JournalPage() {
       </div>
 
       {/* ── Capture area ── */}
-      <section className="mb-6 overflow-hidden" style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(226,232,240,0.3)', boxShadow: '0 8px 32px rgba(31,38,135,0.04)', borderRadius: 24 }}>
+      <div className="relative mb-6">
+        {/* Ambient glow */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-4"
+          style={{
+            background: 'radial-gradient(ellipse at 30% 50%, rgba(129,140,248,0.12) 0%, transparent 60%), radial-gradient(ellipse at 70% 60%, rgba(244,163,196,0.10) 0%, transparent 55%)',
+            filter: 'blur(40px)',
+            zIndex: 0,
+          }}
+        />
+      <section className="relative overflow-hidden" style={{
+        background: 'rgba(255,255,255,0.55)',
+        backdropFilter: 'blur(28px)',
+        WebkitBackdropFilter: 'blur(28px)',
+        border: '1px solid rgba(226,232,240,0.45)',
+        boxShadow: '0 8px 32px rgba(31,38,135,0.06), 0 1.5px 0 rgba(255,255,255,0.7) inset',
+        borderRadius: 24,
+        zIndex: 1,
+      }}>
         {/* Hidden photo input */}
         <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
           onChange={(e) => { handleAddPhotos(e.target.files); e.target.value = ''; }} />
@@ -1025,9 +1370,15 @@ export default function JournalPage() {
               </div>
             ) : (
               <div className="px-5 pt-5 pb-2">
-                <p className="text-[12px] leading-relaxed" style={{ color: S.accent }}>
-                  🌱 不用管对错，像讲故事一样，描述一下孩子刚才的行为细节吧
-                </p>
+                <div className="flex items-start gap-2.5 rounded-[12px] px-3.5 py-2.5" style={{ background: '#f8f9fa' }}>
+                  <svg className="mt-[1px] shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
+                    <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" />
+                  </svg>
+                  <p className="text-[12px] font-medium leading-relaxed" style={{ color: '#475569' }}>
+                    不用管对错，像讲故事一样，描述一下孩子刚才的行为细节吧
+                  </p>
+                </div>
               </div>
             )}
 
@@ -1036,7 +1387,7 @@ export default function JournalPage() {
               onChange={(e) => { setTextContent(e.target.value); if (postSaveExperiment) setPostSaveExperiment(null); }}
               placeholder={guidedContext ? '参考上面的引导问题，记录你观察到的情况...' : '他刚刚做了什么？说了什么？如果遇到了困难，他是如何解决的...'}
               className="w-full resize-none px-5 py-3 text-[13px] leading-relaxed outline-none"
-              style={{ background: S.card, minHeight: 120, border: 'none' }} rows={5} />
+              style={{ background: 'transparent', minHeight: 120, border: 'none' }} rows={5} />
 
                 {/* Photo previews */}
             {photoDrafts.length > 0 && (
@@ -1045,8 +1396,75 @@ export default function JournalPage() {
               </div>
             )}
 
+            {keepsakeSuggestion ? (
+              <div className="px-5 pb-2">
+                <div className={`${S.radiusSm} flex items-center justify-between gap-3 px-3 py-2.5`} style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.28)' }}>
+                  <p className="text-[11px] leading-relaxed" style={{ color: '#92400e' }}>{keepsakeSuggestion}</p>
+                  <button
+                    type="button"
+                    onClick={toggleComposerKeepsake}
+                    className="shrink-0 rounded-full px-3 py-1 text-[11px] font-medium text-white"
+                    style={{ background: '#f59e0b' }}
+                  >
+                    标记珍藏
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {keepsake ? (
+              <div className="px-5 pb-2">
+                <div className={`${S.radiusSm} space-y-3 px-3 py-3`} style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[12px] font-medium" style={{ color: '#92400e' }}>珍藏补充信息</p>
+                      <p className="mt-1 text-[11px] leading-relaxed" style={{ color: S.sub }}>
+                        可以跳过，之后也能回来补充。
+                      </p>
+                    </div>
+                    {keepsakeReason ? (
+                      <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: '#fef3c7', color: '#a16207' }}>
+                        {getKeepsakeReasonLabel(keepsakeReason)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <label className="block">
+                    <span className="mb-1 block text-[11px] font-medium" style={{ color: S.text }}>标题（可选）</span>
+                    <input
+                      type="text"
+                      value={keepsakeTitle}
+                      maxLength={60}
+                      onChange={(event) => setKeepsakeTitle(event.target.value)}
+                      placeholder="比如：第一次独立完成早餐"
+                      className={`${S.radiusSm} w-full px-3 py-2 text-[12px] outline-none`}
+                      style={{ border: `1px solid ${S.border}`, background: '#fff' }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-[11px] font-medium" style={{ color: S.text }}>为什么值得珍藏（可选）</span>
+                    <select
+                      value={keepsakeReason ?? ''}
+                      onChange={(event) => setKeepsakeReason(event.target.value ? event.target.value as KeepsakeReason : null)}
+                      className={`${S.radiusSm} w-full px-3 py-2 text-[12px] outline-none`}
+                      style={{ border: `1px solid ${S.border}`, background: '#fff' }}
+                    >
+                      <option value="">暂不选择</option>
+                      {KEEPSAKE_REASON_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+            ) : null}
+
             {/* ── Toolbar ── */}
-            <div className="flex items-center gap-1 px-4 py-2.5" style={{ borderTop: `1px solid ${S.border}` }}>
+            <div className="flex items-center gap-2 px-4 py-2.5" style={{
+              background: 'rgba(250,250,248,0.65)',
+              borderTop: '1px solid rgba(0,0,0,0.04)',
+              boxShadow: '0 -1px 3px rgba(0,0,0,0.02) inset',
+              borderRadius: '0 0 24px 24px',
+            }}>
               {/* Voice toggle */}
               <button type="button" onClick={() => { setCaptureMode('voice'); setTextContent(''); }}
                 className={`${S.radiusSm} px-3 py-1.5 text-[11px] flex items-center gap-1.5 transition-colors hover:bg-[#f0f0ec]`}
@@ -1088,7 +1506,7 @@ export default function JournalPage() {
                 document.body,
               )}
               {/* Keepsake */}
-              <button type="button" onClick={() => setKeepsake(!keepsake)}
+              <button type="button" onClick={toggleComposerKeepsake}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#f0f0ec]"
                 style={{ color: keepsake ? '#f59e0b' : S.sub }} title="珍藏">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill={keepsake ? '#f59e0b' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -1118,10 +1536,10 @@ export default function JournalPage() {
               <button type="button"
                 onClick={() => { if (taggingRuntimeAvailable !== false && !editingEntry) { setShowSaveModal(true); } else { void handleSubmit(); } }}
                 disabled={saving || !canSaveText}
-                className={`${S.radiusSm} px-5 py-2 text-[12px] font-medium disabled:opacity-30 transition-colors`}
+                className={`${S.radiusSm} px-5 py-2 text-[12px] font-medium transition-colors`}
                 style={canSaveText
-                  ? { background: S.accent, color: '#fff' }
-                  : { background: '#f0f0ec', color: S.sub }}>
+                  ? { background: S.accent, color: '#fff', boxShadow: '0 2px 8px rgba(78,204,163,0.25)' }
+                  : { background: '#ededeb', color: '#a1a1aa', border: '1px solid rgba(0,0,0,0.04)' }}>
                 {saving ? '保存中...' : editingEntry ? '保存修改' : '保存'}
               </button>
             </div>
@@ -1160,8 +1578,62 @@ export default function JournalPage() {
                 }}
               />
             )}
+            {keepsakeSuggestion ? (
+              <div className="mb-3 rounded-[12px] px-3 py-2.5" style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.28)' }}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] leading-relaxed" style={{ color: '#92400e' }}>{keepsakeSuggestion}</p>
+                  <button
+                    type="button"
+                    onClick={toggleComposerKeepsake}
+                    className="shrink-0 rounded-full px-3 py-1 text-[11px] font-medium text-white"
+                    style={{ background: '#f59e0b' }}
+                  >
+                    标记珍藏
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {keepsake ? (
+              <div className="mb-3 rounded-[14px] px-3 py-3" style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[12px] font-medium" style={{ color: '#92400e' }}>珍藏补充信息</p>
+                    <p className="mt-1 text-[11px] leading-relaxed" style={{ color: S.sub }}>
+                      标记珍藏后可以顺手补充标题或原因，也可以先跳过。
+                    </p>
+                  </div>
+                  {keepsakeReason ? (
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: '#fef3c7', color: '#a16207' }}>
+                      {getKeepsakeReasonLabel(keepsakeReason)}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-3 space-y-3">
+                  <input
+                    type="text"
+                    value={keepsakeTitle}
+                    maxLength={60}
+                    onChange={(event) => setKeepsakeTitle(event.target.value)}
+                    placeholder="比如：第一次独自上台分享"
+                    className={`${S.radiusSm} w-full px-3 py-2 text-[12px] outline-none`}
+                    style={{ border: `1px solid ${S.border}`, background: '#fff' }}
+                  />
+                  <select
+                    value={keepsakeReason ?? ''}
+                    onChange={(event) => setKeepsakeReason(event.target.value ? event.target.value as KeepsakeReason : null)}
+                    className={`${S.radiusSm} w-full px-3 py-2 text-[12px] outline-none`}
+                    style={{ border: `1px solid ${S.border}`, background: '#fff' }}
+                  >
+                    <option value="">暂不选择珍藏原因</option>
+                    {KEEPSAKE_REASON_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between mt-4">
-              <button type="button" onClick={() => setKeepsake(!keepsake)}
+              <button type="button" onClick={toggleComposerKeepsake}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#f0f0ec]"
                 style={{ color: keepsake ? '#f59e0b' : S.sub }} title="珍藏">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill={keepsake ? '#f59e0b' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -1200,6 +1672,7 @@ export default function JournalPage() {
         {/* Feedback */}
         {submitError && <p className="text-[11px] px-5 pb-3 text-red-500">{submitError}</p>}
       </section>
+      </div>
 
       {/* ── Post-save experiment suggestion ── */}
       {postSaveExperiment && (
@@ -1256,6 +1729,8 @@ export default function JournalPage() {
           setSelectedTags(parseSelectedTags(entry.selectedTags));
           setSelectedRecorderId(entry.recorderId ?? child.recorderProfiles?.[0]?.id ?? null);
           setKeepsake(entry.keepsake === 1);
+          setKeepsakeTitle(entry.keepsakeTitle ?? '');
+          setKeepsakeReason(entry.keepsakeReason ?? null);
           setMoodTag(entry.moodTag);
           clearReminderSearchParams();
                    try {
@@ -1275,6 +1750,16 @@ export default function JournalPage() {
           onConfirm={() => void handleDeleteEntry()}
         />
       ) : null}
+      <KeepsakePromptModal
+        open={pendingKeepsakePromptEntry !== null}
+        title={promptKeepsakeTitle}
+        reason={promptKeepsakeReason}
+        saving={savingKeepsakePrompt}
+        onTitleChange={setPromptKeepsakeTitle}
+        onReasonChange={setPromptKeepsakeReason}
+        onSkip={closeKeepsakePrompt}
+        onSave={() => void handleSaveKeepsakePrompt()}
+      />
       {showSaveModal && (
         <SaveConfirmationModal
           textPreview={captureMode === 'text' ? textContent.trim() : voiceDraft.transcript.trim()}

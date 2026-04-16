@@ -7,14 +7,17 @@ import {
   getJournalEntries,
   getMeasurements,
   getMilestoneRecords,
+  getOutdoorGoal,
+  getOutdoorRecords,
   getReminderStates,
   getSleepRecords,
   getVaccineRecords,
 } from '../../bridge/sqlite-bridge.js';
-import type { CustomTodoRow, MeasurementRow, SleepRecordRow, VaccineRecordRow } from '../../bridge/sqlite-bridge.js';
+import type { CustomTodoRow, MeasurementRow, OutdoorRecordRow, SleepRecordRow, VaccineRecordRow } from '../../bridge/sqlite-bridge.js';
 import type { ReminderAgenda } from '../../engine/reminder-engine.js';
 import { mapReminderStateRow, type ReminderState } from '../../engine/reminder-engine.js';
 import { MILESTONE_CATALOG, OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
+import { getKeepsakeReasonLabel, type KeepsakeReason } from '../journal/journal-page-helpers.js';
 
 export interface AllergyRec {
   allergen: string;
@@ -44,12 +47,16 @@ export interface DashData {
     recordedAt: string;
     observationMode: string | null;
     keepsake: number;
+    keepsakeTitle: string | null;
+    keepsakeReason: KeepsakeReason | null;
     dimensionId: string | null;
   }>;
   sleepRecords: SleepRecordRow[];
   allergyRecords: AllergyRec[];
   customTodos: CustomTodoRow[];
   latestMonthlyReport: MonthlyReportSummary | null;
+  outdoorRecords: OutdoorRecordRow[];
+  outdoorGoalMinutes: number | null;
 }
 
 const EMPTY: DashData = {
@@ -63,6 +70,8 @@ const EMPTY: DashData = {
   allergyRecords: [],
   customTodos: [],
   latestMonthlyReport: null,
+  outdoorRecords: [],
+  outdoorGoalMinutes: null,
 };
 
 export function useDash(childId: string | null) {
@@ -77,7 +86,7 @@ export function useDash(childId: string | null) {
     }
 
     setLoading(true);
-    const [rs, ms, vs, mi, jo, sl, al, rp, ct] = await Promise.allSettled([
+    const [rs, ms, vs, mi, jo, sl, al, rp, ct, or, og] = await Promise.allSettled([
       getReminderStates(childId),
       getMeasurements(childId),
       getVaccineRecords(childId),
@@ -87,6 +96,8 @@ export function useDash(childId: string | null) {
       getAllergyRecords(childId),
       getGrowthReports(childId),
       getCustomTodos(childId),
+      getOutdoorRecords(childId),
+      getOutdoorGoal(childId),
     ]);
 
     const now = new Date();
@@ -113,6 +124,8 @@ export function useDash(childId: string | null) {
               recordedAt: entry.recordedAt,
               observationMode: entry.observationMode,
               keepsake: entry.keepsake,
+              keepsakeTitle: entry.keepsakeTitle ?? null,
+              keepsakeReason: entry.keepsakeReason ?? null,
               dimensionId: entry.dimensionId,
             }))
           : [],
@@ -128,6 +141,8 @@ export function useDash(childId: string | null) {
             }))
           : [],
       customTodos: ct.status === 'fulfilled' ? ct.value : [],
+      outdoorRecords: or.status === 'fulfilled' ? or.value : [],
+      outdoorGoalMinutes: og.status === 'fulfilled' ? og.value : null,
       latestMonthlyReport:
         thisMonthReport
           ? {
@@ -190,6 +205,8 @@ export interface RecentLineItem {
   recordedAt: string;
   to: string;
   badge: string;
+  badgeTone?: 'default' | 'keepsake';
+  tag?: string | null;
 }
 
 export interface SleepTrendPoint {
@@ -232,6 +249,13 @@ export interface ObservationDistributionSummary {
   totalEntries: number;
 }
 
+export interface VisionSnapshotSummary {
+  leftEye: string | null;
+  rightEye: string | null;
+  measuredAt: string | null;
+  measuredLabel: string;
+}
+
 export interface TimelineHomeViewModel {
   recentChanges: RecentChangeItem[];
   dataGapAlert: DataGapAlertItem | null;
@@ -242,6 +266,7 @@ export interface TimelineHomeViewModel {
     trends: GrowthTrendItem[];
   };
   sleepTrend: SleepTrendSummary;
+  visionSnapshot: VisionSnapshotSummary;
   milestoneTimeline: MilestoneTimelineSummary;
   observationDistribution: ObservationDistributionSummary;
   recentLines: RecentLineItem[];
@@ -513,7 +538,7 @@ function buildSleepRecordChanges(sleepRecords: SleepRecordRow[]): RecentChangeIt
   );
 }
 
-function buildJournalChanges(journalEntries: DashData['journalEntries']): RecentChangeItem[] {
+function _buildJournalChanges(journalEntries: DashData['journalEntries']): RecentChangeItem[] {
   return sortByTimestamp(
     journalEntries
       .filter((entry) => isWithinDays(entry.recordedAt, 7))
@@ -527,6 +552,33 @@ function buildJournalChanges(journalEntries: DashData['journalEntries']): Recent
         to: '/journal',
         icon: '📝',
       })),
+  );
+}
+
+function buildJournalChangesV2(journalEntries: DashData['journalEntries']): RecentChangeItem[] {
+  return sortByTimestamp(
+    journalEntries
+      .filter((entry) => isWithinDays(entry.recordedAt, 7))
+      .map((entry) => {
+        const reasonLabel = getKeepsakeReasonLabel(entry.keepsakeReason);
+        const fallbackTitle = entry.textContent?.slice(0, 28) ?? (entry.contentType === 'voice' ? '新的语音记录' : '新的观察记录');
+        const isKeepsake = entry.keepsake === 1;
+
+        return {
+          id: `journal:${entry.entryId}`,
+          domain: 'journal' as const,
+          label: isKeepsake ? '珍藏' : '观察',
+          title: entry.keepsakeTitle?.trim() || fallbackTitle,
+          detail: isKeepsake
+            ? reasonLabel
+              ? `珍藏 · ${reasonLabel} · ${fmtRel(entry.recordedAt)}`
+              : `已加入珍藏 · ${fmtRel(entry.recordedAt)}`
+            : `已记录观察 · ${fmtRel(entry.recordedAt)}`,
+          timestamp: entry.recordedAt,
+          to: isKeepsake ? '/journal?filter=keepsake' : '/journal',
+          icon: '📝',
+        };
+      }),
   );
 }
 
@@ -566,7 +618,7 @@ export function buildRecentChanges(d: DashData, _child: ChildProfile, _ageMonths
     vaccineChanges,
     buildMeasurementChanges(d.measurements),
     buildSleepRecordChanges(d.sleepRecords),
-    buildJournalChanges(d.journalEntries),
+    buildJournalChangesV2(d.journalEntries),
   ];
 
   const picked: RecentChangeItem[] = [];
@@ -696,7 +748,23 @@ function buildGrowthSnapshot(measurements: MeasurementRow[]): TimelineHomeViewMo
   };
 }
 
-function buildRecentLines(journalEntries: DashData['journalEntries']): RecentLineItem[] {
+function buildVisionSnapshot(measurements: MeasurementRow[]): VisionSnapshotSummary {
+  const latest = latestByType(measurements);
+  const left = latest.get('vision-left');
+  const right = latest.get('vision-right');
+  const latestRecord = [left, right]
+    .filter((r): r is MeasurementRow => r != null)
+    .sort((a, b) => b.measuredAt.localeCompare(a.measuredAt))[0] ?? null;
+
+  return {
+    leftEye: left ? `${left.value}` : null,
+    rightEye: right ? `${right.value}` : null,
+    measuredAt: latestRecord?.measuredAt ?? null,
+    measuredLabel: latestRecord ? `${fmtRel(latestRecord.measuredAt)}检查` : '暂无视力记录',
+  };
+}
+
+function _buildRecentLines(journalEntries: DashData['journalEntries']): RecentLineItem[] {
   return journalEntries.slice(0, 4).map((entry) => ({
     id: entry.entryId,
     title: entry.textContent?.slice(0, 56) ?? (entry.contentType === 'voice' ? '语音记录' : '观察记录'),
@@ -705,6 +773,28 @@ function buildRecentLines(journalEntries: DashData['journalEntries']): RecentLin
     to: '/journal',
     badge: entry.keepsake === 1 ? '高光' : '笔记',
   }));
+}
+
+function buildRecentLinesV2(journalEntries: DashData['journalEntries']): RecentLineItem[] {
+  return journalEntries.slice(0, 4).map((entry) => {
+    const reasonLabel = getKeepsakeReasonLabel(entry.keepsakeReason);
+    const isKeepsake = entry.keepsake === 1;
+
+    return {
+      id: entry.entryId,
+      title: entry.keepsakeTitle?.trim() || entry.textContent?.slice(0, 56) || (entry.contentType === 'voice' ? '语音记录' : '观察记录'),
+      detail: isKeepsake
+        ? reasonLabel
+          ? `珍藏原因：${reasonLabel}`
+          : '值得回看的成长瞬间'
+        : fmtRel(entry.recordedAt),
+      recordedAt: entry.recordedAt,
+      to: isKeepsake ? '/journal?filter=keepsake' : '/journal',
+      badge: isKeepsake ? '珍藏' : '随记',
+      badgeTone: isKeepsake ? 'keepsake' : 'default',
+      tag: reasonLabel,
+    };
+  });
 }
 
 export function buildTimelineHomeViewModel(params: {
@@ -718,9 +808,10 @@ export function buildTimelineHomeViewModel(params: {
     dataGapAlert: buildDataGapAlert(params.d, params.child, params.ageMonths, params.child.nurtureMode, params.agenda),
     growthSnapshot: buildGrowthSnapshot(params.d.measurements),
     sleepTrend: buildSleepTrend(params.d.sleepRecords),
+    visionSnapshot: buildVisionSnapshot(params.d.measurements),
     milestoneTimeline: buildMilestoneTimeline(params.d.milestoneRecords, params.ageMonths),
     observationDistribution: buildObservationDistribution(params.d.journalEntries),
-    recentLines: buildRecentLines(params.d.journalEntries),
+    recentLines: buildRecentLinesV2(params.d.journalEntries),
   };
 }
 
@@ -753,6 +844,7 @@ const QLINKS_REGISTRY: QuickLink[] = [
   { id: 'reports', to: '/reports', label: '报告', emoji: '📄' },
   { id: 'medical', to: '/profile/medical-events', label: '就医记录', emoji: '🏥' },
   { id: 'milestones', to: '/profile/milestones', label: '里程碑', emoji: '🎯', ageGate: (age) => age <= 72 },
+  { id: 'outdoor', to: '/profile/outdoor', label: '户外目标', emoji: '🌳', ageGate: (age) => age >= 6 },
   { id: 'vision', to: '/profile/vision', label: '视力', emoji: '👁️', ageGate: (age) => age >= 36 },
   { id: 'dental', to: '/profile/dental', label: '口腔', emoji: '🦷', ageGate: (age) => age >= 6 },
   { id: 'fitness', to: '/profile/fitness', label: '体能', emoji: '🏃', ageGate: (age) => age >= 36 },
@@ -763,9 +855,9 @@ const QLINKS_REGISTRY: QuickLink[] = [
 const QLINKS_TIERS: Array<{ maxAge: number; topIds: string[] }> = [
   { maxAge: 12, topIds: ['growth', 'vaccines', 'sleep', 'milestones', 'medical', 'journal'] },
   { maxAge: 36, topIds: ['growth', 'vaccines', 'sleep', 'milestones', 'dental', 'journal'] },
-  { maxAge: 72, topIds: ['growth', 'vision', 'sleep', 'milestones', 'dental', 'journal'] },
-  { maxAge: 144, topIds: ['growth', 'vision', 'fitness', 'dental', 'medical', 'journal'] },
-  { maxAge: Infinity, topIds: ['growth', 'vision', 'fitness', 'tanner', 'medical', 'journal'] },
+  { maxAge: 72, topIds: ['growth', 'vision', 'outdoor', 'sleep', 'milestones', 'journal'] },
+  { maxAge: 144, topIds: ['growth', 'vision', 'outdoor', 'fitness', 'dental', 'journal'] },
+  { maxAge: Infinity, topIds: ['growth', 'vision', 'outdoor', 'fitness', 'tanner', 'journal'] },
 ];
 
 const registryById = new Map(QLINKS_REGISTRY.map((link) => [link.id, link]));

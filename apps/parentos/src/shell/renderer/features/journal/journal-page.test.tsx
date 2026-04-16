@@ -136,6 +136,8 @@ function createJournalEntry(overrides: Record<string, unknown> = {}) {
     recorderId: 'rec-1',
     observationMode: 'quick-capture',
     keepsake: 0,
+    keepsakeTitle: null,
+    keepsakeReason: null,
     guidedAnswers: null,
     aiSuggestedDimensionId: null,
     aiSuggestedTags: null,
@@ -272,6 +274,51 @@ describe('JournalPage', () => {
       contentType: 'text',
       textContent: '她刚刚主动把积木递给了朋友。',
       recorderId: 'rec-1',
+    });
+  });
+
+  it('saves keepsake title and reason when the entry is marked as a keepsake', async () => {
+    renderPage();
+
+    fireEvent.change(getComposerTextarea(), {
+      target: { value: '这是第一次独立完成早餐，我们想记下来。' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '标记珍藏' })).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '标记珍藏' }));
+    fireEvent.change(screen.getByPlaceholderText('比如：第一次独立完成早餐'), {
+      target: { value: '第一次独立完成早餐' },
+    });
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: 'first-time' },
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    });
+
+    let dialog!: HTMLElement;
+    await waitFor(() => {
+      dialog = screen.getByRole('dialog');
+      expect(dialog).toBeTruthy();
+    });
+
+    await act(async () => {
+      const buttons = dialog.querySelectorAll('button');
+      fireEvent.click(buttons[buttons.length - 1] as HTMLButtonElement);
+    });
+
+    await waitFor(() => {
+      expect(insertJournalEntryWithTagsMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(insertJournalEntryWithTagsMock.mock.calls[0]?.[0]).toMatchObject({
+      keepsake: 1,
+      keepsakeTitle: '第一次独立完成早餐',
+      keepsakeReason: 'first-time',
     });
   });
 
@@ -454,7 +501,8 @@ describe('JournalPage', () => {
       expect(screen.getByText(/刚才孩子看明朝那些事专注了30分钟/i)).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /编辑记录/i }));
+    fireEvent.click(screen.getByRole('button', { name: /更多操作/i }));
+    fireEvent.click(screen.getByText('编辑'));
 
     await waitFor(() => {
       expect(screen.getByText(/正在编辑 2026-04-05 09:48 的记录/i)).toBeTruthy();
@@ -482,6 +530,48 @@ describe('JournalPage', () => {
     });
   });
 
+  it('opens a lightweight keepsake prompt after toggling an existing entry into keepsake', async () => {
+    getJournalEntriesMock
+      .mockResolvedValueOnce([createJournalEntry()])
+      .mockResolvedValueOnce([createJournalEntry({ keepsake: 1 })]);
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '标记珍藏' })).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '标记珍藏' }));
+    });
+
+    await waitFor(() => {
+      expect(updateJournalKeepsakeMock).toHaveBeenCalledWith('entry-1', 1, expect.any(String));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: '补充珍藏信息' })).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '跳过' }));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: '补充珍藏信息' })).toBeNull();
+    });
+  });
+
+  it('shows a keepsake empty-state hint when the keepsake filter has no entries', async () => {
+    getJournalEntriesMock.mockResolvedValue([createJournalEntry()]);
+
+    renderPage('/journal?filter=keepsake');
+
+    await waitFor(() => {
+      expect(screen.getByText('还没有珍藏的成长瞬间')).toBeTruthy();
+    });
+  });
+
   it('confirms before deleting an entry and removes it from the timeline', async () => {
     getJournalEntriesMock
       .mockResolvedValueOnce([createJournalEntry()])
@@ -493,7 +583,8 @@ describe('JournalPage', () => {
       expect(screen.getByText(/刚才孩子看明朝那些事专注了30分钟/i)).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /删除记录/i }));
+    fireEvent.click(screen.getByRole('button', { name: /更多操作/i }));
+    fireEvent.click(screen.getByText('删除'));
 
     await waitFor(() => {
       expect(screen.getByRole('dialog', { name: /删除随手记/i })).toBeTruthy();
@@ -508,7 +599,7 @@ describe('JournalPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/还没有随手记，先写下一条吧/i)).toBeTruthy();
+      expect(screen.getByText(/还没有随记，先写下一条吧/i)).toBeTruthy();
     });
   });
 });

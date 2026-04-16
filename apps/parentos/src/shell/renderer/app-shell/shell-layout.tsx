@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent, type ReactNode, type ComponentType } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Search, Bell, LogOut, type LucideProps } from 'lucide-react';
+import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Bell, LogOut, type LucideProps } from 'lucide-react';
 import { useAppStore, computeAgeMonths } from './app-store.js';
 import { startParentosWindowDrag } from '../bridge/window-drag.js';
 import { clearAuthSession as clearPersistedAuthSession } from '../bridge/index.js';
@@ -15,7 +15,7 @@ const textMuted = '#475569';
 const navItems: Array<{ to: string; label: string; Icon: ComponentType<LucideProps> }> = [
   { to: '/timeline', label: '首页', Icon: Home },
   { to: '/profile', label: '档案', Icon: User },
-  { to: '/journal', label: '观察笔记', Icon: BookText },
+  { to: '/journal', label: '成长随记', Icon: BookText },
   { to: '/advisor', label: '顾问', Icon: MessageCircle },
   { to: '/reports', label: '报告', Icon: TrendingUp },
   { to: '/settings', label: '设置', Icon: Settings },
@@ -264,15 +264,6 @@ export function ShellLayout({ children }: { children: ReactNode }) {
           onMouseDown={handleWindowDragMouseDown}
         >
           <h1 className="text-[17px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.3px' }}>ParentOS</h1>
-
-          {/* Search — glass pill */}
-          <div className="ml-6 flex h-[36px] flex-1 max-w-[360px] items-center gap-2.5 rounded-full px-4"
-            style={{ ...GLASS, background: 'rgba(255,255,255,0.6)' }}>
-            <Search size={15} strokeWidth={1.8} style={{ color: '#64748b' }} />
-            <input type="text" placeholder="搜索..."
-              className="min-w-0 flex-1 border-0 bg-transparent text-[13px] outline-none placeholder:text-[#64748b]"
-              style={{ color: textMain }} />
-          </div>
 
           <div className="ml-auto flex items-center gap-3">
             <button className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:bg-white/40"

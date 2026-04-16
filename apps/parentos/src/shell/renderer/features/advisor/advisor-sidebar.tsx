@@ -18,7 +18,7 @@ export function AdvisorSidebar({
 }: AdvisorSidebarProps) {
   return (
     <div
-      className="flex w-56 shrink-0 flex-col p-3 my-2"
+      className="mt-2 mb-10 flex w-56 shrink-0 flex-col p-3"
       style={GLASS}
     >
       {/* New conversation button */}

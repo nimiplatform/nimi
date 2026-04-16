@@ -17,7 +17,7 @@ vi.mock('../../knowledge-base/index.js', () => ({
   ],
 }));
 
-function createJournalEntry() {
+function createJournalEntry(overrides: Record<string, unknown> = {}) {
   return {
     entryId: 'entry-1',
     childId: 'child-1',
@@ -33,10 +33,13 @@ function createJournalEntry() {
     guidedAnswers: null,
     observationDuration: null,
     keepsake: 0,
+    keepsakeTitle: null,
+    keepsakeReason: null,
     moodTag: null,
     recorderId: 'rec-1',
     createdAt: '2026-04-05T09:48:00.000Z',
     updatedAt: '2026-04-05T09:48:00.000Z',
+    ...overrides,
   };
 }
 
@@ -60,5 +63,26 @@ describe('JournalEntryTimeline', () => {
 
     expect(onAskAiAboutEntry).toHaveBeenCalledTimes(1);
     expect(onAskAiAboutEntry).toHaveBeenCalledWith(entry);
+  });
+
+  it('shows keepsake title and reason when present', () => {
+    const entry = createJournalEntry({
+      keepsake: 1,
+      keepsakeTitle: 'First solo puzzle',
+      keepsakeReason: 'achievement',
+    });
+
+    render(
+      <JournalEntryTimeline
+        entries={[entry]}
+        entryFilter="keepsake"
+        onFilterChange={() => {}}
+        recorderProfiles={[{ id: 'rec-1', name: 'Mom' }]}
+        onEditEntry={() => {}}
+      />,
+    );
+
+    expect(screen.getByText('First solo puzzle')).toBeTruthy();
+    expect(screen.getByText(/珍藏原因/i)).toBeTruthy();
   });
 });

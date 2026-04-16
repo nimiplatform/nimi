@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { S } from '../../app-shell/page-style.js';
 import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
@@ -6,6 +7,7 @@ import {
   parseSelectedTags,
   groupEntriesByDate,
   formatDateLabel,
+  getKeepsakeReasonLabel,
 } from './journal-page-helpers.js';
 
 export interface RecorderProfile {
@@ -28,14 +30,90 @@ type EntryFilter = JournalEntryTimelineProps['entryFilter'];
 
 const FILTER_OPTIONS: Array<{ key: EntryFilter; label: string }> = [
   { key: 'all', label: '全部' },
-  { key: 'keepsake', label: '收藏' },
+  { key: 'keepsake', label: '珍藏' },
 ];
+
+/* ── Dropdown menu for low-frequency actions (edit / delete) ── */
+
+function EntryActionMenu({
+  onEdit,
+  onDelete,
+}: {
+  onEdit: () => void;
+  onDelete?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen((prev) => !prev); }}
+        className="flex h-6 w-6 items-center justify-center rounded-lg transition-colors hover:bg-[#f0f0ec]"
+        style={{ color: '#b0b5bc' }}
+        aria-label="更多操作"
+        title="更多操作"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="5" r="1.5" />
+          <circle cx="12" cy="12" r="1.5" />
+          <circle cx="12" cy="19" r="1.5" />
+        </svg>
+      </button>
+      {open ? (
+        <div
+          className="absolute right-0 top-full z-20 mt-1 min-w-[100px] overflow-hidden rounded-lg py-1 shadow-lg"
+          style={{ background: S.card, border: `1px solid ${S.border}` }}
+        >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setOpen(false); onEdit(); }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-[#f5f3ef]"
+            style={{ color: S.text }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+            </svg>
+            编辑
+          </button>
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setOpen(false); onDelete(); }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-[#fef2f2]"
+              style={{ color: '#dc2626' }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M3 6h18" /><path d="M8 6V4h8v2" />
+                <path d="M19 6l-1 14H6L5 6" />
+                <path d="M10 11v6" /><path d="M14 11v6" />
+              </svg>
+              删除
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function JournalEntryTimeline({
   entries,
   entryFilter,
   onFilterChange,
-  recorderProfiles,
+  recorderProfiles: _recorderProfiles,
   onEditEntry,
   onAskAiAboutEntry,
   onDeleteEntry,
@@ -50,7 +128,7 @@ export function JournalEntryTimeline({
   return (
     <section>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-[14px] font-semibold" style={{ color: S.text }}>随手记列表</h2>
+        <h2 className="text-[14px] font-semibold" style={{ color: S.text }}>随记列表</h2>
         <div className="flex flex-wrap gap-1">
           {FILTER_OPTIONS.map(({ key, label }) => (
             <button
@@ -69,7 +147,14 @@ export function JournalEntryTimeline({
 
       {entries.length === 0 ? (
         <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[13px]" style={{ color: S.sub }}>还没有随手记，先写下一条吧</p>
+          <p className="text-[13px]" style={{ color: S.sub }}>还没有随记，先写下一条吧</p>
+        </div>
+      ) : filteredEntries.length === 0 ? (
+        <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+          <p className="text-[13px]" style={{ color: S.text }}>还没有珍藏的成长瞬间</p>
+          <p className="mt-2 text-[11px] leading-relaxed" style={{ color: S.sub }}>
+            遇到第一次、获奖、读完一本书或特别想留住的片刻时，可以把随记标记为珍藏。
+          </p>
         </div>
       ) : (
         <div className="relative">
@@ -94,9 +179,9 @@ export function JournalEntryTimeline({
                   const dimension = OBSERVATION_DIMENSIONS.find((item) => item.dimensionId === entry.dimensionId);
                   const tags = parseSelectedTags(entry.selectedTags);
                   const entryPhotos = parseSelectedTags(entry.photoPaths);
-                  const recorderName = recorderProfiles?.find((item) => item.id === entry.recorderId)?.name ?? null;
-                  const bodyText = entry.textContent?.trim() || (entry.voicePath ? '🎙️ 语音记录' : '');
+                  const bodyText = entry.textContent?.trim() || (entry.voicePath ? '语音记录已保存' : '');
                   const isKeepsake = entry.keepsake === 1;
+                  const keepsakeReasonLabel = getKeepsakeReasonLabel(entry.keepsakeReason);
 
                   return (
                     <div
@@ -120,19 +205,20 @@ export function JournalEntryTimeline({
                             {dimension ? (
                               <span
                                 className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                                style={{ background: '#e8eccc', color: S.accent }}
+                                style={{ background: '#f3f4f6', color: '#6b7280' }}
                               >
-                                成长方向 · {dimension.displayName}
+                                {dimension.displayName}
                               </span>
                             ) : null}
                           </div>
 
-                          <div className="flex items-center gap-1.5">
-                            {recorderName ? (
-                              <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: '#f5f3ef', color: S.sub }}>
-                                {recorderName}
+                          <div className="flex items-center gap-1">
+                            {entry.voicePath ? (
+                              <span className="mr-1 rounded px-1.5 py-0.5 text-[10px]" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+                                {entry.contentType === 'mixed' ? '语音 + 文字' : '语音'}
                               </span>
                             ) : null}
+
                             {onAskAiAboutEntry ? (
                               <button
                                 type="button"
@@ -140,61 +226,49 @@ export function JournalEntryTimeline({
                                   event.stopPropagation();
                                   onAskAiAboutEntry(entry);
                                 }}
-                                className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors hover:opacity-90"
-                                style={{ background: '#e0ecff', color: '#295ea6' }}
+                                className="flex h-6 w-6 items-center justify-center rounded-lg transition-colors hover:bg-[#e0ecff]"
+                                style={{ color: '#6b7280' }}
                                 aria-label="和 AI 聊这条记录"
                                 title="和 AI 聊这条记录"
                               >
-                                AI
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
+                                  <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" />
+                                </svg>
                               </button>
                             ) : null}
                             <button
+                              type="button"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 onToggleKeepsake?.(entry);
                               }}
-                              className={`rounded px-1.5 py-0.5 text-[10px] transition-all ${isKeepsake ? '' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'}`}
-                              style={isKeepsake ? { background: '#fef9c3', color: '#a16207' } : { color: S.sub }}
-                              aria-label={isKeepsake ? '取消收藏记录' : '收藏记录'}
-                              title={isKeepsake ? '取消收藏' : '标记收藏'}
+                              className="flex h-6 w-6 items-center justify-center rounded-lg transition-colors hover:bg-[#fef9c3]"
+                              aria-label={isKeepsake ? '取消珍藏' : '标记珍藏'}
+                              title={isKeepsake ? '取消珍藏' : '标记珍藏'}
                             >
-                              {isKeepsake ? '★ 留念' : '☆ 收藏'}
-                            </button>
-                            {entry.voicePath ? (
-                              <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: '#e0f2fe', color: '#0284c7' }}>
-                                {entry.contentType === 'mixed' ? '🎙️ 文字' : '🎙️ 语音'}
-                              </span>
-                            ) : null}
-                            <button
-                              onClick={() => onEditEntry(entry)}
-                              className="flex h-6 w-6 items-center justify-center rounded-lg transition-colors hover:bg-[#f0f0ec]"
-                              style={{ color: '#b0b5bc' }}
-                              aria-label="编辑记录"
-                              title="编辑记录"
-                            >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                              <svg width="14" height="14" viewBox="0 0 24 24"
+                                fill={isKeepsake ? '#f59e0b' : 'none'}
+                                stroke={isKeepsake ? '#f59e0b' : '#b0b5bc'}
+                                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                              >
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                               </svg>
                             </button>
-                            {onDeleteEntry ? (
-                              <button
-                                onClick={() => onDeleteEntry(entry)}
-                                className="flex h-6 w-6 items-center justify-center rounded-lg transition-colors hover:bg-[#fef2f2]"
-                                style={{ color: '#d16c6c' }}
-                                aria-label="删除记录"
-                                title="删除记录"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                  <path d="M3 6h18" />
-                                  <path d="M8 6V4h8v2" />
-                                  <path d="M19 6l-1 14H6L5 6" />
-                                  <path d="M10 11v6" />
-                                  <path d="M14 11v6" />
-                                </svg>
-                              </button>
-                            ) : null}
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <EntryActionMenu
+                                onEdit={() => onEditEntry(entry)}
+                                onDelete={onDeleteEntry ? () => onDeleteEntry(entry) : undefined}
+                              />
+                            </div>
                           </div>
                         </div>
+
+                        {isKeepsake && entry.keepsakeTitle ? (
+                          <p className="mb-2 text-[14px] font-semibold leading-[1.5]" style={{ color: S.text }}>
+                            {entry.keepsakeTitle}
+                          </p>
+                        ) : null}
 
                         {bodyText ? (
                           <p className="text-[13px] leading-[1.7]" style={{ color: S.text }}>{bodyText}</p>
@@ -214,11 +288,16 @@ export function JournalEntryTimeline({
                           </div>
                         ) : null}
 
-                        {tags.length > 0 ? (
+                        {(keepsakeReasonLabel || tags.length > 0) ? (
                           <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-2.5" style={{ borderColor: S.border }}>
-                            <span className="mr-1 text-[10px] font-medium" style={{ color: S.sub }}>
-                              成长关键词
-                            </span>
+                            {keepsakeReasonLabel ? (
+                              <span
+                                className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                                style={{ background: '#fef3c7', color: '#a16207' }}
+                              >
+                                珍藏原因 · {keepsakeReasonLabel}
+                              </span>
+                            ) : null}
                             {tags.map((tag) => (
                               <span
                                 key={tag}

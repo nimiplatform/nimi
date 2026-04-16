@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { MilestoneTimelineCard, ObservationDistributionCard, SleepTrendCard } from './timeline-cards.js';
+import { MilestoneTimelineCard, ObservationDistributionCard, RecentLinesCard, SleepTrendCard } from './timeline-cards.js';
 
 vi.mock('@tauri-apps/api/core', () => ({
   convertFileSrc: (value: string) => value,
@@ -100,5 +100,27 @@ describe('timeline dashboard cards', () => {
     expect(screen.getByText('还没有睡眠记录')).toBeTruthy();
     expect(screen.getByText('当前阶段暂无匹配的里程碑')).toBeTruthy();
     expect(screen.getByText('还没有带维度标记的观察记录')).toBeTruthy();
+  });
+  it('renders keepsake badges and reason tags in recent lines', () => {
+    renderInRouter(
+      <RecentLinesCard
+        lines={[
+          {
+            id: 'line-1',
+            title: '读完第一本桥梁书',
+            detail: '珍藏原因：取得成果',
+            recordedAt: '2026-04-15T08:00:00.000Z',
+            to: '/journal?filter=keepsake',
+            badge: '珍藏',
+            badgeTone: 'keepsake',
+            tag: '取得成果',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('读完第一本桥梁书')).toBeTruthy();
+    expect(screen.getByText('珍藏')).toBeTruthy();
+    expect(screen.getByText('取得成果')).toBeTruthy();
   });
 });

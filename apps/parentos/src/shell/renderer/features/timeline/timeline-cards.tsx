@@ -6,7 +6,6 @@ import { useAppStore, computeAgeMonths, type ChildProfile } from '../../app-shel
 import { parseReportContent } from '../reports/structured-report.js';
 import { GLASS, GLASS_SOLID } from '../../app-shell/page-style.js';
 import {
-  C,
   buildQuickLinks,
   describeNurtureMode,
   fmtRel,
@@ -19,7 +18,10 @@ import {
   type RecentChangeItem,
   type RecentLineItem,
   type SleepTrendSummary,
+  type VisionSnapshotSummary,
 } from './timeline-data.js';
+import type { OutdoorRecordRow } from '../../bridge/sqlite-bridge.js';
+import { getWeekStart, computeWeekSummary, buildOutdoorMessage, fmtDate, DEFAULT_OUTDOOR_GOAL_MINUTES } from '../outdoor/outdoor-helpers.js';
 
 const textMain = '#1e293b';
 const textMuted = '#475569';
@@ -103,10 +105,10 @@ function ChildSwitchPopover({ child, childList }: { child: ChildProfile; childLi
             return (
               <button key={item.childId} type="button" onClick={() => { setActiveChildId(item.childId); closePicker(); }}
                 className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-white/60"
-                style={{ ...(isActive ? { background: 'rgba(255,255,255,0.6)' } : undefined), opacity: open ? 1 : 0, transform: open ? 'translateY(0)' : 'translateY(3px)', transition: `opacity 0.15s ease ${index * 0.03}s, transform 0.15s ease ${index * 0.03}s` }}>
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold" style={{ background: isActive ? '#818CF8' : '#E2E8F0', color: textMain }}>{item.displayName.charAt(0)}</div>
+                style={{ ...(isActive ? { background: 'rgba(78,204,163,0.1)' } : undefined), opacity: open ? 1 : 0, transform: open ? 'translateY(0)' : 'translateY(3px)', transition: `opacity 0.15s ease ${index * 0.03}s, transform 0.15s ease ${index * 0.03}s` }}>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold" style={{ background: isActive ? '#4ECCA3' : '#E2E8F0', color: isActive ? '#fff' : textMain }}>{item.displayName.charAt(0)}</div>
                 <div className="min-w-0">
-                  <p className="truncate text-[12px] font-semibold" style={{ color: textMain }}>{item.displayName}</p>
+                  <p className="truncate text-[12px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>{item.displayName}</p>
                   <p className="text-[10px]" style={{ color: textMuted }}>{formatAgeLabel(computeAgeMonths(item.birthDate))} · {item.gender === 'female' ? '女孩' : '男孩'}</p>
                 </div>
               </button>
@@ -122,7 +124,7 @@ function ChildSwitchPopover({ child, childList }: { child: ChildProfile; childLi
 
 export function ChildContextCard({ child, childList, ageMonths }: { child: ChildProfile; childList: ChildProfile[]; ageMonths: number }) {
   return (
-    <div className="col-span-2 row-span-2 relative overflow-hidden" style={GLASS_SOLID}>
+    <div className="col-span-2 row-span-2 relative z-10 overflow-visible" style={GLASS_SOLID}>
       <div className="relative flex h-full flex-col items-center px-6 pb-7 pt-10">
         <ChildSwitchPopover child={child} childList={childList} />
 
@@ -327,6 +329,61 @@ export function SleepTrendCard({ summary }: { summary: SleepTrendSummary }) {
   );
 }
 
+/* ── Vision Snapshot ── */
+
+export function VisionCard({ snapshot }: { snapshot: VisionSnapshotSummary }) {
+  const hasData = snapshot.leftEye != null || snapshot.rightEye != null;
+  return (
+    <Cd cls="col-span-4">
+      <Hdr title="视力" to="/profile/vision" link="查看详情" />
+      {hasData ? (
+        <>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-5">
+              {/* Left eye */}
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: 'rgba(96,165,250,0.12)' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px]" style={{ color: textMuted }}>左眼</p>
+                  <p className="text-[22px] font-semibold leading-none tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>
+                    {snapshot.leftEye ?? '--'}
+                  </p>
+                </div>
+              </div>
+              {/* Right eye */}
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: 'rgba(96,165,250,0.12)' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px]" style={{ color: textMuted }}>右眼</p>
+                  <p className="text-[22px] font-semibold leading-none tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>
+                    {snapshot.rightEye ?? '--'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <span className="text-[10px]" style={{ color: '#64748b' }}>{snapshot.measuredLabel}</span>
+          </div>
+        </>
+      ) : (
+        <div className="rounded-[16px] p-5" style={{ background: '#F0F4F8', border: '1px solid #E2E8F0' }}>
+          <p className="text-[13px] font-semibold" style={{ color: textMain }}>还没有视力记录</p>
+          <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>记录一次视力检查后，这里会显示左右眼数据。</p>
+        </div>
+      )}
+    </Cd>
+  );
+}
+
 /* ── Milestone ── */
 
 export function MilestoneTimelineCard({ summary }: { summary: MilestoneTimelineSummary }) {
@@ -518,11 +575,23 @@ export function RecentLinesCard({ lines }: { lines: RecentLineItem[] }) {
             <Link key={line.id} to={line.to} className="rounded-[16px] p-5 transition-all duration-200 hover:-translate-y-1"
               style={{ background: '#F0F4F8', border: '1px solid #E2E8F0' }}>
               <div className="flex items-center justify-between gap-2">
-                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: 'rgba(255,255,255,0.6)', color: textMuted }}>{line.badge}</span>
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={line.badgeTone === 'keepsake'
+                    ? { background: 'rgba(245, 158, 11, 0.12)', color: '#b45309' }
+                    : { background: 'rgba(255,255,255,0.6)', color: textMuted }}
+                >
+                  {line.badge}
+                </span>
                 <span className="text-[10px]" style={{ color: '#64748b' }}>{fmtRel(line.recordedAt)}</span>
               </div>
               <p className="mt-3 line-clamp-3 text-[12px] font-medium leading-relaxed" style={{ color: textMain }}>{line.title}</p>
               <p className="mt-2 text-[10px]" style={{ color: textMuted }}>{line.detail}</p>
+              {line.tag ? (
+                <p className="mt-2 text-[10px] font-medium" style={{ color: '#b45309' }}>
+                  {line.tag}
+                </p>
+              ) : null}
             </Link>
           ))}
         </div>
@@ -532,6 +601,57 @@ export function RecentLinesCard({ lines }: { lines: RecentLineItem[] }) {
           <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>记录一条观察、日记或语音后，这里会自动显示最近留下的内容。</p>
         </div>
       )}
+    </Cd>
+  );
+}
+
+/* ── Outdoor Goal Card ── */
+
+export function OutdoorGoalCard({
+  records,
+  goalMinutes,
+}: {
+  records: OutdoorRecordRow[];
+  goalMinutes: number | null;
+}) {
+  const effectiveGoal = goalMinutes ?? DEFAULT_OUTDOOR_GOAL_MINUTES;
+  const todayStr = fmtDate(new Date());
+  const weekStart = getWeekStart(new Date());
+  const summary = computeWeekSummary(records, effectiveGoal, weekStart, todayStr);
+  const message = buildOutdoorMessage(summary, false);
+  const progressPercent = Math.min(100, Math.round((summary.totalMinutes / effectiveGoal) * 100));
+  const barColor = summary.isComplete ? '#4ECCA3' : '#818CF8';
+
+  if (goalMinutes === null) {
+    return (
+      <Cd cls="col-span-4">
+        <Hdr title="每周户外目标" to="/profile/outdoor" link="设定目标" />
+        <div className="rounded-[16px] p-5" style={{ background: '#F0F4F8', border: '1px solid #E2E8F0' }}>
+          <p className="text-[13px] font-semibold" style={{ color: textMain }}>还没有设定户外目标</p>
+          <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>
+            每天 2 小时以上的户外活动有助于保护视力。设定每周目标，追踪孩子的户外时间。
+          </p>
+        </div>
+      </Cd>
+    );
+  }
+
+  return (
+    <Cd cls="col-span-4">
+      <Hdr title="每周户外目标" to="/profile/outdoor" />
+      <div className="space-y-3">
+        <div className="flex items-end justify-between">
+          <p className="text-[18px] font-bold tabular-nums" style={{ color: textMain }}>
+            {summary.totalMinutes} <span className="text-[12px] font-normal" style={{ color: textMuted }}>/ {effectiveGoal} 分钟</span>
+          </p>
+          <span className="text-[12px] font-medium tabular-nums" style={{ color: barColor }}>{progressPercent}%</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full" style={{ background: 'rgba(226,232,240,0.5)' }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${progressPercent}%`, background: barColor }} />
+        </div>
+        <p className="text-[12px]" style={{ color: textMuted }}>{message.primary}</p>
+        {message.secondary && <p className="text-[11px]" style={{ color: textMuted }}>{message.secondary}</p>}
+      </div>
     </Cd>
   );
 }

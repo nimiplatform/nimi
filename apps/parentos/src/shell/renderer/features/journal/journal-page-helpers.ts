@@ -12,6 +12,14 @@ export type VoiceDraftStatus =
   | 'transcribed'
   | 'transcription-failed';
 export type TagSuggestionStatus = 'idle' | 'suggesting' | 'ready' | 'failed';
+export type KeepsakeReason =
+  | 'commemorative'
+  | 'first-time'
+  | 'achievement'
+  | 'persistence'
+  | 'character'
+  | 'family-moment'
+  | 'other';
 
 export interface VoiceDraft {
   status: VoiceDraftStatus;
@@ -34,6 +42,20 @@ export const EMPTY_VOICE_DRAFT: VoiceDraft = {
 export interface PhotoDraft {
   file: File;
   previewUrl: string;
+}
+
+export const KEEPSAKE_REASON_OPTIONS: Array<{ value: KeepsakeReason; label: string }> = [
+  { value: 'commemorative', label: '值得纪念' },
+  { value: 'first-time', label: '第一次' },
+  { value: 'achievement', label: '取得成果' },
+  { value: 'persistence', label: '长期坚持' },
+  { value: 'character', label: '性格闪光' },
+  { value: 'family-moment', label: '家庭时刻' },
+  { value: 'other', label: '其他' },
+];
+
+export function getKeepsakeReasonLabel(reason: KeepsakeReason | null | undefined) {
+  return KEEPSAKE_REASON_OPTIONS.find((item) => item.value === reason)?.label ?? null;
 }
 
 /* ── Scene config ── */

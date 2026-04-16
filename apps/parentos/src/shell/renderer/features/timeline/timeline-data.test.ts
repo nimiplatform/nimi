@@ -45,6 +45,8 @@ function makeDash(overrides: Partial<DashData> = {}): DashData {
     allergyRecords: [],
     customTodos: [],
     latestMonthlyReport: null,
+    outdoorRecords: [],
+    outdoorGoalMinutes: null,
     ...overrides,
   };
 }
@@ -156,6 +158,8 @@ describe('timeline home view model helpers', () => {
             recordedAt: '2026-04-14T08:00:00.000Z',
             observationMode: null,
             keepsake: 0,
+            keepsakeTitle: null,
+            keepsakeReason: null,
             dimensionId: null,
           },
         ],
@@ -358,6 +362,8 @@ describe('timeline home view model helpers', () => {
         recordedAt: '2026-04-14T08:00:00.000Z',
         observationMode: null,
         keepsake: 0,
+        keepsakeTitle: null,
+        keepsakeReason: null,
         dimensionId: 'PO-OBS-MOVE-001',
       },
       {
@@ -367,6 +373,8 @@ describe('timeline home view model helpers', () => {
         recordedAt: '2026-04-13T08:00:00.000Z',
         observationMode: null,
         keepsake: 0,
+        keepsakeTitle: null,
+        keepsakeReason: null,
         dimensionId: 'PO-OBS-MOVE-001',
       },
       {
@@ -376,6 +384,8 @@ describe('timeline home view model helpers', () => {
         recordedAt: '2026-04-12T08:00:00.000Z',
         observationMode: null,
         keepsake: 0,
+        keepsakeTitle: null,
+        keepsakeReason: null,
         dimensionId: 'PO-OBS-LANG-001',
       },
       {
@@ -385,6 +395,8 @@ describe('timeline home view model helpers', () => {
         recordedAt: '2026-04-11T08:00:00.000Z',
         observationMode: null,
         keepsake: 0,
+        keepsakeTitle: null,
+        keepsakeReason: null,
         dimensionId: null,
       },
     ]);
@@ -433,6 +445,8 @@ describe('timeline home view model helpers', () => {
             recordedAt: '2026-04-14T08:00:00.000Z',
             observationMode: null,
             keepsake: 0,
+            keepsakeTitle: null,
+            keepsakeReason: null,
             dimensionId: 'PO-OBS-MOVE-001',
           },
         ],
@@ -444,6 +458,41 @@ describe('timeline home view model helpers', () => {
     expect(homeVm.sleepTrend.avgDurationMinutes).toBe(600);
     expect(homeVm.milestoneTimeline.recentlyAchieved).toHaveLength(1);
     expect(homeVm.observationDistribution.totalEntries).toBe(1);
+  });
+
+  it('surfaces keepsake title and reason in recent journal summaries', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-16T10:00:00.000Z'));
+
+    const child = makeChild();
+    const homeVm = buildTimelineHomeViewModel({
+      child,
+      ageMonths: 10,
+      d: makeDash({
+        journalEntries: [
+          {
+            entryId: 'j-1',
+            contentType: 'text',
+            textContent: 'She finished a long picture book by herself.',
+            recordedAt: '2026-04-15T08:00:00.000Z',
+            observationMode: null,
+            keepsake: 1,
+            keepsakeTitle: '读完第一本桥梁书',
+            keepsakeReason: 'achievement',
+            dimensionId: null,
+          },
+        ],
+      }),
+      agenda: makeAgenda(),
+    });
+
+    expect(homeVm.recentChanges[0]?.label).toBe('珍藏');
+    expect(homeVm.recentChanges[0]?.title).toBe('读完第一本桥梁书');
+    expect(homeVm.recentChanges[0]?.detail).toContain('取得成果');
+    expect(homeVm.recentChanges[0]?.to).toBe('/journal?filter=keepsake');
+    expect(homeVm.recentLines[0]?.badge).toBe('珍藏');
+    expect(homeVm.recentLines[0]?.badgeTone).toBe('keepsake');
+    expect(homeVm.recentLines[0]?.tag).toBe('取得成果');
   });
 
 });
