@@ -1,7 +1,22 @@
 const ASSET_MANIFEST_FILE_NAME: &str = "asset.manifest.json";
 const KNOWN_MODEL_EXTENSIONS: &[&str] = &["gguf", "safetensors", "bin", "pt", "onnx", "pth"];
 
+fn is_ignored_local_asset_metadata_path(path: &std::path::Path) -> bool {
+    let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
+        return false;
+    };
+    let lower = name.trim().to_ascii_lowercase();
+    name.starts_with("._")
+        || matches!(
+            lower.as_str(),
+            ".ds_store" | "thumbs.db" | "desktop.ini" | "__macosx"
+        )
+}
+
 fn is_model_file_extension(path: &std::path::Path) -> bool {
+    if is_ignored_local_asset_metadata_path(path) {
+        return false;
+    }
     path.extension()
         .and_then(|ext| ext.to_str())
         .map(|ext| KNOWN_MODEL_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()))
@@ -229,6 +244,9 @@ fn scan_unregistered_assets(app: &AppHandle) -> Result<Vec<LocalAiUnregisteredAs
             continue;
         };
         let path = entry.path();
+        if is_ignored_local_asset_metadata_path(&path) {
+            continue;
+        }
         if path.is_file() {
             let absolute_path = path.to_string_lossy().to_string();
             if registered_runnable_asset_paths.contains(&absolute_path)
@@ -257,6 +275,9 @@ fn scan_unregistered_assets(app: &AppHandle) -> Result<Vec<LocalAiUnregisteredAs
                 continue;
             };
             let sub_path = sub_entry.path();
+            if is_ignored_local_asset_metadata_path(&sub_path) {
+                continue;
+            }
             let absolute_path = sub_path.to_string_lossy().to_string();
             if registered_runnable_asset_paths.contains(&absolute_path)
                 || registered_passive_asset_paths.contains(&absolute_path)
@@ -282,6 +303,28 @@ pub fn runtime_local_assets_scan_unregistered(
     app: AppHandle,
 ) -> Result<Vec<LocalAiUnregisteredAssetDescriptor>, String> {
     scan_unregistered_assets(&app)
+}
+
+#[tauri::command]
+pub fn runtime_local_assets_scaffold_orphan(
+    payload: LocalAiScaffoldOrphanPayload,
+) -> Result<LocalAiAssetRecord, String> {
+    let endpoint = match payload
+        .endpoint
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        Some(value) => Some(validate_loopback_endpoint(value)?),
+        None => None,
+    };
+    runtime_scaffold_orphan_asset_via_runtime(
+        std::path::Path::new(payload.path.trim()),
+        &payload.kind,
+        payload.capabilities.as_deref().unwrap_or(&[]),
+        payload.engine.as_deref(),
+        endpoint.as_deref(),
+    )
 }
 
 #[tauri::command]

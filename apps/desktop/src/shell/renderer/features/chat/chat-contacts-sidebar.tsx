@@ -63,7 +63,7 @@ function ContactAvatar({
 
   return (
     <>
-      <div className="group relative flex h-11 items-center">
+      <div className="group relative flex h-11 w-full items-center justify-start">
         {/* Selection indicator — Discord-style right pill, outside the avatar */}
         <div
           className={`absolute right-0 w-[3px] rounded-l-full bg-emerald-500 transition-all duration-200 ${
@@ -81,7 +81,7 @@ function ContactAvatar({
           onClick={onSelect}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={() => setTooltipPos(null)}
-          className={`relative mx-2 flex h-10 w-10 items-center justify-center overflow-hidden transition-all duration-200 ${
+          className={`relative ml-0.5 flex h-10 w-10 items-center justify-center overflow-hidden transition-all duration-200 ${
             selected ? 'rounded-2xl' : 'rounded-full hover:rounded-2xl'
           }`}
           aria-label={target.title}
@@ -195,7 +195,7 @@ export function ChatContactsSidebar({
         {onCreateGroup ? (
           <>
             <SidebarSeparator />
-            <div className="group relative flex h-11 items-center">
+            <div className="group relative flex h-11 w-full items-center justify-start">
               <div className="absolute right-0 h-0 w-[3px] rounded-l-full bg-emerald-500 transition-all duration-200 group-hover:h-4" />
               <button
                 type="button"
@@ -203,7 +203,7 @@ export function ChatContactsSidebar({
                 onClick={onCreateGroup}
                 aria-label={createGroupLabel}
                 title={createGroupLabel}
-                className="relative mx-2 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white transition-all duration-200 hover:rounded-2xl"
+                className="relative ml-0.5 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white transition-all duration-200 hover:rounded-2xl"
               >
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                   <path d="M9 3.5v11M3.5 9h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />

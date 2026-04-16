@@ -34,6 +34,26 @@ struct RuntimeImportLocalAssetResponse {
 }
 
 #[derive(Clone, PartialEq, ::prost::Message)]
+struct RuntimeScaffoldOrphanAssetRequest {
+    #[prost(string, tag = "1")]
+    path: String,
+    #[prost(enumeration = "runtime_bridge_generated::LocalAssetKind", tag = "2")]
+    kind: i32,
+    #[prost(string, tag = "3")]
+    engine: String,
+    #[prost(string, repeated, tag = "4")]
+    capabilities: Vec<String>,
+    #[prost(string, tag = "5")]
+    endpoint: String,
+}
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+struct RuntimeScaffoldOrphanAssetResponse {
+    #[prost(message, optional, tag = "1")]
+    asset: Option<runtime_bridge_generated::LocalAssetRecord>,
+}
+
+#[derive(Clone, PartialEq, ::prost::Message)]
 struct RuntimeRemoveLocalAssetRequest {
     #[prost(string, tag = "1")]
     local_asset_id: String,
@@ -188,6 +208,22 @@ fn bridge_asset_kind(
     }
 }
 
+fn runtime_bridge_asset_kind(value: &LocalAiAssetKind) -> runtime_bridge_generated::LocalAssetKind {
+    match value {
+        LocalAiAssetKind::Chat => runtime_bridge_generated::LocalAssetKind::Chat,
+        LocalAiAssetKind::Image => runtime_bridge_generated::LocalAssetKind::Image,
+        LocalAiAssetKind::Video => runtime_bridge_generated::LocalAssetKind::Video,
+        LocalAiAssetKind::Tts => runtime_bridge_generated::LocalAssetKind::Tts,
+        LocalAiAssetKind::Stt => runtime_bridge_generated::LocalAssetKind::Stt,
+        LocalAiAssetKind::Embedding => runtime_bridge_generated::LocalAssetKind::Embedding,
+        LocalAiAssetKind::Vae => runtime_bridge_generated::LocalAssetKind::Vae,
+        LocalAiAssetKind::Clip => runtime_bridge_generated::LocalAssetKind::Clip,
+        LocalAiAssetKind::Lora => runtime_bridge_generated::LocalAssetKind::Lora,
+        LocalAiAssetKind::Controlnet => runtime_bridge_generated::LocalAssetKind::Controlnet,
+        LocalAiAssetKind::Auxiliary => runtime_bridge_generated::LocalAssetKind::Auxiliary,
+    }
+}
+
 fn bridge_asset_status(
     value: i32,
 ) -> Result<LocalAiAssetStatus, String> {
@@ -300,6 +336,29 @@ pub(crate) fn runtime_import_manifest_via_runtime(
     let asset = response
         .asset
         .ok_or_else(|| "RUNTIME_LOCAL_SERVICE_ASSET_MISSING: ImportLocalAsset returned no asset".to_string())?;
+    bridge_runtime_asset_record(asset)
+}
+
+pub(crate) fn runtime_scaffold_orphan_asset_via_runtime(
+    path: &std::path::Path,
+    kind: &LocalAiAssetKind,
+    capabilities: &[String],
+    engine: Option<&str>,
+    endpoint: Option<&str>,
+) -> Result<LocalAiAssetRecord, String> {
+    let response: RuntimeScaffoldOrphanAssetResponse = runtime_bridge_local_service_unary(
+        "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
+        &RuntimeScaffoldOrphanAssetRequest {
+            path: path.to_string_lossy().to_string(),
+            kind: runtime_bridge_asset_kind(kind) as i32,
+            engine: engine.unwrap_or_default().trim().to_string(),
+            capabilities: capabilities.to_vec(),
+            endpoint: endpoint.unwrap_or_default().trim().to_string(),
+        },
+    )?;
+    let asset = response
+        .asset
+        .ok_or_else(|| "RUNTIME_LOCAL_SERVICE_ASSET_MISSING: ScaffoldOrphanAsset returned no asset".to_string())?;
     bridge_runtime_asset_record(asset)
 }
 

@@ -3,8 +3,6 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import * as modLocalBridge from '../src/shell/renderer/bridge/runtime-bridge/mod-local';
-
 // ---------------------------------------------------------------------------
 // D-MOD-015: Third-party Developer Flow
 // All developer operations must be UI-only (no CLI/env vars/startup parameters).
@@ -13,21 +11,25 @@ import * as modLocalBridge from '../src/shell/renderer/bridge/runtime-bridge/mod
 
 // 1. All developer bridge operations are callable functions (no CLI dependency)
 test('D-MOD-015: developer operations are exposed as async bridge functions', () => {
+  const source = readFileSync(
+    resolve(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/mod-local.ts'),
+    'utf8',
+  );
   const devOps = [
-    modLocalBridge.listRuntimeModSources,
-    modLocalBridge.upsertRuntimeModSource,
-    modLocalBridge.removeRuntimeModSource,
-    modLocalBridge.getRuntimeModDeveloperMode,
-    modLocalBridge.setRuntimeModDeveloperMode,
-    modLocalBridge.getRuntimeModStorageDirs,
-    modLocalBridge.setRuntimeModDataDir,
-    modLocalBridge.reloadRuntimeMod,
-    modLocalBridge.reloadAllRuntimeMods,
-    modLocalBridge.listRuntimeModDiagnostics,
+    'listRuntimeModSources',
+    'upsertRuntimeModSource',
+    'removeRuntimeModSource',
+    'getRuntimeModDeveloperMode',
+    'setRuntimeModDeveloperMode',
+    'getRuntimeModStorageDirs',
+    'setRuntimeModDataDir',
+    'reloadRuntimeMod',
+    'reloadAllRuntimeMods',
+    'listRuntimeModDiagnostics',
   ];
 
   for (const op of devOps) {
-    assert.equal(typeof op, 'function', `${op.name} must be a callable function`);
+    assert.match(source, new RegExp(`export\\s+async\\s+function\\s+${op}\\s*\\(`), `${op} must be a callable async bridge function`);
   }
 });
 
@@ -55,6 +57,7 @@ test('D-MOD-015: settings developer page provides UI for developer operations', 
 
   // nimi_data_dir configuration
   assert.match(source, /setRuntimeModDataDir/, 'Must have data dir configuration via setRuntimeModDataDir');
+  assert.match(source, /syncRuntimeLocalModelsConfig/, 'Must sync runtime local models config after data dir changes');
 
   // Developer mode toggle
   assert.match(source, /setRuntimeModDeveloperMode/, 'Must have developer mode toggle');

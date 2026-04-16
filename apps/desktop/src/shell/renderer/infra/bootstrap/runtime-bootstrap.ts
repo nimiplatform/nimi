@@ -48,6 +48,7 @@ import {
 import {
   buildRuntimeHostCapabilities,
 } from './runtime-bootstrap-host-capabilities';
+import { syncRuntimeLocalModelsConfig } from './runtime-bootstrap-local-models-sync';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
@@ -275,6 +276,16 @@ export function bootstrapRuntime(): Promise<void> {
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
     const runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
     if (desktopBridge.hasTauriInvoke() && !runtimeUnavailable) {
+      const runtimeStorageDirs = await desktopBridge.getRuntimeModStorageDirs();
+      daemonStatus = await syncRuntimeLocalModelsConfig({
+        daemonStatus,
+        localModelsPath: runtimeStorageDirs.localModelsDir,
+        bridge: {
+          getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
+          setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
+          restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
+        },
+      });
       daemonStatus = await syncRuntimeJwtConfig({
         daemonStatus,
         realmDefaults: defaults.realm,
@@ -462,6 +473,16 @@ export function bootstrapRuntime(): Promise<void> {
       isFriend: (userId: string) => isFriendInContacts(getCachedContacts(), userId),
     });
 
+    await bootstrapAuthSession({
+      flowId,
+      accessToken: bootstrapAccessToken,
+      refreshToken: bootstrapRefreshToken,
+      source: resolvedBootstrapAuthSession.source,
+      resolution: resolvedBootstrapAuthSession.resolution,
+      clearPersistedSession: clearPersistedDesktopSession,
+      skipWarmLoads: skipHeavyBootstrapForMacosSmoke,
+    });
+
     startAuthStateWatcher();
 
     let runtimeModFailures: RuntimeModRegisterFailure[] = [];
@@ -556,16 +577,6 @@ export function bootstrapRuntime(): Promise<void> {
         });
       }
     }
-
-    await bootstrapAuthSession({
-      flowId,
-      accessToken: bootstrapAccessToken,
-      refreshToken: bootstrapRefreshToken,
-      source: resolvedBootstrapAuthSession.source,
-      resolution: resolvedBootstrapAuthSession.resolution,
-      clearPersistedSession: clearPersistedDesktopSession,
-      skipWarmLoads: skipHeavyBootstrapForMacosSmoke,
-    });
 
     getOfflineCoordinator().markRuntimeReachable(daemonStatus.running);
 

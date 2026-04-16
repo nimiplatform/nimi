@@ -64,7 +64,7 @@ test('asset manifest import uses the unified importLocalRuntimeAsset command', (
 test('asset file import uses unified importLocalRuntimeAssetFile and scaffoldLocalRuntimeOrphanAsset', () => {
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetFile/);
   assert.match(runtimeCommandsSource, /export async function scaffoldLocalRuntimeOrphanAsset/);
-  assert.match(runtimeCommandsSource, /runtime\.scaffoldOrphanAsset\(\{/);
+  assert.match(runtimeCommandsSource, /invokeLocalRuntimeCommand<unknown>\('runtime_local_assets_scaffold_orphan', \{/);
   assert.match(runtimeCommandsSource, /runtime\.importLocalAssetFile\(\{/);
 });
 

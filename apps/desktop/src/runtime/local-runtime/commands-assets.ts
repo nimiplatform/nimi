@@ -262,15 +262,16 @@ export async function scaffoldLocalRuntimeOrphanAsset(
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeAssetRecord> {
   assertLifecycleWriteAllowed('local_runtime_assets_scaffold_orphan', options?.caller);
-  const runtime = requireSdkLocal();
-  const response = await runtime.scaffoldOrphanAsset({
-    path: String(payload.path || '').trim(),
-    kind: toAssetKindFilter(payload.kind),
-    engine: String(payload.engine || '').trim(),
-    capabilities: [],
-    endpoint: String(payload.endpoint || '').trim(),
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_scaffold_orphan', {
+    payload: {
+      path: String(payload.path || '').trim(),
+      kind: String(payload.kind || '').trim(),
+      capabilities: [],
+      engine: String(payload.engine || '').trim() || undefined,
+      endpoint: String(payload.endpoint || '').trim() || undefined,
+    },
   });
-  return parseAssetRecord(asRecord(response).asset);
+  return parseAssetRecord(result);
 }
 
 export async function scanLocalRuntimeUnregisteredAssets(): Promise<LocalRuntimeUnregisteredAssetDescriptor[]> {

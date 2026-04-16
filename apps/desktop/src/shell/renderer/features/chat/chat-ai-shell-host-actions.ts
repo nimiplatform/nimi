@@ -97,6 +97,37 @@ export async function assertAiSubmitSchedulingAllowed(input: {
   }
 }
 
+export async function ensureChatAiThreadRecordPersisted(input: {
+  thread: ChatAiThreadRecord;
+  verifyExisting: boolean;
+}): Promise<{
+  thread: ChatAiThreadRecord;
+  recoveredMissingThread: boolean;
+}> {
+  if (input.verifyExisting) {
+    const existing = await chatAiStoreClient.getThreadBundle(input.thread.id);
+    if (existing?.thread) {
+      return {
+        thread: existing.thread,
+        recoveredMissingThread: false,
+      };
+    }
+  }
+
+  const persisted = await chatAiStoreClient.createThread({
+    id: input.thread.id,
+    title: input.thread.title,
+    createdAtMs: input.thread.createdAtMs,
+    updatedAtMs: input.thread.updatedAtMs,
+    lastMessageAtMs: input.thread.lastMessageAtMs,
+    archivedAtMs: input.thread.archivedAtMs,
+  });
+  return {
+    thread: persisted,
+    recoveredMissingThread: input.verifyExisting,
+  };
+}
+
 export function useAiConversationHostActions(
   input: UseAiConversationHostActionsInput,
 ): {
@@ -310,6 +341,7 @@ export function useAiConversationHostActions(
     let terminalError: ConversationTurnError | null = null;
     let completionEvent: Extract<ConversationTurnEvent, { type: 'turn-completed' }> | null = null;
     let userMessagePersisted = false;
+    let recoveredMissingThread = false;
     let threadPersisted = !(
       input.ephemeralThread
       && input.activeThreadId
@@ -336,19 +368,26 @@ export function useAiConversationHostActions(
         t: input.t,
       });
 
+      const persistence = await ensureChatAiThreadRecordPersisted({
+        thread: fallbackThreadRecord,
+        verifyExisting: !(
+          input.ephemeralThread
+          && input.ephemeralThread.id === effectiveThreadId
+        ),
+      });
+      effectiveThreadRecord = persistence.thread;
+      recoveredMissingThread = persistence.recoveredMissingThread;
+      threadPersisted = true;
+      input.setThreadsCache((current) => upsertThreadSummary(current, persistence.thread));
       if (input.ephemeralThread && input.ephemeralThread.id === effectiveThreadId) {
-        const persisted = await chatAiStoreClient.createThread({
-          id: input.ephemeralThread.id,
-          title: input.ephemeralThread.title,
-          createdAtMs: input.ephemeralThread.createdAtMs,
-          updatedAtMs: input.ephemeralThread.updatedAtMs,
-          lastMessageAtMs: input.ephemeralThread.lastMessageAtMs,
-          archivedAtMs: input.ephemeralThread.archivedAtMs,
-        });
-        input.setThreadsCache((current) => upsertThreadSummary(current, persisted));
         input.setEphemeralThread(null);
-        effectiveThreadRecord = persisted;
-        threadPersisted = true;
+      }
+      if (recoveredMissingThread) {
+        input.setBundleCache(effectiveThreadId, () => ({
+          thread: optimisticThreadRecord,
+          messages: [userMessage, assistantPlaceholder],
+          draft: null,
+        }));
       }
 
       await chatAiStoreClient.deleteDraft(effectiveThreadId);
@@ -359,7 +398,9 @@ export function useAiConversationHostActions(
       await chatAiStoreClient.createMessage(assistantPlaceholder);
 
       const abortController = startStream(effectiveThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
-      const history = toConversationHistoryMessages(input.bundleMessages || []);
+      const history = toConversationHistoryMessages(
+        recoveredMissingThread ? [] : (input.bundleMessages || []),
+      );
       for await (const event of input.runAiTurn({
         threadId: effectiveThreadId,
         turnId: assistantMessageId,

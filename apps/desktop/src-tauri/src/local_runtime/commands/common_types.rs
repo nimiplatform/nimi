@@ -74,6 +74,16 @@ pub struct LocalAiAssetsImportBundlePayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LocalAiScaffoldOrphanPayload {
+    pub path: String,
+    pub kind: LocalAiAssetKind,
+    pub capabilities: Option<Vec<String>>,
+    pub engine: Option<String>,
+    pub endpoint: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LocalAiAssetIdPayload {
     pub local_asset_id: String,
 }

@@ -78,14 +78,14 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     assert.ok(bridgeStartIndex < descriptorSyncIndex, 'descriptor resync scheduling must happen after bridge startup scheduling');
   });
 
-  test('D-BOOT-007: auth bootstrap runs after runtime host work and before ready flag', () => {
-    const registrationIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
+  test('D-BOOT-007: auth bootstrap completes before runtime host work that can issue scheduling probes', () => {
     const authSessionIndex = bootstrapSource.indexOf('await bootstrapAuthSession({');
+    const runtimeModsIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
     const bootstrapReadyIndex = bootstrapSource.indexOf('useAppStore.getState().setBootstrapReady(true);');
-    assert.ok(registrationIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
     assert.ok(authSessionIndex !== -1, 'await bootstrapAuthSession({ must appear in bootstrap source');
+    assert.ok(runtimeModsIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
     assert.ok(bootstrapReadyIndex !== -1, 'setBootstrapReady(true); must appear in bootstrap source');
-    assert.ok(registrationIndex < authSessionIndex, 'bootstrapAuthSession must run after runtime host setup');
+    assert.ok(authSessionIndex < runtimeModsIndex, 'bootstrapAuthSession must run before runtime mod registration can trigger scheduler.peek()');
     assert.ok(authSessionIndex < bootstrapReadyIndex, 'bootstrapAuthSession must complete before bootstrapReady is set');
   });
 
@@ -228,6 +228,17 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     assert.ok(
       bootstrapSource.includes("step: 'external agent descriptor resync'"),
       'external agent descriptor sync must be treated as a non-critical deferred step',
+    );
+  });
+
+  test('D-BOOT-016: runtime local models config sync runs before runtime jwt sync', () => {
+    const localModelsSyncIndex = bootstrapSource.indexOf('syncRuntimeLocalModelsConfig({');
+    const jwtSyncIndex = bootstrapSource.indexOf('syncRuntimeJwtConfig({');
+    assert.ok(localModelsSyncIndex !== -1, 'syncRuntimeLocalModelsConfig({ must appear in bootstrap source');
+    assert.ok(jwtSyncIndex !== -1, 'syncRuntimeJwtConfig({ must appear in bootstrap source');
+    assert.ok(
+      localModelsSyncIndex < jwtSyncIndex,
+      'runtime local models config sync must run before runtime jwt sync',
     );
   });
 });

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { syncRuntimeLocalModelsConfig } from '@renderer/infra/bootstrap/runtime-bootstrap-local-models-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { refreshRuntimeModDeveloperHostState } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
 import { reconcileRuntimeLocalMods } from '@renderer/mod-ui/lifecycle/runtime-mod-developer-host';
@@ -128,14 +129,29 @@ export function DeveloperPage() {
     setSaving(true);
     try {
       const dirs = await desktopBridge.setRuntimeModDataDir(normalized);
+      let feedbackMessage = t('DeveloperSettings.dataDirUpdated');
       setResolvedNimiDir(dirs.nimiDir);
       setResolvedNimiDataDir(dirs.nimiDataDir);
       setResolvedInstalledModsDir(dirs.installedModsDir);
       setNimiDataDirInput(dirs.nimiDataDir);
+      try {
+        const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
+        await syncRuntimeLocalModelsConfig({
+          daemonStatus,
+          localModelsPath: dirs.localModelsDir,
+          bridge: {
+            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
+            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
+            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
+          },
+        });
+      } catch (error) {
+        feedbackMessage = error instanceof Error ? error.message : t('DeveloperSettings.dataDirUpdated');
+      }
       await refreshRuntimeModDeveloperHostState();
       setFeedback({
         kind: 'warning',
-        message: t('DeveloperSettings.dataDirUpdated'),
+        message: feedbackMessage,
       });
     } catch (error) {
       setFeedback({

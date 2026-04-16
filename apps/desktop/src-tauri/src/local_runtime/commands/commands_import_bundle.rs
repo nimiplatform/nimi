@@ -72,6 +72,9 @@ fn scan_bundle_directory(root: &std::path::Path) -> Result<BundleScan, String> {
                 )
             })?;
             let path = entry.path();
+            if is_ignored_local_asset_metadata_path(&path) {
+                continue;
+            }
             let metadata = std::fs::symlink_metadata(&path).map_err(|error| {
                 format!(
                     "LOCAL_AI_BUNDLE_IMPORT_STAT_FAILED: cannot stat bundle entry {}: {error}",
@@ -314,6 +317,9 @@ fn copy_bundle_directory(
                 )
             })?;
             let source_path = entry.path();
+            if is_ignored_local_asset_metadata_path(&source_path) {
+                continue;
+            }
             let metadata = std::fs::symlink_metadata(&source_path).map_err(|error| {
                 format!(
                     "LOCAL_AI_BUNDLE_IMPORT_STAT_FAILED: cannot stat bundle entry {}: {error}",
@@ -897,6 +903,45 @@ mod commands_import_bundle_tests {
         );
         assert_eq!(scan.entry_candidates, vec!["model.gguf".to_string()]);
         assert_eq!(scan.mmproj_candidates, vec!["mmproj-BF16.gguf".to_string()]);
+    }
+
+    #[test]
+    fn scan_bundle_directory_ignores_metadata_sidecars() {
+        let dir = temp_dir("scan-ignore-metadata");
+        std::fs::write(dir.path().join("model.gguf"), b"weights").expect("write model");
+        std::fs::write(dir.path().join("._model.gguf"), b"metadata").expect("write sidecar");
+        std::fs::write(dir.path().join(".DS_Store"), b"finder").expect("write ds_store");
+        std::fs::create_dir_all(dir.path().join("__MACOSX")).expect("create __MACOSX");
+        std::fs::write(
+            dir.path().join("__MACOSX").join("._nested.gguf"),
+            b"nested-metadata",
+        )
+        .expect("write nested sidecar");
+
+        let scan = scan_bundle_directory(dir.path()).expect("scan");
+        assert_eq!(scan.files, vec!["model.gguf".to_string()]);
+        assert_eq!(scan.entry_candidates, vec!["model.gguf".to_string()]);
+        assert!(scan.mmproj_candidates.is_empty());
+    }
+
+    #[test]
+    fn copy_bundle_directory_skips_metadata_sidecars() {
+        let source = temp_dir("copy-ignore-src");
+        let dest = temp_dir("copy-ignore-dst");
+        std::fs::write(source.path().join("model.gguf"), b"weights").expect("write model");
+        std::fs::write(source.path().join("._model.gguf"), b"metadata").expect("write sidecar");
+        std::fs::create_dir_all(source.path().join("__MACOSX")).expect("create __MACOSX");
+        std::fs::write(
+            source.path().join("__MACOSX").join("._nested.gguf"),
+            b"nested-metadata",
+        )
+        .expect("write nested sidecar");
+
+        copy_bundle_directory(source.path(), dest.path()).expect("copy");
+
+        assert!(dest.path().join("model.gguf").exists());
+        assert!(!dest.path().join("._model.gguf").exists());
+        assert!(!dest.path().join("__MACOSX").exists());
     }
 
     #[test]

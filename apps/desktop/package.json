@@ -8,7 +8,7 @@
     "dev": "pnpm run dev:shell",
     "env:check:runtime-mods-dir": "node scripts/dev-env-check.mjs --require-runtime-mods-dir",
     "env:check:mods-root": "node scripts/env-check-mods-root.mjs",
-    "dev:renderer": "vite --host 127.0.0.1 --port 1420 --strictPort",
+    "dev:renderer": "node scripts/ensure-dev-renderer-port.mjs && vite --host 127.0.0.1 --port 1420 --strictPort",
     "dev:shell": "tauri dev --config src-tauri/tauri.conf.json",
     "dev:shell:clean": "pnpm run clean:src-js && pnpm run dev:shell",
     "smoke:mods": "pnpm run env:check:runtime-mods-dir && node scripts/dev-mods-smoke.mjs --all",

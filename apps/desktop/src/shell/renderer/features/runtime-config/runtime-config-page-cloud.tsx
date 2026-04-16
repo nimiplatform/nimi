@@ -133,34 +133,6 @@ type CloudPageProps = {
 // Use shared SectionTitle from settings-layout-components (imported as SharedSectionTitle)
 const SectionTitle = SharedSectionTitle;
 
-function SettingRow({
-  icon,
-  title,
-  description,
-  action,
-}: {
-  icon?: React.ReactNode;
-  title: string;
-  description?: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/80">
-      <div className="flex items-center gap-4">
-        {icon && (
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] text-[var(--nimi-action-primary-bg)]">
-            {icon}
-          </div>
-        )}
-        <div>
-          <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{title}</p>
-          {description && <p className="text-xs text-[var(--nimi-text-muted)]">{description}</p>}
-        </div>
-      </div>
-      {action && <div className="flex items-center gap-2">{action}</div>}
-    </div>
-  );
-}
 
 // Button Component
 function Button({
@@ -441,288 +413,274 @@ export function CloudPage({ model, state }: CloudPageProps) {
   };
 
   return (
-    <RuntimePageShell>
-      {/* Connectors List Section */}
-      <section>
+    <RuntimePageShell className="space-y-4">
+      {/* Top bar: actions */}
+      <div className="flex items-center justify-between gap-3">
         <SectionTitle description={t('runtimeConfig.cloud.connectorsManagement', { defaultValue: 'Manage your cloud API connectors' })}>
           {t('runtimeConfig.cloud.connectors')}
         </SectionTitle>
-        <PrimitiveCard className="mt-3 p-5">
-          <SettingRow
-            icon={<CloudIcon className="h-5 w-5" />}
-            title={t('runtimeConfig.cloud.availableConnectors', { defaultValue: 'Available Connectors' })}
-            description={t('runtimeConfig.cloud.selectConnectorToConfigure', { defaultValue: 'Select a connector to configure' })}
-            action={
-              <div className="flex flex-col items-end gap-2">
-                <div className="flex items-center gap-2">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => { void onAddConnector().catch((e) => reportError('Add connector failed', e)); }}
-                  icon={<PlusIcon />}
-                >
-                  {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
-                </Button>
-                <button
-                  type="button"
-                  disabled={model.testingConnector || !selectedConnector}
-                  onClick={() => void model.testSelectedConnector()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-[var(--nimi-text-secondary)] shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <BoltIcon className="text-[var(--nimi-action-primary-bg)]" />
-                  {model.testingConnector
-                    ? t('runtimeConfig.cloud.testing', { defaultValue: 'Testing...' })
-                    : t('runtimeConfig.cloud.testConnector', { defaultValue: 'Test' })}
-                </button>
-                </div>
-                {model.connectorTestFeedback ? (
-                  <InlineFeedback
-                    feedback={model.connectorTestFeedback}
-                    className="w-full max-w-md"
-                    title={t('runtimeConfig.cloud.testResult', { defaultValue: 'Connector test' })}
-                    onDismiss={() => model.setConnectorTestFeedback(null)}
-                  />
-                ) : null}
-              </div>
-            }
-          />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => { void onAddConnector().catch((e) => reportError('Add connector failed', e)); }}
+            icon={<PlusIcon />}
+          >
+            {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
+          </Button>
+          <button
+            type="button"
+            disabled={model.testingConnector || !selectedConnector}
+            onClick={() => void model.testSelectedConnector()}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-[var(--nimi-text-secondary)] shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <BoltIcon className="text-[var(--nimi-action-primary-bg)]" />
+            {model.testingConnector
+              ? t('runtimeConfig.cloud.testing', { defaultValue: 'Testing...' })
+              : t('runtimeConfig.cloud.testConnector', { defaultValue: 'Test' })}
+          </button>
+        </div>
+      </div>
 
-          <div className="mx-5 h-px bg-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)]" />
+      {model.connectorTestFeedback ? (
+        <InlineFeedback
+          feedback={model.connectorTestFeedback}
+          className="w-full"
+          title={t('runtimeConfig.cloud.testResult', { defaultValue: 'Connector test' })}
+          onDismiss={() => model.setConnectorTestFeedback(null)}
+        />
+      ) : null}
 
-          {/* Connector Chips */}
-          <div className="px-5 py-4">
-            {orderedConnectors.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
-                  <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
-                </div>
-                <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.cloud.noConnectors', { defaultValue: 'No Connectors' })}</p>
-                <p className="text-xs text-[var(--nimi-text-muted)] mt-1">
-                  {t('runtimeConfig.cloud.noConnectorsHint', { defaultValue: 'Click "Add" to create your first connector' })}
-                </p>
+      {/* Split panel: connector list (left) + config (right) */}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        {/* Left panel — connector list */}
+        <PrimitiveCard className="h-[600px] overflow-y-auto p-4">
+          {orderedConnectors.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
+                <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
               </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {orderedConnectors.map((connector) => {
-                  const active = connector.id === state.selectedConnectorId;
-                  const isHealthy = connector.status === 'healthy';
-                  return (
-                    <button
-                      key={connector.id}
-                      type="button"
-                      onClick={() => onSelectConnector(connector.id)}
-                      className={`rounded-xl border px-4 py-2.5 text-left text-xs transition-all ${
-                        active
-                          ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] ring-1 ring-mint-200'
-                          : 'border-[var(--nimi-border-subtle)] bg-white/90 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-block h-2 w-2 rounded-full ${
-                          isHealthy ? 'bg-[var(--nimi-status-success)]' : connector.status === 'unreachable' || connector.status === 'degraded' || connector.status === 'unsupported' ? 'bg-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
-                        }`} />
-                        <p className="font-semibold text-[var(--nimi-text-primary)]">{connector.label}</p>
-                        {connector.scope === 'runtime-system' ? (
-                          <span
-                            data-testid={E2E_IDS.runtimeConnectorScopeBadge(connector.id)}
-                            className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[9px] text-[var(--nimi-text-muted)]"
-                          >
-                            {t('runtimeConfig.cloud.runtimeSystem', { defaultValue: 'runtime managed' })}
-                          </span>
-                        ) : connector.scope === 'machine-global' ? (
-                          <span
-                            data-testid={E2E_IDS.runtimeConnectorScopeBadge(connector.id)}
-                            className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-1.5 py-0.5 text-[9px] text-[var(--nimi-action-primary-bg)]"
-                          >
-                            {t('runtimeConfig.cloud.machineGlobal', { defaultValue: 'machine global' })}
-                          </span>
-                        ) : connector.isDraft ? (
-                          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[9px] text-[var(--nimi-status-warning)]">
-                            {t('runtimeConfig.cloud.draft', { defaultValue: 'draft' })}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="text-[10px] text-[var(--nimi-text-muted)] mt-0.5">{getVendorLabelV11(connector.vendor)}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </PrimitiveCard>
-      </section>
-
-      {/* Selected Connector Configuration */}
-      {selectedConnector ? (
-        <section>
-          <SectionTitle description={t('runtimeConfig.cloud.configureSelectedConnector', { defaultValue: 'Configure the selected connector' })}>
-            {t('runtimeConfig.cloud.connectorConfig')}
-          </SectionTitle>
-          <PrimitiveCard className="mt-3 space-y-4 p-5">
-            {/* Name and Vendor */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input
-                label={t('runtimeConfig.cloud.connectorName', { defaultValue: 'Connector Name' })}
-                value={selectedConnector.label}
-                onChange={onRenameSelectedConnector}
-                placeholder={t('runtimeConfig.cloud.connectorNamePlaceholder', { defaultValue: 'My API Connector' })}
-                disabled={isRuntimeSystem}
-                icon={<ServerIcon />}
-              />
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.cloud.vendor', { defaultValue: 'Vendor' })}
-                </label>
-                <RuntimeSelect
-                  value={selectedConnector.vendor}
-                  onChange={(nextVendor) => { void onChangeConnectorVendor(nextVendor).catch((err) => reportError('Switch vendor failed', err)); }}
-                  disabled={isRuntimeSystem}
-                  className="w-full"
-                  options={VENDOR_ORDER_V11.map((vendor) => ({
-                    value: vendor,
-                    label: getVendorLabelV11(vendor),
-                  }))}
-                />
-              </div>
+              <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.cloud.noConnectors', { defaultValue: 'No Connectors' })}</p>
+              <p className="text-xs text-[var(--nimi-text-muted)] mt-1">
+                {t('runtimeConfig.cloud.noConnectorsHint', { defaultValue: 'Click "Add" to create your first connector' })}
+              </p>
             </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {orderedConnectors.map((connector) => {
+                const active = connector.id === state.selectedConnectorId;
+                const isHealthy = connector.status === 'healthy';
+                return (
+                  <button
+                    key={connector.id}
+                    type="button"
+                    onClick={() => onSelectConnector(connector.id)}
+                    className={`w-full rounded-xl border px-4 py-3 text-left text-xs transition-all ${
+                      active
+                        ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] ring-1 ring-mint-200'
+                        : 'border-[var(--nimi-border-subtle)] bg-white/90 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                        isHealthy ? 'bg-[var(--nimi-status-success)]' : connector.status === 'unreachable' || connector.status === 'degraded' || connector.status === 'unsupported' ? 'bg-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
+                      }`} />
+                      <p className="truncate font-semibold text-[var(--nimi-text-primary)]">{connector.label}</p>
+                      {connector.scope === 'runtime-system' ? (
+                        <span
+                          data-testid={E2E_IDS.runtimeConnectorScopeBadge(connector.id)}
+                          className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[9px] text-[var(--nimi-text-muted)]"
+                        >
+                          {t('runtimeConfig.cloud.runtimeSystem', { defaultValue: 'runtime managed' })}
+                        </span>
+                      ) : connector.scope === 'machine-global' ? (
+                        <span
+                          data-testid={E2E_IDS.runtimeConnectorScopeBadge(connector.id)}
+                          className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-1.5 py-0.5 text-[9px] text-[var(--nimi-action-primary-bg)]"
+                        >
+                          {t('runtimeConfig.cloud.machineGlobal', { defaultValue: 'machine global' })}
+                        </span>
+                      ) : connector.isDraft ? (
+                        <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[9px] text-[var(--nimi-status-warning)]">
+                          {t('runtimeConfig.cloud.draft', { defaultValue: 'draft' })}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-[10px] text-[var(--nimi-text-muted)] mt-0.5">{getVendorLabelV11(connector.vendor)}</p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </PrimitiveCard>
 
-            {/* Endpoint and API Key */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input
-                label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
-                value={selectedConnector.endpoint}
-                onChange={onChangeConnectorEndpoint}
-                placeholder={DEFAULT_OPENAI_ENDPOINT_V11}
-                disabled={isRuntimeSystem}
-              />
-              {isRuntimeSystem ? (
+        {/* Right panel — connector config */}
+        <PrimitiveCard className="h-[600px] overflow-y-auto p-5">
+          {selectedConnector ? (
+            <div className="space-y-4">
+              {/* Name and Vendor */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  label={t('runtimeConfig.cloud.connectorName', { defaultValue: 'Connector Name' })}
+                  value={selectedConnector.label}
+                  onChange={onRenameSelectedConnector}
+                  placeholder={t('runtimeConfig.cloud.connectorNamePlaceholder', { defaultValue: 'My API Connector' })}
+                  disabled={isRuntimeSystem}
+                  icon={<ServerIcon />}
+                />
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
-                    {t('runtimeConfig.cloud.apiKey', { defaultValue: 'API Key' })}
+                    {t('runtimeConfig.cloud.vendor', { defaultValue: 'Vendor' })}
                   </label>
-                  <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3 ring-1 ring-black/5">
-                    <p className="text-xs text-[var(--nimi-text-muted)]">
-                      {selectedConnector.hasCredential
-                        ? t('runtimeConfig.cloud.managedByRuntime', { defaultValue: 'Managed by runtime (environment variable)' })
-                        : t('runtimeConfig.cloud.notConfigured', { defaultValue: 'Not configured — set the environment variable in config.json' })}
-                    </p>
-                  </div>
+                  <RuntimeSelect
+                    value={selectedConnector.vendor}
+                    onChange={(nextVendor) => { void onChangeConnectorVendor(nextVendor).catch((err) => reportError('Switch vendor failed', err)); }}
+                    disabled={isRuntimeSystem}
+                    className="w-full"
+                    options={VENDOR_ORDER_V11.map((vendor) => ({
+                      value: vendor,
+                      label: getVendorLabelV11(vendor),
+                    }))}
+                  />
                 </div>
-              ) : (
+              </div>
+
+              {/* Endpoint and API Key */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
-                  label={isDraft
-                    ? t('runtimeConfig.cloud.apiKeyRequired', { defaultValue: 'API Key (required)' })
-                    : t('runtimeConfig.cloud.sessionApiKey', { defaultValue: 'Session API Key' })}
-                  value={tokenDraft}
-                  onChange={setTokenDraft}
-                  type={model.showCloudApiKey ? 'text' : 'password'}
-                  placeholder="sk-..."
-                  icon={<KeyIcon />}
+                  label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
+                  value={selectedConnector.endpoint}
+                  onChange={onChangeConnectorEndpoint}
+                  placeholder={DEFAULT_OPENAI_ENDPOINT_V11}
+                  disabled={isRuntimeSystem}
                 />
-              )}
-            </div>
+                {isRuntimeSystem ? (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                      {t('runtimeConfig.cloud.apiKey', { defaultValue: 'API Key' })}
+                    </label>
+                    <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3 ring-1 ring-black/5">
+                      <p className="text-xs text-[var(--nimi-text-muted)]">
+                        {selectedConnector.hasCredential
+                          ? t('runtimeConfig.cloud.managedByRuntime', { defaultValue: 'Managed by runtime (environment variable)' })
+                          : t('runtimeConfig.cloud.notConfigured', { defaultValue: 'Not configured — set the environment variable in config.json' })}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <Input
+                    label={isDraft
+                      ? t('runtimeConfig.cloud.apiKeyRequired', { defaultValue: 'API Key (required)' })
+                      : t('runtimeConfig.cloud.sessionApiKey', { defaultValue: 'Session API Key' })}
+                    value={tokenDraft}
+                    onChange={setTokenDraft}
+                    type={model.showCloudApiKey ? 'text' : 'password'}
+                    placeholder="sk-..."
+                    icon={<KeyIcon />}
+                  />
+                )}
+              </div>
 
-            {/* Actions */}
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              {!isSystemOwned && (
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                {!isSystemOwned && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={!canSaveToken}
+                    onClick={() => void saveTokenToVault()}
+                    icon={savingToken ? undefined : <CheckIcon />}
+                  >
+                    {savingToken
+                      ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
+                      : isDraft
+                        ? t('runtimeConfig.cloud.createConnector', { defaultValue: 'Create Connector' })
+                        : t('runtimeConfig.cloud.saveApiKey', { defaultValue: 'Save API Key' })}
+                  </Button>
+                )}
                 <Button
-                  variant="primary"
+                  variant="secondary"
                   size="sm"
-                  disabled={!canSaveToken}
-                  onClick={() => void saveTokenToVault()}
-                  icon={savingToken ? undefined : <CheckIcon />}
+                  onClick={() => model.setShowCloudApiKey((v) => !v)}
+                  icon={model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
                 >
-                  {savingToken
-                    ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
-                    : isDraft
-                      ? t('runtimeConfig.cloud.createConnector', { defaultValue: 'Create Connector' })
-                      : t('runtimeConfig.cloud.saveApiKey', { defaultValue: 'Save API Key' })}
+                  {model.showCloudApiKey
+                    ? t('Auth.hidePassword', { defaultValue: 'Hide' })
+                    : t('Auth.showPassword', { defaultValue: 'Show' })}
                 </Button>
-              )}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => model.setShowCloudApiKey((v) => !v)}
-                icon={model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
-              >
-                {model.showCloudApiKey
-                  ? t('Auth.hidePassword', { defaultValue: 'Hide' })
-                  : t('Auth.showPassword', { defaultValue: 'Show' })}
-              </Button>
-              {!isSystemOwned && selectedConnectorId && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => { void onRemoveSelectedConnector().catch((e) => reportError('Remove connector failed', e)); }}
-                  icon={<TrashIcon />}
-                >
-                  {t('runtimeConfig.cloud.deleteConnector', { defaultValue: 'Delete' })}
-                </Button>
-              )}
-              <div className="flex-1" />
-              <StatusBadge status={selectedConnector.status} />
-            </div>
+                {!isSystemOwned && selectedConnectorId && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => { void onRemoveSelectedConnector().catch((e) => reportError('Remove connector failed', e)); }}
+                    icon={<TrashIcon />}
+                  >
+                    {t('runtimeConfig.cloud.deleteConnector', { defaultValue: 'Delete' })}
+                  </Button>
+                )}
+                <div className="flex-1" />
+                <StatusBadge status={selectedConnector.status} />
+              </div>
 
-            {/* Info Messages */}
-            <div className="space-y-2">
-              <p className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">ID: {selectedConnector.id}</p>
-              {isMachineGlobal ? (
-                <p className="text-xs text-[var(--nimi-action-primary-bg)]">
-                  {t('runtimeConfig.cloud.managedMachineGlobal', { defaultValue: 'Shared across accounts on this machine' })}
-                </p>
-              ) : null}
-              {selectedConnector.hasCredential && (
-                <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">
-                  <CheckIcon className="h-3.5 w-3.5" />
-                  {t('runtimeConfig.cloud.credentialConfigured', { defaultValue: 'Credential configured' })}
-                </p>
-              )}
-              {tokenSavedConnectorId === selectedConnector.id && (
-                <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">
-                  <CheckIcon className="h-3.5 w-3.5" />
-                  {t('runtimeConfig.cloud.apiKeySaved', { defaultValue: 'API Key saved successfully' })}
-                </p>
-              )}
-              {tokenSaveError && (
-                <p className="text-xs text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] rounded-lg px-3 py-2">{tokenSaveError}</p>
-              )}
-            </div>
+              {/* Info Messages */}
+              <div className="space-y-2">
+                <p className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">ID: {selectedConnector.id}</p>
+                {isMachineGlobal ? (
+                  <p className="text-xs text-[var(--nimi-action-primary-bg)]">
+                    {t('runtimeConfig.cloud.managedMachineGlobal', { defaultValue: 'Shared across accounts on this machine' })}
+                  </p>
+                ) : null}
+                {selectedConnector.hasCredential && (
+                  <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">
+                    <CheckIcon className="h-3.5 w-3.5" />
+                    {t('runtimeConfig.cloud.credentialConfigured', { defaultValue: 'Credential configured' })}
+                  </p>
+                )}
+                {tokenSavedConnectorId === selectedConnector.id && (
+                  <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">
+                    <CheckIcon className="h-3.5 w-3.5" />
+                    {t('runtimeConfig.cloud.apiKeySaved', { defaultValue: 'API Key saved successfully' })}
+                  </p>
+                )}
+                {tokenSaveError && (
+                  <p className="text-xs text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] rounded-lg px-3 py-2">{tokenSaveError}</p>
+                )}
+              </div>
 
-            <div className="h-px bg-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)]" />
+              <div className="h-px bg-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)]" />
 
-            {/* Models Section */}
-            <div className="space-y-3">
-              <Input
-                label={t('runtimeConfig.cloud.searchModels', { defaultValue: 'Search Models' })}
-                value={model.connectorModelQuery}
-                onChange={model.setConnectorModelQuery}
-                placeholder={t('runtimeConfig.cloud.searchModelsPlaceholder', { defaultValue: 'Search by model name...' })}
-                icon={<SearchIcon />}
-              />
-              <div>
-                <p className="text-sm font-medium text-[var(--nimi-text-secondary)] mb-2">
-                  {t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
-                </p>
-                {renderModelChips(model.filteredConnectorModels, `connector-${selectedConnector.id}`)}
+              {/* Models Section */}
+              <div className="space-y-3">
+                <Input
+                  label={t('runtimeConfig.cloud.searchModels', { defaultValue: 'Search Models' })}
+                  value={model.connectorModelQuery}
+                  onChange={model.setConnectorModelQuery}
+                  placeholder={t('runtimeConfig.cloud.searchModelsPlaceholder', { defaultValue: 'Search by model name...' })}
+                  icon={<SearchIcon />}
+                />
+                <div>
+                  <p className="text-sm font-medium text-[var(--nimi-text-secondary)] mb-2">
+                    {t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
+                  </p>
+                  {renderModelChips(model.filteredConnectorModels, `connector-${selectedConnector.id}`)}
+                </div>
               </div>
             </div>
-          </PrimitiveCard>
-        </section>
-      ) : (
-        <PrimitiveCard className="p-8">
-          <div className="flex flex-col items-center justify-center text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-200">
-              <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-200">
+                <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
+              </div>
+              <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
+                {t('runtimeConfig.cloud.noConnectorSelected', { defaultValue: 'No Connector Selected' })}
+              </p>
+              <p className="text-xs text-[var(--nimi-text-muted)] mt-1">
+                {t('runtimeConfig.cloud.noConnectorSelectedHint', { defaultValue: 'Select a connector above or create a new one' })}
+              </p>
             </div>
-            <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
-              {t('runtimeConfig.cloud.noConnectorSelected', { defaultValue: 'No Connector Selected' })}
-            </p>
-            <p className="text-xs text-[var(--nimi-text-muted)] mt-1">
-              {t('runtimeConfig.cloud.noConnectorSelectedHint', { defaultValue: 'Select a connector above or create a new one' })}
-            </p>
-          </div>
+          )}
         </PrimitiveCard>
-      )}
+      </div>
     </RuntimePageShell>
   );
 }
