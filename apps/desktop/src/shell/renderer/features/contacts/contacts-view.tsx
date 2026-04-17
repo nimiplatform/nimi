@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { IconButton, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
+import { SidebarHeader, SidebarResizeHandle, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
 import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
@@ -123,7 +123,9 @@ export function ContactsView(props: ContactsViewProps) {
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
   const containerRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [sidebarWidth, setSidebarWidth] = useState(280);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);
@@ -177,6 +179,19 @@ export function ContactsView(props: ContactsViewProps) {
       window.removeEventListener('mouseup', onMouseUp);
     };
   }, []);
+
+  // 搜索框打开时聚焦；外部已有 searchText 时自动展开
+  useEffect(() => {
+    if (props.searchText.trim() && !searchOpen) {
+      setSearchOpen(true);
+    }
+  }, [props.searchText, searchOpen]);
+
+  useEffect(() => {
+    if (searchOpen) {
+      searchInputRef.current?.focus();
+    }
+  }, [searchOpen]);
 
   const startResize = (event: MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -408,18 +423,76 @@ export function ContactsView(props: ContactsViewProps) {
         data-testid={E2E_IDS.panel('contacts')}
       >
         <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Contacts.title')}</h1>} />
-        <SidebarSearch
-          value={props.searchText}
-          onChange={props.onSearchTextChange}
-          onClear={() => {
-            props.onSearchTextChange('');
-            setSelectedContact(null);
-            setSelectedRequest(null);
-            setSelectedCategory(null);
-          }}
-          clearLabel={t('Home.clear', { defaultValue: 'Clear' })}
-          placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
-          primaryAction={(
+        {/* 折叠式搜索：默认仅显示搜索/加好友图标，点击搜索图标向左展开输入框 */}
+        <div className="px-2 pb-1">
+          <div className="flex min-h-10 items-center justify-end gap-2">
+            {searchOpen ? (
+              <div className="flex min-w-0 flex-1 items-center rounded-full border border-[var(--nimi-border-subtle)] bg-white/60 px-3 transition-all">
+                <span className="shrink-0 text-[var(--nimi-text-muted)]">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </span>
+                <input
+                  ref={searchInputRef}
+                  className="ml-2 min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-[var(--nimi-field-placeholder)]"
+                  value={props.searchText}
+                  onChange={(event) => props.onSearchTextChange(event.target.value)}
+                  onBlur={() => {
+                    if (!props.searchText.trim()) {
+                      setSearchOpen(false);
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      props.onSearchTextChange('');
+                      setSelectedContact(null);
+                      setSelectedRequest(null);
+                      setSelectedCategory(null);
+                      setSearchOpen(false);
+                    }
+                  }}
+                  placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
+                  aria-label={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
+                />
+                <IconButton
+                  icon={(
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  )}
+                  size="sm"
+                  tone="ghost"
+                  onClick={() => {
+                    props.onSearchTextChange('');
+                    setSelectedContact(null);
+                    setSelectedRequest(null);
+                    setSelectedCategory(null);
+                    setSearchOpen(false);
+                  }}
+                  className="ml-1 h-6 w-6 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
+                  aria-label={t('Home.clear', { defaultValue: 'Clear' })}
+                  title={t('Home.clear', { defaultValue: 'Clear' })}
+                />
+              </div>
+            ) : (
+              <Tooltip content={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })} placement="bottom">
+                <IconButton
+                  tone="ghost"
+                  icon={(
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                  )}
+                  onClick={() => setSearchOpen(true)}
+                  className="h-10 w-10 shrink-0"
+                  aria-label={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
+                />
+              </Tooltip>
+            )}
             <Tooltip content={t('Contacts.addContact', { defaultValue: 'Add Friend' })} placement="bottom">
               <IconButton
                 onClick={props.onOpenAddContact}
@@ -434,8 +507,8 @@ export function ContactsView(props: ContactsViewProps) {
                 aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
               />
             </Tooltip>
-          )}
-        />
+          </div>
+        </div>
 
         <ScrollArea
           className="flex-1"
@@ -494,10 +567,6 @@ export function ContactsView(props: ContactsViewProps) {
         padding="none"
         className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
       >
-        <ScrollArea
-          className="flex min-w-0 flex-1 flex-col"
-          viewportClassName="bg-transparent"
-        >
         {props.feedback ? (
           <div className="px-6 pt-4">
             <InlineFeedback
@@ -506,6 +575,20 @@ export function ContactsView(props: ContactsViewProps) {
             />
           </div>
         ) : null}
+        {!selectedRequest && selectedCategory !== 'requests' && !selectedContact ? (
+          // 空状态 - Nimi Logo 居中于整个详情面板
+          <div className="flex min-w-0 flex-1 items-center justify-center bg-transparent px-6 py-6">
+            <img
+              src={nimiLogo}
+              alt="Nimi"
+              className="w-64 h-64 object-contain"
+            />
+          </div>
+        ) : (
+        <ScrollArea
+          className="flex min-w-0 flex-1 flex-col"
+          viewportClassName="bg-transparent"
+        >
         {selectedRequest ? (
           // 单个好友请求详情
           <FriendRequestDetail
@@ -581,24 +664,9 @@ export function ContactsView(props: ContactsViewProps) {
           <div className="flex h-full items-center justify-center bg-transparent px-6 py-6">
             <ContactDetailLoadingState label={t('ProfileView.loading', { defaultValue: 'Loading profile...' })} />
           </div>
-        ) : (
-          // 空状态 - 显示 Nimi Logo
-          <div className="flex h-full items-center justify-center bg-transparent px-6 py-6">
-            <Surface
-              tone="panel"
-              material="glass-regular"
-              className="flex min-h-[420px] w-full max-w-2xl items-center justify-center rounded-[2rem] border-white/60"
-            >
-              {/* Nimi Logo */}
-              <img
-                src={nimiLogo}
-                alt="Nimi"
-                className="mx-auto w-64 h-64 object-contain"
-              />
-            </Surface>
-          </div>
-        )}
+        ) : null}
         </ScrollArea>
+        )}
       </Surface>
 
       {/* Block 确认对话框 */}
