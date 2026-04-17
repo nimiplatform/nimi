@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   CanonicalMessageBubble,
   CanonicalTypingBubble,
@@ -43,7 +43,6 @@ export type AdvisorTranscriptProps = {
   streamingState: StreamingState;
   streamingContent: string;
   onStopGenerating: () => void;
-  messagesEndRef: RefObject<HTMLDivElement | null>;
 };
 
 /**
@@ -109,12 +108,18 @@ export function AdvisorTranscript({
   streamingState,
   streamingContent,
   onStopGenerating,
-  messagesEndRef,
 }: AdvisorTranscriptProps) {
   const canonicalMessages = messages.map(toCanonicalMessage);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages, streamingContent]);
 
   return (
-    <div className="conversation-root flex-1 overflow-auto">
+    <div ref={scrollContainerRef} className="conversation-root flex-1 overflow-auto">
       <AdvisorAnimationStyles />
       <div className="mx-auto max-w-2xl space-y-3 px-6 pb-4 pt-5">
         {canonicalMessages.map((msg) => (
@@ -144,8 +149,6 @@ export function AdvisorTranscript({
             onStop={onStopGenerating}
           />
         )}
-
-        <div ref={messagesEndRef} />
       </div>
     </div>
   );

@@ -253,7 +253,6 @@ export default function AdvisorPage() {
   const [streamingContent, setStreamingContent] = useState('');
   const [runtimeAvailable, setRuntimeAvailable] = useState<boolean | null>(null);
   const [recordRoute, setRecordRoute] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const topicHandledRef = useRef<string | null>(null);
   const journalHandledRef = useRef<string | null>(null);
@@ -410,10 +409,6 @@ export default function AdvisorPage() {
   }, [activeConvId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamingContent]);
-
-  useEffect(() => {
     async function checkRuntime() {
       try {
         const { getPlatformClient } = await import('@nimiplatform/sdk');
@@ -532,7 +527,6 @@ export default function AdvisorPage() {
               streamingState={streamingState}
               streamingContent={streamingContent}
               onStopGenerating={() => abortRef.current?.abort()}
-              messagesEndRef={messagesEndRef}
             />
             <AdvisorComposer
               value={input}
