@@ -320,8 +320,22 @@ function ToothStatusOverview({ records }: { records: DentalRecordRow[] }) {
 
       {/* Legend: two axes */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[10px] font-medium shrink-0" style={{ color: S.text }}>边框·萌出</span>
+        <div
+          className={`flex items-center gap-x-3 gap-y-1.5 flex-wrap px-2.5 py-1.5 ${S.radiusSm}`}
+          style={{ background: '#fafaf8' }}
+        >
+          <span className="inline-flex items-center gap-1.5 shrink-0 leading-none">
+            <span
+              className="text-[9px] font-semibold tracking-[0.12em]"
+              style={{ color: S.sub }}
+            >
+              边框
+            </span>
+            <span className="h-3 w-px" style={{ background: S.border }} />
+            <span className="text-[11px] font-semibold" style={{ color: S.text }}>
+              萌出
+            </span>
+          </span>
           {(['primary_present', 'lost_waiting', 'permanent_erupted', 'unerupted'] as EruptionState[]).map((s) =>
             legendChip(
               { background: '#fff', border: `2px solid ${ERUPTION_STYLE[s].border}`, boxSizing: 'border-box' },
@@ -330,8 +344,22 @@ function ToothStatusOverview({ records }: { records: DentalRecordRow[] }) {
             ),
           )}
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[10px] font-medium shrink-0" style={{ color: S.text }}>填充·健康</span>
+        <div
+          className={`flex items-center gap-x-3 gap-y-1.5 flex-wrap px-2.5 py-1.5 ${S.radiusSm}`}
+          style={{ background: '#fafaf8' }}
+        >
+          <span className="inline-flex items-center gap-1.5 shrink-0 leading-none">
+            <span
+              className="text-[9px] font-semibold tracking-[0.12em]"
+              style={{ color: S.sub }}
+            >
+              填充
+            </span>
+            <span className="h-3 w-px" style={{ background: S.border }} />
+            <span className="text-[11px] font-semibold" style={{ color: S.text }}>
+              健康
+            </span>
+          </span>
           {(['healthy', 'caries', 'treated'] as HealthState[]).map((s) =>
             legendChip(
               { background: HEALTH_STYLE[s].bg, border: s === 'healthy' ? '1px solid #e5e7eb' : 'none' },

@@ -99,7 +99,7 @@ function ChildSwitchPopover({ child, childList }: { child: ChildProfile; childLi
   return (
     <div ref={ref} className="absolute right-5 top-5 z-20">
       <button type="button" onClick={() => (open ? closePicker() : openPicker())}
-        className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-white/40" title="切换孩子" style={{ color: textMuted }}>
+        className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-black/5" title="切换孩子" style={{ color: textMuted }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
           <polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
@@ -129,44 +129,138 @@ function ChildSwitchPopover({ child, childList }: { child: ChildProfile; childLi
   );
 }
 
-/* ── Profile Card — glass hero, matching welcome hero section ── */
+/* ── Profile Card — Linear/Vercel/Apple-inspired, mesh-gradient accent ── */
+
+/**
+ * Gender-tinted mesh gradient for the profile card background.
+ * - male   → blue + mint ("蓝绿色")
+ * - female → pink + mint ("粉绿色")
+ * Colors stay extremely restrained so they only function as ambient mood,
+ * not as the primary visual element.
+ */
+function getProfileMeshBackground(gender: ChildProfile['gender']): string {
+  if (gender === 'female') {
+    return [
+      'radial-gradient(at 20% 15%, rgba(255, 192, 214, 0.26) 0px, transparent 55%)',
+      'radial-gradient(at 85% 20%, rgba(167, 243, 208, 0.32) 0px, transparent 55%)',
+      'radial-gradient(at 30% 90%, rgba(167, 243, 208, 0.28) 0px, transparent 55%)',
+      'radial-gradient(at 80% 85%, rgba(255, 220, 232, 0.22) 0px, transparent 55%)',
+    ].join(', ');
+  }
+  return [
+    'radial-gradient(at 22% 18%, rgba(186, 230, 253, 0.30) 0px, transparent 55%)',
+    'radial-gradient(at 82% 32%, rgba(165, 243, 252, 0.22) 0px, transparent 55%)',
+    'radial-gradient(at 48% 88%, rgba(167, 243, 208, 0.22) 0px, transparent 55%)',
+  ].join(', ');
+}
 
 export function ChildContextCard({ child, childList, ageMonths }: { child: ChildProfile; childList: ChildProfile[]; ageMonths: number }) {
+  const meshBackground = getProfileMeshBackground(child.gender);
   return (
-    <Surface as="div" material="glass-thick" padding="none" tone="card" className="col-span-2 row-span-2 relative z-10 overflow-visible">
-      <div className="relative flex h-full flex-col items-center px-6 pb-7 pt-10">
-        <ChildSwitchPopover child={child} childList={childList} />
+    <div
+      className="col-span-2 row-span-2 relative z-10"
+      style={{
+        borderRadius: 24,
+        background: '#ffffff',
+        boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 4px 14px rgba(15,23,42,0.04), 0 18px 36px rgba(15,23,42,0.04)',
+      }}
+    >
+      {/* Clipped visual layer — mesh gradient + content. Switcher sits outside so its popover can overflow. */}
+      <div
+        className="relative flex h-full flex-col items-center overflow-hidden px-6 pb-6 pt-12"
+        style={{ borderRadius: 24, isolation: 'isolate' }}
+      >
+        {/* Diffuse gender-tinted mesh gradient (ambient accent only) */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{ backgroundImage: meshBackground, filter: 'blur(24px)', zIndex: 0 }}
+        />
 
-        {child.avatarPath ? (
-          <img src={convertFileSrc(child.avatarPath)} alt=""
-            className="h-[72px] w-[72px] rounded-full border-2 object-cover"
-            style={{ borderColor: 'rgba(255,255,255,0.8)', boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }} />
-        ) : (
-          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full text-[28px] font-semibold text-white"
-            style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>
-            {child.displayName.charAt(0)}
-          </div>
-        )}
+        {/* Avatar — 120px, white semi-transparent ring with soft halo */}
+        <div
+          className="relative"
+          style={{
+            width: 120,
+            height: 120,
+            padding: 4,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.6)',
+            boxShadow: '0 4px 14px rgba(15,23,42,0.06)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+          }}
+        >
+          {child.avatarPath ? (
+            <img
+              src={convertFileSrc(child.avatarPath)}
+              alt=""
+              className="h-full w-full rounded-full object-cover"
+            />
+          ) : (
+            <div
+              className="flex h-full w-full items-center justify-center rounded-full text-[40px] font-semibold text-white"
+              style={{ background: 'linear-gradient(135deg, #334155 0%, #1e293b 100%)' }}
+            >
+              {child.displayName.charAt(0)}
+            </div>
+          )}
+        </div>
 
-        <p className="mt-4 max-w-full truncate text-center text-[18px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.3px' }}>
-          {child.displayName}
-        </p>
-        <p className="mt-1 text-center text-[12px]" style={{ color: textMuted }}>
-          {formatAgeLabel(ageMonths)} · {child.gender === 'female' ? '女孩' : '男孩'}
-        </p>
+        {/* Name + subtitle */}
+        <div className="relative mt-6 max-w-full text-center">
+          <h2
+            className="truncate text-[22px] font-semibold tracking-tight"
+            style={{ color: '#1d1d1f', letterSpacing: '-0.3px' }}
+          >
+            {child.displayName}
+          </h2>
+          <p className="mt-1.5 text-[12px]" style={{ color: '#86868b' }}>
+            {formatAgeLabel(ageMonths)} · {child.gender === 'female' ? '女孩' : '男孩'}
+          </p>
+        </div>
 
-        <span className="mt-4 rounded-full px-4 py-1.5 text-[10px] font-semibold"
-          style={{ background: 'rgba(78,204,163,0.20)', color: '#0F766E' }}>
-          {describeNurtureMode(child.nurtureMode)}
-        </span>
+        {/* Action area pinned to the bottom */}
+        <div className="relative mt-auto flex w-full flex-col items-center gap-3">
+          {/* Status badge — pale green + dot */}
+          <span
+            className="inline-flex items-center rounded-full px-3 py-[5px] text-[11px] font-medium"
+            style={{ background: 'rgba(52,199,89,0.12)', color: '#248a3d' }}
+          >
+            <span
+              className="mr-1.5 inline-block h-[6px] w-[6px] rounded-full"
+              style={{ background: '#34c759' }}
+            />
+            {describeNurtureMode(child.nurtureMode)}
+          </span>
 
-        <Link to="/profile"
-          className="mt-auto inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[12px] font-medium text-white transition-all hover:-translate-y-0.5"
-          style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>
-          查看完整档案 <span>→</span>
-        </Link>
+          {/* Ghost button — transparent default, faint gray on hover */}
+          <Link
+            to="/profile"
+            className="flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-black/[0.04]"
+            style={{ color: '#1d1d1f' }}
+          >
+            查看完整档案
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="ml-1 opacity-60"
+            >
+              <path d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
       </div>
-    </Surface>
+
+      {/* Switcher lives outside the clip so its dropdown can overflow the card */}
+      <ChildSwitchPopover child={child} childList={childList} />
+    </div>
   );
 }
 
