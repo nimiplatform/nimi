@@ -17,7 +17,7 @@ const ICON_ELLIPSIS = (
 );
 
 const SWITCH_TRACK_CLASS =
-  "peer h-6 w-11 rounded-full bg-gray-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#56D3B2] peer-checked:shadow-[0_0_0_1px_rgba(86,211,178,0.12)] peer-checked:after:translate-x-full peer-checked:after:border-white";
+  "peer h-6 w-11 rounded-full bg-[color:var(--nimi-border-subtle)] transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-[color:var(--nimi-border-subtle)] after:bg-[color:var(--nimi-surface-card)] after:transition-all after:content-[''] peer-checked:bg-[var(--nimi-action-primary-bg)] peer-checked:shadow-[0_0_0_1px_color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] peer-checked:after:translate-x-full peer-checked:after:border-[color:var(--nimi-surface-card)]";
 
 function ModBadge({ label, className }: { label: string; className: string }) {
   return (
@@ -55,33 +55,33 @@ function actionLabelKey(kind: ModHubActionDescriptor['kind']): string {
 function primaryBtnClass(tone: ModHubActionDescriptor['tone']): string {
   switch (tone) {
     case 'primary':
-      return 'rounded-[10px] bg-[#00C48C] text-white shadow-[0_4px_12px_rgba(0,196,140,0.20)] hover:bg-[#00b07e]';
+      return 'rounded-[10px] bg-[var(--nimi-action-primary-bg)] text-white shadow-[0_4px_12px_color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_88%,black)]';
     case 'secondary':
-      return 'rounded-[10px] bg-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-700';
+      return 'rounded-[10px] bg-transparent text-[color:var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] hover:text-[color:var(--nimi-text-secondary)]';
     case 'danger':
-      return 'rounded-[10px] bg-rose-50 text-rose-700 hover:bg-rose-100';
+      return 'rounded-[10px] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_16%,transparent)]';
     default:
-      return 'rounded-[10px] bg-slate-50 text-slate-600 hover:bg-slate-100';
+      return 'rounded-[10px] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] text-[color:var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_88%,white)]';
   }
 }
 
 function badgeForState(mod: ModHubMod, t: (key: string, options?: Record<string, unknown>) => string) {
   if (mod.visualState === 'conflict') {
-    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-amber-100 text-amber-800' };
+    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] text-[var(--nimi-status-warning)]' };
   }
   if (mod.visualState === 'failed') {
-    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-rose-100 text-rose-700' };
+    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_16%,transparent)] text-[var(--nimi-status-danger)]' };
   }
   if (mod.visualState === 'update-available') {
-    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-sky-100 text-sky-700' };
+    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_16%,transparent)] text-[var(--nimi-status-info)]' };
   }
   if (mod.visualState === 'enabled') {
-    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-emerald-100 text-emerald-700' };
+    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_16%,transparent)] text-[var(--nimi-status-success)]' };
   }
   if (mod.visualState === 'disabled') {
-    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-stone-100 text-stone-500' };
+    return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] text-[color:var(--nimi-text-muted)]' };
   }
-  return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-stone-50 text-stone-400' };
+  return { label: t(`ModHub.${mod.statusLabelKey}`), className: 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,white)] text-[color:var(--nimi-text-muted)]' };
 }
 
 export function ModHubRow({
@@ -187,7 +187,7 @@ export function ModHubRow({
     const disabled = action.kind === 'install' && (mod.supportedByDesktop === false || Boolean(mod.installDisabledReason));
     const classes = variant === 'primary'
       ? `px-5 py-2 text-[14px] font-semibold ${primaryBtnClass(action.tone)}`
-      : 'rounded-[10px] px-4 py-2 text-[14px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700';
+      : 'rounded-[10px] px-4 py-2 text-[14px] font-medium text-[color:var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] hover:text-[color:var(--nimi-text-secondary)]';
     return (
       <button
         key={`${action.kind}-${variant}`}
@@ -217,13 +217,13 @@ export function ModHubRow({
     <div
       className={`group relative cursor-pointer rounded-2xl border py-4 transition-colors ${
         isSelected
-          ? 'border-gray-100 bg-gray-50'
-          : `border-transparent hover:border-gray-100 hover:bg-gray-50 ${mod.isInstalled && !mod.isEnabled ? 'opacity-70' : ''}`
+          ? 'border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)]'
+          : `border-transparent hover:border-[color:var(--nimi-border-subtle)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] ${mod.isInstalled && !mod.isEnabled ? 'opacity-70' : ''}`
       }`}
       onClick={handleRowClick}
     >
       {isSelected ? (
-        <div className="absolute bottom-4 left-[-24px] top-4 w-[3px] rounded-r-full bg-emerald-500" />
+        <div className="absolute bottom-4 left-[-24px] top-4 w-[3px] rounded-r-full bg-[var(--nimi-action-primary-bg)]" />
       ) : null}
 
       <div className="flex items-center justify-between gap-4 px-4">
@@ -247,25 +247,25 @@ export function ModHubRow({
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-base font-medium text-gray-900">{mod.name}</span>
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{mod.version}</span>
+              <span className="truncate text-base font-medium text-[color:var(--nimi-text-primary)]">{mod.name}</span>
+              <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] px-2 py-0.5 text-[11px] font-medium text-[color:var(--nimi-text-muted)]">{mod.version}</span>
               <ModBadge label={stateBadge.label} className={stateBadge.className} />
-              {mod.badge === 'official' ? <ModBadge label={t('ModHub.badgeOfficial')} className="bg-emerald-50 text-emerald-700" /> : null}
-              {mod.badge === 'verified' ? <ModBadge label={t('ModHub.badgeVerified')} className="bg-sky-50 text-sky-700" /> : null}
-              {mod.badge === 'community' ? <ModBadge label={t('ModHub.badgeCommunity')} className="bg-amber-50 text-amber-800" /> : null}
+              {mod.badge === 'official' ? <ModBadge label={t('ModHub.badgeOfficial')} className="bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]" /> : null}
+              {mod.badge === 'verified' ? <ModBadge label={t('ModHub.badgeVerified')} className="bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] text-[var(--nimi-status-info)]" /> : null}
+              {mod.badge === 'community' ? <ModBadge label={t('ModHub.badgeCommunity')} className="bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]" /> : null}
             </div>
-            <p className="mt-1 line-clamp-1 max-w-3xl text-sm text-gray-500">{mod.description}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-              <span className="rounded-md border border-gray-100 bg-gray-50 px-2 py-0.5">{mod.author}</span>
-              {mod.packageType ? <span className="rounded-md border border-gray-100 bg-gray-50 px-2 py-0.5">{mod.packageType}</span> : null}
+            <p className="mt-1 line-clamp-1 max-w-3xl text-sm text-[color:var(--nimi-text-secondary)]">{mod.description}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--nimi-text-muted)]">
+              <span className="rounded-md border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] px-2 py-0.5">{mod.author}</span>
+              {mod.packageType ? <span className="rounded-md border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] px-2 py-0.5">{mod.packageType}</span> : null}
               {mod.installs ? <span>{mod.installs}</span> : null}
               {mod.rating ? (
-                <span className="inline-flex items-center gap-0.5 text-amber-500">
+                <span className="inline-flex items-center gap-0.5 text-[var(--nimi-status-warning)]">
                   {ICON_STAR} {mod.rating}
                 </span>
               ) : null}
               {mod.availableUpdateVersion ? (
-                <span className="font-medium text-sky-600">
+                <span className="font-medium text-[var(--nimi-status-info)]">
                   {t('ModHub.updateVersion', { version: mod.availableUpdateVersion.replace(/^v/i, '') })}
                 </span>
               ) : null}
@@ -299,7 +299,7 @@ export function ModHubRow({
                   event.stopPropagation();
                   setMenuOpen((current) => !current);
                 }}
-                className={`flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 ${
+                className={`flex h-8 w-8 items-center justify-center rounded-xl text-[color:var(--nimi-text-muted)] transition hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] hover:text-[color:var(--nimi-text-secondary)] ${
                   menuOpen || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 }`}
                 aria-label={t('ModHub.moreActions')}
@@ -307,7 +307,7 @@ export function ModHubRow({
                 {ICON_ELLIPSIS}
               </button>
               {menuOpen ? (
-                <div className="absolute right-0 top-9 z-30 min-w-[160px] overflow-hidden rounded-xl border border-slate-200/80 bg-white py-1 shadow-[0_12px_28px_rgba(15,23,42,0.10)]">
+                <div className="absolute right-0 top-9 z-30 min-w-[160px] overflow-hidden rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)] py-1 shadow-[0_12px_28px_rgba(15,23,42,0.10)]">
                   {mod.menuActions.map((action) => (
                     <button
                       key={action.kind}
@@ -319,8 +319,8 @@ export function ModHubRow({
                       }}
                       className={`flex w-full items-center px-3 py-1.5 text-left text-xs transition ${
                         action.tone === 'danger'
-                          ? 'text-rose-600 hover:bg-rose-50'
-                          : 'text-slate-600 hover:bg-slate-50'
+                          ? 'text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)]'
+                          : 'text-[color:var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)]'
                       }`}
                     >
                       {t(`ModHub.${actionLabelKey(action.kind)}`)}
@@ -336,36 +336,36 @@ export function ModHubRow({
       {isSelected ? (
         <div className="ml-[64px] mt-3 space-y-2.5 px-4 pb-1">
           {mod.visualState === 'conflict' ? (
-            <div className="rounded-lg border border-amber-200/80 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+            <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-3 py-2 text-xs leading-relaxed text-[var(--nimi-status-warning)]">
               <p className="font-medium">{t('ModHub.conflictWarningTitle')}</p>
-              <p className="mt-0.5 text-amber-800">
+              <p className="mt-0.5 text-[color:var(--nimi-text-secondary)]">
                 {t('ModHub.conflictWarningBody', { count: mod.runtimeConflictPaths?.length || 0 })}
               </p>
               {Array.isArray(mod.runtimeConflictPaths) && mod.runtimeConflictPaths.length > 0 ? (
-                <p className="mt-1 break-all text-[10px] text-amber-700">
-                  {mod.runtimeConflictPaths.join(' ¡¤ ')}
+                <p className="mt-1 break-all text-[10px] text-[color:var(--nimi-text-muted)]">
+                  {mod.runtimeConflictPaths.join(' Â· ')}
                 </p>
               ) : null}
             </div>
           ) : null}
 
           {mod.visualState === 'failed' ? (
-            <div className="rounded-lg border border-rose-200/80 bg-rose-50 px-3 py-2 text-xs leading-relaxed text-rose-900">
+            <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] px-3 py-2 text-xs leading-relaxed text-[var(--nimi-status-danger)]">
               <p className="font-medium">{t('ModHub.failedWarningTitle')}</p>
-              <p className="mt-0.5 text-rose-800">
+              <p className="mt-0.5 text-[color:var(--nimi-text-secondary)]">
                 {t('ModHub.failedWarningBody', { error: mod.runtimeError || t('ModHub.failedWarningFallback') })}
               </p>
             </div>
           ) : null}
 
           {mod.warningText ? (
-            <div className="rounded-lg border border-stone-200/80 bg-stone-50 px-3 py-2 text-xs leading-relaxed text-stone-600">
+            <div className="rounded-lg border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] px-3 py-2 text-xs leading-relaxed text-[color:var(--nimi-text-secondary)]">
               {mod.warningText}
             </div>
           ) : null}
 
           {mod.requiresUserConsent && (consentReasons.length > 0 || addedCapabilities.length > 0) ? (
-            <div className="rounded-lg border border-sky-200/80 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-900">
+            <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-info)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-info)_10%,transparent)] px-3 py-2 text-xs leading-relaxed text-[var(--nimi-status-info)]">
               <p className="font-medium">{t('ModHub.reconsentRequired')}</p>
               {consentReasons.length > 0 ? <p className="mt-0.5">{consentReasons.join('; ')}.</p> : null}
               {addedCapabilities.length > 0 ? (
@@ -375,13 +375,13 @@ export function ModHubRow({
           ) : null}
 
           {mod.advisoryCount ? (
-            <div className="text-[11px] text-amber-600">
+            <div className="text-[11px] text-[var(--nimi-status-warning)]">
               {t('ModHub.advisoriesCount', { count: mod.advisoryCount })}
             </div>
           ) : null}
 
           {mod.updatedAgo ? (
-            <div className="text-[11px] text-stone-400">
+            <div className="text-[11px] text-[color:var(--nimi-text-muted)]">
               {mod.updatedAgo}
             </div>
           ) : null}
