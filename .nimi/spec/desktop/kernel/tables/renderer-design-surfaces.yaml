@@ -7,6 +7,90 @@ surfaces:
     exception_policy: none
     testid_required: true
     source_rule: D-SHELL-019
+  - id: chat.secondary.cards
+    module: features/chat/chat-right-column-primitives.tsx
+    role: chat_secondary_cards
+    surface_profile: secondary
+    exception_policy: allowlisted_arbitrary
+    testid_required: false
+    source_rule: D-SHELL-029
+  - id: chat.page.floating_controls
+    module: features/chat/chat-page.tsx
+    role: chat_page_floating_controls
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-030
+  - id: chat.utility.rail_controls
+    module: features/chat/chat-right-panel-character-rail.tsx
+    role: chat_utility_rail_controls
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: true
+    source_rule: D-SHELL-030
+  - id: chat.settings.rail_controls
+    module: features/chat/chat-right-panel-settings.tsx
+    role: chat_settings_rail_controls
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-030
+  - id: chat.session_list.cards
+    module: features/chat/chat-ai-session-list-panel.tsx
+    role: chat_session_list_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-030
+  - id: chat.agent_history.cards
+    module: features/chat/chat-agent-history-panel.tsx
+    role: chat_agent_history_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: true
+    source_rule: D-SHELL-030
+  - id: chat.target_selector.surface
+    module: features/chat/chat-target-selector.tsx
+    role: chat_target_selector_surface
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-030
+  - id: chat.inspect.operational
+    module: features/chat/chat-runtime-inspect-content.tsx
+    role: chat_runtime_inspect_operational
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-030
+  - id: chat.diagnostics.operational
+    module: features/chat/chat-agent-diagnostics.tsx
+    role: chat_agent_diagnostics_operational
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-030
+  - id: chat.canonical.conversation_shell_adapter
+    module: features/chat/chat-human-canonical-components.tsx
+    role: chat_canonical_conversation_shell_adapter
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-031
+  - id: chat.avatar.live2d.viewport_exception
+    module: features/chat/chat-agent-avatar-live2d-viewport.tsx
+    role: chat_avatar_live2d_viewport_exception
+    surface_profile: exception
+    exception_policy: controlled
+    testid_required: false
+    source_rule: D-SHELL-031
+  - id: chat.avatar.vrm.viewport_exception
+    module: features/chat/chat-agent-avatar-vrm-viewport.tsx
+    role: chat_avatar_vrm_viewport_exception
+    surface_profile: exception
+    exception_policy: controlled
+    testid_required: false
+    source_rule: D-SHELL-031
   - id: explore.view.root
     module: features/explore/explore-view.tsx
     role: explore_root
@@ -42,6 +126,20 @@ surfaces:
     exception_policy: allowlisted_arbitrary
     testid_required: true
     source_rule: D-SHELL-015
+  - id: home.feed.cards
+    module: features/home/post-feed.tsx
+    role: home_feed_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-029
+  - id: explore.discovery.cards
+    module: features/explore/explore-cards.tsx
+    role: explore_discovery_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-029
   - id: notification.panel.root
     module: features/notification/notification-panel.tsx
     role: notification_root
@@ -49,6 +147,13 @@ surfaces:
     exception_policy: none
     testid_required: true
     source_rule: D-SHELL-015
+  - id: notification.inline.cards
+    module: features/notification/notification-panel.tsx
+    role: notification_inline_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: true
+    source_rule: D-SHELL-029
   - id: notification.reject_gift.dialog
     module: features/notification/notification-reject-gift-dialog.tsx
     role: notification_reject_dialog
@@ -63,13 +168,76 @@ surfaces:
     exception_policy: none
     testid_required: true
     source_rule: D-SHELL-015
-  - id: contacts.profile_detail.surface
-    module: features/contacts/contact-detail-view-content.tsx
-    role: profile_detail_surface
+  - id: profile.posts.cards
+    module: features/profile/posts-tab.tsx
+    role: profile_posts_cards
     surface_profile: secondary
-    exception_policy: allowlisted_arbitrary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-032
+  - id: profile.likes.cards
+    module: features/profile/likes-tab.tsx
+    role: profile_likes_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-032
+  - id: profile.collections.cards
+    module: features/profile/collections-tab.tsx
+    role: profile_collections_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-032
+  - id: profile.media.cards
+    module: features/profile/media-tab.tsx
+    role: profile_media_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-032
+  - id: profile.gifts.cards
+    module: features/profile/gifts-tab.tsx
+    role: profile_gifts_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-032
+  - id: contacts.profile_detail.hero_exception
+    module: features/contacts/contact-detail-view-content.tsx
+    role: contacts_profile_detail_hero_exception
+    surface_profile: exception
+    exception_policy: controlled
     testid_required: true
-    source_rule: D-SHELL-015
+    source_rule: D-SHELL-032
+  - id: contacts.profile_detail.shell_exception
+    module: features/contacts/contact-detail-view-content-shell.tsx
+    role: contacts_profile_detail_shell_exception
+    surface_profile: exception
+    exception_policy: controlled
+    testid_required: false
+    source_rule: D-SHELL-032
+  - id: contacts.friend_requests.cards
+    module: features/contacts/contacts-friend-requests.tsx
+    role: contacts_friend_requests_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-032
+  - id: settings.operational.cards
+    module: features/settings/settings-layout-components.tsx
+    role: settings_operational_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-029
+  - id: runtime_config.operational.cards
+    module: features/runtime-config/runtime-config-primitives.tsx
+    role: runtime_config_operational_cards
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: false
+    source_rule: D-SHELL-029
   - id: economy.send_gift.dialog_surface
     module: features/economy/send-gift-modal.tsx
     role: send_gift_dialog_surface

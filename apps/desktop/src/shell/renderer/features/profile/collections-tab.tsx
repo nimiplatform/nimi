@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
 import { BLOCKED_USERS_UPDATED_EVENT, dataSync } from '@runtime/data-sync';
+import { DesktopCompactAction } from '@renderer/components/action';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -18,7 +20,7 @@ type CollectionsTabProps = {
 
 function CollectionSkeleton() {
   return (
-    <div className="animate-pulse rounded-[24px] border border-white/70 bg-white/80 p-5 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
+    <DesktopCardSurface kind="promoted-glass" as="div" className="animate-pulse p-5">
       <div className="flex items-start gap-3">
         <div className="h-10 w-10 rounded-full bg-gray-200" />
         <div className="flex-1 space-y-2">
@@ -26,8 +28,8 @@ function CollectionSkeleton() {
           <div className="h-3 w-20 rounded bg-gray-100" />
         </div>
       </div>
-      <div className="mt-4 h-56 rounded-[20px] bg-gray-100" />
-    </div>
+      <div className="mt-4 h-56 rounded-2xl bg-gray-100" />
+    </DesktopCardSurface>
   );
 }
 
@@ -246,16 +248,12 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
 
   if (loadError && posts.length === 0) {
     return (
-      <div className="rounded-2xl border border-red-200/60 bg-red-50/80 p-4 text-sm text-red-700 backdrop-blur-sm">
+      <DesktopCardSurface kind="operational-solid" as="div" className="p-4 text-sm text-red-700">
         <p>{loadError}</p>
-        <button
-          type="button"
-          onClick={() => { void fetchSavedPosts(0); }}
-          className="mt-3 rounded-xl bg-red-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-red-600"
-        >
+        <DesktopCompactAction tone="danger" onClick={() => { void fetchSavedPosts(0); }} className="mt-3">
           Retry
-        </button>
-      </div>
+        </DesktopCompactAction>
+      </DesktopCardSurface>
     );
   }
 

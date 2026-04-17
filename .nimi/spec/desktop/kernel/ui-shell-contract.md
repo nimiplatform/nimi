@@ -360,6 +360,155 @@ Desktop 的 material adoption 必须承认操作密度差异：不是所有 surf
   Desktop shell redesign 不得把它降格为 baseline pilot，也不得把它的
   exception-specific art direction 反向扩散到 baseline shell。
 
+## D-SHELL-029 — Secondary Card Hierarchy And Cohort Freeze
+
+当 Desktop route root 已经落在 admitted shell glass host 上时，route-local
+secondary / tertiary card 不得继续按 feature 自发发明新的 material 家族。
+
+- route-local card hierarchy 只允许以下四类受控归属：
+  1. `promoted glass card`：适用于 `home`、`explore`、`notification`、
+     `profile` 等非高密度 route 的 promoted summary / discovery / hero-adjacent
+     card；它必须消费 admitted kit material 与 Desktop token-backed facade，
+     不得自定义另一套 blur、glass tint、border recipe。
+  2. `operational solid card`：适用于 `settings`、`runtime-config`、
+     local-model center、audit / diagnostics / inspector-like panel，以及其他以
+     scan speed、contrast、密度可读性为先的运营型 card；该类 surface 继续服从
+     `D-SHELL-028` 的 `solid-first` 默认。
+  3. `overlay / dialog surface`：route-local dialog / drawer / popover /
+     tooltip 继续只受 `D-SHELL-018` 治理；overlay 不是绕开 secondary card
+     hierarchy 的新入口。
+  4. `controlled art-directed exception`：只有在
+     `tables/renderer-design-surfaces.yaml` 中被显式登记为 exception 的 surface
+     才允许保留独立 hero-glass / branded-glass / bespoke geometry 语言。
+- `chat` / `agent` surface 仍然不是自动 admitted exception，也不因 shell glass
+  baseline 落地而自动获得自由 glass 权限；它们必须作为单独收敛 cohort 接入共享
+  hierarchy，而不是把当前 local recipe 升格为事实标准。
+- `contacts` / `profile` 的 branded hero-glass 族谱在单独 decision packet 闭环前，
+  只允许作为 `secondary` surface 注册为 exception candidate，不得直接提升成
+  admitted exception。
+- `world-detail` 继续是当前唯一受控的 Desktop art-directed exception；任何其他
+  route-local card 只有在后续 admitted wave 明确授权时，才允许升级为 exception。
+- route-local secondary / tertiary card cluster 必须在
+  `tables/renderer-design-surfaces.yaml` 中显式登记；只登记 route root 不足以表达
+  inner-card hierarchy。
+- 本轮 authority cut 冻结的实现 cohort 顺序固定如下：
+  1. `chat` secondary card cluster + shared `settings` / `runtime-config`
+     operational card wrapper
+  2. `home` / `explore` / `notification` inner-card convergence
+  3. `contacts` / `profile` branded card decision packet
+- 在上述 cohort 被新的 admitted wave 改写前，Desktop 不得把 leaf card restyle
+  伪装成局部清理并跳过共享 hierarchy 收敛。
+
+## D-SHELL-030 — Chat Secondary Surface Boundary And Exception Freeze
+
+`chat` 在 Desktop 内仍然是单独 decision surface，但这不等于它可以继续把当前的
+ feature-local emerald / white-card / arbitrary-radius recipe 当成事实标准。
+
+- 以下 `chat` surface family 必须被视为 shared-path converging cohort，而不是
+  `chat`-owned art direction：
+  1. `chat-page` 内部仍然视觉上表现为 shared utility control 的 floating/folded
+     controls；它们继续受 baseline/shared token discipline 约束，不得以
+     `emerald-*` bypass 重新定义 Desktop button family。
+  2. 右栏 utility/settings rail controls（如 thinking / settings / fold /
+     hands-free toggles）属于 shared action family 候选；它们不得继续以
+     feature-local rail button recipe 形成平行 button registry。
+  3. session/history/summary cards 与 target selector 等 shared-looking
+     secondary cards 必须接入 admitted Desktop shared surface/action path，
+     不能继续维护 `chat`-only white-card family。
+  4. diagnostics / inspector / runtime inspect panels 继续属于 operational
+     surface；它们默认服从 `solid-first`，但必须通过 shared operational card
+     path 收敛，而不是继续维护 `chat`-local inspection card formula。
+- 以下 `chat` surface family 在新的 admitted packet 明确改写前，只能作为
+  `chat`-owned exception candidate 登记，不得被默认为 shared card：
+  1. canonical transcript / stage conversation chrome
+  2. avatar/stage viewport chrome（包含 Live2D / VRM renderer chrome）
+  3. 与 avatar presentation 强绑定的 presence / status chrome
+- `chat` exception candidate 不是自动 admitted exception。只有在
+  `tables/renderer-design-surfaces.yaml` 中被显式登记并在后续 wave 中明确保留时，
+  才允许继续使用 bespoke geometry、gradient、orbital chrome 或 renderer-local
+  presentation recipe。
+- `chat` secondary / tertiary surface cluster 必须在
+  `tables/renderer-design-surfaces.yaml` 中显式登记为 converging cohort 或
+  exception candidate；只登记 `chat.page.root` 与 `chat.secondary.cards`
+  不足以表达当前边界。
+- 本轮 authority cut 冻结的实现顺序固定如下：
+  1. `chat-page` floating controls + right-panel utility/settings rail controls
+  2. session/history/target-selector/inspect/diagnostics cards
+  3. canonical conversation chrome + avatar/stage viewport chrome 的单独
+     exception decision packet
+- 在上述边界被新的 admitted wave 改写前，Desktop 不得把 `chat` 的 leaf restyle
+  伪装成“只是微调颜色”来跳过 shared-path 或 exception-candidate decision。
+
+## D-SHELL-031 — Chat Canonical Ownership And Avatar Viewport Exception Admission
+
+`chat` 的 W3 decision packet 必须把 W1 冻结的 exception candidate 明确分流，不能让
+candidate 状态永久停留在 Desktop authority 里。
+
+- `chat-human-canonical-components.tsx` 不拥有 canonical transcript / stage
+  chrome。Desktop 在该文件里只允许：
+  1. 为 `CanonicalTranscriptView` / `CanonicalStagePanel` 适配数据、message
+     renderers、drawer content、sidebar content 和 diagnostics summary
+  2. 在不改写 canonical shell ownership 的前提下，定义与 message content、
+     accessory slot、voice inspect flow 强绑定的局部交互内容
+- Desktop 不得因为 `chat-human-canonical-components.tsx` 仍包含本地 accessory /
+  content renderer，就把整份 canonical shell 重新归类成 `chat`-owned
+  art-directed exception。
+- `chat` avatar viewport chrome（Live2D / VRM）现正式升格为 Desktop controlled
+  exception。该 exception admission 仅覆盖：
+  1. viewport frame geometry
+  2. renderer-coupled loading / fallback / badge / diagnostic chrome
+  3. 与 `default` / `minimal` chrome mode 强绑定的 stage aura、orbital glow、
+     poster fallback 与 runtime status presentation
+- 上述 avatar viewport controlled exception 仍受以下约束：
+  1. 不得生成新的通用 Desktop card/button/token family
+  2. 不得把 renderer runtime behavior、provider integration、asset loading
+     语义混进 surface authority
+  3. 不得把 exception-specific chrome 反向扩散到 shared rail、settings、
+     diagnostics 或 canonical transcript shell
+- `chat-human-canonical-components.tsx` 内剩余的 accessory / overlay / content
+  renderer 漂移，不因本规则自动获得 exception admission；如果后续要收敛，必须在
+  canonical-shell 或 kit-owned chat surface 线里单独 admitted。
+- `tables/renderer-design-surfaces.yaml` 必须把本轮 disposition 显式记录为：
+  1. `chat.canonical.conversation_shell_adapter`
+  2. `chat.avatar.live2d.viewport_exception`
+  3. `chat.avatar.vrm.viewport_exception`
+
+## D-SHELL-032 — Contacts Profile Branded Surface Split And Hero Exception Freeze
+
+`contacts` / `profile` 不再允许被当成一整块 branded subsystem。W1 decision packet
+必须把 shell-root、hero shell、feed cards 三类 surface 拆开治理。
+
+- `contacts.view.root` 与 `profile.panel.root` 继续是 Desktop shared shell root
+  consumer，不得因为 detail hero shell 仍然品牌化，就整体回退成
+  `contacts/profile`-owned art direction。
+- `contacts` profile detail hero shell 现被限定为一组窄范围 controlled exception，
+  仅覆盖：
+  1. detail hero header / backdrop aura
+  2. detail hero glass slab 与 companion skeleton / loading / error shell
+  3. 与 detail hero shell 强绑定的 branded stats/action chrome
+- 上述 `contacts` hero exception 不自动扩展到：
+  1. `contacts` friend request / relationship cards
+  2. `profile` feed cards
+  3. generic overlay / dialog surfaces
+  4. sidebar rows、category rows、search rows
+- `profile` tab content cards（posts / likes / collections / media / gifts）与
+  `contacts` friend request cards 必须被视为 converging cohort，而不是 hero
+  exception 的自然延伸。它们后续只能通过 admitted Desktop shared card/action
+  path 收敛，不得继续维持 branded white-card / mint-accent local family。
+- `contacts/profile` branded mint accent、arbitrary radius、white-card shadow
+  formula，不得再被表述成“profile 特例”。只有在
+  `renderer-design-surfaces.yaml` 中被显式登记为 exception 的 detail hero shell
+  才允许保留 bespoke geometry 与 glass aura。
+- `tables/renderer-design-surfaces.yaml` 必须把本轮 disposition 显式记录为：
+  1. `contacts.profile_detail.hero_exception`
+  2. `contacts.profile_detail.shell_exception`
+  3. `contacts.friend_requests.cards`
+  4. `profile.posts.cards`
+  5. `profile.likes.cards`
+  6. `profile.collections.cards`
+  7. `profile.media.cards`
+  8. `profile.gifts.cards`
+
 ## Fact Sources
 
 - `tables/app-tabs.yaml` — 导航 Tab 枚举

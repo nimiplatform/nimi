@@ -11,7 +11,7 @@ import {
   resolveAuditReasonCode,
   resolveAuditSource,
 } from './runtime-config-audit-view-model.js';
-import { Button, RuntimeSelect } from './runtime-config-primitives.js';
+import { Button, Card, RuntimeSelect } from './runtime-config-primitives.js';
 import { useAuditPageData } from './runtime-config-use-audit-page-data.js';
 
 function auditEventTypeColor(eventType: string): string {
@@ -22,11 +22,6 @@ function auditEventTypeColor(eventType: string): string {
     return 'bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] text-[var(--nimi-status-info)] border-[color-mix(in_srgb,var(--nimi-status-info)_28%,transparent)]';
   if (eventType.startsWith('fallback_')) return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)] border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)]';
   return 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)] border-[var(--nimi-border-subtle)]';
-}
-
-// SurfaceCard component matching Overview page style
-function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04] ${className}`}>{children}</div>;
 }
 
 type LocalDebugSectionProps = {
@@ -41,7 +36,7 @@ export function LocalDebugSection({ collapsed, onToggle }: LocalDebugSectionProp
       <SectionTitle description={t('runtimeConfig.runtime.localDebugDescription', { defaultValue: 'Local-only events (5k limit, for debugging)' })}>
         {t('runtimeConfig.runtime.localDebugTitle', { defaultValue: 'Local AI Debug Audit' })}
       </SectionTitle>
-      <SurfaceCard className="mt-3 overflow-hidden">
+      <Card className="mt-3 overflow-hidden">
         <button
           type="button"
           onClick={onToggle}
@@ -58,7 +53,7 @@ export function LocalDebugSection({ collapsed, onToggle }: LocalDebugSectionProp
           <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] text-sm">{collapsed ? '\u25B6' : '\u25BC'}</span>
         </button>
         {!collapsed ? <LocalDebugContent /> : null}
-      </SurfaceCard>
+      </Card>
     </section>
   );
 }

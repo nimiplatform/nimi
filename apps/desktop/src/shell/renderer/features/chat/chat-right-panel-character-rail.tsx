@@ -8,14 +8,13 @@ import {
   resolveAvatarPresentationProfile,
   resolveSpriteAvatarImageUrl,
 } from '@nimiplatform/nimi-kit/features/avatar';
+import { DesktopIconToggleAction } from '@renderer/components/action';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { DESKTOP_AGENT_AVATAR_RENDERERS } from './chat-agent-avatar-renderers';
 import { ChatRightColumn, ChatRightColumnCard, ChatRightColumnCardTitle } from './chat-right-column-primitives';
 import { ChatRightPanelSettings } from './chat-right-panel-settings';
 
 const NO_BIO_FALLBACK = 'This Agent has no public bio.';
-const UTILITY_RAIL_BUTTON_BASE_CLASS =
-  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border transition-all duration-150 shadow-[0_8px_18px_rgba(15,23,42,0.08)]';
 
 // ---------------------------------------------------------------------------
 // Right-panel header with settings toggle
@@ -41,30 +40,21 @@ function RightPanelHeader({ onToggleSettings, settingsActive, thinkingState, onT
             : t('Chat.voiceSessionHandsFreeHint', { defaultValue: 'Foreground hands-free stays inside this thread only.' })}
           placement="top"
         >
-          <button
-            type="button"
-            disabled={handsFreeDisabled}
-            onClick={handsFreeActive ? handsFreeState.onExit : handsFreeState.onEnter}
-            className={cn(
-              'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-              'transition-all duration-150',
-              handsFreeActive
-                ? 'border border-emerald-400 bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.2)]'
-                : 'border border-slate-200/80 bg-white/90 text-slate-500',
-              handsFreeDisabled
-                ? 'cursor-not-allowed opacity-50'
-                : 'hover:border-emerald-300 hover:text-teal-700',
-              handsFreeActive
-                ? 'hover:bg-emerald-600 hover:text-white hover:border-emerald-500'
-                : '',
-            )}
-            aria-label={t('Chat.voiceSessionHandsFreeEnter', { defaultValue: 'Enter hands-free' })}
-          >
+          <DesktopIconToggleAction
+            icon={(
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
               <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
             </svg>
-          </button>
+            )}
+            active={handsFreeActive}
+            disabled={handsFreeDisabled}
+            onClick={handsFreeActive ? handsFreeState.onExit : handsFreeState.onEnter}
+            aria-label={t('Chat.voiceSessionHandsFreeEnter', { defaultValue: 'Enter hands-free' })}
+            title={handsFreeActive
+              ? t('Chat.voiceSessionHandsFreeExit', { defaultValue: 'Exit hands-free' })
+              : t('Chat.voiceSessionHandsFreeEnter', { defaultValue: 'Enter hands-free' })}
+          />
         </Tooltip>
       ) : null}
       {thinkingState ? (
@@ -76,69 +66,49 @@ function RightPanelHeader({ onToggleSettings, settingsActive, thinkingState, onT
               : t('Chat.thinkingTooltipOff', { defaultValue: 'Thinking disabled — click to enable' })}
           placement="top"
         >
-          <button
-            type="button"
-            disabled={thinkingState === 'unsupported'}
-            className={cn(
-              'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-              'transition-all duration-150',
-              thinkingState === 'on'
-                ? 'border border-emerald-400 bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.2)]'
-                : 'border border-slate-200/80 bg-white/90 text-slate-500',
-              thinkingState === 'unsupported'
-                ? 'cursor-not-allowed opacity-50'
-                : 'hover:border-emerald-300 hover:text-teal-700',
-              thinkingState === 'on'
-                ? 'hover:bg-emerald-600 hover:text-white hover:border-emerald-500'
-                : '',
-            )}
-            aria-label={t('Chat.toggleThinking', { defaultValue: 'Toggle thinking' })}
-            onClick={thinkingState !== 'unsupported' ? onThinkingToggle : undefined}
-          >
+          <DesktopIconToggleAction
+            icon={(
             <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
               <path d="M5.5 13.5V12a3.5 3.5 0 0 1-1.73-6.55A4 4 0 0 1 11.5 4a3.5 3.5 0 0 1 .77 6.91V13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M6.5 9.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Z" stroke="currentColor" strokeWidth="1.2" />
               <circle cx="8" cy="5.5" r="0.75" fill="currentColor" />
             </svg>
-          </button>
+            )}
+            active={thinkingState === 'on'}
+            disabled={thinkingState === 'unsupported'}
+            aria-label={t('Chat.toggleThinking', { defaultValue: 'Toggle thinking' })}
+            title={t('Chat.toggleThinking', { defaultValue: 'Toggle thinking' })}
+            onClick={thinkingState !== 'unsupported' ? onThinkingToggle : undefined}
+          />
         </Tooltip>
       ) : null}
       <div className="flex-1" />
-      <button
-        type="button"
-        data-testid={E2E_IDS.chatSettingsToggle}
-        className={cn(
-          'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-          'border border-slate-200/80 bg-white/90 text-slate-500 transition-all duration-150',
-          'hover:border-emerald-300 hover:text-teal-700',
-          settingsActive && 'border-emerald-300 text-teal-700',
-        )}
-        aria-label={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
-        title={t('Chat.settingsTitle', { defaultValue: 'Settings' })}
-        onClick={onToggleSettings}
-      >
+      <DesktopIconToggleAction
+        icon={(
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
           <circle cx="12" cy="12" r="3" />
         </svg>
-      </button>
+        )}
+        data-testid={E2E_IDS.chatSettingsToggle}
+        active={settingsActive}
+        aria-label={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
+        title={t('Chat.settingsTitle', { defaultValue: 'Settings' })}
+        onClick={onToggleSettings}
+      />
       {onToggleFold ? (
         <Tooltip content={t('Chat.togglePanel', { defaultValue: 'Toggle panel' })} placement="top">
-          <button
-            type="button"
-            className={cn(
-              'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-              'border border-slate-200/80 bg-white/90 text-slate-500 transition-all duration-150',
-              'hover:border-emerald-300 hover:text-teal-700',
-            )}
-            aria-label={t('Chat.togglePanel', { defaultValue: 'Toggle panel' })}
-            onClick={onToggleFold}
-          >
+          <DesktopIconToggleAction
+            icon={(
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <path d="M15 3v18" />
             </svg>
-          </button>
+            )}
+            aria-label={t('Chat.togglePanel', { defaultValue: 'Toggle panel' })}
+            title={t('Chat.togglePanel', { defaultValue: 'Toggle panel' })}
+            onClick={onToggleFold}
+          />
         </Tooltip>
       ) : null}
     </div>
@@ -156,26 +126,15 @@ function UtilityIconButton(props: {
   title: string;
 }) {
   return (
-    <button
-      type="button"
+    <DesktopIconToggleAction
+      icon={props.children}
+      active={props.active}
       disabled={props.disabled}
       onClick={props.disabled ? undefined : props.onClick}
-      className={cn(
-        UTILITY_RAIL_BUTTON_BASE_CLASS,
-        props.active
-          ? 'border-emerald-400 bg-emerald-500 text-white'
-          : 'border-slate-200/80 bg-white/92 text-slate-500',
-        props.disabled
-          ? 'cursor-not-allowed opacity-50'
-          : props.active
-            ? 'hover:border-emerald-500 hover:bg-emerald-600 hover:text-white'
-            : 'hover:border-emerald-300 hover:text-teal-700',
-      )}
       aria-label={props.ariaLabel}
       title={props.title}
-    >
-      {props.children}
-    </button>
+      className="h-10 w-10 rounded-xl"
+    />
   );
 }
 
@@ -443,8 +402,8 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
           subtitle={supportingCopy}
         />
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 bg-white/86 px-3 py-1.5 text-[11px] font-semibold text-emerald-800 shadow-[0_8px_18px_rgba(15,23,42,0.06)]">
-            <span className={cn('inline-block h-2.5 w-2.5 rounded-full bg-emerald-500/90', presenceBusy ? 'animate-pulse' : '')} />
+          <span className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,white)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_94%,white)] px-3 py-1.5 text-[11px] font-semibold text-[var(--nimi-text-primary)] shadow-[0_8px_18px_rgba(15,23,42,0.06)]">
+            <span className={cn('inline-block h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg)]', presenceBusy ? 'animate-pulse' : '')} />
             <span>{presenceLabel}</span>
           </span>
         </div>

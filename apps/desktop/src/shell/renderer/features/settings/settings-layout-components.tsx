@@ -5,9 +5,9 @@ import {
   SettingsPageShell as KitSettingsPageShell,
   SettingsSectionTitle as KitSettingsSectionTitle,
   StatusBadge as KitStatusBadge,
-  Surface,
   cn,
 } from '@nimiplatform/nimi-kit/ui';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 /* ------------------------------------------------------------------ */
@@ -24,18 +24,15 @@ export function Card({
   style?: CSSProperties;
 }) {
   return (
-    <Surface
-      tone="card"
-      material="solid"
-      padding="none"
+    <DesktopCardSurface
+      kind="operational-solid"
       className={cn(
-        'rounded-2xl border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,white)] shadow-[0_10px_22px_rgba(15,23,42,0.04)]',
         className,
       )}
       style={style}
     >
       {children}
-    </Surface>
+    </DesktopCardSurface>
   );
 }
 

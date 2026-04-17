@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
+import { DesktopCompactAction } from '@renderer/components/action';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { useTranslation } from 'react-i18next';
 import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import type { CanonicalMemoryBankStatus } from '@renderer/infra/runtime-agent-memory';
@@ -17,8 +19,6 @@ type ChatAgentHistoryPanelProps = {
 
 export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
   const { t } = useTranslation();
-  const cardClass = 'flex flex-col rounded-[18px] border border-slate-200 bg-white px-5 py-5 text-left shadow-sm';
-  const actionButtonClass = 'inline-flex min-h-10 w-full items-center justify-center rounded-[10px] px-4 py-2.5 text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50';
 
   const handleClearAgentHistory = useCallback(() => {
     void (async () => {
@@ -92,9 +92,11 @@ export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
 
   return (
     <div className="flex shrink-0 flex-col gap-4">
-      <section
+      <DesktopCardSurface
+        kind="operational-solid"
+        as="section"
         data-testid={E2E_IDS.chatMemoryModeCard}
-        className={cardClass}
+        className="flex flex-col px-5 py-5 text-left"
       >
         <div className="flex flex-1 flex-col">
           <div className="flex items-center gap-2">
@@ -107,7 +109,7 @@ export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
               className={cn(
                 'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.05em]',
                 props.memoryStatus?.mode === 'standard'
-                  ? 'bg-emerald-50 text-emerald-700'
+                  ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] text-[var(--nimi-action-primary-bg)]'
                   : props.memoryStatus?.mode === 'unavailable'
                     ? 'bg-amber-50 text-amber-700'
                     : 'bg-slate-100 text-slate-500',
@@ -122,22 +124,19 @@ export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
         </div>
         {props.memoryStatus?.mode === 'baseline' ? (
           <div className="mt-5 flex flex-col gap-2">
-            <button
-              type="button"
+            <DesktopCompactAction
               data-testid={E2E_IDS.chatMemoryModeUpgradeButton}
               disabled={props.disabled || props.memoryLoading || !props.onUpgradeStandardMemory}
               onClick={handleUpgradeStandardMemory}
-              className={cn(
-                actionButtonClass,
-                'bg-emerald-500 text-white hover:bg-emerald-600',
-              )}
+              tone="primary"
+              fullWidth
             >
               {t('Chat.memoryModeUpgradeAction', { defaultValue: 'Upgrade to Standard memory' })}
-            </button>
+            </DesktopCompactAction>
           </div>
         ) : null}
-      </section>
-      <section className={cardClass}>
+      </DesktopCardSurface>
+      <DesktopCardSurface kind="operational-solid" as="section" className="flex flex-col px-5 py-5 text-left">
         <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-slate-950">
           {t('Chat.clearAgentChatHistoryTitle', { defaultValue: 'Clear agent chat history' })}
         </p>
@@ -147,19 +146,16 @@ export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
           })}
         </p>
         <div className="mt-5 flex flex-col gap-2">
-          <button
-            type="button"
+          <DesktopCompactAction
             disabled={props.disabled || !props.activeThreadId}
             onClick={handleClearAgentHistory}
-            className={cn(
-              actionButtonClass,
-              'bg-red-500 text-white hover:bg-red-600',
-            )}
+            tone="danger"
+            fullWidth
           >
             {t('Chat.clearAgentChatHistoryAction', { defaultValue: 'Clear agent chat history' })}
-          </button>
+          </DesktopCompactAction>
         </div>
-      </section>
+      </DesktopCardSurface>
     </div>
   );
 }

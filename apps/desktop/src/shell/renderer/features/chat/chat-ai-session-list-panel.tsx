@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { ScrollArea, cn } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationThreadSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
+import { DesktopCompactAction } from '@renderer/components/action';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { ChatRightColumn, ChatRightColumnCard, ChatRightColumnCardTitle } from './chat-right-column-primitives';
 import { ChatRightPanelSettings } from './chat-right-panel-settings';
 
@@ -86,12 +88,14 @@ function SessionThreadItem({
   }, [active, onRename, thread.title]);
 
   return (
-    <div
+    <DesktopCardSurface
+      kind="operational-solid"
+      as="div"
       className={cn(
-        'group relative rounded-[12px] border transition-colors duration-100',
+        'group relative overflow-hidden transition-colors duration-100',
         active
-          ? 'border-emerald-200/80 bg-white/96 shadow-[0_10px_22px_rgba(15,23,42,0.05)]'
-          : 'border-transparent bg-white/46 hover:bg-white/72',
+          ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,white)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_98%,white)]'
+          : 'border-transparent bg-[color-mix(in_srgb,var(--nimi-surface-card)_74%,white)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)]',
       )}
     >
       <button type="button" className="w-full px-3 py-2.5 pr-10 text-left" onClick={onSelect}>
@@ -109,7 +113,7 @@ function SessionThreadItem({
                   if (e.key === 'Escape') setEditing(false);
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full rounded-md border border-emerald-300 bg-white px-1.5 py-0.5 text-[13px] font-semibold text-slate-900 outline-none focus:ring-1 focus:ring-emerald-400"
+                className="w-full rounded-md border border-[color:var(--nimi-action-primary-bg)] bg-white px-1.5 py-0.5 text-[13px] font-semibold text-slate-900 outline-none focus:ring-1 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_25%,white)]"
               />
             ) : (
               <p
@@ -144,7 +148,7 @@ function SessionThreadItem({
           </svg>
         </button>
       ) : null}
-    </div>
+    </DesktopCardSurface>
   );
 }
 
@@ -170,22 +174,19 @@ export function ChatAiSessionListPanel(props: ChatAiSessionListPanelProps) {
           <p className="mt-3 text-xs leading-5 text-slate-500">
             {props.assistantBio || t('Chat.aiTranscriptEmpty', { defaultValue: 'Send a message to start this conversation.' })}
           </p>
-          <button
-            type="button"
+          <DesktopCompactAction
+            tone="primary"
+            fullWidth
             onClick={props.onCreateThread}
             disabled={!props.onCreateThread}
-            className={cn(
-              'mt-4 flex w-full items-center justify-center gap-2 rounded-[12px] border border-emerald-200/70 bg-emerald-50/76 px-3 py-2.5 text-xs font-semibold text-emerald-700 transition-colors',
-              'hover:bg-emerald-100/72 active:bg-emerald-100',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
+            className="mt-4 gap-2"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             {t('Chat.newConversation', { defaultValue: 'New conversation' })}
-          </button>
+          </DesktopCompactAction>
         </div>
         {props.threads.length === 0 ? (
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
@@ -221,8 +222,8 @@ export function ChatAiSessionListPanel(props: ChatAiSessionListPanelProps) {
             : t('Chat.aiStatusSummary', { defaultValue: 'Ready when you are.' })}
         />
         <div className="mt-4 flex items-center gap-2">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500/90" />
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700/72">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg)]" />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--nimi-action-primary-bg)]">
             {t('Chat.aiPresenceLabel', { defaultValue: 'Assistant online' })}
           </p>
         </div>

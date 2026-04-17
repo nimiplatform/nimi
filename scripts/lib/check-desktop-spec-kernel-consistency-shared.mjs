@@ -17,6 +17,7 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/hook-capability-contract.md',
   '.nimi/spec/desktop/kernel/mod-governance-contract.md',
   '.nimi/spec/desktop/kernel/llm-adapter-contract.md',
+  '.nimi/spec/desktop/kernel/world-tour-tester-contract.md',
   '.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md',
   '.nimi/spec/desktop/kernel/menu-bar-shell-contract.md',
   '.nimi/spec/desktop/kernel/ui-shell-contract.md',
@@ -107,7 +108,12 @@ export function walkSync(dir, extensions) {
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === 'dist') {
+      if (
+        entry.name === 'node_modules'
+        || entry.name === '.git'
+        || entry.name === 'dist'
+        || entry.name === '.cache'
+      ) {
         continue;
       }
       results.push(...walkSync(fullPath, extensions));

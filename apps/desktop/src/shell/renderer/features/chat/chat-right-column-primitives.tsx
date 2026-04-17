@@ -1,9 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
-const RIGHT_COLUMN_CARD_BASE_CLASS = [
-  'min-h-0 overflow-hidden rounded-[16px] shadow-[0_14px_34px_rgba(15,23,42,0.05)]',
-  'bg-[linear-gradient(180deg,rgba(255,255,255,0.86),rgba(247,250,249,0.78))] backdrop-blur-sm',
-].join(' ');
+import { DesktopCardSurface } from '@renderer/components/surface';
 
 export function ChatRightColumn(props: {
   children: ReactNode;
@@ -30,12 +27,14 @@ export function ChatRightColumnCard(props: {
   cardKey: 'primary' | 'status' | 'settings';
 }) {
   return (
-    <section
-      className={cn(RIGHT_COLUMN_CARD_BASE_CLASS, props.className)}
+    <DesktopCardSurface
+      kind="promoted-glass"
+      as="section"
+      className={cn('min-h-0 overflow-hidden', props.className)}
       data-chat-right-card={props.cardKey}
     >
       {props.children}
-    </section>
+    </DesktopCardSurface>
   );
 }
 
@@ -46,9 +45,9 @@ export function ChatRightColumnCardTitle(props: {
 }) {
   return (
     <div className={cn('space-y-1', props.className)}>
-      <h2 className="text-sm font-semibold text-slate-900">{props.title}</h2>
+      <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{props.title}</h2>
       {props.subtitle ? (
-        <p className="text-xs leading-5 text-slate-500">{props.subtitle}</p>
+        <p className="text-xs leading-5 text-[var(--nimi-text-secondary)]">{props.subtitle}</p>
       ) : null}
     </div>
   );

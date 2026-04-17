@@ -1,6 +1,7 @@
 import type { ReactNode, RefObject } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { formatLocaleDate, i18n } from '@renderer/i18n';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatIcon, GiftIcon, HeartIcon } from './icons';
@@ -47,7 +48,11 @@ export function PostCardArticle(props: PostCardArticleProps) {
   const SHOW_AVATAR_STATUS_INDICATOR = false;
   const isRecent = new Date().getTime() - new Date(props.post.createdAt).getTime() < 3600000; // 1 hour
   return (
-    <article className="group isolate overflow-hidden rounded-[1.5rem] border border-white/40 bg-white/70 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.03)] transition-all duration-500 [backface-visibility:hidden] [transform:translateZ(0)] hover:-translate-y-1 hover:shadow-[0_12px_48px_rgba(78,204,163,0.12)]">
+    <DesktopCardSurface
+      kind="promoted-glass"
+      as="article"
+      className="group isolate overflow-hidden transition-all duration-500 [backface-visibility:hidden] [transform:translateZ(0)] hover:-translate-y-1 hover:shadow-[0_12px_48px_rgba(78,204,163,0.12)]"
+    >
       <div className="flex items-start justify-between px-6 py-5">
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -263,7 +268,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
           ))}
         </div>
       )}
-    </article>
+    </DesktopCardSurface>
   );
 }
 

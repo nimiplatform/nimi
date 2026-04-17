@@ -1,5 +1,7 @@
 ﻿import { useState } from 'react';
 import { OverlayShell, ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { DesktopCompactAction } from '@renderer/components/action';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { formatLocaleDate, formatLocaleNumber, i18n } from '@renderer/i18n';
 
@@ -280,13 +282,10 @@ function ReplyForm({
         className="w-full rounded-xl border border-[#4ECCA3]/20 bg-white px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-[#4ECCA3]/50 focus:ring-2 focus:ring-[#4ECCA3]/10 transition-all resize-none"
       />
       <div className="flex items-center justify-end gap-2 mt-3">
-        <button
-          onClick={onCancel}
-          className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-        >
+        <DesktopCompactAction onClick={onCancel} tone="neutral">
           {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
-        </button>
-        <button
+        </DesktopCompactAction>
+        <DesktopCompactAction
           onClick={() => {
             if (message.trim()) {
               onSubmit(message);
@@ -294,10 +293,10 @@ function ReplyForm({
             }
           }}
           disabled={!message.trim()}
-          className="px-4 py-1.5 rounded-lg bg-[#4ECCA3] text-xs font-semibold text-white hover:bg-[#3DBB94] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          tone="primary"
         >
           {i18n.t('Profile.Gifts.sendReply', { defaultValue: 'Send Reply' })}
-        </button>
+        </DesktopCompactAction>
       </div>
     </div>
   );
@@ -337,7 +336,7 @@ function GiftFeedCard({ gift }: { gift: typeof MOCK_GIFT_FEED[0] }) {
   };
 
   return (
-    <div className="rounded-[24px] border border-gray-100 bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.04)] transition-all hover:shadow-[0_8px_32px_rgba(78,204,163,0.12)]">
+    <DesktopCardSurface kind="promoted-glass" as="div" className="p-5 transition-all hover:shadow-[0_8px_32px_rgba(78,204,163,0.12)]">
       {/* Info Bar */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -425,7 +424,7 @@ function GiftFeedCard({ gift }: { gift: typeof MOCK_GIFT_FEED[0] }) {
           onCancel={() => setShowReply(false)}
         />
       )}
-    </div>
+    </DesktopCardSurface>
   );
 }
 
@@ -529,7 +528,7 @@ export function GiftsTab() {
   return (
     <div className="space-y-6">
       {/* Asset Header */}
-      <div className="rounded-[28px] border border-gray-100 bg-white p-6 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
+      <DesktopCardSurface kind="promoted-glass" as="div" className="p-6">
         <div className="grid grid-cols-[1fr_auto] gap-6">
           {/* Left: Gem Balance */}
           <div className="flex items-center gap-5">
@@ -591,7 +590,7 @@ export function GiftsTab() {
             </div>
           </button>
         </div>
-      </div>
+      </DesktopCardSurface>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {MOCK_GIFT_FEED.map((gift) => (

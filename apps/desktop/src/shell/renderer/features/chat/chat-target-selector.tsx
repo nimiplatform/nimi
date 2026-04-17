@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ScrollArea, cn } from '@nimiplatform/nimi-kit/ui';
+import { DesktopFieldTrigger } from '@renderer/components/action';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { useTranslation } from 'react-i18next';
 
 export type ChatTargetOption = {
@@ -50,19 +52,14 @@ export function ChatTargetSelector({
   return (
     <div ref={ref} className={cn('relative', className)}>
       {/* trigger */}
-      <button
-        type="button"
+      <DesktopFieldTrigger
         disabled={disabled}
         onClick={() => setOpen(!open)}
-        className={cn(
-          'flex h-10 w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 text-left text-sm transition-colors',
-          'hover:border-emerald-300',
-          'disabled:bg-gray-100 disabled:text-gray-400',
-        )}
+        className="disabled:bg-gray-100 disabled:text-gray-400"
       >
         {selected ? (
           <>
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-[10px] font-semibold text-white">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[10px] font-semibold text-white">
               {selected.label.charAt(0).toUpperCase()}
             </div>
             <span className="min-w-0 flex-1 truncate text-gray-900">{selected.label}</span>
@@ -70,14 +67,14 @@ export function ChatTargetSelector({
         ) : (
           <span className="min-w-0 flex-1 truncate text-gray-400">{resolvedPlaceholder}</span>
         )}
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={cn('shrink-0 text-gray-400 transition-transform', open && 'rotate-180')}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={cn('shrink-0 text-[var(--nimi-text-muted)] transition-transform', open && 'rotate-180')}>
           <path d="M3 4.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </button>
+      </DesktopFieldTrigger>
 
       {/* dropdown */}
       {open ? (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-xl border border-gray-200/60 bg-white/95 shadow-[0_12px_36px_rgba(15,23,42,0.1)] backdrop-blur-lg">
+        <DesktopCardSurface kind="operational-solid" as="div" className="absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden">
           <ScrollArea className="max-h-[240px]" contentClassName="py-1">
             {options.length === 0 ? (
               <div className="px-3 py-4 text-center text-xs text-gray-400">
@@ -98,17 +95,19 @@ export function ChatTargetSelector({
                     }}
                     className={cn(
                       'flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors',
-                      active ? 'bg-emerald-50/80' : 'hover:bg-gray-50',
+                      active
+                        ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)]'
+                        : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,white)]',
                     )}
                   >
                     <div className={cn(
                       'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white',
-                      active ? 'bg-gradient-to-br from-emerald-400 to-teal-600' : 'bg-gray-400',
+                      active ? 'bg-[var(--nimi-action-primary-bg)]' : 'bg-gray-400',
                     )}>
                       {option.label.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className={cn('truncate text-sm', active ? 'font-semibold text-emerald-800' : 'text-gray-900')}>
+                      <div className={cn('truncate text-sm', active ? 'font-semibold text-[var(--nimi-action-primary-bg)]' : 'text-gray-900')}>
                         {option.label}
                       </div>
                       {option.handle ? (
@@ -116,7 +115,7 @@ export function ChatTargetSelector({
                       ) : null}
                     </div>
                     {active ? (
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-emerald-600">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-[var(--nimi-action-primary-bg)]">
                         <path d="M11.5 4L5.5 10 2.5 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     ) : null}
@@ -125,7 +124,7 @@ export function ChatTargetSelector({
               })
             )}
           </ScrollArea>
-        </div>
+        </DesktopCardSurface>
       ) : null}
     </div>
   );

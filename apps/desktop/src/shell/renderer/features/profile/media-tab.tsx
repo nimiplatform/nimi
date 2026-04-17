@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { BLOCKED_USERS_UPDATED_EVENT, dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
+import { DesktopCompactAction } from '@renderer/components/action';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import {
   normalizeMediaType,
   resolveRenderableMediaAttachment,
@@ -31,9 +33,9 @@ function toErrorMessage(error: unknown, fallback: string): string {
 
 function MediaSkeleton() {
   return (
-    <div className="animate-pulse overflow-hidden rounded-[22px] border border-white/70 bg-white/80 p-2 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
-      <div className="rounded-[16px] bg-gray-200" style={{ aspectRatio: '1' }} />
-    </div>
+    <DesktopCardSurface kind="promoted-glass" as="div" className="animate-pulse overflow-hidden p-2">
+      <div className="rounded-2xl bg-gray-200" style={{ aspectRatio: '1' }} />
+    </DesktopCardSurface>
   );
 }
 
@@ -209,16 +211,12 @@ export function MediaTab({ profileId, onMediaClick, blockedContent = false }: Me
 
   if (loadError && mediaItems.length === 0) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <DesktopCardSurface kind="operational-solid" as="div" className="p-4 text-sm text-red-700">
         <p>{loadError}</p>
-        <button
-          type="button"
-          onClick={() => { void fetchMedia(null); }}
-          className="mt-3 rounded-[10px] bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
-        >
+        <DesktopCompactAction tone="danger" onClick={() => { void fetchMedia(null); }} className="mt-3">
           Retry
-        </button>
-      </div>
+        </DesktopCompactAction>
+      </DesktopCardSurface>
     );
   }
 
@@ -241,13 +239,15 @@ export function MediaTab({ profileId, onMediaClick, blockedContent = false }: Me
     <div>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
         {mediaItems.map((item, idx) => (
-          <button
+          <DesktopCardSurface
             key={`${item.post.id}-${item.mediaIndex}`}
-            type="button"
+            as="button"
+            kind="promoted-glass"
+            interactive
             onClick={() => onMediaClick(item.post, item.mediaIndex)}
-            className="group relative overflow-hidden rounded-[22px] border border-[#e7edf3] bg-white p-2 shadow-[0_6px_24px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(15,23,42,0.08)]"
+            className="group relative overflow-hidden p-2 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(15,23,42,0.08)]"
           >
-            <div className="relative overflow-hidden rounded-[16px] bg-gray-100" style={{ aspectRatio: '1' }}>
+            <div className="relative overflow-hidden rounded-2xl bg-gray-100" style={{ aspectRatio: '1' }}>
               <img
                 src={item.thumbnail || item.url}
                 alt=""
@@ -266,20 +266,16 @@ export function MediaTab({ profileId, onMediaClick, blockedContent = false }: Me
                 Open
               </div>
             </div>
-          </button>
+          </DesktopCardSurface>
         ))}
       </div>
       {loadError ? (
-        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+        <DesktopCardSurface kind="operational-solid" as="div" className="mt-3 px-4 py-3 text-xs text-red-700">
           <p>{loadError}</p>
-          <button
-            type="button"
-            onClick={() => { void fetchMedia(cursor); }}
-            className="mt-2 rounded-[8px] bg-red-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-red-700"
-          >
+          <DesktopCompactAction tone="danger" onClick={() => { void fetchMedia(cursor); }} className="mt-2">
             Retry
-          </button>
-        </div>
+          </DesktopCompactAction>
+        </DesktopCardSurface>
       ) : null}
       {loadingMore ? (
         <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">

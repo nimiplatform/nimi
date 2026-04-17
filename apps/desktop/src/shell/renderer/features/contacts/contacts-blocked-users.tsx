@@ -2,7 +2,7 @@ import { Button, SidebarItem } from '@nimiplatform/nimi-kit/ui';
 import { i18n } from '@renderer/i18n';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { OverlayShell } from '@renderer/components/overlay/index.js';
+import { OverlayShell } from '@renderer/components/overlay.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ContactRecord } from './contacts-model.js';
 

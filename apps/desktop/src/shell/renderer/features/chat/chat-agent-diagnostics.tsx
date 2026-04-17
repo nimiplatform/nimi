@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { DesktopCompactAction } from '@renderer/components/action';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type {
   RuntimeAgentInspectEventSummary,
@@ -15,6 +16,8 @@ import {
   RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
 
+const DIAGNOSTIC_INPUT_CLASS_NAME = 'mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 outline-none transition focus:border-[color:var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] disabled:cursor-not-allowed disabled:opacity-50';
+
 function RuntimeInspectActionButton(props: {
   label: string;
   onClick: () => void;
@@ -22,20 +25,13 @@ function RuntimeInspectActionButton(props: {
   tone?: 'neutral' | 'danger';
 }) {
   return (
-    <button
-      type="button"
+    <DesktopCompactAction
       onClick={props.onClick}
       disabled={props.disabled}
-      className={cn(
-        'inline-flex items-center justify-center rounded-xl border px-3 py-2 text-xs font-semibold transition-colors',
-        props.tone === 'danger'
-          ? 'border-red-300 bg-red-500 text-white hover:bg-red-600'
-          : 'border-emerald-300 bg-emerald-500 text-white hover:bg-emerald-600',
-        'disabled:cursor-not-allowed disabled:opacity-50',
-      )}
+      tone={props.tone === 'danger' ? 'danger' : 'primary'}
     >
       {props.label}
-    </button>
+    </DesktopCompactAction>
   );
 }
 
@@ -105,7 +101,7 @@ export function AgentDiagnosticsPanel(props: {
       ) : null}
       {props.activeTarget && props.runtimeInspect ? (
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <DesktopCardSurface kind="operational-solid" as="div" className="px-3 py-3">
             <div className="mb-2 text-sm font-semibold text-gray-900">
               {t('Chat.agentDiagnosticsRuntimeStateTitle', { defaultValue: 'Runtime State' })}
             </div>
@@ -117,7 +113,7 @@ export function AgentDiagnosticsPanel(props: {
                   value={statusText}
                   onChange={(event) => setStatusText(event.target.value)}
                   disabled={props.mutationPendingAction !== null}
-                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
                 />
               </label>
               <label className="text-xs font-semibold text-gray-500">
@@ -127,7 +123,7 @@ export function AgentDiagnosticsPanel(props: {
                   value={worldId}
                   onChange={(event) => setWorldId(event.target.value)}
                   disabled={props.mutationPendingAction !== null}
-                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
                 />
               </label>
               <label className="text-xs font-semibold text-gray-500">
@@ -137,7 +133,7 @@ export function AgentDiagnosticsPanel(props: {
                   value={userId}
                   onChange={(event) => setUserId(event.target.value)}
                   disabled={props.mutationPendingAction !== null}
-                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
                 />
               </label>
             </div>
@@ -160,7 +156,7 @@ export function AgentDiagnosticsPanel(props: {
                 tone="danger"
               />
             </div>
-          </div>
+          </DesktopCardSurface>
           <RuntimeInspectCard
             label={t('Chat.agentDiagnosticsAutonomyControlTitle', { defaultValue: 'Autonomy Control' })}
             value={props.runtimeInspect.autonomyEnabled === true
@@ -174,7 +170,7 @@ export function AgentDiagnosticsPanel(props: {
                 defaultValue: 'Enable autonomy when this agent should resume runtime-owned life-track behavior.',
               })}
           />
-          <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <DesktopCardSurface kind="operational-solid" as="div" className="px-3 py-3">
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-xs font-semibold text-gray-500">
                 {t('Chat.agentDiagnosticsDailyTokenBudgetLabel', { defaultValue: 'Daily token budget' })}
@@ -184,7 +180,7 @@ export function AgentDiagnosticsPanel(props: {
                   value={dailyTokenBudget}
                   onChange={(event) => setDailyTokenBudget(event.target.value)}
                   disabled={props.mutationPendingAction !== null}
-                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
                 />
               </label>
               <label className="text-xs font-semibold text-gray-500">
@@ -195,7 +191,7 @@ export function AgentDiagnosticsPanel(props: {
                   value={maxTokensPerHook}
                   onChange={(event) => setMaxTokensPerHook(event.target.value)}
                   disabled={props.mutationPendingAction !== null}
-                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
                 />
               </label>
             </div>
@@ -241,7 +237,7 @@ export function AgentDiagnosticsPanel(props: {
                 {props.mutationPendingAction}
               </div>
             ) : null}
-          </div>
+          </DesktopCardSurface>
         </div>
       ) : null}
       {viewModel.emptyLabel ? (

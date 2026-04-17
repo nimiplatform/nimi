@@ -7,6 +7,14 @@ import {
   type ChatAgentAvatarPointerInteractionState,
 } from './chat-agent-avatar-pointer-interaction';
 
+type ChatAgentAvatarLive2dSmokeInteractionOverride = {
+  phase?: NonNullable<ConversationCharacterData['interactionState']>['phase'];
+  label?: string;
+  emotion?: NonNullable<ConversationCharacterData['interactionState']>['emotion'];
+  amplitude?: number;
+  visemeId?: NonNullable<ConversationCharacterData['interactionState']>['visemeId'];
+};
+
 function buildDesktopAgentAvatarAssetRef(resource: DesktopAgentAvatarResourceRecord): string {
   return `desktop-avatar://${resource.resourceId}/${encodeURIComponent(resource.sourceFilename)}`;
 }
@@ -111,6 +119,56 @@ function buildAvatarSnapshot(input: {
   };
 }
 
+function resolveLive2dSmokeInteractionOverride(): ChatAgentAvatarLive2dSmokeInteractionOverride | null {
+  const value = (globalThis as typeof globalThis & {
+    __NIMI_LIVE2D_SMOKE_OVERRIDE__?: unknown;
+  }).__NIMI_LIVE2D_SMOKE_OVERRIDE__;
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const phase = typeof record.phase === 'string'
+    && ['idle', 'thinking', 'listening', 'speaking', 'loading'].includes(record.phase)
+    ? record.phase as NonNullable<ConversationCharacterData['interactionState']>['phase']
+    : undefined;
+  const label = typeof record.label === 'string' && record.label.trim().length > 0 ? record.label.trim() : undefined;
+  const emotion = typeof record.emotion === 'string' && record.emotion.trim().length > 0
+    ? record.emotion as NonNullable<ConversationCharacterData['interactionState']>['emotion']
+    : undefined;
+  const amplitude = typeof record.amplitude === 'number' && Number.isFinite(record.amplitude)
+    ? Math.max(0, Math.min(record.amplitude, 1))
+    : undefined;
+  const visemeId = typeof record.visemeId === 'string' && record.visemeId.trim().length > 0
+    ? record.visemeId as NonNullable<ConversationCharacterData['interactionState']>['visemeId']
+    : undefined;
+  if (!phase && !label && !emotion && amplitude == null && !visemeId) {
+    return null;
+  }
+  return {
+    phase,
+    label,
+    emotion,
+    amplitude,
+    visemeId,
+  };
+}
+
+function resolveChatAgentAvatarInteractionState(
+  interactionState: ConversationCharacterData['interactionState'] | null | undefined,
+): ConversationCharacterData['interactionState'] | null {
+  const smokeOverride = resolveLive2dSmokeInteractionOverride();
+  if (!smokeOverride) {
+    return interactionState || null;
+  }
+  return {
+    phase: smokeOverride.phase || interactionState?.phase || 'idle',
+    label: smokeOverride.label || interactionState?.label || null,
+    emotion: smokeOverride.emotion || interactionState?.emotion || null,
+    amplitude: smokeOverride.amplitude ?? interactionState?.amplitude ?? 0,
+    visemeId: smokeOverride.visemeId ?? interactionState?.visemeId ?? null,
+  };
+}
+
 export type ChatAgentLiveAvatarRailModel = {
   displayName: string;
   statusLabel: string;
@@ -129,7 +187,7 @@ export function resolveChatAgentLiveAvatarRailModel(input: {
   pointerInteraction?: ChatAgentAvatarPointerInteractionState | null;
 }): ChatAgentLiveAvatarRailModel {
   const displayName = input.characterData?.name || input.selectedTarget.title || 'Agent';
-  const interactionState = input.characterData?.interactionState || null;
+  const interactionState = resolveChatAgentAvatarInteractionState(input.characterData?.interactionState || null);
   const statusLabel = interactionState?.label || resolveFallbackPhaseLabel(interactionState?.phase);
   const pointerInteraction = input.pointerInteraction || createIdleChatAgentAvatarPointerInteractionState();
   const fallbackPresentation = resolveBaselineAvatarPresentationProfile({

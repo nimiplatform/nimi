@@ -23,6 +23,28 @@ function pingSmokeAsync(event: string, payload?: Record<string, unknown>): void 
         .catch(() => {});
 }
 
+function describeUnhandledReason(reason: unknown): Record<string, unknown> {
+    if (reason instanceof Error) {
+        return {
+          message: reason.message || '',
+          name: reason.name || '',
+          stack: reason.stack || '',
+        };
+    }
+    if (reason && typeof reason === 'object') {
+        return {
+          message: String((reason as { message?: unknown }).message || ''),
+          name: String((reason as { name?: unknown }).name || ''),
+          raw: JSON.stringify(reason, (_key, value) => (
+            typeof value === 'bigint' ? value.toString() : value
+          )),
+        };
+    }
+    return {
+      message: String(reason || 'unhandled rejection'),
+    };
+}
+
 const App = lazy(async () => {
     // Start loading the App chunk immediately — in parallel with runtime
     // hooks and i18n init — so the download overlaps with setup work.
@@ -49,11 +71,9 @@ window.addEventListener('error', (event) => {
     });
 });
 window.addEventListener('unhandledrejection', (event) => {
-    const reason = event.reason instanceof Error
-      ? event.reason.message
-      : String(event.reason || 'unhandled rejection');
+    const reason = describeUnhandledReason(event.reason);
     pingSmokeAsync('window-page-error', {
-      message: reason,
+      ...reason,
       type: 'unhandledrejection',
     });
 });

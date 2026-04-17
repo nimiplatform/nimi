@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { DesktopCompactAction } from '@renderer/components/action';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { PostCard } from '@renderer/features/home/post-card';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -100,7 +102,7 @@ export function PostFeedWithMediaPreview({
     <div
       key={post.id}
       className={`scroll-mt-6 transition-all duration-500 ${
-        focusedPostId === post.id ? 'rounded-[28px] ring-2 ring-[#4ECCA3]/55 ring-offset-4 ring-offset-[#f7f9fc]' : ''
+        focusedPostId === post.id ? 'rounded-[28px] ring-[length:var(--nimi-focus-ring-width)] ring-[var(--nimi-focus-ring-color)] ring-offset-4 ring-offset-[var(--nimi-surface-canvas)]' : ''
       }`}
     >
       <PostCard
@@ -125,16 +127,12 @@ export function PostFeedWithMediaPreview({
           ) : null}
         </section>
         {loadError ? (
-          <div className="rounded-2xl border border-red-200/60 bg-red-50/80 px-4 py-3 text-xs text-red-700 backdrop-blur-sm">
+          <DesktopCardSurface kind="operational-solid" as="div" className="px-4 py-3 text-xs text-red-700">
             <p>{loadError}</p>
-            <button
-              type="button"
-              onClick={onRetryLoadMore}
-              className="mt-2 rounded-lg bg-red-500 px-3 py-1.5 text-[11px] font-medium text-white transition hover:bg-red-600"
-            >
+            <DesktopCompactAction tone="danger" onClick={onRetryLoadMore} className="mt-2">
               {retryLabel}
-            </button>
-          </div>
+            </DesktopCompactAction>
+          </DesktopCardSurface>
         ) : null}
         <div ref={loadMoreRef} className="h-1" />
       </div>
@@ -189,16 +187,12 @@ export function PostFeedWithMediaPreview({
       ) : null}
 
       {loadError ? (
-        <div className="rounded-2xl border border-red-200/60 bg-red-50/80 px-4 py-3 text-xs text-red-700 backdrop-blur-sm">
+        <DesktopCardSurface kind="operational-solid" as="div" className="px-4 py-3 text-xs text-red-700">
           <p>{loadError}</p>
-          <button
-            type="button"
-            onClick={onRetryLoadMore}
-            className="mt-2 rounded-lg bg-red-500 px-3 py-1.5 text-[11px] font-medium text-white transition hover:bg-red-600"
-          >
+          <DesktopCompactAction tone="danger" onClick={onRetryLoadMore} className="mt-2">
             {retryLabel}
-          </button>
-        </div>
+          </DesktopCompactAction>
+        </DesktopCardSurface>
       ) : null}
       <div ref={loadMoreRef} className="h-1" />
     </div>

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { i18n } from '@renderer/i18n';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 
@@ -197,7 +198,7 @@ export function ExploreAgentCard({
   const bioText = agent.bio || (agent.category ? `${agent.category} agent` : 'Public agent');
 
   return (
-    <div className="flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <DesktopCardSurface kind="promoted-glass" className="flex flex-col p-4">
       <div className="flex items-start gap-3">
         <button 
           type="button" 
@@ -254,7 +255,7 @@ export function ExploreAgentCard({
           </button>
         )}
       </div>
-    </div>
+    </DesktopCardSurface>
   );
 }
 
@@ -281,8 +282,9 @@ export function AgentRecommendationCard({
   const themeLabel = agent.category || agent.tags[0] || agent.origin || 'General';
 
   return (
-    <div 
-      className="group relative w-full min-w-0 cursor-pointer overflow-hidden rounded-2xl border border-white/70 px-4 pb-3 pt-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+    <DesktopCardSurface 
+      kind="promoted-glass"
+      className="group relative w-full min-w-0 cursor-pointer overflow-hidden px-4 pb-3 pt-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
       style={{ background: palette.background }}
       onClick={() => onOpen?.()}
     >
@@ -359,7 +361,7 @@ export function AgentRecommendationCard({
         </div>
       </div>
       </div>
-    </div>
+    </DesktopCardSurface>
   );
 }
 
@@ -502,7 +504,7 @@ export function TopAgentCard({
     : { background: palette.ring };
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <DesktopCardSurface kind="promoted-glass" className="overflow-hidden transition-shadow hover:shadow-md">
       <div className="relative h-32" style={backgroundStyle}>
         {themeLabel && (
           <div className="absolute top-3 left-3">
@@ -674,6 +676,6 @@ export function TopAgentCard({
           </button>
         </div>
       </div>
-    </div>
+    </DesktopCardSurface>
   );
 }

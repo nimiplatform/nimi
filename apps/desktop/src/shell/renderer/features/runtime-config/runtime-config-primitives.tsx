@@ -2,12 +2,12 @@ import { type ReactNode } from 'react';
 import { i18n } from '@renderer/i18n';
 
 import {
-  Surface,
   Button as KitButton,
   TextField,
   SelectField as KitSelectField,
   cn,
 } from '@nimiplatform/nimi-kit/ui';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import {
   statusTextV11,
   type ProviderStatusV11,
@@ -21,18 +21,14 @@ export function Card({
   className?: string;
 }) {
   return (
-    <Surface
-      tone="card"
-      material="solid"
-      elevation="base"
-      padding="none"
+    <DesktopCardSurface
+      kind="operational-solid"
       className={cn(
-        'rounded-2xl border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,white)] shadow-[0_10px_22px_rgba(15,23,42,0.04)]',
         className,
       )}
     >
       {children}
-    </Surface>
+    </DesktopCardSurface>
   );
 }
 

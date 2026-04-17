@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefOb
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { ReactNode } from 'react';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { i18n } from '@renderer/i18n';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -36,7 +37,7 @@ const POST_GAP = 24;
 const VIRTUALIZER_OVERSCAN = 4;
 
 const PostSkeleton = () => (
-  <div className="mb-6 rounded-[2rem] border border-border bg-card p-5 shadow-sm">
+  <DesktopCardSurface kind="promoted-glass" className="mb-6 p-5">
     <div className="flex items-center gap-3">
       <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
       <div className="space-y-1">
@@ -50,7 +51,7 @@ const PostSkeleton = () => (
       <div className="h-4 w-[80%] animate-pulse rounded bg-muted" />
     </div>
     <div className="mt-4 h-[200px] w-full animate-pulse rounded-2xl bg-muted" />
-  </div>
+  </DesktopCardSurface>
 );
 
 function isApiError(error: unknown): error is ApiError {
@@ -298,11 +299,11 @@ export function PostFeed({
     renderItem ? (
       <Fragment key={post.id}>{renderItem(post, index)}</Fragment>
     ) : (
-      <div key={post.id} className="rounded-[10px] border border-gray-200 bg-white p-4">
+      <DesktopCardSurface key={post.id} kind="promoted-glass" className="p-4">
         <p className="text-sm text-gray-700">
           {post.caption ?? i18n.t('Home.noContent', { defaultValue: 'No content' })}
         </p>
-      </div>
+      </DesktopCardSurface>
     );
 
   return (

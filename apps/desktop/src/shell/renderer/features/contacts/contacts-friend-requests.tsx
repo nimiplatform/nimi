@@ -1,6 +1,8 @@
 import { i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { DesktopCompactAction } from '@renderer/components/action';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import type { ContactRequestRecord } from './contacts-model.js';
 
 // 单个好友请求详情组件
@@ -18,8 +20,8 @@ export function FriendRequestDetail({
   onCancel: () => void;
 }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8">
+    <div className="flex flex-1 flex-col items-center justify-center p-8">
+      <DesktopCardSurface kind="operational-solid" as="div" className="w-full max-w-md p-8">
         <div className="flex flex-col items-center">
           <EntityAvatar
             imageUrl={request.avatarUrl}
@@ -45,7 +47,7 @@ export function FriendRequestDetail({
           </span>
         </div>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+        <div className="mt-6 rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_74%,white)] p-4">
           <p className="text-sm text-gray-600">
             {request.requestMessage || request.bio || i18n.t('Contacts.requestFallbackBio', { defaultValue: 'Wants to add you as a friend' })}
           </p>
@@ -59,33 +61,34 @@ export function FriendRequestDetail({
               </div>
             ) : (
               <>
-                <button
-                  type="button"
+                <DesktopCompactAction
                   onClick={onAccept}
-                  className="flex-1 py-3 rounded-full bg-[#0066CC] text-white text-[15px] font-medium hover:bg-[#0052A3] transition-colors"
+                  tone="primary"
+                  className="min-w-[132px] rounded-full py-3 text-[15px]"
                 >
                   {i18n.t('Contacts.accept', { defaultValue: 'Accept' })}
-                </button>
-                <button
-                  type="button"
+                </DesktopCompactAction>
+                <DesktopCompactAction
                   onClick={onReject}
-                  className="flex-1 py-3 rounded-full bg-gray-100 text-gray-700 text-[15px] font-medium hover:bg-gray-200 transition-colors"
+                  tone="neutral"
+                  className="min-w-[132px] rounded-full py-3 text-[15px]"
                 >
                   {i18n.t('Contacts.reject', { defaultValue: 'Reject' })}
-                </button>
+                </DesktopCompactAction>
               </>
             )
           ) : (
-            <button
-              type="button"
+            <DesktopCompactAction
               onClick={onCancel}
-              className="w-full py-3 rounded-full bg-gray-100 text-gray-700 text-[15px] font-medium hover:bg-gray-200 transition-colors"
+              tone="neutral"
+              fullWidth
+              className="rounded-full py-3 text-[15px]"
             >
               {i18n.t('Contacts.withdrawRequest', { defaultValue: 'Withdraw Request' })}
-            </button>
+            </DesktopCompactAction>
           )}
         </div>
-      </div>
+      </DesktopCardSurface>
     </div>
   );
 }
@@ -122,7 +125,7 @@ export function FriendRequestsList({
         <div className="flex gap-6">
           {/* 请求列表 - 全宽显示 */}
           <div className="flex-1 min-w-0 w-full">
-            <div className="rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+            <DesktopCardSurface kind="operational-solid" as="div" className="relative p-6">
               <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none rounded-3xl" />
 
               <div className="relative">
@@ -141,7 +144,7 @@ export function FriendRequestsList({
                     return (
                       <div
                         key={`${request.direction}:${request.userId}`}
-                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/60 border border-white/60 transition-all hover:bg-white/80"
+                        className="flex items-center gap-4 rounded-2xl border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] p-4 transition-all hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_98%,white)]"
                       >
                         {/* 头像 */}
                         <EntityAvatar
@@ -177,26 +180,26 @@ export function FriendRequestsList({
                           ) : (
                             // 待处理 - 显示 Accept 和 Reject 按钮
                             <>
-                              <button
-                                type="button"
+                              <DesktopCompactAction
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onAccept(request);
                                 }}
-                                className="px-4 py-2 text-sm font-medium bg-[#4ECCA3] text-white rounded-xl hover:bg-[#3DBA92] transition-all shadow-[0_4px_14px_rgba(78,204,163,0.35)] hover:shadow-[0_6px_20px_rgba(78,204,163,0.45)] active:scale-95"
+                                tone="primary"
+                                className="px-4 py-2"
                               >
                                 {i18n.t('Contacts.accept', { defaultValue: 'Accept' })}
-                              </button>
-                              <button
-                                type="button"
+                              </DesktopCompactAction>
+                              <DesktopCompactAction
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onReject(request);
                                 }}
-                                className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors"
+                                tone="neutral"
+                                className="px-4 py-2"
                               >
                                 {i18n.t('Contacts.reject', { defaultValue: 'Reject' })}
-                              </button>
+                              </DesktopCompactAction>
                             </>
                           )}
                         </div>
@@ -219,7 +222,7 @@ export function FriendRequestsList({
                   </div>
                 )}
               </div>
-            </div>
+            </DesktopCardSurface>
           </div>
         </div>
       </ScrollArea>

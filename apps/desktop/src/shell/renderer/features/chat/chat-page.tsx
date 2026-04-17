@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ConversationSetupAction } from '@nimiplatform/nimi-kit/features/chat';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { DesktopIconToggleAction } from '@renderer/components/action';
 import { dispatchRuntimeConfigOpenPage } from '@renderer/features/runtime-config/runtime-config-navigation-events';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatContactsSidebar } from './chat-contacts-sidebar';
@@ -45,25 +46,15 @@ function FloatingIconButton(props: {
 }) {
   return (
     <Tooltip content={props.tooltip} placement="top">
-      <button
-        type="button"
+      <DesktopIconToggleAction
+        icon={props.icon}
+        active={props.active}
         disabled={props.disabled}
         onClick={props.disabled ? undefined : props.onClick}
-        className={[
-          'inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150',
-          'shadow-[0_2px_8px_rgba(15,23,42,0.08)]',
-          props.active
-            ? 'border border-emerald-400 bg-emerald-500 text-white'
-            : 'border border-slate-200/80 bg-white/95 text-slate-500',
-          props.disabled
-            ? 'cursor-not-allowed opacity-50'
-            : props.active
-              ? 'hover:bg-emerald-600 hover:border-emerald-500 hover:text-white'
-              : 'hover:border-emerald-300 hover:text-teal-600',
-        ].join(' ')}
-      >
-        {props.icon}
-      </button>
+        aria-label={props.tooltip}
+        title={props.tooltip}
+        className="h-9 w-9"
+      />
     </Tooltip>
   );
 }
