@@ -174,7 +174,13 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
       bootstrapSource.includes("message: 'phase:runtime-unavailable:strip-only'"),
       'bootstrap must log runtime unavailable and rely on strip-only UI',
     );
-    const successTail = bootstrapSource.slice(bootstrapSource.indexOf('if (runtimeUnavailable) {'));
+    const runtimeUnavailableIndex = bootstrapSource.indexOf('if (runtimeUnavailable) {');
+    const runtimeUnavailableBlockEnd = bootstrapSource.indexOf('if (bootstrapRuntimeConfigWarning) {');
+    const successTail = bootstrapSource.slice(runtimeUnavailableIndex);
+    const runtimeUnavailableBlock = bootstrapSource.slice(
+      runtimeUnavailableIndex,
+      runtimeUnavailableBlockEnd === -1 ? bootstrapSource.length : runtimeUnavailableBlockEnd,
+    );
     assert.ok(
       successTail.includes('setBootstrapReady(true)'),
       'runtime unavailable path must still mark bootstrap ready',
@@ -184,9 +190,28 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
       'runtime unavailable path must clear bootstrapError instead of failing startup',
     );
     assert.doesNotMatch(
-      successTail,
+      runtimeUnavailableBlock,
       /setStatusBanner\(\{\s*kind:\s*'warning'/,
       'runtime unavailable path must not emit a duplicate warning banner',
+    );
+  });
+
+  test('D-BOOT-013: runtime config sync degradation stays non-fatal and still completes bootstrap', () => {
+    assert.ok(
+      bootstrapSource.includes("message: 'phase:runtime-config-sync:degraded'"),
+      'bootstrap must log runtime config sync degradation instead of failing startup',
+    );
+    assert.ok(
+      bootstrapSource.includes("useAppStore.getState().setStatusBanner({\n        kind: 'warning',"),
+      'bootstrap must surface runtime config sync degradation as a warning banner',
+    );
+    const degradedIndex = bootstrapSource.indexOf("message: 'phase:runtime-config-sync:degraded'");
+    const readyIndex = bootstrapSource.indexOf('useAppStore.getState().setBootstrapReady(true);');
+    assert.ok(degradedIndex !== -1, 'runtime config sync degraded log must exist');
+    assert.ok(readyIndex !== -1, 'bootstrap ready assignment must exist');
+    assert.ok(
+      degradedIndex < readyIndex,
+      'runtime config sync degradation must be handled before bootstrap completes',
     );
   });
 

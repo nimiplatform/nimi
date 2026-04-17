@@ -155,6 +155,20 @@ features:
       - scenario_id: world.surface-layout
         source_rule: D-GATE-040
         spec_path: apps/desktop/test/world-detail-bento-layout.test.ts
+  - feature: tester-world-tour
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_smoke
+    covers_tabs:
+      - tester
+    covers_bootstrap_phases: []
+    covers_ipc_commands: []
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: tester.world-tour
+        source_rule: D-GATE-030
+        spec_path: apps/desktop/e2e/specs/tester.world-tour.e2e.mjs
   - feature: runtime-config
     risk_tier: P1
     required_layers:

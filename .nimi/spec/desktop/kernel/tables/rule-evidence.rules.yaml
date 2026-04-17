@@ -480,6 +480,26 @@
     - desktop_kernel_consistency
     - desktop_rust_test_gate
   note: "Download atomicity & staging; Rust backend coverage"
+- rule_id: D-LLM-065
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "World generate runtime-only boundary; enforced structurally by desktop consistency gate"
+- rule_id: D-LLM-066
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "World tour acceptance surface authority; enforced structurally by desktop consistency gate"
+- rule_id: D-LLM-067
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "World tour required acceptance chain authority; executable coverage lands with implementation wave"
+- rule_id: D-LLM-068
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "World tour fail-close acceptance authority; executable coverage lands with implementation wave"
 - rule_id: D-LLM-053
   status: covered
   evidence_refs:
@@ -967,6 +987,30 @@
     - desktop_spec_docs_drift_gate
     - desktop_design_contract_gate
 - rule_id: D-SHELL-028
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
+- rule_id: D-SHELL-029
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
+- rule_id: D-SHELL-030
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
+- rule_id: D-SHELL-031
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
+- rule_id: D-SHELL-032
   status: covered
   evidence_refs:
     - desktop_kernel_consistency

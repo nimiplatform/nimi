@@ -204,6 +204,17 @@ HuggingFace 下载流程遵循 Staging → Verify → Commit 原子模式。
 - **下载恢复**: HTTP Range header 支持断点续传；按文件级别跟踪进度
 - **进度 ETA**: 指数移动平均 (α=0.2, 1-3s 窗口)；检测到进度回退时重置 EMA 状态
 
+## D-LLM-065 — World Generate Runtime-Only Boundary
+
+Desktop 消费 `world.generate` 时必须保持 runtime-only 路径：
+
+- route resolve、submit、poll、fetch-world 均必须通过 runtime surface 完成。
+- `connector_id` 继续是唯一合法的远端凭据路由句柄。
+- Desktop 不得直接调用 World Labs upload / generate / operations / get-world
+  HTTP endpoints。
+- provider viewer URL 若被展示，只能作为外部 handoff；它不构成 Desktop 拥有
+  provider execution truth。
+
 ## Fact Sources
 
 - `tables/hook-capability-allowlists.yaml` — runtime facade capability 白名单

@@ -25,6 +25,7 @@ import { TextGeneratePanel } from './panels/panel-text-generate.js';
 import { TextEmbedPanel } from './panels/panel-text-embed.js';
 import { ImageGeneratePanel } from './panels/panel-image-generate.js';
 import { VideoGeneratePanel } from './panels/panel-video-generate.js';
+import { WorldTourPanel } from './panels/panel-world-tour.js';
 import { AudioSynthesizePanel } from './panels/panel-audio-synthesize.js';
 import { AudioTranscribePanel } from './panels/panel-audio-transcribe.js';
 import { TextStreamPanel } from './panels/panel-text-stream.js';
@@ -35,6 +36,7 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 const SIDEBAR_GROUPS: Array<{ label: string; ids: CapabilityId[] }> = [
   { label: 'Text', ids: ['text.generate', 'text.stream', 'text.embed'] },
   { label: 'Media', ids: ['image.generate', 'image.create-job', 'video.create-job'] },
+  { label: 'World', ids: ['world.generate'] },
   { label: 'Audio', ids: ['audio.synthesize', 'audio.transcribe', 'voice.clone', 'voice.design'] },
 ];
 
@@ -312,6 +314,13 @@ export function TesterPage() {
             params={currentVideoParams}
             onParamsChange={(next) => handleSettingsParamsChange('video.generate', next as unknown as Record<string, unknown>)}
             onStateChange={(updater) => updateCapabilityState(activeCapability, updater)}
+          />
+        );
+      case 'world.generate':
+        return (
+          <WorldTourPanel
+            state={activeState}
+            onStateChange={(updater) => updateCapabilityState('world.generate', updater)}
           />
         );
       case 'audio.synthesize':

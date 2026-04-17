@@ -24,6 +24,8 @@ export const E2E_IDS = {
   runtimeSidebarPage: (pageId: string) => `runtime-sidebar:${pageId}`,
   runtimePageRoot: (pageId: string) => `runtime-page:${pageId}`,
   runtimeConnectorScopeBadge: (connectorId: string) => `runtime-connector-scope-badge:${connectorId}`,
+  worldTourLaunchButton: 'world-tour-launch-button',
+  worldTourViewerRoot: 'world-tour-viewer-root',
   chatPage: 'chat-page',
   chatList: 'chat-list',
   chatRow: (chatId: string) => `chat-row:${chatId}`,

@@ -157,6 +157,7 @@ struct DesktopMacosSmokeReportPayload {
     error_cause: Option<String>,
     route: Option<String>,
     html_snapshot: Option<String>,
+    details: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -32,6 +32,7 @@
 | `hook-capability-contract.md` | `D-HOOK-*` | Hook 子系统与能力网关 |
 | `mod-governance-contract.md` | `D-MOD-*` | 8 阶段执行内核与审计 |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
+| `world-tour-tester-contract.md` | `D-LLM-*` | Desktop tester `world tour` authority：`world.generate` first-wave end-to-end acceptance semantics、runtime-owned route/job/result consumption、Spark 2.0 SPZ render proof；不拥有 connector custody / runtime scenario truth / canonical Realm world truth |
 | `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 resolved message / action truth |
 | `agent-chat-behavior-contract.md` | `D-LLM-*` | Agent chat generic behavior semantics、single-message / turn-mode / experience-policy authority；不拥有 message-action truth |
 | `agent-avatar-surface-contract.md` | `D-LLM-*` | Agent avatar transient surface authority：`AvatarInteractionState`、chat/avatar landing semantics、and reusable kit avatar consumer boundary |

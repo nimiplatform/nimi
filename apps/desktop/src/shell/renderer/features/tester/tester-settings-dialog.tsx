@@ -273,6 +273,24 @@ export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
           },
         ],
       },
+      {
+        id: 'world',
+        title: t('Tester.capability.worldSection', { defaultValue: 'World' }),
+        collapsible: true,
+        defaultExpanded: true,
+        items: [
+          {
+            capabilityId: 'world.generate',
+            routeCapability: 'world.generate',
+            label: t('Tester.capability.worldTour', { defaultValue: 'World Tour' }),
+            binding: bindingFromTesterConfig(config, 'world.generate'),
+            provider: providers['world.generate'] || null,
+            onBindingChange: (binding) => onBindingChange('world.generate', binding),
+            placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
+            runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
+          },
+        ],
+      },
     ];
   }, [assets, assetsQuery.isLoading, config, imageEditorCopy, onBindingChange, onParamsChange, profile, providers, t, videoEditorCopy]);
 

@@ -365,6 +365,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_agent_avatar_store::desktop_agent_avatar_resource_list,
             desktop_agent_avatar_store::desktop_agent_avatar_resource_delete,
             desktop_agent_avatar_store::desktop_agent_avatar_resource_read_asset,
+            desktop_agent_avatar_store::desktop_agent_avatar_resource_read_relative_asset,
             desktop_agent_avatar_store::desktop_agent_avatar_binding_get,
             desktop_agent_avatar_store::desktop_agent_avatar_binding_set,
             desktop_agent_avatar_store::desktop_agent_avatar_binding_clear,
@@ -423,7 +424,11 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_assets_scan_unregistered,
             local_runtime::commands::runtime_local_assets_scaffold_orphan,
             super::defaults_and_commands::tester_storage::tester_image_history_load,
-            super::defaults_and_commands::tester_storage::tester_image_history_save
+            super::defaults_and_commands::tester_storage::tester_image_history_save,
+            super::defaults_and_commands::tester_storage::tester_fixture_read_file,
+            super::defaults_and_commands::world_tour::resolve_world_tour_fixture,
+            super::defaults_and_commands::world_tour::save_world_tour_viewer_preset,
+            super::defaults_and_commands::world_tour::open_world_tour_window
         ])
         .build(tauri::generate_context!())
 }

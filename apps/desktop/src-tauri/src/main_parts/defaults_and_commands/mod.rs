@@ -5,6 +5,7 @@ pub(crate) mod runtime_agent_memory;
 pub(crate) mod system_resources;
 pub(crate) mod tester_storage;
 pub(crate) mod window_and_logs;
+pub(crate) mod world_tour;
 
 fn normalize_loopback_http_url(raw: &str, default_port: u16, trim_trailing_slash: bool) -> String {
     let value = raw.trim();

@@ -1,6 +1,6 @@
 import type { ModRuntimeLocalAssetKind, RuntimeCanonicalCapability, RuntimeRouteBinding, RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/mod';
 
-export type CapabilityId = 'text.generate' | 'text.stream' | 'text.embed' | 'image.generate' | 'image.create-job' | 'video.generate' | 'video.create-job' | 'audio.synthesize' | 'audio.transcribe' | 'voice.clone' | 'voice.design';
+export type CapabilityId = 'text.generate' | 'text.stream' | 'text.embed' | 'image.generate' | 'image.create-job' | 'video.generate' | 'video.create-job' | 'world.generate' | 'audio.synthesize' | 'audio.transcribe' | 'voice.clone' | 'voice.design';
 
 export type CapabilityMeta = {
   id: CapabilityId;
@@ -16,6 +16,7 @@ export const CAPABILITIES: CapabilityMeta[] = [
   { id: 'image.create-job', hasRoute: true, routeCapability: 'image.generate' },
   { id: 'video.generate', hasRoute: true, routeCapability: 'video.generate' },
   { id: 'video.create-job', hasRoute: true, routeCapability: 'video.generate' },
+  { id: 'world.generate', hasRoute: true, routeCapability: 'world.generate' },
   { id: 'audio.synthesize', hasRoute: true, routeCapability: 'audio.synthesize' },
   { id: 'audio.transcribe', hasRoute: true, routeCapability: 'audio.transcribe' },
   { id: 'voice.clone', hasRoute: true, routeCapability: 'voice_workflow.tts_v2v' },
@@ -173,6 +174,7 @@ export const CAPABILITY_LABELS: Record<CapabilityId, { label: string; descriptio
   'image.create-job': { label: 'Image Job', description: 'Asynchronous image generation' },
   'video.generate': { label: 'Video', description: 'Video generation' },
   'video.create-job': { label: 'Video Job', description: 'Asynchronous video generation' },
+  'world.generate': { label: 'World Tour', description: 'World generation route and acceptance surface' },
   'audio.synthesize': { label: 'TTS', description: 'Text to speech' },
   'audio.transcribe': { label: 'STT', description: 'Speech to text' },
   'voice.clone': { label: 'Voice Clone', description: 'Clone voice' },

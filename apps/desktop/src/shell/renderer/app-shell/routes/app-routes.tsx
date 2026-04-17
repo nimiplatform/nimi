@@ -17,6 +17,18 @@ const MainLayout = lazy(async () => {
   return { default: mod.MainLayout };
 });
 
+const WorldTourViewerRoute = lazy(async () => {
+  const mod = await import('@renderer/features/tester/world-tour-viewer-route');
+  return { default: mod.WorldTourViewerRoute };
+});
+
+function isStandaloneWorldTourRoute(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return window.location.hash.startsWith('#/world-tour-viewer');
+}
+
 function NimiLogoMark({ className = 'h-12 w-12' }: { className?: string }) {
   return (
     <svg
@@ -207,16 +219,17 @@ function BootstrapErrorScreen({ message }: { message: string }) {
 
 export function AppRoutes() {
   const flags = getShellFeatureFlags();
+  const standaloneWorldTour = isStandaloneWorldTourRoute();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
   const authStatus = useAppStore((state) => state.auth.status);
   const isDesktopShell = flags.mode === 'desktop';
 
-  if (flags.mode !== 'web' && !bootstrapReady && !bootstrapError) {
+  if (!standaloneWorldTour && flags.mode !== 'web' && !bootstrapReady && !bootstrapError) {
     return <LoadingScreen />;
   }
 
-  if (bootstrapError) {
+  if (!standaloneWorldTour && bootstrapError) {
     return <BootstrapErrorScreen message={bootstrapError} />;
   }
 
@@ -224,6 +237,14 @@ export function AppRoutes() {
     <Routes>
       {isDesktopShell ? (
         <>
+          <Route
+            path="/world-tour-viewer"
+            element={(
+              <Suspense fallback={<LoadingScreen />}>
+                <WorldTourViewerRoute />
+              </Suspense>
+            )}
+          />
           <Route path="/" element={(
             <Suspense fallback={<LoadingScreen />}>
               <MainLayout />

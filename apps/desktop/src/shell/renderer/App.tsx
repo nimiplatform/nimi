@@ -17,6 +17,13 @@ import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smo
 const WEB_BOOTSTRAP_TIMEOUT_MS = 15000;
 const DESKTOP_BOOTSTRAP_TIMEOUT_MS = 25000;
 
+function isStandaloneWorldTourRoute(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return window.location.hash.startsWith('#/world-tour-viewer');
+}
+
 async function runBootstrapRuntime(): Promise<void> {
   const module = await import('@renderer/infra/bootstrap/runtime-bootstrap');
   await module.bootstrapRuntime();
@@ -25,24 +32,33 @@ async function runBootstrapRuntime(): Promise<void> {
 function AppBoot() {
   const { t } = useTranslation();
   const shellMode = getShellFeatureFlags().mode;
+  const standaloneWorldTour = isStandaloneWorldTourRoute();
   const setBootstrapError = useAppStore((state) => state.setBootstrapError);
   const setBootstrapReady = useAppStore((state) => state.setBootstrapReady);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
-  const runtimeHealthBootstrapEnabled = shellMode === 'desktop' && bootstrapReady;
+  const runtimeHealthBootstrapEnabled = shellMode === 'desktop' && bootstrapReady && !standaloneWorldTour;
 
   useMenuBarNavigationListener();
   useRuntimeHealthCoordinatorBootstrap(runtimeHealthBootstrapEnabled);
   useMenuBarRuntimeSync();
-  useDesktopUpdatesBootstrap(bootstrapReady);
-  useDesktopMacosSmokeBootstrap(bootstrapReady, bootstrapError);
+  useDesktopUpdatesBootstrap(bootstrapReady && !standaloneWorldTour);
+  useDesktopMacosSmokeBootstrap(bootstrapReady && !standaloneWorldTour, bootstrapError);
 
   useEffect(() => {
+    if (standaloneWorldTour) {
+      return;
+    }
     void pingDesktopMacosSmoke('app-mounted').catch(() => {});
-  }, []);
+  }, [standaloneWorldTour]);
 
   useEffect(() => {
+    if (standaloneWorldTour) {
+      setBootstrapReady(true);
+      setBootstrapError(null);
+      return;
+    }
     const flowId = createRendererFlowId('renderer-bootstrap');
     let settled = false;
     let cancelled = false;
@@ -150,7 +166,7 @@ function AppBoot() {
         clearTimeout(timeoutId);
       }
     };
-  }, [setBootstrapError, setBootstrapReady, setStatusBanner, t]);
+  }, [setBootstrapError, setBootstrapReady, setStatusBanner, standaloneWorldTour, t]);
 
   useEffect(() => {
     const unsubscribe = onI18nIssue((issue) => {

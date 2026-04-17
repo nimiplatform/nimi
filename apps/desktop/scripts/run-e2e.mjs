@@ -6,13 +6,49 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawn, spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { profilePathForScenario, scenarioRegistry, selectScenarios } from '../e2e/helpers/registry.mjs';
 import { startRealmFixtureServer } from '../e2e/fixtures/realm-fixture-server.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptDir, '..');
 const repoRoot = path.resolve(desktopRoot, '..', '..');
+const CUBISM_WEB_SDK_VERSION = '5-r.5';
+const CUBISM_SAMPLE_MODEL = 'Hiyori';
+
+function ensureCubismLive2dSample() {
+  const sampleCacheRoot = path.join(repoRoot, 'apps/desktop/.cache/assets/js');
+  const sdkRoot = path.join(sampleCacheRoot, `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}`);
+  const zipPath = path.join(sdkRoot, `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}.zip`);
+  const modelPath = path.join(
+    sdkRoot,
+    'Samples',
+    'Resources',
+    CUBISM_SAMPLE_MODEL,
+    `${CUBISM_SAMPLE_MODEL}.model3.json`,
+  );
+
+  if (!fs.existsSync(zipPath)) {
+    throw new Error(`Cubism Web SDK zip is missing: ${zipPath}`);
+  }
+  if (!fs.existsSync(modelPath)) {
+    const entry = `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}/Samples/Resources/${CUBISM_SAMPLE_MODEL}/*`;
+    const extract = spawnSync('unzip', ['-oq', zipPath, entry, '-d', sampleCacheRoot], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    });
+    if (extract.error) {
+      throw extract.error;
+    }
+    if (extract.status !== 0) {
+      throw new Error(`failed to extract Cubism sample ${CUBISM_SAMPLE_MODEL}: ${extract.stderr || extract.stdout || 'unknown unzip error'}`);
+    }
+  }
+  return {
+    sampleRoot: path.dirname(modelPath),
+    modelFileUrl: pathToFileURL(modelPath).toString(),
+  };
+}
 
 function parseArgs(argv) {
   const options = {
@@ -101,6 +137,9 @@ function buildScenarioManifest({ scenarioId, profile, fixtureOrigin }) {
     scenarioId,
   }, {
     __FIXTURE_ORIGIN__: fixtureOrigin,
+    __REPO_ROOT__: repoRoot,
+    __CUBISM_SAMPLE_LIVE2D_ROOT__: ensureCubismLive2dSample().sampleRoot,
+    __CUBISM_SAMPLE_LIVE2D_MODEL_FILE_URL__: ensureCubismLive2dSample().modelFileUrl,
   });
 }
 
