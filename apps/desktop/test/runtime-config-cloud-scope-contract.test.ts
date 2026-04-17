@@ -42,3 +42,18 @@ test('runtime config cloud scope contract: connector scope badges expose stable 
   assert.match(cloudPageSource, /runtimeConfig\.cloud\.machineGlobal/);
   assert.match(cloudPageSource, /runtimeConfig\.cloud\.runtimeSystem/);
 });
+
+test('runtime config cloud scope contract: vendor options are derived from runtime provider catalog', () => {
+  assert.match(cloudPageSource, /sdkListProviderCatalog\(\)/);
+  assert.match(cloudPageSource, /const vendorOptions = useMemo\(\(\) => \{/);
+  assert.match(cloudPageSource, /\.filter\(\(entry\) => entry\.managedSupported && entry\.provider !== 'local'\)/);
+  assert.match(cloudPageSource, /\.map\(\(entry\) => providerToVendor\(entry\.provider\)\)/);
+  assert.match(cloudPageSource, /options=\{vendorOptions\}/);
+});
+
+test('runtime config cloud scope contract: only draft connectors can change vendor', () => {
+  assert.match(cloudPageSource, /const canEditVendor = !isRuntimeSystem && isDraft;/);
+  assert.match(cloudPageSource, /if \(!selectedConnector \|\| !canEditVendor\) return;/);
+  assert.match(cloudPageSource, /disabled=\{!canEditVendor\}/);
+  assert.match(cloudPageSource, /Vendor is fixed after connector creation\. Create a new connector to switch provider\./);
+});

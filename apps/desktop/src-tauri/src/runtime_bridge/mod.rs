@@ -148,7 +148,9 @@ pub async fn runtime_bridge_config_get() -> Result<Value, String> {
 }
 
 #[tauri::command]
-pub async fn runtime_bridge_config_set(payload: RuntimeBridgeConfigSetPayload) -> Result<Value, String> {
+pub async fn runtime_bridge_config_set(
+    payload: RuntimeBridgeConfigSetPayload,
+) -> Result<Value, String> {
     daemon_manager::config_set_async(payload.config_json).await
 }
 

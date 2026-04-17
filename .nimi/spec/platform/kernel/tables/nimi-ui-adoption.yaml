@@ -301,6 +301,45 @@ modules:
       - dark
     default_scheme: light
     accent_pack: desktop-accent
+  - id: desktop.chat.avatar.live2d.exception
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-viewport.tsx
+    families:
+      - surface
+    testid_required: false
+    exception_policy: controlled_exception
+    source_rule: P-DESIGN-021
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.chat.avatar.vrm.exception
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-viewport.tsx
+    families:
+      - surface
+    testid_required: false
+    exception_policy: controlled_exception
+    source_rule: P-DESIGN-021
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.contacts.profile-detail.exception
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/contacts/contact-detail-view-content.tsx
+    families:
+      - surface
+    testid_required: true
+    exception_policy: controlled_exception
+    source_rule: P-DESIGN-021
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
   - id: overtone.waveform.exception
     app: overtone
     module: apps/overtone/src/shell/renderer/features/workspace/waveform.tsx

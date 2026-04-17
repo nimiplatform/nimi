@@ -68,6 +68,7 @@ var AllProviders = []string{
 	"together",
 	"volcengine",
 	"volcengine_openspeech",
+	"worldlabs",
 	"xai",
 }
 
@@ -113,6 +114,7 @@ var SourceProviders = []string{
 	"suno",
 	"together",
 	"volcengine",
+	"worldlabs",
 	"xai",
 }
 
@@ -160,6 +162,7 @@ var RemoteProviders = []string{
 	"together",
 	"volcengine",
 	"volcengine_openspeech",
+	"worldlabs",
 	"xai",
 }
 
@@ -995,6 +998,25 @@ var Records = map[string]ProviderRecord{
 		SupportsVideo: false,
 		SupportsTTS: true,
 		SupportsSTT: true,
+		SupportsMusic: false,
+		SupportsMusicIteration: false,
+		SupportsTTSV2V: false,
+		SupportsTTST2V: false,
+	},
+	"worldlabs": {
+		ID: "worldlabs",
+		RuntimePlane: "remote",
+		ManagedConnectorSupported: true,
+		InlineSupported: true,
+		DefaultEndpoint: "https://api.worldlabs.ai",
+		DefaultTextModel: "",
+		RequiresExplicitEndpoint: false,
+		SupportsText: false,
+		SupportsEmbed: false,
+		SupportsImage: false,
+		SupportsVideo: false,
+		SupportsTTS: false,
+		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
 		SupportsTTSV2V: false,

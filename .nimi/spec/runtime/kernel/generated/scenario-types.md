@@ -13,3 +13,4 @@
 | `VOICE_CLONE` | Voice clone scenario. | `K-RPC-002` |
 | `VOICE_DESIGN` | Voice design scenario. | `K-RPC-002` |
 | `MUSIC_GENERATE` | Music generation scenario. | `K-RPC-002` |
+| `WORLD_GENERATE` | Explorable world generation scenario. | `K-RPC-002` |

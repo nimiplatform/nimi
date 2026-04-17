@@ -134,6 +134,9 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
                     generate: async () => { throw notReady(); },
                     stream: async () => { throw notReady(); },
                 },
+                world: {
+                    generate: async () => { throw notReady(); },
+                },
                 tts: {
                     synthesize: async () => { throw notReady(); },
                     stream: async () => { throw notReady(); },

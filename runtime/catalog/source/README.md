@@ -71,6 +71,7 @@ Canonical capability tokens are:
 - `text.embed`
 - `image.generate`
 - `video.generate`
+- `world.generate`
 - `audio.synthesize`
 - `audio.transcribe`
 - `music.generate`

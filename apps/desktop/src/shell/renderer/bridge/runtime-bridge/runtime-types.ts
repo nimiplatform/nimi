@@ -393,6 +393,7 @@ export type DesktopMacosSmokeReportPayload = {
   errorCause?: string;
   route?: string;
   htmlSnapshot?: string;
+  details?: Record<string, unknown>;
 };
 
 export type DesktopMacosSmokeReportResult = {

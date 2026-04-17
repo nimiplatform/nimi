@@ -124,6 +124,7 @@
 | `K-CONN-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-CONN-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-CONN-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-DAEMON-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-DAEMON-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-DAEMON-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

@@ -21,6 +21,7 @@ func TestScenarioRequiredCapabilitiesUseCanonicalTokens(t *testing.T) {
 		{runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, []string{aicapabilities.AudioTranscribe}},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, []string{aicapabilities.VoiceWorkflowTTSV2V}},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, []string{aicapabilities.VoiceWorkflowTTST2V}},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, []string{aicapabilities.WorldGenerate}},
 	}
 
 	for _, tc := range cases {
@@ -31,6 +32,13 @@ func TestScenarioRequiredCapabilitiesUseCanonicalTokens(t *testing.T) {
 	}
 	if got := scenarioRequiredCapabilities(runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED); got != nil {
 		t.Fatalf("unspecified scenario should have nil required capabilities, got %v", got)
+	}
+}
+
+func TestMediaScenarioSupportedByProviderRecordForWorld(t *testing.T) {
+	record := providerregistry.ProviderRecord{ID: "worldlabs"}
+	if !mediaScenarioSupportedByProviderRecord(record, runtimev1.Modal_MODAL_WORLD) {
+		t.Fatalf("expected worldlabs record to support world modal")
 	}
 }
 

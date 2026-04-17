@@ -86,6 +86,10 @@ rules:
     status: covered
     evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
     test_files: [sdk/test/ai-provider/provider.test.ts]
+  - rule_id: S-AIP-006
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Authority boundary rule for world.generate projection; enforced structurally by sdk consistency gate"
 
   # --- Boundary Contract (S-BOUNDARY) ---
   - rule_id: S-BOUNDARY-001

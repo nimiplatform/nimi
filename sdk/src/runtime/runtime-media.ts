@@ -15,6 +15,9 @@ import {
   type ScenarioJob,
   type ScenarioJobEvent,
   type SubmitScenarioJobRequest,
+  type WorldGenerateImagePrompt,
+  type WorldGenerateMultiImagePrompt,
+  type WorldGenerateVideoPrompt,
 } from './generated/runtime/v1/ai';
 import { Struct as ProtoStruct } from './generated/google/protobuf/struct.js';
 import { ReasonCode as RuntimeReasonCode } from './generated/runtime/v1/common';
@@ -28,6 +31,8 @@ import type {
   SpeechSynthesizeInput,
   SpeechTranscribeInput,
   VideoGenerateInput,
+  WorldGenerateAssetSource,
+  WorldGenerateInput,
 } from './types.js';
 import {
   DEFAULT_MEDIA_POLL_INTERVAL_MS,
@@ -405,6 +410,27 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
         },
       };
     }
+    case 'world': {
+      const value = input.input;
+      const base = await buildBaseSubmitScenarioJobRequest(ctx, input.modal, value);
+      return {
+        ...base,
+        spec: {
+          spec: {
+            oneofKind: 'worldGenerate',
+            worldGenerate: {
+              displayName: normalizeText(value.displayName),
+              textPrompt: normalizeText(value.textPrompt),
+              tags: Array.isArray(value.tags)
+                ? value.tags.map((tag) => normalizeText(tag)).filter(Boolean)
+                : [],
+              seed: String(value.seed || 0),
+              conditioning: toWorldConditioning(value.conditioning),
+            },
+          },
+        },
+      };
+    }
     case 'tts': {
       const value = input.input;
       const base = await buildBaseSubmitScenarioJobRequest(ctx, input.modal, value);
@@ -598,6 +624,8 @@ function scenarioTypeFromModal(modal: ScenarioJobSubmitInput['modal']): Scenario
       return ScenarioType.IMAGE_GENERATE;
     case 'video':
       return ScenarioType.VIDEO_GENERATE;
+    case 'world':
+      return ScenarioType.WORLD_GENERATE;
     case 'tts':
       return ScenarioType.SPEECH_SYNTHESIZE;
     case 'stt':
@@ -612,10 +640,88 @@ function scenarioTypeFromModal(modal: ScenarioJobSubmitInput['modal']): Scenario
 const MODAL_EXTENSION_NAMESPACE: Record<ScenarioJobSubmitInput['modal'], string> = {
   image: 'nimi.scenario.image.request',
   video: 'nimi.scenario.video.request',
+  world: 'nimi.scenario.world_generate.request',
   tts: 'nimi.scenario.speech_synthesize.request',
   stt: 'nimi.scenario.speech_transcribe.request',
   music: 'nimi.scenario.music_generate.request',
 };
+
+function toWorldConditioning(value: WorldGenerateInput['conditioning']): {
+  oneofKind: 'imagePrompt';
+  imagePrompt: WorldGenerateImagePrompt;
+} | {
+  oneofKind: 'multiImagePrompt';
+  multiImagePrompt: WorldGenerateMultiImagePrompt;
+} | {
+  oneofKind: 'videoPrompt';
+  videoPrompt: WorldGenerateVideoPrompt;
+} | {
+  oneofKind: undefined;
+} {
+  if (!value) {
+    return { oneofKind: undefined };
+  }
+  switch (value.type) {
+    case 'image':
+      return {
+        oneofKind: 'imagePrompt',
+        imagePrompt: {
+          content: toWorldAssetSource(value.content),
+        },
+      };
+    case 'multi-image':
+      return {
+        oneofKind: 'multiImagePrompt',
+        multiImagePrompt: {
+          images: Array.isArray(value.images)
+            ? value.images.map((image) => ({
+              azimuth: Number(image.azimuth || 0),
+              content: toWorldAssetSource(image.content),
+            }))
+            : [],
+        },
+      };
+    case 'video':
+      return {
+        oneofKind: 'videoPrompt',
+        videoPrompt: {
+          content: toWorldAssetSource(value.content),
+        },
+      };
+    default:
+      return { oneofKind: undefined };
+  }
+}
+
+function toWorldAssetSource(value: WorldGenerateAssetSource | undefined): {
+  source: {
+    oneofKind: 'uri';
+    uri: string;
+  } | {
+    oneofKind: 'mediaAssetId';
+    mediaAssetId: string;
+  } | {
+    oneofKind: undefined;
+  };
+} | undefined {
+  if (!value) {
+    return undefined;
+  }
+  if (value.kind === 'media_asset_id') {
+    return {
+      source: {
+        oneofKind: 'mediaAssetId',
+        mediaAssetId: normalizeText(value.mediaAssetId),
+      },
+    };
+  }
+  return {
+    source: {
+      oneofKind: 'uri',
+      uri: normalizeText(value.uri),
+    },
+  };
+}
 
 function toScenarioExtensions(
   modal: ScenarioJobSubmitInput['modal'],

@@ -53,6 +53,7 @@ const (
 	adapterMubertMusic         = "mubert_music_adapter"
 	adapterLoudlyMusic         = "loudly_music_adapter"
 	adapterSidecarMusic        = "sidecar_music_adapter"
+	adapterWorldLabsNative     = "worldlabs_world_adapter"
 )
 
 type mediaAdapterStrategy struct {
@@ -61,6 +62,7 @@ type mediaAdapterStrategy struct {
 	TTS   string
 	STT   string
 	Music string
+	World string
 }
 
 func (s mediaAdapterStrategy) forModal(modal runtimev1.Modal) string {
@@ -75,6 +77,8 @@ func (s mediaAdapterStrategy) forModal(modal runtimev1.Modal) string {
 		return strings.TrimSpace(s.STT)
 	case runtimev1.Modal_MODAL_MUSIC:
 		return strings.TrimSpace(s.Music)
+	case runtimev1.Modal_MODAL_WORLD:
+		return strings.TrimSpace(s.World)
 	default:
 		return ""
 	}
@@ -187,6 +191,9 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 	"loudly": {
 		Music: adapterLoudlyMusic,
 	},
+	"worldlabs": {
+		World: adapterWorldLabsNative,
+	},
 }
 
 func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal {
@@ -206,6 +213,8 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 		return runtimev1.Modal_MODAL_TTS
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return runtimev1.Modal_MODAL_MUSIC
+	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
+		return runtimev1.Modal_MODAL_WORLD
 	default:
 		return runtimev1.Modal_MODAL_UNSPECIFIED
 	}
@@ -356,6 +365,8 @@ func mediaScenarioSupportedByProviderRecord(record providerregistry.ProviderReco
 		return record.SupportsSTT
 	case runtimev1.Modal_MODAL_MUSIC:
 		return record.SupportsMusic
+	case runtimev1.Modal_MODAL_WORLD:
+		return strings.TrimSpace(record.ID) == "worldlabs"
 	default:
 		return false
 	}

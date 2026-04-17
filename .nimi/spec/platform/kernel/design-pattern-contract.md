@@ -121,6 +121,8 @@
 - Exceptions to shared primitive adoption must be explicit and narrow.
 - The only initial controlled exceptions are:
   - `desktop world-detail`
+  - `desktop chat avatar viewport chrome (Live2D / VRM)`
+  - `desktop contacts profile-detail hero shell`
   - Overtone waveform / transport-bar signature visualization surfaces
 - Controlled exceptions must still consume shared semantic tokens and may not define an independent token system.
 

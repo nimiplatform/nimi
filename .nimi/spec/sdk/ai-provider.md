@@ -5,7 +5,7 @@
 
 ## 0. 权威导入
 
-- `kernel/ai-provider-contract.md`（S-AIP-001, S-AIP-002, S-AIP-003, S-AIP-004, S-AIP-005）
+- `kernel/ai-provider-contract.md`（S-AIP-001, S-AIP-002, S-AIP-003, S-AIP-004, S-AIP-005, S-AIP-006）
 - `kernel/surface-contract.md`（S-SURFACE-001, S-SURFACE-002）
 - `kernel/transport-contract.md`（S-TRANSPORT-002, S-TRANSPORT-003）
 - `kernel/error-projection.md`（S-ERROR-001）

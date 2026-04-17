@@ -358,6 +358,8 @@ func (r *Resolver) SupportsScenarioForSubject(subjectUserID string, providerType
 		return hasAny(aicapabilities.AudioSynthesize), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return hasAny(aicapabilities.AudioTranscribe), nil
+	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
+		return hasAny(aicapabilities.WorldGenerate), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
 		_, workflowErr := r.ResolveVoiceWorkflowForSubject(subjectUserID, providerType, modelID, "tts_v2v")
 		if workflowErr == nil {

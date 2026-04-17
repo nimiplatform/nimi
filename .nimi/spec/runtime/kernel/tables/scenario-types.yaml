@@ -27,3 +27,6 @@ entries:
   - scenario_type: MUSIC_GENERATE
     description: Music generation scenario.
     source_rule: K-RPC-002
+  - scenario_type: WORLD_GENERATE
+    description: Explorable world generation scenario.
+    source_rule: K-RPC-002

@@ -71,6 +71,27 @@ func ValueAsInt64(value any) int64 {
 	return 0
 }
 
+func ValueAsFloat64(value any) float64 {
+	switch item := value.(type) {
+	case float32:
+		return float64(item)
+	case float64:
+		return item
+	case int:
+		return float64(item)
+	case int32:
+		return float64(item)
+	case int64:
+		return float64(item)
+	case string:
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(item), 64)
+		if err == nil {
+			return parsed
+		}
+	}
+	return 0
+}
+
 // ValueAsPositiveInt32 converts a generic value to an int32 via int64.
 // Returns 0 for negative values or overflow.
 func ValueAsPositiveInt32(value any) int32 {

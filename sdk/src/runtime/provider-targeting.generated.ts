@@ -44,5 +44,6 @@ export const REMOTE_PROVIDER_IDS = [
   "together",
   "volcengine",
   "volcengine_openspeech",
+  "worldlabs",
   "xai"
 ] as const;

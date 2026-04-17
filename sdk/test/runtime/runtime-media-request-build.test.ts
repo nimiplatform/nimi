@@ -270,6 +270,90 @@ test('build request: video modal without options defaults', async () => {
   }
 });
 
+test('build request: world modal with text prompt and image conditioning', async () => {
+  const ctx = createMockContext();
+  const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
+    modal: 'world',
+    input: {
+      model: 'marble-1.1',
+      displayName: 'City Street',
+      textPrompt: 'A rainy neon city street at dusk.',
+      tags: ['city', 'rain'],
+      seed: 77,
+      conditioning: {
+        type: 'image',
+        content: {
+          kind: 'uri',
+          uri: 'https://example.com/ref.png',
+        },
+      },
+      extensions: { quality: 'preview' },
+    },
+  });
+
+  assert.equal(result.spec?.spec.oneofKind, 'worldGenerate');
+  if (result.spec?.spec.oneofKind === 'worldGenerate') {
+    assert.equal(result.spec.spec.worldGenerate.displayName, 'City Street');
+    assert.equal(result.spec.spec.worldGenerate.textPrompt, 'A rainy neon city street at dusk.');
+    assert.deepEqual(result.spec.spec.worldGenerate.tags, ['city', 'rain']);
+    assert.equal(result.spec.spec.worldGenerate.seed, '77');
+    assert.equal(result.spec.spec.worldGenerate.conditioning.oneofKind, 'imagePrompt');
+    if (result.spec.spec.worldGenerate.conditioning.oneofKind === 'imagePrompt') {
+      assert.equal(
+        result.spec.spec.worldGenerate.conditioning.imagePrompt.content?.source.oneofKind,
+        'uri',
+      );
+      assert.equal(
+        result.spec.spec.worldGenerate.conditioning.imagePrompt.content?.source.uri,
+        'https://example.com/ref.png',
+      );
+    }
+  }
+});
+
+test('build request: world modal with multi-image conditioning and media asset refs', async () => {
+  const ctx = createMockContext();
+  const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
+    modal: 'world',
+    input: {
+      model: 'marble-1.1-plus',
+      conditioning: {
+        type: 'multi-image',
+        images: [
+          {
+            content: {
+              kind: 'media_asset_id',
+              mediaAssetId: 'asset-1',
+            },
+          },
+          {
+            content: {
+              kind: 'uri',
+              uri: 'https://example.com/second.png',
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  assert.equal(result.spec?.spec.oneofKind, 'worldGenerate');
+  if (result.spec?.spec.oneofKind === 'worldGenerate') {
+    assert.equal(result.spec.spec.worldGenerate.conditioning.oneofKind, 'multiImagePrompt');
+    if (result.spec.spec.worldGenerate.conditioning.oneofKind === 'multiImagePrompt') {
+      assert.equal(result.spec.spec.worldGenerate.conditioning.multiImagePrompt.images.length, 2);
+      assert.equal(
+        result.spec.spec.worldGenerate.conditioning.multiImagePrompt.images[0]?.content?.source.oneofKind,
+        'mediaAssetId',
+      );
+      assert.equal(
+        result.spec.spec.worldGenerate.conditioning.multiImagePrompt.images[0]?.content?.source.mediaAssetId,
+        'asset-1',
+      );
+    }
+  }
+});
+
 test('build request: video text content defaults role to prompt when omitted', async () => {
   const ctx = createMockContext();
   const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {

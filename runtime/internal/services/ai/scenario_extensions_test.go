@@ -38,6 +38,21 @@ func TestClassifyScenarioExtensionsStrictAllowed(t *testing.T) {
 	}
 }
 
+func TestClassifyScenarioExtensionsAllowsWorldGenerateNamespace(t *testing.T) {
+	ignored, err := classifyScenarioExtensions(
+		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE,
+		[]*runtimev1.ScenarioExtension{
+			{Namespace: "nimi.scenario.world_generate.request"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("classify scenario extensions: %v", err)
+	}
+	if len(ignored) != 0 {
+		t.Fatalf("world generate extension should not be ignored, got=%d", len(ignored))
+	}
+}
+
 func TestClassifyScenarioExtensionsAllowsTextGenerateRouteDescribeProbe(t *testing.T) {
 	ignored, err := classifyScenarioExtensions(
 		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,

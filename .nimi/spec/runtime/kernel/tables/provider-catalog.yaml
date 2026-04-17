@@ -215,6 +215,11 @@ providers:
     default_text_model: null
     requires_explicit_endpoint: false
     source_rule: K-MCAT-027
+  - provider: worldlabs
+    default_endpoint: https://api.worldlabs.ai
+    default_text_model: null
+    requires_explicit_endpoint: false
+    source_rule: K-MCAT-027
   - provider: xai
     default_endpoint: https://api.x.ai/v1
     default_text_model: grok-4

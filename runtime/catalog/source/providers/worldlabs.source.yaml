@@ -1,0 +1,66 @@
+schema_version: 3
+provider: worldlabs
+catalog_version: 2026-04-17-worldlabs-v1
+generated_target: runtime/catalog/providers/worldlabs.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://api.worldlabs.ai
+  requires_explicit_endpoint: false
+defaults:
+  provider: worldlabs
+  model_type: world
+  capabilities: []
+  pricing:
+    unit: request
+    input: variable_by_prompt_type
+    output: 1500
+    currency: WLD_CREDITS
+    as_of: 2026-04-17
+    notes: Marble 1.1 world generation is billed at 1,500 credits per world generation event, with additional pano or variable world sizing credits depending on input and model.
+
+sources:
+  - source_id: worldlabs_api_quickstart
+    url: https://docs.worldlabs.ai/api
+    retrieved_at: 2026-04-17
+    note: Official World API quickstart documenting marble-1.1 and marble-1.1-plus generation flows.
+  - source_id: worldlabs_api_generate_world
+    url: https://docs.worldlabs.ai/api/reference/worlds/generate
+    retrieved_at: 2026-04-17
+    note: World generation endpoint reference for text, image, multi-image, and video prompts.
+  - source_id: worldlabs_api_get_world
+    url: https://docs.worldlabs.ai/api/reference/worlds/get
+    retrieved_at: 2026-04-17
+    note: World retrieval endpoint documenting SPZ, pano, collider mesh, and semantics metadata outputs.
+  - source_id: worldlabs_api_pricing
+    url: https://docs.worldlabs.ai/api/pricing
+    retrieved_at: 2026-04-17
+    note: API credit pricing for Marble 1.1 and Marble 1.1 Plus.
+
+models:
+  - model_id: marble-1.1
+    model_type: world
+    updated_at: 2026-04-17
+    capabilities: [world.generate]
+    source_ids: [worldlabs_api_quickstart, worldlabs_api_generate_world, worldlabs_api_get_world, worldlabs_api_pricing]
+    pricing:
+      unit: request
+      input: variable_by_prompt_type
+      output: 1500
+      currency: WLD_CREDITS
+      as_of: 2026-04-17
+      notes: World generation event billed at 1,500 credits, plus pano generation credits when a pano must first be synthesized from the input.
+
+  - model_id: marble-1.1-plus
+    model_type: world
+    updated_at: 2026-04-17
+    capabilities: [world.generate]
+    source_ids: [worldlabs_api_quickstart, worldlabs_api_generate_world, worldlabs_api_get_world, worldlabs_api_pricing]
+    pricing:
+      unit: request
+      input: variable_by_prompt_type
+      output: 1500_plus_variable_world_size
+      currency: WLD_CREDITS
+      as_of: 2026-04-17
+      notes: Includes the 1,500-credit world generation event and may add up to 1,500 more credits for larger worlds.

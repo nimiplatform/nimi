@@ -77,6 +77,7 @@ func (s *Service) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScena
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, "Voice clone"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, "Voice design"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, "Music generation"},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, "World generation"},
 	}
 	profiles := make([]*runtimev1.ScenarioProfile, 0, len(entries))
 	for _, entry := range entries {
@@ -124,6 +125,9 @@ var scenarioExtensionRegistry = map[runtimev1.ScenarioType]map[string]scenarioEx
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE: {
 		"nimi.scenario.music_generate.request": scenarioExtensionStrategyBestEffort,
+	},
+	runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE: {
+		"nimi.scenario.world_generate.request": scenarioExtensionStrategyBestEffort,
 	},
 }
 

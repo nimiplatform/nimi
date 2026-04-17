@@ -39,9 +39,7 @@ pub fn default_adapter_for_capability(capability: &str) -> LocalAiProviderAdapte
         | "audio.transcribe"
         | "audio.synthesize"
         | "voice_workflow.tts_v2v"
-        | "voice_workflow.tts_t2v" => {
-            LocalAiProviderAdapterKind::SpeechNativeAdapter
-        }
+        | "voice_workflow.tts_t2v" => LocalAiProviderAdapterKind::SpeechNativeAdapter,
         "music" => LocalAiProviderAdapterKind::SidecarMusicAdapter,
         _ => LocalAiProviderAdapterKind::LlamaNativeAdapter,
     }

@@ -21,6 +21,8 @@ func scenarioModal(req *runtimev1.SubmitScenarioJobRequest) runtimev1.Modal {
 		return runtimev1.Modal_MODAL_STT
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return runtimev1.Modal_MODAL_MUSIC
+	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
+		return runtimev1.Modal_MODAL_WORLD
 	default:
 		return runtimev1.Modal_MODAL_UNSPECIFIED
 	}
@@ -54,6 +56,13 @@ func scenarioSpeechTranscribeSpec(req *runtimev1.SubmitScenarioJobRequest) *runt
 	return req.GetSpec().GetSpeechTranscribe()
 }
 
+func scenarioWorldGenerateSpec(req *runtimev1.SubmitScenarioJobRequest) *runtimev1.WorldGenerateScenarioSpec {
+	if req == nil || req.GetSpec() == nil {
+		return nil
+	}
+	return req.GetSpec().GetWorldGenerate()
+}
+
 func scenarioVoiceRef(spec *runtimev1.SpeechSynthesizeScenarioSpec) string {
 	if spec == nil || spec.GetVoiceRef() == nil {
 		return ""
@@ -83,6 +92,8 @@ func scenarioExtensionNamespaceForType(scenarioType runtimev1.ScenarioType) stri
 		return "nimi.scenario.speech_transcribe.request"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return "nimi.scenario.music_generate.request"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
+		return "nimi.scenario.world_generate.request"
 	default:
 		return ""
 	}

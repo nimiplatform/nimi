@@ -159,6 +159,32 @@ export function buildRuntimeMediaCapabilities(
         });
       },
     },
+    world: {
+      generate: async (payload) => {
+        const { modId, binding, ...request } = payload;
+        input.authorizeRuntimeCapability({
+          modId,
+          capabilityKey: 'runtime.media.world.generate',
+        });
+        const resolved = await input.resolveRuntimeRoute({
+          modId,
+          capability: 'world.generate',
+          binding,
+        });
+        const job = await input.getRuntimeClient().media.jobs.submit({
+          modal: 'world',
+          input: {
+            ...request,
+            model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_WORLD_MODEL_REQUIRED'),
+            route: resolved.source,
+            connectorId: resolved.connectorId || undefined,
+            metadata: await buildRuntimeMediaMetadata(input, resolved, request.metadata),
+          },
+        });
+        trackScenarioJob(input, job);
+        return job;
+      },
+    },
     tts: {
       synthesize: async (payload) => {
         const { modId, binding, ...request } = payload;
@@ -255,6 +281,8 @@ export function buildRuntimeMediaCapabilities(
         const binding = payload.input.binding;
         const capability = payload.modal === 'video'
           ? 'video.generate'
+          : payload.modal === 'world'
+            ? 'world.generate'
           : payload.modal === 'tts'
             ? 'audio.synthesize'
             : payload.modal === 'stt'
@@ -291,6 +319,21 @@ export function buildRuntimeMediaCapabilities(
             input: {
               ...payload.input,
               model: requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_VIDEO_MODEL_REQUIRED'),
+              route: preparedResolved.source,
+              connectorId: preparedResolved.connectorId || undefined,
+              metadata,
+            },
+          });
+          trackScenarioJob(input, job);
+          return job;
+        }
+
+        if (payload.modal === 'world') {
+          const job = await input.getRuntimeClient().media.jobs.submit({
+            modal: 'world',
+            input: {
+              ...payload.input,
+              model: requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_WORLD_MODEL_REQUIRED'),
               route: preparedResolved.source,
               connectorId: preparedResolved.connectorId || undefined,
               metadata,

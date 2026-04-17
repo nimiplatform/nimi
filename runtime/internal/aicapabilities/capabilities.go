@@ -13,6 +13,7 @@ const (
 	TextEmbed              = "text.embed"
 	ImageGenerate          = "image.generate"
 	VideoGenerate          = "video.generate"
+	WorldGenerate          = "world.generate"
 	AudioSynthesize        = "audio.synthesize"
 	AudioTranscribe        = "audio.transcribe"
 	VoiceWorkflowTTSV2V    = "voice_workflow.tts_v2v"
@@ -41,6 +42,8 @@ func NormalizeCatalogCapability(value string) (string, error) {
 		return ImageGenerate, nil
 	case VideoGenerate:
 		return VideoGenerate, nil
+	case WorldGenerate:
+		return WorldGenerate, nil
 	case AudioSynthesize:
 		return AudioSynthesize, nil
 	case AudioTranscribe:

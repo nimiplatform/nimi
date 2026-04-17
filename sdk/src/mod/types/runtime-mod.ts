@@ -9,6 +9,7 @@ import type {
   ModRuntimeBoundEmbeddingGenerateInput,
   ModRuntimeLocalProfileSnapshot,
   ModRuntimeBoundImageGenerateInput,
+  ModRuntimeBoundWorldGenerateInput,
   ModRuntimeLocalProfile,
   ModRuntimeLocalProfileInstallResult,
   ModRuntimeLocalProfileInstallStatus,
@@ -30,6 +31,7 @@ import type {
   ScenarioArtifact,
   ScenarioJob,
   ScenarioJobEvent,
+  ScenarioOutput,
 } from '../../runtime/generated/runtime/v1/ai';
 import type {
   DeleteVoiceAssetRequest,
@@ -200,6 +202,9 @@ export type ModRuntimeHost = {
       generate: (input: ModRuntimeBoundVideoGenerateInput & { modId: string }) => Promise<VideoGenerateOutput>;
       stream: (input: ModRuntimeBoundVideoGenerateInput & { modId: string }) => Promise<AsyncIterable<ArtifactChunk>>;
     };
+    world: {
+      generate: (input: ModRuntimeBoundWorldGenerateInput & { modId: string }) => Promise<ScenarioJob>;
+    };
     tts: {
       synthesize: (input: ModRuntimeBoundSpeechSynthesizeInput & { modId: string }) => Promise<SpeechSynthesizeOutput>;
       stream: (input: ModRuntimeBoundSpeechSynthesizeInput & { modId: string }) => Promise<AsyncIterable<ArtifactChunk>>;
@@ -213,7 +218,7 @@ export type ModRuntimeHost = {
       get: (input: { modId: string; jobId: string }) => Promise<ScenarioJob>;
       cancel: (input: { modId: string; jobId: string; reason?: string }) => Promise<ScenarioJob>;
       subscribe: (input: { modId: string; jobId: string }) => Promise<AsyncIterable<ScenarioJobEvent>>;
-      getArtifacts: (input: { modId: string; jobId: string }) => Promise<{ artifacts: ScenarioArtifact[]; traceId?: string }>;
+      getArtifacts: (input: { modId: string; jobId: string }) => Promise<{ artifacts: ScenarioArtifact[]; traceId?: string; output?: ScenarioOutput }>;
     };
   };
   voice: {

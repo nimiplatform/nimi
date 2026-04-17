@@ -493,6 +493,14 @@ type DesktopScenarioOutput = {
       };
     }
     | {
+      oneofKind: 'worldGenerate';
+      worldGenerate: {
+        worldId: string;
+        spzUrls?: Record<string, string>;
+        artifacts: unknown[];
+      };
+    }
+    | {
       oneofKind: undefined;
     }
   );

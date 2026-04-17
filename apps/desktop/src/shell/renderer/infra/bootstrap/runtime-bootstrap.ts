@@ -275,26 +275,40 @@ export function bootstrapRuntime(): Promise<void> {
     useAppStore.getState().setRuntimeDefaults(defaults);
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
     const runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
+    let bootstrapRuntimeConfigWarning: string | null = null;
     if (desktopBridge.hasTauriInvoke() && !runtimeUnavailable) {
-      const runtimeStorageDirs = await desktopBridge.getRuntimeModStorageDirs();
-      daemonStatus = await syncRuntimeLocalModelsConfig({
-        daemonStatus,
-        localModelsPath: runtimeStorageDirs.localModelsDir,
-        bridge: {
-          getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
-          setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
-          restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
-        },
-      });
-      daemonStatus = await syncRuntimeJwtConfig({
-        daemonStatus,
-        realmDefaults: defaults.realm,
-        bridge: {
-          getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
-          setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
-          restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
-        },
-      });
+      try {
+        const runtimeStorageDirs = await desktopBridge.getRuntimeModStorageDirs();
+        daemonStatus = await syncRuntimeLocalModelsConfig({
+          daemonStatus,
+          localModelsPath: runtimeStorageDirs.localModelsDir,
+          bridge: {
+            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
+            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
+            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
+          },
+        });
+        daemonStatus = await syncRuntimeJwtConfig({
+          daemonStatus,
+          realmDefaults: defaults.realm,
+          bridge: {
+            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
+            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
+            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
+          },
+        });
+      } catch (error) {
+        bootstrapRuntimeConfigWarning = safeErrorMessage(error);
+        logRendererEvent({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'phase:runtime-config-sync:degraded',
+          flowId,
+          details: {
+            error: bootstrapRuntimeConfigWarning,
+          },
+        });
+      }
     }
     const versionResult = checkDaemonVersion(
       daemonStatus.version,
@@ -589,6 +603,12 @@ export function bootstrapRuntime(): Promise<void> {
         details: {
           error: daemonStatus.lastError || 'Runtime unavailable',
         },
+      });
+    }
+    if (bootstrapRuntimeConfigWarning) {
+      useAppStore.getState().setStatusBanner({
+        kind: 'warning',
+        message: bootstrapRuntimeConfigWarning,
       });
     }
 

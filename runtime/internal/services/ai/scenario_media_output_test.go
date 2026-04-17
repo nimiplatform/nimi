@@ -102,6 +102,31 @@ func TestBuildScenarioOutputFromArtifactsForVideoSpeechAndMusic(t *testing.T) {
 	}
 }
 
+func TestBuildScenarioOutputFromArtifactsForWorld(t *testing.T) {
+	manifest := []byte(`{"world_id":"world-123","display_name":"Demo World","world_marble_url":"https://marble.worldlabs.ai/world/world-123","caption":"A test world","thumbnail_url":"https://example.com/thumb.jpg","pano_url":"https://example.com/pano.jpg","collider_mesh_url":"https://example.com/collider.glb","spz_urls":{"full_res":"https://example.com/world.spz"},"model":"marble-1.1","semantics_metadata":{"ground_plane_offset":1.25,"metric_scale_factor":2.5}}`)
+	output := buildScenarioOutputFromArtifacts(
+		&runtimev1.ScenarioJob{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE},
+		[]*runtimev1.ScenarioArtifact{{
+			ArtifactId: "world-art-1",
+			MimeType:   worldManifestMIME,
+			Bytes:      manifest,
+		}},
+	)
+	value, ok := output.GetOutput().(*runtimev1.ScenarioOutput_WorldGenerate)
+	if !ok {
+		t.Fatalf("expected world_generate output, got %#v", output.GetOutput())
+	}
+	if value.WorldGenerate.GetWorldId() != "world-123" {
+		t.Fatalf("unexpected world id: %q", value.WorldGenerate.GetWorldId())
+	}
+	if value.WorldGenerate.GetSpzUrls()["full_res"] != "https://example.com/world.spz" {
+		t.Fatalf("unexpected spz urls: %#v", value.WorldGenerate.GetSpzUrls())
+	}
+	if value.WorldGenerate.GetSemanticsMetadata().GetMetricScaleFactor() != 2.5 {
+		t.Fatalf("unexpected semantics metadata: %#v", value.WorldGenerate.GetSemanticsMetadata())
+	}
+}
+
 func TestBuildScenarioOutputFromArtifactsReturnsNilForUnsupportedScenarioTypes(t *testing.T) {
 	cases := []struct {
 		name         string

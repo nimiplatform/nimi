@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   DEFAULT_OPENAI_ENDPOINT_V11,
@@ -15,6 +16,7 @@ import {
   sdkUpdateConnector,
   sdkListConnectors,
   sdkListProviderCatalog,
+  providerToVendor,
   resolveProviderEndpoint,
   vendorToProvider,
 } from './runtime-config-connector-sdk-service';
@@ -217,6 +219,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const { t } = useTranslation();
   const { selectedConnector, orderedConnectors, updateState } = model;
   const authStatus = useAppStore((s) => s.auth.status);
+  const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
 
   const [tokenDraft, setTokenDraft] = useState('');
   const [savingToken, setSavingToken] = useState(false);
@@ -229,6 +232,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const isMachineGlobal = connectorScope === 'machine-global';
   const isSystemOwned = isRuntimeSystem;
   const isDraft = selectedConnector?.isDraft || false;
+  const canEditVendor = !isRuntimeSystem && isDraft;
 
   useEffect(() => {
     setTokenDraft('');
@@ -250,6 +254,37 @@ export function CloudPage({ model, state }: CloudPageProps) {
   useEffect(() => {
     model.setConnectorTestFeedback(null);
   }, [model, selectedConnectorId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void sdkListProviderCatalog()
+      .then((providers) => {
+        if (!cancelled) {
+          setProviderCatalog(Array.isArray(providers) ? providers : []);
+        }
+      })
+      .catch((error) => {
+        reportError('Load provider catalog failed', error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reportError]);
+
+  const vendorOptions = useMemo(() => {
+    const known = [...VENDOR_ORDER_V11];
+    const knownSet = new Set(known);
+    const dynamicProviders = providerCatalog
+      .filter((entry) => entry.managedSupported && entry.provider !== 'local')
+      .map((entry) => providerToVendor(entry.provider))
+      .filter((vendor) => Boolean(vendor) && !knownSet.has(vendor));
+    const orderedDynamicProviders = Array.from(new Set(dynamicProviders))
+      .sort((left, right) => getVendorLabelV11(left).localeCompare(getVendorLabelV11(right)));
+    return [...known, ...orderedDynamicProviders].map((vendor) => ({
+      value: vendor,
+      label: getVendorLabelV11(vendor),
+    }));
+  }, [providerCatalog]);
 
   const refreshConnectorsFromSdk = useCallback(async () => {
     const connectors = await sdkListConnectors();
@@ -372,7 +407,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   }, [selectedConnectorId, selectedConnector, updateState, model]);
 
   const onChangeConnectorVendor = useCallback(async (vendor: string) => {
-    if (!selectedConnector || isRuntimeSystem) return;
+    if (!selectedConnector || !canEditVendor) return;
     const previousConnector = selectedConnector;
     const normalizedVendor = vendor as typeof selectedConnector.vendor;
     const provider = vendorToProvider(normalizedVendor);
@@ -393,7 +428,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
         throw error;
       }
     }
-  }, [isRuntimeSystem, selectedConnector, selectedConnectorId, updateState]);
+  }, [canEditVendor, selectedConnector, selectedConnectorId, updateState]);
 
   const saveTokenToVault = async () => {
     if (!selectedConnectorId) return;
@@ -535,13 +570,17 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   <RuntimeSelect
                     value={selectedConnector.vendor}
                     onChange={(nextVendor) => { void onChangeConnectorVendor(nextVendor).catch((err) => reportError('Switch vendor failed', err)); }}
-                    disabled={isRuntimeSystem}
+                    disabled={!canEditVendor}
                     className="w-full"
-                    options={VENDOR_ORDER_V11.map((vendor) => ({
-                      value: vendor,
-                      label: getVendorLabelV11(vendor),
-                    }))}
+                    options={vendorOptions}
                   />
+                  {!canEditVendor ? (
+                    <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                      {t('runtimeConfig.cloud.vendorImmutableAfterCreate', {
+                        defaultValue: 'Vendor is fixed after connector creation. Create a new connector to switch provider.',
+                      })}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 

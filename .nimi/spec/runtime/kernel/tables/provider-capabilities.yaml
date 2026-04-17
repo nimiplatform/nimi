@@ -588,6 +588,18 @@ providers:
       - K-MCAT-027
       - K-CONN-008
       - K-KEYSRC-001
+  - provider: worldlabs
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    capabilities:
+      - world.generate
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
   - provider: xai
     runtime_plane: remote
     execution_module: nimillm

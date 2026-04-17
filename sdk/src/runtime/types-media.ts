@@ -188,6 +188,46 @@ export type VideoGenerateInput = {
   signal?: AbortSignal;
 };
 
+export type WorldGenerateAssetSource =
+  | { kind: 'uri'; uri: string }
+  | { kind: 'media_asset_id'; mediaAssetId: string };
+
+export type WorldGenerateConditioningInput =
+  | {
+    type: 'image';
+    content: WorldGenerateAssetSource;
+  }
+  | {
+    type: 'multi-image';
+    images: Array<{
+      azimuth?: number;
+      content: WorldGenerateAssetSource;
+    }>;
+  }
+  | {
+    type: 'video';
+    content: WorldGenerateAssetSource;
+  };
+
+export type WorldGenerateInput = {
+  model: string;
+  displayName?: string;
+  textPrompt?: string;
+  tags?: string[];
+  seed?: number;
+  conditioning?: WorldGenerateConditioningInput;
+  subjectUserId?: string;
+  route?: NimiRoutePolicy;
+  timeoutMs?: number;
+  connectorId?: string;
+  metadata?: Record<string, string>;
+  idempotencyKey?: string;
+  requestId?: string;
+  labels?: Record<string, string>;
+  extensions?: JsonObject;
+  signal?: AbortSignal;
+};
+
 export type SpeechSynthesizeInput = {
   model: string;
   text: string;
@@ -335,6 +375,7 @@ export type MusicGenerateOutput = {
 export type ScenarioJobSubmitInput =
   | { modal: 'image'; input: ImageGenerateInput }
   | { modal: 'video'; input: VideoGenerateInput }
+  | { modal: 'world'; input: WorldGenerateInput }
   | { modal: 'tts'; input: SpeechSynthesizeInput }
   | { modal: 'stt'; input: SpeechTranscribeInput }
   | { modal: 'music'; input: MusicGenerateInput };

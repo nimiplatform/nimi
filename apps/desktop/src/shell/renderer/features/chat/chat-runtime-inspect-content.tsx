@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import {
   CanonicalRuntimeInspectSidebar,
   type CanonicalRuntimeInspectPanelKey,
@@ -23,7 +24,7 @@ export function RuntimeInspectCard(props: {
   detail?: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+    <DesktopCardSurface kind="operational-solid" as="div" className="px-3 py-3">
       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
         {props.label}
       </div>
@@ -35,15 +36,15 @@ export function RuntimeInspectCard(props: {
           {props.detail}
         </div>
       ) : null}
-    </div>
+    </DesktopCardSurface>
   );
 }
 
 export function RuntimeInspectUnsupportedNote(props: { label: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-3 py-4 text-center text-[11px] text-gray-500">
+    <DesktopCardSurface kind="operational-solid" as="div" className="border-dashed px-3 py-4 text-center text-[11px] text-gray-500">
       {props.label}
-    </div>
+    </DesktopCardSurface>
   );
 }
 

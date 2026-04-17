@@ -47,4 +47,5 @@
 | `together` | — | `true` | `K-MCAT-027` |
 | `volcengine` | `https://ark.cn-beijing.volces.com/api/v3` | `false` | `K-MCAT-027` |
 | `volcengine_openspeech` | `https://openspeech.bytedance.com/api/v1` | `false` | `K-MCAT-027` |
+| `worldlabs` | `https://api.worldlabs.ai` | `false` | `K-MCAT-027` |
 | `xai` | `https://api.x.ai/v1` | `false` | `K-MCAT-027` |

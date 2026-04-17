@@ -80,8 +80,74 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 		if _, _, err := resolveMusicGenerateExtensionPayload(req); err != nil {
 			return err
 		}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
+		spec := req.GetSpec().GetWorldGenerate()
+		if err := validateWorldGenerateScenarioSpec(spec); err != nil {
+			return err
+		}
 	default:
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
+	return nil
+}
+
+func validateWorldGenerateScenarioSpec(spec *runtimev1.WorldGenerateScenarioSpec) error {
+	if spec == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	}
+	if len(strings.TrimSpace(spec.GetDisplayName())) > 64 {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	if spec.GetSeed() > 4294967295 {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+
+	textPrompt := strings.TrimSpace(spec.GetTextPrompt())
+	switch conditioning := spec.GetConditioning().(type) {
+	case nil:
+		if textPrompt == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+	case *runtimev1.WorldGenerateScenarioSpec_ImagePrompt:
+		if conditioning.ImagePrompt == nil || validateWorldGenerateAssetSource(conditioning.ImagePrompt.GetContent()) != nil {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+	case *runtimev1.WorldGenerateScenarioSpec_MultiImagePrompt:
+		prompt := conditioning.MultiImagePrompt
+		if prompt == nil || len(prompt.GetImages()) == 0 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+		for _, image := range prompt.GetImages() {
+			if image == nil || validateWorldGenerateAssetSource(image.GetContent()) != nil {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+			}
+		}
+	case *runtimev1.WorldGenerateScenarioSpec_VideoPrompt:
+		if conditioning.VideoPrompt == nil || validateWorldGenerateAssetSource(conditioning.VideoPrompt.GetContent()) != nil {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+	default:
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	}
+
+	return nil
+}
+
+func validateWorldGenerateAssetSource(source *runtimev1.WorldGenerateAssetSource) error {
+	if source == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	}
+	switch typed := source.GetSource().(type) {
+	case *runtimev1.WorldGenerateAssetSource_Uri:
+		if strings.TrimSpace(typed.Uri) == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+	case *runtimev1.WorldGenerateAssetSource_MediaAssetId:
+		if strings.TrimSpace(typed.MediaAssetId) == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+	default:
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
 	return nil
 }

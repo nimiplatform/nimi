@@ -18,6 +18,7 @@ enum Modal {
   MODAL_STT = 5;
   MODAL_EMBEDDING = 6;
   MODAL_MUSIC = 7;
+  MODAL_WORLD = 8;
 }
 
 enum ScenarioType {
@@ -31,6 +32,7 @@ enum ScenarioType {
   SCENARIO_TYPE_VOICE_CLONE = 7;
   SCENARIO_TYPE_VOICE_DESIGN = 8;
   SCENARIO_TYPE_MUSIC_GENERATE = 9;
+  SCENARIO_TYPE_WORLD_GENERATE = 10;
 }
 
 enum ExecutionMode {
@@ -292,6 +294,42 @@ message MusicGenerateScenarioSpec {
   bool instrumental = 7;
 }
 
+message WorldGenerateAssetSource {
+  oneof source {
+    string uri = 1;
+    string media_asset_id = 2;
+  }
+}
+
+message WorldGenerateImagePrompt {
+  WorldGenerateAssetSource content = 1;
+}
+
+message WorldGenerateMultiImageReference {
+  int32 azimuth = 1;
+  WorldGenerateAssetSource content = 2;
+}
+
+message WorldGenerateMultiImagePrompt {
+  repeated WorldGenerateMultiImageReference images = 1;
+}
+
+message WorldGenerateVideoPrompt {
+  WorldGenerateAssetSource content = 1;
+}
+
+message WorldGenerateScenarioSpec {
+  string display_name = 1;
+  string text_prompt = 2;
+  repeated string tags = 3;
+  uint64 seed = 4;
+  oneof conditioning {
+    WorldGenerateImagePrompt image_prompt = 5;
+    WorldGenerateMultiImagePrompt multi_image_prompt = 6;
+    WorldGenerateVideoPrompt video_prompt = 7;
+  }
+}
+
 message ScenarioSpec {
   oneof spec {
     TextGenerateScenarioSpec text_generate = 1;
@@ -303,6 +341,7 @@ message ScenarioSpec {
     VoiceCloneScenarioSpec voice_clone = 7;
     VoiceDesignScenarioSpec voice_design = 8;
     MusicGenerateScenarioSpec music_generate = 9;
+    WorldGenerateScenarioSpec world_generate = 10;
   }
 }
 
@@ -347,6 +386,25 @@ message MusicGenerateResult {
   repeated ScenarioArtifact artifacts = 1;
 }
 
+message WorldGenerateSemanticsMetadata {
+  double ground_plane_offset = 1;
+  double metric_scale_factor = 2;
+}
+
+message WorldGenerateResult {
+  string world_id = 1;
+  string display_name = 2;
+  string world_marble_url = 3;
+  string caption = 4;
+  string thumbnail_url = 5;
+  string pano_url = 6;
+  string collider_mesh_url = 7;
+  map<string, string> spz_urls = 8;
+  WorldGenerateSemanticsMetadata semantics_metadata = 9;
+  string model = 10;
+  repeated ScenarioArtifact artifacts = 11;
+}
+
 message ScenarioOutput {
   oneof output {
     TextGenerateOutput text_generate = 1;
@@ -356,6 +414,7 @@ message ScenarioOutput {
     SpeechSynthesizeResult speech_synthesize = 5;
     SpeechTranscribeResult speech_transcribe = 6;
     MusicGenerateResult music_generate = 7;
+    WorldGenerateResult world_generate = 8;
   }
 }
 

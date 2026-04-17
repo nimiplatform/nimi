@@ -25,6 +25,7 @@
 | `S-AIP-003` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-AIP-004` | `covered` | `sdk_kernel_consistency` |
 | `S-AIP-005` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-AIP-006` | `covered` | `sdk_kernel_consistency` |
 | `S-BOUNDARY-001` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate`, `sdk_test_gate` |
 | `S-BOUNDARY-002` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate`, `sdk_test_gate` |
 | `S-BOUNDARY-003` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |

@@ -30,6 +30,7 @@ func preferredRoute(modelID string) runtimev1.RoutePolicy {
 		strings.HasPrefix(lower, "qianfan/") ||
 		strings.HasPrefix(lower, "hunyuan/") ||
 		strings.HasPrefix(lower, "spark/") ||
+		strings.HasPrefix(lower, "worldlabs/") ||
 		strings.HasPrefix(lower, "openai_compatible/") {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 	}

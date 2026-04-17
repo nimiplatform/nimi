@@ -47,7 +47,8 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return s.submitScenarioAsyncJob(ctx, req, mode, ignored)
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -679,6 +680,9 @@ func (s *Service) executeScenarioAsyncJob(
 			creds := s.config.LocalProviders["sidecar"]
 			cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey, Headers: creds.Headers}
 			artifacts, usage, providerJobID, err = nimillm.ExecuteSidecarMusic(ctx, cfg, req, apiModelID)
+		case adapterWorldLabsNative:
+			cfg := s.resolveNativeAdapterConfig("worldlabs", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteWorldLabsWorld(ctx, cfg, s, jobID, req, apiModelID)
 		default:
 			artifacts, usage, providerJobID, err = executeBackendSyncMedia(
 				ctx,

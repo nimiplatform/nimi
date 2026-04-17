@@ -20,7 +20,14 @@ test('runtime route local kind matcher keeps kind fallback for local assets with
   assert.equal(runtimeRouteLocalKindSupportsCapability('chat', 'text.generate'), true);
   assert.equal(runtimeRouteLocalKindSupportsCapability('stt', 'audio.transcribe'), true);
   assert.equal(runtimeRouteLocalKindSupportsCapability('tts', 'voice_workflow.tts_t2v'), false);
+  assert.equal(runtimeRouteLocalKindSupportsCapability('image', 'world.generate'), false);
   assert.equal(runtimeRouteLocalKindSupportsCapability('image', 'text.generate'), false);
+});
+
+test('runtime route model capability matcher recognizes world.generate as cloud-first canonical capability', () => {
+  assert.equal(runtimeRouteModelSupportsCapability(['world.generate'], 'world.generate'), true);
+  assert.equal(runtimeRouteModelSupportsCapability(['world'], 'world.generate'), true);
+  assert.equal(runtimeRouteModelSupportsCapability(['image.generate'], 'world.generate'), false);
 });
 
 test('buildRuntimeRouteSelectedBinding preserves degraded local selection when local metadata is unavailable', () => {

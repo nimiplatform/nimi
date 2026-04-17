@@ -11,16 +11,7 @@ export type RuntimeSetupPageIdV11 = RuntimePageIdV11;
 export type UiModeV11 = 'simple' | 'advanced';
 export type ProviderStatusV11 = 'idle' | 'healthy' | 'unreachable' | 'unsupported' | 'degraded';
 export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
-export type ApiVendor =
-  | 'openrouter'
-  | 'gpt'
-  | 'claude'
-  | 'gemini'
-  | 'kimi'
-  | 'deepseek'
-  | 'volcengine'
-  | 'dashscope'
-  | 'custom';
+export type ApiVendor = string;
 
 export type LocalModelOptionV11 = {
   localModelId: string;
@@ -135,7 +126,7 @@ function defaultEndpointForEngine(engine: LocalModelOptionV11['engine']): string
   return engine === 'llama' ? DEFAULT_LOCAL_ENDPOINT_V11 : '';
 }
 
-export const VENDOR_LABELS_V11: Record<ApiVendor, string> = {
+export const VENDOR_LABELS_V11: Record<string, string> = {
   gpt: 'OpenAI',
   claude: 'Anthropic Claude',
   gemini: 'Google Gemini',
@@ -158,6 +149,18 @@ export const VENDOR_ORDER_V11: ApiVendor[] = [
   'volcengine',
   'custom',
 ];
+
+function humanizeVendorId(value: string): string {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return 'Custom';
+  }
+  return normalized
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (segment) => segment.toUpperCase());
+}
 
 export function normalizeSourceV11(value: unknown): SourceIdV11 {
   return value === 'cloud' ? 'cloud' : 'local';
@@ -193,20 +196,8 @@ export function normalizeUiModeV11(value: unknown): UiModeV11 {
 }
 
 export function normalizeVendorV11(value: unknown): ApiVendor {
-  if (
-    value === 'gpt'
-    || value === 'claude'
-    || value === 'gemini'
-    || value === 'kimi'
-    || value === 'deepseek'
-    || value === 'volcengine'
-    || value === 'dashscope'
-    || value === 'custom'
-    || value === 'openrouter'
-  ) {
-    return value;
-  }
-  return 'openrouter';
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized || 'openrouter';
 }
 
 export function normalizeStatusV11(value: unknown): ProviderStatusV11 {
@@ -240,7 +231,7 @@ export function dedupeStringsV11(values: string[]): string[] {
 }
 
 export function getVendorLabelV11(vendor: ApiVendor): string {
-  return VENDOR_LABELS_V11[vendor];
+  return VENDOR_LABELS_V11[vendor] || humanizeVendorId(vendor);
 }
 
 export function normalizeEndpointV11(value: string, fallback: string): string {

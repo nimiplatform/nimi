@@ -2127,9 +2127,71 @@ pub struct MusicGenerateScenarioSpec {
     #[prost(bool, tag = "7")]
     pub instrumental: bool,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldGenerateAssetSource {
+    #[prost(oneof = "world_generate_asset_source::Source", tags = "1, 2")]
+    pub source: ::core::option::Option<world_generate_asset_source::Source>,
+}
+/// Nested message and enum types in `WorldGenerateAssetSource`.
+pub mod world_generate_asset_source {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Source {
+        #[prost(string, tag = "1")]
+        Uri(::prost::alloc::string::String),
+        #[prost(string, tag = "2")]
+        MediaAssetId(::prost::alloc::string::String),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldGenerateImagePrompt {
+    #[prost(message, optional, tag = "1")]
+    pub content: ::core::option::Option<WorldGenerateAssetSource>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldGenerateMultiImageReference {
+    #[prost(int32, tag = "1")]
+    pub azimuth: i32,
+    #[prost(message, optional, tag = "2")]
+    pub content: ::core::option::Option<WorldGenerateAssetSource>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WorldGenerateMultiImagePrompt {
+    #[prost(message, repeated, tag = "1")]
+    pub images: ::prost::alloc::vec::Vec<WorldGenerateMultiImageReference>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldGenerateVideoPrompt {
+    #[prost(message, optional, tag = "1")]
+    pub content: ::core::option::Option<WorldGenerateAssetSource>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WorldGenerateScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub text_prompt: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(uint64, tag = "4")]
+    pub seed: u64,
+    #[prost(oneof = "world_generate_scenario_spec::Conditioning", tags = "5, 6, 7")]
+    pub conditioning: ::core::option::Option<world_generate_scenario_spec::Conditioning>,
+}
+/// Nested message and enum types in `WorldGenerateScenarioSpec`.
+pub mod world_generate_scenario_spec {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Conditioning {
+        #[prost(message, tag = "5")]
+        ImagePrompt(super::WorldGenerateImagePrompt),
+        #[prost(message, tag = "6")]
+        MultiImagePrompt(super::WorldGenerateMultiImagePrompt),
+        #[prost(message, tag = "7")]
+        VideoPrompt(super::WorldGenerateVideoPrompt),
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioSpec {
-    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9")]
+    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10")]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
 /// Nested message and enum types in `ScenarioSpec`.
@@ -2154,6 +2216,8 @@ pub mod scenario_spec {
         VoiceDesign(super::VoiceDesignScenarioSpec),
         #[prost(message, tag = "9")]
         MusicGenerate(super::MusicGenerateScenarioSpec),
+        #[prost(message, tag = "10")]
+        WorldGenerate(super::WorldGenerateScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -2211,9 +2275,44 @@ pub struct MusicGenerateResult {
     #[prost(message, repeated, tag = "1")]
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
 }
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct WorldGenerateSemanticsMetadata {
+    #[prost(double, tag = "1")]
+    pub ground_plane_offset: f64,
+    #[prost(double, tag = "2")]
+    pub metric_scale_factor: f64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WorldGenerateResult {
+    #[prost(string, tag = "1")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub world_marble_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub caption: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub thumbnail_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub pano_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub collider_mesh_url: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "8")]
+    pub spz_urls: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(message, optional, tag = "9")]
+    pub semantics_metadata: ::core::option::Option<WorldGenerateSemanticsMetadata>,
+    #[prost(string, tag = "10")]
+    pub model: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "11")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioOutput {
-    #[prost(oneof = "scenario_output::Output", tags = "1, 2, 3, 4, 5, 6, 7")]
+    #[prost(oneof = "scenario_output::Output", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
     pub output: ::core::option::Option<scenario_output::Output>,
 }
 /// Nested message and enum types in `ScenarioOutput`.
@@ -2234,6 +2333,8 @@ pub mod scenario_output {
         SpeechTranscribe(super::SpeechTranscribeResult),
         #[prost(message, tag = "7")]
         MusicGenerate(super::MusicGenerateResult),
+        #[prost(message, tag = "8")]
+        WorldGenerate(super::WorldGenerateResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -2950,6 +3051,7 @@ pub enum Modal {
     Stt = 5,
     Embedding = 6,
     Music = 7,
+    World = 8,
 }
 impl Modal {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2966,6 +3068,7 @@ impl Modal {
             Self::Stt => "MODAL_STT",
             Self::Embedding => "MODAL_EMBEDDING",
             Self::Music => "MODAL_MUSIC",
+            Self::World => "MODAL_WORLD",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2979,6 +3082,7 @@ impl Modal {
             "MODAL_STT" => Some(Self::Stt),
             "MODAL_EMBEDDING" => Some(Self::Embedding),
             "MODAL_MUSIC" => Some(Self::Music),
+            "MODAL_WORLD" => Some(Self::World),
             _ => None,
         }
     }
@@ -2996,6 +3100,7 @@ pub enum ScenarioType {
     VoiceClone = 7,
     VoiceDesign = 8,
     MusicGenerate = 9,
+    WorldGenerate = 10,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -3014,6 +3119,7 @@ impl ScenarioType {
             Self::VoiceClone => "SCENARIO_TYPE_VOICE_CLONE",
             Self::VoiceDesign => "SCENARIO_TYPE_VOICE_DESIGN",
             Self::MusicGenerate => "SCENARIO_TYPE_MUSIC_GENERATE",
+            Self::WorldGenerate => "SCENARIO_TYPE_WORLD_GENERATE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -3029,6 +3135,7 @@ impl ScenarioType {
             "SCENARIO_TYPE_VOICE_CLONE" => Some(Self::VoiceClone),
             "SCENARIO_TYPE_VOICE_DESIGN" => Some(Self::VoiceDesign),
             "SCENARIO_TYPE_MUSIC_GENERATE" => Some(Self::MusicGenerate),
+            "SCENARIO_TYPE_WORLD_GENERATE" => Some(Self::WorldGenerate),
             _ => None,
         }
     }

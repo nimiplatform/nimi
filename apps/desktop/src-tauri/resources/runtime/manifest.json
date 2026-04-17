@@ -3,7 +3,7 @@
   "platform": "darwin-arm64",
   "archivePath": "runtime/darwin-arm64/nimi-runtime.zip",
   "binaryPath": "bin/nimi",
-  "sha256": "3537df5a7f2268afdadd2b32a11e642434d1d63a243e61da15853c489260f0d4",
-  "builtAt": "2026-04-16T20:56:08.777Z",
-  "commit": "613f978769c15007025a6aaef229d830166e2c9a"
+  "sha256": "ce94e2c30db42cac3d922debd029f14d872ba6578bfbc648d9e6ab386444adbf",
+  "builtAt": "2026-04-17T07:34:16.509Z",
+  "commit": "fabc9c8763aec4d13b7005581bc125ee0c3956a2"
 }

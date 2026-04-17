@@ -480,6 +480,114 @@ export interface MusicGenerateScenarioSpec {
     instrumental: boolean;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.WorldGenerateAssetSource
+ */
+export interface WorldGenerateAssetSource {
+    /**
+     * @generated from protobuf oneof: source
+     */
+    source: {
+        oneofKind: "uri";
+        /**
+         * @generated from protobuf field: string uri = 1
+         */
+        uri: string;
+    } | {
+        oneofKind: "mediaAssetId";
+        /**
+         * @generated from protobuf field: string media_asset_id = 2
+         */
+        mediaAssetId: string;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WorldGenerateImagePrompt
+ */
+export interface WorldGenerateImagePrompt {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.WorldGenerateAssetSource content = 1
+     */
+    content?: WorldGenerateAssetSource;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WorldGenerateMultiImageReference
+ */
+export interface WorldGenerateMultiImageReference {
+    /**
+     * @generated from protobuf field: int32 azimuth = 1
+     */
+    azimuth: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.WorldGenerateAssetSource content = 2
+     */
+    content?: WorldGenerateAssetSource;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WorldGenerateMultiImagePrompt
+ */
+export interface WorldGenerateMultiImagePrompt {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.WorldGenerateMultiImageReference images = 1
+     */
+    images: WorldGenerateMultiImageReference[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WorldGenerateVideoPrompt
+ */
+export interface WorldGenerateVideoPrompt {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.WorldGenerateAssetSource content = 1
+     */
+    content?: WorldGenerateAssetSource;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WorldGenerateScenarioSpec
+ */
+export interface WorldGenerateScenarioSpec {
+    /**
+     * @generated from protobuf field: string display_name = 1
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: string text_prompt = 2
+     */
+    textPrompt: string;
+    /**
+     * @generated from protobuf field: repeated string tags = 3
+     */
+    tags: string[];
+    /**
+     * @generated from protobuf field: uint64 seed = 4
+     */
+    seed: string;
+    /**
+     * @generated from protobuf oneof: conditioning
+     */
+    conditioning: {
+        oneofKind: "imagePrompt";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.WorldGenerateImagePrompt image_prompt = 5
+         */
+        imagePrompt: WorldGenerateImagePrompt;
+    } | {
+        oneofKind: "multiImagePrompt";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.WorldGenerateMultiImagePrompt multi_image_prompt = 6
+         */
+        multiImagePrompt: WorldGenerateMultiImagePrompt;
+    } | {
+        oneofKind: "videoPrompt";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.WorldGenerateVideoPrompt video_prompt = 7
+         */
+        videoPrompt: WorldGenerateVideoPrompt;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ScenarioSpec
  */
 export interface ScenarioSpec {
@@ -540,6 +648,12 @@ export interface ScenarioSpec {
          * @generated from protobuf field: nimi.runtime.v1.MusicGenerateScenarioSpec music_generate = 9
          */
         musicGenerate: MusicGenerateScenarioSpec;
+    } | {
+        oneofKind: "worldGenerate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.WorldGenerateScenarioSpec world_generate = 10
+         */
+        worldGenerate: WorldGenerateScenarioSpec;
     } | {
         oneofKind: undefined;
     };
@@ -646,6 +760,70 @@ export interface MusicGenerateResult {
     artifacts: ScenarioArtifact[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.WorldGenerateSemanticsMetadata
+ */
+export interface WorldGenerateSemanticsMetadata {
+    /**
+     * @generated from protobuf field: double ground_plane_offset = 1
+     */
+    groundPlaneOffset: number;
+    /**
+     * @generated from protobuf field: double metric_scale_factor = 2
+     */
+    metricScaleFactor: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WorldGenerateResult
+ */
+export interface WorldGenerateResult {
+    /**
+     * @generated from protobuf field: string world_id = 1
+     */
+    worldId: string;
+    /**
+     * @generated from protobuf field: string display_name = 2
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: string world_marble_url = 3
+     */
+    worldMarbleUrl: string;
+    /**
+     * @generated from protobuf field: string caption = 4
+     */
+    caption: string;
+    /**
+     * @generated from protobuf field: string thumbnail_url = 5
+     */
+    thumbnailUrl: string;
+    /**
+     * @generated from protobuf field: string pano_url = 6
+     */
+    panoUrl: string;
+    /**
+     * @generated from protobuf field: string collider_mesh_url = 7
+     */
+    colliderMeshUrl: string;
+    /**
+     * @generated from protobuf field: map<string, string> spz_urls = 8
+     */
+    spzUrls: {
+        [key: string]: string;
+    };
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.WorldGenerateSemanticsMetadata semantics_metadata = 9
+     */
+    semanticsMetadata?: WorldGenerateSemanticsMetadata;
+    /**
+     * @generated from protobuf field: string model = 10
+     */
+    model: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioArtifact artifacts = 11
+     */
+    artifacts: ScenarioArtifact[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ScenarioOutput
  */
 export interface ScenarioOutput {
@@ -694,6 +872,12 @@ export interface ScenarioOutput {
          * @generated from protobuf field: nimi.runtime.v1.MusicGenerateResult music_generate = 7
          */
         musicGenerate: MusicGenerateResult;
+    } | {
+        oneofKind: "worldGenerate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.WorldGenerateResult world_generate = 8
+         */
+        worldGenerate: WorldGenerateResult;
     } | {
         oneofKind: undefined;
     };
@@ -2049,7 +2233,11 @@ export enum Modal {
     /**
      * @generated from protobuf enum value: MODAL_MUSIC = 7;
      */
-    MUSIC = 7
+    MUSIC = 7,
+    /**
+     * @generated from protobuf enum value: MODAL_WORLD = 8;
+     */
+    WORLD = 8
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioType
@@ -2094,7 +2282,11 @@ export enum ScenarioType {
     /**
      * @generated from protobuf enum value: SCENARIO_TYPE_MUSIC_GENERATE = 9;
      */
-    MUSIC_GENERATE = 9
+    MUSIC_GENERATE = 9,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_WORLD_GENERATE = 10;
+     */
+    WORLD_GENERATE = 10
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExecutionMode
@@ -3966,6 +4158,361 @@ class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSp
  */
 export const MusicGenerateScenarioSpec = new MusicGenerateScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class WorldGenerateAssetSource$Type extends MessageType<WorldGenerateAssetSource> {
+    constructor() {
+        super("nimi.runtime.v1.WorldGenerateAssetSource", [
+            { no: 1, name: "uri", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "media_asset_id", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<WorldGenerateAssetSource>): WorldGenerateAssetSource {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.source = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<WorldGenerateAssetSource>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldGenerateAssetSource): WorldGenerateAssetSource {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string uri */ 1:
+                    message.source = {
+                        oneofKind: "uri",
+                        uri: reader.string()
+                    };
+                    break;
+                case /* string media_asset_id */ 2:
+                    message.source = {
+                        oneofKind: "mediaAssetId",
+                        mediaAssetId: reader.string()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WorldGenerateAssetSource, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string uri = 1; */
+        if (message.source.oneofKind === "uri")
+            writer.tag(1, WireType.LengthDelimited).string(message.source.uri);
+        /* string media_asset_id = 2; */
+        if (message.source.oneofKind === "mediaAssetId")
+            writer.tag(2, WireType.LengthDelimited).string(message.source.mediaAssetId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateAssetSource
+ */
+export const WorldGenerateAssetSource = new WorldGenerateAssetSource$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WorldGenerateImagePrompt$Type extends MessageType<WorldGenerateImagePrompt> {
+    constructor() {
+        super("nimi.runtime.v1.WorldGenerateImagePrompt", [
+            { no: 1, name: "content", kind: "message", T: () => WorldGenerateAssetSource }
+        ]);
+    }
+    create(value?: PartialMessage<WorldGenerateImagePrompt>): WorldGenerateImagePrompt {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<WorldGenerateImagePrompt>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldGenerateImagePrompt): WorldGenerateImagePrompt {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.WorldGenerateAssetSource content */ 1:
+                    message.content = WorldGenerateAssetSource.internalBinaryRead(reader, reader.uint32(), options, message.content);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WorldGenerateImagePrompt, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.WorldGenerateAssetSource content = 1; */
+        if (message.content)
+            WorldGenerateAssetSource.internalBinaryWrite(message.content, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateImagePrompt
+ */
+export const WorldGenerateImagePrompt = new WorldGenerateImagePrompt$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WorldGenerateMultiImageReference$Type extends MessageType<WorldGenerateMultiImageReference> {
+    constructor() {
+        super("nimi.runtime.v1.WorldGenerateMultiImageReference", [
+            { no: 1, name: "azimuth", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 2, name: "content", kind: "message", T: () => WorldGenerateAssetSource }
+        ]);
+    }
+    create(value?: PartialMessage<WorldGenerateMultiImageReference>): WorldGenerateMultiImageReference {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.azimuth = 0;
+        if (value !== undefined)
+            reflectionMergePartial<WorldGenerateMultiImageReference>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldGenerateMultiImageReference): WorldGenerateMultiImageReference {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* int32 azimuth */ 1:
+                    message.azimuth = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.WorldGenerateAssetSource content */ 2:
+                    message.content = WorldGenerateAssetSource.internalBinaryRead(reader, reader.uint32(), options, message.content);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WorldGenerateMultiImageReference, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* int32 azimuth = 1; */
+        if (message.azimuth !== 0)
+            writer.tag(1, WireType.Varint).int32(message.azimuth);
+        /* nimi.runtime.v1.WorldGenerateAssetSource content = 2; */
+        if (message.content)
+            WorldGenerateAssetSource.internalBinaryWrite(message.content, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateMultiImageReference
+ */
+export const WorldGenerateMultiImageReference = new WorldGenerateMultiImageReference$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WorldGenerateMultiImagePrompt$Type extends MessageType<WorldGenerateMultiImagePrompt> {
+    constructor() {
+        super("nimi.runtime.v1.WorldGenerateMultiImagePrompt", [
+            { no: 1, name: "images", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => WorldGenerateMultiImageReference }
+        ]);
+    }
+    create(value?: PartialMessage<WorldGenerateMultiImagePrompt>): WorldGenerateMultiImagePrompt {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.images = [];
+        if (value !== undefined)
+            reflectionMergePartial<WorldGenerateMultiImagePrompt>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldGenerateMultiImagePrompt): WorldGenerateMultiImagePrompt {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.WorldGenerateMultiImageReference images */ 1:
+                    message.images.push(WorldGenerateMultiImageReference.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WorldGenerateMultiImagePrompt, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.WorldGenerateMultiImageReference images = 1; */
+        for (let i = 0; i < message.images.length; i++)
+            WorldGenerateMultiImageReference.internalBinaryWrite(message.images[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateMultiImagePrompt
+ */
+export const WorldGenerateMultiImagePrompt = new WorldGenerateMultiImagePrompt$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WorldGenerateVideoPrompt$Type extends MessageType<WorldGenerateVideoPrompt> {
+    constructor() {
+        super("nimi.runtime.v1.WorldGenerateVideoPrompt", [
+            { no: 1, name: "content", kind: "message", T: () => WorldGenerateAssetSource }
+        ]);
+    }
+    create(value?: PartialMessage<WorldGenerateVideoPrompt>): WorldGenerateVideoPrompt {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<WorldGenerateVideoPrompt>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldGenerateVideoPrompt): WorldGenerateVideoPrompt {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.WorldGenerateAssetSource content */ 1:
+                    message.content = WorldGenerateAssetSource.internalBinaryRead(reader, reader.uint32(), options, message.content);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WorldGenerateVideoPrompt, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.WorldGenerateAssetSource content = 1; */
+        if (message.content)
+            WorldGenerateAssetSource.internalBinaryWrite(message.content, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateVideoPrompt
+ */
+export const WorldGenerateVideoPrompt = new WorldGenerateVideoPrompt$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WorldGenerateScenarioSpec$Type extends MessageType<WorldGenerateScenarioSpec> {
+    constructor() {
+        super("nimi.runtime.v1.WorldGenerateScenarioSpec", [
+            { no: 1, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "text_prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "tags", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "seed", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "image_prompt", kind: "message", oneof: "conditioning", T: () => WorldGenerateImagePrompt },
+            { no: 6, name: "multi_image_prompt", kind: "message", oneof: "conditioning", T: () => WorldGenerateMultiImagePrompt },
+            { no: 7, name: "video_prompt", kind: "message", oneof: "conditioning", T: () => WorldGenerateVideoPrompt }
+        ]);
+    }
+    create(value?: PartialMessage<WorldGenerateScenarioSpec>): WorldGenerateScenarioSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.displayName = "";
+        message.textPrompt = "";
+        message.tags = [];
+        message.seed = "0";
+        message.conditioning = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<WorldGenerateScenarioSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldGenerateScenarioSpec): WorldGenerateScenarioSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string display_name */ 1:
+                    message.displayName = reader.string();
+                    break;
+                case /* string text_prompt */ 2:
+                    message.textPrompt = reader.string();
+                    break;
+                case /* repeated string tags */ 3:
+                    message.tags.push(reader.string());
+                    break;
+                case /* uint64 seed */ 4:
+                    message.seed = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.WorldGenerateImagePrompt image_prompt */ 5:
+                    message.conditioning = {
+                        oneofKind: "imagePrompt",
+                        imagePrompt: WorldGenerateImagePrompt.internalBinaryRead(reader, reader.uint32(), options, (message.conditioning as any).imagePrompt)
+                    };
+                    break;
+                case /* nimi.runtime.v1.WorldGenerateMultiImagePrompt multi_image_prompt */ 6:
+                    message.conditioning = {
+                        oneofKind: "multiImagePrompt",
+                        multiImagePrompt: WorldGenerateMultiImagePrompt.internalBinaryRead(reader, reader.uint32(), options, (message.conditioning as any).multiImagePrompt)
+                    };
+                    break;
+                case /* nimi.runtime.v1.WorldGenerateVideoPrompt video_prompt */ 7:
+                    message.conditioning = {
+                        oneofKind: "videoPrompt",
+                        videoPrompt: WorldGenerateVideoPrompt.internalBinaryRead(reader, reader.uint32(), options, (message.conditioning as any).videoPrompt)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WorldGenerateScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string display_name = 1; */
+        if (message.displayName !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.displayName);
+        /* string text_prompt = 2; */
+        if (message.textPrompt !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.textPrompt);
+        /* repeated string tags = 3; */
+        for (let i = 0; i < message.tags.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.tags[i]);
+        /* uint64 seed = 4; */
+        if (message.seed !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.seed);
+        /* nimi.runtime.v1.WorldGenerateImagePrompt image_prompt = 5; */
+        if (message.conditioning.oneofKind === "imagePrompt")
+            WorldGenerateImagePrompt.internalBinaryWrite(message.conditioning.imagePrompt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.WorldGenerateMultiImagePrompt multi_image_prompt = 6; */
+        if (message.conditioning.oneofKind === "multiImagePrompt")
+            WorldGenerateMultiImagePrompt.internalBinaryWrite(message.conditioning.multiImagePrompt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.WorldGenerateVideoPrompt video_prompt = 7; */
+        if (message.conditioning.oneofKind === "videoPrompt")
+            WorldGenerateVideoPrompt.internalBinaryWrite(message.conditioning.videoPrompt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateScenarioSpec
+ */
+export const WorldGenerateScenarioSpec = new WorldGenerateScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.ScenarioSpec", [
@@ -3977,7 +4524,8 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
             { no: 6, name: "speech_transcribe", kind: "message", oneof: "spec", T: () => SpeechTranscribeScenarioSpec },
             { no: 7, name: "voice_clone", kind: "message", oneof: "spec", T: () => VoiceCloneScenarioSpec },
             { no: 8, name: "voice_design", kind: "message", oneof: "spec", T: () => VoiceDesignScenarioSpec },
-            { no: 9, name: "music_generate", kind: "message", oneof: "spec", T: () => MusicGenerateScenarioSpec }
+            { no: 9, name: "music_generate", kind: "message", oneof: "spec", T: () => MusicGenerateScenarioSpec },
+            { no: 10, name: "world_generate", kind: "message", oneof: "spec", T: () => WorldGenerateScenarioSpec }
         ]);
     }
     create(value?: PartialMessage<ScenarioSpec>): ScenarioSpec {
@@ -4046,6 +4594,12 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
                         musicGenerate: MusicGenerateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).musicGenerate)
                     };
                     break;
+                case /* nimi.runtime.v1.WorldGenerateScenarioSpec world_generate */ 10:
+                    message.spec = {
+                        oneofKind: "worldGenerate",
+                        worldGenerate: WorldGenerateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).worldGenerate)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -4085,6 +4639,9 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
         /* nimi.runtime.v1.MusicGenerateScenarioSpec music_generate = 9; */
         if (message.spec.oneofKind === "musicGenerate")
             MusicGenerateScenarioSpec.internalBinaryWrite(message.spec.musicGenerate, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.WorldGenerateScenarioSpec world_generate = 10; */
+        if (message.spec.oneofKind === "worldGenerate")
+            WorldGenerateScenarioSpec.internalBinaryWrite(message.spec.worldGenerate, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4565,6 +5122,203 @@ class MusicGenerateResult$Type extends MessageType<MusicGenerateResult> {
  */
 export const MusicGenerateResult = new MusicGenerateResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class WorldGenerateSemanticsMetadata$Type extends MessageType<WorldGenerateSemanticsMetadata> {
+    constructor() {
+        super("nimi.runtime.v1.WorldGenerateSemanticsMetadata", [
+            { no: 1, name: "ground_plane_offset", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 2, name: "metric_scale_factor", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ }
+        ]);
+    }
+    create(value?: PartialMessage<WorldGenerateSemanticsMetadata>): WorldGenerateSemanticsMetadata {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.groundPlaneOffset = 0;
+        message.metricScaleFactor = 0;
+        if (value !== undefined)
+            reflectionMergePartial<WorldGenerateSemanticsMetadata>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldGenerateSemanticsMetadata): WorldGenerateSemanticsMetadata {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* double ground_plane_offset */ 1:
+                    message.groundPlaneOffset = reader.double();
+                    break;
+                case /* double metric_scale_factor */ 2:
+                    message.metricScaleFactor = reader.double();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WorldGenerateSemanticsMetadata, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* double ground_plane_offset = 1; */
+        if (message.groundPlaneOffset !== 0)
+            writer.tag(1, WireType.Bit64).double(message.groundPlaneOffset);
+        /* double metric_scale_factor = 2; */
+        if (message.metricScaleFactor !== 0)
+            writer.tag(2, WireType.Bit64).double(message.metricScaleFactor);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateSemanticsMetadata
+ */
+export const WorldGenerateSemanticsMetadata = new WorldGenerateSemanticsMetadata$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WorldGenerateResult$Type extends MessageType<WorldGenerateResult> {
+    constructor() {
+        super("nimi.runtime.v1.WorldGenerateResult", [
+            { no: 1, name: "world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "world_marble_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "caption", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "thumbnail_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "pano_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "collider_mesh_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "spz_urls", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
+            { no: 9, name: "semantics_metadata", kind: "message", T: () => WorldGenerateSemanticsMetadata },
+            { no: 10, name: "model", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact }
+        ]);
+    }
+    create(value?: PartialMessage<WorldGenerateResult>): WorldGenerateResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.worldId = "";
+        message.displayName = "";
+        message.worldMarbleUrl = "";
+        message.caption = "";
+        message.thumbnailUrl = "";
+        message.panoUrl = "";
+        message.colliderMeshUrl = "";
+        message.spzUrls = {};
+        message.model = "";
+        message.artifacts = [];
+        if (value !== undefined)
+            reflectionMergePartial<WorldGenerateResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldGenerateResult): WorldGenerateResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string world_id */ 1:
+                    message.worldId = reader.string();
+                    break;
+                case /* string display_name */ 2:
+                    message.displayName = reader.string();
+                    break;
+                case /* string world_marble_url */ 3:
+                    message.worldMarbleUrl = reader.string();
+                    break;
+                case /* string caption */ 4:
+                    message.caption = reader.string();
+                    break;
+                case /* string thumbnail_url */ 5:
+                    message.thumbnailUrl = reader.string();
+                    break;
+                case /* string pano_url */ 6:
+                    message.panoUrl = reader.string();
+                    break;
+                case /* string collider_mesh_url */ 7:
+                    message.colliderMeshUrl = reader.string();
+                    break;
+                case /* map<string, string> spz_urls */ 8:
+                    this.binaryReadMap8(message.spzUrls, reader, options);
+                    break;
+                case /* nimi.runtime.v1.WorldGenerateSemanticsMetadata semantics_metadata */ 9:
+                    message.semanticsMetadata = WorldGenerateSemanticsMetadata.internalBinaryRead(reader, reader.uint32(), options, message.semanticsMetadata);
+                    break;
+                case /* string model */ 10:
+                    message.model = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.ScenarioArtifact artifacts */ 11:
+                    message.artifacts.push(ScenarioArtifact.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    private binaryReadMap8(map: WorldGenerateResult["spzUrls"], reader: IBinaryReader, options: BinaryReadOptions): void {
+        let len = reader.uint32(), end = reader.pos + len, key: keyof WorldGenerateResult["spzUrls"] | undefined, val: WorldGenerateResult["spzUrls"][any] | undefined;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case 1:
+                    key = reader.string();
+                    break;
+                case 2:
+                    val = reader.string();
+                    break;
+                default: throw new globalThis.Error("unknown map entry field for nimi.runtime.v1.WorldGenerateResult.spz_urls");
+            }
+        }
+        map[key ?? ""] = val ?? "";
+    }
+    internalBinaryWrite(message: WorldGenerateResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string world_id = 1; */
+        if (message.worldId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.worldId);
+        /* string display_name = 2; */
+        if (message.displayName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        /* string world_marble_url = 3; */
+        if (message.worldMarbleUrl !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.worldMarbleUrl);
+        /* string caption = 4; */
+        if (message.caption !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.caption);
+        /* string thumbnail_url = 5; */
+        if (message.thumbnailUrl !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.thumbnailUrl);
+        /* string pano_url = 6; */
+        if (message.panoUrl !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.panoUrl);
+        /* string collider_mesh_url = 7; */
+        if (message.colliderMeshUrl !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.colliderMeshUrl);
+        /* map<string, string> spz_urls = 8; */
+        for (let k of globalThis.Object.keys(message.spzUrls))
+            writer.tag(8, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.spzUrls[k]).join();
+        /* nimi.runtime.v1.WorldGenerateSemanticsMetadata semantics_metadata = 9; */
+        if (message.semanticsMetadata)
+            WorldGenerateSemanticsMetadata.internalBinaryWrite(message.semanticsMetadata, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* string model = 10; */
+        if (message.model !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.model);
+        /* repeated nimi.runtime.v1.ScenarioArtifact artifacts = 11; */
+        for (let i = 0; i < message.artifacts.length; i++)
+            ScenarioArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateResult
+ */
+export const WorldGenerateResult = new WorldGenerateResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
     constructor() {
         super("nimi.runtime.v1.ScenarioOutput", [
@@ -4574,7 +5328,8 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
             { no: 4, name: "video_generate", kind: "message", oneof: "output", T: () => VideoGenerateResult },
             { no: 5, name: "speech_synthesize", kind: "message", oneof: "output", T: () => SpeechSynthesizeResult },
             { no: 6, name: "speech_transcribe", kind: "message", oneof: "output", T: () => SpeechTranscribeResult },
-            { no: 7, name: "music_generate", kind: "message", oneof: "output", T: () => MusicGenerateResult }
+            { no: 7, name: "music_generate", kind: "message", oneof: "output", T: () => MusicGenerateResult },
+            { no: 8, name: "world_generate", kind: "message", oneof: "output", T: () => WorldGenerateResult }
         ]);
     }
     create(value?: PartialMessage<ScenarioOutput>): ScenarioOutput {
@@ -4631,6 +5386,12 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
                         musicGenerate: MusicGenerateResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).musicGenerate)
                     };
                     break;
+                case /* nimi.runtime.v1.WorldGenerateResult world_generate */ 8:
+                    message.output = {
+                        oneofKind: "worldGenerate",
+                        worldGenerate: WorldGenerateResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).worldGenerate)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -4664,6 +5425,9 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
         /* nimi.runtime.v1.MusicGenerateResult music_generate = 7; */
         if (message.output.oneofKind === "musicGenerate")
             MusicGenerateResult.internalBinaryWrite(message.output.musicGenerate, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.WorldGenerateResult world_generate = 8; */
+        if (message.output.oneofKind === "worldGenerate")
+            WorldGenerateResult.internalBinaryWrite(message.output.worldGenerate, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

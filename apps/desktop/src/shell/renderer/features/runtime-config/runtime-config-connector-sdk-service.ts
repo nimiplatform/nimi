@@ -94,7 +94,7 @@ export function providerToVendor(provider: string): ApiVendor {
   if (normalized === 'openai') return 'gpt';
   if (normalized === 'anthropic') return 'claude';
   if (normalized === 'openrouter') return 'openrouter';
-  return 'custom';
+  return normalized || 'custom';
 }
 
 export function vendorToProvider(vendor: ApiVendor): string {
@@ -106,7 +106,7 @@ export function vendorToProvider(vendor: ApiVendor): string {
   if (vendor === 'gpt') return 'openai';
   if (vendor === 'claude') return 'anthropic';
   if (vendor === 'openrouter') return 'openrouter';
-  return 'custom';
+  return String(vendor || '').trim().toLowerCase() || 'custom';
 }
 
 export function sdkConnectorToApiConnector(

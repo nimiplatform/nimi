@@ -11,6 +11,7 @@ function normalizeCapabilityAlias(value: string): RuntimeCanonicalCapability | n
   if (value === 'embedding') return 'text.embed';
   if (value === 'image') return 'image.generate';
   if (value === 'video') return 'video.generate';
+  if (value === 'world') return 'world.generate';
   if (value === 'tts') return 'audio.synthesize';
   if (value === 'stt' || value === 'speech.transcribe') return 'audio.transcribe';
   if (value === 'music') return 'music.generate';
@@ -184,6 +185,7 @@ export function normalizeRuntimeRouteCapabilityToken(value: unknown): RuntimeCan
     || normalized === 'text.embed'
     || normalized === 'image.generate'
     || normalized === 'video.generate'
+    || normalized === 'world.generate'
     || normalized === 'audio.synthesize'
     || normalized === 'audio.transcribe'
     || normalized === 'music.generate'

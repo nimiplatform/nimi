@@ -13,6 +13,7 @@ import type {
   ScenarioArtifact,
   ScenarioJob,
   ScenarioJobEvent,
+  ScenarioOutput,
 } from '../../runtime/generated/runtime/v1/ai.js';
 import type {
   EmbeddingGenerateInput,
@@ -31,6 +32,7 @@ import type {
   TextStreamOutput,
   VideoGenerateInput,
   VideoGenerateOutput,
+  WorldGenerateInput,
 } from '../../runtime/types.js';
 import type { JsonObject } from '../../internal/utils.js';
 import type {
@@ -120,6 +122,13 @@ export type ModRuntimeBoundVideoGenerateInput =
     binding?: RuntimeRouteBinding;
   };
 
+export type ModRuntimeBoundWorldGenerateInput =
+  Omit<WorldGenerateInput, 'model' | 'route' | 'fallback' | 'connectorId'>
+  & {
+    model?: string;
+    binding?: RuntimeRouteBinding;
+  };
+
 export type ModRuntimeBoundSpeechSynthesizeInput =
   Omit<SpeechSynthesizeInput, 'model' | 'route' | 'fallback' | 'connectorId'>
   & {
@@ -144,6 +153,7 @@ export type ModRuntimeBoundSpeechListVoicesInput =
 export type ModRuntimeScenarioJobSubmitInput =
   | { modal: 'image'; input: ModRuntimeBoundImageGenerateInput }
   | { modal: 'video'; input: ModRuntimeBoundVideoGenerateInput }
+  | { modal: 'world'; input: ModRuntimeBoundWorldGenerateInput }
   | { modal: 'tts'; input: ModRuntimeBoundSpeechSynthesizeInput }
   | { modal: 'stt'; input: ModRuntimeBoundSpeechTranscribeInput };
 
@@ -367,6 +377,9 @@ export type ModRuntimeClient = {
       generate(input: ModRuntimeBoundVideoGenerateInput): Promise<VideoGenerateOutput>;
       stream(input: ModRuntimeBoundVideoGenerateInput): Promise<AsyncIterable<ArtifactChunk>>;
     };
+    world: {
+      generate(input: ModRuntimeBoundWorldGenerateInput): Promise<ScenarioJob>;
+    };
     tts: {
       synthesize(input: ModRuntimeBoundSpeechSynthesizeInput): Promise<SpeechSynthesizeOutput>;
       stream(input: ModRuntimeBoundSpeechSynthesizeInput): Promise<AsyncIterable<ArtifactChunk>>;
@@ -380,7 +393,7 @@ export type ModRuntimeClient = {
       get(jobId: string): Promise<ScenarioJob>;
       cancel(input: { jobId: string; reason?: string }): Promise<ScenarioJob>;
       subscribe(jobId: string): Promise<AsyncIterable<ScenarioJobEvent>>;
-      getArtifacts(jobId: string): Promise<{ artifacts: ScenarioArtifact[]; traceId?: string }>;
+      getArtifacts(jobId: string): Promise<{ artifacts: ScenarioArtifact[]; traceId?: string; output?: ScenarioOutput }>;
     };
   };
   voice: {

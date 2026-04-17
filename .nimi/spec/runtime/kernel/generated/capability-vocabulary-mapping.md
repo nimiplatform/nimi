@@ -11,6 +11,7 @@
 - `text.embed`
 - `image.generate`
 - `video.generate`
+- `world.generate`
 - `audio.synthesize`
 - `audio.transcribe`
 - `music.generate`
@@ -61,6 +62,7 @@
 | `music.generate.iteration` | Iterative music generation remains provider-routed; no Phase 1 local manifest token exists |
 | `voice_workflow.tts_v2v` | Voice-to-voice workflow; requires orchestrated pipeline, not single-model local execution |
 | `voice_workflow.tts_t2v` | Text-to-voice workflow; requires orchestrated pipeline, not single-model local execution |
+| `world.generate` | Explorable world generation remains provider-routed; no Phase 1 local manifest token exists |
 
 ## HuggingFace Inference Mapping
 

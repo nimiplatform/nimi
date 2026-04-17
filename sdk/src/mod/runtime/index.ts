@@ -198,6 +198,12 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
           ...input,
         }),
       },
+      world: {
+        generate: async (input) => runtimeHost.media.world.generate({
+          modId: normalizedModId,
+          ...input,
+        }),
+      },
       tts: {
         synthesize: async (input) => runtimeHost.media.tts.synthesize({
           modId: normalizedModId,

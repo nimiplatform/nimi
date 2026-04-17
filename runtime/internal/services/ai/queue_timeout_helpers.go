@@ -107,21 +107,25 @@ func scenarioJobTimeoutDuration(
 }
 
 func scenarioJobUsesDetachedPolling(scenarioType runtimev1.ScenarioType, adapterName string) bool {
-	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE {
-		return false
-	}
-	switch strings.TrimSpace(adapterName) {
-	case adapterBytedanceARKTask,
-		adapterAlibabaNative,
-		adapterGeminiOperation,
-		adapterMiniMaxTask,
-		adapterGLMTask,
-		adapterKlingTask,
-		adapterLumaTask,
-		adapterPikaTask,
-		adapterRunwayTask,
-		adapterGoogleVeoOperation:
-		return true
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
+		switch strings.TrimSpace(adapterName) {
+		case adapterBytedanceARKTask,
+			adapterAlibabaNative,
+			adapterGeminiOperation,
+			adapterMiniMaxTask,
+			adapterGLMTask,
+			adapterKlingTask,
+			adapterLumaTask,
+			adapterPikaTask,
+			adapterRunwayTask,
+			adapterGoogleVeoOperation:
+			return true
+		default:
+			return false
+		}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
+		return strings.TrimSpace(adapterName) == adapterWorldLabsNative
 	default:
 		return false
 	}

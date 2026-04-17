@@ -90,3 +90,13 @@ Connector 列表 RPC 的分页字段必须成对出现并遵循统一边界：
 ## K-CONN-015 Connector owner 字段冻结
 
 Connector 相关请求中的 `owner_id` 已冻结为 `reserved`，调用方不得通过请求体声明 owner。服务端 owner 归属必须由认证身份推导，并执行 `K-CONN-009` 的隔离规则。
+
+## K-CONN-016 World Generate Connector Custody
+
+当远端 provider admitted `world.generate` 时，connector custody 规则不变化：
+
+- 调用方继续只提交 `connector_id`，不得提交原始 provider secret。
+- world-generation provider 调用中的 upload / generate / poll / fetch-world
+  凭据注入必须继续由 Runtime ConnectorService 托管。
+- provider 返回 world asset URL 或 viewer URL 不得被解释为新的 credential
+  ownership path。

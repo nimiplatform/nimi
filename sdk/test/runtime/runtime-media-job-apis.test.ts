@@ -137,12 +137,24 @@ test('runtimeGetScenarioArtifactsForMedia: returns empty artifacts when none', a
 test('runtimeGetScenarioArtifactsForMedia: returns artifacts and traceId', async () => {
   const artifacts = [{ artifactId: 'a1' }];
   const ctx = createMockContext({
-    invokeWithClient: async () => ({ artifacts, traceId: 'trace-999' }),
+    invokeWithClient: async () => ({
+      artifacts,
+      traceId: 'trace-999',
+      output: {
+        output: {
+          oneofKind: 'worldGenerate',
+          worldGenerate: {
+            worldId: 'world-123',
+          },
+        },
+      },
+    }),
   });
 
   const result = await runtimeGetScenarioArtifactsForMedia(ctx, 'job-with');
   assert.equal(result.artifacts.length, 1);
   assert.equal(result.traceId, 'trace-999');
+  assert.equal(result.output?.output.oneofKind, 'worldGenerate');
 });
 
 test('runtimeGetScenarioArtifactsForMedia: normalizes empty traceId to undefined', async () => {

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -117,6 +118,129 @@ func TestSubmitScenarioJobSpeechSynthesizeCompletes(t *testing.T) {
 	}
 	if artifactsResp.GetArtifacts()[0].GetMimeType() == "" {
 		t.Fatalf("artifact mime type should be set")
+	}
+}
+
+func TestSubmitScenarioJobWorldGenerateCompletes(t *testing.T) {
+	var submitCalls, pollCalls, getWorldCalls int
+	var submitPayload map[string]any
+	var submitPayloadErr string
+	const textPrompt = "A calm studio world with soft lighting"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := strings.TrimSpace(r.Header.Get("WLT-Api-Key")); got != "world-api-key" {
+			http.Error(w, "missing api key", http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/marble/v1/worlds:generate":
+			submitCalls++
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				submitPayloadErr = err.Error()
+				http.Error(w, "failed to read body", http.StatusBadRequest)
+				return
+			}
+			if err := json.Unmarshal(body, &submitPayload); err != nil {
+				submitPayloadErr = err.Error()
+				http.Error(w, "failed to decode body", http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"operation_id":"op-world-1","done":false}`))
+		case "/marble/v1/operations/op-world-1":
+			pollCalls++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"operation_id":"op-world-1","done":true,"metadata":{"world_id":"world-123","progress":{"status":"SUCCEEDED"}}}`))
+		case "/marble/v1/worlds/world-123":
+			getWorldCalls++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"world":{"id":"world-123","display_name":"World Demo","world_marble_url":"https://marble.worldlabs.ai/world/world-123","assets":{"caption":"World caption","thumbnail_url":"https://example.com/thumb.jpg","splats":{"spz_urls":{"100k":"https://example.com/100k.spz","full_res":"https://example.com/full.spz"},"semantics_metadata":{"ground_plane_offset":1.5,"metric_scale_factor":3.25}},"mesh":{"collider_mesh_url":"https://example.com/collider.glb"},"imagery":{"pano_url":"https://example.com/pano.jpg"}},"model":"marble-1.1"}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{"worldlabs": {BaseURL: server.URL, APIKey: "world-api-key"}},
+	})
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "worldlabs/marble-1.1",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_WorldGenerate{
+				WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{
+					DisplayName: "World Demo",
+					TextPrompt:  textPrompt,
+					Tags:        []string{"nimi", "desktop"},
+					Seed:        17,
+				},
+			},
+		},
+	}
+	submitResp, err := svc.SubmitScenarioJob(context.Background(), req)
+	if err != nil {
+		t.Fatalf("submit scenario job: %v", err)
+	}
+	job := waitScenarioJobTerminal(t, svc, submitResp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("expected completed, got=%v reason=%v detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
+	}
+	artifactsResp, err := svc.GetScenarioArtifacts(scenarioJobContext("nimi.desktop"), &runtimev1.GetScenarioArtifactsRequest{
+		JobId: job.GetJobId(),
+	})
+	if err != nil {
+		t.Fatalf("get scenario artifacts: %v", err)
+	}
+	worldOutput := artifactsResp.GetOutput().GetWorldGenerate()
+	if worldOutput == nil {
+		t.Fatalf("expected world generate output")
+	}
+	if worldOutput.GetWorldId() != "world-123" {
+		t.Fatalf("unexpected world id: %q", worldOutput.GetWorldId())
+	}
+	if worldOutput.GetSpzUrls()["full_res"] != "https://example.com/full.spz" {
+		t.Fatalf("unexpected spz urls: %#v", worldOutput.GetSpzUrls())
+	}
+	if worldOutput.GetPanoUrl() != "https://example.com/pano.jpg" {
+		t.Fatalf("unexpected pano url: %q", worldOutput.GetPanoUrl())
+	}
+	if submitPayloadErr != "" {
+		t.Fatalf("unexpected submit payload decode error: %s", submitPayloadErr)
+	}
+	if got := nimillm.ValueAsString(submitPayload["model"]); got != "marble-1.1" {
+		t.Fatalf("unexpected submitted model: %q", got)
+	}
+	if got := nimillm.ValueAsString(submitPayload["display_name"]); got != "World Demo" {
+		t.Fatalf("unexpected submitted display name: %q", got)
+	}
+	if got := nimillm.ValueAsInt64(submitPayload["seed"]); got != 17 {
+		t.Fatalf("unexpected submitted seed: %d", got)
+	}
+	tags, ok := submitPayload["tags"].([]any)
+	if !ok || len(tags) != 2 || nimillm.ValueAsString(tags[0]) != "nimi" || nimillm.ValueAsString(tags[1]) != "desktop" {
+		t.Fatalf("unexpected submitted tags: %#v", submitPayload["tags"])
+	}
+	worldPrompt, ok := submitPayload["world_prompt"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected submitted world_prompt payload, got %#v", submitPayload["world_prompt"])
+	}
+	if got := nimillm.ValueAsString(worldPrompt["type"]); got != "text" {
+		t.Fatalf("unexpected submitted prompt type: %q", got)
+	}
+	if got := nimillm.ValueAsString(worldPrompt["text_prompt"]); got != textPrompt {
+		t.Fatalf("unexpected submitted text prompt: %q", got)
+	}
+	if submitCalls != 1 || pollCalls < 1 || getWorldCalls != 1 {
+		t.Fatalf("unexpected worldlabs call counts: submit=%d poll=%d get=%d", submitCalls, pollCalls, getWorldCalls)
 	}
 }
 
