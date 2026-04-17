@@ -230,14 +230,14 @@ export function NavLink({
           ? `mx-auto h-12 w-12 justify-center ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`
           : `w-full gap-3 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} px-3 py-2.5`
         } ${active
-          ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,white)] shadow-[0_10px_24px_rgba(15,23,42,0.06)]'
-          : 'hover:bg-[var(--nimi-sidebar-item-hover)]'
+          ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] backdrop-blur-md ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+          : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
         }`}
       >
         <span
-          className={`relative flex items-center justify-center ${collapsed ? 'h-9 w-9 rounded-[14px]' : ''} transition-all duration-200 ${
+          className={`relative flex items-center justify-center transition-all duration-200 ${
             active
-              ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] text-[var(--nimi-action-primary-bg)]'
+              ? 'text-[var(--nimi-action-primary-bg)]'
               : 'text-[var(--nimi-text-secondary)]'
           }`}
         >

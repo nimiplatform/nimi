@@ -362,7 +362,7 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
 
   return (
     <ChatRightColumn data-chat-mode-column="human">
-      <ChatRightColumnCard cardKey="primary" className="px-5 py-5">
+      <ChatRightColumnCard cardKey="primary" className="flex min-h-0 flex-1 flex-col justify-center px-5 py-5">
         <div className="space-y-5 text-center">
           <div className="flex flex-col items-center gap-4">
             <div className="relative">

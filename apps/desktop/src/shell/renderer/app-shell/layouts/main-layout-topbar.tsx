@@ -5,7 +5,6 @@ import { ModWorkspaceTabs } from '@renderer/features/mod-workspace/mod-workspace
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   SHELL_CHROME_ACTION_CELL_CLASS,
-  SHELL_CHROME_METRIC_CELL_CLASS,
 } from './shell-chrome-classes';
 
 type MainLayoutTopBarProps = {
@@ -52,16 +51,16 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
 
   return (
     <div
-      className={`relative z-[11000] flex h-16 shrink-0 items-center px-3 pb-2 pt-3 ${props.titlebarLeftInsetClass}`}
+      className={`absolute inset-x-0 top-0 z-[11000] flex h-14 items-center bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-3 backdrop-blur-md ${props.titlebarLeftInsetClass}`}
       onMouseDown={props.onMouseDown}
     >
-      <div className="flex h-full w-full items-center border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_78%,white)] px-1">
+      <div className="flex h-full w-full items-center border-b border-transparent px-1">
         {props.enableModWorkspaceTabs ? (
           <div data-mod-tab-interactive="true" className="h-full w-fit max-w-[52vw]">
             <ModWorkspaceTabs placement="titlebar" />
           </div>
         ) : null}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-3">
           {anonymousMode ? (
             <div className="flex items-center gap-2">
               {props.activeTab !== 'chat' ? (
@@ -116,54 +115,56 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
             </div>
           ) : (
             <>
-              <Tooltip content="Spark" className="h-10">
-                <button
-                  type="button"
-                  data-mod-tab-interactive="true"
-                  onClick={props.onOpenWallet}
-                  className={SHELL_CHROME_METRIC_CELL_CLASS}
-                  aria-label={t('Common.openWalletSpark')}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="url(#sparkGradient)" className="drop-shadow-sm">
-                    <defs>
-                      <linearGradient id="sparkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#fbbf24" />
-                        <stop offset="50%" stopColor="#f59e0b" />
-                        <stop offset="100%" stopColor="#d97706" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M13 2L3 14h9l-1 8 10-12h-7z" />
-                  </svg>
-                  <span>{props.balancesPending ? '--' : formatMetricValue(props.sparkBalance)}</span>
-                </button>
-              </Tooltip>
-              <Tooltip content="Gem" className="h-10">
-                <button
-                  type="button"
-                  data-mod-tab-interactive="true"
-                  onClick={props.onOpenWallet}
-                  className={SHELL_CHROME_METRIC_CELL_CLASS}
-                  aria-label={t('Common.openWalletGem')}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="url(#gemGradient)" className="drop-shadow-sm">
-                    <defs>
-                      <linearGradient id="gemGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#a78bfa" />
-                        <stop offset="50%" stopColor="#8b5cf6" />
-                        <stop offset="100%" stopColor="#7c3aed" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M6 3h12l4 6-10 13L2 9z" />
-                  </svg>
-                  <span>{props.balancesPending ? '--' : formatMetricValue(props.gemBalance)}</span>
-                </button>
-              </Tooltip>
+              <div className="flex h-9 items-center gap-1 rounded-full bg-white/40 px-1 backdrop-blur-sm">
+                <Tooltip content="Spark" className="h-9">
+                  <button
+                    type="button"
+                    data-mod-tab-interactive="true"
+                    onClick={props.onOpenWallet}
+                    className="flex h-7 items-center justify-center gap-1.5 rounded-full bg-transparent px-2.5 text-xs font-semibold text-[var(--nimi-text-primary)] transition hover:bg-white/40"
+                    aria-label={t('Common.openWalletSpark')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="url(#sparkGradient)" className="drop-shadow-sm">
+                      <defs>
+                        <linearGradient id="sparkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#fbbf24" />
+                          <stop offset="50%" stopColor="#f59e0b" />
+                          <stop offset="100%" stopColor="#d97706" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M13 2L3 14h9l-1 8 10-12h-7z" />
+                    </svg>
+                    <span>{props.balancesPending ? '--' : formatMetricValue(props.sparkBalance)}</span>
+                  </button>
+                </Tooltip>
+                <Tooltip content="Gem" className="h-9">
+                  <button
+                    type="button"
+                    data-mod-tab-interactive="true"
+                    onClick={props.onOpenWallet}
+                    className="flex h-7 items-center justify-center gap-1.5 rounded-full bg-transparent px-2.5 text-xs font-semibold text-[var(--nimi-text-primary)] transition hover:bg-white/40"
+                    aria-label={t('Common.openWalletGem')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="url(#gemGradient)" className="drop-shadow-sm">
+                      <defs>
+                        <linearGradient id="gemGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#a78bfa" />
+                          <stop offset="50%" stopColor="#8b5cf6" />
+                          <stop offset="100%" stopColor="#7c3aed" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M6 3h12l4 6-10 13L2 9z" />
+                    </svg>
+                    <span>{props.balancesPending ? '--' : formatMetricValue(props.gemBalance)}</span>
+                  </button>
+                </Tooltip>
+              </div>
               <Tooltip content={t('Navigation.notifications')} className="h-10">
                 <button
                   type="button"
                   data-mod-tab-interactive="true"
                   onClick={props.onOpenNotifications}
-                  className={SHELL_CHROME_ACTION_CELL_CLASS}
+                  className="relative flex h-9 w-9 items-center justify-center rounded-full bg-transparent text-[var(--nimi-text-primary)] transition hover:bg-white/40"
                   aria-label={t('Common.openNotifications')}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

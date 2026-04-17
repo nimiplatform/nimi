@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIConfig, RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
-import { ScrollArea, IconButton } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
+  SidebarAffordanceChevron,
   SidebarHeader,
   SidebarItem,
   SidebarResizeHandle,
   SidebarSection,
   SidebarShell,
 } from '@renderer/components/sidebar.js';
+import { RuntimePageShell } from '../runtime-config/runtime-config-page-shell';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
   CAPABILITIES,
@@ -142,7 +144,7 @@ export function TesterPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef(false);
   const aiConfigSurface = useMemo(() => getDesktopAIConfigService(), []);
-  const [sidebarWidth, setSidebarWidth] = useState(240);
+  const [sidebarWidth, setSidebarWidth] = useState(224);
   const [activeCapability, setActiveCapability] = useState<CapabilityId>('text.generate');
   const [states, setStates] = useState(makeInitialCapabilityStates);
   const [imageDraft, setImageDraft] = useState<ImageWorkflowDraftState>(createInitialImageWorkflowDraftState);
@@ -170,7 +172,7 @@ export function TesterPage() {
     const onMouseMove = (event: globalThis.MouseEvent) => {
       if (!resizingRef.current || !containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const next = Math.min(400, Math.max(220, Math.round(event.clientX - rect.left)));
+      const next = Math.min(420, Math.max(200, Math.round(event.clientX - rect.left)));
       setSidebarWidth(next);
     };
     const onMouseUp = () => {
@@ -344,49 +346,62 @@ export function TesterPage() {
   };
 
   return (
-    <div ref={containerRef} className="flex h-full bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
+    <div ref={containerRef} className="flex min-h-0 flex-1 gap-4 px-5 pb-5 pt-4">
       <SidebarShell width={sidebarWidth}>
-        <SidebarHeader title={<h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{t('Tester.title', { defaultValue: 'Tester' })}</h1>} />
-        <ScrollArea className="flex-1" contentClassName="space-y-0.5 py-1.5">
-          {SIDEBAR_GROUPS.map((group) => (
-            <SidebarSection key={group.label} label={group.label}>
-              {CAPABILITIES.filter((c) => group.ids.includes(c.id)).map((capability) => {
-                const labels = CAPABILITY_LABELS[capability.id];
-                const isActive = activeCapability === capability.id;
-                return (
-                  <div
-                    key={capability.id}
-                    data-testid={E2E_IDS.testerCapabilityTab(capability.id)}
-                    onClick={() => setActiveCapability(capability.id)}
-                  >
-                    <SidebarItem
-                      kind="nav-row"
-                      active={isActive}
+        <SidebarHeader title={<h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{t('Tester.title', { defaultValue: 'Tester' })}</h1>} className="px-5" />
+        <ScrollArea className="flex-1" contentClassName="px-3 pb-3 pt-2">
+          <div className="space-y-5">
+            {SIDEBAR_GROUPS.map((group) => (
+              <SidebarSection key={group.label} label={group.label}>
+                {CAPABILITIES.filter((c) => group.ids.includes(c.id)).map((capability) => {
+                  const labels = CAPABILITY_LABELS[capability.id];
+                  const isActive = activeCapability === capability.id;
+                  return (
+                    <div
+                      key={capability.id}
+                      data-testid={E2E_IDS.testerCapabilityTab(capability.id)}
                       onClick={() => setActiveCapability(capability.id)}
-                      label={labels.label}
-                    />
-                  </div>
-                );
-              })}
-            </SidebarSection>
-          ))}
+                    >
+                      <SidebarItem
+                        kind="nav-row"
+                        active={isActive}
+                        onClick={() => setActiveCapability(capability.id)}
+                        label={labels.label}
+                        trailing={isActive ? <SidebarAffordanceChevron /> : undefined}
+                      />
+                    </div>
+                  );
+                })}
+              </SidebarSection>
+            ))}
+          </div>
         </ScrollArea>
         <SidebarResizeHandle ariaLabel="Resize sidebar" onMouseDown={startResize} />
       </SidebarShell>
 
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h2 className="nimi-type-section-title">{activeLabels.label}</h2>
-          <IconButton
-            icon={SETTINGS_GEAR_ICON}
-            onClick={() => setSettingsOpen((prev) => !prev)}
-            aria-label={t('Tester.openSettings', { defaultValue: 'Settings' })}
-          />
+      <Surface
+        as="main"
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+      >
+        <div className="flex h-14 shrink-0 items-center px-6">
+          <div className="flex w-full items-center justify-between">
+            <h2 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{activeLabels.label}</h2>
+            <IconButton
+              icon={SETTINGS_GEAR_ICON}
+              onClick={() => setSettingsOpen((prev) => !prev)}
+              aria-label={t('Tester.openSettings', { defaultValue: 'Settings' })}
+            />
+          </div>
         </div>
-        <ScrollArea className="flex-1" contentClassName="px-4 pb-4">
-          {renderPanel()}
+        <ScrollArea className="flex-1" viewportClassName="bg-transparent">
+          <RuntimePageShell maxWidth="5xl">
+            {renderPanel()}
+          </RuntimePageShell>
         </ScrollArea>
-      </main>
+      </Surface>
 
       <TesterSettingsPanel
         open={settingsOpen}

@@ -21,7 +21,6 @@ import { SidebarTooltipButton } from './main-layout-sidebar-tooltip-button';
 import { OfflineShellStrip } from './offline-shell-strip';
 import { ScenarioJobStatusHost } from '@renderer/features/turns/scenario-job-status-host';
 import {
-  SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
   SHELL_CHROME_MENU_ITEM_BASE_CLASS,
   SHELL_CHROME_OVERLAY_CLASS,
 } from './shell-chrome-classes';
@@ -449,7 +448,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         onMouseDown={props.onTitlebarMouseDown}
       />
 
-      <div className="relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3">
+      <div className="relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 pt-14">
         {hidePrimaryRail || isAnonymousShell ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
@@ -459,7 +458,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               <SidebarTooltipButton
                 label={t('Navigation.home', { defaultValue: 'Home' })}
                 dataTestId={E2E_IDS.navTab('home')}
-                className={`flex h-11 w-11 items-center justify-center ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} border border-white/55 bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition-transform duration-150 hover:-translate-y-0.5`}
+                className="flex h-11 w-11 items-center justify-center transition-transform duration-150 hover:-translate-y-0.5"
                 onClick={() => {
                   setSettingsMenuOpen(false);
                   props.onNav('home');
