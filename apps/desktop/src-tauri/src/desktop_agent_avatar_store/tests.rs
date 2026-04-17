@@ -43,8 +43,13 @@ fn imported_vrm_is_copied_under_nimi_data_and_can_bind_to_agent() {
         .expect("import vrm");
 
         assert_eq!(imported.resource.kind, DesktopAgentAvatarResourceKind::Vrm);
-        assert!(imported.resource.stored_path.contains("/.nimi/data/avatar-resources/resources/"));
-        assert!(PathBuf::from(&imported.resource.stored_path).join("sample.vrm").exists());
+        assert!(imported
+            .resource
+            .stored_path
+            .contains("/.nimi/data/avatar-resources/resources/"));
+        assert!(PathBuf::from(&imported.resource.stored_path)
+            .join("sample.vrm")
+            .exists());
         assert!(imported.resource.file_url.starts_with("file://"));
         assert_eq!(
             imported.binding.expect("binding").agent_id,
@@ -82,8 +87,13 @@ fn imported_live2d_directory_is_copied_under_nimi_data() {
         )
         .expect("import live2d");
 
-        assert_eq!(imported.resource.kind, DesktopAgentAvatarResourceKind::Live2d);
-        assert!(PathBuf::from(&imported.resource.stored_path).join("ren.model3.json").exists());
+        assert_eq!(
+            imported.resource.kind,
+            DesktopAgentAvatarResourceKind::Live2d
+        );
+        assert!(PathBuf::from(&imported.resource.stored_path)
+            .join("ren.model3.json")
+            .exists());
         assert!(imported.resource.file_url.ends_with("/ren.model3.json"));
         assert!(imported.binding.is_none());
     });
@@ -122,9 +132,14 @@ fn deleting_resource_cascades_binding_and_removes_managed_directory() {
         assert_eq!(binding.agent_id, "agent-delete");
 
         let stored_path = PathBuf::from(imported.resource.stored_path.clone());
-        assert!(super::db::delete_resource(&conn, &imported.resource.resource_id).expect("delete resource"));
+        assert!(
+            super::db::delete_resource(&conn, &imported.resource.resource_id)
+                .expect("delete resource")
+        );
         assert!(!stored_path.exists());
-        assert!(get_binding(&conn, "agent-delete").expect("binding lookup").is_none());
+        assert!(get_binding(&conn, "agent-delete")
+            .expect("binding lookup")
+            .is_none());
         assert!(list_resources(&conn).expect("resources").is_empty());
     });
 }
@@ -194,7 +209,8 @@ fn imported_vrm_can_be_read_back_as_binary_asset_payload() {
         )
         .expect("import vrm");
 
-        let payload = read_resource_asset(&conn, &imported.resource.resource_id).expect("read asset");
+        let payload =
+            read_resource_asset(&conn, &imported.resource.resource_id).expect("read asset");
         assert_eq!(payload.mime_type, "model/gltf-binary");
         assert!(!payload.base64.is_empty());
     });

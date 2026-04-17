@@ -25,6 +25,11 @@ export type DesktopAgentAvatarResourceAssetPayload = {
   base64: string;
 };
 
+export type DesktopAgentAvatarResourceRelativeReadInput = {
+  resourceId: string;
+  relativePath: string;
+};
+
 export type DesktopAgentAvatarImportResult = {
   resource: DesktopAgentAvatarResourceRecord;
   binding: DesktopAgentAvatarBindingRecord | null;

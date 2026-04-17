@@ -1,7 +1,8 @@
 mod commands;
 mod db;
-mod types;
 #[cfg(test)]
 mod tests;
+mod types;
 
 pub(crate) use commands::*;
+pub(crate) use types::*;

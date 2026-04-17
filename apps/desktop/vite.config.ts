@@ -1,9 +1,31 @@
 import { defineConfig, loadEnv, searchForWorkspaceRoot, type PluginOption } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { mkdir, copyFile, readFile, stat, writeFile } from 'node:fs/promises';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { DownloadLive2DSDK } from '@proj-airi/unplugin-live2d-sdk/vite';
+
+const CUBISM_WEB_SDK_VERSION = '5-r.5';
+const CUBISM_WEB_SDK_URL = `https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}.zip`;
+const CUBISM_WEB_CORE_PUBLIC_DIR = path.join('assets', 'js', 'live2d-cubism-core', 'Core');
+const CUBISM_WEB_SHADER_PUBLIC_DIR = path.join(
+  'assets',
+  'js',
+  'live2d-cubism-framework-shaders',
+  'WebGL',
+);
+const CUBISM_WEB_SDK_CACHE_ROOT = path.resolve(
+  __dirname,
+  '.cache',
+  'assets',
+  'js',
+  `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}`,
+);
+const CUBISM_WEB_FRAMEWORK_CACHE_ROOT = path.join(CUBISM_WEB_SDK_CACHE_ROOT, 'Framework', 'src');
+const CUBISM_WEB_FRAMEWORK_ZIP_PREFIX = `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}/Framework/src/`;
+const CUBISM_WEB_SHADER_ZIP_PREFIX = `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}/Framework/Shaders/WebGL/`;
+const CUBISM_WEB_SHADER_CACHE_ROOT = path.join(CUBISM_WEB_SDK_CACHE_ROOT, 'Framework', 'Shaders', 'WebGL');
 
 function resolveOptionalAbsoluteDir(raw: string | undefined, envName: string): string | null {
   const normalized = String(raw || '').trim();
@@ -59,6 +81,138 @@ function desktopPackageVersion(): string {
   const raw = fs.readFileSync(pkgPath, 'utf8');
   const pkg = JSON.parse(raw) as { version?: string };
   return String(pkg.version || '').trim() || '0.0.0';
+}
+
+async function pathExists(targetPath: string): Promise<boolean> {
+  try {
+    await stat(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function listZipEntries(zipPath: string): string[] {
+  const raw = execFileSync('unzip', ['-Z1', zipPath], {
+    encoding: 'utf8',
+  });
+  return raw
+    .split('\n')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function extractZipEntry(zipPath: string, entryPath: string): Buffer {
+  return execFileSync('unzip', ['-p', zipPath, entryPath], {
+    encoding: 'buffer',
+    maxBuffer: 32 * 1024 * 1024,
+  }) as Buffer;
+}
+
+async function extractCubismFrameworkSources(cacheZipPath: string, cacheFrameworkRoot: string): Promise<void> {
+  const entries = listZipEntries(cacheZipPath).filter((entry) => (
+    entry.startsWith(CUBISM_WEB_FRAMEWORK_ZIP_PREFIX)
+    && !entry.endsWith('/')
+  ));
+  if (entries.length === 0) {
+    throw new Error(`Failed to locate Framework/src entries inside ${cacheZipPath}`);
+  }
+
+  for (const entry of entries) {
+    const relativePath = entry.slice(CUBISM_WEB_FRAMEWORK_ZIP_PREFIX.length);
+    if (!relativePath) {
+      continue;
+    }
+    const targetPath = path.join(cacheFrameworkRoot, relativePath);
+    await mkdir(path.dirname(targetPath), { recursive: true });
+    await writeFile(targetPath, extractZipEntry(cacheZipPath, entry));
+  }
+}
+
+async function extractCubismShaderSources(cacheZipPath: string, cacheShaderRoot: string): Promise<void> {
+  const entries = listZipEntries(cacheZipPath).filter((entry) => (
+    entry.startsWith(CUBISM_WEB_SHADER_ZIP_PREFIX)
+    && !entry.endsWith('/')
+  ));
+  if (entries.length === 0) {
+    throw new Error(`Failed to locate Framework/Shaders/WebGL entries inside ${cacheZipPath}`);
+  }
+
+  for (const entry of entries) {
+    const relativePath = entry.slice(CUBISM_WEB_SHADER_ZIP_PREFIX.length);
+    if (!relativePath) {
+      continue;
+    }
+    const targetPath = path.join(cacheShaderRoot, relativePath);
+    await mkdir(path.dirname(targetPath), { recursive: true });
+    await writeFile(targetPath, extractZipEntry(cacheZipPath, entry));
+  }
+}
+
+function cubismWebCorePlugin(): PluginOption {
+  return {
+    name: 'nimi-sync-cubism-web-sdk',
+    async configResolved(config) {
+      const cacheRoot = CUBISM_WEB_SDK_CACHE_ROOT;
+      const cacheZipPath = path.join(cacheRoot, `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}.zip`);
+      const cacheCorePath = path.join(cacheRoot, 'Core', 'live2dcubismcore.min.js');
+      const cacheFrameworkIndexPath = path.join(CUBISM_WEB_FRAMEWORK_CACHE_ROOT, 'live2dcubismframework.ts');
+      const cacheShaderIndexPath = path.join(CUBISM_WEB_SHADER_CACHE_ROOT, 'vertshadersrc.vert');
+      const publicCoreDir = path.resolve(config.publicDir, CUBISM_WEB_CORE_PUBLIC_DIR);
+      const publicCorePath = path.join(publicCoreDir, 'live2dcubismcore.min.js');
+      const publicShaderDir = path.resolve(config.publicDir, CUBISM_WEB_SHADER_PUBLIC_DIR);
+
+      if (!await pathExists(cacheCorePath)) {
+        await mkdir(cacheRoot, { recursive: true });
+        if (!await pathExists(cacheZipPath)) {
+          const response = await fetch(CUBISM_WEB_SDK_URL);
+          if (!response.ok) {
+            throw new Error(`Failed to download Cubism SDK from ${CUBISM_WEB_SDK_URL}: ${response.status} ${response.statusText}`);
+          }
+          const zipBytes = Buffer.from(await response.arrayBuffer());
+          await writeFile(cacheZipPath, zipBytes);
+        }
+        const entryPath = listZipEntries(cacheZipPath).find((entry) => entry.endsWith('/Core/live2dcubismcore.min.js'));
+        if (!entryPath) {
+          throw new Error(`Failed to locate live2dcubismcore.min.js inside ${cacheZipPath}`);
+        }
+        const coreBytes = extractZipEntry(cacheZipPath, entryPath);
+        await mkdir(path.dirname(cacheCorePath), { recursive: true });
+        await writeFile(cacheCorePath, coreBytes);
+      }
+      if (!await pathExists(cacheFrameworkIndexPath)) {
+        await extractCubismFrameworkSources(cacheZipPath, CUBISM_WEB_FRAMEWORK_CACHE_ROOT);
+      }
+      if (!await pathExists(cacheShaderIndexPath)) {
+        await extractCubismShaderSources(cacheZipPath, CUBISM_WEB_SHADER_CACHE_ROOT);
+      }
+
+      await mkdir(publicCoreDir, { recursive: true });
+      await mkdir(publicShaderDir, { recursive: true });
+      const hasPublicCore = await pathExists(publicCorePath);
+      const [publicBytes, cacheBytes] = await Promise.all([
+        hasPublicCore ? readFile(publicCorePath) : Promise.resolve<Buffer | null>(null),
+        readFile(cacheCorePath),
+      ]);
+      if (publicBytes === null || !publicBytes.equals(cacheBytes)) {
+        await copyFile(cacheCorePath, publicCorePath);
+      }
+
+      const shaderEntryNames = (await fs.promises.readdir(CUBISM_WEB_SHADER_CACHE_ROOT)).filter(Boolean);
+      await Promise.all(shaderEntryNames.map(async (entryName) => {
+        const cacheShaderPath = path.join(CUBISM_WEB_SHADER_CACHE_ROOT, entryName);
+        const publicShaderPath = path.join(publicShaderDir, entryName);
+        const hasPublicShader = await pathExists(publicShaderPath);
+        const [publicShaderBytes, cacheShaderBytes] = await Promise.all([
+          hasPublicShader ? readFile(publicShaderPath) : Promise.resolve<Buffer | null>(null),
+          readFile(cacheShaderPath),
+        ]);
+        if (publicShaderBytes === null || !publicShaderBytes.equals(cacheShaderBytes)) {
+          await copyFile(cacheShaderPath, publicShaderPath);
+        }
+      }));
+    },
+  };
 }
 
 export default defineConfig(({ mode }) => {
@@ -120,6 +274,10 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, 'node_modules/react-i18next/dist/es/index.js'),
         },
         {
+          find: '@framework',
+          replacement: CUBISM_WEB_FRAMEWORK_CACHE_ROOT,
+        },
+        {
           find: '@runtime',
           replacement: path.resolve(__dirname, 'src/runtime'),
         },
@@ -144,7 +302,7 @@ export default defineConfig(({ mode }) => {
       ],
     },
     plugins: [
-      DownloadLive2DSDK() as unknown as PluginOption,
+      cubismWebCorePlugin(),
       react(),
       tailwindcss(),
     ],
@@ -172,6 +330,9 @@ export default defineConfig(({ mode }) => {
             const normalizedId = id.split(path.sep).join('/');
             if (normalizedId.includes('/sdk/src/runtime/generated/')) {
               return 'vendor-sdk-runtime-generated';
+            }
+            if (normalizedId.includes(CUBISM_WEB_FRAMEWORK_CACHE_ROOT.split(path.sep).join('/'))) {
+              return 'vendor-live2d';
             }
             if (normalizedId.includes('/sdk/src/')) {
               return 'sdk-client';
@@ -229,13 +390,6 @@ export default defineConfig(({ mode }) => {
               || id.includes('/engine.io-parser/')
             ) {
               return 'vendor-socket';
-            }
-            if (
-              id.includes('/pixi.js/')
-              || id.includes('/@pixi/')
-              || id.includes('/pixi-live2d-display/')
-            ) {
-              return 'vendor-live2d';
             }
             if (id.includes('/ajv/') || id.includes('/zod/') || id.includes('/yaml/')) {
               return 'vendor-data';

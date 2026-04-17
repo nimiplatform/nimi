@@ -1,6 +1,6 @@
 use super::types::*;
-use rusqlite::{params, Connection, OptionalExtension};
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
+use rusqlite::{params, Connection, OptionalExtension};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -46,15 +46,25 @@ fn normalize_source_path(path: &str, field_name: &str) -> Result<PathBuf, String
     if !candidate.is_absolute() {
         return Err(format!("{field_name} must be an absolute path"));
     }
-    let canonical = std::fs::canonicalize(&candidate)
-        .map_err(|error| format!("failed to resolve {field_name} ({}): {error}", candidate.display()))?;
-    Ok(crate::desktop_paths::normalize_desktop_absolute_path(&canonical))
+    let canonical = std::fs::canonicalize(&candidate).map_err(|error| {
+        format!(
+            "failed to resolve {field_name} ({}): {error}",
+            candidate.display()
+        )
+    })?;
+    Ok(crate::desktop_paths::normalize_desktop_absolute_path(
+        &canonical,
+    ))
 }
 
 fn resource_root_dir() -> Result<PathBuf, String> {
     let root = crate::desktop_paths::resolve_nimi_data_dir()?.join(AVATAR_ROOT_DIR_NAME);
-    fs::create_dir_all(root.join(AVATAR_MANAGED_RESOURCES_DIR))
-        .map_err(|error| format!("failed to create avatar resource root ({}): {error}", root.display()))?;
+    fs::create_dir_all(root.join(AVATAR_MANAGED_RESOURCES_DIR)).map_err(|error| {
+        format!(
+            "failed to create avatar resource root ({}): {error}",
+            root.display()
+        )
+    })?;
     Ok(root)
 }
 
@@ -64,8 +74,12 @@ fn db_path() -> Result<PathBuf, String> {
 
 pub(crate) fn open_db() -> Result<Connection, String> {
     let path = db_path()?;
-    let conn = Connection::open(&path)
-        .map_err(|error| format!("failed to open desktop agent avatar db ({}): {error}", path.display()))?;
+    let conn = Connection::open(&path).map_err(|error| {
+        format!(
+            "failed to open desktop agent avatar db ({}): {error}",
+            path.display()
+        )
+    })?;
     conn.pragma_update(None, "journal_mode", "WAL")
         .map_err(|error| format!("failed to enable avatar db WAL: {error}"))?;
     conn.pragma_update(None, "foreign_keys", "ON")
@@ -172,8 +186,12 @@ fn generate_resource_id(seed: &str) -> String {
 
 fn copy_file(source: &Path, destination: &Path) -> Result<(), String> {
     if let Some(parent) = destination.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("failed to create import directory ({}): {error}", parent.display()))?;
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "failed to create import directory ({}): {error}",
+                parent.display()
+            )
+        })?;
     }
     fs::copy(source, destination).map_err(|error| {
         format!(
@@ -186,17 +204,31 @@ fn copy_file(source: &Path, destination: &Path) -> Result<(), String> {
 }
 
 fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<(), String> {
-    fs::create_dir_all(destination)
-        .map_err(|error| format!("failed to create import directory ({}): {error}", destination.display()))?;
-    for entry in fs::read_dir(source)
-        .map_err(|error| format!("failed to read source directory ({}): {error}", source.display()))?
-    {
-        let entry = entry.map_err(|error| format!("failed to read source directory entry: {error}"))?;
-        let file_type = entry
-            .file_type()
-            .map_err(|error| format!("failed to inspect source entry {}: {error}", entry.path().display()))?;
+    fs::create_dir_all(destination).map_err(|error| {
+        format!(
+            "failed to create import directory ({}): {error}",
+            destination.display()
+        )
+    })?;
+    for entry in fs::read_dir(source).map_err(|error| {
+        format!(
+            "failed to read source directory ({}): {error}",
+            source.display()
+        )
+    })? {
+        let entry =
+            entry.map_err(|error| format!("failed to read source directory entry: {error}"))?;
+        let file_type = entry.file_type().map_err(|error| {
+            format!(
+                "failed to inspect source entry {}: {error}",
+                entry.path().display()
+            )
+        })?;
         if file_type.is_symlink() {
-            return Err(format!("symbolic links are not supported for avatar import ({})", entry.path().display()));
+            return Err(format!(
+                "symbolic links are not supported for avatar import ({})",
+                entry.path().display()
+            ));
         }
         let destination_path = destination.join(entry.file_name());
         if file_type.is_dir() {
@@ -211,7 +243,12 @@ fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<(), Str
 fn file_url_from_path(path: &Path) -> Result<String, String> {
     Url::from_file_path(path)
         .map(|url| url.to_string())
-        .map_err(|_| format!("failed to convert avatar path to file URL ({})", path.display()))
+        .map_err(|_| {
+            format!(
+                "failed to convert avatar path to file URL ({})",
+                path.display()
+            )
+        })
 }
 
 fn derive_resource_record(
@@ -229,7 +266,9 @@ fn derive_resource_record(
     let root = resource_root_dir()?;
     let stored_path = root.join(&resource_relative_dir);
     let entry_path = stored_path.join(&entry_relative_path);
-    let poster_path = poster_relative_path.as_ref().map(|value| stored_path.join(value));
+    let poster_path = poster_relative_path
+        .as_ref()
+        .map(|value| stored_path.join(value));
     let derived_status = if entry_path.exists() {
         status
     } else {
@@ -330,7 +369,9 @@ fn list_resources_impl(conn: &Connection) -> Result<Vec<DesktopAgentAvatarResour
             ORDER BY updated_at_ms DESC, resource_id DESC
             "#,
         )
-        .map_err(|error| format!("failed to prepare desktop agent avatar resource list: {error}"))?;
+        .map_err(|error| {
+            format!("failed to prepare desktop agent avatar resource list: {error}")
+        })?;
     let rows = statement
         .query_map([], |row| {
             let kind_raw: String = row.get(1)?;
@@ -370,7 +411,11 @@ fn list_resources_impl(conn: &Connection) -> Result<Vec<DesktopAgentAvatarResour
         .map_err(|error| format!("failed to query desktop agent avatar resources: {error}"))?;
     let mut resources = Vec::new();
     for row in rows {
-        resources.push(row.map_err(|error| format!("failed to decode desktop agent avatar resource: {error}"))?);
+        resources.push(
+            row.map_err(|error| {
+                format!("failed to decode desktop agent avatar resource: {error}")
+            })?,
+        );
     }
     Ok(resources)
 }
@@ -420,8 +465,9 @@ fn set_binding_impl(
         params![agent_id, resource_id, updated_at_ms],
     )
     .map_err(|error| format!("desktop agent avatar binding failed: {error}"))?;
-    get_binding_impl(conn, &payload.agent_id)?
-        .ok_or_else(|| "desktop agent avatar binding failed: binding missing after write".to_string())
+    get_binding_impl(conn, &payload.agent_id)?.ok_or_else(|| {
+        "desktop agent avatar binding failed: binding missing after write".to_string()
+    })
 }
 
 fn clear_binding_impl(conn: &Connection, agent_id: &str) -> Result<bool, String> {
@@ -467,7 +513,10 @@ fn import_vrm_impl(
             .and_then(|value| value.to_str())
             .unwrap_or("VRM Avatar"),
     );
-    let imported_at_ms = require_non_negative_ms(payload.imported_at_ms.unwrap_or_else(now_ms), "importedAtMs")?;
+    let imported_at_ms = require_non_negative_ms(
+        payload.imported_at_ms.unwrap_or_else(now_ms),
+        "importedAtMs",
+    )?;
     let resource_id = generate_resource_id(&display_name);
     let resource_relative_dir = format!("{}/{}", AVATAR_MANAGED_RESOURCES_DIR, resource_id);
     let entry_relative_path = source_filename.clone();
@@ -506,31 +555,40 @@ fn import_vrm_impl(
 
     let resource = read_resource_record(conn, &resource_id)?
         .ok_or_else(|| "VRM avatar resource missing after import".to_string())?;
-    let binding = if let Some(agent_id) = normalize_optional_string(payload.bind_agent_id.as_deref()) {
-        Some(set_binding_impl(
-            conn,
-            &DesktopAgentAvatarBindingSetPayload {
-                agent_id,
-                resource_id: resource.resource_id.clone(),
-                updated_at_ms: imported_at_ms,
-            },
-        )?)
-    } else {
-        None
-    };
+    let binding =
+        if let Some(agent_id) = normalize_optional_string(payload.bind_agent_id.as_deref()) {
+            Some(set_binding_impl(
+                conn,
+                &DesktopAgentAvatarBindingSetPayload {
+                    agent_id,
+                    resource_id: resource.resource_id.clone(),
+                    updated_at_ms: imported_at_ms,
+                },
+            )?)
+        } else {
+            None
+        };
     Ok(DesktopAgentAvatarImportResult { resource, binding })
 }
 
 fn find_live2d_entry_relative_path(source_root: &Path) -> Result<String, String> {
     let mut stack = vec![source_root.to_path_buf()];
     while let Some(next) = stack.pop() {
-        let entries = fs::read_dir(&next)
-            .map_err(|error| format!("failed to read Live2D source directory ({}): {error}", next.display()))?;
+        let entries = fs::read_dir(&next).map_err(|error| {
+            format!(
+                "failed to read Live2D source directory ({}): {error}",
+                next.display()
+            )
+        })?;
         for entry in entries {
-            let entry = entry.map_err(|error| format!("failed to read Live2D source entry: {error}"))?;
-            let file_type = entry
-                .file_type()
-                .map_err(|error| format!("failed to inspect Live2D entry {}: {error}", entry.path().display()))?;
+            let entry =
+                entry.map_err(|error| format!("failed to read Live2D source entry: {error}"))?;
+            let file_type = entry.file_type().map_err(|error| {
+                format!(
+                    "failed to inspect Live2D entry {}: {error}",
+                    entry.path().display()
+                )
+            })?;
             if file_type.is_dir() {
                 stack.push(entry.path());
                 continue;
@@ -543,9 +601,9 @@ fn find_live2d_entry_relative_path(source_root: &Path) -> Result<String, String>
                 continue;
             };
             if filename.ends_with(".model3.json") {
-                let relative = path
-                    .strip_prefix(source_root)
-                    .map_err(|error| format!("failed to resolve Live2D relative entry path: {error}"))?;
+                let relative = path.strip_prefix(source_root).map_err(|error| {
+                    format!("failed to resolve Live2D relative entry path: {error}")
+                })?;
                 return Ok(relative.to_string_lossy().replace('\\', "/"));
             }
         }
@@ -558,7 +616,9 @@ fn import_live2d_impl(
     payload: &DesktopAgentAvatarImportLive2dPayload,
 ) -> Result<DesktopAgentAvatarImportResult, String> {
     let source_path = normalize_source_path(&payload.source_path, "sourcePath")?;
-    let (source_root, entry_relative_path, source_filename, default_display_name) = if source_path.is_dir() {
+    let (source_root, entry_relative_path, source_filename, default_display_name) = if source_path
+        .is_dir()
+    {
         let source_filename = source_path
             .file_name()
             .and_then(|value| value.to_str())
@@ -570,7 +630,12 @@ fn import_live2d_impl(
             .and_then(|value| value.to_str())
             .unwrap_or("Live2D Avatar")
             .to_string();
-        (source_path.clone(), entry_relative_path, source_filename, display_name)
+        (
+            source_path.clone(),
+            entry_relative_path,
+            source_filename,
+            display_name,
+        )
     } else if source_path.is_file() {
         let file_name = source_path
             .file_name()
@@ -593,13 +658,23 @@ fn import_live2d_impl(
             .and_then(|value| value.to_str())
             .unwrap_or("Live2D Avatar")
             .replace(".model3", "");
-        (source_root, entry_relative_path, file_name.to_string(), default_display_name)
+        (
+            source_root,
+            entry_relative_path,
+            file_name.to_string(),
+            default_display_name,
+        )
     } else {
-        return Err("sourcePath must point to a Live2D runtime directory or *.model3.json file".to_string());
+        return Err(
+            "sourcePath must point to a Live2D runtime directory or *.model3.json file".to_string(),
+        );
     };
 
     let display_name = resolve_display_name(payload.display_name.as_deref(), &default_display_name);
-    let imported_at_ms = require_non_negative_ms(payload.imported_at_ms.unwrap_or_else(now_ms), "importedAtMs")?;
+    let imported_at_ms = require_non_negative_ms(
+        payload.imported_at_ms.unwrap_or_else(now_ms),
+        "importedAtMs",
+    )?;
     let resource_id = generate_resource_id(&display_name);
     let resource_relative_dir = format!("{}/{}", AVATAR_MANAGED_RESOURCES_DIR, resource_id);
     let destination_dir = resource_root_dir()?.join(&resource_relative_dir);
@@ -636,18 +711,19 @@ fn import_live2d_impl(
 
     let resource = read_resource_record(conn, &resource_id)?
         .ok_or_else(|| "Live2D avatar resource missing after import".to_string())?;
-    let binding = if let Some(agent_id) = normalize_optional_string(payload.bind_agent_id.as_deref()) {
-        Some(set_binding_impl(
-            conn,
-            &DesktopAgentAvatarBindingSetPayload {
-                agent_id,
-                resource_id: resource.resource_id.clone(),
-                updated_at_ms: imported_at_ms,
-            },
-        )?)
-    } else {
-        None
-    };
+    let binding =
+        if let Some(agent_id) = normalize_optional_string(payload.bind_agent_id.as_deref()) {
+            Some(set_binding_impl(
+                conn,
+                &DesktopAgentAvatarBindingSetPayload {
+                    agent_id,
+                    resource_id: resource.resource_id.clone(),
+                    updated_at_ms: imported_at_ms,
+                },
+            )?)
+        } else {
+            None
+        };
     Ok(DesktopAgentAvatarImportResult { resource, binding })
 }
 
@@ -667,8 +743,12 @@ fn delete_resource_impl(conn: &Connection, resource_id: &str) -> Result<bool, St
     }
     let stored_path = PathBuf::from(resource.stored_path);
     if stored_path.exists() {
-        fs::remove_dir_all(&stored_path)
-            .map_err(|error| format!("failed to remove imported avatar resource directory ({}): {error}", stored_path.display()))?;
+        fs::remove_dir_all(&stored_path).map_err(|error| {
+            format!(
+                "failed to remove imported avatar resource directory ({}): {error}",
+                stored_path.display()
+            )
+        })?;
     }
     Ok(true)
 }
@@ -693,10 +773,7 @@ pub(crate) fn list_resources(
     list_resources_impl(conn)
 }
 
-pub(crate) fn delete_resource(
-    conn: &Connection,
-    resource_id: &str,
-) -> Result<bool, String> {
+pub(crate) fn delete_resource(conn: &Connection, resource_id: &str) -> Result<bool, String> {
     delete_resource_impl(conn, resource_id)
 }
 
@@ -732,6 +809,23 @@ fn mime_type_for_resource(kind: DesktopAgentAvatarResourceKind, path: &Path) -> 
     }
 }
 
+fn normalize_resource_relative_path(value: &str) -> Result<String, String> {
+    let normalized = normalize_required_string(value, "relativePath")?;
+    if normalized.starts_with('/') || normalized.starts_with('\\') {
+        return Err("relativePath must stay within the imported avatar resource".to_string());
+    }
+    let candidate = Path::new(&normalized);
+    if candidate
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return Err(
+            "relativePath must not traverse outside the imported avatar resource".to_string(),
+        );
+    }
+    Ok(normalized.replace('\\', "/"))
+}
+
 pub(crate) fn read_resource_asset(
     conn: &Connection,
     resource_id: &str,
@@ -742,8 +836,41 @@ pub(crate) fn read_resource_asset(
         .ok()
         .and_then(|url| url.to_file_path().ok())
         .unwrap_or_else(|| PathBuf::from(record.file_url.as_str()));
-    let bytes = fs::read(&path)
-        .map_err(|error| format!("failed to read desktop agent avatar asset ({}): {error}", path.display()))?;
+    let bytes = fs::read(&path).map_err(|error| {
+        format!(
+            "failed to read desktop agent avatar asset ({}): {error}",
+            path.display()
+        )
+    })?;
+    Ok(DesktopAgentAvatarResourceAssetPayload {
+        mime_type: mime_type_for_resource(record.kind, &path).to_string(),
+        base64: BASE64_STANDARD.encode(bytes),
+    })
+}
+
+pub(crate) fn read_relative_resource_asset(
+    conn: &Connection,
+    resource_id: &str,
+    relative_path: &str,
+) -> Result<DesktopAgentAvatarResourceAssetPayload, String> {
+    let record = read_resource_record(conn, resource_id)?
+        .ok_or_else(|| format!("desktop agent avatar resource not found: {resource_id}"))?;
+    let normalized_relative_path = normalize_resource_relative_path(relative_path)?;
+    let base_dir = Url::parse(&record.file_url)
+        .ok()
+        .and_then(|url| url.to_file_path().ok())
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+        .unwrap_or_else(|| PathBuf::from(record.stored_path.as_str()));
+    let path = base_dir.join(&normalized_relative_path);
+    if !path.starts_with(&record.stored_path) {
+        return Err("relativePath must stay within the imported avatar resource".to_string());
+    }
+    let bytes = fs::read(&path).map_err(|error| {
+        format!(
+            "failed to read desktop agent avatar dependency ({}): {error}",
+            path.display()
+        )
+    })?;
     Ok(DesktopAgentAvatarResourceAssetPayload {
         mime_type: mime_type_for_resource(record.kind, &path).to_string(),
         base64: BASE64_STANDARD.encode(bytes),

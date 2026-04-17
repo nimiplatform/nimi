@@ -180,16 +180,26 @@ function RuntimeVrmModel({
   const transform = useMemo(() => {
     const box = new THREE.Box3().setFromObject(vrm.scene);
     const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
     box.getSize(size);
+    box.getCenter(center);
     const height = size.y > 0 ? size.y : 1.8;
-    const scale = 2.95 / height;
-    const desiredBottom = -2.02;
+    const width = size.x > 0 ? size.x : 0.9;
+    const depth = size.z > 0 ? size.z : 0.75;
+    const scale = Math.min(
+      2.82 / height,
+      1.96 / width,
+      1.52 / depth,
+    );
+    const baseY = -center.y * scale - 1.28;
+    const minBottom = -1.96;
+    const resolvedY = Math.max(baseY, minBottom - box.min.y * scale);
     return {
       scale,
       position: new THREE.Vector3(
-        -(box.min.x + size.x / 2) * scale,
-        desiredBottom - box.min.y * scale,
-        -(box.min.z + size.z / 2) * scale + 0.08,
+        -center.x * scale,
+        resolvedY,
+        -center.z * scale - 0.18,
       ),
     };
   }, [vrm]);
@@ -511,7 +521,7 @@ export default function ChatAgentAvatarVrmViewport({
           </div>
         ) : (
           <Canvas
-            camera={{ position: [0, 0.58, 5.05], fov: 25 }}
+            camera={{ position: [0, 0.42, 5.1], fov: 26, near: 0.01, far: 20 }}
             dpr={[1, 1.8]}
             gl={{ antialias: true, alpha: true }}
             onCreated={({ gl }) => {

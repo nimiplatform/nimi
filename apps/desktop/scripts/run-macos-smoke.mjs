@@ -4,14 +4,83 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { spawn } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { profilePathForScenario, scenarioRegistry, selectScenarios } from '../e2e/helpers/registry.mjs';
+import { spawn, spawnSync } from 'node:child_process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { profilePathForScenario, scenarioEntryForId, selectScenarios } from '../e2e/helpers/registry.mjs';
 import { startRealmFixtureServer } from '../e2e/fixtures/realm-fixture-server.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptDir, '..');
 const repoRoot = path.resolve(desktopRoot, '..', '..');
+const CUBISM_WEB_SDK_VERSION = '5-r.5';
+const DEFAULT_CUBISM_SAMPLE_MODEL = 'Hiyori';
+const LIVE2D_SMOKE_SCENARIO_PREFIX = 'chat.live2d-render-smoke-';
+
+function ensureCubismLive2dSample(modelName = DEFAULT_CUBISM_SAMPLE_MODEL) {
+  const sampleCacheRoot = path.join(repoRoot, 'apps/desktop/.cache/assets/js');
+  const sdkRoot = path.join(sampleCacheRoot, `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}`);
+  const zipPath = path.join(sdkRoot, `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}.zip`);
+  const modelPath = path.join(
+    sdkRoot,
+    'Samples',
+    'Resources',
+    modelName,
+    `${modelName}.model3.json`,
+  );
+
+  if (!fs.existsSync(zipPath)) {
+    throw new Error(`Cubism Web SDK zip is missing: ${zipPath}`);
+  }
+  if (!fs.existsSync(modelPath)) {
+    const entry = `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}/Samples/Resources/${modelName}/*`;
+    const extract = spawnSync('unzip', ['-oq', zipPath, entry, '-d', sampleCacheRoot], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    });
+    if (extract.error) {
+      throw extract.error;
+    }
+    if (extract.status !== 0) {
+      throw new Error(`failed to extract Cubism sample ${modelName}: ${extract.stderr || extract.stdout || 'unknown unzip error'}`);
+    }
+  }
+  return {
+    modelName,
+    sampleRoot: path.dirname(modelPath),
+    modelFileUrl: pathToFileURL(modelPath).toString(),
+  };
+}
+
+function cubismSampleModelForScenario(scenarioId) {
+  switch (scenarioId) {
+    case 'chat.live2d-render-smoke-mark':
+    case 'chat.live2d-render-smoke-mark-speaking':
+      return 'Mark';
+    case 'chat.live2d-render-smoke':
+      return DEFAULT_CUBISM_SAMPLE_MODEL;
+    default:
+      if (scenarioId.startsWith(LIVE2D_SMOKE_SCENARIO_PREFIX)) {
+        const suffix = scenarioId.slice(LIVE2D_SMOKE_SCENARIO_PREFIX.length);
+        if (suffix) {
+          return suffix
+            .split('-')
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join('');
+        }
+      }
+      return DEFAULT_CUBISM_SAMPLE_MODEL;
+  }
+}
+
+function cubismSampleProfileTokensForScenario(scenarioId) {
+  const modelName = cubismSampleModelForScenario(scenarioId);
+  return {
+    resourceId: `fixture-live2d-${modelName.toLowerCase()}`,
+    displayName: `Fixture ${modelName} Live2D`,
+    modelFilename: `${modelName}.model3.json`,
+  };
+}
 
 function parseArgs(argv) {
   const options = {
@@ -248,7 +317,7 @@ function writeSyntheticFailureReport({
 }
 
 async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) {
-  const scenario = scenarioRegistry.get(scenarioId);
+  const scenario = scenarioEntryForId(scenarioId);
   if (!scenario) {
     throw new Error(`missing registry entry for ${scenarioId}`);
   }
@@ -266,6 +335,8 @@ async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) {
   fs.mkdirSync(artifactsDir, { recursive: true });
 
   const profile = loadProfileDefinition(profilePathForScenario(scenarioId));
+  const cubismSample = ensureCubismLive2dSample(cubismSampleModelForScenario(scenarioId));
+  const cubismProfile = cubismSampleProfileTokensForScenario(scenarioId);
   writeJson(scenarioManifestPath, {
     scenarioId,
     realmFixture: profile.realmFixture || {},
@@ -288,6 +359,12 @@ async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) {
     },
   }, {
     __FIXTURE_ORIGIN__: fixtureServer.origin,
+    __REPO_ROOT__: repoRoot,
+    __CUBISM_SAMPLE_LIVE2D_ROOT__: cubismSample.sampleRoot,
+    __CUBISM_SAMPLE_LIVE2D_MODEL_FILE_URL__: cubismSample.modelFileUrl,
+    __CUBISM_SAMPLE_RESOURCE_ID__: cubismProfile.resourceId,
+    __CUBISM_SAMPLE_DISPLAY_NAME__: cubismProfile.displayName,
+    __CUBISM_SAMPLE_MODEL_FILENAME__: cubismProfile.modelFilename,
   });
   writeJson(scenarioManifestPath, scenarioManifest);
   writeJson(artifactManifestPath, {

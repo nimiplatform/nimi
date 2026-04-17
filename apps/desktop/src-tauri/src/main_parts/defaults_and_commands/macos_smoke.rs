@@ -130,6 +130,7 @@ pub(crate) fn desktop_macos_smoke_report_write(
         "errorCause": normalize_optional(payload.error_cause),
         "route": normalize_optional(payload.route),
         "htmlSnapshotPath": html_snapshot_path,
+        "details": payload.details,
         "fixtureManifestPath": fixture_manifest_path,
         "failureSource": "renderer",
     });
@@ -276,6 +277,11 @@ mod tests {
             error_cause: None,
             route: Some("/chat".to_string()),
             html_snapshot: Some("<html>ok</html>".to_string()),
+            details: Some(json!({
+                "live2d": {
+                    "framingMode": "full-body-tall"
+                }
+            })),
         })
         .expect("write report");
         match previous {
@@ -288,6 +294,7 @@ mod tests {
         assert!(report_raw.contains("\"scenarioId\": \"chat.memory-standard-bind\""));
         assert!(report_raw.contains("\"fixtureManifestPath\""));
         assert!(report_raw.contains("\"failureSource\": \"renderer\""));
+        assert!(report_raw.contains("\"details\""));
         let html_path = result
             .html_snapshot_path
             .expect("html snapshot path should be present");
@@ -329,6 +336,7 @@ mod tests {
             error_cause: None,
             route: Some("/chat".to_string()),
             html_snapshot: None,
+            details: None,
         })
         .expect_err("relative path should fail");
         match previous {

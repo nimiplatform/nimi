@@ -7,6 +7,7 @@ import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
 
 import {
   ChatRightPanelAvatarStageRail,
+  resolveChatAgentAvatarLive2dDiagnosticPanelModel,
 } from '../src/shell/renderer/features/chat/chat-right-panel-avatar-stage-rail.js';
 import {
   ChatRightPanelUtilityRail,
@@ -192,6 +193,76 @@ test('avatar stage rail resolves live2d from shared binding and resource query c
   assert.match(markup, /data-avatar-live2d-status="loading"/);
 });
 
+test('live2d diagnostic panel model exposes recovery diagnostics before hard fail-close', () => {
+  const panel = resolveChatAgentAvatarLive2dDiagnosticPanelModel({
+    status: 'loading',
+    error: null,
+    diagnostic: {
+      backendKind: 'live2d',
+      stage: 'ready',
+      status: 'loading',
+      assetRef: 'desktop-agent-avatar://agent-live2d',
+      assetLabel: 'Airi Live2D',
+      mocVersion: 6,
+      resourceId: 'resource-live2d',
+      fileUrl: 'file:///tmp/airi-live2d/airi.model3.json',
+      modelUrl: 'live2d-memory://resource-live2d/airi.model3.json',
+      error: null,
+      errorUrl: null,
+      errorStatus: null,
+      runtimeUrls: ['live2d-memory://resource-live2d/airi.model3.json'],
+      cubismCoreAvailable: true,
+      assetProbeFailures: ['webgl-context-lost'],
+      motionGroups: ['Idle', 'TapBody'],
+      idleMotionGroup: 'Idle',
+      speechMotionGroup: 'TapBody',
+      recoveryAttemptCount: 2,
+      recoveryReason: 'webgl-context-lost',
+    },
+  });
+
+  assert.equal(panel?.kind, 'recovery');
+  assert.equal(panel?.message, 'Recovering Live2D viewport');
+  assert.ok(panel?.details.includes('recoveryReason=webgl-context-lost'));
+  assert.ok(panel?.details.includes('recoveryAttemptCount=2'));
+  assert.ok(panel?.details.includes('motionGroups=Idle,TapBody'));
+});
+
+test('live2d diagnostic panel model exposes motion fallback details on hard error', () => {
+  const panel = resolveChatAgentAvatarLive2dDiagnosticPanelModel({
+    status: 'error',
+    error: 'Live2D model failed closed.',
+    diagnostic: {
+      backendKind: 'live2d',
+      stage: 'ready',
+      status: 'error',
+      assetRef: 'desktop-agent-avatar://agent-live2d',
+      assetLabel: 'Airi Live2D',
+      mocVersion: 6,
+      resourceId: 'resource-live2d',
+      fileUrl: 'file:///tmp/airi-live2d/airi.model3.json',
+      modelUrl: 'live2d-memory://resource-live2d/airi.model3.json',
+      error: 'Live2D model failed closed.',
+      errorUrl: null,
+      errorStatus: null,
+      runtimeUrls: ['live2d-memory://resource-live2d/airi.model3.json'],
+      cubismCoreAvailable: true,
+      assetProbeFailures: ['webgl-context-lost'],
+      motionGroups: ['Idle', 'TapBody'],
+      idleMotionGroup: 'Idle',
+      speechMotionGroup: 'TapBody',
+      recoveryAttemptCount: 1,
+      recoveryReason: 'webgl-context-lost',
+    },
+  });
+
+  assert.equal(panel?.kind, 'error');
+  assert.equal(panel?.message, 'Live2D model failed closed.');
+  assert.ok(panel?.details.includes('idleMotionGroup=Idle'));
+  assert.ok(panel?.details.includes('speechMotionGroup=TapBody'));
+  assert.ok(panel?.details.includes('motionGroups=Idle,TapBody'));
+});
+
 test('utility rail uses transparent chrome and keeps only materialized utility buttons', () => {
   const queryClient = new QueryClient();
   const markup = renderToStaticMarkup(
@@ -210,6 +281,6 @@ test('utility rail uses transparent chrome and keeps only materialized utility b
 
   assert.match(markup, /data-right-panel="agent-utility-rail"/);
   assert.match(markup, /data-utility-rail-chrome="transparent"/);
-  assert.match(markup, /rounded-\[12px\]/);
+  assert.match(markup, /rounded-xl/);
   assert.doesNotMatch(markup, /bg-\[linear-gradient\(180deg,rgba\(250,252,252,0\.86\),rgba\(244,247,248,0\.92\)\)\]/u);
 });

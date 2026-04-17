@@ -89,6 +89,13 @@ pub struct DesktopAgentAvatarResourceReadPayload {
     pub resource_id: String,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopAgentAvatarResourceRelativeReadPayload {
+    pub resource_id: String,
+    pub relative_path: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DesktopAgentAvatarResourceAssetPayload {

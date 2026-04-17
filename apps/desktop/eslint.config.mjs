@@ -24,6 +24,7 @@ export default defineConfig([
   js.configs.recommended,
   ...tseslint.configs.recommended,
   globalIgnores([
+    '.cache/**',
     'dist/**',
     'src-tauri/resources/default-mods/**/dist/**',
     'src-tauri/target/**',

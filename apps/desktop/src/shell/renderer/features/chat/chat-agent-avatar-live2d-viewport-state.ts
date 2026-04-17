@@ -7,6 +7,7 @@ import type {
 import {
   listDesktopAgentAvatarResources,
   readDesktopAgentAvatarResourceAsset,
+  readDesktopAgentAvatarResourceRelativeAsset,
 } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-store';
 import { convertTauriFileSrc, hasTauriRuntime } from '@runtime/tauri-api';
 import { parseDesktopAgentAvatarAssetRef } from './chat-agent-avatar-vrm-viewport-state';
@@ -25,6 +26,7 @@ type CubismModel3Json = {
     Moc?: string;
     Textures?: string[];
     Physics?: string;
+    Pose?: string;
     DisplayInfo?: string;
     Expressions?: Array<{
       Name?: string;
@@ -34,11 +36,16 @@ type CubismModel3Json = {
   };
 };
 
+const LIVE2D_MOC3_MAGIC = 'MOC3';
+
 export type ChatAgentAvatarLive2dModelSource = {
   resourceId: string | null;
   fileUrl: string | null;
   modelUrl: string;
+  runtimeSource: string | Record<string, unknown>;
+  runtimeAssetPayloads?: Record<string, DesktopAgentAvatarResourceAssetPayload> | null;
   assetLabel: string;
+  mocVersion: number | null;
   motionGroups: string[];
   idleMotionGroup: string | null;
   speechMotionGroup: string | null;
@@ -60,11 +67,16 @@ export type ChatAgentAvatarLive2dViewportState = {
 type ChatAgentAvatarLive2dSourceDependencies = {
   listResources: () => Promise<DesktopAgentAvatarResourceRecord[]>;
   readAsset: (resourceId: string) => Promise<DesktopAgentAvatarResourceAssetPayload>;
+  readRelativeAsset: (input: {
+    resourceId: string;
+    relativePath: string;
+  }) => Promise<DesktopAgentAvatarResourceAssetPayload>;
 };
 
 const DEFAULT_SOURCE_DEPENDENCIES: ChatAgentAvatarLive2dSourceDependencies = {
   listResources: listDesktopAgentAvatarResources,
   readAsset: readDesktopAgentAvatarResourceAsset,
+  readRelativeAsset: readDesktopAgentAvatarResourceRelativeAsset,
 };
 
 function phaseLabel(
@@ -127,6 +139,19 @@ function decodeDesktopAgentAvatarAssetText(base64: string): string {
   throw new Error('Live2D model payload cannot be decoded');
 }
 
+function decodeDesktopAgentAvatarAssetBytes(base64: string): Uint8Array {
+  const globalDecoder = globalThis as typeof globalThis & GlobalBase64Decoder;
+  if (typeof globalDecoder.atob === 'function') {
+    const binary = globalDecoder.atob(base64);
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  }
+  if (globalDecoder.Buffer) {
+    const binary = globalDecoder.Buffer.from(base64, 'base64').toString('binary');
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  }
+  throw new Error('Live2D asset payload cannot be decoded');
+}
+
 export function parseChatAgentAvatarLive2dModelSettings(
   asset: DesktopAgentAvatarResourceAssetPayload,
 ): { motionGroups: string[]; parsed: CubismModel3Json } {
@@ -139,20 +164,36 @@ export function parseChatAgentAvatarLive2dModelSettings(
   };
 }
 
+export function parseChatAgentAvatarLive2dMocVersion(
+  asset: DesktopAgentAvatarResourceAssetPayload,
+): number | null {
+  const bytes = decodeDesktopAgentAvatarAssetBytes(asset.base64);
+  if (bytes.byteLength < 8) {
+    return null;
+  }
+  const magic = new TextDecoder().decode(bytes.subarray(0, 4));
+  if (magic !== LIVE2D_MOC3_MAGIC) {
+    return null;
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return view.getUint32(4, true);
+}
+
 function resolveAbsoluteLive2dFileUrl(baseFileUrl: string, relativePath: string): string {
   const resolved = new URL(relativePath, baseFileUrl);
-  return resolveChatAgentAvatarLive2dAssetUrl(resolved.toString()) || resolved.toString();
+  return resolved.toString();
 }
 
 function rewriteLive2dModelSettingsForDesktopAsset(input: {
   parsed: CubismModel3Json;
   baseFileUrl: string;
+  resolveAssetUrl?: (url: string) => string;
 }): { jsonText: string; resolvedAssetUrls: string[] } {
   const next: CubismModel3Json = JSON.parse(JSON.stringify(input.parsed)) as CubismModel3Json;
   const resolvedAssetUrls = new Set<string>();
   const remember = (value: string) => {
     resolvedAssetUrls.add(value);
-    return value;
+    return input.resolveAssetUrl ? input.resolveAssetUrl(value) : value;
   };
   const fileReferences = next.FileReferences;
   if (fileReferences?.Moc) {
@@ -167,6 +208,9 @@ function rewriteLive2dModelSettingsForDesktopAsset(input: {
   }
   if (fileReferences?.Physics) {
     fileReferences.Physics = remember(resolveAbsoluteLive2dFileUrl(input.baseFileUrl, fileReferences.Physics));
+  }
+  if (fileReferences?.Pose) {
+    fileReferences.Pose = remember(resolveAbsoluteLive2dFileUrl(input.baseFileUrl, fileReferences.Pose));
   }
   if (fileReferences?.DisplayInfo) {
     fileReferences.DisplayInfo = remember(resolveAbsoluteLive2dFileUrl(input.baseFileUrl, fileReferences.DisplayInfo));
@@ -204,6 +248,24 @@ function rewriteLive2dModelSettingsForDesktopAsset(input: {
     jsonText: JSON.stringify(next),
     resolvedAssetUrls: [...resolvedAssetUrls],
   };
+}
+
+function createLive2dRuntimeAssetUrl(input: {
+  resourceId: string;
+  relativePath: string;
+}): string {
+  return `live2d-memory://${encodeURIComponent(input.resourceId)}/${encodeURIComponent(input.relativePath)}`;
+}
+
+function resolveLive2dResourceRelativePath(baseFileUrl: string, assetFileUrl: string): string {
+  const baseDir = new URL('./', baseFileUrl);
+  const asset = new URL(assetFileUrl);
+  const basePath = decodeURIComponent(baseDir.pathname);
+  const assetPath = decodeURIComponent(asset.pathname);
+  if (!assetPath.startsWith(basePath)) {
+    throw new Error(`Live2D dependency escaped imported resource root: ${assetFileUrl}`);
+  }
+  return assetPath.slice(basePath.length);
 }
 
 export function resolvePreferredLive2dIdleMotionGroup(groups: string[]): string | null {
@@ -280,7 +342,10 @@ export async function loadChatAgentAvatarLive2dModelSource(
       resourceId: null,
       fileUrl: null,
       modelUrl,
+      runtimeSource: modelUrl,
+      runtimeAssetPayloads: null,
       assetLabel: formatAvatarVrmAssetLabel(assetRef) || 'avatar.model3.json',
+      mocVersion: null,
       motionGroups: [],
       idleMotionGroup: null,
       speechMotionGroup: null,
@@ -302,23 +367,61 @@ export async function loadChatAgentAvatarLive2dModelSource(
     throw new Error(`Live2D resource ${localAsset.resourceId} is missing a concrete model URL`);
   }
   const { motionGroups, parsed } = parseChatAgentAvatarLive2dModelSettings(modelAsset);
-  const rewrittenSettings = rewriteLive2dModelSettingsForDesktopAsset({
+  const mocRelativePath = parsed.FileReferences?.Moc;
+  let mocVersion: number | null = null;
+  if (typeof mocRelativePath === 'string' && mocRelativePath.trim()) {
+    const mocAsset = await dependencies.readRelativeAsset({
+      resourceId: resource.resourceId,
+      relativePath: mocRelativePath,
+    });
+    mocVersion = parseChatAgentAvatarLive2dMocVersion(mocAsset);
+  }
+  const provisionalSettings = rewriteLive2dModelSettingsForDesktopAsset({
     parsed,
     baseFileUrl: resource.fileUrl,
   });
-  const objectUrl = URL.createObjectURL(new Blob([rewrittenSettings.jsonText], {
-    type: modelAsset.mimeType || 'application/json',
-  }));
+  const assetRuntimeEntries = await Promise.all(
+    provisionalSettings.resolvedAssetUrls.map(async (assetUrl) => {
+      const relativePath = resolveLive2dResourceRelativePath(resource.fileUrl, assetUrl);
+      const assetPayload = await dependencies.readRelativeAsset({
+        resourceId: resource.resourceId,
+        relativePath,
+      });
+      return [assetUrl, {
+        runtimeUrl: createLive2dRuntimeAssetUrl({
+          resourceId: resource.resourceId,
+          relativePath,
+        }),
+        payload: assetPayload,
+      }] as const;
+    }),
+  );
+  const assetRuntimeUrlMap = new Map<string, string>(
+    assetRuntimeEntries.map(([assetUrl, entry]) => [assetUrl, entry.runtimeUrl]),
+  );
+  const runtimeAssetPayloads = Object.fromEntries(
+    assetRuntimeEntries.map(([, entry]) => [entry.runtimeUrl, entry.payload]),
+  );
+  const rewrittenSettings = rewriteLive2dModelSettingsForDesktopAsset({
+    parsed,
+    baseFileUrl: resource.fileUrl,
+    resolveAssetUrl: (assetUrl) => assetRuntimeUrlMap.get(assetUrl) || assetUrl,
+  });
+  const runtimeSettings = JSON.parse(rewrittenSettings.jsonText) as Record<string, unknown>;
+  runtimeSettings.url = modelUrl;
   return {
     resourceId: resource.resourceId,
     fileUrl: resource.fileUrl,
-    modelUrl: objectUrl,
+    modelUrl,
+    runtimeSource: runtimeSettings,
+    runtimeAssetPayloads,
     assetLabel: resource.displayName || resource.sourceFilename || 'avatar.model3.json',
+    mocVersion,
     motionGroups,
     idleMotionGroup: resolvePreferredLive2dIdleMotionGroup(motionGroups),
     speechMotionGroup: resolvePreferredLive2dSpeechMotionGroup(motionGroups),
     resolvedAssetUrls: rewrittenSettings.resolvedAssetUrls,
-    cleanup: () => URL.revokeObjectURL(objectUrl),
+    cleanup: null,
   };
 }
 

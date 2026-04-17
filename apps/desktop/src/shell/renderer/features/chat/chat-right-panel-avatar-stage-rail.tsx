@@ -37,6 +37,76 @@ export type ChatRightPanelAvatarStageRailProps = {
   settingsContent?: ReactNode;
 };
 
+export type ChatAgentAvatarLive2dDiagnosticPanelModel = {
+  kind: 'recovery' | 'error';
+  message: string;
+  toneClassName: string;
+  detailClassName: string;
+  details: string[];
+};
+
+export function resolveChatAgentAvatarLive2dDiagnosticPanelModel(input: {
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  error: string | null;
+  diagnostic: ChatAgentAvatarLive2dDiagnostic | null;
+}): ChatAgentAvatarLive2dDiagnosticPanelModel | null {
+  const { diagnostic } = input;
+  if (input.status === 'error' && input.error) {
+    return {
+      kind: 'error',
+      message: input.error,
+      toneClassName: 'border-amber-200/80 bg-amber-50/90 text-amber-900',
+      detailClassName: 'border-amber-200/80 bg-white/70 text-slate-700',
+      details: [
+        diagnostic ? `backend=${diagnostic.backendKind} status=${diagnostic.status} stage=${diagnostic.stage}` : null,
+        diagnostic ? `resourceId=${diagnostic.resourceId || 'none'}` : null,
+        diagnostic ? `mocVersion=${diagnostic.mocVersion ?? 'unknown'}` : null,
+        diagnostic ? `cubismCore=${diagnostic.cubismCoreAvailable ? 'available' : 'missing'}` : null,
+        diagnostic ? `assetRef=${diagnostic.assetRef}` : null,
+        diagnostic?.idleMotionGroup ? `idleMotionGroup=${diagnostic.idleMotionGroup}` : null,
+        diagnostic?.speechMotionGroup ? `speechMotionGroup=${diagnostic.speechMotionGroup}` : null,
+        diagnostic && diagnostic.motionGroups.length > 0
+          ? `motionGroups=${diagnostic.motionGroups.join(',')}`
+          : null,
+        diagnostic?.recoveryReason ? `recoveryReason=${diagnostic.recoveryReason}` : null,
+        diagnostic && diagnostic.recoveryAttemptCount > 0
+          ? `recoveryAttemptCount=${diagnostic.recoveryAttemptCount}`
+          : null,
+        diagnostic?.fileUrl ? `fileUrl=${diagnostic.fileUrl}` : null,
+        diagnostic?.modelUrl ? `modelUrl=${diagnostic.modelUrl}` : null,
+        diagnostic?.error ? `error=${diagnostic.error}` : null,
+        diagnostic?.errorUrl ? `errorUrl=${diagnostic.errorUrl}` : null,
+        diagnostic?.errorStatus !== null && diagnostic?.errorStatus !== undefined
+          ? `errorStatus=${diagnostic.errorStatus}`
+          : null,
+        ...(diagnostic?.assetProbeFailures ?? []).map((failure) => `probe=${failure}`),
+      ].filter((value): value is string => Boolean(value)),
+    };
+  }
+
+  if (input.status === 'loading' && diagnostic && diagnostic.recoveryAttemptCount > 0) {
+    return {
+      kind: 'recovery',
+      message: 'Recovering Live2D viewport',
+      toneClassName: 'border-sky-200/80 bg-sky-50/90 text-sky-950',
+      detailClassName: 'border-sky-200/80 bg-white/70 text-slate-700',
+      details: [
+        `backend=${diagnostic.backendKind} status=${diagnostic.status} stage=${diagnostic.stage}`,
+        `resourceId=${diagnostic.resourceId || 'none'}`,
+        `mocVersion=${diagnostic.mocVersion ?? 'unknown'}`,
+        diagnostic.recoveryReason ? `recoveryReason=${diagnostic.recoveryReason}` : null,
+        `recoveryAttemptCount=${diagnostic.recoveryAttemptCount}`,
+        diagnostic.idleMotionGroup ? `idleMotionGroup=${diagnostic.idleMotionGroup}` : null,
+        diagnostic.speechMotionGroup ? `speechMotionGroup=${diagnostic.speechMotionGroup}` : null,
+        diagnostic.motionGroups.length > 0 ? `motionGroups=${diagnostic.motionGroups.join(',')}` : null,
+        ...diagnostic.assetProbeFailures.map((failure) => `probe=${failure}`),
+      ].filter((value): value is string => Boolean(value)),
+    };
+  }
+
+  return null;
+}
+
 export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRailProps) {
   const { t } = useTranslation();
   const [pointerInteraction, setPointerInteraction] = useState(
@@ -78,6 +148,11 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
     : railModel.snapshot;
   const phase = railModel.snapshot.interaction.phase;
   const dockBusy = phase === 'thinking' || phase === 'speaking' || phase === 'listening';
+  const live2dDiagnosticPanel = resolveChatAgentAvatarLive2dDiagnosticPanelModel({
+    status: live2dLoadStatus,
+    error: live2dLoadError,
+    diagnostic: live2dDiagnostic,
+  });
 
   useEffect(() => {
     setPointerInteraction(createIdleChatAgentAvatarPointerInteractionState());
@@ -167,29 +242,37 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
         {props.selectedTarget.handle ? (
           <p className="mt-1 text-xs font-medium text-slate-500">{props.selectedTarget.handle}</p>
         ) : null}
-        {live2dLoadStatus === 'error' && live2dLoadError ? (
+        {live2dDiagnosticPanel ? (
           <div
-            className="mt-2 space-y-2 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-left text-[11px] leading-5 text-amber-900"
-            data-live2d-fallback-reason="true"
+            className={cn(
+              'mt-2 space-y-2 rounded-2xl border px-3 py-2.5 text-left text-[11px] leading-5',
+              live2dDiagnosticPanel.toneClassName,
+            )}
+            data-live2d-fallback-reason={live2dDiagnosticPanel.kind === 'error' ? 'true' : undefined}
+            data-live2d-recovery-reason={live2dDiagnosticPanel.kind === 'recovery' ? 'true' : undefined}
           >
-            <p className="font-semibold text-amber-800">{live2dLoadError}</p>
-            {live2dDiagnostic ? (
-              <div className="space-y-1 rounded-xl border border-amber-200/80 bg-white/70 px-2.5 py-2 font-mono text-[10px] leading-4 text-slate-700">
-                <p>{`backend=${live2dDiagnostic.backendKind} status=${live2dDiagnostic.status} stage=${live2dDiagnostic.stage}`}</p>
-                <p>{`resourceId=${live2dDiagnostic.resourceId || 'none'}`}</p>
-                <p>{`cubismCore=${live2dDiagnostic.cubismCoreAvailable ? 'available' : 'missing'}`}</p>
-                <p className="break-all">{`assetRef=${live2dDiagnostic.assetRef}`}</p>
-                {live2dDiagnostic.fileUrl ? (
-                  <p className="break-all">{`fileUrl=${live2dDiagnostic.fileUrl}`}</p>
-                ) : null}
-                {live2dDiagnostic.modelUrl ? (
-                  <p className="break-all">{`modelUrl=${live2dDiagnostic.modelUrl}`}</p>
-                ) : null}
-                {live2dDiagnostic.assetProbeFailures.map((failure) => (
-                  <p key={failure} className="break-all text-rose-700">{`probe=${failure}`}</p>
-                ))}
-              </div>
-            ) : null}
+            <p className={cn(
+              'font-semibold',
+              live2dDiagnosticPanel.kind === 'error' ? 'text-amber-800' : 'text-sky-800',
+            )}>{live2dDiagnosticPanel.message}</p>
+            <div className={cn(
+              'space-y-1 rounded-xl border px-2.5 py-2 font-mono text-[10px] leading-4',
+              live2dDiagnosticPanel.detailClassName,
+            )}>
+              {live2dDiagnosticPanel.details.map((detail) => (
+                <p
+                  key={detail}
+                  className={cn(
+                    'break-all',
+                    detail.startsWith('error=') || detail.startsWith('errorUrl=') || detail.startsWith('errorStatus=')
+                      ? 'text-rose-700'
+                      : null,
+                  )}
+                >
+                  {detail}
+                </p>
+              ))}
+            </div>
           </div>
         ) : null}
       </ChatRightColumnCard>

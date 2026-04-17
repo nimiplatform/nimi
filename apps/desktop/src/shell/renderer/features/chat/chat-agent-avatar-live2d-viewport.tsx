@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { AvatarVrmViewportComponentProps } from '@nimiplatform/nimi-kit/features/avatar/vrm';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
+import { createOfficialLive2dCubismModel } from './chat-agent-avatar-live2d-cubism-runtime';
 import {
   loadChatAgentAvatarLive2dModelSource,
   resolveChatAgentAvatarLive2dViewportState,
@@ -22,42 +23,9 @@ type ChatAgentAvatarLive2dViewportProps = AvatarVrmViewportComponentProps & {
   onDiagnosticChange?: (diagnostic: ChatAgentAvatarLive2dDiagnostic) => void;
 };
 
-type Live2dCanvasLayout = {
-  x: number;
-  y: number;
-  scale: number;
-};
-
-type PixiModule = typeof import('pixi.js');
-type Live2dRuntimeModule = typeof import('pixi-live2d-display/cubism4');
-
-type Live2dRuntimeModel = {
-  anchor: { set: (x: number, y?: number) => void };
-  scale: { set: (value: number) => void };
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-  rotation: number;
-  motion: (group: string, index?: number, priority?: number) => Promise<boolean>;
-  destroy: () => void;
-};
-
-type PixiApplicationInstance = {
-  view: HTMLCanvasElement;
-  stage: {
-    addChild: (child: Live2dRuntimeModel) => void;
-  };
-  ticker: {
-    add: (callback: () => void) => void;
-    remove: (callback: () => void) => void;
-  };
-  destroy: (removeView?: boolean, stageOptions?: unknown) => void;
-};
-
-type Live2dGlobal = typeof globalThis & {
-  PIXI?: PixiModule;
-  Live2DCubismCore?: unknown;
+type Live2dRuntimeError = Error & {
+  url?: string;
+  status?: number;
 };
 
 export type ChatAgentAvatarLive2dDiagnostic = {
@@ -66,41 +34,25 @@ export type ChatAgentAvatarLive2dDiagnostic = {
   status: Live2dViewportStatus;
   assetRef: string;
   assetLabel: string | null;
+  mocVersion: number | null;
   resourceId: string | null;
   fileUrl: string | null;
   modelUrl: string | null;
   error: string | null;
+  errorUrl: string | null;
+  errorStatus: number | null;
+  runtimeUrls: string[];
   cubismCoreAvailable: boolean;
   assetProbeFailures: string[];
+  motionGroups: string[];
+  idleMotionGroup: string | null;
+  speechMotionGroup: string | null;
+  recoveryAttemptCount: number;
+  recoveryReason: string | null;
 };
 
-function live2dGlobal(): Live2dGlobal {
-  return globalThis as Live2dGlobal;
-}
-
 function hasLive2dCubismCore(): boolean {
-  return Boolean(live2dGlobal().Live2DCubismCore);
-}
-
-function fitLive2dModelToHost(
-  model: Live2dRuntimeModel,
-  host: HTMLDivElement,
-): Live2dCanvasLayout {
-  const width = Math.max(host.clientWidth, 1);
-  const height = Math.max(host.clientHeight, 1);
-  model.anchor.set(0.5, 0);
-  model.scale.set(1);
-  const naturalWidth = Math.max(model.width, 1);
-  const naturalHeight = Math.max(model.height, 1);
-  const scale = Math.min((width * 0.78) / naturalWidth, (height * 0.84) / naturalHeight);
-  model.scale.set(scale);
-  model.x = width * 0.5;
-  model.y = height * 0.08;
-  return {
-    x: model.x,
-    y: model.y,
-    scale,
-  };
+  return Boolean((globalThis as typeof globalThis & { Live2DCubismCore?: unknown }).Live2DCubismCore);
 }
 
 function describeLive2dLoadError(error: unknown): string {
@@ -116,20 +68,42 @@ function createLive2dDiagnostic(input: {
   status: Live2dViewportStatus;
   source?: ChatAgentAvatarLive2dModelSource | null;
   error?: string | null;
+  cause?: unknown;
+  runtimeUrls?: string[];
+  assetProbeFailures?: string[];
+  recoveryAttemptCount?: number;
+  recoveryReason?: string | null;
 }): ChatAgentAvatarLive2dDiagnostic {
+  const runtimeError = input.cause as Live2dRuntimeError | undefined;
   return {
     backendKind: 'live2d',
     stage: input.stage,
     status: input.status,
     assetRef: input.assetRef,
     assetLabel: input.source?.assetLabel || null,
+    mocVersion: input.source?.mocVersion ?? null,
     resourceId: input.source?.resourceId || null,
     fileUrl: input.source?.fileUrl || null,
     modelUrl: input.source?.modelUrl || null,
     error: input.error || null,
+    errorUrl: typeof runtimeError?.url === 'string' ? runtimeError.url : null,
+    errorStatus: typeof runtimeError?.status === 'number' ? runtimeError.status : null,
+    runtimeUrls: input.runtimeUrls ?? [],
     cubismCoreAvailable: hasLive2dCubismCore(),
-    assetProbeFailures: [],
+    assetProbeFailures: input.assetProbeFailures ?? [],
+    motionGroups: input.source?.motionGroups ?? [],
+    idleMotionGroup: input.source?.idleMotionGroup ?? null,
+    speechMotionGroup: input.source?.speechMotionGroup ?? null,
+    recoveryAttemptCount: input.recoveryAttemptCount ?? 0,
+    recoveryReason: input.recoveryReason ?? null,
   };
+}
+
+function resolveLive2dRuntimeUrls(source: ChatAgentAvatarLive2dModelSource | null): string[] {
+  if (!source) {
+    return [];
+  }
+  return [...new Set([source.modelUrl, ...source.resolvedAssetUrls].filter(Boolean))];
 }
 
 async function probeLive2dAssetUrls(urls: readonly string[]): Promise<string[]> {
@@ -139,7 +113,8 @@ async function probeLive2dAssetUrls(urls: readonly string[]): Promise<string[]> 
       if (!response.ok) {
         return `${url} -> HTTP ${response.status}`;
       }
-      return null;
+      const bytes = (await response.arrayBuffer()).byteLength;
+      return `${url} -> OK (${bytes} bytes)`;
     } catch (error) {
       return `${url} -> ${describeLive2dLoadError(error)}`;
     }
@@ -147,17 +122,37 @@ async function probeLive2dAssetUrls(urls: readonly string[]): Promise<string[]> 
   return failures.filter((value): value is string => Boolean(value));
 }
 
-async function loadLive2dRuntime(): Promise<{
-  pixiModule: PixiModule;
-  live2dModule: Live2dRuntimeModule;
-}> {
-  const pixiModule = await import('pixi.js');
-  live2dGlobal().PIXI = pixiModule;
-  const live2dModule = await import('pixi-live2d-display/cubism4');
-  live2dModule.Live2DModel.registerTicker(pixiModule.Ticker);
+function resizeCanvasToHost(canvas: HTMLCanvasElement, host: HTMLDivElement): {
+  width: number;
+  height: number;
+  changed: boolean;
+  renderable: boolean;
+} {
+  const minimumRenderableCssPixels = 24;
+  if (host.clientWidth < minimumRenderableCssPixels || host.clientHeight < minimumRenderableCssPixels) {
+    return {
+      width: Math.max(canvas.width, 1),
+      height: Math.max(canvas.height, 1),
+      changed: false,
+      renderable: false,
+    };
+  }
+
+  const devicePixelRatio = Math.min(globalThis.devicePixelRatio || 1, 2);
+  const width = Math.max(1, Math.round(Math.max(host.clientWidth, 1) * devicePixelRatio));
+  const height = Math.max(1, Math.round(Math.max(host.clientHeight, 1) * devicePixelRatio));
+  const changed = canvas.width !== width || canvas.height !== height;
+
+  if (changed) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+
   return {
-    pixiModule,
-    live2dModule,
+    width,
+    height,
+    changed,
+    renderable: true,
   };
 }
 
@@ -212,11 +207,10 @@ export default function ChatAgentAvatarLive2dViewport({
   onDiagnosticChange,
 }: ChatAgentAvatarLive2dViewportProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
-  const appRef = useRef<PixiApplicationInstance | null>(null);
-  const modelRef = useRef<Live2dRuntimeModel | null>(null);
-  const layoutRef = useRef<Live2dCanvasLayout | null>(null);
+  const modelRef = useRef<Awaited<ReturnType<typeof createOfficialLive2dCubismModel>> | null>(null);
   const animationStateRef = useRef(resolveChatAgentAvatarLive2dViewportState(input));
-  const motionPhaseRef = useRef<string | null>(null);
+  const contextRecoveryRetryBudgetRef = useRef(0);
+  const [runtimeEpoch, setRuntimeEpoch] = useState(0);
   const [loadState, setLoadState] = useState<ChatAgentAvatarLive2dViewportLoadState>({
     status: 'loading',
     source: null,
@@ -253,25 +247,66 @@ export default function ChatAgentAvatarLive2dViewport({
     if (!host) {
       return;
     }
+
     if (!hasLive2dCubismCore()) {
+      const error = 'Live2D Cubism Core is not available in the desktop shell.';
       setDiagnostic(createLive2dDiagnostic({
         assetRef: input.assetRef,
         stage: 'core-check',
         status: 'error',
-        error: 'Live2D Cubism Core is not available in the desktop shell.',
+        error,
       }));
       setLoadState({
         status: 'error',
         source: null,
-        error: 'Live2D Cubism Core is not available in the desktop shell.',
+        error,
       });
       return;
     }
 
     let cancelled = false;
     let resizeObserver: ResizeObserver | null = null;
-    let tickerCallback: (() => void) | null = null;
+    let frameHandle = 0;
     let sourceForCleanup: ChatAgentAvatarLive2dModelSource | null = null;
+    let canvas: HTMLCanvasElement | null = null;
+    let currentSource: ChatAgentAvatarLive2dModelSource | null = null;
+    let currentRuntimeUrls: string[] = [];
+    let currentFailureStage: ChatAgentAvatarLive2dDiagnostic['stage'] = 'runtime-load';
+    let handleContextLost: ((event: Event) => void) | null = null;
+    let handleContextRestored: ((event: Event) => void) | null = null;
+    let resizeRebuildTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
+    let contextRestoreTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
+    let contextRestartTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
+    let resizeRebuildRequestId = 0;
+    let recoveryAttemptCount = 0;
+    let recoveryReason: string | null = null;
+    let beginRecovery: ((reason: string) => void) | null = null;
+
+    const consumeContextRecoveryRetry = (reason: string): boolean => {
+      if (contextRecoveryRetryBudgetRef.current <= 0 || !beginRecovery) {
+        return false;
+      }
+      contextRecoveryRetryBudgetRef.current -= 1;
+      beginRecovery(reason);
+      resizeRebuildRequestId += 1;
+      if (frameHandle) {
+        globalThis.cancelAnimationFrame(frameHandle);
+        frameHandle = 0;
+      }
+      if (resizeRebuildTimer) {
+        globalThis.clearTimeout(resizeRebuildTimer);
+        resizeRebuildTimer = null;
+      }
+      if (contextRestartTimer) {
+        globalThis.clearTimeout(contextRestartTimer);
+      }
+      contextRestartTimer = globalThis.setTimeout(() => {
+        contextRestartTimer = null;
+        setRuntimeEpoch((value) => value + 1);
+      }, 120);
+      return true;
+    };
+
     setLoadState({
       status: 'loading',
       source: null,
@@ -282,26 +317,136 @@ export default function ChatAgentAvatarLive2dViewport({
       stage: 'runtime-load',
       status: 'loading',
     }));
-    motionPhaseRef.current = null;
 
     void (async () => {
-      let failureStage: ChatAgentAvatarLive2dDiagnostic['stage'] = 'runtime-load';
       let source: ChatAgentAvatarLive2dModelSource | null = null;
+      let runtimeUrls: string[] = [];
+      let failClosed: ((inputFailure: {
+        error: string;
+        cause?: unknown;
+        stage?: ChatAgentAvatarLive2dDiagnostic['stage'];
+        source?: ChatAgentAvatarLive2dModelSource | null;
+        runtimeUrls?: string[];
+        assetProbeFailures?: string[];
+      }) => void) | null = null;
       try {
-        const { pixiModule, live2dModule } = await loadLive2dRuntime();
-        if (cancelled) {
-          return;
-        }
-        const app = new pixiModule.Application({
+        canvas = document.createElement('canvas');
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.display = 'block';
+        canvas.style.pointerEvents = 'none';
+
+        const gl = (canvas.getContext('webgl2', {
+          alpha: true,
           antialias: true,
-          autoDensity: true,
-          backgroundAlpha: 0,
-          resizeTo: host,
-          sharedTicker: true,
-        }) as PixiApplicationInstance;
-        appRef.current = app;
-        host.replaceChildren(app.view);
-        failureStage = 'source-resolve';
+          premultipliedAlpha: true,
+          preserveDrawingBuffer: true,
+        }) || canvas.getContext('webgl', {
+          alpha: true,
+          antialias: true,
+          premultipliedAlpha: true,
+          preserveDrawingBuffer: true,
+        })) as WebGLRenderingContext | WebGL2RenderingContext | null;
+        if (!gl) {
+          throw new Error('Desktop Live2D viewport could not acquire a WebGL context.');
+        }
+
+        host.replaceChildren(canvas);
+
+        failClosed = (inputFailure: {
+          error: string;
+          cause?: unknown;
+          stage?: ChatAgentAvatarLive2dDiagnostic['stage'];
+          source?: ChatAgentAvatarLive2dModelSource | null;
+          runtimeUrls?: string[];
+          assetProbeFailures?: string[];
+        }) => {
+          if (cancelled) {
+            return;
+          }
+          const failedSource = inputFailure.source ?? source ?? currentSource;
+          const failureRuntimeUrls = inputFailure.runtimeUrls ?? runtimeUrls ?? currentRuntimeUrls;
+          const failureStage = inputFailure.stage ?? currentFailureStage;
+          const assetProbeFailures = inputFailure.assetProbeFailures ?? [];
+
+          if (frameHandle) {
+            globalThis.cancelAnimationFrame(frameHandle);
+            frameHandle = 0;
+          }
+          if (resizeRebuildTimer) {
+            globalThis.clearTimeout(resizeRebuildTimer);
+            resizeRebuildTimer = null;
+          }
+          if (contextRestoreTimer) {
+            globalThis.clearTimeout(contextRestoreTimer);
+            contextRestoreTimer = null;
+          }
+          if (contextRestartTimer) {
+            globalThis.clearTimeout(contextRestartTimer);
+            contextRestartTimer = null;
+          }
+          resizeObserver?.disconnect();
+          resizeObserver = null;
+          if (canvas && handleContextLost) {
+            canvas.removeEventListener('webglcontextlost', handleContextLost);
+          }
+          if (canvas && handleContextRestored) {
+            canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+          }
+          modelRef.current?.release();
+          modelRef.current = null;
+          sourceForCleanup?.cleanup?.();
+          sourceForCleanup = null;
+          currentSource = null;
+          currentRuntimeUrls = [];
+          if (hostRef.current) {
+            hostRef.current.replaceChildren();
+          }
+
+          setLoadState({
+            status: 'error',
+            source: null,
+            error: inputFailure.error,
+          });
+          setDiagnostic({
+            ...createLive2dDiagnostic({
+              assetRef: input.assetRef,
+              source: failedSource,
+              stage: failureStage,
+              status: 'error',
+              error: inputFailure.error,
+              cause: inputFailure.cause,
+              recoveryAttemptCount,
+              recoveryReason,
+            }),
+            runtimeUrls: failureRuntimeUrls,
+            assetProbeFailures,
+          });
+          logRendererEvent({
+            level: 'error',
+            area: 'chat-live2d',
+            message: 'action:live2d-viewport-load-failed',
+            details: {
+              assetRef: input.assetRef,
+              stage: failureStage,
+              resourceId: failedSource?.resourceId || null,
+              fileUrl: failedSource?.fileUrl || null,
+              modelUrl: failedSource?.modelUrl || null,
+              mocVersion: failedSource?.mocVersion ?? null,
+              error: inputFailure.error,
+              errorUrl: typeof (inputFailure.cause as Live2dRuntimeError | null | undefined)?.url === 'string'
+                ? (inputFailure.cause as Live2dRuntimeError).url || null
+                : null,
+              errorStatus: typeof (inputFailure.cause as Live2dRuntimeError | null | undefined)?.status === 'number'
+                ? (inputFailure.cause as Live2dRuntimeError).status || null
+                : null,
+              runtimeUrls: failureRuntimeUrls,
+              assetProbeFailures,
+            },
+          });
+        };
+
+        currentFailureStage = 'source-resolve';
         setDiagnostic(createLive2dDiagnostic({
           assetRef: input.assetRef,
           stage: 'source-resolve',
@@ -309,65 +454,304 @@ export default function ChatAgentAvatarLive2dViewport({
         }));
         source = await loadChatAgentAvatarLive2dModelSource(input.assetRef);
         sourceForCleanup = source;
+        currentSource = source;
+        runtimeUrls = resolveLive2dRuntimeUrls(source);
+        currentRuntimeUrls = runtimeUrls;
         if (cancelled) {
-          source?.cleanup?.();
-          app.destroy(true);
+          source.cleanup?.();
           return;
         }
-        failureStage = 'model-load';
+
+        currentFailureStage = 'model-load';
         setDiagnostic(createLive2dDiagnostic({
           assetRef: input.assetRef,
           source,
           stage: 'model-load',
           status: 'loading',
         }));
-        const model = await live2dModule.Live2DModel.from(source.modelUrl, {
-          autoInteract: false,
-        }) as Live2dRuntimeModel;
-        if (cancelled) {
-          source?.cleanup?.();
-          model.destroy();
-          app.destroy(true);
+
+        const initialSize = resizeCanvasToHost(canvas, host);
+        let lastRenderableSize = {
+          width: initialSize.width,
+          height: initialSize.height,
+        };
+
+        const rebuildModel = async (inputRebuild: {
+          width: number;
+          height: number;
+          updateLoadState: boolean;
+          logReason: 'initial' | 'resize';
+        }): Promise<boolean> => {
+          const rebuildSource = currentSource;
+          if (!rebuildSource) {
+            return false;
+          }
+          const rebuildId = ++resizeRebuildRequestId;
+          const nextModel = await createOfficialLive2dCubismModel({
+            gl,
+            source: rebuildSource,
+            width: inputRebuild.width,
+            height: inputRebuild.height,
+          });
+          if (cancelled || rebuildId !== resizeRebuildRequestId) {
+            nextModel.release();
+            return false;
+          }
+          const previousModel = modelRef.current;
+          modelRef.current = nextModel;
+          if (previousModel && previousModel !== nextModel) {
+            previousModel.release();
+          }
+          if (inputRebuild.updateLoadState) {
+            recoveryReason = null;
+            setLoadState({
+              status: 'ready',
+              source: rebuildSource,
+              error: null,
+            });
+            setDiagnostic({
+              ...createLive2dDiagnostic({
+                assetRef: input.assetRef,
+                source: rebuildSource,
+                stage: 'ready',
+                status: 'ready',
+                recoveryAttemptCount,
+              }),
+              runtimeUrls: currentRuntimeUrls,
+            });
+          }
+          logRendererEvent({
+            area: 'chat-live2d',
+            message: 'action:live2d-model-rebuilt',
+            details: {
+              assetRef: input.assetRef,
+              reason: inputRebuild.logReason,
+              width: inputRebuild.width,
+              height: inputRebuild.height,
+              resourceId: rebuildSource.resourceId || null,
+              mocVersion: rebuildSource.mocVersion ?? null,
+            },
+          });
+          return true;
+        };
+
+        beginRecovery = (reason: string) => {
+          if (!currentSource) {
+            return;
+          }
+          recoveryAttemptCount += 1;
+          recoveryReason = reason;
+          setLoadState({
+            status: 'loading',
+            source: currentSource,
+            error: null,
+          });
+          setDiagnostic(createLive2dDiagnostic({
+            assetRef: input.assetRef,
+            source: currentSource,
+            stage: 'ready',
+            status: 'loading',
+            runtimeUrls: currentRuntimeUrls,
+            assetProbeFailures: [reason],
+            recoveryAttemptCount,
+            recoveryReason,
+          }));
+        };
+
+        handleContextLost = (event: Event) => {
+          event.preventDefault();
+          resizeRebuildRequestId += 1;
+          if (frameHandle) {
+            globalThis.cancelAnimationFrame(frameHandle);
+            frameHandle = 0;
+          }
+          if (resizeRebuildTimer) {
+            globalThis.clearTimeout(resizeRebuildTimer);
+            resizeRebuildTimer = null;
+          }
+          modelRef.current?.release();
+          modelRef.current = null;
+          beginRecovery?.('webgl-context-lost');
+          if (contextRestoreTimer) {
+            globalThis.clearTimeout(contextRestoreTimer);
+          }
+          contextRestoreTimer = globalThis.setTimeout(() => {
+            contextRestoreTimer = null;
+            failClosed?.({
+              error: 'Live2D WebGL context was lost and did not recover. The desktop rail failed closed to fallback.',
+              stage: 'ready',
+              source: currentSource,
+              runtimeUrls: currentRuntimeUrls,
+            });
+          }, 1500);
+        };
+
+        canvas.addEventListener('webglcontextlost', handleContextLost, { passive: false });
+
+        const initialized = await rebuildModel({
+          width: initialSize.width,
+          height: initialSize.height,
+          updateLoadState: false,
+          logReason: 'initial',
+        });
+        if (!initialized) {
+          source.cleanup?.();
           return;
         }
-        modelRef.current = model;
-        app.stage.addChild(model);
-        layoutRef.current = fitLive2dModelToHost(model, host);
-        if (source.idleMotionGroup) {
-          motionPhaseRef.current = `idle:${source.idleMotionGroup}`;
-          void model.motion(
-            source.idleMotionGroup,
-            undefined,
-            live2dModule.MotionPriority.IDLE,
-          ).catch(() => undefined);
-        }
+
+        const scheduleResizeRebuild = (targetWidth: number, targetHeight: number) => {
+          if (!currentSource) {
+            return;
+          }
+          if (resizeRebuildTimer) {
+            globalThis.clearTimeout(resizeRebuildTimer);
+          }
+          resizeRebuildTimer = globalThis.setTimeout(() => {
+            resizeRebuildTimer = null;
+            void rebuildModel({
+              width: targetWidth,
+              height: targetHeight,
+              updateLoadState: false,
+              logReason: 'resize',
+            }).catch((error) => {
+              failClosed?.({
+                error: describeLive2dLoadError(error),
+                cause: error,
+                stage: 'ready',
+                source: currentSource,
+                runtimeUrls: currentRuntimeUrls,
+              });
+            });
+          }, 140);
+        };
+
+        const syncCanvasSize = () => {
+          if (!canvas || !host || !modelRef.current) {
+            return {
+              width: lastRenderableSize.width,
+              height: lastRenderableSize.height,
+              changed: false,
+              renderable: true,
+            };
+          }
+          const nextSize = resizeCanvasToHost(canvas, host);
+          if (!nextSize.renderable) {
+            return {
+              width: lastRenderableSize.width,
+              height: lastRenderableSize.height,
+              changed: false,
+              renderable: false,
+            };
+          }
+          lastRenderableSize = {
+            width: nextSize.width,
+            height: nextSize.height,
+          };
+          if (nextSize.changed) {
+            modelRef.current.resize(nextSize.width, nextSize.height);
+            scheduleResizeRebuild(nextSize.width, nextSize.height);
+          }
+          return nextSize;
+        };
+
         if (typeof ResizeObserver !== 'undefined') {
           resizeObserver = new ResizeObserver(() => {
-            if (!hostRef.current || !modelRef.current) {
-              return;
-            }
-            layoutRef.current = fitLive2dModelToHost(modelRef.current, hostRef.current);
+            syncCanvasSize();
           });
           resizeObserver.observe(host);
         }
-        tickerCallback = () => {
-          const live2dModel = modelRef.current;
-          const layout = layoutRef.current;
-          if (!live2dModel || !layout) {
+
+        let lastFrameTime = performance.now();
+        let successfulFrameCount = 0;
+        let renderFrame: ((now: number) => void) | null = null;
+        const startRenderLoop = () => {
+          if (!renderFrame || frameHandle || cancelled || !modelRef.current) {
             return;
           }
-          const state = animationStateRef.current;
-          const seconds = performance.now() / 1000;
-          const breathing = 1 + Math.sin(seconds * (0.8 + state.motionSpeed * 0.3)) * 0.012;
-          const speakingPulse = state.phase === 'speaking'
-            ? 1 + Math.sin(seconds * (4 + state.amplitude * 5)) * (0.018 + state.amplitude * 0.03)
-            : 1;
-          live2dModel.scale.set(layout.scale * breathing * speakingPulse);
-          live2dModel.x = layout.x;
-          live2dModel.y = layout.y + Math.sin(seconds * (0.65 + state.motionSpeed * 0.2)) * 6;
-          live2dModel.rotation = Math.sin(seconds * (0.35 + state.motionSpeed * 0.08)) * 0.015;
+          lastFrameTime = performance.now();
+          frameHandle = globalThis.requestAnimationFrame(renderFrame);
         };
-        app.ticker.add(tickerCallback);
+
+        renderFrame = (now: number) => {
+          if (cancelled || !modelRef.current) {
+            return;
+          }
+          const size = syncCanvasSize();
+          if (!size.renderable) {
+            const nextRenderFrame = renderFrame;
+            if (nextRenderFrame) {
+              frameHandle = globalThis.requestAnimationFrame(nextRenderFrame);
+            }
+            return;
+          }
+          const { width, height } = size;
+          const deltaTimeSeconds = Math.min((now - lastFrameTime) / 1000, 0.1);
+          lastFrameTime = now;
+          try {
+            modelRef.current.renderFrame({
+              width,
+              height,
+              deltaTimeSeconds,
+              seconds: now / 1000,
+              state: animationStateRef.current,
+            });
+            successfulFrameCount += 1;
+            if (successfulFrameCount >= 3 && contextRecoveryRetryBudgetRef.current > 0) {
+              contextRecoveryRetryBudgetRef.current = 0;
+            }
+          } catch (error) {
+            if (consumeContextRecoveryRetry('render-exception-after-context-restore')) {
+              return;
+            }
+            failClosed?.({
+              error: describeLive2dLoadError(error),
+              cause: error,
+              stage: 'ready',
+              source: currentSource,
+              runtimeUrls: currentRuntimeUrls,
+            });
+            return;
+          }
+          const nextRenderFrame = renderFrame;
+          if (nextRenderFrame) {
+            frameHandle = globalThis.requestAnimationFrame(nextRenderFrame);
+          }
+        };
+
+        handleContextRestored = () => {
+          if (cancelled) {
+            return;
+          }
+          if (contextRestoreTimer) {
+            globalThis.clearTimeout(contextRestoreTimer);
+            contextRestoreTimer = null;
+          }
+          if (contextRestartTimer) {
+            globalThis.clearTimeout(contextRestartTimer);
+            contextRestartTimer = null;
+          }
+          beginRecovery?.('webgl-context-restored');
+          contextRecoveryRetryBudgetRef.current = 1;
+          resizeRebuildRequestId += 1;
+          if (frameHandle) {
+            globalThis.cancelAnimationFrame(frameHandle);
+            frameHandle = 0;
+          }
+          if (resizeRebuildTimer) {
+            globalThis.clearTimeout(resizeRebuildTimer);
+            resizeRebuildTimer = null;
+          }
+          contextRestartTimer = globalThis.setTimeout(() => {
+            contextRestartTimer = null;
+            setRuntimeEpoch((value) => value + 1);
+          }, 80);
+        };
+        if (canvas && handleContextRestored) {
+          canvas.addEventListener('webglcontextrestored', handleContextRestored);
+        }
+
+        startRenderLoop();
+
         setLoadState({
           status: 'ready',
           source,
@@ -383,108 +767,51 @@ export default function ChatAgentAvatarLive2dViewport({
         if (cancelled) {
           return;
         }
-        const errorMessage = describeLive2dLoadError(error);
-        const assetProbeFailures = failureStage === 'model-load' && source?.resolvedAssetUrls.length
-          ? await probeLive2dAssetUrls(source.resolvedAssetUrls)
-          : [];
-        if (appRef.current) {
-          appRef.current.destroy(true);
-          appRef.current = null;
+        if (consumeContextRecoveryRetry('bootstrap-exception-after-context-restore')) {
+          return;
         }
-        source?.cleanup?.();
-        setLoadState({
-          status: 'error',
-          source: null,
+        const errorMessage = describeLive2dLoadError(error);
+        const assetProbeFailures = currentFailureStage === 'model-load' && runtimeUrls.length > 0
+          ? await probeLive2dAssetUrls(runtimeUrls)
+          : [];
+        failClosed?.({
           error: errorMessage,
-        });
-        setDiagnostic(createLive2dDiagnostic({
-          assetRef: input.assetRef,
+          cause: error,
+          stage: currentFailureStage,
           source,
-          stage: failureStage,
-          status: 'error',
-          error: errorMessage,
-        }));
-        setDiagnostic((current) => ({
-          ...current,
-          stage: failureStage,
-          status: 'error',
-          assetRef: input.assetRef,
-          assetLabel: source?.assetLabel || null,
-          resourceId: source?.resourceId || null,
-          fileUrl: source?.fileUrl || null,
-          modelUrl: source?.modelUrl || null,
-          error: errorMessage,
-          cubismCoreAvailable: hasLive2dCubismCore(),
+          runtimeUrls,
           assetProbeFailures,
-        }));
-        logRendererEvent({
-          level: 'error',
-          area: 'chat-live2d',
-          message: 'action:live2d-viewport-load-failed',
-          details: {
-            assetRef: input.assetRef,
-            stage: failureStage,
-            resourceId: source?.resourceId || null,
-            fileUrl: source?.fileUrl || null,
-            modelUrl: source?.modelUrl || null,
-            error: errorMessage,
-            assetProbeFailures,
-          },
         });
       }
     })();
 
     return () => {
       cancelled = true;
-      motionPhaseRef.current = null;
       resizeObserver?.disconnect();
-      if (tickerCallback && appRef.current) {
-        appRef.current.ticker.remove(tickerCallback);
+      if (frameHandle) {
+        globalThis.cancelAnimationFrame(frameHandle);
       }
-      if (modelRef.current) {
-        modelRef.current.destroy();
-        modelRef.current = null;
+      if (resizeRebuildTimer) {
+        globalThis.clearTimeout(resizeRebuildTimer);
       }
+      if (contextRestoreTimer) {
+        globalThis.clearTimeout(contextRestoreTimer);
+      }
+      if (contextRestartTimer) {
+        globalThis.clearTimeout(contextRestartTimer);
+      }
+      if (canvas && handleContextLost) {
+        canvas.removeEventListener('webglcontextlost', handleContextLost);
+      }
+      if (canvas && handleContextRestored) {
+        canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+      }
+      modelRef.current?.release();
+      modelRef.current = null;
       sourceForCleanup?.cleanup?.();
-      layoutRef.current = null;
-      if (appRef.current) {
-        appRef.current.destroy(true, {
-          children: true,
-          texture: true,
-          baseTexture: true,
-        });
-        appRef.current = null;
-      }
+      host.replaceChildren();
     };
-  }, [input.assetRef]);
-
-  useEffect(() => {
-    const model = modelRef.current;
-    const source = loadState.source;
-    if (!model || !source) {
-      return;
-    }
-    const phase = input.snapshot.interaction.phase;
-    const targetMotionGroup = phase === 'speaking'
-      ? source.speechMotionGroup || source.idleMotionGroup
-      : source.idleMotionGroup;
-    if (!targetMotionGroup) {
-      motionPhaseRef.current = null;
-      return;
-    }
-    const nextMotionToken = `${phase}:${targetMotionGroup}`;
-    if (motionPhaseRef.current === nextMotionToken) {
-      return;
-    }
-    motionPhaseRef.current = nextMotionToken;
-    void model.motion(
-      targetMotionGroup,
-      undefined,
-      phase === 'speaking'
-        ? 2
-        : 1,
-    ).catch(() => undefined);
-  }, [input.snapshot.interaction.phase, loadState.source]);
+  }, [input.assetRef, runtimeEpoch]);
 
   return (
     <div

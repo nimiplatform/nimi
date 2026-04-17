@@ -1,3 +1,6 @@
+use crate::desktop_agent_avatar_store::{
+    DesktopAgentAvatarBindingRecord, DesktopAgentAvatarResourceRecord,
+};
 use crate::desktop_release::DesktopReleaseInfo;
 use crate::runtime_bridge::RuntimeBridgeDaemonStatus;
 use crate::RuntimeDefaults;
@@ -24,6 +27,7 @@ struct DesktopE2ETauriFixture {
     desktop_release_info: Option<DesktopReleaseInfo>,
     confirm_dialog: Option<DesktopE2EConfirmDialogOverride>,
     agent_memory_bind_standard: Option<DesktopE2EAgentMemoryBindStandardOverride>,
+    agent_avatar_store: Option<DesktopE2EAgentAvatarStoreOverride>,
     macos_smoke: Option<DesktopE2EMacosSmokeOverride>,
 }
 
@@ -46,6 +50,15 @@ pub struct DesktopE2EAgentMemoryBindStandardOverride {
     pub bank_id: String,
     pub embedding_profile_model_id: Option<String>,
     pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopE2EAgentAvatarStoreOverride {
+    #[serde(default)]
+    pub resources: Vec<DesktopAgentAvatarResourceRecord>,
+    #[serde(default)]
+    pub bindings: Vec<DesktopAgentAvatarBindingRecord>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -199,6 +212,17 @@ pub fn agent_memory_bind_standard_override(
         .and_then(|fixture| fixture.agent_memory_bind_standard);
     append_backend_log(&format!(
         "agent_memory_bind_standard_override override_present={}",
+        override_payload.is_some()
+    ));
+    Ok(override_payload)
+}
+
+pub fn agent_avatar_store_override() -> Result<Option<DesktopE2EAgentAvatarStoreOverride>, String> {
+    let override_payload = load_fixture_manifest()?
+        .and_then(|manifest| manifest.tauri_fixture)
+        .and_then(|fixture| fixture.agent_avatar_store);
+    append_backend_log(&format!(
+        "agent_avatar_store_override override_present={}",
         override_payload.is_some()
     ));
     Ok(override_payload)

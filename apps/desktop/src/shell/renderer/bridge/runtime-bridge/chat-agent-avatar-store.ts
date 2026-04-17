@@ -15,6 +15,7 @@ import type {
   DesktopAgentAvatarBindingSetInput,
   DesktopAgentAvatarImportLive2dInput,
   DesktopAgentAvatarImportResult,
+  DesktopAgentAvatarResourceRelativeReadInput,
   DesktopAgentAvatarImportVrmInput,
   DesktopAgentAvatarResourceRecord,
 } from './chat-agent-avatar-types.js';
@@ -88,6 +89,18 @@ export async function readDesktopAgentAvatarResourceAsset(resourceId: string): P
   requireTauri('desktop_agent_avatar_resource_read_asset');
   return invokeChecked('desktop_agent_avatar_resource_read_asset', {
     payload: { resourceId },
+  }, parseDesktopAgentAvatarResourceAssetPayload);
+}
+
+export async function readDesktopAgentAvatarResourceRelativeAsset(
+  input: DesktopAgentAvatarResourceRelativeReadInput,
+): Promise<DesktopAgentAvatarResourceAssetPayload> {
+  requireTauri('desktop_agent_avatar_resource_read_relative_asset');
+  return invokeChecked('desktop_agent_avatar_resource_read_relative_asset', {
+    payload: {
+      resourceId: input.resourceId,
+      relativePath: input.relativePath,
+    },
   }, parseDesktopAgentAvatarResourceAssetPayload);
 }
 

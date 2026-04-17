@@ -53,9 +53,15 @@ test('desktop macos smoke chat memory bind scenario follows the expected step or
     async waitForTestId(id) {
       waited.push(id);
     },
+    async waitForSelector() {},
     async clickByTestId(id) {
       clicked.push(id);
     },
+    async setLive2dInteractionOverride() {},
+    async resizeLive2dViewport() {},
+    async pulseLive2dViewportTinyHost() {},
+    async pulseLive2dDevicePixelRatio() {},
+    async triggerLive2dContextLossAndRestore() {},
     async readAttributeByTestId(id, name) {
       assert.equal(id, E2E_IDS.chatMemoryModeStatus);
       assert.equal(name, 'data-memory-mode');
@@ -68,6 +74,20 @@ test('desktop macos smoke chat memory bind scenario follows the expected step or
     async readTextByTestId(id) {
       assert.equal(id, E2E_IDS.chatMemoryModeStatus);
       return '';
+    },
+    async readLive2dCanvasStats() {
+      return {
+        status: null,
+        fallbackText: null,
+        width: 0,
+        height: 0,
+        canvasPresent: false,
+        contextKind: null,
+        sampleCount: 0,
+        nonTransparentSampleCount: 0,
+        sampleError: null,
+        runtimeDebug: null,
+      };
     },
     async writeReport(payload) {
       writtenReports.push(payload as unknown as Record<string, unknown>);
@@ -118,14 +138,34 @@ test('desktop macos smoke tester speech bundle scenario follows the expected ste
     async waitForTestId(id) {
       waited.push(id);
     },
+    async waitForSelector() {},
     async clickByTestId(id) {
       clicked.push(id);
     },
+    async setLive2dInteractionOverride() {},
+    async resizeLive2dViewport() {},
+    async pulseLive2dViewportTinyHost() {},
+    async pulseLive2dDevicePixelRatio() {},
+    async triggerLive2dContextLossAndRestore() {},
     async readAttributeByTestId() {
       return null;
     },
     async readTextByTestId() {
       return '';
+    },
+    async readLive2dCanvasStats() {
+      return {
+        status: null,
+        fallbackText: null,
+        width: 0,
+        height: 0,
+        canvasPresent: false,
+        contextKind: null,
+        sampleCount: 0,
+        nonTransparentSampleCount: 0,
+        sampleError: null,
+        runtimeDebug: null,
+      };
     },
     async writeReport(payload) {
       writtenReports.push(payload as unknown as Record<string, unknown>);
@@ -177,18 +217,423 @@ test('desktop macos smoke tester speech bundle scenario follows the expected ste
   });
 });
 
+test('desktop macos smoke live2d render scenario waits for visible pixels before passing', async () => {
+  for (const scenarioId of ['chat.live2d-render-smoke', 'chat.live2d-render-smoke-mark', 'chat.live2d-render-smoke-wanko'] as const) {
+    const clicked: string[] = [];
+    const selectorsWaited: string[] = [];
+    const writtenReports: Array<Record<string, unknown>> = [];
+    const resizeRequests: Array<{ width: number; height: number }> = [];
+    let tinyHostPulseRequests = 0;
+    const dprPulseRequests: number[] = [];
+    let contextRecoveryRequests = 0;
+    let statsReads = 0;
+
+    await runDesktopMacosSmokeScenario(scenarioId, {
+      async waitForTestId() {},
+      async waitForSelector(selector) {
+        selectorsWaited.push(selector);
+      },
+      async clickByTestId(id) {
+        clicked.push(id);
+      },
+      async setLive2dInteractionOverride() {},
+      async resizeLive2dViewport(size) {
+        resizeRequests.push(size);
+      },
+      async pulseLive2dViewportTinyHost() {
+        tinyHostPulseRequests += 1;
+      },
+      async pulseLive2dDevicePixelRatio(value) {
+        dprPulseRequests.push(value);
+      },
+      async triggerLive2dContextLossAndRestore() {
+        contextRecoveryRequests += 1;
+      },
+      async readAttributeByTestId() {
+        return null;
+      },
+      async readTextByTestId() {
+        return '';
+      },
+      async readLive2dCanvasStats(selector) {
+        assert.equal(selector, '[data-avatar-live2d-status]');
+        statsReads += 1;
+        return {
+          status: 'ready',
+          fallbackText: null,
+          width: 320,
+          height: 640,
+          canvasPresent: true,
+          contextKind: 'webgl2',
+          sampleCount: 48,
+          nonTransparentSampleCount: statsReads >= 2 ? 7 : 0,
+          sampleError: null,
+          runtimeDebug: null,
+        };
+      },
+      async writeReport(payload) {
+        writtenReports.push(payload as unknown as Record<string, unknown>);
+      },
+      currentRoute() {
+        return '/chat';
+      },
+      currentHtml() {
+        return '<html>live2d</html>';
+      },
+    });
+
+    assert.deepEqual(clicked, [E2E_IDS.chatTarget('agent-e2e-alpha')]);
+    assert.deepEqual(selectorsWaited, ['[data-avatar-live2d-status]']);
+    assert.equal(tinyHostPulseRequests, 1);
+    assert.deepEqual(dprPulseRequests, [1.75]);
+    assert.equal(contextRecoveryRequests, 1);
+    assert.deepEqual(resizeRequests, [
+      { width: 292, height: 520 },
+      { width: 360, height: 820 },
+    ]);
+    assert.equal(writtenReports.length, 1);
+    assert.deepEqual(writtenReports[0], {
+      ok: true,
+      steps: [
+        'wait-chat-panel',
+        'select-agent-target',
+        'wait-live2d-viewport',
+        'wait-live2d-visible-pixels',
+        'trigger-live2d-context-loss-restore',
+        'wait-live2d-visible-pixels-after-context-restore',
+        'pulse-live2d-viewport-tiny-host',
+        'wait-live2d-visible-pixels-after-tiny-host',
+        'pulse-live2d-device-pixel-ratio',
+        'wait-live2d-visible-pixels-after-dpr-pulse',
+        'resize-live2d-viewport-small',
+        'wait-live2d-visible-pixels-after-small-resize',
+        'resize-live2d-viewport-restored',
+        'wait-live2d-visible-pixels-after-restored-resize',
+        'write-pass-report',
+      ],
+      route: '/chat',
+      htmlSnapshot: '<html>live2d</html>',
+      details: {
+        live2d: {
+          initialVisible: {
+            status: 'ready',
+            fallbackText: null,
+            width: 320,
+            height: 640,
+            canvasPresent: true,
+            contextKind: 'webgl2',
+            sampleCount: 48,
+            nonTransparentSampleCount: 7,
+            sampleError: null,
+            runtimeDebug: undefined,
+          },
+          afterContextRestore: {
+            status: 'ready',
+            fallbackText: null,
+            width: 320,
+            height: 640,
+            canvasPresent: true,
+            contextKind: 'webgl2',
+            sampleCount: 48,
+            nonTransparentSampleCount: 7,
+            sampleError: null,
+            runtimeDebug: undefined,
+          },
+          afterTinyHost: {
+            status: 'ready',
+            fallbackText: null,
+            width: 320,
+            height: 640,
+            canvasPresent: true,
+            contextKind: 'webgl2',
+            sampleCount: 48,
+            nonTransparentSampleCount: 7,
+            sampleError: null,
+            runtimeDebug: undefined,
+          },
+          afterDprPulse: {
+            status: 'ready',
+            fallbackText: null,
+            width: 320,
+            height: 640,
+            canvasPresent: true,
+            contextKind: 'webgl2',
+            sampleCount: 48,
+            nonTransparentSampleCount: 7,
+            sampleError: null,
+            runtimeDebug: undefined,
+          },
+          afterSmallResize: {
+            status: 'ready',
+            fallbackText: null,
+            width: 320,
+            height: 640,
+            canvasPresent: true,
+            contextKind: 'webgl2',
+            sampleCount: 48,
+            nonTransparentSampleCount: 7,
+            sampleError: null,
+            runtimeDebug: undefined,
+          },
+          afterRestoredResize: {
+            status: 'ready',
+            fallbackText: null,
+            width: 320,
+            height: 640,
+            canvasPresent: true,
+            contextKind: 'webgl2',
+            sampleCount: 48,
+            nonTransparentSampleCount: 7,
+            sampleError: null,
+            runtimeDebug: undefined,
+          },
+        },
+      },
+    });
+  }
+});
+
+test('desktop macos smoke live2d speaking scenario waits for speaking telemetry before passing', async () => {
+  const overrides: Array<Record<string, unknown> | null> = [];
+  const writtenReports: Array<Record<string, unknown>> = [];
+  let statsReads = 0;
+
+  await runDesktopMacosSmokeScenario('chat.live2d-render-smoke-mark-speaking', {
+    async waitForTestId() {},
+    async waitForSelector() {},
+    async clickByTestId() {},
+    async setLive2dInteractionOverride(override) {
+      overrides.push(override);
+    },
+    async resizeLive2dViewport() {},
+    async pulseLive2dViewportTinyHost() {},
+    async pulseLive2dDevicePixelRatio() {},
+    async triggerLive2dContextLossAndRestore() {},
+    async readAttributeByTestId() {
+      return null;
+    },
+    async readTextByTestId() {
+      return '';
+    },
+    async readLive2dCanvasStats() {
+      statsReads += 1;
+      const speakingReady = statsReads >= 4;
+      return {
+        status: 'ready',
+        fallbackText: null,
+        width: 320,
+        height: 640,
+        canvasPresent: true,
+        contextKind: 'webgl2',
+        sampleCount: 48,
+        nonTransparentSampleCount: 8,
+        sampleError: null,
+        runtimeDebug: speakingReady
+          ? {
+            phase: 'speaking',
+            smoothedAmplitude: 0.34,
+            speakingEnergy: 0.41,
+          }
+          : {
+            phase: 'idle',
+            smoothedAmplitude: 0,
+            speakingEnergy: 0,
+          },
+      };
+    },
+    async writeReport(payload) {
+      writtenReports.push(payload as unknown as Record<string, unknown>);
+    },
+    currentRoute() {
+      return '/chat';
+    },
+    currentHtml() {
+      return '<html>live2d-speaking</html>';
+    },
+  });
+
+  assert.deepEqual(overrides, [{
+    phase: 'speaking',
+    label: 'Speaking…',
+    emotion: 'focus',
+    amplitude: 0.82,
+    visemeId: 'aa',
+  }]);
+  assert.equal(writtenReports.length, 1);
+  assert.deepEqual(writtenReports[0], {
+    ok: true,
+    steps: [
+      'wait-chat-panel',
+      'select-agent-target',
+      'wait-live2d-viewport',
+      'wait-live2d-visible-pixels',
+      'set-live2d-speaking-override',
+      'wait-live2d-speaking-pose',
+      'trigger-live2d-context-loss-restore',
+      'wait-live2d-visible-pixels-after-context-restore',
+      'pulse-live2d-viewport-tiny-host',
+      'wait-live2d-visible-pixels-after-tiny-host',
+      'pulse-live2d-device-pixel-ratio',
+      'wait-live2d-visible-pixels-after-dpr-pulse',
+      'resize-live2d-viewport-small',
+      'wait-live2d-visible-pixels-after-small-resize',
+      'resize-live2d-viewport-restored',
+      'wait-live2d-visible-pixels-after-restored-resize',
+      'write-pass-report',
+    ],
+    route: '/chat',
+    htmlSnapshot: '<html>live2d-speaking</html>',
+    details: {
+      live2d: {
+        initialVisible: {
+          status: 'ready',
+          fallbackText: null,
+          width: 320,
+          height: 640,
+          canvasPresent: true,
+          contextKind: 'webgl2',
+          sampleCount: 48,
+          nonTransparentSampleCount: 8,
+          sampleError: null,
+          runtimeDebug: {
+            phase: 'idle',
+            smoothedAmplitude: 0,
+            speakingEnergy: 0,
+          },
+        },
+        speakingVisible: {
+          status: 'ready',
+          fallbackText: null,
+          width: 320,
+          height: 640,
+          canvasPresent: true,
+          contextKind: 'webgl2',
+          sampleCount: 48,
+          nonTransparentSampleCount: 8,
+          sampleError: null,
+          runtimeDebug: {
+            phase: 'speaking',
+            smoothedAmplitude: 0.34,
+            speakingEnergy: 0.41,
+          },
+        },
+        afterContextRestore: {
+          status: 'ready',
+          fallbackText: null,
+          width: 320,
+          height: 640,
+          canvasPresent: true,
+          contextKind: 'webgl2',
+          sampleCount: 48,
+          nonTransparentSampleCount: 8,
+          sampleError: null,
+          runtimeDebug: {
+            phase: 'speaking',
+            smoothedAmplitude: 0.34,
+            speakingEnergy: 0.41,
+          },
+        },
+        afterTinyHost: {
+          status: 'ready',
+          fallbackText: null,
+          width: 320,
+          height: 640,
+          canvasPresent: true,
+          contextKind: 'webgl2',
+          sampleCount: 48,
+          nonTransparentSampleCount: 8,
+          sampleError: null,
+          runtimeDebug: {
+            phase: 'speaking',
+            smoothedAmplitude: 0.34,
+            speakingEnergy: 0.41,
+          },
+        },
+        afterDprPulse: {
+          status: 'ready',
+          fallbackText: null,
+          width: 320,
+          height: 640,
+          canvasPresent: true,
+          contextKind: 'webgl2',
+          sampleCount: 48,
+          nonTransparentSampleCount: 8,
+          sampleError: null,
+          runtimeDebug: {
+            phase: 'speaking',
+            smoothedAmplitude: 0.34,
+            speakingEnergy: 0.41,
+          },
+        },
+        afterSmallResize: {
+          status: 'ready',
+          fallbackText: null,
+          width: 320,
+          height: 640,
+          canvasPresent: true,
+          contextKind: 'webgl2',
+          sampleCount: 48,
+          nonTransparentSampleCount: 8,
+          sampleError: null,
+          runtimeDebug: {
+            phase: 'speaking',
+            smoothedAmplitude: 0.34,
+            speakingEnergy: 0.41,
+          },
+        },
+        afterRestoredResize: {
+          status: 'ready',
+          fallbackText: null,
+          width: 320,
+          height: 640,
+          canvasPresent: true,
+          contextKind: 'webgl2',
+          sampleCount: 48,
+          nonTransparentSampleCount: 8,
+          sampleError: null,
+          runtimeDebug: {
+            phase: 'speaking',
+            smoothedAmplitude: 0.34,
+            speakingEnergy: 0.41,
+          },
+        },
+      },
+    },
+  });
+});
+
 test('desktop macos smoke fails closed for unknown scenarios and emits a fail report', async () => {
   const reports: Array<Record<string, unknown>> = [];
 
   await assert.rejects(
     () => runDesktopMacosSmokeScenario('unknown-scenario', {
       async waitForTestId() {},
+      async waitForSelector() {},
       async clickByTestId() {},
+      async setLive2dInteractionOverride() {},
+      async resizeLive2dViewport() {},
+      async pulseLive2dViewportTinyHost() {},
+      async pulseLive2dDevicePixelRatio() {},
+      async triggerLive2dContextLossAndRestore() {},
       async readAttributeByTestId() {
         return null;
       },
       async readTextByTestId() {
         return '';
+      },
+      async readLive2dCanvasStats() {
+        return {
+          status: null,
+          fallbackText: null,
+          width: 0,
+          height: 0,
+          canvasPresent: false,
+          contextKind: null,
+          sampleCount: 0,
+          nonTransparentSampleCount: 0,
+          sampleError: null,
+          runtimeDebug: null,
+        };
       },
       async writeReport(payload) {
         reports.push(payload as unknown as Record<string, unknown>);
@@ -214,6 +659,7 @@ test('desktop macos smoke fails closed for unknown scenarios and emits a fail re
     errorCause: undefined,
     route: '/',
     htmlSnapshot: '<html>fail</html>',
+    details: undefined,
   });
   assert.match(String(reports[0]?.errorStack || ''), /unknown macOS smoke scenario/);
 });
@@ -293,6 +739,10 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
     path.join(root, 'src/shell/renderer/infra/bootstrap/desktop-macos-smoke.ts'),
     'utf8',
   );
+  const live2dViewportSource = fs.readFileSync(
+    path.join(root, 'src/shell/renderer/features/chat/chat-agent-avatar-live2d-viewport.tsx'),
+    'utf8',
+  );
 
   assert.match(mainSource, /renderer-main-entry/);
   assert.match(mainSource, /renderer-root-mounted/);
@@ -307,4 +757,6 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(bootstrapSource, /smoke-context-load-failed/);
   assert.match(bootstrapSource, /bootstrap-timeout-before-ready/);
   assert.match(bootstrapSource, /bootstrap-error-screen/);
+  assert.match(live2dViewportSource, /webglcontextrestored/);
+  assert.match(live2dViewportSource, /action:live2d-model-rebuilt/);
 });
