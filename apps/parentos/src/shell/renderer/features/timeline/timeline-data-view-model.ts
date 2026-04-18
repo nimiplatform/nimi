@@ -251,15 +251,24 @@ function buildMeasurementChanges(measurements: DashData['measurements']): Recent
         detail = `${currentValue}，与上次相比 ${formatDelta(latestValue - previousValue, meta.unit)} · ${fmtRel(latest.measuredAt)}`;
       }
     }
+    const iconName: RecentChangeItem['iconName'] = meta.domain === 'vision'
+      ? 'eye'
+      : meta.domain === 'bone-age'
+        ? 'bone'
+        : 'ruler';
     changes.push({
       id: `measurement:${latest.measurementId}`,
       domain: meta.domain,
       label: meta.domain === 'growth' ? '生长' : meta.label,
       title: `${meta.label}已更新`,
       detail,
+      metric: null,
+      subtitle: fmtRel(latest.measuredAt),
+      summary: null,
       timestamp: latest.measuredAt,
       to: meta.to,
       icon: meta.icon,
+      iconName,
     });
   }
 
@@ -276,6 +285,29 @@ function sleepDurationLabel(record: DashData['sleepRecords'][number]) {
   return '已记录时长';
 }
 
+function heroSleepDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+/** Age-banded nighttime sleep floors (minutes). Based on NSF / AAP guidance. */
+function sleepThresholdsByAge(ageMonths: number | null | undefined): { enough: number; stable: number } {
+  const age = ageMonths ?? 0;
+  if (age < 72) return { enough: 600, stable: 540 };  // <6y: 10h / 9h
+  if (age < 156) return { enough: 540, stable: 480 }; // 6-13y: 9h / 8h
+  return { enough: 480, stable: 420 };                // 13y+: 8h / 7h
+}
+
+function sleepHeadline(minutes: number | null | undefined, ageMonths: number | null | undefined): string {
+  if (minutes == null || minutes <= 0) return '昨夜睡眠';
+  const { enough, stable } = sleepThresholdsByAge(ageMonths);
+  if (minutes >= enough) return '昨夜睡眠充足';
+  if (minutes >= stable) return '昨夜睡眠稳定';
+  return '昨夜睡眠偏短';
+}
+
 function buildSleepRecordChanges(sleepRecords: DashData['sleepRecords']): RecentChangeItem[] {
   return sortByTimestamp(
     sleepRecords
@@ -283,18 +315,37 @@ function buildSleepRecordChanges(sleepRecords: DashData['sleepRecords']): Recent
       .map((record) => {
         const parts = [record.bedtime, record.wakeTime].filter(Boolean);
         const timeLabel = parts.length === 2 ? `${parts[0]} - ${parts[1]}` : '作息时间';
+        const durationMinutes = record.durationMinutes ?? null;
+        const metric = durationMinutes && durationMinutes > 0
+          ? { value: heroSleepDuration(durationMinutes) }
+          : null;
         return {
           id: `sleep:${record.recordId}`,
           domain: 'sleep' as const,
           label: '睡眠',
-          title: '新增睡眠记录',
+          title: sleepHeadline(durationMinutes, record.ageMonths),
           detail: `${timeLabel} · ${sleepDurationLabel(record)}`,
+          metric,
+          subtitle: timeLabel,
+          summary: null,
           timestamp: `${record.sleepDate}T00:00:00.000Z`,
           to: '/profile/sleep',
           icon: '😴',
+          iconName: 'moon' as const,
         };
       }),
   );
+}
+
+function journalHeadline(entry: DashData['journalEntries'][number]): string {
+  const isKeepsake = entry.keepsake === 1;
+  if (isKeepsake) {
+    const trimmed = entry.keepsakeTitle?.trim();
+    if (trimmed) return trimmed;
+    const reason = getKeepsakeReasonLabel(entry.keepsakeReason);
+    return reason ? `珍藏时刻 · ${reason}` : '新的珍藏时刻';
+  }
+  return entry.contentType === 'voice' ? '最新语音观察' : '最新观察记录';
 }
 
 function buildJournalChanges(journalEntries: DashData['journalEntries']): RecentChangeItem[] {
@@ -302,22 +353,33 @@ function buildJournalChanges(journalEntries: DashData['journalEntries']): Recent
     journalEntries
       .filter((entry) => isWithinDays(entry.recordedAt, 7))
       .map((entry) => {
-        const reasonLabel = getKeepsakeReasonLabel(entry.keepsakeReason);
-        const fallbackTitle = entry.textContent?.slice(0, 28) ?? (entry.contentType === 'voice' ? '新的语音记录' : '新的观察记录');
         const isKeepsake = entry.keepsake === 1;
+        const summary = entry.textContent?.trim() || '';
+        const headline = journalHeadline(entry);
+        const reasonLabel = getKeepsakeReasonLabel(entry.keepsakeReason);
+        const relTime = fmtRel(entry.recordedAt);
+        const iconName: RecentChangeItem['iconName'] = isKeepsake
+          ? 'sparkle'
+          : entry.contentType === 'voice'
+            ? 'mic'
+            : 'book';
+        const detailPrefix = summary ? summary.slice(0, 56) : headline;
+        const detailMeta = isKeepsake && reasonLabel
+          ? `珍藏 · ${reasonLabel} · ${relTime}`
+          : relTime;
         return {
           id: `journal:${entry.entryId}`,
           domain: 'journal' as const,
           label: isKeepsake ? '珍藏' : '观察',
-          title: entry.keepsakeTitle?.trim() || fallbackTitle,
-          detail: isKeepsake
-            ? reasonLabel
-              ? `珍藏 · ${reasonLabel} · ${fmtRel(entry.recordedAt)}`
-              : `已加入珍藏 · ${fmtRel(entry.recordedAt)}`
-            : `已记录观察 · ${fmtRel(entry.recordedAt)}`,
+          title: headline,
+          detail: `${detailPrefix} · ${detailMeta}`,
+          metric: null,
+          subtitle: isKeepsake && reasonLabel ? `珍藏 · ${reasonLabel} · ${relTime}` : relTime,
+          summary: summary || null,
           timestamp: entry.recordedAt,
           to: isKeepsake ? '/journal?filter=keepsake' : '/journal',
-          icon: '📝',
+          icon: isKeepsake ? '✨' : entry.contentType === 'voice' ? '🎙️' : '📝',
+          iconName,
         };
       }),
   );
@@ -333,9 +395,13 @@ export function buildRecentChanges(dash: DashData): RecentChangeItem[] {
         label: '里程碑',
         title: milestoneById.get(record.milestoneId)?.title ?? '新里程碑',
         detail: `已记录 · ${fmtRel(record.achievedAt!)}`,
+        metric: null,
+        subtitle: fmtRel(record.achievedAt!),
+        summary: null,
         timestamp: record.achievedAt!,
         to: '/profile/milestones',
         icon: '🏆',
+        iconName: 'trophy' as const,
       })),
   );
   const vaccineChanges = sortByTimestamp(
@@ -347,9 +413,13 @@ export function buildRecentChanges(dash: DashData): RecentChangeItem[] {
         label: '疫苗',
         title: record.vaccineName,
         detail: `疫苗已接种 · ${fmtRel(record.vaccinatedAt)}`,
+        metric: null,
+        subtitle: fmtRel(record.vaccinatedAt),
+        summary: null,
         timestamp: record.vaccinatedAt,
         to: '/profile/vaccines',
         icon: '💉',
+        iconName: 'syringe' as const,
       })),
   );
   const groupedCandidates = [

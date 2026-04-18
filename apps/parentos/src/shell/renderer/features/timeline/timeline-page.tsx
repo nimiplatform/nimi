@@ -161,7 +161,21 @@ export default function TimelinePage() {
 
   return (
     <div className="relative flex h-full" style={{ background: 'transparent' }}>
-      <div className="hide-scrollbar relative min-w-0 flex-1 overflow-y-auto px-6 pb-8" style={{ paddingTop: 28 }}>
+      {/* Ambient gradient — diffuse pink + blue cloud that warms the whole dashboard.
+       * Placed once at the page shell so inner cards stay neutral and don't stack blurs. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        style={{
+          backgroundImage: [
+            'radial-gradient(at 18% 12%, rgba(186,230,253,0.35) 0px, transparent 52%)',
+            'radial-gradient(at 82% 18%, rgba(255,207,226,0.28) 0px, transparent 52%)',
+            'radial-gradient(at 48% 96%, rgba(221,214,254,0.26) 0px, transparent 55%)',
+          ].join(', '),
+          filter: 'blur(28px)',
+        }}
+      />
+      <div className="hide-scrollbar relative z-[1] min-w-0 flex-1 overflow-y-auto px-6 pb-8" style={{ paddingTop: 28 }}>
         <div className="grid auto-rows-min grid-cols-8 gap-6">
           <ChildContextCard child={child} childList={childList} ageMonths={ageMonths} />
           <RecentChangesHeroCard items={homeVm.recentChanges} />
@@ -189,22 +203,24 @@ export default function TimelinePage() {
         </div>
       </div>
 
-      <ReminderPanel
-        todayFocus={todayFocus}
-        upcoming={upcoming}
-        p0OverflowCount={agenda.p0Overflow.count}
-        p0OverflowItems={agenda.p0Overflow.items}
-        onboardingCatchupCount={agenda.onboardingCatchup.count}
-        onboardingCatchupItems={agenda.onboardingCatchup.items}
-        overdueCount={agenda.overdueSummary.count}
-        overdueItems={agenda.overdueSummary.items}
-        seasonalTasks={seasonalTasks}
-        customTodos={d.customTodos}
-        childId={child.childId}
-        onAction={handleAction}
-        onCustomTodoChanged={reload}
-        observationNudges={observationNudges}
-      />
+      <div className="relative z-[1]">
+        <ReminderPanel
+          todayFocus={todayFocus}
+          upcoming={upcoming}
+          p0OverflowCount={agenda.p0Overflow.count}
+          p0OverflowItems={agenda.p0Overflow.items}
+          onboardingCatchupCount={agenda.onboardingCatchup.count}
+          onboardingCatchupItems={agenda.onboardingCatchup.items}
+          overdueCount={agenda.overdueSummary.count}
+          overdueItems={agenda.overdueSummary.items}
+          seasonalTasks={seasonalTasks}
+          customTodos={d.customTodos}
+          childId={child.childId}
+          onAction={handleAction}
+          onCustomTodoChanged={reload}
+          observationNudges={observationNudges}
+        />
+      </div>
 
       {freqModalReminder && child && freqModalReminder.rule.repeatRule && (
         <FrequencyModal

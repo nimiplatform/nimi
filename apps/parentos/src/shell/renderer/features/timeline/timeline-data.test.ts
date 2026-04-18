@@ -240,7 +240,9 @@ describe('timeline home view model helpers', () => {
 
     expect(changes).toHaveLength(1);
     expect(changes[0]?.domain).toBe('sleep');
-    expect(changes[0]?.title).toBe('新增睡眠记录');
+    expect(changes[0]?.title).toBe('昨夜睡眠充足');
+    expect(changes[0]?.metric?.value).toBe('10h');
+    expect(changes[0]?.subtitle).toBe('21:00 - 07:00');
     expect(changes[0]?.detail).toContain('21:00 - 07:00');
     expect(changes[0]?.detail).toContain('10小时');
   });

@@ -43,6 +43,17 @@ export interface DashData {
   outdoorGoalMinutes: number | null;
 }
 
+export type RecentChangeIconName =
+  | 'moon'
+  | 'book'
+  | 'mic'
+  | 'sparkle'
+  | 'trophy'
+  | 'syringe'
+  | 'ruler'
+  | 'eye'
+  | 'bone';
+
 export interface RecentChangeItem {
   id: string;
   domain: 'milestone' | 'vaccine' | 'growth' | 'vision' | 'bone-age' | 'sleep' | 'journal';
@@ -52,6 +63,11 @@ export interface RecentChangeItem {
   timestamp: string;
   to: string;
   icon: string;
+  /** Optional structured fields — allow the card to render a hero metric + soft secondary line. */
+  metric?: { value: string; unit?: string | null } | null;
+  subtitle?: string | null;
+  summary?: string | null;
+  iconName?: RecentChangeIconName | null;
 }
 
 export interface DataGapAlertItem {
