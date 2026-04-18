@@ -44,6 +44,7 @@ nimi-mods/
 _external/
 .claude/settings.local.json
 .claude/launch.json
+**/.claude/launch.json
 /$HOME/
 
 # legacy execution-doc roots are archive/local-only

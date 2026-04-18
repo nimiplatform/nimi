@@ -23,8 +23,6 @@ const CUBISM_WEB_SDK_CACHE_ROOT = path.resolve(
   `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}`,
 );
 const CUBISM_WEB_FRAMEWORK_CACHE_ROOT = path.join(CUBISM_WEB_SDK_CACHE_ROOT, 'Framework', 'src');
-const CUBISM_WEB_FRAMEWORK_ZIP_PREFIX = `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}/Framework/src/`;
-const CUBISM_WEB_SHADER_ZIP_PREFIX = `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}/Framework/Shaders/WebGL/`;
 const CUBISM_WEB_SHADER_CACHE_ROOT = path.join(CUBISM_WEB_SDK_CACHE_ROOT, 'Framework', 'Shaders', 'WebGL');
 
 function resolveOptionalAbsoluteDir(raw: string | undefined, envName: string): string | null {
@@ -92,61 +90,43 @@ async function pathExists(targetPath: string): Promise<boolean> {
   }
 }
 
-function listZipEntries(zipPath: string): string[] {
-  const raw = execFileSync('unzip', ['-Z1', zipPath], {
-    encoding: 'utf8',
+function extractZipArchive(zipPath: string, destinationDir: string): void {
+  if (process.platform === 'win32') {
+    execFileSync(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        '& { param($ZipPath, $DestinationPath) Expand-Archive -LiteralPath $ZipPath -DestinationPath $DestinationPath -Force }',
+        zipPath,
+        destinationDir,
+      ],
+      {
+        stdio: 'ignore',
+      },
+    );
+    return;
+  }
+
+  execFileSync('unzip', ['-o', zipPath, '-d', destinationDir], {
+    stdio: 'ignore',
   });
-  return raw
-    .split('\n')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
 }
 
-function extractZipEntry(zipPath: string, entryPath: string): Buffer {
-  return execFileSync('unzip', ['-p', zipPath, entryPath], {
-    encoding: 'buffer',
-    maxBuffer: 32 * 1024 * 1024,
-  }) as Buffer;
-}
-
-async function extractCubismFrameworkSources(cacheZipPath: string, cacheFrameworkRoot: string): Promise<void> {
-  const entries = listZipEntries(cacheZipPath).filter((entry) => (
-    entry.startsWith(CUBISM_WEB_FRAMEWORK_ZIP_PREFIX)
-    && !entry.endsWith('/')
-  ));
-  if (entries.length === 0) {
-    throw new Error(`Failed to locate Framework/src entries inside ${cacheZipPath}`);
+async function ensureCubismSdkExtracted(
+  cacheZipPath: string,
+  cacheRoot: string,
+  requiredPaths: string[],
+): Promise<void> {
+  const missingRequiredPath = await Promise.all(requiredPaths.map((targetPath) => pathExists(targetPath)))
+    .then((results) => results.some((exists) => !exists));
+  if (!missingRequiredPath) {
+    return;
   }
 
-  for (const entry of entries) {
-    const relativePath = entry.slice(CUBISM_WEB_FRAMEWORK_ZIP_PREFIX.length);
-    if (!relativePath) {
-      continue;
-    }
-    const targetPath = path.join(cacheFrameworkRoot, relativePath);
-    await mkdir(path.dirname(targetPath), { recursive: true });
-    await writeFile(targetPath, extractZipEntry(cacheZipPath, entry));
-  }
-}
-
-async function extractCubismShaderSources(cacheZipPath: string, cacheShaderRoot: string): Promise<void> {
-  const entries = listZipEntries(cacheZipPath).filter((entry) => (
-    entry.startsWith(CUBISM_WEB_SHADER_ZIP_PREFIX)
-    && !entry.endsWith('/')
-  ));
-  if (entries.length === 0) {
-    throw new Error(`Failed to locate Framework/Shaders/WebGL entries inside ${cacheZipPath}`);
-  }
-
-  for (const entry of entries) {
-    const relativePath = entry.slice(CUBISM_WEB_SHADER_ZIP_PREFIX.length);
-    if (!relativePath) {
-      continue;
-    }
-    const targetPath = path.join(cacheShaderRoot, relativePath);
-    await mkdir(path.dirname(targetPath), { recursive: true });
-    await writeFile(targetPath, extractZipEntry(cacheZipPath, entry));
-  }
+  await mkdir(cacheRoot, { recursive: true });
+  extractZipArchive(cacheZipPath, path.dirname(cacheRoot));
 }
 
 function cubismWebCorePlugin(): PluginOption {
@@ -162,30 +142,20 @@ function cubismWebCorePlugin(): PluginOption {
       const publicCorePath = path.join(publicCoreDir, 'live2dcubismcore.min.js');
       const publicShaderDir = path.resolve(config.publicDir, CUBISM_WEB_SHADER_PUBLIC_DIR);
 
-      if (!await pathExists(cacheCorePath)) {
-        await mkdir(cacheRoot, { recursive: true });
-        if (!await pathExists(cacheZipPath)) {
-          const response = await fetch(CUBISM_WEB_SDK_URL);
-          if (!response.ok) {
-            throw new Error(`Failed to download Cubism SDK from ${CUBISM_WEB_SDK_URL}: ${response.status} ${response.statusText}`);
-          }
-          const zipBytes = Buffer.from(await response.arrayBuffer());
-          await writeFile(cacheZipPath, zipBytes);
+      await mkdir(cacheRoot, { recursive: true });
+      if (!await pathExists(cacheZipPath)) {
+        const response = await fetch(CUBISM_WEB_SDK_URL);
+        if (!response.ok) {
+          throw new Error(`Failed to download Cubism SDK from ${CUBISM_WEB_SDK_URL}: ${response.status} ${response.statusText}`);
         }
-        const entryPath = listZipEntries(cacheZipPath).find((entry) => entry.endsWith('/Core/live2dcubismcore.min.js'));
-        if (!entryPath) {
-          throw new Error(`Failed to locate live2dcubismcore.min.js inside ${cacheZipPath}`);
-        }
-        const coreBytes = extractZipEntry(cacheZipPath, entryPath);
-        await mkdir(path.dirname(cacheCorePath), { recursive: true });
-        await writeFile(cacheCorePath, coreBytes);
+        const zipBytes = Buffer.from(await response.arrayBuffer());
+        await writeFile(cacheZipPath, zipBytes);
       }
-      if (!await pathExists(cacheFrameworkIndexPath)) {
-        await extractCubismFrameworkSources(cacheZipPath, CUBISM_WEB_FRAMEWORK_CACHE_ROOT);
-      }
-      if (!await pathExists(cacheShaderIndexPath)) {
-        await extractCubismShaderSources(cacheZipPath, CUBISM_WEB_SHADER_CACHE_ROOT);
-      }
+      await ensureCubismSdkExtracted(cacheZipPath, cacheRoot, [
+        cacheCorePath,
+        cacheFrameworkIndexPath,
+        cacheShaderIndexPath,
+      ]);
 
       await mkdir(publicCoreDir, { recursive: true });
       await mkdir(publicShaderDir, { recursive: true });
