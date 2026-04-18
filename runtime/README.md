@@ -102,17 +102,25 @@ Config precedence stays:
 
 ## Runtime Surface
 
-Implemented runtime services include:
+Registered public runtime gRPC services currently include:
 - `RuntimeAiService` — local and cloud AI execution, streaming, multimodal
-- `RuntimeModelService` — model lifecycle, listing, routing
-- `RuntimeAuditService` — audit logging and replay
-- `RuntimeGrantService` — permission and grant management
-- `RuntimeAppService` — app messaging and registration
-- `RuntimeKnowledgeService` — private knowledge bank/page CRUD and keyword search
+- `RuntimeAiRealtimeService` — duplex realtime text/audio session surface
 - `RuntimeWorkflowService` — workflow DAG orchestration
+- `RuntimeModelService` — model lifecycle, listing, routing
 - `RuntimeLocalService` — local execution, supervision, provider health
-- `RuntimeAuthService` — authentication and token management
+- `RuntimeAgentCoreService` — live agent execution, hook lifecycle, canonical review
 - `RuntimeConnectorService` — provider connector lifecycle, credential hosting
+- `RuntimeGrantService` — permission and grant management
+- `RuntimeAuthService` — authentication and token management
+- `RuntimeCognitionService` — runtime-facing memory and knowledge bank/page surface
+- `RuntimeAppService` — app messaging and registration
+- `RuntimeAuditService` — audit logging and replay
+
+Notes:
+- `RuntimeKnowledgeService` is not a standalone registered public gRPC service; its
+  runtime-facing knowledge/page surface is absorbed by `RuntimeCognitionService`.
+- standard `grpc.health.v1.Health` probing is also registered for daemon health, but
+  it is not part of the runtime-owned proto service inventory above.
 
 The runtime exposes:
 - gRPC on `127.0.0.1:46371` by default

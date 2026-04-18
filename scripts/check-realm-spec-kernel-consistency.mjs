@@ -73,6 +73,11 @@ function asStringArray(value) {
   return value.filter((item) => typeof item === 'string' && item.trim().length > 0);
 }
 
+function asPathArray(value) {
+  if (typeof value === 'string' && value.trim().length > 0) return [value.trim()];
+  return asStringArray(value);
+}
+
 function pushIssue(issues, scope, message) {
   issues.push({ scope, message });
 }
@@ -86,6 +91,38 @@ function checkEvidenceFilesExist(issues, ruleId, kind, filePaths) {
     }
     if (!fs.statSync(absPath).isFile()) {
       pushIssue(issues, 'rule-evidence', `${ruleId}: ${kind} path is not a file ${filePath}`);
+    }
+  }
+}
+
+function resolveContractSourcePath(contractYamlPath, filePath) {
+  if (typeof filePath !== 'string' || filePath.trim().length === 0) return '';
+  if (filePath.startsWith('.')) {
+    return path.resolve(path.dirname(contractYamlPath), filePath);
+  }
+  return resolveWorkspacePath(filePath);
+}
+
+function checkContractSourcesExist(issues, contractYamlPath, sources) {
+  if (!sources || typeof sources !== 'object' || Array.isArray(sources)) {
+    pushIssue(issues, 'contract-table', `${rel(contractYamlPath)}: sources must be a mapping`);
+    return;
+  }
+  for (const [kind, value] of Object.entries(sources)) {
+    const filePaths = asPathArray(value);
+    if (filePaths.length === 0) {
+      pushIssue(issues, 'contract-table', `${rel(contractYamlPath)}: ${kind} source is empty`);
+      continue;
+    }
+    for (const filePath of filePaths) {
+      const absPath = resolveContractSourcePath(contractYamlPath, filePath);
+      if (!absPath || !fs.existsSync(absPath)) {
+        pushIssue(issues, 'contract-table', `${rel(contractYamlPath)}: ${kind} source not found ${filePath}`);
+        continue;
+      }
+      if (!fs.statSync(absPath).isFile()) {
+        pushIssue(issues, 'contract-table', `${rel(contractYamlPath)}: ${kind} source is not a file ${filePath}`);
+      }
     }
   }
 }
@@ -199,6 +236,7 @@ function main() {
       pushIssue(issues, 'contract-doc', `missing contract doc ${rel(contract.mdPath)}`);
       continue;
     }
+    checkContractSourcesExist(issues, contract.yamlPath, contract.doc.sources);
     const mdRuleIds = new Set(collectMarkdownRuleIds(contract.mdPath));
     for (const rule of Array.isArray(contract.doc.rules) ? contract.doc.rules : []) {
       const ruleId = String(rule.rule_id || '').trim();

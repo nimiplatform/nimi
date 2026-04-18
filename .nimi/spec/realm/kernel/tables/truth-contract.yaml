@@ -6,16 +6,16 @@ owner: '@team'
 sources:
   human_spec: ../truth-contract.md
   openapi:
-    - ../../nimi-backend/api-nimi.yaml
-    - ../../nimi-backend/api-dashboard.yaml
-  prisma: ../../nimi-backend/prisma/schema.prisma
+    - nimi-backend/api-nimi.yaml
+    - nimi-backend/api-dashboard.yaml
+  prisma: nimi-backend/prisma/schema.prisma
   services:
-    - ../../nimi-backend/libs/domains/world/src/world-rule.service.ts
-    - ../../nimi-backend/libs/domains/world/src/agent-rule.service.ts
-    - ../../nimi-backend/libs/domains/world/src/world-release.service.ts
-    - ../../nimi-backend/libs/domains/world/src/projection/projection.service.ts
-    - ../../nimi-backend/apps/api/src/modules/@admin/world/admin-world-package.service.ts
-    - ../../nimi-backend/libs/domains/world/src/world-control.service.ts
+    - nimi-backend/libs/domains/world/src/world-rule.service.ts
+    - nimi-backend/libs/domains/world/src/agent-rule.service.ts
+    - nimi-backend/libs/domains/world/src/world-release.service.ts
+    - nimi-backend/libs/domains/world/src/projection/projection.service.ts
+    - nimi-backend/apps/api/src/modules/@admin/world/admin-world-package.service.ts
+    - nimi-backend/libs/domains/world/src/world-control.service.ts
 rule_id_prefix: R-TRUTH-
 rules:
   - rule_id: R-TRUTH-001

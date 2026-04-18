@@ -6,11 +6,11 @@ owner: '@team'
 sources:
   human_spec: ../resource-contract.md
   openapi:
-    - ../../nimi-backend/api-nimi.yaml
-  prisma: ../../nimi-backend/prisma/schema.prisma
+    - nimi-backend/api-nimi.yaml
+  prisma: nimi-backend/prisma/schema.prisma
   services:
-    - ../../nimi-backend/libs/domains/resource/src/resource.service.ts
-    - ../../nimi-backend/libs/infra/resource/src/infra/resource-infra.service.ts
+    - nimi-backend/libs/domains/resource/src/resource.service.ts
+    - nimi-backend/libs/infra/resource/src/infra/resource-infra.service.ts
 rule_id_prefix: R-RSRC-
 rules:
   - rule_id: R-RSRC-001

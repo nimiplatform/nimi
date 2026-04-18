@@ -6,11 +6,11 @@ owner: '@team'
 sources:
   human_spec: ../binding-contract.md
   openapi:
-    - ../../nimi-backend/api-nimi.yaml
-  prisma: ../../nimi-backend/prisma/schema.prisma
+    - nimi-backend/api-nimi.yaml
+  prisma: nimi-backend/prisma/schema.prisma
   services:
-    - ../../nimi-backend/libs/domains/binding/src/binding.service.ts
-    - ../../nimi-backend/libs/domains/world/src/world-control.service.ts
+    - nimi-backend/libs/domains/binding/src/binding.service.ts
+    - nimi-backend/libs/domains/world/src/world-control.service.ts
 rule_id_prefix: R-BIND-
 rules:
   - rule_id: R-BIND-001

@@ -6,10 +6,10 @@ owner: '@team'
 sources:
   human_spec: ../transit-contract.md
   openapi:
-    - ../../nimi-backend/api-nimi.yaml
-  prisma: ../../nimi-backend/prisma/schema.prisma
+    - nimi-backend/api-nimi.yaml
+  prisma: nimi-backend/prisma/schema.prisma
   services:
-    - ../../nimi-backend/libs/domains/world/src/transit.service.ts
+    - nimi-backend/libs/domains/world/src/transit.service.ts
 rule_id_prefix: R-TRANSIT-
 rules:
   - rule_id: R-TRANSIT-001

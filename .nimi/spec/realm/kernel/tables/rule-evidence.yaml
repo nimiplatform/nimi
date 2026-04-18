@@ -1,6 +1,6 @@
 version: 2026-04-09
 owner: '@team'
-description: Hard-cut rule-to-evidence map for the refactored realm kernel. This table uses repo-root executable paths because consistency checks resolve against the repository root; contract YAML `sources.*` remain contract-local provenance links.
+description: Hard-cut rule-to-evidence map for the refactored realm kernel. Executable backend/code provenance paths are workspace-root paths shared by the mirrored public/private realm spec roots; repo-aware checks may resolve them from the current repository root or its parent workspace root. Spec-local links such as `sources.human_spec` remain contract-local.
 profiles:
   truth:
     openapi:

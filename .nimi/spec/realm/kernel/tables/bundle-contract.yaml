@@ -6,10 +6,10 @@ owner: '@team'
 sources:
   human_spec: ../bundle-contract.md
   openapi:
-    - ../../nimi-backend/api-nimi.yaml
-  prisma: ../../nimi-backend/prisma/schema.prisma
+    - nimi-backend/api-nimi.yaml
+  prisma: nimi-backend/prisma/schema.prisma
   services:
-    - ../../nimi-backend/libs/domains/bundle/src/bundle.service.ts
+    - nimi-backend/libs/domains/bundle/src/bundle.service.ts
 rule_id_prefix: R-BNDL-
 rules:
   - rule_id: R-BNDL-001

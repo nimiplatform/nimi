@@ -6,10 +6,10 @@ owner: '@team'
 sources:
   human_spec: ../asset-contract.md
   openapi:
-    - ../../nimi-backend/api-nimi.yaml
-  prisma: ../../nimi-backend/prisma/schema.prisma
+    - nimi-backend/api-nimi.yaml
+  prisma: nimi-backend/prisma/schema.prisma
   services:
-    - ../../nimi-backend/libs/domains/asset/src/ownable-asset.service.ts
+    - nimi-backend/libs/domains/asset/src/ownable-asset.service.ts
 rule_id_prefix: R-ASSET-
 rules:
   - rule_id: R-ASSET-101

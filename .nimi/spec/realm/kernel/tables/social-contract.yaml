@@ -6,11 +6,11 @@ owner: '@team'
 sources:
   human_spec: ../social-contract.md
   openapi:
-    - ../../nimi-backend/api-nimi.yaml
-  prisma: ../../nimi-backend/prisma/schema.prisma
+    - nimi-backend/api-nimi.yaml
+  prisma: nimi-backend/prisma/schema.prisma
   services:
-    - ../../nimi-backend/libs/domains/relationship/src/friendship.service.ts
-    - ../../nimi-backend/libs/domains/user/src/domains/user.service.ts
+    - nimi-backend/libs/domains/relationship/src/friendship.service.ts
+    - nimi-backend/libs/domains/user/src/domains/user.service.ts
 rule_id_prefix: R-SOC-
 rules:
   - rule_id: R-SOC-001

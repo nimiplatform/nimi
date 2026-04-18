@@ -6,10 +6,10 @@ owner: '@team'
 sources:
   human_spec: ../chat-contract.md
   openapi:
-    - ../../nimi-backend/api-nimi.yaml
-  prisma: ../../nimi-backend/prisma/schema.prisma
+    - nimi-backend/api-nimi.yaml
+  prisma: nimi-backend/prisma/schema.prisma
   services:
-    - ../../nimi-backend/libs/domains/chat/src/domains/chat.service.ts
+    - nimi-backend/libs/domains/chat/src/domains/chat.service.ts
 rule_id_prefix: R-CHAT-
 rules:
   - rule_id: R-CHAT-001
