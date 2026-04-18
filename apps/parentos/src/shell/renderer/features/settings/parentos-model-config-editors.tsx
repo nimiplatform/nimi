@@ -144,9 +144,9 @@ function serializeSpeechTranscribeDraft(draft: ParentosSpeechTranscribeDraft): R
 
 function EditorShell(props: { title: string; hint: string; children: ReactNode }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-slate-50/80 p-3">
+    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
       <SubSectionLabel label={props.title} />
-      <p className="text-[11px] leading-5 text-slate-500">{props.hint}</p>
+      <p className="text-xs leading-5 text-slate-500">{props.hint}</p>
       {props.children}
     </div>
   );

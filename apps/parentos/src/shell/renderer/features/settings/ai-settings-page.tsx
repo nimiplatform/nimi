@@ -211,12 +211,12 @@ export default function AiSettingsPage() {
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </Link>
-          <h1 className="text-xl font-bold" style={{ color: S.text }}>AI 模型设置</h1>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: S.text }}>AI 模型设置</h1>
         </div>
 
         {bannerCopy && (
           <div
-            className={`${S.radiusSm} mb-4 px-4 py-3 text-[12px]`}
+            className="mb-4 rounded-md px-4 py-3 text-sm"
             style={bannerCopy.kind === 'warning'
               ? { background: '#fef9e7', color: '#92400e', border: '1px solid #fde68a' }
               : { background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}
@@ -225,7 +225,7 @@ export default function AiSettingsPage() {
           </div>
         )}
 
-        <div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <ModelConfigPanel sections={sections} />
         </div>
       </div>
