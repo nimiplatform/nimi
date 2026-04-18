@@ -2,9 +2,21 @@
 
 > Owner Domain: `P-ARCH-*`
 
-## P-ARCH-001 — 六层架构定义
+## P-ARCH-001 — 六层执行架构定义
 
-Nimi 平台采用固定六层架构：nimi-realm（云端持久世界）、nimi-runtime（本地 AI 运行时）、nimi-sdk（开发者接口层）、desktop（第一方应用 / mod host）、nimi-hook（desktop mod 接口层）、mods（独立包/独立仓的扩展层）。nimi-apps 为独立应用总称。
+Nimi 平台采用固定六层执行架构：nimi-realm（云端持久世界）、nimi-runtime（本地 AI 运行时）、nimi-sdk（开发者接口层）、desktop（第一方应用 / mod host）、nimi-hook（desktop mod 接口层）、mods（独立包/独立仓的扩展层）。`nimi-apps` 为独立应用总称。
+
+`nimi-cognition` 作为独立 authority domain 存在，由 runtime / sdk bridge 与 consume；它不是第七条执行宿主层，也不得被 platform text 静默压回 realm 或 runtime 子章节。
+
+public top-layer architecture text `MUST` 同时暴露 cross-repo read path：
+
+- public canonical 入口在 `nimi/.nimi/spec/**`
+- private realm / backend / dashboard / creator-side authority 保留在
+  `nimi-realm/.nimi/spec/**`
+- mods workspace authority 保留在 `nimi-mods/spec/**`
+
+上述 framing 只负责 cross-repo topology 与 authority routing；不得把 private
+repo 或 mods workspace 的 semantic owner 静默迁回当前 public root。
 
 ## P-ARCH-002 — 层间通信规则
 
@@ -12,11 +24,16 @@ Nimi 平台采用固定六层架构：nimi-realm（云端持久世界）、nimi-
 
 ## P-ARCH-003 — Realm 职责边界
 
-`MUST`: Realm 是持久世界的共享真相源。职责域：auth、social、chat、economy、world、agent、memory（云端）、audit（云端）。六原语的语义执行与真相源锁定在 Realm。
+`MUST`: Realm 是持久世界的共享真相源。职责域：auth、social、chat、economy、world、agent、audit（云端）。
+
+platform text `MUST NOT` 把 platform protocol 的六原语执行主权写成 realm
+semantic core 的完整别名。六原语属于 platform primitive layer；realm semantic
+persistence read path 继续落在 Truth / World State / World History / Chat 与其
+相邻 formal domain surfaces。
 
 ## P-ARCH-004 — Runtime 职责边界
 
-`MUST`: Runtime 是独立本地后台进程。职责域：AI 推理（全模态）、AI 路由（local/cloud）、进程管理、模型管理、Workflow DAG、GPU 仲裁、本地数据层、知识库、Credential Plane、MCP Server、审计（本地）、App 间通信、App 授权网关。
+`MUST`: Runtime 是独立本地后台进程。职责域：AI 推理（全模态）、AI 路由（local/cloud）、进程管理、模型管理、Workflow DAG、GPU 仲裁、本地数据层、知识库、Credential Plane、MCP Server、审计（本地）、App 间通信、App 授权网关，以及 cognition / agent-core overlap 的 runtime-facing bridge surface。
 
 ## P-ARCH-005 — No-Legacy 执行口径
 

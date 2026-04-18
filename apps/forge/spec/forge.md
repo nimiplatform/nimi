@@ -102,6 +102,15 @@ The **data layer** is rewritten: World-Studio uses `hookClient.data.query()` (mo
 
 The **UI layer** is selectively migrated: panel components are imported but wrapped in Forge's layout system.
 
+Current posture:
+
+- `world-studio` 仍是 active migration source，不应被误写成已完成替代
+- `nimi-mods/spec/**` 仍是当前 `world-studio` 与 shared chain 的 mods-local
+  authority surface
+- Forge 已迁入部分原 World-Studio workflow，并在 standalone app host model 下继续扩展
+- Forge 是逐步替代 `world-studio` 的 admitted direction，但 replacement 仍未完成
+- World-Studio 的长期 replacement direction 属于演进方向，不是本文件可直接宣告的 completed state
+
 ## Navigation Structure
 
 ```

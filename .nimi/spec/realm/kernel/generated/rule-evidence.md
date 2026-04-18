@@ -7,7 +7,7 @@ Version: `2026-04-09`
 Owner: `@team`
 
 Profiles: 13
-Rules mapped: 75
+Rules mapped: 69
 
 | Rule ID | Domain | OpenAPI | Prisma | Services | Tests |
 | --- | --- | --- | --- | --- | --- |
@@ -37,12 +37,6 @@ Rules mapped: 75
 | R-WHIST-004 | world-history | 2 | 1 | 2 | 2 |
 | R-WHIST-005 | world-history | 2 | 1 | 2 | 2 |
 | R-WHIST-006 | world-history | 2 | 1 | 2 | 2 |
-| R-MEM-001 | agent-memory | 5 | 1 | 3 | 3 |
-| R-MEM-002 | agent-memory | 5 | 1 | 3 | 3 |
-| R-MEM-003 | agent-memory | 5 | 1 | 3 | 3 |
-| R-MEM-004 | agent-memory | 5 | 1 | 3 | 3 |
-| R-MEM-005 | agent-memory | 5 | 1 | 3 | 3 |
-| R-MEM-006 | agent-memory | 5 | 1 | 3 | 3 |
 | R-CHAT-001 | chat | 9 | 2 | 2 | 3 |
 | R-CHAT-002 | chat | 9 | 2 | 2 | 3 |
 | R-CHAT-003 | chat | 9 | 2 | 2 | 3 |

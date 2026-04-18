@@ -5,7 +5,6 @@
 
 Generated files:
 
-- `.nimi/spec/realm/kernel/generated/agent-memory-contract.md`
 - `.nimi/spec/realm/kernel/generated/asset-contract.md`
 - `.nimi/spec/realm/kernel/generated/attachment-contract.md`
 - `.nimi/spec/realm/kernel/generated/binding-contract.md`
@@ -15,7 +14,6 @@ Generated files:
 - `.nimi/spec/realm/kernel/generated/domain-enums.md`
 - `.nimi/spec/realm/kernel/generated/domain-state-machines.md`
 - `.nimi/spec/realm/kernel/generated/economy-contract.md`
-- `.nimi/spec/realm/kernel/generated/object-write-authorization.md`
 - `.nimi/spec/realm/kernel/generated/open-spec-alignment-map.md`
 - `.nimi/spec/realm/kernel/generated/resource-contract.md`
 - `.nimi/spec/realm/kernel/generated/rule-catalog.md`

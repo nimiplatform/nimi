@@ -1,5 +1,5 @@
 version: 1
-updated_at: 2026-03-26
+updated_at: 2026-04-18
 owner: "@team"
 enums:
   - enum_id: STATE-SCOPE
@@ -8,16 +8,12 @@ enums:
     source_rules: [R-WSTATE-003]
   - enum_id: EFFECT-CLASS
     domain: world-state
-    values: [NONE, MEMORY_ONLY, STATE_ONLY, STATE_AND_HISTORY]
+    values: [NONE, STATE_ONLY, STATE_AND_HISTORY]
     source_rules: [R-WSTATE-004]
-  - enum_id: MEMORY-CLASS
-    domain: agent-memory
-    values: [PUBLIC_SHARED, WORLD_SHARED, DYADIC]
-    source_rules: [R-MEM-002]
   - enum_id: APP-RUN-MODE
     domain: realm-shared
-    values: [REPLAY, PRIVATE_CONTINUITY, CANON_MUTATION]
-    source_rules: [R-WHIST-004, R-WSTATE-005, R-MEM-006]
+    values: [REPLAY, CANON_MUTATION]
+    source_rules: [R-WHIST-004, R-WSTATE-005]
   - enum_id: WORLD-TYPE
     domain: truth
     values: [OASIS, CREATOR]

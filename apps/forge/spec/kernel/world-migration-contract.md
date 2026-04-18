@@ -21,6 +21,15 @@ Forge no longer exposes world create/maintain as isolated top-level creator flow
 
 Realm `world-drafts` remain available, but only as minimal publish candidates for `Truth / World State / World History`. Forge-local workspace state remains authoritative for editor workflow, extraction progress, and asset generation.
 
+Migration posture clarification:
+
+- current authority split：`nimi-mods/spec/**` 仍持有 `world-studio` 与 shared
+  chain 的 mods-local authority；`apps/forge/spec/**` 持有 Forge native app
+  host model 与 migration posture
+- current active state：World-Studio mod 仍存在，Forge 仍复用其部分 engine/services/code paths
+- admitted migration posture：Forge 正在把 World-Studio workflow 迁入 native pages
+- non-goal of this contract：不得把“长期逐步替代 World-Studio”误写成已完成替代事实
+
 ## FG-WORLD-002: Data Query Rewrite
 
 World-Studio accesses backend via `hookClient.data.query(capabilityId, params)`. Forge replaces these with direct SDK realm client calls.

@@ -14,7 +14,7 @@ Rules: 6
 | R-WSTATE-001 | must | shared-present-only | World State expresses durable shared present only and excludes story runtime or prompt context. |
 | R-WSTATE-002 | must | explicit-commit-envelope | State mutation uses an explicit commit envelope with worldId, appId, sessionId, effectClass, scope, schemaId, schemaVersion, actorRefs, reason, and evidenceRefs. |
 | R-WSTATE-003 | must | durable-scope-only | World State scope is limited to WORLD, ENTITY, or RELATION durable scopes. |
-| R-WSTATE-004 | must | fixed-effect-classes | effectClass is fixed to NONE, MEMORY_ONLY, STATE_ONLY, or STATE_AND_HISTORY. |
+| R-WSTATE-004 | must | fixed-effect-classes | effectClass is fixed to NONE, STATE_ONLY, or STATE_AND_HISTORY. |
 | R-WSTATE-005 | must | fail-close-state-write | State writes require explicit app authorization through an appId/schemaId/schemaVersion/effectClass to runMode matrix and fail-close schema validation. |
 | R-WSTATE-006 | must | single-state-commit-model | Creator tooling and authorized apps use the same explicit state commit model; hidden legacy write paths are forbidden. |
 

@@ -1607,6 +1607,13 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
+    - canonical_path: .nimi/spec/desktop/kernel/world-tour-tester-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/desktop/kernel/world-tour-tester-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
     - canonical_path: .nimi/spec/desktop/legal.md
       file_class: domain_guides
       source_refs:
@@ -1862,6 +1869,13 @@ spec_generation_audit:
       file_class: kernel_markdown
       source_refs:
         - .nimi/spec/platform/kernel/design-pattern-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/platform/kernel/nimi-ui-material-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/platform/kernel/nimi-ui-material-contract.md
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
@@ -2362,13 +2376,6 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
-    - canonical_path: .nimi/spec/realm/agent-memory.md
-      file_class: domain_guides
-      source_refs:
-        - .nimi/spec/realm/agent-memory.md
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
     - canonical_path: .nimi/spec/realm/agent.md
       file_class: domain_guides
       source_refs:
@@ -2418,13 +2425,6 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
-    - canonical_path: .nimi/spec/realm/kernel/agent-memory-contract.md
-      file_class: kernel_markdown
-      source_refs:
-        - .nimi/spec/realm/kernel/agent-memory-contract.md
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
     - canonical_path: .nimi/spec/realm/kernel/asset-contract.md
       file_class: kernel_markdown
       source_refs:
@@ -2467,37 +2467,9 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
-    - canonical_path: .nimi/spec/realm/kernel/generated/agent-memory-contract.md
-      file_class: kernel_generated
-      source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
-        - .nimi/spec/realm/kernel/tables/asset-contract.yaml
-        - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
-        - .nimi/spec/realm/kernel/tables/binding-contract.yaml
-        - .nimi/spec/realm/kernel/tables/bundle-contract.yaml
-        - .nimi/spec/realm/kernel/tables/chat-contract.yaml
-        - .nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml
-        - .nimi/spec/realm/kernel/tables/domain-enums.yaml
-        - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
-        - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
-        - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
-        - .nimi/spec/realm/kernel/tables/resource-contract.yaml
-        - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
-        - .nimi/spec/realm/kernel/tables/rule-evidence.yaml
-        - .nimi/spec/realm/kernel/tables/social-contract.yaml
-        - .nimi/spec/realm/kernel/tables/transit-contract.yaml
-        - .nimi/spec/realm/kernel/tables/truth-contract.yaml
-        - .nimi/spec/realm/kernel/tables/under-spec-registry.yaml
-        - .nimi/spec/realm/kernel/tables/world-history-contract.yaml
-        - .nimi/spec/realm/kernel/tables/world-state-contract.yaml
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
     - canonical_path: .nimi/spec/realm/kernel/generated/asset-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2507,7 +2479,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2524,7 +2495,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/attachment-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2534,7 +2504,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2551,7 +2520,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/binding-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2561,7 +2529,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2578,7 +2545,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/bundle-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2588,7 +2554,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2605,7 +2570,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/chat-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2615,7 +2579,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2632,7 +2595,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/commit-authorization-matrix.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2642,7 +2604,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2659,7 +2620,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/domain-enums.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2669,7 +2629,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2686,7 +2645,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/domain-state-machines.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2696,7 +2654,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2713,7 +2670,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/economy-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2723,7 +2679,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2740,7 +2695,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/index.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2750,7 +2704,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2767,7 +2720,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/open-spec-alignment-map.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2777,7 +2729,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2794,7 +2745,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/resource-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2804,7 +2754,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2821,7 +2770,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/rule-catalog.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2831,7 +2779,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2848,7 +2795,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/rule-evidence.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2858,7 +2804,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2875,7 +2820,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/social-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2885,7 +2829,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2902,7 +2845,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/transit-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2912,7 +2854,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2929,7 +2870,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/truth-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2939,7 +2879,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2956,7 +2895,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/under-spec-registry.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2966,7 +2904,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -2983,7 +2920,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/world-history-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -2993,7 +2929,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -3010,7 +2945,6 @@ spec_generation_audit:
     - canonical_path: .nimi/spec/realm/kernel/generated/world-state-contract.md
       file_class: kernel_generated
       source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
         - .nimi/spec/realm/kernel/tables/asset-contract.yaml
         - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
         - .nimi/spec/realm/kernel/tables/binding-contract.yaml
@@ -3020,7 +2954,6 @@ spec_generation_audit:
         - .nimi/spec/realm/kernel/tables/domain-enums.yaml
         - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
         - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
         - .nimi/spec/realm/kernel/tables/resource-contract.yaml
         - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
@@ -3052,13 +2985,6 @@ spec_generation_audit:
       file_class: kernel_markdown
       source_refs:
         - .nimi/spec/realm/kernel/social-contract.md
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
-    - canonical_path: .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
-      file_class: kernel_tables
-      source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
@@ -3122,13 +3048,6 @@ spec_generation_audit:
       file_class: kernel_tables
       source_refs:
         - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
-    - canonical_path: .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
-      file_class: kernel_tables
-      source_refs:
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
@@ -6483,33 +6402,6 @@ spec_generation_audit:
       file_class: kernel_tables
       source_refs:
         - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
-    - canonical_path: .nimi/spec/realm/kernel/generated/object-write-authorization.md
-      file_class: kernel_generated
-      source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
-        - .nimi/spec/realm/kernel/tables/asset-contract.yaml
-        - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
-        - .nimi/spec/realm/kernel/tables/binding-contract.yaml
-        - .nimi/spec/realm/kernel/tables/bundle-contract.yaml
-        - .nimi/spec/realm/kernel/tables/chat-contract.yaml
-        - .nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml
-        - .nimi/spec/realm/kernel/tables/domain-enums.yaml
-        - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
-        - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
-        - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
-        - .nimi/spec/realm/kernel/tables/resource-contract.yaml
-        - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
-        - .nimi/spec/realm/kernel/tables/rule-evidence.yaml
-        - .nimi/spec/realm/kernel/tables/social-contract.yaml
-        - .nimi/spec/realm/kernel/tables/transit-contract.yaml
-        - .nimi/spec/realm/kernel/tables/truth-contract.yaml
-        - .nimi/spec/realm/kernel/tables/under-spec-registry.yaml
-        - .nimi/spec/realm/kernel/tables/world-history-contract.yaml
-        - .nimi/spec/realm/kernel/tables/world-state-contract.yaml
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []

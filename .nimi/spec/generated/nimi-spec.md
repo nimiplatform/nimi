@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-04-17
+> 生成时间: 2026-04-18
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -1408,9 +1408,10 @@ Runtime SDK 对外方法投影按服务分组，方法集合必须与 `.nimi/spe
 
 app-facing route metadata / projection surface 是例外的 host-typed logical surface，遵循 `runtime-route-contract.md`（`S-RUNTIME-074` ~ `S-RUNTIME-078`），不得被误写成新增 daemon 顶层 RPC 投影。
 
-当 `RuntimeMemoryService` / `RuntimeAgentCoreService` 进入 SDK 投影时，公开 surface 必须维持 runtime-owned authority cut：
+当 `RuntimeCognitionService` / `RuntimeAgentCoreService` 进入 SDK 投影时，公开 surface 必须维持 runtime-owned authority cut：
 
-- `runtime.memory.*` 仅投影 Nimi-owned memory substrate contract
+- `runtime.memory.*` 仅投影 `RuntimeCognitionService` 中的 runtime-owned memory family
+- `runtime.knowledge.*` 仅投影 `RuntimeCognitionService` 中的 runtime-owned knowledge family
 - `runtime.agentCore.*` 负责 app-facing canonical agent control plane
 - app-facing canonical agent memory write path 必须统一走 `runtime.agentCore.*`，不得漂移回 direct Realm memory mutation 或 provider-native memory API
 - `@nimiplatform/sdk/realm` 不再承载 canonical agent-memory public helper；runtime-era app path 只能消费 `runtime.agentCore.*`
@@ -2457,7 +2458,7 @@ AI 对话生命周期拦截点：
 - `injected` source type 仅允许 `pre-model` 和 `post-state`。
 - `sideload` 和 `codegen` 不允许 turn hook。
 
-**与 Runtime 拦截器链的时序关系**：Turn hook 在 renderer 进程执行，时序先于 SDK 发送请求到 Runtime。Runtime K-DAEMON-005 拦截器链（version → lifecycle → protocol → authn → authz → audit，共 6 层）在 daemon 收到请求后执行。两层无重叠：Desktop turn hook 负责请求编排（策略门控、模型选择、状态更新、提交确认），Runtime 拦截器负责请求验证（版本协商、健康门控、幂等性、身份认证、授权、审计）。
+**与 Runtime 拦截器链的时序关系**：Turn hook 在 renderer 进程执行，时序先于 SDK 发送请求到 Runtime。Runtime K-DAEMON-005 拦截器链（version → lifecycle → activity → protocol → authn → authz → credential-scrub → audit，共 8 层）在 daemon 收到请求后执行。两层无重叠：Desktop turn hook 负责请求编排（策略门控、模型选择、状态更新、提交确认），Runtime 拦截器负责请求验证与执行边界保护（版本协商、健康门控、活跃 RPC 跟踪、幂等性、身份认证、授权、敏感 metadata 擦除、审计）。
 
 **D-HOOK-004 — UI 子系统**
 
@@ -5028,7 +5029,7 @@ Fixed rules:
 - RemoveModel
 - CheckModelHealth
 
-**knowledge_service_projection** → RuntimeKnowledgeService
+**knowledge_service_projection** → RuntimeCognitionService
 
 - CreateKnowledgeBank
 - GetKnowledgeBank
@@ -5053,7 +5054,7 @@ Fixed rules:
 - SendAppMessage
 - SubscribeAppMessages
 
-**memory_service_projection** → RuntimeMemoryService
+**memory_service_projection** → RuntimeCognitionService
 
 - CreateBank
 - GetBank
@@ -5062,7 +5063,6 @@ Fixed rules:
 - Retain
 - Recall
 - History
-- Reflect
 - DeleteMemory
 - SubscribeMemoryEvents
 

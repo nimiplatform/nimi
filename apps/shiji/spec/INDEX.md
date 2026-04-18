@@ -37,5 +37,5 @@
 - `spec/sdk/kernel/surface-contract.md` — S-SURFACE-*
 - `spec/realm/kernel/truth-contract.md` — R-TRUTH-*
 - `spec/realm/kernel/world-history-contract.md` — R-WHIST-*
-- `spec/realm/kernel/agent-memory-contract.md` — R-MEM-*
+- `spec/runtime/kernel/runtime-memory-service-contract.md` — K-MEM-*
 - `spec/runtime/kernel/multimodal-provider-contract.md` — K-MMPROV-*

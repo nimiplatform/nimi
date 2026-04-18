@@ -1,13 +1,13 @@
 # Standalone Cognition
 
-> Scope: `nimi-cognition` 作为独立 standalone cognition domain 的权威说明，不再由 runtime 继续 owning。
+> Scope: `nimi-cognition` 作为独立 standalone cognition domain 的权威说明；runtime 可以 bridge / consume cognition，但不得重新定义其 authority。
 >
 > Normative Imports: `.nimi/spec/cognition/kernel/*`
 
 ## 1. 目标
 
 本目录定义 `nimi-cognition` 的独立 authority home。
-它来源于 runtime memory / knowledge 语义的抽离与升级，但抽离完成后不再作为 runtime 的附属章节存在。
+它来源于 runtime memory / knowledge 语义的抽离与升级。当前 public repo canonical 已明确把 continuity memory semantic owner 放在 cognition/runtime 路径；realm 在本 repo public authority 中不再保留 active memory owner surface。后续 cross-repo cleanup 只允许收窄 wording 或 tooling，不得把 owner line 写回 realm。
 
 ## 2. 目录结构
 
@@ -56,4 +56,5 @@
 - Kernel anchor rules: `C-COG-001` `C-COG-002` `C-COG-003` `C-COG-016`
 - cognition 不是 runtime subchapter。
 - runtime 可以 bridge / consume cognition，但不能重新定义 cognition authority。
+- runtime-facing overlap surface 的存在，不等于 runtime 或 realm 重新获得 cognition semantic ownership。
 - baseline、审计报告、实现代码都不是权威；权威只在本目录 kernel 中。

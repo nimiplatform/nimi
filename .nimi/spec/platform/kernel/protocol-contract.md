@@ -14,6 +14,10 @@
 
 `MUST`: 六原语的语义执行与真相源必须锁定在 Realm。非 Realm 参与方不得声明六原语 `PROVIDER`（拒绝：`REALM_PRIMITIVE_PROVIDER_FORBIDDEN`）。Runtime/App 对六原语仅可消费与透传，不可替代执行。
 
+`MUST NOT`: 平台文本不得把六原语 primitive layer 直接压写成 realm semantic
+core 的完整结构别名。六原语属于 platform protocol layer；realm semantic
+core/read path 仍需回到 realm canonical surface 继续展开。
+
 ## P-PROTO-010 — 请求封装字段规则
 
 `MUST`: `domain=world-primitive` 时必须提供 `worldId + primitive`。`domain=app-auth` 时 `primitive` 必须为空，`appId` 必填。所有请求必须提供 `participantId`。所有写操作必须提供 `idempotencyKey`。非 Realm 参与方不得以 `world-primitive` 域执行原语写入。V1 domain 枚举为封闭集：`world-primitive`（世界原语操作）、`app-auth`（应用授权操作）。

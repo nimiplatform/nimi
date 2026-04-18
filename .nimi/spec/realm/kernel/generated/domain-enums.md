@@ -4,15 +4,14 @@
 # Domain Enums (Generated)
 
 Version: `1`
-Updated: `2026-03-26`
+Updated: `2026-04-18`
 Scope note: n/a
 
 | Enum ID | Domain | Values | Source Rules | Status | Blocker | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | STATE-SCOPE | world-state | WORLD, ENTITY, RELATION | R-WSTATE-003 | active |  |  |
-| EFFECT-CLASS | world-state | NONE, MEMORY_ONLY, STATE_ONLY, STATE_AND_HISTORY | R-WSTATE-004 | active |  |  |
-| MEMORY-CLASS | agent-memory | PUBLIC_SHARED, WORLD_SHARED, DYADIC | R-MEM-002 | active |  |  |
-| APP-RUN-MODE | realm-shared | REPLAY, PRIVATE_CONTINUITY, CANON_MUTATION | R-WHIST-004, R-WSTATE-005, R-MEM-006 | active |  |  |
+| EFFECT-CLASS | world-state | NONE, STATE_ONLY, STATE_AND_HISTORY | R-WSTATE-004 | active |  |  |
+| APP-RUN-MODE | realm-shared | REPLAY, CANON_MUTATION | R-WHIST-004, R-WSTATE-005 | active |  |  |
 | WORLD-TYPE | truth | OASIS, CREATOR | R-TRUTH-007 | active |  |  |
 | TRANSIT-STATUS | transit | PENDING, ACTIVE, COMPLETED, ABANDONED | R-TRANSIT-003 | active |  |  |
 | RESOURCE-TYPE | resource | IMAGE, VIDEO, AUDIO, TEXT | R-RSRC-002 | active |  | VOICE remains explicitly deferred; see under-spec U3. |

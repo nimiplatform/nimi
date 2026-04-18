@@ -151,7 +151,7 @@ Memory isolation:
 - Group execution must NOT write DYADIC memory (user-turn or assistant-turn).
 - Group execution must NOT read DYADIC memory or inject continuity digest.
 - Group execution must NOT dispatch sidecar inputs.
-- Rationale: DYADIC memory is isolated by `(agentId, userId)` per R-MEM-003. Group context is multi-party; injecting DYADIC memory risks cross-user leakage in group-visible responses. Memory admission in group context is deferred and requires explicit future admission with addressed-user attribution, anti-leak guards, and provenance.
+- Rationale: `AGENT_DYADIC` continuity remains isolated to an `(agentId, userId)` pair per `K-MEM-002`. Group context is multi-party; injecting dyadic continuity risks cross-user leakage in group-visible responses. Memory admission in group context is deferred and requires explicit future admission with addressed-user attribution, anti-leak guards, and provenance.
 
 Private resource isolation:
 
@@ -231,8 +231,8 @@ Fixed rules:
 - `nimi-mods/runtime/local-chat/src/hooks/turn-send/turn-mode-resolver.ts` — turn-mode classifier evidence
 - `.local/**` — local preflight evidence for desktop agent chat behavior authority / defer decisions (non-authoritative supporting material only)
 - `.local/**` — local execution-engine boundary audit for AI chat non-owner framing (non-authoritative supporting material only)
-- `.nimi/spec/realm/kernel/chat-contract.md` — R-CHAT-002a GROUP thread type, R-CHAT-006 GROUP admin, R-CHAT-007 GROUP post-auth
-- `.nimi/spec/realm/kernel/agent-memory-contract.md` — R-MEM-003 DYADIC isolation (referenced by D-LLM-026b)
+- `.nimi/spec/realm/kernel/chat-contract.md` — R-CHAT-002 direct human-only boundary, R-CHAT-004 non-human / orchestration exclusion
+- `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md` — K-MEM-002 bank scope and isolation truth for `AGENT_DYADIC` continuity (referenced by D-LLM-026b)
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-002 scope lifecycle (referenced by D-LLM-026b)
 - `.nimi/spec/realm/kernel/truth-contract.md` — R-TRUTH-003 Agent truth boundary (referenced by D-LLM-026b)
 - `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` — desktop-local avatar registry / binding and render-precedence ownership

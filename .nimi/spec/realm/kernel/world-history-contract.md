@@ -29,7 +29,7 @@ Each history event must carry typed provenance: `appId`, `sessionId`, `actorRefs
 
 ## R-WHIST-004
 
-`REPLAY` and `PRIVATE_CONTINUITY` app runs must not append shared world history. Only `CANON_MUTATION` rows explicitly authorized by the commit authorization matrix may do so.
+`REPLAY` app runs must not append shared world history. Only `CANON_MUTATION` rows explicitly authorized by the commit authorization matrix may do so.
 
 ## R-WHIST-005
 

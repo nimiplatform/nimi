@@ -29,7 +29,7 @@ World State scope is fixed to durable shared scopes only: `WORLD`, `ENTITY`, or 
 
 ## R-WSTATE-004
 
-`effectClass` is fixed to `NONE | MEMORY_ONLY | STATE_ONLY | STATE_AND_HISTORY`. Clients must not invent additional mutation classes.
+`effectClass` is fixed to `NONE | STATE_ONLY | STATE_AND_HISTORY`. Clients must not invent additional mutation classes.
 
 ## R-WSTATE-005
 

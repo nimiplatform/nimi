@@ -3,7 +3,7 @@ id: SPEC-REALM-APP-INTERCONNECT-001
 title: Realm App Interconnect Model Bridge
 status: active
 owner: "@team"
-updated: 2026-03-26
+updated: 2026-04-18
 ---
 
 # Realm App Interconnect Model
@@ -13,7 +13,6 @@ updated: 2026-03-26
 - `kernel/truth-contract.md` (`R-TRUTH-001..008`)
 - `kernel/world-state-contract.md` (`R-WSTATE-001..006`)
 - `kernel/world-history-contract.md` (`R-WHIST-001..006`)
-- `kernel/agent-memory-contract.md` (`R-MEM-001..006`)
 - `kernel/chat-contract.md` (`R-CHAT-001..005`)
 - `kernel/social-contract.md` (`R-SOC-001..004`)
 - `kernel/economy-contract.md` (`R-ECON-001..004`)
@@ -23,7 +22,7 @@ updated: 2026-03-26
 
 ## Scope
 
-Bridge-only document. It mirrors the hard-cut realm interconnect semantics exposed by the local canonical contract set without introducing a second rule system in open .nimi/spec.
+Bridge-only document. It mirrors the hard-cut realm interconnect semantics exposed by the local canonical contract set without introducing a second rule system in open `.nimi/spec`.
 
 ## Mapping Declaration
 
@@ -32,7 +31,6 @@ Bridge-only document. It mirrors the hard-cut realm interconnect semantics expos
 | `R-TRUTH-001..008` | `R-TRUTH-001..008` |
 | `R-WSTATE-001..006` | `R-WSTATE-001..006` |
 | `R-WHIST-001..006` | `R-WHIST-001..006` |
-| `R-MEM-001..006` | `R-MEM-001..006` |
 | `R-CHAT-001..005` | `R-CHAT-001..005` |
 | `R-SOC-001..004` | `R-SOC-001..004` |
 | `R-ECON-001..004` | `R-ECON-001..004` |
@@ -48,13 +46,12 @@ Bridge-only document. It mirrors the hard-cut realm interconnect semantics expos
 2. `kernel/truth-contract.md`
 3. `kernel/world-state-contract.md`
 4. `kernel/world-history-contract.md`
-5. `kernel/agent-memory-contract.md`
-6. `kernel/chat-contract.md`
-7. `kernel/social-contract.md`
-8. `kernel/economy-contract.md`
-9. `kernel/asset-contract.md`
-10. `kernel/transit-contract.md`
-11. `.nimi/spec/platform/ai-last-mile.md`
+5. `kernel/chat-contract.md`
+6. `kernel/social-contract.md`
+7. `kernel/economy-contract.md`
+8. `kernel/asset-contract.md`
+9. `kernel/transit-contract.md`
+10. `.nimi/spec/platform/ai-last-mile.md`
 
 ## Non-goals
 

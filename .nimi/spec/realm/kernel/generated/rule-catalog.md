@@ -5,7 +5,7 @@
 
 Generated at: 2026-04-09T00:00:00Z
 
-Total rules: 75
+Total rules: 69
 Blocked external rules: 0
 
 | Rule ID | Domain | Level | Source | Statement |
@@ -27,7 +27,7 @@ Blocked external rules: 0
 | R-WSTATE-001 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | World State expresses durable shared present only and excludes story runtime. |
 | R-WSTATE-002 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | State mutation uses an explicit commit envelope with fixed provenance fields. |
 | R-WSTATE-003 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | World State scope is limited to durable shared scopes WORLD, ENTITY, or RELATION. |
-| R-WSTATE-004 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | effectClass is fixed to NONE, MEMORY_ONLY, STATE_ONLY, or STATE_AND_HISTORY. |
+| R-WSTATE-004 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | effectClass is fixed to NONE, STATE_ONLY, or STATE_AND_HISTORY. |
 | R-WSTATE-005 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | State writes require explicit app authorization through an appId/schemaId/schemaVersion/effectClass to runMode matrix and fail-close schema validation. |
 | R-WSTATE-006 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | Creator tooling and authorized apps use the same explicit state commit model. |
 | R-WHIST-001 | world-history | must | .nimi/spec/realm/kernel/world-history-contract.md | World History stores canonical happened facts only, not arbitrary story traces. |
@@ -36,12 +36,6 @@ Blocked external rules: 0
 | R-WHIST-004 | world-history | must | .nimi/spec/realm/kernel/world-history-contract.md | Replay and private continuity runs must not append shared world history; only CANON_MUTATION matrix entries may do so. |
 | R-WHIST-005 | world-history | must | .nimi/spec/realm/kernel/world-history-contract.md | World History is append-only and corrections use superseding or invalidation records. |
 | R-WHIST-006 | world-history | must | .nimi/spec/realm/kernel/world-history-contract.md | App-owned narrative archives must not be represented as Realm canonical world history. |
-| R-MEM-001 | agent-memory | must | .nimi/spec/realm/kernel/agent-memory-contract.md | Agent Memory stores continuity facts only and excludes prompt or runtime orchestration. |
-| R-MEM-002 | agent-memory | must | .nimi/spec/realm/kernel/agent-memory-contract.md | Memory class is fixed to PUBLIC_SHARED, WORLD_SHARED, or DYADIC. |
-| R-MEM-003 | agent-memory | must | .nimi/spec/realm/kernel/agent-memory-contract.md | DYADIC memory is strictly isolated by agentId and userId. |
-| R-MEM-004 | agent-memory | must | .nimi/spec/realm/kernel/agent-memory-contract.md | Memory writes are explicit, auditable, and provenance-bearing. |
-| R-MEM-005 | agent-memory | must | .nimi/spec/realm/kernel/agent-memory-contract.md | Private deletion rights apply to DYADIC memory without damaging shared continuity. |
-| R-MEM-006 | agent-memory | must | .nimi/spec/realm/kernel/agent-memory-contract.md | History and state may inform memory writes but do not auto-materialize memory by default; run-mode permissions remain explicit in the commit authorization matrix. |
 | R-CHAT-001 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, and sync surface. |
 | R-CHAT-002 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Realm Chat v1 supports only HUMAN_HUMAN DIRECT chat; non-human participants and non-direct shapes must fail-close. |
 | R-CHAT-003 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Social gates human chat admission, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat. |

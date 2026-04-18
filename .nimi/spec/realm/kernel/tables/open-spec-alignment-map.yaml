@@ -1,5 +1,5 @@
 version: 1
-updated_at: "2026-03-26"
+updated_at: "2026-04-18"
 owner: "@team"
 mappings:
   - external_id: R-TRUTH-001
@@ -101,36 +101,6 @@ mappings:
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-history-contract.md#R-WHIST-006
     local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration
-    coverage_status: mapped
-  - external_id: R-MEM-001
-    external_type: kernel_rule
-    external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-001
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
-    coverage_status: mapped
-  - external_id: R-MEM-002
-    external_type: kernel_rule
-    external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-002
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
-    coverage_status: mapped
-  - external_id: R-MEM-003
-    external_type: kernel_rule
-    external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-003
-    local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration
-    coverage_status: mapped
-  - external_id: R-MEM-004
-    external_type: kernel_rule
-    external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-004
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
-    coverage_status: mapped
-  - external_id: R-MEM-005
-    external_type: kernel_rule
-    external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-005
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
-    coverage_status: mapped
-  - external_id: R-MEM-006
-    external_type: kernel_rule
-    external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-006
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
     coverage_status: mapped
   - external_id: R-CHAT-001
     external_type: kernel_rule
@@ -341,11 +311,6 @@ mappings:
     external_type: domain_doc
     external_path: nimi/.nimi/spec/realm/world-history.md
     local_anchor: .nimi/spec/realm/world-history.md#Scope
-    coverage_status: mapped
-  - external_id: REALM-DOC-AGENT-MEMORY
-    external_type: domain_doc
-    external_path: nimi/.nimi/spec/realm/agent-memory.md
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
     coverage_status: mapped
   - external_id: REALM-DOC-CHAT
     external_type: domain_doc

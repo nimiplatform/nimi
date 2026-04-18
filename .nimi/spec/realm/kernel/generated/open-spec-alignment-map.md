@@ -4,7 +4,7 @@
 # Open Spec Alignment Map (Generated)
 
 Version: `1`
-Updated: `2026-03-26`
+Updated: `2026-04-18`
 
 | External ID | Type | External Path | Local Anchor | Coverage |
 | --- | --- | --- | --- | --- |
@@ -28,12 +28,6 @@ Updated: `2026-03-26`
 | R-WHIST-004 | kernel_rule | nimi/.nimi/spec/realm/kernel/world-history-contract.md#R-WHIST-004 | .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration | mapped |
 | R-WHIST-005 | kernel_rule | nimi/.nimi/spec/realm/kernel/world-history-contract.md#R-WHIST-005 | .nimi/spec/realm/world-history.md#Scope | mapped |
 | R-WHIST-006 | kernel_rule | nimi/.nimi/spec/realm/kernel/world-history-contract.md#R-WHIST-006 | .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration | mapped |
-| R-MEM-001 | kernel_rule | nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-001 | .nimi/spec/realm/agent-memory.md#Scope | mapped |
-| R-MEM-002 | kernel_rule | nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-002 | .nimi/spec/realm/agent-memory.md#Scope | mapped |
-| R-MEM-003 | kernel_rule | nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-003 | .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration | mapped |
-| R-MEM-004 | kernel_rule | nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-004 | .nimi/spec/realm/agent-memory.md#Scope | mapped |
-| R-MEM-005 | kernel_rule | nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-005 | .nimi/spec/realm/agent-memory.md#Scope | mapped |
-| R-MEM-006 | kernel_rule | nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-006 | .nimi/spec/realm/agent-memory.md#Scope | mapped |
 | R-CHAT-001 | kernel_rule | nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-001 | .nimi/spec/realm/chat.md#Scope | mapped |
 | R-CHAT-002 | kernel_rule | nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-002 | .nimi/spec/realm/chat.md#Scope | mapped |
 | R-CHAT-003 | kernel_rule | nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-003 | .nimi/spec/realm/chat.md#Scope | mapped |
@@ -76,7 +70,6 @@ Updated: `2026-03-26`
 | REALM-DOC-TRUTH | domain_doc | nimi/.nimi/spec/realm/truth.md | .nimi/spec/realm/truth.md#Scope | mapped |
 | REALM-DOC-WORLD-STATE | domain_doc | nimi/.nimi/spec/realm/world-state.md | .nimi/spec/realm/world-state.md#Scope | mapped |
 | REALM-DOC-WORLD-HISTORY | domain_doc | nimi/.nimi/spec/realm/world-history.md | .nimi/spec/realm/world-history.md#Scope | mapped |
-| REALM-DOC-AGENT-MEMORY | domain_doc | nimi/.nimi/spec/realm/agent-memory.md | .nimi/spec/realm/agent-memory.md#Scope | mapped |
 | REALM-DOC-CHAT | domain_doc | nimi/.nimi/spec/realm/chat.md | .nimi/spec/realm/chat.md#Scope | mapped |
 | REALM-DOC-WORLD-CREATOR-ECONOMY | domain_doc | nimi/.nimi/spec/realm/world-creator-economy.md | .nimi/spec/realm/world-creator-economy.md#Normative Imports | mapped |
 | REALM-DOC-CREATOR-REVENUE-POLICY | domain_doc | nimi/.nimi/spec/realm/creator-revenue-policy.md | .nimi/spec/realm/creator-revenue-policy.md#Normative Imports | mapped |

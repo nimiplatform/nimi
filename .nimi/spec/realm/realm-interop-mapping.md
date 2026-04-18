@@ -3,7 +3,7 @@ id: SPEC-REALM-INTEROP-MAPPING-001
 title: Realm Interop Mapping Bridge
 status: active
 owner: "@team"
-updated: 2026-03-23
+updated: 2026-04-18
 ---
 
 # Realm Interop Mapping
@@ -12,7 +12,6 @@ updated: 2026-03-23
 
 - `kernel/world-state-contract.md` (`R-WSTATE-002`, `R-WSTATE-005`, `R-WSTATE-006`)
 - `kernel/world-history-contract.md` (`R-WHIST-003`, `R-WHIST-004`, `R-WHIST-006`)
-- `kernel/agent-memory-contract.md` (`R-MEM-003`)
 - `kernel/transit-contract.md` (`R-TRANSIT-002`)
 
 ## Scope
@@ -29,7 +28,6 @@ Bridge-only document for interop semantics. It binds explicit commit and append 
 | `R-WHIST-003` | `R-WHIST-003` |
 | `R-WHIST-004` | `R-WHIST-004` |
 | `R-WHIST-006` | `R-WHIST-006` |
-| `R-MEM-003` | `R-MEM-003` |
 | `R-TRANSIT-002` | `R-TRANSIT-002` |
 
 ## Reading Path
@@ -37,8 +35,7 @@ Bridge-only document for interop semantics. It binds explicit commit and append 
 1. `kernel/index.md`
 2. `kernel/world-state-contract.md`
 3. `kernel/world-history-contract.md`
-4. `kernel/agent-memory-contract.md`
-5. `kernel/transit-contract.md`
+4. `kernel/transit-contract.md`
 
 ## Non-goals
 

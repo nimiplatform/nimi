@@ -1,4 +1,4 @@
-id_pattern: '^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT)-[0-9]{3}$'
+id_pattern: '^R-(TRUTH|WSTATE|WHIST|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT)-[0-9]{3}$'
 generated_at: '2026-04-09T00:00:00Z'
 rules:
   - rule_id: R-TRUTH-001
@@ -89,7 +89,7 @@ rules:
   - rule_id: R-WSTATE-004
     domain: world-state
     level: must
-    statement: effectClass is fixed to NONE, MEMORY_ONLY, STATE_ONLY, or STATE_AND_HISTORY.
+    statement: effectClass is fixed to NONE, STATE_ONLY, or STATE_AND_HISTORY.
     source: .nimi/spec/realm/kernel/world-state-contract.md
   - rule_id: R-WSTATE-005
     domain: world-state
@@ -131,36 +131,6 @@ rules:
     level: must
     statement: App-owned narrative archives must not be represented as Realm canonical world history.
     source: .nimi/spec/realm/kernel/world-history-contract.md
-  - rule_id: R-MEM-001
-    domain: agent-memory
-    level: must
-    statement: Agent Memory stores continuity facts only and excludes prompt or runtime orchestration.
-    source: .nimi/spec/realm/kernel/agent-memory-contract.md
-  - rule_id: R-MEM-002
-    domain: agent-memory
-    level: must
-    statement: Memory class is fixed to PUBLIC_SHARED, WORLD_SHARED, or DYADIC.
-    source: .nimi/spec/realm/kernel/agent-memory-contract.md
-  - rule_id: R-MEM-003
-    domain: agent-memory
-    level: must
-    statement: DYADIC memory is strictly isolated by agentId and userId.
-    source: .nimi/spec/realm/kernel/agent-memory-contract.md
-  - rule_id: R-MEM-004
-    domain: agent-memory
-    level: must
-    statement: Memory writes are explicit, auditable, and provenance-bearing.
-    source: .nimi/spec/realm/kernel/agent-memory-contract.md
-  - rule_id: R-MEM-005
-    domain: agent-memory
-    level: must
-    statement: Private deletion rights apply to DYADIC memory without damaging shared continuity.
-    source: .nimi/spec/realm/kernel/agent-memory-contract.md
-  - rule_id: R-MEM-006
-    domain: agent-memory
-    level: must
-    statement: History and state may inform memory writes but do not auto-materialize memory by default; run-mode permissions remain explicit in the commit authorization matrix.
-    source: .nimi/spec/realm/kernel/agent-memory-contract.md
   - rule_id: R-CHAT-001
     domain: chat
     level: must

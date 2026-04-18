@@ -4,26 +4,19 @@
 # Commit Authorization Matrix (Generated)
 
 ```yaml
-version: 2026-03-22
-updated_at: '2026-03-22'
+version: 2026-04-18
+updated_at: '2026-04-18'
 owner: '@team'
-description: Explicit run-mode authorization matrix for Realm commit envelopes.
+description: Explicit run-mode authorization matrix for Realm state/history commit envelopes after realm memory decommission.
 run_modes:
   - run_mode: REPLAY
     allow_state_commit: false
     allow_history_append: false
-    allowed_memory_types: []
-    source_rules: [R-WSTATE-005, R-WHIST-004, R-MEM-006]
-  - run_mode: PRIVATE_CONTINUITY
-    allow_state_commit: false
-    allow_history_append: false
-    allowed_memory_types: [DYADIC]
-    source_rules: [R-WSTATE-005, R-WHIST-004, R-MEM-006]
+    source_rules: [R-WSTATE-005, R-WHIST-004]
   - run_mode: CANON_MUTATION
     allow_state_commit: true
     allow_history_append: true
-    allowed_memory_types: [PUBLIC_SHARED, WORLD_SHARED, DYADIC]
-    source_rules: [R-WSTATE-005, R-WHIST-004, R-MEM-006]
+    source_rules: [R-WSTATE-005, R-WHIST-004]
 app_policies:
   - app_id: forge
     schema_id: forge.world.workspace
@@ -31,7 +24,6 @@ app_policies:
     effect_class: STATE_ONLY
     run_mode: CANON_MUTATION
     allowed_scopes: [WORLD, ENTITY, RELATION]
-    allowed_memory_types: []
     source_rules: [R-WSTATE-005, R-WSTATE-006]
   - app_id: forge
     schema_id: world.history.append
@@ -39,7 +31,6 @@ app_policies:
     effect_class: STATE_AND_HISTORY
     run_mode: CANON_MUTATION
     allowed_scopes: [WORLD, ENTITY, RELATION]
-    allowed_memory_types: []
     source_rules: [R-WSTATE-005, R-WHIST-004]
   - app_id: forge
     schema_id: forge.world.publish
@@ -47,16 +38,7 @@ app_policies:
     effect_class: STATE_AND_HISTORY
     run_mode: CANON_MUTATION
     allowed_scopes: [WORLD]
-    allowed_memory_types: []
     source_rules: [R-WSTATE-005, R-WSTATE-006, R-WHIST-004]
-  - app_id: forge
-    schema_id: agent.memory.commit
-    schema_version: '1'
-    effect_class: MEMORY_ONLY
-    run_mode: CANON_MUTATION
-    allowed_scopes: [WORLD]
-    allowed_memory_types: [PUBLIC_SHARED, WORLD_SHARED, DYADIC]
-    source_rules: [R-MEM-004, R-MEM-006]
 ```
 
 Top-level keys: version, updated_at, owner, description, run_modes, app_policies

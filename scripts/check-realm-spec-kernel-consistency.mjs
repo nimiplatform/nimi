@@ -9,7 +9,7 @@ const REALM_ROOT = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm');
 const KERNEL_ROOT = path.join(REALM_ROOT, 'kernel');
 const TABLES_DIR = path.join(KERNEL_ROOT, 'tables');
 
-const RULE_FAMILIES = ['TRUTH', 'WSTATE', 'WHIST', 'MEM', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BIND', 'BNDL', 'TRANSIT'];
+const RULE_FAMILIES = ['TRUTH', 'WSTATE', 'WHIST', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BIND', 'BNDL', 'TRANSIT'];
 const EXPECTED_ID_PATTERN = `^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`;
 const RULE_ID_PATTERN = new RegExp(`^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`);
 const BLOCKED_BIND_RULE_ID_PATTERN = /^R-BIND-[0-9]{3}$/;
@@ -26,7 +26,6 @@ const DOMAIN_DOCS = [
   path.join(REALM_ROOT, 'truth.md'),
   path.join(REALM_ROOT, 'world-state.md'),
   path.join(REALM_ROOT, 'world-history.md'),
-  path.join(REALM_ROOT, 'agent-memory.md'),
   path.join(REALM_ROOT, 'world.md'),
   path.join(REALM_ROOT, 'agent.md'),
   path.join(REALM_ROOT, 'social.md'),
@@ -104,7 +103,7 @@ function hasAnchor(content, anchor) {
 function collectMarkdownRuleIds(absPath) {
   const lines = fs.readFileSync(absPath, 'utf8').split(/\r?\n/);
   return lines
-    .map((line) => line.match(/^##\s+(R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT)-[0-9]{3})\s*$/)?.[1] ?? '')
+    .map((line) => line.match(/^##\s+(R-(TRUTH|WSTATE|WHIST|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT)-[0-9]{3})\s*$/)?.[1] ?? '')
     .filter(Boolean);
 }
 
@@ -312,7 +311,7 @@ function main() {
     }
   }
 
-  for (const requiredRunMode of ['REPLAY', 'PRIVATE_CONTINUITY', 'CANON_MUTATION']) {
+  for (const requiredRunMode of ['REPLAY', 'CANON_MUTATION']) {
     if (!runModes.has(requiredRunMode)) {
       pushIssue(issues, 'commit-authorization-matrix', `missing run_mode ${requiredRunMode}`);
     }
@@ -338,7 +337,7 @@ function main() {
     }
     seenPolicies.add(policyId);
 
-    if (!['MEMORY_ONLY', 'STATE_ONLY', 'STATE_AND_HISTORY'].includes(effectClass)) {
+    if (!['STATE_ONLY', 'STATE_AND_HISTORY'].includes(effectClass)) {
       pushIssue(issues, 'commit-authorization-matrix', `${policyId}: invalid effect_class ${effectClass}`);
     }
 
@@ -355,18 +354,17 @@ function main() {
     if (allowedScopes.length === 0) {
       pushIssue(issues, 'commit-authorization-matrix', `${policyId}: allowed_scopes must be non-empty`);
     }
-    if (effectClass === 'MEMORY_ONLY' && allowedMemoryTypes.length === 0) {
-      pushIssue(issues, 'commit-authorization-matrix', `${policyId}: MEMORY_ONLY policies must declare allowed_memory_types`);
-    }
     if ((effectClass === 'STATE_ONLY' || effectClass === 'STATE_AND_HISTORY') && runModeRow.allow_state_commit !== true) {
       pushIssue(issues, 'commit-authorization-matrix', `${policyId}: ${runMode} cannot authorize shared state writes`);
     }
     if (effectClass === 'STATE_AND_HISTORY' && runModeRow.allow_history_append !== true) {
       pushIssue(issues, 'commit-authorization-matrix', `${policyId}: ${runMode} cannot authorize world history append`);
     }
-    for (const memoryType of allowedMemoryTypes) {
-      if (!runModeAllowedMemoryTypes.includes(memoryType)) {
-        pushIssue(issues, 'commit-authorization-matrix', `${policyId}: memory type ${memoryType} exceeds run mode ${runMode}`);
+    if (allowedMemoryTypes.length > 0 || runModeAllowedMemoryTypes.length > 0) {
+      for (const memoryType of allowedMemoryTypes) {
+        if (!runModeAllowedMemoryTypes.includes(memoryType)) {
+          pushIssue(issues, 'commit-authorization-matrix', `${policyId}: memory type ${memoryType} exceeds run mode ${runMode}`);
+        }
       }
     }
     for (const ruleId of asStringArray(row.source_rules)) {

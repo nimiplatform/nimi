@@ -3,14 +3,14 @@ id: SPEC-REALM-README-001
 title: Realm Spec
 status: active
 owner: "@team"
-updated: 2026-03-26
+updated: 2026-04-18
 ---
 
 # Realm Spec
 
 Realm spec follows: `Rule -> Table -> Generate -> Check -> Evidence`.
 
-Realm hard-cut semantic core is `Truth / World State / World History / Agent Memory / Chat`, with `OASIS` formalized as the unique system main world anchor. `Social / Economy / Resource / Attachment / Binding / Asset / Bundle / Transit` remain adjacent formal domains.
+Realm hard-cut semantic core is `Truth / World State / World History / Chat`, with `OASIS` formalized as the unique system main world anchor. `Social / Economy / Resource / Attachment / Binding / Asset / Bundle / Transit` remain adjacent formal domains.
 
 `world-drafts` are part of the creator control-plane only as minimal publish candidates. Editor/runtime workflow state remains Forge-local. Official content factory publish is package-native and must not create a parallel long-term truth-write contract beside the canonical package line.
 
@@ -20,7 +20,7 @@ Realm hard-cut semantic core is `Truth / World State / World History / Agent Mem
 - Tables: `kernel/tables/*.yaml`
 - Authorization matrix: `kernel/tables/commit-authorization-matrix.yaml`
 - Generated: `kernel/generated/*.md`
-- Domain docs (thin): `truth.md`, `world-state.md`, `world-history.md`, `agent-memory.md`, `world.md`, `agent.md`, `binding.md`, `chat.md`, `social.md`, `economy.md`, `asset.md`, `transit.md`
+- Domain docs (thin): `truth.md`, `world-state.md`, `world-history.md`, `world.md`, `agent.md`, `binding.md`, `chat.md`, `social.md`, `economy.md`, `asset.md`, `transit.md`
 - Bridge docs (thin): `app-interconnect-model.md`, `world-creator-economy.md`, `creator-revenue-policy.md`, `realm-interop-mapping.md`
 
 ## Rule ID Format
@@ -28,7 +28,6 @@ Realm hard-cut semantic core is `Truth / World State / World History / Agent Mem
 - `R-TRUTH-NNN`
 - `R-WSTATE-NNN`
 - `R-WHIST-NNN`
-- `R-MEM-NNN`
 - `R-RSRC-NNN`
 - `R-ATTACH-NNN`
 - `R-BIND-NNN`
