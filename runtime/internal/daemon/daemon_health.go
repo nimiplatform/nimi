@@ -46,6 +46,16 @@ func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
 			if ctx.Err() != nil {
 				return
 			}
+			if d.shouldTreatProviderTargetAsIdle(target) {
+				healthyCount++
+				if d.aiHealth != nil {
+					previous := d.aiHealth.SnapshotOf(target.Name)
+					if markErr := d.aiHealth.Mark(target.Name, true, "supervised engine idle"); markErr == nil {
+						appendProviderHealthAudit(d.auditStore, target.Name, previous, d.aiHealth.SnapshotOf(target.Name))
+					}
+				}
+				continue
+			}
 			previous := providerhealth.Snapshot{}
 			if d.aiHealth != nil {
 				previous = d.aiHealth.SnapshotOf(target.Name)
@@ -96,6 +106,66 @@ func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
 		case <-ticker.C:
 			probe()
 		}
+	}
+}
+
+func (d *Daemon) shouldTreatProviderTargetAsIdle(target aiProviderTarget) bool {
+	if d == nil || d.grpc == nil {
+		return false
+	}
+	localSvc := d.grpc.LocalService()
+	if localSvc == nil {
+		return false
+	}
+	engineName, ok := localProviderTargetEngine(target.Name)
+	if !ok {
+		return false
+	}
+	if !isCanonicalManagedProviderTarget(target, engineName) {
+		return false
+	}
+	if !localSvc.HasSupervisedEngineBinding(engineName) {
+		return false
+	}
+	return !localSvc.HasActiveSupervisedEngineBinding(engineName)
+}
+
+func localProviderTargetEngine(providerName string) (string, bool) {
+	switch strings.TrimSpace(strings.ToLower(providerName)) {
+	case "local":
+		return "llama", true
+	case "local-media":
+		return "media", true
+	case "local-speech":
+		return "speech", true
+	case "local-sidecar":
+		return "sidecar", true
+	default:
+		return "", false
+	}
+}
+
+func isCanonicalManagedProviderTarget(target aiProviderTarget, engineName string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(target.Base))
+	if err != nil {
+		return false
+	}
+	host := strings.TrimSpace(strings.ToLower(parsed.Hostname()))
+	if host != "127.0.0.1" && host != "localhost" {
+		return false
+	}
+	port := parsed.Port()
+	switch engineName {
+	case "llama":
+		return port == "1234"
+	case "media":
+		return port == "8321"
+	case "speech":
+		return port == "8330"
+	case "sidecar":
+		return port == "9331"
+	default:
+		return false
 	}
 }
 
