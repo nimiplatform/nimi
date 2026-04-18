@@ -23,9 +23,7 @@ export function Card({
   return (
     <DesktopCardSurface
       kind="operational-solid"
-      className={cn(
-        className,
-      )}
+      className={cn(className)}
     >
       {children}
     </DesktopCardSurface>
