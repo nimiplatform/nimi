@@ -230,7 +230,7 @@ export function NavLink({
           ? `mx-auto h-12 w-12 justify-center ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`
           : `w-full gap-3 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} px-3 py-2.5`
         } ${active
-          ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] backdrop-blur-md ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+          ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
           : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
         }`}
       >

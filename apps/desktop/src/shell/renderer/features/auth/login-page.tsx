@@ -48,7 +48,7 @@ export function LoginPage() {
     navigate('/', { replace: true });
   };
 
-  const navButtonClass = 'pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/80 text-[#667085] shadow-sm backdrop-blur transition hover:bg-white hover:text-[#1f2937]';
+  const navButtonClass = 'pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/80 text-[#667085] shadow-sm transition hover:bg-white hover:text-[#1f2937]';
 
   return (
     <div className="relative min-h-screen">

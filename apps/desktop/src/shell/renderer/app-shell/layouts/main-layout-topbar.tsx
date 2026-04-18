@@ -51,7 +51,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
 
   return (
     <div
-      className={`absolute inset-x-0 top-0 z-[11000] flex h-14 items-center bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-3 backdrop-blur-md ${props.titlebarLeftInsetClass}`}
+      className={`absolute inset-x-0 top-0 z-[11000] flex h-14 items-center nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-3 backdrop-blur-[var(--nimi-backdrop-blur-regular)] ${props.titlebarLeftInsetClass}`}
       onMouseDown={props.onMouseDown}
     >
       <div className="flex h-full w-full items-center border-b border-transparent px-1">
@@ -115,7 +115,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
             </div>
           ) : (
             <>
-              <div className="flex h-9 items-center gap-1 rounded-full bg-white/40 px-1 backdrop-blur-sm">
+              <div className="flex h-9 items-center gap-1 rounded-full bg-white/40 px-1">
                 <Tooltip content="Spark" className="h-9">
                   <button
                     type="button"

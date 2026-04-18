@@ -191,7 +191,7 @@ export function IconButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 shadow-[0_8px_20px_rgba(15,23,42,0.05)] backdrop-blur-sm transition ${
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition ${
         disabled
           ? 'cursor-not-allowed text-slate-300 opacity-70'
           : 'text-slate-700 hover:border-[#4ECCA3]/45 hover:bg-[#4ECCA3]/12 hover:text-[#1f8f69]'

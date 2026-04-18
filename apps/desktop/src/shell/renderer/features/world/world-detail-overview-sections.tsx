@@ -90,7 +90,7 @@ export function WorldHeroSection({
               {onBack ? (
                 <button
                   onClick={onBack}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] backdrop-blur-md transition-all hover:border-[#4ECCA3]/40 hover:bg-black/65"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] transition-all hover:border-[#4ECCA3]/40 hover:bg-black/65"
                   aria-label={t('WorldDetail.xianxia.v2.hero.back')}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -105,7 +105,7 @@ export function WorldHeroSection({
                       key={item.id}
                       type="button"
                       onClick={() => onQuickNavSelect?.(item.id)}
-                      className="rounded-full border border-[#4ECCA3]/16 bg-black/38 px-3 py-1.5 text-xs text-[#dffdf2] backdrop-blur-md transition-colors hover:bg-[#4ECCA3]/16"
+                      className="rounded-full border border-[#4ECCA3]/16 bg-black/38 px-3 py-1.5 text-xs text-[#dffdf2] transition-colors hover:bg-[#4ECCA3]/16"
                     >
                       {item.label}
                     </button>
@@ -118,7 +118,7 @@ export function WorldHeroSection({
               {onCreateSubWorld ? (
                 <button
                   onClick={onCreateSubWorld}
-                  className="rounded-full border border-[#4ECCA3]/20 bg-black/40 px-4 py-2 text-xs font-medium text-[#dffdf2] backdrop-blur-sm transition-colors hover:bg-black/60"
+                  className="rounded-full border border-[#4ECCA3]/20 bg-black/40 px-4 py-2 text-xs font-medium text-[#dffdf2] transition-colors hover:bg-black/60"
                 >
                   {t('WorldDetail.createSubWorld')}
                 </button>
@@ -506,7 +506,7 @@ function WorldChronologyCard({ world }: { world: XianxiaWorldData }) {
 
           <div className="mt-4 flex flex-wrap items-center gap-2.5">
             {world.eraLabel ? (
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/72 backdrop-blur-sm">
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/72">
                 {world.eraLabel}
               </span>
             ) : null}
@@ -600,7 +600,7 @@ export function WorldDashboardSection({
   return (
     <section
       data-testid="world-detail-dashboard"
-      className="relative overflow-hidden rounded-[24px] border border-[#4ECCA3]/16 bg-[#101813]/82 backdrop-blur-sm"
+      className="relative overflow-hidden rounded-[24px] nimi-material-glass-thin border border-[#4ECCA3]/16 bg-[#101813]/82 backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/45 to-transparent" />
       <div className="absolute inset-y-0 right-0 w-[30%] bg-[radial-gradient(circle_at_center,rgba(78,204,163,0.12),transparent_68%)] opacity-70" />
@@ -609,7 +609,7 @@ export function WorldDashboardSection({
           <div className="col-span-12 xl:col-span-8">
             <section
               data-testid="world-detail-score-matrix-card"
-              className="h-full overflow-hidden rounded-[22px] border border-[#4ECCA3]/15 bg-[#0f1612]/82 backdrop-blur-sm"
+              className="h-full overflow-hidden rounded-[22px] nimi-material-glass-thin border border-[#4ECCA3]/15 bg-[#0f1612]/82 backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
             >
               <Suspense fallback={(
                 <div className="flex min-h-[620px] flex-col gap-4 p-6">

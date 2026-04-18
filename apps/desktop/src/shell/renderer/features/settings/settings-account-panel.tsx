@@ -392,7 +392,7 @@ export function ProfilePage() {
                 sizeClassName="h-24 w-24"
                 className="ring-4 ring-white/20"
                 textClassName="text-3xl font-bold"
-                fallbackClassName="bg-white/20 text-white backdrop-blur-sm"
+                fallbackClassName="bg-white/20 text-white"
               />
               <button
                 type="button"

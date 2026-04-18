@@ -122,7 +122,7 @@ export function CreatePostAttachmentSection({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="group absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm ring-1 ring-white/10 transition-all duration-200 hover:bg-[#4ECCA3] hover:ring-[#4ECCA3]/50 disabled:opacity-50"
+            className="group absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white shadow-lg ring-1 ring-white/10 transition-all duration-200 hover:bg-[#4ECCA3] hover:ring-[#4ECCA3]/50 disabled:opacity-50"
             title={t('Profile.CreatePost.replaceMedia', { defaultValue: 'Replace media' })}
           >
             <svg

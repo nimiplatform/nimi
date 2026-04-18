@@ -160,7 +160,7 @@ export function AddContactModal(props: AddContactModalProps) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)] px-4 backdrop-blur-sm" onClick={props.onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)] px-4" onClick={props.onClose}>
       <div
         className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl"
         onClick={(event) => event.stopPropagation()}

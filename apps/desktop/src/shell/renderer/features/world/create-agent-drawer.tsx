@@ -171,15 +171,15 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
   return (
     <div className={`pointer-events-none fixed inset-0 z-50 ${props.isOpen ? '' : 'hidden'}`}>
       <div
-        className={`absolute inset-0 bg-black/55 backdrop-blur-sm transition-opacity duration-300 ${props.isOpen ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 bg-black/55 transition-opacity duration-300 ${props.isOpen ? 'opacity-100' : 'opacity-0'}`}
         onClick={props.onClose}
       />
       <aside
-        className={`pointer-events-auto absolute right-0 top-12 flex h-[calc(100vh-3rem)] w-full max-w-[40vw] min-w-[420px] flex-col rounded-tl-[28px] border-l border-t border-emerald-400/25 bg-[#0B1313]/85 shadow-[-24px_0_60px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-transform duration-300 ease-out ${props.isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`pointer-events-auto absolute right-0 top-12 flex h-[calc(100vh-3rem)] w-full max-w-[40vw] min-w-[420px] flex-col rounded-tl-[28px] nimi-material-glass-thick border-l border-t border-emerald-400/25 bg-[#0B1313]/85 shadow-[-24px_0_60px_rgba(0,0,0,0.45)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] transition-transform duration-300 ease-out ${props.isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-emerald-300/70 to-transparent shadow-[0_0_20px_rgba(16,185,129,0.45)]" />
 
-        <header className="sticky top-0 z-10 overflow-hidden border-b border-emerald-400/12 bg-[#0B1313]/80 px-7 py-6 backdrop-blur-xl">
+        <header className="sticky top-0 z-10 overflow-hidden nimi-material-glass-thick border-b border-emerald-400/12 bg-[#0B1313]/80 px-7 py-6 backdrop-blur-[var(--nimi-backdrop-blur-strong)]">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(16,185,129,0.18)_0%,rgba(16,185,129,0.08)_28%,rgba(11,19,19,0.12)_62%,rgba(11,19,19,0)_100%)]" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-emerald-300/0 via-emerald-300/55 to-emerald-300/0" />
           <div className="pointer-events-none absolute -left-10 top-0 h-24 w-40 rounded-full bg-emerald-400/16 blur-3xl" />
@@ -240,7 +240,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
               <div className={`${hasWorldBanner ? '-mt-16 relative z-10' : ''} px-7 pb-6`}>
                 {/* World Name Badge */}
                 <div className="mb-4 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-300 ring-1 ring-emerald-400/25 backdrop-blur-sm">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-300 ring-1 ring-emerald-400/25">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                       <polyline points="9 22 9 12 15 12 15 22" />
@@ -251,7 +251,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
 
                 {/* Description */}
                 {hasWorldDescription && (
-                  <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-4 backdrop-blur-sm">
+                  <div className="rounded-2xl nimi-material-glass-thin border border-white/[0.06] bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-4 backdrop-blur-[var(--nimi-backdrop-blur-thin)]">
                     <div className="flex items-start gap-3">
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -288,7 +288,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                   </svg>
                 )}
               />
-              <div className="group relative rounded-[2rem] border border-white/10 bg-white/[0.02] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-500 hover:border-emerald-400/20 hover:bg-white/[0.04]">
+              <div className="group relative rounded-[2rem] nimi-material-glass-chrome border border-white/10 bg-white/[0.02] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] transition-all duration-500 hover:border-emerald-400/20 hover:bg-white/[0.04]">
                 {/* Decorative corner glow */}
                 <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-emerald-500/5 blur-3xl transition-opacity group-hover:opacity-100" />
                 <input
@@ -376,7 +376,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                   </svg>
                 )}
               />
-              <div className="grid gap-4 rounded-[24px] border border-white/6 bg-white/[0.035] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-md">
+              <div className="grid gap-4 rounded-[24px] nimi-material-glass-regular border border-white/6 bg-white/[0.035] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
                 <div>
                   <FieldLabel required>{t('World.createAgent.concept', { defaultValue: 'Concept' })}</FieldLabel>
                   <TextArea
@@ -431,7 +431,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                   </svg>
                 )}
               />
-              <div className="space-y-5 rounded-[24px] border border-white/6 bg-white/[0.035] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-md">
+              <div className="space-y-5 rounded-[24px] nimi-material-glass-regular border border-white/6 bg-white/[0.035] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
                 <div>
                   <FieldLabel>{t('World.createAgent.primaryTrait', { defaultValue: 'Primary Trait' })}</FieldLabel>
                   <div className="grid grid-cols-2 gap-3">
@@ -495,7 +495,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
                   </svg>
                 )}
               />
-              <div className="grid grid-cols-2 gap-4 rounded-[24px] border border-white/6 bg-white/[0.035] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-md">
+              <div className="grid grid-cols-2 gap-4 rounded-[24px] nimi-material-glass-regular border border-white/6 bg-white/[0.035] p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
                 {(['PASSIVE', 'PROACTIVE'] as const).map((strategy) => {
                   const active = form.wakeStrategy === strategy;
                   return (
@@ -539,7 +539,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
           </div>
         </ScrollArea>
 
-        <footer className="sticky bottom-0 z-10 border-t border-emerald-400/12 bg-[#0B1313]/80 px-7 py-5 backdrop-blur-xl">
+        <footer className="sticky bottom-0 z-10 nimi-material-glass-thick border-t border-emerald-400/12 bg-[#0B1313]/80 px-7 py-5 backdrop-blur-[var(--nimi-backdrop-blur-strong)]">
           <div className="flex items-center justify-between gap-4">
             <button
               type="button"

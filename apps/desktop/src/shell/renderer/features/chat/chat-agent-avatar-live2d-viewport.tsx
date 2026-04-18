@@ -188,7 +188,7 @@ function Live2dErrorShell(props: {
           className="absolute inset-0 h-full w-full object-cover opacity-20"
         />
       ) : null}
-      <div className="relative mx-6 max-w-[18rem] rounded-[24px] border border-white/80 bg-white/84 px-5 py-4 text-center shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+      <div className="relative mx-6 max-w-[18rem] rounded-[24px] nimi-material-glass-thin border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] px-5 py-4 text-center shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur-[var(--nimi-backdrop-blur-thin)]">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
           {t('Chat.avatarLive2dFallbackLabel', { defaultValue: 'Live2D Fallback' })}
         </p>

@@ -60,6 +60,7 @@
     "check:nimi-ui-lib-drift": "node scripts/check-nimi-ui-lib-drift.mjs",
     "check:nimi-ui-pattern": "node scripts/check-nimi-ui-pattern.mjs",
     "check:ui-contrast-matrix": "node scripts/check-ui-contrast-matrix.mjs",
+    "check:ui-glass-boundary": "node scripts/check-ui-glass-boundary.mjs",
     "check:scope-catalog-drift": "node scripts/check-scope-catalog-drift.mjs",
     "check:sdk-import-boundary": "node scripts/check-sdk-import-boundary.mjs",
     "check:sdk-single-package-layout": "node scripts/check-sdk-single-package-layout.mjs",

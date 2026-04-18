@@ -290,7 +290,7 @@ export function ExploreView(props: ExploreViewProps) {
                         <polyline points="15 18 9 12 15 6" />
                       </svg>
                     )}
-                    className="absolute left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full border border-white/25 bg-white/18 text-white backdrop-blur-sm hover:bg-white/28 hover:text-white"
+                    className="absolute left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full border border-white/25 bg-white/18 text-white hover:bg-white/28 hover:text-white"
                     aria-label={t('Explore.previousBanner', { defaultValue: 'Previous banner' })}
                   />
                 )}
@@ -317,7 +317,7 @@ export function ExploreView(props: ExploreViewProps) {
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
                     )}
-                    className="absolute right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full border border-white/25 bg-white/18 text-white backdrop-blur-sm hover:bg-white/28 hover:text-white"
+                    className="absolute right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full border border-white/25 bg-white/18 text-white hover:bg-white/28 hover:text-white"
                     aria-label={t('Explore.nextBanner', { defaultValue: 'Next banner' })}
                   />
                 )}

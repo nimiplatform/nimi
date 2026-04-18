@@ -151,7 +151,7 @@ export function ContactDetailViewContent(input: {
                   )}
                   onClick={input.onClose}
                   aria-label={t('Common.back', { defaultValue: 'Back' })}
-                  className="h-10 w-10 border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] backdrop-blur-md transition-all hover:bg-black/65 hover:border-[#4ECCA3]/40"
+                  className="h-10 w-10 border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] transition-all hover:bg-black/65 hover:border-[#4ECCA3]/40"
                 />
                 {input.isOwnProfile ? (
                   <Tooltip
@@ -164,7 +164,7 @@ export function ContactDetailViewContent(input: {
                     <button
                       type="button"
                       onClick={toggleEditing}
-                      className="inline-flex h-11 w-auto cursor-pointer items-center gap-2 rounded-full border border-[var(--nimi-border-subtle)] bg-white/92 px-4 text-[var(--nimi-action-primary-bg)] shadow-[0_10px_26px_rgba(31,143,105,0.12)] backdrop-blur-md transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-white"
+                      className="inline-flex h-11 w-auto cursor-pointer items-center gap-2 rounded-full border border-[var(--nimi-border-subtle)] bg-white/92 px-4 text-[var(--nimi-action-primary-bg)] shadow-[0_10px_26px_rgba(31,143,105,0.12)] transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-white"
                     >
                       {isEditing ? <EyeIcon className="h-4 w-4" /> : <PencilIcon className="h-4 w-4" />}
                       <span className="text-sm font-semibold">
@@ -181,7 +181,7 @@ export function ContactDetailViewContent(input: {
             <div className="relative px-8 pb-8">
               <div className="-mt-20 grid gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
                 <div className="min-w-0">
-                  <div className="rounded-[30px] bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
+                  <div className="rounded-[30px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] xl:px-7">
                     <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-8">
                       <div className="flex shrink-0 flex-col items-center gap-3 lg:pt-[6px]">
                           <div className="group relative cursor-pointer">
@@ -226,7 +226,7 @@ export function ContactDetailViewContent(input: {
                                       </div>
                                     ) : (
                                       <div className="flex flex-col items-center gap-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
                                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                             <polyline points="17 8 12 3 7 8" />
@@ -318,7 +318,7 @@ export function ContactDetailViewContent(input: {
                                         {profile.tags.map((tag) => (
                                           <span
                                             key={tag}
-                                            className="rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1.5 text-[12px] font-medium backdrop-blur-sm transition hover:bg-[rgba(15,23,42,0.08)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.07)]"
+                                            className="rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1.5 text-[12px] font-medium transition hover:bg-[rgba(15,23,42,0.08)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.07)]"
                                             style={{ color: '#1f8f69' }}
                                           >
                                             {tag}
@@ -478,7 +478,7 @@ export function ContactDetailViewContent(input: {
                 <aside className="hidden xl:block" />
               </div>
 
-              <div className="mt-6 rounded-[30px] bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
+              <div className="mt-6 rounded-[30px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] xl:px-7">
                 <ContactDetailTabs
                   activeTab={activeTab}
                   isBlockedProfile={input.isBlockedProfile}
@@ -499,7 +499,7 @@ export function ContactDetailViewContent(input: {
           type="button"
           onClick={scrollToTop}
           aria-label={t('Common.backToTop', { defaultValue: 'Back to top' })}
-          className="fixed bottom-8 right-8 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-[#4ECCA3]/35 bg-white/92 text-[#1f8f69] shadow-[0_18px_40px_rgba(31,143,105,0.18)] backdrop-blur-md transition hover:-translate-y-0.5 hover:border-[#4ECCA3]/60 hover:shadow-[0_22px_46px_rgba(31,143,105,0.24)]"
+          className="fixed bottom-8 right-8 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-[#4ECCA3]/35 bg-white/92 text-[#1f8f69] shadow-[0_18px_40px_rgba(31,143,105,0.18)] transition hover:-translate-y-0.5 hover:border-[#4ECCA3]/60 hover:shadow-[0_22px_46px_rgba(31,143,105,0.24)]"
         >
           <ArrowUpIcon className="h-5 w-5" />
         </button>

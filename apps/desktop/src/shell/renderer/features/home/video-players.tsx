@@ -23,7 +23,7 @@ export function CloudflareVideoPlayer({ src }: { src: string }) {
           onClick={() => setActivated(true)}
           className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors"
         >
-          <div className="w-14 h-14 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+          <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="#1A1A1A" className="ml-0.5">
               <path d="M8 5v14l11-7z" />
             </svg>
@@ -74,7 +74,7 @@ export function NativeVideoPlayer({ src, poster }: { src: string; poster?: strin
           onClick={handlePlayClick}
           className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors"
         >
-          <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="#1A1A1A" className="ml-0.5">
               <path d="M8 5v14l11-7z" />
             </svg>

@@ -291,7 +291,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
 
               {/* Install footer inside detail panel */}
               {selectedProfile ? (
-                <div className="sticky bottom-0 -mx-4 border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]/95 backdrop-blur-sm px-4 py-3">
+                <div className="sticky bottom-0 -mx-4 nimi-material-glass-thin border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]/95 backdrop-blur-[var(--nimi-backdrop-blur-thin)] px-4 py-3">
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-[var(--nimi-text-muted)]">
                       {capabilitySelectionMissing

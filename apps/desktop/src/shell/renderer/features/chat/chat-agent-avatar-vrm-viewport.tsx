@@ -503,7 +503,7 @@ export default function ChatAgentAvatarVrmViewport({
         )}
       />
       <div className={cn(
-        'absolute overflow-hidden border border-white/70 bg-white/18 shadow-[0_30px_80px_rgba(14,165,233,0.14)] backdrop-blur-[2px]',
+        'absolute overflow-hidden border border-white/70 bg-white/18 shadow-[0_30px_80px_rgba(14,165,233,0.14)]',
         chrome === 'minimal'
           ? 'inset-x-[4%] inset-y-[3.5%] rounded-[28px] border-white/55 bg-white/12 shadow-[0_26px_64px_rgba(15,23,42,0.08)]'
           : 'inset-[6%] rounded-[46%]',
@@ -586,7 +586,7 @@ export default function ChatAgentAvatarVrmViewport({
       ) : null}
       {chrome === 'minimal' && debugLines.length > 0 ? (
         <div
-          className="absolute inset-x-3 bottom-3 rounded-2xl border border-amber-200/70 bg-white/88 px-3 py-2 text-[10px] leading-4 text-amber-900 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm"
+          className="absolute inset-x-3 bottom-3 rounded-2xl nimi-material-glass-thin border border-amber-200/70 bg-[var(--nimi-material-glass-thin-bg)] px-3 py-2 text-[10px] leading-4 text-amber-900 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
           data-avatar-vrm-debug="true"
         >
           {debugLines.map((line) => (

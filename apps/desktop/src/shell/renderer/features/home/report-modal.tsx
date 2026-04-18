@@ -52,7 +52,7 @@ export function ReportModal({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className="absolute inset-0 bg-[var(--nimi-scrim-modal)] backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[var(--nimi-scrim-modal)]" onClick={onClose} />
       <ScrollArea
         className="relative mx-4 max-h-[80vh] w-full max-w-md rounded-2xl bg-white shadow-2xl"
         viewportClassName="max-h-[80vh]"

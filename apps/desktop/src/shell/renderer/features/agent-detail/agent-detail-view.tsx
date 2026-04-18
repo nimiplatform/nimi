@@ -155,7 +155,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
               <button
                 type="button"
                 onClick={props.onBack}
-                className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/16 text-white backdrop-blur-md transition hover:bg-white/24"
+                className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/16 text-white transition hover:bg-white/24"
                 title={t('Common.back', { defaultValue: 'Back' })}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -167,7 +167,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
               {agent.tags.length > 0 && (
                 <div className="absolute top-4 right-4">
                   <span
-                    className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur-sm"
+                    className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium shadow-sm"
                     style={{ backgroundColor: palette.badgeBg, color: palette.badgeText }}
                   >
                     {agent.tags[0]}

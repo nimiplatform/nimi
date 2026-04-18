@@ -31,7 +31,7 @@ export function ContactDetailLoadingState({ label: _label }: { label: string }) 
           </div>
 
           <div className="relative z-10 -mt-12 px-8 pb-8">
-            <div className="rounded-[30px] border border-white/38 bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
+            <div className="rounded-[30px] nimi-material-glass-regular border-[var(--nimi-material-glass-regular-border)] bg-[var(--nimi-material-glass-regular-bg)] px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] xl:px-7">
               <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-8">
                 <div className="flex shrink-0 flex-col items-center gap-3 lg:pt-[6px]">
                   <div className="h-32 w-32 animate-pulse rounded-full bg-slate-200/80" />
@@ -195,7 +195,7 @@ export function ContactDetailActionButtons(input: {
               ref={input.menuButtonRef}
               type="button"
               onClick={input.onToggleMenu}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] backdrop-blur-sm transition hover:border-[#4ECCA3]/45 hover:bg-[#4ECCA3]/12 hover:text-[#1f8f69]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition hover:border-[#4ECCA3]/45 hover:bg-[#4ECCA3]/12 hover:text-[#1f8f69]"
               aria-label={i18n.t('Common.moreOptions', { defaultValue: 'More options' })}
             >
               <DotsIcon className="h-4 w-4" />

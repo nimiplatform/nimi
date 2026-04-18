@@ -88,11 +88,9 @@ export function WorldChronoPanel({ world, compact = false }: { world: WorldListI
 
   return (
     <div
-      className={`${compact ? 'min-w-[150px] max-w-[180px] px-3 py-2.5' : 'min-w-[300px] max-w-[340px] px-6 py-5'} rounded-[16px] text-white`}
+      className={`${compact ? 'min-w-[150px] max-w-[180px] px-3 py-2.5' : 'min-w-[300px] max-w-[340px] px-6 py-5'} rounded-[16px] text-white nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]`}
       style={{
         background: 'rgba(255, 255, 255, 0.03)',
-        backdropFilter: 'blur(18px)',
-        WebkitBackdropFilter: 'blur(18px)',
         border: '1px solid rgba(255, 255, 255, 0.14)',
         boxShadow: 'none',
       }}

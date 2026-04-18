@@ -126,7 +126,7 @@ export function RuntimeImageMessageContent(props: {
               <button
                 type="button"
                 onClick={toggleCaption}
-                className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition hover:bg-black/70"
+                className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 transition hover:bg-black/70"
                 aria-label={captionVisible ? props.hideCaptionLabel : props.showCaptionLabel}
                 title={captionVisible ? props.hideCaptionLabel : props.showCaptionLabel}
               >

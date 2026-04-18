@@ -44,7 +44,7 @@ function VisualShell({
   return (
     <section
       data-testid={dataTestId}
-      className={`relative overflow-hidden rounded-[22px] border border-[#4ECCA3]/15 bg-[#0a0f0c]/64 p-5 backdrop-blur-sm ${className}`}
+      className={`relative overflow-hidden rounded-[22px] nimi-material-glass-thin border border-[#4ECCA3]/15 bg-[#0a0f0c]/64 p-5 backdrop-blur-[var(--nimi-backdrop-blur-thin)] ${className}`}
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/40 to-transparent" />
       <div className="mb-4 flex items-start justify-between gap-3">

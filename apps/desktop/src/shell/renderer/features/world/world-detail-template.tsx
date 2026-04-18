@@ -78,7 +78,7 @@ function WorldDetailErrorState({ onBack }: { onBack?: () => void }) {
         <button
           type="button"
           onClick={onBack}
-          className="absolute left-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-white/70 text-[#1f8f69] backdrop-blur-md transition-all hover:border-[#4ECCA3]/40 hover:bg-white/90"
+          className="absolute left-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-white/70 text-[#1f8f69] transition-all hover:border-[#4ECCA3]/40 hover:bg-white/90"
           aria-label={t('WorldDetail.xianxia.v2.hero.back')}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -268,7 +268,7 @@ function WorldDetailPageBody({
       </WorldDetailSurface>
 
       {selectedAgent ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 px-5 py-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 px-5 py-6">
           <button
             type="button"
             className="absolute inset-0"
@@ -387,7 +387,7 @@ function WorldDetailPageBody({
       ) : null}
 
       {selectedScene ? (
-        <div className="fixed inset-0 z-40 bg-black/55 px-5 py-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-40 bg-black/55 px-5 py-6">
           <button
             type="button"
             className="absolute inset-0"

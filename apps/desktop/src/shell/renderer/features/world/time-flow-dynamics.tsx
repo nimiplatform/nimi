@@ -244,7 +244,7 @@ export function TimeFlowDynamics({ ratio = 1.0, className = '', variant = 'defau
       {/* Tooltip - appears above the component to avoid being clipped */}
       {showTooltip && (
         <div className="absolute left-1/2 -translate-x-1/2 z-50 pointer-events-none bottom-full mb-2">
-          <div className="flex flex-col gap-1.5 px-3 py-2 rounded-lg bg-[#0f1612]/95 border border-[#4ECCA3]/30 shadow-lg backdrop-blur-sm whitespace-nowrap">
+          <div className="flex flex-col gap-1.5 px-3 py-2 rounded-lg nimi-material-glass-thin bg-[#0f1612]/95 border border-[#4ECCA3]/30 shadow-lg backdrop-blur-[var(--nimi-backdrop-blur-thin)] whitespace-nowrap">
             {/* Title in tooltip */}
             <div className="text-xs font-semibold tracking-wider" style={{ color }}>
               Time Flow Dynamics

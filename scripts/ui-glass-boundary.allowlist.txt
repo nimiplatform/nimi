@@ -1,0 +1,91 @@
+# check:ui-glass-boundary allowlist
+#
+# Two-segment schema (per preflight-phase-1.md §stop_line §3):
+#
+#   Segment A (time-bounded, topic-in-scope deferrals):
+#     Sites temporarily exempted during an active topic's rollout.
+#     Each entry MUST carry a `cutoff: <phase-or-step-name>` note.
+#     Once the cutoff lands, the entry MUST be removed; remaining
+#     entries past cutoff cause the gate to fail-close on audit.
+#
+#   Segment B (topic-out-of-scope, pinned known debt):
+#     Sites NOT absorbed by the current topic. Each entry MUST carry a
+#     `ticket: <follow-on-ref>` note so debt is traceable. No cutoff.
+#     A future topic may migrate any subset of these and remove the
+#     corresponding entries.
+#
+# Entry format: `<path>:<line>  # <segment-tag> | <note>`
+#   path is repo-relative; line is 1-based.
+# Blank lines and `#` comments are ignored. In-line `#` comments are
+# stripped at parse time, but the `# <segment-tag>` convention is
+# required for human review.
+
+# ========================================================================
+# Segment A — time-bounded (topic 2026-04-18-nimi-ui-glassmorphism-system-uplift)
+# ========================================================================
+#
+# Empty. All Phase 1 step 3 deferrals (article.tsx:145, world-list.tsx:148)
+# closed on 2026-04-18 by migrating to `glass-chrome` tier admitted in
+# Phase 2. Phase 1 main sweep cleared all remaining in-scope bypass at
+# closeout-phase-1.
+#
+# Any future Segment A entry MUST be added alongside a preflight that
+# declares its cutoff phase.
+
+# ========================================================================
+# Segment B — topic-out-of-scope (pinned known debt)
+# ========================================================================
+#
+# Scope origin: 2026-04-18 audit (evidence/violations.txt filter
+# `app NOT IN (desktop, parentos) AND level IN (P0, P1)`). Total: 35 sites.
+# Follow-on: file a dedicated glassmorphism migration topic per app once
+# Phase 3b (performance-tier runtime) and per-app accent packs are settled.
+
+# --- apps/lookdev (1 site) — ticket: FOLLOWON-UI-GLASS-LOOKDEV
+apps/lookdev/src/shell/renderer/styles.css:67        # segment-B | ticket: FOLLOWON-UI-GLASS-LOOKDEV
+
+# --- apps/moment (1 site) — ticket: FOLLOWON-UI-GLASS-MOMENT
+apps/moment/src/shell/renderer/styles.css:191        # segment-B | ticket: FOLLOWON-UI-GLASS-MOMENT
+
+# --- apps/overtone (2 sites) — ticket: FOLLOWON-UI-GLASS-OVERTONE
+apps/overtone/src/shell/renderer/styles.css:56       # segment-B | ticket: FOLLOWON-UI-GLASS-OVERTONE
+apps/overtone/src/shell/renderer/styles.css:57       # segment-B | ticket: FOLLOWON-UI-GLASS-OVERTONE
+
+# --- apps/realm-drift (2 sites) — ticket: FOLLOWON-UI-GLASS-REALM-DRIFT
+apps/realm-drift/src/shell/renderer/features/world-browser/world-card.tsx:35   # segment-B | ticket: FOLLOWON-UI-GLASS-REALM-DRIFT
+apps/realm-drift/src/shell/renderer/features/world-browser/world-card.tsx:40   # segment-B | ticket: FOLLOWON-UI-GLASS-REALM-DRIFT
+
+# --- apps/shiji (3 sites) — ticket: FOLLOWON-UI-GLASS-SHIJI
+apps/shiji/src/shell/renderer/features/explore/character-encounter.tsx:97      # segment-B | ticket: FOLLOWON-UI-GLASS-SHIJI
+apps/shiji/src/shell/renderer/features/explore/character-encounter.tsx:118     # segment-B | ticket: FOLLOWON-UI-GLASS-SHIJI
+apps/shiji/src/shell/renderer/features/explore/explore-home-page.tsx:190       # segment-B | ticket: FOLLOWON-UI-GLASS-SHIJI
+
+# --- apps/video-food-map (3 sites) — ticket: FOLLOWON-UI-GLASS-VIDEO-FOOD-MAP
+apps/video-food-map/src/shell/renderer/app-shell-frame.tsx:72                   # segment-B | ticket: FOLLOWON-UI-GLASS-VIDEO-FOOD-MAP
+apps/video-food-map/src/shell/renderer/app-surface-map.tsx:47                   # segment-B | ticket: FOLLOWON-UI-GLASS-VIDEO-FOOD-MAP
+apps/video-food-map/src/shell/renderer/components/map-surface.tsx:442           # segment-B | ticket: FOLLOWON-UI-GLASS-VIDEO-FOOD-MAP
+
+# --- apps/web (23 sites) — ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/public/legal.css:26                                                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/dapp-globals.css:614                                               # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/dapp-globals.css:615                                               # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/dapp-globals.css:851                                               # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/dapp-globals.css:913                                               # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:28                     # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:42                     # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:144                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:150                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:160                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:189                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:300                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/desktop-section.tsx:59                          # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/desktop-section.tsx:99                          # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/desktop-section.tsx:177                         # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/model-catalog-overview-section.tsx:181          # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/mods-section.tsx:362                            # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/mods-section.tsx:401                            # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/mods-section.tsx:431                            # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/mods-section.tsx:450                            # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/mods-section.tsx:470                            # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/styles.css:90                                              # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/styles.css:91                                              # segment-B | ticket: FOLLOWON-UI-GLASS-WEB

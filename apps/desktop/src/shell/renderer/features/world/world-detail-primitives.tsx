@@ -191,7 +191,7 @@ export function SectionShell({
   return (
     <section
       data-testid={dataTestId}
-      className={`relative overflow-hidden rounded-[22px] border border-[#4ECCA3]/14 bg-[#0f1612]/86 shadow-[0_0_0_1px_rgba(78,204,163,0.05),0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur-sm ${className}`}
+      className={`relative overflow-hidden rounded-[22px] nimi-material-glass-thin border border-[#4ECCA3]/14 bg-[#0f1612]/86 shadow-[0_0_0_1px_rgba(78,204,163,0.05),0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur-[var(--nimi-backdrop-blur-thin)] ${className}`}
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-80"
@@ -215,7 +215,7 @@ export function SectionShell({
 
 export function HeroTag({ label }: { label: string }) {
   return (
-    <span className="rounded-full border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] px-3 py-1 text-xs font-medium text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-sm">
+    <span className="rounded-full border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] px-3 py-1 text-xs font-medium text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
       {label}
     </span>
   );
@@ -233,7 +233,7 @@ export function MetricPill({
   valueClassName?: string;
 }) {
   return (
-    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border border-[#4ECCA3]/16 bg-[linear-gradient(180deg,rgba(78,204,163,0.16),rgba(78,204,163,0.08))] px-3 py-1.5 text-[11px] text-[#86f0ca] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm ${className}`}>
+    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border border-[#4ECCA3]/16 bg-[linear-gradient(180deg,rgba(78,204,163,0.16),rgba(78,204,163,0.08))] px-3 py-1.5 text-[11px] text-[#86f0ca] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${className}`}>
       <span className="text-[10px] uppercase tracking-[0.12em] text-[#c5f7e6]/46">{label}</span>
       <span className={`font-semibold text-[#f4fff9] ${valueClassName}`}>{value}</span>
     </span>

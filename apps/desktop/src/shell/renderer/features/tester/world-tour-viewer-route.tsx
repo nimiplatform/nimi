@@ -723,7 +723,7 @@ function WorldTourViewerCanvas(props: { fixture: ResolvedWorldTourFixture; onClo
         </div>
       ) : null}
 
-      <div className="absolute inset-x-0 top-0 flex flex-wrap items-start justify-between gap-3 border-b border-white/8 bg-black/36 px-4 py-3 backdrop-blur-md">
+      <div className="absolute inset-x-0 top-0 flex flex-wrap items-start justify-between gap-3 nimi-material-glass-regular border-b border-white/8 bg-black/36 px-4 py-3 backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
         <div className="flex flex-col gap-1">
           <div className="text-sm font-semibold text-white">{title}</div>
           <div className="text-xs text-white/64">
@@ -759,7 +759,7 @@ function WorldTourViewerCanvas(props: { fixture: ResolvedWorldTourFixture; onClo
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-4 left-4 flex max-w-[760px] flex-col gap-2 rounded-[20px] border border-white/8 bg-black/52 px-4 py-3 text-xs text-white/74 backdrop-blur-md">
+      <div className="pointer-events-none absolute bottom-4 left-4 flex max-w-[760px] flex-col gap-2 rounded-[20px] nimi-material-glass-regular border border-white/8 bg-black/52 px-4 py-3 text-xs text-white/74 backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
         <div>{props.fixture.caption || 'Cached World Labs fixture routed into the dedicated Spark 2.0 inspect viewer.'}</div>
         <div className="font-mono text-white/60">
           {props.fixture.worldId || 'fixture'} · {props.fixture.model || 'marble-1.1'} · {colliderStatus} · {targetStatus}

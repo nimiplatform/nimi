@@ -32,14 +32,6 @@ const textSoft = '#94a3b8';
 /* Frosted inner panel — white translucency + faint ring + soft elevation.
  * Used to replace hard #F0F4F8 + #E2E8F0 inner frames across timeline cards.
  */
-const softPanelStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.55)',
-  border: '1px solid rgba(255,255,255,0.55)',
-  boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)',
-  backdropFilter: 'blur(10px)',
-  WebkitBackdropFilter: 'blur(10px)',
-};
-
 const softPanelSubtleStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.45)',
   border: '1px solid rgba(255,255,255,0.5)',
@@ -329,8 +321,8 @@ function RecentChangeLeadCell({ item }: { item: RecentChangeItem }) {
   return (
     <Link
       to={item.to}
-      className="col-span-3 flex flex-col rounded-[22px] p-6 transition-all duration-200 hover:-translate-y-0.5"
-      style={softPanelStyle}
+      className="col-span-3 flex flex-col rounded-[22px] p-6 transition-all duration-200 hover:-translate-y-0.5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+      style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card"
     >
       <div className="flex items-center gap-3">
         <RecentChangeIcon item={item} size={20} />
@@ -372,8 +364,8 @@ function RecentChangeSecondaryCell({ item }: { item: RecentChangeItem }) {
   return (
     <Link
       to={item.to}
-      className="block rounded-[18px] p-4 transition-all duration-200 hover:-translate-y-0.5"
-      style={softPanelStyle}
+      className="block rounded-[18px] p-4 transition-all duration-200 hover:-translate-y-0.5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+      style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card"
     >
       <div className="flex items-start gap-3">
         <RecentChangeIcon item={item} size={16} />
@@ -422,7 +414,7 @@ export function RecentChangesHeroCard({ items }: { items: RecentChangeItem[] }) 
               <RecentChangeSecondaryCell key={item.id} item={item} />
             ))}
             {secondary.length === 0 ? (
-              <div className="rounded-[18px] p-4" style={softPanelStyle}>
+              <div className="rounded-[18px] p-4 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
                 <p className="text-[12px] font-semibold" style={{ color: textMain }}>再记录一点会更完整</p>
                 <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>
                   继续补充睡眠、测量或观察后，这里会把最近变化串成更完整的脉络。
@@ -432,7 +424,7 @@ export function RecentChangesHeroCard({ items }: { items: RecentChangeItem[] }) 
           </div>
         </div>
       ) : (
-        <div className="rounded-[22px] p-7" style={softPanelStyle}>
+        <div className="rounded-[22px] p-7 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
           <p className="text-[15px] font-semibold" style={{ color: textMain }}>最近 7 天还没有新的变化</p>
           <p className="mt-2 text-[13px] leading-relaxed" style={{ color: textMuted }}>
             先记录一次测量、观察或睡眠数据，首页会在这里归纳最近的变化。
@@ -459,7 +451,7 @@ export function StageFocusCard({ periods }: { periods: Array<{ periodId: string;
       {periods.length > 0 ? (
         <div className="space-y-4">
           {periods.slice(0, 2).map((period) => (
-            <div key={period.periodId} className="rounded-[16px] p-5" style={softPanelStyle}>
+            <div key={period.periodId} className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-600">敏感期</span>
                 <p className="text-[13px] font-semibold" style={{ color: textMain }}>{period.title}</p>
@@ -472,7 +464,7 @@ export function StageFocusCard({ periods }: { periods: Array<{ periodId: string;
           ))}
         </div>
       ) : (
-        <div className="rounded-[16px] p-5" style={softPanelStyle}>
+        <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
           <p className="text-[13px] font-semibold" style={{ color: textMain }}>当前阶段相对平稳</p>
           <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>下一个敏感期命中后，这里会解释为什么值得关注。</p>
         </div>
@@ -491,8 +483,8 @@ export function QuickLinksStrip({ ageMonths }: { ageMonths: number }) {
       <div className="grid grid-cols-6 gap-4">
         {links.map((item) => (
           <Link key={item.to} to={item.to}
-            className="group flex flex-col items-center rounded-[20px] px-3 py-5 transition-all duration-200 hover:-translate-y-1"
-            style={softPanelStyle}>
+            className="group flex flex-col items-center rounded-[20px] px-3 py-5 transition-all duration-200 hover:-translate-y-1 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+            style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
             <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl text-[20px] transition-transform duration-200 group-hover:scale-110"
               style={{ background: ICON_TINT[item.emoji] ?? 'rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
               {item.emoji}
@@ -550,7 +542,7 @@ export function SleepTrendCard({ summary }: { summary: SleepTrendSummary }) {
           </div>
         </>
       ) : (
-        <div className="rounded-[16px] p-5" style={softPanelStyle}>
+        <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
           <p className="text-[13px] font-semibold" style={{ color: textMain }}>还没有睡眠记录</p>
           <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>记录第一条睡眠数据后，这里会显示近两周的睡眠趋势。</p>
         </div>
@@ -605,7 +597,7 @@ export function VisionCard({ snapshot }: { snapshot: VisionSnapshotSummary }) {
           </div>
         </>
       ) : (
-        <div className="rounded-[16px] p-5" style={softPanelStyle}>
+        <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
           <p className="text-[13px] font-semibold" style={{ color: textMain }}>还没有视力记录</p>
           <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>记录一次视力检查后，这里会显示左右眼数据。</p>
         </div>
@@ -627,7 +619,7 @@ export function MilestoneTimelineCard({ summary }: { summary: MilestoneTimelineS
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#4ECCA3' }}>最近达成</p>
           <div className="space-y-2">
             {summary.recentlyAchieved.map((item) => (
-              <div key={item.milestoneId} className="flex items-center gap-3 rounded-[14px] px-4 py-3" style={softPanelStyle}>
+              <div key={item.milestoneId} className="flex items-center gap-3 rounded-[14px] px-4 py-3 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px]" style={{ background: 'rgba(78,204,163,0.15)', color: '#4ECCA3' }}>&#10003;</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[12px] font-semibold" style={{ color: textMain }}>{item.title}</p>
@@ -643,7 +635,7 @@ export function MilestoneTimelineCard({ summary }: { summary: MilestoneTimelineS
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#818CF8' }}>接下来关注</p>
           <div className="space-y-2">
             {summary.upcoming.map((item) => (
-              <div key={item.milestoneId} className="flex items-center gap-3 rounded-[14px] px-4 py-3" style={softPanelStyle}>
+              <div key={item.milestoneId} className="flex items-center gap-3 rounded-[14px] px-4 py-3 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px]" style={{ background: 'rgba(129,140,248,0.15)', color: '#818CF8' }}>&#9679;</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[12px] font-semibold" style={{ color: textMain }}>{item.title}</p>
@@ -655,7 +647,7 @@ export function MilestoneTimelineCard({ summary }: { summary: MilestoneTimelineS
         </div>
       ) : null}
       {!hasAchieved && !hasUpcoming ? (
-        <div className="rounded-[16px] p-5" style={softPanelStyle}>
+        <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
           <p className="text-[13px] font-semibold" style={{ color: textMain }}>当前阶段暂无匹配的里程碑</p>
           <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>随着孩子成长，新的发展里程碑会自动出现在这里。</p>
         </div>
@@ -689,7 +681,7 @@ export function ObservationDistributionCard({ summary }: { summary: ObservationD
           </div>
         </>
       ) : (
-        <div className="rounded-[16px] p-5" style={softPanelStyle}>
+        <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
           <p className="text-[13px] font-semibold" style={{ color: textMain }}>还没有带维度标记的观察记录</p>
           <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>在记录观察时选择一个维度，这里就会显示你关注的分布情况。</p>
         </div>
@@ -710,7 +702,7 @@ export function MonthlyReportCard({ report }: { report: MonthlyReportSummary }) 
         <Hdr title="本月成长摘要" to="/reports" link="查看完整报告" />
         <p className="text-[13px] leading-[1.8]" style={{ color: textMain }}>{teaser}</p>
         {actionText ? (
-          <div className="mt-4 rounded-[14px] p-4" style={softPanelStyle}>
+          <div className="mt-4 rounded-[14px] p-4 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
             <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: textMuted }}>本月待办</p>
             <p className="mt-1.5 text-[12px] font-medium" style={{ color: textMain }}>{actionText}</p>
           </div>
@@ -737,7 +729,7 @@ function MiniTrendRow({ trend }: { trend: GrowthTrendItem }) {
   const deltaArrow = isUp ? '↑' : isDown ? '↓' : '';
 
   return (
-    <div className="rounded-[16px] p-5" style={softPanelStyle}>
+    <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[11px] font-medium" style={{ color: textMuted }}>{trend.label}</p>
@@ -784,7 +776,7 @@ export function GrowthSnapshotCard({ snapshot }: { snapshot: { updatedAt: string
       {snapshot.trends.length > 0 ? (
         <div className="space-y-3">{snapshot.trends.map((trend) => <MiniTrendRow key={trend.id} trend={trend} />)}</div>
       ) : (
-        <div className="rounded-[16px] p-5" style={softPanelStyle}>
+        <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
           <p className="text-[13px] font-semibold" style={{ color: textMain }}>还没有成长测量快照</p>
           <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>记录第一条身高或体重后，这里会自动显示趋势曲线。</p>
         </div>
@@ -802,8 +794,8 @@ export function RecentLinesCard({ lines }: { lines: RecentLineItem[] }) {
       {lines.length > 0 ? (
         <div className="grid grid-cols-4 gap-4">
           {lines.map((line) => (
-            <Link key={line.id} to={line.to} className="rounded-[16px] p-5 transition-all duration-200 hover:-translate-y-1"
-              style={softPanelStyle}>
+            <Link key={line.id} to={line.to} className="rounded-[16px] p-5 transition-all duration-200 hover:-translate-y-1 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+              style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
               <div className="flex items-center justify-between gap-2">
                 <span
                   className="rounded-full px-2 py-0.5 text-[10px] font-medium"
@@ -826,7 +818,7 @@ export function RecentLinesCard({ lines }: { lines: RecentLineItem[] }) {
           ))}
         </div>
       ) : (
-        <div className="rounded-[16px] p-5" style={softPanelStyle}>
+        <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
           <p className="text-[13px] font-semibold" style={{ color: textMain }}>最近还没有新的线索</p>
           <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>记录一条观察、日记或语音后，这里会自动显示最近留下的内容。</p>
         </div>
@@ -856,7 +848,7 @@ export function OutdoorGoalCard({
     return (
       <Cd cls="col-span-4">
         <Hdr title="每周户外目标" to="/profile/outdoor" link="设定目标" />
-        <div className="rounded-[16px] p-5" style={softPanelStyle}>
+        <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
           <p className="text-[13px] font-semibold" style={{ color: textMain }}>还没有设定户外目标</p>
           <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>
             每天 2 小时以上的户外活动有助于保护视力。设定每周目标，追踪孩子的户外时间。

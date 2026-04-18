@@ -483,12 +483,12 @@ export function WalletPage() {
           <div className="relative">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
                   <SparkIcon className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-sm font-medium text-white/90">{t('Wallet.sparkBalance')}</span>
               </div>
-              <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white">
                 {subscriptionTier}
               </span>
             </div>
@@ -509,12 +509,12 @@ export function WalletPage() {
           <div className="relative">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint-400/20 backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint-400/20">
                   <GemIcon className="h-5 w-5 text-mint-400" />
                 </div>
                 <span className="text-sm font-medium text-white/90">{t('Wallet.gem')}</span>
               </div>
-              <span className="rounded-full bg-mint-400/20 px-3 py-1 text-xs font-medium text-mint-300 backdrop-blur-sm">
+              <span className="rounded-full bg-mint-400/20 px-3 py-1 text-xs font-medium text-mint-300">
                 {t('Wallet.withdrawableBadge')}
               </span>
             </div>

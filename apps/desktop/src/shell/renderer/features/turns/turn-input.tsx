@@ -516,7 +516,7 @@ export function TurnInput(props: TurnInputProps = {}) {
                         />
                         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur-[2px]">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white shadow-lg">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5">
                               <path d="M8 5.14v14l11-7z" />
                             </svg>

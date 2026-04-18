@@ -509,7 +509,7 @@ export function TopAgentCard({
         {themeLabel && (
           <div className="absolute top-3 left-3">
             <span
-              className="rounded-full px-2.5 py-1 text-[10px] font-medium capitalize backdrop-blur-sm"
+              className="rounded-full px-2.5 py-1 text-[10px] font-medium capitalize"
               style={{ backgroundColor: palette.badgeBg, color: palette.badgeText }}
             >
               {themeLabel}

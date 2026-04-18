@@ -242,7 +242,7 @@ export function ShellLayout({ children }: { children: ReactNode }) {
             >
               <item.Icon size={19} strokeWidth={1.8} />
               <span
-                className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap px-3 py-1.5 text-[11px] font-medium opacity-0 transition-opacity duration-100 group-hover:opacity-100 bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] shadow-[0_8px_32px_rgba(31,38,135,0.04)] rounded-[var(--nimi-radius-xl)] nimi-material-glass-thick"
+                className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap px-3 py-1.5 text-[11px] font-medium opacity-0 transition-opacity duration-100 group-hover:opacity-100 bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] shadow-[0_8px_32px_rgba(31,38,135,0.04)] rounded-[var(--nimi-radius-xl)] nimi-material-glass-thick"
                 style={{ color: textMain }}
               >
                 {item.label}
