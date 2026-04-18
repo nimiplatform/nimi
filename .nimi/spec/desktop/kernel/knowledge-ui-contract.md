@@ -5,7 +5,7 @@
 ## Scope
 
 Desktop knowledge management UI 契约。该 surface 消费
-`RuntimeKnowledgeService` 的 runtime-local knowledge slices，不经过 Realm
+`RuntimeCognitionService` 中的 runtime-local knowledge slices，不经过 Realm
 REST / DataSync facade。
 
 ## D-DSYNC-014 — Runtime Path And Scope Boundary

@@ -6,7 +6,9 @@
 |---:|---|---|---|---|---|
 | 1 | `version` | `true` | `true` | Version negotiation; injects runtime version metadata into response headers | `K-DAEMON-005` |
 | 2 | `lifecycle` | `true` | `true` | Health state gate; rejects non-readonly requests when STOPPING/STOPPED | `K-DAEMON-005` |
-| 3 | `protocol` | `true` | `true` | Envelope parsing, metadata extraction, idempotency check (unary only) | `K-DAEMON-005` |
-| 4 | `authn` | `true` | `true` | Authentication token validation; extracts and verifies caller identity from metadata | `K-DAEMON-005` |
-| 5 | `authz` | `true` | `true` | Protected capability validation via grant service; AI consume streaming RPCs (StreamScenario TEXT_GENERATE/SPEECH_SYNTHESIZE) are authorized via key-source evaluation path (K-KEYSRC-004), not this interceptor | `K-DAEMON-005` |
-| 6 | `audit` | `true` | `true` | Request/response audit logging and usage metric update | `K-DAEMON-005` |
+| 3 | `activity` | `true` | `true` | Tracks active RPC category, last activity time, and shutdown disposition for drain/cancel policy | `K-DAEMON-005` |
+| 4 | `protocol` | `true` | `true` | Envelope parsing, metadata extraction, idempotency check (unary only) | `K-DAEMON-005` |
+| 5 | `authn` | `true` | `true` | Authentication token validation; extracts and verifies caller identity from metadata | `K-DAEMON-005` |
+| 6 | `authz` | `true` | `true` | Protected capability validation via grant service; AI consume streaming RPCs (StreamScenario TEXT_GENERATE/SPEECH_SYNTHESIZE) are authorized via key-source evaluation path (K-KEYSRC-004), not this interceptor | `K-DAEMON-005` |
+| 7 | `credential-scrub` | `true` | `true` | Scrubs incoming credential-bearing metadata from handler context before downstream logging or audit consumers can observe raw secrets | `K-DAEMON-005` |
+| 8 | `audit` | `true` | `true` | Request/response audit logging and usage metric update | `K-DAEMON-005` |

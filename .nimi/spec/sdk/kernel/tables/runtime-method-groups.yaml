@@ -182,16 +182,18 @@ groups:
       - CheckModelHealth
     source_rule: S-SURFACE-002
   - group: knowledge_service_projection
-    service: RuntimeKnowledgeService
+    service: RuntimeCognitionService
     phase: 2
     status: active
     note: >
-      Wave 1 runtime-local knowledge projection is admitted and landed.
-      Wave 2A extends the same projection with explicit hybrid retrieval while
+      Runtime-facing knowledge projection is carried by
+      `RuntimeCognitionService`, not a standalone `RuntimeKnowledgeService`.
+      Wave 1 runtime-local knowledge projection is admitted and landed. Wave
+      2A extends the same projection with explicit hybrid retrieval while
       keeping `SearchKeyword` stable and lexical-only. Wave 2B extends the
-      same projection with same-bank graph / backlink reads and writes.
-      Wave 2C extends the same projection with single-document async ingest
-      plus explicit task polling.
+      same projection with same-bank graph / backlink reads and writes. Wave
+      2C extends the same projection with single-document async ingest plus
+      explicit task polling.
       Consumer surfaces must not imply cross-service citation, AgentCore, or
       shared-truth behavior.
       SDK projection must stay aligned with runtime proto, reason-code, and
@@ -219,25 +221,27 @@ groups:
   - group: app_service_projection
     service: RuntimeAppService
     phase: 2
-    status: deferred
+    status: active
     note: >
       Runtime implementation complete (~900 LOC) with production-grade
       security baseline (K-APP-005): rate limiting, loop detection, payload
-      size enforcement. Desktop uses D-HOOK interMod path for mod-to-mod
-      communication instead. Deferred per pre-launch audit 2026-03-18.
+      size enforcement. SDK projection is landed. Desktop uses D-HOOK
+      interMod path for mod-to-mod communication by default instead of making
+      RuntimeAppService the same-process message bus.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - SendAppMessage
       - SubscribeAppMessages
     source_rule: S-SURFACE-002
   - group: memory_service_projection
-    service: RuntimeMemoryService
+    service: RuntimeCognitionService
     phase: 1
     status: active
     note: >
-      Final-state runtime-owned memory substrate. Public projection is reserved
-      for Nimi-owned bank/retain/recall/history/reflect operations only; provider
-      wire shape remains internal. Default engine is the runtime-managed Hindsight
+      Runtime-facing memory projection is carried by `RuntimeCognitionService`,
+      not a standalone `RuntimeMemoryService`. Public projection is reserved
+      for Nimi-owned bank/retain/recall/history operations only; provider wire
+      shape remains internal. Default engine is the runtime-managed Hindsight
       daemon. App-private and workspace-private scopes may project here, but
       canonical agent memory writes do not route through this service directly.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
@@ -249,7 +253,6 @@ groups:
       - Retain
       - Recall
       - History
-      - Reflect
       - DeleteMemory
       - SubscribeMemoryEvents
     source_rule: S-SURFACE-002

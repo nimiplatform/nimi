@@ -89,10 +89,10 @@ AppService 的跨域消费契约状态：
 
 | 消费层 | 当前状态 | Phase 2 启动前必须 |
 |---|---|---|
-| **SDK 方法投影** | Phase 2 deferred | 创建 SDK 方法投影（SendAppMessage、SubscribeAppMessages），定义 gRPC→SDK 参数映射和错误投影 |
-| **Desktop UI Spec** | D-HOOK interMod 路径已有（K-APP-006），K-APP 路径无 Desktop 消费 | 若 Desktop 需直接使用 K-APP 路径（跨进程、审计场景），创建相应 UI spec |
+| **SDK 方法投影** | 已 landed | 保持 SendAppMessage / SubscribeAppMessages 的 gRPC→SDK 参数映射、错误投影与 runtime public surface 对齐 |
+| **Desktop UI Spec** | D-HOOK interMod 路径已有（K-APP-006），K-APP 路径仍无默认 Desktop 消费 | 若 Desktop 需直接使用 K-APP 路径（跨进程、审计场景），创建相应 UI spec |
 
-> **设计完整性注意**：K-APP-001~005 定义了完整的消息传递模型。Desktop 当前主要通过 D-HOOK interMod 路径实现 mod 间通信，K-APP 的 gRPC 路径在 SDK 层无消费投影。
+> **设计完整性注意**：K-APP-001~005 定义了完整的消息传递模型。Desktop 当前主要通过 D-HOOK interMod 路径实现 mod 间通信。K-APP 的 gRPC 路径已经存在 SDK 投影，但仍不是 Desktop mod 的默认同进程消息总线。
 
 ## K-APP-007 Deferred Decisions
 

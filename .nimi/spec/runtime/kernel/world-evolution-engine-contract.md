@@ -264,7 +264,7 @@ Authorization rules:
 
 - Runtime must not invent a new `runMode` vocabulary
 - Runtime must not self-authorize commit eligibility outside the commit authorization matrix
-- `REPLAY` and `PRIVATE_CONTINUITY` must not stage shared-history append as if they were `CANON_MUTATION`
+- `REPLAY` and any non-`CANON_MUTATION` runtime-local continuity path must not stage shared-history append as if they were `CANON_MUTATION`
 - missing Realm envelope fields or unverifiable provenance must fail-close before the candidate is presented as a valid commit path
 
 ## K-WEV-016 Workflow Partial-Reuse Substrate Contract

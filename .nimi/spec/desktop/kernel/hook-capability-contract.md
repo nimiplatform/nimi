@@ -31,7 +31,7 @@ AI 对话生命周期拦截点：
 - `injected` source type 仅允许 `pre-model` 和 `post-state`。
 - `sideload` 和 `codegen` 不允许 turn hook。
 
-**与 Runtime 拦截器链的时序关系**：Turn hook 在 renderer 进程执行，时序先于 SDK 发送请求到 Runtime。Runtime K-DAEMON-005 拦截器链（version → lifecycle → protocol → authn → authz → audit，共 6 层）在 daemon 收到请求后执行。两层无重叠：Desktop turn hook 负责请求编排（策略门控、模型选择、状态更新、提交确认），Runtime 拦截器负责请求验证（版本协商、健康门控、幂等性、身份认证、授权、审计）。
+**与 Runtime 拦截器链的时序关系**：Turn hook 在 renderer 进程执行，时序先于 SDK 发送请求到 Runtime。Runtime K-DAEMON-005 拦截器链（version → lifecycle → activity → protocol → authn → authz → credential-scrub → audit，共 8 层）在 daemon 收到请求后执行。两层无重叠：Desktop turn hook 负责请求编排（策略门控、模型选择、状态更新、提交确认），Runtime 拦截器负责请求验证与执行边界保护（版本协商、健康门控、活跃 RPC 跟踪、幂等性、身份认证、授权、敏感 metadata 擦除、审计）。
 
 ## D-HOOK-004 — UI 子系统
 

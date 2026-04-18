@@ -17,9 +17,10 @@ Runtime 子路径公开方法集合由 `runtime-method-groups.yaml` 约束，必
 
 允许在 `Runtime` 类上提供 ergonomic convenience 方法（如 `generate()` / `stream()`），但必须是对既有 runtime text surface 的薄投影，不得分叉推理语义、错误语义或 trace/usage 语义。
 
-当 `RuntimeMemoryService` 与 `RuntimeAgentCoreService` 进入 public projection 后，runtime 子路径必须保持以下 authority split：
+当 `RuntimeCognitionService` 与 `RuntimeAgentCoreService` 进入 public projection 后，runtime 子路径必须保持以下 authority split：
 
-- `runtime.memory.*` 投影 runtime-owned memory substrate contract
+- `runtime.memory.*` 投影 `RuntimeCognitionService` 的 runtime-owned memory family
+- `runtime.knowledge.*` 投影 `RuntimeCognitionService` 的 runtime-owned knowledge family
 - `runtime.agentCore.*` 投影 runtime-owned live agent control plane
 - `runtime.agentCore.*` may additionally project runtime-owned persistent `AgentPresentationProfile`
 - canonical agent memory 的 app-facing mutation 统一经 `runtime.agentCore.*`

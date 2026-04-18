@@ -28,9 +28,10 @@ Runtime SDK 对外方法投影按服务分组，方法集合必须与 `.nimi/spe
 
 app-facing route metadata / projection surface 是例外的 host-typed logical surface，遵循 `runtime-route-contract.md`（`S-RUNTIME-074` ~ `S-RUNTIME-078`），不得被误写成新增 daemon 顶层 RPC 投影。
 
-当 `RuntimeMemoryService` / `RuntimeAgentCoreService` 进入 SDK 投影时，公开 surface 必须维持 runtime-owned authority cut：
+当 `RuntimeCognitionService` / `RuntimeAgentCoreService` 进入 SDK 投影时，公开 surface 必须维持 runtime-owned authority cut：
 
-- `runtime.memory.*` 仅投影 Nimi-owned memory substrate contract
+- `runtime.memory.*` 仅投影 `RuntimeCognitionService` 中的 runtime-owned memory family
+- `runtime.knowledge.*` 仅投影 `RuntimeCognitionService` 中的 runtime-owned knowledge family
 - `runtime.agentCore.*` 负责 app-facing canonical agent control plane
 - app-facing canonical agent memory write path 必须统一走 `runtime.agentCore.*`，不得漂移回 direct Realm memory mutation 或 provider-native memory API
 - `@nimiplatform/sdk/realm` 不再承载 canonical agent-memory public helper；runtime-era app path 只能消费 `runtime.agentCore.*`

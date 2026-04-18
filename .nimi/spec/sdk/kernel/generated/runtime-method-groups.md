@@ -204,7 +204,6 @@ Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `Retain` | `S-SURFACE-002` |
 | `Recall` | `S-SURFACE-002` |
 | `History` | `S-SURFACE-002` |
-| `Reflect` | `S-SURFACE-002` |
 | `DeleteMemory` | `S-SURFACE-002` |
 | `SubscribeMemoryEvents` | `S-SURFACE-002` |
 

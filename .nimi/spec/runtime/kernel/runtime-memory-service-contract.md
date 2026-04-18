@@ -111,7 +111,7 @@ Fixed rules:
 
 ## K-MEM-005 Realm Replication Boundary
 
-Realm is the cloud/shared replicated persistence and governance plane for continuity memory.
+Realm is the cloud/shared replicated persistence and governance plane for runtime-owned continuity memory. On the public repo authority path, Realm is not the semantic owner.
 
 Fixed rules:
 

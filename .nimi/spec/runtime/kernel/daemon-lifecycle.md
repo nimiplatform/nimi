@@ -61,18 +61,24 @@ Daemon 启动固定为以下阶段：
 
 ## K-DAEMON-005 gRPC 拦截器链
 
-gRPC 请求经过 6 层有序拦截器，unary 与 stream 分别注册：
+gRPC 请求经过 8 层有序拦截器，unary 与 stream 分别注册：
 
 | 顺序 | 名称 | Unary | Stream | 职责 |
 |---|---|---|---|---|
 | 1 | version | 是 | 是 | 版本协商：向 response header 注入 `x-nimi-runtime-version` |
 | 2 | lifecycle | 是 | 是 | 健康状态门控：`STOPPING`/`STOPPED` 时拒绝非只读请求（`UNAVAILABLE`） |
-| 3 | protocol | 是 | 是（仅解析） | 信封解析、幂等性检查（unary only，`K-DAEMON-006`）、metadata 提取 |
-| 4 | authn | 是 | 是 | 认证校验：解析并校验 metadata `authorization`，投影调用方身份 |
-| 5 | authz | 是 | 是（仅 ExportAuditEvents） | 保护能力校验：通过 grant service 验证 token 有效性 |
-| 6 | audit | 是 | 是 | 审计记录：请求/响应写入审计日志，更新使用量指标 |
+| 3 | activity | 是 | 是 | 活跃 RPC 跟踪：记录方法分类、最近活动时间、shutdown disposition |
+| 4 | protocol | 是 | 是（仅解析） | 信封解析、幂等性检查（unary only，`K-DAEMON-006`）、metadata 提取 |
+| 5 | authn | 是 | 是 | 认证校验：解析并校验 metadata `authorization`，投影调用方身份 |
+| 6 | authz | 是 | 是（仅 ExportAuditEvents） | 保护能力校验：通过 grant service 验证 token 有效性 |
+| 7 | credential-scrub | 是 | 是 | 擦除进入 handler context 的敏感 credential metadata，避免下游日志/审计链路回显原始凭据 |
+| 8 | audit | 是 | 是 | 审计记录：请求/响应写入审计日志，更新使用量指标 |
 
-说明：`StreamScenario` 的授权范围豁免由 `K-KEYSRC-004` 在请求评估链中单独定义，不归入本表的 stream authz 适用面；本表中 stream authz 拦截器仅对 `ExportAuditEvents` 生效。
+说明：
+
+- `StreamScenario` 的授权范围豁免由 `K-KEYSRC-004` 在请求评估链中单独定义，不归入本表的 stream authz 适用面；本表中 stream authz 拦截器仅对 `ExportAuditEvents` 生效。
+- activity interceptor 负责 shutdown/drain 期的活跃 RPC 跟踪，不替代 lifecycle gate。
+- credential-scrub interceptor 发生在 authz 之后、audit 之前；它不移除 authn/authz 所需凭据，只防止下游消费到原始 credential metadata。
 
 协议信封 metadata 的单字段值必须不超过 `4096` bytes。超限时 protocol interceptor 必须以 `PROTOCOL_ENVELOPE_INVALID` fail-close，避免在现有 gRPC/HTTP header 总预算（64 KiB）内被单个异常大字段挤占或污染日志链路。
 

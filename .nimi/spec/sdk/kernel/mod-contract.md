@@ -72,7 +72,7 @@ source-type 与 capability 分级需要与 desktop hook allowlist 一致。
 
 inter-mod 与 runtime app messaging 的桥接语义必须可追溯且不破坏边界。
 
-> **Phase 2 deferred**：`RuntimeAppService`（`app_service_projection`）为 Phase 2 服务，桥接语义定义推迟至该服务投影就绪时补充。当前仅约束边界不可突破，具体协议待定。
+> **Current status**：`RuntimeAppService`（`app_service_projection`）及其 SDK projection 已经就绪。当前 deferred 的不是 service projection 本身，而是 inter-mod 与 runtime app messaging 之间的 canonical bridge semantics。现阶段仅约束边界不可突破，何时桥接、如何桥接、桥接到什么语义层仍待后续合同补充。
 
 ## S-MOD-012 Local AI Profile Contract
 
