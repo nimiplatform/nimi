@@ -21,6 +21,26 @@ export type AgentResolvedMessage = {
   text: string;
 };
 
+export const AGENT_RESOLVED_STATUS_CUE_MOODS = [
+  'neutral',
+  'joy',
+  'focus',
+  'calm',
+  'playful',
+  'concerned',
+  'surprised',
+] as const;
+
+export type AgentResolvedStatusCueMood = (typeof AGENT_RESOLVED_STATUS_CUE_MOODS)[number];
+
+export type AgentResolvedStatusCue = {
+  sourceMessageId: string;
+  mood?: AgentResolvedStatusCueMood | null;
+  label?: string | null;
+  intensity?: number | null;
+  actionCue?: string | null;
+};
+
 export type AgentResolvedModalityActionPromptPayload =
   | {
     kind: 'image-prompt';
@@ -54,6 +74,7 @@ export type AgentResolvedModalityAction = {
 export type AgentResolvedMessageActionEnvelope = {
   schemaId: typeof AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID;
   message: AgentResolvedMessage;
+  statusCue?: AgentResolvedStatusCue | null;
   actions: AgentResolvedModalityAction[];
 };
 

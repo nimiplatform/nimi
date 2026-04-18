@@ -239,7 +239,9 @@ export function createAgentLocalChatConversationProvider(
               textMessageState = resolveCompletedTextMessageStateFromEnvelope({
                 turnId: input.turnId,
                 envelope: resolvedEnvelope,
-                metadataJson: buildAgentTextTurnDebugMetadata(resolvedOutput.diagnostics),
+                metadataJson: buildAgentTextTurnDebugMetadata(resolvedOutput.diagnostics, {
+                  statusCue: resolvedEnvelope.statusCue || null,
+                }),
               });
               outputText = buildAgentResolvedOutputText(resolvedEnvelope);
               const sealedEvent: ConversationTurnEvent = {

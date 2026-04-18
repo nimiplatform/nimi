@@ -1,12 +1,16 @@
 import {
     AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+    AGENT_RESOLVED_STATUS_CUE_MOODS,
 } from './chat-agent-behavior';
 import type {
     AgentResolvedMessage,
     AgentResolvedMessageActionEnvelope,
     AgentResolvedModalityAction,
     AgentResolvedModalityActionPromptPayload,
+    AgentResolvedStatusCue,
+    AgentResolvedStatusCueMood,
 } from './chat-agent-behavior';
+import type { AgentResolvedStatusCueDiagnostic } from './chat-agent-behavior-resolver-types';
 
 const AGENT_ACTION_MODALITIES: ReadonlySet<AgentResolvedModalityAction['modality']> = new Set([
     'image',
@@ -18,6 +22,14 @@ const AGENT_ACTION_DELIVERY_COUPLINGS: ReadonlySet<AgentResolvedModalityAction['
     'after-message',
     'with-message',
 ]);
+const AGENT_STATUS_CUE_FIELDS: ReadonlySet<keyof AgentResolvedStatusCue> = new Set([
+    'sourceMessageId',
+    'mood',
+    'label',
+    'intensity',
+    'actionCue',
+]);
+const AGENT_STATUS_CUE_MOODS: ReadonlySet<AgentResolvedStatusCueMood> = new Set(AGENT_RESOLVED_STATUS_CUE_MOODS);
 
 function parseRecord(value: unknown, label: string): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -32,6 +44,13 @@ function parseTrimmedString(value: unknown, label: string): string {
         throw new Error(`${label} is required`);
     }
     return normalized;
+}
+
+function parseOptionalTrimmedString(value: unknown, label: string): string | null {
+    if (value == null) {
+        return null;
+    }
+    return parseTrimmedString(value, label);
 }
 
 function parseNonNegativeInteger(value: unknown, label: string): number {
@@ -58,6 +77,14 @@ function normalizeMirroredCount(value: unknown, expectedCount: number): number {
     return expectedCount;
 }
 
+function parseUnitInterval(value: unknown, label: string): number {
+    const normalized = Number(value);
+    if (!Number.isFinite(normalized) || normalized < 0 || normalized > 1) {
+        throw new Error(`${label} must be a number between 0 and 1`);
+    }
+    return normalized;
+}
+
 function parseActionModality(value: unknown, label: string): AgentResolvedModalityAction['modality'] {
     const modality = parseTrimmedString(value, label) as AgentResolvedModalityAction['modality'];
     if (!AGENT_ACTION_MODALITIES.has(modality)) {
@@ -75,6 +102,14 @@ function parseActionDeliveryCoupling(
         throw new Error(`${label} is invalid`);
     }
     return deliveryCoupling;
+}
+
+function parseStatusCueMood(value: unknown, label: string): AgentResolvedStatusCueMood {
+    const mood = parseTrimmedString(value, label) as AgentResolvedStatusCueMood;
+    if (!AGENT_STATUS_CUE_MOODS.has(mood)) {
+        throw new Error(`${label} is invalid`);
+    }
+    return mood;
 }
 
 function parsePromptPayload(
@@ -118,6 +153,43 @@ function parseResolvedMessage(value: unknown): AgentResolvedMessage {
     return {
         messageId: parseTrimmedString(record.messageId, 'message.messageId'),
         text: parseTrimmedString(record.text, 'message.text'),
+    };
+}
+
+function parseResolvedStatusCue(value: unknown, messageId: string): AgentResolvedStatusCue {
+    const record = parseRecord(value, 'statusCue');
+    for (const field of Object.keys(record)) {
+        if (!AGENT_STATUS_CUE_FIELDS.has(field as keyof AgentResolvedStatusCue)) {
+            throw new Error(`statusCue.${field} is not admitted`);
+        }
+    }
+    const sourceMessageId = parseTrimmedString(record.sourceMessageId, 'statusCue.sourceMessageId');
+    if (sourceMessageId !== messageId) {
+        throw new Error('statusCue.sourceMessageId must equal message.messageId');
+    }
+    const mood = Object.prototype.hasOwnProperty.call(record, 'mood')
+        ? parseOptionalTrimmedString(record.mood, 'statusCue.mood')
+        : null;
+    const label = Object.prototype.hasOwnProperty.call(record, 'label')
+        ? parseOptionalTrimmedString(record.label, 'statusCue.label')
+        : null;
+    const actionCue = Object.prototype.hasOwnProperty.call(record, 'actionCue')
+        ? parseOptionalTrimmedString(record.actionCue, 'statusCue.actionCue')
+        : null;
+    const intensity = Object.prototype.hasOwnProperty.call(record, 'intensity')
+        ? record.intensity == null
+            ? null
+            : parseUnitInterval(record.intensity, 'statusCue.intensity')
+        : null;
+    if (!mood && !label && !actionCue) {
+        throw new Error('statusCue must include at least one usable affect field');
+    }
+    return {
+        sourceMessageId,
+        ...(mood ? { mood: parseStatusCueMood(mood, 'statusCue.mood') } : {}),
+        ...(label ? { label } : {}),
+        ...(typeof intensity === 'number' ? { intensity } : {}),
+        ...(actionCue ? { actionCue } : {}),
     };
 }
 
@@ -170,7 +242,50 @@ function validatePhaseOneActionEnvelopeLimits(actions: readonly AgentResolvedMod
     }
 }
 
-export function parseAgentResolvedMessageActionEnvelopeFromPayload(payload: unknown): AgentResolvedMessageActionEnvelope {
+function parseStatusCueBranch(input: {
+    record: Record<string, unknown>;
+    messageId: string;
+}): {
+    statusCue: AgentResolvedStatusCue | null;
+    statusCueDiagnostic: AgentResolvedStatusCueDiagnostic | null;
+} {
+    if (!Object.prototype.hasOwnProperty.call(input.record, 'statusCue') || input.record.statusCue == null) {
+        return {
+            statusCue: null,
+            statusCueDiagnostic: null,
+        };
+    }
+    const rawFieldsPresent = input.record.statusCue && typeof input.record.statusCue === 'object' && !Array.isArray(input.record.statusCue)
+        ? Object.keys(input.record.statusCue as Record<string, unknown>)
+        : [];
+    try {
+        const statusCue = parseResolvedStatusCue(input.record.statusCue, input.messageId);
+        return {
+            statusCue,
+            statusCueDiagnostic: {
+                accepted: true,
+                reason: null,
+                sourceMessageId: statusCue.sourceMessageId,
+                rawFieldsPresent,
+            },
+        };
+    } catch (error) {
+        return {
+            statusCue: null,
+            statusCueDiagnostic: {
+                accepted: false,
+                reason: error instanceof Error ? error.message : String(error || 'invalid statusCue'),
+                sourceMessageId: null,
+                rawFieldsPresent,
+            },
+        };
+    }
+}
+
+export function parseAgentResolvedMessageActionEnvelopeWithDiagnosticsFromPayload(payload: unknown): {
+    envelope: AgentResolvedMessageActionEnvelope;
+    statusCueDiagnostic: AgentResolvedStatusCueDiagnostic | null;
+} {
     const record = parseRecord(payload, 'agent model output message-action envelope');
     const schemaId = parseTrimmedString(record.schemaId, 'schemaId');
     if (schemaId !== AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID) {
@@ -184,6 +299,10 @@ export function parseAgentResolvedMessageActionEnvelopeFromPayload(payload: unkn
     }
 
     const message = parseResolvedMessage(record.message);
+    const { statusCue, statusCueDiagnostic } = parseStatusCueBranch({
+        record,
+        messageId: message.messageId,
+    });
     const actionValues = record.actions as unknown[];
     const actions = actionValues.map((action, index) => parseResolvedModalityAction(action, index, actionValues.length));
     const actionIds = new Set<string>();
@@ -201,10 +320,18 @@ export function parseAgentResolvedMessageActionEnvelopeFromPayload(payload: unkn
     }
     validatePhaseOneActionEnvelopeLimits(actions);
     return {
-        schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-        message,
-        actions,
+        envelope: {
+            schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+            message,
+            ...(statusCue ? { statusCue } : {}),
+            actions,
+        },
+        statusCueDiagnostic,
     };
+}
+
+export function parseAgentResolvedMessageActionEnvelopeFromPayload(payload: unknown): AgentResolvedMessageActionEnvelope {
+    return parseAgentResolvedMessageActionEnvelopeWithDiagnosticsFromPayload(payload).envelope;
 }
 
 export function parseAgentResolvedMessageActionEnvelope(modelOutput: string): AgentResolvedMessageActionEnvelope {

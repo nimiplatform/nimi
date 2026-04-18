@@ -1,5 +1,8 @@
 import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
-import type { AgentModelOutputDiagnostics } from './chat-agent-behavior-resolver';
+import type {
+  AgentModelOutputDiagnostics,
+} from './chat-agent-behavior-resolver';
+import type { AgentResolvedStatusCue } from './chat-agent-behavior';
 
 export type AgentTextTurnDebugMetadata = {
   debugType: 'agent-text-turn';
@@ -7,6 +10,7 @@ export type AgentTextTurnDebugMetadata = {
   systemPrompt: string | null;
   rawModelOutput: string | null;
   normalizedModelOutput: string | null;
+  statusCue: AgentResolvedStatusCue | null;
   followUpInstruction: string | null;
   followUpTurn: boolean;
   chainId: string | null;
@@ -25,9 +29,34 @@ function normalizeNullableText(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
 }
 
+function parseStatusCue(value: unknown): AgentResolvedStatusCue | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const sourceMessageId = normalizeNullableText(record.sourceMessageId);
+  if (!sourceMessageId) {
+    return null;
+  }
+  const mood = normalizeNullableText(record.mood);
+  const label = normalizeNullableText(record.label);
+  const actionCue = normalizeNullableText(record.actionCue);
+  const intensity = Number.isFinite(Number(record.intensity))
+    ? Number(record.intensity)
+    : null;
+  return {
+    sourceMessageId,
+    ...(mood ? { mood: mood as AgentResolvedStatusCue['mood'] } : {}),
+    ...(label ? { label } : {}),
+    ...(intensity != null ? { intensity } : {}),
+    ...(actionCue ? { actionCue } : {}),
+  };
+}
+
 export function buildAgentTextTurnDebugMetadata(
   diagnostics: AgentModelOutputDiagnostics | null | undefined,
   options?: {
+    statusCue?: AgentResolvedStatusCue | null;
     followUpTurn?: boolean;
     followUpInstruction?: string | null;
     chainId?: string | null;
@@ -48,6 +77,7 @@ export function buildAgentTextTurnDebugMetadata(
     systemPrompt: normalizeNullableText(diagnostics?.requestSystemPrompt),
     rawModelOutput: normalizeNullableText(diagnostics?.rawModelOutputText),
     normalizedModelOutput: normalizeNullableText(diagnostics?.normalizedModelOutputText),
+    statusCue: options?.statusCue || null,
     followUpInstruction: normalizeNullableText(options?.followUpInstruction),
     followUpTurn: options?.followUpTurn === true,
     chainId: normalizeNullableText(options?.chainId ?? diagnostics?.chainId),
@@ -83,6 +113,7 @@ export function parseAgentTextTurnDebugMetadata(value: unknown): AgentTextTurnDe
     systemPrompt: normalizeNullableText(record.systemPrompt),
     rawModelOutput: normalizeNullableText(record.rawModelOutput),
     normalizedModelOutput: normalizeNullableText(record.normalizedModelOutput),
+    statusCue: parseStatusCue(record.statusCue),
     followUpInstruction: normalizeNullableText(record.followUpInstruction),
     followUpTurn: record.followUpTurn === true,
     chainId: normalizeNullableText(record.chainId),

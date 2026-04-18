@@ -41,10 +41,15 @@ test('desktop chat output contract helper exposes message-action envelope rules'
   assert.match(section, /The first character of your response must be "\{" and the final character must be "\}"/);
   assert.match(section, /Never wrap the JSON object in ```json, backticks, quotes, or any Markdown block/);
   assert.match(section, /The top-level object must contain "schemaId", "message", and "actions"\. Do not rename or omit these keys/);
+  assert.match(section, /You may optionally include one top-level "statusCue" object for the current turn/);
   assert.match(section, new RegExp(`Set "schemaId" to "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"\\.`));
   assert.match(section, new RegExp(`Begin your response with \\{"schemaId":"${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
   assert.match(section, /Put all user-visible assistant text inside exactly one "message\.text" field/);
   assert.match(section, /The "message" object must include "messageId" and "text"/);
+  assert.match(section, /If "statusCue" is present, it must include "sourceMessageId" equal to "message\.messageId"/);
+  assert.match(section, /If "statusCue" is present, it may include only "sourceMessageId", "mood", "label", "intensity", and "actionCue"/);
+  assert.match(section, /If "statusCue\.mood" is present, it must be one of "neutral", "joy", "focus", "calm", "playful", "concerned", or "surprised"/);
+  assert.match(section, /If "statusCue\.intensity" is present, it must be a number between 0 and 1/);
   assert.match(section, /Keep "actionIndex" zero-based and contiguous; every action must repeat the same "actionCount" equal to the actions array length/);
   assert.match(section, /Every action must include "actionId", "actionIndex", "actionCount", "modality", "operation", "promptPayload", "sourceMessageId", and "deliveryCoupling"/);
   assert.match(section, /"deliveryCoupling" must be "after-message".*or "with-message"/);
@@ -81,6 +86,7 @@ test('desktop chat output contract helper exposes a minimal envelope skeleton', 
   assert.match(skeleton, /^\{/m);
   assert.match(skeleton, new RegExp(`"schemaId": "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
   assert.match(skeleton, /"message": \{/);
+  assert.match(skeleton, /"statusCue": null/);
   assert.match(skeleton, /"actions": \[\]/);
 });
 
@@ -335,6 +341,78 @@ test('agent message-action envelope parser normalizes redundant actionCount mirr
 
   assert.equal(envelope.message.messageId, 'message-0');
   assert.equal(envelope.actions[0]?.actionCount, 1);
+});
+
+test('agent message-action envelope parser accepts one bounded statusCue branch', () => {
+  const envelope = parseAgentResolvedMessageActionEnvelope(JSON.stringify({
+    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+    message: {
+      messageId: 'message-0',
+      text: 'hello',
+    },
+    statusCue: {
+      sourceMessageId: 'message-0',
+      mood: 'joy',
+      label: 'Feeling bright',
+      intensity: 0.62,
+    },
+    actions: [],
+  }));
+
+  assert.deepEqual(envelope.statusCue, {
+    sourceMessageId: 'message-0',
+    mood: 'joy',
+    label: 'Feeling bright',
+    intensity: 0.62,
+  });
+});
+
+test('agent message-action envelope parser fails closed on malformed statusCue branch only', () => {
+  const envelope = parseAgentResolvedMessageActionEnvelope(JSON.stringify({
+    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+    message: {
+      messageId: 'message-0',
+      text: 'hello',
+    },
+    statusCue: {
+      sourceMessageId: 'message-0',
+      mood: 'joy',
+      extraField: 'not-admitted',
+    },
+    actions: [],
+  }));
+
+  assert.equal(envelope.message.text, 'hello');
+  assert.equal(envelope.statusCue ?? null, null);
+});
+
+test('resolveAgentModelOutputEnvelope records rejected statusCue diagnostics while preserving the envelope', () => {
+  const resolved = resolveAgentModelOutputEnvelope({
+    modelOutput: JSON.stringify({
+      schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+      message: {
+        messageId: 'message-0',
+        text: 'hello',
+      },
+      statusCue: {
+        sourceMessageId: 'message-0',
+        mood: 'joy',
+        extraField: 'not-admitted',
+      },
+      actions: [],
+    }),
+    finishReason: 'stop',
+    contextWindowSource: 'default-estimate',
+    promptOverflow: false,
+  });
+
+  assert.equal(resolved.ok, true);
+  if (!resolved.ok) {
+    assert.fail('expected valid root envelope to recover');
+  }
+  assert.equal(resolved.envelope.statusCue ?? null, null);
+  assert.equal(resolved.diagnostics.statusCue?.accepted, false);
+  assert.match(resolved.diagnostics.statusCue?.reason || '', /statusCue\.extraField is not admitted/);
 });
 
 test('desktop AI host does NOT inject the message-action output contract into simple-ai systemPrompt', () => {

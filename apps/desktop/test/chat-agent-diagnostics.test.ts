@@ -352,6 +352,7 @@ test('agent diagnostics view model shows runtime agent state and pending hook in
       statusText: 'waiting to follow up',
       activeWorldId: 'world-1',
       activeUserId: 'user-1',
+      autonomyMode: 'medium',
       autonomyEnabled: true,
       autonomyBudgetExhausted: false,
       autonomyUsedTokensInWindow: 88,
@@ -406,6 +407,7 @@ test('agent diagnostics view model shows runtime agent state and pending hook in
   assert.match(agentStateCard?.detail || '', /executionState=life-pending/);
   const autonomyCard = viewModel.stateCards.find((card) => card.label === 'Autonomy');
   assert.equal(autonomyCard?.value, 'Enabled');
+  assert.match(autonomyCard?.detail || '', /mode=medium/);
   assert.match(autonomyCard?.detail || '', /usedTokensInWindow=88/);
   assert.match(autonomyCard?.detail || '', /dailyTokenBudget=400/);
   const hooksCard = viewModel.stateCards.find((card) => card.label === 'Pending Hooks');
@@ -517,6 +519,7 @@ test('agent diagnostics panel renders runtime control actions when inspect data 
         statusText: 'waiting to follow up',
         activeWorldId: 'world-1',
         activeUserId: 'user-1',
+        autonomyMode: 'medium',
         autonomyEnabled: true,
         autonomyBudgetExhausted: false,
         autonomyUsedTokensInWindow: 88,

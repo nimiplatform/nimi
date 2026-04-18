@@ -17,6 +17,12 @@ import {
 } from './chat-runtime-inspect-content';
 
 const DIAGNOSTIC_INPUT_CLASS_NAME = 'mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 outline-none transition focus:border-[color:var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] disabled:cursor-not-allowed disabled:opacity-50';
+const AUTONOMY_MODE_OPTIONS = [
+  { value: 'off', label: 'Off' },
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+] as const;
 
 function RuntimeInspectActionButton(props: {
   label: string;
@@ -46,7 +52,7 @@ export function AgentDiagnosticsPanel(props: {
   onEnableAutonomy?: () => void;
   onRefreshInspect?: () => void;
   onUpdateRuntimeState?: (input: { statusText: string; worldId: string; userId: string }) => void;
-  onUpdateAutonomyConfig?: (input: { dailyTokenBudget: string; maxTokensPerHook: string }) => void;
+  onUpdateAutonomyConfig?: (input: { mode: string; dailyTokenBudget: string; maxTokensPerHook: string }) => void;
   recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
   routeReady: boolean;
   runtimeInspect: RuntimeAgentInspectSnapshot | null;
@@ -56,12 +62,14 @@ export function AgentDiagnosticsPanel(props: {
 }) {
   const viewModel = buildAgentDiagnosticsViewModel(props);
   const t = props.t;
+  const [autonomyMode, setAutonomyMode] = useState('off');
   const [dailyTokenBudget, setDailyTokenBudget] = useState('');
   const [maxTokensPerHook, setMaxTokensPerHook] = useState('');
   const [statusText, setStatusText] = useState('');
   const [worldId, setWorldId] = useState('');
   const [userId, setUserId] = useState('');
   useEffect(() => {
+    setAutonomyMode(props.runtimeInspect?.autonomyMode || 'off');
     setDailyTokenBudget(
       props.runtimeInspect?.autonomyDailyTokenBudget !== null
       && props.runtimeInspect?.autonomyDailyTokenBudget !== undefined
@@ -74,7 +82,11 @@ export function AgentDiagnosticsPanel(props: {
         ? String(props.runtimeInspect.autonomyMaxTokensPerHook)
         : '0',
     );
-  }, [props.runtimeInspect?.autonomyDailyTokenBudget, props.runtimeInspect?.autonomyMaxTokensPerHook]);
+  }, [
+    props.runtimeInspect?.autonomyDailyTokenBudget,
+    props.runtimeInspect?.autonomyMaxTokensPerHook,
+    props.runtimeInspect?.autonomyMode,
+  ]);
   useEffect(() => {
     setStatusText(props.runtimeInspect?.statusText || '');
     setWorldId(props.runtimeInspect?.activeWorldId || '');
@@ -166,12 +178,31 @@ export function AgentDiagnosticsPanel(props: {
               ? t('Chat.agentDiagnosticsAutonomyOnDetail', {
                 defaultValue: 'Disable autonomy when you want chat-only behavior without life-track execution.',
               })
-              : t('Chat.agentDiagnosticsAutonomyOffDetail', {
-                defaultValue: 'Enable autonomy when this agent should resume runtime-owned life-track behavior.',
-              })}
+              : props.runtimeInspect.autonomyMode === 'off'
+                ? t('Chat.agentDiagnosticsAutonomyOffNeedsModeDetail', {
+                  defaultValue: 'Apply a non-off autonomy mode before enabling runtime-owned life-track behavior.',
+                })
+                : t('Chat.agentDiagnosticsAutonomyOffDetail', {
+                  defaultValue: 'Enable autonomy when this agent should resume runtime-owned life-track behavior.',
+                })}
           />
           <DesktopCardSurface kind="operational-solid" as="div" className="px-3 py-3">
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="text-xs font-semibold text-gray-500">
+                {t('Chat.agentDiagnosticsAutonomyModeLabel', { defaultValue: 'Autonomy mode' })}
+                <select
+                  value={autonomyMode}
+                  onChange={(event) => setAutonomyMode(event.target.value)}
+                  disabled={props.mutationPendingAction !== null}
+                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
+                >
+                  {AUTONOMY_MODE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="text-xs font-semibold text-gray-500">
                 {t('Chat.agentDiagnosticsDailyTokenBudgetLabel', { defaultValue: 'Daily token budget' })}
                 <input
@@ -203,7 +234,7 @@ export function AgentDiagnosticsPanel(props: {
               />
               <RuntimeInspectActionButton
                 label={t('Chat.agentDiagnosticsApplyAutonomyConfig', { defaultValue: 'Apply autonomy config' })}
-                onClick={() => props.onUpdateAutonomyConfig?.({ dailyTokenBudget, maxTokensPerHook })}
+                onClick={() => props.onUpdateAutonomyConfig?.({ mode: autonomyMode, dailyTokenBudget, maxTokensPerHook })}
                 disabled={!props.onUpdateAutonomyConfig || props.mutationPendingAction !== null}
               />
               {props.runtimeInspect.autonomyEnabled === true ? (
@@ -217,7 +248,11 @@ export function AgentDiagnosticsPanel(props: {
                 <RuntimeInspectActionButton
                   label={t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable autonomy' })}
                   onClick={() => props.onEnableAutonomy?.()}
-                  disabled={!props.onEnableAutonomy || props.mutationPendingAction !== null}
+                  disabled={
+                    !props.onEnableAutonomy
+                    || props.mutationPendingAction !== null
+                    || props.runtimeInspect.autonomyMode === 'off'
+                  }
                 />
               )}
               {props.runtimeInspect.pendingHooks.map((hook) => (

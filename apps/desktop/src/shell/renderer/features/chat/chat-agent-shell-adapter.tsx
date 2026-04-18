@@ -247,15 +247,12 @@ export function useAgentConversationModeHost(
       setRuntimeInspectLoading(false);
     }
   }, [input.authStatus, reportHostError, runtimeAgentInspect]);
-  const refreshRuntimeInspectIfVisible = useCallback(async (
+  const refreshRuntimeInspect = useCallback(async (
     agentId: string,
     options?: { surfaceErrors?: boolean },
   ) => {
-    if (!input.diagnosticsVisible) {
-      return;
-    }
     await reloadRuntimeInspect(agentId, options);
-  }, [input.diagnosticsVisible, reloadRuntimeInspect]);
+  }, [reloadRuntimeInspect]);
 
   const setSelection = useCallback((selection: AgentConversationSelection) => {
     if (
@@ -433,15 +430,9 @@ export function useAgentConversationModeHost(
       setRecentRuntimeEvents([]);
       lastInspectFetchedAgentIdRef.current = null;
     }
-    if (input.authStatus !== 'authenticated' || !agentId || !input.diagnosticsVisible) {
-      // Only clear inspect data when the agent changes or auth is lost —
-      // preserve the cached snapshot across panel visibility toggles so the
-      // user sees stale data instantly on reopen instead of a blank flash.
-      // The fetch below still runs on every reopen to refresh it.
-      if (!agentId || input.authStatus !== 'authenticated') {
-        setRuntimeInspect(null);
-        lastInspectFetchedAgentIdRef.current = null;
-      }
+    if (input.authStatus !== 'authenticated' || !agentId) {
+      setRuntimeInspect(null);
+      lastInspectFetchedAgentIdRef.current = null;
       setRuntimeInspectLoading(false);
       setRecentRuntimeEvents([]);
       return () => {
@@ -481,7 +472,7 @@ export function useAgentConversationModeHost(
     return () => {
       cancelled = true;
     };
-  }, [activeTarget?.agentId, input.authStatus, input.diagnosticsVisible, runtimeAgentInspect]);
+  }, [activeTarget?.agentId, input.authStatus, runtimeAgentInspect]);
   // Coalesce event-driven state updates: buffer incoming events and flush at
   // most once per EVENTS_COALESCE_MS to reduce re-render frequency while the
   // diagnostics panel is open.  The subscription itself stays active whenever
@@ -562,7 +553,7 @@ export function useAgentConversationModeHost(
     setMutationPendingAction('Enabling autonomy…');
     void runtimeAgentInspect.enableAutonomy(agentId)
       .then(async () => {
-        await refreshRuntimeInspectIfVisible(agentId);
+        await refreshRuntimeInspect(agentId);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.agentAutonomyEnabled', {
@@ -575,7 +566,7 @@ export function useAgentConversationModeHost(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspectIfVisible, reportHostError, runtimeAgentInspect, t]);
+  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
   const handleDisableAutonomy = useCallback(() => {
     const agentId = normalizeText(activeTarget?.agentId);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
@@ -599,7 +590,7 @@ export function useAgentConversationModeHost(
         agentId,
         reason: 'desktop_agent_chat_diagnostics_disable',
       });
-      await refreshRuntimeInspectIfVisible(agentId);
+      await refreshRuntimeInspect(agentId);
       setHostFeedback({
         kind: 'success',
         message: t('Chat.agentAutonomyDisabled', {
@@ -610,7 +601,7 @@ export function useAgentConversationModeHost(
     })().catch(reportHostError).finally(() => {
       setMutationPendingAction(null);
     });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspectIfVisible, reportHostError, runtimeAgentInspect, t]);
+  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
   const handleCancelPendingHook = useCallback((hookId: string) => {
     const agentId = normalizeText(activeTarget?.agentId);
     const normalizedHookId = normalizeText(hookId);
@@ -635,7 +626,7 @@ export function useAgentConversationModeHost(
         hookId: normalizedHookId,
         reason: 'desktop_agent_chat_diagnostics_cancel',
       });
-      await refreshRuntimeInspectIfVisible(agentId);
+      await refreshRuntimeInspect(agentId);
       setHostFeedback({
         kind: 'success',
         message: t('Chat.agentHookCanceled', {
@@ -646,8 +637,9 @@ export function useAgentConversationModeHost(
     })().catch(reportHostError).finally(() => {
       setMutationPendingAction(null);
     });
-  }, [activeTarget?.agentId, refreshRuntimeInspectIfVisible, reportHostError, runtimeAgentInspect, t]);
+  }, [activeTarget?.agentId, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
   const handleUpdateAutonomyConfig = useCallback((config: {
+    mode: string;
     dailyTokenBudget: string;
     maxTokensPerHook: string;
   }) => {
@@ -659,11 +651,12 @@ export function useAgentConversationModeHost(
     setMutationPendingAction('Updating autonomy config…');
     void runtimeAgentInspect.setAutonomyConfig({
       agentId,
+      mode: config.mode,
       dailyTokenBudget: config.dailyTokenBudget,
       maxTokensPerHook: config.maxTokensPerHook,
     })
       .then(async () => {
-        await refreshRuntimeInspectIfVisible(agentId);
+        await refreshRuntimeInspect(agentId);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.agentAutonomyConfigUpdated', {
@@ -676,7 +669,7 @@ export function useAgentConversationModeHost(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspectIfVisible, reportHostError, runtimeAgentInspect, t]);
+  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
   const handleUpdateRuntimeState = useCallback((stateInput: {
     statusText: string;
     worldId: string;
@@ -721,7 +714,7 @@ export function useAgentConversationModeHost(
     setMutationPendingAction('Updating runtime state…');
     void runtimeAgentInspect.updateState(payload)
       .then(async () => {
-        await refreshRuntimeInspectIfVisible(agentId);
+        await refreshRuntimeInspect(agentId);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.agentRuntimeStateUpdated', {
@@ -734,7 +727,7 @@ export function useAgentConversationModeHost(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspectIfVisible, reportHostError, runtimeAgentInspect, t]);
+  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
   const handleClearWorldContext = useCallback(() => {
     const agentId = normalizeText(activeTarget?.agentId);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
@@ -747,7 +740,7 @@ export function useAgentConversationModeHost(
       clearWorldContext: true,
     })
       .then(async () => {
-        await refreshRuntimeInspectIfVisible(agentId);
+        await refreshRuntimeInspect(agentId);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.agentWorldContextCleared', {
@@ -760,7 +753,7 @@ export function useAgentConversationModeHost(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspectIfVisible, reportHostError, runtimeAgentInspect, t]);
+  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
   const handleClearDyadicContext = useCallback(() => {
     const agentId = normalizeText(activeTarget?.agentId);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
@@ -773,7 +766,7 @@ export function useAgentConversationModeHost(
       clearDyadicContext: true,
     })
       .then(async () => {
-        await refreshRuntimeInspectIfVisible(agentId);
+        await refreshRuntimeInspect(agentId);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.agentDyadicContextCleared', {
@@ -786,14 +779,14 @@ export function useAgentConversationModeHost(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspectIfVisible, reportHostError, runtimeInspect, t]);
+  }, [activeTarget?.agentId, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeInspect, t]);
   const handleRefreshRuntimeInspect = useCallback(() => {
     const agentId = normalizeText(activeTarget?.agentId);
     if (!agentId) {
       return;
     }
-    void refreshRuntimeInspectIfVisible(agentId, { surfaceErrors: true });
-  }, [activeTarget?.agentId, refreshRuntimeInspectIfVisible]);
+    void refreshRuntimeInspect(agentId, { surfaceErrors: true });
+  }, [activeTarget?.agentId, refreshRuntimeInspect]);
   useAgentConversationCapabilityEffects({
     bootstrapReady,
     textCapabilityProjection,

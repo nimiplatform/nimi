@@ -37,6 +37,8 @@ export type RuntimeAgentCanonicalMemoryInspect = {
   recallScore: number | null;
 };
 
+export type RuntimeAgentAutonomyMode = 'off' | 'low' | 'medium' | 'high';
+
 type ProtoStructLike = {
   fields?: Record<string, ProtoValueLike>;
 };
@@ -185,6 +187,21 @@ export function formatExecutionState(value: unknown): string | null {
       return 'life-running';
     case 5:
       return 'suspended';
+    default:
+      return null;
+  }
+}
+
+export function formatAutonomyMode(value: unknown): RuntimeAgentAutonomyMode | null {
+  switch (Number(value)) {
+    case 1:
+      return 'off';
+    case 2:
+      return 'low';
+    case 3:
+      return 'medium';
+    case 4:
+      return 'high';
     default:
       return null;
   }

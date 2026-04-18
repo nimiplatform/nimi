@@ -3,7 +3,7 @@ import type {
 } from './chat-agent-behavior';
 import {
     buildAgentResolvedOutputText,
-    parseAgentResolvedMessageActionEnvelopeFromPayload,
+    parseAgentResolvedMessageActionEnvelopeWithDiagnosticsFromPayload,
 } from './chat-agent-behavior-resolver-envelope';
 import {
     AGENT_MODEL_OUTPUT_CLASSIFICATIONS,
@@ -15,6 +15,7 @@ import {
     type AgentPreflightExecutionDiagnostics,
     type AgentModelOutputUsage,
     type AgentPromptContextWindowSource,
+    type AgentResolvedStatusCueDiagnostic,
     type ResolveAgentModelOutputEnvelopeInput,
     type ResolveAgentModelOutputEnvelopeResult,
 } from './chat-agent-behavior-resolver-types';
@@ -120,6 +121,27 @@ function parseAgentPreflightExecutionDiagnostics(value: unknown): AgentPreflight
     return Object.values(diagnostics).some((entry) => entry !== null) ? diagnostics : null;
 }
 
+function parseAgentResolvedStatusCueDiagnostic(value: unknown): AgentResolvedStatusCueDiagnostic | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return null;
+    }
+    const record = value as Record<string, unknown>;
+    const rawFieldsPresent = Array.isArray(record.rawFieldsPresent)
+        ? record.rawFieldsPresent
+            .map((entry) => normalizeNullableText(entry))
+            .filter(Boolean) as string[]
+        : [];
+    if (record.accepted !== true && record.accepted !== false) {
+        return null;
+    }
+    return {
+        accepted: record.accepted === true,
+        reason: normalizeNullableText(record.reason),
+        sourceMessageId: normalizeNullableText(record.sourceMessageId),
+        rawFieldsPresent,
+    };
+}
+
 function buildAgentModelOutputDiagnostics(input: {
     classification: AgentModelOutputClassification;
     recoveryPath: AgentModelOutputRecoveryPath;
@@ -143,6 +165,7 @@ function buildAgentModelOutputDiagnostics(input: {
     contextWindowSource: AgentPromptContextWindowSource;
     maxOutputTokensRequested?: number | null;
     promptOverflow: boolean;
+    statusCue?: AgentResolvedStatusCueDiagnostic | null;
 }): AgentModelOutputDiagnostics {
     return {
         classification: input.classification,
@@ -167,6 +190,7 @@ function buildAgentModelOutputDiagnostics(input: {
         maxFollowUpTurns: normalizeOptionalPositiveInteger(input.maxFollowUpTurns),
         followUpCanceledByUser: input.followUpCanceledByUser === true,
         followUpSourceActionId: normalizeNullableText(input.followUpSourceActionId),
+        statusCue: input.statusCue || null,
         image: null,
         preflight: null,
     };
@@ -302,17 +326,21 @@ function classifyJsonFailure(rawModelOutput: string, detail: string): AgentModel
 function tryParseEnvelopeCandidate(rawModelOutput: string): {
     envelope: AgentResolvedMessageActionEnvelope | null;
     parseErrorDetail: string | null;
+    statusCue: AgentResolvedStatusCueDiagnostic | null;
 } {
     try {
         const payload = JSON.parse(rawModelOutput) as unknown;
+        const parsed = parseAgentResolvedMessageActionEnvelopeWithDiagnosticsFromPayload(payload);
         return {
-            envelope: parseAgentResolvedMessageActionEnvelopeFromPayload(payload),
+            envelope: parsed.envelope,
             parseErrorDetail: null,
+            statusCue: parsed.statusCueDiagnostic,
         };
     } catch (error) {
         return {
             envelope: null,
             parseErrorDetail: error instanceof Error ? error.message : String(error || 'invalid JSON'),
+            statusCue: null,
         };
     }
 }
@@ -358,6 +386,7 @@ export function parseAgentModelOutputDiagnostics(value: unknown): AgentModelOutp
         maxFollowUpTurns: normalizeOptionalPositiveInteger(record.maxFollowUpTurns),
         followUpCanceledByUser: record.followUpCanceledByUser === true,
         followUpSourceActionId: normalizeNullableText(record.followUpSourceActionId),
+        statusCue: parseAgentResolvedStatusCueDiagnostic(record.statusCue),
         image: parseAgentImageExecutionDiagnostics(record.image),
         preflight: parseAgentPreflightExecutionDiagnostics(record.preflight),
     };
@@ -453,6 +482,7 @@ export function resolveAgentModelOutputEnvelope(
                 promptOverflow: input.promptOverflow,
                 requestPrompt: input.requestPrompt,
                 requestSystemPrompt: input.requestSystemPrompt,
+                statusCue: strictCandidate.statusCue,
             }),
         };
     }
@@ -478,6 +508,7 @@ export function resolveAgentModelOutputEnvelope(
                     promptOverflow: input.promptOverflow,
                     requestPrompt: input.requestPrompt,
                     requestSystemPrompt: input.requestSystemPrompt,
+                    statusCue: fencedCandidate.statusCue,
                 }),
             };
         }
@@ -504,6 +535,7 @@ export function resolveAgentModelOutputEnvelope(
                     promptOverflow: input.promptOverflow,
                     requestPrompt: input.requestPrompt,
                     requestSystemPrompt: input.requestSystemPrompt,
+                    statusCue: wrappedCandidate.statusCue,
                 }),
             };
         }

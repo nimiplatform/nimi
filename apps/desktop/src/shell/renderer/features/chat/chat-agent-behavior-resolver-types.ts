@@ -2,6 +2,13 @@ import type {
     AgentResolvedMessageActionEnvelope,
 } from './chat-agent-behavior';
 
+export type AgentResolvedStatusCueDiagnostic = {
+    accepted: boolean;
+    reason: string | null;
+    sourceMessageId: string | null;
+    rawFieldsPresent: readonly string[];
+};
+
 export const AGENT_MODEL_OUTPUT_CLASSIFICATIONS = [
     'strict-json',
     'json-fenced',
@@ -70,6 +77,7 @@ export type AgentModelOutputDiagnostics = {
     maxFollowUpTurns: number | null;
     followUpCanceledByUser: boolean;
     followUpSourceActionId: string | null;
+    statusCue?: AgentResolvedStatusCueDiagnostic | null;
     image?: AgentImageExecutionDiagnostics | null;
     preflight?: AgentPreflightExecutionDiagnostics | null;
 };

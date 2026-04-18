@@ -289,6 +289,9 @@ function buildAutonomyCard(input: {
         ? 'Disabled'
         : 'Unavailable',
     detail: joinDetails([
+      input.runtimeInspect.autonomyMode
+        ? `mode=${input.runtimeInspect.autonomyMode}`
+        : null,
       input.runtimeInspect.autonomyBudgetExhausted !== null
         ? `budgetExhausted=${input.runtimeInspect.autonomyBudgetExhausted}`
         : null,

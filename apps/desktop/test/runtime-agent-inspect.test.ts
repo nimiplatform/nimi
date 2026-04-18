@@ -4,6 +4,13 @@ import test from 'node:test';
 import { MemoryCanonicalClass, RuntimeReasonCode } from '@nimiplatform/sdk/runtime';
 import { createRuntimeAgentInspectAdapter } from '../src/shell/renderer/infra/runtime-agent-inspect.js';
 
+const PROTO_AGENT_AUTONOMY_MODE = {
+  OFF: 1,
+  LOW: 2,
+  MEDIUM: 3,
+  HIGH: 4,
+} as const;
+
 function createRuntimeMock() {
   const calls = {
     registerApp: [] as Array<Record<string, unknown>>,
@@ -93,6 +100,7 @@ function createRuntimeMock() {
               budgetExhausted: false,
               windowStartedAt: { seconds: '1776124800', nanos: 0 },
               config: {
+                mode: PROTO_AGENT_AUTONOMY_MODE.MEDIUM,
                 dailyTokenBudget: '400',
                 maxTokensPerHook: '120',
               },
@@ -317,6 +325,7 @@ function createRuntimeMock() {
             usedTokensInWindow: '90',
             budgetExhausted: false,
             config: {
+              mode: PROTO_AGENT_AUTONOMY_MODE.MEDIUM,
               dailyTokenBudget: '400',
               maxTokensPerHook: '120',
             },
@@ -331,6 +340,7 @@ function createRuntimeMock() {
             usedTokensInWindow: '90',
             budgetExhausted: false,
             config: {
+              mode: PROTO_AGENT_AUTONOMY_MODE.OFF,
               dailyTokenBudget: '400',
               maxTokensPerHook: '120',
             },
@@ -345,6 +355,7 @@ function createRuntimeMock() {
             usedTokensInWindow: '90',
             budgetExhausted: false,
             config: {
+              mode: (input.config as Record<string, unknown>)?.mode,
               dailyTokenBudget: String((input.config as Record<string, unknown>)?.dailyTokenBudget || '0'),
               maxTokensPerHook: String((input.config as Record<string, unknown>)?.maxTokensPerHook || '0'),
             },
@@ -469,6 +480,7 @@ test('runtime agent inspect adapter projects public state and pending hook summa
   assert.equal(snapshot.statusText, 'waiting to follow up');
   assert.equal(snapshot.activeWorldId, 'world-1');
   assert.equal(snapshot.activeUserId, 'user-1');
+  assert.equal(snapshot.autonomyMode, 'medium');
   assert.equal(snapshot.autonomyEnabled, true);
   assert.equal(snapshot.autonomyBudgetExhausted, false);
   assert.equal(snapshot.autonomyUsedTokensInWindow, 88);
@@ -552,8 +564,10 @@ test('runtime agent inspect adapter enables and disables autonomy through admitt
   });
 
   assert.equal(enabled.enabled, true);
+  assert.equal(enabled.mode, 'medium');
   assert.equal(enabled.dailyTokenBudget, 400);
   assert.equal(disabled.enabled, false);
+  assert.equal(disabled.mode, 'off');
   assert.equal(disabled.maxTokensPerHook, 120);
   assert.equal(calls.enableAutonomy.length, 1);
   assert.equal(calls.disableAutonomy.length, 1);
@@ -609,14 +623,17 @@ test('runtime agent inspect adapter updates autonomy config through admitted run
 
   const updated = await adapter.setAutonomyConfig({
     agentId: 'agent-1',
+    mode: 'high',
     dailyTokenBudget: '640',
     maxTokensPerHook: '160',
   });
 
   assert.equal(updated.enabled, true);
+  assert.equal(updated.mode, 'high');
   assert.equal(updated.dailyTokenBudget, 640);
   assert.equal(updated.maxTokensPerHook, 160);
   assert.equal(calls.setAutonomyConfig.length, 1);
+  assert.equal((calls.setAutonomyConfig[0]?.config as Record<string, unknown>)?.mode, PROTO_AGENT_AUTONOMY_MODE.HIGH);
   assert.equal((calls.setAutonomyConfig[0]?.config as Record<string, unknown>)?.dailyTokenBudget, '640');
   assert.equal((calls.setAutonomyConfig[0]?.config as Record<string, unknown>)?.maxTokensPerHook, '160');
   const options = (calls.setAutonomyConfig[0]?.__options as Record<string, unknown>) || {};

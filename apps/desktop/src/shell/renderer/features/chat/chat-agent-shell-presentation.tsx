@@ -24,8 +24,10 @@ import { cancelStream } from '../turns/stream-controller';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
 import { createInitialAgentTurnLifecycleState, type AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
+import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 import { resolveAgentFooterViewState } from './chat-agent-shell-footer-state';
 import { resolveAgentConversationSurfaceState } from './chat-agent-shell-visible-state';
+import type { RuntimeCommittedStatusProjection } from './chat-agent-shell-visible-state';
 import { resolveAgentConversationHostView } from './chat-agent-shell-host-view';
 import { resolveAgentConversationHostSnapshot } from './chat-agent-shell-host-snapshot';
 import {
@@ -53,6 +55,11 @@ import {
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
+import {
+  resolveAgentIdentityAutonomyModeLabel,
+  resolveAgentIdentityRuntimeActivityLabel,
+  resolveAgentIdentityRuntimeStatusLabel,
+} from './chat-agent-identity-card-model';
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -73,7 +80,7 @@ type UseAgentConversationPresentationInput = {
   onEnableAutonomy: () => void;
   onRefreshInspect: () => void;
   onUpdateRuntimeState: (input: { statusText: string; worldId: string; userId: string }) => void;
-  onUpdateAutonomyConfig: (input: { dailyTokenBudget: string; maxTokensPerHook: string }) => void;
+  onUpdateAutonomyConfig: (input: { mode: string; dailyTokenBudget: string; maxTokensPerHook: string }) => void;
   recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
@@ -165,6 +172,30 @@ export function useAgentConversationPresentation(
     currentHostFooterState: input.currentFooterHostState?.footerState || 'hidden',
     isSubmitting: input.submittingThreadId === input.activeThreadId,
   }), [input.activeThreadId, input.currentFooterHostState?.footerState, input.currentFooterHostState?.lifecycle, input.streamState, input.submittingThreadId]);
+  const latestStatusCue = useMemo(() => {
+    const messages = input.bundle?.messages || [];
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (!message || message.role !== 'assistant' || message.kind !== 'text' || message.status !== 'complete') {
+        continue;
+      }
+      const metadata = parseAgentTextTurnDebugMetadata(message.metadataJson);
+      if (metadata?.statusCue) {
+        return metadata.statusCue;
+      }
+    }
+    return null;
+  }, [input.bundle]);
+  const runtimeCommittedStatus = useMemo<RuntimeCommittedStatusProjection | null>(() => {
+    if (!input.runtimeInspect) {
+      return null;
+    }
+    return {
+      lifecycleStatus: input.runtimeInspect.lifecycleStatus,
+      executionState: input.runtimeInspect.executionState,
+      statusText: input.runtimeInspect.statusText,
+    };
+  }, [input.runtimeInspect]);
   const surfaceState = useMemo(() => resolveAgentConversationSurfaceState({
     composerReady: input.composerReady,
     activeTarget: input.activeTarget,
@@ -173,6 +204,8 @@ export function useAgentConversationPresentation(
     voiceCaptureState: input.voiceCaptureState,
     voicePlaybackState: input.voicePlaybackState,
     voiceSessionState: input.voiceSessionState,
+    latestStatusCue,
+    runtimeCommittedStatus,
     footerViewState,
     labels: {
       title: input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' }),
@@ -197,7 +230,7 @@ export function useAgentConversationPresentation(
         defaultValue: 'Transcribing…',
       }),
     },
-  }), [footerViewState, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, input.voiceCaptureState, input.voicePlaybackState, input.voiceSessionState]);
+  }), [footerViewState, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, input.voiceCaptureState, input.voicePlaybackState, input.voiceSessionState, latestStatusCue, runtimeCommittedStatus]);
   const characterData = useMemo(() => ({
     ...surfaceState.character,
     theme: {
@@ -215,6 +248,18 @@ export function useAgentConversationPresentation(
       || input.activeTarget?.displayName
       || input.t('Chat.agentGenericIdentity', { defaultValue: 'Agent' }),
     [characterData.name, input.activeTarget?.displayName, input.t],
+  );
+  const runtimeStatusLabel = useMemo(
+    () => resolveAgentIdentityRuntimeStatusLabel(input.runtimeInspect),
+    [input.runtimeInspect],
+  );
+  const runtimeActivityLabel = useMemo(
+    () => resolveAgentIdentityRuntimeActivityLabel(input.runtimeInspect),
+    [input.runtimeInspect],
+  );
+  const autonomyModeLabel = useMemo(
+    () => resolveAgentIdentityAutonomyModeLabel(input.runtimeInspect),
+    [input.runtimeInspect],
   );
   const canonicalMessages = useMemo(
     () => resolveAgentCanonicalMessages({
@@ -428,7 +473,10 @@ export function useAgentConversationPresentation(
                 <Tooltip
                   placement="top"
                   content={(
-                    <div className="flex flex-col gap-1 px-1 py-0.5 text-left">
+                    <div
+                      data-chat-agent-identity-card="true"
+                      className="flex min-w-[220px] flex-col gap-2 px-1 py-0.5 text-left"
+                    >
                       <span className="text-sm font-semibold text-[var(--nimi-text-primary)]">
                         {resolvedAgentDisplayName}
                       </span>
@@ -436,6 +484,40 @@ export function useAgentConversationPresentation(
                         <span className="text-[11px] leading-4 text-[var(--nimi-text-secondary)]">
                           {characterData.handle}
                         </span>
+                      ) : null}
+                      {runtimeStatusLabel || runtimeActivityLabel || autonomyModeLabel ? (
+                        <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]/90 px-2.5 py-2">
+                          {runtimeStatusLabel ? (
+                            <div className="flex items-start justify-between gap-3">
+                              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+                                Runtime Status
+                              </span>
+                              <span className="text-[11px] leading-4 text-[var(--nimi-text-primary)]">
+                                {runtimeStatusLabel}
+                              </span>
+                            </div>
+                          ) : null}
+                          {runtimeActivityLabel ? (
+                            <div className="mt-1.5 flex items-start justify-between gap-3">
+                              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+                                Activity
+                              </span>
+                              <span className="text-[11px] leading-4 text-[var(--nimi-text-secondary)]">
+                                {runtimeActivityLabel}
+                              </span>
+                            </div>
+                          ) : null}
+                          {autonomyModeLabel ? (
+                            <div className="mt-1.5 flex items-start justify-between gap-3">
+                              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+                                Mode
+                              </span>
+                              <span className="text-[11px] leading-4 text-[var(--nimi-text-secondary)]">
+                                {autonomyModeLabel}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   )}
@@ -498,5 +580,8 @@ export function useAgentConversationPresentation(
     input.pendingAttachments,
     schedulingGuard.disabled,
     resolvedAgentDisplayName,
+    runtimeActivityLabel,
+    runtimeStatusLabel,
+    autonomyModeLabel,
   ]);
 }

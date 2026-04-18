@@ -156,6 +156,75 @@ test('agent live avatar rail model preserves runtime-backed VRM presentation whe
   assert.equal(model.snapshot.interaction.actionCue, 'Here with you');
 });
 
+test('agent live avatar rail model carries idle status cue label and emotion into the snapshot', () => {
+  const model = resolveChatAgentLiveAvatarRailModel({
+    selectedTarget: {
+      id: 'agent-status-cue',
+      source: 'agent',
+      canonicalSessionId: 'thread-status-cue',
+      title: 'Companion',
+      handle: '@companion',
+      bio: null,
+      avatarUrl: null,
+      avatarFallback: 'C',
+      previewText: null,
+      updatedAt: null,
+      unreadCount: 0,
+      status: 'active',
+      isOnline: null,
+      metadata: {},
+    },
+    characterData: {
+      name: 'Companion',
+      interactionState: {
+        phase: 'idle',
+        label: 'Feeling playful',
+        emotion: 'playful',
+        amplitude: 0.58,
+      },
+    },
+  });
+
+  assert.equal(model.snapshot.interaction.phase, 'idle');
+  assert.equal(model.snapshot.interaction.emotion, 'playful');
+  assert.equal(model.snapshot.interaction.actionCue, 'Feeling playful');
+  assert.equal(model.snapshot.interaction.amplitude, 0.58);
+});
+
+test('agent live avatar rail model carries runtime committed steady-state label into the snapshot', () => {
+  const model = resolveChatAgentLiveAvatarRailModel({
+    selectedTarget: {
+      id: 'agent-runtime-projection',
+      source: 'agent',
+      canonicalSessionId: 'thread-runtime-projection',
+      title: 'Scout',
+      handle: '@scout',
+      bio: null,
+      avatarUrl: null,
+      avatarFallback: 'S',
+      previewText: null,
+      updatedAt: null,
+      unreadCount: 0,
+      status: 'active',
+      isOnline: null,
+      metadata: {},
+    },
+    characterData: {
+      name: 'Scout',
+      interactionState: {
+        phase: 'idle',
+        label: 'Out exploring',
+        amplitude: 0.12,
+      },
+    },
+  });
+
+  assert.equal(model.snapshot.interaction.phase, 'idle');
+  assert.equal(model.snapshot.interaction.actionCue, 'Out exploring');
+  assert.equal(model.snapshot.interaction.emotion, 'calm');
+  assert.equal(model.snapshot.interaction.amplitude, 0.12);
+});
+
 test('agent live avatar rail model preserves voice phase while admitting pointer attention locally', () => {
   const model = resolveChatAgentLiveAvatarRailModel({
     selectedTarget: {

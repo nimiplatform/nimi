@@ -6,6 +6,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
 import {
+  formatAutonomyMode,
   formatEventType,
   formatExecutionState,
   formatHookStatus,
@@ -19,6 +20,7 @@ import {
   projectPendingHookInspect,
   readAgentPresentationProfile,
   timestampToIso,
+  type RuntimeAgentAutonomyMode,
   type RuntimeAgentCanonicalMemoryInspect,
   type RuntimeAgentInspectEventSummary,
   type RuntimeAgentPendingHookInspect,
@@ -31,6 +33,7 @@ export type RuntimeAgentInspectSnapshot = {
   statusText: string | null;
   activeWorldId: string | null;
   activeUserId: string | null;
+  autonomyMode: RuntimeAgentAutonomyMode | null;
   autonomyEnabled: boolean | null;
   autonomyBudgetExhausted: boolean | null;
   autonomyUsedTokensInWindow: number | null;
@@ -46,6 +49,7 @@ export type RuntimeAgentInspectSnapshot = {
 };
 
 export type RuntimeAgentAutonomySnapshot = {
+  mode: RuntimeAgentAutonomyMode | null;
   enabled: boolean | null;
   budgetExhausted: boolean | null;
   usedTokensInWindow: number | null;
@@ -73,6 +77,38 @@ const MAX_RECENT_TERMINAL_HOOKS = 6;
 const MAX_RECENT_CANONICAL_MEMORIES = 6;
 
 type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];
+const PROTO_AGENT_AUTONOMY_MODE = {
+  OFF: 1,
+  LOW: 2,
+  MEDIUM: 3,
+  HIGH: 4,
+} as const;
+
+function normalizeAutonomyModeInput(value: unknown): RuntimeAgentAutonomyMode {
+  switch (normalizeText(value).toLowerCase()) {
+    case 'low':
+      return 'low';
+    case 'medium':
+      return 'medium';
+    case 'high':
+      return 'high';
+    default:
+      return 'off';
+  }
+}
+
+function toProtoAutonomyMode(value: RuntimeAgentAutonomyMode): number {
+  switch (value) {
+    case 'low':
+      return PROTO_AGENT_AUTONOMY_MODE.LOW;
+    case 'medium':
+      return PROTO_AGENT_AUTONOMY_MODE.MEDIUM;
+    case 'high':
+      return PROTO_AGENT_AUTONOMY_MODE.HIGH;
+    default:
+      return PROTO_AGENT_AUTONOMY_MODE.OFF;
+  }
+}
 
 type RuntimeAgentInspectDeps = {
   getRuntime?: () => RuntimeClient;
@@ -200,6 +236,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         statusText: normalizeText(stateResponse.state?.statusText) || null,
         activeWorldId: activeWorldId || null,
         activeUserId: normalizeText(stateResponse.state?.activeUserId) || null,
+        autonomyMode: formatAutonomyMode(agentResponse.agent?.autonomy?.config?.mode),
         autonomyEnabled: typeof agentResponse.agent?.autonomy?.enabled === 'boolean'
           ? agentResponse.agent.autonomy.enabled
           : null,
@@ -264,6 +301,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         }, options)
       ));
       return {
+        mode: formatAutonomyMode(response.autonomy?.config?.mode),
         enabled: typeof response.autonomy?.enabled === 'boolean' ? response.autonomy.enabled : null,
         budgetExhausted: typeof response.autonomy?.budgetExhausted === 'boolean' ? response.autonomy.budgetExhausted : null,
         usedTokensInWindow: normalizeOptionalNumber(response.autonomy?.usedTokensInWindow),
@@ -393,6 +431,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         }, options)
       ));
       return {
+        mode: formatAutonomyMode(response.autonomy?.config?.mode),
         enabled: typeof response.autonomy?.enabled === 'boolean' ? response.autonomy.enabled : null,
         budgetExhausted: typeof response.autonomy?.budgetExhausted === 'boolean' ? response.autonomy.budgetExhausted : null,
         usedTokensInWindow: normalizeOptionalNumber(response.autonomy?.usedTokensInWindow),
@@ -446,10 +485,12 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
 
   const setAutonomyConfig = async (input: {
     agentId: string;
+    mode: RuntimeAgentAutonomyMode | string;
     dailyTokenBudget: string | number;
     maxTokensPerHook: string | number;
   }): Promise<RuntimeAgentAutonomySnapshot> => {
     const normalizedAgentId = normalizeText(input.agentId);
+    const normalizedMode = normalizeAutonomyModeInput(input.mode);
     if (!normalizedAgentId) {
       throw new Error('AGENT_ID_REQUIRED');
     }
@@ -466,12 +507,14 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
           context,
           agentId: normalizedAgentId,
           config: {
+            mode: toProtoAutonomyMode(normalizedMode),
             dailyTokenBudget: normalizeNonNegativeInteger(input.dailyTokenBudget),
             maxTokensPerHook: normalizeNonNegativeInteger(input.maxTokensPerHook),
           },
         }, options)
       ));
       return {
+        mode: formatAutonomyMode(response.autonomy?.config?.mode),
         enabled: typeof response.autonomy?.enabled === 'boolean' ? response.autonomy.enabled : null,
         budgetExhausted: typeof response.autonomy?.budgetExhausted === 'boolean' ? response.autonomy.budgetExhausted : null,
         usedTokensInWindow: normalizeOptionalNumber(response.autonomy?.usedTokensInWindow),

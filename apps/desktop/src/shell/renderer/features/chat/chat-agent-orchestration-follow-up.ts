@@ -279,6 +279,7 @@ export async function* runScheduledFollowUpTurn(input: {
     turnId: followUpTurnId,
     envelope: followUpEnvelope,
     metadataJson: buildAgentTextTurnDebugMetadata(followUpDiagnostics, {
+      statusCue: followUpEnvelope.statusCue || null,
       followUpTurn: true,
       followUpInstruction: followUpPromptPayload.promptText,
       chainId: input.chainContext.chainId,

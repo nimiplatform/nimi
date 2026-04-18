@@ -1,6 +1,13 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentResolvedStatusCue } from './chat-agent-behavior';
 import type { AgentFooterViewState } from './chat-agent-shell-footer-state';
 import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
+
+export type RuntimeCommittedStatusProjection = {
+  lifecycleStatus: string | null;
+  executionState: string | null;
+  statusText: string | null;
+};
 
 export type AgentConversationSurfaceState = {
   composer: {
@@ -34,6 +41,95 @@ function clampUnit(value: number | null | undefined): number {
     return 0;
   }
   return Math.max(0, Math.min(value, 1));
+}
+
+function resolveStatusCueInteractionState(
+  statusCue: AgentResolvedStatusCue | null | undefined,
+): AgentConversationSurfaceState['character']['interactionState'] | null {
+  if (!statusCue) {
+    return null;
+  }
+  return {
+    phase: 'idle',
+    busy: false,
+    ...(statusCue.label || statusCue.actionCue ? { label: statusCue.label || statusCue.actionCue || undefined } : {}),
+    ...(statusCue.mood ? { emotion: statusCue.mood } : {}),
+    amplitude: clampUnit(statusCue.intensity ?? 0.14),
+  };
+}
+
+function titleCaseWords(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function resolveRuntimeProjectionLabel(
+  projection: RuntimeCommittedStatusProjection | null | undefined,
+): string | null {
+  if (!projection) {
+    return null;
+  }
+  if (typeof projection.statusText === 'string' && projection.statusText.trim().length > 0) {
+    return projection.statusText.trim();
+  }
+  switch (projection.executionState) {
+    case 'chat-active':
+      return 'Chat active';
+    case 'life-pending':
+      return 'Life pending';
+    case 'life-running':
+      return 'Life running';
+    case 'suspended':
+      return 'Suspended';
+    case 'idle':
+      return null;
+    default:
+      break;
+  }
+  switch (projection.lifecycleStatus) {
+    case 'initializing':
+      return 'Initializing';
+    case 'suspended':
+      return 'Suspended';
+    case 'terminating':
+      return 'Terminating';
+    case 'terminated':
+      return 'Terminated';
+    case 'active':
+      return null;
+    default:
+      break;
+  }
+  const executionFallback = typeof projection.executionState === 'string'
+    ? projection.executionState.trim()
+    : '';
+  if (executionFallback) {
+    return titleCaseWords(executionFallback.replace(/-/g, ' '));
+  }
+  const lifecycleFallback = typeof projection.lifecycleStatus === 'string'
+    ? projection.lifecycleStatus.trim()
+    : '';
+  return lifecycleFallback
+    ? titleCaseWords(lifecycleFallback.replace(/-/g, ' '))
+    : null;
+}
+
+function resolveRuntimeProjectionInteractionState(
+  projection: RuntimeCommittedStatusProjection | null | undefined,
+): AgentConversationSurfaceState['character']['interactionState'] | null {
+  const label = resolveRuntimeProjectionLabel(projection);
+  if (!label) {
+    return null;
+  }
+  return {
+    phase: 'idle',
+    busy: false,
+    label,
+    amplitude: 0.12,
+  };
 }
 
 function resolveSpeakingEmotion(input: {
@@ -75,6 +171,8 @@ export function resolveAgentConversationSurfaceState(input: {
   } | null;
   activeThreadId: string | null;
   voiceSessionState: AgentVoiceSessionShellState;
+  latestStatusCue?: AgentResolvedStatusCue | null;
+  runtimeCommittedStatus?: RuntimeCommittedStatusProjection | null;
   footerViewState: AgentFooterViewState;
   labels: {
     title: string;
@@ -97,6 +195,8 @@ export function resolveAgentConversationSurfaceState(input: {
     && input.voicePlaybackState.threadId === input.activeThreadId
       ? input.voicePlaybackState
       : null;
+  const statusCueInteractionState = resolveStatusCueInteractionState(input.latestStatusCue || null);
+  const runtimeProjectionInteractionState = resolveRuntimeProjectionInteractionState(input.runtimeCommittedStatus || null);
   const interactionState = isSubmitting
     ? {
       phase: 'thinking' as const,
@@ -136,10 +236,14 @@ export function resolveAgentConversationSurfaceState(input: {
         ? {
           phase: 'loading' as const,
           busy: true,
-          label: input.labels.voiceTranscribingLabel,
-          emotion: 'focus' as const,
-          amplitude: 0.18,
-        }
+        label: input.labels.voiceTranscribingLabel,
+        emotion: 'focus' as const,
+        amplitude: 0.18,
+      }
+      : statusCueInteractionState
+        ? statusCueInteractionState
+        : runtimeProjectionInteractionState
+          ? runtimeProjectionInteractionState
         : input.voiceSessionState.mode === 'hands-free'
           ? {
             phase: 'idle' as const,

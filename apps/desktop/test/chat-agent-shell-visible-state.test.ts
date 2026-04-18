@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolveAgentConversationSurfaceState } from '../src/shell/renderer/features/chat/chat-agent-shell-visible-state.js';
+import type { AgentResolvedStatusCue } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
+import {
+  resolveAgentConversationSurfaceState,
+  type RuntimeCommittedStatusProjection,
+} from '../src/shell/renderer/features/chat/chat-agent-shell-visible-state.js';
 import type { AgentFooterViewState } from '../src/shell/renderer/features/chat/chat-agent-shell-footer-state.js';
 import type { AgentVoiceSessionShellState } from '../src/shell/renderer/features/chat/chat-agent-voice-session.js';
 import {
@@ -165,6 +169,8 @@ function resolveSurfaceState(input: {
   submittingThreadId: string | null;
   footerViewState: AgentFooterViewState;
   voiceSessionState?: AgentVoiceSessionShellState;
+  latestStatusCue?: AgentResolvedStatusCue | null;
+  runtimeCommittedStatus?: RuntimeCommittedStatusProjection | null;
   voiceCaptureState?: {
     active: boolean;
     amplitude: number;
@@ -190,6 +196,8 @@ function resolveSurfaceState(input: {
       voiceListeningLabel: 'Listening',
       voiceTranscribingLabel: 'Transcribing…',
     },
+    latestStatusCue: input.latestStatusCue ?? null,
+    runtimeCommittedStatus: input.runtimeCommittedStatus ?? null,
     voiceCaptureState: input.voiceCaptureState ?? null,
     voicePlaybackState: input.voicePlaybackState ?? null,
     voiceSessionState: input.voiceSessionState || {
@@ -270,6 +278,172 @@ test('agent visible state surfaces foreground hands-free as an admitted idle lab
     label: 'Hands-free on (foreground only)',
     emotion: 'calm',
     amplitude: 0.14,
+  });
+});
+
+test('agent visible state consumes the latest accepted statusCue during idle fallback', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    submittingThreadId: null,
+    latestStatusCue: {
+      sourceMessageId: 'message-0',
+      mood: 'playful',
+      label: 'Feeling playful',
+      intensity: 0.58,
+    },
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'idle',
+    busy: false,
+    label: 'Feeling playful',
+    emotion: 'playful',
+    amplitude: 0.58,
+  });
+});
+
+test('agent visible state consumes runtime committed projection when no fresh statusCue exists', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    submittingThreadId: null,
+    runtimeCommittedStatus: {
+      lifecycleStatus: 'active',
+      executionState: 'life-running',
+      statusText: 'Out exploring',
+    },
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'idle',
+    busy: false,
+    label: 'Out exploring',
+    amplitude: 0.12,
+  });
+});
+
+test('agent visible state falls back to runtime execution label when status text is absent', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    submittingThreadId: null,
+    runtimeCommittedStatus: {
+      lifecycleStatus: 'active',
+      executionState: 'life-running',
+      statusText: null,
+    },
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'idle',
+    busy: false,
+    label: 'Life running',
+    amplitude: 0.12,
+  });
+});
+
+test('agent visible state keeps the latest accepted statusCue ahead of runtime committed projection', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    submittingThreadId: null,
+    latestStatusCue: {
+      sourceMessageId: 'message-0',
+      mood: 'playful',
+      label: 'Feeling playful',
+      intensity: 0.58,
+    },
+    runtimeCommittedStatus: {
+      lifecycleStatus: 'active',
+      executionState: 'life-running',
+      statusText: 'Out exploring',
+    },
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'idle',
+    busy: false,
+    label: 'Feeling playful',
+    emotion: 'playful',
+    amplitude: 0.58,
+  });
+});
+
+test('agent visible state preserves loading over the latest accepted statusCue', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    submittingThreadId: null,
+    latestStatusCue: {
+      sourceMessageId: 'message-0',
+      mood: 'joy',
+      label: 'Feeling bright',
+      intensity: 0.72,
+    },
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+    voiceSessionState: {
+      status: 'transcribing',
+      mode: 'push-to-talk',
+      message: null,
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'loading',
+    busy: true,
+    label: 'Transcribing…',
+    emotion: 'focus',
+    amplitude: 0.18,
+  });
+});
+
+test('agent visible state preserves loading over runtime committed projection', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    submittingThreadId: null,
+    runtimeCommittedStatus: {
+      lifecycleStatus: 'active',
+      executionState: 'life-running',
+      statusText: 'Out exploring',
+    },
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+    voiceSessionState: {
+      status: 'transcribing',
+      mode: 'push-to-talk',
+      message: null,
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'loading',
+    busy: true,
+    label: 'Transcribing…',
+    emotion: 'focus',
+    amplitude: 0.18,
   });
 });
 
