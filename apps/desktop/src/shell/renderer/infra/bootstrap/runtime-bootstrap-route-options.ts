@@ -324,7 +324,29 @@ function getRuntimeRouteOptionsInflightMap(scope: object): Map<string, Promise<L
     return created;
 }
 async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapability, modId: string | undefined, resolvedDeps: LoadRuntimeRouteOptionsDeps): Promise<LoadRuntimeRouteOptionsData> {
-    const connectorDescriptorsPromise = resolvedDeps.sdkListConnectors();
+    const connectorDescriptorsPromise = resolvedDeps.sdkListConnectors().catch((error) => {
+        const normalized = asNimiError(error, {
+            reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+            actionHint: 'check_runtime_daemon_health',
+            source: 'runtime',
+        });
+        emitRuntimeLog({
+            level: 'warn',
+            area: 'route-options',
+            message: 'action:list-connectors:degraded',
+            traceId: normalized.traceId,
+            details: {
+                modId: String(modId || '').trim() || undefined,
+                capability,
+                reasonCode: normalized.reasonCode,
+                actionHint: normalized.actionHint,
+                retryable: normalized.retryable,
+                traceId: normalized.traceId,
+                error: normalized.message,
+            },
+        });
+        return [] as ConnectorDescriptor[];
+    });
     let localMetadataDegraded = false;
     const localMetadataPromise = resolvedDeps.loadLocalRouteMetadata(capability)
         .catch((error) => {
@@ -336,7 +358,30 @@ async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapabilit
         localMetadataPromise,
     ]);
     const connectorResults: Array<RuntimeRouteConnectorOption | null> = await Promise.all((connectorDescriptors as ConnectorDescriptor[]).map(async (connector) => {
-        const descriptors = await resolvedDeps.sdkListConnectorModelDescriptors(connector.id, false);
+        const descriptors = await resolvedDeps.sdkListConnectorModelDescriptors(connector.id, false).catch((error) => {
+            const normalized = asNimiError(error, {
+                reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+                actionHint: 'check_runtime_daemon_health',
+                source: 'runtime',
+            });
+            emitRuntimeLog({
+                level: 'warn',
+                area: 'route-options',
+                message: 'action:list-connector-model-descriptors:degraded',
+                traceId: normalized.traceId,
+                details: {
+                    modId: String(modId || '').trim() || undefined,
+                    capability,
+                    connectorId: String(connector.id || '').trim() || undefined,
+                    reasonCode: normalized.reasonCode,
+                    actionHint: normalized.actionHint,
+                    retryable: normalized.retryable,
+                    traceId: normalized.traceId,
+                    error: normalized.message,
+                },
+            });
+            return [];
+        });
         const models = descriptors
             .filter((item) => runtimeRouteModelSupportsCapability(item.capabilities, capability))
             .map((item) => item.modelId);

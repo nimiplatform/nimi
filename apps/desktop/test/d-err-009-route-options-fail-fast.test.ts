@@ -386,3 +386,124 @@ test('loadRuntimeRouteOptions dedupes concurrent capability reads within the sam
   assert.equal(left.connectors.length, 1);
   assert.equal(right.connectors.length, 1);
 });
+
+test('loadRuntimeRouteOptions preserves local models when connector listing fails', async () => {
+  const logs: Array<Record<string, unknown>> = [];
+  setRuntimeLogger((payload) => {
+    logs.push(payload as Record<string, unknown>);
+  });
+
+  const options = await loadRuntimeRouteOptions({
+    capability: 'text.generate',
+    modId: 'world.nimi.local-only',
+  }, {
+    sdkListConnectors: async () => {
+      throw new Error('dynamic provider catalog offline');
+    },
+    sdkListConnectorModelDescriptors: async () => ([]),
+    loadLocalRouteMetadata: async () => ({
+      snapshot: {
+        assets: [],
+        health: [],
+        generatedAt: new Date().toISOString(),
+      },
+      nodeCatalog: [{
+        provider: 'llama',
+        providerHints: {
+          extra: {
+            local_default_rank: 0,
+          },
+        },
+      }] as never[],
+      runtimeLocalModels: [{
+        localAssetId: '01KLOCALCHAT',
+        assetId: 'local/Qwen3-4B-Q4_K_M',
+        kind: 'chat',
+        engine: 'llama',
+        entry: 'Qwen3-4B-Q4_K_M.gguf',
+        files: ['Qwen3-4B-Q4_K_M.gguf'],
+        license: 'apache-2.0',
+        source: { repo: 'qwen/qwen3', revision: 'main' },
+        integrityMode: 'verified',
+        hashes: {},
+        status: 'active',
+        installedAt: '2026-03-08T00:00:00Z',
+        updatedAt: '2026-03-08T00:00:00Z',
+        endpoint: 'http://127.0.0.1:1234/v1',
+        capabilities: ['text.generate'],
+        engineConfig: {},
+      }] as never[],
+    }),
+  });
+
+  assert.equal(options.local.models.length, 1);
+  assert.equal(options.local.models[0]?.localModelId, '01KLOCALCHAT');
+  assert.equal(options.connectors.length, 0);
+
+  const degradedLog = logs.find((entry) => entry.message === 'action:list-connectors:degraded');
+  assert.ok(degradedLog, 'connector list failure should emit a degrade log');
+  assert.equal((degradedLog?.details as Record<string, unknown>)?.error, 'dynamic provider catalog offline');
+});
+
+test('loadRuntimeRouteOptions preserves local models when connector model discovery fails', async () => {
+  const logs: Array<Record<string, unknown>> = [];
+  setRuntimeLogger((payload) => {
+    logs.push(payload as Record<string, unknown>);
+  });
+
+  const options = await loadRuntimeRouteOptions({
+    capability: 'text.generate',
+    modId: 'world.nimi.local-only',
+  }, {
+    sdkListConnectors: async () => ([
+      {
+        id: 'connector-openai',
+        label: 'OpenAI',
+        provider: 'openai',
+      },
+    ] as never[]),
+    sdkListConnectorModelDescriptors: async () => {
+      throw new Error('dynamic provider model discovery failed');
+    },
+    loadLocalRouteMetadata: async () => ({
+      snapshot: {
+        assets: [],
+        health: [],
+        generatedAt: new Date().toISOString(),
+      },
+      nodeCatalog: [{
+        provider: 'llama',
+        providerHints: {
+          extra: {
+            local_default_rank: 0,
+          },
+        },
+      }] as never[],
+      runtimeLocalModels: [{
+        localAssetId: '01KLOCALCHAT',
+        assetId: 'local/Qwen3-4B-Q4_K_M',
+        kind: 'chat',
+        engine: 'llama',
+        entry: 'Qwen3-4B-Q4_K_M.gguf',
+        files: ['Qwen3-4B-Q4_K_M.gguf'],
+        license: 'apache-2.0',
+        source: { repo: 'qwen/qwen3', revision: 'main' },
+        integrityMode: 'verified',
+        hashes: {},
+        status: 'active',
+        installedAt: '2026-03-08T00:00:00Z',
+        updatedAt: '2026-03-08T00:00:00Z',
+        endpoint: 'http://127.0.0.1:1234/v1',
+        capabilities: ['text.generate'],
+        engineConfig: {},
+      }] as never[],
+    }),
+  });
+
+  assert.equal(options.local.models.length, 1);
+  assert.equal(options.connectors.length, 0);
+
+  const degradedLog = logs.find((entry) => entry.message === 'action:list-connector-model-descriptors:degraded');
+  assert.ok(degradedLog, 'connector model discovery failure should emit a degrade log');
+  assert.equal((degradedLog?.details as Record<string, unknown>)?.error, 'dynamic provider model discovery failed');
+});
