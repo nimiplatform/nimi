@@ -260,6 +260,32 @@ test('avatar vrm viewport state maps emotion and viseme cues into expression wei
   assert.equal(weights.ee, 0.7);
 });
 
+test('avatar vrm viewport state maps playful mood into explicit expression weights', () => {
+  const weights = resolveChatAgentAvatarVrmExpressionWeights({
+    label: 'Companion',
+    assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+    posterUrl: null,
+    idlePreset: null,
+    expressionProfileRef: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+    style: undefined,
+    snapshot: {
+      presentation: {
+        backendKind: 'vrm',
+        avatarAssetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+      },
+      interaction: {
+        phase: 'idle',
+        emotion: 'playful',
+      },
+    },
+  });
+
+  assert.equal(weights.happy, 0.3);
+  assert.equal(weights.relaxed, 0.18);
+});
+
 test('avatar vrm viewport state provides explicit speaking fallback when viseme is missing', () => {
   const weights = resolveChatAgentAvatarVrmExpressionWeights({
     label: 'Companion',

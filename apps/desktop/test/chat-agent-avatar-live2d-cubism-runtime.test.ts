@@ -9,6 +9,7 @@ import {
 test('speaking prefers the configured speech motion group', () => {
   const selection = resolveChatAgentAvatarLive2dMotionSelection({
     phase: 'speaking',
+    emotion: 'joy',
     idleMotionGroup: 'Idle',
     speechMotionGroup: 'TapBody',
     motionGroups: ['Idle', 'TapBody'],
@@ -18,12 +19,14 @@ test('speaking prefers the configured speech motion group', () => {
     group: 'TapBody',
     source: 'speech',
     priority: 3,
+    downgrade: 'none',
   });
 });
 
 test('speaking falls back to the first non-idle motion group when speech group is missing', () => {
   const selection = resolveChatAgentAvatarLive2dMotionSelection({
     phase: 'speaking',
+    emotion: 'focus',
     idleMotionGroup: 'Idle',
     speechMotionGroup: null,
     motionGroups: ['Idle', 'Wave', 'Jump'],
@@ -33,12 +36,14 @@ test('speaking falls back to the first non-idle motion group when speech group i
     group: 'Wave',
     source: 'fallback-nonidle',
     priority: 2,
+    downgrade: 'none',
   });
 });
 
 test('speaking falls back to idle when it is the only available motion group', () => {
   const selection = resolveChatAgentAvatarLive2dMotionSelection({
     phase: 'speaking',
+    emotion: 'calm',
     idleMotionGroup: 'Idle',
     speechMotionGroup: null,
     motionGroups: ['Idle'],
@@ -48,12 +53,31 @@ test('speaking falls back to idle when it is the only available motion group', (
     group: 'Idle',
     source: 'idle',
     priority: 1,
+    downgrade: 'none',
+  });
+});
+
+test('idle prefers an emotion motion group when model richness exists', () => {
+  const selection = resolveChatAgentAvatarLive2dMotionSelection({
+    phase: 'idle',
+    emotion: 'joy',
+    idleMotionGroup: 'Idle',
+    speechMotionGroup: null,
+    motionGroups: ['Idle', 'HappyLoop'],
+  });
+
+  assert.deepEqual(selection, {
+    group: 'HappyLoop',
+    source: 'emotion',
+    priority: 2,
+    downgrade: 'none',
   });
 });
 
 test('idle falls back to the first motion group when idle is missing', () => {
   const selection = resolveChatAgentAvatarLive2dMotionSelection({
     phase: 'idle',
+    emotion: 'calm',
     idleMotionGroup: null,
     speechMotionGroup: 'TapBody',
     motionGroups: ['Wave', 'TapBody'],
@@ -63,12 +87,31 @@ test('idle falls back to the first motion group when idle is missing', () => {
     group: 'Wave',
     source: 'fallback-any',
     priority: 1,
+    downgrade: 'none',
+  });
+});
+
+test('idle explicitly downgrades expressive emotion when no matching motion group exists', () => {
+  const selection = resolveChatAgentAvatarLive2dMotionSelection({
+    phase: 'idle',
+    emotion: 'surprised',
+    idleMotionGroup: 'Idle',
+    speechMotionGroup: null,
+    motionGroups: ['Idle'],
+  });
+
+  assert.deepEqual(selection, {
+    group: 'Idle',
+    source: 'idle',
+    priority: 1,
+    downgrade: 'emotion-to-idle',
   });
 });
 
 test('ambient-only is returned when the model exposes no motion groups', () => {
   const selection = resolveChatAgentAvatarLive2dMotionSelection({
     phase: 'idle',
+    emotion: 'neutral',
     idleMotionGroup: null,
     speechMotionGroup: null,
     motionGroups: [],
@@ -78,6 +121,7 @@ test('ambient-only is returned when the model exposes no motion groups', () => {
     group: null,
     source: 'ambient-only',
     priority: 0,
+    downgrade: 'none',
   });
 });
 

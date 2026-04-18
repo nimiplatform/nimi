@@ -62,4 +62,30 @@ describe('avatar vrm state helpers', () => {
     expect(weights.happy).toBe(0.52);
     expect(weights.ee).toBe(0.7);
   });
+
+  it('maps playful mood into an explicit happy-relaxed blend', () => {
+    const weights = resolveAvatarVrmExpressionWeights({
+      label: 'Companion',
+      assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+      posterUrl: null,
+      idlePreset: null,
+      expressionProfileRef: null,
+      interactionPolicyRef: null,
+      defaultVoiceReference: null,
+      style: undefined,
+      snapshot: {
+        presentation: {
+          backendKind: 'vrm',
+          avatarAssetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+        },
+        interaction: {
+          phase: 'idle',
+          emotion: 'playful',
+        },
+      },
+    });
+
+    expect(weights.happy).toBe(0.3);
+    expect(weights.relaxed).toBe(0.18);
+  });
 });

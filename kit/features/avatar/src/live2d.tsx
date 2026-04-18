@@ -43,8 +43,13 @@ export type AvatarLive2dViewportState = {
 
 export type AvatarLive2dMotionSelection = {
   group: string | null;
-  source: 'speech' | 'idle' | 'fallback-nonidle' | 'fallback-any' | 'ambient-only';
+  source: 'speech' | 'emotion' | 'idle' | 'fallback-nonidle' | 'fallback-any' | 'ambient-only';
   priority: number;
+  downgrade:
+    | 'none'
+    | 'emotion-to-idle'
+    | 'emotion-to-any'
+    | 'emotion-to-ambient';
 };
 
 export type AvatarLive2dRenderMotionPose = {
@@ -129,6 +134,91 @@ function resolvePalette(
     case 'neutral':
     default:
       return { accentColor: '#0ea5e9', glowColor: '#bfdbfe' };
+  }
+}
+
+function resolveEmotionMotionKeywords(
+  emotion: AvatarLive2dViewportState['emotion'],
+): readonly string[] {
+  switch (emotion) {
+    case 'joy':
+      return ['joy', 'happy', 'smile', 'cheer'];
+    case 'playful':
+      return ['playful', 'fun', 'happy', 'smile'];
+    case 'concerned':
+      return ['concern', 'worry', 'sad', 'trouble'];
+    case 'surprised':
+      return ['surprise', 'shock'];
+    default:
+      return [];
+  }
+}
+
+function hasExpressiveEmotion(
+  emotion: AvatarLive2dViewportState['emotion'],
+): boolean {
+  return resolveEmotionMotionKeywords(emotion).length > 0;
+}
+
+function resolveEmotionMotionProfile(
+  emotion: AvatarLive2dViewportState['emotion'],
+): {
+  motionSpeedOffset: number;
+  scaleBoost: number;
+  swayXBoost: number;
+  swayYBias: number;
+} {
+  switch (emotion) {
+    case 'joy':
+      return {
+        motionSpeedOffset: 0.06,
+        scaleBoost: 0.003,
+        swayXBoost: 0.003,
+        swayYBias: 0.002,
+      };
+    case 'playful':
+      return {
+        motionSpeedOffset: 0.1,
+        scaleBoost: 0.004,
+        swayXBoost: 0.0045,
+        swayYBias: 0.0025,
+      };
+    case 'concerned':
+      return {
+        motionSpeedOffset: -0.04,
+        scaleBoost: -0.001,
+        swayXBoost: -0.002,
+        swayYBias: -0.004,
+      };
+    case 'surprised':
+      return {
+        motionSpeedOffset: 0.14,
+        scaleBoost: 0.005,
+        swayXBoost: 0.0025,
+        swayYBias: 0.006,
+      };
+    case 'calm':
+      return {
+        motionSpeedOffset: -0.05,
+        scaleBoost: -0.0015,
+        swayXBoost: -0.002,
+        swayYBias: 0,
+      };
+    case 'focus':
+      return {
+        motionSpeedOffset: 0.02,
+        scaleBoost: 0,
+        swayXBoost: -0.0015,
+        swayYBias: -0.002,
+      };
+    case 'neutral':
+    default:
+      return {
+        motionSpeedOffset: 0,
+        scaleBoost: 0,
+        swayXBoost: 0,
+        swayYBias: 0,
+      };
   }
 }
 
@@ -268,6 +358,20 @@ export function resolvePreferredLive2dSpeechMotionGroup(groups: string[]): strin
   }) || null;
 }
 
+export function resolvePreferredLive2dEmotionMotionGroup(
+  groups: string[],
+  emotion: AvatarLive2dViewportState['emotion'],
+): string | null {
+  const keywords = resolveEmotionMotionKeywords(emotion);
+  if (keywords.length === 0) {
+    return null;
+  }
+  return groups.find((group) => {
+    const normalized = group.trim().toLowerCase();
+    return keywords.some((keyword) => normalized.includes(keyword));
+  }) || null;
+}
+
 export function resolveAvatarLive2dViewportState(
   input: AvatarLive2dViewportRenderInput,
   source?: Pick<{ assetLabel: string }, 'assetLabel'> | null,
@@ -276,6 +380,15 @@ export function resolveAvatarLive2dViewportState(
   const emotion = input.snapshot.interaction.emotion || 'neutral';
   const amplitude = clampUnit(input.snapshot.interaction.amplitude);
   const palette = resolvePalette(emotion);
+  const emotionProfile = resolveEmotionMotionProfile(emotion);
+
+  const baseMotionSpeed = phase === 'speaking'
+    ? 1.1 + amplitude * 0.8
+    : phase === 'thinking'
+      ? 0.68
+      : phase === 'listening'
+        ? 0.76
+        : 0.52;
 
   return {
     phase,
@@ -283,13 +396,7 @@ export function resolveAvatarLive2dViewportState(
     amplitude,
     badgeLabel: input.snapshot.interaction.actionCue || phaseLabel(phase),
     assetLabel: source?.assetLabel || formatAvatarVrmAssetLabel(input.assetRef) || 'avatar.model3.json',
-    motionSpeed: phase === 'speaking'
-      ? 1.1 + amplitude * 0.8
-      : phase === 'thinking'
-        ? 0.68
-        : phase === 'listening'
-          ? 0.76
-          : 0.52,
+    motionSpeed: Math.max(0.2, baseMotionSpeed + emotionProfile.motionSpeedOffset),
     accentColor: palette.accentColor,
     glowColor: palette.glowColor,
   };
@@ -297,6 +404,7 @@ export function resolveAvatarLive2dViewportState(
 
 export function resolveAvatarLive2dMotionSelection(input: {
   phase: AvatarLive2dViewportState['phase'];
+  emotion?: AvatarLive2dViewportState['emotion'];
   idleMotionGroup: string | null;
   speechMotionGroup: string | null;
   motionGroups: readonly string[];
@@ -306,6 +414,11 @@ export function resolveAvatarLive2dMotionSelection(input: {
   const speechGroup = input.speechMotionGroup && input.speechMotionGroup.trim() ? input.speechMotionGroup : null;
   const firstGroup = groups[0] ?? null;
   const firstNonIdleGroup = groups.find((group) => group !== idleGroup) ?? null;
+  const emotion = input.emotion || 'neutral';
+  const emotionGroup = input.phase === 'speaking'
+    ? null
+    : resolvePreferredLive2dEmotionMotionGroup(groups, emotion);
+  const expressiveEmotion = hasExpressiveEmotion(emotion);
 
   if (input.phase === 'speaking') {
     if (speechGroup) {
@@ -313,6 +426,7 @@ export function resolveAvatarLive2dMotionSelection(input: {
         group: speechGroup,
         source: 'speech',
         priority: 3,
+        downgrade: 'none',
       };
     }
     if (firstNonIdleGroup) {
@@ -320,6 +434,7 @@ export function resolveAvatarLive2dMotionSelection(input: {
         group: firstNonIdleGroup,
         source: 'fallback-nonidle',
         priority: 2,
+        downgrade: 'none',
       };
     }
     if (idleGroup) {
@@ -327,6 +442,7 @@ export function resolveAvatarLive2dMotionSelection(input: {
         group: idleGroup,
         source: 'idle',
         priority: 1,
+        downgrade: 'none',
       };
     }
     if (firstGroup) {
@@ -334,12 +450,23 @@ export function resolveAvatarLive2dMotionSelection(input: {
         group: firstGroup,
         source: 'fallback-any',
         priority: 1,
+        downgrade: 'none',
       };
     }
     return {
       group: null,
       source: 'ambient-only',
       priority: 0,
+      downgrade: 'none',
+    };
+  }
+
+  if (emotionGroup) {
+    return {
+      group: emotionGroup,
+      source: 'emotion',
+      priority: 2,
+      downgrade: 'none',
     };
   }
 
@@ -348,6 +475,7 @@ export function resolveAvatarLive2dMotionSelection(input: {
       group: idleGroup,
       source: 'idle',
       priority: 1,
+      downgrade: expressiveEmotion ? 'emotion-to-idle' : 'none',
     };
   }
   if (firstGroup) {
@@ -355,12 +483,14 @@ export function resolveAvatarLive2dMotionSelection(input: {
       group: firstGroup,
       source: 'fallback-any',
       priority: 1,
+      downgrade: expressiveEmotion ? 'emotion-to-any' : 'none',
     };
   }
   return {
     group: null,
     source: 'ambient-only',
     priority: 0,
+    downgrade: expressiveEmotion ? 'emotion-to-ambient' : 'none',
   };
 }
 
@@ -389,19 +519,20 @@ export function resolveAvatarLive2dRenderMotionPose(input: {
     input.state.phase === 'speaking' ? 9 : 2.4,
     dt,
   );
+  const emotionProfile = resolveEmotionMotionProfile(input.state.emotion);
 
   const breathing = 1 + Math.sin(input.seconds * (0.78 + input.state.motionSpeed * 0.22)) * 0.0105;
   const speakingPulse = 1 + Math.sin(
     input.seconds * (3.4 + smoothedAmplitude * 3.8 + speakingEnergy * 1.2),
   ) * (0.008 + speakingEnergy * 0.024);
-  const scale = breathing * speakingPulse;
+  const scale = breathing * speakingPulse + emotionProfile.scaleBoost;
 
   const swayXAmplitude = input.state.phase === 'thinking'
     ? 0.019
     : input.state.phase === 'listening'
       ? 0.021
       : 0.018 + speakingEnergy * 0.014;
-  const swayX = Math.sin(input.seconds * (0.32 + input.state.motionSpeed * 0.07)) * swayXAmplitude;
+  const adjustedSwayXAmplitude = Math.max(0.006, swayXAmplitude + emotionProfile.swayXBoost);
 
   const baseYOffset = input.state.phase === 'listening'
     ? -0.002
@@ -409,13 +540,15 @@ export function resolveAvatarLive2dRenderMotionPose(input: {
       ? -0.012
       : -0.008;
   const swayYAmplitude = 0.014 + speakingEnergy * 0.01;
-  const swayY = baseYOffset + Math.sin(input.seconds * (0.58 + input.state.motionSpeed * 0.18)) * swayYAmplitude;
+  const swayY = baseYOffset
+    + emotionProfile.swayYBias
+    + Math.sin(input.seconds * (0.58 + input.state.motionSpeed * 0.18)) * swayYAmplitude;
 
   return {
     smoothedAmplitude,
     speakingEnergy,
-    scale,
-    swayX,
+    scale: Math.max(0.9, scale),
+    swayX: Math.sin(input.seconds * (0.32 + input.state.motionSpeed * 0.07)) * adjustedSwayXAmplitude,
     swayY,
   };
 }

@@ -658,6 +658,7 @@ export default function ChatAgentAvatarLive2dViewport({
       )}
       data-avatar-live2d-status={loadState.status}
       data-avatar-live2d-phase={viewportState.phase}
+      data-avatar-live2d-emotion={viewportState.emotion}
       data-avatar-live2d-asset={viewportState.assetLabel}
     >
       <div className="pointer-events-none absolute inset-0">

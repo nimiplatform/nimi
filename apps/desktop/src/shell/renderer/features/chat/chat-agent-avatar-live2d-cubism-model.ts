@@ -113,7 +113,7 @@ function createCubismModelClass(
         return;
       }
 
-      this.maybeQueuePhaseMotion(input.state.phase);
+      this.maybeQueuePhaseMotion(input.state.phase, input.state.emotion);
       this.restoreBaseModelMatrix();
 
       this.modelRef.loadParameters();
@@ -341,21 +341,26 @@ function createCubismModelClass(
       modelMatrix.setMatrix(this.baseModelMatrix);
     }
 
-    private maybeQueuePhaseMotion(phase: ChatAgentAvatarLive2dViewportState['phase']): void {
+    private maybeQueuePhaseMotion(
+      phase: ChatAgentAvatarLive2dViewportState['phase'],
+      emotion: ChatAgentAvatarLive2dViewportState['emotion'],
+    ): void {
       const motionSelection = resolveChatAgentAvatarLive2dMotionSelection({
         phase,
+        emotion,
         idleMotionGroup: this.source.idleMotionGroup,
         speechMotionGroup: this.source.speechMotionGroup,
         motionGroups: this.source.motionGroups,
       });
       this.lastMotionSelectionSource = motionSelection.source;
+      this.lastMotionSelectionDowngrade = motionSelection.downgrade;
       if (!motionSelection.group) {
         this.activeMotionToken = null;
         this.activeMotionGroup = null;
         return;
       }
 
-      const nextToken = `${phase}:${motionSelection.group}`;
+      const nextToken = `${phase}:${emotion}:${motionSelection.group}:${motionSelection.downgrade}`;
       if (this.activeMotionToken === nextToken || this.pendingMotionToken === nextToken) {
         return;
       }
@@ -463,6 +468,7 @@ function createCubismModelClass(
         motionGroups: this.source.motionGroups,
         activeMotionGroup: this.activeMotionGroup,
         motionSelectionSource: this.lastMotionSelectionSource,
+        motionSelectionDowngrade: this.lastMotionSelectionDowngrade,
         shaderUrls: this.shaderUrls,
         textureBindings: renderer.getBindedTextures().size,
         drawableCount,
@@ -508,6 +514,7 @@ function createCubismModelClass(
     private pendingMotionToken: string | null = null;
     private activeMotionGroup: string | null = null;
     private lastMotionSelectionSource: AvatarLive2dMotionSelection['source'] = 'ambient-only';
+    private lastMotionSelectionDowngrade: AvatarLive2dMotionSelection['downgrade'] = 'none';
     private smoothedAmplitude = 0;
     private speakingEnergy = 0;
   };
