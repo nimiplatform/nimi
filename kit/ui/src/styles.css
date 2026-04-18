@@ -88,76 +88,100 @@ button:not(:disabled),
  */
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-nimi-material="glass-thin"],
   [data-nimi-material="glass-regular"],
-  [data-nimi-material="glass-thick"] {
+  [data-nimi-material="glass-thick"],
+  [data-nimi-material="glass-chrome"] {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
 
+  [data-nimi-material="glass-thin"][data-nimi-tone="canvas"],
   [data-nimi-material="glass-regular"][data-nimi-tone="canvas"],
-  [data-nimi-material="glass-thick"][data-nimi-tone="canvas"] {
+  [data-nimi-material="glass-thick"][data-nimi-tone="canvas"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="canvas"] {
     background: var(--nimi-surface-canvas) !important;
     border-color: var(--nimi-border-subtle) !important;
   }
 
+  [data-nimi-material="glass-thin"][data-nimi-tone="panel"],
   [data-nimi-material="glass-regular"][data-nimi-tone="panel"],
-  [data-nimi-material="glass-thick"][data-nimi-tone="panel"] {
+  [data-nimi-material="glass-thick"][data-nimi-tone="panel"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="panel"] {
     background: var(--nimi-surface-panel) !important;
     border-color: var(--nimi-border-subtle) !important;
   }
 
+  [data-nimi-material="glass-thin"][data-nimi-tone="card"],
   [data-nimi-material="glass-regular"][data-nimi-tone="card"],
-  [data-nimi-material="glass-thick"][data-nimi-tone="card"] {
+  [data-nimi-material="glass-thick"][data-nimi-tone="card"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="card"] {
     background: var(--nimi-surface-card) !important;
     border-color: var(--nimi-border-subtle) !important;
   }
 
+  [data-nimi-material="glass-thin"][data-nimi-tone="overlay"],
   [data-nimi-material="glass-regular"][data-nimi-tone="overlay"],
-  [data-nimi-material="glass-thick"][data-nimi-tone="overlay"] {
+  [data-nimi-material="glass-thick"][data-nimi-tone="overlay"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="overlay"] {
     background: var(--nimi-surface-overlay) !important;
     border-color: var(--nimi-border-subtle) !important;
   }
 
+  [data-nimi-material="glass-thin"][data-nimi-tone="hero"],
   [data-nimi-material="glass-regular"][data-nimi-tone="hero"],
-  [data-nimi-material="glass-thick"][data-nimi-tone="hero"] {
+  [data-nimi-material="glass-thick"][data-nimi-tone="hero"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="hero"] {
     background: var(--nimi-surface-hero) !important;
     border-color: var(--nimi-border-strong) !important;
   }
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  [data-nimi-material="glass-thin"],
   [data-nimi-material="glass-regular"],
-  [data-nimi-material="glass-thick"] {
+  [data-nimi-material="glass-thick"],
+  [data-nimi-material="glass-chrome"] {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
 
+  [data-nimi-material="glass-thin"][data-nimi-tone="canvas"],
   [data-nimi-material="glass-regular"][data-nimi-tone="canvas"],
-  [data-nimi-material="glass-thick"][data-nimi-tone="canvas"] {
+  [data-nimi-material="glass-thick"][data-nimi-tone="canvas"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="canvas"] {
     background: var(--nimi-surface-canvas) !important;
     border-color: var(--nimi-border-subtle) !important;
   }
 
+  [data-nimi-material="glass-thin"][data-nimi-tone="panel"],
   [data-nimi-material="glass-regular"][data-nimi-tone="panel"],
-  [data-nimi-material="glass-thick"][data-nimi-tone="panel"] {
+  [data-nimi-material="glass-thick"][data-nimi-tone="panel"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="panel"] {
     background: var(--nimi-surface-panel) !important;
     border-color: var(--nimi-border-subtle) !important;
   }
 
+  [data-nimi-material="glass-thin"][data-nimi-tone="card"],
   [data-nimi-material="glass-regular"][data-nimi-tone="card"],
-  [data-nimi-material="glass-thick"][data-nimi-tone="card"] {
+  [data-nimi-material="glass-thick"][data-nimi-tone="card"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="card"] {
     background: var(--nimi-surface-card) !important;
     border-color: var(--nimi-border-subtle) !important;
   }
 
+  [data-nimi-material="glass-thin"][data-nimi-tone="overlay"],
   [data-nimi-material="glass-regular"][data-nimi-tone="overlay"],
-  [data-nimi-material="glass-thick"][data-nimi-tone="overlay"] {
+  [data-nimi-material="glass-thick"][data-nimi-tone="overlay"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="overlay"] {
     background: var(--nimi-surface-overlay) !important;
     border-color: var(--nimi-border-subtle) !important;
   }
 
+  [data-nimi-material="glass-thin"][data-nimi-tone="hero"],
   [data-nimi-material="glass-regular"][data-nimi-tone="hero"],
-  [data-nimi-material="glass-thick"][data-nimi-tone="hero"] {
+  [data-nimi-material="glass-thick"][data-nimi-tone="hero"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="hero"] {
     background: var(--nimi-surface-hero) !important;
     border-color: var(--nimi-border-strong) !important;
   }

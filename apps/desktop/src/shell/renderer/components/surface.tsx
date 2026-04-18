@@ -4,8 +4,8 @@ import { Surface, cn } from './design-tokens.js';
 export type DesktopCardSurfaceKind = 'promoted-glass' | 'operational-solid';
 
 const DESKTOP_CARD_SURFACE_CLASS: Record<DesktopCardSurfaceKind, string> = {
-  'promoted-glass': 'rounded-2xl border-white/60 bg-[color-mix(in_srgb,var(--nimi-material-glass-regular-bg)_94%,white)] shadow-[0_14px_34px_rgba(15,23,42,0.05)]',
-  'operational-solid': 'rounded-2xl border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,white)] shadow-[0_10px_22px_rgba(15,23,42,0.04)]',
+  'promoted-glass': 'rounded-2xl border-white/60 bg-[var(--nimi-surface-card-promoted-glass-elevated)] shadow-[0_14px_34px_rgba(15,23,42,0.05)]',
+  'operational-solid': 'rounded-2xl border-[color:var(--nimi-border-subtle)] bg-[var(--nimi-surface-card-operational-solid-elevated)] shadow-[0_10px_22px_rgba(15,23,42,0.04)]',
 };
 
 type DesktopCardSurfaceProps = {

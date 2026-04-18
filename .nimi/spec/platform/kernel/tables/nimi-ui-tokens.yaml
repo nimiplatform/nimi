@@ -56,6 +56,22 @@ tokens:
     primitive_family: surface
     source_rule: P-DESIGN-003
     theme_layer: accent
+  - id: surface.card_promoted_glass_elevated
+    category: surface
+    semantic_name: Surface card promoted-glass elevated
+    css_var: --nimi-surface-card-promoted-glass-elevated
+    ts_token: cardPromotedGlassElevated
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: surface.card_operational_solid_elevated
+    category: surface
+    semantic_name: Surface card operational-solid elevated
+    css_var: --nimi-surface-card-operational-solid-elevated
+    ts_token: cardOperationalSolidElevated
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
   - id: text.primary
     category: text
     semantic_name: Text primary
@@ -1096,6 +1112,22 @@ tokens:
     primitive_family: toggle
     source_rule: P-DESIGN-010
     theme_layer: foundation
+  - id: material.glass_thin.bg
+    category: material
+    semantic_name: Glass thin background
+    css_var: --nimi-material-glass-thin-bg
+    ts_token: glassThinBg
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: material.glass_thin.border
+    category: material
+    semantic_name: Glass thin border
+    css_var: --nimi-material-glass-thin-border
+    ts_token: glassThinBorder
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
   - id: material.glass_regular.bg
     category: material
     semantic_name: Glass regular background
@@ -1128,6 +1160,30 @@ tokens:
     primitive_family: surface
     source_rule: P-DESIGN-022
     theme_layer: foundation
+  - id: material.glass_chrome.bg
+    category: material
+    semantic_name: Glass chrome background
+    css_var: --nimi-material-glass-chrome-bg
+    ts_token: glassChromeBg
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: material.glass_chrome.border
+    category: material
+    semantic_name: Glass chrome border
+    css_var: --nimi-material-glass-chrome-border
+    ts_token: glassChromeBorder
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: backdrop.blur_thin
+    category: backdrop
+    semantic_name: Backdrop blur thin
+    css_var: --nimi-backdrop-blur-thin
+    ts_token: blurThin
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
   - id: backdrop.blur_regular
     category: backdrop
     semantic_name: Backdrop blur regular
@@ -1141,6 +1197,14 @@ tokens:
     semantic_name: Backdrop blur strong
     css_var: --nimi-backdrop-blur-strong
     ts_token: blurStrong
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: backdrop.blur_chrome
+    category: backdrop
+    semantic_name: Backdrop blur chrome
+    css_var: --nimi-backdrop-blur-chrome
+    ts_token: blurChrome
     primitive_family: surface
     source_rule: P-DESIGN-022
     theme_layer: foundation

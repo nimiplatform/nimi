@@ -129,7 +129,7 @@
 ## P-DESIGN-022 — Material Layering Contract
 
 - Material is an axis orthogonal to the surface `tone` family declared in P-DESIGN-011. Governed surfaces that are not `solid` must declare both a tone and a material.
-- Allowed materials are `solid`, `glass-regular`, and `glass-thick`. `solid` is the default and preserves backwards compatibility for surfaces that do not declare a material.
+- Allowed materials are `solid`, `glass-thin`, `glass-regular`, `glass-thick`, and `glass-chrome`. `solid` is the default and preserves backwards compatibility for surfaces that do not declare a material. This 5-tier taxonomy supersedes the original 3-material admission (`solid`, `glass-regular`, `glass-thick`) landed under parent topic `2026-04-16-kit-glass-material-and-parentos-alignment` W1; the 3 prior tier names are preserved byte-for-byte with identical semantics, and 2 new tiers (`glass-thin`, `glass-chrome`) are added under topic `2026-04-18-nimi-ui-glassmorphism-system-uplift` Phase 2.
 - `glass-regular` and `glass-thick` must resolve background fill, border color, and backdrop-filter blur strength through semantic `material.*` and `backdrop.*` tokens declared in `tables/nimi-ui-tokens.yaml`. Governed modules must not inline `rgba(...)` material values or inline `backdrop-filter` declarations.
 - Material tokens are `foundation`-layer tokens. Every `material.*` and `backdrop.*` token must declare both light and dark values in `tables/nimi-ui-themes.yaml`.
 - Material tokens must stay neutral. Accent expression is delivered through accent packs per P-DESIGN-002 and must not be welded into material values.

@@ -9,6 +9,8 @@
   --nimi-surface-hero: initial;
   --nimi-surface-overlay: initial;
   --nimi-surface-active: initial;
+  --nimi-surface-card-promoted-glass-elevated: initial;
+  --nimi-surface-card-operational-solid-elevated: initial;
   --nimi-text-primary: initial;
   --nimi-text-secondary: initial;
   --nimi-text-muted: initial;
@@ -139,12 +141,18 @@
   --nimi-scrollbar-radius: initial;
   --nimi-scrollbar-size: initial;
   --nimi-toggle-off-bg: initial;
+  --nimi-material-glass-thin-bg: initial;
+  --nimi-material-glass-thin-border: initial;
   --nimi-material-glass-regular-bg: initial;
   --nimi-material-glass-regular-border: initial;
   --nimi-material-glass-thick-bg: initial;
   --nimi-material-glass-thick-border: initial;
+  --nimi-material-glass-chrome-bg: initial;
+  --nimi-material-glass-chrome-border: initial;
+  --nimi-backdrop-blur-thin: initial;
   --nimi-backdrop-blur-regular: initial;
   --nimi-backdrop-blur-strong: initial;
+  --nimi-backdrop-blur-chrome: initial;
   --nimi-ambient-mesh-color-1: initial;
   --nimi-ambient-mesh-color-2: initial;
   --nimi-ambient-mesh-color-3: initial;

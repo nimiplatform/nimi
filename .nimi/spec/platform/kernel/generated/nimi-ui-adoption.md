@@ -23,5 +23,8 @@
 | `overtone.publish.modal` | `overtone` | `dark` | `overtone-accent` | `dark`, `light` | `overlay`, `action`, `field`, `status`, `surface` | `false` | `none` | `P-DESIGN-020` |
 | `overtone.ui.primitives` | `overtone` | `dark` | `overtone-accent` | `dark`, `light` | `action`, `field` | `false` | `none` | `P-DESIGN-020` |
 | `desktop.world.detail.exception` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface` | `true` | `controlled_exception` | `P-DESIGN-021` |
+| `desktop.chat.avatar.live2d.exception` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface` | `false` | `controlled_exception` | `P-DESIGN-021` |
+| `desktop.chat.avatar.vrm.exception` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface` | `false` | `controlled_exception` | `P-DESIGN-021` |
+| `desktop.contacts.profile-detail.exception` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface` | `true` | `controlled_exception` | `P-DESIGN-021` |
 | `overtone.waveform.exception` | `overtone` | `dark` | `overtone-accent` | `dark`, `light` | `surface` | `false` | `controlled_exception` | `P-DESIGN-021` |
 | `video-food-map.shell.app` | `video-food-map` | `light` | `video-food-map-accent` | `light`, `dark` | `surface`, `action`, `field`, `status`, `sidebar` | `false` | `none` | `P-DESIGN-020` |

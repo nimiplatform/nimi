@@ -29,8 +29,10 @@ export const surfaceVariants = cva(
       },
       material: {
         solid: 'nimi-material-solid',
+        'glass-thin': 'nimi-material-glass-thin bg-[var(--nimi-material-glass-thin-bg)] border-[var(--nimi-material-glass-thin-border)] backdrop-blur-[var(--nimi-backdrop-blur-thin)]',
         'glass-regular': 'nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]',
         'glass-thick': 'nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)]',
+        'glass-chrome': 'nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)]',
       },
     },
     defaultVariants: {

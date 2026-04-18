@@ -11,6 +11,8 @@
 | `surface.hero` | `surface` | `foundation` | `--nimi-surface-hero` | `surface` | `P-DESIGN-003` |
 | `surface.overlay` | `surface` | `foundation` | `--nimi-surface-overlay` | `overlay` | `P-DESIGN-003` |
 | `surface.active` | `surface` | `accent` | `--nimi-surface-active` | `surface` | `P-DESIGN-003` |
+| `surface.card_promoted_glass_elevated` | `surface` | `foundation` | `--nimi-surface-card-promoted-glass-elevated` | `surface` | `P-DESIGN-022` |
+| `surface.card_operational_solid_elevated` | `surface` | `foundation` | `--nimi-surface-card-operational-solid-elevated` | `surface` | `P-DESIGN-022` |
 | `text.primary` | `text` | `foundation` | `--nimi-text-primary` | `surface` | `P-DESIGN-003` |
 | `text.secondary` | `text` | `foundation` | `--nimi-text-secondary` | `surface` | `P-DESIGN-003` |
 | `text.muted` | `text` | `foundation` | `--nimi-text-muted` | `surface` | `P-DESIGN-003` |
@@ -141,12 +143,18 @@
 | `scrollbar.radius` | `scrollbar` | `foundation` | `--nimi-scrollbar-radius` | `surface` | `P-DESIGN-018` |
 | `scrollbar.size` | `scrollbar` | `foundation` | `--nimi-scrollbar-size` | `surface` | `P-DESIGN-018` |
 | `toggle.off_bg` | `toggle` | `foundation` | `--nimi-toggle-off-bg` | `toggle` | `P-DESIGN-010` |
+| `material.glass_thin.bg` | `material` | `foundation` | `--nimi-material-glass-thin-bg` | `surface` | `P-DESIGN-022` |
+| `material.glass_thin.border` | `material` | `foundation` | `--nimi-material-glass-thin-border` | `surface` | `P-DESIGN-022` |
 | `material.glass_regular.bg` | `material` | `foundation` | `--nimi-material-glass-regular-bg` | `surface` | `P-DESIGN-022` |
 | `material.glass_regular.border` | `material` | `foundation` | `--nimi-material-glass-regular-border` | `surface` | `P-DESIGN-022` |
 | `material.glass_thick.bg` | `material` | `foundation` | `--nimi-material-glass-thick-bg` | `surface` | `P-DESIGN-022` |
 | `material.glass_thick.border` | `material` | `foundation` | `--nimi-material-glass-thick-border` | `surface` | `P-DESIGN-022` |
+| `material.glass_chrome.bg` | `material` | `foundation` | `--nimi-material-glass-chrome-bg` | `surface` | `P-DESIGN-022` |
+| `material.glass_chrome.border` | `material` | `foundation` | `--nimi-material-glass-chrome-border` | `surface` | `P-DESIGN-022` |
+| `backdrop.blur_thin` | `backdrop` | `foundation` | `--nimi-backdrop-blur-thin` | `surface` | `P-DESIGN-022` |
 | `backdrop.blur_regular` | `backdrop` | `foundation` | `--nimi-backdrop-blur-regular` | `surface` | `P-DESIGN-022` |
 | `backdrop.blur_strong` | `backdrop` | `foundation` | `--nimi-backdrop-blur-strong` | `surface` | `P-DESIGN-022` |
+| `backdrop.blur_chrome` | `backdrop` | `foundation` | `--nimi-backdrop-blur-chrome` | `surface` | `P-DESIGN-022` |
 | `ambient.mesh.color_1` | `ambient` | `foundation` | `--nimi-ambient-mesh-color-1` | `surface` | `P-DESIGN-023` |
 | `ambient.mesh.color_2` | `ambient` | `foundation` | `--nimi-ambient-mesh-color-2` | `surface` | `P-DESIGN-023` |
 | `ambient.mesh.color_3` | `ambient` | `foundation` | `--nimi-ambient-mesh-color-3` | `surface` | `P-DESIGN-023` |
