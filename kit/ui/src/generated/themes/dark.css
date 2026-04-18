@@ -18,6 +18,7 @@
   --nimi-action-secondary-border: rgba(148,163,184,0.24);
   --nimi-action-secondary-text: #e2e8f0;
   --nimi-overlay-backdrop: rgba(2,6,23,0.64);
+  --nimi-scrim-modal: rgba(0,0,0,0.60);
   --nimi-sidebar-canvas: rgba(11,18,32,0.92);
   --nimi-sidebar-border: rgba(148,163,184,0.16);
   --nimi-sidebar-header-height: 56px;

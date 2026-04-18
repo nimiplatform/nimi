@@ -168,6 +168,14 @@ tokens:
     primitive_family: overlay
     source_rule: P-DESIGN-003
     theme_layer: foundation
+  - id: overlay.scrim_modal
+    category: overlay
+    semantic_name: Scrim for modal dialogs and sheets
+    css_var: --nimi-scrim-modal
+    ts_token: scrimModal
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
   - id: sidebar.canvas
     category: sidebar
     semantic_name: Sidebar canvas

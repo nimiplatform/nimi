@@ -4,8 +4,8 @@
 > Source: `.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`
 | Pack ID | Pack Kind | Token Count | Applies To | Source |
 |---|---|---|---|---|
-| `nimi-light` | `foundation` | 156 | `desktop`, `forge`, `relay`, `overtone`, `parentos` | `P-DESIGN-002` |
-| `nimi-dark` | `foundation` | 156 | `desktop`, `forge`, `relay`, `overtone`, `parentos` | `P-DESIGN-002` |
+| `nimi-light` | `foundation` | 157 | `desktop`, `forge`, `relay`, `overtone`, `parentos` | `P-DESIGN-002` |
+| `nimi-dark` | `foundation` | 157 | `desktop`, `forge`, `relay`, `overtone`, `parentos` | `P-DESIGN-002` |
 | `desktop-accent` | `accent` | 9 | `desktop` | `P-DESIGN-002` |
 | `forge-accent` | `accent` | 9 | `forge` | `P-DESIGN-002` |
 | `relay-accent` | `accent` | 9 | `relay` | `P-DESIGN-002` |

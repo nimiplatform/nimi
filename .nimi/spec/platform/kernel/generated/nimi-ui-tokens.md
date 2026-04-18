@@ -25,6 +25,7 @@
 | `action.secondary_text` | `action` | `foundation` | `--nimi-action-secondary-text` | `action` | `P-DESIGN-003` |
 | `action.ghost_hover` | `action` | `accent` | `--nimi-action-ghost-hover` | `action` | `P-DESIGN-003` |
 | `overlay.backdrop` | `overlay` | `foundation` | `--nimi-overlay-backdrop` | `overlay` | `P-DESIGN-003` |
+| `overlay.scrim_modal` | `overlay` | `foundation` | `--nimi-scrim-modal` | `overlay` | `P-DESIGN-003` |
 | `sidebar.canvas` | `sidebar` | `foundation` | `--nimi-sidebar-canvas` | `sidebar` | `P-DESIGN-003` |
 | `sidebar.border` | `sidebar` | `foundation` | `--nimi-sidebar-border` | `sidebar` | `P-DESIGN-003` |
 | `sidebar.header_height` | `sidebar` | `foundation` | `--nimi-sidebar-header-height` | `sidebar` | `P-DESIGN-003` |
