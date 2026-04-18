@@ -126,6 +126,7 @@ Canonical topic lifecycle roots are:
 
 - `proposal`
 - `ongoing`
+- `pending`
 - `closed`
 
 The primary organization unit is a topic folder:
@@ -146,7 +147,7 @@ Topic folder rules:
 
 - use sortable date-first topic ids: `YYYY-MM-DD-topic-slug`
 - express lifecycle by moving the topic folder between `proposal`, `ongoing`,
-  and `closed`
+  `pending`, and `closed`
 - keep one canonical copy of a topic at a time
 - record lifecycle transitions in `topic.yaml`; do not rely on folder moves
   alone as the state evidence surface
@@ -154,7 +155,7 @@ Topic folder rules:
 Canonical constraints:
 
 - human-authored topic lifecycle reports must use
-  `/.nimi/local/report/{proposal|ongoing|closed}/<topic-id>/**`
+  `/.nimi/local/report/{proposal|ongoing|pending|closed}/<topic-id>/**`
 - flat markdown files directly under `/.nimi/local/report/` are outside the
   admitted methodology model
 - `.local/report/**` is not an accepted root for human-authored topic
@@ -170,6 +171,10 @@ Development rhythm:
 - entering `ongoing` requires a topic-local `preflight.md` with one selected
   next execution target, a bounded stop line, consumed inputs/contexts, expected
   closeout checks, and explicit forbidden reopenings
+- `pending` is an optional no-active-development state for topics that are not
+  ready to close: use it when you want to distinguish "waiting on evidence or
+  an external trigger" from active `ongoing` work, and record explicit reopen
+  or close criteria instead of leaving that wait implicit
 - each wave should own one primary closure goal and end in a bounded result such
   as an authority cut, implementation packet, bounded re-audit, or explicit
   pause/defer note

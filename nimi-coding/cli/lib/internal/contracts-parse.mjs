@@ -50,7 +50,7 @@ const SPEC_GENERATION_ORDER_ENUM = [
   "generated_views",
   "thin_guides",
 ];
-const TOPIC_LIFECYCLE_LOCAL_REPORT_MARKDOWN = /^\.nimi\/local\/report\/(?:proposal|ongoing|closed)\/\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$/;
+const TOPIC_LIFECYCLE_LOCAL_REPORT_MARKDOWN = /^\.nimi\/local\/report\/(?:proposal|ongoing|pending|closed)\/\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$/;
 
 function normalizeAuthorityModeValue(value) {
   return value === "external_blueprint_active" ? "external_authority_active" : value;

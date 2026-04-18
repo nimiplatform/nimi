@@ -239,7 +239,7 @@ Desktop 规范采用 kernel + domain 的两层结构：
 - 规则必须先改 kernel，再改 domain。
 - domain 文档禁止复述 kernel 规则正文。
 - domain 文档禁止定义本地规则 ID 体系（仅引用 `K/S/D/P/R/F-*`）。
-- 执行态计划、冻结包与结果不得写入 `/.nimi/spec/**`；human-authored topic lifecycle reports 写入 `.nimi/local/report/{proposal|ongoing|closed}/<topic-id>/**`；legacy execution evidence may still appear under `.local/report/**` as compatibility/local-only operational output；tracked spec 不依赖具体 local 文件。
+- 执行态计划、冻结包与结果不得写入 `/.nimi/spec/**`；human-authored topic lifecycle reports 写入 `.nimi/local/report/{proposal|ongoing|pending|closed}/<topic-id>/**`；legacy execution evidence may still appear under `.local/report/**` as compatibility/local-only operational output；tracked spec 不依赖具体 local 文件。
 - domain 文档应保持薄层结构：定位、映射、阅读路径、非目标。
 
 ## SDK（当前）

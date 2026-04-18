@@ -1399,6 +1399,24 @@ test("doctor accepts topic lifecycle report paths in spec generation inputs", as
   });
 });
 
+test("doctor accepts pending topic lifecycle report paths in spec generation inputs", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await updateSpecGenerationInputs(projectRoot, (inputs) => {
+      inputs.human_note_paths = [
+        ".nimi/local/report/pending/2026-04-14-runtime-speech/design.md",
+      ];
+    });
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 0);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, true);
+  });
+});
+
 test("doctor rejects .local report roots for human-authored topic reports", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);

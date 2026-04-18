@@ -4,6 +4,7 @@ topic_lifecycle_report:
   lifecycle_roots:
     - proposal
     - ongoing
+    - pending
     - closed
   topic_id_pattern: YYYY-MM-DD-topic-slug
   topic_folder_shape: .nimi/local/report/<state>/YYYY-MM-DD-topic-slug/
@@ -30,6 +31,9 @@ topic_lifecycle_report:
   movement_rules:
     allowed:
       - proposal_to_ongoing
+      - ongoing_to_pending
+      - pending_to_ongoing
+      - pending_to_closed
       - ongoing_to_closed
       - proposal_to_closed
       - closed_to_ongoing
@@ -73,6 +77,19 @@ topic_lifecycle_report:
         - explicit_consumed_contexts_or_inputs
         - expected_closeout_checks_or_evidence
         - explicit_forbidden_reopenings
+      pending_stage:
+        allowed:
+          - usage_or_rollout_observation
+          - external_dependency_wait
+          - explicit_pause_note_with_reopen_or_close_criteria
+        forbidden:
+          - active_implementation_tracking
+          - silent_indefinite_dormancy_without_reopen_or_close_criteria
+      pending_entry_requires:
+        - no_active_implementation_wave
+        - explicit_pending_note_or_equivalent_status_record
+        - explicit_reopen_criteria_or_close_trigger
+        - bounded_reason_why_topic_is_not_yet_closed
     preflight_contract:
       required_fields:
         - spec_status
@@ -97,6 +114,7 @@ topic_lifecycle_report:
     closeout_layers:
       context_closure: a_context_has_reached_a_stable_planning_stop_line
       wave_closeout: one_admitted_wave_reached_its_stop_line_with_bounded_evidence
+      pending_hold: a_topic_is_waiting_without_active_development_but_retains_explicit_reopen_or_close_criteria
       topic_closeout: the_topic_is_no_longer_the_active_workstream
       must_remain_distinct: true
     anti_patterns:
