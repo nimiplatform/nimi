@@ -91,9 +91,6 @@ func TestValidateMusicGenerateIterationSupport(t *testing.T) {
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	if err := validateMusicGenerateIterationSupport(context.Background(), svc, "suno/suno-v4", nil, nil, parsed); err != nil {
-		t.Fatalf("expected suno iteration support, got err=%v", err)
-	}
 	if err := validateMusicGenerateIterationSupport(context.Background(), svc, "stability/stable-audio-2", nil, nil, parsed); err != nil {
 		t.Fatalf("expected stability iteration support, got err=%v", err)
 	}

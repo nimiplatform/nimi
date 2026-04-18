@@ -120,6 +120,17 @@ type VoiceWorkflowRequestOptions struct {
 	ProviderExtensions             *ProviderExtensionMetadata `yaml:"provider_extensions,omitempty" json:"provider_extensions,omitempty"`
 }
 
+type DynamicInventoryPolicy struct {
+	DiscoveryTransport     string   `yaml:"discovery_transport,omitempty" json:"discovery_transport,omitempty"`
+	CacheTTLSeconds        int      `yaml:"cache_ttl_sec,omitempty" json:"cache_ttl_sec,omitempty"`
+	SelectionMode          string   `yaml:"selection_mode,omitempty" json:"selection_mode,omitempty"`
+	FailurePolicy          string   `yaml:"failure_policy,omitempty" json:"failure_policy,omitempty"`
+	AllowedCapabilities    []string `yaml:"allowed_capabilities,omitempty" json:"allowed_capabilities,omitempty"`
+	DenyModelPatterns      []string `yaml:"deny_model_patterns,omitempty" json:"deny_model_patterns,omitempty"`
+	AllowModelPatterns     []string `yaml:"allow_model_patterns,omitempty" json:"allow_model_patterns,omitempty"`
+	PreferredModelPatterns []string `yaml:"preferred_model_patterns,omitempty" json:"preferred_model_patterns,omitempty"`
+}
+
 type SelectionProfile struct {
 	Provider         string `yaml:"provider,omitempty" json:"provider,omitempty"`
 	ProfileID        string `yaml:"profile_id" json:"profile_id"`
@@ -187,16 +198,18 @@ type ModelWorkflowBinding struct {
 }
 
 type ProviderDocument struct {
-	Version               int                    `yaml:"version" json:"version"`
-	Provider              string                 `yaml:"provider" json:"provider"`
-	CatalogVersion        string                 `yaml:"catalog_version" json:"catalog_version"`
-	DefaultTextModel      string                 `yaml:"default_text_model,omitempty" json:"default_text_model,omitempty"`
-	SelectionProfiles     []SelectionProfile     `yaml:"selection_profiles,omitempty" json:"selection_profiles,omitempty"`
-	Models                []ModelEntry           `yaml:"models" json:"models"`
-	Voices                []VoiceEntry           `yaml:"voices,omitempty" json:"voices,omitempty"`
-	VoiceWorkflowModels   []VoiceWorkflowModel   `yaml:"voice_workflow_models,omitempty" json:"voice_workflow_models,omitempty"`
-	ModelWorkflowBindings []ModelWorkflowBinding `yaml:"model_workflow_bindings,omitempty" json:"model_workflow_bindings,omitempty"`
-	VoiceHandlePolicies   []VoiceHandlePolicy    `yaml:"voice_handle_policies,omitempty" json:"voice_handle_policies,omitempty"`
+	Version               int                     `yaml:"version" json:"version"`
+	Provider              string                  `yaml:"provider" json:"provider"`
+	CatalogVersion        string                  `yaml:"catalog_version" json:"catalog_version"`
+	InventoryMode         string                  `yaml:"inventory_mode,omitempty" json:"inventory_mode,omitempty"`
+	DynamicInventory      *DynamicInventoryPolicy `yaml:"dynamic_inventory,omitempty" json:"dynamic_inventory,omitempty"`
+	DefaultTextModel      string                  `yaml:"default_text_model,omitempty" json:"default_text_model,omitempty"`
+	SelectionProfiles     []SelectionProfile      `yaml:"selection_profiles,omitempty" json:"selection_profiles,omitempty"`
+	Models                []ModelEntry            `yaml:"models" json:"models"`
+	Voices                []VoiceEntry            `yaml:"voices,omitempty" json:"voices,omitempty"`
+	VoiceWorkflowModels   []VoiceWorkflowModel    `yaml:"voice_workflow_models,omitempty" json:"voice_workflow_models,omitempty"`
+	ModelWorkflowBindings []ModelWorkflowBinding  `yaml:"model_workflow_bindings,omitempty" json:"model_workflow_bindings,omitempty"`
+	VoiceHandlePolicies   []VoiceHandlePolicy     `yaml:"voice_handle_policies,omitempty" json:"voice_handle_policies,omitempty"`
 
 	RawYAML string `yaml:"-" json:"raw_yaml"`
 }
@@ -250,6 +263,8 @@ type CatalogProviderRecord struct {
 	Provider             string
 	Version              int
 	CatalogVersion       string
+	InventoryMode        string
+	DynamicInventory     *DynamicInventoryPolicy
 	DefaultTextModel     string
 	Source               ProviderSource
 	ModelCount           int

@@ -1,30 +1,157 @@
 version: 1
 provider: aws_polly
-catalog_version: 2026-03-05-aws-polly-v1
+catalog_version: 2026-04-18-aws-polly-v2
+inventory_mode: static_source
 models:
-  - model_id: polly-neural-tts
+  - model_id: polly-standard-tts
     provider: aws_polly
     model_type: tts
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - audio.synthesize
     pricing:
-      unit: request
-      input: unknown
-      output: unknown
+      unit: char
+      input: "4.00"
+      output: "0"
       currency: USD
-      as_of: 2026-03-05
-      notes: AWS Polly pricing varies by engine type and usage tier.
+      as_of: 2026-04-18
+      notes: Standard voices are billed at $4.00 per 1M characters outside the free tier.
     source_ref:
-      url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
-      retrieved_at: 2026-03-05
-      note: AWS Polly API reference root.
+      url: https://docs.aws.amazon.com/polly/latest/dg/API_SynthesizeSpeech.html
+      retrieved_at: 2026-04-18
+      note: Core speech synthesis API contract.
+    voice_set_id: aws_polly:standard-defaults-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: polly-neural-tts
+    provider: aws_polly
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: "16.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Neural voices are billed at $16.00 per 1M characters outside the free tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/API_SynthesizeSpeech.html
+      retrieved_at: 2026-04-18
+      note: Core speech synthesis API contract.
     voice_set_id: aws_polly:neural-defaults-v1
     voice_discovery_mode: static_catalog
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
+  - model_id: polly-long-form-tts
+    provider: aws_polly
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: "100.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Long-form voices are billed at $100.00 per 1M characters outside the free tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/API_SynthesizeSpeech.html
+      retrieved_at: 2026-04-18
+      note: Core speech synthesis API contract.
+    voice_set_id: aws_polly:long-form-defaults-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: polly-generative-tts
+    provider: aws_polly
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: "30.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Generative voices are billed at $30.00 per 1M characters outside the free tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/API_SynthesizeSpeech.html
+      retrieved_at: 2026-04-18
+      note: Core speech synthesis API contract.
+    voice_set_id: aws_polly:generative-defaults-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
 voices:
+  - voice_id: Joanna
+    voice_set_id: aws_polly:standard-defaults-v1
+    provider: aws_polly
+    name: Joanna
+    langs:
+      - en-US
+    model_ids:
+      - polly-standard-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+      retrieved_at: 2026-04-18
+      note: Available Amazon Polly voices across engine families.
+  - voice_id: Matthew
+    voice_set_id: aws_polly:standard-defaults-v1
+    provider: aws_polly
+    name: Matthew
+    langs:
+      - en-US
+    model_ids:
+      - polly-standard-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+      retrieved_at: 2026-04-18
+      note: Available Amazon Polly voices across engine families.
+  - voice_id: Amy
+    voice_set_id: aws_polly:standard-defaults-v1
+    provider: aws_polly
+    name: Amy
+    langs:
+      - en-GB
+    model_ids:
+      - polly-standard-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+      retrieved_at: 2026-04-18
+      note: Available Amazon Polly voices across engine families.
+  - voice_id: Brian
+    voice_set_id: aws_polly:standard-defaults-v1
+    provider: aws_polly
+    name: Brian
+    langs:
+      - en-GB
+    model_ids:
+      - polly-standard-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+      retrieved_at: 2026-04-18
+      note: Available Amazon Polly voices across engine families.
+  - voice_id: Zhiyu
+    voice_set_id: aws_polly:standard-defaults-v1
+    provider: aws_polly
+    name: Zhiyu
+    langs:
+      - cmn-CN
+    model_ids:
+      - polly-standard-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+      retrieved_at: 2026-04-18
+      note: Available Amazon Polly voices across engine families.
   - voice_id: Joanna
     voice_set_id: aws_polly:neural-defaults-v1
     provider: aws_polly
@@ -34,9 +161,9 @@ voices:
     model_ids:
       - polly-neural-tts
     source_ref:
-      url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
-      retrieved_at: 2026-03-05
-      note: AWS Polly API reference root.
+      url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+      retrieved_at: 2026-04-18
+      note: Available Amazon Polly voices across engine families.
   - voice_id: Matthew
     voice_set_id: aws_polly:neural-defaults-v1
     provider: aws_polly
@@ -46,9 +173,9 @@ voices:
     model_ids:
       - polly-neural-tts
     source_ref:
-      url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
-      retrieved_at: 2026-03-05
-      note: AWS Polly API reference root.
+      url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+      retrieved_at: 2026-04-18
+      note: Available Amazon Polly voices across engine families.
   - voice_id: Amy
     voice_set_id: aws_polly:neural-defaults-v1
     provider: aws_polly
@@ -58,9 +185,9 @@ voices:
     model_ids:
       - polly-neural-tts
     source_ref:
-      url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
-      retrieved_at: 2026-03-05
-      note: AWS Polly API reference root.
+      url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+      retrieved_at: 2026-04-18
+      note: Available Amazon Polly voices across engine families.
   - voice_id: Brian
     voice_set_id: aws_polly:neural-defaults-v1
     provider: aws_polly
@@ -70,9 +197,9 @@ voices:
     model_ids:
       - polly-neural-tts
     source_ref:
-      url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
-      retrieved_at: 2026-03-05
-      note: AWS Polly API reference root.
+      url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+      retrieved_at: 2026-04-18
+      note: Available Amazon Polly voices across engine families.
   - voice_id: Zhiyu
     voice_set_id: aws_polly:neural-defaults-v1
     provider: aws_polly
@@ -82,6 +209,102 @@ voices:
     model_ids:
       - polly-neural-tts
     source_ref:
-      url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
-      retrieved_at: 2026-03-05
-      note: AWS Polly API reference root.
+      url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+      retrieved_at: 2026-04-18
+      note: Available Amazon Polly voices across engine families.
+  - voice_id: Danielle
+    voice_set_id: aws_polly:long-form-defaults-v1
+    provider: aws_polly
+    name: Danielle
+    langs:
+      - en-US
+    model_ids:
+      - polly-long-form-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/long-form-voices.html
+      retrieved_at: 2026-04-18
+      note: Long-form engine overview and available voices.
+  - voice_id: Gregory
+    voice_set_id: aws_polly:long-form-defaults-v1
+    provider: aws_polly
+    name: Gregory
+    langs:
+      - en-US
+    model_ids:
+      - polly-long-form-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/long-form-voices.html
+      retrieved_at: 2026-04-18
+      note: Long-form engine overview and available voices.
+  - voice_id: Ruth
+    voice_set_id: aws_polly:long-form-defaults-v1
+    provider: aws_polly
+    name: Ruth
+    langs:
+      - en-US
+    model_ids:
+      - polly-long-form-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/long-form-voices.html
+      retrieved_at: 2026-04-18
+      note: Long-form engine overview and available voices.
+  - voice_id: Patrick
+    voice_set_id: aws_polly:long-form-defaults-v1
+    provider: aws_polly
+    name: Patrick
+    langs:
+      - en-US
+    model_ids:
+      - polly-long-form-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/long-form-voices.html
+      retrieved_at: 2026-04-18
+      note: Long-form engine overview and available voices.
+  - voice_id: Alba
+    voice_set_id: aws_polly:long-form-defaults-v1
+    provider: aws_polly
+    name: Alba
+    langs:
+      - es-ES
+    model_ids:
+      - polly-long-form-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/long-form-voices.html
+      retrieved_at: 2026-04-18
+      note: Long-form engine overview and available voices.
+  - voice_id: Tiffany
+    voice_set_id: aws_polly:generative-defaults-v1
+    provider: aws_polly
+    name: Tiffany
+    langs:
+      - en-US
+    model_ids:
+      - polly-generative-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/generative-voices.html
+      retrieved_at: 2026-04-18
+      note: Generative engine overview and supported voices.
+  - voice_id: Amy
+    voice_set_id: aws_polly:generative-defaults-v1
+    provider: aws_polly
+    name: Amy
+    langs:
+      - en-GB
+    model_ids:
+      - polly-generative-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/generative-voices.html
+      retrieved_at: 2026-04-18
+      note: Generative engine overview and supported voices.
+  - voice_id: Brian
+    voice_set_id: aws_polly:generative-defaults-v1
+    provider: aws_polly
+    name: Brian
+    langs:
+      - en-GB
+    model_ids:
+      - polly-generative-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/generative-voices.html
+      retrieved_at: 2026-04-18
+      note: Generative engine overview and supported voices.

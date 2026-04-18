@@ -21,6 +21,10 @@ test('tester page mounts the world tour panel', () => {
 
 test('world tour panel keeps world.generate submit flow and launch-only desktop viewer entry', () => {
   const source = readRendererFile('features/tester/panels/panel-world-tour.tsx');
+  assert.match(source, /@nimiplatform\/sdk\/world/);
+  assert.match(source, /worldGenerate\.project/);
+  assert.match(source, /createInspectWorldRenderPlan/);
+  assert.match(source, /createInspectWorldSession/);
   assert.match(source, /media\.world\.generate/);
   assert.match(source, /Run World Tour/);
   assert.match(source, /Load Cached Fixture/);
@@ -43,6 +47,8 @@ test('dedicated world tour viewer route owns Spark renderer lifecycle', () => {
   assert.match(source, /save_world_tour_viewer_preset/);
   assert.match(source, /resolve_world_tour_fixture/);
   assert.match(source, /Booting world tour viewer/);
+  assert.match(source, /const WORLD_TOUR_UPRIGHT_QUATERNION = new THREE\.Quaternion\(1,\s*0,\s*0,\s*0\)/);
+  assert.doesNotMatch(source, /splat\.quaternion\.copy\(WORLD_TOUR_UPRIGHT_QUATERNION\)/);
   assert.doesNotMatch(source, /Ground Lock/);
 });
 

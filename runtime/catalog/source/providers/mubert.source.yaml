@@ -1,6 +1,6 @@
 schema_version: 3
 provider: mubert
-catalog_version: 2026-03-13-mubert-v1
+catalog_version: 2026-04-18-mubert-v2
 generated_target: runtime/catalog/providers/mubert.yaml
 runtime:
   runtime_plane: remote
@@ -17,32 +17,36 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-13
-    notes: Mubert API pricing varies by contract tier, render mode, and usage volume.
+    as_of: 2026-04-18
+    notes: Mubert publishes plan-tier pricing and generation quotas on the API page rather than a stable per-request public meter. Current public tiers are Trial $49/100 generations, Startup $199/5,000 generations, and Startup+ $499/30,000 generations per month.
 
 sources:
   - source_id: mubert_api_page
     url: https://mubert.com/api
-    retrieved_at: 2026-03-13
-    note: Mubert API overview page.
+    retrieved_at: 2026-04-18
+    note: Mubert API overview and pricing page covering generator, streaming, and library surfaces.
   - source_id: mubert_apiary
     url: https://mubertmusicapiv3.docs.apiary.io/api-description-document
-    retrieved_at: 2026-03-13
+    retrieved_at: 2026-04-18
     note: Mubert v3 API blueprint.
+  - source_id: mubert_api_landing
+    url: https://landing.mubert.com/
+    retrieved_at: 2026-04-18
+    note: Mubert API 3.0 landing page with current generator endpoint examples and product positioning.
 
 models:
   - model_id: mubert-track-v3
     model_type: music
-    updated_at: 2026-03-13
+    updated_at: 2026-04-18
     capabilities: [music.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-13
-      notes: Track render pricing varies by commercial plan and API contract.
-    source_ids: [mubert_api_page, mubert_apiary]
+      as_of: 2026-04-18
+      notes: Mubert's public pricing is plan-and-quota based rather than a stable per-request list price; the v3 generator surface is currently sold through monthly generation tiers.
+    source_ids: [mubert_api_page, mubert_apiary, mubert_api_landing]
     aliases:
       - public-tracks
       - mubert-track

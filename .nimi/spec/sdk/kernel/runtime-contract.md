@@ -207,6 +207,21 @@ App-facing selector-read publication must not add:
 - pagination or buffering semantics
 - fallback or re-inference knobs
 
+## S-RUNTIME-105 `worldEvolution` Non-Equivalence Boundary
+
+The root-level `worldEvolution` logical namespace remains the SDK composition
+surface for the adjacent `K-WEV` execution-evidence line governed by
+`S-RUNTIME-091` and `S-RUNTIME-102`.
+
+Boundary rules:
+
+- `worldEvolution` is not the semantic owner of the `sdk/world` facade
+- `worldEvolution` does not replace the stable `@nimiplatform/sdk/world`
+  subpath
+- execution-event, replay, checkpoint, supervision, and commit-request
+  evidence publication remain distinct from world-domain fixture, render, and
+  session composition semantics
+
 ## S-RUNTIME-103 Agent Presentation Projection Boundary
 
 SDK runtime may project runtime-owned persistent `AgentPresentationProfile` only as part of `runtime.agentCore.*` read surfaces.

@@ -1,30 +1,81 @@
 version: 1
 provider: azure
-catalog_version: 2026-03-05-azure-v1
-default_text_model: gpt-5.2
+catalog_version: 2026-04-18-azure-deployable-v2
+inventory_mode: static_source
+default_text_model: gpt-5.4
 models:
-  - model_id: gpt-5.2
+  - model_id: gpt-5.4
     provider: azure
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing depends on deployment SKU and region; deployment name controls runtime invocation.
+      as_of: 2026-04-18
+      notes: Current flagship Azure OpenAI text model family. Runtime invocation still uses the tenant deployment name that points at this model.
     source_ref:
-      url: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models
-      retrieved_at: 2026-03-05
-      note: Azure OpenAI model availability and model/version matrix.
+      url: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure
+      retrieved_at: 2026-04-18
+      note: Current Azure OpenAI model availability and version matrix for models sold directly by Azure.
+  - model_id: gpt-5.4-mini
+    provider: azure
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current smaller deployable GPT-5.4 text route on Azure. Runtime invocation still uses the tenant deployment name that points at this model.
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure
+      retrieved_at: 2026-04-18
+      note: Current Azure OpenAI model availability and version matrix for models sold directly by Azure.
+  - model_id: gpt-5.4-nano
+    provider: azure
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current lightweight deployable GPT-5.4 text route on Azure. Runtime invocation still uses the tenant deployment name that points at this model.
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure
+      retrieved_at: 2026-04-18
+      note: Current Azure OpenAI model availability and version matrix for models sold directly by Azure.
+  - model_id: gpt-5.2
+    provider: azure
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Prior deployable GPT-5.2 text route still listed in current Azure model availability. Runtime invocation still uses the tenant deployment name that points at this model.
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure
+      retrieved_at: 2026-04-18
+      note: Current Azure OpenAI model availability and version matrix for models sold directly by Azure.
   - model_id: text-embedding-3-large
     provider: azure
     model_type: embedding
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.embed
     pricing:
@@ -32,16 +83,33 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Embedding pricing depends on deployment SKU and region; deployment name controls runtime invocation.
+      as_of: 2026-04-18
+      notes: Embedding pricing depends on deployment SKU and region; runtime invocation still uses the tenant deployment name that points at this model.
     source_ref:
-      url: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models
-      retrieved_at: 2026-03-05
-      note: Azure OpenAI model availability and model/version matrix.
+      url: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure
+      retrieved_at: 2026-04-18
+      note: Current Azure OpenAI model availability and version matrix for models sold directly by Azure.
+  - model_id: text-embedding-3-small
+    provider: azure
+    model_type: embedding
+    updated_at: 2026-04-18
+    capabilities:
+      - text.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Smaller current embedding route in Azure OpenAI. Runtime invocation still uses the tenant deployment name that points at this model.
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure
+      retrieved_at: 2026-04-18
+      note: Current Azure OpenAI model availability and version matrix for models sold directly by Azure.
   - model_id: gpt-image-1.5
     provider: azure
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - image.generate
     pricing:
@@ -49,18 +117,32 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Image generation pricing depends on deployment SKU, quality profile, and region.
+      as_of: 2026-04-18
+      notes: Image generation pricing depends on deployment SKU, quality profile, and region. Runtime invocation still uses the tenant deployment name that points at this model.
     source_ref:
-      url: https://learn.microsoft.com/en-us/azure/foundry-classic/openai/whats-new
-      retrieved_at: 2026-03-05
-      note: Azure OpenAI release notes including GPT-image-1.5.
+      url: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure
+      retrieved_at: 2026-04-18
+      note: Current Azure OpenAI model availability and version matrix for models sold directly by Azure.
 voices: []
 selection_profiles:
   - provider: azure
     profile_id: text.general
     capability: text.generate
-    model_id: gpt-5.2
-    reviewed_at: 2026-04-16
+    model_id: gpt-5.4
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Only admitted Azure text route in the current source set.
+    rationale: Current flagship deployable Azure OpenAI text route in the admitted subset.
+  - provider: azure
+    profile_id: text.fast
+    capability: text.generate
+    model_id: gpt-5.4-mini
+    reviewed_at: 2026-04-18
+    freshness_sla_days: 21
+    rationale: Current lower-latency deployable Azure OpenAI text route in the admitted subset.
+  - provider: azure
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: gpt-5.4
+    reviewed_at: 2026-04-18
+    freshness_sla_days: 21
+    rationale: Highest-confidence reasoning route in the reviewed Azure deployable subset.

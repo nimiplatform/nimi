@@ -194,7 +194,7 @@ export function IteratePanel() {
           ? `${selectedMusicConnectorId} → ${selectedMusicModelId}`
           : 'No ready music connector/model pair'}
         warning={!musicIterationSupported
-          ? 'Iteration requires a connector/model pair that supports music.generate.iteration (e.g. Suno, Stability).'
+          ? 'Iteration requires a connector/model pair that supports music.generate.iteration (e.g. Stability).'
           : null}
         controls={(
           <>

@@ -208,22 +208,25 @@ modules:
       - ./features/avatar/runtime
       - ./features/avatar/ui
       - ./features/avatar/vrm
+      - ./features/avatar/live2d
     headless_exports:
       - ./features/avatar/headless
       - ./features/avatar/runtime
     ui_exports:
       - ./features/avatar/ui
       - ./features/avatar/vrm
+      - ./features/avatar/live2d
     planned_consumers: [desktop, web]
     reuse_entrypoints:
       - ./features/avatar/ui
       - ./features/avatar/headless
       - ./features/avatar/runtime
       - ./features/avatar/vrm
+      - ./features/avatar/live2d
     admission_status: active
     owner: platform
     source_rule: P-KIT-071
-    notes: Live2D backend family is admitted at the contract level, but no `./features/avatar/live2d` export is treated as shipped until it is explicitly registered and added to kit package exports. The first concrete Live2D viewport may remain desktop-local.
+    notes: Live2D backend family is now shipped as `./features/avatar/live2d` for reusable renderer-domain helpers and optional renderer seams. The first concrete Live2D viewport may still remain desktop-local.
   - id: kit.features.model-picker
     subpath: /features/model-picker
     kind: feature

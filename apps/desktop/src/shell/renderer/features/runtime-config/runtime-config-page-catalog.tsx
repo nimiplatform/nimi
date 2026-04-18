@@ -311,13 +311,29 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
         {selectedProvider ? (
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => selectedProviderId && void loadProviderModels(selectedProviderId)} disabled={loadingModels}>{loadingModels ? '...' : 'Refresh'}</Button>
-            <Button size="sm" onClick={() => setShowAddModel(true)}>+ Add</Button>
+            {selectedProvider.inventoryMode !== 'dynamic_endpoint' ? (
+              <Button size="sm" onClick={() => setShowAddModel(true)}>+ Add</Button>
+            ) : null}
           </div>
         ) : null}
       </div>
 
       {/* Model picker (full width) */}
-      <ModelSection providerId={selectedProviderId} onDeleteModel={onDeleteModel} deletingModelId={deletingModelId} />
+      {selectedProvider?.inventoryMode === 'dynamic_endpoint' ? (
+        <Card className="rounded-3xl p-5">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-[var(--nimi-text-primary)]">Live inventory provider</p>
+            <p className="text-sm text-[var(--nimi-text-secondary)]">
+              This provider does not maintain static catalog model rows. Runtime loads models from connector discovery and applies source-authored dynamic inventory policy.
+            </p>
+            <p className="text-xs text-[var(--nimi-text-muted)]">
+              Browse and verify live models from the Cloud connector panel or route/chat model pickers after attaching a working connector.
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <ModelSection providerId={selectedProviderId} onDeleteModel={onDeleteModel} deletingModelId={deletingModelId} />
+      )}
 
       {/* YAML panel */}
       {selectedProvider && providerModels ? (
@@ -333,10 +349,13 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
 }
 
 function ProviderCapabilities({ provider }: { provider: RuntimeModelCatalogProvider | null }) {
-  if (!provider || provider.capabilities.length === 0) return null;
+  if (!provider) return null;
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sourceTone(provider.source)}`}>{provider.source}</span>
+      <span className="rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-action-primary-bg)]">
+        {provider.inventoryMode || 'static_source'}
+      </span>
       <span className="text-xs text-[var(--nimi-text-muted)]">{provider.modelCount} models</span>
       {provider.capabilities.map((capability) => (
         <span key={`${provider.provider}-${capability}`} className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] px-2 py-0.5 text-[11px] text-[var(--nimi-action-primary-bg)]">

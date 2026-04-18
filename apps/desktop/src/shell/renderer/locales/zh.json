@@ -2723,6 +2723,8 @@
     "cloud": {
       "connectors": "云端 API 连接器",
       "connectorsDesc": "配置云端 AI 提供商的 API 密钥。当本地运行时不可用时作为回退使用。",
+      "liveInventoryTitle": "实时库存提供商",
+      "liveInventoryHint": "这个提供商会在运行时从连接器端点动态加载模型。请配置明确的默认模型，或在 route/chat 设置中选择实时模型。",
       "connectorsManagement": "管理你的云 API 连接器",
       "availableConnectors": "可用连接器",
       "selectConnectorToConfigure": "选择要配置的连接器",
@@ -3562,6 +3564,8 @@
       "modelLabel": "model:",
       "captionLabel": "caption:",
       "semanticsLabel": "semantics:",
+      "renderPlanLabel": "渲染计划：",
+      "sessionLabel": "会话：",
       "viewerLaunchContract": "查看器启动契约",
       "manifestPathLabel": "manifest path:",
       "spzLocalPathLabel": "SPZ 本地路径:",

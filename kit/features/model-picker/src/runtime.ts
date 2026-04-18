@@ -103,6 +103,7 @@ export type RuntimeModelCatalogProvider = {
   version: number;
   catalogVersion: string;
   source: RuntimeModelCatalogProviderSource;
+  inventoryMode: string;
   modelCount: number;
   voiceCount: number;
   defaultTextModel: string;
@@ -226,6 +227,7 @@ export function normalizeRuntimeModelCatalogProvider(entry: ModelCatalogProvider
     version: Number(entry.version || 0),
     catalogVersion: String(entry.catalogVersion || '').trim(),
     source: mapProviderSource(entry.source),
+    inventoryMode: String(entry.inventoryMode || '').trim(),
     modelCount: Number(entry.modelCount || 0),
     voiceCount: Number(entry.voiceCount || 0),
     defaultTextModel: String(entry.defaultTextModel || '').trim(),

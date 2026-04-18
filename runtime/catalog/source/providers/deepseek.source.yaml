@@ -1,6 +1,6 @@
 schema_version: 3
 provider: deepseek
-catalog_version: 2026-03-18-deepseek-v2
+catalog_version: 2026-04-18-deepseek-v3
 generated_target: runtime/catalog/providers/deepseek.yaml
 runtime:
   runtime_plane: remote
@@ -24,15 +24,19 @@ defaults:
 sources:
   - source_id: deepseek_home_doc
     url: https://api-docs.deepseek.com/
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: DeepSeek API documentation home and model matrix.
   - source_id: deepseek_pricing_doc
     url: https://api-docs.deepseek.com/quick_start/pricing
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: DeepSeek pricing and model billing page.
+  - source_id: deepseek_pricing_details_usd_doc
+    url: https://api-docs.deepseek.com/quick_start/pricing-details-usd
+    retrieved_at: 2026-04-18
+    note: DeepSeek detailed USD pricing table for stable public model ids.
   - source_id: deepseek_updates_doc
     url: https://api-docs.deepseek.com/updates/
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: DeepSeek release notes and compatibility updates.
 
 selection_profiles:
@@ -52,28 +56,28 @@ selection_profiles:
 models:
   - model_id: deepseek-chat
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-12-01
     capabilities: [text.generate]
     pricing:
       unit: token
       input: "0.27"
       output: "1.10"
       currency: USD
-      as_of: 2026-03-18
-      notes: DeepSeek V3 chat model. Cache-miss pricing. Per 1M tokens.
-    source_ids: [deepseek_home_doc, deepseek_pricing_doc]
+      as_of: 2026-04-18
+      notes: Public model id currently mapped to DeepSeek-V3.2 non-thinking mode. USD pricing retained from the detailed public pricing table. Per 1M tokens.
+    source_ids: [deepseek_home_doc, deepseek_pricing_doc, deepseek_pricing_details_usd_doc, deepseek_updates_doc]
     aliases:
       - deepseek-coder
 
   - model_id: deepseek-reasoner
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-12-01
     capabilities: [text.generate]
     pricing:
       unit: token
       input: "0.55"
       output: "2.19"
       currency: USD
-      as_of: 2026-03-18
-      notes: DeepSeek R1 reasoning model. Per 1M tokens.
-    source_ids: [deepseek_home_doc, deepseek_pricing_doc]
+      as_of: 2026-04-18
+      notes: Public model id currently mapped to DeepSeek-V3.2 thinking mode. USD pricing retained from the detailed public pricing table. Per 1M tokens.
+    source_ids: [deepseek_home_doc, deepseek_pricing_doc, deepseek_pricing_details_usd_doc, deepseek_updates_doc]

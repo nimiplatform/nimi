@@ -56,6 +56,7 @@ function parseRegistryRecords(absPath) {
       inlineSupported: parseBool('InlineSupported'),
       defaultEndpoint: parseString('DefaultEndpoint'),
       requiresExplicitEndpoint: parseBool('RequiresExplicitEndpoint'),
+      inventoryMode: parseString('InventoryMode'),
     });
   }
   return records;
@@ -96,6 +97,7 @@ function main() {
     const inline = Boolean(runtime?.inline_supported);
     const defaultEndpoint = String(runtime?.default_endpoint || '').trim();
     const requiresExplicitEndpoint = Boolean(runtime?.requires_explicit_endpoint);
+    const inventoryMode = String(runtime?.inventory_mode || 'static_source').trim();
 
     const registry = registryRecords.get(provider);
     if (!registry) {
@@ -117,6 +119,9 @@ function main() {
     if (registry.requiresExplicitEndpoint !== requiresExplicitEndpoint) {
       fail(`${relPath} provider ${provider} requires_explicit_endpoint mismatch with providerregistry`);
     }
+    if (registry.inventoryMode !== inventoryMode) {
+      fail(`${relPath} provider ${provider} inventory_mode mismatch with providerregistry`);
+    }
 
     const capability = capabilityEntries.get(provider);
     if (!capability) {
@@ -135,6 +140,9 @@ function main() {
     if (String(capability?.endpoint_requirement || '').trim() !== endpointRequirement(runtimePlane, requiresExplicitEndpoint)) {
       fail(`${relPath} provider ${provider} endpoint_requirement mismatch with provider-capabilities`);
     }
+    if (String(capability?.inventory_mode || '').trim() !== inventoryMode) {
+      fail(`${relPath} provider ${provider} inventory_mode mismatch with provider-capabilities`);
+    }
 
     const catalog = catalogEntries.get(provider);
     if (runtimePlane === 'local') {
@@ -150,6 +158,9 @@ function main() {
         }
         if (Boolean(catalog?.requires_explicit_endpoint) !== requiresExplicitEndpoint) {
           fail(`${relPath} provider ${provider} requires_explicit_endpoint mismatch with provider-catalog`);
+        }
+        if (String(catalog?.inventory_mode || '').trim() !== inventoryMode) {
+          fail(`${relPath} provider ${provider} inventory_mode mismatch with provider-catalog`);
         }
       }
     }

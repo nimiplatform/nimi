@@ -10,6 +10,14 @@ Allowed: `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/runtime/transports/*`
 
 Forbidden: `@nimiplatform/sdk/runtime/generated/*`, `runtime/internal/**`
 
+## world
+
+Source Rules: `S-BOUNDARY-001`, `S-BOUNDARY-002`
+
+Allowed: `@nimiplatform/sdk/world`, `@nimiplatform/sdk/realm`, `@nimiplatform/sdk/runtime`
+
+Forbidden: `@nimiplatform/sdk/runtime/internal/**`, `@nimiplatform/sdk/realm/internal/**`, `runtime/internal/**`
+
 ## ai-provider
 
 Source Rules: `S-BOUNDARY-001`

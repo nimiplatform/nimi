@@ -1600,6 +1600,121 @@ pub mod runtime_grant_service_client {
         }
     }
 }
+/// K-SCHED-003: Occupancy snapshot at peek time.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingOccupancySnapshot {
+    #[prost(int32, tag = "1")]
+    pub global_used: i32,
+    #[prost(int32, tag = "2")]
+    pub global_cap: i32,
+    #[prost(int32, tag = "3")]
+    pub app_used: i32,
+    #[prost(int32, tag = "4")]
+    pub app_cap: i32,
+}
+/// K-SCHED-002: Scheduling preflight judgement result.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingJudgement {
+    #[prost(enumeration = "SchedulingState", tag = "1")]
+    pub state: i32,
+    #[prost(string, tag = "2")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub occupancy: ::core::option::Option<SchedulingOccupancySnapshot>,
+    #[prost(string, repeated, tag = "4")]
+    pub resource_warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// K-SCHED-007: Target-scoped scheduling evaluation input.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingResourceHint {
+    #[prost(int64, tag = "1")]
+    pub estimated_vram_bytes: i64,
+    #[prost(int64, tag = "2")]
+    pub estimated_ram_bytes: i64,
+    #[prost(int64, tag = "3")]
+    pub estimated_disk_bytes: i64,
+    #[prost(string, tag = "4")]
+    pub engine: ::prost::alloc::string::String,
+}
+/// K-SCHED-002: Atomic scheduling evaluation target.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingEvaluationTarget {
+    #[prost(string, tag = "1")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub profile_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub resource_hint: ::core::option::Option<SchedulingResourceHint>,
+}
+/// K-SCHED-002: Per-target scheduling judgement mapping.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingTargetJudgement {
+    #[prost(message, optional, tag = "1")]
+    pub target: ::core::option::Option<SchedulingEvaluationTarget>,
+    #[prost(message, optional, tag = "2")]
+    pub judgement: ::core::option::Option<SchedulingJudgement>,
+}
+/// K-SCHED-002: PeekScheduling preflight request.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PeekSchedulingRequest {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub targets: ::prost::alloc::vec::Vec<SchedulingEvaluationTarget>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PeekSchedulingResponse {
+    #[prost(message, optional, tag = "1")]
+    pub occupancy: ::core::option::Option<SchedulingOccupancySnapshot>,
+    #[prost(message, optional, tag = "2")]
+    pub aggregate_judgement: ::core::option::Option<SchedulingJudgement>,
+    #[prost(message, repeated, tag = "3")]
+    pub target_judgements: ::prost::alloc::vec::Vec<SchedulingTargetJudgement>,
+}
+/// K-SCHED-001: Six-value scheduling judgement state enum.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SchedulingState {
+    Unspecified = 0,
+    Runnable = 1,
+    QueueRequired = 2,
+    PreemptionRisk = 3,
+    SlowdownRisk = 4,
+    Denied = 5,
+    Unknown = 6,
+}
+impl SchedulingState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SCHEDULING_STATE_UNSPECIFIED",
+            Self::Runnable => "SCHEDULING_STATE_RUNNABLE",
+            Self::QueueRequired => "SCHEDULING_STATE_QUEUE_REQUIRED",
+            Self::PreemptionRisk => "SCHEDULING_STATE_PREEMPTION_RISK",
+            Self::SlowdownRisk => "SCHEDULING_STATE_SLOWDOWN_RISK",
+            Self::Denied => "SCHEDULING_STATE_DENIED",
+            Self::Unknown => "SCHEDULING_STATE_UNKNOWN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SCHEDULING_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SCHEDULING_STATE_RUNNABLE" => Some(Self::Runnable),
+            "SCHEDULING_STATE_QUEUE_REQUIRED" => Some(Self::QueueRequired),
+            "SCHEDULING_STATE_PREEMPTION_RISK" => Some(Self::PreemptionRisk),
+            "SCHEDULING_STATE_SLOWDOWN_RISK" => Some(Self::SlowdownRisk),
+            "SCHEDULING_STATE_DENIED" => Some(Self::Denied),
+            "SCHEDULING_STATE_UNKNOWN" => Some(Self::Unknown),
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VoiceReference {
     #[prost(enumeration = "VoiceReferenceKind", tag = "1")]
@@ -2967,79 +3082,6 @@ pub struct CloseRealtimeSessionResponse {
     #[prost(message, optional, tag = "1")]
     pub ack: ::core::option::Option<Ack>,
 }
-/// K-SCHED-003: Occupancy snapshot at peek time.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SchedulingOccupancySnapshot {
-    #[prost(int32, tag = "1")]
-    pub global_used: i32,
-    #[prost(int32, tag = "2")]
-    pub global_cap: i32,
-    #[prost(int32, tag = "3")]
-    pub app_used: i32,
-    #[prost(int32, tag = "4")]
-    pub app_cap: i32,
-}
-/// K-SCHED-002: Scheduling preflight judgement result.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SchedulingJudgement {
-    #[prost(enumeration = "SchedulingState", tag = "1")]
-    pub state: i32,
-    #[prost(string, tag = "2")]
-    pub detail: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub occupancy: ::core::option::Option<SchedulingOccupancySnapshot>,
-    #[prost(string, repeated, tag = "4")]
-    pub resource_warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-/// K-SCHED-007: Target-scoped scheduling evaluation input.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SchedulingResourceHint {
-    #[prost(int64, tag = "1")]
-    pub estimated_vram_bytes: i64,
-    #[prost(int64, tag = "2")]
-    pub estimated_ram_bytes: i64,
-    #[prost(int64, tag = "3")]
-    pub estimated_disk_bytes: i64,
-    #[prost(string, tag = "4")]
-    pub engine: ::prost::alloc::string::String,
-}
-/// K-SCHED-002: Atomic scheduling evaluation target.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SchedulingEvaluationTarget {
-    #[prost(string, tag = "1")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub profile_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub resource_hint: ::core::option::Option<SchedulingResourceHint>,
-}
-/// K-SCHED-002: Per-target scheduling judgement mapping.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SchedulingTargetJudgement {
-    #[prost(message, optional, tag = "1")]
-    pub target: ::core::option::Option<SchedulingEvaluationTarget>,
-    #[prost(message, optional, tag = "2")]
-    pub judgement: ::core::option::Option<SchedulingJudgement>,
-}
-/// K-SCHED-002: PeekScheduling preflight request.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PeekSchedulingRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "2")]
-    pub targets: ::prost::alloc::vec::Vec<SchedulingEvaluationTarget>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PeekSchedulingResponse {
-    #[prost(message, optional, tag = "1")]
-    pub occupancy: ::core::option::Option<SchedulingOccupancySnapshot>,
-    #[prost(message, optional, tag = "2")]
-    pub aggregate_judgement: ::core::option::Option<SchedulingJudgement>,
-    #[prost(message, repeated, tag = "3")]
-    pub target_judgements: ::prost::alloc::vec::Vec<SchedulingTargetJudgement>,
-}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum Modal {
@@ -3740,48 +3782,6 @@ impl ScenarioJobEventType {
             "SCENARIO_JOB_EVENT_FAILED" => Some(Self::ScenarioJobEventFailed),
             "SCENARIO_JOB_EVENT_CANCELED" => Some(Self::ScenarioJobEventCanceled),
             "SCENARIO_JOB_EVENT_TIMEOUT" => Some(Self::ScenarioJobEventTimeout),
-            _ => None,
-        }
-    }
-}
-/// K-SCHED-001: Six-value scheduling judgement state enum.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum SchedulingState {
-    Unspecified = 0,
-    Runnable = 1,
-    QueueRequired = 2,
-    PreemptionRisk = 3,
-    SlowdownRisk = 4,
-    Denied = 5,
-    Unknown = 6,
-}
-impl SchedulingState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "SCHEDULING_STATE_UNSPECIFIED",
-            Self::Runnable => "SCHEDULING_STATE_RUNNABLE",
-            Self::QueueRequired => "SCHEDULING_STATE_QUEUE_REQUIRED",
-            Self::PreemptionRisk => "SCHEDULING_STATE_PREEMPTION_RISK",
-            Self::SlowdownRisk => "SCHEDULING_STATE_SLOWDOWN_RISK",
-            Self::Denied => "SCHEDULING_STATE_DENIED",
-            Self::Unknown => "SCHEDULING_STATE_UNKNOWN",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "SCHEDULING_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "SCHEDULING_STATE_RUNNABLE" => Some(Self::Runnable),
-            "SCHEDULING_STATE_QUEUE_REQUIRED" => Some(Self::QueueRequired),
-            "SCHEDULING_STATE_PREEMPTION_RISK" => Some(Self::PreemptionRisk),
-            "SCHEDULING_STATE_SLOWDOWN_RISK" => Some(Self::SlowdownRisk),
-            "SCHEDULING_STATE_DENIED" => Some(Self::Denied),
-            "SCHEDULING_STATE_UNKNOWN" => Some(Self::Unknown),
             _ => None,
         }
     }

@@ -10,6 +10,18 @@ rules:
     source_rules:
       - S-BOUNDARY-001
       - S-BOUNDARY-002
+  - surface: world
+    allowed:
+      - "@nimiplatform/sdk/world"
+      - "@nimiplatform/sdk/realm"
+      - "@nimiplatform/sdk/runtime"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "@nimiplatform/sdk/realm/internal/**"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-002
   - surface: ai-provider
     allowed:
       - "@nimiplatform/sdk/ai-provider"

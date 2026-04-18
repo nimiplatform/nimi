@@ -48,9 +48,11 @@ import type {
   SubmitScenarioJobRequest,
   SubmitScenarioJobResponse,
   SubscribeScenarioJobEventsRequest,
+} from './generated/runtime/v1/ai';
+import type {
   PeekSchedulingRequest,
   PeekSchedulingResponse,
-} from './generated/runtime/v1/ai';
+} from './generated/runtime/v1/ai_scheduling';
 import type {
   DeleteVoiceAssetRequest,
   DeleteVoiceAssetResponse,

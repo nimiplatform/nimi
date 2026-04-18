@@ -1,6 +1,6 @@
 schema_version: 3
 provider: gemini
-catalog_version: 2026-03-18-gemini-v2
+catalog_version: 2026-04-18-gemini-text-embedding-v3
 generated_target: runtime/catalog/providers/gemini.yaml
 runtime:
   runtime_plane: remote
@@ -18,29 +18,41 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: Gemini public pricing varies by model family, region, and contract tier.
+    as_of: 2026-04-18
+    notes: Gemini public pricing varies by model family, inference tier, and modality mix. This family-scoped refresh only normalizes text and embedding public contract pricing.
 
 sources:
   - source_id: gemini_models_doc
     url: https://ai.google.dev/gemini-api/docs/models
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Gemini API model index and capability overview.
+  - source_id: gemini_pricing_doc
+    url: https://ai.google.dev/gemini-api/docs/pricing
+    retrieved_at: 2026-04-18
+    note: Gemini Developer API pricing page covering current text, embedding, image, live, and media pricing.
+  - source_id: gemini_changelog_doc
+    url: https://ai.google.dev/gemini-api/docs/changelog
+    retrieved_at: 2026-04-18
+    note: Gemini API release notes and deprecation announcements.
   - source_id: gemini_audio_understanding_doc
     url: https://ai.google.dev/gemini-api/docs/audio
     retrieved_at: 2026-03-05
     note: Gemini audio understanding guide with speech-to-text examples.
   - source_id: gemini_2_5_flash_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Gemini 2.5 Flash model card.
+  - source_id: gemini_2_5_flash_lite_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-v2
+    retrieved_at: 2026-04-18
+    note: Gemini 2.5 model-family card covering stable `gemini-2.5-flash-lite`.
   - source_id: gemini_embedding_001_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-001
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Gemini embedding model card.
   - source_id: gemini_embedding_2_preview_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-2-preview
-    retrieved_at: 2026-03-31
+    retrieved_at: 2026-04-18
     note: Gemini Embedding 2 preview model card. First natively multimodal embedding model.
   - source_id: gemini_2_5_flash_image_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-image
@@ -48,19 +60,19 @@ sources:
     note: Gemini 2.5 Flash Image model card.
   - source_id: gemini_2_5_pro_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-pro
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Gemini 2.5 Pro model card.
   - source_id: gemini_3_flash_preview_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-3-flash-preview
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Gemini 3 Flash preview model card.
   - source_id: gemini_3_1_pro_preview_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Gemini 3.1 Pro preview model card.
   - source_id: gemini_3_1_flash_lite_preview_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-preview
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Gemini 3.1 Flash-Lite preview model card.
   - source_id: gemini_3_1_flash_image_preview_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image-preview
@@ -76,10 +88,10 @@ selection_profiles:
     rationale: Balanced Gemini default for general multimodal chat.
   - profile_id: text.fast
     capability: text.generate
-    model_id: gemini-3.1-flash-lite-preview
-    reviewed_at: 2026-04-16
+    model_id: gemini-2.5-flash-lite
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Lowest-cost low-latency Gemini text track.
+    rationale: Current lowest-cost stable Gemini multimodal text route in the admitted set.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: gemini-3.1-pro-preview
@@ -90,59 +102,72 @@ selection_profiles:
 models:
   - model_id: gemini-2.5-pro
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: "1.25"
       output: "10.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Pro model. Pricing for prompts up to 200K tokens. Per 1M tokens.
-    source_ids: [gemini_2_5_pro_doc, gemini_models_doc]
+      as_of: 2026-04-18
+      notes: Standard paid-tier pricing for prompts up to 200K tokens. Higher prompt-length and inference-tier prices also exist. Per 1M tokens.
+    source_ids: [gemini_2_5_pro_doc, gemini_models_doc, gemini_pricing_doc]
 
   - model_id: gemini-2.5-flash
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision, audio.transcribe]
     pricing:
       unit: token
-      input: "0.15"
-      output: "0.60"
+      input: "0.30"
+      output: "2.50"
       currency: USD
-      as_of: 2026-03-18
-      notes: Fast model. Non-thinking tokens. Per 1M tokens.
-    source_ids: [gemini_2_5_flash_doc, gemini_audio_understanding_doc, gemini_models_doc]
+      as_of: 2026-04-18
+      notes: Standard paid-tier pricing. Output price includes thinking tokens. Audio input and alternate inference tiers have separate pricing. Per 1M tokens.
+    source_ids: [gemini_2_5_flash_doc, gemini_audio_understanding_doc, gemini_models_doc, gemini_pricing_doc]
     transcription:
       tiers: [core_transcript]
       response_formats: [text, json]
       supports_language: true
 
+  - model_id: gemini-2.5-flash-lite
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: "0.10"
+      output: "0.40"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Standard paid-tier pricing for the stable Gemini 2.5 Flash-Lite model. Audio input and alternate inference tiers have separate pricing. Per 1M tokens.
+    source_ids: [gemini_2_5_flash_lite_doc, gemini_models_doc, gemini_pricing_doc]
+
   - model_id: gemini-embedding-001
     model_type: embedding
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.embed]
     pricing:
       unit: token
-      input: "0.005"
+      input: "0.15"
       output: "0"
       currency: USD
-      as_of: 2026-03-18
-      notes: Embedding model. Free tier available. Per 1M tokens.
-    source_ids: [gemini_embedding_001_doc, gemini_models_doc]
+      as_of: 2026-04-18
+      notes: Standard paid-tier text-only embedding price. Batch price is lower. Per 1M tokens.
+    source_ids: [gemini_embedding_001_doc, gemini_models_doc, gemini_pricing_doc]
 
   - model_id: gemini-embedding-2-preview
     model_type: embedding
-    updated_at: 2026-03-31
+    updated_at: 2026-04-18
     capabilities: [text.embed]
     pricing:
       unit: token
       input: "0.20"
       output: "0"
       currency: USD
-      as_of: 2026-03-31
-      notes: Text input price for the multimodal embedding model. Supports text, image, video, audio, and PDF inputs. Flexible output dimensions from 128 to 3072. 8192 max input tokens. Per 1M text tokens.
-    source_ids: [gemini_embedding_2_preview_doc, gemini_models_doc]
+      as_of: 2026-04-18
+      notes: Text input price for the multimodal embedding model. Image, audio, and video inputs have separate rates. Supports text, image, video, audio, and PDF inputs. Per 1M text tokens.
+    source_ids: [gemini_embedding_2_preview_doc, gemini_models_doc, gemini_pricing_doc, gemini_changelog_doc]
 
   - model_id: gemini-2.5-flash-image
     model_type: image
@@ -159,42 +184,42 @@ models:
 
   - model_id: gemini-3.1-pro-preview
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
-      input: "1.25"
-      output: "10.00"
+      input: "2.00"
+      output: "12.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Preview model. Pricing subject to change. Per 1M tokens.
-    source_ids: [gemini_3_1_pro_preview_doc, gemini_models_doc]
+      as_of: 2026-04-18
+      notes: Standard paid-tier pricing for prompts up to 200K tokens. Higher prompt-length and inference-tier prices also exist. Preview pricing may change. Per 1M tokens.
+    source_ids: [gemini_3_1_pro_preview_doc, gemini_models_doc, gemini_pricing_doc, gemini_changelog_doc]
 
   - model_id: gemini-3-flash-preview
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
-      input: "0.15"
-      output: "0.60"
+      input: "0.50"
+      output: "3.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Preview model. Pricing subject to change. Per 1M tokens.
-    source_ids: [gemini_3_flash_preview_doc, gemini_models_doc]
+      as_of: 2026-04-18
+      notes: Standard paid-tier pricing. Audio input and alternate inference tiers have separate pricing. Preview pricing may change. Per 1M tokens.
+    source_ids: [gemini_3_flash_preview_doc, gemini_models_doc, gemini_pricing_doc]
 
   - model_id: gemini-3.1-flash-lite-preview
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
-      input: "0.075"
-      output: "0.30"
+      input: "0.25"
+      output: "1.50"
       currency: USD
-      as_of: 2026-03-18
-      notes: Cost-efficient preview model. Pricing subject to change. Per 1M tokens.
-    source_ids: [gemini_3_1_flash_lite_preview_doc, gemini_models_doc]
+      as_of: 2026-04-18
+      notes: Standard paid-tier pricing. Audio input and alternate inference tiers have separate pricing. Preview pricing may change. Per 1M tokens.
+    source_ids: [gemini_3_1_flash_lite_preview_doc, gemini_models_doc, gemini_pricing_doc]
 
   - model_id: gemini-3.1-flash-image-preview
     model_type: image

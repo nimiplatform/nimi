@@ -62,6 +62,7 @@
 | `P-ARCH-028` | `covered` | `platform_kernel_consistency` | structural only; workflow-surface non-promotion still requires later Runtime semantic contract review |
 | `P-ARCH-029` | `covered` | `platform_kernel_consistency` | structural only; consumer API contract home is fixed to SDK kernel while Runtime semantic ownership and host implementation details remain downstream concerns |
 | `P-ARCH-030` | `covered` | `platform_kernel_consistency` | structural only; cross-layer delivery behavior still requires end-to-end execution tests |
+| `P-ARCH-031` | `covered` | `platform_kernel_consistency` | structural only; world-domain facade placement and non-equivalence to K-WEV still require downstream SDK and Realm contract alignment |
 | `P-KIT-001` | `covered` | `platform_kernel_consistency` | — |
 | `P-KIT-002` | `covered` | `platform_kernel_consistency` | — |
 | `P-KIT-003` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |

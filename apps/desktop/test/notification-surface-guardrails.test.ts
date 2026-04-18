@@ -102,6 +102,7 @@ test('direct global status banner store access is limited to the explicit whitel
     'shell/renderer/App.tsx',
     'shell/renderer/features/auth/logout.ts',
     'shell/renderer/infra/bootstrap/desktop-updates.ts',
+    'shell/renderer/infra/bootstrap/runtime-bootstrap.ts',
     'shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities.ts',
     'shell/renderer/mod-ui/host/mod-tab-limit-banner.ts',
     'shell/renderer/ui/feedback/status-banner.tsx',

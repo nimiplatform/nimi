@@ -49,11 +49,14 @@ test('world detail uses explicit initial loading state to avoid first-render fli
 });
 
 test('world list click prefetches world detail and history before navigation', () => {
+  assert.match(worldListSource, /fetchWorldListItems\(\)/);
   assert.match(worldListSource, /prefetchWorldDetailPanel\(\)/);
   assert.match(worldListSource, /prefetchWorldDetailAndHistory\(worldId\)/);
+  assert.doesNotMatch(worldListSource, /dataSync\.loadWorlds\(/);
 });
 
 test('explore world banner click prefetches world detail and history before navigation', () => {
+  assert.match(explorePanelSource, /fetchWorldListItems\(\)/);
   assert.match(explorePanelSource, /prefetchWorldDetailPanel\(\)/);
   assert.match(explorePanelSource, /prefetchWorldDetailAndHistory\(worldId\)/);
 });

@@ -93,10 +93,7 @@ let runtimeAiUploadModulePromise: Promise<RuntimeAiUploadModule> | null = null;
 
 function loadRuntimeAiUploadModule(): Promise<RuntimeAiUploadModule> {
   if (!runtimeAiUploadModulePromise) {
-    const dynamicImport = new Function('specifier', 'return import(specifier)') as (
-      specifier: string,
-    ) => Promise<RuntimeAiUploadModule>;
-    runtimeAiUploadModulePromise = dynamicImport('./runtime-ai-upload.js');
+    runtimeAiUploadModulePromise = import('./runtime-ai-upload.js');
   }
   return runtimeAiUploadModulePromise;
 }

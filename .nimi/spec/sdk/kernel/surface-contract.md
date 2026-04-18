@@ -8,6 +8,7 @@
 
 - `@nimiplatform/sdk`
 - `@nimiplatform/sdk/runtime`
+- `@nimiplatform/sdk/world`
 - `@nimiplatform/sdk/ai-provider`
 - `@nimiplatform/sdk/realm`
 - `@nimiplatform/sdk/scope`
@@ -174,3 +175,24 @@ Forbidden placement:
 - `@nimiplatform/sdk/runtime` or `Runtime` class publication of selector-read methods as daemon convenience
 - any `runtime-method-groups.yaml` entry that records selector-read methods as RPC parity
 - any placement that implies host concrete API ownership or transport-owned semantics
+
+## S-SURFACE-014 World Domain Stable Subpath Placement
+
+`@nimiplatform/sdk/world` is the stable SDK subpath for the world-domain
+public facade.
+
+Placement rules:
+
+- it remains a domain facade subpath inside the single `@nimiplatform/sdk`
+  package layout
+- it may compose Realm and Runtime-facing surfaces without re-owning their
+  semantic homes
+- it must not be recorded as Runtime RPC parity or as a renamed
+  `world-evolution-engine` publication path
+
+Forbidden interpretations:
+
+- treating `@nimiplatform/sdk/world` as provider-native request authority
+- treating `@nimiplatform/sdk/world` as renderer-driver API publication
+- treating `@nimiplatform/sdk/world` as the semantic owner of `K-WEV`
+  execution-evidence surfaces

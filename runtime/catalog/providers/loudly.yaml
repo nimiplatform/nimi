@@ -1,11 +1,12 @@
 version: 1
 provider: loudly
-catalog_version: 2026-03-13-loudly-v1
+catalog_version: 2026-04-18-loudly-v2
+inventory_mode: static_source
 models:
   - model_id: loudly-vega-2
     provider: loudly
     model_type: music
-    updated_at: 2026-03-13
+    updated_at: 2026-04-18
     capabilities:
       - music.generate
     pricing:
@@ -13,16 +14,16 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-13
-      notes: Loudly prompt song pricing varies by plan and rendering options.
+      as_of: 2026-04-18
+      notes: Loudly admits VEGA-2 as the current in-house music-generation line. Public pricing remains contract- and volume-shaped rather than a stable per-model table.
     source_ref:
       url: https://www.loudly.com/rest/music
-      retrieved_at: 2026-03-13
-      note: Loudly Music API overview page.
+      retrieved_at: 2026-04-18
+      note: Loudly Music API overview page covering Music Generator and Text-to-Music product surfaces.
   - model_id: VEGA_2
     provider: loudly
     model_type: music
-    updated_at: 2026-03-13
+    updated_at: 2026-04-18
     capabilities:
       - music.generate
     pricing:
@@ -30,16 +31,16 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-13
-      notes: Loudly prompt song pricing varies by plan and rendering options.
+      as_of: 2026-04-18
+      notes: Loudly admits VEGA-2 as the current in-house music-generation line. Public pricing remains contract- and volume-shaped rather than a stable per-model table.
     source_ref:
       url: https://www.loudly.com/rest/music
-      retrieved_at: 2026-03-13
-      note: Loudly Music API overview page.
+      retrieved_at: 2026-04-18
+      note: Loudly Music API overview page covering Music Generator and Text-to-Music product surfaces.
   - model_id: prompt-songs
     provider: loudly
     model_type: music
-    updated_at: 2026-03-13
+    updated_at: 2026-04-18
     capabilities:
       - music.generate
     pricing:
@@ -47,10 +48,10 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-13
-      notes: Loudly prompt song pricing varies by plan and rendering options.
+      as_of: 2026-04-18
+      notes: Loudly admits VEGA-2 as the current in-house music-generation line. Public pricing remains contract- and volume-shaped rather than a stable per-model table.
     source_ref:
       url: https://www.loudly.com/rest/music
-      retrieved_at: 2026-03-13
-      note: Loudly Music API overview page.
+      retrieved_at: 2026-04-18
+      note: Loudly Music API overview page covering Music Generator and Text-to-Music product surfaces.
 voices: []

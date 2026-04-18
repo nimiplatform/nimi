@@ -502,6 +502,10 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "App-facing selector-read stable methods live on the SDK composition surface and must not be published as runtime-subpath daemon convenience or RPC parity"
+  - rule_id: S-RUNTIME-105
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Root-level worldEvolution publication remains the adjacent K-WEV execution-evidence namespace and may not be reinterpreted as the sdk/world facade owner"
   - rule_id: S-RUNTIME-103
     status: covered
     evidence_refs: [sdk_kernel_consistency]
@@ -510,6 +514,36 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "Transient avatar interaction state remains above SDK runtime; consistency gate records the explicit downstream ownership boundary"
+
+  # --- World Contract (S-WORLD) ---
+  - rule_id: S-WORLD-001
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "sdk/world is the SDK kernel authority home for the world-domain facade and must not re-own Realm truth, Runtime execution, renderer-driver, or simulation semantics"
+  - rule_id: S-WORLD-002
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "First-wave family set is closed to truth, generate, fixture, render, and session in coarse-grained form"
+  - rule_id: S-WORLD-003
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "World generation inputs must pass through world-domain projection before provider-bound request shaping; provider-native payloads are not the first public input shape"
+  - rule_id: S-WORLD-004
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Fixture package is the public local materialization object and remains distinct from raw provider payloads"
+  - rule_id: S-WORLD-005
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Renderer orchestration consume stays in sdk/world while renderer-driver implementation and native handles remain outside the public facade"
+  - rule_id: S-WORLD-006
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "World session is a composition object and does not transfer chat, agent, cognition, or renderer truth ownership into sdk/world"
+  - rule_id: S-WORLD-007
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "First-wave exclusions keep shared projection truth, simulation semantics, provider-native authoring, renderer-driver APIs, and direct Realm mutation outside the sdk/world cut"
 
   # --- Scope Contract (S-SCOPE) ---
   - rule_id: S-SCOPE-001
@@ -586,6 +620,10 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "Selector-read stable methods must remain on existing composition surfaces; no new subpath, runtime-subpath method publication, or RPC parity registration is allowed"
+  - rule_id: S-SURFACE-014
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "sdk/world is the stable world-domain subpath inside the single SDK package and must not be misread as runtime RPC parity or K-WEV renaming"
 
   # --- Transport Contract (S-TRANSPORT) ---
   - rule_id: S-TRANSPORT-001

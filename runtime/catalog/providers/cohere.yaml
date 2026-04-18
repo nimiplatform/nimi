@@ -1,12 +1,13 @@
 version: 1
 provider: cohere
-catalog_version: 2026-03-18-cohere-v2
-default_text_model: command-r-plus
+catalog_version: 2026-04-18-cohere-v3
+inventory_mode: static_source
+default_text_model: command-a-03-2025
 models:
-  - model_id: command-r-plus
+  - model_id: command-a-03-2025
     provider: cohere
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-03-01
     capabilities:
       - text.generate
     pricing:
@@ -14,33 +15,33 @@ models:
       input: "2.50"
       output: "10.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Flagship RAG-optimized model. Per 1M tokens.
+      as_of: 2026-04-18
+      notes: Current flagship text model. Per 1M tokens.
     source_ref:
       url: https://docs.cohere.com/docs/models
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Cohere official model catalog.
-  - model_id: command-r
+  - model_id: command-r7b-12-2024
     provider: cohere
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2024-12-01
     capabilities:
       - text.generate
     pricing:
       unit: token
-      input: "0.15"
-      output: "0.60"
+      input: "0.0375"
+      output: "0.15"
       currency: USD
-      as_of: 2026-03-18
-      notes: Cost-efficient RAG model. Per 1M tokens.
+      as_of: 2026-04-18
+      notes: Small and fast current Cohere text model. Per 1M tokens.
     source_ref:
       url: https://docs.cohere.com/docs/models
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Cohere official model catalog.
   - model_id: embed-v4.0
     provider: cohere
     model_type: embedding
-    updated_at: 2026-03-05
+    updated_at: 2025-04-15
     capabilities:
       - text.embed
     pricing:
@@ -48,25 +49,25 @@ models:
       input: "0.10"
       output: "0"
       currency: USD
-      as_of: 2026-03-18
-      notes: Embedding model. Per 1M tokens.
+      as_of: 2026-04-18
+      notes: Current Cohere embedding model with multimodal embedding support. Per 1M tokens.
     source_ref:
-      url: https://docs.cohere.com/docs/embed
-      retrieved_at: 2026-03-05
+      url: https://docs.cohere.com/v1/docs/embeddings
+      retrieved_at: 2026-04-18
       note: Cohere Embed v4 documentation.
 voices: []
 selection_profiles:
   - provider: cohere
     profile_id: text.general
     capability: text.generate
-    model_id: command-r-plus
-    reviewed_at: 2026-04-16
+    model_id: command-a-03-2025
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
     rationale: Best current Cohere text default in the admitted set.
   - provider: cohere
     profile_id: text.fast
     capability: text.generate
-    model_id: command-r
-    reviewed_at: 2026-04-16
+    model_id: command-r7b-12-2024
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Lower-cost Cohere text route for faster general tasks.
+    rationale: Lowest-cost current Cohere text route for faster general tasks.

@@ -23,6 +23,7 @@ func (s *Service) ListProviderCatalog(_ context.Context, _ *runtimev1.ListProvid
 			RuntimePlane:             cap.RuntimePlane,
 			ExecutionModule:          cap.ExecutionModule,
 			ManagedSupported:         cap.ManagedSupported,
+			InventoryMode:            entry.InventoryMode,
 		})
 	}
 	return &runtimev1.ListProviderCatalogResponse{Providers: entries}, nil

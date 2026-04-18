@@ -1,6 +1,6 @@
 schema_version: 3
 provider: loudly
-catalog_version: 2026-03-13-loudly-v1
+catalog_version: 2026-04-18-loudly-v2
 generated_target: runtime/catalog/providers/loudly.yaml
 runtime:
   runtime_plane: remote
@@ -17,32 +17,36 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-13
-    notes: Loudly Music API pricing varies by enterprise contract and output type.
+    as_of: 2026-04-18
+    notes: Loudly Music API pricing remains enterprise- and volume-based rather than a stable public per-model table.
 
 sources:
   - source_id: loudly_music_api
     url: https://www.loudly.com/rest/music
-    retrieved_at: 2026-03-13
-    note: Loudly Music API overview page.
+    retrieved_at: 2026-04-18
+    note: Loudly Music API overview page covering Music Generator and Text-to-Music product surfaces.
   - source_id: loudly_openapi
     url: https://b2b-soundtracks-swagger-prd.loudly.com/swagger/b2b_swagger.yaml
-    retrieved_at: 2026-03-13
-    note: Loudly B2B swagger definition.
+    retrieved_at: 2026-04-18
+    note: Loudly B2B swagger definition showing current song-generation model enum values and prompt-song endpoints.
+  - source_id: loudly_vega2_launch
+    url: https://www.loudly.com/blog/vega-2-is-live-loudly-launched-its-most-advanced-ai-music-generator
+    retrieved_at: 2026-04-18
+    note: Official Loudly announcement that VEGA-2 launched on 2026-03-12 and powers AI Music Generator and Text-to-Music.
 
 models:
   - model_id: loudly-vega-2
     model_type: music
-    updated_at: 2026-03-13
+    updated_at: 2026-04-18
     capabilities: [music.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-13
-      notes: Loudly prompt song pricing varies by plan and rendering options.
-    source_ids: [loudly_music_api, loudly_openapi]
+      as_of: 2026-04-18
+      notes: Loudly admits VEGA-2 as the current in-house music-generation line. Public pricing remains contract- and volume-shaped rather than a stable per-model table.
+    source_ids: [loudly_music_api, loudly_openapi, loudly_vega2_launch]
     aliases:
       - VEGA_2
       - prompt-songs

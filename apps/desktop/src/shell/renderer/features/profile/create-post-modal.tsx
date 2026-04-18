@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { OverlayShell } from '@renderer/components/overlay.js';
+import { OverlayShell } from '@renderer/components/overlay/index.js';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';

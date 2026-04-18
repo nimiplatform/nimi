@@ -192,6 +192,10 @@ rules:
     status: covered
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; cross-layer delivery behavior still requires end-to-end execution tests"
+  - rule_id: P-ARCH-031
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; world-domain facade placement and non-equivalence to K-WEV still require downstream SDK and Realm contract alignment"
   - rule_id: P-KIT-001
     status: covered
     evidence_refs: [platform_kernel_consistency]

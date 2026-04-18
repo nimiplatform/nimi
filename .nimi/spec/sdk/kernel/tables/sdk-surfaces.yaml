@@ -10,6 +10,11 @@ surfaces:
     role: runtime_projection
     governed_by: [S-SURFACE-002, S-SURFACE-007, S-SURFACE-009, S-SURFACE-011, S-SURFACE-012, S-RUNTIME-091]
     note: Shared World Evolution Engine app-facing candidate types may be projected here, but logical facades remain consumer-seam-only rather than daemon method-group parity
+  - path: .nimi/spec/sdk/world.md
+    package_subpath: "@nimiplatform/sdk/world"
+    role: world_domain_facade
+    governed_by: [S-SURFACE-001, S-SURFACE-014, S-WORLD-001]
+    note: Stable world-domain facade subpath composes realm truth consume and runtime-backed materialization without implying daemon RPC parity or K-WEV semantic ownership
   - path: .nimi/spec/sdk/ai-provider.md
     package_subpath: "@nimiplatform/sdk/ai-provider"
     role: ai_provider_projection

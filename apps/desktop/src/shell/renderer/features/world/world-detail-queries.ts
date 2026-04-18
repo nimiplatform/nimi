@@ -1,3 +1,11 @@
+import { getPlatformClient } from '@nimiplatform/sdk';
+import {
+  createWorldFacade,
+  normalizeWorldTruthDetail,
+  type WorldTruthListItem,
+  type WorldTruthDetail,
+  type WorldTruthRecommendedAgent,
+} from '@nimiplatform/sdk/world';
 import { dataSync } from '@runtime/data-sync';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { JsonObject } from '@runtime/net/json';
@@ -21,6 +29,8 @@ import type {
 } from './world-detail-types';
 
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
+type WorldDetailWithAgentsResponse = Awaited<ReturnType<typeof dataSync.loadWorldDetailWithAgents>>;
+type WorldDetailWithAgentsDto = NonNullable<WorldDetailWithAgentsResponse>;
 type WorldHistoryPayload = Awaited<ReturnType<typeof dataSync.loadWorldHistory>>;
 type WorldHistoryDetailDto = WorldHistoryPayload['items'][number];
 type WorldSemanticBundleDto = Awaited<ReturnType<typeof dataSync.loadWorldSemanticBundle>>;
@@ -33,6 +43,10 @@ type WorldLanguageDto = RealmModel<'WorldLanguageDto'>;
 type PublicWorldLorebookDto = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>['items'][number];
 type PublicBindingDto = Awaited<ReturnType<typeof dataSync.loadWorldBindings>>['items'][number];
 type PublicWorldSceneDto = Awaited<ReturnType<typeof dataSync.loadWorldScenes>>['items'][number];
+
+export type WorldPrimaryDetailRecord = WorldDetailWithAgentsDto & {
+  worldTruth: WorldTruthDetail;
+};
 
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT = 4;
@@ -426,8 +440,82 @@ function buildWorldHistorySummary(items: WorldHistoryItem[]): WorldHistoryBundle
   };
 }
 
+function toPrimaryRecommendedAgents(
+  agents: WorldTruthRecommendedAgent[] | undefined,
+): WorldDetailWithAgentsDto['computed']['entry']['recommendedAgents'] | undefined {
+  if (!agents?.length) {
+    return undefined;
+  }
+  return agents.map((agent) => {
+    const display = {
+      isNative: false,
+      isTransitGuest: false,
+      ...(agent.role ? { role: agent.role } : {}),
+      ...(agent.faction ? { faction: agent.faction } : {}),
+      ...(agent.location ? { location: agent.location } : {}),
+      ...(agent.statusSummary ? { statusSummary: agent.statusSummary } : {}),
+    };
+    return {
+      id: agent.agentId,
+      name: agent.name,
+      ...(agent.handle ? { handle: agent.handle } : {}),
+      ...(agent.avatarUrl ? { avatarUrl: agent.avatarUrl } : {}),
+      importance: agent.importance ?? 'SECONDARY',
+      ...(Object.keys(display).length > 0 ? { display } : {}),
+    };
+  });
+}
+
+function mergeWorldPrimaryDetailTruth(
+  detail: WorldDetailWithAgentsDto,
+  worldTruth: WorldTruthDetail,
+): WorldPrimaryDetailRecord {
+  const recommendedAgents = toPrimaryRecommendedAgents(worldTruth.recommendedAgents);
+  const mergedComputed: WorldDetailWithAgentsDto['computed'] = recommendedAgents
+    ? {
+        ...detail.computed,
+        entry: {
+          ...detail.computed.entry,
+          recommendedAgents,
+        },
+      }
+    : detail.computed;
+
+  return {
+    ...detail,
+    ...(worldTruth.worldId ? { id: worldTruth.worldId } : {}),
+    ...(worldTruth.title ? { name: worldTruth.title } : {}),
+    ...(worldTruth.description ? { description: worldTruth.description } : {}),
+    ...(worldTruth.tagline ? { tagline: worldTruth.tagline } : {}),
+    ...(worldTruth.overview ? { overview: worldTruth.overview } : {}),
+    ...(worldTruth.motto ? { motto: worldTruth.motto } : {}),
+    ...(worldTruth.contentRating ? { contentRating: worldTruth.contentRating } : {}),
+    ...(worldTruth.iconUrl ? { iconUrl: worldTruth.iconUrl } : {}),
+    ...(worldTruth.bannerUrl ? { bannerUrl: worldTruth.bannerUrl } : {}),
+    ...(worldTruth.type ? { type: worldTruth.type } : {}),
+    ...(worldTruth.status ? { status: worldTruth.status } : {}),
+    ...(worldTruth.level != null ? { level: worldTruth.level } : {}),
+    ...(worldTruth.agentCount != null ? { agentCount: worldTruth.agentCount } : {}),
+    ...(worldTruth.createdAt ? { createdAt: worldTruth.createdAt } : {}),
+    ...(worldTruth.updatedAt ? { updatedAt: worldTruth.updatedAt } : {}),
+    ...(worldTruth.creatorId ? { creatorId: worldTruth.creatorId } : {}),
+    ...(worldTruth.nativeCreationState ? { nativeCreationState: worldTruth.nativeCreationState } : {}),
+    ...(worldTruth.genre ? { genre: worldTruth.genre } : {}),
+    ...(worldTruth.era ? { era: worldTruth.era } : {}),
+    ...(worldTruth.themes ? { themes: worldTruth.themes } : {}),
+    computed: mergedComputed,
+    worldTruth,
+  };
+}
+
 export function worldListQueryKey() {
   return ['worlds-list'] as const;
+}
+
+export async function fetchWorldListItems(
+  status?: WorldTruthListItem['status'],
+): Promise<WorldTruthListItem[]> {
+  return createWorldFacade(getPlatformClient()).truth.list(status);
 }
 
 export function worldDetailWithAgentsQueryKey(worldId: string) {
@@ -454,11 +542,26 @@ export function worldPublicAssetsQueryKey(worldId: string) {
   return ['world-public-assets', normalizeWorldId(worldId)] as const;
 }
 
-export async function fetchWorldDetailWithAgents(worldId: string) {
-  return dataSync.loadWorldDetailWithAgents(
-    normalizeWorldId(worldId),
-    DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT,
-  );
+export async function fetchWorldDetailWithAgents(worldId: string): Promise<WorldPrimaryDetailRecord> {
+  const normalizedWorldId = normalizeWorldId(worldId);
+  const [detailResponse, worldview] = await Promise.all([
+    dataSync.loadWorldDetailWithAgents(
+      normalizedWorldId,
+      DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT,
+    ),
+    getPlatformClient().domains.world.getWorldview(normalizedWorldId),
+  ]);
+  if (!detailResponse) {
+    throw new Error('WORLD_DETAIL_NOT_FOUND');
+  }
+  const detail = detailResponse;
+  const worldTruth = normalizeWorldTruthDetail({ detail, worldview });
+  if (!worldTruth) {
+    throw new Error('WORLD_DETAIL_WORLD_TRUTH_INVALID');
+  }
+  // SDK truth owns the normalized truth-bearing fields; Desktop keeps only the
+  // bounded supplement the current primary lane still needs.
+  return mergeWorldPrimaryDetailTruth(detail, worldTruth);
 }
 
 export async function fetchWorldHistory(worldId: string): Promise<WorldHistoryBundle> {

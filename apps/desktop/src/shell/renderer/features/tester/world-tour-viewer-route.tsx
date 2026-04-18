@@ -661,7 +661,6 @@ function WorldTourViewerCanvas(props: { fixture: ResolvedWorldTourFixture; onClo
         throw new Error('World tour fixture does not contain a usable SPZ asset.');
       }
       splat = new SplatMesh({ url: splatUrl });
-      splat.quaternion.copy(WORLD_TOUR_UPRIGHT_QUATERNION);
       worldRoot.add(splat);
       await splat.initialized;
       if (disposed) return;

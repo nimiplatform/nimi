@@ -10,7 +10,10 @@ const appSource = fs.readFileSync(
 
 test('web login shell does not start runtime health coordinator before a platform client exists', () => {
   assert.match(appSource, /const shellMode = getShellFeatureFlags\(\)\.mode;/);
-  assert.match(appSource, /const runtimeHealthBootstrapEnabled = shellMode === 'desktop' && bootstrapReady;/);
+  assert.match(
+    appSource,
+    /const runtimeHealthBootstrapEnabled = shellMode === 'desktop' && bootstrapReady(?: && !standaloneWorldTour)?;/,
+  );
   assert.match(appSource, /useRuntimeHealthCoordinatorBootstrap\(runtimeHealthBootstrapEnabled\);/);
   assert.doesNotMatch(appSource, /useRuntimeHealthCoordinatorBootstrap\(bootstrapReady\);/);
 });

@@ -169,7 +169,7 @@ describe('use-runtime-ready scenarios', () => {
           { modelId: 'gpt-4', available: true, capabilities: ['text.generate'] },
         ],
         'c-2': [
-          { modelId: 'suno-v4', available: true, capabilities: ['music.generate', 'music.generate.iteration'] },
+          { modelId: 'stable-audio-2', available: true, capabilities: ['music.generate', 'music.generate.iteration'] },
         ],
       },
     });
@@ -196,7 +196,7 @@ describe('use-runtime-ready scenarios', () => {
     }
 
     expect(textModelId).toBe('gpt-4');
-    expect(musicModelId).toBe('suno-v4');
+    expect(musicModelId).toBe('stable-audio-2');
     expect(musicIterationSupported).toBe(true);
   });
 });

@@ -6,6 +6,7 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
+import "runtime/v1/ai_scheduling.proto";
 import "runtime/v1/common.proto";
 import "runtime/v1/voice.proto";
 
@@ -828,67 +829,6 @@ message CloseRealtimeSessionResponse {
 // TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
 // CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
 // CheckTokenProviderHealthResponse (fields 1-2).
-
-// K-SCHED-001: Six-value scheduling judgement state enum.
-enum SchedulingState {
-  SCHEDULING_STATE_UNSPECIFIED = 0;
-  SCHEDULING_STATE_RUNNABLE = 1;
-  SCHEDULING_STATE_QUEUE_REQUIRED = 2;
-  SCHEDULING_STATE_PREEMPTION_RISK = 3;
-  SCHEDULING_STATE_SLOWDOWN_RISK = 4;
-  SCHEDULING_STATE_DENIED = 5;
-  SCHEDULING_STATE_UNKNOWN = 6;
-}
-
-// K-SCHED-003: Occupancy snapshot at peek time.
-message SchedulingOccupancySnapshot {
-  int32 global_used = 1;
-  int32 global_cap = 2;
-  int32 app_used = 3;
-  int32 app_cap = 4;
-}
-
-// K-SCHED-002: Scheduling preflight judgement result.
-message SchedulingJudgement {
-  SchedulingState state = 1;
-  string detail = 2;
-  SchedulingOccupancySnapshot occupancy = 3;
-  repeated string resource_warnings = 4;
-}
-
-// K-SCHED-007: Target-scoped scheduling evaluation input.
-message SchedulingResourceHint {
-  int64 estimated_vram_bytes = 1;
-  int64 estimated_ram_bytes = 2;
-  int64 estimated_disk_bytes = 3;
-  string engine = 4;
-}
-
-// K-SCHED-002: Atomic scheduling evaluation target.
-message SchedulingEvaluationTarget {
-  string capability = 1;
-  string mod_id = 2;
-  string profile_id = 3;
-  SchedulingResourceHint resource_hint = 4;
-}
-
-// K-SCHED-002: Per-target scheduling judgement mapping.
-message SchedulingTargetJudgement {
-  SchedulingEvaluationTarget target = 1;
-  SchedulingJudgement judgement = 2;
-}
-
-// K-SCHED-002: PeekScheduling preflight request.
-message PeekSchedulingRequest {
-  string app_id = 1;
-  repeated SchedulingEvaluationTarget targets = 2;
-}
-
-message PeekSchedulingResponse {
-  SchedulingOccupancySnapshot occupancy = 1;
-  SchedulingJudgement aggregate_judgement = 2;
-  repeated SchedulingTargetJudgement target_judgements = 3;
-}
 
 service RuntimeAiService {
   rpc ExecuteScenario(ExecuteScenarioRequest) returns (ExecuteScenarioResponse);

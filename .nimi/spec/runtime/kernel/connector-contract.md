@@ -28,13 +28,21 @@ DeleteConnector 必须执行级联清理与可恢复补偿流程。
 - `owner_id="system"` 的 system-managed remote connector 不可删除。
 - `owner_id="machine"` 的 machine-global remote connector 允许 anonymous 与 authenticated 调用方删除。
 
-## K-CONN-005 YAML-First Model Listing
+## K-CONN-005 Inventory-Mode Model Listing
 
-`ListConnectorModels` 必须是 catalog read：
+`ListConnectorModels` 必须按 provider inventory mode 分支：
 
-- 远端 connector 的模型列表只能来自 active catalog snapshot
-- `force_refresh` 字段保留但语义为 no-op
-- 非 scenario 路径不得把 provider `/models` 探测结果当作模型清单真相
+- `static_source` remote provider：
+  - 远端 connector 模型列表只能来自 active catalog snapshot
+  - `force_refresh` 为 no-op
+- `dynamic_endpoint` remote provider：
+  - 模型列表来自 live connector discovery
+  - runtime 可以做内存级缓存
+  - `force_refresh=true` 必须触发重新探测
+  - 返回结果必须经过 source-authored policy 过滤与归一化
+
+非 scenario 路径不得把 live discovery 结果提升为 catalog authority；它只
+是 dynamic provider 的 execution-time inventory truth。
 
 ## K-CONN-006 Probe Preconditions
 

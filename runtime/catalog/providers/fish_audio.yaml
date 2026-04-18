@@ -1,11 +1,12 @@
 version: 1
 provider: fish_audio
-catalog_version: 2026-03-10-fish-audio-v2
+catalog_version: 2026-04-18-fish-audio-v3
+inventory_mode: static_source
 models:
-  - model_id: s1
+  - model_id: s2-pro
     provider: fish_audio
     model_type: tts
-    updated_at: 2026-03-10
+    updated_at: 2026-04-18
     capabilities:
       - audio.synthesize
     pricing:
@@ -13,22 +14,30 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Fish Audio pricing varies by model and account plan.
+      as_of: 2026-04-18
+      notes: Fish Audio publishes `$15.00 / 1M UTF-8 bytes` for `s2-pro`, but the catalog pricing contract cannot encode byte-metered billing exactly.
     source_ref:
-      url: https://docs.fish.audio/developer-guide/getting-started/quickstart
-      retrieved_at: 2026-03-10
-      note: Fish Audio quickstart and SDK usage.
+      url: https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech
+      retrieved_at: 2026-04-18
+      note: Fish Audio TTS API reference.
     voice_set_id: fish_audio:default-voices-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - pcm
+        - mp3
+        - opus
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
       - voice_asset_id
-  - model_id: s2-pro
+  - model_id: s1
     provider: fish_audio
     model_type: tts
-    updated_at: 2026-03-10
+    updated_at: 2026-04-18
     capabilities:
       - audio.synthesize
     pricing:
@@ -36,14 +45,22 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Fish Audio pricing varies by model and account plan.
+      as_of: 2026-04-18
+      notes: Fish Audio publishes `$15.00 / 1M UTF-8 bytes` for `s1`, but the catalog pricing contract cannot encode byte-metered billing exactly.
     source_ref:
-      url: https://docs.fish.audio/api-reference/tts
-      retrieved_at: 2026-03-10
-      note: Fish Audio TTS API reference.
+      url: https://docs.fish.audio/developer-guide/getting-started/quickstart
+      retrieved_at: 2026-04-18
+      note: Fish Audio quickstart and SDK usage.
     voice_set_id: fish_audio:default-voices-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - pcm
+        - mp3
+        - opus
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
@@ -56,11 +73,11 @@ voices:
     langs:
       - en
     model_ids:
-      - s1
       - s2-pro
+      - s1
     source_ref:
-      url: https://docs.fish.audio/api-reference/tts
-      retrieved_at: 2026-03-10
+      url: https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech
+      retrieved_at: 2026-04-18
       note: Fish Audio TTS API reference.
   - voice_id: 8ef4a238714b45718ce04243307c57a7
     voice_set_id: fish_audio:default-voices-v1
@@ -69,11 +86,11 @@ voices:
     langs:
       - en
     model_ids:
-      - s1
       - s2-pro
+      - s1
     source_ref:
-      url: https://docs.fish.audio/api-reference/tts
-      retrieved_at: 2026-03-10
+      url: https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech
+      retrieved_at: 2026-04-18
       note: Fish Audio TTS API reference.
   - voice_id: 7f92f8afb8ec43bf81429cc1c9199cb1
     voice_set_id: fish_audio:default-voices-v1
@@ -82,11 +99,11 @@ voices:
     langs:
       - en
     model_ids:
-      - s1
       - s2-pro
+      - s1
     source_ref:
-      url: https://docs.fish.audio/api-reference/tts
-      retrieved_at: 2026-03-10
+      url: https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech
+      retrieved_at: 2026-04-18
       note: Fish Audio TTS API reference.
 voice_workflow_models:
   - workflow_model_id: fish-audio-create-model
@@ -110,8 +127,8 @@ voice_workflow_models:
       - s1
       - s2-pro
     source_ref:
-      url: https://docs.fish.audio/api-reference/endpoint/create-tts-model
-      retrieved_at: 2026-03-10
+      url: https://docs.fish.audio/api-reference/endpoint/model/create-model
+      retrieved_at: 2026-04-18
       note: Fish Audio create custom TTS model API reference.
     langs:
       - en
@@ -145,6 +162,6 @@ voice_handle_policies:
     delete_semantics: best_effort_provider_delete
     runtime_reconciliation_required: true
     source_ref:
-      url: https://docs.fish.audio/api-reference/endpoint/create-tts-model
-      retrieved_at: 2026-03-10
+      url: https://docs.fish.audio/api-reference/endpoint/model/create-model
+      retrieved_at: 2026-04-18
       note: Fish Audio create custom TTS model API reference.

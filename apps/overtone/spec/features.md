@@ -125,7 +125,7 @@ type SongTake = {
 **Implementation gate**:
 - This feature requires a runtime adapter validation step before implementation.
 - Today, the music SDK/runtime surface accepts `extensions`, but the stable music proto does not expose first-class reference-audio fields.
-- If the Suno path does not already interpret the required extension payload, Overtone must add a runtime adapter patch before Phase 3 can start.
+- If the selected runtime music path does not already interpret the required extension payload, Overtone must add a runtime adapter patch before Phase 3 can start.
 
 **App rule**:
 - Do not expose raw provider JSON to end users.

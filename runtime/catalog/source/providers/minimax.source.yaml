@@ -1,6 +1,6 @@
 schema_version: 3
 provider: minimax
-catalog_version: 2026-03-05-minimax-v1
+catalog_version: 2026-04-18-minimax-v2
 generated_target: runtime/catalog/providers/minimax.yaml
 runtime:
   runtime_plane: remote
@@ -10,91 +10,98 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: minimax
-  default_text_model: MiniMax-M2.5
+  default_text_model: MiniMax-M2.7
   model_type: chat
   capabilities: []
   pricing:
     unit: token
-    input: unknown
-    output: unknown
+    input: 0.3
+    output: 1.2
     currency: USD
-    as_of: 2026-03-05
-    notes: MiniMax pricing varies by model family, region, and contract tier.
+    as_of: 2026-04-18
+    notes: MiniMax M2.7 pay-as-you-go pricing from the official pricing guide.
 
 sources:
   - source_id: minimax_api_overview
     url: https://platform.minimax.io/docs/api-reference/api-overview
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: MiniMax API overview with text, image, and video model tables.
   - source_id: minimax_text_openai_api
     url: https://platform.minimax.io/docs/api-reference/text-openai-api
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: MiniMax OpenAI-compatible text API with supported model IDs.
-  - source_id: minimax_image_task_api
-    url: https://platform.minimax.io/docs/api-reference/create-image-generation-task
-    retrieved_at: 2026-03-05
-    note: MiniMax image generation task API.
+  - source_id: minimax_image_intro_doc
+    url: https://platform.minimax.io/docs/api-reference/image-generation-intro
+    retrieved_at: 2026-04-18
+    note: MiniMax image generation overview with the current public image model list.
+  - source_id: minimax_video_intro_doc
+    url: https://platform.minimax.io/docs/api-reference/video-generation-intro
+    retrieved_at: 2026-04-18
+    note: MiniMax video generation overview with the current Hailuo video model family.
+  - source_id: minimax_pricing_paygo
+    url: https://platform.minimax.io/docs/guides/pricing-paygo
+    retrieved_at: 2026-04-18
+    note: MiniMax pay-as-you-go pricing for text, image, and video models.
 
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: MiniMax-M2.5
-    reviewed_at: 2026-04-16
+    model_id: MiniMax-M2.7
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Only admitted MiniMax text route in the current source set.
+    rationale: MiniMax M2.7 is the current flagship text model in the official API docs.
 
 models:
-  - model_id: MiniMax-M2.5
+  - model_id: MiniMax-M2.7
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate]
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: 0.3
+      output: 1.2
       currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and request mode.
-    source_ids: [minimax_api_overview, minimax_text_openai_api]
-    aliases:
-      - MiniMax-M2.5-highspeed
+      as_of: 2026-04-18
+      notes: Official MiniMax pay-as-you-go pricing for the MiniMax-M2.7 text model.
+    source_ids: [minimax_api_overview, minimax_text_openai_api, minimax_pricing_paygo]
 
-  - model_id: video-01
+  - model_id: MiniMax-Hailuo-2.3
     model_type: video
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [video.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Video generation pricing varies by resolution, duration, and account tier.
-    source_ids: [minimax_api_overview]
+      as_of: 2026-04-18
+      notes: Official pricing page exposes MiniMax-Hailuo-2.3-Fast prices clearly, but the non-fast MiniMax-Hailuo-2.3 row is not machine-readable enough to admit a precise stable price here.
+    source_ids: [minimax_api_overview, minimax_video_intro_doc, minimax_pricing_paygo]
     video_generation:
-      modes: [t2v, i2v_first_frame]
+      modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
       input_roles:
         t2v: [prompt]
         i2v_first_frame: [prompt, first_frame]
+        i2v_first_last: [prompt, first_frame, last_frame]
+        i2v_reference: [prompt, reference_image]
       limits:
         resolution: [720p, 1080p]
+        duration_sec: [6, 10]
       options:
         supports: [resolution, ratio, duration_sec]
         constraints: {}
       outputs:
         video_url: true
-    aliases:
-      - video-01-live
 
   - model_id: image-01
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: 0.0035
+      output: "0"
       currency: USD
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by quality and account tier.
-    source_ids: [minimax_api_overview, minimax_image_task_api]
+      as_of: 2026-04-18
+      notes: Official MiniMax pay-as-you-go pricing for image-01.
+    source_ids: [minimax_api_overview, minimax_image_intro_doc, minimax_pricing_paygo]

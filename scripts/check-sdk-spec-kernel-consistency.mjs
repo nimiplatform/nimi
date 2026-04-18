@@ -14,6 +14,7 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/error-projection.md',
   '.nimi/spec/sdk/kernel/boundary-contract.md',
   '.nimi/spec/sdk/kernel/runtime-contract.md',
+  '.nimi/spec/sdk/kernel/world-contract.md',
   '.nimi/spec/sdk/kernel/world-evolution-engine-projection-contract.md',
   '.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md',
   '.nimi/spec/sdk/kernel/realm-contract.md',

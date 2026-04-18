@@ -126,8 +126,16 @@
 | `S-RUNTIME-100` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate` |
 | `S-RUNTIME-101` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate` |
 | `S-RUNTIME-102` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-105` | `covered` | `sdk_kernel_consistency` |
 | `S-RUNTIME-103` | `covered` | `sdk_kernel_consistency` |
 | `S-RUNTIME-104` | `covered` | `sdk_kernel_consistency` |
+| `S-WORLD-001` | `covered` | `sdk_kernel_consistency` |
+| `S-WORLD-002` | `covered` | `sdk_kernel_consistency` |
+| `S-WORLD-003` | `covered` | `sdk_kernel_consistency` |
+| `S-WORLD-004` | `covered` | `sdk_kernel_consistency` |
+| `S-WORLD-005` | `covered` | `sdk_kernel_consistency` |
+| `S-WORLD-006` | `covered` | `sdk_kernel_consistency` |
+| `S-WORLD-007` | `covered` | `sdk_kernel_consistency` |
 | `S-SCOPE-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-SCOPE-002` | `covered` | `sdk_kernel_consistency` |
 | `S-SCOPE-003` | `covered` | `sdk_kernel_consistency` |
@@ -146,6 +154,7 @@
 | `S-SURFACE-011` | `covered` | `sdk_kernel_consistency`, `sdk_runtime_stable_ai_output_gate` |
 | `S-SURFACE-012` | `covered` | `sdk_kernel_consistency` |
 | `S-SURFACE-013` | `covered` | `sdk_kernel_consistency` |
+| `S-SURFACE-014` | `covered` | `sdk_kernel_consistency` |
 | `S-TRANSPORT-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-TRANSPORT-002` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-TRANSPORT-003` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |

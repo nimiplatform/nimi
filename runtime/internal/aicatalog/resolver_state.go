@@ -105,6 +105,8 @@ func buildCatalogState(
 			Provider:             provider,
 			Version:              item.document.Version,
 			CatalogVersion:       strings.TrimSpace(item.document.CatalogVersion),
+			InventoryMode:        strings.TrimSpace(item.document.InventoryMode),
+			DynamicInventory:     item.document.DynamicInventory,
 			DefaultTextModel:     strings.TrimSpace(item.document.DefaultTextModel),
 			Source:               item.source,
 			ModelCount:           len(item.document.Models),
@@ -341,8 +343,12 @@ func inferProviderFromModel(modelID string) string {
 		return "dashscope"
 	case strings.Contains(normalized, "gpt-audio"), strings.HasPrefix(normalized, "tts-1"):
 		return "openai"
-	case strings.Contains(normalized, "doubao-tts"), strings.Contains(normalized, "bv001_streaming"), strings.Contains(normalized, "bv002_streaming"):
-		return "volcengine"
+	case strings.Contains(normalized, "doubao-tts"),
+		strings.Contains(normalized, "volc.service_type.10029"),
+		strings.Contains(normalized, "volc.bigasr"),
+		strings.Contains(normalized, "bv001_streaming"),
+		strings.Contains(normalized, "bv002_streaming"):
+		return "volcengine_openspeech"
 	case strings.HasPrefix(normalized, "eleven_"), strings.HasPrefix(normalized, "eleven-"):
 		return "elevenlabs"
 	default:
@@ -580,7 +586,8 @@ func providerDocumentIsEmptyOverlay(doc ProviderDocument) bool {
 		len(doc.VoiceWorkflowModels) == 0 &&
 		len(doc.ModelWorkflowBindings) == 0 &&
 		len(doc.VoiceHandlePolicies) == 0 &&
-		strings.TrimSpace(doc.DefaultTextModel) == ""
+		strings.TrimSpace(doc.DefaultTextModel) == "" &&
+		doc.DynamicInventory == nil
 }
 
 func (r *Resolver) getModelDetailFromState(state *catalogState, provider string, modelID string) (CatalogModelDetailRecord, CatalogProviderRecord, CatalogSource, error) {

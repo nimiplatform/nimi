@@ -101,6 +101,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     runtimePlane: 'cloud',
     executionModule: 'cloud',
     managedSupported: true,
+    inventoryMode: 'dynamic_endpoint',
   },
   {
     provider: 'deepseek',
@@ -109,6 +110,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     runtimePlane: 'cloud',
     executionModule: 'cloud',
     managedSupported: true,
+    inventoryMode: 'static_source',
   },
   {
     provider: 'gemini',
@@ -117,6 +119,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     runtimePlane: 'cloud',
     executionModule: 'cloud',
     managedSupported: true,
+    inventoryMode: 'static_source',
   },
 ];
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"google.golang.org/grpc/codes"
@@ -39,6 +40,40 @@ func (b *Backend) postJSON(ctx context.Context, path string, requestBody any, re
 
 func (b *Backend) getJSON(ctx context.Context, path string, responseBody any) error {
 	endpoint := b.baseURL + path
+	return b.getJSONAbsolute(ctx, endpoint, responseBody)
+}
+
+func (b *Backend) probeGET(ctx context.Context, path string) error {
+	endpoint := b.baseURL + path
+	return b.probeGETAbsolute(ctx, endpoint)
+}
+
+func (b *Backend) probeGETAbsolute(ctx context.Context, endpoint string) error {
+	request, err := b.newRequest(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return err
+	}
+	if b.apiKey != "" {
+		request.Header.Set("Authorization", "Bearer "+b.apiKey)
+	}
+
+	response, err := b.do(request)
+	if err != nil {
+		return MapProviderRequestError(err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		var payload map[string]any
+		_ = json.NewDecoder(response.Body).Decode(&payload)
+		return MapProviderHTTPError(response.StatusCode, payload)
+	}
+
+	_, _ = io.Copy(io.Discard, response.Body)
+	return nil
+}
+
+func (b *Backend) getJSONAbsolute(ctx context.Context, endpoint string, responseBody any) error {
 	request, err := b.newRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return err

@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   collectVoiceWorkflowProvidersFromSource,
   extractGoFunctionBody,
+  supportsVoiceWorkflowExecution,
 } from './check-runtime-provider-activation-alignment.mjs';
 
 test('extractGoFunctionBody keeps nested braces inside Go functions', () => {
@@ -71,4 +72,12 @@ func ExecuteVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg Med
 
   const providers = [...collectVoiceWorkflowProvidersFromSource(source)].sort();
   assert.deepEqual(providers, ['dashscope', 'elevenlabs', 'fish_audio', 'stepfun']);
+});
+
+test('supportsVoiceWorkflowExecution allows local runtime-native workflow handling', () => {
+  const nimillmProviders = new Set(['dashscope', 'elevenlabs']);
+
+  assert.equal(supportsVoiceWorkflowExecution('local', nimillmProviders), true);
+  assert.equal(supportsVoiceWorkflowExecution('dashscope', nimillmProviders), true);
+  assert.equal(supportsVoiceWorkflowExecution('unknown', nimillmProviders), false);
 });

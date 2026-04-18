@@ -8,9 +8,30 @@ runtime:
   inline_supported: true
   default_endpoint: null
   requires_explicit_endpoint: true
+  inventory_mode: dynamic_endpoint
+  dynamic_inventory:
+    discovery_transport: connector_list_models
+    cache_ttl_sec: 300
+    selection_mode: curated_filter
+    failure_policy: use_cache_then_fail_closed
+    allowed_capabilities:
+      - text.generate
+      - text.generate.vision
+    allow_model_patterns:
+      - accounts/fireworks/models/deepseek*
+      - accounts/fireworks/models/kimi*
+      - accounts/fireworks/models/minimax*
+      - accounts/fireworks/models/glm*
+      - accounts/fireworks/models/qwen3*
+      - accounts/fireworks/models/llama4*
+    preferred_model_patterns:
+      - accounts/fireworks/models/deepseek*
+      - accounts/fireworks/models/kimi*
+      - accounts/fireworks/models/minimax*
+      - accounts/fireworks/models/glm*
+      - accounts/fireworks/models/qwen3*
 defaults:
   provider: fireworks
-  default_text_model: accounts/fireworks/models/llama4-maverick-instruct-basic
   model_type: chat
   capabilities: []
   pricing:
@@ -26,84 +47,3 @@ sources:
     url: https://fireworks.ai/models
     retrieved_at: 2026-03-05
     note: Fireworks AI model catalog.
-
-selection_profiles:
-  - profile_id: text.general
-    capability: text.generate
-    model_id: accounts/fireworks/models/llama4-maverick-instruct-basic
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Best current general Fireworks text route in the admitted set.
-  - profile_id: text.fast
-    capability: text.generate
-    model_id: accounts/fireworks/models/llama4-scout-instruct-basic
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Lower-cost Llama 4 route for faster Fireworks text tasks.
-  - profile_id: text.reasoning
-    capability: text.generate
-    model_id: accounts/fireworks/models/deepseek-r1
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Dedicated reasoning route in the admitted Fireworks set.
-
-models:
-  - model_id: accounts/fireworks/models/llama4-maverick-instruct-basic
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate, text.generate.vision]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model size and usage tier.
-    source_ids: [fireworks_models_doc]
-    aliases:
-      - llama-4-maverick
-
-  - model_id: accounts/fireworks/models/llama4-scout-instruct-basic
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate, text.generate.vision]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model size and usage tier.
-    source_ids: [fireworks_models_doc]
-    aliases:
-      - llama-4-scout
-
-  - model_id: accounts/fireworks/models/deepseek-r1
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model size and usage tier.
-    source_ids: [fireworks_models_doc]
-    aliases:
-      - deepseek-r1
-
-  - model_id: accounts/fireworks/models/qwen3-235b-a22b
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model size and usage tier.
-    source_ids: [fireworks_models_doc]
-    aliases:
-      - qwen3-235b

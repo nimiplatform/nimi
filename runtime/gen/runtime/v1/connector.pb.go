@@ -1299,6 +1299,7 @@ type ProviderCatalogEntry struct {
 	RuntimePlane             string                 `protobuf:"bytes,4,opt,name=runtime_plane,json=runtimePlane,proto3" json:"runtime_plane,omitempty"`
 	ExecutionModule          string                 `protobuf:"bytes,5,opt,name=execution_module,json=executionModule,proto3" json:"execution_module,omitempty"`
 	ManagedSupported         bool                   `protobuf:"varint,6,opt,name=managed_supported,json=managedSupported,proto3" json:"managed_supported,omitempty"`
+	InventoryMode            string                 `protobuf:"bytes,7,opt,name=inventory_mode,json=inventoryMode,proto3" json:"inventory_mode,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -1373,6 +1374,13 @@ func (x *ProviderCatalogEntry) GetManagedSupported() bool {
 		return x.ManagedSupported
 	}
 	return false
+}
+
+func (x *ProviderCatalogEntry) GetInventoryMode() string {
+	if x != nil {
+		return x.InventoryMode
+	}
+	return ""
 }
 
 type ListProviderCatalogRequest struct {
@@ -1476,6 +1484,7 @@ type ModelCatalogProviderEntry struct {
 	RuntimePlane             string                     `protobuf:"bytes,17,opt,name=runtime_plane,json=runtimePlane,proto3" json:"runtime_plane,omitempty"`
 	ExecutionModule          string                     `protobuf:"bytes,18,opt,name=execution_module,json=executionModule,proto3" json:"execution_module,omitempty"`
 	ManagedSupported         bool                       `protobuf:"varint,19,opt,name=managed_supported,json=managedSupported,proto3" json:"managed_supported,omitempty"`
+	InventoryMode            string                     `protobuf:"bytes,20,opt,name=inventory_mode,json=inventoryMode,proto3" json:"inventory_mode,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -1641,6 +1650,13 @@ func (x *ModelCatalogProviderEntry) GetManagedSupported() bool {
 		return x.ManagedSupported
 	}
 	return false
+}
+
+func (x *ModelCatalogProviderEntry) GetInventoryMode() string {
+	if x != nil {
+		return x.InventoryMode
+	}
+	return ""
 }
 
 type ListModelCatalogProvidersRequest struct {
@@ -3509,17 +3525,18 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"page_token\x18\x05 \x01(\tR\tpageTokenJ\x04\b\x02\x10\x03R\bowner_id\"\x88\x01\n" +
 	"\x1bListConnectorModelsResponse\x12A\n" +
 	"\x06models\x18\x01 \x03(\v2).nimi.runtime.v1.ConnectorModelDescriptorR\x06models\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x98\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xbf\x02\n" +
 	"\x14ProviderCatalogEntry\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12)\n" +
 	"\x10default_endpoint\x18\x02 \x01(\tR\x0fdefaultEndpoint\x12<\n" +
 	"\x1arequires_explicit_endpoint\x18\x03 \x01(\bR\x18requiresExplicitEndpoint\x12#\n" +
 	"\rruntime_plane\x18\x04 \x01(\tR\fruntimePlane\x12)\n" +
 	"\x10execution_module\x18\x05 \x01(\tR\x0fexecutionModule\x12+\n" +
-	"\x11managed_supported\x18\x06 \x01(\bR\x10managedSupported\"\x1c\n" +
+	"\x11managed_supported\x18\x06 \x01(\bR\x10managedSupported\x12%\n" +
+	"\x0einventory_mode\x18\a \x01(\tR\rinventoryMode\"\x1c\n" +
 	"\x1aListProviderCatalogRequest\"b\n" +
 	"\x1bListProviderCatalogResponse\x12C\n" +
-	"\tproviders\x18\x01 \x03(\v2%.nimi.runtime.v1.ProviderCatalogEntryR\tproviders\"\xa7\x06\n" +
+	"\tproviders\x18\x01 \x03(\v2%.nimi.runtime.v1.ProviderCatalogEntryR\tproviders\"\xce\x06\n" +
 	"\x19ModelCatalogProviderEntry\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x05R\aversion\x12'\n" +
@@ -3543,7 +3560,8 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\x1arequires_explicit_endpoint\x18\x10 \x01(\bR\x18requiresExplicitEndpoint\x12#\n" +
 	"\rruntime_plane\x18\x11 \x01(\tR\fruntimePlane\x12)\n" +
 	"\x10execution_module\x18\x12 \x01(\tR\x0fexecutionModule\x12+\n" +
-	"\x11managed_supported\x18\x13 \x01(\bR\x10managedSupported\"\"\n" +
+	"\x11managed_supported\x18\x13 \x01(\bR\x10managedSupported\x12%\n" +
+	"\x0einventory_mode\x18\x14 \x01(\tR\rinventoryMode\"\"\n" +
 	" ListModelCatalogProvidersRequest\"m\n" +
 	"!ListModelCatalogProvidersResponse\x12H\n" +
 	"\tproviders\x18\x01 \x03(\v2*.nimi.runtime.v1.ModelCatalogProviderEntryR\tproviders\"S\n" +

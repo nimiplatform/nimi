@@ -1,151 +1,16 @@
 version: 1
 provider: groq
-catalog_version: 2026-03-18-groq-v3
-default_text_model: meta-llama/llama-4-maverick-17b-128e-instruct
-models:
-  - model_id: meta-llama/llama-4-scout-17b-16e-instruct
-    provider: groq
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-      - text.generate.vision
-    pricing:
-      unit: token
-      input: "0.11"
-      output: "0.34"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Llama 4 Scout via Groq. Per 1M tokens.
-    source_ref:
-      url: https://console.groq.com/docs/models
-      retrieved_at: 2026-03-05
-      note: Groq official model catalog.
-  - model_id: llama-4-scout
-    provider: groq
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-      - text.generate.vision
-    pricing:
-      unit: token
-      input: "0.11"
-      output: "0.34"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Llama 4 Scout via Groq. Per 1M tokens.
-    source_ref:
-      url: https://console.groq.com/docs/models
-      retrieved_at: 2026-03-05
-      note: Groq official model catalog.
-  - model_id: meta-llama/llama-4-maverick-17b-128e-instruct
-    provider: groq
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-      - text.generate.vision
-    pricing:
-      unit: token
-      input: "0.50"
-      output: "0.77"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Llama 4 Maverick via Groq. Per 1M tokens.
-    source_ref:
-      url: https://console.groq.com/docs/models
-      retrieved_at: 2026-03-05
-      note: Groq official model catalog.
-  - model_id: llama-4-maverick
-    provider: groq
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-      - text.generate.vision
-    pricing:
-      unit: token
-      input: "0.50"
-      output: "0.77"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Llama 4 Maverick via Groq. Per 1M tokens.
-    source_ref:
-      url: https://console.groq.com/docs/models
-      retrieved_at: 2026-03-05
-      note: Groq official model catalog.
-  - model_id: deepseek-r1-distill-llama-70b
-    provider: groq
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: "0.59"
-      output: "0.79"
-      currency: USD
-      as_of: 2026-03-18
-      notes: DeepSeek R1 distill via Groq. Per 1M tokens.
-    source_ref:
-      url: https://console.groq.com/docs/models
-      retrieved_at: 2026-03-05
-      note: Groq official model catalog.
-  - model_id: llama-3.3-70b-versatile
-    provider: groq
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: "0.59"
-      output: "0.79"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Llama 3.3 70B via Groq. Per 1M tokens.
-    source_ref:
-      url: https://console.groq.com/docs/models
-      retrieved_at: 2026-03-05
-      note: Groq official model catalog.
-  - model_id: whisper-large-v3-turbo
-    provider: groq
-    model_type: stt
-    updated_at: 2026-03-18
-    capabilities:
-      - audio.transcribe
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-18
-      notes: Speech-to-text. Priced at $0.04/hour audio. 216x real-time speed.
-    source_ref:
-      url: https://console.groq.com/docs/model/whisper-large-v3-turbo
-      retrieved_at: 2026-03-18
-      note: Groq Whisper Large v3 Turbo model documentation.
+catalog_version: 2026-04-18-groq-v4
+inventory_mode: dynamic_endpoint
+models: []
 voices: []
-selection_profiles:
-  - provider: groq
-    profile_id: text.general
-    capability: text.generate
-    model_id: meta-llama/llama-4-maverick-17b-128e-instruct
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Best current general Groq text route in the admitted set.
-  - provider: groq
-    profile_id: text.fast
-    capability: text.generate
-    model_id: meta-llama/llama-4-scout-17b-16e-instruct
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Lower-cost Groq text route for latency-sensitive tasks.
-  - provider: groq
-    profile_id: text.reasoning
-    capability: text.generate
-    model_id: deepseek-r1-distill-llama-70b
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Dedicated reasoning-oriented Groq text route in the admitted set.
+dynamic_inventory:
+  discovery_transport: connector_list_models
+  cache_ttl_sec: 300
+  selection_mode: pass_through
+  failure_policy: use_cache_then_fail_closed
+  allowed_capabilities:
+    - text.generate
+    - text.generate.vision
+    - audio.transcribe
+    - audio.synthesize

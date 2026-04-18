@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-03-18-openai-v3
+catalog_version: 2026-04-18-openai-text-embedding-v4
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   runtime_plane: remote
@@ -11,7 +11,7 @@ runtime:
 resolution_mode: model_anchor_v2
 defaults:
   provider: openai
-  default_text_model: gpt-5.2
+  default_text_model: gpt-5.4
   model_type: tts
   capabilities: []
   pricing:
@@ -19,8 +19,8 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: Official pricing differs by tier and model revision.
+    as_of: 2026-04-18
+    notes: Official pricing differs by model family, API mode, and service class.
 
 sources:
   - source_id: openai_tts_doc
@@ -32,16 +32,32 @@ sources:
     retrieved_at: 2026-03-05
     note: OpenAI speech-to-text documentation.
   - source_id: openai_models_doc
-    url: https://platform.openai.com/docs/models
-    retrieved_at: 2026-03-05
+    url: https://developers.openai.com/api/docs/models
+    retrieved_at: 2026-04-18
     note: OpenAI official models index.
+  - source_id: openai_pricing_doc
+    url: https://developers.openai.com/api/docs/pricing
+    retrieved_at: 2026-04-18
+    note: OpenAI official API pricing.
   - source_id: openai_gpt_5_2_doc
-    url: https://platform.openai.com/docs/models/gpt-5.2
+    url: https://developers.openai.com/api/docs/models/gpt-5.2
     retrieved_at: 2026-03-05
     note: OpenAI GPT-5.2 model card.
+  - source_id: openai_gpt_5_4_doc
+    url: https://developers.openai.com/api/docs/models/gpt-5.4
+    retrieved_at: 2026-04-18
+    note: OpenAI GPT-5.4 model card.
+  - source_id: openai_gpt_5_4_mini_doc
+    url: https://developers.openai.com/api/docs/models/gpt-5.4-mini
+    retrieved_at: 2026-04-18
+    note: OpenAI GPT-5.4 mini model card.
+  - source_id: openai_gpt_5_4_nano_doc
+    url: https://developers.openai.com/api/docs/models/gpt-5.4-nano
+    retrieved_at: 2026-04-18
+    note: OpenAI GPT-5.4 nano model card.
   - source_id: openai_embedding_3_large_doc
-    url: https://platform.openai.com/docs/models/text-embedding-3-large
-    retrieved_at: 2026-03-05
+    url: https://developers.openai.com/api/docs/models/text-embedding-3-large
+    retrieved_at: 2026-04-18
     note: OpenAI text-embedding-3-large model card.
   - source_id: openai_gpt_image_1_5_doc
     url: https://platform.openai.com/docs/models/gpt-image-1.5
@@ -60,8 +76,8 @@ sources:
     retrieved_at: 2026-03-05
     note: OpenAI GPT-5.3-Codex agentic coding model card.
   - source_id: openai_embedding_3_small_doc
-    url: https://platform.openai.com/docs/models/text-embedding-3-small
-    retrieved_at: 2026-03-18
+    url: https://developers.openai.com/api/docs/models/text-embedding-3-small
+    retrieved_at: 2026-04-18
     note: OpenAI text-embedding-3-small model card.
   - source_id: openai_gpt_4o_mini_doc
     url: https://platform.openai.com/docs/models/gpt-4o-mini
@@ -78,22 +94,22 @@ language_profiles:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: gpt-5.2
-    reviewed_at: 2026-04-16
+    model_id: gpt-5.4
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Best default OpenAI chat route for general users.
+    rationale: OpenAI's current start-here frontier model for complex reasoning and coding.
   - profile_id: text.fast
     capability: text.generate
-    model_id: gpt-4o-mini
-    reviewed_at: 2026-04-16
+    model_id: gpt-5.4-mini
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Fast and inexpensive OpenAI text path.
+    rationale: OpenAI's current recommended lower-latency GPT-5.4 variant for high-volume workloads.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: gpt-5.2-pro
-    reviewed_at: 2026-04-16
+    model_id: gpt-5.4
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Highest-quality OpenAI reasoning track currently admitted.
+    rationale: Highest-confidence admitted GPT reasoning route while GPT-5.4-pro endpoint semantics remain under review.
 
 voice_sets:
   - voice_set_id: default-tts-v1
@@ -237,6 +253,51 @@ models:
     aliases:
       - gpt-5.2-2025-12-11
 
+  - model_id: gpt-5.4
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: "2.50"
+      output: "15.00"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current OpenAI default frontier GPT model. Per 1M tokens.
+    source_ids: [openai_gpt_5_4_doc, openai_models_doc, openai_pricing_doc]
+    aliases:
+      - gpt-5.4-2026-03-05
+
+  - model_id: gpt-5.4-mini
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: "0.75"
+      output: "4.50"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current GPT-5.4 mini line for lower-latency high-volume workloads. Per 1M tokens.
+    source_ids: [openai_gpt_5_4_mini_doc, openai_models_doc, openai_pricing_doc]
+    aliases:
+      - gpt-5.4-mini-2026-03-17
+
+  - model_id: gpt-5.4-nano
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: "0.20"
+      output: "1.25"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Cheapest GPT-5.4-class text route for simple high-volume tasks. Per 1M tokens.
+    source_ids: [openai_gpt_5_4_nano_doc, openai_models_doc, openai_pricing_doc]
+    aliases:
+      - gpt-5.4-nano-2026-03-17
+
   - model_id: gpt-5.2-pro
     model_type: chat
     updated_at: 2026-03-05
@@ -252,29 +313,29 @@ models:
 
   - model_id: text-embedding-3-large
     model_type: embedding
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.embed]
     pricing:
       unit: token
       input: "0.13"
       output: "0"
       currency: USD
-      as_of: 2026-03-18
+      as_of: 2026-04-18
       notes: Embedding model. Output is always 0 for embeddings. Per 1M tokens.
-    source_ids: [openai_embedding_3_large_doc, openai_models_doc]
+    source_ids: [openai_embedding_3_large_doc, openai_models_doc, openai_pricing_doc]
 
   - model_id: text-embedding-3-small
     model_type: embedding
-    updated_at: 2026-03-18
+    updated_at: 2026-04-18
     capabilities: [text.embed]
     pricing:
       unit: token
       input: "0.02"
       output: "0"
       currency: USD
-      as_of: 2026-03-18
+      as_of: 2026-04-18
       notes: Small embedding model. Output is always 0 for embeddings. Per 1M tokens.
-    source_ids: [openai_embedding_3_small_doc, openai_models_doc]
+    source_ids: [openai_embedding_3_small_doc, openai_models_doc, openai_pricing_doc]
 
   - model_id: gpt-4o-mini
     model_type: chat

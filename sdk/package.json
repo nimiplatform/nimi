@@ -25,6 +25,10 @@
       "types": "./dist/runtime/browser.d.ts",
       "default": "./dist/runtime/browser.js"
     },
+    "./world": {
+      "types": "./dist/world/index.d.ts",
+      "default": "./dist/world/index.js"
+    },
     "./types": {
       "types": "./dist/types/index.d.ts",
       "default": "./dist/types/index.js"

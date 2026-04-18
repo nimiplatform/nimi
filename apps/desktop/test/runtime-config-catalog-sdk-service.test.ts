@@ -10,6 +10,7 @@ test('normalizeProviderEntry maps overlay metadata and overridden source', () =>
     version: 1,
     catalogVersion: '2026-03-15',
     source: ModelCatalogProviderSource.OVERRIDDEN,
+    inventoryMode: 'static_source',
     modelCount: 12,
     voiceCount: 4,
     yaml: 'provider: openai',

@@ -96,6 +96,7 @@ type PlatformDomains = {
   world: {
     getWorldTruth: RealmServices['WorldsService']['worldControllerGetWorld'];
     getWorldviewTruth: RealmServices['WorldsService']['worldControllerGetWorldview'];
+    listWorlds: RealmServices['WorldsService']['worldControllerListWorlds'];
     getWorld: RealmServices['WorldsService']['worldControllerGetWorld'];
     getWorldview: RealmServices['WorldsService']['worldControllerGetWorldview'];
     getWorldDetailWithAgents: RealmServices['WorldsService']['worldControllerGetWorldDetailWithAgents'];
@@ -408,6 +409,7 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
     world: {
       getWorldTruth: (worldId) => realm.services.WorldsService.worldControllerGetWorld(worldId),
       getWorldviewTruth: (worldId) => realm.services.WorldsService.worldControllerGetWorldview(worldId),
+      listWorlds: (status) => realm.services.WorldsService.worldControllerListWorlds(status),
       getWorld: (worldId) => realm.services.WorldsService.worldControllerGetWorld(worldId),
       getWorldview: (worldId) => realm.services.WorldsService.worldControllerGetWorldview(worldId),
       getWorldDetailWithAgents: (worldId, take = 4) => realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, take),

@@ -65,6 +65,57 @@ function normalizeStringArray(value) {
   return out;
 }
 
+function normalizeInventoryMode(value) {
+  const normalized = normalizeString(value).toLowerCase();
+  if (!normalized) {
+    return 'static_source';
+  }
+  if (normalized !== 'static_source' && normalized !== 'dynamic_endpoint') {
+    throw new Error(`runtime.inventory_mode must be static_source or dynamic_endpoint, got: ${value}`);
+  }
+  return normalized;
+}
+
+function normalizeDynamicInventory(value, provider) {
+  if (!value || typeof value !== 'object') {
+    throw new Error(`${provider} runtime.dynamic_inventory is required for dynamic_endpoint providers`);
+  }
+  const discoveryTransport = normalizeString(value.discovery_transport);
+  if (discoveryTransport !== 'connector_list_models') {
+    throw new Error(`${provider} runtime.dynamic_inventory.discovery_transport must be connector_list_models`);
+  }
+  const cacheTTLSeconds = Number(value.cache_ttl_sec);
+  if (!Number.isInteger(cacheTTLSeconds) || cacheTTLSeconds <= 0) {
+    throw new Error(`${provider} runtime.dynamic_inventory.cache_ttl_sec must be a positive integer`);
+  }
+  const selectionMode = normalizeString(value.selection_mode);
+  if (selectionMode !== 'curated_filter' && selectionMode !== 'pass_through') {
+    throw new Error(`${provider} runtime.dynamic_inventory.selection_mode must be curated_filter or pass_through`);
+  }
+  const failurePolicy = normalizeString(value.failure_policy);
+  if (failurePolicy !== 'use_cache_then_fail_closed' && failurePolicy !== 'fail_closed') {
+    throw new Error(`${provider} runtime.dynamic_inventory.failure_policy must be use_cache_then_fail_closed or fail_closed`);
+  }
+  return {
+    discovery_transport: discoveryTransport,
+    cache_ttl_sec: cacheTTLSeconds,
+    selection_mode: selectionMode,
+    failure_policy: failurePolicy,
+    ...(normalizeStringArray(value.allowed_capabilities).length > 0
+      ? { allowed_capabilities: normalizeStringArray(value.allowed_capabilities) }
+      : {}),
+    ...(normalizeStringArray(value.deny_model_patterns).length > 0
+      ? { deny_model_patterns: normalizeStringArray(value.deny_model_patterns) }
+      : {}),
+    ...(normalizeStringArray(value.allow_model_patterns).length > 0
+      ? { allow_model_patterns: normalizeStringArray(value.allow_model_patterns) }
+      : {}),
+    ...(normalizeStringArray(value.preferred_model_patterns).length > 0
+      ? { preferred_model_patterns: normalizeStringArray(value.preferred_model_patterns) }
+      : {}),
+  };
+}
+
 function normalizeYAML(value) {
   const trimmed = String(value || '').trim();
   if (!trimmed) {
@@ -631,6 +682,29 @@ function generateProviderCatalog(doc) {
   const sourceIndex = buildSourceIndex(doc?.sources);
   const fallbackSourceRef = defaultCatalogSource(doc?.sources);
   const languageProfiles = buildLanguageProfiles(doc?.language_profiles);
+  const runtime = doc?.runtime && typeof doc.runtime === 'object' ? doc.runtime : {};
+  const inventoryMode = normalizeInventoryMode(runtime.inventory_mode);
+  const dynamicInventory = inventoryMode === 'dynamic_endpoint'
+    ? normalizeDynamicInventory(runtime.dynamic_inventory, provider)
+    : null;
+
+  if (inventoryMode === 'dynamic_endpoint') {
+    if ((Array.isArray(doc?.models) ? doc.models.length : 0) > 0) {
+      throw new Error(`${provider} dynamic_endpoint providers must not declare static models`);
+    }
+    if ((Array.isArray(doc?.selection_profiles) ? doc.selection_profiles.length : 0) > 0) {
+      throw new Error(`${provider} dynamic_endpoint providers must not declare selection_profiles`);
+    }
+    if (defaultTextModel) {
+      throw new Error(`${provider} dynamic_endpoint providers must not declare defaults.default_text_model`);
+    }
+    if ((Array.isArray(doc?.voice_sets) ? doc.voice_sets.length : 0) > 0
+      || (Array.isArray(doc?.voice_workflow_models) ? doc.voice_workflow_models.length : 0) > 0
+      || (Array.isArray(doc?.model_workflow_bindings) ? doc.model_workflow_bindings.length : 0) > 0
+      || (Array.isArray(doc?.voice_handle_policies) ? doc.voice_handle_policies.length : 0) > 0) {
+      throw new Error(`${provider} dynamic_endpoint providers must not declare voice/workflow catalog rows`);
+    }
+  }
 
   const voiceSets = new Map();
   for (const voiceSet of Array.isArray(doc?.voice_sets) ? doc.voice_sets : []) {
@@ -648,7 +722,7 @@ function generateProviderCatalog(doc) {
   const staticSetToModels = new Map();
   const dynamicSetAggregates = new Map();
 
-  for (const model of Array.isArray(doc?.models) ? doc.models : []) {
+  for (const model of inventoryMode === 'static_source' && Array.isArray(doc?.models) ? doc.models : []) {
     const canonicalModelID = normalizeString(model?.model_id);
     if (!canonicalModelID) {
       throw new Error(`${provider} model entry missing model_id`);
@@ -868,20 +942,27 @@ function generateProviderCatalog(doc) {
   }
 
   const modelIndex = new Map(modelsOut.map((model) => [normalizeString(model.model_id).toLowerCase(), model]));
-  const selectionProfilesOut = normalizeSelectionProfiles(doc?.selection_profiles, provider, modelIndex);
-  const derivedDefaultTextModel = selectionProfileModelID(selectionProfilesOut, 'text.general');
+  const selectionProfilesOut = inventoryMode === 'static_source'
+    ? normalizeSelectionProfiles(doc?.selection_profiles, provider, modelIndex)
+    : [];
+  const derivedDefaultTextModel = inventoryMode === 'static_source'
+    ? selectionProfileModelID(selectionProfilesOut, 'text.general')
+    : '';
   if (
-    derivedDefaultTextModel
+    inventoryMode === 'static_source'
+    && derivedDefaultTextModel
     && defaultTextModel
     && derivedDefaultTextModel.toLowerCase() !== defaultTextModel.toLowerCase()
   ) {
     throw new Error(`${provider} defaults.default_text_model must match selection_profiles[text.general]`);
   }
-  const projectedDefaultTextModel = derivedDefaultTextModel || defaultTextModel;
+  const projectedDefaultTextModel = inventoryMode === 'static_source'
+    ? (derivedDefaultTextModel || defaultTextModel)
+    : '';
 
   const workflowModelTypeByID = new Map();
   const workflowModelsOut = [];
-  for (const workflowModel of Array.isArray(doc?.voice_workflow_models) ? doc.voice_workflow_models : []) {
+  for (const workflowModel of inventoryMode === 'static_source' && Array.isArray(doc?.voice_workflow_models) ? doc.voice_workflow_models : []) {
     const workflowModelID = normalizeString(workflowModel?.workflow_model_id);
     if (!workflowModelID) {
       throw new Error(`${provider} voice_workflow_models entry missing workflow_model_id`);
@@ -933,7 +1014,7 @@ function generateProviderCatalog(doc) {
   }
 
   const modelWorkflowBindingsOut = [];
-  for (const binding of Array.isArray(doc?.model_workflow_bindings) ? doc.model_workflow_bindings : []) {
+  for (const binding of inventoryMode === 'static_source' && Array.isArray(doc?.model_workflow_bindings) ? doc.model_workflow_bindings : []) {
     const modelID = normalizeString(binding?.model_id);
     if (!modelID) {
       throw new Error(`${provider} model_workflow_bindings entry missing model_id`);
@@ -977,7 +1058,7 @@ function generateProviderCatalog(doc) {
   }
 
   const voiceHandlePoliciesOut = [];
-  for (const policy of Array.isArray(doc?.voice_handle_policies) ? doc.voice_handle_policies : []) {
+  for (const policy of inventoryMode === 'static_source' && Array.isArray(doc?.voice_handle_policies) ? doc.voice_handle_policies : []) {
     const policyID = normalizeString(policy?.policy_id);
     if (!policyID) {
       throw new Error(`${provider} voice_handle_policies entry missing policy_id`);
@@ -1026,14 +1107,22 @@ function generateProviderCatalog(doc) {
     throw new Error(`${provider} voice_workflow_models require voice_handle_policies`);
   }
 
+  if (inventoryMode === 'static_source' && modelsOut.length === 0) {
+    throw new Error(`${provider} static_source providers must declare models`);
+  }
+
   const result = {
     version: 1,
     provider,
     catalog_version: catalogVersion,
+    inventory_mode: inventoryMode,
     default_text_model: projectedDefaultTextModel || undefined,
     models: modelsOut,
     voices: voicesOut,
   };
+  if (dynamicInventory) {
+    result.dynamic_inventory = dynamicInventory;
+  }
   if (selectionProfilesOut.length > 0) {
     result.selection_profiles = selectionProfilesOut;
   }

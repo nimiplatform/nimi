@@ -231,7 +231,7 @@ If cover art is selected, upload it separately and append it to the post media a
 | Capability | Required for P0 | Example providers |
 |-----------|------------------|-------------------|
 | Text generation | Yes | OpenAI, DeepSeek, Anthropic |
-| Music generation | Yes | Suno, Udio-style connector path if available upstream |
+| Music generation | Yes | Stability, Udio-style connector path if available upstream |
 | Image generation | No | OpenAI, Stability, Flux-compatible paths |
 | TTS | No | ElevenLabs, DashScope, OpenAI |
 | Voice clone/design | No | ElevenLabs-style custom voice paths |

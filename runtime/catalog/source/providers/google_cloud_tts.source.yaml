@@ -1,6 +1,6 @@
 schema_version: 3
 provider: google_cloud_tts
-catalog_version: 2026-03-05-google-cloud-tts-v1
+catalog_version: 2026-04-18-google-cloud-tts-v2
 generated_target: runtime/catalog/providers/google_cloud_tts.yaml
 runtime:
   runtime_plane: remote
@@ -18,17 +18,37 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: Google Cloud Text-to-Speech pricing varies by voice family and region.
+    as_of: 2026-04-18
+    notes: Google Cloud Text-to-Speech pricing now varies by Chirp character billing versus Gemini-TTS token billing, plus region and quota surface.
 
 sources:
   - source_id: google_tts_doc
     url: https://cloud.google.com/text-to-speech/docs
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Google Cloud Text-to-Speech documentation.
+  - source_id: google_chirp3_hd_doc
+    url: https://cloud.google.com/text-to-speech/docs/chirp3-hd
+    retrieved_at: 2026-04-18
+    note: Chirp 3 HD voices guide and request examples.
+  - source_id: google_gemini_tts_doc
+    url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+    retrieved_at: 2026-04-18
+    note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - source_id: google_tts_release_notes
+    url: https://cloud.google.com/text-to-speech/docs/release-notes
+    retrieved_at: 2026-04-18
+    note: Release notes documenting Chirp 3 HD GA and Gemini-TTS GA.
+  - source_id: google_tts_pricing
+    url: https://cloud.google.com/text-to-speech/pricing?hl=en
+    retrieved_at: 2026-04-18
+    note: Pricing page covering Chirp 3 HD character pricing and Gemini-TTS token pricing.
+  - source_id: google_tts_endpoints
+    url: https://cloud.google.com/text-to-speech/docs/endpoints
+    retrieved_at: 2026-04-18
+    note: Regional endpoint matrix showing both Chirp 3 HD and Gemini-TTS availability.
   - source_id: google_instant_custom_voice_doc
     url: https://cloud.google.com/text-to-speech/docs/chirp3-instant-custom-voice
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Instant Custom Voice is tracked as deferred provider extension in this phase.
 
 language_profiles:
@@ -37,7 +57,7 @@ language_profiles:
 voice_sets:
   - voice_set_id: chirp3-defaults-v1
     langs_ref: short_multilingual_v1
-    source_ids: [google_tts_doc]
+    source_ids: [google_tts_doc, google_chirp3_hd_doc, google_gemini_tts_doc]
     voices:
       - voice_id: en-US-Chirp3-HD-Charon
         name: Charon
@@ -54,8 +74,15 @@ voice_sets:
 
 models:
   - model_id: chirp-3-hd
-    updated_at: 2026-03-05
-    source_ids: [google_tts_doc]
+    updated_at: 2026-04-18
+    source_ids: [google_tts_doc, google_chirp3_hd_doc, google_tts_release_notes, google_tts_pricing, google_tts_endpoints]
+    pricing:
+      unit: char
+      input: "30.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Chirp 3 HD voices are billed at $30 per 1M input characters after the free tier.
     voice:
       discovery_mode: static_catalog
       voice_set_ref: chirp3-defaults-v1
@@ -64,6 +91,48 @@ models:
       request_options:
         timing_modes: [none]
         audio_formats: [mp3, ogg, wav, mulaw, alaw]
+        supports_language: true
+    aliases:
+      - chirp3-hd
+
+  - model_id: gemini-2.5-flash-tts
+    updated_at: 2026-04-18
+    source_ids: [google_gemini_tts_doc, google_tts_release_notes, google_tts_pricing, google_tts_endpoints]
+    pricing:
+      unit: token
+      input: "0.50"
+      output: "10.00"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Gemini 2.5 Flash TTS input text tokens at $0.50 and output audio tokens at $10.00 per 1M tokens.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: chirp3-defaults-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, ogg, wav, mulaw, alaw, pcm]
+        supports_language: true
+
+  - model_id: gemini-2.5-pro-tts
+    updated_at: 2026-04-18
+    source_ids: [google_gemini_tts_doc, google_tts_release_notes, google_tts_pricing, google_tts_endpoints]
+    pricing:
+      unit: token
+      input: "1.00"
+      output: "20.00"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Gemini 2.5 Pro TTS input text tokens at $1.00 and output audio tokens at $20.00 per 1M tokens.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: chirp3-defaults-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, ogg, wav, mulaw, alaw, pcm]
         supports_language: true
 
 overrides:

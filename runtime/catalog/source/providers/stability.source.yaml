@@ -1,6 +1,6 @@
 schema_version: 3
 provider: stability
-catalog_version: 2026-03-13-stability-v2
+catalog_version: 2026-04-18-stability-image-v3
 generated_target: runtime/catalog/providers/stability.yaml
 runtime:
   runtime_plane: remote
@@ -17,47 +17,89 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: Stability AI pricing varies by model, resolution, and account plan.
+    as_of: 2026-04-18
+    notes: Stability AI pricing varies by endpoint family, credits, request shape, and account plan.
 
 sources:
   - source_id: stability_api_doc
-    url: https://platform.stability.ai/docs/api-reference
-    retrieved_at: 2026-03-13
-    note: Stability AI API reference.
+    url: https://platform.stability.ai/docs/getting-started
+    retrieved_at: 2026-04-18
+    note: Stability AI Platform API getting-started surface.
+  - source_id: stability_api_price_update
+    url: https://stability.ai/api-pricing-update-25
+    retrieved_at: 2026-04-18
+    note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+  - source_id: stability_sd35_bedrock_update
+    url: https://stability.ai/news-updates/stable-diffusion-35-large-is-now-available-on-amazon-bedrock
+    retrieved_at: 2026-04-18
+    note: Official announcement describing SD3.5 Large, Stable Image Ultra, and Stable Image Core as current image offerings.
+  - source_id: stability_aspect_ratio_guide
+    url: https://kb.stability.ai/knowledge-base/understanding-aspect-ratios-in-our-apis
+    retrieved_at: 2026-04-18
+    note: Official support guide listing current image endpoints that accept aspect ratios.
+  - source_id: stability_workflow_integration_guide
+    url: https://kb.stability.ai/knowledge-base/integrating-stability-ai-with-zapier
+    retrieved_at: 2026-04-18
+    note: Official workflow guide documenting current recommended v2 Stable Image endpoints.
   - source_id: stability_audio_to_audio_guide
     url: https://kb.stability.ai/knowledge-base/tips-for-using-the-audio-to-audio-api
     retrieved_at: 2026-03-13
     note: Stability AI Stable Audio audio-to-audio guidance.
 
 models:
-  - model_id: stable-diffusion-3.5-large
+  - model_id: stable-image-core
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by resolution and quality.
-    source_ids: [stability_api_doc]
+      as_of: 2026-04-18
+      notes: Current Stability task-specific image endpoint optimized for fast and affordable generation; public materials do not expose a single stable per-request price table in this source.
+    source_ids: [stability_api_price_update, stability_sd35_bedrock_update, stability_aspect_ratio_guide, stability_workflow_integration_guide]
+
+  - model_id: stable-image-ultra
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current Stability high-detail image endpoint based on SD3.5 capabilities; public materials do not expose a single stable per-request price table in this source.
+    source_ids: [stability_api_price_update, stability_sd35_bedrock_update, stability_aspect_ratio_guide, stability_workflow_integration_guide]
+
+  - model_id: stable-diffusion-3.5-large
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Active Stable Diffusion 3.5 base-family image model retained alongside newer Stable Image service endpoints.
+    source_ids: [stability_api_price_update, stability_sd35_bedrock_update, stability_aspect_ratio_guide]
     aliases:
       - sd3.5-large
 
   - model_id: stable-diffusion-3.5-medium
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by resolution and quality.
-    source_ids: [stability_api_doc]
+      as_of: 2026-04-18
+      notes: Active Stable Diffusion 3.5 medium base-family image model retained as the lighter parallel SD3.5 row.
+    source_ids: [stability_api_price_update, stability_sd35_bedrock_update]
     aliases:
       - sd3.5-medium
 

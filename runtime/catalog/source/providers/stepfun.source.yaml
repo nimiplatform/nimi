@@ -1,6 +1,6 @@
 schema_version: 3
 provider: stepfun
-catalog_version: 2026-03-10-stepfun-v3
+catalog_version: 2026-04-18-stepfun-multifamily-v4
 generated_target: runtime/catalog/providers/stepfun.yaml
 runtime:
   runtime_plane: remote
@@ -18,34 +18,62 @@ defaults:
     unit: token
     input: unknown
     output: unknown
-    currency: CNY
-    as_of: 2026-03-05
-    notes: StepFun pricing varies by model family and context window size.
+    currency: USD
+    as_of: 2026-04-18
+    notes: StepFun pricing is published per family; current public rates are explicit for reasoning and speech, while other admitted rows remain usage-described without row-level public pricing.
 
 sources:
+  - source_id: stepfun_basic_concepts_doc
+    url: https://platform.stepfun.ai/docs/en/guides/basic-concepts
+    retrieved_at: 2026-04-18
+    note: StepFun current basic concepts page summarizing reasoning and audio model families.
   - source_id: stepfun_model_overview
-    url: https://platform.stepfun.ai/docs/en/llm/reasoning
-    retrieved_at: 2026-03-10
-    note: StepFun reasoning model overview.
-  - source_id: stepfun_pricing
-    url: https://platform.stepfun.ai/docs/en/pricing/details
-    retrieved_at: 2026-03-10
-    note: StepFun model pricing details.
+    url: https://platform.stepfun.ai/docs/en/llm/modeloverview
+    retrieved_at: 2026-04-18
+    note: StepFun current public model capability overview across text, vision, image, and audio families.
+  - source_id: stepfun_reasoning_models_doc
+    url: https://platform.stepfun.ai/docs/en/guides/models/reasoning
+    retrieved_at: 2026-04-18
+    note: StepFun current reasoning model guide.
+  - source_id: stepfun_text_models_doc
+    url: https://platform.stepfun.ai/docs/en/guides/models/text
+    retrieved_at: 2026-04-18
+    note: StepFun current text model guide.
+  - source_id: stepfun_vision_models_doc
+    url: https://platform.stepfun.ai/docs/en/llm/vision
+    retrieved_at: 2026-04-18
+    note: StepFun current vision model guide.
+  - source_id: stepfun_video_guide
+    url: https://platform.stepfun.ai/docs/en/guides/developer/video-chat
+    retrieved_at: 2026-04-18
+    note: StepFun current video understanding developer guide confirming step-1o-turbo-vision usage.
+  - source_id: stepfun_pricing_doc
+    url: https://platform.stepfun.ai/docs/en/guides/pricing/details
+    retrieved_at: 2026-04-18
+    note: StepFun current pricing and rate limits page.
   - source_id: stepfun_tts_doc
-    url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-    retrieved_at: 2026-03-10
-    note: StepFun TTS API reference with preset voices and extra_body controls.
+    url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+    retrieved_at: 2026-04-18
+    note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - source_id: stepfun_tts_voice_guide
+    url: https://platform.stepfun.ai/docs/en/guides/developer/tts
+    retrieved_at: 2026-04-18
+    note: StepFun current speech-synthesis guide with built-in voice recommendations and IDs.
+  - source_id: stepfun_voice_list_doc
+    url: https://platform.stepfun.ai/docs/en/api-reference/audio/list-voice
+    retrieved_at: 2026-04-18
+    note: StepFun cloned voice listing API; built-in voices are documented separately in the speech-synthesis guide.
   - source_id: stepfun_voice_clone_doc
-    url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_voice
-    retrieved_at: 2026-03-10
+    url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-voice
+    retrieved_at: 2026-04-18
     note: StepFun voice cloning API requiring model, text transcript, and file_id.
   - source_id: stepfun_file_upload_doc
-    url: https://platform.stepfun.ai/docs/en/api-reference/files/create
-    retrieved_at: 2026-03-10
+    url: https://platform.stepfun.ai/docs/en/api-reference/files/upload-file
+    retrieved_at: 2026-04-18
     note: StepFun file upload API used to obtain file_id with purpose=storage.
   - source_id: stepfun_image_doc
-    url: https://platform.stepfun.ai/docs/en/llm/image
-    retrieved_at: 2026-03-10
+    url: https://platform.stepfun.ai/docs/en/guides/models/image
+    retrieved_at: 2026-04-18
     note: StepFun image model overview and API references.
 
 language_profiles:
@@ -55,210 +83,311 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: step-3.5-flash
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Best current StepFun flagship text route in the admitted set.
+    rationale: Current flagship StepFun reasoning route for broad complex text workloads.
   - profile_id: text.fast
     capability: text.generate
     model_id: step-2-mini
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Ultra-fast StepFun text route for latency-sensitive tasks.
+    rationale: Current lowest-latency admitted StepFun text route for general and coding-heavy workloads.
+  - profile_id: text.reasoning
+    capability: text.generate
+    model_id: step-3.5-flash
+    reviewed_at: 2026-04-18
+    freshness_sla_days: 21
+    rationale: StepFun's current flagship general-purpose reasoning model, while step-3.5-flash-2603 stays admitted as the optimized agentic variant.
 
 voice_sets:
   - voice_set_id: tts_2_voice_set
     langs_ref: tts_langs_v1
-    source_ids: [stepfun_tts_doc]
+    source_ids: [stepfun_tts_doc, stepfun_tts_voice_guide]
     voices:
+      - voice_id: lively-girl
+        name: Lively Girl
+      - voice_id: livelybreezy-female
+        name: Lively Breezy
+      - voice_id: elegantgentle-female
+        name: Elegant Gentle
+      - voice_id: qingchunshaonv
+        name: Pure Girl
+      - voice_id: zhengpaiqingnian
+        name: Upright Youth
+      - voice_id: shuangkuainansheng
+        name: Straightforward Male
+      - voice_id: ganliannvsheng
+        name: Capable Female
+      - voice_id: qinhenvsheng
+        name: Warm Female
+      - voice_id: huolinvsheng
+        name: Energetic Female
+      - voice_id: wenrounansheng
+        name: Gentle Male
+      - voice_id: jingdiannvsheng
+        name: Classic Female
+      - voice_id: wenroushunv
+        name: Mature Gentle
+      - voice_id: tianmeinvsheng
+        name: Sweet Female
+      - voice_id: yuanqinansheng
+        name: Spirited Male
+      - voice_id: ruyananshi
+        name: Scholarly Gentleman
+      - voice_id: wenrounvsheng
+        name: Gentle Female
+      - voice_id: wenrougongzi
+        name: Tender Gentleman
       - voice_id: cixingnansheng
-        name: 磁性男声
-      - voice_id: zhixingnansheng
-        name: 知性男声
-      - voice_id: yangguangnanhai
-        name: 阳光男孩
-      - voice_id: shenchennansheng
-        name: 深沉男声
-      - voice_id: qingniannansheng
-        name: 青年男声
-      - voice_id: wenrouyujie
-        name: 温柔御姐
-      - voice_id: huopotongxue
-        name: 活泼同学
-      - voice_id: tiemeinvsheng
-        name: 甜美女声
-      - voice_id: wenjingnvsheng
-        name: 文静女声
-      - voice_id: gaolengyujie
-        name: 高冷御姐
-      - voice_id: keaidaniang
-        name: 可爱大娘
-      - voice_id: dongmannvsheng
-        name: 动漫女声
-      - voice_id: riqinvsheng
-        name: 日系女声
-      - voice_id: yuanqinvhai
-        name: 元气女孩
-      - voice_id: jilixiaojie
-        name: 吉利小姐
-      - voice_id: lunandajie
-        name: 鲁南大姐
-      - voice_id: dongbeidage
-        name: 东北大哥
-      - voice_id: taiwannansheng
-        name: 台湾男声
-      - voice_id: taiwannvsheng
-        name: 台湾女声
-      - voice_id: guangdongnansheng
-        name: 广东男声
-      - voice_id: sichuannansheng
-        name: 四川男声
-      - voice_id: child_male_01
-        name: 男童声
-      - voice_id: child_female_01
-        name: 女童声
-      - voice_id: narrator_male_01
-        name: 旁白男声
-      - voice_id: narrator_female_01
-        name: 旁白女声
-      - voice_id: newscast_male_01
-        name: 新闻男声
-      - voice_id: newscast_female_01
-        name: 新闻女声
-      - voice_id: storyteller_male_01
-        name: 故事男声
-      - voice_id: storyteller_female_01
-        name: 故事女声
-      - voice_id: customer_service_01
-        name: 客服女声
-      - voice_id: english_male_01
-        name: English Male
-      - voice_id: english_female_01
-        name: English Female
-      - voice_id: japanese_male_01
-        name: 日本語男声
-      - voice_id: japanese_female_01
-        name: 日本語女声
-      - voice_id: cantonese_female_01
-        name: 粤语女声
+        name: Magnetic Male
+      - voice_id: yuanqishaonv
+        name: Spirited Girl
+      - voice_id: boyinnansheng
+        name: Broadcast Male
+      - voice_id: soft-spoken-gentleman
+        name: Soft-spoken Gentleman
+      - voice_id: qinqienvsheng
+        name: Friendly Female
+      - voice_id: linjiajiejie
+        name: Girl Next Door
+      - voice_id: shenchennanyin
+        name: Deep Male
+      - voice_id: ruanmengnvsheng
+        name: Cute Soft Female
+      - voice_id: jilingshaonv
+        name: Clever Girl
+
 models:
   # --- Chat / Text Models ---
-  - model_id: step-3.5-flash
+  - model_id: step-3.5-flash-2603
     model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate, text.generate.vision]
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
     pricing:
       unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Flagship reasoning model with 256K context. Supports tool calling and web search.
-    source_ids: [stepfun_model_overview, stepfun_pricing]
+      input: "0.10"
+      output: "0.30"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current optimized StepFun reasoning model for high-frequency agent workflows. Cache-hit input pricing is $0.02 per 1M tokens.
+    source_ids: [stepfun_reasoning_models_doc, stepfun_pricing_doc]
+
+  - model_id: step-3.5-flash
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: "0.10"
+      output: "0.30"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current flagship general-purpose reasoning model with 256K context. Cache-hit input pricing is $0.02 per 1M tokens.
+    source_ids: [stepfun_reasoning_models_doc, stepfun_model_overview, stepfun_pricing_doc]
 
   - model_id: step-3
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Multimodal reasoning model with 64K context.
-    source_ids: [stepfun_model_overview, stepfun_pricing]
+    source_ids: [stepfun_model_overview]
 
   - model_id: step-r1-v-mini
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Visual reasoning model with 100K context.
-    source_ids: [stepfun_model_overview, stepfun_pricing]
+    source_ids: [stepfun_model_overview]
 
   - model_id: step-2-mini
     model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate, text.generate.vision]
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Ultra-fast cost-effective model with 32K context.
-    source_ids: [stepfun_model_overview, stepfun_pricing]
-    aliases:
-      - step-2-16k
-      - step-1o-turbo-vision
-      - step-1o-vision-32k
-      - step-1v-8k
-      - step-1v-32k
-      - step-1-8k
-      - step-1-32k
-      - step-1-256k
+    source_ids: [stepfun_text_models_doc, stepfun_model_overview]
+
+  - model_id: step-2-16k
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Production step-2 text model with stronger overall quality and planning capability.
+    source_ids: [stepfun_text_models_doc, stepfun_model_overview]
+
+  - model_id: step-1-8k
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Short-context step-1 text model for general generation, Q&A, and tool-oriented workflows.
+    source_ids: [stepfun_text_models_doc, stepfun_model_overview]
+
+  - model_id: step-1-32k
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Mid-context step-1 text model for longer conversations and document-heavy tasks.
+    source_ids: [stepfun_text_models_doc, stepfun_model_overview]
+
+  - model_id: step-1-256k
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Long-context step-1 text model for large documents and extended histories.
+    source_ids: [stepfun_text_models_doc, stepfun_model_overview]
+
+  - model_id: step-1o-turbo-vision
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Recommended StepFun vision model for image and video understanding with lighter footprint and faster output.
+    source_ids: [stepfun_vision_models_doc, stepfun_video_guide, stepfun_model_overview]
+
+  - model_id: step-1o-vision-32k
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Strong image-understanding model positioned above the step-1v series in visual quality.
+    source_ids: [stepfun_vision_models_doc, stepfun_model_overview]
+
+  - model_id: step-1v-8k
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Short-context step-1v vision model for image Q&A and visual analysis.
+    source_ids: [stepfun_vision_models_doc, stepfun_model_overview]
+
+  - model_id: step-1v-32k
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Longer-context step-1v vision model for more images and longer histories.
+    source_ids: [stepfun_vision_models_doc, stepfun_model_overview]
 
   # --- TTS Models ---
   - model_id: step-tts-2
     model_type: tts
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: tts_2_voice_set
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: tts_langs_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, opus, aac, flac, wav, pcm]
+        supports_language: true
     pricing:
       unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Current documented StepFun audio model with preset voices and voice cloning support.
-    source_ids: [stepfun_tts_doc]
+      input: "0"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current overseas API-admitted TTS and voice-cloning model. Official pricing page lists step-tts-2 as free for a limited time.
+    source_ids: [stepfun_basic_concepts_doc, stepfun_tts_doc, stepfun_tts_voice_guide, stepfun_pricing_doc]
 
   # --- Image Models ---
   - model_id: step-1x-medium
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Text-to-image and image-to-image, up to 1280x800.
     source_ids: [stepfun_image_doc]
 
   - model_id: step-1x-edit
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Image editing model.
     source_ids: [stepfun_image_doc]
 
   - model_id: step-2x-large
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Next-generation text-to-image model.
     source_ids: [stepfun_image_doc]
 

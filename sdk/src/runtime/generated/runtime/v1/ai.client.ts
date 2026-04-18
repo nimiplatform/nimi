@@ -14,8 +14,8 @@ import type { OpenRealtimeSessionRequest } from "./ai";
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeAiService } from "./ai";
-import type { PeekSchedulingResponse } from "./ai";
-import type { PeekSchedulingRequest } from "./ai";
+import type { PeekSchedulingResponse } from "./ai_scheduling";
+import type { PeekSchedulingRequest } from "./ai_scheduling";
 import type { UploadArtifactResponse } from "./ai";
 import type { UploadArtifactRequest } from "./ai";
 import type { ClientStreamingCall } from "@protobuf-ts/runtime-rpc";
@@ -47,6 +47,11 @@ import type { ExecuteScenarioResponse } from "./ai";
 import type { ExecuteScenarioRequest } from "./ai";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
+// Removed messages: ListTokenProviderModelsRequest (fields 1-5),
+// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
+// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
+// CheckTokenProviderHealthResponse (fields 1-2).
+
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAiService
  */
@@ -110,6 +115,11 @@ export interface IRuntimeAiServiceClient {
      */
     peekScheduling(input: PeekSchedulingRequest, options?: RpcOptions): UnaryCall<PeekSchedulingRequest, PeekSchedulingResponse>;
 }
+// Removed messages: ListTokenProviderModelsRequest (fields 1-5),
+// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
+// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
+// CheckTokenProviderHealthResponse (fields 1-2).
+
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAiService
  */

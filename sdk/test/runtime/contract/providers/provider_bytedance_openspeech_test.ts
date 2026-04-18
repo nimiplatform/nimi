@@ -117,7 +117,7 @@ test('provider_bytedance_openspeech_test.ts: bytedance openspeech tts/stt via ni
           timeoutMs: 30_000,
         });
 
-        const ttsResult = await provider.tts('volcengine/tts-1').synthesize({
+        const ttsResult = await provider.tts('volcengine_openspeech/volc.service_type.10029').synthesize({
           text: 'hello bytedance',
         });
         assert.equal(ttsResult.artifacts.length, 1);
@@ -126,7 +126,7 @@ test('provider_bytedance_openspeech_test.ts: bytedance openspeech tts/stt via ni
           'bytedance-tts-audio',
         );
 
-        const sttResult = await provider.stt('volcengine/stt-1').transcribe({
+        const sttResult = await provider.stt('volcengine_openspeech/volc.bigasr.auc_turbo').transcribe({
           audioBytes: Uint8Array.from([1, 2, 3, 4]),
           mimeType: 'audio/wav',
         });

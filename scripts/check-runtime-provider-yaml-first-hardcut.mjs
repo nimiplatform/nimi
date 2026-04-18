@@ -82,13 +82,16 @@ function main() {
 
   const listConnectorModelsBody = extractFunctionBody(connectorService, 'ListConnectorModels');
   if (!/\blistCatalogConnectorModels\(\s*[^,]+,\s*rec\.Provider\s*\)/u.test(listConnectorModelsBody)) {
-    fail(`${rel(connectorServicePath)} ListConnectorModels must read from catalog resolver`);
+    fail(`${rel(connectorServicePath)} ListConnectorModels must keep static_source catalog read path`);
   }
-  if (listConnectorModelsBody.includes('ListModels(')) {
-    fail(`${rel(connectorServicePath)} ListConnectorModels must not call backend.ListModels`);
+  if (!listConnectorModelsBody.includes('InventoryMode == "dynamic_endpoint"')) {
+    fail(`${rel(connectorServicePath)} ListConnectorModels must branch on dynamic_endpoint inventory mode`);
   }
-  if (listConnectorModelsBody.includes('LoadCredential(')) {
-    fail(`${rel(connectorServicePath)} ListConnectorModels must not load connector credentials`);
+  if (!connectorService.includes('func (s *Service) listDynamicConnectorModels(') || !connectorService.includes('backend.ListModels(ctx)')) {
+    fail(`${rel(connectorServicePath)} dynamic ListConnectorModels helper must call backend.ListModels`);
+  }
+  if (!connectorService.includes('LoadCredential(')) {
+    fail(`${rel(connectorServicePath)} dynamic ListConnectorModels path must load connector credentials`);
   }
 
   if (voiceMethods.includes('ListSpeechVoices(')) {

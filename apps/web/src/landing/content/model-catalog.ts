@@ -387,9 +387,8 @@ export const MODEL_CATALOG_PROVIDERS: ModelCatalogProvider[] = [
   {
     provider: 'volcengine',
     runtimePlane: 'cloud',
-    capabilities: ['audio.synthesize', 'image.generate', 'text.embed', 'text.generate', 'video.generate'],
+    capabilities: ['image.generate', 'text.embed', 'text.generate', 'video.generate'],
     models: [
-      'doubao-tts',
       'seedance-1-5-pro',
       'seedance-1.5-pro',
       'seedance_v1_5_pro',
@@ -411,6 +410,12 @@ export const MODEL_CATALOG_PROVIDERS: ModelCatalogProvider[] = [
       'seedream-5.0',
       'doubao-seedream-4-5-251128',
     ],
+  },
+  {
+    provider: 'volcengine_openspeech',
+    runtimePlane: 'cloud',
+    capabilities: ['audio.synthesize', 'audio.transcribe'],
+    models: ['volc.service_type.10029', 'doubao-tts', 'volc.bigasr.auc_turbo', 'doubao-asr-flash'],
   },
   {
     provider: 'xai',

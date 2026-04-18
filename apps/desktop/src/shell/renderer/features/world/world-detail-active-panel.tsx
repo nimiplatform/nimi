@@ -1,11 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { WorldDetail } from './world-detail';
-import { worldDetailWithAgentsQueryKey, worldListQueryKey } from './world-detail-queries';
-import { toWorldListItem } from './world-list-model';
+import {
+  fetchWorldListItems,
+  type WorldPrimaryDetailRecord,
+  worldDetailWithAgentsQueryKey,
+  worldListQueryKey,
+} from './world-detail-queries';
+import { toWorldListItem, toWorldListItemFromTruth } from './world-list-model';
 import { WorldDetailSkeletonPage } from './world-detail-route-state';
 
 export function WorldDetailActivePanel() {
@@ -18,7 +22,7 @@ export function WorldDetailActivePanel() {
     ? cachedWorlds?.find((item) => item.id === selectedWorldId) ?? null
     : null;
   const cachedWorldDetail = selectedWorldId
-    ? queryClient.getQueryData<Awaited<ReturnType<typeof dataSync.loadWorldDetailWithAgents>>>(
+    ? queryClient.getQueryData<WorldPrimaryDetailRecord>(
       worldDetailWithAgentsQueryKey(selectedWorldId),
     )
     : null;
@@ -26,10 +30,7 @@ export function WorldDetailActivePanel() {
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
-    queryFn: async () => {
-      const result = await dataSync.loadWorlds();
-      return result.map((item) => toWorldListItem(item));
-    },
+    queryFn: async () => (await fetchWorldListItems()).map((item) => toWorldListItemFromTruth(item)),
     enabled: authStatus === 'authenticated' && Boolean(selectedWorldId),
     initialData: cachedWorlds ?? undefined,
     staleTime: 30_000,

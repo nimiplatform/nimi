@@ -55,7 +55,7 @@ function inferCanonicalLocalEngine(
 
 function firstAvailableBinding(
   localModels: RuntimeRouteLocalOption[],
-  connectors: RuntimeRouteConnectorOption[],
+  _connectors: RuntimeRouteConnectorOption[],
 ): RuntimeRouteBinding | null {
   if (localModels.length > 0) {
     const firstLocal = localModels[0]!;
@@ -72,18 +72,6 @@ function firstAvailableBinding(
       endpoint: firstLocal.endpoint,
       goRuntimeLocalModelId: firstLocal.goRuntimeLocalModelId,
       goRuntimeStatus: firstLocal.goRuntimeStatus,
-    };
-  }
-  for (const connector of connectors) {
-    const model = String(connector.models[0] || '').trim();
-    if (!model) {
-      continue;
-    }
-    return {
-      source: 'cloud',
-      connectorId: connector.id,
-      model,
-      provider: String(connector.provider || '').trim() || undefined,
     };
   }
   return null;

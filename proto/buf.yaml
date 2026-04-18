@@ -7,6 +7,7 @@ lint:
   ignore_only:
     PACKAGE_DIRECTORY_MATCH:
       - runtime/v1/ai.proto
+      - runtime/v1/ai_scheduling.proto
       - runtime/v1/app.proto
       - runtime/v1/agent_core.proto
       - runtime/v1/audit.proto

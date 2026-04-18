@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { hydrateLocalRuntimeBinding } from '../src/shell/renderer/features/tester/tester-route.js';
+import { hydrateLocalRuntimeBinding, resolveEffectiveBinding } from '../src/shell/renderer/features/tester/tester-route.js';
 import type { RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/mod';
 
 test('tester local binding hydration rewrites stale ULID model fields to the authoritative assetId', () => {
@@ -44,4 +44,27 @@ test('tester local binding hydration rewrites stale ULID model fields to the aut
   assert.equal(hydrated?.modelId, 'local-import/z_image_turbo-Q4_K');
   assert.equal(hydrated?.localModelId, '01KN7DNKEEJ3T7WYSW7BBEZ7ZZ');
   assert.equal(hydrated?.goRuntimeStatus, 'installed');
+});
+
+test('tester route resolution stays fail-closed when no explicit cloud binding exists', () => {
+  const snapshot: RuntimeRouteOptionsSnapshot = {
+    capability: 'text.generate',
+    selected: null,
+    resolvedDefault: undefined,
+    local: {
+      models: [],
+      defaultEndpoint: undefined,
+    },
+    connectors: [{
+      id: 'connector-openrouter',
+      label: 'OpenRouter',
+      provider: 'openrouter',
+      models: ['openai/gpt-4.1'],
+      modelCapabilities: {
+        'openai/gpt-4.1': ['text.generate'],
+      },
+    }],
+  };
+
+  assert.equal(resolveEffectiveBinding(snapshot, null), null);
 });

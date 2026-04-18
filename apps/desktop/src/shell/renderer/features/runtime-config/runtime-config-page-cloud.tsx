@@ -243,6 +243,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
     () => Boolean(selectedConnectorId) && tokenDraft.trim().length > 0 && !savingToken,
     [savingToken, tokenDraft, selectedConnectorId],
   );
+  const selectedProviderCatalogEntry = useMemo(
+    () => providerCatalog.find((entry) => entry.provider === selectedConnector?.provider) || null,
+    [providerCatalog, selectedConnector?.provider],
+  );
 
   const reportError = useCallback((label: string, error: unknown) => {
     model.setPageFeedback({
@@ -619,6 +623,18 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   />
                 )}
               </div>
+              {selectedProviderCatalogEntry?.inventoryMode === 'dynamic_endpoint' ? (
+                <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-4 py-3">
+                  <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
+                    {t('runtimeConfig.cloud.liveInventoryTitle', { defaultValue: 'Live inventory provider' })}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                    {t('runtimeConfig.cloud.liveInventoryHint', {
+                      defaultValue: 'This provider loads models from the connector endpoint at runtime. Configure an explicit default model or choose a live model in route/chat settings.',
+                    })}
+                  </p>
+                </div>
+              ) : null}
 
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-2 pt-2">

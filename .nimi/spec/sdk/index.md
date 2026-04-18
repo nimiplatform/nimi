@@ -11,6 +11,7 @@
 | 文档 | 包子路径 | 说明 |
 |---|---|---|
 | [runtime.md](runtime.md) | `@nimiplatform/sdk/runtime` | Runtime SDK 投影（初始化、模块编排、gRPC/Tauri IPC 传输） |
+| [world.md](world.md) | `@nimiplatform/sdk/world` | World-domain facade（truth consume、generation/materialization orchestration、fixture package、renderer orchestration、world session composition） |
 | [ai-provider.md](ai-provider.md) | `@nimiplatform/sdk/ai-provider` | AI Provider SDK 投影（AI SDK v3 适配与 runtime 调用映射） |
 | [realm.md](realm.md) | `@nimiplatform/sdk/realm` | Realm SDK 投影（REST/WS facade、OpenAPI codegen） |
 | [scope.md](scope.md) | `@nimiplatform/sdk/scope` | Scope SDK 投影（catalog 生命周期与授权前置联动） |
@@ -32,13 +33,15 @@
 ## 4. 跨域依赖关系
 
 ```
-ai-provider → runtime   (继承 runtime transport，并通过 runtime 实例发起调用)
+ai-provider → runtime    (继承 runtime transport，并通过 runtime 实例发起调用)
+world → realm, runtime   (经 SDK public authority 组合世界真相读取与 runtime-backed generation/materialization)
 scope → runtime          (通过公开 runtime SDK 接口联动授权)
 realm                    (独立，仅依赖 kernel 规则)
 mod                      (独立，通过 host 注入获取能力)
 ```
 
 - `ai-provider` 必须持有 `runtime` 实例才能发起 RPC；transport 与 metadata 语义继承自 runtime。
+- `world` 通过 SDK public authority 组合 Realm world truth consume 与 Runtime-backed world generation / materialization；它不替代 `realm` 或 `runtime` 的 authority home。
 - `scope` 与 runtime 授权调用的联动仅通过公开 runtime SDK 接口，不引入私有依赖。
 - `realm` 与 `mod` 各自独立，不依赖其他 domain SDK。
 
@@ -47,6 +50,6 @@ mod                      (独立，通过 host 注入获取能力)
 | 阶段 | Domain | 说明 |
 |---|---|---|
 | Phase 1 (Active) | runtime, realm, ai-provider | 核心调用链已实现，spec 达到冻结就绪 |
-| Phase 2 (Defined) | scope, mod | 领域约束已定义，API 面待补充 |
+| Phase 2 (Defined) | world, scope, mod | 领域约束已定义，API 面待补充 |
 
 > 此处 Phase 指 SDK 域级激活阶段。runtime 域内各服务有独立的服务级 phase 分类，见 `kernel/tables/runtime-method-groups.yaml`。

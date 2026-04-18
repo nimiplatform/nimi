@@ -39,9 +39,13 @@ func ExecuteAWSPollyTTS(
 
 	voiceRef := strings.TrimSpace(scenarioVoiceRef(spec))
 	ext := scenarioExtensionPayloadForScenario(req)
+	engine := resolveAWSPollyEngine(modelResolved)
+	if engine == "" {
+		engine = "neural"
+	}
 	payload := map[string]any{
 		"Text":   strings.TrimSpace(spec.GetText()),
-		"Engine": StripProviderModelPrefix(modelResolved, "aws_polly", "aws-polly"),
+		"Engine": engine,
 	}
 	if voiceRef != "" {
 		payload["VoiceId"] = voiceRef
@@ -56,9 +60,6 @@ func ExecuteAWSPollyTTS(
 	}
 	if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
 		payload["LanguageCode"] = language
-	}
-	if len(ext) > 0 {
-		payload["extensions"] = ext
 	}
 
 	endpoint := FirstProviderEndpointPath(
@@ -82,8 +83,25 @@ func ExecuteAWSPollyTTS(
 		"adapter":    AdapterAWSPollyNative,
 		"endpoint":   endpoint,
 		"voice":      voiceRef,
+		"engine":     engine,
 		"extensions": ext,
 	})
 	ApplySpeechSpecMetadata(artifact, spec)
 	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 80), "", nil
+}
+
+func resolveAWSPollyEngine(modelResolved string) string {
+	resolved := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(modelResolved, "aws_polly", "aws-polly")))
+	switch resolved {
+	case "polly-standard-tts", "standard", "standard-tts":
+		return "standard"
+	case "polly-neural-tts", "neural", "neural-tts":
+		return "neural"
+	case "polly-long-form-tts", "long-form", "long-form-tts", "longform", "longform-tts":
+		return "long-form"
+	case "polly-generative-tts", "generative", "generative-tts":
+		return "generative"
+	default:
+		return resolved
+	}
 }

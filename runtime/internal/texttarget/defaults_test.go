@@ -176,6 +176,22 @@ func TestResolveProviderDefaultTextModelOmitsCLIInstructions(t *testing.T) {
 	}
 }
 
+func TestResolveProviderDefaultTextModelFailsClosedForDynamicProvider(t *testing.T) {
+	cfg := config.Config{
+		Providers: map[string]config.RuntimeFileTarget{
+			"openrouter": {},
+		},
+	}
+
+	_, _, err := ResolveProviderDefaultTextModel(cfg, "openrouter")
+	if err == nil {
+		t.Fatal("expected dynamic provider without explicit default model to fail")
+	}
+	if got := err.Error(); got != `provider "openrouter" uses dynamic inventory and requires explicit provider.defaultModel or route-selected model` {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestIsHighLevelQualifiedModel(t *testing.T) {
 	tests := []struct {
 		input string

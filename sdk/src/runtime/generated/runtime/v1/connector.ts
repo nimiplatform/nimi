@@ -312,6 +312,10 @@ export interface ProviderCatalogEntry {
      * @generated from protobuf field: bool managed_supported = 6
      */
     managedSupported: boolean;
+    /**
+     * @generated from protobuf field: string inventory_mode = 7
+     */
+    inventoryMode: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListProviderCatalogRequest
@@ -407,6 +411,10 @@ export interface ModelCatalogProviderEntry {
      * @generated from protobuf field: bool managed_supported = 19
      */
     managedSupported: boolean;
+    /**
+     * @generated from protobuf field: string inventory_mode = 20
+     */
+    inventoryMode: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListModelCatalogProvidersRequest
@@ -2090,7 +2098,8 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
             { no: 3, name: "requires_explicit_endpoint", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 4, name: "runtime_plane", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "execution_module", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "managed_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 6, name: "managed_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "inventory_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ProviderCatalogEntry>): ProviderCatalogEntry {
@@ -2101,6 +2110,7 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
         message.runtimePlane = "";
         message.executionModule = "";
         message.managedSupported = false;
+        message.inventoryMode = "";
         if (value !== undefined)
             reflectionMergePartial<ProviderCatalogEntry>(this, message, value);
         return message;
@@ -2127,6 +2137,9 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
                     break;
                 case /* bool managed_supported */ 6:
                     message.managedSupported = reader.bool();
+                    break;
+                case /* string inventory_mode */ 7:
+                    message.inventoryMode = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2158,6 +2171,9 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
         /* bool managed_supported = 6; */
         if (message.managedSupported !== false)
             writer.tag(6, WireType.Varint).bool(message.managedSupported);
+        /* string inventory_mode = 7; */
+        if (message.inventoryMode !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.inventoryMode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2275,7 +2291,8 @@ class ModelCatalogProviderEntry$Type extends MessageType<ModelCatalogProviderEnt
             { no: 16, name: "requires_explicit_endpoint", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 17, name: "runtime_plane", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 18, name: "execution_module", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 19, name: "managed_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 19, name: "managed_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 20, name: "inventory_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ModelCatalogProviderEntry>): ModelCatalogProviderEntry {
@@ -2299,6 +2316,7 @@ class ModelCatalogProviderEntry$Type extends MessageType<ModelCatalogProviderEnt
         message.runtimePlane = "";
         message.executionModule = "";
         message.managedSupported = false;
+        message.inventoryMode = "";
         if (value !== undefined)
             reflectionMergePartial<ModelCatalogProviderEntry>(this, message, value);
         return message;
@@ -2364,6 +2382,9 @@ class ModelCatalogProviderEntry$Type extends MessageType<ModelCatalogProviderEnt
                     break;
                 case /* bool managed_supported */ 19:
                     message.managedSupported = reader.bool();
+                    break;
+                case /* string inventory_mode */ 20:
+                    message.inventoryMode = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2434,6 +2455,9 @@ class ModelCatalogProviderEntry$Type extends MessageType<ModelCatalogProviderEnt
         /* bool managed_supported = 19; */
         if (message.managedSupported !== false)
             writer.tag(19, WireType.Varint).bool(message.managedSupported);
+        /* string inventory_mode = 20; */
+        if (message.inventoryMode !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.inventoryMode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -1,113 +1,14 @@
 version: 1
 provider: perplexity
-catalog_version: 2026-03-18-perplexity-v2
-default_text_model: sonar-pro
-models:
-  - model_id: sonar-pro
-    provider: perplexity
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Search-augmented chat pricing varies by usage tier.
-    source_ref:
-      url: https://docs.perplexity.ai/guides/model-cards
-      retrieved_at: 2026-03-05
-      note: Perplexity AI model cards documentation.
-  - model_id: sonar
-    provider: perplexity
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Search-augmented chat pricing varies by usage tier.
-    source_ref:
-      url: https://docs.perplexity.ai/guides/model-cards
-      retrieved_at: 2026-03-05
-      note: Perplexity AI model cards documentation.
-  - model_id: sonar-reasoning-pro
-    provider: perplexity
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Reasoning model pricing varies by usage tier.
-    source_ref:
-      url: https://docs.perplexity.ai/guides/model-cards
-      retrieved_at: 2026-03-05
-      note: Perplexity AI model cards documentation.
-  - model_id: sonar-reasoning
-    provider: perplexity
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Reasoning model pricing varies by usage tier.
-    source_ref:
-      url: https://docs.perplexity.ai/guides/model-cards
-      retrieved_at: 2026-03-05
-      note: Perplexity AI model cards documentation.
-  - model_id: sonar-deep-research
-    provider: perplexity
-    model_type: chat
-    updated_at: 2026-03-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: "2.00"
-      output: "8.00"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Deep research model. Additional $5/1000 searches. Per 1M tokens.
-    source_ref:
-      url: https://docs.perplexity.ai/getting-started/models/models/sonar-deep-research
-      retrieved_at: 2026-03-18
-      note: Perplexity Sonar Deep Research model card.
+catalog_version: 2026-04-18-perplexity-v3
+inventory_mode: dynamic_endpoint
+models: []
 voices: []
-selection_profiles:
-  - provider: perplexity
-    profile_id: text.general
-    capability: text.generate
-    model_id: sonar-pro
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Best current general Perplexity text route in the admitted set.
-  - provider: perplexity
-    profile_id: text.fast
-    capability: text.generate
-    model_id: sonar
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Lower-cost Perplexity text route for fast general tasks.
-  - provider: perplexity
-    profile_id: text.reasoning
-    capability: text.generate
-    model_id: sonar-reasoning-pro
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Dedicated reasoning-oriented Perplexity text route in the admitted set.
+dynamic_inventory:
+  discovery_transport: connector_list_models
+  cache_ttl_sec: 300
+  selection_mode: pass_through
+  failure_policy: use_cache_then_fail_closed
+  allowed_capabilities:
+    - text.generate
+    - text.generate.vision

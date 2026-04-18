@@ -1,42 +1,60 @@
 version: 1
 provider: hunyuan
-catalog_version: 2026-03-05-hunyuan-v1
-default_text_model: hunyuan-turbo
+catalog_version: 2026-04-18-hunyuan-text-embedding-v1
+inventory_mode: static_source
+default_text_model: hunyuan-turbos-latest
 models:
-  - model_id: hunyuan-turbo
+  - model_id: hunyuan-turbos-latest
     provider: hunyuan
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.8"
+      output: "2.0"
       currency: CNY
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by region and contract plan.
+      as_of: 2026-04-18
+      notes: Hunyuan-TurboS current stable public route. Pricing is the published list price per 1M tokens.
     source_ref:
-      url: https://cloud.tencent.com/document/product/1729/97731
-      retrieved_at: 2026-03-05
-      note: Tencent Hunyuan model overview.
+      url: https://cloud.tencent.com/document/product/1729/104753
+      retrieved_at: 2026-04-18
+      note: Tencent Hunyuan product overview with current model families, API call names, and version timestamps.
+  - model_id: hunyuan-t1-latest
+    provider: hunyuan
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "1.0"
+      output: "4.0"
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Hunyuan-T1 current stable reasoning route. Pricing is the published list price per 1M tokens.
+    source_ref:
+      url: https://cloud.tencent.com/document/product/1729/104753
+      retrieved_at: 2026-04-18
+      note: Tencent Hunyuan product overview with current model families, API call names, and version timestamps.
   - model_id: hunyuan-embedding
     provider: hunyuan
     model_type: embedding
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.embed
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.7"
+      output: "0"
       currency: CNY
-      as_of: 2026-03-05
-      notes: Embedding pricing varies by token volume and contract tier.
+      as_of: 2026-04-18
+      notes: Embedding pricing is published at 0.7 CNY per 1M input tokens. OpenAI-compatible embeddings currently fix `model=hunyuan-embedding` and `dimensions=1024`.
     source_ref:
       url: https://cloud.tencent.com/document/product/1729/102832
-      retrieved_at: 2026-03-05
-      note: Tencent Hunyuan embedding update notes.
+      retrieved_at: 2026-04-18
+      note: Tencent Hunyuan embedding API reference.
   - model_id: hunyuan-dit
     provider: hunyuan
     model_type: image
@@ -51,15 +69,22 @@ models:
       as_of: 2026-03-05
       notes: Image generation pricing varies by quality and resolution.
     source_ref:
-      url: https://cloud.tencent.com/document/product/1729/97731
-      retrieved_at: 2026-03-05
-      note: Tencent Hunyuan model overview.
+      url: https://cloud.tencent.com/document/product/1729/104753
+      retrieved_at: 2026-04-18
+      note: Tencent Hunyuan product overview with current model families, API call names, and version timestamps.
 voices: []
 selection_profiles:
   - provider: hunyuan
     profile_id: text.general
     capability: text.generate
-    model_id: hunyuan-turbo
+    model_id: hunyuan-turbos-latest
     reviewed_at: 2026-04-16
     freshness_sla_days: 21
-    rationale: Only admitted Hunyuan text route in the current source set.
+    rationale: Current stable fast-thinking flagship route in Hunyuan's public contract.
+  - provider: hunyuan
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: hunyuan-t1-latest
+    reviewed_at: 2026-04-16
+    freshness_sla_days: 21
+    rationale: Current stable reasoning route in Hunyuan's public contract.

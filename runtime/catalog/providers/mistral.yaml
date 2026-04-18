@@ -1,65 +1,67 @@
 version: 1
 provider: mistral
-catalog_version: 2026-03-18-mistral-v3
+catalog_version: 2026-04-18-mistral-v4
+inventory_mode: static_source
 default_text_model: mistral-large-latest
 models:
   - model_id: mistral-large-latest
     provider: mistral
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-12-02
     capabilities:
       - text.generate
       - text.generate.vision
     pricing:
       unit: token
-      input: "2.00"
-      output: "6.00"
+      input: "0.50"
+      output: "1.50"
       currency: USD
-      as_of: 2026-03-18
-      notes: Flagship model. Per 1M tokens.
+      as_of: 2026-04-18
+      notes: Current alias-backed flagship row aligned to Mistral Large 3. Per 1M tokens.
     source_ref:
-      url: https://docs.mistral.ai/getting-started/models/
-      retrieved_at: 2026-03-05
+      url: https://docs.mistral.ai/models
+      retrieved_at: 2026-04-18
       note: Mistral model catalog and lifecycle aliases.
   - model_id: mistral-medium-latest
     provider: mistral
     model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: "2.70"
-      output: "8.10"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Mid-tier model. Per 1M tokens.
-    source_ref:
-      url: https://docs.mistral.ai/getting-started/models/
-      retrieved_at: 2026-03-05
-      note: Mistral model catalog and lifecycle aliases.
-  - model_id: mistral-small-latest
-    provider: mistral
-    model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-08-12
     capabilities:
       - text.generate
       - text.generate.vision
     pricing:
       unit: token
-      input: "0.20"
+      input: "0.40"
+      output: "2.00"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current alias-backed mid-tier row aligned to Mistral Medium 3.1. Per 1M tokens.
+    source_ref:
+      url: https://docs.mistral.ai/models
+      retrieved_at: 2026-04-18
+      note: Mistral model catalog and lifecycle aliases.
+  - model_id: mistral-small-latest
+    provider: mistral
+    model_type: chat
+    updated_at: 2026-03-16
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: "0.15"
       output: "0.60"
       currency: USD
-      as_of: 2026-03-18
-      notes: Cost-efficient model. Per 1M tokens.
+      as_of: 2026-04-18
+      notes: Current alias-backed efficient row aligned to Mistral Small 4. Supports adjustable reasoning. Per 1M tokens.
     source_ref:
-      url: https://docs.mistral.ai/getting-started/models/
-      retrieved_at: 2026-03-05
+      url: https://docs.mistral.ai/models
+      retrieved_at: 2026-04-18
       note: Mistral model catalog and lifecycle aliases.
   - model_id: codestral-latest
     provider: mistral
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-07-30
     capabilities:
       - text.generate
     pricing:
@@ -67,51 +69,16 @@ models:
       input: "0.30"
       output: "0.90"
       currency: USD
-      as_of: 2026-03-18
-      notes: Code-specialized model. Per 1M tokens.
+      as_of: 2026-04-18
+      notes: Current alias-backed code-specialized row aligned to Codestral 2508. Per 1M tokens.
     source_ref:
-      url: https://docs.mistral.ai/getting-started/models/
-      retrieved_at: 2026-03-05
-      note: Mistral model catalog and lifecycle aliases.
-  - model_id: pixtral-large-latest
-    provider: mistral
-    model_type: chat
-    updated_at: 2026-03-18
-    capabilities:
-      - text.generate
-      - text.generate.vision
-    pricing:
-      unit: token
-      input: "2.00"
-      output: "6.00"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Vision-optimized large model. Per 1M tokens.
-    source_ref:
-      url: https://docs.mistral.ai/getting-started/models/
-      retrieved_at: 2026-03-05
-      note: Mistral model catalog and lifecycle aliases.
-  - model_id: mistral-saba-latest
-    provider: mistral
-    model_type: chat
-    updated_at: 2026-03-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: "0.20"
-      output: "0.60"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Regional-optimized model. Per 1M tokens.
-    source_ref:
-      url: https://docs.mistral.ai/getting-started/models/
-      retrieved_at: 2026-03-05
+      url: https://docs.mistral.ai/models
+      retrieved_at: 2026-04-18
       note: Mistral model catalog and lifecycle aliases.
   - model_id: mistral-embed
     provider: mistral
     model_type: embedding
-    updated_at: 2026-03-05
+    updated_at: 2023-12-11
     capabilities:
       - text.embed
     pricing:
@@ -119,11 +86,11 @@ models:
       input: "0.10"
       output: "0"
       currency: USD
-      as_of: 2026-03-18
-      notes: Embedding model. Per 1M tokens.
+      as_of: 2026-04-18
+      notes: General-purpose text embedding model retained in current source scope. Per 1M tokens.
     source_ref:
-      url: https://docs.mistral.ai/capabilities/embeddings/text_embeddings
-      retrieved_at: 2026-03-05
+      url: https://docs.mistral.ai/studio-api/knowledge-rag/embeddings
+      retrieved_at: 2026-04-18
       note: Mistral embeddings capability documentation.
 voices: []
 selection_profiles:
@@ -131,13 +98,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: mistral-large-latest
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Best current general Mistral text route in the admitted set.
+    rationale: Best current general Mistral text route in the admitted alias-backed set, aligned to Mistral Large 3.
   - provider: mistral
     profile_id: text.fast
     capability: text.generate
     model_id: mistral-small-latest
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Cost-efficient Mistral text route for fast general tasks.
+    rationale: Cost-efficient Mistral text route for fast general tasks, aligned to Mistral Small 4.

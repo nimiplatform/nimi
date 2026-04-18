@@ -1,6 +1,6 @@
 schema_version: 3
 provider: elevenlabs
-catalog_version: 2026-03-10-elevenlabs-v2
+catalog_version: 2026-04-18-elevenlabs-v3
 generated_target: runtime/catalog/providers/elevenlabs.yaml
 runtime:
   runtime_plane: remote
@@ -12,7 +12,7 @@ resolution_mode: model_anchor_v2
 defaults:
   provider: elevenlabs
   model_type: tts
-  capabilities: [audio.synthesize]
+  capabilities: []
   pricing:
     unit: request
     input: unknown
@@ -24,34 +24,47 @@ defaults:
 sources:
   - source_id: elevenlabs_api_intro
     url: https://elevenlabs.io/docs/api-reference/introduction
-    retrieved_at: 2026-03-10
+    retrieved_at: 2026-04-18
     note: ElevenLabs API reference entrypoint.
   - source_id: elevenlabs_models
     url: https://elevenlabs.io/docs/api-reference/models/list
-    retrieved_at: 2026-03-10
+    retrieved_at: 2026-04-18
     note: Model listing endpoint used to discover text-to-speech and text-to-voice capable models.
+  - source_id: elevenlabs_models_overview
+    url: https://elevenlabs.io/docs/overview/models
+    retrieved_at: 2026-04-18
+    note: ElevenLabs models overview covering active, deprecated, and recommended speech model families.
   - source_id: elevenlabs_tts_convert
     url: https://elevenlabs.io/docs/api-reference/text-to-speech/convert
-    retrieved_at: 2026-03-10
+    retrieved_at: 2026-04-18
     note: Core text-to-speech conversion endpoint.
   - source_id: elevenlabs_voices
     url: https://elevenlabs.io/docs/api-reference/voices/list
-    retrieved_at: 2026-03-10
+    retrieved_at: 2026-04-18
     note: Voice inventory and metadata endpoint.
   - source_id: elevenlabs_voice_clone
     url: https://elevenlabs.io/docs/api-reference/voices/add
-    retrieved_at: 2026-03-10
+    retrieved_at: 2026-04-18
     note: Instant Voice Cloning endpoint for audio-to-voice workflows.
   - source_id: elevenlabs_voice_design
     url: https://elevenlabs.io/docs/api-reference/text-to-voice
-    retrieved_at: 2026-03-10
+    retrieved_at: 2026-04-18
     note: Current voice design preview endpoint (/v1/text-to-voice/design).
   - source_id: elevenlabs_voice_design_create
     url: https://elevenlabs.io/docs/api-reference/text-to-voice/create
-    retrieved_at: 2026-03-10
+    retrieved_at: 2026-04-18
     note: Materialize a provider voice from a generated voice preview.
+  - source_id: elevenlabs_stt_convert
+    url: https://elevenlabs.io/docs/api-reference/speech-to-text/convert
+    retrieved_at: 2026-04-18
+    note: Batch speech-to-text transcription endpoint used for Scribe v2.
+  - source_id: elevenlabs_stt_realtime
+    url: https://elevenlabs.io/docs/api-reference/speech-to-text/v-1-speech-to-text-realtime
+    retrieved_at: 2026-04-18
+    note: Realtime speech-to-text WebSocket API used for Scribe v2 Realtime.
 
 language_profiles:
+  short_en_v1: [en]
   short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
 
 voice_sets:
@@ -108,6 +121,19 @@ models:
         audio_formats: [mp3, pcm, ogg, wav]
         supports_language: true
     source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
+  - model_id: eleven_flash_v2
+    updated_at: 2026-04-18
+    capabilities: [audio.synthesize]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
+      supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
+      langs_ref: short_en_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, ogg, wav]
+        supports_language: true
+    source_ids: [elevenlabs_models, elevenlabs_models_overview, elevenlabs_tts_convert, elevenlabs_voices]
   - model_id: eleven_turbo_v2_5
     updated_at: 2026-03-05
     capabilities: [audio.synthesize]
@@ -123,6 +149,7 @@ models:
     source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
   - model_id: eleven_multilingual_sts_v2
     updated_at: 2026-03-10
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: default-voices-v1
@@ -131,14 +158,16 @@ models:
     source_ids: [elevenlabs_models, elevenlabs_voice_clone]
   - model_id: eleven_english_sts_v2
     updated_at: 2026-03-10
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
-      langs_ref: short_multilingual_v1
-    source_ids: [elevenlabs_models, elevenlabs_voice_clone]
+      langs_ref: short_en_v1
+    source_ids: [elevenlabs_models, elevenlabs_models_overview, elevenlabs_voice_clone]
   - model_id: eleven_ttv_v3
     updated_at: 2026-03-10
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: default-voices-v1
@@ -147,12 +176,47 @@ models:
     source_ids: [elevenlabs_models, elevenlabs_voice_design, elevenlabs_voice_design_create]
   - model_id: eleven_multilingual_ttv_v2
     updated_at: 2026-03-10
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
       langs_ref: short_multilingual_v1
     source_ids: [elevenlabs_models, elevenlabs_voice_design, elevenlabs_voice_design_create]
+  - model_id: scribe_v2
+    model_type: stt
+    updated_at: 2026-04-18
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: ElevenLabs public docs expose Scribe v2 capabilities but not a stable per-model public pricing table in this source.
+    source_ids: [elevenlabs_models_overview, elevenlabs_stt_convert]
+    transcription:
+      tiers: [core_transcript]
+      response_formats: [text, json]
+      supports_language: true
+      supports_prompt: true
+  - model_id: scribe_v2_realtime
+    model_type: stt
+    updated_at: 2026-04-18
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: ElevenLabs public docs expose Scribe v2 Realtime capabilities but not a stable per-model public pricing table in this source.
+    source_ids: [elevenlabs_models_overview, elevenlabs_stt_realtime]
+    transcription:
+      tiers: [core_transcript]
+      response_formats: [text, json]
+      supports_language: true
+      supports_prompt: true
 
 voice_workflow_models:
   - workflow_model_id: elevenlabs-voice-clone

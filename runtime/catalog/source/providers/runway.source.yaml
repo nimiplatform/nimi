@@ -1,6 +1,6 @@
 schema_version: 3
 provider: runway
-catalog_version: 2026-03-05-runway-v1
+catalog_version: 2026-04-18-runway-video-v2
 generated_target: runtime/catalog/providers/runway.yaml
 runtime:
   runtime_plane: remote
@@ -17,25 +17,40 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: Runway video pricing varies by model family, resolution, and account tier.
+    as_of: 2026-04-18
+    notes: Runway video pricing is published in credits per second and varies by model family; credits are billed through the Runway developer portal.
 
 sources:
   - source_id: runway_api_doc
     url: https://docs.dev.runwayml.com/api
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Runway API overview and endpoint reference.
   - source_id: runway_models_doc
     url: https://docs.dev.runwayml.com/guides/models
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Runway model catalog and capability overview.
+  - source_id: runway_pricing_doc
+    url: https://docs.dev.runwayml.com/guides/pricing/
+    retrieved_at: 2026-04-18
+    note: Runway API pricing page with current credits-per-second pricing for video models.
+  - source_id: runway_input_doc
+    url: https://docs.dev.runwayml.com/assets/inputs/
+    retrieved_at: 2026-04-18
+    note: Runway input constraints and asset-size rules for image, video, and audio references.
 
 models:
   - model_id: gen4.5
     model_type: video
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [video.generate]
-    source_ids: [runway_api_doc, runway_models_doc]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Runway publishes Gen-4.5 pricing at 12 credits per second. Credits are purchased in the developer portal at $0.01 per credit.
+    source_ids: [runway_api_doc, runway_models_doc, runway_pricing_doc, runway_input_doc]
     video_generation:
       modes: [t2v, i2v_first_frame]
       input_roles:
@@ -58,9 +73,16 @@ models:
 
   - model_id: gen4_turbo
     model_type: video
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [video.generate]
-    source_ids: [runway_api_doc, runway_models_doc]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Runway publishes Gen-4 Turbo pricing at 5 credits per second. Credits are purchased in the developer portal at $0.01 per credit.
+    source_ids: [runway_api_doc, runway_models_doc, runway_pricing_doc, runway_input_doc]
     video_generation:
       modes: [i2v_first_frame]
       input_roles:
@@ -82,9 +104,16 @@ models:
 
   - model_id: gen3a_turbo
     model_type: video
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [video.generate]
-    source_ids: [runway_api_doc, runway_models_doc]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Runway publishes Gen-3 Alpha Turbo pricing at 5 credits per second. Credits are purchased in the developer portal at $0.01 per credit.
+    source_ids: [runway_api_doc, runway_models_doc, runway_pricing_doc, runway_input_doc]
     video_generation:
       modes: [i2v_first_frame]
       input_roles:

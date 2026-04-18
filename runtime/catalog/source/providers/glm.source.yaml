@@ -1,6 +1,6 @@
 schema_version: 3
 provider: glm
-catalog_version: 2026-03-05-glm-v1
+catalog_version: 2026-04-18-glm-provider-v2
 generated_target: runtime/catalog/providers/glm.yaml
 runtime:
   runtime_plane: remote
@@ -10,7 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: glm
-  default_text_model: glm-4.7
+  default_text_model: glm-5.1
   model_type: chat
   capabilities: []
   pricing:
@@ -18,84 +18,173 @@ defaults:
     input: unknown
     output: unknown
     currency: CNY
-    as_of: 2026-03-05
-    notes: GLM pricing varies by model family and account tier.
+    as_of: 2026-04-18
+    notes: GLM text pricing depends on model family and sometimes separate price pages; this source keeps explicit public prices only where directly documented in the admitted evidence set.
 
 sources:
-  - source_id: glm_chat_async_doc
-    url: https://docs.bigmodel.cn/cn/api/paas/v4/chat/completions
-    retrieved_at: 2026-03-05
-    note: GLM chat completions API documentation with current flagship model examples.
-  - source_id: glm_embedding_doc
-    url: https://docs.bigmodel.cn/cn/api/paas/v4/embeddings
-    retrieved_at: 2026-03-05
-    note: GLM embeddings API documentation.
-  - source_id: glm_image_doc
-    url: https://docs.bigmodel.cn/cn/api/paas/v4/images
-    retrieved_at: 2026-03-05
-    note: GLM image generation async API documentation.
-  - source_id: glm_asr_doc
+  - source_id: glm_model_overview_doc
+    url: https://docs.bigmodel.cn/cn/guide/start/model-overview
+    retrieved_at: 2026-04-18
+    note: Current BigModel model overview across text, vision, image, audio, and embedding families.
+  - source_id: glm_chat_api_doc
+    url: https://docs.bigmodel.cn/api-reference/%E6%A8%A1%E5%9E%8B-api/%E5%AF%B9%E8%AF%9D%E8%A1%A5%E5%85%A8%E5%BC%82%E6%AD%A5
+    retrieved_at: 2026-04-18
+    note: Current chat completions API showing supported text model ids and endpoint defaults.
+  - source_id: glm_glm_5_1_doc
+    url: https://docs.bigmodel.cn/cn/guide/models/text/glm-5.1
+    retrieved_at: 2026-04-18
+    note: Current GLM-5.1 model card.
+  - source_id: glm_embedding_3_doc
+    url: https://docs.bigmodel.cn/cn/guide/models/embedding/embedding-3
+    retrieved_at: 2026-04-18
+    note: Current Embedding-3 model card and pricing.
+  - source_id: glm_glm_image_doc
+    url: https://docs.bigmodel.cn/cn/guide/models/image-generation/glm-image
+    retrieved_at: 2026-04-18
+    note: Current GLM-Image model card and pricing.
+  - source_id: glm_glm_asr_doc
     url: https://docs.bigmodel.cn/cn/guide/models/sound-and-video/glm-asr-2512
-    retrieved_at: 2026-03-05
-    note: GLM-ASR-2512 speech-to-text model documentation.
+    retrieved_at: 2026-04-18
+    note: Current GLM-ASR-2512 model card.
+  - source_id: glm_glm_ocr_doc
+    url: https://docs.bigmodel.cn/cn/guide/models/vlm/glm-ocr
+    retrieved_at: 2026-04-18
+    note: Current GLM-OCR model card used only as out-of-scope evidence for deferred OCR family.
 
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: glm-4.7
-    reviewed_at: 2026-04-16
+    model_id: glm-5.1
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Only admitted GLM text route in the current source set.
+    rationale: Current latest flagship GLM text route.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: glm-5-turbo
+    reviewed_at: 2026-04-18
+    freshness_sla_days: 21
+    rationale: Current turbo GLM base route for lower-latency long-task execution.
+  - profile_id: text.reasoning
+    capability: text.generate
+    model_id: glm-5.1
+    reviewed_at: 2026-04-18
+    freshness_sla_days: 21
+    rationale: Current highest-confidence GLM reasoning and coding route.
 
 models:
-  - model_id: glm-4.7
+  - model_id: glm-5.1
     model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate, text.generate.vision]
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model edition and account plan.
-    source_ids: [glm_chat_async_doc]
+      as_of: 2026-04-18
+      notes: Current flagship GLM text model. Public docs confirm the model line and context window, but row-level API pricing was not directly exposed in the reviewed docs set.
+    source_ids: [glm_model_overview_doc, glm_chat_api_doc, glm_glm_5_1_doc]
+
+  - model_id: glm-5
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current high-intelligence GLM base model with 200K context.
+    source_ids: [glm_model_overview_doc, glm_chat_api_doc]
+
+  - model_id: glm-5-turbo
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current turbo GLM long-task execution model with 200K context.
+    source_ids: [glm_model_overview_doc, glm_chat_api_doc]
+
+  - model_id: glm-4.7
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Prior strong-generation GLM text model still listed in current text model overview.
+    source_ids: [glm_model_overview_doc, glm_chat_api_doc]
+
+  - model_id: glm-5v-turbo
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current recommended GLM multimodal coding and visual reasoning model.
+    source_ids: [glm_model_overview_doc, glm_chat_api_doc]
+
+  - model_id: glm-4.6v
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Prior stable GLM visual reasoning model with tool support and longer context.
+    source_ids: [glm_model_overview_doc, glm_chat_api_doc]
 
   - model_id: embedding-3
     model_type: embedding
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.embed]
     pricing:
       unit: token
-      input: unknown
-      output: unknown
+      input: "0.50"
+      output: "0"
       currency: CNY
-      as_of: 2026-03-05
-      notes: Embedding pricing varies by token volume and service tier.
-    source_ids: [glm_embedding_doc]
+      as_of: 2026-04-18
+      notes: Embedding-3 pricing is 0.5 CNY per million tokens.
+    source_ids: [glm_embedding_3_doc]
 
   - model_id: glm-asr-2512
     model_type: stt
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [audio.transcribe]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Speech-to-text pricing varies by audio duration and account tier.
-    source_ids: [glm_asr_doc]
+      as_of: 2026-04-18
+      notes: Current GLM speech-to-text model. Public model card confirms capabilities and limits but not a request-normalized price in the reviewed docs set.
+    source_ids: [glm_model_overview_doc, glm_glm_asr_doc]
 
   - model_id: glm-image
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
-      input: unknown
-      output: unknown
+      input: "0.10"
+      output: "0"
       currency: CNY
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by quality profile and account tier.
-    source_ids: [glm_image_doc]
+      as_of: 2026-04-18
+      notes: GLM-Image pricing is 0.1 CNY per request.
+    source_ids: [glm_glm_image_doc]

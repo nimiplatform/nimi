@@ -4,224 +4,269 @@ providers:
     default_endpoint: https://api.anthropic.com
     default_text_model: claude-sonnet-4-6
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: aws_polly
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: azure
     default_endpoint: null
-    default_text_model: gpt-5.2
+    default_text_model: gpt-5.4
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: azure_speech
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: bedrock
     default_endpoint: null
-    default_text_model: anthropic.claude-sonnet-4-6-v1:0
+    default_text_model: anthropic.claude-sonnet-4-6
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: cohere
     default_endpoint: null
-    default_text_model: command-r-plus
+    default_text_model: command-a-03-2025
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: dashscope
     default_endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1
     default_text_model: qwen3-max
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: deepseek
     default_endpoint: https://api.deepseek.com/v1
     default_text_model: deepseek-chat
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: elevenlabs
     default_endpoint: https://api.elevenlabs.io
     default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: fireworks
     default_endpoint: null
-    default_text_model: accounts/fireworks/models/llama4-maverick-instruct-basic
+    default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027
   - provider: fish_audio
     default_endpoint: https://api.fish.audio
     default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: flux
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: gemini
     default_endpoint: https://generativelanguage.googleapis.com/v1beta/openai
     default_text_model: gemini-3-flash-preview
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: glm
     default_endpoint: https://open.bigmodel.cn/api/paas/v4
-    default_text_model: glm-4.7
+    default_text_model: glm-5.1
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: google_cloud_tts
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: google_veo
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: groq
     default_endpoint: https://api.groq.com/openai/v1
-    default_text_model: meta-llama/llama-4-maverick-17b-128e-instruct
+    default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027
   - provider: hunyuan
     default_endpoint: https://api.hunyuan.cloud.tencent.com/v1
-    default_text_model: hunyuan-turbo
+    default_text_model: hunyuan-turbos-latest
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: ideogram
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: kimi
     default_endpoint: https://api.moonshot.cn/v1
-    default_text_model: kimi-k2.5
+    default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027
   - provider: kling
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027
   - provider: loudly
     default_endpoint: https://soundtracks.loudly.com
     default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: luma
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: minimax
     default_endpoint: https://api.minimax.chat/v1
-    default_text_model: MiniMax-M2.5
+    default_text_model: MiniMax-M2.7
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: mistral
     default_endpoint: https://api.mistral.ai/v1
     default_text_model: mistral-large-latest
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: mubert
     default_endpoint: https://music-api.mubert.com/api/v3
     default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: nimillm
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: openai
     default_endpoint: https://api.openai.com/v1
-    default_text_model: gpt-5.2
+    default_text_model: gpt-5.4
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: openai_compatible
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: openrouter
     default_endpoint: https://openrouter.ai/api/v1
-    default_text_model: openrouter/auto
+    default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027
   - provider: perplexity
     default_endpoint: null
-    default_text_model: sonar-pro
+    default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027
   - provider: pika
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027
   - provider: qianfan
     default_endpoint: https://qianfan.baidubce.com/v2
     default_text_model: ernie-5.0
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: runway
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: siliconflow
     default_endpoint: null
-    default_text_model: deepseek-ai/DeepSeek-V3
+    default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027
   - provider: soundverse
     default_endpoint: https://api.soundverse.ai
     default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: spark
     default_endpoint: https://spark-api-open.xf-yun.com/v1
-    default_text_model: spark-x1
+    default_text_model: 4.0Ultra
     requires_explicit_endpoint: false
+    inventory_mode: static_source
+    source_rule: K-MCAT-027
+  - provider: spark_reasoning
+    default_endpoint: https://spark-api-open.xf-yun.com/x2
+    default_text_model: spark-x
+    requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: stability
     default_endpoint: https://api.stability.ai
     default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: stepfun
     default_endpoint: https://api.stepfun.ai/v1
     default_text_model: step-3.5-flash
     requires_explicit_endpoint: false
-    source_rule: K-MCAT-027
-  - provider: suno
-    default_endpoint: https://apibox.erweima.ai
-    default_text_model: null
-    requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: together
     default_endpoint: null
-    default_text_model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+    default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027
   - provider: volcengine
     default_endpoint: https://ark.cn-beijing.volces.com/api/v3
     default_text_model: doubao-seed-2-0-pro-260215
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: volcengine_openspeech
     default_endpoint: https://openspeech.bytedance.com/api/v1
     default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: worldlabs
     default_endpoint: https://api.worldlabs.ai
     default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: xai
     default_endpoint: https://api.x.ai/v1
-    default_text_model: grok-4
+    default_text_model: null
     requires_explicit_endpoint: false
+    inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027

@@ -1,90 +1,9 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-03-07-dashscope-v3
+catalog_version: 2026-04-18-dashscope-v5
+inventory_mode: static_source
 default_text_model: qwen3-max
 models:
-  - model_id: qwen-tts
-    provider: dashscope
-    model_type: tts
-    updated_at: 2025-04-10
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-    voice_set_id: dashscope:tts_voice_set
-    voice_discovery_mode: static_catalog
-    voice_ref_kinds: &a1
-      - preset_voice_id
-      - provider_voice_ref
-  - model_id: qwen-tts-2025-04-10
-    provider: dashscope
-    model_type: tts
-    updated_at: 2025-04-10
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-    voice_set_id: dashscope:tts_voice_set
-    voice_discovery_mode: static_catalog
-    voice_ref_kinds: *a1
-  - model_id: qwen-tts-2025-05-22
-    provider: dashscope
-    model_type: tts
-    updated_at: 2025-05-22
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-    voice_set_id: dashscope:tts_voice_set
-    voice_discovery_mode: static_catalog
-    voice_ref_kinds: *a1
-  - model_id: qwen-tts-latest
-    provider: dashscope
-    model_type: tts
-    updated_at: 2025-04-10
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Official document does not provide stable public pricing in a unified schema.
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-    voice_set_id: dashscope:tts_voice_set
-    voice_discovery_mode: static_catalog
-    voice_ref_kinds: *a1
   - model_id: qwen3-tts-instruct-flash
     provider: dashscope
     model_type: tts
@@ -104,7 +23,7 @@ models:
       note: dashscope official model documentation
     voice_set_id: dashscope:instruct_flash_voice_set
     voice_discovery_mode: static_catalog
-    voice_ref_kinds: &a2
+    voice_ref_kinds: &a1
       - preset_voice_id
       - provider_voice_ref
   - model_id: qwen3-tts-instruct-flash-2026-01-26
@@ -126,7 +45,7 @@ models:
       note: dashscope official model documentation
     voice_set_id: dashscope:instruct_flash_voice_set
     voice_discovery_mode: static_catalog
-    voice_ref_kinds: *a2
+    voice_ref_kinds: *a1
   - model_id: qwen3-tts-flash
     provider: dashscope
     model_type: tts
@@ -146,7 +65,7 @@ models:
       note: dashscope official model documentation
     voice_set_id: dashscope:flash_voice_set
     voice_discovery_mode: static_catalog
-    voice_ref_kinds: &a3
+    voice_ref_kinds: &a2
       - preset_voice_id
       - provider_voice_ref
   - model_id: qwen3-tts-flash-2025-09-18
@@ -168,7 +87,7 @@ models:
       note: dashscope official model documentation
     voice_set_id: dashscope:flash_voice_set
     voice_discovery_mode: static_catalog
-    voice_ref_kinds: *a3
+    voice_ref_kinds: *a2
   - model_id: qwen3-tts-flash-2025-11-27
     provider: dashscope
     model_type: tts
@@ -188,7 +107,7 @@ models:
       note: dashscope official model documentation
     voice_set_id: dashscope:flash_voice_set
     voice_discovery_mode: static_catalog
-    voice_ref_kinds: *a3
+    voice_ref_kinds: *a2
   - model_id: qwen3-tts-vc
     provider: dashscope
     model_type: tts
@@ -208,7 +127,7 @@ models:
       note: dashscope official model documentation
     voice_set_id: dashscope:qwen3-tts-vc-dynamic
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: &a4
+    voice_ref_kinds: &a3
       - voice_asset_id
       - provider_voice_ref
   - model_id: qwen3-tts-vc-2026-01-22
@@ -230,7 +149,7 @@ models:
       note: dashscope official model documentation
     voice_set_id: dashscope:qwen3-tts-vc-dynamic
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a4
+    voice_ref_kinds: *a3
   - model_id: qwen3-tts-vd
     provider: dashscope
     model_type: tts
@@ -250,7 +169,7 @@ models:
       note: dashscope official model documentation
     voice_set_id: dashscope:qwen3-tts-vd-dynamic
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: &a5
+    voice_ref_kinds: &a4
       - voice_asset_id
       - provider_voice_ref
   - model_id: qwen3-tts-vd-2026-01-26
@@ -272,7 +191,236 @@ models:
       note: dashscope official model documentation
     voice_set_id: dashscope:qwen3-tts-vd-dynamic
     voice_discovery_mode: dynamic_user_scoped
-    voice_ref_kinds: *a5
+    voice_ref_kinds: *a4
+  - model_id: qwen3-tts-instruct-flash-realtime
+    provider: dashscope
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    voice_set_id: dashscope:instruct_flash_voice_set
+    voice_discovery_mode: static_catalog
+    voice_request_options: &a5
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - pcm
+        - mp3
+        - opus
+      supports_language: true
+    voice_ref_kinds: &a6
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: qwen3-tts-instruct-flash-realtime-2026-01-22
+    provider: dashscope
+    model_type: tts
+    updated_at: 2026-01-22
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    voice_set_id: dashscope:instruct_flash_voice_set
+    voice_discovery_mode: static_catalog
+    voice_request_options: *a5
+    voice_ref_kinds: *a6
+  - model_id: qwen3-tts-flash-realtime
+    provider: dashscope
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    voice_set_id: dashscope:flash_voice_set
+    voice_discovery_mode: static_catalog
+    voice_request_options: &a7
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - pcm
+        - mp3
+        - opus
+      supports_language: true
+    voice_ref_kinds: &a8
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: qwen3-tts-flash-realtime-2025-11-27
+    provider: dashscope
+    model_type: tts
+    updated_at: 2025-11-27
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    voice_set_id: dashscope:flash_voice_set
+    voice_discovery_mode: static_catalog
+    voice_request_options: *a7
+    voice_ref_kinds: *a8
+  - model_id: qwen3-tts-flash-realtime-2025-09-18
+    provider: dashscope
+    model_type: tts
+    updated_at: 2025-09-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    voice_set_id: dashscope:flash_voice_set
+    voice_discovery_mode: static_catalog
+    voice_request_options: *a7
+    voice_ref_kinds: *a8
+  - model_id: qwen3-tts-vc-realtime-2026-01-15
+    provider: dashscope
+    model_type: tts
+    updated_at: 2026-01-15
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_request_options: &a9
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - pcm
+        - mp3
+        - opus
+      supports_language: true
+    voice_ref_kinds: &a10
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: qwen3-tts-vc-realtime-2025-11-27
+    provider: dashscope
+    model_type: tts
+    updated_at: 2025-11-27
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_request_options: *a9
+    voice_ref_kinds: *a10
+  - model_id: qwen3-tts-vd-realtime-2026-01-15
+    provider: dashscope
+    model_type: tts
+    updated_at: 2026-01-15
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_request_options: &a11
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - pcm
+        - mp3
+        - opus
+      supports_language: true
+    voice_ref_kinds: &a12
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: qwen3-tts-vd-realtime-2025-12-16
+    provider: dashscope
+    model_type: tts
+    updated_at: 2025-12-16
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_request_options: *a11
+    voice_ref_kinds: *a12
   - model_id: qwen3-max
     provider: dashscope
     model_type: chat
@@ -287,9 +435,45 @@ models:
       as_of: 2026-03-05
       notes: Chat token pricing varies by account plan and model revision.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
+  - model_id: qwen3.6-plus
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Plus-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/newly-released-models
+      retrieved_at: 2026-04-18
+      note: Official DashScope model release and snapshot update feed.
+  - model_id: qwen3.6-plus-2026-04-02
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-04-02
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Plus-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/newly-released-models
+      retrieved_at: 2026-04-18
+      note: Official DashScope model release and snapshot update feed.
   - model_id: qwen3.5-plus
     provider: dashscope
     model_type: chat
@@ -304,9 +488,45 @@ models:
       as_of: 2026-03-05
       notes: Chat token pricing varies by account plan and model revision.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
+  - model_id: qwen3.6-flash
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Flash-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/newly-released-models
+      retrieved_at: 2026-04-18
+      note: Official DashScope model release and snapshot update feed.
+  - model_id: qwen3.6-flash-2026-04-16
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-04-16
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Flash-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/newly-released-models
+      retrieved_at: 2026-04-18
+      note: Official DashScope model release and snapshot update feed.
   - model_id: qwen3.5-flash
     provider: dashscope
     model_type: chat
@@ -321,43 +541,9 @@ models:
       as_of: 2026-03-05
       notes: Chat token pricing varies by account plan and model revision.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
-  - model_id: qwen-plus-latest
-    provider: dashscope
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and model revision.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
-  - model_id: qwen-plus-2025-12-01
-    provider: dashscope
-    model_type: chat
-    updated_at: 2025-12-01
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and model revision.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: qwen-vl-max-latest
     provider: dashscope
     model_type: chat
@@ -373,9 +559,45 @@ models:
       as_of: 2026-03-05
       notes: Vision-language model pricing varies by account plan and token class.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
+  - model_id: qwen3-vl-plus
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Qwen 3 vision-language plus route on DashScope.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/vision/
+      retrieved_at: 2026-04-18
+      note: Qwen vision-language documentation and current VL model guidance.
+  - model_id: qwen3-vl-flash
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Qwen 3 vision-language flash route on DashScope.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/vision/
+      retrieved_at: 2026-04-18
+      note: Qwen vision-language documentation and current VL model guidance.
   - model_id: deepseek-v3.2
     provider: dashscope
     model_type: chat
@@ -390,9 +612,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: deepseek-v3.2-exp
     provider: dashscope
     model_type: chat
@@ -407,9 +629,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: deepseek-v3.1
     provider: dashscope
     model_type: chat
@@ -424,9 +646,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: deepseek-r1
     provider: dashscope
     model_type: chat
@@ -441,9 +663,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: deepseek-r1-0528
     provider: dashscope
     model_type: chat
@@ -458,9 +680,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: deepseek-v3
     provider: dashscope
     model_type: chat
@@ -475,9 +697,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: siliconflow/deepseek-v3.2
     provider: dashscope
     model_type: chat
@@ -492,9 +714,9 @@ models:
       as_of: 2026-03-07
       notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: siliconflow/deepseek-v3.1-terminus
     provider: dashscope
     model_type: chat
@@ -509,9 +731,9 @@ models:
       as_of: 2026-03-07
       notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: siliconflow/deepseek-r1-0528
     provider: dashscope
     model_type: chat
@@ -526,9 +748,9 @@ models:
       as_of: 2026-03-07
       notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: siliconflow/deepseek-v3-0324
     provider: dashscope
     model_type: chat
@@ -543,9 +765,9 @@ models:
       as_of: 2026-03-07
       notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: kimi/kimi-k2.5
     provider: dashscope
     model_type: chat
@@ -560,9 +782,9 @@ models:
       as_of: 2026-03-07
       notes: Kimi pricing on DashScope varies by model mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: kimi-k2.5
     provider: dashscope
     model_type: chat
@@ -577,9 +799,9 @@ models:
       as_of: 2026-03-07
       notes: Kimi pricing on DashScope varies by model mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: kimi-k2-thinking
     provider: dashscope
     model_type: chat
@@ -594,9 +816,9 @@ models:
       as_of: 2026-03-07
       notes: Kimi pricing on DashScope varies by model mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: Moonshot-Kimi-K2-Instruct
     provider: dashscope
     model_type: chat
@@ -611,9 +833,9 @@ models:
       as_of: 2026-03-07
       notes: Kimi pricing on DashScope varies by model mode and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: glm-5
     provider: dashscope
     model_type: chat
@@ -628,9 +850,9 @@ models:
       as_of: 2026-03-07
       notes: GLM pricing on DashScope varies by model tier and account plan.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: glm-4.7
     provider: dashscope
     model_type: chat
@@ -645,9 +867,9 @@ models:
       as_of: 2026-03-07
       notes: GLM pricing on DashScope varies by model tier and account plan.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: glm-4.6
     provider: dashscope
     model_type: chat
@@ -662,9 +884,9 @@ models:
       as_of: 2026-03-07
       notes: GLM pricing on DashScope varies by model tier and account plan.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: glm-4.5
     provider: dashscope
     model_type: chat
@@ -679,9 +901,9 @@ models:
       as_of: 2026-03-07
       notes: GLM pricing on DashScope varies by model tier and account plan.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: glm-4.5-air
     provider: dashscope
     model_type: chat
@@ -696,9 +918,9 @@ models:
       as_of: 2026-03-07
       notes: GLM pricing on DashScope varies by model tier and account plan.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: MiniMax/MiniMax-M2.5
     provider: dashscope
     model_type: chat
@@ -713,9 +935,9 @@ models:
       as_of: 2026-03-07
       notes: MiniMax pricing on DashScope varies by model tier and account plan.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: MiniMax-M2.5
     provider: dashscope
     model_type: chat
@@ -730,9 +952,9 @@ models:
       as_of: 2026-03-07
       notes: MiniMax pricing on DashScope varies by model tier and account plan.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: MiniMax/MiniMax-M2.1
     provider: dashscope
     model_type: chat
@@ -747,9 +969,9 @@ models:
       as_of: 2026-03-07
       notes: MiniMax pricing on DashScope varies by model tier and account plan.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: MiniMax-M2.1
     provider: dashscope
     model_type: chat
@@ -764,9 +986,9 @@ models:
       as_of: 2026-03-07
       notes: MiniMax pricing on DashScope varies by model tier and account plan.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: text-embedding-v4
     provider: dashscope
     model_type: embedding
@@ -835,6 +1057,142 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-asr-api-reference
       retrieved_at: 2026-03-05
       note: DashScope Qwen ASR API reference covering qwen3-asr-flash.
+  - model_id: qwen3-asr-flash-realtime
+    provider: dashscope
+    model_type: stt
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Realtime speech-to-text pricing varies by audio duration, connection mode, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-real-time-speech-recognition
+      retrieved_at: 2026-04-18
+      note: Qwen real-time speech recognition documentation covering qwen3-asr-flash-realtime.
+  - model_id: qwen3-asr-flash-realtime-2026-02-10
+    provider: dashscope
+    model_type: stt
+    updated_at: 2026-02-10
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Realtime speech-to-text pricing varies by audio duration, connection mode, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-real-time-speech-recognition
+      retrieved_at: 2026-04-18
+      note: Qwen real-time speech recognition documentation covering qwen3-asr-flash-realtime.
+  - model_id: qwen3-asr-flash-realtime-2025-10-27
+    provider: dashscope
+    model_type: stt
+    updated_at: 2025-10-27
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Realtime speech-to-text pricing varies by audio duration, connection mode, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-real-time-speech-recognition
+      retrieved_at: 2026-04-18
+      note: Qwen real-time speech recognition documentation covering qwen3-asr-flash-realtime.
+  - model_id: fun-asr
+    provider: dashscope
+    model_type: stt
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Fun-ASR recorded speech recognition pricing varies by audio duration and deployment scope.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/funauidio-asr-recorded-speech-recognition-restful-api
+      retrieved_at: 2026-04-18
+      note: Fun-ASR recorded speech recognition REST API covering fun-asr.
+  - model_id: fun-asr-2025-11-07
+    provider: dashscope
+    model_type: stt
+    updated_at: 2025-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Fun-ASR recorded speech recognition pricing varies by audio duration and deployment scope.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/funauidio-asr-recorded-speech-recognition-restful-api
+      retrieved_at: 2026-04-18
+      note: Fun-ASR recorded speech recognition REST API covering fun-asr.
+  - model_id: fun-asr-realtime
+    provider: dashscope
+    model_type: stt
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Fun-ASR realtime speech recognition pricing varies by audio duration and deployment scope.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/fun-asr-realtime-websocket-api
+      retrieved_at: 2026-04-18
+      note: Fun-ASR realtime speech recognition WebSocket API covering fun-asr-realtime.
+  - model_id: fun-asr-realtime-2026-02-28
+    provider: dashscope
+    model_type: stt
+    updated_at: 2026-02-28
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Fun-ASR realtime speech recognition pricing varies by audio duration and deployment scope.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/fun-asr-realtime-websocket-api
+      retrieved_at: 2026-04-18
+      note: Fun-ASR realtime speech recognition WebSocket API covering fun-asr-realtime.
+  - model_id: fun-asr-realtime-2025-09-15
+    provider: dashscope
+    model_type: stt
+    updated_at: 2025-09-15
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Fun-ASR realtime speech recognition pricing varies by audio duration and deployment scope.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/fun-asr-realtime-websocket-api
+      retrieved_at: 2026-04-18
+      note: Fun-ASR realtime speech recognition WebSocket API covering fun-asr-realtime.
   - model_id: qwen-image-2.0-pro
     provider: dashscope
     model_type: image
@@ -849,9 +1207,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: qwen-image-2.0-pro-2026-03-03
     provider: dashscope
     model_type: image
@@ -866,9 +1224,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: qwen-image-2.0
     provider: dashscope
     model_type: image
@@ -883,9 +1241,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: qwen-image-2.0-2026-03-03
     provider: dashscope
     model_type: image
@@ -900,9 +1258,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: z-image-turbo
     provider: dashscope
     model_type: image
@@ -917,9 +1275,43 @@ models:
       as_of: 2026-03-07
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
+  - model_id: wan2.7-image-pro
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Wan 2.7 image generation and editing pricing varies by quality, resolution, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/wan-image-generation-and-editing-api-reference
+      retrieved_at: 2026-04-18
+      note: Wan 2.7 image generation and editing API reference.
+  - model_id: wan2.7-image
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Wan 2.7 image generation and editing pricing varies by quality, resolution, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/wan-image-generation-and-editing-api-reference
+      retrieved_at: 2026-04-18
+      note: Wan 2.7 image generation and editing API reference.
   - model_id: wan2.6-t2i
     provider: dashscope
     model_type: image
@@ -934,26 +1326,175 @@ models:
       as_of: 2026-03-07
       notes: Image generation pricing varies by quality and tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
-  - model_id: wan2.5-t2i-preview
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
+  - model_id: wan2.7-t2v
     provider: dashscope
-    model_type: image
-    updated_at: 2026-03-07
+    model_type: video
+    updated_at: 2026-04-18
     capabilities:
-      - image.generate
+      - video.generate
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-07
-      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+      as_of: 2026-04-18
+      notes: Wan 2.7 text-to-video pricing varies by resolution, duration, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/use-video-generation
+      retrieved_at: 2026-04-18
+      note: Official Wan video generation guide covering t2v and i2v families.
+    video_generation:
+      modes:
+        - t2v
+      input_roles:
+        t2v:
+          - prompt
+          - reference_audio
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+        duration_sec:
+          min: 2
+          max: 15
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - generate_audio
+        constraints: {}
+      outputs:
+        video_url: true
+  - model_id: wan2.7-i2v
+    provider: dashscope
+    model_type: video
+    updated_at: 2026-04-18
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Wan 2.7 image-to-video pricing varies by resolution, duration, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/use-video-generation
+      retrieved_at: 2026-04-18
+      note: Official Wan video generation guide covering t2v and i2v families.
+    video_generation:
+      modes:
+        - i2v_first_frame
+        - i2v_first_last
+      input_roles:
+        i2v_first_frame:
+          - prompt
+          - first_frame
+          - reference_audio
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+          - reference_audio
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+        duration_sec:
+          min: 2
+          max: 15
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - generate_audio
+        constraints: {}
+      outputs:
+        video_url: true
+  - model_id: wan2.7-r2v
+    provider: dashscope
+    model_type: video
+    updated_at: 2026-04-18
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Wan 2.7 reference-to-video pricing varies by resolution, duration, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/use-video-generation
+      retrieved_at: 2026-04-18
+      note: Official Wan video generation guide covering t2v and i2v families.
+    video_generation:
+      modes:
+        - i2v_reference
+      input_roles:
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+        duration_sec:
+          min: 2
+          max: 15
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - generate_audio
+        constraints: {}
+      outputs:
+        video_url: true
+  - model_id: wan2.7-videoedit
+    provider: dashscope
+    model_type: video
+    updated_at: 2026-04-18
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Wan 2.7 video editing pricing varies by resolution, duration, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/use-video-generation
+      retrieved_at: 2026-04-18
+      note: Official Wan video generation guide covering t2v and i2v families.
+    video_generation:
+      modes:
+        - i2v_reference
+      input_roles:
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+        duration_sec:
+          min: 2
+          max: 10
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - generate_audio
+        constraints:
+          video_editing_mapped_to_reference_mode: true
+      outputs:
+        video_url: true
   - model_id: flux-schnell
     provider: dashscope
     model_type: image
@@ -968,9 +1509,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: flux-dev
     provider: dashscope
     model_type: image
@@ -985,9 +1526,9 @@ models:
       as_of: 2026-03-07
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
   - model_id: flux-merged
     provider: dashscope
     model_type: image
@@ -1002,178 +1543,10 @@ models:
       as_of: 2026-03-07
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/getting-started/models
-      retrieved_at: 2026-03-05
-      note: DashScope model catalog and pricing overview.
+      url: https://help.aliyun.com/zh/model-studio/model-pricing
+      retrieved_at: 2026-04-18
+      note: DashScope official model pricing and current model listing overview.
 voices:
-  - voice_id: chelsie
-    voice_set_id: dashscope:tts_voice_set
-    provider: dashscope
-    name: Chelsie
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen-tts
-      - qwen-tts-2025-04-10
-      - qwen-tts-2025-05-22
-      - qwen-tts-latest
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: cherry
-    voice_set_id: dashscope:tts_voice_set
-    provider: dashscope
-    name: Cherry
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen-tts
-      - qwen-tts-2025-04-10
-      - qwen-tts-2025-05-22
-      - qwen-tts-latest
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: dylan
-    voice_set_id: dashscope:tts_voice_set
-    provider: dashscope
-    name: Dylan
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen-tts
-      - qwen-tts-2025-04-10
-      - qwen-tts-2025-05-22
-      - qwen-tts-latest
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: ethan
-    voice_set_id: dashscope:tts_voice_set
-    provider: dashscope
-    name: Ethan
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen-tts
-      - qwen-tts-2025-04-10
-      - qwen-tts-2025-05-22
-      - qwen-tts-latest
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: jada
-    voice_set_id: dashscope:tts_voice_set
-    provider: dashscope
-    name: Jada
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen-tts
-      - qwen-tts-2025-04-10
-      - qwen-tts-2025-05-22
-      - qwen-tts-latest
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: serena
-    voice_set_id: dashscope:tts_voice_set
-    provider: dashscope
-    name: Serena
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen-tts
-      - qwen-tts-2025-04-10
-      - qwen-tts-2025-05-22
-      - qwen-tts-latest
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: sunny
-    voice_set_id: dashscope:tts_voice_set
-    provider: dashscope
-    name: Sunny
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen-tts
-      - qwen-tts-2025-04-10
-      - qwen-tts-2025-05-22
-      - qwen-tts-latest
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
   - voice_id: arthur
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
@@ -1192,6 +1565,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1214,6 +1589,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1236,6 +1613,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1258,6 +1637,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1280,6 +1661,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1302,6 +1685,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1324,6 +1709,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1346,6 +1733,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1368,6 +1757,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1390,6 +1781,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1412,6 +1805,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1434,6 +1829,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1456,6 +1853,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1478,6 +1877,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1500,6 +1901,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1522,6 +1925,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1544,6 +1949,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1566,6 +1973,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1588,6 +1997,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1610,6 +2021,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1632,6 +2045,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1654,6 +2069,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1676,6 +2093,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1698,6 +2117,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1720,6 +2141,8 @@ voices:
     model_ids:
       - qwen3-tts-instruct-flash
       - qwen3-tts-instruct-flash-2026-01-26
+      - qwen3-tts-instruct-flash-realtime
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1743,6 +2166,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1766,6 +2192,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1789,6 +2218,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1812,6 +2244,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1835,6 +2270,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1858,6 +2296,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1881,6 +2322,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1904,6 +2348,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1927,6 +2374,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1950,6 +2400,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1973,6 +2426,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -1996,6 +2452,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2019,6 +2478,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2042,6 +2504,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2065,6 +2530,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2088,6 +2556,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2111,6 +2582,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2134,6 +2608,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2157,6 +2634,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2180,6 +2660,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2203,6 +2686,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2226,6 +2712,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2249,6 +2738,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2272,6 +2764,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2295,6 +2790,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2318,6 +2816,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2341,6 +2842,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2364,6 +2868,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2387,6 +2894,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2410,6 +2920,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2433,6 +2946,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2456,6 +2972,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2479,6 +2998,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2502,6 +3024,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2525,6 +3050,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2548,6 +3076,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2571,6 +3102,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2594,6 +3128,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2617,6 +3154,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2640,6 +3180,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2663,6 +3206,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2686,6 +3232,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2709,6 +3258,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2732,6 +3284,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2755,6 +3310,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2778,6 +3336,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2801,6 +3362,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2824,6 +3388,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2847,6 +3414,9 @@ voices:
       - qwen3-tts-flash
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+      - qwen3-tts-flash-realtime
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
     source_ref:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
@@ -2895,6 +3465,50 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
+  - voice_id: user-custom
+    voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
+    provider: dashscope
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+    model_ids:
+      - qwen3-tts-vc-realtime-2026-01-15
+      - qwen3-tts-vc-realtime-2025-11-27
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+  - voice_id: user-custom
+    voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
+    provider: dashscope
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+    model_ids:
+      - qwen3-tts-vd-realtime-2026-01-15
+      - qwen3-tts-vd-realtime-2025-12-16
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+      retrieved_at: 2026-04-18
+      note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
 selection_profiles:
   - provider: dashscope
     profile_id: text.general
@@ -2906,10 +3520,10 @@ selection_profiles:
   - provider: dashscope
     profile_id: text.fast
     capability: text.generate
-    model_id: qwen3.5-flash
-    reviewed_at: 2026-04-16
+    model_id: qwen3.6-flash
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Explicit flash-tier DashScope text route for latency-sensitive tasks.
+    rationale: Current flash-tier provider-native DashScope text route for latency-sensitive tasks.
   - provider: dashscope
     profile_id: text.reasoning
     capability: text.generate
@@ -2938,6 +3552,7 @@ voice_workflow_models:
     target_model_refs:
       - qwen3-tts-vc
       - qwen3-tts-vc-2026-01-22
+      - qwen3-tts-vc-realtime-2026-01-15
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
       retrieved_at: 2026-03-05
@@ -2965,6 +3580,7 @@ voice_workflow_models:
     target_model_refs:
       - qwen3-tts-vd
       - qwen3-tts-vd-2026-01-26
+      - qwen3-tts-vd-realtime-2026-01-15
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
       retrieved_at: 2026-03-05
@@ -2997,6 +3613,16 @@ model_workflow_bindings:
     workflow_types:
       - tts_t2v
   - model_id: qwen3-tts-vd-2026-01-26
+    workflow_model_refs:
+      - qwen-voice-design
+    workflow_types:
+      - tts_t2v
+  - model_id: qwen3-tts-vc-realtime-2026-01-15
+    workflow_model_refs:
+      - qwen-voice-enrollment
+    workflow_types:
+      - tts_v2v
+  - model_id: qwen3-tts-vd-realtime-2026-01-15
     workflow_model_refs:
       - qwen-voice-design
     workflow_types:

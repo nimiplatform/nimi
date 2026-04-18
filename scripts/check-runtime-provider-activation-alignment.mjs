@@ -12,6 +12,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 const sourceDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers');
 const registryPath = path.join(repoRoot, 'runtime', 'internal', 'providerregistry', 'generated.go');
 const voiceAdapterPath = path.join(repoRoot, 'runtime', 'internal', 'nimillm', 'adapter_voice.go');
+const runtimeNativeVoiceWorkflowProviders = new Set(['local']);
 
 let failed = false;
 
@@ -44,8 +45,16 @@ function normalizeStringArray(value) {
 function inferSourceCapabilities(doc) {
   const defaults = normalizeStringArray(doc?.defaults?.capabilities);
   const models = Array.isArray(doc?.models) ? doc.models : [];
+  const inventoryMode = normalizeProviderId(doc?.runtime?.inventory_mode);
+  const dynamicAllowed = normalizeStringArray(doc?.runtime?.dynamic_inventory?.allowed_capabilities);
   let supportsTTS = false;
   let supportsSTT = false;
+
+  if (inventoryMode === 'dynamic_endpoint') {
+    supportsTTS = dynamicAllowed.includes('audio.synthesize');
+    supportsSTT = dynamicAllowed.includes('audio.transcribe');
+  }
+
   for (const model of models) {
     const capabilities = normalizeStringArray(model?.capabilities);
     const effective = capabilities.length > 0 ? capabilities : defaults;
@@ -171,6 +180,11 @@ function parseVoiceWorkflowProviders(absPath) {
   return collectVoiceWorkflowProvidersFromSource(readText(absPath));
 }
 
+function supportsVoiceWorkflowExecution(provider, nimillmProviders) {
+  const normalized = normalizeProviderId(provider);
+  return runtimeNativeVoiceWorkflowProviders.has(normalized) || nimillmProviders.has(normalized);
+}
+
 function main() {
   const registryRecords = parseRegistryRecords(registryPath);
   const voiceWorkflowProviders = parseVoiceWorkflowProviders(voiceAdapterPath);
@@ -195,17 +209,8 @@ function main() {
     if (inferred.supportsSTT !== registry.supportsSTT) {
       fail(`${relPath} provider ${provider} audio.transcribe mismatch with provider registry (source=${inferred.supportsSTT}, registry=${registry.supportsSTT})`);
     }
-    if (provider === 'local' && inferred.workflowCount > 0) {
-      fail(`${relPath} local must not declare voice_workflow_models while local workflow is disabled`);
-    }
-    if (provider === 'local') {
-      const bindings = Array.isArray(doc?.model_workflow_bindings) ? doc.model_workflow_bindings : [];
-      if (bindings.length > 0) {
-        fail(`${relPath} local must not declare model_workflow_bindings while local workflow is disabled`);
-      }
-    }
-    if (inferred.workflowCount > 0 && !voiceWorkflowProviders.has(normalizeProviderId(provider))) {
-      fail(`${relPath} provider ${provider} declares voice workflows but has no nimillm voice adapter`);
+    if (inferred.workflowCount > 0 && !supportsVoiceWorkflowExecution(provider, voiceWorkflowProviders)) {
+      fail(`${relPath} provider ${provider} declares voice workflows but has no admitted workflow execution path`);
     }
   }
 
@@ -233,6 +238,7 @@ export {
   parseEqualityProviders,
   parseRegistryRecords,
   parseVoiceWorkflowProviders,
+  supportsVoiceWorkflowExecution,
 };
 
 if (isDirectExecution()) {

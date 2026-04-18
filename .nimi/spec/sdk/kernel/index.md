@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`S-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`SURFACE` `TRANSPORT` `ERROR` `BOUNDARY` `RUNTIME` `REALM` `AIP` `SCOPE` `MOD` `GATE`
+- `DOMAIN` 固定枚举：`SURFACE` `TRANSPORT` `ERROR` `BOUNDARY` `RUNTIME` `WORLD` `REALM` `AIP` `SCOPE` `MOD` `GATE`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -30,6 +30,7 @@
 | `runtime-route-contract.md` | `S-RUNTIME-*` | app-facing `runtime.route.*` typed surface 与 route metadata projection |
 | `world-evolution-engine-projection-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 typed projection-only 边界 |
 | `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app/mod consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |
+| `world-contract.md` | `S-WORLD-*` | `sdk/world` 的 public facade boundary、five-family coarse landing、world-input projection boundary、fixture package boundary、renderer orchestration boundary、world-session composition boundary |
 | `realm-contract.md` | `S-REALM-*` | realm 子路径实例隔离、刷新策略、实时边界 |
 | `ai-provider-contract.md` | `S-AIP-*` | ai-provider 子路径适配与投影约束 |
 | `scope-contract.md` | `S-SCOPE-*` | scope 子路径 catalog 与边界语义 |

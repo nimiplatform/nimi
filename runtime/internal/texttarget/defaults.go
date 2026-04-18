@@ -81,6 +81,9 @@ func ResolveProviderDefaultTextModel(cfg config.Config, providerName string) (st
 		return value, "config", nil
 	}
 	record, ok := providerregistry.Lookup(canonicalProvider)
+	if ok && strings.TrimSpace(record.InventoryMode) == "dynamic_endpoint" {
+		return "", "", fmt.Errorf("provider %q uses dynamic inventory and requires explicit provider.defaultModel or route-selected model", canonicalProvider)
+	}
 	if ok && strings.TrimSpace(record.DefaultTextModel) != "" {
 		return strings.TrimSpace(record.DefaultTextModel), "catalog", nil
 	}

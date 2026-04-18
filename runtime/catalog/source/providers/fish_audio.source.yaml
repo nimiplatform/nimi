@@ -1,6 +1,6 @@
 schema_version: 3
 provider: fish_audio
-catalog_version: 2026-03-10-fish-audio-v2
+catalog_version: 2026-04-18-fish-audio-v3
 generated_target: runtime/catalog/providers/fish_audio.yaml
 runtime:
   runtime_plane: remote
@@ -18,33 +18,54 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: Fish Audio pricing varies by model and account plan.
+    as_of: 2026-04-18
+    notes: Fish Audio now publishes stable TTS pricing at $15.00 per 1M UTF-8 bytes for both `s1` and `s2-pro`, but the catalog pricing contract only normalizes token|char|second|request units, so byte-accurate pricing remains descriptive rather than numerically encoded here.
 
 sources:
   - source_id: fish_audio_quickstart_doc
     url: https://docs.fish.audio/developer-guide/getting-started/quickstart
-    retrieved_at: 2026-03-10
+    retrieved_at: 2026-04-18
     note: Fish Audio quickstart and SDK usage.
   - source_id: fish_audio_api_doc
-    url: https://docs.fish.audio/api-reference/tts
-    retrieved_at: 2026-03-10
+    url: https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech
+    retrieved_at: 2026-04-18
     note: Fish Audio TTS API reference.
   - source_id: fish_audio_create_model_doc
-    url: https://docs.fish.audio/api-reference/endpoint/create-tts-model
-    retrieved_at: 2026-03-10
+    url: https://docs.fish.audio/api-reference/endpoint/model/create-model
+    retrieved_at: 2026-04-18
     note: Fish Audio create custom TTS model API reference.
   - source_id: fish_audio_delete_model_doc
-    url: https://docs.fish.audio/api-reference/endpoint/delete-tts-model
-    retrieved_at: 2026-03-10
+    url: https://docs.fish.audio/api-reference/endpoint/model/delete-model
+    retrieved_at: 2026-04-18
     note: Fish Audio delete custom TTS model API reference.
   - source_id: fish_audio_models_doc
-    url: https://docs.fish.audio/text-to-speech/models
-    retrieved_at: 2026-03-10
-    note: Fish Audio model catalog and capabilities.
+    url: https://docs.fish.audio/developer-guide/core-features/text-to-speech
+    retrieved_at: 2026-04-18
+    note: Fish Audio text-to-speech guide with current voice and request-option examples.
+  - source_id: fish_audio_models_overview_doc
+    url: https://docs.fish.audio/developer-guide/models-pricing/models-overview
+    retrieved_at: 2026-04-18
+    note: Fish Audio current TTS model overview and language support notes.
+  - source_id: fish_audio_choosing_model_doc
+    url: https://docs.fish.audio/developer-guide/models-pricing/choosing-a-model
+    retrieved_at: 2026-04-18
+    note: Fish Audio model recommendation page.
+  - source_id: fish_audio_pricing_doc
+    url: https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits
+    retrieved_at: 2026-04-18
+    note: Fish Audio public API pricing and concurrency tiers.
+  - source_id: fish_audio_deprecations_doc
+    url: https://docs.fish.audio/developer-guide/models-pricing/deprecations
+    retrieved_at: 2026-04-18
+    note: Fish Audio active and deprecated TTS model lines.
+  - source_id: fish_audio_changelog_doc
+    url: https://docs.fish.audio/developer-guide/getting-started/changelog
+    retrieved_at: 2026-04-18
+    note: Fish Audio changelog confirming the March 2026 S2 release.
 
 language_profiles:
   short_multilingual_v1: [en, zh, ja, ko, fr, de, es, pt, it, ru]
+  fish_audio_s1_languages_v1: [en, zh, ja, de, fr, es, ko, ar, ru, nl, it, pl, pt]
 
 voice_sets:
   - voice_set_id: default-voices-v1
@@ -62,23 +83,45 @@ voice_sets:
         langs: [en]
 
 models:
-  - model_id: s1
-    updated_at: 2026-03-10
-    source_ids: [fish_audio_quickstart_doc, fish_audio_api_doc, fish_audio_models_doc]
-    voice:
-      discovery_mode: static_catalog
-      voice_set_ref: default-voices-v1
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
-      langs_ref: short_multilingual_v1
-
   - model_id: s2-pro
-    updated_at: 2026-03-10
-    source_ids: [fish_audio_api_doc, fish_audio_models_doc]
+    updated_at: 2026-04-18
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Fish Audio publishes `$15.00 / 1M UTF-8 bytes` for `s2-pro`, but the catalog pricing contract cannot encode byte-metered billing exactly.
+    source_ids: [fish_audio_api_doc, fish_audio_models_overview_doc, fish_audio_choosing_model_doc, fish_audio_pricing_doc, fish_audio_changelog_doc]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
       langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav, pcm, mp3, opus]
+        supports_language: false
+
+  - model_id: s1
+    updated_at: 2026-04-18
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Fish Audio publishes `$15.00 / 1M UTF-8 bytes` for `s1`, but the catalog pricing contract cannot encode byte-metered billing exactly.
+    source_ids: [fish_audio_quickstart_doc, fish_audio_api_doc, fish_audio_models_overview_doc, fish_audio_pricing_doc, fish_audio_deprecations_doc]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
+      langs_ref: fish_audio_s1_languages_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav, pcm, mp3, opus]
+        supports_language: false
 
 voice_workflow_models:
   - workflow_model_id: fish-audio-create-model

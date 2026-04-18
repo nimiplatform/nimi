@@ -43,11 +43,11 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 	}
 
 	rec := ConnectorRecord{
-		Kind:      runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
-		Provider:  provider,
-		Endpoint:  endpoint,
-		Label:     strings.TrimSpace(req.GetLabel()),
-		Status:    runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		Kind:     runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		Provider: provider,
+		Endpoint: endpoint,
+		Label:    strings.TrimSpace(req.GetLabel()),
+		Status:   runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
 	if hasOwner {
 		rec.OwnerType = runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER
@@ -74,6 +74,7 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 		"connector_id": created.ConnectorID,
 		"provider":     provider,
 	})
+	s.invalidateDynamicConnectorModelsCache(created.ConnectorID)
 	return &runtimev1.CreateConnectorResponse{
 		Connector: recordToProto(created),
 	}, nil
@@ -316,6 +317,7 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 	s.emitAudit(ctx, "connector.update", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"connector_id": connectorID,
 	})
+	s.invalidateDynamicConnectorModelsCache(connectorID)
 	return &runtimev1.UpdateConnectorResponse{
 		Connector: recordToProto(updated),
 	}, nil
@@ -363,6 +365,7 @@ func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConn
 	s.emitAudit(ctx, "connector.delete", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"connector_id": connectorID,
 	})
+	s.invalidateDynamicConnectorModelsCache(connectorID)
 	return &runtimev1.DeleteConnectorResponse{
 		Ack: &runtimev1.Ack{Ok: true},
 	}, nil

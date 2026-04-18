@@ -91,7 +91,7 @@ test('runtimeGenerateMusicIteration wires canonical extensions through music gen
   });
 
   const output = await runtimeGenerateMusicIteration(ctx, {
-    model: 'suno-v4',
+    model: 'stable-audio-2',
     prompt: 'continue this track',
     iteration: {
       mode: 'extend',
@@ -138,7 +138,7 @@ test('runtimeGenerateMusicIteration fails fast on invalid iteration input', asyn
 
   await assert.rejects(
     () => runtimeGenerateMusicIteration(ctx, {
-      model: 'suno-v4',
+      model: 'stable-audio-2',
       prompt: 'broken',
       iteration: {
         mode: 'extend',

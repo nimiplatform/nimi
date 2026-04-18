@@ -42,11 +42,13 @@ import {
   ListScenarioProfilesResponse,
   OpenRealtimeSessionRequest,
   OpenRealtimeSessionResponse,
-  PeekSchedulingRequest,
-  PeekSchedulingResponse,
   SubmitScenarioJobRequest,
   SubmitScenarioJobResponse,
 } from '../generated/runtime/v1/ai';
+import {
+  PeekSchedulingRequest,
+  PeekSchedulingResponse,
+} from '../generated/runtime/v1/ai_scheduling';
 import {
   DeleteVoiceAssetRequest,
   DeleteVoiceAssetResponse,

@@ -1,83 +1,13 @@
 version: 1
 provider: pika
-catalog_version: 2026-03-05-pika-v1
-models:
-  - model_id: pika-2.2
-    provider: pika
-    model_type: video
-    updated_at: 2026-03-05
-    capabilities:
-      - video.generate
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Pika pricing varies by model, resolution, and account plan.
-    source_ref:
-      url: https://pika.art/developers
-      retrieved_at: 2026-03-05
-      note: Pika developer API documentation.
-    video_generation:
-      modes:
-        - t2v
-        - i2v_first_frame
-      input_roles:
-        t2v:
-          - prompt
-        i2v_first_frame:
-          - prompt
-          - first_frame
-      limits:
-        resolution:
-          - 720p
-          - 1080p
-      options:
-        supports:
-          - resolution
-          - ratio
-          - duration_sec
-        constraints: {}
-      outputs:
-        video_url: true
-  - model_id: pika-2.2-fast
-    provider: pika
-    model_type: video
-    updated_at: 2026-03-05
-    capabilities:
-      - video.generate
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Pika pricing varies by model, resolution, and account plan.
-    source_ref:
-      url: https://pika.art/developers
-      retrieved_at: 2026-03-05
-      note: Pika developer API documentation.
-    video_generation:
-      modes:
-        - t2v
-        - i2v_first_frame
-      input_roles:
-        t2v:
-          - prompt
-        i2v_first_frame:
-          - prompt
-          - first_frame
-      limits:
-        resolution:
-          - 720p
-          - 1080p
-      options:
-        supports:
-          - resolution
-          - ratio
-          - duration_sec
-        constraints: {}
-      outputs:
-        video_url: true
+catalog_version: 2026-04-18-pika-v2
+inventory_mode: dynamic_endpoint
+models: []
 voices: []
+dynamic_inventory:
+  discovery_transport: connector_list_models
+  cache_ttl_sec: 300
+  selection_mode: pass_through
+  failure_policy: use_cache_then_fail_closed
+  allowed_capabilities:
+    - video.generate

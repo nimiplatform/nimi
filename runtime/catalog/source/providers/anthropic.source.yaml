@@ -1,6 +1,6 @@
 schema_version: 3
 provider: anthropic
-catalog_version: 2026-03-18-anthropic-v3
+catalog_version: 2026-04-18-anthropic-v4
 generated_target: runtime/catalog/providers/anthropic.yaml
 runtime:
   runtime_plane: remote
@@ -18,96 +18,125 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
+    as_of: 2026-04-18
     notes: Anthropic pricing varies by model family, token class, and contract tier.
 
 sources:
   - source_id: anthropic_models_overview
     url: https://platform.claude.com/docs/en/about-claude/models/overview
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Claude model overview with API model IDs and aliases.
   - source_id: anthropic_whats_new_4_6
     url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-6
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Claude 4.6 release notes and model identifiers.
+  - source_id: anthropic_whats_new_4_7
+    url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7
+    retrieved_at: 2026-04-18
+    note: Claude Opus 4.7 release notes and model identifiers.
   - source_id: anthropic_models_api
     url: https://platform.claude.com/docs/en/api/models/list
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Anthropic API models list endpoint reference.
+  - source_id: anthropic_pricing
+    url: https://platform.claude.com/docs/en/about-claude/pricing
+    retrieved_at: 2026-04-18
+    note: Anthropic pricing reference for current Claude model token rates.
+  - source_id: anthropic_migration_guide
+    url: https://platform.claude.com/docs/en/about-claude/models/migration-guide
+    retrieved_at: 2026-04-18
+    note: Anthropic migration guidance for current Claude 4.x model IDs and dated snapshots.
   - source_id: anthropic_sonnet_4_5
     url: https://www.anthropic.com/news/claude-sonnet-4-5
-    retrieved_at: 2026-03-18
+    retrieved_at: 2026-04-18
     note: Claude Sonnet 4.5 announcement and capabilities.
 
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: claude-sonnet-4-6
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
     rationale: Balanced default for general chat and multimodal text use.
   - profile_id: text.fast
     capability: text.generate
     model_id: claude-haiku-4-5
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
     rationale: Lowest-latency Claude track.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: claude-opus-4-6
-    reviewed_at: 2026-04-16
+    model_id: claude-opus-4-7
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Highest reasoning-quality Claude track.
+    rationale: Highest reasoning-quality Claude track after Opus 4.7 became the current top-tier model.
 
 models:
-  - model_id: claude-opus-4-6
+  - model_id: claude-opus-4-7
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
-      input: "15.00"
-      output: "75.00"
+      input: "5.00"
+      output: "25.00"
       currency: USD
-      as_of: 2026-03-18
-      notes: Flagship model. Per 1M tokens.
-    source_ids: [anthropic_whats_new_4_6, anthropic_models_overview, anthropic_models_api]
+      as_of: 2026-04-18
+      notes: Current flagship Claude model. Per 1M tokens.
+    source_ids: [anthropic_whats_new_4_7, anthropic_models_overview, anthropic_pricing, anthropic_models_api]
+
+  - model_id: claude-opus-4-6
+    model_type: chat
+    updated_at: 2026-02-05
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: "5.00"
+      output: "25.00"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Previous-generation flagship Claude model. Per 1M tokens.
+    source_ids: [anthropic_whats_new_4_6, anthropic_models_overview, anthropic_pricing, anthropic_models_api]
 
   - model_id: claude-sonnet-4-6
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-02-17
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: "3.00"
       output: "15.00"
       currency: USD
-      as_of: 2026-03-18
+      as_of: 2026-04-18
       notes: Balanced model. Per 1M tokens.
-    source_ids: [anthropic_whats_new_4_6, anthropic_models_overview, anthropic_models_api]
+    source_ids: [anthropic_whats_new_4_6, anthropic_models_overview, anthropic_pricing, anthropic_models_api]
 
   - model_id: claude-sonnet-4-5
     model_type: chat
-    updated_at: 2026-03-18
+    updated_at: 2025-09-29
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: "3.00"
       output: "15.00"
       currency: USD
-      as_of: 2026-03-18
+      as_of: 2026-04-18
       notes: Previous-gen Sonnet model. Per 1M tokens.
-    source_ids: [anthropic_sonnet_4_5, anthropic_models_overview, anthropic_models_api]
+    source_ids: [anthropic_sonnet_4_5, anthropic_models_overview, anthropic_pricing, anthropic_models_api, anthropic_migration_guide]
+    aliases:
+      - claude-sonnet-4-5-20250929
 
   - model_id: claude-haiku-4-5
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-10-15
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
-      input: "0.80"
-      output: "4.00"
+      input: "1.00"
+      output: "5.00"
       currency: USD
-      as_of: 2026-03-18
+      as_of: 2026-04-18
       notes: Fast and cost-efficient model. Per 1M tokens.
-    source_ids: [anthropic_models_overview, anthropic_models_api]
+    source_ids: [anthropic_models_overview, anthropic_pricing, anthropic_models_api, anthropic_migration_guide]
+    aliases:
+      - claude-haiku-4-5-20251001

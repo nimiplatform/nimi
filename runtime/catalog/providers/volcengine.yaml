@@ -1,30 +1,9 @@
 version: 1
 provider: volcengine
-catalog_version: 2026-03-05-volcengine-v3
+catalog_version: 2026-04-18-volcengine-ark-v4
+inventory_mode: static_source
 default_text_model: doubao-seed-2-0-pro-260215
 models:
-  - model_id: doubao-tts
-    provider: volcengine
-    model_type: tts
-    updated_at: 2026-03-05
-    capabilities:
-      - audio.synthesize
-    pricing:
-      unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Pricing differs by account tier and product line.
-    source_ref:
-      url: https://www.volcengine.com/docs/6561/1257584
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenSpeech TTS documentation.
-    voice_set_id: volcengine:openspeech-streaming-v1
-    voice_discovery_mode: static_catalog
-    voice_ref_kinds:
-      - preset_voice_id
-      - provider_voice_ref
   - model_id: seedance-1-5-pro
     provider: volcengine
     model_type: video
@@ -32,12 +11,12 @@ models:
     capabilities:
       - video.generate
     pricing:
-      unit: request
+      unit: token
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Volcengine public pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
     source_ref:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
       retrieved_at: 2026-03-05
@@ -114,12 +93,12 @@ models:
     capabilities:
       - video.generate
     pricing:
-      unit: request
+      unit: token
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Volcengine public pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
     source_ref:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
       retrieved_at: 2026-03-05
@@ -132,12 +111,12 @@ models:
     capabilities:
       - video.generate
     pricing:
-      unit: request
+      unit: token
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Volcengine public pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
     source_ref:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
       retrieved_at: 2026-03-05
@@ -150,12 +129,12 @@ models:
     capabilities:
       - video.generate
     pricing:
-      unit: request
+      unit: token
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Volcengine public pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
     source_ref:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
       retrieved_at: 2026-03-05
@@ -236,12 +215,12 @@ models:
     capabilities:
       - video.generate
     pricing:
-      unit: request
+      unit: token
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Volcengine public pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
     source_ref:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
       retrieved_at: 2026-03-05
@@ -250,7 +229,7 @@ models:
   - model_id: doubao-seed-2-0-pro-260215
     provider: volcengine
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -258,16 +237,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Flagship chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Flagship Ark chat model pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-seed-2.0-pro
     provider: volcengine
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -275,16 +254,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Flagship chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Flagship Ark chat model pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-seed-2-0-lite-260215
     provider: volcengine
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -292,16 +271,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Balanced chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Balanced Ark chat model pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-seed-2.0-lite
     provider: volcengine
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -309,16 +288,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Balanced chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Balanced Ark chat model pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-seed-2-0-mini-260215
     provider: volcengine
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -326,16 +305,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Lightweight chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Lightweight Ark chat model pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-seed-2.0-mini
     provider: volcengine
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -343,16 +322,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Lightweight chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Lightweight Ark chat model pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-seed-2-0-code-preview-260215
     provider: volcengine
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -360,16 +339,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Code-specialized chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Code-specialized Ark chat model pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-seed-2.0-code
     provider: volcengine
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -377,16 +356,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Code-specialized chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Code-specialized Ark chat model pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-1.5-pro-256k
     provider: volcengine
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -394,16 +373,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Long-context chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Prior long-context Ark chat model pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-1.5-pro
     provider: volcengine
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -411,16 +390,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Long-context chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-04-18
+      notes: Prior long-context Ark chat model pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-embedding
     provider: volcengine
     model_type: embedding
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.embed
     pricing:
@@ -428,16 +407,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Embedding token pricing varies by account plan and dimension tier.
+      as_of: 2026-04-18
+      notes: Ark embedding pricing varies by account plan and dimension tier.
     source_ref:
       url: https://www.volcengine.com/docs/84716/1288890
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Volcengine embedding model documentation.
   - model_id: doubao-embedding-250615
     provider: volcengine
     model_type: embedding
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.embed
     pricing:
@@ -445,16 +424,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Embedding token pricing varies by account plan and dimension tier.
+      as_of: 2026-04-18
+      notes: Ark embedding pricing varies by account plan and dimension tier.
     source_ref:
       url: https://www.volcengine.com/docs/84716/1288890
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Volcengine embedding model documentation.
   - model_id: doubao-seedream-5-0-260128
     provider: volcengine
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - image.generate
     pricing:
@@ -462,16 +441,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by quality profile and account tier.
+      as_of: 2026-04-18
+      notes: Ark image generation pricing varies by quality profile and account tier.
     source_ref:
       url: https://www.volcengine.com/docs/6492/2172373
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Volcengine Seedream image generation documentation.
   - model_id: seedream-5.0
     provider: volcengine
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - image.generate
     pricing:
@@ -479,16 +458,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by quality profile and account tier.
+      as_of: 2026-04-18
+      notes: Ark image generation pricing varies by quality profile and account tier.
     source_ref:
       url: https://www.volcengine.com/docs/6492/2172373
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Volcengine Seedream image generation documentation.
   - model_id: doubao-seedream-4-5-251128
     provider: volcengine
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - image.generate
     pricing:
@@ -496,51 +475,25 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by quality profile and account tier.
+      as_of: 2026-04-18
+      notes: Prior Ark image generation pricing varies by quality profile and account tier.
     source_ref:
       url: https://www.volcengine.com/docs/6492/2172373
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Volcengine Seedream image generation documentation.
-voices:
-  - voice_id: BV001_streaming
-    voice_set_id: volcengine:openspeech-streaming-v1
-    provider: volcengine
-    name: BV001
-    langs:
-      - zh
-      - en
-    model_ids:
-      - doubao-tts
-    source_ref:
-      url: https://www.volcengine.com/docs/6561/1257584
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenSpeech TTS documentation.
-  - voice_id: BV002_streaming
-    voice_set_id: volcengine:openspeech-streaming-v1
-    provider: volcengine
-    name: BV002
-    langs:
-      - zh
-      - en
-    model_ids:
-      - doubao-tts
-    source_ref:
-      url: https://www.volcengine.com/docs/6561/1257584
-      retrieved_at: 2026-03-05
-      note: Volcengine OpenSpeech TTS documentation.
+voices: []
 selection_profiles:
   - provider: volcengine
     profile_id: text.general
     capability: text.generate
     model_id: doubao-seed-2-0-pro-260215
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
     rationale: Best current general Volcengine text route in the admitted set.
   - provider: volcengine
     profile_id: text.fast
     capability: text.generate
     model_id: doubao-seed-2-0-mini-260215
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
     rationale: Lightweight Volcengine text route for lower-latency general tasks.

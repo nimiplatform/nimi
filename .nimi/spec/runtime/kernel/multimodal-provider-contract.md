@@ -364,7 +364,6 @@ TTS provider 纳入执行以下分层规则：
 iteration 支持必须由 `music.generate.iteration` capability 与 runtime provider strategy 共同决定，不能只靠 provider 名字硬编码。
 
 - `stability` 是当前官方闭源基线 provider，必须显式声明 `music.generate.iteration` capability，并消费 runtime 规范化后的 typed iteration 输入。
-- `suno` 可保留为实验性路径；若继续声明 `music.generate.iteration`，也必须消费 runtime 规范化后的 typed iteration 输入，不得原样盲传未验证字段。
 - `soundverse`、`mubert`、`loudly` 当前规范基线只要求 `music.generate` prompt-only；若未声明 `music.generate.iteration` capability，则带 iteration 扩展时必须 fail-close。
 - `local` provider 当前规范基线只要求 prompt-only；`sidecar` 本地 backend 后续可在声明 capability 后增量开放 iteration。
 - 本规则不新增新的顶层 RPC；iteration 继续复用通用 `ScenarioJob` / artifact 契约。

@@ -1,25 +1,88 @@
 version: 1
 provider: azure_speech
-catalog_version: 2026-03-05-azure-speech-v1
+catalog_version: 2026-04-18-azure-speech-v2
+inventory_mode: static_source
 models:
   - model_id: azure-neural-tts
     provider: azure_speech
     model_type: tts
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - audio.synthesize
     pricing:
-      unit: request
+      unit: char
       input: unknown
-      output: unknown
+      output: "0"
       currency: USD
-      as_of: 2026-03-05
-      notes: Azure Speech public pricing depends on region, tier, and commitment plan.
+      as_of: 2026-04-18
+      notes: Azure Speech standard neural voices are billed per character; public price depends on region and plan.
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Azure Speech text-to-speech baseline capability.
     voice_set_id: azure_speech:neural-defaults-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - wav
+        - pcm
+      supports_language: true
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: azure-hd-tts
+    provider: azure_speech
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Azure Speech HD voices and Dragon HD Omni are billed per character under separate HD pricing terms that vary by region and plan.
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-04-18
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+    voice_set_id: azure_speech:hd-defaults-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - wav
+        - pcm
+      supports_language: true
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: azure-openai-tts-preview
+    provider: azure_speech
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Azure Speech OpenAI voices are currently preview-only and region-limited to North Central US and Sweden Central; pricing is not modeled here as a stable static public rate.
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
+      retrieved_at: 2026-04-18
+      note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
+    voice_set_id: azure_speech:openai-defaults-preview-v1
     voice_discovery_mode: static_catalog
     voice_request_options:
       timing_modes:
@@ -44,7 +107,7 @@ voices:
       - azure-neural-tts
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Azure Speech text-to-speech baseline capability.
   - voice_id: en-US-GuyNeural
     voice_set_id: azure_speech:neural-defaults-v1
@@ -56,7 +119,7 @@ voices:
       - azure-neural-tts
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Azure Speech text-to-speech baseline capability.
   - voice_id: zh-CN-XiaoxiaoNeural
     voice_set_id: azure_speech:neural-defaults-v1
@@ -68,7 +131,7 @@ voices:
       - azure-neural-tts
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Azure Speech text-to-speech baseline capability.
   - voice_id: ja-JP-NanamiNeural
     voice_set_id: azure_speech:neural-defaults-v1
@@ -80,5 +143,113 @@ voices:
       - azure-neural-tts
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Azure Speech text-to-speech baseline capability.
+  - voice_id: en-US-Ava:DragonHDLatestNeural
+    voice_set_id: azure_speech:hd-defaults-v1
+    provider: azure_speech
+    name: Ava DragonHD
+    langs:
+      - en-US
+    model_ids:
+      - azure-hd-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-04-18
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: en-US-Jenny:DragonHDLatestNeural
+    voice_set_id: azure_speech:hd-defaults-v1
+    provider: azure_speech
+    name: Jenny DragonHD
+    langs:
+      - en-US
+    model_ids:
+      - azure-hd-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-04-18
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: ja-JP-Nanami:DragonHDLatestNeural
+    voice_set_id: azure_speech:hd-defaults-v1
+    provider: azure_speech
+    name: Nanami DragonHD
+    langs:
+      - ja-JP
+    model_ids:
+      - azure-hd-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-04-18
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Xiaochen:DragonHDLatestNeural
+    voice_set_id: azure_speech:hd-defaults-v1
+    provider: azure_speech
+    name: Xiaochen DragonHD
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-04-18
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: en-us-ava:DragonHDOmniLatestNeural
+    voice_set_id: azure_speech:hd-defaults-v1
+    provider: azure_speech
+    name: Ava DragonHDOmni
+    langs:
+      - en-US
+    model_ids:
+      - azure-hd-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-04-18
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: en-US-AlloyMultilingualNeural
+    voice_set_id: azure_speech:openai-defaults-preview-v1
+    provider: azure_speech
+    name: Alloy
+    langs:
+      - en-US
+    model_ids:
+      - azure-openai-tts-preview
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
+      retrieved_at: 2026-04-18
+      note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
+  - voice_id: en-US-NovaMultilingualNeural
+    voice_set_id: azure_speech:openai-defaults-preview-v1
+    provider: azure_speech
+    name: Nova
+    langs:
+      - en-US
+    model_ids:
+      - azure-openai-tts-preview
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
+      retrieved_at: 2026-04-18
+      note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
+  - voice_id: en-US-AlloyMultilingualNeuralHD
+    voice_set_id: azure_speech:openai-defaults-preview-v1
+    provider: azure_speech
+    name: Alloy HD
+    langs:
+      - en-US
+    model_ids:
+      - azure-openai-tts-preview
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
+      retrieved_at: 2026-04-18
+      note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
+  - voice_id: en-US-NovaMultilingualNeuralHD
+    voice_set_id: azure_speech:openai-defaults-preview-v1
+    provider: azure_speech
+    name: Nova HD
+    langs:
+      - en-US
+    model_ids:
+      - azure-openai-tts-preview
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
+      retrieved_at: 2026-04-18
+      note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.

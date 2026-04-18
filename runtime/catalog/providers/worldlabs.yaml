@@ -1,6 +1,7 @@
 version: 1
 provider: worldlabs
 catalog_version: 2026-04-17-worldlabs-v1
+inventory_mode: static_source
 models:
   - model_id: marble-1.1
     provider: worldlabs

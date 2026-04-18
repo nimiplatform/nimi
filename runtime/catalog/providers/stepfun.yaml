@@ -1,30 +1,47 @@
 version: 1
 provider: stepfun
-catalog_version: 2026-03-10-stepfun-v3
+catalog_version: 2026-04-18-stepfun-multifamily-v4
+inventory_mode: static_source
 default_text_model: step-3.5-flash
 models:
+  - model_id: step-3.5-flash-2603
+    provider: stepfun
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "0.10"
+      output: "0.30"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current optimized StepFun reasoning model for high-frequency agent workflows. Cache-hit input pricing is $0.02 per 1M tokens.
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/guides/models/reasoning
+      retrieved_at: 2026-04-18
+      note: StepFun current reasoning model guide.
   - model_id: step-3.5-flash
     provider: stepfun
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Flagship reasoning model with 256K context. Supports tool calling and web search.
+      input: "0.10"
+      output: "0.30"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current flagship general-purpose reasoning model with 256K context. Cache-hit input pricing is $0.02 per 1M tokens.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
+      url: https://platform.stepfun.ai/docs/en/guides/models/reasoning
+      retrieved_at: 2026-04-18
+      note: StepFun current reasoning model guide.
   - model_id: step-3
     provider: stepfun
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
       - text.generate.vision
@@ -32,17 +49,17 @@ models:
       unit: token
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Multimodal reasoning model with 64K context.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
+      url: https://platform.stepfun.ai/docs/en/llm/modeloverview
+      retrieved_at: 2026-04-18
+      note: StepFun current public model capability overview across text, vision, image, and audio families.
   - model_id: step-r1-v-mini
     provider: stepfun
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
       - text.generate.vision
@@ -50,253 +67,493 @@ models:
       unit: token
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Visual reasoning model with 100K context.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
+      url: https://platform.stepfun.ai/docs/en/llm/modeloverview
+      retrieved_at: 2026-04-18
+      note: StepFun current public model capability overview across text, vision, image, and audio families.
   - model_id: step-2-mini
     provider: stepfun
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Ultra-fast cost-effective model with 32K context.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
+      url: https://platform.stepfun.ai/docs/en/guides/models/text
+      retrieved_at: 2026-04-18
+      note: StepFun current text model guide.
   - model_id: step-2-16k
     provider: stepfun
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Ultra-fast cost-effective model with 32K context.
+      currency: USD
+      as_of: 2026-04-18
+      notes: Production step-2 text model with stronger overall quality and planning capability.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
-  - model_id: step-1o-turbo-vision
-    provider: stepfun
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-      - text.generate.vision
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Ultra-fast cost-effective model with 32K context.
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
-  - model_id: step-1o-vision-32k
-    provider: stepfun
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-      - text.generate.vision
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Ultra-fast cost-effective model with 32K context.
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
-  - model_id: step-1v-8k
-    provider: stepfun
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-      - text.generate.vision
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Ultra-fast cost-effective model with 32K context.
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
-  - model_id: step-1v-32k
-    provider: stepfun
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-      - text.generate.vision
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Ultra-fast cost-effective model with 32K context.
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
+      url: https://platform.stepfun.ai/docs/en/guides/models/text
+      retrieved_at: 2026-04-18
+      note: StepFun current text model guide.
   - model_id: step-1-8k
     provider: stepfun
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Ultra-fast cost-effective model with 32K context.
+      currency: USD
+      as_of: 2026-04-18
+      notes: Short-context step-1 text model for general generation, Q&A, and tool-oriented workflows.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
+      url: https://platform.stepfun.ai/docs/en/guides/models/text
+      retrieved_at: 2026-04-18
+      note: StepFun current text model guide.
   - model_id: step-1-32k
     provider: stepfun
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
-      - text.generate.vision
     pricing:
       unit: token
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Ultra-fast cost-effective model with 32K context.
+      currency: USD
+      as_of: 2026-04-18
+      notes: Mid-context step-1 text model for longer conversations and document-heavy tasks.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
+      url: https://platform.stepfun.ai/docs/en/guides/models/text
+      retrieved_at: 2026-04-18
+      note: StepFun current text model guide.
   - model_id: step-1-256k
     provider: stepfun
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Long-context step-1 text model for large documents and extended histories.
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/guides/models/text
+      retrieved_at: 2026-04-18
+      note: StepFun current text model guide.
+  - model_id: step-1o-turbo-vision
+    provider: stepfun
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
       - text.generate.vision
     pricing:
       unit: token
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Ultra-fast cost-effective model with 32K context.
+      currency: USD
+      as_of: 2026-04-18
+      notes: Recommended StepFun vision model for image and video understanding with lighter footprint and faster output.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/reasoning
-      retrieved_at: 2026-03-10
-      note: StepFun reasoning model overview.
+      url: https://platform.stepfun.ai/docs/en/llm/vision
+      retrieved_at: 2026-04-18
+      note: StepFun current vision model guide.
+  - model_id: step-1o-vision-32k
+    provider: stepfun
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Strong image-understanding model positioned above the step-1v series in visual quality.
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/llm/vision
+      retrieved_at: 2026-04-18
+      note: StepFun current vision model guide.
+  - model_id: step-1v-8k
+    provider: stepfun
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Short-context step-1v vision model for image Q&A and visual analysis.
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/llm/vision
+      retrieved_at: 2026-04-18
+      note: StepFun current vision model guide.
+  - model_id: step-1v-32k
+    provider: stepfun
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Longer-context step-1v vision model for more images and longer histories.
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/llm/vision
+      retrieved_at: 2026-04-18
+      note: StepFun current vision model guide.
   - model_id: step-tts-2
     provider: stepfun
     model_type: tts
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - audio.synthesize
     pricing:
       unit: char
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Current documented StepFun audio model with preset voices and voice cloning support.
+      input: "0"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current overseas API-admitted TTS and voice-cloning model. Official pricing page lists step-tts-2 as free for a limited time.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
+      url: https://platform.stepfun.ai/docs/en/guides/basic-concepts
+      retrieved_at: 2026-04-18
+      note: StepFun current basic concepts page summarizing reasoning and audio model families.
     voice_set_id: stepfun:tts_2_voice_set
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - opus
+        - aac
+        - flac
+        - wav
+        - pcm
+      supports_language: true
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
   - model_id: step-1x-medium
     provider: stepfun
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - image.generate
     pricing:
       unit: request
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Text-to-image and image-to-image, up to 1280x800.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/image
-      retrieved_at: 2026-03-10
+      url: https://platform.stepfun.ai/docs/en/guides/models/image
+      retrieved_at: 2026-04-18
       note: StepFun image model overview and API references.
   - model_id: step-1x-edit
     provider: stepfun
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - image.generate
     pricing:
       unit: request
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Image editing model.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/image
-      retrieved_at: 2026-03-10
+      url: https://platform.stepfun.ai/docs/en/guides/models/image
+      retrieved_at: 2026-04-18
       note: StepFun image model overview and API references.
   - model_id: step-2x-large
     provider: stepfun
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - image.generate
     pricing:
       unit: request
       input: unknown
       output: unknown
-      currency: CNY
-      as_of: 2026-03-05
+      currency: USD
+      as_of: 2026-04-18
       notes: Next-generation text-to-image model.
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/llm/image
-      retrieved_at: 2026-03-10
+      url: https://platform.stepfun.ai/docs/en/guides/models/image
+      retrieved_at: 2026-04-18
       note: StepFun image model overview and API references.
 voices:
+  - voice_id: lively-girl
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Lively Girl
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: livelybreezy-female
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Lively Breezy
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: elegantgentle-female
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Elegant Gentle
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: qingchunshaonv
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Pure Girl
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: zhengpaiqingnian
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Upright Youth
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: shuangkuainansheng
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Straightforward Male
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: ganliannvsheng
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Capable Female
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: qinhenvsheng
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Warm Female
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: huolinvsheng
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Energetic Female
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: wenrounansheng
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Gentle Male
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: jingdiannvsheng
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Classic Female
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: wenroushunv
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Mature Gentle
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: tianmeinvsheng
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Sweet Female
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: yuanqinansheng
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Spirited Male
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: ruyananshi
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Scholarly Gentleman
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: wenrounvsheng
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Gentle Female
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: wenrougongzi
+    voice_set_id: stepfun:tts_2_voice_set
+    provider: stepfun
+    name: Tender Gentleman
+    langs:
+      - zh
+      - en
+      - ja
+    model_ids:
+      - step-tts-2
+    source_ref:
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
   - voice_id: cixingnansheng
     voice_set_id: stepfun:tts_2_voice_set
     provider: stepfun
-    name: 磁性男声
+    name: Magnetic Male
     langs:
       - zh
       - en
@@ -304,13 +561,13 @@ voices:
     model_ids:
       - step-tts-2
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: zhixingnansheng
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: yuanqishaonv
     voice_set_id: stepfun:tts_2_voice_set
     provider: stepfun
-    name: 知性男声
+    name: Spirited Girl
     langs:
       - zh
       - en
@@ -318,13 +575,13 @@ voices:
     model_ids:
       - step-tts-2
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: yangguangnanhai
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: boyinnansheng
     voice_set_id: stepfun:tts_2_voice_set
     provider: stepfun
-    name: 阳光男孩
+    name: Broadcast Male
     langs:
       - zh
       - en
@@ -332,13 +589,13 @@ voices:
     model_ids:
       - step-tts-2
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: shenchennansheng
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: soft-spoken-gentleman
     voice_set_id: stepfun:tts_2_voice_set
     provider: stepfun
-    name: 深沉男声
+    name: Soft-spoken Gentleman
     langs:
       - zh
       - en
@@ -346,13 +603,13 @@ voices:
     model_ids:
       - step-tts-2
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: qingniannansheng
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: qinqienvsheng
     voice_set_id: stepfun:tts_2_voice_set
     provider: stepfun
-    name: 青年男声
+    name: Friendly Female
     langs:
       - zh
       - en
@@ -360,13 +617,13 @@ voices:
     model_ids:
       - step-tts-2
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: wenrouyujie
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: linjiajiejie
     voice_set_id: stepfun:tts_2_voice_set
     provider: stepfun
-    name: 温柔御姐
+    name: Girl Next Door
     langs:
       - zh
       - en
@@ -374,13 +631,13 @@ voices:
     model_ids:
       - step-tts-2
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: huopotongxue
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: shenchennanyin
     voice_set_id: stepfun:tts_2_voice_set
     provider: stepfun
-    name: 活泼同学
+    name: Deep Male
     langs:
       - zh
       - en
@@ -388,13 +645,13 @@ voices:
     model_ids:
       - step-tts-2
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: tiemeinvsheng
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: ruanmengnvsheng
     voice_set_id: stepfun:tts_2_voice_set
     provider: stepfun
-    name: 甜美女声
+    name: Cute Soft Female
     langs:
       - zh
       - en
@@ -402,13 +659,13 @@ voices:
     model_ids:
       - step-tts-2
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: wenjingnvsheng
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
+  - voice_id: jilingshaonv
     voice_set_id: stepfun:tts_2_voice_set
     provider: stepfun
-    name: 文静女声
+    name: Clever Girl
     langs:
       - zh
       - en
@@ -416,388 +673,31 @@ voices:
     model_ids:
       - step-tts-2
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: gaolengyujie
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 高冷御姐
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: keaidaniang
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 可爱大娘
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: dongmannvsheng
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 动漫女声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: riqinvsheng
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 日系女声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: yuanqinvhai
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 元气女孩
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: jilixiaojie
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 吉利小姐
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: lunandajie
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 鲁南大姐
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: dongbeidage
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 东北大哥
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: taiwannansheng
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 台湾男声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: taiwannvsheng
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 台湾女声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: guangdongnansheng
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 广东男声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: sichuannansheng
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 四川男声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: child_male_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 男童声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: child_female_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 女童声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: narrator_male_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 旁白男声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: narrator_female_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 旁白女声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: newscast_male_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 新闻男声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: newscast_female_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 新闻女声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: storyteller_male_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 故事男声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: storyteller_female_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 故事女声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: customer_service_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 客服女声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: english_male_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: English Male
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: english_female_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: English Female
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: japanese_male_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 日本語男声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: japanese_female_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 日本語女声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
-  - voice_id: cantonese_female_01
-    voice_set_id: stepfun:tts_2_voice_set
-    provider: stepfun
-    name: 粤语女声
-    langs:
-      - zh
-      - en
-      - ja
-    model_ids:
-      - step-tts-2
-    source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_audio
-      retrieved_at: 2026-03-10
-      note: StepFun TTS API reference with preset voices and extra_body controls.
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-audio
+      retrieved_at: 2026-04-18
+      note: StepFun overseas TTS API reference with supported request fields and model constraint.
 selection_profiles:
   - provider: stepfun
     profile_id: text.general
     capability: text.generate
     model_id: step-3.5-flash
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Best current StepFun flagship text route in the admitted set.
+    rationale: Current flagship StepFun reasoning route for broad complex text workloads.
   - provider: stepfun
     profile_id: text.fast
     capability: text.generate
     model_id: step-2-mini
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Ultra-fast StepFun text route for latency-sensitive tasks.
+    rationale: Current lowest-latency admitted StepFun text route for general and coding-heavy workloads.
+  - provider: stepfun
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: step-3.5-flash
+    reviewed_at: 2026-04-18
+    freshness_sla_days: 21
+    rationale: StepFun's current flagship general-purpose reasoning model, while step-3.5-flash-2603 stays admitted as the optimized agentic variant.
 voice_workflow_models:
   - workflow_model_id: stepfun-voice-clone
     workflow_type: tts_v2v
@@ -815,8 +715,8 @@ voice_workflow_models:
     target_model_refs:
       - step-tts-2
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_voice
-      retrieved_at: 2026-03-10
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-voice
+      retrieved_at: 2026-04-18
       note: StepFun voice cloning API requiring model, text transcript, and file_id.
     langs:
       - zh
@@ -838,6 +738,6 @@ voice_handle_policies:
     delete_semantics: best_effort_provider_delete
     runtime_reconciliation_required: true
     source_ref:
-      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create_voice
-      retrieved_at: 2026-03-10
+      url: https://platform.stepfun.ai/docs/en/api-reference/audio/create-voice
+      retrieved_at: 2026-04-18
       note: StepFun voice cloning API requiring model, text transcript, and file_id.

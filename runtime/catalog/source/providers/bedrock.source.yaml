@@ -1,6 +1,6 @@
 schema_version: 3
 provider: bedrock
-catalog_version: 2026-03-18-bedrock-v2
+catalog_version: 2026-04-18-bedrock-canonical-v3
 generated_target: runtime/catalog/providers/bedrock.yaml
 runtime:
   runtime_plane: remote
@@ -10,7 +10,7 @@ runtime:
   requires_explicit_endpoint: true
 defaults:
   provider: bedrock
-  default_text_model: anthropic.claude-sonnet-4-6-v1:0
+  default_text_model: anthropic.claude-sonnet-4-6
   model_type: chat
   capabilities: []
   pricing:
@@ -18,107 +18,207 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: Amazon Bedrock pricing varies by model, region, and commitment plan.
+    as_of: 2026-04-18
+    notes: Amazon Bedrock pricing varies by model, region, and commitment plan. This source keeps canonical programmatic model ids and does not split regional geo/global inference ids into separate rows.
 
 sources:
   - source_id: bedrock_models_doc
-    url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
-    retrieved_at: 2026-03-05
-    note: Amazon Bedrock supported foundation models.
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
+    retrieved_at: 2026-04-18
+    note: Amazon Bedrock supported foundation models overview across providers and families.
+  - source_id: bedrock_anthropic_cards_doc
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards-anthropic.html
+    retrieved_at: 2026-04-18
+    note: Anthropic model cards index for current Bedrock Claude family availability.
+  - source_id: bedrock_amazon_cards_doc
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards-amazon.html
+    retrieved_at: 2026-04-18
+    note: Amazon model cards index for current Nova family availability.
+  - source_id: bedrock_claude_adaptive_thinking_doc
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/claude-messages-adaptive-thinking.html
+    retrieved_at: 2026-04-18
+    note: Current Bedrock Claude adaptive thinking guide showing canonical 4.6 programmatic model ids without legacy :0 suffixes.
+  - source_id: bedrock_claude_opus_4_5_card
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-opus-4-5.html
+    retrieved_at: 2026-04-18
+    note: Claude Opus 4.5 model card with dated programmatic id.
+  - source_id: bedrock_claude_sonnet_4_5_card
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-4-5.html
+    retrieved_at: 2026-04-18
+    note: Claude Sonnet 4.5 model card with dated programmatic id.
+  - source_id: bedrock_claude_haiku_4_5_card
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-4-5.html
+    retrieved_at: 2026-04-18
+    note: Claude Haiku 4.5 model card with dated programmatic id.
+  - source_id: bedrock_nova_pro_card
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-pro.html
+    retrieved_at: 2026-04-18
+    note: Nova Pro model card with canonical programmatic id.
+  - source_id: bedrock_nova_lite_card
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-lite.html
+    retrieved_at: 2026-04-18
+    note: Nova Lite model card with canonical programmatic id.
+  - source_id: bedrock_nova_micro_card
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-micro.html
+    retrieved_at: 2026-04-18
+    note: Nova Micro model card with canonical programmatic id.
+  - source_id: bedrock_nova_premier_card
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-premier.html
+    retrieved_at: 2026-04-18
+    note: Nova Premier model card with canonical programmatic id.
 
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: anthropic.claude-sonnet-4-6-v1:0
-    reviewed_at: 2026-04-16
+    model_id: anthropic.claude-sonnet-4-6
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
     rationale: Best current balanced Bedrock text route in the admitted set.
   - profile_id: text.fast
     capability: text.generate
-    model_id: amazon.nova-lite-v1:0
-    reviewed_at: 2026-04-16
+    model_id: amazon.nova-micro-v1:0
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Lite-tier Bedrock text route for lower-latency general tasks.
+    rationale: Fastest admitted Bedrock text-only route in the reviewed Amazon Nova subset.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: anthropic.claude-opus-4-6-v1:0
-    reviewed_at: 2026-04-16
+    model_id: anthropic.claude-opus-4-6-v1
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
     rationale: Highest-quality admitted Bedrock reasoning route.
 
 models:
-  - model_id: anthropic.claude-opus-4-6-v1:0
+  - model_id: anthropic.claude-opus-4-6-v1
     model_type: chat
-    updated_at: 2026-03-18
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-18
-      notes: Bedrock on-demand pricing varies by region and throughput tier.
-    source_ids: [bedrock_models_doc]
+      as_of: 2026-04-18
+      notes: Current canonical programmatic Claude Opus 4.6 model id on Bedrock. Bedrock also exposes geo and global inference ids, which are intentionally not split into separate source rows here.
+    source_ids: [bedrock_models_doc, bedrock_anthropic_cards_doc, bedrock_claude_adaptive_thinking_doc]
     aliases:
       - claude-opus-4-6
 
-  - model_id: anthropic.claude-sonnet-4-6-v1:0
+  - model_id: anthropic.claude-sonnet-4-6
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Bedrock on-demand pricing varies by region and throughput tier.
-    source_ids: [bedrock_models_doc]
+      as_of: 2026-04-18
+      notes: Current canonical programmatic Claude Sonnet 4.6 model id on Bedrock. Bedrock also exposes geo and global inference ids, which are intentionally not split into separate source rows here.
+    source_ids: [bedrock_models_doc, bedrock_anthropic_cards_doc, bedrock_claude_adaptive_thinking_doc]
     aliases:
       - claude-sonnet-4-6
 
-  - model_id: anthropic.claude-haiku-4-5-v1:0
+  - model_id: anthropic.claude-opus-4-5-20251101-v1:0
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Bedrock on-demand pricing varies by region and throughput tier.
-    source_ids: [bedrock_models_doc]
+      as_of: 2026-04-18
+      notes: Active prior-generation Claude Opus route on Bedrock using the dated canonical programmatic id.
+    source_ids: [bedrock_models_doc, bedrock_anthropic_cards_doc, bedrock_claude_opus_4_5_card]
+    aliases:
+      - claude-opus-4-5
+
+  - model_id: anthropic.claude-sonnet-4-5-20250929-v1:0
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Active prior-generation Claude Sonnet route on Bedrock using the dated canonical programmatic id.
+    source_ids: [bedrock_models_doc, bedrock_anthropic_cards_doc, bedrock_claude_sonnet_4_5_card]
+    aliases:
+      - claude-sonnet-4-5
+
+  - model_id: anthropic.claude-haiku-4-5-20251001-v1:0
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current canonical programmatic Claude Haiku 4.5 model id on Bedrock using the dated model card identifier.
+    source_ids: [bedrock_models_doc, bedrock_anthropic_cards_doc, bedrock_claude_haiku_4_5_card]
     aliases:
       - claude-haiku-4-5
 
-  - model_id: amazon.nova-pro-v1:0
+  - model_id: amazon.nova-premier-v1:0
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Amazon Nova Pro pricing varies by region and throughput tier.
-    source_ids: [bedrock_models_doc]
+      as_of: 2026-04-18
+      notes: Current high-tier Amazon Nova multimodal route on Bedrock. Geo inference ids exist but are not split into separate source rows.
+    source_ids: [bedrock_models_doc, bedrock_amazon_cards_doc, bedrock_nova_premier_card]
+    aliases:
+      - nova-premier
+
+  - model_id: amazon.nova-pro-v1:0
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Active balanced Amazon Nova multimodal route on Bedrock. Geo inference ids exist but are not split into separate source rows.
+    source_ids: [bedrock_models_doc, bedrock_amazon_cards_doc, bedrock_nova_pro_card]
     aliases:
       - nova-pro
 
   - model_id: amazon.nova-lite-v1:0
     model_type: chat
-    updated_at: 2026-03-18
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Active lower-cost Amazon Nova multimodal route on Bedrock. Geo inference ids exist but are not split into separate source rows.
+    source_ids: [bedrock_models_doc, bedrock_amazon_cards_doc, bedrock_nova_lite_card]
+    aliases:
+      - nova-lite
+
+  - model_id: amazon.nova-micro-v1:0
+    model_type: chat
+    updated_at: 2026-04-18
     capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-18
-      notes: Amazon Nova Lite pricing varies by region and throughput tier.
-    source_ids: [bedrock_models_doc]
+      as_of: 2026-04-18
+      notes: Current fastest Amazon Nova text-only route on Bedrock. Geo inference ids exist but are not split into separate source rows.
+    source_ids: [bedrock_models_doc, bedrock_amazon_cards_doc, bedrock_nova_micro_card]
     aliases:
-      - nova-lite
+      - nova-micro

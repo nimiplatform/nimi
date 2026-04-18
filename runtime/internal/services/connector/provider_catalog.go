@@ -4,9 +4,18 @@ import "github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 
 // ProviderCatalogEntry defines default endpoint and requirements for a provider.
 type ProviderCatalogEntry struct {
-	DefaultEndpoint          string
-	DefaultTextModel         string
-	RequiresExplicitEndpoint bool
+	DefaultEndpoint               string
+	DefaultTextModel              string
+	RequiresExplicitEndpoint      bool
+	InventoryMode                 string
+	DynamicDiscoveryTransport     string
+	DynamicCacheTTLSeconds        int
+	DynamicSelectionMode          string
+	DynamicFailurePolicy          string
+	DynamicAllowedCapabilities    []string
+	DynamicDenyModelPatterns      []string
+	DynamicAllowModelPatterns     []string
+	DynamicPreferredModelPatterns []string
 }
 
 // ProviderCapability defines runtime plane and execution module for a provider.
@@ -31,9 +40,18 @@ func buildProviderCatalog() map[string]ProviderCatalogEntry {
 			continue
 		}
 		out[providerID] = ProviderCatalogEntry{
-			DefaultEndpoint:          record.DefaultEndpoint,
-			DefaultTextModel:         record.DefaultTextModel,
-			RequiresExplicitEndpoint: record.RequiresExplicitEndpoint,
+			DefaultEndpoint:               record.DefaultEndpoint,
+			DefaultTextModel:              record.DefaultTextModel,
+			RequiresExplicitEndpoint:      record.RequiresExplicitEndpoint,
+			InventoryMode:                 record.InventoryMode,
+			DynamicDiscoveryTransport:     record.DynamicDiscoveryTransport,
+			DynamicCacheTTLSeconds:        record.DynamicCacheTTLSeconds,
+			DynamicSelectionMode:          record.DynamicSelectionMode,
+			DynamicFailurePolicy:          record.DynamicFailurePolicy,
+			DynamicAllowedCapabilities:    append([]string(nil), record.DynamicAllowedCapabilities...),
+			DynamicDenyModelPatterns:      append([]string(nil), record.DynamicDenyModelPatterns...),
+			DynamicAllowModelPatterns:     append([]string(nil), record.DynamicAllowModelPatterns...),
+			DynamicPreferredModelPatterns: append([]string(nil), record.DynamicPreferredModelPatterns...),
 		}
 	}
 	return out

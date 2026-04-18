@@ -47,7 +47,6 @@ const (
 	adapterRunwayTask          = "runway_task_adapter"
 	adapterGoogleVeoOperation  = "google_veo_operation_adapter"
 	adapterStepFunNative       = "stepfun_native_adapter"
-	adapterSunoNative          = "suno_native_adapter"
 	adapterStabilityMusic      = "stability_music_adapter"
 	adapterSoundverseMusic     = "soundverse_music_adapter"
 	adapterMubertMusic         = "mubert_music_adapter"
@@ -178,9 +177,6 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 	"stepfun": {
 		Image: adapterStepFunNative,
 		TTS:   adapterStepFunNative,
-	},
-	"suno": {
-		Music: adapterSunoNative,
 	},
 	"soundverse": {
 		Music: adapterSoundverseMusic,

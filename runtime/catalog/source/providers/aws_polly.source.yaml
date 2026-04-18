@@ -1,6 +1,6 @@
 schema_version: 3
 provider: aws_polly
-catalog_version: 2026-03-05-aws-polly-v1
+catalog_version: 2026-04-18-aws-polly-v2
 generated_target: runtime/catalog/providers/aws_polly.yaml
 runtime:
   runtime_plane: remote
@@ -14,30 +14,54 @@ defaults:
   model_type: tts
   capabilities: [audio.synthesize]
   pricing:
-    unit: request
+    unit: char
     input: unknown
-    output: unknown
+    output: "0"
     currency: USD
-    as_of: 2026-03-05
-    notes: AWS Polly pricing varies by engine type and usage tier.
+    as_of: 2026-04-18
+    notes: AWS Polly pricing is primarily per-character and varies by engine family.
 
 sources:
   - source_id: aws_polly_api_ref
     url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: AWS Polly API reference root.
   - source_id: aws_polly_synthesize
     url: https://docs.aws.amazon.com/polly/latest/dg/API_SynthesizeSpeech.html
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Core speech synthesis API contract.
+  - source_id: aws_polly_engines_doc
+    url: https://docs.aws.amazon.com/polly/latest/dg/voice-engines-polly.html
+    retrieved_at: 2026-04-18
+    note: Amazon Polly voice engines overview.
+  - source_id: aws_polly_voices_doc
+    url: https://docs.aws.amazon.com/polly/latest/dg/listening-voices.html
+    retrieved_at: 2026-04-18
+    note: Available Amazon Polly voices across engine families.
+  - source_id: aws_polly_neural_doc
+    url: https://docs.aws.amazon.com/polly/latest/dg/neural-voices.html
+    retrieved_at: 2026-04-18
+    note: Neural engine overview and limitations.
+  - source_id: aws_polly_long_form_doc
+    url: https://docs.aws.amazon.com/polly/latest/dg/long-form-voices.html
+    retrieved_at: 2026-04-18
+    note: Long-form engine overview and available voices.
+  - source_id: aws_polly_generative_doc
+    url: https://docs.aws.amazon.com/polly/latest/dg/generative-voices.html
+    retrieved_at: 2026-04-18
+    note: Generative engine overview and supported voices.
+  - source_id: aws_polly_pricing
+    url: https://aws.amazon.com/polly/pricing
+    retrieved_at: 2026-04-18
+    note: Current Amazon Polly pricing by engine family.
 
 language_profiles:
   short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
 
 voice_sets:
-  - voice_set_id: neural-defaults-v1
+  - voice_set_id: standard-defaults-v1
     langs_ref: short_multilingual_v1
-    source_ids: [aws_polly_api_ref, aws_polly_synthesize]
+    source_ids: [aws_polly_voices_doc, aws_polly_synthesize]
     voices:
       - voice_id: Joanna
         name: Joanna
@@ -55,13 +79,122 @@ voice_sets:
         name: Zhiyu
         langs: [cmn-CN]
 
+  - voice_set_id: neural-defaults-v1
+    langs_ref: short_multilingual_v1
+    source_ids: [aws_polly_voices_doc, aws_polly_neural_doc, aws_polly_synthesize]
+    voices:
+      - voice_id: Joanna
+        name: Joanna
+        langs: [en-US]
+      - voice_id: Matthew
+        name: Matthew
+        langs: [en-US]
+      - voice_id: Amy
+        name: Amy
+        langs: [en-GB]
+      - voice_id: Brian
+        name: Brian
+        langs: [en-GB]
+      - voice_id: Zhiyu
+        name: Zhiyu
+        langs: [cmn-CN]
+
+  - voice_set_id: long-form-defaults-v1
+    langs_ref: short_multilingual_v1
+    source_ids: [aws_polly_long_form_doc, aws_polly_synthesize]
+    voices:
+      - voice_id: Danielle
+        name: Danielle
+        langs: [en-US]
+      - voice_id: Gregory
+        name: Gregory
+        langs: [en-US]
+      - voice_id: Ruth
+        name: Ruth
+        langs: [en-US]
+      - voice_id: Patrick
+        name: Patrick
+        langs: [en-US]
+      - voice_id: Alba
+        name: Alba
+        langs: [es-ES]
+
+  - voice_set_id: generative-defaults-v1
+    langs_ref: short_multilingual_v1
+    source_ids: [aws_polly_generative_doc, aws_polly_synthesize]
+    voices:
+      - voice_id: Tiffany
+        name: Tiffany
+        langs: [en-US]
+      - voice_id: Amy
+        name: Amy
+        langs: [en-GB]
+      - voice_id: Brian
+        name: Brian
+        langs: [en-GB]
+
 models:
+  - model_id: polly-standard-tts
+    updated_at: 2026-04-18
+    source_ids: [aws_polly_synthesize, aws_polly_engines_doc, aws_polly_voices_doc, aws_polly_pricing]
+    pricing:
+      unit: char
+      input: "4.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Standard voices are billed at $4.00 per 1M characters outside the free tier.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: standard-defaults-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_multilingual_v1
+
   - model_id: polly-neural-tts
-    updated_at: 2026-03-05
-    source_ids: [aws_polly_api_ref, aws_polly_synthesize]
+    updated_at: 2026-04-18
+    source_ids: [aws_polly_synthesize, aws_polly_engines_doc, aws_polly_neural_doc, aws_polly_pricing]
+    pricing:
+      unit: char
+      input: "16.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Neural voices are billed at $16.00 per 1M characters outside the free tier.
     voice:
       discovery_mode: static_catalog
       voice_set_ref: neural-defaults-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_multilingual_v1
+
+  - model_id: polly-long-form-tts
+    updated_at: 2026-04-18
+    source_ids: [aws_polly_synthesize, aws_polly_engines_doc, aws_polly_long_form_doc, aws_polly_pricing]
+    pricing:
+      unit: char
+      input: "100.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Long-form voices are billed at $100.00 per 1M characters outside the free tier.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: long-form-defaults-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_multilingual_v1
+
+  - model_id: polly-generative-tts
+    updated_at: 2026-04-18
+    source_ids: [aws_polly_synthesize, aws_polly_engines_doc, aws_polly_generative_doc, aws_polly_pricing]
+    pricing:
+      unit: char
+      input: "30.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Generative voices are billed at $30.00 per 1M characters outside the free tier.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: generative-defaults-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_multilingual_v1
 

@@ -1,12 +1,13 @@
 version: 1
 provider: spark
-catalog_version: 2026-03-05-spark-v1
-default_text_model: spark-x1
+catalog_version: 2026-04-18-spark-general-v2
+inventory_mode: static_source
+default_text_model: 4.0Ultra
 models:
-  - model_id: spark-x1
+  - model_id: 4.0Ultra
     provider: spark
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -14,33 +15,16 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Chat pricing varies by request quota and enterprise plan.
+      as_of: 2026-04-18
+      notes: Spark 4.0 Ultra is the current admitted flagship on the stable `/v1` general-chat surface.
     source_ref:
-      url: https://www.xfyun.cn/doc/spark/x1.html
-      retrieved_at: 2026-03-05
-      note: iFlytek Spark X1 reasoning model documentation.
-  - model_id: spark-lite-max
-    provider: spark
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Chat pricing varies by request quota and enterprise plan.
-    source_ref:
-      url: https://www.xfyun.cn/doc/spark/lite.html
-      retrieved_at: 2026-03-05
-      note: iFlytek Spark Lite API documentation.
+      url: https://www.xfyun.cn/doc/spark/HTTP%E8%B0%83%E7%94%A8%E6%96%87%E6%A1%A3.html
+      retrieved_at: 2026-04-18
+      note: Official Spark HTTP chat documentation for the current `/v1/chat/completions` general-language surface.
   - model_id: lite
     provider: spark
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - text.generate
     pricing:
@@ -48,25 +32,25 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
-      notes: Chat pricing varies by request quota and enterprise plan.
+      as_of: 2026-04-18
+      notes: Lite is the current admitted lightweight public id on the stable `/v1` general-chat surface.
     source_ref:
-      url: https://www.xfyun.cn/doc/spark/lite.html
-      retrieved_at: 2026-03-05
-      note: iFlytek Spark Lite API documentation.
+      url: https://www.xfyun.cn/doc/spark/HTTP%E8%B0%83%E7%94%A8%E6%96%87%E6%A1%A3.html
+      retrieved_at: 2026-04-18
+      note: Official Spark HTTP chat documentation for the current `/v1/chat/completions` general-language surface.
 voices: []
 selection_profiles:
   - provider: spark
     profile_id: text.general
     capability: text.generate
-    model_id: spark-x1
-    reviewed_at: 2026-04-16
+    model_id: 4.0Ultra
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Best current general Spark text route in the admitted set.
+    rationale: Best current non-reasoning Spark `/v1` route in the admitted general-chat set.
   - provider: spark
     profile_id: text.fast
     capability: text.generate
-    model_id: spark-lite-max
-    reviewed_at: 2026-04-16
+    model_id: lite
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Lite-tier Spark text route for faster general tasks.
+    rationale: Current lightweight `/v1` Spark chat route for latency-sensitive text tasks.

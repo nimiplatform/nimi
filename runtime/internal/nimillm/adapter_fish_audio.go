@@ -15,8 +15,8 @@ const AdapterFishAudioNative = "fish_audio_native_adapter"
 
 // ExecuteFishAudioNative executes a TTS scenario job against the Fish Audio API.
 // Fish Audio uses POST /v1/tts with the base model in the `model` header and
-// either `reference_id` (preset/public voice) or `model_id` (custom cloned
-// voice model) in the request body.
+// accepts either `reference_id` or `references` in the request body depending
+// on whether the caller uses saved voice models or zero-shot reference audio.
 func ExecuteFishAudioTTS(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
@@ -54,20 +54,19 @@ func ExecuteFishAudioTTS(
 	if voiceRef != "" {
 		payload["reference_id"] = voiceRef
 	}
-	if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
-		payload["language"] = language
-	}
 	if audioFormat := strings.TrimSpace(spec.GetAudioFormat()); audioFormat != "" {
 		payload["format"] = audioFormat
 	}
 	if speed := spec.GetSpeed(); speed > 0 {
-		payload["speed"] = speed
+		payload["prosody"] = map[string]any{
+			"speed": speed,
+		}
 	}
 	if sampleRate := spec.GetSampleRateHz(); sampleRate > 0 {
 		payload["sample_rate"] = sampleRate
 	}
 	if len(ext) > 0 {
-		payload["extensions"] = ext
+		applyFishAudioTTSExtensions(payload, ext)
 	}
 
 	endpoint := resolveFishAudioTTSPath(ext)
@@ -83,12 +82,11 @@ func ExecuteFishAudioTTS(
 		mimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
 	}
 	artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
-		"adapter":      AdapterFishAudioNative,
-		"endpoint":     endpoint,
-		"voice":        voiceRef,
-		"language":     strings.TrimSpace(spec.GetLanguage()),
-		"audio_format": strings.TrimSpace(spec.GetAudioFormat()),
-		"extensions":   scenarioExtensionPayloadForScenario(req),
+		"adapter":        AdapterFishAudioNative,
+		"endpoint":       endpoint,
+		"voice":          voiceRef,
+		"resolved_model": resolvedModel,
+		"audio_format":   strings.TrimSpace(spec.GetAudioFormat()),
 	})
 	ApplySpeechSpecMetadata(artifact, spec)
 	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
@@ -101,4 +99,43 @@ func resolveFishAudioTTSPath(scenarioExtensions map[string]any) string {
 		[]string{"tts_paths", "speech_paths"},
 		[]string{"/v1/tts"},
 	)
+}
+
+func applyFishAudioTTSExtensions(payload map[string]any, ext map[string]any) {
+	for _, key := range []string{
+		"temperature",
+		"top_p",
+		"chunk_length",
+		"normalize",
+		"latency",
+		"mp3_bitrate",
+		"opus_bitrate",
+		"max_new_tokens",
+		"repetition_penalty",
+		"min_chunk_length",
+		"condition_on_previous_chunks",
+		"early_stop_threshold",
+	} {
+		if value, ok := ext[key]; ok && value != nil {
+			payload[key] = value
+		}
+	}
+	if value, ok := ext["references"]; ok && value != nil {
+		payload["references"] = value
+	}
+	if prosodyRaw, ok := ext["prosody"]; ok && prosodyRaw != nil {
+		if prosodyMap, ok := prosodyRaw.(map[string]any); ok {
+			current, _ := payload["prosody"].(map[string]any)
+			if current == nil {
+				current = map[string]any{}
+			}
+			for key, value := range prosodyMap {
+				if value == nil {
+					continue
+				}
+				current[key] = value
+			}
+			payload["prosody"] = current
+		}
+	}
 }

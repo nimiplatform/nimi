@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-03-07-dashscope-v3
+catalog_version: 2026-04-18-dashscope-v5
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   runtime_plane: remote
@@ -28,9 +28,25 @@ sources:
     retrieved_at: 2026-03-05
     note: dashscope official model documentation
   - source_id: dashscope_models_pricing_doc
-    url: https://help.aliyun.com/zh/model-studio/getting-started/models
-    retrieved_at: 2026-03-05
-    note: DashScope model catalog and pricing overview.
+    url: https://help.aliyun.com/zh/model-studio/model-pricing
+    retrieved_at: 2026-04-18
+    note: DashScope official model pricing and current model listing overview.
+  - source_id: dashscope_model_updates_doc
+    url: https://help.aliyun.com/zh/model-studio/newly-released-models
+    retrieved_at: 2026-04-18
+    note: Official DashScope model release and snapshot update feed.
+  - source_id: dashscope_models_catalog_doc
+    url: https://help.aliyun.com/zh/model-studio/models
+    retrieved_at: 2026-04-18
+    note: Official DashScope stable and snapshot model catalog.
+  - source_id: dashscope_qwen_api_doc
+    url: https://help.aliyun.com/zh/model-studio/qwen-api-via-dashscope
+    retrieved_at: 2026-04-18
+    note: Qwen model access through DashScope-compatible APIs.
+  - source_id: dashscope_qwen_vl_doc
+    url: https://help.aliyun.com/zh/model-studio/vision/
+    retrieved_at: 2026-04-18
+    note: Qwen vision-language documentation and current VL model guidance.
   - source_id: dashscope_embedding_doc
     url: https://help.aliyun.com/zh/model-studio/developer-reference/qwen-long-text-embedding
     retrieved_at: 2026-03-05
@@ -39,6 +55,18 @@ sources:
     url: https://help.aliyun.com/zh/model-studio/qwen-asr-api-reference
     retrieved_at: 2026-03-05
     note: DashScope Qwen ASR API reference covering qwen3-asr-flash.
+  - source_id: dashscope_qwen_realtime_asr_doc
+    url: https://help.aliyun.com/zh/model-studio/qwen-real-time-speech-recognition
+    retrieved_at: 2026-04-18
+    note: Qwen real-time speech recognition documentation covering qwen3-asr-flash-realtime.
+  - source_id: dashscope_funasr_doc
+    url: https://help.aliyun.com/zh/model-studio/funauidio-asr-recorded-speech-recognition-restful-api
+    retrieved_at: 2026-04-18
+    note: Fun-ASR recorded speech recognition REST API covering fun-asr.
+  - source_id: dashscope_funasr_realtime_doc
+    url: https://help.aliyun.com/zh/model-studio/fun-asr-realtime-websocket-api
+    retrieved_at: 2026-04-18
+    note: Fun-ASR realtime speech recognition WebSocket API covering fun-asr-realtime.
   - source_id: dashscope_voice_cloning_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
     retrieved_at: 2026-03-05
@@ -47,6 +75,26 @@ sources:
     url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
     retrieved_at: 2026-03-05
     note: qwen tts voice design documentation
+  - source_id: dashscope_qwen_realtime_tts_doc
+    url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
+    retrieved_at: 2026-04-18
+    note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+  - source_id: dashscope_wan_image_doc
+    url: https://help.aliyun.com/zh/model-studio/wan-image-generation-and-editing-api-reference
+    retrieved_at: 2026-04-18
+    note: Wan 2.7 image generation and editing API reference.
+  - source_id: dashscope_wan_video_guide_doc
+    url: https://help.aliyun.com/zh/model-studio/use-video-generation
+    retrieved_at: 2026-04-18
+    note: Official Wan video generation guide covering t2v and i2v families.
+  - source_id: dashscope_wan_video_r2v_doc
+    url: https://help.aliyun.com/zh/model-studio/wan-video-to-video-api-reference
+    retrieved_at: 2026-04-18
+    note: Wan 2.7 reference-to-video API reference.
+  - source_id: dashscope_wan_video_edit_doc
+    url: https://help.aliyun.com/zh/model-studio/wan-video-editing-api-reference
+    retrieved_at: 2026-04-18
+    note: Wan 2.7 video editing API reference.
 
 language_profiles:
   region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
@@ -61,10 +109,10 @@ selection_profiles:
     rationale: Highest-tier provider-native DashScope text route in the admitted set.
   - profile_id: text.fast
     capability: text.generate
-    model_id: qwen3.5-flash
-    reviewed_at: 2026-04-16
+    model_id: qwen3.6-flash
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Explicit flash-tier DashScope text route for latency-sensitive tasks.
+    rationale: Current flash-tier provider-native DashScope text route for latency-sensitive tasks.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: kimi-k2-thinking
@@ -249,18 +297,6 @@ voice_sets:
         name: Vivian
 
 models:
-  - model_id: qwen-tts
-    updated_at: 2025-04-10
-    capabilities: [audio.synthesize]
-    voice:
-      discovery_mode: static_catalog
-      voice_set_ref: tts_voice_set
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: region_v1
-    aliases:
-      - qwen-tts-2025-04-10
-      - qwen-tts-2025-05-22
-      - qwen-tts-latest
   - model_id: qwen3-tts-instruct-flash
     updated_at: 2026-01-26
     capabilities: [audio.synthesize]
@@ -300,6 +336,65 @@ models:
       langs_ref: short_v1
     aliases:
       - qwen3-tts-vd-2026-01-26
+  - model_id: qwen3-tts-instruct-flash-realtime
+    updated_at: 2026-04-18
+    capabilities: [audio.synthesize]
+    source_ids: [dashscope_qwen_realtime_tts_doc, dashscope_models_pricing_doc]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: instruct_flash_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: region_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav, pcm, mp3, opus]
+        supports_language: true
+    aliases:
+      - qwen3-tts-instruct-flash-realtime-2026-01-22
+  - model_id: qwen3-tts-flash-realtime
+    updated_at: 2026-04-18
+    capabilities: [audio.synthesize]
+    source_ids: [dashscope_qwen_realtime_tts_doc, dashscope_models_pricing_doc]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: flash_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: region_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav, pcm, mp3, opus]
+        supports_language: true
+    aliases:
+      - qwen3-tts-flash-realtime-2025-11-27
+      - qwen3-tts-flash-realtime-2025-09-18
+  - model_id: qwen3-tts-vc-realtime-2026-01-15
+    updated_at: 2026-04-18
+    capabilities: [audio.synthesize]
+    source_ids: [dashscope_qwen_realtime_tts_doc, dashscope_voice_cloning_doc, dashscope_models_pricing_doc]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav, pcm, mp3, opus]
+        supports_language: true
+    aliases:
+      - qwen3-tts-vc-realtime-2025-11-27
+  - model_id: qwen3-tts-vd-realtime-2026-01-15
+    updated_at: 2026-04-18
+    capabilities: [audio.synthesize]
+    source_ids: [dashscope_qwen_realtime_tts_doc, dashscope_voice_design_doc, dashscope_models_pricing_doc]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav, pcm, mp3, opus]
+        supports_language: true
+    aliases:
+      - qwen3-tts-vd-realtime-2025-12-16
 
   - model_id: qwen3-max
     model_type: chat
@@ -314,6 +409,21 @@ models:
       notes: Chat token pricing varies by account plan and model revision.
     source_ids: [dashscope_models_pricing_doc]
 
+  - model_id: qwen3.6-plus
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Plus-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
+    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_qwen_api_doc, dashscope_qwen_vl_doc, dashscope_models_pricing_doc]
+    aliases:
+      - qwen3.6-plus-2026-04-02
+
   - model_id: qwen3.5-plus
     model_type: chat
     updated_at: 2026-03-05
@@ -326,6 +436,21 @@ models:
       as_of: 2026-03-05
       notes: Chat token pricing varies by account plan and model revision.
     source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: qwen3.6-flash
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Flash-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
+    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_qwen_api_doc, dashscope_qwen_vl_doc, dashscope_models_pricing_doc]
+    aliases:
+      - qwen3.6-flash-2026-04-16
 
   - model_id: qwen3.5-flash
     model_type: chat
@@ -340,21 +465,6 @@ models:
       notes: Chat token pricing varies by account plan and model revision.
     source_ids: [dashscope_models_pricing_doc]
 
-  - model_id: qwen-plus-latest
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by account plan and model revision.
-    source_ids: [dashscope_models_pricing_doc]
-    aliases:
-      - qwen-plus-2025-12-01
-
   - model_id: qwen-vl-max-latest
     model_type: chat
     updated_at: 2026-03-05
@@ -367,6 +477,32 @@ models:
       as_of: 2026-03-05
       notes: Vision-language model pricing varies by account plan and token class.
     source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: qwen3-vl-plus
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Qwen 3 vision-language plus route on DashScope.
+    source_ids: [dashscope_qwen_vl_doc, dashscope_models_catalog_doc, dashscope_models_pricing_doc]
+
+  - model_id: qwen3-vl-flash
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Qwen 3 vision-language flash route on DashScope.
+    source_ids: [dashscope_qwen_vl_doc, dashscope_models_catalog_doc, dashscope_models_pricing_doc]
 
   - model_id: deepseek-v3.2
     model_type: chat
@@ -663,6 +799,53 @@ models:
       - qwen3-asr-flash-2025-09-08
       - qwen3-asr-flash-2026-02-10
 
+  - model_id: qwen3-asr-flash-realtime
+    model_type: stt
+    updated_at: 2026-04-18
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Realtime speech-to-text pricing varies by audio duration, connection mode, and account tier.
+    source_ids: [dashscope_qwen_realtime_asr_doc, dashscope_models_pricing_doc]
+    aliases:
+      - qwen3-asr-flash-realtime-2026-02-10
+      - qwen3-asr-flash-realtime-2025-10-27
+
+  - model_id: fun-asr
+    model_type: stt
+    updated_at: 2026-04-18
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Fun-ASR recorded speech recognition pricing varies by audio duration and deployment scope.
+    source_ids: [dashscope_funasr_doc, dashscope_models_pricing_doc]
+    aliases:
+      - fun-asr-2025-11-07
+
+  - model_id: fun-asr-realtime
+    model_type: stt
+    updated_at: 2026-04-18
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Fun-ASR realtime speech recognition pricing varies by audio duration and deployment scope.
+    source_ids: [dashscope_funasr_realtime_doc, dashscope_models_pricing_doc]
+    aliases:
+      - fun-asr-realtime-2026-02-28
+      - fun-asr-realtime-2025-09-15
+
   - model_id: qwen-image-2.0-pro
     model_type: image
     updated_at: 2026-03-07
@@ -706,6 +889,32 @@ models:
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ids: [dashscope_models_pricing_doc]
 
+  - model_id: wan2.7-image-pro
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Wan 2.7 image generation and editing pricing varies by quality, resolution, and account tier.
+    source_ids: [dashscope_wan_image_doc, dashscope_models_pricing_doc]
+
+  - model_id: wan2.7-image
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Wan 2.7 image generation and editing pricing varies by quality, resolution, and account tier.
+    source_ids: [dashscope_wan_image_doc, dashscope_models_pricing_doc]
+
   - model_id: wan2.6-t2i
     model_type: image
     updated_at: 2026-03-07
@@ -719,18 +928,115 @@ models:
       notes: Image generation pricing varies by quality and tier.
     source_ids: [dashscope_models_pricing_doc]
 
-  - model_id: wan2.5-t2i-preview
-    model_type: image
-    updated_at: 2026-03-07
-    capabilities: [image.generate]
+  - model_id: wan2.7-t2v
+    model_type: video
+    updated_at: 2026-04-18
+    capabilities: [video.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-07
-      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
-    source_ids: [dashscope_models_pricing_doc]
+      as_of: 2026-04-18
+      notes: Wan 2.7 text-to-video pricing varies by resolution, duration, and account tier.
+    source_ids: [dashscope_wan_video_guide_doc, dashscope_models_pricing_doc]
+    video_generation:
+      modes: [t2v]
+      input_roles:
+        t2v: [prompt, reference_audio]
+      limits:
+        resolution: [720p, 1080p]
+        duration_sec:
+          min: 2
+          max: 15
+      options:
+        supports: [resolution, duration_sec, generate_audio]
+        constraints: {}
+      outputs:
+        video_url: true
+
+  - model_id: wan2.7-i2v
+    model_type: video
+    updated_at: 2026-04-18
+    capabilities: [video.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Wan 2.7 image-to-video pricing varies by resolution, duration, and account tier.
+    source_ids: [dashscope_wan_video_guide_doc, dashscope_models_pricing_doc]
+    video_generation:
+      modes: [i2v_first_frame, i2v_first_last]
+      input_roles:
+        i2v_first_frame: [prompt, first_frame, reference_audio]
+        i2v_first_last: [prompt, first_frame, last_frame, reference_audio]
+      limits:
+        resolution: [720p, 1080p]
+        duration_sec:
+          min: 2
+          max: 15
+      options:
+        supports: [resolution, duration_sec, generate_audio]
+        constraints: {}
+      outputs:
+        video_url: true
+
+  - model_id: wan2.7-r2v
+    model_type: video
+    updated_at: 2026-04-18
+    capabilities: [video.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Wan 2.7 reference-to-video pricing varies by resolution, duration, and account tier.
+    source_ids: [dashscope_wan_video_guide_doc, dashscope_wan_video_r2v_doc, dashscope_models_pricing_doc]
+    video_generation:
+      modes: [i2v_reference]
+      input_roles:
+        i2v_reference: [prompt, reference_image, reference_video]
+      limits:
+        resolution: [720p, 1080p]
+        duration_sec:
+          min: 2
+          max: 15
+      options:
+        supports: [resolution, duration_sec, generate_audio]
+        constraints: {}
+      outputs:
+        video_url: true
+
+  - model_id: wan2.7-videoedit
+    model_type: video
+    updated_at: 2026-04-18
+    capabilities: [video.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Wan 2.7 video editing pricing varies by resolution, duration, and account tier.
+    source_ids: [dashscope_wan_video_guide_doc, dashscope_wan_video_edit_doc, dashscope_models_pricing_doc]
+    video_generation:
+      modes: [i2v_reference]
+      input_roles:
+        i2v_reference: [prompt, reference_image, reference_video]
+      limits:
+        resolution: [720p, 1080p]
+        duration_sec:
+          min: 2
+          max: 10
+      options:
+        supports: [resolution, duration_sec, generate_audio]
+        constraints:
+          video_editing_mapped_to_reference_mode: true
+      outputs:
+        video_url: true
 
   - model_id: flux-schnell
     model_type: image
@@ -786,8 +1092,9 @@ voice_workflow_models:
     target_model_refs:
       - qwen3-tts-vc
       - qwen3-tts-vc-2026-01-22
+      - qwen3-tts-vc-realtime-2026-01-15
     langs_ref: short_v1
-    source_ids: [dashscope_voice_cloning_doc]
+    source_ids: [dashscope_voice_cloning_doc, dashscope_qwen_realtime_tts_doc]
   - workflow_model_id: qwen-voice-design
     workflow_type: tts_t2v
     input_contract_ref: dashscope_tts_t2v_input_v1
@@ -800,8 +1107,9 @@ voice_workflow_models:
     target_model_refs:
       - qwen3-tts-vd
       - qwen3-tts-vd-2026-01-26
+      - qwen3-tts-vd-realtime-2026-01-15
     langs_ref: short_v1
-    source_ids: [dashscope_voice_design_doc]
+    source_ids: [dashscope_voice_design_doc, dashscope_qwen_realtime_tts_doc]
 
 model_workflow_bindings:
   - model_id: qwen3-tts-vc
@@ -814,6 +1122,12 @@ model_workflow_bindings:
     workflow_model_refs: [qwen-voice-design]
     workflow_types: [tts_t2v]
   - model_id: qwen3-tts-vd-2026-01-26
+    workflow_model_refs: [qwen-voice-design]
+    workflow_types: [tts_t2v]
+  - model_id: qwen3-tts-vc-realtime-2026-01-15
+    workflow_model_refs: [qwen-voice-enrollment]
+    workflow_types: [tts_v2v]
+  - model_id: qwen3-tts-vd-realtime-2026-01-15
     workflow_model_refs: [qwen-voice-design]
     workflow_types: [tts_t2v]
 

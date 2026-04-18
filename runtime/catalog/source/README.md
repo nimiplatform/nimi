@@ -39,7 +39,7 @@ Each `*.source.yaml` should contain:
 - `sources`
 - `language_profiles`
 - `voice_sets` (optional)
-- `models`
+- `models` (required only when `runtime.inventory_mode=static_source`)
 - `voice_workflow_models` (optional)
 - `model_workflow_bindings` (optional)
 - `voice_handle_policies` (optional)
@@ -90,6 +90,18 @@ Legacy capability synonyms such as `chat`, `embedding`, `image`, `tts`, `stt`, `
 - `inline_supported`
 - `default_endpoint`
 - `requires_explicit_endpoint`
+- `inventory_mode` (`static_source|dynamic_endpoint`)
+
+When `inventory_mode=dynamic_endpoint`, `runtime.dynamic_inventory` is required:
+
+- `discovery_transport` (`connector_list_models`)
+- `cache_ttl_sec`
+- `selection_mode` (`curated_filter|pass_through`)
+- `failure_policy` (`use_cache_then_fail_closed|fail_closed`)
+- `allowed_capabilities` (optional)
+- `deny_model_patterns` (optional)
+- `allow_model_patterns` (optional)
+- `preferred_model_patterns` (optional)
 
 These fields drive:
 
@@ -103,6 +115,14 @@ Remote providers must choose exactly one endpoint policy:
 - `default_endpoint=null` + `requires_explicit_endpoint=true`
 
 `local` must keep `default_endpoint=null` and `requires_explicit_endpoint=false`.
+
+Inventory mode rule:
+
+- `static_source` providers keep source-owned `models`, reviewed
+  `selection_profiles`, and catalog-projected `default_text_model`.
+- `dynamic_endpoint` providers must not mirror dynamic remote model libraries
+  into source. They author provider-level runtime metadata and dynamic
+  inventory policy only.
 
 ### 5.2 Voice Capability Rule
 
@@ -218,7 +238,6 @@ override keys such as endpoint/header/path allowlists.
 `model_workflow_bindings` should explicitly map synthesis model ids to compatible workflow model ids.
 
 Only providers with a real runtime voice-workflow adapter may declare workflow models and bindings.
-`local` workflow declarations must stay family-scoped to admitted workflow engines; generic `local speech` workflow truth is not allowed.
 
 ### 5.9 Latest-Only + Alias Compatibility Rule
 
@@ -230,6 +249,9 @@ For cloud providers, source catalogs should prioritize latest canonical models:
 - Older model generations should only be carried forward as explicit compatibility aliases, not as separately maintained primary entries.
 
 ### 5.10 Reviewed Selection Profile Rule
+
+`selection_profiles` is required only for `runtime.inventory_mode=static_source`
+providers that want source-authored reviewed defaults.
 
 `selection_profiles` is the source-authored reviewed recommendation layer for
 "best current" provider defaults.
@@ -249,6 +271,28 @@ Compatibility rule:
 - generated snapshot `default_text_model` is projected from that reviewed choice
 - while migration remains incremental, `defaults.default_text_model` may remain
   as a same-value compatibility field only
+
+For `runtime.inventory_mode=dynamic_endpoint` providers:
+
+- `selection_profiles` may be omitted entirely
+- `defaults.default_text_model` may be omitted entirely
+- machine-default selection must come from explicit config or live user choice,
+  not catalog fallback
+
+`local` workflow declarations must stay family-scoped to admitted workflow
+engines; generic `local speech` workflow truth is not allowed.
+
+## 6. Maintenance Aids
+
+Reusable maintenance docs that apply across providers live here as well:
+
+- `AGENTS.md` — directory-level maintenance workflow and rules
+- `provider-update-report-standard.md` — standard shape and review rules for
+  provider update reports
+- `provider-browser-curator-prompt.md` — reusable browser-worker prompt for
+  candidate discovery
+- `prompts/providers/*.md` — provider-specific prompts for recurring special
+  cases
 - if both are present and differ, generator must fail-close
 
 ## 6. Validation Requirements
@@ -265,9 +309,11 @@ At minimum, generator/schema validation must enforce:
 8. Providers that declare `voice_workflow_models` must also have a routable runtime voice adapter.
 9. `voice.discovery_mode` must be one of `static_catalog|dynamic_user_scoped`.
 10. `runtime` metadata must fully determine endpoint/default endpoint and runtime plane facts.
-11. `selection_profiles` must reference existing models with matching capabilities.
-12. `selection_profiles[text.general]`, when present, must match `defaults.default_text_model`.
+11. `selection_profiles` must reference existing models with matching capabilities for `static_source` providers.
+12. `selection_profiles[text.general]`, when present for `static_source` providers, must match `defaults.default_text_model`.
 13. `voice.request_options`, `transcription`, and `voice_workflow_models[].request_options` metadata must be capability-scoped and structurally valid.
+14. `dynamic_endpoint` providers must declare `runtime.dynamic_inventory`.
+15. `dynamic_endpoint` providers must not rely on catalog fallback `default_text_model` semantics.
 
 ## 7. Workflow
 

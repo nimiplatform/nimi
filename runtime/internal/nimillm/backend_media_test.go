@@ -343,8 +343,8 @@ func TestBackendGenerateMusicNormalizesIterationExtensions(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := NewBackend("cloud-suno", server.URL, "", time.Second)
-	_, _, err := backend.GenerateMusic(context.Background(), "suno-v4", &runtimev1.MusicGenerateScenarioSpec{
+	backend := NewBackend("cloud-stability", server.URL, "", time.Second)
+	_, _, err := backend.GenerateMusic(context.Background(), "stable-audio-2", &runtimev1.MusicGenerateScenarioSpec{
 		Prompt: "continue this idea",
 		Title:  "Continuation",
 	}, map[string]any{

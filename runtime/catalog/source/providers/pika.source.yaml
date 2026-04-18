@@ -1,6 +1,6 @@
 schema_version: 3
 provider: pika
-catalog_version: 2026-03-05-pika-v1
+catalog_version: 2026-04-18-pika-v2
 generated_target: runtime/catalog/providers/pika.yaml
 runtime:
   runtime_plane: remote
@@ -8,6 +8,14 @@ runtime:
   inline_supported: true
   default_endpoint: null
   requires_explicit_endpoint: true
+  inventory_mode: dynamic_endpoint
+  dynamic_inventory:
+    discovery_transport: connector_list_models
+    cache_ttl_sec: 300
+    selection_mode: pass_through
+    failure_policy: use_cache_then_fail_closed
+    allowed_capabilities:
+      - video.generate
 defaults:
   provider: pika
   model_type: video
@@ -17,48 +25,11 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: Pika pricing varies by model, resolution, and account plan.
+    as_of: 2026-04-18
+    notes: Pika public API information now routes developers to partner-hosted model access, so runtime model inventory should be discovered dynamically instead of curated as static source rows.
 
 sources:
   - source_id: pika_api_doc
-    url: https://pika.art/developers
-    retrieved_at: 2026-03-05
-    note: Pika developer API documentation.
-
-models:
-  - model_id: pika-2.2
-    model_type: video
-    updated_at: 2026-03-05
-    capabilities: [video.generate]
-    source_ids: [pika_api_doc]
-    video_generation:
-      modes: [t2v, i2v_first_frame]
-      input_roles:
-        t2v: [prompt]
-        i2v_first_frame: [prompt, first_frame]
-      limits:
-        resolution: [720p, 1080p]
-      options:
-        supports: [resolution, ratio, duration_sec]
-        constraints: {}
-      outputs:
-        video_url: true
-
-  - model_id: pika-2.2-fast
-    model_type: video
-    updated_at: 2026-03-05
-    capabilities: [video.generate]
-    source_ids: [pika_api_doc]
-    video_generation:
-      modes: [t2v, i2v_first_frame]
-      input_roles:
-        t2v: [prompt]
-        i2v_first_frame: [prompt, first_frame]
-      limits:
-        resolution: [720p, 1080p]
-      options:
-        supports: [resolution, ratio, duration_sec]
-        constraints: {}
-      outputs:
-        video_url: true
+    url: https://pika.art/api
+    retrieved_at: 2026-04-18
+    note: Pika public API page now routes developers to Fal AI for model access instead of publishing a stable first-party static model inventory.

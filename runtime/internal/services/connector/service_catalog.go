@@ -57,6 +57,7 @@ func modelCatalogProviderEntryFromRecord(record aicatalog.CatalogProviderRecord)
 		RuntimePlane:             cap.RuntimePlane,
 		ExecutionModule:          cap.ExecutionModule,
 		ManagedSupported:         cap.ManagedSupported,
+		InventoryMode:            entry.InventoryMode,
 	}
 }
 

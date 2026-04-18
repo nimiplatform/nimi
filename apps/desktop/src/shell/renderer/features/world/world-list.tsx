@@ -1,11 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { prefetchWorldDetailAndHistory, worldListQueryKey } from './world-detail-queries';
+import {
+  fetchWorldListItems,
+  prefetchWorldDetailAndHistory,
+  worldListQueryKey,
+} from './world-detail-queries';
 import { prefetchWorldDetailPanel } from './world-detail-route-state';
-import { isMainWorld, toWorldListItem } from './world-list-model';
+import { isMainWorld, toWorldListItemFromTruth } from './world-list-model';
 import { WorldChronoPanel } from './world-list-chrono-panel';
 
 const DEFAULT_TAG_STYLE: { bg: string; text: string } = { bg: 'bg-gray-100', text: 'text-gray-600' };
@@ -40,10 +43,7 @@ export function WorldList() {
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
-    queryFn: async () => {
-      const result = await dataSync.loadWorlds();
-      return result.map((item) => toWorldListItem(item));
-    },
+    queryFn: async () => (await fetchWorldListItems()).map((item) => toWorldListItemFromTruth(item)),
   });
 
   const worlds = worldsQuery.data || [];

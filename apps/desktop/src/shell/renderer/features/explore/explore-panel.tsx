@@ -11,8 +11,12 @@ import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runti
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
-import { toWorldListItem } from '../world/world-list-model';
-import { prefetchWorldDetailAndHistory, worldListQueryKey } from '../world/world-detail-queries.js';
+import { toWorldListItemFromTruth } from '../world/world-list-model';
+import {
+  fetchWorldListItems,
+  prefetchWorldDetailAndHistory,
+  worldListQueryKey,
+} from '../world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import { QuickAddFriendModal } from './quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '../contacts/agent-friend-limit';
@@ -248,10 +252,7 @@ export function ExplorePanel() {
   // Fetch worlds for banner carousel
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
-    queryFn: async () => {
-      const result = await dataSync.loadWorlds();
-      return result.map((item) => toWorldListItem(item));
-    },
+    queryFn: async () => (await fetchWorldListItems()).map((item) => toWorldListItemFromTruth(item)),
     staleTime: 30_000,
   });
 

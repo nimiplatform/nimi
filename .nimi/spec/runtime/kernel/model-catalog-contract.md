@@ -16,10 +16,19 @@ Each provider file in `runtime/catalog/providers/*.yaml` MUST include:
 - `version`
 - `provider`
 - `catalog_version`
+- `inventory_mode`
 - `default_text_model` (optional; remote text-capable providers only)
 - `selection_profiles` (optional; reviewed provider-level recommendations)
-- `models`
+- `models` (optional only when `inventory_mode=dynamic_endpoint`)
 - `voices` (optional; required only when TTS-capable models exist)
+
+`inventory_mode` MUST be one of:
+
+- `static_source`
+- `dynamic_endpoint`
+
+When `inventory_mode=dynamic_endpoint`, provider snapshot MAY omit static
+`models` rows and instead MUST include provider-level dynamic inventory metadata.
 
 `models[]` entries MUST include:
 
@@ -73,6 +82,9 @@ Runtime catalog resolution order MUST be:
 2. Local custom provider directory (`modelCatalogCustomDir`) (optional)
 
 Remote metadata cache / refresh MUST NOT exist as a non-scenario catalog source.
+Dynamic connector model discovery cache MAY exist as runtime execution cache only
+for `inventory_mode=dynamic_endpoint`; it MUST NOT become a second catalog truth
+source.
 
 ## K-MCAT-006 Local Custom Override Safety
 
@@ -131,12 +143,21 @@ DashScope published voices for these models MUST be represented in `runtime/cata
 
 `runtime/catalog/source/providers/*.source.yaml` 必须使用 schema v3。核心结构固定为：
 
+- `runtime`
 - `models`
 - `language_profiles`
 - `sources`
 - `voice_sets`（可选）
 - `voice_workflow_models`（可选）
 - `model_workflow_bindings`（可选）
+
+其中：
+
+- `runtime.inventory_mode` 必填，值域为 `static_source|dynamic_endpoint`
+- 当 `runtime.inventory_mode=dynamic_endpoint` 时，`runtime.dynamic_inventory`
+  必填
+- 当 `runtime.inventory_mode=dynamic_endpoint` 时，`models`、`selection_profiles`
+  与 `defaults.default_text_model` 都可以省略
 
 ## K-MCAT-012 Synthesis Model Anchor
 
@@ -335,17 +356,38 @@ source provider 的非 scenario 元数据必须通过 `runtime/catalog/source/pr
 - `inline_supported`
 - `default_endpoint`
 - `requires_explicit_endpoint`
+- `inventory_mode`
 
-provider 默认文本模型元数据必须通过同一份 source provider SSOT 的 `defaults.default_text_model` 维护。
+当 `inventory_mode=dynamic_endpoint` 时，source 还必须声明
+`runtime.dynamic_inventory`，至少包括：
+
+- `discovery_transport`
+- `cache_ttl_sec`
+- `selection_mode`
+- `failure_policy`
+
+provider 默认文本模型元数据只对 `inventory_mode=static_source` provider
+继续由同一份 source provider SSOT 的 `defaults.default_text_model` 维护。
 
 `runtime/internal/providerregistry/generated.go`、`tables/provider-catalog.yaml`、`tables/provider-capabilities.yaml` 都必须由该 source metadata 投影生成，禁止 spec 表反向充当 runtime endpoint/default endpoint/default text model 真相。
 
-当 source 已声明 `selection_profiles[text.general]` 时：
+当 `inventory_mode=static_source` 且 source 已声明 `selection_profiles[text.general]` 时：
 
 - reviewed text default truth 属于 `selection_profiles[text.general]`
 - snapshot / registry `default_text_model` 只是 compatibility projection
 - 过渡期允许 `defaults.default_text_model` 作为同值兼容字段保留
 - 若 `selection_profiles[text.general]` 与 `defaults.default_text_model` 不一致，generator 与 freshness gate 都必须 fail-close
+
+当 `inventory_mode=dynamic_endpoint` 时：
+
+- snapshot / registry 仍必须投影 provider-level runtime metadata
+- snapshot 可以不包含静态 `models`
+- runtime `ListConnectorModels` 真相来自 live connector discovery，经
+  source-authored dynamic inventory policy 过滤后返回
+- `default_text_model` 与 `selection_profiles` 不再是 machine-default fallback
+  truth
+- 若 config `provider.defaultModel` 与 UI/route-selected live model 都缺失，
+  runtime 必须 fail-close，并返回可执行 action hint
 
 ## Verification Anchors
 

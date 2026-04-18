@@ -1,6 +1,6 @@
 schema_version: 3
 provider: flux
-catalog_version: 2026-03-05-flux-v1
+catalog_version: 2026-04-18-flux-image-v2
 generated_target: runtime/catalog/providers/flux.yaml
 runtime:
   runtime_plane: remote
@@ -17,55 +17,140 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: Black Forest Labs pricing varies by model and account plan.
+    as_of: 2026-04-18
+    notes: Black Forest Labs uses credit- and megapixel-based pricing that varies by model family and request shape.
 
 sources:
   - source_id: bfl_api_doc
-    url: https://docs.bfl.ml/
-    retrieved_at: 2026-03-05
-    note: Black Forest Labs FLUX API documentation.
+    url: https://docs.bfl.ai/get-started
+    retrieved_at: 2026-04-18
+    note: Black Forest Labs quick start and API onboarding.
+  - source_id: bfl_intro_doc
+    url: https://docs.bfl.ai/quick_start/introduction
+    retrieved_at: 2026-04-18
+    note: Black Forest Labs introduction page stating FLUX.2 is the recommended family.
+  - source_id: bfl_pricing_doc
+    url: https://docs.bfl.ai/quick_start/pricing
+    retrieved_at: 2026-04-18
+    note: Black Forest Labs pricing overview for FLUX.2 and FLUX.1 families.
+  - source_id: bfl_flux2_overview
+    url: https://docs.bfl.ai/flux_2
+    retrieved_at: 2026-04-18
+    note: FLUX.2 overview covering stable and preview endpoints.
+  - source_id: bfl_flux2_text_to_image
+    url: https://docs.bfl.ai/flux_2/flux2_text_to_image
+    retrieved_at: 2026-04-18
+    note: FLUX.2 text-to-image guide.
+  - source_id: bfl_release_notes
+    url: https://docs.bfl.ai/release-notes
+    retrieved_at: 2026-04-18
+    note: Black Forest Labs release notes including FLUX.2 preview endpoint updates.
 
 models:
-  - model_id: flux-pro-1.1-ultra
+  - model_id: flux-2-klein-4b
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by resolution and quality.
-    source_ids: [bfl_api_doc]
+      as_of: 2026-04-18
+      notes: FLUX.2 klein 4B pricing starts at $0.014 per image and scales with megapixels.
+    source_ids: [bfl_intro_doc, bfl_pricing_doc, bfl_flux2_overview, bfl_flux2_text_to_image]
+
+  - model_id: flux-2-klein-9b
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: FLUX.2 klein 9B pricing starts at $0.015 per image and scales with megapixels.
+    source_ids: [bfl_intro_doc, bfl_pricing_doc, bfl_flux2_overview, bfl_flux2_text_to_image]
+
+  - model_id: flux-2-pro
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: FLUX.2 pro pricing starts at $0.03 per image for text-to-image and varies by megapixels.
+    source_ids: [bfl_intro_doc, bfl_pricing_doc, bfl_flux2_overview, bfl_flux2_text_to_image, bfl_release_notes]
+
+  - model_id: flux-2-max
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: FLUX.2 max pricing starts at $0.07 per megapixel-sized output.
+    source_ids: [bfl_intro_doc, bfl_pricing_doc, bfl_flux2_overview, bfl_flux2_text_to_image]
+
+  - model_id: flux-2-flex
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: FLUX.2 flex pricing is $0.06 per megapixel-sized output.
+    source_ids: [bfl_intro_doc, bfl_pricing_doc, bfl_flux2_overview, bfl_flux2_text_to_image]
+
+  - model_id: flux-pro-1.1-ultra
+    model_type: image
+    updated_at: 2026-04-18
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Previous-generation FLUX1.1 pro Ultra pricing is $0.06 per image.
+    source_ids: [bfl_pricing_doc]
     aliases:
       - flux-pro-ultra
 
   - model_id: flux-pro-1.1
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by resolution and quality.
-    source_ids: [bfl_api_doc]
+      as_of: 2026-04-18
+      notes: Previous-generation FLUX1.1 pro pricing is $0.04 per image.
+    source_ids: [bfl_pricing_doc]
     aliases:
       - flux-pro
 
   - model_id: flux-dev
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Development model with lower cost per request.
-    source_ids: [bfl_api_doc]
+      as_of: 2026-04-18
+      notes: Development-oriented FLUX line kept pending a later semantics review; current FLUX.2 dev pricing is documented as free for non-commercial local development.
+    source_ids: [bfl_pricing_doc, bfl_flux2_overview]

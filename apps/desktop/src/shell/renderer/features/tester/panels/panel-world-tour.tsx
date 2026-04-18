@@ -2,6 +2,14 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, SelectField, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
+import {
+  createInspectWorldRenderPlan,
+  createInspectWorldSession,
+  generate as worldGenerate,
+  type WorldFixturePackage,
+  type WorldInspectRenderPlan,
+  type WorldInspectSession,
+} from '@nimiplatform/sdk/world';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { hasTauriRuntime, invokeTauri } from '@runtime/tauri-api';
 import type { CapabilityState } from '../tester-types.js';
@@ -84,7 +92,9 @@ function openWorldTourWindowFallback(manifestPath: string): void {
 }
 
 function WorldResultSummary(props: {
-  world: WorldResultRecord;
+  world: WorldFixturePackage;
+  renderPlan: WorldInspectRenderPlan | null;
+  sessionState: WorldInspectSession | null;
   fixture: ResolvedWorldTourFixture | null;
   launchBusy: boolean;
   launchStatus: string;
@@ -93,8 +103,8 @@ function WorldResultSummary(props: {
 }) {
   const { t } = useTranslation();
   const previewImage = resolveWorldTourAssetUrl(
-    props.fixture?.thumbnailLocalPath || props.world.thumbnailLocalPath,
-    props.fixture?.thumbnailRemoteUrl || props.world.thumbnailUrl || props.world.panoUrl,
+    props.renderPlan?.previewImageLocalPath || props.fixture?.thumbnailLocalPath || props.world.thumbnailLocalPath,
+    props.renderPlan?.previewImageUrl || props.fixture?.thumbnailRemoteUrl || props.world.thumbnailUrl || props.world.panoUrl,
   );
   const semantics = props.world.semanticsMetadata;
 
@@ -165,6 +175,28 @@ function WorldResultSummary(props: {
               offset={Number.isFinite(semantics.groundPlaneOffset) ? semantics.groundPlaneOffset : 0}
               {' · '}
               scale={Number.isFinite(semantics.metricScaleFactor) ? semantics.metricScaleFactor : 0}
+            </span>
+          </div>
+        ) : null}
+        {props.renderPlan ? (
+          <div>
+            {t('Tester.worldTour.renderPlanLabel', { defaultValue: 'render plan:' })}{' '}
+            <span className="font-mono text-[var(--nimi-text-primary)]">
+              {props.renderPlan.mode}
+              {' · '}
+              camera={props.renderPlan.initialCameraPolicy.source}
+              {' · '}
+              spz={props.renderPlan.capabilityRequirements.requiresSpzAsset ? 'required' : 'optional'}
+            </span>
+          </div>
+        ) : null}
+        {props.sessionState ? (
+          <div>
+            {t('Tester.worldTour.sessionLabel', { defaultValue: 'session:' })}{' '}
+            <span className="font-mono text-[var(--nimi-text-primary)]">
+              {props.sessionState.sessionId}
+              {' · '}
+              {props.sessionState.lifecycle}
             </span>
           </div>
         ) : null}
@@ -251,6 +283,17 @@ export function WorldTourPanel(props: WorldTourPanelProps) {
   const effectiveBinding = resolveEffectiveBinding(state.snapshot, state.binding);
   const routeStatus = currentRouteStatusMessage(effectiveBinding);
   const worldOutput = normalizeWorldGenerateOutput(state.output);
+  const renderPlan = React.useMemo(
+    () => createInspectWorldRenderPlan(worldOutput),
+    [worldOutput],
+  );
+  const sessionState = React.useMemo(
+    () => createInspectWorldSession({
+      fixture: worldOutput,
+      renderPlan,
+    }),
+    [worldOutput, renderPlan],
+  );
 
   const finalizeWorldJob = React.useCallback(async (input: {
     jobId: string;
@@ -474,25 +517,26 @@ export function WorldTourPanel(props: WorldTourPanelProps) {
         },
       }
       : undefined;
-    const requestParams: Record<string, unknown> = {
-      model,
-      displayName: asString(displayName) || undefined,
-      textPrompt: asString(textPrompt) || undefined,
-      tags,
-      seed: seed ? Number(seed) : undefined,
-      conditioning,
-      ...(binding ? { binding } : {}),
-    };
 
     try {
-      const modClient = createModRuntimeClient('core:runtime');
-      const job = await modClient.media.world.generate({
-        model,
+      const projection = worldGenerate.project({
         displayName: asString(displayName) || undefined,
         textPrompt: asString(textPrompt) || undefined,
         tags,
         seed: seed ? Number(seed) : undefined,
         conditioning,
+      });
+      const runtimeInput = worldGenerate.toRuntimeInput(projection, {
+        model,
+      });
+      const requestParams: Record<string, unknown> = {
+        projection,
+        runtimeInput,
+        ...(binding ? { binding } : {}),
+      };
+      const modClient = createModRuntimeClient('core:runtime');
+      const job = await modClient.media.world.generate({
+        ...runtimeInput,
         binding,
       });
       await watchAsyncWorldJob({
@@ -511,9 +555,9 @@ export function WorldTourPanel(props: WorldTourPanelProps) {
         busy: false,
         result: 'failed',
         error: message,
-        rawResponse: toPrettyJson({ request: requestParams, error: message, details, stage: 'submit' }),
+        rawResponse: toPrettyJson({ error: message, details, stage: 'submit' }),
         diagnostics: {
-          requestParams,
+          requestParams: null,
           resolvedRoute: routeInfo,
           responseMetadata: {},
         },
@@ -715,6 +759,8 @@ export function WorldTourPanel(props: WorldTourPanelProps) {
       {worldOutput ? (
         <WorldResultSummary
           world={worldOutput}
+          renderPlan={renderPlan}
+          sessionState={sessionState}
           fixture={launchableFixture}
           launchBusy={launchBusy}
           launchStatus={launchStatus}

@@ -1,24 +1,78 @@
 version: 1
 provider: google_cloud_tts
-catalog_version: 2026-03-05-google-cloud-tts-v1
+catalog_version: 2026-04-18-google-cloud-tts-v2
+inventory_mode: static_source
 models:
   - model_id: chirp-3-hd
     provider: google_cloud_tts
     model_type: tts
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - audio.synthesize
     pricing:
-      unit: request
-      input: unknown
-      output: unknown
+      unit: char
+      input: "30.00"
+      output: "0"
       currency: USD
-      as_of: 2026-03-05
-      notes: Google Cloud Text-to-Speech pricing varies by voice family and region.
+      as_of: 2026-04-18
+      notes: Chirp 3 HD voices are billed at $30 per 1M input characters after the free tier.
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Google Cloud Text-to-Speech documentation.
+    voice_set_id: google_cloud_tts:chirp3-defaults-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options: &a1
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - wav
+        - mulaw
+        - alaw
+      supports_language: true
+    voice_ref_kinds: &a2
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: chirp3-hd
+    provider: google_cloud_tts
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: "30.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Chirp 3 HD voices are billed at $30 per 1M input characters after the free tier.
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs
+      retrieved_at: 2026-04-18
+      note: Google Cloud Text-to-Speech documentation.
+    voice_set_id: google_cloud_tts:chirp3-defaults-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options: *a1
+    voice_ref_kinds: *a2
+  - model_id: gemini-2.5-flash-tts
+    provider: google_cloud_tts
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: token
+      input: "0.50"
+      output: "10.00"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Gemini 2.5 Flash TTS input text tokens at $0.50 and output audio tokens at $10.00 per 1M tokens.
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-04-18
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
     voice_set_id: google_cloud_tts:chirp3-defaults-v1
     voice_discovery_mode: static_catalog
     voice_request_options:
@@ -30,6 +84,40 @@ models:
         - wav
         - mulaw
         - alaw
+        - pcm
+      supports_language: true
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: gemini-2.5-pro-tts
+    provider: google_cloud_tts
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: token
+      input: "1.00"
+      output: "20.00"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Gemini 2.5 Pro TTS input text tokens at $1.00 and output audio tokens at $20.00 per 1M tokens.
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-04-18
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+    voice_set_id: google_cloud_tts:chirp3-defaults-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - wav
+        - mulaw
+        - alaw
+        - pcm
       supports_language: true
     voice_ref_kinds:
       - preset_voice_id
@@ -43,9 +131,12 @@ voices:
       - en-US
     model_ids:
       - chirp-3-hd
+      - chirp3-hd
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Google Cloud Text-to-Speech documentation.
   - voice_id: en-US-Chirp3-HD-Kore
     voice_set_id: google_cloud_tts:chirp3-defaults-v1
@@ -55,9 +146,12 @@ voices:
       - en-US
     model_ids:
       - chirp-3-hd
+      - chirp3-hd
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Google Cloud Text-to-Speech documentation.
   - voice_id: ja-JP-Chirp3-HD-Leda
     voice_set_id: google_cloud_tts:chirp3-defaults-v1
@@ -67,9 +161,12 @@ voices:
       - ja-JP
     model_ids:
       - chirp-3-hd
+      - chirp3-hd
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Google Cloud Text-to-Speech documentation.
   - voice_id: cmn-CN-Chirp3-HD-Orus
     voice_set_id: google_cloud_tts:chirp3-defaults-v1
@@ -79,7 +176,10 @@ voices:
       - cmn-CN
     model_ids:
       - chirp-3-hd
+      - chirp3-hd
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Google Cloud Text-to-Speech documentation.

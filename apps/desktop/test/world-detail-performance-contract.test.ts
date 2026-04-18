@@ -63,8 +63,18 @@ test('world detail prefetch is limited to first-screen queries', () => {
   assert.doesNotMatch(prefetchSection, /worldPublicAssetsQueryKey/);
 });
 
+test('world detail primary query adopts sdk world truth through a bounded adapter', () => {
+  assert.match(worldDetailQueriesSource, /normalizeWorldTruthDetail/);
+  assert.match(worldDetailQueriesSource, /getPlatformClient\(\)\.domains\.world\.getWorldview/);
+  assert.match(worldDetailQueriesSource, /dataSync\.loadWorldDetailWithAgents/);
+  assert.match(worldDetailQueriesSource, /mergeWorldPrimaryDetailTruth/);
+  assert.match(worldDetailQueriesSource, /WORLD_DETAIL_WORLD_TRUTH_INVALID/);
+});
+
 test('world detail panel can resolve the selected world from cache before world list finishes loading', () => {
   assert.match(worldDetailActivePanelSource, /queryClient\.getQueryData<ReturnType<typeof toWorldListItem>\[\]>/);
+  assert.match(worldDetailActivePanelSource, /queryClient\.getQueryData<WorldPrimaryDetailRecord>/);
+  assert.match(worldDetailActivePanelSource, /fetchWorldListItems\(\)/);
   assert.match(worldDetailActivePanelSource, /worldDetailWithAgentsQueryKey\(selectedWorldId\)/);
   assert.match(worldDetailActivePanelSource, /const selectedWorld = worldsQuery\.data\?\.find/);
   assert.match(worldDetailActivePanelSource, /if \(!selectedWorld && worldsQuery\.isPending\)/);
@@ -85,9 +95,11 @@ test('world detail error state keeps a back escape hatch', () => {
 });
 
 test('explore shares the world list cache key and does not refetch agents when world metadata changes', () => {
+  assert.match(explorePanelSource, /fetchWorldListItems\(\)/);
   assert.match(explorePanelSource, /queryKey: worldListQueryKey\(\)/);
   assert.match(explorePanelSource, /queryKey: \['explore-agents', authStatus, selectedCategory, searchText\]/);
   assert.match(explorePanelSource, /const agents = useMemo\(/);
+  assert.doesNotMatch(explorePanelSource, /dataSync\.loadWorlds\(/);
   assert.doesNotMatch(explorePanelSource, /worldsDataVersion/);
 });
 

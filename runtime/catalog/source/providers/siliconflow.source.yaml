@@ -1,6 +1,6 @@
 schema_version: 3
 provider: siliconflow
-catalog_version: 2026-03-05-siliconflow-v1
+catalog_version: 2026-04-18-siliconflow-v2
 generated_target: runtime/catalog/providers/siliconflow.yaml
 runtime:
   runtime_plane: remote
@@ -8,9 +8,22 @@ runtime:
   inline_supported: true
   default_endpoint: null
   requires_explicit_endpoint: true
+  inventory_mode: dynamic_endpoint
+  dynamic_inventory:
+    discovery_transport: connector_list_models
+    cache_ttl_sec: 300
+    selection_mode: pass_through
+    failure_policy: use_cache_then_fail_closed
+    allowed_capabilities:
+      - text.generate
+      - text.generate.vision
+      - text.embed
+      - image.generate
+      - video.generate
+      - audio.synthesize
+      - audio.transcribe
 defaults:
   provider: siliconflow
-  default_text_model: deepseek-ai/DeepSeek-V3
   model_type: chat
   capabilities: []
   pricing:
@@ -18,101 +31,11 @@ defaults:
     input: unknown
     output: unknown
     currency: CNY
-    as_of: 2026-03-05
-    notes: SiliconFlow pricing varies by model size and account plan.
+    as_of: 2026-04-18
+    notes: SiliconFlow publishes a real-time full model list and broad multi-model marketplace, so runtime inventory should be discovered dynamically instead of curated as static source rows.
 
 sources:
   - source_id: siliconflow_models_doc
-    url: https://docs.siliconflow.cn/cn/userguides/models
-    retrieved_at: 2026-03-05
-    note: SiliconFlow model catalog and supported models.
-
-selection_profiles:
-  - profile_id: text.general
-    capability: text.generate
-    model_id: deepseek-ai/DeepSeek-V3
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Best current general SiliconFlow text route in the admitted set.
-  - profile_id: text.reasoning
-    capability: text.generate
-    model_id: deepseek-ai/DeepSeek-R1
-    reviewed_at: 2026-04-16
-    freshness_sla_days: 21
-    rationale: Dedicated reasoning-oriented SiliconFlow text route in the admitted set.
-
-models:
-  - model_id: deepseek-ai/DeepSeek-V3
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model size and usage tier.
-    source_ids: [siliconflow_models_doc]
-    aliases:
-      - deepseek-v3
-
-  - model_id: deepseek-ai/DeepSeek-R1
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Reasoning model pricing varies by usage tier.
-    source_ids: [siliconflow_models_doc]
-    aliases:
-      - deepseek-r1
-
-  - model_id: Qwen/Qwen3-235B-A22B
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model size and usage tier.
-    source_ids: [siliconflow_models_doc]
-    aliases:
-      - qwen3-235b
-
-  - model_id: THUDM/GLM-4-32B
-    model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Chat token pricing varies by model size and usage tier.
-    source_ids: [siliconflow_models_doc]
-    aliases:
-      - glm-4-32b
-
-  - model_id: BAAI/bge-m3
-    model_type: embedding
-    updated_at: 2026-03-05
-    capabilities: [text.embed]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-03-05
-      notes: Embedding pricing varies by token volume and usage tier.
-    source_ids: [siliconflow_models_doc]
-    aliases:
-      - bge-m3
+    url: https://docs.siliconflow.cn/quickstart/models
+    retrieved_at: 2026-04-18
+    note: SiliconFlow model list page states that the platform model list is complete and updated in real time, with an API endpoint to view all visible models.

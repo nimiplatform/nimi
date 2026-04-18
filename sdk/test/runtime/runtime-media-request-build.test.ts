@@ -570,7 +570,7 @@ test('build request: music modal maps canonical iteration extension namespace', 
   const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
     modal: 'music',
     input: {
-      model: 'suno-v4',
+      model: 'stable-audio-2',
       prompt: 'continue this song',
       title: 'Continuation',
       extensions: buildMusicIterationExtensions({

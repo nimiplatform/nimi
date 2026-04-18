@@ -1,6 +1,6 @@
 schema_version: 3
 provider: mistral
-catalog_version: 2026-03-18-mistral-v3
+catalog_version: 2026-04-18-mistral-v4
 generated_target: runtime/catalog/providers/mistral.yaml
 runtime:
   runtime_plane: remote
@@ -18,125 +18,127 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
+    as_of: 2026-04-18
     notes: Mistral pricing varies by model class, region, and account plan.
 
 sources:
   - source_id: mistral_models_doc
-    url: https://docs.mistral.ai/getting-started/models/
-    retrieved_at: 2026-03-05
+    url: https://docs.mistral.ai/models
+    retrieved_at: 2026-04-18
     note: Mistral model catalog and lifecycle aliases.
+  - source_id: mistral_changelog_doc
+    url: https://docs.mistral.ai/resources/changelogs
+    retrieved_at: 2026-04-18
+    note: Mistral platform changelog with dated model releases.
+  - source_id: mistral_large_3_doc
+    url: https://docs.mistral.ai/models/mistral-large-3-25-12
+    retrieved_at: 2026-04-18
+    note: Mistral Large 3 model card.
+  - source_id: mistral_medium_3_1_doc
+    url: https://docs.mistral.ai/models/mistral-medium-3-1-25-08
+    retrieved_at: 2026-04-18
+    note: Mistral Medium 3.1 model card.
+  - source_id: mistral_small_4_doc
+    url: https://docs.mistral.ai/models/mistral-small-4-0-26-03
+    retrieved_at: 2026-04-18
+    note: Mistral Small 4 model card.
+  - source_id: mistral_codestral_doc
+    url: https://docs.mistral.ai/models/codestral-25-08
+    retrieved_at: 2026-04-18
+    note: Codestral 2508 model card.
+  - source_id: mistral_embed_model_doc
+    url: https://docs.mistral.ai/models/mistral-embed-23-12
+    retrieved_at: 2026-04-18
+    note: Mistral Embed model card.
   - source_id: mistral_embeddings_doc
-    url: https://docs.mistral.ai/capabilities/embeddings/text_embeddings
-    retrieved_at: 2026-03-05
+    url: https://docs.mistral.ai/studio-api/knowledge-rag/embeddings
+    retrieved_at: 2026-04-18
     note: Mistral embeddings capability documentation.
-  - source_id: mistral_function_calling_doc
-    url: https://docs.mistral.ai/capabilities/function_calling/
-    retrieved_at: 2026-03-05
-    note: Mistral chat examples using mistral-large-latest.
+  - source_id: mistral_sdk_clients_doc
+    url: https://docs.mistral.ai/getting-started/clients
+    retrieved_at: 2026-04-18
+    note: Official SDK examples using Mistral latest aliases.
+  - source_id: mistral_adjustable_reasoning_doc
+    url: https://docs.mistral.ai/capabilities/reasoning/adjustable
+    retrieved_at: 2026-04-18
+    note: Adjustable reasoning support for mistral-small-latest.
 
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: mistral-large-latest
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Best current general Mistral text route in the admitted set.
+    rationale: Best current general Mistral text route in the admitted alias-backed set, aligned to Mistral Large 3.
   - profile_id: text.fast
     capability: text.generate
     model_id: mistral-small-latest
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-04-18
     freshness_sla_days: 21
-    rationale: Cost-efficient Mistral text route for fast general tasks.
+    rationale: Cost-efficient Mistral text route for fast general tasks, aligned to Mistral Small 4.
 
 models:
   - model_id: mistral-large-latest
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-12-02
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
-      input: "2.00"
-      output: "6.00"
+      input: "0.50"
+      output: "1.50"
       currency: USD
-      as_of: 2026-03-18
-      notes: Flagship model. Per 1M tokens.
-    source_ids: [mistral_models_doc, mistral_function_calling_doc]
+      as_of: 2026-04-18
+      notes: Current alias-backed flagship row aligned to Mistral Large 3. Per 1M tokens.
+    source_ids: [mistral_models_doc, mistral_changelog_doc, mistral_large_3_doc]
 
   - model_id: mistral-medium-latest
     model_type: chat
-    updated_at: 2026-03-05
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: "2.70"
-      output: "8.10"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Mid-tier model. Per 1M tokens.
-    source_ids: [mistral_models_doc]
-
-  - model_id: mistral-small-latest
-    model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-08-12
     capabilities: [text.generate, text.generate.vision]
     pricing:
       unit: token
-      input: "0.20"
+      input: "0.40"
+      output: "2.00"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Current alias-backed mid-tier row aligned to Mistral Medium 3.1. Per 1M tokens.
+    source_ids: [mistral_models_doc, mistral_medium_3_1_doc, mistral_sdk_clients_doc]
+
+  - model_id: mistral-small-latest
+    model_type: chat
+    updated_at: 2026-03-16
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: "0.15"
       output: "0.60"
       currency: USD
-      as_of: 2026-03-18
-      notes: Cost-efficient model. Per 1M tokens.
-    source_ids: [mistral_models_doc]
+      as_of: 2026-04-18
+      notes: Current alias-backed efficient row aligned to Mistral Small 4. Supports adjustable reasoning. Per 1M tokens.
+    source_ids: [mistral_models_doc, mistral_small_4_doc, mistral_adjustable_reasoning_doc]
 
   - model_id: codestral-latest
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-07-30
     capabilities: [text.generate]
     pricing:
       unit: token
       input: "0.30"
       output: "0.90"
       currency: USD
-      as_of: 2026-03-18
-      notes: Code-specialized model. Per 1M tokens.
-    source_ids: [mistral_models_doc]
-
-  - model_id: pixtral-large-latest
-    model_type: chat
-    updated_at: 2026-03-18
-    capabilities: [text.generate, text.generate.vision]
-    pricing:
-      unit: token
-      input: "2.00"
-      output: "6.00"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Vision-optimized large model. Per 1M tokens.
-    source_ids: [mistral_models_doc]
-
-  - model_id: mistral-saba-latest
-    model_type: chat
-    updated_at: 2026-03-18
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: "0.20"
-      output: "0.60"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Regional-optimized model. Per 1M tokens.
-    source_ids: [mistral_models_doc]
+      as_of: 2026-04-18
+      notes: Current alias-backed code-specialized row aligned to Codestral 2508. Per 1M tokens.
+    source_ids: [mistral_models_doc, mistral_changelog_doc, mistral_codestral_doc]
 
   - model_id: mistral-embed
     model_type: embedding
-    updated_at: 2026-03-05
+    updated_at: 2023-12-11
     capabilities: [text.embed]
     pricing:
       unit: token
       input: "0.10"
       output: "0"
       currency: USD
-      as_of: 2026-03-18
-      notes: Embedding model. Per 1M tokens.
-    source_ids: [mistral_embeddings_doc, mistral_models_doc]
+      as_of: 2026-04-18
+      notes: General-purpose text embedding model retained in current source scope. Per 1M tokens.
+    source_ids: [mistral_embeddings_doc, mistral_embed_model_doc, mistral_models_doc]

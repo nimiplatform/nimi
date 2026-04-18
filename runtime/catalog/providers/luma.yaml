@@ -1,58 +1,12 @@
 version: 1
 provider: luma
-catalog_version: 2026-03-05-luma-v1
+catalog_version: 2026-04-18-luma-v2
+inventory_mode: static_source
 models:
-  - model_id: ray-3
-    provider: luma
-    model_type: video
-    updated_at: 2026-03-05
-    capabilities:
-      - video.generate
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-03-05
-      notes: Luma video pricing varies by model family, output profile, and account tier.
-    source_ref:
-      url: https://docs.lumalabs.ai/docs/video-generation
-      retrieved_at: 2026-03-05
-      note: Luma video generation overview and model capability guide.
-    video_generation:
-      modes:
-        - t2v
-        - i2v_first_frame
-        - i2v_first_last
-      input_roles:
-        t2v:
-          - prompt
-        i2v_first_frame:
-          - prompt
-          - first_frame
-        i2v_first_last:
-          - prompt
-          - first_frame
-          - last_frame
-      limits:
-        resolution:
-          - 540p
-          - 720p
-          - 1080p
-          - 4k
-      options:
-        supports:
-          - resolution
-          - ratio
-          - duration_sec
-        constraints:
-          keyframes_mapped_to_first_last_contract: true
-      outputs:
-        video_url: true
   - model_id: ray-2
     provider: luma
     model_type: video
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - video.generate
     pricing:
@@ -60,11 +14,11 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Luma video pricing varies by model family, output profile, and account tier.
+      as_of: 2026-04-18
+      notes: Luma public docs currently expose model availability and API parameters, but not a stable public per-request price for ray-2.
     source_ref:
       url: https://docs.lumalabs.ai/docs/video-generation
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Luma video generation overview and model capability guide.
     video_generation:
       modes:
@@ -87,6 +41,17 @@ models:
           - 720p
           - 1080p
           - 4k
+        duration_sec:
+          - 5
+          - 9
+        ratio:
+          - 1:1
+          - 16:9
+          - 9:16
+          - 4:3
+          - 3:4
+          - 21:9
+          - 9:21
       options:
         supports:
           - resolution
@@ -99,7 +64,7 @@ models:
   - model_id: ray-flash-2
     provider: luma
     model_type: video
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - video.generate
     pricing:
@@ -107,11 +72,11 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Luma video pricing varies by model family, output profile, and account tier.
+      as_of: 2026-04-18
+      notes: Luma public docs currently expose model availability and API parameters, but not a stable public per-request price for ray-flash-2.
     source_ref:
       url: https://docs.lumalabs.ai/docs/video-generation
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Luma video generation overview and model capability guide.
     video_generation:
       modes:
@@ -134,6 +99,17 @@ models:
           - 720p
           - 1080p
           - 4k
+        duration_sec:
+          - 5
+          - 9
+        ratio:
+          - 1:1
+          - 16:9
+          - 9:16
+          - 4:3
+          - 3:4
+          - 21:9
+          - 9:21
       options:
         supports:
           - resolution

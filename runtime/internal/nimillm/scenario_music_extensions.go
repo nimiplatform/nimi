@@ -145,20 +145,6 @@ func (defaultMusicGenerationStrategy) BuildRequest(modelID string, spec *runtime
 	return buildBaseMusicGenerationRequest(modelID, spec), nil
 }
 
-type sunoMusicGenerationStrategy struct{}
-
-func (sunoMusicGenerationStrategy) SupportsIteration() bool {
-	return true
-}
-
-func (sunoMusicGenerationStrategy) BuildRequest(modelID string, spec *runtimev1.MusicGenerateScenarioSpec, iteration *MusicIterationExtension) (map[string]any, error) {
-	request := buildBaseMusicGenerationRequest(modelID, spec)
-	if iteration != nil {
-		request["extensions"] = iteration.CanonicalPayload()
-	}
-	return request, nil
-}
-
 type stabilityMusicGenerationStrategy struct{}
 
 func (stabilityMusicGenerationStrategy) SupportsIteration() bool {
@@ -205,8 +191,6 @@ func buildBaseMusicGenerationRequest(modelID string, spec *runtimev1.MusicGenera
 
 func resolveMusicGenerationStrategy(name string) musicGenerationStrategy {
 	switch normalizeMusicStrategyName(name) {
-	case "suno":
-		return sunoMusicGenerationStrategy{}
 	case "stability":
 		return stabilityMusicGenerationStrategy{}
 	default:

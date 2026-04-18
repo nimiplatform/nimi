@@ -1,6 +1,7 @@
 version: 1
 provider: local
 catalog_version: 2026-04-17-local-v6
+inventory_mode: static_source
 models:
   - model_id: qwen3-tts-local
     provider: local

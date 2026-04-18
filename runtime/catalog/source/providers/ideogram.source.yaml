@@ -1,6 +1,6 @@
 schema_version: 3
 provider: ideogram
-catalog_version: 2026-03-05-ideogram-v1
+catalog_version: 2026-04-18-ideogram-v2
 generated_target: runtime/catalog/providers/ideogram.yaml
 runtime:
   runtime_plane: remote
@@ -17,42 +17,52 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: Ideogram pricing varies by model and account plan.
+    as_of: 2026-04-18
+    notes: Ideogram API pricing is published on the official pricing page, but per-model values are not exposed in a stable machine-readable format from the reviewed pages.
 
 sources:
-  - source_id: ideogram_api_doc
+  - source_id: ideogram_api_overview
+    url: https://developer.ideogram.ai/
+    retrieved_at: 2026-04-18
+    note: Ideogram developer API overview centered on current Ideogram 3.0 endpoints.
+  - source_id: ideogram_generate_v3_doc
+    url: https://developer.ideogram.ai/api-reference/api-reference/generate-v3
+    retrieved_at: 2026-04-18
+    note: Ideogram 3.0 generate endpoint reference.
+  - source_id: ideogram_generate_legacy_doc
     url: https://developer.ideogram.ai/api-reference/api-reference/generate
-    retrieved_at: 2026-03-05
-    note: Ideogram image generation API reference.
+    retrieved_at: 2026-04-18
+    note: Ideogram legacy generate endpoint reference that still documents V_2 family usage.
+  - source_id: ideogram_pricing_page
+    url: https://ideogram.ai/features/api-pricing
+    retrieved_at: 2026-04-18
+    note: Official Ideogram API pricing page.
 
 models:
   - model_id: ideogram-v3
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Image generation pricing varies by resolution and quality.
-    source_ids: [ideogram_api_doc]
-    aliases:
-      - V_3
+      as_of: 2026-04-18
+      notes: Ideogram 3.0 pricing varies by endpoint options such as rendering speed, transparency, upscale factor, and character reference usage.
+    source_ids: [ideogram_api_overview, ideogram_generate_v3_doc, ideogram_pricing_page]
 
   - model_id: ideogram-v2-turbo
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-03-05
-      notes: Faster generation at lower cost per request.
-    source_ids: [ideogram_api_doc]
+      as_of: 2026-04-18
+      notes: Ideogram legacy V_2_TURBO pricing remains on the official pricing page, but the reviewed page does not expose a stable per-model number in machine-readable text.
+    source_ids: [ideogram_generate_legacy_doc, ideogram_pricing_page]
     aliases:
       - V_2_TURBO

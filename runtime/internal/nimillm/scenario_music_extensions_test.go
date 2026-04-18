@@ -57,20 +57,17 @@ func TestNormalizeMusicIterationExtension(t *testing.T) {
 }
 
 func TestMusicIterationSupportHelpers(t *testing.T) {
-	if !SupportsMusicGenerationIterationStrategy("suno") {
-		t.Fatal("expected suno strategy iteration support")
-	}
 	if !SupportsMusicGenerationIterationStrategy("stability") {
 		t.Fatal("expected stability strategy iteration support")
 	}
 	if SupportsMusicGenerationIterationStrategy("openai") {
 		t.Fatal("did not expect openai strategy iteration support")
 	}
-	if !SupportsMusicGenerationIterationStrategy("cloud-suno") {
-		t.Fatal("expected cloud-suno backend iteration support")
-	}
 	if !SupportsMusicGenerationIterationStrategy("cloud-stability") {
 		t.Fatal("expected cloud-stability backend iteration support")
+	}
+	if SupportsMusicGenerationIterationStrategy("cloud-soundverse") {
+		t.Fatal("did not expect cloud-soundverse backend iteration support")
 	}
 	if SupportsMusicGenerationIterationStrategy("cloud-openai") {
 		t.Fatal("did not expect cloud-openai backend iteration support")

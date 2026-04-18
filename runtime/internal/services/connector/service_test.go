@@ -815,7 +815,8 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 		"qwen-image-2.0":     true,
 		"z-image-turbo":      true,
 		"wan2.6-t2i":         true,
-		"wan2.5-t2i-preview": true,
+		"wan2.7-image-pro":   true,
+		"wan2.7-image":       true,
 		"flux-schnell":       true,
 		"flux-dev":           true,
 		"flux-merged":        true,
@@ -889,6 +890,149 @@ func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {
 	}
 }
 
+func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	var hits atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"id":"openai/gpt-4.1","architecture":{"input_modalities":["text"],"output_modalities":["text"],"modality":"text->text"}},{"id":"openai/text-embedding-3-large","architecture":{"input_modalities":["text"],"output_modalities":["embeddings"],"modality":"text->embeddings"}}]}`))
+	}))
+	t.Cleanup(server.Close)
+
+	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers: map[string]nimillm.ProviderCredentials{
+			"openrouter": {BaseURL: server.URL, APIKey: "cloud-key"},
+		},
+		HTTPTimeout: 5 * time.Second,
+	}, nil, nil))
+
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openrouter",
+		Endpoint: server.URL,
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	connectorID := created.GetConnector().GetConnectorId()
+
+	first, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: connectorID,
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels first: %v", err)
+	}
+	if got := hits.Load(); got != 1 {
+		t.Fatalf("expected first dynamic discovery to outbound once, got %d", got)
+	}
+	if len(first.GetModels()) != 2 {
+		t.Fatalf("expected two live-discovered models, got %d", len(first.GetModels()))
+	}
+	modelCapabilities := map[string][]string{}
+	for _, model := range first.GetModels() {
+		modelCapabilities[model.GetModelId()] = append([]string(nil), model.GetCapabilities()...)
+	}
+	if got := modelCapabilities["openai/gpt-4.1"]; len(got) != 1 || got[0] != "text.generate" {
+		t.Fatalf("expected openrouter text model capabilities to be inferred per-model, got %v", got)
+	}
+	if got := modelCapabilities["openai/text-embedding-3-large"]; len(got) != 1 || got[0] != "text.embed" {
+		t.Fatalf("expected openrouter embedding model capabilities to be inferred per-model, got %v", got)
+	}
+
+	second, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: connectorID,
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels second: %v", err)
+	}
+	if len(second.GetModels()) != len(first.GetModels()) {
+		t.Fatalf("expected cached dynamic inventory on second call")
+	}
+	if got := hits.Load(); got != 1 {
+		t.Fatalf("expected second dynamic call to use cache, got %d upstream calls", got)
+	}
+
+	_, err = svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId:  connectorID,
+		PageSize:     200,
+		ForceRefresh: true,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels force_refresh: %v", err)
+	}
+	if got := hits.Load(); got != 2 {
+		t.Fatalf("expected force_refresh to re-discover dynamic inventory, got %d upstream calls", got)
+	}
+}
+
+func TestListConnectorModelsFireworksUsesAccountModelsEndpointAndPerModelCapabilities(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	var hits atomic.Int32
+	var requestedPath atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestedPath.Store(r.URL.Path)
+		hits.Add(1)
+		if r.URL.Path != "/v1/accounts/fireworks/models" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"models":[{"name":"accounts/fireworks/models/deepseek-v3","displayName":"DeepSeek V3","state":"READY","supportsImageInput":false,"baseModelDetails":{"modelType":"chat"}},{"name":"accounts/fireworks/models/qwen3-vl","displayName":"Qwen3 VL","state":"READY","supportsImageInput":true,"baseModelDetails":{"modelType":"chat"}}]}`))
+	}))
+	t.Cleanup(server.Close)
+
+	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers: map[string]nimillm.ProviderCredentials{
+			"fireworks": {BaseURL: server.URL + "/inference/v1", APIKey: "cloud-key"},
+		},
+		HTTPTimeout: 5 * time.Second,
+	}, nil, nil))
+
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "fireworks",
+		Endpoint: server.URL + "/inference/v1",
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	connectorID := created.GetConnector().GetConnectorId()
+
+	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: connectorID,
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels: %v", err)
+	}
+	if got := hits.Load(); got != 1 {
+		t.Fatalf("expected fireworks discovery to probe account models endpoint once, got %d", got)
+	}
+	if got, _ := requestedPath.Load().(string); got != "/v1/accounts/fireworks/models" {
+		t.Fatalf("expected fireworks discovery path /v1/accounts/fireworks/models, got %q", got)
+	}
+	if len(resp.GetModels()) != 2 {
+		t.Fatalf("expected two fireworks models, got %d", len(resp.GetModels()))
+	}
+	modelCapabilities := map[string][]string{}
+	for _, model := range resp.GetModels() {
+		modelCapabilities[model.GetModelId()] = append([]string(nil), model.GetCapabilities()...)
+	}
+	if got := modelCapabilities["accounts/fireworks/models/deepseek-v3"]; len(got) != 1 || got[0] != "text.generate" {
+		t.Fatalf("expected fireworks text model capabilities to stay text-only, got %v", got)
+	}
+	if got := modelCapabilities["accounts/fireworks/models/qwen3-vl"]; len(got) != 2 || got[0] != "text.generate" || got[1] != "text.generate.vision" {
+		t.Fatalf("expected fireworks vision model capabilities to include text.generate.vision, got %v", got)
+	}
+}
+
 func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
@@ -900,8 +1044,7 @@ func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 			return
 		}
 		hits.Add(1)
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"data":[{"id":"gpt-audio","name":"gpt-audio"}]}`)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(server.Close)
 

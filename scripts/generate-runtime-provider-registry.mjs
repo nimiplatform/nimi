@@ -22,6 +22,8 @@ const supplementalProviders = [
     requiresExplicitEndpoint: true,
     defaultEndpoint: '',
     defaultTextModel: '',
+    inventoryMode: 'static_source',
+    dynamicInventory: null,
     supports: { text: true, embed: true, image: true, video: true, tts: true, stt: true, music: false, musicIteration: false, ttsV2V: false, ttsT2V: false },
   },
   {
@@ -32,6 +34,8 @@ const supplementalProviders = [
     requiresExplicitEndpoint: true,
     defaultEndpoint: '',
     defaultTextModel: '',
+    inventoryMode: 'static_source',
+    dynamicInventory: null,
     supports: { text: true, embed: true, image: true, video: true, tts: true, stt: true, music: false, musicIteration: false, ttsV2V: false, ttsT2V: false },
   },
   {
@@ -42,6 +46,8 @@ const supplementalProviders = [
     requiresExplicitEndpoint: false,
     defaultEndpoint: 'https://openspeech.bytedance.com/api/v1',
     defaultTextModel: '',
+    inventoryMode: 'static_source',
+    dynamicInventory: null,
     supports: { text: false, embed: false, image: false, video: false, tts: true, stt: true, music: false, musicIteration: false, ttsV2V: false, ttsT2V: false },
   },
 ];
@@ -92,9 +98,58 @@ function normalizeStringArray(value) {
   return out;
 }
 
+function normalizeInventoryMode(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) {
+    return 'static_source';
+  }
+  if (normalized !== 'static_source' && normalized !== 'dynamic_endpoint') {
+    throw new Error(`runtime.inventory_mode must be static_source or dynamic_endpoint, got: ${value}`);
+  }
+  return normalized;
+}
+
+function normalizeDynamicInventory(value, providerID) {
+  if (!value || typeof value !== 'object') {
+    throw new Error(`provider ${providerID} runtime.dynamic_inventory is required for dynamic_endpoint`);
+  }
+  const discoveryTransport = String(value.discovery_transport || '').trim();
+  const cacheTTLSeconds = Number(value.cache_ttl_sec);
+  const selectionMode = String(value.selection_mode || '').trim();
+  const failurePolicy = String(value.failure_policy || '').trim();
+  if (discoveryTransport !== 'connector_list_models') {
+    throw new Error(`provider ${providerID} runtime.dynamic_inventory.discovery_transport must be connector_list_models`);
+  }
+  if (!Number.isInteger(cacheTTLSeconds) || cacheTTLSeconds <= 0) {
+    throw new Error(`provider ${providerID} runtime.dynamic_inventory.cache_ttl_sec must be a positive integer`);
+  }
+  if (selectionMode !== 'curated_filter' && selectionMode !== 'pass_through') {
+    throw new Error(`provider ${providerID} runtime.dynamic_inventory.selection_mode must be curated_filter or pass_through`);
+  }
+  if (failurePolicy !== 'use_cache_then_fail_closed' && failurePolicy !== 'fail_closed') {
+    throw new Error(`provider ${providerID} runtime.dynamic_inventory.failure_policy must be use_cache_then_fail_closed or fail_closed`);
+  }
+  return {
+    discoveryTransport,
+    cacheTTLSeconds,
+    selectionMode,
+    failurePolicy,
+    allowedCapabilities: normalizeStringArray(value.allowed_capabilities),
+    denyModelPatterns: normalizeStringArray(value.deny_model_patterns),
+    allowModelPatterns: normalizeStringArray(value.allow_model_patterns),
+    preferredModelPatterns: normalizeStringArray(value.preferred_model_patterns),
+  };
+}
+
 function capabilityFlags(sourceDoc) {
+  const runtime = sourceDoc?.runtime && typeof sourceDoc.runtime === 'object' ? sourceDoc.runtime : {};
+  const inventoryMode = normalizeInventoryMode(runtime?.inventory_mode);
+  const dynamicInventory = inventoryMode === 'dynamic_endpoint'
+    ? normalizeDynamicInventory(runtime?.dynamic_inventory, sourceDoc?.provider || '<unknown>')
+    : null;
   const models = Array.isArray(sourceDoc?.models) ? sourceDoc.models : [];
   const defaults = normalizeStringArray(sourceDoc?.defaults?.capabilities).map((entry) => entry.toLowerCase());
+  const dynamicCapabilities = normalizeStringArray(dynamicInventory?.allowedCapabilities).map((entry) => entry.toLowerCase());
 
   let text = false;
   let embed = false;
@@ -104,6 +159,20 @@ function capabilityFlags(sourceDoc) {
   let stt = false;
   let music = false;
   let musicIteration = false;
+
+  for (const capability of dynamicCapabilities) {
+    if (!canonicalModelCapabilities.has(capability)) {
+      throw new Error(`provider ${sourceDoc?.provider || '<unknown>'} uses non-canonical capability token: ${capability}`);
+    }
+    if (capability === 'text.generate') text = true;
+    if (capability === 'text.embed') embed = true;
+    if (capability === 'image.generate') image = true;
+    if (capability === 'video.generate') video = true;
+    if (capability === 'audio.synthesize') tts = true;
+    if (capability === 'audio.transcribe') stt = true;
+    if (capability === 'music.generate') music = true;
+    if (capability === 'music.generate.iteration') musicIteration = true;
+  }
 
   for (const model of models) {
     const capabilities = normalizeStringArray(model?.capabilities).map((entry) => entry.toLowerCase());
@@ -156,9 +225,21 @@ function capabilityFlags(sourceDoc) {
 }
 
 function collectProviderCapabilities(sourceDoc) {
+  const runtime = sourceDoc?.runtime && typeof sourceDoc.runtime === 'object' ? sourceDoc.runtime : {};
+  const inventoryMode = normalizeInventoryMode(runtime?.inventory_mode);
+  const dynamicInventory = inventoryMode === 'dynamic_endpoint'
+    ? normalizeDynamicInventory(runtime?.dynamic_inventory, sourceDoc?.provider || '<unknown>')
+    : null;
   const defaults = normalizeStringArray(sourceDoc?.defaults?.capabilities);
   const models = Array.isArray(sourceDoc?.models) ? sourceDoc.models : [];
   const capabilitySet = new Set();
+  for (const capability of normalizeStringArray(dynamicInventory?.allowedCapabilities)) {
+    const normalized = capability.toLowerCase();
+    if (!canonicalModelCapabilities.has(normalized)) {
+      throw new Error(`provider ${sourceDoc?.provider || '<unknown>'} uses non-canonical capability token: ${capability}`);
+    }
+    capabilitySet.add(normalized);
+  }
   for (const model of models) {
     const capabilities = normalizeStringArray(model?.capabilities);
     const effectiveCaps = capabilities.length > 0 ? capabilities : defaults;
@@ -201,16 +282,24 @@ function readRuntimeMetadata(sourceDoc, providerID) {
   const managedConnectorSupported = Boolean(runtime?.managed_connector_supported);
   const inlineSupported = Boolean(runtime?.inline_supported);
   const defaultEndpoint = String(runtime?.default_endpoint || '').trim();
+  const inventoryMode = normalizeInventoryMode(runtime?.inventory_mode);
+  const dynamicInventory = inventoryMode === 'dynamic_endpoint'
+    ? normalizeDynamicInventory(runtime?.dynamic_inventory, providerID)
+    : null;
   const sourceDefaultTextModel = String(sourceDoc?.defaults?.default_text_model || '').trim();
   const selectionProfileDefaultTextModel = readSelectionProfileDefaultTextModel(sourceDoc);
   if (
+    inventoryMode === 'static_source'
+    &&
     selectionProfileDefaultTextModel
     && sourceDefaultTextModel
     && selectionProfileDefaultTextModel.toLowerCase() !== sourceDefaultTextModel.toLowerCase()
   ) {
     throw new Error(`provider ${providerID} defaults.default_text_model must match selection_profiles[text.general]`);
   }
-  const defaultTextModel = selectionProfileDefaultTextModel || sourceDefaultTextModel;
+  const defaultTextModel = inventoryMode === 'static_source'
+    ? (selectionProfileDefaultTextModel || sourceDefaultTextModel)
+    : '';
   const requiresExplicitEndpoint = Boolean(runtime?.requires_explicit_endpoint);
 
   if (runtimePlane !== 'local' && runtimePlane !== 'remote') {
@@ -240,6 +329,8 @@ function readRuntimeMetadata(sourceDoc, providerID) {
     defaultEndpoint,
     defaultTextModel,
     requiresExplicitEndpoint,
+    inventoryMode,
+    dynamicInventory,
   };
 }
 
@@ -249,6 +340,13 @@ function compareProviderID(a, b) {
 
 function boolLiteral(value) {
   return value ? 'true' : 'false';
+}
+
+function goStringSlice(values) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return 'nil';
+  }
+  return `[]string{${values.map((value) => goString(value)).join(', ')}}`;
 }
 
 function goString(value) {
@@ -265,6 +363,15 @@ function renderProviderRecord(record) {
     `\t\tDefaultEndpoint: ${goString(record.defaultEndpoint)},\n` +
     `\t\tDefaultTextModel: ${goString(record.defaultTextModel)},\n` +
     `\t\tRequiresExplicitEndpoint: ${boolLiteral(record.requiresExplicitEndpoint)},\n` +
+    `\t\tInventoryMode: ${goString(record.inventoryMode)},\n` +
+    `\t\tDynamicDiscoveryTransport: ${goString(record.dynamicInventory?.discoveryTransport || '')},\n` +
+    `\t\tDynamicCacheTTLSeconds: ${String(record.dynamicInventory?.cacheTTLSeconds || 0)},\n` +
+    `\t\tDynamicSelectionMode: ${goString(record.dynamicInventory?.selectionMode || '')},\n` +
+    `\t\tDynamicFailurePolicy: ${goString(record.dynamicInventory?.failurePolicy || '')},\n` +
+    `\t\tDynamicAllowedCapabilities: ${goStringSlice(record.dynamicInventory?.allowedCapabilities)},\n` +
+    `\t\tDynamicDenyModelPatterns: ${goStringSlice(record.dynamicInventory?.denyModelPatterns)},\n` +
+    `\t\tDynamicAllowModelPatterns: ${goStringSlice(record.dynamicInventory?.allowModelPatterns)},\n` +
+    `\t\tDynamicPreferredModelPatterns: ${goStringSlice(record.dynamicInventory?.preferredModelPatterns)},\n` +
     `\t\tSupportsText: ${boolLiteral(record.supports.text)},\n` +
     `\t\tSupportsEmbed: ${boolLiteral(record.supports.embed)},\n` +
     `\t\tSupportsImage: ${boolLiteral(record.supports.image)},\n` +
@@ -303,6 +410,8 @@ async function loadSourceProviders() {
       defaultEndpoint: runtimeMetadata.defaultEndpoint,
       defaultTextModel: runtimeMetadata.defaultTextModel,
       requiresExplicitEndpoint: runtimeMetadata.requiresExplicitEndpoint,
+      inventoryMode: runtimeMetadata.inventoryMode,
+      dynamicInventory: runtimeMetadata.dynamicInventory,
       supports: capabilityFlags(doc),
       capabilities: collectProviderCapabilities(doc),
     });
@@ -327,6 +436,7 @@ function providerCatalogTableDoc(records) {
       default_endpoint: record.defaultEndpoint || null,
       default_text_model: record.defaultTextModel || null,
       requires_explicit_endpoint: Boolean(record.requiresExplicitEndpoint),
+      inventory_mode: record.inventoryMode,
       source_rule: 'K-MCAT-027',
     }));
   return { version: 1, providers };
@@ -343,6 +453,7 @@ function providerCapabilitiesTableDoc(records) {
       managed_connector_supported: Boolean(record.managedConnectorSupported),
       inline_supported: Boolean(record.inlineSupported),
       endpoint_requirement: endpointRequirementFor(record),
+      inventory_mode: record.inventoryMode,
       capabilities: Array.isArray(record.capabilities) ? record.capabilities : [],
       sources: record.runtimePlane === 'local'
         ? ['K-MCAT-027', 'K-LOCAL-001', 'K-LOCAL-002']
@@ -374,7 +485,7 @@ function renderGoFile(records) {
   const remoteProvidersLiteral = remoteProviders.map((id) => `\t${goString(id)},`).join('\n');
   const allProvidersLiteral = allProviders.map((id) => `\t${goString(id)},`).join('\n');
 
-  return `// Code generated by scripts/generate-runtime-provider-registry.mjs. DO NOT EDIT.\n\npackage providerregistry\n\n// ProviderRecord captures runtime routing and capability metadata for one provider.\ntype ProviderRecord struct {\n\tID string\n\tRuntimePlane string\n\tManagedConnectorSupported bool\n\tInlineSupported bool\n\tDefaultEndpoint string\n\tDefaultTextModel string\n\tRequiresExplicitEndpoint bool\n\tSupportsText bool\n\tSupportsEmbed bool\n\tSupportsImage bool\n\tSupportsVideo bool\n\tSupportsTTS bool\n\tSupportsSTT bool\n\tSupportsMusic bool\n\tSupportsMusicIteration bool\n\tSupportsTTSV2V bool\n\tSupportsTTST2V bool\n}\n\nvar AllProviders = []string{\n${allProvidersLiteral}\n}\n\nvar SourceProviders = []string{\n${sourceProvidersLiteral}\n}\n\nvar RemoteProviders = []string{\n${remoteProvidersLiteral}\n}\n\nvar Records = map[string]ProviderRecord{\n${providerRecords}\n}\n`;
+  return `// Code generated by scripts/generate-runtime-provider-registry.mjs. DO NOT EDIT.\n\npackage providerregistry\n\n// ProviderRecord captures runtime routing and capability metadata for one provider.\ntype ProviderRecord struct {\n\tID string\n\tRuntimePlane string\n\tManagedConnectorSupported bool\n\tInlineSupported bool\n\tDefaultEndpoint string\n\tDefaultTextModel string\n\tRequiresExplicitEndpoint bool\n\tInventoryMode string\n\tDynamicDiscoveryTransport string\n\tDynamicCacheTTLSeconds int\n\tDynamicSelectionMode string\n\tDynamicFailurePolicy string\n\tDynamicAllowedCapabilities []string\n\tDynamicDenyModelPatterns []string\n\tDynamicAllowModelPatterns []string\n\tDynamicPreferredModelPatterns []string\n\tSupportsText bool\n\tSupportsEmbed bool\n\tSupportsImage bool\n\tSupportsVideo bool\n\tSupportsTTS bool\n\tSupportsSTT bool\n\tSupportsMusic bool\n\tSupportsMusicIteration bool\n\tSupportsTTSV2V bool\n\tSupportsTTST2V bool\n}\n\nvar AllProviders = []string{\n${allProvidersLiteral}\n}\n\nvar SourceProviders = []string{\n${sourceProvidersLiteral}\n}\n\nvar RemoteProviders = []string{\n${remoteProvidersLiteral}\n}\n\nvar Records = map[string]ProviderRecord{\n${providerRecords}\n}\n`;
 }
 
 function renderSDKFile(records) {

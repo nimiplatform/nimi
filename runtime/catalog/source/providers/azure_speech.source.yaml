@@ -1,6 +1,6 @@
 schema_version: 3
 provider: azure_speech
-catalog_version: 2026-03-05-azure-speech-v1
+catalog_version: 2026-04-18-azure-speech-v2
 generated_target: runtime/catalog/providers/azure_speech.yaml
 runtime:
   runtime_plane: remote
@@ -14,21 +14,41 @@ defaults:
   model_type: tts
   capabilities: [audio.synthesize]
   pricing:
-    unit: request
+    unit: char
     input: unknown
-    output: unknown
+    output: "0"
     currency: USD
-    as_of: 2026-03-05
-    notes: Azure Speech public pricing depends on region, tier, and commitment plan.
+    as_of: 2026-04-18
+    notes: Azure Speech text-to-speech billing is per character, but public list price varies by voice family, region, and commitment plan.
 
 sources:
   - source_id: azure_tts_doc
     url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Azure Speech text-to-speech baseline capability.
+  - source_id: azure_speech_release_notes
+    url: https://learn.microsoft.com/azure/ai-services/speech-service/releasenotes
+    retrieved_at: 2026-04-18
+    note: Azure Speech release notes covering HD expansion and OpenAI voice changes.
+  - source_id: azure_speech_language_support
+    url: https://learn.microsoft.com/azure/ai-services/speech-service/language-support
+    retrieved_at: 2026-04-18
+    note: Official language and voice support matrix for Azure Speech voices, HD voices, and OpenAI voices.
+  - source_id: azure_speech_pricing
+    url: https://azure.microsoft.com/en-us/pricing/details/speech/
+    retrieved_at: 2026-04-18
+    note: Azure Speech pricing page describing per-character billing and family-level exclusions.
+  - source_id: azure_speech_hd_doc
+    url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+    retrieved_at: 2026-04-18
+    note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - source_id: azure_speech_openai_voices_doc
+    url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
+    retrieved_at: 2026-04-18
+    note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
   - source_id: azure_custom_voice_doc
     url: https://learn.microsoft.com/azure/ai-services/speech-service/custom-neural-voice
-    retrieved_at: 2026-03-05
+    retrieved_at: 2026-04-18
     note: Custom Voice is tracked as deferred provider extension in this phase.
 
 language_profiles:
@@ -37,7 +57,7 @@ language_profiles:
 voice_sets:
   - voice_set_id: neural-defaults-v1
     langs_ref: short_multilingual_v1
-    source_ids: [azure_tts_doc]
+    source_ids: [azure_tts_doc, azure_speech_language_support]
     voices:
       - voice_id: en-US-JennyNeural
         name: Jenny
@@ -52,13 +72,97 @@ voice_sets:
         name: Nanami
         langs: [ja-JP]
 
+  - voice_set_id: hd-defaults-v1
+    langs_ref: short_multilingual_v1
+    source_ids: [azure_speech_hd_doc, azure_speech_language_support, azure_speech_release_notes]
+    voices:
+      - voice_id: en-US-Ava:DragonHDLatestNeural
+        name: Ava DragonHD
+        langs: [en-US]
+      - voice_id: en-US-Jenny:DragonHDLatestNeural
+        name: Jenny DragonHD
+        langs: [en-US]
+      - voice_id: ja-JP-Nanami:DragonHDLatestNeural
+        name: Nanami DragonHD
+        langs: [ja-JP]
+      - voice_id: zh-CN-Xiaochen:DragonHDLatestNeural
+        name: Xiaochen DragonHD
+        langs: [zh-CN]
+      - voice_id: en-us-ava:DragonHDOmniLatestNeural
+        name: Ava DragonHDOmni
+        langs: [en-US]
+
+  - voice_set_id: openai-defaults-preview-v1
+    langs_ref: short_multilingual_v1
+    source_ids: [azure_speech_openai_voices_doc, azure_speech_language_support]
+    voices:
+      - voice_id: en-US-AlloyMultilingualNeural
+        name: Alloy
+        langs: [en-US]
+      - voice_id: en-US-NovaMultilingualNeural
+        name: Nova
+        langs: [en-US]
+      - voice_id: en-US-AlloyMultilingualNeuralHD
+        name: Alloy HD
+        langs: [en-US]
+      - voice_id: en-US-NovaMultilingualNeuralHD
+        name: Nova HD
+        langs: [en-US]
+
 models:
   - model_id: azure-neural-tts
-    updated_at: 2026-03-05
-    source_ids: [azure_tts_doc]
+    updated_at: 2026-04-18
+    source_ids: [azure_tts_doc, azure_speech_language_support, azure_speech_pricing]
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Azure Speech standard neural voices are billed per character; public price depends on region and plan.
     voice:
       discovery_mode: static_catalog
       voice_set_ref: neural-defaults-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, ogg, wav, pcm]
+        supports_language: true
+
+  - model_id: azure-hd-tts
+    updated_at: 2026-04-18
+    source_ids: [azure_speech_hd_doc, azure_speech_language_support, azure_speech_release_notes, azure_speech_pricing]
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Azure Speech HD voices and Dragon HD Omni are billed per character under separate HD pricing terms that vary by region and plan.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: hd-defaults-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, ogg, wav, pcm]
+        supports_language: true
+
+  - model_id: azure-openai-tts-preview
+    updated_at: 2026-04-18
+    source_ids: [azure_speech_openai_voices_doc, azure_speech_language_support, azure_speech_pricing]
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Azure Speech OpenAI voices are currently preview-only and region-limited to North Central US and Sweden Central; pricing is not modeled here as a stable static public rate.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: openai-defaults-preview-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_multilingual_v1
       request_options:

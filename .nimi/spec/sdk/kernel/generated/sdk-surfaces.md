@@ -6,6 +6,7 @@
 |---|---|---|
 | `.nimi/spec/sdk/index.md` | `@nimiplatform/sdk` | `app_composition_root` |
 | `.nimi/spec/sdk/runtime.md` | `@nimiplatform/sdk/runtime` | `runtime_projection` |
+| `.nimi/spec/sdk/world.md` | `@nimiplatform/sdk/world` | `world_domain_facade` |
 | `.nimi/spec/sdk/ai-provider.md` | `@nimiplatform/sdk/ai-provider` | `ai_provider_projection` |
 | `.nimi/spec/sdk/realm.md` | `@nimiplatform/sdk/realm` | `realm_projection` |
 | `.nimi/spec/sdk/scope.md` | `@nimiplatform/sdk/scope` | `scope_projection` |

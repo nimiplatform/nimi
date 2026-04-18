@@ -186,6 +186,8 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 		Version:               parsed.Version,
 		Provider:              provider,
 		CatalogVersion:        strings.TrimSpace(parsed.CatalogVersion),
+		InventoryMode:         strings.TrimSpace(parsed.InventoryMode),
+		DynamicInventory:      parsed.DynamicInventory,
 		DefaultTextModel:      strings.TrimSpace(parsed.DefaultTextModel),
 		SelectionProfiles:     append([]SelectionProfile(nil), parsed.SelectionProfiles...),
 		Models:                append([]ModelEntry(nil), parsed.Models...),
@@ -199,6 +201,31 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 	}
 	if doc.CatalogVersion == "" {
 		doc.CatalogVersion = "unknown"
+	}
+	if strings.TrimSpace(doc.InventoryMode) == "" {
+		doc.InventoryMode = "static_source"
+	}
+	switch doc.InventoryMode {
+	case "static_source", "dynamic_endpoint":
+	default:
+		return ProviderDocument{}, fmt.Errorf("provider %q has invalid inventory_mode %q", provider, doc.InventoryMode)
+	}
+	if doc.InventoryMode == "dynamic_endpoint" {
+		if doc.DynamicInventory == nil {
+			return ProviderDocument{}, fmt.Errorf("provider %q dynamic_endpoint requires dynamic_inventory", provider)
+		}
+		if strings.TrimSpace(doc.DynamicInventory.DiscoveryTransport) != "connector_list_models" {
+			return ProviderDocument{}, fmt.Errorf("provider %q dynamic_inventory.discovery_transport must be connector_list_models", provider)
+		}
+		if doc.DynamicInventory.CacheTTLSeconds <= 0 {
+			return ProviderDocument{}, fmt.Errorf("provider %q dynamic_inventory.cache_ttl_sec must be > 0", provider)
+		}
+		if mode := strings.TrimSpace(doc.DynamicInventory.SelectionMode); mode != "curated_filter" && mode != "pass_through" {
+			return ProviderDocument{}, fmt.Errorf("provider %q dynamic_inventory.selection_mode must be curated_filter or pass_through", provider)
+		}
+		if policy := strings.TrimSpace(doc.DynamicInventory.FailurePolicy); policy != "use_cache_then_fail_closed" && policy != "fail_closed" {
+			return ProviderDocument{}, fmt.Errorf("provider %q dynamic_inventory.failure_policy must be use_cache_then_fail_closed or fail_closed", provider)
+		}
 	}
 
 	for i := range doc.Models {
@@ -243,19 +270,21 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 	}
 
 	if !overlay {
-		if len(doc.Models) == 0 {
+		if doc.InventoryMode == "static_source" && len(doc.Models) == 0 {
 			return ProviderDocument{}, fmt.Errorf("%w: %s", ErrProviderUnsupported, provider)
 		}
-		snapshot := Snapshot{
-			CatalogVersion:        doc.CatalogVersion,
-			Models:                append([]ModelEntry(nil), doc.Models...),
-			Voices:                append([]VoiceEntry(nil), doc.Voices...),
-			VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), doc.VoiceWorkflowModels...),
-			ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), doc.ModelWorkflowBindings...),
-			VoiceHandlePolicies:   append([]VoiceHandlePolicy(nil), doc.VoiceHandlePolicies...),
-		}
-		if err := validateSnapshot(snapshot); err != nil {
-			return ProviderDocument{}, err
+		if doc.InventoryMode == "static_source" {
+			snapshot := Snapshot{
+				CatalogVersion:        doc.CatalogVersion,
+				Models:                append([]ModelEntry(nil), doc.Models...),
+				Voices:                append([]VoiceEntry(nil), doc.Voices...),
+				VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), doc.VoiceWorkflowModels...),
+				ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), doc.ModelWorkflowBindings...),
+				VoiceHandlePolicies:   append([]VoiceHandlePolicy(nil), doc.VoiceHandlePolicies...),
+			}
+			if err := validateSnapshot(snapshot); err != nil {
+				return ProviderDocument{}, err
+			}
 		}
 	}
 
@@ -266,7 +295,8 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 		len(doc.VoiceWorkflowModels) == 0 &&
 		len(doc.ModelWorkflowBindings) == 0 &&
 		len(doc.VoiceHandlePolicies) == 0 &&
-		strings.TrimSpace(doc.DefaultTextModel) == "" {
+		strings.TrimSpace(doc.DefaultTextModel) == "" &&
+		doc.DynamicInventory == nil {
 		return ProviderDocument{}, errors.New("overlay provider document must not be empty")
 	}
 
@@ -344,6 +374,12 @@ func mergeProviderDocument(base ProviderDocument, overlays ...overlayDocument) (
 			continue
 		}
 		hasOverlay = true
+		if strings.TrimSpace(overlay.doc.InventoryMode) != "" {
+			mergedDoc.InventoryMode = strings.TrimSpace(overlay.doc.InventoryMode)
+		}
+		if overlay.doc.DynamicInventory != nil {
+			mergedDoc.DynamicInventory = overlay.doc.DynamicInventory
+		}
 		if strings.TrimSpace(overlay.doc.DefaultTextModel) != "" {
 			mergedDoc.DefaultTextModel = strings.TrimSpace(overlay.doc.DefaultTextModel)
 		}
@@ -451,8 +487,10 @@ func mergeProviderDocument(base ProviderDocument, overlays ...overlayDocument) (
 		ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), mergedDoc.ModelWorkflowBindings...),
 		VoiceHandlePolicies:   append([]VoiceHandlePolicy(nil), mergedDoc.VoiceHandlePolicies...),
 	}
-	if err := validateSnapshot(snapshot); err != nil {
-		return mergedProviderDocument{}, err
+	if strings.TrimSpace(mergedDoc.InventoryMode) != "dynamic_endpoint" {
+		if err := validateSnapshot(snapshot); err != nil {
+			return mergedProviderDocument{}, err
+		}
 	}
 
 	effectiveYAML, err := marshalProviderDocumentYAML(mergedDoc)
@@ -564,6 +602,8 @@ func cloneProviderDocument(doc ProviderDocument) ProviderDocument {
 		Version:               doc.Version,
 		Provider:              doc.Provider,
 		CatalogVersion:        doc.CatalogVersion,
+		InventoryMode:         doc.InventoryMode,
+		DynamicInventory:      doc.DynamicInventory,
 		DefaultTextModel:      doc.DefaultTextModel,
 		SelectionProfiles:     append([]SelectionProfile(nil), doc.SelectionProfiles...),
 		Models:                append([]ModelEntry(nil), doc.Models...),

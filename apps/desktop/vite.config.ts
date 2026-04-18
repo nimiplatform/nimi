@@ -252,6 +252,7 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, 'src/runtime'),
         },
         { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
+        { find: '@nimiplatform/sdk/world', replacement: path.resolve(__dirname, '../../sdk/src/world/index.ts') },
         { find: '@nimiplatform/sdk/runtime/browser', replacement: path.resolve(__dirname, '../../sdk/src/runtime/browser.ts') },
         { find: '@nimiplatform/sdk/runtime', replacement: path.resolve(__dirname, '../../sdk/src/runtime/browser.ts') },
         { find: '@nimiplatform/sdk/realm', replacement: path.resolve(__dirname, '../../sdk/src/realm/index.ts') },

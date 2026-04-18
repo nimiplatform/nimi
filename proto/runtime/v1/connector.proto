@@ -153,6 +153,7 @@ message ProviderCatalogEntry {
   string runtime_plane = 4;
   string execution_module = 5;
   bool managed_supported = 6;
+  string inventory_mode = 7;
 }
 
 message ListProviderCatalogRequest {}
@@ -189,6 +190,7 @@ message ModelCatalogProviderEntry {
   string runtime_plane = 17;
   string execution_module = 18;
   bool managed_supported = 19;
+  string inventory_mode = 20;
 }
 
 message ListModelCatalogProvidersRequest {}

@@ -190,3 +190,23 @@ test('buildRuntimeRouteOptionsSnapshot picks local default first and hydrates cl
   assert.equal(snapshot.resolvedDefault?.source, 'local');
   assert.equal(snapshot.resolvedDefault?.model, 'local/Qwen3-4B-Q4_K_M');
 });
+
+test('buildRuntimeRouteOptionsSnapshot does not invent a cloud default binding from the first connector model', () => {
+  const snapshot = buildRuntimeRouteOptionsSnapshot({
+    capability: 'text.generate',
+    localModels: [],
+    connectors: [{
+      id: 'connector-openrouter',
+      label: 'OpenRouter',
+      provider: 'openrouter',
+      models: ['openai/gpt-4.1'],
+      modelCapabilities: {
+        'openai/gpt-4.1': ['text.generate'],
+      },
+      modelProfiles: [],
+    }],
+  });
+
+  assert.equal(snapshot.selected, null);
+  assert.equal(snapshot.resolvedDefault, undefined);
+});

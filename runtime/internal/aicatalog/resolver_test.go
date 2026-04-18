@@ -76,6 +76,34 @@ func TestParseProviderDocumentYAMLPreservesDashScopeCanonicalVoiceIDs(t *testing
 	}
 }
 
+func TestParseProviderDocumentYAMLAllowsDynamicEndpointWithoutModels(t *testing.T) {
+	raw := []byte(`version: 1
+provider: openrouter
+catalog_version: 2026-04-18-openrouter-dynamic-v1
+inventory_mode: dynamic_endpoint
+dynamic_inventory:
+  discovery_transport: connector_list_models
+  cache_ttl_sec: 300
+  selection_mode: pass_through
+  failure_policy: use_cache_then_fail_closed
+  allowed_capabilities: [text.generate]
+`)
+
+	doc, err := parseProviderDocumentYAML(raw, "openrouter.yaml")
+	if err != nil {
+		t.Fatalf("parseProviderDocumentYAML: %v", err)
+	}
+	if doc.InventoryMode != "dynamic_endpoint" {
+		t.Fatalf("expected dynamic_endpoint inventory_mode, got %q", doc.InventoryMode)
+	}
+	if doc.DynamicInventory == nil {
+		t.Fatal("expected dynamic_inventory to be preserved")
+	}
+	if len(doc.Models) != 0 {
+		t.Fatalf("expected dynamic provider to omit models, got %d rows", len(doc.Models))
+	}
+}
+
 func TestResolveVoicesLocalModel(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {

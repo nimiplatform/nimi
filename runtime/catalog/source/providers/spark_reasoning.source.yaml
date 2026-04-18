@@ -1,0 +1,42 @@
+schema_version: 3
+provider: spark_reasoning
+catalog_version: 2026-04-18-spark-reasoning-v1
+generated_target: runtime/catalog/providers/spark_reasoning.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://spark-api-open.xf-yun.com/x2
+  requires_explicit_endpoint: false
+defaults:
+  provider: spark_reasoning
+  default_text_model: spark-x
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: CNY
+    as_of: 2026-04-18
+    notes: Spark reasoning pricing varies by package tier and account plan. This surface is curated around the current X2 endpoint-scoped public contract.
+
+sources:
+  - source_id: spark_reasoning_http_doc
+    url: https://www.xfyun.cn/doc/spark/X1http.html
+    retrieved_at: 2026-04-18
+    note: Official Spark reasoning HTTP documentation for the current `spark-x` public contract and endpoint-scoped X1.5/X2 routing.
+
+models:
+  - model_id: spark-x
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Curated to the current X2 reasoning surface. Official docs keep the request model id stable as `spark-x` while endpoint selection chooses X2 or X1.5.
+    source_ids: [spark_reasoning_http_doc]

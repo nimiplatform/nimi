@@ -72,11 +72,11 @@ describe('ai-config-store (AIConfig)', () => {
 
   it('setSelection stores music.generate in AIConfig (canonical token)', () => {
     useAiConfigStore.getState().setSelection('music', {
-      source: 'cloud', connectorId: 'c-suno', model: 'suno-v3',
+      source: 'cloud', connectorId: 'c-music', model: 'stable-audio-2',
     });
 
     const binding = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['music.generate'];
-    expect(binding).toEqual({ source: 'cloud', connectorId: 'c-suno', model: 'suno-v3' });
+    expect(binding).toEqual({ source: 'cloud', connectorId: 'c-music', model: 'stable-audio-2' });
 
     // NOT stored under audio.generate
     expect(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['audio.generate']).toBeUndefined();
@@ -123,7 +123,7 @@ describe('ai-config-store (AIConfig)', () => {
     storage.set(LEGACY_STORAGE_KEY, JSON.stringify({
       text: { connectorId: 'c1', model: 'gpt-4o', route: 'cloud' },
       image: { connectorId: '', model: 'flux', route: 'auto' },
-      music: { connectorId: '', model: 'suno', route: 'auto' },
+      music: { connectorId: '', model: 'stable-audio-2', route: 'auto' },
     }));
 
     // Re-import would trigger migration; we verify the legacy key is present pre-migration
@@ -142,7 +142,7 @@ describe('ai-config-store (AIConfig)', () => {
         profileOrigin: null,
       },
       deferredSelections: {
-        'audio.generate': { source: 'local', connectorId: '', model: 'suno-v3' },
+        'audio.generate': { source: 'local', connectorId: '', model: 'stable-audio-2' },
       },
     };
     storage.set(STORAGE_KEY, JSON.stringify(v1Data));

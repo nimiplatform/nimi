@@ -1,12 +1,13 @@
 version: 1
 provider: deepseek
-catalog_version: 2026-03-18-deepseek-v2
+catalog_version: 2026-04-18-deepseek-v3
+inventory_mode: static_source
 default_text_model: deepseek-chat
 models:
   - model_id: deepseek-chat
     provider: deepseek
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-12-01
     capabilities:
       - text.generate
     pricing:
@@ -14,16 +15,16 @@ models:
       input: "0.27"
       output: "1.10"
       currency: USD
-      as_of: 2026-03-18
-      notes: DeepSeek V3 chat model. Cache-miss pricing. Per 1M tokens.
+      as_of: 2026-04-18
+      notes: Public model id currently mapped to DeepSeek-V3.2 non-thinking mode. USD pricing retained from the detailed public pricing table. Per 1M tokens.
     source_ref:
       url: https://api-docs.deepseek.com/
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: DeepSeek API documentation home and model matrix.
   - model_id: deepseek-coder
     provider: deepseek
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-12-01
     capabilities:
       - text.generate
     pricing:
@@ -31,16 +32,16 @@ models:
       input: "0.27"
       output: "1.10"
       currency: USD
-      as_of: 2026-03-18
-      notes: DeepSeek V3 chat model. Cache-miss pricing. Per 1M tokens.
+      as_of: 2026-04-18
+      notes: Public model id currently mapped to DeepSeek-V3.2 non-thinking mode. USD pricing retained from the detailed public pricing table. Per 1M tokens.
     source_ref:
       url: https://api-docs.deepseek.com/
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: DeepSeek API documentation home and model matrix.
   - model_id: deepseek-reasoner
     provider: deepseek
     model_type: chat
-    updated_at: 2026-03-05
+    updated_at: 2025-12-01
     capabilities:
       - text.generate
     pricing:
@@ -48,11 +49,11 @@ models:
       input: "0.55"
       output: "2.19"
       currency: USD
-      as_of: 2026-03-18
-      notes: DeepSeek R1 reasoning model. Per 1M tokens.
+      as_of: 2026-04-18
+      notes: Public model id currently mapped to DeepSeek-V3.2 thinking mode. USD pricing retained from the detailed public pricing table. Per 1M tokens.
     source_ref:
       url: https://api-docs.deepseek.com/
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: DeepSeek API documentation home and model matrix.
 voices: []
 selection_profiles:

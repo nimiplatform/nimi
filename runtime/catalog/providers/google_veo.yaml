@@ -1,63 +1,146 @@
 version: 1
 provider: google_veo
-catalog_version: 2026-03-05-google-veo-v1
+catalog_version: 2026-04-18-google-veo-v2
+inventory_mode: static_source
 models:
-  - model_id: veo-3
+  - model_id: veo-3.1-generate-preview
     provider: google_veo
     model_type: video
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - video.generate
     pricing:
-      unit: request
-      input: unknown
-      output: unknown
+      unit: second
+      input: "0"
+      output: "0.4"
       currency: USD
-      as_of: 2026-03-05
-      notes: Google Veo pricing varies by resolution, duration, and account plan.
+      as_of: 2026-04-18
+      notes: Official Google pricing for Veo 3.1 Standard is $0.40 per generated second at 720p or 1080p, and $0.60 per generated second at 4k.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/video
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
       note: Google Veo video generation via Gemini API.
     video_generation:
       modes:
         - t2v
         - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
       input_roles:
         t2v:
           - prompt
         i2v_first_frame:
           - prompt
           - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
       limits:
+        reference_images:
+          min: 1
+          max: 3
         resolution:
           - 720p
           - 1080p
+          - 4k
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          - 4
+          - 6
+          - 8
       options:
         supports:
           - resolution
           - ratio
           - duration_sec
           - generate_audio
-        constraints: {}
+        constraints:
+          duration_8_required_for_1080p_4k_and_reference_images: true
       outputs:
         video_url: true
-  - model_id: veo-3-fast
+  - model_id: veo-3.1-fast-generate-preview
     provider: google_veo
     model_type: video
-    updated_at: 2026-03-05
+    updated_at: 2026-04-18
     capabilities:
       - video.generate
     pricing:
-      unit: request
-      input: unknown
-      output: unknown
+      unit: second
+      input: "0"
+      output: "0.1"
       currency: USD
-      as_of: 2026-03-05
-      notes: Google Veo pricing varies by resolution, duration, and account plan.
+      as_of: 2026-04-18
+      notes: Official Google pricing for Veo 3.1 Fast is $0.10 per generated second at 720p, $0.12 at 1080p, and $0.30 at 4k.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/video
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-18
+      note: Google Veo video generation via Gemini API.
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+      limits:
+        reference_images:
+          min: 1
+          max: 3
+        resolution:
+          - 720p
+          - 1080p
+          - 4k
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          - 4
+          - 6
+          - 8
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - generate_audio
+        constraints:
+          duration_8_required_for_1080p_4k_and_reference_images: true
+      outputs:
+        video_url: true
+  - model_id: veo-3.1-lite-generate-preview
+    provider: google_veo
+    model_type: video
+    updated_at: 2026-04-18
+    capabilities:
+      - video.generate
+    pricing:
+      unit: second
+      input: "0"
+      output: "0.05"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Official Google pricing for Veo 3.1 Lite is $0.05 per generated second at 720p and $0.08 at 1080p. 4k output is not supported.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/video
+      retrieved_at: 2026-04-18
       note: Google Veo video generation via Gemini API.
     video_generation:
       modes:
@@ -73,13 +156,120 @@ models:
         resolution:
           - 720p
           - 1080p
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          - 4
+          - 6
+          - 8
       options:
         supports:
           - resolution
           - ratio
           - duration_sec
           - generate_audio
-        constraints: {}
+        constraints:
+          duration_8_required_for_1080p: true
+          no_4k_output: true
+      outputs:
+        video_url: true
+  - model_id: veo-3.0-generate-001
+    provider: google_veo
+    model_type: video
+    updated_at: 2026-04-18
+    capabilities:
+      - video.generate
+    pricing:
+      unit: second
+      input: "0"
+      output: "0.4"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Official Google pricing for stable Veo 3 Standard is $0.40 per generated second.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/video
+      retrieved_at: 2026-04-18
+      note: Google Veo video generation via Gemini API.
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+          - 4k
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          - 4
+          - 6
+          - 8
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - generate_audio
+        constraints:
+          duration_8_required_for_1080p_and_4k: true
+      outputs:
+        video_url: true
+  - model_id: veo-3.0-fast-generate-001
+    provider: google_veo
+    model_type: video
+    updated_at: 2026-04-18
+    capabilities:
+      - video.generate
+    pricing:
+      unit: second
+      input: "0"
+      output: "0.1"
+      currency: USD
+      as_of: 2026-04-18
+      notes: Official Google pricing for stable Veo 3 Fast is $0.10 per generated second at 720p, $0.12 at 1080p, and $0.30 at 4k.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/video
+      retrieved_at: 2026-04-18
+      note: Google Veo video generation via Gemini API.
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+          - 4k
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          - 4
+          - 6
+          - 8
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - generate_audio
+        constraints:
+          duration_8_required_for_1080p_and_4k: true
       outputs:
         video_url: true
 voices: []

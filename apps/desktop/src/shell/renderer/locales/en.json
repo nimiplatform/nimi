@@ -2723,6 +2723,8 @@
     "cloud": {
       "connectors": "Cloud API Connectors",
       "connectorsDesc": "Configure API keys for cloud-based AI providers. Used as fallback when local runtime is unavailable.",
+      "liveInventoryTitle": "Live inventory provider",
+      "liveInventoryHint": "This provider loads models from the connector endpoint at runtime. Configure an explicit default model or choose a live model in route/chat settings.",
       "connectorsManagement": "Manage your cloud API connectors",
       "availableConnectors": "Available Connectors",
       "selectConnectorToConfigure": "Select a connector to configure",
@@ -3562,6 +3564,8 @@
       "modelLabel": "model:",
       "captionLabel": "caption:",
       "semanticsLabel": "semantics:",
+      "renderPlanLabel": "render plan:",
+      "sessionLabel": "session:",
       "viewerLaunchContract": "Viewer launch contract",
       "manifestPathLabel": "manifest path:",
       "spzLocalPathLabel": "SPZ local path:",

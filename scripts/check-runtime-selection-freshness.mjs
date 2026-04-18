@@ -35,6 +35,14 @@ function normalizeStringArray(value) {
   return out;
 }
 
+function normalizeInventoryMode(value) {
+  const normalized = normalizeString(value).toLowerCase();
+  if (!normalized) {
+    return 'static_source';
+  }
+  return normalized;
+}
+
 function addDays(date, days) {
   const next = new Date(date.getTime());
   next.setUTCDate(next.getUTCDate() + days);
@@ -56,6 +64,11 @@ async function main() {
     const sourceDoc = YAML.parse(await fs.readFile(sourcePath, 'utf8')) || {};
     const provider = normalizeString(sourceDoc.provider || filename.replace(/\.source\.yaml$/u, ''));
     if (!provider) {
+      continue;
+    }
+    const runtime = sourceDoc.runtime && typeof sourceDoc.runtime === 'object' ? sourceDoc.runtime : {};
+    const inventoryMode = normalizeInventoryMode(runtime.inventory_mode);
+    if (inventoryMode === 'dynamic_endpoint') {
       continue;
     }
 

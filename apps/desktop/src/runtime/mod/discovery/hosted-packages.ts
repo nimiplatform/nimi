@@ -9,6 +9,7 @@ import * as sdkRuntimeModule from '@nimiplatform/sdk/runtime';
 import * as sdkRuntimeBrowserModule from '@nimiplatform/sdk/runtime/browser';
 import * as sdkScopeModule from '@nimiplatform/sdk/scope';
 import * as sdkTypesModule from '@nimiplatform/sdk/types';
+import * as sdkWorldModule from '@nimiplatform/sdk/world';
 import * as reactQueryModule from '@tanstack/react-query';
 import * as i18nextModule from 'i18next';
 import * as reactModule from 'react';
@@ -34,6 +35,7 @@ const HOSTED_PACKAGE_MODULES = new Map<string, Record<string, unknown>>([
   ['@nimiplatform/sdk/realm', sdkRealmModule],
   ['@nimiplatform/sdk/runtime', sdkRuntimeModule],
   ['@nimiplatform/sdk/runtime/browser', sdkRuntimeBrowserModule],
+  ['@nimiplatform/sdk/world', sdkWorldModule],
   ['@nimiplatform/sdk/types', sdkTypesModule],
   ['@nimiplatform/sdk/ai-provider', sdkAiProviderModule],
   ['@nimiplatform/sdk/mod', sdkModModule],

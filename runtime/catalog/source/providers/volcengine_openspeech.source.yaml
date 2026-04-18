@@ -1,0 +1,97 @@
+schema_version: 3
+provider: volcengine_openspeech
+catalog_version: 2026-04-18-volcengine-openspeech-v1
+generated_target: runtime/catalog/providers/volcengine_openspeech.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://openspeech.bytedance.com/api/v1
+  requires_explicit_endpoint: false
+defaults:
+  provider: volcengine_openspeech
+  default_text_model: null
+  model_type: tts
+  capabilities: []
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: CNY
+    as_of: 2026-04-18
+    notes: Volcengine OpenSpeech pricing varies by speech product family and purchase mode. This source tracks a narrow first-party speech subset only.
+
+sources:
+  - source_id: volcengine_openspeech_tts_doc
+    url: https://www.volcengine.com/docs/6561/1257543?lang=zh
+    retrieved_at: 2026-04-18
+    note: Volcengine OpenSpeech large-model speech synthesis overview.
+  - source_id: volcengine_openspeech_tts_pricing_doc
+    url: https://www.volcengine.com/docs/6561/1359370
+    retrieved_at: 2026-04-18
+    note: Volcengine OpenSpeech pricing covering speech synthesis 2.0 and speech recognition 2.0 products.
+  - source_id: volcengine_openspeech_voice_list_doc
+    url: https://www.volcengine.com/docs/6561/1257544?lang=zh
+    retrieved_at: 2026-04-18
+    note: Volcengine OpenSpeech voice list for speech synthesis products.
+  - source_id: volcengine_openspeech_asr_overview_doc
+    url: https://www.volcengine.com/docs/6561/1354871?lang=zh
+    retrieved_at: 2026-04-18
+    note: Volcengine OpenSpeech large-model ASR overview across streaming and audio-file recognition.
+  - source_id: volcengine_openspeech_asr_flash_doc
+    url: https://www.volcengine.com/docs/6561/1631584?lang=zh
+    retrieved_at: 2026-04-18
+    note: Volcengine OpenSpeech fast audio-file recognition API using fixed resource id volc.bigasr.auc_turbo.
+  - source_id: volcengine_openspeech_resource_id_doc
+    url: https://www.volcengine.com/docs/6561/1476625
+    retrieved_at: 2026-04-18
+    note: Volcengine OpenSpeech resource-id reference for speech synthesis and speech recognition products.
+
+language_profiles:
+  short_v1: [zh, en]
+
+voice_sets:
+  - voice_set_id: openspeech-streaming-v1
+    langs_ref: short_v1
+    source_ids: [volcengine_openspeech_voice_list_doc]
+    voices:
+      - voice_id: BV001_streaming
+        name: BV001
+      - voice_id: BV002_streaming
+        name: BV002
+
+models:
+  - model_id: volc.service_type.10029
+    model_type: tts
+    updated_at: 2026-04-18
+    capabilities: [audio.synthesize]
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Resource id for Volcengine large-model speech synthesis. Public pricing docs show separate postpaid and prepaid rates, but this source does not normalize per-character price yet.
+    source_ids: [volcengine_openspeech_tts_doc, volcengine_openspeech_tts_pricing_doc, volcengine_openspeech_resource_id_doc]
+    aliases:
+      - doubao-tts
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: openspeech-streaming-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: volc.bigasr.auc_turbo
+    model_type: stt
+    updated_at: 2026-04-18
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: hour
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Fixed resource id for Volcengine large-model fast audio-file recognition. Public pricing docs show hourly billing, but this source does not normalize tiered rates yet.
+    source_ids: [volcengine_openspeech_asr_overview_doc, volcengine_openspeech_asr_flash_doc, volcengine_openspeech_tts_pricing_doc, volcengine_openspeech_resource_id_doc]
+    aliases:
+      - doubao-asr-flash
