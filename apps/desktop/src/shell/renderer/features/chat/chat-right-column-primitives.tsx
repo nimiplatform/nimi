@@ -24,7 +24,7 @@ export function ChatRightColumn(props: {
 export function ChatRightColumnCard(props: {
   children: ReactNode;
   className?: string;
-  cardKey: 'primary' | 'status' | 'settings';
+  cardKey: 'primary' | 'status' | 'diagnostic' | 'settings';
 }) {
   return (
     <DesktopCardSurface

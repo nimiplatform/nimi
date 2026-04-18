@@ -731,6 +731,7 @@
     "agentComposerPlaceholder": "和这个 Agent 聊点什么...",
     "agentComposerNoTargetPlaceholder": "先选择一个 Agent，再开始聊天...",
     "agentTranscriptEmpty": "打个招呼，问一个问题，或者就从你此刻最想说的事开始。",
+    "agentGenericIdentity": "Agent",
     "agentActions": "操作",
     "agentTranscriptEmptyTitle": "准备好了就开口吧",
     "agentTranscriptLoading": "正在加载本地 Agent 会话...",

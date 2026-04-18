@@ -20,7 +20,7 @@ import {
 
 (globalThis as typeof globalThis & { React?: typeof React }).React = React;
 
-test('avatar stage rail renders standalone primary, status, and settings cards around a single stage viewport', () => {
+test('avatar stage rail renders standalone primary and settings cards around a single stage viewport without the identity status card', () => {
   const queryClient = new QueryClient();
   const markup = renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
@@ -63,15 +63,14 @@ test('avatar stage rail renders standalone primary, status, and settings cards a
 
   assert.match(markup, /data-chat-mode-column="agent"/);
   assert.match(markup, /data-chat-right-card="primary"/);
-  assert.match(markup, /data-chat-right-card="status"/);
+  assert.doesNotMatch(markup, /data-chat-right-card="status"/);
+  assert.doesNotMatch(markup, /data-chat-right-card="diagnostic"/);
   assert.match(markup, /data-chat-right-card="settings"/);
   assert.match(markup, /data-avatar-stage-viewport="true"/);
   assert.match(markup, /data-avatar-stage-pointer-enabled="true"/);
   assert.match(markup, /data-avatar-stage-hovered="false"/);
   assert.doesNotMatch(markup, /data-avatar-stage-dock="true"/);
   assert.match(markup, /data-avatar-backend-kind="sprite2d"/);
-  assert.match(markup, /Companion/);
-  assert.match(markup, /data-chat-right-card="settings"/);
 });
 
 test('avatar stage rail keeps the unified stage shell when runtime presentation already resolves to Live2D', () => {
@@ -122,8 +121,7 @@ test('avatar stage rail keeps the unified stage shell when runtime presentation 
 
   assert.match(markup, /data-avatar-stage-viewport="true"/);
   assert.match(markup, /data-avatar-live2d-status="loading"/);
-  assert.match(markup, /Speaking…/);
-  assert.match(markup, /Airi/);
+  assert.doesNotMatch(markup, /data-chat-right-card="status"/);
 });
 
 test('avatar stage rail resolves live2d from shared binding and resource query caches without key-shape collisions', () => {

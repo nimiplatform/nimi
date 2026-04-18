@@ -39,6 +39,8 @@ export type ChatComposerProps<TAttachment = never> = UseChatComposerOptions<TAtt
   voiceState?: ChatComposerVoiceState;
   /** Quick-action pill buttons for media prompt injection (image/video generation, etc.). */
   mediaActions?: readonly ChatComposerMediaAction[];
+  /** Optional slot rendered at the leading edge of the input controls row (before the voice button). */
+  leadingSlot?: ReactNode;
 };
 
 export function ChatComposer<TAttachment = never>({
@@ -51,6 +53,7 @@ export function ChatComposer<TAttachment = never>({
   attachmentsSlot,
   voiceState,
   mediaActions,
+  leadingSlot,
   ...options
 }: ChatComposerProps<TAttachment>) {
   const state = useChatComposer(options);
@@ -189,6 +192,7 @@ export function ChatComposer<TAttachment = never>({
 
         {/* input controls row */}
         <div className="flex items-end gap-2.5">
+          {leadingSlot ? <div className="flex items-end">{leadingSlot}</div> : null}
           {/* voice button — interactive when voiceState provided, disabled placeholder otherwise */}
           {voiceState ? (
             <VoiceButton voiceState={voiceState} disabled={options.disabled || state.isSubmitting} />

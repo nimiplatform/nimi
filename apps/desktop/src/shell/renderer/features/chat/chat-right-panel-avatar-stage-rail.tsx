@@ -237,8 +237,6 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
       vrm: vrmLoadStatus,
     },
   });
-  const phase = railModel.snapshot.interaction.phase;
-  const dockBusy = phase === 'thinking' || phase === 'speaking' || phase === 'listening';
   const live2dDiagnosticPanel = resolveChatAgentAvatarLive2dDiagnosticPanelModel({
     status: live2dLoadStatus,
     error: live2dLoadError,
@@ -339,86 +337,77 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
         </div>
       </ChatRightColumnCard>
 
-      <ChatRightColumnCard cardKey="status" className="px-4 py-4 text-center">
-        <div className="flex items-center justify-center gap-2">
-          <span className={cn('inline-block h-2.5 w-2.5 rounded-full bg-emerald-500/90', dockBusy ? 'animate-pulse' : '')} />
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-700/72">
-            {railModel.statusLabel}
-          </p>
-        </div>
-        <p className="mt-2.5 text-[1.75rem] font-black leading-tight tracking-tight text-slate-950">
-          {railModel.displayName}
-        </p>
-        {props.selectedTarget.handle ? (
-          <p className="mt-1 text-xs font-medium text-slate-500">{props.selectedTarget.handle}</p>
-        ) : null}
-        {live2dDiagnosticPanel ? (
-          <div
-            className={cn(
-              'mt-2 space-y-2 rounded-2xl border px-3 py-2.5 text-left text-[11px] leading-5',
-              live2dDiagnosticPanel.toneClassName,
-            )}
-            data-live2d-fallback-reason={live2dDiagnosticPanel.kind === 'error' ? 'true' : undefined}
-            data-live2d-recovery-reason={live2dDiagnosticPanel.kind === 'recovery' ? 'true' : undefined}
-          >
-            <p className={cn(
-              'font-semibold',
-              live2dDiagnosticPanel.kind === 'error' ? 'text-amber-800' : 'text-sky-800',
-            )}>{live2dDiagnosticPanel.message}</p>
-            <div className={cn(
-              'space-y-1 rounded-xl border px-2.5 py-2 font-mono text-[10px] leading-4',
-              live2dDiagnosticPanel.detailClassName,
-            )}>
-              {live2dDiagnosticPanel.details.map((detail) => (
-                <p
-                  key={detail}
-                  className={cn(
-                    'break-all',
-                    detail.startsWith('error=') || detail.startsWith('errorUrl=') || detail.startsWith('errorStatus=')
-                      ? 'text-rose-700'
-                      : null,
-                  )}
-                >
-                  {detail}
-                </p>
-              ))}
+      {live2dDiagnosticPanel || vrmDiagnosticPanel ? (
+        <ChatRightColumnCard cardKey="diagnostic" className="px-4 py-3">
+          {live2dDiagnosticPanel ? (
+            <div
+              className={cn(
+                'space-y-2 rounded-2xl border px-3 py-2.5 text-left text-[11px] leading-5',
+                live2dDiagnosticPanel.toneClassName,
+              )}
+              data-live2d-fallback-reason={live2dDiagnosticPanel.kind === 'error' ? 'true' : undefined}
+              data-live2d-recovery-reason={live2dDiagnosticPanel.kind === 'recovery' ? 'true' : undefined}
+            >
+              <p className={cn(
+                'font-semibold',
+                live2dDiagnosticPanel.kind === 'error' ? 'text-amber-800' : 'text-sky-800',
+              )}>{live2dDiagnosticPanel.message}</p>
+              <div className={cn(
+                'space-y-1 rounded-xl border px-2.5 py-2 font-mono text-[10px] leading-4',
+                live2dDiagnosticPanel.detailClassName,
+              )}>
+                {live2dDiagnosticPanel.details.map((detail) => (
+                  <p
+                    key={detail}
+                    className={cn(
+                      'break-all',
+                      detail.startsWith('error=') || detail.startsWith('errorUrl=') || detail.startsWith('errorStatus=')
+                        ? 'text-rose-700'
+                        : null,
+                    )}
+                  >
+                    {detail}
+                  </p>
+                ))}
+              </div>
             </div>
-          </div>
-        ) : null}
-        {vrmDiagnosticPanel ? (
-          <div
-            className={cn(
-              'mt-2 space-y-2 rounded-2xl border px-3 py-2.5 text-left text-[11px] leading-5',
-              vrmDiagnosticPanel.toneClassName,
-            )}
-            data-vrm-load-reason={vrmDiagnosticPanel.kind === 'loading' ? 'true' : undefined}
-            data-vrm-error-reason={vrmDiagnosticPanel.kind === 'error' ? 'true' : undefined}
-          >
-            <p className={cn(
-              'font-semibold',
-              vrmDiagnosticPanel.kind === 'error' ? 'text-amber-800' : 'text-sky-800',
-            )}>{vrmDiagnosticPanel.message}</p>
-            <div className={cn(
-              'space-y-1 rounded-xl border px-2.5 py-2 font-mono text-[10px] leading-4',
-              vrmDiagnosticPanel.detailClassName,
-            )}>
-              {vrmDiagnosticPanel.details.map((detail) => (
-                <p
-                  key={detail}
-                  className={cn(
-                    'break-all',
-                    detail.startsWith('error=')
-                      ? 'text-rose-700'
-                      : null,
-                  )}
-                >
-                  {detail}
-                </p>
-              ))}
+          ) : null}
+          {vrmDiagnosticPanel ? (
+            <div
+              className={cn(
+                'space-y-2 rounded-2xl border px-3 py-2.5 text-left text-[11px] leading-5',
+                live2dDiagnosticPanel ? 'mt-2' : '',
+                vrmDiagnosticPanel.toneClassName,
+              )}
+              data-vrm-load-reason={vrmDiagnosticPanel.kind === 'loading' ? 'true' : undefined}
+              data-vrm-error-reason={vrmDiagnosticPanel.kind === 'error' ? 'true' : undefined}
+            >
+              <p className={cn(
+                'font-semibold',
+                vrmDiagnosticPanel.kind === 'error' ? 'text-amber-800' : 'text-sky-800',
+              )}>{vrmDiagnosticPanel.message}</p>
+              <div className={cn(
+                'space-y-1 rounded-xl border px-2.5 py-2 font-mono text-[10px] leading-4',
+                vrmDiagnosticPanel.detailClassName,
+              )}>
+                {vrmDiagnosticPanel.details.map((detail) => (
+                  <p
+                    key={detail}
+                    className={cn(
+                      'break-all',
+                      detail.startsWith('error=')
+                        ? 'text-rose-700'
+                        : null,
+                    )}
+                  >
+                    {detail}
+                  </p>
+                ))}
+              </div>
             </div>
-          </div>
-        ) : null}
-      </ChatRightColumnCard>
+          ) : null}
+        </ChatRightColumnCard>
+      ) : null}
 
       <ChatRightPanelSettings
         onToggleSettings={props.onToggleSettings}

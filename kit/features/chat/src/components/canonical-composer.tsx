@@ -28,6 +28,7 @@ export type CanonicalComposerProps<TAttachment = never> = {
   attachLabel?: string;
   voiceState?: ChatComposerVoiceState;
   widthClassName?: string;
+  leadingSlot?: ReactNode;
 };
 
 export function CanonicalComposer<TAttachment = never>({
@@ -48,6 +49,7 @@ export function CanonicalComposer<TAttachment = never>({
   attachLabel,
   voiceState,
   widthClassName = CANONICAL_STAGE_SURFACE_WIDTH_CLASS,
+  leadingSlot,
 }: CanonicalComposerProps<TAttachment>) {
   return (
     <div className={cn('shrink-0 px-5 pb-5', mode === 'stage' ? 'pt-1' : 'pt-2', className)} data-canonical-composer-root="true">
@@ -80,6 +82,7 @@ export function CanonicalComposer<TAttachment = never>({
               attachmentsSlot={attachmentsSlot}
               attachLabel={attachLabel}
               voiceState={voiceState}
+              leadingSlot={leadingSlot}
             />
           </ConversationComposerShell>
         </div>

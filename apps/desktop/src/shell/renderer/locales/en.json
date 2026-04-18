@@ -731,6 +731,7 @@
     "agentComposerPlaceholder": "Talk to this agent...",
     "agentComposerNoTargetPlaceholder": "Select an agent to start chatting...",
     "agentTranscriptEmpty": "Say hello, ask a question, or start with whatever is on your mind.",
+    "agentGenericIdentity": "Agent",
     "agentActions": "Actions",
     "agentTranscriptEmptyTitle": "Say hello when you are ready",
     "agentTranscriptLoading": "Loading local agent conversation...",

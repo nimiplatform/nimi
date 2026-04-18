@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, type MouseEvent } from 'react';
+import { Avatar, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import {
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
@@ -208,6 +209,13 @@ export function useAgentConversationPresentation(
       text: '#065f46',
     },
   }), [surfaceState.character]);
+  const resolvedAgentDisplayName = useMemo(
+    () =>
+      characterData.name
+      || input.activeTarget?.displayName
+      || input.t('Chat.agentGenericIdentity', { defaultValue: 'Agent' }),
+    [characterData.name, input.activeTarget?.displayName, input.t],
+  );
   const canonicalMessages = useMemo(
     () => resolveAgentCanonicalMessages({
       messages: input.messages,
@@ -258,7 +266,7 @@ export function useAgentConversationPresentation(
       )
       : null,
     labels: {
-      emptyEyebrow: 'Agent',
+      emptyEyebrow: resolvedAgentDisplayName,
       emptyTitle: input.t('Chat.agentTranscriptEmptyTitle', {
         defaultValue: 'Say hello when you are ready',
       }),
@@ -287,6 +295,7 @@ export function useAgentConversationPresentation(
     selectedTargetId,
     surfaceState.footer,
     targetSummaries,
+    resolvedAgentDisplayName,
   ]);
   const hostSnapshot = useMemo(() => resolveAgentConversationHostSnapshot({
     activeThreadId: input.activeThreadId,
@@ -411,6 +420,38 @@ export function useAgentConversationPresentation(
             onInputCaptureText={(text) => {
               input.currentDraftTextRef.current = text;
             }}
+            leadingSlot={(
+              <div
+                data-chat-agent-identity-chip="true"
+                className="relative flex h-11 w-11 shrink-0 items-center justify-center"
+              >
+                <Tooltip
+                  placement="top"
+                  content={(
+                    <div className="flex flex-col gap-1 px-1 py-0.5 text-left">
+                      <span className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+                        {resolvedAgentDisplayName}
+                      </span>
+                      {characterData.handle ? (
+                        <span className="text-[11px] leading-4 text-[var(--nimi-text-secondary)]">
+                          {characterData.handle}
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                >
+                  <Avatar
+                    src={characterData.avatarUrl || null}
+                    alt={resolvedAgentDisplayName}
+                    className="h-11 w-11 text-sm"
+                  />
+                </Tooltip>
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-0.5 right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white"
+                />
+              </div>
+            )}
           />
         </div>
       ) : null
@@ -456,5 +497,6 @@ export function useAgentConversationPresentation(
     input.onModelSelectionChange,
     input.pendingAttachments,
     schedulingGuard.disabled,
+    resolvedAgentDisplayName,
   ]);
 }

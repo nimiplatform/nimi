@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent as ReactClipboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent as ReactClipboardEvent, type ReactNode } from 'react';
 import { CanonicalComposer, type ChatComposerVoiceState } from '@nimiplatform/nimi-kit/features/chat';
 import { useTranslation } from 'react-i18next';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
@@ -55,6 +55,7 @@ export function AgentCanonicalComposer(props: {
   onSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
   voiceState?: ChatComposerVoiceState;
   runtimeHint?: string | null;
+  leadingSlot?: ReactNode;
 }) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -183,6 +184,7 @@ export function AgentCanonicalComposer(props: {
         attachLabel={t('Chat.agentAttachImage', { defaultValue: 'Attach image' })}
         runtimeHint={props.runtimeHint}
         voiceState={props.voiceState}
+        leadingSlot={props.leadingSlot}
       />
       <input
         ref={fileInputRef}
