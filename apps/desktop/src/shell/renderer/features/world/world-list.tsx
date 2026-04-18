@@ -145,13 +145,12 @@ export function WorldList() {
 
                     <div className="absolute bottom-[-8px] left-1/2 z-10 w-[calc(100%-1.5rem)] max-w-[1000px] -translate-x-1/2">
                         <div
-                          className="rounded-[28px] border px-7 py-6 backdrop-blur-[56px] transition-transform duration-500 group-hover:translate-y-[-2px]"
+                          className="rounded-[28px] nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border border-[var(--nimi-material-glass-chrome-border)] px-7 py-6 backdrop-blur-[var(--nimi-backdrop-blur-chrome)] transition-transform duration-500 group-hover:translate-y-[-2px]"
                           style={{
-                          background:
-                            'linear-gradient(180deg, rgba(30,27,50,0.0008) 0%, rgba(41,35,67,0.003) 100%)',
-                          borderColor: 'rgba(255,255,255,0.035)',
                           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.006)',
                           }}
+                          data-nimi-material="glass-chrome"
+                          data-nimi-tone="card"
                         >
                         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                           <div className="flex min-w-0 flex-1 items-start gap-5">

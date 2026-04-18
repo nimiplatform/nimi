@@ -84,7 +84,7 @@ export function ChatGroupCreateModal(props: {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)] backdrop-blur-sm">
       <div className="mx-4 w-full max-w-sm rounded-3xl bg-[var(--nimi-surface-card,#fff)] shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pb-0 pt-5">

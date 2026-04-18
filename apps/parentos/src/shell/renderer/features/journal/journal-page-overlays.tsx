@@ -98,7 +98,7 @@ export function DeleteJournalEntryModal({
   const mediaCount = parseSelectedTags(entry.photoPaths).length + (entry.voicePath ? 1 : 0);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.28)] p-4" onClick={onCancel}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--nimi-scrim-modal)] p-4" onClick={onCancel}>
       <div
         role="dialog"
         aria-modal="true"
@@ -172,7 +172,7 @@ export function KeepsakePromptModal({
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.25)' }}
+      style={{ background: 'var(--nimi-scrim-modal)' }}
       onClick={onSkip}
     >
       <div

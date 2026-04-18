@@ -64,7 +64,7 @@ export function AdvisorComposer({
         )}
 
         {/* Frosted glass composer shell */}
-        <div className="rounded-[28px] border border-white/90 bg-white/84 shadow-[0_24px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+        <div className="rounded-[28px] nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] shadow-[0_24px_50px_rgba(15,23,42,0.08)]" data-nimi-material="glass-thick" data-nimi-tone="card">
           <div className="flex items-end gap-2 p-2">
             <textarea
               ref={textareaRef}

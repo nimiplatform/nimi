@@ -141,7 +141,7 @@ export function AvatarCropModal({ imageUrl, onConfirm, onCancel }: AvatarCropMod
   const maxScale = img ? Math.max(VIEW_SIZE / img.width, VIEW_SIZE / img.height) * 3 : 3;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'var(--nimi-scrim-modal)' }}>
       <div className="rounded-[18px] p-6 w-[360px]" style={{ background: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
         <h3 className="text-[15px] font-semibold mb-4" style={{ color: '#1e293b' }}>调整头像</h3>
 

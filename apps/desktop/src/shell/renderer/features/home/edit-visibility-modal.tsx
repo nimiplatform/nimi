@@ -31,7 +31,7 @@ export function EditVisibilityModal(props: {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={props.onClose} />
+      <div className="absolute inset-0 bg-[var(--nimi-scrim-modal)] backdrop-blur-sm" onClick={props.onClose} />
       <div className="relative mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">

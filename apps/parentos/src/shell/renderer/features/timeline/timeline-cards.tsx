@@ -239,17 +239,16 @@ export function ChildContextCard({ child, childList, ageMonths }: { child: Child
 
         {/* Avatar — 120px, white semi-transparent ring with soft halo */}
         <div
-          className="relative"
+          className="relative nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
           style={{
             width: 120,
             height: 120,
             padding: 4,
             borderRadius: '50%',
-            background: 'rgba(255,255,255,0.6)',
             boxShadow: '0 4px 14px rgba(15,23,42,0.06)',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
           }}
+          data-nimi-material="glass-regular"
+          data-nimi-tone="card"
         >
           {child.avatarPath ? (
             <img

@@ -56,7 +56,7 @@ export function AddFriendModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-[var(--nimi-scrim-modal)] backdrop-blur-sm"
         onClick={handleClose}
       />
       <div className="relative mx-4 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">

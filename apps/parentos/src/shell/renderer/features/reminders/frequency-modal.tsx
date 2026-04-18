@@ -54,7 +54,7 @@ export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMont
 
   if (!loaded || selected === null) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.3)' }} onClick={onClose}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'var(--nimi-scrim-modal)' }} onClick={onClose}>
         <div className={`w-[380px] ${S.radius} p-6 shadow-xl flex items-center justify-center`} style={{ background: S.card }}>
           <span className="text-[13px]" style={{ color: S.sub }}>加载中...</span>
         </div>
@@ -90,7 +90,7 @@ export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMont
   const isCustomized = Boolean(existingOverride);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.3)' }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'var(--nimi-scrim-modal)' }} onClick={onClose}>
       <div className={`w-[380px] ${S.radius} p-6 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

@@ -142,7 +142,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
               </svg>
             </button>
             {props.showPostMenu ? (
-              <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-gray-100 bg-white/95 py-1.5 shadow-[0_18px_48px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+              <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-2xl nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border border-[var(--nimi-material-glass-chrome-border)] py-1.5 shadow-[0_18px_48px_rgba(15,23,42,0.16)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)]" data-nimi-material="glass-chrome" data-nimi-tone="card">
                 {props.isOwnPost ? (
                   <>
                     {props.canEditPost !== false ? (

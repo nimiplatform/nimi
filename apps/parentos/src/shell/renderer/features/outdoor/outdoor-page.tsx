@@ -464,8 +464,8 @@ function RecordModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-[4px]"
-      style={{ background: 'rgba(0,0,0,0.3)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'var(--nimi-scrim-modal)' }}
       onClick={onClose}
     >
       <div
