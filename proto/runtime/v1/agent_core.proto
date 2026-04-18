@@ -71,6 +71,21 @@ enum AgentEventType {
   AGENT_EVENT_TYPE_REPLICATION = 5;
 }
 
+enum AgentAutonomyMode {
+  AGENT_AUTONOMY_MODE_UNSPECIFIED = 0;
+  AGENT_AUTONOMY_MODE_OFF = 1;
+  AGENT_AUTONOMY_MODE_LOW = 2;
+  AGENT_AUTONOMY_MODE_MEDIUM = 3;
+  AGENT_AUTONOMY_MODE_HIGH = 4;
+}
+
+enum HookCadenceInteraction {
+  HOOK_CADENCE_INTERACTION_UNSPECIFIED = 0;
+  HOOK_CADENCE_INTERACTION_NORMAL = 1;
+  HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED = 2;
+  HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED = 3;
+}
+
 message AgentRequestContext {
   string app_id = 1;
   string subject_user_id = 2;
@@ -81,6 +96,7 @@ message AgentAutonomyConfig {
   int64 max_tokens_per_hook = 2;
   google.protobuf.Duration min_hook_interval = 3;
   google.protobuf.Timestamp suspend_until = 4;
+  AgentAutonomyMode mode = 5;
   google.protobuf.Struct extensions = 10;
 }
 
@@ -228,6 +244,7 @@ message NextHookIntent {
   google.protobuf.Timestamp not_before = 2;
   google.protobuf.Timestamp expires_at = 3;
   string reason = 4;
+  HookCadenceInteraction cadence_interaction = 5;
   oneof detail {
     TurnCompletedHookIntent turn_completed = 10;
     ScheduledTimeHookIntent scheduled_time = 11;

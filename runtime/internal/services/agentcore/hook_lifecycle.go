@@ -88,8 +88,14 @@ func (s *Service) runLifeTrackLoop(ctx context.Context, done chan struct{}) {
 }
 
 func (s *Service) runLifeTrackSweep(ctx context.Context, now time.Time) error {
+	if err := s.reconcileCadenceHooks(now); err != nil {
+		return err
+	}
 	_, err := s.executeDueHooks(ctx, now, s.lifeTrackHookExecutor())
-	return err
+	if err != nil {
+		return err
+	}
+	return s.reconcileCadenceHooks(now)
 }
 
 func (s *Service) lifeTrackHookExecutor() hookExecutor {

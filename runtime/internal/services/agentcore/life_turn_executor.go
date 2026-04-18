@@ -248,6 +248,15 @@ Rules:
   - policy_reason: string
   - record: MemoryRecordInput proto-json using exactly one payload branch: episodic, semantic, or observational
 - next_hook_intent must be valid NextHookIntent proto-json if present.
+- next_hook_intent remains callback intent only; runtime host still owns cadence truth.
+- next_hook_intent may set cadence_interaction only as:
+  - NORMAL
+  - SUPPRESS_BASE_TICK_UNTIL_FIRED
+  - SUPPRESS_BASE_TICK_UNTIL_EXPIRED
+- use suppress_base_tick_until_fired only when the follow-up hook itself represents the next meaningful wake-up for a sustained state.
+- use suppress_base_tick_until_expired only for a sustained state with a clear suppression boundary, and always include expires_at when using it.
+- do not invent cadence_interaction for ordinary short follow-ups, lightweight reminders, or generic "check back later" timing.
+- examples that may justify suppression: sleep, meditation, focused deep work, long travel, or another explicitly continuous state.
 - If no follow-up hook is needed, set next_hook_intent to null.
 - If no canonical memory should be written, set canonical_memory_candidates to [].
 - If status text should remain unchanged, set status_text to null.

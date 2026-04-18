@@ -55,7 +55,7 @@ func (s *Service) executePendingHook(ctx context.Context, agentID string, hookID
 	if hook.GetScheduledFor() != nil && hook.GetScheduledFor().AsTime().After(now) {
 		return nil, nil
 	}
-	if blocked := gateHookExecution(entry, now); blocked != nil {
+	if blocked := gateHookExecution(entry, hook, now); blocked != nil {
 		return s.applyHookDecision(agentID, hookID, blocked, now)
 	}
 	if _, err := s.markHookRunningAt(agentID, hookID, now); err != nil {

@@ -651,6 +651,7 @@ func writePersistedAgentCoreState(localStatePath string, agentID string, schedul
 		Autonomy: &runtimev1.AgentAutonomyState{
 			Enabled: true,
 			Config: &runtimev1.AgentAutonomyConfig{
+				Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 				DailyTokenBudget: 10,
 			},
 			WindowStartedAt: timestamppb.New(now),

@@ -1383,6 +1383,9 @@
 - rule_id: K-AGCORE-026b
   status: covered
   evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-027
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-RPC-004a
   status: deferred
   evidence_refs: []

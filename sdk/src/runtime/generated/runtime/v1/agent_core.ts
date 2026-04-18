@@ -58,6 +58,10 @@ export interface AgentAutonomyConfig {
      */
     suspendUntil?: Timestamp;
     /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentAutonomyMode mode = 5
+     */
+    mode: AgentAutonomyMode;
+    /**
      * @generated from protobuf field: google.protobuf.Struct extensions = 10
      */
     extensions?: Struct;
@@ -497,6 +501,10 @@ export interface NextHookIntent {
      * @generated from protobuf field: string reason = 4
      */
     reason: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.HookCadenceInteraction cadence_interaction = 5
+     */
+    cadenceInteraction: HookCadenceInteraction;
     /**
      * @generated from protobuf oneof: detail
      */
@@ -1517,6 +1525,52 @@ export enum AgentEventType {
      */
     REPLICATION = 5
 }
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentAutonomyMode
+ */
+export enum AgentAutonomyMode {
+    /**
+     * @generated from protobuf enum value: AGENT_AUTONOMY_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_AUTONOMY_MODE_OFF = 1;
+     */
+    OFF = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_AUTONOMY_MODE_LOW = 2;
+     */
+    LOW = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_AUTONOMY_MODE_MEDIUM = 3;
+     */
+    MEDIUM = 3,
+    /**
+     * @generated from protobuf enum value: AGENT_AUTONOMY_MODE_HIGH = 4;
+     */
+    HIGH = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.HookCadenceInteraction
+ */
+export enum HookCadenceInteraction {
+    /**
+     * @generated from protobuf enum value: HOOK_CADENCE_INTERACTION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: HOOK_CADENCE_INTERACTION_NORMAL = 1;
+     */
+    NORMAL = 1,
+    /**
+     * @generated from protobuf enum value: HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED = 2;
+     */
+    SUPPRESS_BASE_TICK_UNTIL_FIRED = 2,
+    /**
+     * @generated from protobuf enum value: HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED = 3;
+     */
+    SUPPRESS_BASE_TICK_UNTIL_EXPIRED = 3
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
     constructor() {
@@ -1580,6 +1634,7 @@ class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
             { no: 2, name: "max_tokens_per_hook", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 3, name: "min_hook_interval", kind: "message", T: () => Duration },
             { no: 4, name: "suspend_until", kind: "message", T: () => Timestamp },
+            { no: 5, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.AgentAutonomyMode", AgentAutonomyMode, "AGENT_AUTONOMY_MODE_"] },
             { no: 10, name: "extensions", kind: "message", T: () => Struct }
         ]);
     }
@@ -1587,6 +1642,7 @@ class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.dailyTokenBudget = "0";
         message.maxTokensPerHook = "0";
+        message.mode = 0;
         if (value !== undefined)
             reflectionMergePartial<AgentAutonomyConfig>(this, message, value);
         return message;
@@ -1607,6 +1663,9 @@ class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
                     break;
                 case /* google.protobuf.Timestamp suspend_until */ 4:
                     message.suspendUntil = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.suspendUntil);
+                    break;
+                case /* nimi.runtime.v1.AgentAutonomyMode mode */ 5:
+                    message.mode = reader.int32();
                     break;
                 case /* google.protobuf.Struct extensions */ 10:
                     message.extensions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.extensions);
@@ -1635,6 +1694,9 @@ class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
         /* google.protobuf.Timestamp suspend_until = 4; */
         if (message.suspendUntil)
             Timestamp.internalBinaryWrite(message.suspendUntil, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentAutonomyMode mode = 5; */
+        if (message.mode !== 0)
+            writer.tag(5, WireType.Varint).int32(message.mode);
         /* google.protobuf.Struct extensions = 10; */
         if (message.extensions)
             Struct.internalBinaryWrite(message.extensions, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
@@ -3159,6 +3221,7 @@ class NextHookIntent$Type extends MessageType<NextHookIntent> {
             { no: 2, name: "not_before", kind: "message", T: () => Timestamp },
             { no: 3, name: "expires_at", kind: "message", T: () => Timestamp },
             { no: 4, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "cadence_interaction", kind: "enum", T: () => ["nimi.runtime.v1.HookCadenceInteraction", HookCadenceInteraction, "HOOK_CADENCE_INTERACTION_"] },
             { no: 10, name: "turn_completed", kind: "message", oneof: "detail", T: () => TurnCompletedHookIntent },
             { no: 11, name: "scheduled_time", kind: "message", oneof: "detail", T: () => ScheduledTimeHookIntent },
             { no: 12, name: "user_idle", kind: "message", oneof: "detail", T: () => UserIdleHookIntent },
@@ -3172,6 +3235,7 @@ class NextHookIntent$Type extends MessageType<NextHookIntent> {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.triggerKind = 0;
         message.reason = "";
+        message.cadenceInteraction = 0;
         message.detail = { oneofKind: undefined };
         if (value !== undefined)
             reflectionMergePartial<NextHookIntent>(this, message, value);
@@ -3193,6 +3257,9 @@ class NextHookIntent$Type extends MessageType<NextHookIntent> {
                     break;
                 case /* string reason */ 4:
                     message.reason = reader.string();
+                    break;
+                case /* nimi.runtime.v1.HookCadenceInteraction cadence_interaction */ 5:
+                    message.cadenceInteraction = reader.int32();
                     break;
                 case /* nimi.runtime.v1.TurnCompletedHookIntent turn_completed */ 10:
                     message.detail = {
@@ -3260,6 +3327,9 @@ class NextHookIntent$Type extends MessageType<NextHookIntent> {
         /* string reason = 4; */
         if (message.reason !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.reason);
+        /* nimi.runtime.v1.HookCadenceInteraction cadence_interaction = 5; */
+        if (message.cadenceInteraction !== 0)
+            writer.tag(5, WireType.Varint).int32(message.cadenceInteraction);
         /* nimi.runtime.v1.TurnCompletedHookIntent turn_completed = 10; */
         if (message.detail.oneofKind === "turnCompleted")
             TurnCompletedHookIntent.internalBinaryWrite(message.detail.turnCompleted, writer.tag(10, WireType.LengthDelimited).fork(), options).join();

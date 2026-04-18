@@ -130,6 +130,7 @@ Typed family registry is defined by `tables/runtime-agent-core-typed-family.yaml
 Fixed rules:
 
 - token budget configuration is runtime-owned and belongs to agent autonomy state
+- token budget remains a quota and safety guardrail, not the primary cadence truth
 - budget state must be observable through agent state or agent events; hidden depletion is not admitted
 - the default budget window is daily unless a stricter runtime-owned policy is admitted elsewhere
 - budget exhaustion suspends or rejects Life Track execution only; Chat Track remains separately governed by runtime product policy
@@ -336,18 +337,6 @@ Fixed rules:
 
 ## K-AGCORE-020 Chat/Life Evidence To Canonical Memory Admission Boundary
 
-## K-AGCORE-021 Standalone Cognition Consumption Boundary
-
-`RuntimeAgentCoreService` may consume standalone cognition through explicit bridge paths, but it does not own cognition semantics.
-
-Fixed rules:
-
-- agent core remains the runtime owner of live agent execution, canonical admission, and runtime-private posture/hook truth
-- if runtime consumes standalone cognition kernels, prompt context, or advisory outputs, that consumption must remain adapter-owned rather than semantic ownership
-- cognition runtime bridge and prompt-serving boundaries are governed by `.nimi/spec/cognition/kernel/runtime-bridge-contract.md`, `.nimi/spec/cognition/kernel/prompt-serving-contract.md`, and `.nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml`
-- agent core must not redefine cognition object model, cleanup semantics, or standalone public surface by implementation convention
-- runtime/private cognition consumption does not authorize collapsing cognition authority back into runtime contracts
-
 `RuntimeAgentCoreService` owns the runtime-private stabilization boundary between
 chat/life conversational evidence and canonical memory candidate admission.
 
@@ -383,3 +372,52 @@ Fixed rules:
 - truth admission, stale/supersession, and later derived projection updates
   remain the downstream path for cross-window correction after durable memory
   has already been committed
+
+## K-AGCORE-021 Standalone Cognition Consumption Boundary
+
+`RuntimeAgentCoreService` may consume standalone cognition through explicit bridge paths, but it does not own cognition semantics.
+
+Fixed rules:
+
+- agent core remains the runtime owner of live agent execution, canonical admission, and runtime-private posture/hook truth
+- if runtime consumes standalone cognition kernels, prompt context, or advisory outputs, that consumption must remain adapter-owned rather than semantic ownership
+- cognition runtime bridge and prompt-serving boundaries are governed by `.nimi/spec/cognition/kernel/runtime-bridge-contract.md`, `.nimi/spec/cognition/kernel/prompt-serving-contract.md`, and `.nimi/spec/cognition/kernel/tables/runtime-bridge-boundary.yaml`
+- agent core must not redefine cognition object model, cleanup semantics, or standalone public surface by implementation convention
+- runtime/private cognition consumption does not authorize collapsing cognition authority back into runtime contracts
+
+## K-AGCORE-027 Life-Track Cadence Ownership
+
+`RuntimeAgentCoreService` owns proactive Life Track cadence as runtime-owned
+scheduler truth.
+
+It owns:
+
+- explicit opt-in autonomy mode for proactive Life Track execution
+- baseline cadence tick policy
+- host-owned reconciliation between cadence tick and typed next-hook timing
+- hook cadence-interaction semantics for long-running hooks
+- spacing, suspension, and budget gates applied after cadence selection
+
+It does not own:
+
+- Desktop-only preset truth for cadence mode
+- renderer-local scheduling logic
+- provider/model-owned scheduling logic
+
+Fixed rules:
+
+- proactive Life Track execution must remain explicit opt-in and default-off
+- admitted runtime-owned autonomy mode is bounded to `off`, `low`, `medium`,
+  and `high` unless a later rule admits a wider family
+- cadence and quota must remain distinct concerns; token budget is not primary
+  frequency truth
+- typed `next_hook_intent` may request callback timing, but host runtime
+  remains the only owner of effective next-run computation
+- admitted hook cadence interaction must remain typed rather than a freeform
+  boolean or scheduler blob
+- long-running hook suppression may delay baseline cadence tick only through
+  admitted hook cadence interaction semantics validated by Agent Core
+- `min_hook_interval` or its admitted successor remains a hard lower-bound
+  spacing gate after cadence and callback timing are reconciled
+- Chat Track remains reactive and available regardless of proactive Life Track
+  cadence mode

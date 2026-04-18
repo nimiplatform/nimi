@@ -218,6 +218,397 @@ func TestAgentCoreInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 }
 
+func TestAgentCoreAutonomyDefaultsOffWithoutImplicitEnable(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	initResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-autonomy-default-off",
+		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			DailyTokenBudget: 20,
+		},
+	})
+	if err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	if initResp.GetAgent().GetAutonomy().GetEnabled() {
+		t.Fatalf("expected default-off autonomy, got %#v", initResp.GetAgent().GetAutonomy())
+	}
+	if initResp.GetAgent().GetAutonomy().GetConfig().GetMode() != runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
+		t.Fatalf("expected OFF mode normalization, got %s", initResp.GetAgent().GetAutonomy().GetConfig().GetMode())
+	}
+}
+
+func TestAgentCoreSetAutonomyConfigDoesNotImplicitlyEnable(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-autonomy-config",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	resp, err := svc.SetAutonomyConfig(ctx, &runtimev1.SetAutonomyConfigRequest{
+		AgentId: "agent-autonomy-config",
+		Config: &runtimev1.AgentAutonomyConfig{
+			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
+			DailyTokenBudget: 10,
+		},
+	})
+	if err != nil {
+		t.Fatalf("SetAutonomyConfig: %v", err)
+	}
+	if resp.GetAutonomy().GetEnabled() {
+		t.Fatalf("expected config-only update to remain disabled, got %#v", resp.GetAutonomy())
+	}
+	if resp.GetAutonomy().GetConfig().GetMode() != runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW {
+		t.Fatalf("expected LOW mode, got %s", resp.GetAutonomy().GetConfig().GetMode())
+	}
+}
+
+func TestAgentCoreEnableAutonomyNoopWhenModeOff(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-autonomy-noop",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	resp, err := svc.EnableAutonomy(ctx, &runtimev1.EnableAutonomyRequest{
+		AgentId: "agent-autonomy-noop",
+	})
+	if err != nil {
+		t.Fatalf("EnableAutonomy: %v", err)
+	}
+	if resp.GetAutonomy().GetEnabled() {
+		t.Fatalf("expected OFF-mode enable to no-op, got %#v", resp.GetAutonomy())
+	}
+	if resp.GetAutonomy().GetConfig().GetMode() != runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
+		t.Fatalf("expected OFF mode, got %s", resp.GetAutonomy().GetConfig().GetMode())
+	}
+}
+
+func TestAgentCoreEnableAutonomyActivatesConfiguredMode(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-autonomy-enable",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	if _, err := svc.SetAutonomyConfig(ctx, &runtimev1.SetAutonomyConfigRequest{
+		AgentId: "agent-autonomy-enable",
+		Config: &runtimev1.AgentAutonomyConfig{
+			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM,
+			DailyTokenBudget: 20,
+		},
+	}); err != nil {
+		t.Fatalf("SetAutonomyConfig: %v", err)
+	}
+
+	resp, err := svc.EnableAutonomy(ctx, &runtimev1.EnableAutonomyRequest{
+		AgentId: "agent-autonomy-enable",
+	})
+	if err != nil {
+		t.Fatalf("EnableAutonomy: %v", err)
+	}
+	if !resp.GetAutonomy().GetEnabled() {
+		t.Fatalf("expected MEDIUM-mode autonomy to enable, got %#v", resp.GetAutonomy())
+	}
+	if resp.GetAutonomy().GetConfig().GetMode() != runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM {
+		t.Fatalf("expected MEDIUM mode, got %s", resp.GetAutonomy().GetConfig().GetMode())
+	}
+}
+
+func TestAgentCoreRunLifeTrackSweepAdmitsCadenceTickByMode(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		mode     runtimev1.AgentAutonomyMode
+		expected time.Duration
+	}{
+		{name: "low", mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW, expected: 120 * time.Minute},
+		{name: "medium", mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM, expected: 60 * time.Minute},
+		{name: "high", mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_HIGH, expected: 30 * time.Minute},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			svc := newAgentCoreTestService(t)
+			ctx := context.Background()
+			agentID := "agent-cadence-" + tc.name
+			if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+				AgentId: agentID,
+				AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+					Mode: tc.mode,
+				},
+			}); err != nil {
+				t.Fatalf("InitializeAgent: %v", err)
+			}
+			mustEnableAutonomy(t, svc, ctx, agentID)
+
+			now := time.Now().UTC()
+			if err := svc.runLifeTrackSweep(ctx, now); err != nil {
+				t.Fatalf("runLifeTrackSweep: %v", err)
+			}
+
+			hook := mustFindPendingCadenceHook(t, svc, ctx, agentID)
+			if got := hook.GetScheduledFor().AsTime().UTC(); !got.Equal(now.Add(tc.expected).UTC()) {
+				t.Fatalf("expected cadence tick at %s, got %s", now.Add(tc.expected).UTC(), got)
+			}
+		})
+	}
+}
+
+func TestAgentCoreRunLifeTrackSweepPrefersEarlierCallbackOverCadenceTick(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-earlier-callback",
+		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
+		},
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	mustEnableAutonomy(t, svc, ctx, "agent-earlier-callback")
+
+	now := time.Now().UTC()
+	callbackAt := now.Add(30 * time.Minute)
+	if err := svc.admitPendingHook("agent-earlier-callback", &runtimev1.PendingHook{
+		HookId: "hook-earlier-callback",
+		Trigger: &runtimev1.HookTriggerDetail{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{ScheduledFor: timestamppb.New(callbackAt)},
+			},
+		},
+		NextIntent: &runtimev1.NextHookIntent{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Reason:      "callback first",
+			Detail: &runtimev1.NextHookIntent_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{ScheduledFor: timestamppb.New(callbackAt)},
+			},
+		},
+		ScheduledFor: timestamppb.New(callbackAt),
+	}); err != nil {
+		t.Fatalf("admitPendingHook: %v", err)
+	}
+
+	if err := svc.runLifeTrackSweep(ctx, now); err != nil {
+		t.Fatalf("runLifeTrackSweep: %v", err)
+	}
+
+	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{AgentId: "agent-earlier-callback"})
+	if err != nil {
+		t.Fatalf("ListPendingHooks: %v", err)
+	}
+	if len(pendingResp.GetHooks()) != 1 || pendingResp.GetHooks()[0].GetHookId() != "hook-earlier-callback" {
+		t.Fatalf("expected only earlier callback hook to remain pending, got %#v", pendingResp.GetHooks())
+	}
+}
+
+func TestAgentCoreRunLifeTrackSweepDelaysCadenceTickUntilSuppressionExpires(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-suppress-expiry",
+		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
+		},
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	mustEnableAutonomy(t, svc, ctx, "agent-suppress-expiry")
+
+	now := time.Now().UTC()
+	expiresAt := now.Add(3 * time.Hour)
+	callbackAt := now.Add(8 * time.Hour)
+	if err := svc.admitPendingHook("agent-suppress-expiry", &runtimev1.PendingHook{
+		HookId: "hook-sleep",
+		Trigger: &runtimev1.HookTriggerDetail{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{ScheduledFor: timestamppb.New(callbackAt)},
+			},
+		},
+		NextIntent: &runtimev1.NextHookIntent{
+			TriggerKind:        runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Reason:             "sleep",
+			ExpiresAt:          timestamppb.New(expiresAt),
+			CadenceInteraction: runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED,
+			Detail: &runtimev1.NextHookIntent_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{ScheduledFor: timestamppb.New(callbackAt)},
+			},
+		},
+		ScheduledFor: timestamppb.New(callbackAt),
+	}); err != nil {
+		t.Fatalf("admitPendingHook: %v", err)
+	}
+
+	if err := svc.runLifeTrackSweep(ctx, now); err != nil {
+		t.Fatalf("runLifeTrackSweep: %v", err)
+	}
+
+	hook := mustFindPendingCadenceHook(t, svc, ctx, "agent-suppress-expiry")
+	if got := hook.GetScheduledFor().AsTime().UTC(); !got.Equal(expiresAt.UTC()) {
+		t.Fatalf("expected cadence tick at suppression expiry %s, got %s", expiresAt.UTC(), got)
+	}
+}
+
+func TestAgentCoreExecuteDueHooksRespectsMinSpacingForEarlyCallback(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-min-spacing",
+		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
+		},
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	mustEnableAutonomy(t, svc, ctx, "agent-min-spacing")
+
+	now := time.Now().UTC()
+	entry, err := svc.agentByID("agent-min-spacing")
+	if err != nil {
+		t.Fatalf("agentByID: %v", err)
+	}
+	entry.Hooks["hook-last-turn"] = &runtimev1.PendingHook{
+		HookId:       "hook-last-turn",
+		Status:       runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_COMPLETED,
+		ScheduledFor: timestamppb.New(now),
+		AdmittedAt:   timestamppb.New(now),
+	}
+	if err := svc.updateAgent(entry); err != nil {
+		t.Fatalf("updateAgent: %v", err)
+	}
+
+	tooEarly := now.Add(10 * time.Minute)
+	if err := svc.admitPendingHook("agent-min-spacing", &runtimev1.PendingHook{
+		HookId: "hook-too-early",
+		Trigger: &runtimev1.HookTriggerDetail{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{ScheduledFor: timestamppb.New(tooEarly)},
+			},
+		},
+		NextIntent: &runtimev1.NextHookIntent{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Reason:      "early callback",
+			Detail: &runtimev1.NextHookIntent_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{ScheduledFor: timestamppb.New(tooEarly)},
+			},
+		},
+		ScheduledFor: timestamppb.New(tooEarly),
+	}); err != nil {
+		t.Fatalf("admitPendingHook: %v", err)
+	}
+
+	outcomes, err := svc.executeDueHooks(ctx, tooEarly, func(context.Context, *lifeTurnRequest) (*lifeTurnResult, error) {
+		t.Fatal("executor should not run before min spacing")
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatalf("executeDueHooks: %v", err)
+	}
+	if len(outcomes) != 1 || outcomes[0].GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RESCHEDULED {
+		t.Fatalf("expected early callback to be rescheduled, got %#v", outcomes)
+	}
+	expected := now.Add(60 * time.Minute).UTC()
+	got := outcomes[0].GetRescheduled().GetNextIntent().GetScheduledTime().GetScheduledFor().AsTime().UTC()
+	if !got.Equal(expected) {
+		t.Fatalf("expected min spacing reschedule at %s, got %s", expected, got)
+	}
+}
+
+func TestValidateNextHookIntentRejectsSuppressUntilExpiredWithoutExpiresAt(t *testing.T) {
+	t.Parallel()
+
+	err := validateNextHookIntent(&runtimev1.NextHookIntent{
+		TriggerKind:        runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+		CadenceInteraction: runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED,
+		Detail: &runtimev1.NextHookIntent_ScheduledTime{
+			ScheduledTime: &runtimev1.ScheduledTimeHookIntent{ScheduledFor: timestamppb.Now()},
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", err)
+	}
+}
+
+func TestAgentCoreExecuteDueHooksRejectsOffModeAgent(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-off-mode-gate",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	entry, err := svc.agentByID("agent-off-mode-gate")
+	if err != nil {
+		t.Fatalf("agentByID: %v", err)
+	}
+	entry.Agent.Autonomy.Enabled = true
+	if err := svc.updateAgent(entry); err != nil {
+		t.Fatalf("updateAgent: %v", err)
+	}
+
+	now := time.Now().UTC()
+	if err := svc.admitPendingHook("agent-off-mode-gate", &runtimev1.PendingHook{
+		HookId: "hook-off-mode",
+		Trigger: &runtimev1.HookTriggerDetail{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{ScheduledFor: timestamppb.New(now.Add(-time.Second))},
+			},
+		},
+		NextIntent: &runtimev1.NextHookIntent{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.NextHookIntent_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{ScheduledFor: timestamppb.New(now.Add(-time.Second))},
+			},
+		},
+		ScheduledFor: timestamppb.New(now.Add(-time.Second)),
+	}); err != nil {
+		t.Fatalf("admitPendingHook: %v", err)
+	}
+
+	outcomes, err := svc.executeDueHooks(ctx, now, func(context.Context, *lifeTurnRequest) (*lifeTurnResult, error) {
+		t.Fatal("executor should not run when autonomy mode is off")
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatalf("executeDueHooks: %v", err)
+	}
+	if len(outcomes) != 1 || outcomes[0].GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_REJECTED {
+		t.Fatalf("expected rejected outcome for OFF-mode agent, got %#v", outcomes)
+	}
+	if !strings.Contains(strings.ToLower(outcomes[0].GetRejected().GetMessage()), "mode is off") {
+		t.Fatalf("expected OFF-mode rejection message, got %#v", outcomes[0].GetRejected())
+	}
+}
+
 func TestAgentCoreRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testing.T) {
 	t.Parallel()
 
@@ -2379,11 +2770,14 @@ func TestAgentCoreExecuteDueHooksProducesTerminalOutcomes(t *testing.T) {
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-exec",
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 50,
+			MinHookInterval:  durationpb.New(time.Nanosecond),
 		},
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
+	mustEnableAutonomy(t, svc, ctx, "agent-exec")
 
 	now := time.Now().UTC()
 	mustAdmit := func(hook *runtimev1.PendingHook) {
@@ -2510,11 +2904,13 @@ func TestAgentCoreExecuteDueHooksReschedulesBudgetExhaustedAgent(t *testing.T) {
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-budget",
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 10,
 		},
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
+	mustEnableAutonomy(t, svc, ctx, "agent-budget")
 	entry, err := svc.agentByID("agent-budget")
 	if err != nil {
 		t.Fatalf("agentByID: %v", err)
@@ -2626,11 +3022,13 @@ func TestAgentCoreLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-loop-reject",
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
 		},
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
+	mustEnableAutonomy(t, svc, ctx, "agent-loop-reject")
 
 	now := time.Now().UTC()
 	if err := svc.admitPendingHook("agent-loop-reject", &runtimev1.PendingHook{
@@ -2682,8 +3080,8 @@ func TestAgentCoreLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAgentState: %v", err)
 	}
-	if stateResp.GetState().GetExecutionState() != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE {
-		t.Fatalf("expected IDLE after rejection, got %s", stateResp.GetState().GetExecutionState())
+	if stateResp.GetState().GetExecutionState() != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING {
+		t.Fatalf("expected LIFE_PENDING after rejection because cadence tick is re-admitted, got %s", stateResp.GetState().GetExecutionState())
 	}
 }
 
@@ -2695,6 +3093,7 @@ func TestAgentCoreLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *testin
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-loop-events",
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 50,
 			MaxTokensPerHook: 1,
 			MinHookInterval:  durationpb.New(5 * time.Minute),
@@ -2703,6 +3102,7 @@ func TestAgentCoreLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *testin
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
+	mustEnableAutonomy(t, svc, ctx, "agent-loop-events")
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
 		AgentId: "agent-loop-events",
 		Mutations: []*runtimev1.AgentStateMutation{
@@ -2772,15 +3172,15 @@ func TestAgentCoreLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *testin
 		return err == nil && len(resp.GetHooks()) == 1
 	})
 
-	stream := newAgentEventCaptureStreamLimit(ctx, 4)
+	stream := newAgentEventCaptureStreamLimit(ctx, 5)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
 		AgentId: "agent-loop-events",
 		Cursor:  encodeCursor(cursor),
 	}, stream); err != context.Canceled {
 		t.Fatalf("SubscribeAgentEvents returned %v, want context.Canceled", err)
 	}
-	if len(stream.events) != 4 {
-		t.Fatalf("expected 4 committed events after loop, got %d", len(stream.events))
+	if len(stream.events) != 5 {
+		t.Fatalf("expected 5 committed events after loop including the next cadence tick, got %d", len(stream.events))
 	}
 	if stream.events[0].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK ||
 		stream.events[0].GetHook().GetOutcome().GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING {
@@ -2798,6 +3198,10 @@ func TestAgentCoreLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *testin
 	}
 	if stream.events[3].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET {
 		t.Fatalf("expected budget event fourth, got %#v", stream.events[3])
+	}
+	if stream.events[4].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK ||
+		stream.events[4].GetHook().GetOutcome().GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING {
+		t.Fatalf("expected cadence pending hook event fifth, got %#v", stream.events[4])
 	}
 
 	entry, err := svc.agentByID("agent-loop-events")
@@ -3379,11 +3783,13 @@ func TestAgentCoreLifeTrackLoopReschedulesWithAIOutput(t *testing.T) {
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-loop-reschedule",
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 50,
 		},
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
+	mustEnableAutonomy(t, svc, ctx, "agent-loop-reschedule")
 
 	now := time.Now().UTC()
 	followupAt := now.Add(10 * time.Minute)
@@ -3463,11 +3869,13 @@ func TestAgentCoreLifeTrackLoopPersistsBehavioralPostureFromAIOutput(t *testing.
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-loop-posture",
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
 		},
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
+	mustEnableAutonomy(t, svc, ctx, "agent-loop-posture")
 
 	now := time.Now().UTC()
 	if err := svc.admitPendingHook("agent-loop-posture", &runtimev1.PendingHook{
@@ -3549,11 +3957,13 @@ func TestAgentCoreLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-loop-invalid",
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
 		},
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
+	mustEnableAutonomy(t, svc, ctx, "agent-loop-invalid")
 
 	now := time.Now().UTC()
 	if err := svc.admitPendingHook("agent-loop-invalid", &runtimev1.PendingHook{
@@ -3615,19 +4025,24 @@ func TestAgentCoreLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 	if len(failedResp.GetHooks()) != 1 {
 		t.Fatalf("expected one failed hook, got %d", len(failedResp.GetHooks()))
 	}
-	stream := newAgentEventCaptureStreamLimit(ctx, 2)
+	stream := newAgentEventCaptureStreamLimit(ctx, 3)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
 		AgentId: "agent-loop-invalid",
 		Cursor:  encodeCursor(cursor),
 	}, stream); err != context.Canceled {
 		t.Fatalf("SubscribeAgentEvents returned %v, want context.Canceled", err)
 	}
-	last := stream.events[len(stream.events)-1]
-	if last.GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK {
-		t.Fatalf("expected last event hook failure, got %#v", last)
+	foundFailure := false
+	for _, event := range stream.events {
+		if event.GetEventType() == runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK &&
+			event.GetHook().GetOutcome().GetStatus() == runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED &&
+			event.GetHook().GetOutcome().GetFailed().GetReasonCode() == runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+			foundFailure = true
+			break
+		}
 	}
-	if last.GetHook().GetOutcome().GetFailed().GetReasonCode() != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
-		t.Fatalf("expected AI_OUTPUT_INVALID, got %#v", last.GetHook().GetOutcome())
+	if !foundFailure {
+		t.Fatalf("expected AI_OUTPUT_INVALID failure event in %#v", stream.events)
 	}
 }
 
@@ -3639,11 +4054,13 @@ func TestAgentCoreLifeTrackLoopFailsOnInvalidBehavioralPostureOutput(t *testing.
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-loop-invalid-posture",
 		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			Mode:             runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW,
 			DailyTokenBudget: 25,
 		},
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
+	mustEnableAutonomy(t, svc, ctx, "agent-loop-invalid-posture")
 
 	now := time.Now().UTC()
 	if err := svc.admitPendingHook("agent-loop-invalid-posture", &runtimev1.PendingHook{
@@ -4068,6 +4485,97 @@ func TestLifeTurnPromptsFrameEvidenceAsStabilizedCandidateInput(t *testing.T) {
 	}
 }
 
+func TestChatTrackSidecarPromptsFrameCadenceInteractionAsBoundedHostOwnedHint(t *testing.T) {
+	t.Parallel()
+
+	systemPrompt, _, err := chatTrackSidecarPrompts(&ChatTrackSidecarExecutorRequest{
+		Agent: &runtimev1.AgentRecord{AgentId: "agent-chat-cadence-prompt"},
+		State: &runtimev1.AgentStateProjection{},
+	})
+	if err != nil {
+		t.Fatalf("chatTrackSidecarPrompts: %v", err)
+	}
+	if !strings.Contains(systemPrompt, "runtime host still owns cadence truth") {
+		t.Fatalf("expected prompt to keep cadence host-owned, got %q", systemPrompt)
+	}
+	if !strings.Contains(systemPrompt, "SUPPRESS_BASE_TICK_UNTIL_EXPIRED") {
+		t.Fatalf("expected prompt to admit bounded cadence interaction variants, got %q", systemPrompt)
+	}
+	if !strings.Contains(systemPrompt, "always include expires_at") {
+		t.Fatalf("expected prompt to require expires_at for expiry suppression, got %q", systemPrompt)
+	}
+}
+
+func TestLifeTurnPromptsFrameCadenceInteractionAsBoundedHostOwnedHint(t *testing.T) {
+	t.Parallel()
+
+	systemPrompt, _, err := lifeTurnPrompts(&lifeTurnRequest{
+		Agent:    &runtimev1.AgentRecord{AgentId: "agent-life-cadence-prompt"},
+		State:    &runtimev1.AgentStateProjection{},
+		Hook:     &runtimev1.PendingHook{HookId: "hook-life-prompt"},
+		Autonomy: &runtimev1.AgentAutonomyState{},
+	})
+	if err != nil {
+		t.Fatalf("lifeTurnPrompts: %v", err)
+	}
+	if !strings.Contains(systemPrompt, "runtime host still owns cadence truth") {
+		t.Fatalf("expected prompt to keep cadence host-owned, got %q", systemPrompt)
+	}
+	if !strings.Contains(systemPrompt, "SUPPRESS_BASE_TICK_UNTIL_FIRED") {
+		t.Fatalf("expected prompt to admit bounded cadence interaction variants, got %q", systemPrompt)
+	}
+	if !strings.Contains(systemPrompt, "sleep, meditation, focused deep work") {
+		t.Fatalf("expected prompt to scope suppression to sustained states, got %q", systemPrompt)
+	}
+}
+
+func TestDecodeLifeTurnExecutorResultAcceptsCadenceInteractionIntent(t *testing.T) {
+	t.Parallel()
+
+	expiresAt := time.Now().UTC().Add(2 * time.Hour).Format(time.RFC3339)
+	result, err := decodeLifeTurnExecutorResult(fmt.Sprintf(`{
+		"summary":"sleeping",
+		"tokens_used":1,
+		"canonical_memory_candidates":[],
+		"next_hook_intent":{
+			"triggerKind":"HOOK_TRIGGER_KIND_SCHEDULED_TIME",
+			"reason":"sleep",
+			"expiresAt":"%s",
+			"cadenceInteraction":"HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED",
+			"scheduledTime":{"scheduledFor":"%s"}
+		}
+	}`, expiresAt, expiresAt), 0)
+	if err != nil {
+		t.Fatalf("decodeLifeTurnExecutorResult: %v", err)
+	}
+	if result.NextHookIntent == nil || result.NextHookIntent.GetCadenceInteraction() != runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED {
+		t.Fatalf("expected cadence interaction to round-trip, got %#v", result.NextHookIntent)
+	}
+}
+
+func TestDecodeChatTrackSidecarExecutorResultRejectsSuppressUntilExpiredWithoutExpiresAt(t *testing.T) {
+	t.Parallel()
+
+	_, err := decodeChatTrackSidecarExecutorResult(`{
+		"behavioral_posture":null,
+		"cancel_pending_hook_ids":[],
+		"next_hook_intent":{
+			"triggerKind":"HOOK_TRIGGER_KIND_SCHEDULED_TIME",
+			"reason":"sleep",
+			"cadenceInteraction":"HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED",
+			"scheduledTime":{"scheduledFor":"2026-04-19T12:00:00Z"}
+		},
+		"canonical_memory_candidates":[]
+	}`, &ChatTrackSidecarExecutorRequest{
+		Agent:        &runtimev1.AgentRecord{AgentId: "agent-chat-cadence-decode"},
+		State:        &runtimev1.AgentStateProjection{},
+		PendingHooks: []*runtimev1.PendingHook{},
+	})
+	if err == nil || !strings.Contains(err.Error(), "next_hook_intent invalid") {
+		t.Fatalf("expected bounded cadence interaction validation error, got %v", err)
+	}
+}
+
 func TestAgentCoreConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *testing.T) {
 	t.Parallel()
 
@@ -4249,6 +4757,34 @@ func newAgentCoreTestService(t *testing.T) *Service {
 		t.Fatalf("agentcore.New: %v", err)
 	}
 	return svc
+}
+
+func mustEnableAutonomy(t *testing.T, svc *Service, ctx context.Context, agentID string) {
+	t.Helper()
+	resp, err := svc.EnableAutonomy(ctx, &runtimev1.EnableAutonomyRequest{
+		AgentId: agentID,
+	})
+	if err != nil {
+		t.Fatalf("EnableAutonomy(%s): %v", agentID, err)
+	}
+	if !resp.GetAutonomy().GetEnabled() {
+		t.Fatalf("expected autonomy enabled for %s, got %#v", agentID, resp.GetAutonomy())
+	}
+}
+
+func mustFindPendingCadenceHook(t *testing.T, svc *Service, ctx context.Context, agentID string) *runtimev1.PendingHook {
+	t.Helper()
+	resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{AgentId: agentID})
+	if err != nil {
+		t.Fatalf("ListPendingHooks(%s): %v", agentID, err)
+	}
+	for _, hook := range resp.GetHooks() {
+		if hook != nil && hook.GetNextIntent() != nil && hook.GetNextIntent().GetReason() == autonomyCadenceHookReason {
+			return hook
+		}
+	}
+	t.Fatalf("expected pending cadence hook for %s, got %#v", agentID, resp.GetHooks())
+	return nil
 }
 
 type agentCoreFakeBridgeAdapter struct {

@@ -8,12 +8,24 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+const (
+	autonomyCadenceHookReason       = "runtime.autonomy.cadence_tick"
+	autonomyCadenceHookCancelReason = "runtime autonomy cadence reconciliation"
+)
+
+type resolvedCadencePolicy struct {
+	mode       runtimev1.AgentAutonomyMode
+	baseTick   time.Duration
+	minSpacing time.Duration
+}
 
 func normalizePendingHook(input *runtimev1.PendingHook, now time.Time) (*runtimev1.PendingHook, error) {
 	if input == nil || strings.TrimSpace(input.GetHookId()) == "" || input.GetTrigger() == nil || input.GetNextIntent() == nil {
@@ -130,6 +142,21 @@ func validateHookTriggerDetail(detail *runtimev1.HookTriggerDetail) error {
 
 func validateNextHookIntent(intent *runtimev1.NextHookIntent) error {
 	if intent == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if intent.GetNotBefore() != nil && intent.GetExpiresAt() != nil &&
+		intent.GetExpiresAt().AsTime().Before(intent.GetNotBefore().AsTime()) {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	switch intent.GetCadenceInteraction() {
+	case runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_UNSPECIFIED,
+		runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_NORMAL,
+		runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED:
+	case runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED:
+		if intent.GetExpiresAt() == nil || intent.GetExpiresAt().AsTime().IsZero() {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+	default:
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	switch intent.GetTriggerKind() {
@@ -292,7 +319,7 @@ func (s *Service) duePendingHooks(now time.Time) []dueHookRef {
 	return items
 }
 
-func gateHookExecution(entry *agentEntry, now time.Time) *hookExecutionDecision {
+func gateHookExecution(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) *hookExecutionDecision {
 	if entry == nil || entry.Agent == nil || entry.State == nil {
 		return rejectedHookDecision(runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "hook execution requires committed agent state")
 	}
@@ -302,6 +329,9 @@ func gateHookExecution(entry *agentEntry, now time.Time) *hookExecutionDecision 
 	autonomy := entry.Agent.GetAutonomy()
 	if autonomy == nil || !autonomy.GetEnabled() {
 		return rejectedHookDecision(runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "agent autonomy is disabled")
+	}
+	if autonomyMode(autonomy.GetConfig()) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
+		return rejectedHookDecision(runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "agent autonomy mode is off")
 	}
 	if suspendedUntil := autonomy.GetSuspendedUntil(); suspendedUntil != nil && suspendedUntil.AsTime().After(now) {
 		return rescheduledHookDecision(&runtimev1.NextHookIntent{
@@ -328,7 +358,326 @@ func gateHookExecution(entry *agentEntry, now time.Time) *hookExecutionDecision 
 			},
 		}, 0)
 	}
+	if policy, ok := resolveCadencePolicy(autonomy.GetConfig()); ok {
+		if anchor, ok := latestLifeTurnAnchor(entry); ok {
+			minAllowed := anchor.Add(policy.minSpacing)
+			if now.Before(minAllowed) {
+				return rescheduledHookDecision(&runtimev1.NextHookIntent{
+					TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+					NotBefore:   timestamppb.New(minAllowed),
+					Reason:      firstNonEmpty(hook.GetNextIntent().GetReason(), "min spacing gate"),
+					Detail: &runtimev1.NextHookIntent_ScheduledTime{
+						ScheduledTime: &runtimev1.ScheduledTimeHookIntent{
+							ScheduledFor: timestamppb.New(minAllowed),
+						},
+					},
+				}, 0)
+			}
+		}
+	}
 	return nil
+}
+
+func resolveCadencePolicy(config *runtimev1.AgentAutonomyConfig) (resolvedCadencePolicy, bool) {
+	mode := autonomyMode(config)
+	switch mode {
+	case runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW:
+		return resolvedCadencePolicy{
+			mode:       mode,
+			baseTick:   120 * time.Minute,
+			minSpacing: firstPositiveDuration(config.GetMinHookInterval(), 60*time.Minute),
+		}, true
+	case runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM:
+		return resolvedCadencePolicy{
+			mode:       mode,
+			baseTick:   60 * time.Minute,
+			minSpacing: firstPositiveDuration(config.GetMinHookInterval(), 30*time.Minute),
+		}, true
+	case runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_HIGH:
+		return resolvedCadencePolicy{
+			mode:       mode,
+			baseTick:   30 * time.Minute,
+			minSpacing: firstPositiveDuration(config.GetMinHookInterval(), 15*time.Minute),
+		}, true
+	default:
+		return resolvedCadencePolicy{}, false
+	}
+}
+
+func firstPositiveDuration(value *durationpb.Duration, fallback time.Duration) time.Duration {
+	if value == nil {
+		return fallback
+	}
+	duration := value.AsDuration()
+	if duration <= 0 {
+		return fallback
+	}
+	return duration
+}
+
+func isCadenceTickIntent(intent *runtimev1.NextHookIntent) bool {
+	return intent != nil &&
+		intent.GetTriggerKind() == runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME &&
+		strings.TrimSpace(intent.GetReason()) == autonomyCadenceHookReason
+}
+
+func isCadenceTickHook(hook *runtimev1.PendingHook) bool {
+	return hook != nil && isCadenceTickIntent(hook.GetNextIntent())
+}
+
+func latestLifeTurnAnchor(entry *agentEntry) (time.Time, bool) {
+	if entry == nil {
+		return time.Time{}, false
+	}
+	var latest time.Time
+	for _, hook := range entry.Hooks {
+		if hook == nil {
+			continue
+		}
+		switch hook.GetStatus() {
+		case runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_COMPLETED,
+			runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED,
+			runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RESCHEDULED,
+			runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_REJECTED:
+		default:
+			continue
+		}
+		candidate := time.Time{}
+		if hook.GetScheduledFor() != nil && !hook.GetScheduledFor().AsTime().IsZero() {
+			candidate = hook.GetScheduledFor().AsTime().UTC()
+		} else if hook.GetAdmittedAt() != nil && !hook.GetAdmittedAt().AsTime().IsZero() {
+			candidate = hook.GetAdmittedAt().AsTime().UTC()
+		}
+		if candidate.IsZero() {
+			continue
+		}
+		if latest.IsZero() || candidate.After(latest) {
+			latest = candidate
+		}
+	}
+	if latest.IsZero() {
+		return time.Time{}, false
+	}
+	return latest, true
+}
+
+func activeCadenceSuppressionUntil(entry *agentEntry, now time.Time) (time.Time, bool) {
+	if entry == nil {
+		return time.Time{}, false
+	}
+	var suppression time.Time
+	for _, hook := range entry.Hooks {
+		if hook == nil || isCadenceTickHook(hook) {
+			continue
+		}
+		if hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING &&
+			hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING {
+			continue
+		}
+		intent := hook.GetNextIntent()
+		if intent == nil {
+			continue
+		}
+		var candidate time.Time
+		switch intent.GetCadenceInteraction() {
+		case runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED:
+			if hook.GetScheduledFor() != nil && !hook.GetScheduledFor().AsTime().IsZero() {
+				candidate = hook.GetScheduledFor().AsTime().UTC()
+			}
+		case runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED:
+			if intent.GetExpiresAt() != nil && !intent.GetExpiresAt().AsTime().IsZero() {
+				candidate = intent.GetExpiresAt().AsTime().UTC()
+			}
+		}
+		if candidate.IsZero() || candidate.Before(now) {
+			continue
+		}
+		if suppression.IsZero() || candidate.After(suppression) {
+			suppression = candidate
+		}
+	}
+	if suppression.IsZero() {
+		return time.Time{}, false
+	}
+	return suppression, true
+}
+
+func earliestPendingNonCadenceHookAt(entry *agentEntry) (time.Time, bool) {
+	if entry == nil {
+		return time.Time{}, false
+	}
+	var earliest time.Time
+	for _, hook := range entry.Hooks {
+		if hook == nil || isCadenceTickHook(hook) || hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING {
+			continue
+		}
+		if hook.GetScheduledFor() == nil || hook.GetScheduledFor().AsTime().IsZero() {
+			continue
+		}
+		candidate := hook.GetScheduledFor().AsTime().UTC()
+		if earliest.IsZero() || candidate.Before(earliest) {
+			earliest = candidate
+		}
+	}
+	if earliest.IsZero() {
+		return time.Time{}, false
+	}
+	return earliest, true
+}
+
+func cadenceTickScheduledAt(entry *agentEntry, now time.Time) (time.Time, bool) {
+	if entry == nil || entry.Agent == nil || entry.Agent.GetAutonomy() == nil || !entry.Agent.GetAutonomy().GetEnabled() {
+		return time.Time{}, false
+	}
+	policy, ok := resolveCadencePolicy(entry.Agent.GetAutonomy().GetConfig())
+	if !ok {
+		return time.Time{}, false
+	}
+	anchor := now
+	if latest, ok := latestLifeTurnAnchor(entry); ok {
+		anchor = latest
+	}
+	scheduledAt := anchor.Add(policy.baseTick)
+	if scheduledAt.Before(now) {
+		scheduledAt = now
+	}
+	if suppression, ok := activeCadenceSuppressionUntil(entry, now); ok && suppression.After(scheduledAt) {
+		scheduledAt = suppression
+	}
+	if latest, ok := latestLifeTurnAnchor(entry); ok {
+		minAllowed := latest.Add(policy.minSpacing)
+		if scheduledAt.Before(minAllowed) {
+			scheduledAt = minAllowed
+		}
+	}
+	return scheduledAt.UTC(), true
+}
+
+func cadenceTickIntent(scheduledAt time.Time) *runtimev1.NextHookIntent {
+	return &runtimev1.NextHookIntent{
+		TriggerKind:        runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+		NotBefore:          timestamppb.New(scheduledAt),
+		Reason:             autonomyCadenceHookReason,
+		CadenceInteraction: runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_NORMAL,
+		Detail: &runtimev1.NextHookIntent_ScheduledTime{
+			ScheduledTime: &runtimev1.ScheduledTimeHookIntent{
+				ScheduledFor: timestamppb.New(scheduledAt),
+			},
+		},
+	}
+}
+
+func cadenceTickTrigger(scheduledAt time.Time) *runtimev1.HookTriggerDetail {
+	return &runtimev1.HookTriggerDetail{
+		TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+		Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
+			ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{
+				ScheduledFor: timestamppb.New(scheduledAt),
+			},
+		},
+	}
+}
+
+func (s *Service) reconcileCadenceHooks(now time.Time) error {
+	s.mu.RLock()
+	agentIDs := make([]string, 0, len(s.agents))
+	for agentID := range s.agents {
+		agentIDs = append(agentIDs, agentID)
+	}
+	s.mu.RUnlock()
+	sort.Strings(agentIDs)
+	for _, agentID := range agentIDs {
+		if err := s.reconcileAgentCadenceHook(agentID, now); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error {
+	entry, err := s.agentByID(strings.TrimSpace(agentID))
+	if err != nil {
+		return nil
+	}
+
+	pendingCadence := make([]*runtimev1.PendingHook, 0)
+	for _, hook := range entry.Hooks {
+		if hook != nil && isCadenceTickHook(hook) && hook.GetStatus() == runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING {
+			pendingCadence = append(pendingCadence, hook)
+		}
+	}
+	sort.Slice(pendingCadence, func(i, j int) bool {
+		return pendingCadence[i].GetHookId() < pendingCadence[j].GetHookId()
+	})
+
+	cancelHooks := func(hooks []*runtimev1.PendingHook, reason string) error {
+		if len(hooks) == 0 {
+			return nil
+		}
+		events := make([]*runtimev1.AgentEvent, 0, len(hooks))
+		for _, hook := range hooks {
+			hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED
+			events = append(events, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+				HookId:     hook.GetHookId(),
+				Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED,
+				Trigger:    cloneTriggerDetail(hook.GetTrigger()),
+				ObservedAt: timestamppb.New(now),
+				Detail: &runtimev1.HookExecutionOutcome_Canceled{
+					Canceled: &runtimev1.HookCanceledDetail{
+						CanceledBy: "runtime",
+						Reason:     firstNonEmpty(strings.TrimSpace(reason), autonomyCadenceHookCancelReason),
+					},
+				},
+			}, now))
+		}
+		refreshLifeTrackState(entry, now)
+		return s.updateAgent(entry, events...)
+	}
+
+	autonomy := entry.Agent.GetAutonomy()
+	if autonomy == nil || !autonomy.GetEnabled() || autonomyMode(autonomy.GetConfig()) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
+		return cancelHooks(pendingCadence, "autonomy disabled or off")
+	}
+
+	scheduledAt, ok := cadenceTickScheduledAt(entry, now)
+	if !ok {
+		return cancelHooks(pendingCadence, "cadence mode unavailable")
+	}
+	if earliestOther, ok := earliestPendingNonCadenceHookAt(entry); ok && !earliestOther.After(scheduledAt) {
+		return cancelHooks(pendingCadence, "earlier non-cadence hook admitted")
+	}
+
+	if len(pendingCadence) == 0 {
+		hookID := "hook_tick_" + ulid.Make().String()
+		entry.Hooks[hookID] = &runtimev1.PendingHook{
+			HookId:       hookID,
+			Status:       runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
+			Trigger:      cadenceTickTrigger(scheduledAt),
+			NextIntent:   cadenceTickIntent(scheduledAt),
+			ScheduledFor: timestamppb.New(scheduledAt),
+			AdmittedAt:   timestamppb.New(now),
+		}
+		refreshLifeTrackState(entry, now)
+		return s.updateAgent(entry, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+			HookId:     hookID,
+			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
+			Trigger:    cadenceTickTrigger(scheduledAt),
+			ObservedAt: timestamppb.New(now),
+		}, now))
+	}
+
+	primary := pendingCadence[0]
+	primary.Trigger = cadenceTickTrigger(scheduledAt)
+	primary.NextIntent = cadenceTickIntent(scheduledAt)
+	primary.ScheduledFor = timestamppb.New(scheduledAt)
+	refreshLifeTrackState(entry, now)
+	if err := s.updateAgent(entry); err != nil {
+		return err
+	}
+	if len(pendingCadence) <= 1 {
+		return nil
+	}
+	return cancelHooks(pendingCadence[1:], "duplicate cadence hooks")
 }
 
 func nextAutonomyWindowStart(autonomy *runtimev1.AgentAutonomyState, now time.Time) time.Time {

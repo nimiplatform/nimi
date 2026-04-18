@@ -424,6 +424,113 @@ func (AgentEventType) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_core_proto_rawDescGZIP(), []int{6}
 }
 
+type AgentAutonomyMode int32
+
+const (
+	AgentAutonomyMode_AGENT_AUTONOMY_MODE_UNSPECIFIED AgentAutonomyMode = 0
+	AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF         AgentAutonomyMode = 1
+	AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW         AgentAutonomyMode = 2
+	AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM      AgentAutonomyMode = 3
+	AgentAutonomyMode_AGENT_AUTONOMY_MODE_HIGH        AgentAutonomyMode = 4
+)
+
+// Enum value maps for AgentAutonomyMode.
+var (
+	AgentAutonomyMode_name = map[int32]string{
+		0: "AGENT_AUTONOMY_MODE_UNSPECIFIED",
+		1: "AGENT_AUTONOMY_MODE_OFF",
+		2: "AGENT_AUTONOMY_MODE_LOW",
+		3: "AGENT_AUTONOMY_MODE_MEDIUM",
+		4: "AGENT_AUTONOMY_MODE_HIGH",
+	}
+	AgentAutonomyMode_value = map[string]int32{
+		"AGENT_AUTONOMY_MODE_UNSPECIFIED": 0,
+		"AGENT_AUTONOMY_MODE_OFF":         1,
+		"AGENT_AUTONOMY_MODE_LOW":         2,
+		"AGENT_AUTONOMY_MODE_MEDIUM":      3,
+		"AGENT_AUTONOMY_MODE_HIGH":        4,
+	}
+)
+
+func (x AgentAutonomyMode) Enum() *AgentAutonomyMode {
+	p := new(AgentAutonomyMode)
+	*p = x
+	return p
+}
+
+func (x AgentAutonomyMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AgentAutonomyMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_agent_core_proto_enumTypes[7].Descriptor()
+}
+
+func (AgentAutonomyMode) Type() protoreflect.EnumType {
+	return &file_runtime_v1_agent_core_proto_enumTypes[7]
+}
+
+func (x AgentAutonomyMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AgentAutonomyMode.Descriptor instead.
+func (AgentAutonomyMode) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_core_proto_rawDescGZIP(), []int{7}
+}
+
+type HookCadenceInteraction int32
+
+const (
+	HookCadenceInteraction_HOOK_CADENCE_INTERACTION_UNSPECIFIED                      HookCadenceInteraction = 0
+	HookCadenceInteraction_HOOK_CADENCE_INTERACTION_NORMAL                           HookCadenceInteraction = 1
+	HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED   HookCadenceInteraction = 2
+	HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED HookCadenceInteraction = 3
+)
+
+// Enum value maps for HookCadenceInteraction.
+var (
+	HookCadenceInteraction_name = map[int32]string{
+		0: "HOOK_CADENCE_INTERACTION_UNSPECIFIED",
+		1: "HOOK_CADENCE_INTERACTION_NORMAL",
+		2: "HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED",
+		3: "HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED",
+	}
+	HookCadenceInteraction_value = map[string]int32{
+		"HOOK_CADENCE_INTERACTION_UNSPECIFIED":                      0,
+		"HOOK_CADENCE_INTERACTION_NORMAL":                           1,
+		"HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED":   2,
+		"HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED": 3,
+	}
+)
+
+func (x HookCadenceInteraction) Enum() *HookCadenceInteraction {
+	p := new(HookCadenceInteraction)
+	*p = x
+	return p
+}
+
+func (x HookCadenceInteraction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HookCadenceInteraction) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_agent_core_proto_enumTypes[8].Descriptor()
+}
+
+func (HookCadenceInteraction) Type() protoreflect.EnumType {
+	return &file_runtime_v1_agent_core_proto_enumTypes[8]
+}
+
+func (x HookCadenceInteraction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HookCadenceInteraction.Descriptor instead.
+func (HookCadenceInteraction) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_core_proto_rawDescGZIP(), []int{8}
+}
+
 type AgentRequestContext struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
@@ -482,6 +589,7 @@ type AgentAutonomyConfig struct {
 	MaxTokensPerHook int64                  `protobuf:"varint,2,opt,name=max_tokens_per_hook,json=maxTokensPerHook,proto3" json:"max_tokens_per_hook,omitempty"`
 	MinHookInterval  *durationpb.Duration   `protobuf:"bytes,3,opt,name=min_hook_interval,json=minHookInterval,proto3" json:"min_hook_interval,omitempty"`
 	SuspendUntil     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=suspend_until,json=suspendUntil,proto3" json:"suspend_until,omitempty"`
+	Mode             AgentAutonomyMode      `protobuf:"varint,5,opt,name=mode,proto3,enum=nimi.runtime.v1.AgentAutonomyMode" json:"mode,omitempty"`
 	Extensions       *structpb.Struct       `protobuf:"bytes,10,opt,name=extensions,proto3" json:"extensions,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
@@ -543,6 +651,13 @@ func (x *AgentAutonomyConfig) GetSuspendUntil() *timestamppb.Timestamp {
 		return x.SuspendUntil
 	}
 	return nil
+}
+
+func (x *AgentAutonomyConfig) GetMode() AgentAutonomyMode {
+	if x != nil {
+		return x.Mode
+	}
+	return AgentAutonomyMode_AGENT_AUTONOMY_MODE_UNSPECIFIED
 }
 
 func (x *AgentAutonomyConfig) GetExtensions() *structpb.Struct {
@@ -2089,11 +2204,12 @@ func (x *WorldEventHookIntent) GetEventId() string {
 }
 
 type NextHookIntent struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	TriggerKind HookTriggerKind        `protobuf:"varint,1,opt,name=trigger_kind,json=triggerKind,proto3,enum=nimi.runtime.v1.HookTriggerKind" json:"trigger_kind,omitempty"`
-	NotBefore   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=not_before,json=notBefore,proto3" json:"not_before,omitempty"`
-	ExpiresAt   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	Reason      string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	TriggerKind        HookTriggerKind        `protobuf:"varint,1,opt,name=trigger_kind,json=triggerKind,proto3,enum=nimi.runtime.v1.HookTriggerKind" json:"trigger_kind,omitempty"`
+	NotBefore          *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=not_before,json=notBefore,proto3" json:"not_before,omitempty"`
+	ExpiresAt          *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Reason             string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	CadenceInteraction HookCadenceInteraction `protobuf:"varint,5,opt,name=cadence_interaction,json=cadenceInteraction,proto3,enum=nimi.runtime.v1.HookCadenceInteraction" json:"cadence_interaction,omitempty"`
 	// Types that are valid to be assigned to Detail:
 	//
 	//	*NextHookIntent_TurnCompleted
@@ -2164,6 +2280,13 @@ func (x *NextHookIntent) GetReason() string {
 		return x.Reason
 	}
 	return ""
+}
+
+func (x *NextHookIntent) GetCadenceInteraction() HookCadenceInteraction {
+	if x != nil {
+		return x.CadenceInteraction
+	}
+	return HookCadenceInteraction_HOOK_CADENCE_INTERACTION_UNSPECIFIED
 }
 
 func (x *NextHookIntent) GetDetail() isNextHookIntent_Detail {
@@ -5029,12 +5152,13 @@ const file_runtime_v1_agent_core_proto_rawDesc = "" +
 	"\x1bruntime/v1/agent_core.proto\x12\x0fnimi.runtime.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\x1a\x17runtime/v1/memory.proto\"T\n" +
 	"\x13AgentRequestContext\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\"\xb3\x02\n" +
+	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\"\xeb\x02\n" +
 	"\x13AgentAutonomyConfig\x12,\n" +
 	"\x12daily_token_budget\x18\x01 \x01(\x03R\x10dailyTokenBudget\x12-\n" +
 	"\x13max_tokens_per_hook\x18\x02 \x01(\x03R\x10maxTokensPerHook\x12E\n" +
 	"\x11min_hook_interval\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\x0fminHookInterval\x12?\n" +
-	"\rsuspend_until\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\fsuspendUntil\x127\n" +
+	"\rsuspend_until\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\fsuspendUntil\x126\n" +
+	"\x04mode\x18\x05 \x01(\x0e2\".nimi.runtime.v1.AgentAutonomyModeR\x04mode\x127\n" +
 	"\n" +
 	"extensions\x18\n" +
 	" \x01(\v2\x17.google.protobuf.StructR\n" +
@@ -5143,14 +5267,15 @@ const file_runtime_v1_agent_core_proto_rawDesc = "" +
 	"\bworld_id\x18\x01 \x01(\tR\aworldId\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x02 \x01(\tR\teventType\x12\x19\n" +
-	"\bevent_id\x18\x03 \x01(\tR\aeventId\"\x81\x06\n" +
+	"\bevent_id\x18\x03 \x01(\tR\aeventId\"\xdb\x06\n" +
 	"\x0eNextHookIntent\x12C\n" +
 	"\ftrigger_kind\x18\x01 \x01(\x0e2 .nimi.runtime.v1.HookTriggerKindR\vtriggerKind\x129\n" +
 	"\n" +
 	"not_before\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tnotBefore\x129\n" +
 	"\n" +
 	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x16\n" +
-	"\x06reason\x18\x04 \x01(\tR\x06reason\x12Q\n" +
+	"\x06reason\x18\x04 \x01(\tR\x06reason\x12X\n" +
+	"\x13cadence_interaction\x18\x05 \x01(\x0e2'.nimi.runtime.v1.HookCadenceInteractionR\x12cadenceInteraction\x12Q\n" +
 	"\x0eturn_completed\x18\n" +
 	" \x01(\v2(.nimi.runtime.v1.TurnCompletedHookIntentH\x00R\rturnCompleted\x12Q\n" +
 	"\x0escheduled_time\x18\v \x01(\v2(.nimi.runtime.v1.ScheduledTimeHookIntentH\x00R\rscheduledTime\x12B\n" +
@@ -5409,7 +5534,18 @@ const file_runtime_v1_agent_core_proto_rawDesc = "" +
 	"\x15AGENT_EVENT_TYPE_HOOK\x10\x02\x12\x1b\n" +
 	"\x17AGENT_EVENT_TYPE_MEMORY\x10\x03\x12\x1b\n" +
 	"\x17AGENT_EVENT_TYPE_BUDGET\x10\x04\x12 \n" +
-	"\x1cAGENT_EVENT_TYPE_REPLICATION\x10\x052\xff\n" +
+	"\x1cAGENT_EVENT_TYPE_REPLICATION\x10\x05*\xb0\x01\n" +
+	"\x11AgentAutonomyMode\x12#\n" +
+	"\x1fAGENT_AUTONOMY_MODE_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17AGENT_AUTONOMY_MODE_OFF\x10\x01\x12\x1b\n" +
+	"\x17AGENT_AUTONOMY_MODE_LOW\x10\x02\x12\x1e\n" +
+	"\x1aAGENT_AUTONOMY_MODE_MEDIUM\x10\x03\x12\x1c\n" +
+	"\x18AGENT_AUTONOMY_MODE_HIGH\x10\x04*\xe3\x01\n" +
+	"\x16HookCadenceInteraction\x12(\n" +
+	"$HOOK_CADENCE_INTERACTION_UNSPECIFIED\x10\x00\x12#\n" +
+	"\x1fHOOK_CADENCE_INTERACTION_NORMAL\x10\x01\x12;\n" +
+	"7HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED\x10\x02\x12=\n" +
+	"9HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED\x10\x032\xff\n" +
 	"\n" +
 	"\x17RuntimeAgentCoreService\x12d\n" +
 	"\x0fInitializeAgent\x12'.nimi.runtime.v1.InitializeAgentRequest\x1a(.nimi.runtime.v1.InitializeAgentResponse\x12a\n" +
@@ -5441,7 +5577,7 @@ func file_runtime_v1_agent_core_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_agent_core_proto_rawDescData
 }
 
-var file_runtime_v1_agent_core_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_runtime_v1_agent_core_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
 var file_runtime_v1_agent_core_proto_msgTypes = make([]protoimpl.MessageInfo, 73)
 var file_runtime_v1_agent_core_proto_goTypes = []any{
 	(AgentLifecycleStatus)(0),            // 0: nimi.runtime.v1.AgentLifecycleStatus
@@ -5451,255 +5587,259 @@ var file_runtime_v1_agent_core_proto_goTypes = []any{
 	(CompoundTriggerOperator)(0),         // 4: nimi.runtime.v1.CompoundTriggerOperator
 	(AgentHookStatus)(0),                 // 5: nimi.runtime.v1.AgentHookStatus
 	(AgentEventType)(0),                  // 6: nimi.runtime.v1.AgentEventType
-	(*AgentRequestContext)(nil),          // 7: nimi.runtime.v1.AgentRequestContext
-	(*AgentAutonomyConfig)(nil),          // 8: nimi.runtime.v1.AgentAutonomyConfig
-	(*AgentAutonomyState)(nil),           // 9: nimi.runtime.v1.AgentAutonomyState
-	(*AgentRecord)(nil),                  // 10: nimi.runtime.v1.AgentRecord
-	(*AgentStateProjection)(nil),         // 11: nimi.runtime.v1.AgentStateProjection
-	(*AgentStateSetStatusText)(nil),      // 12: nimi.runtime.v1.AgentStateSetStatusText
-	(*AgentStateSetWorldContext)(nil),    // 13: nimi.runtime.v1.AgentStateSetWorldContext
-	(*AgentStateClearWorldContext)(nil),  // 14: nimi.runtime.v1.AgentStateClearWorldContext
-	(*AgentStateSetDyadicContext)(nil),   // 15: nimi.runtime.v1.AgentStateSetDyadicContext
-	(*AgentStateClearDyadicContext)(nil), // 16: nimi.runtime.v1.AgentStateClearDyadicContext
-	(*AgentStatePutAttribute)(nil),       // 17: nimi.runtime.v1.AgentStatePutAttribute
-	(*AgentStateRemoveAttribute)(nil),    // 18: nimi.runtime.v1.AgentStateRemoveAttribute
-	(*AgentStateMutation)(nil),           // 19: nimi.runtime.v1.AgentStateMutation
-	(*TurnCompletedTriggerDetail)(nil),   // 20: nimi.runtime.v1.TurnCompletedTriggerDetail
-	(*ScheduledTimeTriggerDetail)(nil),   // 21: nimi.runtime.v1.ScheduledTimeTriggerDetail
-	(*UserIdleTriggerDetail)(nil),        // 22: nimi.runtime.v1.UserIdleTriggerDetail
-	(*ChatEndedTriggerDetail)(nil),       // 23: nimi.runtime.v1.ChatEndedTriggerDetail
-	(*StateConditionTriggerDetail)(nil),  // 24: nimi.runtime.v1.StateConditionTriggerDetail
-	(*WorldEventTriggerDetail)(nil),      // 25: nimi.runtime.v1.WorldEventTriggerDetail
-	(*HookTriggerDetail)(nil),            // 26: nimi.runtime.v1.HookTriggerDetail
-	(*CompoundHookTriggerDetail)(nil),    // 27: nimi.runtime.v1.CompoundHookTriggerDetail
-	(*TurnCompletedHookIntent)(nil),      // 28: nimi.runtime.v1.TurnCompletedHookIntent
-	(*ScheduledTimeHookIntent)(nil),      // 29: nimi.runtime.v1.ScheduledTimeHookIntent
-	(*UserIdleHookIntent)(nil),           // 30: nimi.runtime.v1.UserIdleHookIntent
-	(*ChatEndedHookIntent)(nil),          // 31: nimi.runtime.v1.ChatEndedHookIntent
-	(*StateConditionHookIntent)(nil),     // 32: nimi.runtime.v1.StateConditionHookIntent
-	(*WorldEventHookIntent)(nil),         // 33: nimi.runtime.v1.WorldEventHookIntent
-	(*NextHookIntent)(nil),               // 34: nimi.runtime.v1.NextHookIntent
-	(*CompoundHookIntent)(nil),           // 35: nimi.runtime.v1.CompoundHookIntent
-	(*HookCompletedDetail)(nil),          // 36: nimi.runtime.v1.HookCompletedDetail
-	(*HookFailedDetail)(nil),             // 37: nimi.runtime.v1.HookFailedDetail
-	(*HookCanceledDetail)(nil),           // 38: nimi.runtime.v1.HookCanceledDetail
-	(*HookRescheduledDetail)(nil),        // 39: nimi.runtime.v1.HookRescheduledDetail
-	(*HookRejectedDetail)(nil),           // 40: nimi.runtime.v1.HookRejectedDetail
-	(*HookExecutionOutcome)(nil),         // 41: nimi.runtime.v1.HookExecutionOutcome
-	(*PendingHook)(nil),                  // 42: nimi.runtime.v1.PendingHook
-	(*CanonicalMemoryCandidate)(nil),     // 43: nimi.runtime.v1.CanonicalMemoryCandidate
-	(*CanonicalMemoryView)(nil),          // 44: nimi.runtime.v1.CanonicalMemoryView
-	(*CanonicalMemoryRejection)(nil),     // 45: nimi.runtime.v1.CanonicalMemoryRejection
-	(*AgentLifecycleEventDetail)(nil),    // 46: nimi.runtime.v1.AgentLifecycleEventDetail
-	(*AgentHookEventDetail)(nil),         // 47: nimi.runtime.v1.AgentHookEventDetail
-	(*AgentMemoryEventDetail)(nil),       // 48: nimi.runtime.v1.AgentMemoryEventDetail
-	(*AgentBudgetEventDetail)(nil),       // 49: nimi.runtime.v1.AgentBudgetEventDetail
-	(*AgentReplicationEventDetail)(nil),  // 50: nimi.runtime.v1.AgentReplicationEventDetail
-	(*AgentEvent)(nil),                   // 51: nimi.runtime.v1.AgentEvent
-	(*InitializeAgentRequest)(nil),       // 52: nimi.runtime.v1.InitializeAgentRequest
-	(*InitializeAgentResponse)(nil),      // 53: nimi.runtime.v1.InitializeAgentResponse
-	(*TerminateAgentRequest)(nil),        // 54: nimi.runtime.v1.TerminateAgentRequest
-	(*TerminateAgentResponse)(nil),       // 55: nimi.runtime.v1.TerminateAgentResponse
-	(*GetAgentRequest)(nil),              // 56: nimi.runtime.v1.GetAgentRequest
-	(*GetAgentResponse)(nil),             // 57: nimi.runtime.v1.GetAgentResponse
-	(*ListAgentsRequest)(nil),            // 58: nimi.runtime.v1.ListAgentsRequest
-	(*ListAgentsResponse)(nil),           // 59: nimi.runtime.v1.ListAgentsResponse
-	(*GetAgentStateRequest)(nil),         // 60: nimi.runtime.v1.GetAgentStateRequest
-	(*GetAgentStateResponse)(nil),        // 61: nimi.runtime.v1.GetAgentStateResponse
-	(*UpdateAgentStateRequest)(nil),      // 62: nimi.runtime.v1.UpdateAgentStateRequest
-	(*UpdateAgentStateResponse)(nil),     // 63: nimi.runtime.v1.UpdateAgentStateResponse
-	(*EnableAutonomyRequest)(nil),        // 64: nimi.runtime.v1.EnableAutonomyRequest
-	(*EnableAutonomyResponse)(nil),       // 65: nimi.runtime.v1.EnableAutonomyResponse
-	(*DisableAutonomyRequest)(nil),       // 66: nimi.runtime.v1.DisableAutonomyRequest
-	(*DisableAutonomyResponse)(nil),      // 67: nimi.runtime.v1.DisableAutonomyResponse
-	(*SetAutonomyConfigRequest)(nil),     // 68: nimi.runtime.v1.SetAutonomyConfigRequest
-	(*SetAutonomyConfigResponse)(nil),    // 69: nimi.runtime.v1.SetAutonomyConfigResponse
-	(*ListPendingHooksRequest)(nil),      // 70: nimi.runtime.v1.ListPendingHooksRequest
-	(*ListPendingHooksResponse)(nil),     // 71: nimi.runtime.v1.ListPendingHooksResponse
-	(*CancelHookRequest)(nil),            // 72: nimi.runtime.v1.CancelHookRequest
-	(*CancelHookResponse)(nil),           // 73: nimi.runtime.v1.CancelHookResponse
-	(*QueryAgentMemoryRequest)(nil),      // 74: nimi.runtime.v1.QueryAgentMemoryRequest
-	(*QueryAgentMemoryResponse)(nil),     // 75: nimi.runtime.v1.QueryAgentMemoryResponse
-	(*WriteAgentMemoryRequest)(nil),      // 76: nimi.runtime.v1.WriteAgentMemoryRequest
-	(*WriteAgentMemoryResponse)(nil),     // 77: nimi.runtime.v1.WriteAgentMemoryResponse
-	(*SubscribeAgentEventsRequest)(nil),  // 78: nimi.runtime.v1.SubscribeAgentEventsRequest
-	nil,                                  // 79: nimi.runtime.v1.AgentStateProjection.AttributesEntry
-	(*durationpb.Duration)(nil),          // 80: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),        // 81: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),              // 82: google.protobuf.Struct
-	(ReasonCode)(0),                      // 83: nimi.runtime.v1.ReasonCode
-	(MemoryCanonicalClass)(0),            // 84: nimi.runtime.v1.MemoryCanonicalClass
-	(*MemoryBankLocator)(nil),            // 85: nimi.runtime.v1.MemoryBankLocator
-	(*MemoryRecordInput)(nil),            // 86: nimi.runtime.v1.MemoryRecordInput
-	(*MemoryRecord)(nil),                 // 87: nimi.runtime.v1.MemoryRecord
-	(*MemoryReplicationState)(nil),       // 88: nimi.runtime.v1.MemoryReplicationState
-	(*Ack)(nil),                          // 89: nimi.runtime.v1.Ack
-	(MemoryRecordKind)(0),                // 90: nimi.runtime.v1.MemoryRecordKind
-	(*NarrativeRecallHit)(nil),           // 91: nimi.runtime.v1.NarrativeRecallHit
+	(AgentAutonomyMode)(0),               // 7: nimi.runtime.v1.AgentAutonomyMode
+	(HookCadenceInteraction)(0),          // 8: nimi.runtime.v1.HookCadenceInteraction
+	(*AgentRequestContext)(nil),          // 9: nimi.runtime.v1.AgentRequestContext
+	(*AgentAutonomyConfig)(nil),          // 10: nimi.runtime.v1.AgentAutonomyConfig
+	(*AgentAutonomyState)(nil),           // 11: nimi.runtime.v1.AgentAutonomyState
+	(*AgentRecord)(nil),                  // 12: nimi.runtime.v1.AgentRecord
+	(*AgentStateProjection)(nil),         // 13: nimi.runtime.v1.AgentStateProjection
+	(*AgentStateSetStatusText)(nil),      // 14: nimi.runtime.v1.AgentStateSetStatusText
+	(*AgentStateSetWorldContext)(nil),    // 15: nimi.runtime.v1.AgentStateSetWorldContext
+	(*AgentStateClearWorldContext)(nil),  // 16: nimi.runtime.v1.AgentStateClearWorldContext
+	(*AgentStateSetDyadicContext)(nil),   // 17: nimi.runtime.v1.AgentStateSetDyadicContext
+	(*AgentStateClearDyadicContext)(nil), // 18: nimi.runtime.v1.AgentStateClearDyadicContext
+	(*AgentStatePutAttribute)(nil),       // 19: nimi.runtime.v1.AgentStatePutAttribute
+	(*AgentStateRemoveAttribute)(nil),    // 20: nimi.runtime.v1.AgentStateRemoveAttribute
+	(*AgentStateMutation)(nil),           // 21: nimi.runtime.v1.AgentStateMutation
+	(*TurnCompletedTriggerDetail)(nil),   // 22: nimi.runtime.v1.TurnCompletedTriggerDetail
+	(*ScheduledTimeTriggerDetail)(nil),   // 23: nimi.runtime.v1.ScheduledTimeTriggerDetail
+	(*UserIdleTriggerDetail)(nil),        // 24: nimi.runtime.v1.UserIdleTriggerDetail
+	(*ChatEndedTriggerDetail)(nil),       // 25: nimi.runtime.v1.ChatEndedTriggerDetail
+	(*StateConditionTriggerDetail)(nil),  // 26: nimi.runtime.v1.StateConditionTriggerDetail
+	(*WorldEventTriggerDetail)(nil),      // 27: nimi.runtime.v1.WorldEventTriggerDetail
+	(*HookTriggerDetail)(nil),            // 28: nimi.runtime.v1.HookTriggerDetail
+	(*CompoundHookTriggerDetail)(nil),    // 29: nimi.runtime.v1.CompoundHookTriggerDetail
+	(*TurnCompletedHookIntent)(nil),      // 30: nimi.runtime.v1.TurnCompletedHookIntent
+	(*ScheduledTimeHookIntent)(nil),      // 31: nimi.runtime.v1.ScheduledTimeHookIntent
+	(*UserIdleHookIntent)(nil),           // 32: nimi.runtime.v1.UserIdleHookIntent
+	(*ChatEndedHookIntent)(nil),          // 33: nimi.runtime.v1.ChatEndedHookIntent
+	(*StateConditionHookIntent)(nil),     // 34: nimi.runtime.v1.StateConditionHookIntent
+	(*WorldEventHookIntent)(nil),         // 35: nimi.runtime.v1.WorldEventHookIntent
+	(*NextHookIntent)(nil),               // 36: nimi.runtime.v1.NextHookIntent
+	(*CompoundHookIntent)(nil),           // 37: nimi.runtime.v1.CompoundHookIntent
+	(*HookCompletedDetail)(nil),          // 38: nimi.runtime.v1.HookCompletedDetail
+	(*HookFailedDetail)(nil),             // 39: nimi.runtime.v1.HookFailedDetail
+	(*HookCanceledDetail)(nil),           // 40: nimi.runtime.v1.HookCanceledDetail
+	(*HookRescheduledDetail)(nil),        // 41: nimi.runtime.v1.HookRescheduledDetail
+	(*HookRejectedDetail)(nil),           // 42: nimi.runtime.v1.HookRejectedDetail
+	(*HookExecutionOutcome)(nil),         // 43: nimi.runtime.v1.HookExecutionOutcome
+	(*PendingHook)(nil),                  // 44: nimi.runtime.v1.PendingHook
+	(*CanonicalMemoryCandidate)(nil),     // 45: nimi.runtime.v1.CanonicalMemoryCandidate
+	(*CanonicalMemoryView)(nil),          // 46: nimi.runtime.v1.CanonicalMemoryView
+	(*CanonicalMemoryRejection)(nil),     // 47: nimi.runtime.v1.CanonicalMemoryRejection
+	(*AgentLifecycleEventDetail)(nil),    // 48: nimi.runtime.v1.AgentLifecycleEventDetail
+	(*AgentHookEventDetail)(nil),         // 49: nimi.runtime.v1.AgentHookEventDetail
+	(*AgentMemoryEventDetail)(nil),       // 50: nimi.runtime.v1.AgentMemoryEventDetail
+	(*AgentBudgetEventDetail)(nil),       // 51: nimi.runtime.v1.AgentBudgetEventDetail
+	(*AgentReplicationEventDetail)(nil),  // 52: nimi.runtime.v1.AgentReplicationEventDetail
+	(*AgentEvent)(nil),                   // 53: nimi.runtime.v1.AgentEvent
+	(*InitializeAgentRequest)(nil),       // 54: nimi.runtime.v1.InitializeAgentRequest
+	(*InitializeAgentResponse)(nil),      // 55: nimi.runtime.v1.InitializeAgentResponse
+	(*TerminateAgentRequest)(nil),        // 56: nimi.runtime.v1.TerminateAgentRequest
+	(*TerminateAgentResponse)(nil),       // 57: nimi.runtime.v1.TerminateAgentResponse
+	(*GetAgentRequest)(nil),              // 58: nimi.runtime.v1.GetAgentRequest
+	(*GetAgentResponse)(nil),             // 59: nimi.runtime.v1.GetAgentResponse
+	(*ListAgentsRequest)(nil),            // 60: nimi.runtime.v1.ListAgentsRequest
+	(*ListAgentsResponse)(nil),           // 61: nimi.runtime.v1.ListAgentsResponse
+	(*GetAgentStateRequest)(nil),         // 62: nimi.runtime.v1.GetAgentStateRequest
+	(*GetAgentStateResponse)(nil),        // 63: nimi.runtime.v1.GetAgentStateResponse
+	(*UpdateAgentStateRequest)(nil),      // 64: nimi.runtime.v1.UpdateAgentStateRequest
+	(*UpdateAgentStateResponse)(nil),     // 65: nimi.runtime.v1.UpdateAgentStateResponse
+	(*EnableAutonomyRequest)(nil),        // 66: nimi.runtime.v1.EnableAutonomyRequest
+	(*EnableAutonomyResponse)(nil),       // 67: nimi.runtime.v1.EnableAutonomyResponse
+	(*DisableAutonomyRequest)(nil),       // 68: nimi.runtime.v1.DisableAutonomyRequest
+	(*DisableAutonomyResponse)(nil),      // 69: nimi.runtime.v1.DisableAutonomyResponse
+	(*SetAutonomyConfigRequest)(nil),     // 70: nimi.runtime.v1.SetAutonomyConfigRequest
+	(*SetAutonomyConfigResponse)(nil),    // 71: nimi.runtime.v1.SetAutonomyConfigResponse
+	(*ListPendingHooksRequest)(nil),      // 72: nimi.runtime.v1.ListPendingHooksRequest
+	(*ListPendingHooksResponse)(nil),     // 73: nimi.runtime.v1.ListPendingHooksResponse
+	(*CancelHookRequest)(nil),            // 74: nimi.runtime.v1.CancelHookRequest
+	(*CancelHookResponse)(nil),           // 75: nimi.runtime.v1.CancelHookResponse
+	(*QueryAgentMemoryRequest)(nil),      // 76: nimi.runtime.v1.QueryAgentMemoryRequest
+	(*QueryAgentMemoryResponse)(nil),     // 77: nimi.runtime.v1.QueryAgentMemoryResponse
+	(*WriteAgentMemoryRequest)(nil),      // 78: nimi.runtime.v1.WriteAgentMemoryRequest
+	(*WriteAgentMemoryResponse)(nil),     // 79: nimi.runtime.v1.WriteAgentMemoryResponse
+	(*SubscribeAgentEventsRequest)(nil),  // 80: nimi.runtime.v1.SubscribeAgentEventsRequest
+	nil,                                  // 81: nimi.runtime.v1.AgentStateProjection.AttributesEntry
+	(*durationpb.Duration)(nil),          // 82: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),        // 83: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),              // 84: google.protobuf.Struct
+	(ReasonCode)(0),                      // 85: nimi.runtime.v1.ReasonCode
+	(MemoryCanonicalClass)(0),            // 86: nimi.runtime.v1.MemoryCanonicalClass
+	(*MemoryBankLocator)(nil),            // 87: nimi.runtime.v1.MemoryBankLocator
+	(*MemoryRecordInput)(nil),            // 88: nimi.runtime.v1.MemoryRecordInput
+	(*MemoryRecord)(nil),                 // 89: nimi.runtime.v1.MemoryRecord
+	(*MemoryReplicationState)(nil),       // 90: nimi.runtime.v1.MemoryReplicationState
+	(*Ack)(nil),                          // 91: nimi.runtime.v1.Ack
+	(MemoryRecordKind)(0),                // 92: nimi.runtime.v1.MemoryRecordKind
+	(*NarrativeRecallHit)(nil),           // 93: nimi.runtime.v1.NarrativeRecallHit
 }
 var file_runtime_v1_agent_core_proto_depIdxs = []int32{
-	80,  // 0: nimi.runtime.v1.AgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
-	81,  // 1: nimi.runtime.v1.AgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
-	82,  // 2: nimi.runtime.v1.AgentAutonomyConfig.extensions:type_name -> google.protobuf.Struct
-	8,   // 3: nimi.runtime.v1.AgentAutonomyState.config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
-	81,  // 4: nimi.runtime.v1.AgentAutonomyState.window_started_at:type_name -> google.protobuf.Timestamp
-	81,  // 5: nimi.runtime.v1.AgentAutonomyState.suspended_until:type_name -> google.protobuf.Timestamp
-	0,   // 6: nimi.runtime.v1.AgentRecord.lifecycle_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
-	9,   // 7: nimi.runtime.v1.AgentRecord.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	82,  // 8: nimi.runtime.v1.AgentRecord.metadata:type_name -> google.protobuf.Struct
-	81,  // 9: nimi.runtime.v1.AgentRecord.created_at:type_name -> google.protobuf.Timestamp
-	81,  // 10: nimi.runtime.v1.AgentRecord.updated_at:type_name -> google.protobuf.Timestamp
-	1,   // 11: nimi.runtime.v1.AgentStateProjection.execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
-	79,  // 12: nimi.runtime.v1.AgentStateProjection.attributes:type_name -> nimi.runtime.v1.AgentStateProjection.AttributesEntry
-	81,  // 13: nimi.runtime.v1.AgentStateProjection.updated_at:type_name -> google.protobuf.Timestamp
-	12,  // 14: nimi.runtime.v1.AgentStateMutation.set_status_text:type_name -> nimi.runtime.v1.AgentStateSetStatusText
-	13,  // 15: nimi.runtime.v1.AgentStateMutation.set_world_context:type_name -> nimi.runtime.v1.AgentStateSetWorldContext
-	14,  // 16: nimi.runtime.v1.AgentStateMutation.clear_world_context:type_name -> nimi.runtime.v1.AgentStateClearWorldContext
-	15,  // 17: nimi.runtime.v1.AgentStateMutation.set_dyadic_context:type_name -> nimi.runtime.v1.AgentStateSetDyadicContext
-	16,  // 18: nimi.runtime.v1.AgentStateMutation.clear_dyadic_context:type_name -> nimi.runtime.v1.AgentStateClearDyadicContext
-	17,  // 19: nimi.runtime.v1.AgentStateMutation.put_attribute:type_name -> nimi.runtime.v1.AgentStatePutAttribute
-	18,  // 20: nimi.runtime.v1.AgentStateMutation.remove_attribute:type_name -> nimi.runtime.v1.AgentStateRemoveAttribute
-	2,   // 21: nimi.runtime.v1.TurnCompletedTriggerDetail.track:type_name -> nimi.runtime.v1.AgentTrackType
-	81,  // 22: nimi.runtime.v1.ScheduledTimeTriggerDetail.scheduled_for:type_name -> google.protobuf.Timestamp
-	80,  // 23: nimi.runtime.v1.UserIdleTriggerDetail.idle_for:type_name -> google.protobuf.Duration
-	3,   // 24: nimi.runtime.v1.HookTriggerDetail.trigger_kind:type_name -> nimi.runtime.v1.HookTriggerKind
-	20,  // 25: nimi.runtime.v1.HookTriggerDetail.turn_completed:type_name -> nimi.runtime.v1.TurnCompletedTriggerDetail
-	21,  // 26: nimi.runtime.v1.HookTriggerDetail.scheduled_time:type_name -> nimi.runtime.v1.ScheduledTimeTriggerDetail
-	22,  // 27: nimi.runtime.v1.HookTriggerDetail.user_idle:type_name -> nimi.runtime.v1.UserIdleTriggerDetail
-	23,  // 28: nimi.runtime.v1.HookTriggerDetail.chat_ended:type_name -> nimi.runtime.v1.ChatEndedTriggerDetail
-	24,  // 29: nimi.runtime.v1.HookTriggerDetail.state_condition:type_name -> nimi.runtime.v1.StateConditionTriggerDetail
-	25,  // 30: nimi.runtime.v1.HookTriggerDetail.world_event:type_name -> nimi.runtime.v1.WorldEventTriggerDetail
-	27,  // 31: nimi.runtime.v1.HookTriggerDetail.compound:type_name -> nimi.runtime.v1.CompoundHookTriggerDetail
-	4,   // 32: nimi.runtime.v1.CompoundHookTriggerDetail.operator:type_name -> nimi.runtime.v1.CompoundTriggerOperator
-	26,  // 33: nimi.runtime.v1.CompoundHookTriggerDetail.triggers:type_name -> nimi.runtime.v1.HookTriggerDetail
-	2,   // 34: nimi.runtime.v1.TurnCompletedHookIntent.track:type_name -> nimi.runtime.v1.AgentTrackType
-	81,  // 35: nimi.runtime.v1.ScheduledTimeHookIntent.scheduled_for:type_name -> google.protobuf.Timestamp
-	80,  // 36: nimi.runtime.v1.UserIdleHookIntent.idle_for:type_name -> google.protobuf.Duration
-	3,   // 37: nimi.runtime.v1.NextHookIntent.trigger_kind:type_name -> nimi.runtime.v1.HookTriggerKind
-	81,  // 38: nimi.runtime.v1.NextHookIntent.not_before:type_name -> google.protobuf.Timestamp
-	81,  // 39: nimi.runtime.v1.NextHookIntent.expires_at:type_name -> google.protobuf.Timestamp
-	28,  // 40: nimi.runtime.v1.NextHookIntent.turn_completed:type_name -> nimi.runtime.v1.TurnCompletedHookIntent
-	29,  // 41: nimi.runtime.v1.NextHookIntent.scheduled_time:type_name -> nimi.runtime.v1.ScheduledTimeHookIntent
-	30,  // 42: nimi.runtime.v1.NextHookIntent.user_idle:type_name -> nimi.runtime.v1.UserIdleHookIntent
-	31,  // 43: nimi.runtime.v1.NextHookIntent.chat_ended:type_name -> nimi.runtime.v1.ChatEndedHookIntent
-	32,  // 44: nimi.runtime.v1.NextHookIntent.state_condition:type_name -> nimi.runtime.v1.StateConditionHookIntent
-	33,  // 45: nimi.runtime.v1.NextHookIntent.world_event:type_name -> nimi.runtime.v1.WorldEventHookIntent
-	35,  // 46: nimi.runtime.v1.NextHookIntent.compound:type_name -> nimi.runtime.v1.CompoundHookIntent
-	4,   // 47: nimi.runtime.v1.CompoundHookIntent.operator:type_name -> nimi.runtime.v1.CompoundTriggerOperator
-	34,  // 48: nimi.runtime.v1.CompoundHookIntent.intents:type_name -> nimi.runtime.v1.NextHookIntent
-	81,  // 49: nimi.runtime.v1.HookCompletedDetail.completed_at:type_name -> google.protobuf.Timestamp
-	83,  // 50: nimi.runtime.v1.HookFailedDetail.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	34,  // 51: nimi.runtime.v1.HookRescheduledDetail.next_intent:type_name -> nimi.runtime.v1.NextHookIntent
-	83,  // 52: nimi.runtime.v1.HookRejectedDetail.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	5,   // 53: nimi.runtime.v1.HookExecutionOutcome.status:type_name -> nimi.runtime.v1.AgentHookStatus
-	26,  // 54: nimi.runtime.v1.HookExecutionOutcome.trigger:type_name -> nimi.runtime.v1.HookTriggerDetail
-	81,  // 55: nimi.runtime.v1.HookExecutionOutcome.observed_at:type_name -> google.protobuf.Timestamp
-	36,  // 56: nimi.runtime.v1.HookExecutionOutcome.completed:type_name -> nimi.runtime.v1.HookCompletedDetail
-	37,  // 57: nimi.runtime.v1.HookExecutionOutcome.failed:type_name -> nimi.runtime.v1.HookFailedDetail
-	38,  // 58: nimi.runtime.v1.HookExecutionOutcome.canceled:type_name -> nimi.runtime.v1.HookCanceledDetail
-	39,  // 59: nimi.runtime.v1.HookExecutionOutcome.rescheduled:type_name -> nimi.runtime.v1.HookRescheduledDetail
-	40,  // 60: nimi.runtime.v1.HookExecutionOutcome.rejected:type_name -> nimi.runtime.v1.HookRejectedDetail
-	5,   // 61: nimi.runtime.v1.PendingHook.status:type_name -> nimi.runtime.v1.AgentHookStatus
-	26,  // 62: nimi.runtime.v1.PendingHook.trigger:type_name -> nimi.runtime.v1.HookTriggerDetail
-	34,  // 63: nimi.runtime.v1.PendingHook.next_intent:type_name -> nimi.runtime.v1.NextHookIntent
-	81,  // 64: nimi.runtime.v1.PendingHook.scheduled_for:type_name -> google.protobuf.Timestamp
-	81,  // 65: nimi.runtime.v1.PendingHook.admitted_at:type_name -> google.protobuf.Timestamp
-	84,  // 66: nimi.runtime.v1.CanonicalMemoryCandidate.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	85,  // 67: nimi.runtime.v1.CanonicalMemoryCandidate.target_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	86,  // 68: nimi.runtime.v1.CanonicalMemoryCandidate.record:type_name -> nimi.runtime.v1.MemoryRecordInput
-	82,  // 69: nimi.runtime.v1.CanonicalMemoryCandidate.extensions:type_name -> google.protobuf.Struct
-	84,  // 70: nimi.runtime.v1.CanonicalMemoryView.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	85,  // 71: nimi.runtime.v1.CanonicalMemoryView.source_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	87,  // 72: nimi.runtime.v1.CanonicalMemoryView.record:type_name -> nimi.runtime.v1.MemoryRecord
-	83,  // 73: nimi.runtime.v1.CanonicalMemoryRejection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0,   // 74: nimi.runtime.v1.AgentLifecycleEventDetail.previous_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
-	0,   // 75: nimi.runtime.v1.AgentLifecycleEventDetail.current_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
-	41,  // 76: nimi.runtime.v1.AgentHookEventDetail.outcome:type_name -> nimi.runtime.v1.HookExecutionOutcome
-	44,  // 77: nimi.runtime.v1.AgentMemoryEventDetail.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
-	45,  // 78: nimi.runtime.v1.AgentMemoryEventDetail.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
-	81,  // 79: nimi.runtime.v1.AgentBudgetEventDetail.window_started_at:type_name -> google.protobuf.Timestamp
-	88,  // 80: nimi.runtime.v1.AgentReplicationEventDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
-	6,   // 81: nimi.runtime.v1.AgentEvent.event_type:type_name -> nimi.runtime.v1.AgentEventType
-	81,  // 82: nimi.runtime.v1.AgentEvent.timestamp:type_name -> google.protobuf.Timestamp
-	46,  // 83: nimi.runtime.v1.AgentEvent.lifecycle:type_name -> nimi.runtime.v1.AgentLifecycleEventDetail
-	47,  // 84: nimi.runtime.v1.AgentEvent.hook:type_name -> nimi.runtime.v1.AgentHookEventDetail
-	48,  // 85: nimi.runtime.v1.AgentEvent.memory:type_name -> nimi.runtime.v1.AgentMemoryEventDetail
-	49,  // 86: nimi.runtime.v1.AgentEvent.budget:type_name -> nimi.runtime.v1.AgentBudgetEventDetail
-	50,  // 87: nimi.runtime.v1.AgentEvent.replication:type_name -> nimi.runtime.v1.AgentReplicationEventDetail
-	7,   // 88: nimi.runtime.v1.InitializeAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	8,   // 89: nimi.runtime.v1.InitializeAgentRequest.autonomy_config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
-	82,  // 90: nimi.runtime.v1.InitializeAgentRequest.metadata:type_name -> google.protobuf.Struct
-	10,  // 91: nimi.runtime.v1.InitializeAgentResponse.agent:type_name -> nimi.runtime.v1.AgentRecord
-	11,  // 92: nimi.runtime.v1.InitializeAgentResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
-	7,   // 93: nimi.runtime.v1.TerminateAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	89,  // 94: nimi.runtime.v1.TerminateAgentResponse.ack:type_name -> nimi.runtime.v1.Ack
-	7,   // 95: nimi.runtime.v1.GetAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	10,  // 96: nimi.runtime.v1.GetAgentResponse.agent:type_name -> nimi.runtime.v1.AgentRecord
-	7,   // 97: nimi.runtime.v1.ListAgentsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	0,   // 98: nimi.runtime.v1.ListAgentsRequest.lifecycle_filter:type_name -> nimi.runtime.v1.AgentLifecycleStatus
-	10,  // 99: nimi.runtime.v1.ListAgentsResponse.agents:type_name -> nimi.runtime.v1.AgentRecord
-	7,   // 100: nimi.runtime.v1.GetAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	11,  // 101: nimi.runtime.v1.GetAgentStateResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
-	7,   // 102: nimi.runtime.v1.UpdateAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	19,  // 103: nimi.runtime.v1.UpdateAgentStateRequest.mutations:type_name -> nimi.runtime.v1.AgentStateMutation
-	11,  // 104: nimi.runtime.v1.UpdateAgentStateResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
-	7,   // 105: nimi.runtime.v1.EnableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	9,   // 106: nimi.runtime.v1.EnableAutonomyResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	7,   // 107: nimi.runtime.v1.DisableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	9,   // 108: nimi.runtime.v1.DisableAutonomyResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	7,   // 109: nimi.runtime.v1.SetAutonomyConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	8,   // 110: nimi.runtime.v1.SetAutonomyConfigRequest.config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
-	9,   // 111: nimi.runtime.v1.SetAutonomyConfigResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	7,   // 112: nimi.runtime.v1.ListPendingHooksRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	3,   // 113: nimi.runtime.v1.ListPendingHooksRequest.trigger_filter:type_name -> nimi.runtime.v1.HookTriggerKind
-	5,   // 114: nimi.runtime.v1.ListPendingHooksRequest.status_filter:type_name -> nimi.runtime.v1.AgentHookStatus
-	42,  // 115: nimi.runtime.v1.ListPendingHooksResponse.hooks:type_name -> nimi.runtime.v1.PendingHook
-	7,   // 116: nimi.runtime.v1.CancelHookRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	41,  // 117: nimi.runtime.v1.CancelHookResponse.outcome:type_name -> nimi.runtime.v1.HookExecutionOutcome
-	7,   // 118: nimi.runtime.v1.QueryAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	84,  // 119: nimi.runtime.v1.QueryAgentMemoryRequest.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	90,  // 120: nimi.runtime.v1.QueryAgentMemoryRequest.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	44,  // 121: nimi.runtime.v1.QueryAgentMemoryResponse.memories:type_name -> nimi.runtime.v1.CanonicalMemoryView
-	91,  // 122: nimi.runtime.v1.QueryAgentMemoryResponse.narratives:type_name -> nimi.runtime.v1.NarrativeRecallHit
-	7,   // 123: nimi.runtime.v1.WriteAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	43,  // 124: nimi.runtime.v1.WriteAgentMemoryRequest.candidates:type_name -> nimi.runtime.v1.CanonicalMemoryCandidate
-	44,  // 125: nimi.runtime.v1.WriteAgentMemoryResponse.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
-	45,  // 126: nimi.runtime.v1.WriteAgentMemoryResponse.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
-	7,   // 127: nimi.runtime.v1.SubscribeAgentEventsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	6,   // 128: nimi.runtime.v1.SubscribeAgentEventsRequest.event_filters:type_name -> nimi.runtime.v1.AgentEventType
-	52,  // 129: nimi.runtime.v1.RuntimeAgentCoreService.InitializeAgent:input_type -> nimi.runtime.v1.InitializeAgentRequest
-	54,  // 130: nimi.runtime.v1.RuntimeAgentCoreService.TerminateAgent:input_type -> nimi.runtime.v1.TerminateAgentRequest
-	56,  // 131: nimi.runtime.v1.RuntimeAgentCoreService.GetAgent:input_type -> nimi.runtime.v1.GetAgentRequest
-	58,  // 132: nimi.runtime.v1.RuntimeAgentCoreService.ListAgents:input_type -> nimi.runtime.v1.ListAgentsRequest
-	60,  // 133: nimi.runtime.v1.RuntimeAgentCoreService.GetAgentState:input_type -> nimi.runtime.v1.GetAgentStateRequest
-	62,  // 134: nimi.runtime.v1.RuntimeAgentCoreService.UpdateAgentState:input_type -> nimi.runtime.v1.UpdateAgentStateRequest
-	64,  // 135: nimi.runtime.v1.RuntimeAgentCoreService.EnableAutonomy:input_type -> nimi.runtime.v1.EnableAutonomyRequest
-	66,  // 136: nimi.runtime.v1.RuntimeAgentCoreService.DisableAutonomy:input_type -> nimi.runtime.v1.DisableAutonomyRequest
-	68,  // 137: nimi.runtime.v1.RuntimeAgentCoreService.SetAutonomyConfig:input_type -> nimi.runtime.v1.SetAutonomyConfigRequest
-	70,  // 138: nimi.runtime.v1.RuntimeAgentCoreService.ListPendingHooks:input_type -> nimi.runtime.v1.ListPendingHooksRequest
-	72,  // 139: nimi.runtime.v1.RuntimeAgentCoreService.CancelHook:input_type -> nimi.runtime.v1.CancelHookRequest
-	74,  // 140: nimi.runtime.v1.RuntimeAgentCoreService.QueryAgentMemory:input_type -> nimi.runtime.v1.QueryAgentMemoryRequest
-	76,  // 141: nimi.runtime.v1.RuntimeAgentCoreService.WriteAgentMemory:input_type -> nimi.runtime.v1.WriteAgentMemoryRequest
-	78,  // 142: nimi.runtime.v1.RuntimeAgentCoreService.SubscribeAgentEvents:input_type -> nimi.runtime.v1.SubscribeAgentEventsRequest
-	53,  // 143: nimi.runtime.v1.RuntimeAgentCoreService.InitializeAgent:output_type -> nimi.runtime.v1.InitializeAgentResponse
-	55,  // 144: nimi.runtime.v1.RuntimeAgentCoreService.TerminateAgent:output_type -> nimi.runtime.v1.TerminateAgentResponse
-	57,  // 145: nimi.runtime.v1.RuntimeAgentCoreService.GetAgent:output_type -> nimi.runtime.v1.GetAgentResponse
-	59,  // 146: nimi.runtime.v1.RuntimeAgentCoreService.ListAgents:output_type -> nimi.runtime.v1.ListAgentsResponse
-	61,  // 147: nimi.runtime.v1.RuntimeAgentCoreService.GetAgentState:output_type -> nimi.runtime.v1.GetAgentStateResponse
-	63,  // 148: nimi.runtime.v1.RuntimeAgentCoreService.UpdateAgentState:output_type -> nimi.runtime.v1.UpdateAgentStateResponse
-	65,  // 149: nimi.runtime.v1.RuntimeAgentCoreService.EnableAutonomy:output_type -> nimi.runtime.v1.EnableAutonomyResponse
-	67,  // 150: nimi.runtime.v1.RuntimeAgentCoreService.DisableAutonomy:output_type -> nimi.runtime.v1.DisableAutonomyResponse
-	69,  // 151: nimi.runtime.v1.RuntimeAgentCoreService.SetAutonomyConfig:output_type -> nimi.runtime.v1.SetAutonomyConfigResponse
-	71,  // 152: nimi.runtime.v1.RuntimeAgentCoreService.ListPendingHooks:output_type -> nimi.runtime.v1.ListPendingHooksResponse
-	73,  // 153: nimi.runtime.v1.RuntimeAgentCoreService.CancelHook:output_type -> nimi.runtime.v1.CancelHookResponse
-	75,  // 154: nimi.runtime.v1.RuntimeAgentCoreService.QueryAgentMemory:output_type -> nimi.runtime.v1.QueryAgentMemoryResponse
-	77,  // 155: nimi.runtime.v1.RuntimeAgentCoreService.WriteAgentMemory:output_type -> nimi.runtime.v1.WriteAgentMemoryResponse
-	51,  // 156: nimi.runtime.v1.RuntimeAgentCoreService.SubscribeAgentEvents:output_type -> nimi.runtime.v1.AgentEvent
-	143, // [143:157] is the sub-list for method output_type
-	129, // [129:143] is the sub-list for method input_type
-	129, // [129:129] is the sub-list for extension type_name
-	129, // [129:129] is the sub-list for extension extendee
-	0,   // [0:129] is the sub-list for field type_name
+	82,  // 0: nimi.runtime.v1.AgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
+	83,  // 1: nimi.runtime.v1.AgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
+	7,   // 2: nimi.runtime.v1.AgentAutonomyConfig.mode:type_name -> nimi.runtime.v1.AgentAutonomyMode
+	84,  // 3: nimi.runtime.v1.AgentAutonomyConfig.extensions:type_name -> google.protobuf.Struct
+	10,  // 4: nimi.runtime.v1.AgentAutonomyState.config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
+	83,  // 5: nimi.runtime.v1.AgentAutonomyState.window_started_at:type_name -> google.protobuf.Timestamp
+	83,  // 6: nimi.runtime.v1.AgentAutonomyState.suspended_until:type_name -> google.protobuf.Timestamp
+	0,   // 7: nimi.runtime.v1.AgentRecord.lifecycle_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
+	11,  // 8: nimi.runtime.v1.AgentRecord.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
+	84,  // 9: nimi.runtime.v1.AgentRecord.metadata:type_name -> google.protobuf.Struct
+	83,  // 10: nimi.runtime.v1.AgentRecord.created_at:type_name -> google.protobuf.Timestamp
+	83,  // 11: nimi.runtime.v1.AgentRecord.updated_at:type_name -> google.protobuf.Timestamp
+	1,   // 12: nimi.runtime.v1.AgentStateProjection.execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
+	81,  // 13: nimi.runtime.v1.AgentStateProjection.attributes:type_name -> nimi.runtime.v1.AgentStateProjection.AttributesEntry
+	83,  // 14: nimi.runtime.v1.AgentStateProjection.updated_at:type_name -> google.protobuf.Timestamp
+	14,  // 15: nimi.runtime.v1.AgentStateMutation.set_status_text:type_name -> nimi.runtime.v1.AgentStateSetStatusText
+	15,  // 16: nimi.runtime.v1.AgentStateMutation.set_world_context:type_name -> nimi.runtime.v1.AgentStateSetWorldContext
+	16,  // 17: nimi.runtime.v1.AgentStateMutation.clear_world_context:type_name -> nimi.runtime.v1.AgentStateClearWorldContext
+	17,  // 18: nimi.runtime.v1.AgentStateMutation.set_dyadic_context:type_name -> nimi.runtime.v1.AgentStateSetDyadicContext
+	18,  // 19: nimi.runtime.v1.AgentStateMutation.clear_dyadic_context:type_name -> nimi.runtime.v1.AgentStateClearDyadicContext
+	19,  // 20: nimi.runtime.v1.AgentStateMutation.put_attribute:type_name -> nimi.runtime.v1.AgentStatePutAttribute
+	20,  // 21: nimi.runtime.v1.AgentStateMutation.remove_attribute:type_name -> nimi.runtime.v1.AgentStateRemoveAttribute
+	2,   // 22: nimi.runtime.v1.TurnCompletedTriggerDetail.track:type_name -> nimi.runtime.v1.AgentTrackType
+	83,  // 23: nimi.runtime.v1.ScheduledTimeTriggerDetail.scheduled_for:type_name -> google.protobuf.Timestamp
+	82,  // 24: nimi.runtime.v1.UserIdleTriggerDetail.idle_for:type_name -> google.protobuf.Duration
+	3,   // 25: nimi.runtime.v1.HookTriggerDetail.trigger_kind:type_name -> nimi.runtime.v1.HookTriggerKind
+	22,  // 26: nimi.runtime.v1.HookTriggerDetail.turn_completed:type_name -> nimi.runtime.v1.TurnCompletedTriggerDetail
+	23,  // 27: nimi.runtime.v1.HookTriggerDetail.scheduled_time:type_name -> nimi.runtime.v1.ScheduledTimeTriggerDetail
+	24,  // 28: nimi.runtime.v1.HookTriggerDetail.user_idle:type_name -> nimi.runtime.v1.UserIdleTriggerDetail
+	25,  // 29: nimi.runtime.v1.HookTriggerDetail.chat_ended:type_name -> nimi.runtime.v1.ChatEndedTriggerDetail
+	26,  // 30: nimi.runtime.v1.HookTriggerDetail.state_condition:type_name -> nimi.runtime.v1.StateConditionTriggerDetail
+	27,  // 31: nimi.runtime.v1.HookTriggerDetail.world_event:type_name -> nimi.runtime.v1.WorldEventTriggerDetail
+	29,  // 32: nimi.runtime.v1.HookTriggerDetail.compound:type_name -> nimi.runtime.v1.CompoundHookTriggerDetail
+	4,   // 33: nimi.runtime.v1.CompoundHookTriggerDetail.operator:type_name -> nimi.runtime.v1.CompoundTriggerOperator
+	28,  // 34: nimi.runtime.v1.CompoundHookTriggerDetail.triggers:type_name -> nimi.runtime.v1.HookTriggerDetail
+	2,   // 35: nimi.runtime.v1.TurnCompletedHookIntent.track:type_name -> nimi.runtime.v1.AgentTrackType
+	83,  // 36: nimi.runtime.v1.ScheduledTimeHookIntent.scheduled_for:type_name -> google.protobuf.Timestamp
+	82,  // 37: nimi.runtime.v1.UserIdleHookIntent.idle_for:type_name -> google.protobuf.Duration
+	3,   // 38: nimi.runtime.v1.NextHookIntent.trigger_kind:type_name -> nimi.runtime.v1.HookTriggerKind
+	83,  // 39: nimi.runtime.v1.NextHookIntent.not_before:type_name -> google.protobuf.Timestamp
+	83,  // 40: nimi.runtime.v1.NextHookIntent.expires_at:type_name -> google.protobuf.Timestamp
+	8,   // 41: nimi.runtime.v1.NextHookIntent.cadence_interaction:type_name -> nimi.runtime.v1.HookCadenceInteraction
+	30,  // 42: nimi.runtime.v1.NextHookIntent.turn_completed:type_name -> nimi.runtime.v1.TurnCompletedHookIntent
+	31,  // 43: nimi.runtime.v1.NextHookIntent.scheduled_time:type_name -> nimi.runtime.v1.ScheduledTimeHookIntent
+	32,  // 44: nimi.runtime.v1.NextHookIntent.user_idle:type_name -> nimi.runtime.v1.UserIdleHookIntent
+	33,  // 45: nimi.runtime.v1.NextHookIntent.chat_ended:type_name -> nimi.runtime.v1.ChatEndedHookIntent
+	34,  // 46: nimi.runtime.v1.NextHookIntent.state_condition:type_name -> nimi.runtime.v1.StateConditionHookIntent
+	35,  // 47: nimi.runtime.v1.NextHookIntent.world_event:type_name -> nimi.runtime.v1.WorldEventHookIntent
+	37,  // 48: nimi.runtime.v1.NextHookIntent.compound:type_name -> nimi.runtime.v1.CompoundHookIntent
+	4,   // 49: nimi.runtime.v1.CompoundHookIntent.operator:type_name -> nimi.runtime.v1.CompoundTriggerOperator
+	36,  // 50: nimi.runtime.v1.CompoundHookIntent.intents:type_name -> nimi.runtime.v1.NextHookIntent
+	83,  // 51: nimi.runtime.v1.HookCompletedDetail.completed_at:type_name -> google.protobuf.Timestamp
+	85,  // 52: nimi.runtime.v1.HookFailedDetail.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	36,  // 53: nimi.runtime.v1.HookRescheduledDetail.next_intent:type_name -> nimi.runtime.v1.NextHookIntent
+	85,  // 54: nimi.runtime.v1.HookRejectedDetail.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	5,   // 55: nimi.runtime.v1.HookExecutionOutcome.status:type_name -> nimi.runtime.v1.AgentHookStatus
+	28,  // 56: nimi.runtime.v1.HookExecutionOutcome.trigger:type_name -> nimi.runtime.v1.HookTriggerDetail
+	83,  // 57: nimi.runtime.v1.HookExecutionOutcome.observed_at:type_name -> google.protobuf.Timestamp
+	38,  // 58: nimi.runtime.v1.HookExecutionOutcome.completed:type_name -> nimi.runtime.v1.HookCompletedDetail
+	39,  // 59: nimi.runtime.v1.HookExecutionOutcome.failed:type_name -> nimi.runtime.v1.HookFailedDetail
+	40,  // 60: nimi.runtime.v1.HookExecutionOutcome.canceled:type_name -> nimi.runtime.v1.HookCanceledDetail
+	41,  // 61: nimi.runtime.v1.HookExecutionOutcome.rescheduled:type_name -> nimi.runtime.v1.HookRescheduledDetail
+	42,  // 62: nimi.runtime.v1.HookExecutionOutcome.rejected:type_name -> nimi.runtime.v1.HookRejectedDetail
+	5,   // 63: nimi.runtime.v1.PendingHook.status:type_name -> nimi.runtime.v1.AgentHookStatus
+	28,  // 64: nimi.runtime.v1.PendingHook.trigger:type_name -> nimi.runtime.v1.HookTriggerDetail
+	36,  // 65: nimi.runtime.v1.PendingHook.next_intent:type_name -> nimi.runtime.v1.NextHookIntent
+	83,  // 66: nimi.runtime.v1.PendingHook.scheduled_for:type_name -> google.protobuf.Timestamp
+	83,  // 67: nimi.runtime.v1.PendingHook.admitted_at:type_name -> google.protobuf.Timestamp
+	86,  // 68: nimi.runtime.v1.CanonicalMemoryCandidate.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	87,  // 69: nimi.runtime.v1.CanonicalMemoryCandidate.target_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	88,  // 70: nimi.runtime.v1.CanonicalMemoryCandidate.record:type_name -> nimi.runtime.v1.MemoryRecordInput
+	84,  // 71: nimi.runtime.v1.CanonicalMemoryCandidate.extensions:type_name -> google.protobuf.Struct
+	86,  // 72: nimi.runtime.v1.CanonicalMemoryView.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	87,  // 73: nimi.runtime.v1.CanonicalMemoryView.source_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	89,  // 74: nimi.runtime.v1.CanonicalMemoryView.record:type_name -> nimi.runtime.v1.MemoryRecord
+	85,  // 75: nimi.runtime.v1.CanonicalMemoryRejection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	0,   // 76: nimi.runtime.v1.AgentLifecycleEventDetail.previous_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
+	0,   // 77: nimi.runtime.v1.AgentLifecycleEventDetail.current_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
+	43,  // 78: nimi.runtime.v1.AgentHookEventDetail.outcome:type_name -> nimi.runtime.v1.HookExecutionOutcome
+	46,  // 79: nimi.runtime.v1.AgentMemoryEventDetail.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
+	47,  // 80: nimi.runtime.v1.AgentMemoryEventDetail.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
+	83,  // 81: nimi.runtime.v1.AgentBudgetEventDetail.window_started_at:type_name -> google.protobuf.Timestamp
+	90,  // 82: nimi.runtime.v1.AgentReplicationEventDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
+	6,   // 83: nimi.runtime.v1.AgentEvent.event_type:type_name -> nimi.runtime.v1.AgentEventType
+	83,  // 84: nimi.runtime.v1.AgentEvent.timestamp:type_name -> google.protobuf.Timestamp
+	48,  // 85: nimi.runtime.v1.AgentEvent.lifecycle:type_name -> nimi.runtime.v1.AgentLifecycleEventDetail
+	49,  // 86: nimi.runtime.v1.AgentEvent.hook:type_name -> nimi.runtime.v1.AgentHookEventDetail
+	50,  // 87: nimi.runtime.v1.AgentEvent.memory:type_name -> nimi.runtime.v1.AgentMemoryEventDetail
+	51,  // 88: nimi.runtime.v1.AgentEvent.budget:type_name -> nimi.runtime.v1.AgentBudgetEventDetail
+	52,  // 89: nimi.runtime.v1.AgentEvent.replication:type_name -> nimi.runtime.v1.AgentReplicationEventDetail
+	9,   // 90: nimi.runtime.v1.InitializeAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	10,  // 91: nimi.runtime.v1.InitializeAgentRequest.autonomy_config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
+	84,  // 92: nimi.runtime.v1.InitializeAgentRequest.metadata:type_name -> google.protobuf.Struct
+	12,  // 93: nimi.runtime.v1.InitializeAgentResponse.agent:type_name -> nimi.runtime.v1.AgentRecord
+	13,  // 94: nimi.runtime.v1.InitializeAgentResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
+	9,   // 95: nimi.runtime.v1.TerminateAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	91,  // 96: nimi.runtime.v1.TerminateAgentResponse.ack:type_name -> nimi.runtime.v1.Ack
+	9,   // 97: nimi.runtime.v1.GetAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	12,  // 98: nimi.runtime.v1.GetAgentResponse.agent:type_name -> nimi.runtime.v1.AgentRecord
+	9,   // 99: nimi.runtime.v1.ListAgentsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	0,   // 100: nimi.runtime.v1.ListAgentsRequest.lifecycle_filter:type_name -> nimi.runtime.v1.AgentLifecycleStatus
+	12,  // 101: nimi.runtime.v1.ListAgentsResponse.agents:type_name -> nimi.runtime.v1.AgentRecord
+	9,   // 102: nimi.runtime.v1.GetAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	13,  // 103: nimi.runtime.v1.GetAgentStateResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
+	9,   // 104: nimi.runtime.v1.UpdateAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	21,  // 105: nimi.runtime.v1.UpdateAgentStateRequest.mutations:type_name -> nimi.runtime.v1.AgentStateMutation
+	13,  // 106: nimi.runtime.v1.UpdateAgentStateResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
+	9,   // 107: nimi.runtime.v1.EnableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	11,  // 108: nimi.runtime.v1.EnableAutonomyResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
+	9,   // 109: nimi.runtime.v1.DisableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	11,  // 110: nimi.runtime.v1.DisableAutonomyResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
+	9,   // 111: nimi.runtime.v1.SetAutonomyConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	10,  // 112: nimi.runtime.v1.SetAutonomyConfigRequest.config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
+	11,  // 113: nimi.runtime.v1.SetAutonomyConfigResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
+	9,   // 114: nimi.runtime.v1.ListPendingHooksRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	3,   // 115: nimi.runtime.v1.ListPendingHooksRequest.trigger_filter:type_name -> nimi.runtime.v1.HookTriggerKind
+	5,   // 116: nimi.runtime.v1.ListPendingHooksRequest.status_filter:type_name -> nimi.runtime.v1.AgentHookStatus
+	44,  // 117: nimi.runtime.v1.ListPendingHooksResponse.hooks:type_name -> nimi.runtime.v1.PendingHook
+	9,   // 118: nimi.runtime.v1.CancelHookRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	43,  // 119: nimi.runtime.v1.CancelHookResponse.outcome:type_name -> nimi.runtime.v1.HookExecutionOutcome
+	9,   // 120: nimi.runtime.v1.QueryAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	86,  // 121: nimi.runtime.v1.QueryAgentMemoryRequest.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	92,  // 122: nimi.runtime.v1.QueryAgentMemoryRequest.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
+	46,  // 123: nimi.runtime.v1.QueryAgentMemoryResponse.memories:type_name -> nimi.runtime.v1.CanonicalMemoryView
+	93,  // 124: nimi.runtime.v1.QueryAgentMemoryResponse.narratives:type_name -> nimi.runtime.v1.NarrativeRecallHit
+	9,   // 125: nimi.runtime.v1.WriteAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	45,  // 126: nimi.runtime.v1.WriteAgentMemoryRequest.candidates:type_name -> nimi.runtime.v1.CanonicalMemoryCandidate
+	46,  // 127: nimi.runtime.v1.WriteAgentMemoryResponse.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
+	47,  // 128: nimi.runtime.v1.WriteAgentMemoryResponse.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
+	9,   // 129: nimi.runtime.v1.SubscribeAgentEventsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	6,   // 130: nimi.runtime.v1.SubscribeAgentEventsRequest.event_filters:type_name -> nimi.runtime.v1.AgentEventType
+	54,  // 131: nimi.runtime.v1.RuntimeAgentCoreService.InitializeAgent:input_type -> nimi.runtime.v1.InitializeAgentRequest
+	56,  // 132: nimi.runtime.v1.RuntimeAgentCoreService.TerminateAgent:input_type -> nimi.runtime.v1.TerminateAgentRequest
+	58,  // 133: nimi.runtime.v1.RuntimeAgentCoreService.GetAgent:input_type -> nimi.runtime.v1.GetAgentRequest
+	60,  // 134: nimi.runtime.v1.RuntimeAgentCoreService.ListAgents:input_type -> nimi.runtime.v1.ListAgentsRequest
+	62,  // 135: nimi.runtime.v1.RuntimeAgentCoreService.GetAgentState:input_type -> nimi.runtime.v1.GetAgentStateRequest
+	64,  // 136: nimi.runtime.v1.RuntimeAgentCoreService.UpdateAgentState:input_type -> nimi.runtime.v1.UpdateAgentStateRequest
+	66,  // 137: nimi.runtime.v1.RuntimeAgentCoreService.EnableAutonomy:input_type -> nimi.runtime.v1.EnableAutonomyRequest
+	68,  // 138: nimi.runtime.v1.RuntimeAgentCoreService.DisableAutonomy:input_type -> nimi.runtime.v1.DisableAutonomyRequest
+	70,  // 139: nimi.runtime.v1.RuntimeAgentCoreService.SetAutonomyConfig:input_type -> nimi.runtime.v1.SetAutonomyConfigRequest
+	72,  // 140: nimi.runtime.v1.RuntimeAgentCoreService.ListPendingHooks:input_type -> nimi.runtime.v1.ListPendingHooksRequest
+	74,  // 141: nimi.runtime.v1.RuntimeAgentCoreService.CancelHook:input_type -> nimi.runtime.v1.CancelHookRequest
+	76,  // 142: nimi.runtime.v1.RuntimeAgentCoreService.QueryAgentMemory:input_type -> nimi.runtime.v1.QueryAgentMemoryRequest
+	78,  // 143: nimi.runtime.v1.RuntimeAgentCoreService.WriteAgentMemory:input_type -> nimi.runtime.v1.WriteAgentMemoryRequest
+	80,  // 144: nimi.runtime.v1.RuntimeAgentCoreService.SubscribeAgentEvents:input_type -> nimi.runtime.v1.SubscribeAgentEventsRequest
+	55,  // 145: nimi.runtime.v1.RuntimeAgentCoreService.InitializeAgent:output_type -> nimi.runtime.v1.InitializeAgentResponse
+	57,  // 146: nimi.runtime.v1.RuntimeAgentCoreService.TerminateAgent:output_type -> nimi.runtime.v1.TerminateAgentResponse
+	59,  // 147: nimi.runtime.v1.RuntimeAgentCoreService.GetAgent:output_type -> nimi.runtime.v1.GetAgentResponse
+	61,  // 148: nimi.runtime.v1.RuntimeAgentCoreService.ListAgents:output_type -> nimi.runtime.v1.ListAgentsResponse
+	63,  // 149: nimi.runtime.v1.RuntimeAgentCoreService.GetAgentState:output_type -> nimi.runtime.v1.GetAgentStateResponse
+	65,  // 150: nimi.runtime.v1.RuntimeAgentCoreService.UpdateAgentState:output_type -> nimi.runtime.v1.UpdateAgentStateResponse
+	67,  // 151: nimi.runtime.v1.RuntimeAgentCoreService.EnableAutonomy:output_type -> nimi.runtime.v1.EnableAutonomyResponse
+	69,  // 152: nimi.runtime.v1.RuntimeAgentCoreService.DisableAutonomy:output_type -> nimi.runtime.v1.DisableAutonomyResponse
+	71,  // 153: nimi.runtime.v1.RuntimeAgentCoreService.SetAutonomyConfig:output_type -> nimi.runtime.v1.SetAutonomyConfigResponse
+	73,  // 154: nimi.runtime.v1.RuntimeAgentCoreService.ListPendingHooks:output_type -> nimi.runtime.v1.ListPendingHooksResponse
+	75,  // 155: nimi.runtime.v1.RuntimeAgentCoreService.CancelHook:output_type -> nimi.runtime.v1.CancelHookResponse
+	77,  // 156: nimi.runtime.v1.RuntimeAgentCoreService.QueryAgentMemory:output_type -> nimi.runtime.v1.QueryAgentMemoryResponse
+	79,  // 157: nimi.runtime.v1.RuntimeAgentCoreService.WriteAgentMemory:output_type -> nimi.runtime.v1.WriteAgentMemoryResponse
+	53,  // 158: nimi.runtime.v1.RuntimeAgentCoreService.SubscribeAgentEvents:output_type -> nimi.runtime.v1.AgentEvent
+	145, // [145:159] is the sub-list for method output_type
+	131, // [131:145] is the sub-list for method input_type
+	131, // [131:131] is the sub-list for extension type_name
+	131, // [131:131] is the sub-list for extension extendee
+	0,   // [0:131] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_core_proto_init() }
@@ -5756,7 +5896,7 @@ func file_runtime_v1_agent_core_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_agent_core_proto_rawDesc), len(file_runtime_v1_agent_core_proto_rawDesc)),
-			NumEnums:      7,
+			NumEnums:      9,
 			NumMessages:   73,
 			NumExtensions: 0,
 			NumServices:   1,

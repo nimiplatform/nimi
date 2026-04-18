@@ -209,6 +209,9 @@ func (s *Service) EnableAutonomy(_ context.Context, req *runtimev1.EnableAutonom
 	if entry.Agent.Autonomy == nil {
 		entry.Agent.Autonomy = buildInitialAutonomyState(nil, now)
 	}
+	if autonomyMode(entry.Agent.Autonomy.GetConfig()) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
+		return &runtimev1.EnableAutonomyResponse{Autonomy: cloneAutonomy(entry.Agent.GetAutonomy())}, nil
+	}
 	entry.Agent.Autonomy.Enabled = true
 	if entry.Agent.Autonomy.WindowStartedAt == nil {
 		entry.Agent.Autonomy.WindowStartedAt = timestamppb.New(now)
@@ -261,13 +264,20 @@ func (s *Service) SetAutonomyConfig(_ context.Context, req *runtimev1.SetAutonom
 		return nil, err
 	}
 	now := time.Now().UTC()
+	config := normalizeAutonomyConfig(req.GetConfig())
 	if entry.Agent.Autonomy == nil {
-		entry.Agent.Autonomy = buildInitialAutonomyState(req.GetConfig(), now)
+		entry.Agent.Autonomy = buildInitialAutonomyState(config, now)
 	} else {
-		entry.Agent.Autonomy.Config = cloneAutonomyConfig(req.GetConfig())
+		entry.Agent.Autonomy.Config = config
 	}
-	entry.Agent.Autonomy.BudgetExhausted = entry.Agent.Autonomy.GetConfig().GetDailyTokenBudget() > 0 &&
-		entry.Agent.Autonomy.GetUsedTokensInWindow() >= entry.Agent.Autonomy.GetConfig().GetDailyTokenBudget()
+	entry.Agent.Autonomy.SuspendedUntil = cloneTimestamp(config.GetSuspendUntil())
+	if autonomyMode(config) == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF {
+		entry.Agent.Autonomy.Enabled = false
+		entry.Agent.Autonomy.BudgetExhausted = false
+	} else {
+		entry.Agent.Autonomy.BudgetExhausted = entry.Agent.Autonomy.GetConfig().GetDailyTokenBudget() > 0 &&
+			entry.Agent.Autonomy.GetUsedTokensInWindow() >= entry.Agent.Autonomy.GetConfig().GetDailyTokenBudget()
+	}
 	entry.Agent.UpdatedAt = timestamppb.New(now)
 	event := s.newEvent(entry.Agent.GetAgentId(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET, &runtimev1.AgentEvent_Budget{
 		Budget: &runtimev1.AgentBudgetEventDetail{
@@ -326,14 +336,15 @@ func (s *Service) CancelHook(_ context.Context, req *runtimev1.CancelHookRequest
 }
 
 func buildInitialAutonomyState(cfg *runtimev1.AgentAutonomyConfig, now time.Time) *runtimev1.AgentAutonomyState {
+	config := normalizeAutonomyConfig(cfg)
 	state := &runtimev1.AgentAutonomyState{
-		Enabled:            cfg != nil,
-		Config:             cloneAutonomyConfig(cfg),
+		Enabled:            false,
+		Config:             config,
 		UsedTokensInWindow: 0,
 		WindowStartedAt:    timestamppb.New(now),
 	}
-	if cfg != nil && cfg.GetSuspendUntil() != nil {
-		state.SuspendedUntil = cloneTimestamp(cfg.GetSuspendUntil())
+	if config.GetSuspendUntil() != nil {
+		state.SuspendedUntil = cloneTimestamp(config.GetSuspendUntil())
 	}
 	return state
 }

@@ -163,10 +163,31 @@ func decodeSequenceValue(raw string) (uint64, error) {
 }
 
 func cloneAutonomyConfig(input *runtimev1.AgentAutonomyConfig) *runtimev1.AgentAutonomyConfig {
+	return normalizeAutonomyConfig(input)
+}
+
+func normalizeAutonomyConfig(input *runtimev1.AgentAutonomyConfig) *runtimev1.AgentAutonomyConfig {
 	if input == nil {
-		return &runtimev1.AgentAutonomyConfig{}
+		return &runtimev1.AgentAutonomyConfig{
+			Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF,
+		}
 	}
-	return proto.Clone(input).(*runtimev1.AgentAutonomyConfig)
+	config := proto.Clone(input).(*runtimev1.AgentAutonomyConfig)
+	if config.GetMode() == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_UNSPECIFIED {
+		config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF
+	}
+	return config
+}
+
+func autonomyMode(config *runtimev1.AgentAutonomyConfig) runtimev1.AgentAutonomyMode {
+	if config == nil {
+		return runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF
+	}
+	mode := config.GetMode()
+	if mode == runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_UNSPECIFIED {
+		return runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_OFF
+	}
+	return mode
 }
 
 func cloneAutonomy(input *runtimev1.AgentAutonomyState) *runtimev1.AgentAutonomyState {
