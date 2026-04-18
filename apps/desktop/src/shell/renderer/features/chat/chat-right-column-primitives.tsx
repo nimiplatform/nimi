@@ -11,7 +11,7 @@ export function ChatRightColumn(props: {
     <aside
       {...domProps}
       className={cn(
-        'ml-2 flex min-h-0 w-[360px] shrink-0 flex-col gap-3',
+        'ml-2 flex min-h-0 w-[320px] shrink-0 flex-col gap-3',
         className,
       )}
       data-chat-right-column="true"

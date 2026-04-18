@@ -1,203 +1,36 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { AvatarVrmViewportComponentProps } from '@nimiplatform/nimi-kit/features/avatar/vrm';
+import type { AvatarLive2dViewportComponentProps } from '@nimiplatform/nimi-kit/features/avatar/live2d';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import { createOfficialLive2dCubismModel } from './chat-agent-avatar-live2d-cubism-runtime';
+import type { ChatAgentAvatarLive2dFramingIntent } from './chat-agent-avatar-live2d-framing';
 import {
   loadChatAgentAvatarLive2dModelSource,
   resolveChatAgentAvatarLive2dViewportState,
   type ChatAgentAvatarLive2dModelSource,
 } from './chat-agent-avatar-live2d-viewport-state';
+import {
+  createLive2dDiagnostic,
+  describeLive2dLoadError,
+  hasLive2dCubismCore,
+  probeLive2dAssetUrls,
+  resizeCanvasToHost,
+  resolveLive2dRuntimeUrls,
+  type ChatAgentAvatarLive2dDiagnostic,
+  type ChatAgentAvatarLive2dViewportLoadState,
+  type Live2dRuntimeError,
+  type Live2dViewportStatus,
+} from './chat-agent-avatar-live2d-diagnostics';
+import { Live2dErrorShell, Live2dLoadingShell } from './chat-agent-avatar-live2d-shells';
 
-type Live2dViewportStatus = 'loading' | 'ready' | 'error';
-type ChatAgentAvatarLive2dViewportLoadState = {
-  status: Live2dViewportStatus;
-  source: ChatAgentAvatarLive2dModelSource | null;
-  error: string | null;
-};
-
-type ChatAgentAvatarLive2dViewportProps = AvatarVrmViewportComponentProps & {
+type ChatAgentAvatarLive2dViewportProps = AvatarLive2dViewportComponentProps & {
   onLoadStateChange?: (status: Live2dViewportStatus) => void;
   onLoadErrorChange?: (error: string | null) => void;
   onDiagnosticChange?: (diagnostic: ChatAgentAvatarLive2dDiagnostic) => void;
+  framingIntent?: ChatAgentAvatarLive2dFramingIntent;
 };
 
-type Live2dRuntimeError = Error & {
-  url?: string;
-  status?: number;
-};
-
-export type ChatAgentAvatarLive2dDiagnostic = {
-  backendKind: 'live2d';
-  stage: 'core-check' | 'runtime-load' | 'source-resolve' | 'model-load' | 'ready';
-  status: Live2dViewportStatus;
-  assetRef: string;
-  assetLabel: string | null;
-  mocVersion: number | null;
-  resourceId: string | null;
-  fileUrl: string | null;
-  modelUrl: string | null;
-  error: string | null;
-  errorUrl: string | null;
-  errorStatus: number | null;
-  runtimeUrls: string[];
-  cubismCoreAvailable: boolean;
-  assetProbeFailures: string[];
-  motionGroups: string[];
-  idleMotionGroup: string | null;
-  speechMotionGroup: string | null;
-  recoveryAttemptCount: number;
-  recoveryReason: string | null;
-};
-
-function hasLive2dCubismCore(): boolean {
-  return Boolean((globalThis as typeof globalThis & { Live2DCubismCore?: unknown }).Live2DCubismCore);
-}
-
-function describeLive2dLoadError(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message.trim();
-  }
-  return 'Live2D model failed to load';
-}
-
-function createLive2dDiagnostic(input: {
-  assetRef: string;
-  stage: ChatAgentAvatarLive2dDiagnostic['stage'];
-  status: Live2dViewportStatus;
-  source?: ChatAgentAvatarLive2dModelSource | null;
-  error?: string | null;
-  cause?: unknown;
-  runtimeUrls?: string[];
-  assetProbeFailures?: string[];
-  recoveryAttemptCount?: number;
-  recoveryReason?: string | null;
-}): ChatAgentAvatarLive2dDiagnostic {
-  const runtimeError = input.cause as Live2dRuntimeError | undefined;
-  return {
-    backendKind: 'live2d',
-    stage: input.stage,
-    status: input.status,
-    assetRef: input.assetRef,
-    assetLabel: input.source?.assetLabel || null,
-    mocVersion: input.source?.mocVersion ?? null,
-    resourceId: input.source?.resourceId || null,
-    fileUrl: input.source?.fileUrl || null,
-    modelUrl: input.source?.modelUrl || null,
-    error: input.error || null,
-    errorUrl: typeof runtimeError?.url === 'string' ? runtimeError.url : null,
-    errorStatus: typeof runtimeError?.status === 'number' ? runtimeError.status : null,
-    runtimeUrls: input.runtimeUrls ?? [],
-    cubismCoreAvailable: hasLive2dCubismCore(),
-    assetProbeFailures: input.assetProbeFailures ?? [],
-    motionGroups: input.source?.motionGroups ?? [],
-    idleMotionGroup: input.source?.idleMotionGroup ?? null,
-    speechMotionGroup: input.source?.speechMotionGroup ?? null,
-    recoveryAttemptCount: input.recoveryAttemptCount ?? 0,
-    recoveryReason: input.recoveryReason ?? null,
-  };
-}
-
-function resolveLive2dRuntimeUrls(source: ChatAgentAvatarLive2dModelSource | null): string[] {
-  if (!source) {
-    return [];
-  }
-  return [...new Set([source.modelUrl, ...source.resolvedAssetUrls].filter(Boolean))];
-}
-
-async function probeLive2dAssetUrls(urls: readonly string[]): Promise<string[]> {
-  const failures = await Promise.all(urls.map(async (url) => {
-    try {
-      const response = await fetch(url, { method: 'GET' });
-      if (!response.ok) {
-        return `${url} -> HTTP ${response.status}`;
-      }
-      const bytes = (await response.arrayBuffer()).byteLength;
-      return `${url} -> OK (${bytes} bytes)`;
-    } catch (error) {
-      return `${url} -> ${describeLive2dLoadError(error)}`;
-    }
-  }));
-  return failures.filter((value): value is string => Boolean(value));
-}
-
-function resizeCanvasToHost(canvas: HTMLCanvasElement, host: HTMLDivElement): {
-  width: number;
-  height: number;
-  changed: boolean;
-  renderable: boolean;
-} {
-  const minimumRenderableCssPixels = 24;
-  if (host.clientWidth < minimumRenderableCssPixels || host.clientHeight < minimumRenderableCssPixels) {
-    return {
-      width: Math.max(canvas.width, 1),
-      height: Math.max(canvas.height, 1),
-      changed: false,
-      renderable: false,
-    };
-  }
-
-  const devicePixelRatio = Math.min(globalThis.devicePixelRatio || 1, 2);
-  const width = Math.max(1, Math.round(Math.max(host.clientWidth, 1) * devicePixelRatio));
-  const height = Math.max(1, Math.round(Math.max(host.clientHeight, 1) * devicePixelRatio));
-  const changed = canvas.width !== width || canvas.height !== height;
-
-  if (changed) {
-    canvas.width = width;
-    canvas.height = height;
-  }
-
-  return {
-    width,
-    height,
-    changed,
-    renderable: true,
-  };
-}
-
-function Live2dLoadingShell({ label }: { label: string }) {
-  const { t } = useTranslation();
-  return (
-    <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(224,242,254,0.94)_50%,rgba(191,219,254,0.82))]">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <span className="h-11 w-11 animate-spin rounded-full border-2 border-cyan-200 border-t-cyan-500" />
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-700/80">
-            {t('Chat.avatarLive2dLabel', { defaultValue: 'Live2D' })}
-          </p>
-          <p className="mt-1 text-sm font-semibold text-slate-800">{label}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Live2dErrorShell(props: {
-  label: string;
-  errorMessage: string;
-  posterUrl?: string | null;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_28%_18%,rgba(255,255,255,0.98),rgba(226,232,240,0.94)_54%,rgba(203,213,225,0.84))]">
-      {props.posterUrl ? (
-        <img
-          src={props.posterUrl}
-          alt={props.label}
-          className="absolute inset-0 h-full w-full object-cover opacity-20"
-        />
-      ) : null}
-      <div className="relative mx-6 max-w-[18rem] rounded-[24px] nimi-material-glass-thin border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] px-5 py-4 text-center shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur-[var(--nimi-backdrop-blur-thin)]">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-          {t('Chat.avatarLive2dFallbackLabel', { defaultValue: 'Live2D Fallback' })}
-        </p>
-        <p className="mt-2 text-sm font-semibold text-slate-900">{props.label}</p>
-        <p className="mt-2 text-xs leading-5 text-slate-600">{props.errorMessage}</p>
-      </div>
-    </div>
-  );
-}
+const MINIMAL_CHAT_AGENT_LIVE2D_VERTICAL_OFFSET_Y = -0.08;
 
 export default function ChatAgentAvatarLive2dViewport({
   input,
@@ -205,7 +38,9 @@ export default function ChatAgentAvatarLive2dViewport({
   onLoadStateChange,
   onLoadErrorChange,
   onDiagnosticChange,
+  framingIntent = 'chat-focus',
 }: ChatAgentAvatarLive2dViewportProps) {
+  const modelVerticalOffsetY = chrome === 'minimal' ? MINIMAL_CHAT_AGENT_LIVE2D_VERTICAL_OFFSET_Y : 0;
   const hostRef = useRef<HTMLDivElement | null>(null);
   const modelRef = useRef<Awaited<ReturnType<typeof createOfficialLive2dCubismModel>> | null>(null);
   const animationStateRef = useRef(resolveChatAgentAvatarLive2dViewportState(input));
@@ -492,6 +327,8 @@ export default function ChatAgentAvatarLive2dViewport({
             source: rebuildSource,
             width: inputRebuild.width,
             height: inputRebuild.height,
+            verticalOffsetY: modelVerticalOffsetY,
+            framingIntent,
           });
           if (cancelled || rebuildId !== resizeRebuildRequestId) {
             nextModel.release();
@@ -811,7 +648,7 @@ export default function ChatAgentAvatarLive2dViewport({
       sourceForCleanup?.cleanup?.();
       host.replaceChildren();
     };
-  }, [input.assetRef, runtimeEpoch]);
+  }, [input.assetRef, modelVerticalOffsetY, runtimeEpoch, framingIntent]);
 
   return (
     <div
@@ -843,11 +680,13 @@ export default function ChatAgentAvatarLive2dViewport({
           posterUrl={input.posterUrl}
         />
       ) : null}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] flex justify-center pb-4">
-        <span className="rounded-full border border-white/80 bg-slate-950/84 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)]">
-          {viewportState.badgeLabel}
-        </span>
-      </div>
+      {viewportState.phase === 'idle' ? null : (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] flex justify-center pb-4">
+          <span className="rounded-full border border-white/80 bg-slate-950/84 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)]">
+            {viewportState.badgeLabel}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

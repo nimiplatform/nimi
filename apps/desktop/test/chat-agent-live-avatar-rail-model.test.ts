@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolveChatAgentLiveAvatarRailModel } from '../src/shell/renderer/features/chat/chat-agent-live-avatar-rail-model.js';
+import {
+  resolveChatAgentAvatarStageRenderModel,
+  resolveChatAgentLiveAvatarRailModel,
+} from '../src/shell/renderer/features/chat/chat-agent-live-avatar-rail-model.js';
 import { createIdleChatAgentAvatarPointerInteractionState } from '../src/shell/renderer/features/chat/chat-agent-avatar-pointer-interaction.js';
 
 test('agent live avatar rail model prefers desktop-local bound VRM resource when present', () => {
@@ -194,6 +197,70 @@ test('agent live avatar rail model preserves voice phase while admitting pointer
   assert.equal(model.pointerInteraction.interactionBoost, 'engaged');
 });
 
+test('agent live avatar rail model applies chat avatar smoke override to bound vrm interaction state', () => {
+  const runtimeWindow = globalThis as typeof globalThis & {
+    __NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__?: Record<string, unknown> | null;
+  };
+  runtimeWindow.__NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__ = {
+    phase: 'speaking',
+    label: 'Speaking…',
+    emotion: 'focus',
+    amplitude: 0.82,
+    visemeId: 'aa',
+  };
+
+  try {
+    const model = resolveChatAgentLiveAvatarRailModel({
+      selectedTarget: {
+        id: 'agent-vrm-override',
+        source: 'agent',
+        canonicalSessionId: 'thread-vrm-override',
+        title: 'Companion',
+        handle: '@companion',
+        bio: null,
+        avatarUrl: 'https://cdn.nimi.test/companion.png',
+        avatarFallback: 'C',
+        previewText: null,
+        updatedAt: null,
+        unreadCount: 0,
+        status: 'active',
+        isOnline: null,
+        metadata: {},
+      },
+      characterData: {
+        name: 'Companion',
+        interactionState: {
+          phase: 'idle',
+          label: 'Here with you',
+          emotion: 'calm',
+          amplitude: 0.08,
+        },
+      },
+      localResource: {
+        resourceId: 'resource-vrm-override',
+        kind: 'vrm',
+        displayName: 'Bound Avatar',
+        sourceFilename: 'bound.vrm',
+        storedPath: '/tmp/bound-avatar',
+        fileUrl: 'file:///tmp/bound-avatar/bound.vrm',
+        posterPath: null,
+        importedAtMs: 100,
+        updatedAtMs: 100,
+        status: 'ready',
+      },
+    });
+
+    assert.equal(model.presentation.backendKind, 'vrm');
+    assert.equal(model.snapshot.interaction.phase, 'speaking');
+    assert.equal(model.snapshot.interaction.actionCue, 'Speaking…');
+    assert.equal(model.snapshot.interaction.emotion, 'focus');
+    assert.equal(model.snapshot.interaction.amplitude, 0.82);
+    assert.equal(model.snapshot.interaction.visemeId, 'aa');
+  } finally {
+    runtimeWindow.__NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__ = null;
+  }
+});
+
 test('agent live avatar rail model falls back to idle pointer state when none is provided', () => {
   const model = resolveChatAgentLiveAvatarRailModel({
     selectedTarget: {
@@ -254,4 +321,119 @@ test('agent live avatar rail model falls back to sprite presentation when no loc
   assert.equal(model.presentation.backendKind, 'sprite2d');
   assert.equal(model.presentation.avatarAssetRef, 'https://cdn.nimi.test/poster.png');
   assert.equal(model.viewportInput.posterUrl, 'https://cdn.nimi.test/poster.png');
+});
+
+test('agent live avatar rail stage render model keeps active live2d snapshot until the viewport fails closed', () => {
+  const railModel = resolveChatAgentLiveAvatarRailModel({
+    selectedTarget: {
+      id: 'agent-live2d-stage',
+      source: 'agent',
+      canonicalSessionId: 'thread-live2d-stage',
+      title: 'Airi',
+      handle: '@airi',
+      bio: null,
+      avatarUrl: 'https://cdn.nimi.test/airi.png',
+      avatarFallback: 'A',
+      previewText: null,
+      updatedAt: null,
+      unreadCount: 0,
+      status: 'active',
+      isOnline: null,
+      metadata: {},
+    },
+    characterData: {
+      name: 'Airi',
+      avatarUrl: 'https://cdn.nimi.test/airi.png',
+      interactionState: {
+        phase: 'speaking',
+        label: 'Speaking…',
+      },
+    },
+    localResource: {
+      resourceId: 'resource-live2d',
+      kind: 'live2d',
+      displayName: 'Airi Live2D',
+      sourceFilename: 'airi.model3.json',
+      storedPath: '/tmp/airi-live2d',
+      fileUrl: 'file:///tmp/airi-live2d/airi.model3.json',
+      posterPath: null,
+      importedAtMs: 100,
+      updatedAtMs: 100,
+      status: 'ready',
+    },
+  });
+
+  const activeStage = resolveChatAgentAvatarStageRenderModel({
+    railModel,
+    loadStatus: {
+      live2d: 'loading',
+      vrm: 'idle',
+    },
+  });
+  const fallbackStage = resolveChatAgentAvatarStageRenderModel({
+    railModel,
+    loadStatus: {
+      live2d: 'error',
+      vrm: 'idle',
+    },
+  });
+
+  assert.equal(activeStage.rendererFallbackApplied, false);
+  assert.equal(activeStage.snapshot.presentation.backendKind, 'live2d');
+  assert.equal(activeStage.viewportInput.assetRef, 'desktop-avatar://resource-live2d/airi.model3.json');
+  assert.equal(fallbackStage.rendererFallbackApplied, true);
+  assert.equal(fallbackStage.snapshot.presentation.backendKind, 'sprite2d');
+  assert.equal(fallbackStage.viewportInput.assetRef, railModel.fallbackSnapshot.presentation.avatarAssetRef);
+});
+
+test('agent live avatar rail stage render model does not rewrite vrm stage selection on load errors', () => {
+  const railModel = resolveChatAgentLiveAvatarRailModel({
+    selectedTarget: {
+      id: 'agent-vrm-stage',
+      source: 'agent',
+      canonicalSessionId: 'thread-vrm-stage',
+      title: 'Companion',
+      handle: '@companion',
+      bio: null,
+      avatarUrl: 'https://cdn.nimi.test/companion.png',
+      avatarFallback: 'C',
+      previewText: null,
+      updatedAt: null,
+      unreadCount: 0,
+      status: 'active',
+      isOnline: null,
+      metadata: {},
+    },
+    characterData: {
+      name: 'Companion',
+      interactionState: {
+        phase: 'speaking',
+        label: 'Speaking…',
+      },
+    },
+    localResource: {
+      resourceId: 'resource-vrm',
+      kind: 'vrm',
+      displayName: 'Bound Avatar',
+      sourceFilename: 'bound.vrm',
+      storedPath: '/tmp/bound-avatar',
+      fileUrl: 'file:///tmp/bound-avatar/bound.vrm',
+      posterPath: null,
+      importedAtMs: 100,
+      updatedAtMs: 100,
+      status: 'ready',
+    },
+  });
+
+  const stage = resolveChatAgentAvatarStageRenderModel({
+    railModel,
+    loadStatus: {
+      live2d: 'idle',
+      vrm: 'error',
+    },
+  });
+
+  assert.equal(stage.rendererFallbackApplied, false);
+  assert.equal(stage.snapshot.presentation.backendKind, 'vrm');
+  assert.equal(stage.viewportInput.assetRef, 'desktop-avatar://resource-vrm/bound.vrm');
 });

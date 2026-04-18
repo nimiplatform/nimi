@@ -1,4 +1,12 @@
-import type { AvatarVrmViewportRenderInput } from '@nimiplatform/nimi-kit/features/avatar/vrm';
+import type {
+  AvatarLive2dViewportRenderInput,
+  AvatarLive2dViewportState,
+} from '@nimiplatform/nimi-kit/features/avatar/live2d';
+import {
+  resolveAvatarLive2dViewportState,
+  resolvePreferredLive2dIdleMotionGroup,
+  resolvePreferredLive2dSpeechMotionGroup,
+} from '@nimiplatform/nimi-kit/features/avatar/live2d';
 import { formatAvatarVrmAssetLabel } from '@nimiplatform/nimi-kit/features/avatar/vrm';
 import type {
   DesktopAgentAvatarResourceAssetPayload,
@@ -53,16 +61,7 @@ export type ChatAgentAvatarLive2dModelSource = {
   cleanup?: (() => void) | null;
 };
 
-export type ChatAgentAvatarLive2dViewportState = {
-  phase: AvatarVrmViewportRenderInput['snapshot']['interaction']['phase'];
-  emotion: NonNullable<AvatarVrmViewportRenderInput['snapshot']['interaction']['emotion']> | 'neutral';
-  amplitude: number;
-  badgeLabel: string;
-  assetLabel: string;
-  motionSpeed: number;
-  accentColor: string;
-  glowColor: string;
-};
+export type ChatAgentAvatarLive2dViewportState = AvatarLive2dViewportState;
 
 type ChatAgentAvatarLive2dSourceDependencies = {
   listResources: () => Promise<DesktopAgentAvatarResourceRecord[]>;
@@ -78,53 +77,6 @@ const DEFAULT_SOURCE_DEPENDENCIES: ChatAgentAvatarLive2dSourceDependencies = {
   readAsset: readDesktopAgentAvatarResourceAsset,
   readRelativeAsset: readDesktopAgentAvatarResourceRelativeAsset,
 };
-
-function phaseLabel(
-  phase: AvatarVrmViewportRenderInput['snapshot']['interaction']['phase'],
-): string {
-  switch (phase) {
-    case 'thinking':
-      return 'Thinking';
-    case 'listening':
-      return 'Listening';
-    case 'speaking':
-      return 'Speaking';
-    case 'transitioning':
-      return 'Transitioning';
-    case 'idle':
-    default:
-      return 'Ready';
-  }
-}
-
-function clampUnit(value: number | null | undefined): number {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    return 0;
-  }
-  return Math.max(0, Math.min(value, 1));
-}
-
-function resolvePalette(
-  emotion: ChatAgentAvatarLive2dViewportState['emotion'],
-): Pick<ChatAgentAvatarLive2dViewportState, 'accentColor' | 'glowColor'> {
-  switch (emotion) {
-    case 'joy':
-      return { accentColor: '#fb7185', glowColor: '#fecdd3' };
-    case 'focus':
-      return { accentColor: '#38bdf8', glowColor: '#bae6fd' };
-    case 'calm':
-      return { accentColor: '#2dd4bf', glowColor: '#99f6e4' };
-    case 'playful':
-      return { accentColor: '#f59e0b', glowColor: '#fde68a' };
-    case 'concerned':
-      return { accentColor: '#8b5cf6', glowColor: '#ddd6fe' };
-    case 'surprised':
-      return { accentColor: '#f97316', glowColor: '#fdba74' };
-    case 'neutral':
-    default:
-      return { accentColor: '#0ea5e9', glowColor: '#bfdbfe' };
-  }
-}
 
 function decodeDesktopAgentAvatarAssetText(base64: string): string {
   const globalDecoder = globalThis as typeof globalThis & GlobalBase64Decoder;
@@ -180,8 +132,7 @@ export function parseChatAgentAvatarLive2dMocVersion(
 }
 
 function resolveAbsoluteLive2dFileUrl(baseFileUrl: string, relativePath: string): string {
-  const resolved = new URL(relativePath, baseFileUrl);
-  return resolved.toString();
+  return new URL(relativePath, baseFileUrl).toString();
 }
 
 function rewriteLive2dModelSettingsForDesktopAsset(input: {
@@ -268,26 +219,7 @@ function resolveLive2dResourceRelativePath(baseFileUrl: string, assetFileUrl: st
   return assetPath.slice(basePath.length);
 }
 
-export function resolvePreferredLive2dIdleMotionGroup(groups: string[]): string | null {
-  const exact = groups.find((group) => group.trim().toLowerCase() === 'idle');
-  if (exact) {
-    return exact;
-  }
-  return groups.find((group) => {
-    const normalized = group.trim().toLowerCase();
-    return normalized.includes('idle') || normalized.includes('home') || normalized.includes('default');
-  }) || null;
-}
-
-export function resolvePreferredLive2dSpeechMotionGroup(groups: string[]): string | null {
-  return groups.find((group) => {
-    const normalized = group.trim().toLowerCase();
-    return normalized.includes('speak')
-      || normalized.includes('talk')
-      || normalized.includes('voice')
-      || normalized.includes('mouth');
-  }) || null;
-}
+export { resolvePreferredLive2dIdleMotionGroup, resolvePreferredLive2dSpeechMotionGroup };
 
 export function resolveChatAgentAvatarLive2dAssetUrl(assetRef: string): string | null {
   const normalized = assetRef.trim();
@@ -426,28 +358,8 @@ export async function loadChatAgentAvatarLive2dModelSource(
 }
 
 export function resolveChatAgentAvatarLive2dViewportState(
-  input: AvatarVrmViewportRenderInput,
+  input: AvatarLive2dViewportRenderInput,
   source?: Pick<ChatAgentAvatarLive2dModelSource, 'assetLabel'> | null,
 ): ChatAgentAvatarLive2dViewportState {
-  const phase = input.snapshot.interaction.phase;
-  const emotion = input.snapshot.interaction.emotion || 'neutral';
-  const amplitude = clampUnit(input.snapshot.interaction.amplitude);
-  const palette = resolvePalette(emotion);
-
-  return {
-    phase,
-    emotion,
-    amplitude,
-    badgeLabel: input.snapshot.interaction.actionCue || phaseLabel(phase),
-    assetLabel: source?.assetLabel || formatAvatarVrmAssetLabel(input.assetRef) || 'avatar.model3.json',
-    motionSpeed: phase === 'speaking'
-      ? 1.1 + amplitude * 0.8
-      : phase === 'thinking'
-        ? 0.68
-        : phase === 'listening'
-          ? 0.76
-          : 0.52,
-    accentColor: palette.accentColor,
-    glowColor: palette.glowColor,
-  };
+  return resolveAvatarLive2dViewportState(input, source);
 }

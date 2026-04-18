@@ -17,13 +17,18 @@ import {
   resolveChatAgentAvatarPointerInteraction,
   shouldUpdateChatAgentAvatarPointerInteraction,
 } from './chat-agent-avatar-pointer-interaction';
-import { resolveChatAgentLiveAvatarRailModel } from './chat-agent-live-avatar-rail-model';
+import {
+  CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT,
+  resolveChatAgentAvatarStageRenderModel,
+  resolveChatAgentLiveAvatarRailModel,
+} from './chat-agent-live-avatar-rail-model';
 import {
   type ChatRightPanelHandsFreeState,
 } from './chat-right-panel-character-rail';
 import { ChatRightPanelSettings } from './chat-right-panel-settings';
 import { ChatRightColumn, ChatRightColumnCard, ChatRightColumnCardTitle } from './chat-right-column-primitives';
-import type { ChatAgentAvatarLive2dDiagnostic } from './chat-agent-avatar-live2d-viewport';
+import type { ChatAgentAvatarLive2dDiagnostic } from './chat-agent-avatar-live2d-diagnostics';
+import type { ChatAgentAvatarVrmDiagnostic } from './chat-agent-avatar-vrm-viewport';
 
 export type ChatRightPanelAvatarStageRailProps = {
   selectedTarget: ConversationTargetSummary;
@@ -39,6 +44,14 @@ export type ChatRightPanelAvatarStageRailProps = {
 
 export type ChatAgentAvatarLive2dDiagnosticPanelModel = {
   kind: 'recovery' | 'error';
+  message: string;
+  toneClassName: string;
+  detailClassName: string;
+  details: string[];
+};
+
+export type ChatAgentAvatarVrmDiagnosticPanelModel = {
+  kind: 'loading' | 'error';
   message: string;
   toneClassName: string;
   detailClassName: string;
@@ -107,6 +120,76 @@ export function resolveChatAgentAvatarLive2dDiagnosticPanelModel(input: {
   return null;
 }
 
+export function resolveChatAgentAvatarVrmDiagnosticPanelModel(input: {
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  error: string | null;
+  diagnostic: ChatAgentAvatarVrmDiagnostic | null;
+}): ChatAgentAvatarVrmDiagnosticPanelModel | null {
+  const { diagnostic } = input;
+  if (!diagnostic) {
+    return null;
+  }
+
+  if (input.status === 'error' && input.error) {
+    return {
+      kind: 'error',
+      message: input.error,
+      toneClassName: 'border-amber-200/80 bg-amber-50/90 text-amber-900',
+      detailClassName: 'border-amber-200/80 bg-white/70 text-slate-700',
+      details: [
+        `backend=${diagnostic.backendKind} status=${diagnostic.status} stage=${diagnostic.stage}`,
+        `source=${diagnostic.source}`,
+        diagnostic.resourceId ? `resourceId=${diagnostic.resourceId}` : null,
+        diagnostic.assetLabel ? `assetLabel=${diagnostic.assetLabel}` : null,
+        `assetRef=${diagnostic.assetRef || 'none'}`,
+        diagnostic.assetUrl ? `assetUrl=${diagnostic.assetUrl}` : null,
+        diagnostic.networkAssetUrl ? `networkAssetUrl=${diagnostic.networkAssetUrl}` : null,
+        diagnostic.posterUrl ? `posterUrl=${diagnostic.posterUrl}` : null,
+        `resizePosture=${diagnostic.resizePosture}`,
+        `hostRenderable=${diagnostic.hostRenderable ? 'true' : 'false'}`,
+        `viewport=${diagnostic.viewportWidth}x${diagnostic.viewportHeight}`,
+        `canvasEpoch=${diagnostic.canvasEpoch}`,
+        diagnostic.recoveryReason ? `recoveryReason=${diagnostic.recoveryReason}` : null,
+        diagnostic.recoveryAttemptCount > 0 ? `recoveryAttemptCount=${diagnostic.recoveryAttemptCount}` : null,
+        diagnostic.error ? `error=${diagnostic.error}` : null,
+      ].filter((value): value is string => Boolean(value)),
+    };
+  }
+
+  if (input.status === 'loading') {
+    const message = diagnostic.recoveryAttemptCount > 0
+      ? 'Recovering VRM viewport'
+      : !diagnostic.hostRenderable && diagnostic.stage === 'ready'
+        ? 'Waiting for renderable VRM host'
+        : diagnostic.stage === 'asset-resolve'
+          ? 'Resolving VRM asset'
+          : 'Loading VRM viewport';
+    return {
+      kind: 'loading',
+      message,
+      toneClassName: 'border-sky-200/80 bg-sky-50/90 text-sky-950',
+      detailClassName: 'border-sky-200/80 bg-white/70 text-slate-700',
+      details: [
+        `backend=${diagnostic.backendKind} status=${diagnostic.status} stage=${diagnostic.stage}`,
+        `source=${diagnostic.source}`,
+        diagnostic.resourceId ? `resourceId=${diagnostic.resourceId}` : null,
+        diagnostic.assetLabel ? `assetLabel=${diagnostic.assetLabel}` : null,
+        `assetRef=${diagnostic.assetRef || 'none'}`,
+        diagnostic.assetUrl ? `assetUrl=${diagnostic.assetUrl}` : null,
+        diagnostic.networkAssetUrl ? `networkAssetUrl=${diagnostic.networkAssetUrl}` : null,
+        `resizePosture=${diagnostic.resizePosture}`,
+        `hostRenderable=${diagnostic.hostRenderable ? 'true' : 'false'}`,
+        `viewport=${diagnostic.viewportWidth}x${diagnostic.viewportHeight}`,
+        `canvasEpoch=${diagnostic.canvasEpoch}`,
+        diagnostic.recoveryReason ? `recoveryReason=${diagnostic.recoveryReason}` : null,
+        diagnostic.recoveryAttemptCount > 0 ? `recoveryAttemptCount=${diagnostic.recoveryAttemptCount}` : null,
+      ].filter((value): value is string => Boolean(value)),
+    };
+  }
+
+  return null;
+}
+
 export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRailProps) {
   const { t } = useTranslation();
   const [pointerInteraction, setPointerInteraction] = useState(
@@ -115,6 +198,10 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
   const [live2dLoadStatus, setLive2dLoadStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [live2dLoadError, setLive2dLoadError] = useState<string | null>(null);
   const [live2dDiagnostic, setLive2dDiagnostic] = useState<ChatAgentAvatarLive2dDiagnostic | null>(null);
+  const [vrmLoadStatus, setVrmLoadStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [vrmLoadError, setVrmLoadError] = useState<string | null>(null);
+  const [vrmDiagnostic, setVrmDiagnostic] = useState<ChatAgentAvatarVrmDiagnostic | null>(null);
+  const [, setSmokeOverrideVersion] = useState(0);
   const avatarResourcesQuery = useQuery({
     queryKey: desktopAgentAvatarResourcesQueryKey(),
     queryFn: listDesktopAgentAvatarResources,
@@ -143,15 +230,24 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
     localResource,
     pointerInteraction,
   });
-  const activeSnapshot = live2dLoadStatus === 'error'
-    ? railModel.fallbackSnapshot
-    : railModel.snapshot;
+  const stageRenderModel = resolveChatAgentAvatarStageRenderModel({
+    railModel,
+    loadStatus: {
+      live2d: live2dLoadStatus,
+      vrm: vrmLoadStatus,
+    },
+  });
   const phase = railModel.snapshot.interaction.phase;
   const dockBusy = phase === 'thinking' || phase === 'speaking' || phase === 'listening';
   const live2dDiagnosticPanel = resolveChatAgentAvatarLive2dDiagnosticPanelModel({
     status: live2dLoadStatus,
     error: live2dLoadError,
     diagnostic: live2dDiagnostic,
+  });
+  const vrmDiagnosticPanel = resolveChatAgentAvatarVrmDiagnosticPanelModel({
+    status: vrmLoadStatus,
+    error: vrmLoadError,
+    diagnostic: vrmDiagnostic,
   });
 
   useEffect(() => {
@@ -162,10 +258,23 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
     setLive2dLoadStatus('idle');
     setLive2dLoadError(null);
     setLive2dDiagnostic(null);
+    setVrmLoadStatus('idle');
+    setVrmLoadError(null);
+    setVrmDiagnostic(null);
   }, [
     railModel.presentation.backendKind,
     railModel.presentation.avatarAssetRef,
   ]);
+
+  useEffect(() => {
+    const handleSmokeOverrideChange = () => {
+      setSmokeOverrideVersion((current) => current + 1);
+    };
+    window.addEventListener(CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT, handleSmokeOverrideChange);
+    return () => {
+      window.removeEventListener(CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT, handleSmokeOverrideChange);
+    };
+  }, []);
 
   function handlePointerStageMove(event: ReactPointerEvent<HTMLDivElement>) {
     const nextInteraction = resolveChatAgentAvatarPointerInteraction({
@@ -205,16 +314,17 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
           <span className="pointer-events-none absolute inset-x-10 top-6 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
           <span className="pointer-events-none absolute inset-x-6 bottom-5 h-10 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.08),transparent_72%)] blur-2xl" />
           <ChatAgentAvatarStageViewport
-            snapshot={activeSnapshot}
-            label={railModel.displayName}
-            imageUrl={props.characterData?.avatarUrl || props.selectedTarget.avatarUrl || null}
-            fallbackLabel={props.selectedTarget.avatarFallback || railModel.displayName}
-            viewportInput={{
-              ...railModel.viewportInput,
-              assetRef: activeSnapshot.presentation.avatarAssetRef,
-              snapshot: activeSnapshot,
+            stage={stageRenderModel}
+            onVrmLoadStateChange={(status) => {
+              setVrmLoadStatus((current) => {
+                if (current === status) {
+                  return current;
+                }
+                return status;
+              });
             }}
-            pointerInteraction={railModel.pointerInteraction}
+            onVrmLoadErrorChange={setVrmLoadError}
+            onVrmDiagnosticChange={setVrmDiagnostic}
             onLive2dLoadStateChange={(status) => {
               setLive2dLoadStatus((current) => {
                 if (current === status) {
@@ -265,6 +375,39 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
                   className={cn(
                     'break-all',
                     detail.startsWith('error=') || detail.startsWith('errorUrl=') || detail.startsWith('errorStatus=')
+                      ? 'text-rose-700'
+                      : null,
+                  )}
+                >
+                  {detail}
+                </p>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {vrmDiagnosticPanel ? (
+          <div
+            className={cn(
+              'mt-2 space-y-2 rounded-2xl border px-3 py-2.5 text-left text-[11px] leading-5',
+              vrmDiagnosticPanel.toneClassName,
+            )}
+            data-vrm-load-reason={vrmDiagnosticPanel.kind === 'loading' ? 'true' : undefined}
+            data-vrm-error-reason={vrmDiagnosticPanel.kind === 'error' ? 'true' : undefined}
+          >
+            <p className={cn(
+              'font-semibold',
+              vrmDiagnosticPanel.kind === 'error' ? 'text-amber-800' : 'text-sky-800',
+            )}>{vrmDiagnosticPanel.message}</p>
+            <div className={cn(
+              'space-y-1 rounded-xl border px-2.5 py-2 font-mono text-[10px] leading-4',
+              vrmDiagnosticPanel.detailClassName,
+            )}>
+              {vrmDiagnosticPanel.details.map((detail) => (
+                <p
+                  key={detail}
+                  className={cn(
+                    'break-all',
+                    detail.startsWith('error=')
                       ? 'text-rose-700'
                       : null,
                   )}

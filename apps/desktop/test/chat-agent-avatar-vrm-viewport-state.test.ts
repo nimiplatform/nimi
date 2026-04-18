@@ -41,11 +41,15 @@ test('avatar vrm viewport state clamps amplitude and derives speaking motion sta
   });
 
   assert.equal(state.phase, 'speaking');
+  assert.equal(state.posture, 'speaking-energized');
   assert.equal(state.emotion, 'focus');
   assert.equal(state.amplitude, 1);
+  assert.equal(state.speakingEnergy, 1);
   assert.equal(state.badgeLabel, 'Responding');
   assert.equal(state.assetLabel, 'airi.vrm');
   assert.ok(state.motionSpeed > 2);
+  assert.ok(state.speakingPulseAmount > 0.04);
+  assert.equal(state.eyeOpen, 0.082);
   assert.equal(state.accentColor, '#38bdf8');
   assert.equal(state.pointerInfluence, 0);
 });
@@ -73,9 +77,12 @@ test('avatar vrm viewport state uses stable idle defaults when interaction detai
 
   assert.equal(state.badgeLabel, 'Ready');
   assert.equal(state.assetLabel, 'airi-shell');
+  assert.equal(state.posture, 'idle-settled');
   assert.equal(state.emotion, 'neutral');
   assert.equal(state.motionSpeed, 0.35);
   assert.equal(state.sparklesSpeed, 0.25);
+  assert.equal(state.mouthOpen, 0.11);
+  assert.equal(state.eyeOpen, 0.08);
 });
 
 test('avatar vrm viewport state derives bounded pointer-follow offsets under idle hover', () => {
@@ -107,6 +114,7 @@ test('avatar vrm viewport state derives bounded pointer-follow offsets under idl
   }, pointerInteraction);
 
   assertCloseTo(state.pointerInfluence, 0.5616);
+  assert.equal(state.posture, 'idle-settled');
   assertCloseTo(state.headFollowX, 0.134784);
   assertCloseTo(state.headFollowY, 0.078624);
   assertCloseTo(state.eyeFollowX, 0.050544);
@@ -144,8 +152,37 @@ test('avatar vrm viewport state reduces pointer influence while speaking to pres
   }, pointerInteraction);
 
   assertCloseTo(state.pointerInfluence, 0.20952);
+  assert.equal(state.posture, 'speaking-energized');
   assert.ok(state.headFollowX < 0.05);
-  assert.ok(state.motionSpeed > 2.5);
+  assert.ok(state.motionSpeed > 2.45);
+});
+
+test('avatar vrm viewport state exposes explicit listening posture defaults', () => {
+  const state = resolveChatAgentAvatarVrmViewportState({
+    label: 'Companion',
+    assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+    posterUrl: null,
+    idlePreset: null,
+    expressionProfileRef: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+    style: undefined,
+    snapshot: {
+      presentation: {
+        backendKind: 'vrm',
+        avatarAssetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+      },
+      interaction: {
+        phase: 'listening',
+      },
+    },
+  });
+
+  assert.equal(state.posture, 'listening-attentive');
+  assert.equal(state.speakingEnergy, 0);
+  assert.equal(state.mouthOpen, 0.11);
+  assert.equal(state.eyeOpen, 0.09);
+  assert.equal(state.blinkSpeed, 3.6);
 });
 
 test('avatar vrm viewport state resolves concrete asset urls only for non-fallback refs', () => {
@@ -220,5 +257,54 @@ test('avatar vrm viewport state maps emotion and viseme cues into expression wei
   });
 
   assert.equal(weights.happy, 0.52);
-  assert.equal(weights.ee, 0.675);
+  assert.equal(weights.ee, 0.7);
+});
+
+test('avatar vrm viewport state provides explicit speaking fallback when viseme is missing', () => {
+  const weights = resolveChatAgentAvatarVrmExpressionWeights({
+    label: 'Companion',
+    assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+    posterUrl: null,
+    idlePreset: null,
+    expressionProfileRef: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+    style: undefined,
+    snapshot: {
+      presentation: {
+        backendKind: 'vrm',
+        avatarAssetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+      },
+      interaction: {
+        phase: 'speaking',
+        amplitude: 0.5,
+      },
+    },
+  });
+
+  assert.equal(weights.aa, 0.52);
+});
+
+test('avatar vrm viewport state adds a relaxed baseline while listening', () => {
+  const weights = resolveChatAgentAvatarVrmExpressionWeights({
+    label: 'Companion',
+    assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+    posterUrl: null,
+    idlePreset: null,
+    expressionProfileRef: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+    style: undefined,
+    snapshot: {
+      presentation: {
+        backendKind: 'vrm',
+        avatarAssetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+      },
+      interaction: {
+        phase: 'listening',
+      },
+    },
+  });
+
+  assert.equal(weights.relaxed, 0.16);
 });

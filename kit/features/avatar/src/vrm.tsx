@@ -7,6 +7,23 @@ import type {
   AvatarStageRendererContext,
   AvatarStageSnapshot,
 } from './types.js';
+export type {
+  AvatarPointerInteractionState,
+  AvatarVrmExpressionWeights,
+  AvatarVrmFramingIntent,
+  AvatarVrmFramingMetrics,
+  AvatarVrmFramingPolicy,
+  AvatarVrmFramingResult,
+  AvatarVrmViewportState,
+} from './vrm-domain.js';
+export {
+  measureAvatarVrmFramingMetrics,
+  resolveAvatarVrmExpressionWeights,
+  resolveAvatarVrmFramingFromScene,
+  resolveAvatarVrmFramingPolicy,
+  resolveAvatarVrmFramingResult,
+  resolveAvatarVrmViewportState,
+} from './vrm-domain.js';
 
 export type AvatarVrmViewportRenderInput = {
   label: string;

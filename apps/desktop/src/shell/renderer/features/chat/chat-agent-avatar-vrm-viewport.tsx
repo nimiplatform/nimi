@@ -1,9 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Sparkles } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import { VRMExpressionPresetName, VRMHumanBoneName, VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
+import { Canvas } from '@react-three/fiber';
+import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { AvatarVrmViewportComponentProps } from '@nimiplatform/nimi-kit/features/avatar/vrm';
 import { cn } from '@nimiplatform/nimi-kit/ui';
@@ -13,316 +11,76 @@ import {
   resolveChatAgentAvatarVrmAssetUrl,
   resolveChatAgentAvatarVrmExpressionWeights,
   resolveChatAgentAvatarVrmViewportState,
-  type ChatAgentAvatarVrmViewportState,
 } from './chat-agent-avatar-vrm-viewport-state';
+import {
+  resolveChatAgentAvatarVrmFramingFromScene,
+  type ChatAgentAvatarVrmFramingIntent,
+  type ChatAgentAvatarVrmFramingResult,
+} from './chat-agent-avatar-vrm-framing';
 import type { ChatAgentAvatarPointerInteractionState } from './chat-agent-avatar-pointer-interaction';
 import { readDesktopAgentAvatarResourceAsset } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-store';
+import {
+  collectChatAgentAvatarVrmSceneResourceCounts,
+  createChatAgentAvatarVrmDiagnostic,
+  publishGlobalVrmDebugSnapshot,
+  recordGlobalVrmDispose,
+  recordGlobalVrmLoadSceneIfNeeded,
+  type ChatAgentAvatarVrmDiagnostic,
+  type ChatAgentAvatarVrmResourceCounts,
+  setGlobalVrmDebugSnapshot,
+} from './chat-agent-avatar-vrm-diagnostics';
+import {
+  createChatAgentAvatarVrmNonReadyState,
+  resolveChatAgentAvatarVrmEffectiveLoadState,
+  resolveChatAgentAvatarVrmViewportHostMetrics,
+  resolveChatAgentAvatarVrmViewportStatus,
+  suspendCreateImageBitmapForTauriVrmLoad,
+  VRM_CONTEXT_RECOVERY_TIMEOUT_MS,
+  type ChatAgentAvatarVrmResolvedAssetState,
+  type ChatAgentAvatarVrmRuntimeLifecycleState,
+  type ChatAgentAvatarVrmViewportHostMetrics,
+  type LoadedVrmState,
+  type VrmViewportStatus,
+} from './chat-agent-avatar-vrm-runtime';
+import { AvatarScene, applyIdlePose, VrmRenderLoopTelemetry } from './chat-agent-avatar-vrm-scene';
 
-type AnimatedAvatarObject = {
-  rotation: { x: number; y: number };
-  position: { y: number };
-  scale: { setScalar: (value: number) => void };
-};
-
-type AnimatedEyeObject = {
-  position: { x: number; y: number };
-};
-
-type LoadedVrmState =
-  | { status: 'idle' | 'loading'; vrm: null; error: null }
-  | { status: 'ready'; vrm: VRM; error: null }
-  | { status: 'error'; vrm: null; error: string };
+export {
+  collectChatAgentAvatarVrmSceneResourceCounts,
+  createChatAgentAvatarVrmDiagnostic,
+} from './chat-agent-avatar-vrm-diagnostics';
+export type { ChatAgentAvatarVrmDiagnostic } from './chat-agent-avatar-vrm-diagnostics';
+export {
+  resolveChatAgentAvatarVrmEffectiveLoadState,
+  resolveChatAgentAvatarVrmViewportStatus,
+} from './chat-agent-avatar-vrm-runtime';
 
 type ChatAgentAvatarVrmViewportProps = AvatarVrmViewportComponentProps & {
   pointerInteraction?: ChatAgentAvatarPointerInteractionState | null;
+  onLoadStateChange?: (status: VrmViewportStatus) => void;
+  onLoadErrorChange?: (error: string | null) => void;
+  onDiagnosticChange?: (diagnostic: ChatAgentAvatarVrmDiagnostic) => void;
+  framingIntent?: ChatAgentAvatarVrmFramingIntent;
 };
 
-function applyIdlePose(vrm: VRM) {
-  const humanoid = vrm.humanoid;
-  const leftUpperArm = humanoid.getNormalizedBoneNode(VRMHumanBoneName.LeftUpperArm);
-  const rightUpperArm = humanoid.getNormalizedBoneNode(VRMHumanBoneName.RightUpperArm);
-  const leftLowerArm = humanoid.getNormalizedBoneNode(VRMHumanBoneName.LeftLowerArm);
-  const rightLowerArm = humanoid.getNormalizedBoneNode(VRMHumanBoneName.RightLowerArm);
-  const spine = humanoid.getNormalizedBoneNode(VRMHumanBoneName.Spine);
-  const chest = humanoid.getNormalizedBoneNode(VRMHumanBoneName.Chest);
-  const neck = humanoid.getNormalizedBoneNode(VRMHumanBoneName.Neck);
-
-  if (leftUpperArm) {
-    leftUpperArm.rotation.z = THREE.MathUtils.degToRad(58);
-    leftUpperArm.rotation.x = THREE.MathUtils.degToRad(8);
-  }
-  if (rightUpperArm) {
-    rightUpperArm.rotation.z = THREE.MathUtils.degToRad(-58);
-    rightUpperArm.rotation.x = THREE.MathUtils.degToRad(8);
-  }
-  if (leftLowerArm) {
-    leftLowerArm.rotation.z = THREE.MathUtils.degToRad(-18);
-    leftLowerArm.rotation.y = THREE.MathUtils.degToRad(4);
-  }
-  if (rightLowerArm) {
-    rightLowerArm.rotation.z = THREE.MathUtils.degToRad(18);
-    rightLowerArm.rotation.y = THREE.MathUtils.degToRad(-4);
-  }
-  if (spine) {
-    spine.rotation.x = THREE.MathUtils.degToRad(3);
-  }
-  if (chest) {
-    chest.rotation.x = THREE.MathUtils.degToRad(2);
-  }
-  if (neck) {
-    neck.rotation.x = THREE.MathUtils.degToRad(-2);
-  }
-}
-
-function AvatarBust({
-  state,
-}: {
-  state: ChatAgentAvatarVrmViewportState;
-}) {
-  const groupRef = useRef<AnimatedAvatarObject | null>(null);
-  const shouldersRef = useRef<AnimatedAvatarObject | null>(null);
-  const leftEyeRef = useRef<AnimatedEyeObject | null>(null);
-  const rightEyeRef = useRef<AnimatedEyeObject | null>(null);
-  const followRef = useRef({ headX: 0, headY: 0, eyeX: 0, eyeY: 0 });
-
-  useFrame((renderState, delta) => {
-    followRef.current.headX = THREE.MathUtils.damp(followRef.current.headX, state.headFollowX, 8.8, delta);
-    followRef.current.headY = THREE.MathUtils.damp(followRef.current.headY, state.headFollowY, 8.8, delta);
-    followRef.current.eyeX = THREE.MathUtils.damp(followRef.current.eyeX, state.eyeFollowX, 10.2, delta);
-    followRef.current.eyeY = THREE.MathUtils.damp(followRef.current.eyeY, state.eyeFollowY, 10.2, delta);
-    const ambientWeight = THREE.MathUtils.clamp(1 - state.pointerInfluence * 0.82, 0.18, 1);
-    if (groupRef.current) {
-      groupRef.current.rotation.y = Math.sin(renderState.clock.elapsedTime * 0.45 * state.motionSpeed) * 0.18 * ambientWeight + followRef.current.headX;
-      groupRef.current.rotation.x = Math.cos(renderState.clock.elapsedTime * 0.28 * state.motionSpeed) * 0.06 * ambientWeight + followRef.current.headY;
-      groupRef.current.position.y = Math.sin(renderState.clock.elapsedTime * 0.65 * state.motionSpeed) * 0.08 * (0.55 + ambientWeight * 0.45);
-    }
-    if (shouldersRef.current) {
-      const breathing = 1 + Math.sin(renderState.clock.elapsedTime * (0.8 + state.amplitude * 0.6)) * (0.02 + state.amplitude * 0.018);
-      shouldersRef.current.scale.setScalar(breathing);
-    }
-    if (groupRef.current && state.phase === 'speaking') {
-      const speakingPulse = 1 + Math.sin(renderState.clock.elapsedTime * (4.2 + state.amplitude * 6)) * (0.018 + state.amplitude * 0.026);
-      groupRef.current.scale.setScalar(speakingPulse);
-    } else if (groupRef.current) {
-      groupRef.current.scale.setScalar(1);
-    }
-    if (leftEyeRef.current) {
-      leftEyeRef.current.position.x = -0.22 + followRef.current.eyeX;
-      leftEyeRef.current.position.y = 0.52 + followRef.current.eyeY;
-    }
-    if (rightEyeRef.current) {
-      rightEyeRef.current.position.x = 0.22 + followRef.current.eyeX;
-      rightEyeRef.current.position.y = 0.52 + followRef.current.eyeY;
-    }
-  });
-
-  return (
-    <group ref={groupRef} position={[0, -0.1, 0]}>
-      <mesh position={[0, -1.15, 0]} rotation={[0.25, 0, 0]}>
-        <ringGeometry args={[1.1, 1.52, 64]} />
-        <meshBasicMaterial color={state.glowColor} transparent opacity={0.18} />
-      </mesh>
-      <group ref={shouldersRef} position={[0, -0.55, 0]}>
-        <mesh>
-          <sphereGeometry args={[0.86, 48, 48, 0, Math.PI * 2, 0, Math.PI / 2.2]} />
-          <meshStandardMaterial color={state.accentColor} roughness={0.38} metalness={0.05} emissive={state.accentColor} emissiveIntensity={0.08} />
-        </mesh>
-      </group>
-      <mesh position={[0, 0.42, 0]}>
-        <sphereGeometry args={[0.62, 48, 48]} />
-        <meshPhysicalMaterial color="#f8fafc" roughness={0.2} metalness={0.02} clearcoat={0.4} clearcoatRoughness={0.22} emissive={state.glowColor} emissiveIntensity={0.04} />
-      </mesh>
-      <mesh position={[0, 0.95, -0.06]}>
-        <sphereGeometry args={[0.42, 48, 48]} />
-        <meshStandardMaterial color={state.accentColor} roughness={0.46} metalness={0.02} emissive={state.accentColor} emissiveIntensity={0.11} />
-      </mesh>
-      <mesh position={[0, 0.44, 0.56]} scale={[1, 0.14 + state.amplitude * 0.18, 0.08]}>
-        <sphereGeometry args={[0.16, 24, 24]} />
-        <meshBasicMaterial color={state.phase === 'speaking' ? state.accentColor : '#f97316'} transparent opacity={0.9} />
-      </mesh>
-      <mesh ref={leftEyeRef} position={[-0.22, 0.52, 0.54]} scale={[0.12, state.phase === 'thinking' ? 0.05 : 0.08, 0.06]}>
-        <sphereGeometry args={[1, 18, 18]} />
-        <meshBasicMaterial color="#0f172a" />
-      </mesh>
-      <mesh ref={rightEyeRef} position={[0.22, 0.52, 0.54]} scale={[0.12, state.phase === 'thinking' ? 0.05 : 0.08, 0.06]}>
-        <sphereGeometry args={[1, 18, 18]} />
-        <meshBasicMaterial color="#0f172a" />
-      </mesh>
-      <mesh position={[0, 0.1, 0.64]} scale={[0.09, 0.18, 0.08]}>
-        <sphereGeometry args={[1, 18, 18]} />
-        <meshStandardMaterial color="#f1f5f9" emissive={state.glowColor} emissiveIntensity={0.06} />
-      </mesh>
-    </group>
-  );
-}
-
-function RuntimeVrmModel({
-  vrm,
-  state,
-  input,
-}: {
-  vrm: VRM;
-  state: ChatAgentAvatarVrmViewportState;
-  input: ChatAgentAvatarVrmViewportProps['input'];
-}) {
-  const rootRef = useRef<AnimatedAvatarObject | null>(null);
-  const followRef = useRef({ headX: 0, headY: 0, eyeX: 0, eyeY: 0 });
-  const expressionWeights = useMemo(
-    () => resolveChatAgentAvatarVrmExpressionWeights(input),
-    [input],
-  );
-  const bones = useMemo(() => ({
-    neck: vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.Neck),
-    head: vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.Head),
-    leftEye: vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.LeftEye),
-    rightEye: vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.RightEye),
-  }), [vrm]);
-  const transform = useMemo(() => {
-    const box = new THREE.Box3().setFromObject(vrm.scene);
-    const size = new THREE.Vector3();
-    const center = new THREE.Vector3();
-    box.getSize(size);
-    box.getCenter(center);
-    const height = size.y > 0 ? size.y : 1.8;
-    const width = size.x > 0 ? size.x : 0.9;
-    const depth = size.z > 0 ? size.z : 0.75;
-    const scale = Math.min(
-      2.82 / height,
-      1.96 / width,
-      1.52 / depth,
-    );
-    const baseY = -center.y * scale - 1.28;
-    const minBottom = -1.96;
-    const resolvedY = Math.max(baseY, minBottom - box.min.y * scale);
-    return {
-      scale,
-      position: new THREE.Vector3(
-        -center.x * scale,
-        resolvedY,
-        -center.z * scale - 0.18,
-      ),
-    };
-  }, [vrm]);
-
-  useFrame((renderState, delta) => {
-    followRef.current.headX = THREE.MathUtils.damp(followRef.current.headX, state.headFollowX, 8.2, delta);
-    followRef.current.headY = THREE.MathUtils.damp(followRef.current.headY, state.headFollowY, 8.2, delta);
-    followRef.current.eyeX = THREE.MathUtils.damp(followRef.current.eyeX, state.eyeFollowX, 9.6, delta);
-    followRef.current.eyeY = THREE.MathUtils.damp(followRef.current.eyeY, state.eyeFollowY, 9.6, delta);
-    const ambientWeight = THREE.MathUtils.clamp(1 - state.pointerInfluence * 0.78, 0.24, 1);
-
-    if (rootRef.current) {
-      rootRef.current.rotation.y = Math.sin(renderState.clock.elapsedTime * 0.3 * state.motionSpeed) * 0.1 * ambientWeight;
-      rootRef.current.rotation.x = Math.cos(renderState.clock.elapsedTime * 0.22 * state.motionSpeed) * 0.03 * ambientWeight;
-      rootRef.current.position.y = Math.sin(renderState.clock.elapsedTime * 0.4 * state.motionSpeed) * 0.04 * (0.65 + ambientWeight * 0.35);
-    }
-    if (bones.neck) {
-      bones.neck.rotation.x = THREE.MathUtils.degToRad(-2) + followRef.current.headY * 0.42;
-      bones.neck.rotation.y = followRef.current.headX * 0.55;
-    }
-    if (bones.head) {
-      bones.head.rotation.x = followRef.current.headY * 0.75;
-      bones.head.rotation.y = followRef.current.headX * 0.82;
-    }
-    if (bones.leftEye) {
-      bones.leftEye.rotation.x = followRef.current.eyeY;
-      bones.leftEye.rotation.y = followRef.current.eyeX;
-    }
-    if (bones.rightEye) {
-      bones.rightEye.rotation.x = followRef.current.eyeY;
-      bones.rightEye.rotation.y = followRef.current.eyeX;
-    }
-
-    const expressionManager = vrm.expressionManager;
-    if (expressionManager) {
-      expressionManager.resetValues();
-      for (const [name, weight] of Object.entries(expressionWeights)) {
-        expressionManager.setValue(name as keyof typeof VRMExpressionPresetName | string, weight);
-      }
-      const blink = Math.max(
-        0,
-        Math.sin(renderState.clock.elapsedTime * (state.phase === 'speaking' ? 6 : 3.2)) > 0.96
-          ? 0.95
-          : 0,
-      );
-      if (blink > 0) {
-        expressionManager.setValue(VRMExpressionPresetName.Blink, blink);
-      }
-    }
-
-    vrm.update(delta);
-  });
-
-  return (
-    <group ref={rootRef}>
-      <primitive
-        object={vrm.scene}
-        position={[transform.position.x, transform.position.y, transform.position.z]}
-        scale={transform.scale}
-      />
-    </group>
-  );
-}
-
-function AvatarScene({
-  state,
-  input,
-  loadedVrm,
-}: {
-  state: ChatAgentAvatarVrmViewportState;
-  input: ChatAgentAvatarVrmViewportProps['input'];
-  loadedVrm: LoadedVrmState;
-}) {
-  return (
-    <>
-      <color attach="background" args={['#edf3f7']} />
-      <fog attach="fog" args={['#e5eef4', 6.8, 11.8]} />
-      <ambientLight intensity={0.74} color="#f5f8fb" />
-      <directionalLight position={[1.45, 2.8, 4.2]} intensity={1.08} color="#fff5ea" />
-      <directionalLight position={[-2.2, 1.9, 2.7]} intensity={0.42} color="#d9e9fa" />
-      <pointLight position={[0.3, 1.2, -2.4]} intensity={0.18} color="#c7e5ff" />
-      <pointLight position={[0, -1.1, 2.1]} intensity={0.08} color={state.glowColor} />
-      <Sparkles
-        count={6}
-        scale={2.8}
-        size={1.2}
-        speed={Math.max(0.08, state.sparklesSpeed * 0.32)}
-        color={state.glowColor}
-        opacity={0.08}
-      />
-      {loadedVrm.status === 'ready' ? (
-        <RuntimeVrmModel vrm={loadedVrm.vrm} state={state} input={input} />
-      ) : (
-        <Float speed={state.motionSpeed} rotationIntensity={0.16} floatIntensity={0.22}>
-          <AvatarBust state={state} />
-        </Float>
-      )}
-      <EffectComposer>
-        <Bloom
-          luminanceThreshold={0.92}
-          mipmapBlur
-          intensity={loadedVrm.status === 'ready'
-            ? state.phase === 'speaking'
-              ? 0.045 + state.amplitude * 0.02
-              : 0.01
-            : state.phase === 'speaking'
-              ? 0.08 + state.amplitude * 0.03
-              : 0.02}
-          radius={0.26}
-        />
-      </EffectComposer>
-    </>
-  );
-}
+const MINIMAL_CHAT_AGENT_VRM_VERTICAL_OFFSET_Y = -0.16;
 
 export default function ChatAgentAvatarVrmViewport({
   input,
   chrome = 'default',
   pointerInteraction,
+  onLoadStateChange,
+  onLoadErrorChange,
+  onDiagnosticChange,
+  framingIntent = 'chat-focus',
 }: ChatAgentAvatarVrmViewportProps) {
+  const stageVerticalOffsetY = chrome === 'minimal' ? MINIMAL_CHAT_AGENT_VRM_VERTICAL_OFFSET_Y : 0;
   const state = useMemo(
     () => resolveChatAgentAvatarVrmViewportState(input, pointerInteraction),
     [input, pointerInteraction],
+  );
+  const debugExpressionWeights = useMemo(
+    () => resolveChatAgentAvatarVrmExpressionWeights(input),
+    [input],
   );
   const desktopAssetRef = useMemo<DesktopAgentAvatarAssetRef | null>(
     () => parseDesktopAgentAvatarAssetRef(input.assetRef),
@@ -332,24 +90,360 @@ export default function ChatAgentAvatarVrmViewport({
     () => resolveChatAgentAvatarVrmAssetUrl(input.assetRef),
     [input.assetRef],
   );
-  const [assetUrl, setAssetUrl] = useState<string | null>(networkAssetUrl);
+  const viewportHostRef = useRef<HTMLDivElement | null>(null);
+  const contextRecoveryTimerRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
+  const [resolvedAsset, setResolvedAsset] = useState<ChatAgentAvatarVrmResolvedAssetState>({
+    assetRef: input.assetRef,
+    url: networkAssetUrl,
+    arrayBuffer: null,
+  });
+  const [canvasEpoch, setCanvasEpoch] = useState(0);
+  const [viewportHostMetrics, setViewportHostMetrics] = useState<ChatAgentAvatarVrmViewportHostMetrics>({
+    width: 0,
+    height: 0,
+    renderable: true,
+  });
+  const [runtimeLifecycle, setRuntimeLifecycle] = useState<ChatAgentAvatarVrmRuntimeLifecycleState>({
+    phase: 'stable',
+    reason: null,
+    attemptCount: 0,
+    error: null,
+  });
   const [loadedVrm, setLoadedVrm] = useState<LoadedVrmState>({
-    status: assetUrl ? 'loading' : 'idle',
+    status: networkAssetUrl ? 'loading' : 'idle',
+    assetRef: input.assetRef,
     vrm: null,
     error: null,
   });
+  const effectiveLoadState = useMemo(
+    () => resolveChatAgentAvatarVrmEffectiveLoadState({
+      assetRef: input.assetRef,
+      desktopAssetRef,
+      networkAssetUrl,
+      resolvedAsset,
+      loadedVrm,
+    }),
+    [desktopAssetRef, input.assetRef, loadedVrm, networkAssetUrl, resolvedAsset],
+  );
+  const activeResolvedAssetBuffer = useMemo(
+    () => resolvedAsset.assetRef === input.assetRef ? resolvedAsset.arrayBuffer : null,
+    [input.assetRef, resolvedAsset],
+  );
+  const activeLoadedVrm = useMemo<LoadedVrmState>(
+    () => loadedVrm.assetRef === input.assetRef
+      ? loadedVrm
+      : createChatAgentAvatarVrmNonReadyState({
+          assetRef: input.assetRef,
+          status: effectiveLoadState.status === 'ready' ? 'loading' : effectiveLoadState.status,
+          error: effectiveLoadState.error,
+        }),
+    [effectiveLoadState.error, effectiveLoadState.status, input.assetRef, loadedVrm],
+  );
+  const resolvedRailWidth = Math.max(viewportHostMetrics.width, 360);
+  const resolvedRailHeight = Math.max(viewportHostMetrics.height, 820);
+  const activeVrmResourceCounts = useMemo<ChatAgentAvatarVrmResourceCounts | null>(
+    () => activeLoadedVrm.status === 'ready'
+      ? collectChatAgentAvatarVrmSceneResourceCounts(activeLoadedVrm.vrm.scene)
+      : null,
+    [activeLoadedVrm],
+  );
+  const recordedLoadSceneKeyRef = useRef<string | null>(null);
+  const activeVrmFraming = useMemo<ChatAgentAvatarVrmFramingResult | null>(
+    () => activeLoadedVrm.status === 'ready'
+      ? resolveChatAgentAvatarVrmFramingFromScene({
+          railWidth: resolvedRailWidth,
+          railHeight: resolvedRailHeight,
+          scene: activeLoadedVrm.vrm.scene,
+          intent: framingIntent,
+        })
+      : null,
+    [activeLoadedVrm, framingIntent, resolvedRailHeight, resolvedRailWidth],
+  );
+  const resolvedViewportStatus = useMemo(
+    () => resolveChatAgentAvatarVrmViewportStatus({
+      loadedStatus: effectiveLoadState.status,
+      loadedError: effectiveLoadState.error,
+      hostRenderable: viewportHostMetrics.renderable,
+      runtimeLifecycle,
+    }),
+    [effectiveLoadState.error, effectiveLoadState.status, runtimeLifecycle, viewportHostMetrics.renderable],
+  );
+  const resizePosture = viewportHostMetrics.renderable
+    ? 'tracked-host-size'
+    : 'awaiting-renderable-host';
+  const diagnostic = useMemo(
+    () => createChatAgentAvatarVrmDiagnostic({
+      assetRef: input.assetRef,
+      assetLabel: state.assetLabel,
+      desktopAssetRef,
+      assetUrl: effectiveLoadState.assetUrl,
+      assetResolved: Boolean(effectiveLoadState.assetUrl) || Boolean(activeResolvedAssetBuffer),
+      networkAssetUrl,
+      posterUrl: input.posterUrl,
+      loadedStatus: effectiveLoadState.status,
+      loadedError: effectiveLoadState.error,
+      status: resolvedViewportStatus.status,
+      error: resolvedViewportStatus.error,
+      pointerHovered: Boolean(pointerInteraction?.hovered),
+      recoveryAttemptCount: runtimeLifecycle.attemptCount,
+      recoveryReason: runtimeLifecycle.reason,
+      resizePosture,
+      viewportWidth: viewportHostMetrics.width,
+      viewportHeight: viewportHostMetrics.height,
+      hostRenderable: viewportHostMetrics.renderable,
+      canvasEpoch,
+    }),
+    [
+      activeResolvedAssetBuffer,
+      canvasEpoch,
+      desktopAssetRef,
+      effectiveLoadState.assetUrl,
+      effectiveLoadState.error,
+      effectiveLoadState.status,
+      input.assetRef,
+      input.posterUrl,
+      networkAssetUrl,
+      pointerInteraction?.hovered,
+      resizePosture,
+      resolvedViewportStatus.error,
+      resolvedViewportStatus.status,
+      runtimeLifecycle.attemptCount,
+      runtimeLifecycle.reason,
+      state.assetLabel,
+      viewportHostMetrics.height,
+      viewportHostMetrics.renderable,
+      viewportHostMetrics.width,
+    ],
+  );
+
+  useEffect(() => {
+    onLoadStateChange?.(resolvedViewportStatus.status);
+  }, [onLoadStateChange, resolvedViewportStatus.status]);
+
+  useEffect(() => {
+    onLoadErrorChange?.(resolvedViewportStatus.error);
+  }, [onLoadErrorChange, resolvedViewportStatus.error]);
+
+  useEffect(() => {
+    onDiagnosticChange?.(diagnostic);
+  }, [diagnostic, onDiagnosticChange]);
+
+  useEffect(() => {
+    recordGlobalVrmLoadSceneIfNeeded({
+      activeLoadedStatus: activeLoadedVrm.status,
+      assetRef: activeLoadedVrm.assetRef,
+      sceneUuid: activeLoadedVrm.status === 'ready' ? activeLoadedVrm.vrm.scene.uuid : null,
+      activeVrmResourceCounts,
+      recordedLoadSceneKeyRef,
+    });
+  }, [activeLoadedVrm, activeVrmResourceCounts]);
+
+  useEffect(() => {
+    publishGlobalVrmDebugSnapshot({
+      diagnostic,
+      state,
+      activeViseme: input.snapshot.interaction.visemeId || null,
+      debugExpressionWeights,
+      activeVrmFraming,
+      canvasEpoch,
+      activeVrmResourceCounts,
+    });
+    return () => {
+      setGlobalVrmDebugSnapshot(null);
+    };
+  }, [
+    activeVrmFraming,
+    canvasEpoch,
+    diagnostic,
+    debugExpressionWeights,
+    input.snapshot.interaction.visemeId,
+    state.amplitude,
+    state.assetLabel,
+    state.badgeLabel,
+    state.blinkSpeed,
+    state.emotion,
+    state.eyeOpen,
+    state.mouthOpen,
+    state.phase,
+    state.pointerInfluence,
+    state.posture,
+    state.speakingEnergy,
+    activeVrmResourceCounts,
+  ]);
+
+  useEffect(() => {
+    if (contextRecoveryTimerRef.current !== null) {
+      globalThis.clearTimeout(contextRecoveryTimerRef.current);
+      contextRecoveryTimerRef.current = null;
+    }
+    setRuntimeLifecycle({
+      phase: 'stable',
+      reason: null,
+      attemptCount: 0,
+      error: null,
+    });
+    setCanvasEpoch((current) => current + 1);
+
+    return () => {
+      if (contextRecoveryTimerRef.current !== null) {
+        globalThis.clearTimeout(contextRecoveryTimerRef.current);
+        contextRecoveryTimerRef.current = null;
+      }
+    };
+  }, [input.assetRef]);
+
+  useEffect(() => {
+    const host = viewportHostRef.current;
+    if (!host) {
+      return undefined;
+    }
+
+    const updateHostMetrics = () => {
+      const nextMetrics = resolveChatAgentAvatarVrmViewportHostMetrics(host);
+      setViewportHostMetrics((current) => (
+        current.width === nextMetrics.width
+        && current.height === nextMetrics.height
+        && current.renderable === nextMetrics.renderable
+          ? current
+          : nextMetrics
+      ));
+    };
+
+    updateHostMetrics();
+
+    if (typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateHostMetrics();
+    });
+    observer.observe(host);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!viewportHostMetrics.renderable) {
+      setRuntimeLifecycle((current) => (
+        current.phase === 'failed'
+          ? current
+          : {
+              ...current,
+              phase: 'recovering',
+              reason: 'host-not-renderable',
+              error: null,
+            }
+      ));
+      return;
+    }
+    setRuntimeLifecycle((current) => (
+      current.reason === 'host-not-renderable'
+        ? {
+            ...current,
+            phase: 'stable',
+            reason: null,
+            error: null,
+          }
+        : current
+    ));
+  }, [viewportHostMetrics.renderable]);
+
+  useEffect(() => {
+    const canvas = viewportHostRef.current?.querySelector('canvas');
+    if (!canvas) {
+      return undefined;
+    }
+
+    const failClosed = (error: string, reason: ChatAgentAvatarVrmRuntimeLifecycleState['reason']) => {
+      if (contextRecoveryTimerRef.current !== null) {
+        globalThis.clearTimeout(contextRecoveryTimerRef.current);
+        contextRecoveryTimerRef.current = null;
+      }
+      setRuntimeLifecycle((current) => ({
+        phase: 'failed',
+        reason,
+        attemptCount: current.attemptCount,
+        error,
+      }));
+    };
+
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      setRuntimeLifecycle((current) => {
+        if (current.attemptCount >= 1) {
+          return {
+            phase: 'failed',
+            reason: 'webgl-context-lost',
+            attemptCount: current.attemptCount,
+            error: 'VRM WebGL context was lost more than once. The desktop rail failed closed to fallback.',
+          };
+        }
+        return {
+          phase: 'recovering',
+          reason: 'webgl-context-lost',
+          attemptCount: current.attemptCount + 1,
+          error: null,
+        };
+      });
+      if (contextRecoveryTimerRef.current !== null) {
+        globalThis.clearTimeout(contextRecoveryTimerRef.current);
+      }
+      contextRecoveryTimerRef.current = globalThis.setTimeout(() => {
+        contextRecoveryTimerRef.current = null;
+        failClosed(
+          'VRM WebGL context was lost and did not recover. The desktop rail failed closed to fallback.',
+          'webgl-context-lost',
+        );
+      }, VRM_CONTEXT_RECOVERY_TIMEOUT_MS);
+    };
+
+    const handleContextRestored = () => {
+      if (contextRecoveryTimerRef.current !== null) {
+        globalThis.clearTimeout(contextRecoveryTimerRef.current);
+        contextRecoveryTimerRef.current = null;
+      }
+      setRuntimeLifecycle((current) => (
+        current.phase === 'failed'
+          ? current
+          : {
+              ...current,
+              phase: 'recovering',
+              reason: 'webgl-context-restored',
+              error: null,
+            }
+      ));
+      setCanvasEpoch((current) => current + 1);
+    };
+
+    canvas.addEventListener('webglcontextlost', handleContextLost, { passive: false });
+    canvas.addEventListener('webglcontextrestored', handleContextRestored);
+    return () => {
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
+      canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+    };
+  }, [canvasEpoch, viewportHostMetrics.renderable]);
 
   useEffect(() => {
     if (!desktopAssetRef) {
-      setAssetUrl(networkAssetUrl);
+      setResolvedAsset({
+        assetRef: input.assetRef,
+        url: networkAssetUrl,
+        arrayBuffer: null,
+      });
       return undefined;
     }
     let active = true;
-    let objectUrl: string | null = null;
 
-    setAssetUrl(null);
+    setResolvedAsset({
+      assetRef: input.assetRef,
+      url: null,
+      arrayBuffer: null,
+    });
     setLoadedVrm({
       status: 'loading',
+      assetRef: input.assetRef,
       vrm: null,
       error: null,
     });
@@ -360,8 +454,11 @@ export default function ChatAgentAvatarVrmViewport({
           return;
         }
         const binary = Uint8Array.from(atob(asset.base64), (character) => character.charCodeAt(0));
-        objectUrl = URL.createObjectURL(new Blob([binary], { type: asset.mimeType || 'model/gltf-binary' }));
-        setAssetUrl(objectUrl);
+        setResolvedAsset({
+          assetRef: input.assetRef,
+          url: null,
+          arrayBuffer: binary.buffer,
+        });
       })
       .catch((error: unknown) => {
         if (!active) {
@@ -369,6 +466,7 @@ export default function ChatAgentAvatarVrmViewport({
         }
         setLoadedVrm({
           status: 'error',
+          assetRef: input.assetRef,
           vrm: null,
           error: error instanceof Error ? error.message : 'Failed to load desktop avatar asset.',
         });
@@ -376,18 +474,16 @@ export default function ChatAgentAvatarVrmViewport({
 
     return () => {
       active = false;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
     };
-  }, [desktopAssetRef, networkAssetUrl]);
+  }, [desktopAssetRef, input.assetRef, networkAssetUrl]);
 
   useEffect(() => {
-    if (!assetUrl) {
-      setLoadedVrm((previous) => previous.status === 'loading'
+    if (!effectiveLoadState.assetUrl && !activeResolvedAssetBuffer) {
+      setLoadedVrm((previous) => previous.status === 'loading' && previous.assetRef === input.assetRef
         ? previous
         : {
             status: 'idle',
+            assetRef: input.assetRef,
             vrm: null,
             error: null,
           });
@@ -398,6 +494,7 @@ export default function ChatAgentAvatarVrmViewport({
     let retainedVrm: VRM | null = null;
     setLoadedVrm({
       status: 'loading',
+      assetRef: input.assetRef,
       vrm: null,
       error: null,
     });
@@ -405,15 +502,15 @@ export default function ChatAgentAvatarVrmViewport({
     const loader = new GLTFLoader();
     loader.crossOrigin = 'anonymous';
     loader.register((parser) => new VRMLoaderPlugin(parser));
+    const restoreCreateImageBitmap = suspendCreateImageBitmapForTauriVrmLoad();
 
-    loader.load(
-      assetUrl,
-      (gltf: GLTF) => {
+    const handleLoad = (gltf: GLTF) => {
         const vrm = gltf.userData.vrm as VRM | undefined;
         if (!vrm) {
           if (active) {
             setLoadedVrm({
               status: 'error',
+              assetRef: input.assetRef,
               vrm: null,
               error: 'A VRM profile was requested, but the asset did not expose VRM data.',
             });
@@ -435,42 +532,82 @@ export default function ChatAgentAvatarVrmViewport({
 
         setLoadedVrm({
           status: 'ready',
+          assetRef: input.assetRef,
           vrm,
           error: null,
         });
-      },
-      undefined,
-      (error: unknown) => {
+      };
+    const handleError = (error: unknown) => {
         if (!active) {
           return;
         }
         setLoadedVrm({
           status: 'error',
+          assetRef: input.assetRef,
           vrm: null,
           error: error instanceof Error ? error.message : 'Failed to load VRM asset.',
         });
-      },
-    );
+      };
+
+    try {
+      if (activeResolvedAssetBuffer) {
+        try {
+          loader.parse(activeResolvedAssetBuffer, '', handleLoad, handleError);
+        } catch (error) {
+          handleError(error);
+        }
+      } else {
+        loader.load(
+          effectiveLoadState.assetUrl as string,
+          handleLoad,
+          undefined,
+          handleError,
+        );
+      }
+    } finally {
+      restoreCreateImageBitmap();
+    }
 
     return () => {
       active = false;
       if (retainedVrm) {
+        recordGlobalVrmDispose({
+          assetRef: input.assetRef,
+          sceneResources: collectChatAgentAvatarVrmSceneResourceCounts(retainedVrm.scene),
+        });
         VRMUtils.deepDispose(retainedVrm.scene);
       }
     };
-  }, [assetUrl]);
+  }, [activeResolvedAssetBuffer, effectiveLoadState.assetUrl, input.assetRef]);
 
-  const debugLines = chrome === 'minimal' && loadedVrm.status !== 'ready'
+  const debugLines = chrome === 'minimal' && resolvedViewportStatus.status !== 'ready'
     ? [
-      `status: ${loadedVrm.status}`,
-      `assetRef: ${input.assetRef || 'none'}`,
-      `assetUrl: ${assetUrl || 'none'}`,
-      loadedVrm.error ? `error: ${loadedVrm.error}` : null,
+      `status: ${diagnostic.status}`,
+      `stage: ${diagnostic.stage}`,
+      `phase: ${state.phase}`,
+      `posture: ${state.posture}`,
+      `speakingEnergy: ${state.speakingEnergy.toFixed(2)}`,
+      `source: ${diagnostic.source}`,
+      `assetRef: ${diagnostic.assetRef || 'none'}`,
+      diagnostic.assetLabel ? `assetLabel: ${diagnostic.assetLabel}` : null,
+      diagnostic.resourceId ? `resourceId: ${diagnostic.resourceId}` : null,
+      `assetUrl: ${diagnostic.assetUrl || 'none'}`,
+      diagnostic.networkAssetUrl ? `networkAssetUrl: ${diagnostic.networkAssetUrl}` : null,
+      diagnostic.posterUrl ? `posterUrl: ${diagnostic.posterUrl}` : null,
+      `resizePosture: ${diagnostic.resizePosture}`,
+      `hostRenderable: ${diagnostic.hostRenderable ? 'true' : 'false'}`,
+      `viewport: ${diagnostic.viewportWidth}x${diagnostic.viewportHeight}`,
+      `canvasEpoch: ${diagnostic.canvasEpoch}`,
+      diagnostic.recoveryReason ? `recoveryReason: ${diagnostic.recoveryReason}` : null,
+      diagnostic.recoveryAttemptCount > 0 ? `recoveryAttemptCount: ${diagnostic.recoveryAttemptCount}` : null,
+      diagnostic.error ? `error: ${diagnostic.error}` : null,
     ].filter(Boolean)
     : [];
 
   const showPosterFallback = chrome === 'minimal'
-    && loadedVrm.status !== 'ready'
+    && resolvedViewportStatus.status !== 'ready'
+    && runtimeLifecycle.reason !== 'webgl-context-lost'
+    && runtimeLifecycle.reason !== 'webgl-context-restored'
     && Boolean(input.posterUrl);
 
   return (
@@ -482,6 +619,8 @@ export default function ChatAgentAvatarVrmViewport({
           : 'bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(224,231,255,0.88)_45%,rgba(186,230,253,0.7)_68%,rgba(14,165,233,0.16))]',
       )}
       data-desktop-agent-vrm-viewport="true"
+      data-avatar-vrm-status={resolvedViewportStatus.status}
+      data-avatar-vrm-stage={diagnostic.stage}
       data-avatar-pointer-hovered={pointerInteraction?.hovered ? 'true' : 'false'}
     >
       {input.posterUrl ? (
@@ -503,17 +642,22 @@ export default function ChatAgentAvatarVrmViewport({
         )}
       />
       <div className={cn(
-        'absolute overflow-hidden border border-white/70 bg-white/18 shadow-[0_30px_80px_rgba(14,165,233,0.14)]',
+        'absolute overflow-hidden',
         chrome === 'minimal'
-          ? 'inset-x-[4%] inset-y-[3.5%] rounded-[28px] border-white/55 bg-white/12 shadow-[0_26px_64px_rgba(15,23,42,0.08)]'
-          : 'inset-[6%] rounded-[46%]',
-      )}>
+          ? 'inset-0'
+          : 'inset-[6%] rounded-[46%] border border-white/70 bg-white/18 shadow-[0_30px_80px_rgba(14,165,233,0.14)]',
+      )} ref={viewportHostRef}>
         {showPosterFallback ? (
           <div className="relative h-full w-full overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0.02))]">
             <img
               src={input.posterUrl || ''}
               alt={input.label}
-              className="absolute inset-0 h-full w-full object-cover object-top opacity-[0.94] saturate-[1.08]"
+              className={cn(
+                'absolute opacity-[0.94] saturate-[1.08]',
+                chrome === 'minimal'
+                  ? 'inset-[4%] h-[92%] w-[92%] object-contain object-center'
+                  : 'inset-0 h-full w-full object-cover object-top',
+              )}
             />
             <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_14%,rgba(255,255,255,0.72),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.12),transparent_26%,rgba(15,23,42,0.08)_94%)]" />
             <span className="absolute inset-x-[12%] bottom-[8%] h-[22%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.24),rgba(14,165,233,0.12)_48%,transparent_78%)] blur-2xl" />
@@ -521,6 +665,7 @@ export default function ChatAgentAvatarVrmViewport({
           </div>
         ) : (
           <Canvas
+            key={canvasEpoch}
             camera={{ position: [0, 0.42, 5.1], fov: 26, near: 0.01, far: 20 }}
             dpr={[1, 1.8]}
             gl={{ antialias: true, alpha: true }}
@@ -528,24 +673,40 @@ export default function ChatAgentAvatarVrmViewport({
               gl.outputColorSpace = THREE.SRGBColorSpace;
               gl.toneMapping = THREE.ACESFilmicToneMapping;
               gl.toneMappingExposure = 0.92;
+              setRuntimeLifecycle((current) => (
+                current.phase === 'failed'
+                  ? current
+                  : {
+                      ...current,
+                      phase: 'stable',
+                      reason: null,
+                      error: null,
+                    }
+              ));
             }}
           >
+            <VrmRenderLoopTelemetry canvasEpoch={canvasEpoch} ready={activeLoadedVrm.status === 'ready'} />
             <Suspense fallback={null}>
-              <AvatarScene state={state} input={input} loadedVrm={loadedVrm} />
+              <AvatarScene
+                state={state}
+                input={input}
+                loadedVrm={activeLoadedVrm}
+                framing={activeVrmFraming}
+                verticalOffsetY={stageVerticalOffsetY}
+              />
             </Suspense>
           </Canvas>
         )}
       </div>
-      <span
-        className={cn(
-          'pointer-events-none absolute border',
-          chrome === 'minimal' ? 'inset-x-[7%] inset-y-[6%] rounded-[24px]' : 'inset-[10%] rounded-[48%]',
-        )}
-        style={{
-          borderColor: `${state.accentColor}38`,
-          boxShadow: `0 0 0 1px ${state.glowColor}2a inset`,
-        }}
-      />
+      {chrome === 'default' ? (
+        <span
+          className="pointer-events-none absolute inset-[10%] rounded-[48%] border"
+          style={{
+            borderColor: `${state.accentColor}38`,
+            boxShadow: `0 0 0 1px ${state.glowColor}2a inset`,
+          }}
+        />
+      ) : null}
       {chrome === 'default' ? (
         <span className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/75 bg-slate-950/82 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)]">
           <span
@@ -558,15 +719,15 @@ export default function ChatAgentAvatarVrmViewport({
           <span>{state.badgeLabel}</span>
         </span>
       ) : null}
-      {chrome === 'default' && loadedVrm.status === 'loading' ? (
+      {chrome === 'default' && resolvedViewportStatus.status === 'loading' ? (
         <span className="absolute top-11 rounded-full border border-white/75 bg-white/88 px-2.5 py-1 text-[10px] font-semibold text-slate-600 shadow-[0_8px_20px_rgba(15,23,42,0.08)]">
-          Loading model
+          {diagnostic.recoveryReason ? 'Recovering model' : 'Loading model'}
         </span>
       ) : null}
-      {chrome === 'default' && loadedVrm.status === 'error' ? (
+      {chrome === 'default' && resolvedViewportStatus.status === 'error' ? (
         <span
           className="absolute top-11 max-w-[72%] rounded-full border border-amber-200/80 bg-white/92 px-2.5 py-1 text-center text-[10px] font-semibold text-amber-700 shadow-[0_8px_20px_rgba(15,23,42,0.08)]"
-          title={loadedVrm.error}
+          title={resolvedViewportStatus.error || undefined}
         >
           VRM fallback active
         </span>
@@ -574,7 +735,7 @@ export default function ChatAgentAvatarVrmViewport({
       {chrome === 'default' ? (
         <>
           <span className="absolute left-3 top-3 rounded-full border border-white/75 bg-white/88 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] shadow-[0_8px_20px_rgba(14,165,233,0.12)]" style={{ color: state.accentColor }}>
-            {loadedVrm.status === 'ready' ? 'VRM Live' : 'VRM'}
+            {resolvedViewportStatus.status === 'ready' ? 'VRM Live' : 'VRM'}
           </span>
           <span className="absolute right-3 top-3 rounded-full border border-white/75 bg-white/88 px-2.5 py-1 text-[10px] font-semibold text-slate-600 shadow-[0_8px_20px_rgba(15,23,42,0.08)]">
             {state.emotion}

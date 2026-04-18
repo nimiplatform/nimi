@@ -98,3 +98,65 @@ test('live2d framing policy recenters weak layout metadata inside portrait rails
     },
   );
 });
+
+test('live2d framing policy returns chat-focus bust crop in portrait rails when intent is chat-focus', () => {
+  assert.deepEqual(
+    resolveChatAgentAvatarLive2dFramingPolicy({
+      railWidth: 320,
+      railHeight: 820,
+      modelCanvasWidth: 1,
+      modelCanvasHeight: 1.42,
+      layout: new Map(),
+      intent: 'chat-focus',
+    }),
+    {
+      mode: 'chat-focus',
+      height: 2.2,
+      centerX: 0,
+      centerY: -0.15,
+    },
+  );
+});
+
+test('live2d framing policy chat-focus intent overrides strong model layout metadata in portrait rails', () => {
+  const layout = new Map<string, number>([
+    ['CenterX', 0],
+    ['CenterY', 0],
+    ['Width', 2],
+  ]);
+  assert.deepEqual(
+    resolveChatAgentAvatarLive2dFramingPolicy({
+      railWidth: 320,
+      railHeight: 820,
+      modelCanvasWidth: 1,
+      modelCanvasHeight: 1.2,
+      layout,
+      intent: 'chat-focus',
+    }),
+    {
+      mode: 'chat-focus',
+      height: 2.2,
+      centerX: 0,
+      centerY: -0.15,
+    },
+  );
+});
+
+test('live2d framing policy chat-focus intent falls back to default framing on landscape rails', () => {
+  assert.deepEqual(
+    resolveChatAgentAvatarLive2dFramingPolicy({
+      railWidth: 900,
+      railHeight: 500,
+      modelCanvasWidth: 1,
+      modelCanvasHeight: 1.42,
+      layout: new Map(),
+      intent: 'chat-focus',
+    }),
+    {
+      mode: 'default',
+      height: 2,
+      centerX: 0,
+      centerY: 0,
+    },
+  );
+});

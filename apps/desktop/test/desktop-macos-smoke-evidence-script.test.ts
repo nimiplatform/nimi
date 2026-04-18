@@ -16,7 +16,7 @@ function createTempDir(prefix: string): string {
 
 test('desktop macos smoke evidence collects the latest scenario artifacts', () => {
   const desktopRoot = createTempDir('desktop-macos-smoke-desktop-root');
-  const smokeRoot = path.join(desktopRoot, '..', '..', '.local', 'report', 'desktop-macos-smoke');
+  const smokeRoot = path.join(createTempDir('desktop-macos-smoke-root'), 'desktop-macos-smoke');
   const runRoot = path.join(smokeRoot, '2026-04-14T12-00-00-000Z');
   const scenarioDir = path.join(runRoot, '01-chat.memory-standard-bind');
   fs.mkdirSync(scenarioDir, { recursive: true });

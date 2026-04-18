@@ -9,11 +9,13 @@ Reusable agent avatar surface for runtime-backed presentation profiles and surfa
 - `@nimiplatform/nimi-kit/features/avatar/ui`
 - `@nimiplatform/nimi-kit/features/avatar/runtime`
 - `@nimiplatform/nimi-kit/features/avatar/vrm`
+- `@nimiplatform/nimi-kit/features/avatar/live2d`
 - Current surfaces:
   - `headless`: admitted for normalized presentation and transient interaction contracts
   - `ui`: admitted for the default avatar stage shell
   - `runtime`: admitted for runtime-backed persistent agent presentation projection helpers
   - `vrm`: admitted optional renderer surface for backend-specific VRM adapters without forcing 3D runtime assumptions into the default `ui` surface
+  - `live2d`: admitted optional renderer and helper surface for backend-specific Live2D adapters without moving desktop-local source loading or Cubism bootstrapping into kit
   - `realm`: none
 
 ## When To Use It
@@ -21,13 +23,16 @@ Reusable agent avatar surface for runtime-backed presentation profiles and surfa
 - Normalize runtime-owned presentation profiles and app-owned interaction cues before they reach renderer code.
 - Bind first-party runtime agent presentation projection without moving transient voice/session state into runtime truth.
 - Opt into VRM-specific renderer behavior only when a consumer truly needs a 3D avatar backend.
+- Opt into Live2D-specific renderer behavior only when a consumer truly needs a Live2D backend while keeping consumer-local runtime bootstrap separate.
 
 ## Before Building Locally
 - Check `avatar/ui` before building a new avatar stage, idle shell, or reusable agent render container.
 - Check `avatar/headless` before introducing app-local presentation normalization, emotion cue mapping, or transient avatar interaction state contracts.
 - Check `avatar/runtime` before wrapping runtime agent presentation projection directly in app code.
 - Check `avatar/vrm` before introducing app-local R3F/VRM renderer code; prefer injecting that implementation through the admitted optional VRM surface.
+- Check `avatar/live2d` before introducing app-local Live2D framing, motion-choice, or viewport-state policy; keep source loading and concrete Cubism runtime bootstrap on the consumer side.
 - Prefer lazy-loading the concrete VRM viewport from the consumer side so heavyweight 3D runtime code only loads when a VRM backend is actually rendered.
+- Prefer lazy-loading the concrete Live2D viewport from the consumer side so backend runtime code only loads when a Live2D backend is actually rendered.
 
 ## What Stays Outside
 - Runtime canonical agent identity, canonical memory, and autonomy truth.
@@ -35,6 +40,7 @@ Reusable agent avatar surface for runtime-backed presentation profiles and surfa
 - App-specific layout placement, permissions, and shell orchestration.
 - Desktop-only thread/session meaning and app-local store ownership.
 - VRM runtime engine dependencies and concrete WebGL host configuration unless the consumer explicitly opts into `avatar/vrm`.
+- Desktop-local asset binding, file adaptation, and concrete Cubism runtime lifecycle even when the consumer opts into `avatar/live2d`.
 
 ## Current Consumers
 - `desktop`

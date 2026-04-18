@@ -6,7 +6,12 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { profilePathForScenario, scenarioEntryForId, selectScenarios } from '../e2e/helpers/registry.mjs';
+import {
+  isDynamicLive2dSampleScenario,
+  profilePathForScenario,
+  scenarioEntryForId,
+  selectScenarios,
+} from '../e2e/helpers/registry.mjs';
 import { startRealmFixtureServer } from '../e2e/fixtures/realm-fixture-server.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -15,6 +20,50 @@ const repoRoot = path.resolve(desktopRoot, '..', '..');
 const CUBISM_WEB_SDK_VERSION = '5-r.5';
 const DEFAULT_CUBISM_SAMPLE_MODEL = 'Hiyori';
 const LIVE2D_SMOKE_SCENARIO_PREFIX = 'chat.live2d-render-smoke-';
+const VRM_SAMPLE_CATALOG = {
+  'chat.vrm-lifecycle-smoke': {
+    resourceId: 'fixture-vrm-constraint-twist',
+    displayName: 'Fixture Constraint Twist VRM',
+    filename: 'VRM1_Constraint_Twist_Sample.vrm',
+    sourceUrl: 'https://raw.githubusercontent.com/pixiv/three-vrm/release/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm',
+  },
+  'chat.vrm-speaking-smoke': {
+    resourceId: 'fixture-vrm-constraint-twist',
+    displayName: 'Fixture Constraint Twist VRM',
+    filename: 'VRM1_Constraint_Twist_Sample.vrm',
+    sourceUrl: 'https://raw.githubusercontent.com/pixiv/three-vrm/release/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm',
+  },
+  'chat.vrm-speaking-smoke-no-viseme': {
+    resourceId: 'fixture-vrm-constraint-twist',
+    displayName: 'Fixture Constraint Twist VRM',
+    filename: 'VRM1_Constraint_Twist_Sample.vrm',
+    sourceUrl: 'https://raw.githubusercontent.com/pixiv/three-vrm/release/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm',
+  },
+  'chat.vrm-listening-smoke': {
+    resourceId: 'fixture-vrm-constraint-twist',
+    displayName: 'Fixture Constraint Twist VRM',
+    filename: 'VRM1_Constraint_Twist_Sample.vrm',
+    sourceUrl: 'https://raw.githubusercontent.com/pixiv/three-vrm/release/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm',
+  },
+  'chat.vrm-thinking-smoke': {
+    resourceId: 'fixture-vrm-constraint-twist',
+    displayName: 'Fixture Constraint Twist VRM',
+    filename: 'VRM1_Constraint_Twist_Sample.vrm',
+    sourceUrl: 'https://raw.githubusercontent.com/pixiv/three-vrm/release/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm',
+  },
+  'chat.vrm-lifecycle-smoke-avatar-sample-a': {
+    resourceId: 'fixture-vrm-avatar-sample-a',
+    displayName: 'Fixture Avatar Sample A VRM',
+    filename: 'AvatarSample_A.vrm',
+    sourceUrl: 'https://raw.githubusercontent.com/madjin/vrm-samples/master/vroid/stable/AvatarSample_A.vrm',
+  },
+  'chat.vrm-lifecycle-smoke-avatar-sample-b': {
+    resourceId: 'fixture-vrm-avatar-sample-b',
+    displayName: 'Fixture Avatar Sample B VRM',
+    filename: 'AvatarSample_B.vrm',
+    sourceUrl: 'https://raw.githubusercontent.com/pixiv/local-chat-vrm/main/public/AvatarSample_B.vrm',
+  },
+};
 
 function ensureCubismLive2dSample(modelName = DEFAULT_CUBISM_SAMPLE_MODEL) {
   const sampleCacheRoot = path.join(repoRoot, 'apps/desktop/.cache/assets/js');
@@ -48,6 +97,29 @@ function ensureCubismLive2dSample(modelName = DEFAULT_CUBISM_SAMPLE_MODEL) {
     modelName,
     sampleRoot: path.dirname(modelPath),
     modelFileUrl: pathToFileURL(modelPath).toString(),
+  };
+}
+
+function vrmSampleDefinitionForScenario(scenarioId) {
+  return VRM_SAMPLE_CATALOG[scenarioId] || null;
+}
+
+async function ensureVrmSample(sampleDefinition) {
+  const sampleCacheRoot = path.join(repoRoot, 'apps/desktop/.cache/assets/vrm');
+  const samplePath = path.join(sampleCacheRoot, sampleDefinition.filename);
+  fs.mkdirSync(sampleCacheRoot, { recursive: true });
+  if (!fs.existsSync(samplePath) || fs.statSync(samplePath).size <= 0) {
+    const response = await fetch(sampleDefinition.sourceUrl);
+    if (!response.ok) {
+      throw new Error(`failed to download VRM sample ${sampleDefinition.sourceUrl}: ${response.status} ${response.statusText}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    fs.writeFileSync(samplePath, Buffer.from(arrayBuffer));
+  }
+  return {
+    ...sampleDefinition,
+    sampleRoot: sampleCacheRoot,
+    sampleFileUrl: pathToFileURL(samplePath).toString(),
   };
 }
 
@@ -335,8 +407,16 @@ async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) {
   fs.mkdirSync(artifactsDir, { recursive: true });
 
   const profile = loadProfileDefinition(profilePathForScenario(scenarioId));
-  const cubismSample = ensureCubismLive2dSample(cubismSampleModelForScenario(scenarioId));
-  const cubismProfile = cubismSampleProfileTokensForScenario(scenarioId);
+  const cubismSample = isDynamicLive2dSampleScenario(scenarioId) || scenarioId.startsWith('chat.live2d-render-smoke')
+    ? ensureCubismLive2dSample(cubismSampleModelForScenario(scenarioId))
+    : null;
+  const cubismProfile = cubismSample
+    ? cubismSampleProfileTokensForScenario(scenarioId)
+    : null;
+  const vrmSampleDefinition = vrmSampleDefinitionForScenario(scenarioId);
+  const vrmSample = vrmSampleDefinition
+    ? await ensureVrmSample(vrmSampleDefinition)
+    : null;
   writeJson(scenarioManifestPath, {
     scenarioId,
     realmFixture: profile.realmFixture || {},
@@ -360,11 +440,16 @@ async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) {
   }, {
     __FIXTURE_ORIGIN__: fixtureServer.origin,
     __REPO_ROOT__: repoRoot,
-    __CUBISM_SAMPLE_LIVE2D_ROOT__: cubismSample.sampleRoot,
-    __CUBISM_SAMPLE_LIVE2D_MODEL_FILE_URL__: cubismSample.modelFileUrl,
-    __CUBISM_SAMPLE_RESOURCE_ID__: cubismProfile.resourceId,
-    __CUBISM_SAMPLE_DISPLAY_NAME__: cubismProfile.displayName,
-    __CUBISM_SAMPLE_MODEL_FILENAME__: cubismProfile.modelFilename,
+    __CUBISM_SAMPLE_LIVE2D_ROOT__: cubismSample?.sampleRoot || '',
+    __CUBISM_SAMPLE_LIVE2D_MODEL_FILE_URL__: cubismSample?.modelFileUrl || '',
+    __CUBISM_SAMPLE_RESOURCE_ID__: cubismProfile?.resourceId || '',
+    __CUBISM_SAMPLE_DISPLAY_NAME__: cubismProfile?.displayName || '',
+    __CUBISM_SAMPLE_MODEL_FILENAME__: cubismProfile?.modelFilename || '',
+    __VRM_SAMPLE_RESOURCE_ID__: vrmSample?.resourceId || '',
+    __VRM_SAMPLE_DISPLAY_NAME__: vrmSample?.displayName || '',
+    __VRM_SAMPLE_FILENAME__: vrmSample?.filename || '',
+    __VRM_SAMPLE_ROOT__: vrmSample?.sampleRoot || '',
+    __VRM_SAMPLE_FILE_URL__: vrmSample?.sampleFileUrl || '',
   });
   writeJson(scenarioManifestPath, scenarioManifest);
   writeJson(artifactManifestPath, {

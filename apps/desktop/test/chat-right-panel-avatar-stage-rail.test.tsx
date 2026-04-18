@@ -8,6 +8,7 @@ import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
 import {
   ChatRightPanelAvatarStageRail,
   resolveChatAgentAvatarLive2dDiagnosticPanelModel,
+  resolveChatAgentAvatarVrmDiagnosticPanelModel,
 } from '../src/shell/renderer/features/chat/chat-right-panel-avatar-stage-rail.js';
 import {
   ChatRightPanelUtilityRail,
@@ -261,6 +262,147 @@ test('live2d diagnostic panel model exposes motion fallback details on hard erro
   assert.ok(panel?.details.includes('idleMotionGroup=Idle'));
   assert.ok(panel?.details.includes('speechMotionGroup=TapBody'));
   assert.ok(panel?.details.includes('motionGroups=Idle,TapBody'));
+});
+
+test('vrm diagnostic panel model exposes asset-resolve loading details before renderer readiness', () => {
+  const panel = resolveChatAgentAvatarVrmDiagnosticPanelModel({
+    status: 'loading',
+    error: null,
+    diagnostic: {
+      backendKind: 'vrm',
+      stage: 'asset-resolve',
+      status: 'loading',
+      assetRef: 'desktop-agent-avatar://agent-vrm',
+      assetLabel: 'Airi VRM',
+      resourceId: 'resource-vrm',
+      assetUrl: null,
+      networkAssetUrl: null,
+      posterUrl: 'file:///tmp/airi.png',
+      error: null,
+      source: 'desktop-resource',
+      pointerHovered: false,
+      recoveryAttemptCount: 0,
+      recoveryReason: null,
+      resizePosture: 'tracked-host-size',
+      viewportWidth: 0,
+      viewportHeight: 0,
+      hostRenderable: true,
+      canvasEpoch: 0,
+    },
+  });
+
+  assert.equal(panel?.kind, 'loading');
+  assert.equal(panel?.message, 'Resolving VRM asset');
+  assert.ok(panel?.details.includes('source=desktop-resource'));
+  assert.ok(panel?.details.includes('resourceId=resource-vrm'));
+  assert.ok(panel?.details.includes('assetLabel=Airi VRM'));
+  assert.ok(panel?.details.includes('resizePosture=tracked-host-size'));
+});
+
+test('vrm diagnostic panel model exposes fail-closed error details', () => {
+  const panel = resolveChatAgentAvatarVrmDiagnosticPanelModel({
+    status: 'error',
+    error: 'A VRM profile was requested, but the asset did not expose VRM data.',
+    diagnostic: {
+      backendKind: 'vrm',
+      stage: 'vrm-load',
+      status: 'error',
+      assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+      assetLabel: 'Airi VRM',
+      resourceId: null,
+      assetUrl: 'https://cdn.nimi.test/avatars/airi.vrm',
+      networkAssetUrl: 'https://cdn.nimi.test/avatars/airi.vrm',
+      posterUrl: null,
+      error: 'A VRM profile was requested, but the asset did not expose VRM data.',
+      source: 'network',
+      pointerHovered: true,
+      recoveryAttemptCount: 1,
+      recoveryReason: 'webgl-context-lost',
+      resizePosture: 'tracked-host-size',
+      viewportWidth: 320,
+      viewportHeight: 480,
+      hostRenderable: true,
+      canvasEpoch: 2,
+    },
+  });
+
+  assert.equal(panel?.kind, 'error');
+  assert.equal(panel?.message, 'A VRM profile was requested, but the asset did not expose VRM data.');
+  assert.ok(panel?.details.includes('backend=vrm status=error stage=vrm-load'));
+  assert.ok(panel?.details.includes('source=network'));
+  assert.ok(panel?.details.includes('assetUrl=https://cdn.nimi.test/avatars/airi.vrm'));
+  assert.ok(panel?.details.includes('recoveryReason=webgl-context-lost'));
+  assert.ok(panel?.details.includes('recoveryAttemptCount=1'));
+  assert.ok(panel?.details.includes('error=A VRM profile was requested, but the asset did not expose VRM data.'));
+});
+
+test('vrm diagnostic panel model exposes bounded recovery details while a ready asset is rebuilding the viewport', () => {
+  const panel = resolveChatAgentAvatarVrmDiagnosticPanelModel({
+    status: 'loading',
+    error: null,
+    diagnostic: {
+      backendKind: 'vrm',
+      stage: 'ready',
+      status: 'loading',
+      assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+      assetLabel: 'Airi VRM',
+      resourceId: null,
+      assetUrl: 'https://cdn.nimi.test/avatars/airi.vrm',
+      networkAssetUrl: 'https://cdn.nimi.test/avatars/airi.vrm',
+      posterUrl: null,
+      error: null,
+      source: 'network',
+      pointerHovered: true,
+      recoveryAttemptCount: 1,
+      recoveryReason: 'webgl-context-lost',
+      resizePosture: 'tracked-host-size',
+      viewportWidth: 320,
+      viewportHeight: 480,
+      hostRenderable: true,
+      canvasEpoch: 3,
+    },
+  });
+
+  assert.equal(panel?.kind, 'loading');
+  assert.equal(panel?.message, 'Recovering VRM viewport');
+  assert.ok(panel?.details.includes('recoveryReason=webgl-context-lost'));
+  assert.ok(panel?.details.includes('recoveryAttemptCount=1'));
+  assert.ok(panel?.details.includes('canvasEpoch=3'));
+});
+
+test('vrm diagnostic panel model exposes waiting-for-renderable-host details before hard fail-close', () => {
+  const panel = resolveChatAgentAvatarVrmDiagnosticPanelModel({
+    status: 'loading',
+    error: null,
+    diagnostic: {
+      backendKind: 'vrm',
+      stage: 'ready',
+      status: 'loading',
+      assetRef: 'desktop-avatar://resource-vrm/airi.vrm',
+      assetLabel: 'Airi VRM',
+      resourceId: 'resource-vrm',
+      assetUrl: 'blob:resource-vrm',
+      networkAssetUrl: null,
+      posterUrl: null,
+      error: null,
+      source: 'desktop-resource',
+      pointerHovered: false,
+      recoveryAttemptCount: 0,
+      recoveryReason: null,
+      resizePosture: 'awaiting-renderable-host',
+      viewportWidth: 0,
+      viewportHeight: 0,
+      hostRenderable: false,
+      canvasEpoch: 4,
+    },
+  });
+
+  assert.equal(panel?.kind, 'loading');
+  assert.equal(panel?.message, 'Waiting for renderable VRM host');
+  assert.ok(panel?.details.includes('resizePosture=awaiting-renderable-host'));
+  assert.ok(panel?.details.includes('hostRenderable=false'));
+  assert.ok(panel?.details.includes('viewport=0x0'));
+  assert.ok(panel?.details.includes('canvasEpoch=4'));
 });
 
 test('utility rail uses transparent chrome and keeps only materialized utility buttons', () => {

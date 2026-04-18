@@ -35,7 +35,7 @@ test('chat mode right columns render three standalone cards outside the canonica
   assert.doesNotMatch(chatAiPanelSource, /border-l/u);
   assert.doesNotMatch(chatHumanPanelSource, /data-right-panel="agent-utility-rail"[\s\S]*border-l/u);
   assert.doesNotMatch(chatRightColumnPrimitivesSource, /RIGHT_COLUMN_CARD_BASE_CLASS[\s\S]*\bborder\b/u);
-  assert.match(chatRightColumnPrimitivesSource, /'ml-2 flex min-h-0 w-\[360px\] shrink-0 flex-col gap-3'/);
+  assert.match(chatRightColumnPrimitivesSource, /'ml-2 flex min-h-0 w-\[320px\] shrink-0 flex-col gap-3'/);
   assert.doesNotMatch(chatRightPanelSettingsSource, /border-t/u);
   assert.match(chatAgentPanelSource, /data-avatar-stage-viewport="true"/);
   assert.doesNotMatch(chatAgentPanelSource, /data-avatar-stage-dock="true"/);

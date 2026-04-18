@@ -7,13 +7,15 @@ import {
   type ChatAgentAvatarPointerInteractionState,
 } from './chat-agent-avatar-pointer-interaction';
 
-type ChatAgentAvatarLive2dSmokeInteractionOverride = {
+type ChatAgentAvatarSmokeInteractionOverride = {
   phase?: NonNullable<ConversationCharacterData['interactionState']>['phase'];
   label?: string;
   emotion?: NonNullable<ConversationCharacterData['interactionState']>['emotion'];
   amplitude?: number;
   visemeId?: NonNullable<ConversationCharacterData['interactionState']>['visemeId'];
 };
+
+export const CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT = 'nimi:chat-avatar-smoke-override-change';
 
 function buildDesktopAgentAvatarAssetRef(resource: DesktopAgentAvatarResourceRecord): string {
   return `desktop-avatar://${resource.resourceId}/${encodeURIComponent(resource.sourceFilename)}`;
@@ -119,10 +121,14 @@ function buildAvatarSnapshot(input: {
   };
 }
 
-function resolveLive2dSmokeInteractionOverride(): ChatAgentAvatarLive2dSmokeInteractionOverride | null {
+function resolveChatAgentAvatarSmokeInteractionOverride(): ChatAgentAvatarSmokeInteractionOverride | null {
   const value = (globalThis as typeof globalThis & {
+    __NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__?: unknown;
     __NIMI_LIVE2D_SMOKE_OVERRIDE__?: unknown;
-  }).__NIMI_LIVE2D_SMOKE_OVERRIDE__;
+  }).__NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__
+    ?? (globalThis as typeof globalThis & {
+      __NIMI_LIVE2D_SMOKE_OVERRIDE__?: unknown;
+    }).__NIMI_LIVE2D_SMOKE_OVERRIDE__;
   if (!value || typeof value !== 'object') {
     return null;
   }
@@ -156,7 +162,7 @@ function resolveLive2dSmokeInteractionOverride(): ChatAgentAvatarLive2dSmokeInte
 function resolveChatAgentAvatarInteractionState(
   interactionState: ConversationCharacterData['interactionState'] | null | undefined,
 ): ConversationCharacterData['interactionState'] | null {
-  const smokeOverride = resolveLive2dSmokeInteractionOverride();
+  const smokeOverride = resolveChatAgentAvatarSmokeInteractionOverride();
   if (!smokeOverride) {
     return interactionState || null;
   }
@@ -172,12 +178,29 @@ function resolveChatAgentAvatarInteractionState(
 export type ChatAgentLiveAvatarRailModel = {
   displayName: string;
   statusLabel: string;
+  imageUrl: string | null;
+  fallbackLabel: string;
   presentation: AvatarPresentationProfile;
   fallbackPresentation: AvatarPresentationProfile;
   pointerInteraction: ChatAgentAvatarPointerInteractionState;
   snapshot: AvatarStageSnapshot;
   fallbackSnapshot: AvatarStageSnapshot;
   viewportInput: AvatarVrmViewportRenderInput;
+};
+
+export type ChatAgentAvatarBackendLoadStatus = {
+  live2d: 'idle' | 'loading' | 'ready' | 'error';
+  vrm: 'idle' | 'loading' | 'ready' | 'error';
+};
+
+export type ChatAgentAvatarStageRenderModel = {
+  label: string;
+  imageUrl: string | null;
+  fallbackLabel: string;
+  pointerInteraction: ChatAgentAvatarPointerInteractionState;
+  snapshot: AvatarStageSnapshot;
+  viewportInput: AvatarVrmViewportRenderInput;
+  rendererFallbackApplied: boolean;
 };
 
 export function resolveChatAgentLiveAvatarRailModel(input: {
@@ -211,6 +234,8 @@ export function resolveChatAgentLiveAvatarRailModel(input: {
   return {
     displayName,
     statusLabel,
+    imageUrl: input.characterData?.avatarUrl || input.selectedTarget.avatarUrl || null,
+    fallbackLabel: input.selectedTarget.avatarFallback || displayName,
     presentation,
     fallbackPresentation,
     pointerInteraction,
@@ -226,5 +251,30 @@ export function resolveChatAgentLiveAvatarRailModel(input: {
       defaultVoiceReference: presentation.defaultVoiceReference || null,
       snapshot,
     },
+  };
+}
+
+export function resolveChatAgentAvatarStageRenderModel(input: {
+  railModel: ChatAgentLiveAvatarRailModel;
+  loadStatus: ChatAgentAvatarBackendLoadStatus;
+}): ChatAgentAvatarStageRenderModel {
+  const rendererFallbackApplied = input.railModel.presentation.backendKind === 'live2d'
+    && input.loadStatus.live2d === 'error';
+  const snapshot = rendererFallbackApplied
+    ? input.railModel.fallbackSnapshot
+    : input.railModel.snapshot;
+
+  return {
+    label: input.railModel.displayName,
+    imageUrl: input.railModel.imageUrl,
+    fallbackLabel: input.railModel.fallbackLabel,
+    pointerInteraction: input.railModel.pointerInteraction,
+    snapshot,
+    viewportInput: {
+      ...input.railModel.viewportInput,
+      assetRef: snapshot.presentation.avatarAssetRef,
+      snapshot,
+    },
+    rendererFallbackApplied,
   };
 }
