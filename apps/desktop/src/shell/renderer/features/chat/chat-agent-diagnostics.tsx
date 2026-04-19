@@ -13,11 +13,13 @@ import {
 } from './chat-agent-diagnostics-view-model';
 import {
   applyChatAgentAvatarDebugOverride,
+  CHAT_AGENT_AVATAR_DEBUG_DEFAULTS,
   CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS,
   CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS,
   CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT,
   clearChatAgentAvatarDebugOverride,
   readChatAgentAvatarDebugOverride,
+  resolveChatAgentAvatarDebugFormState,
 } from './chat-agent-avatar-debug-override';
 import {
   RuntimeInspectCard,
@@ -102,10 +104,10 @@ export function AgentDiagnosticsPanel(props: {
   const [statusText, setStatusText] = useState('');
   const [worldId, setWorldId] = useState('');
   const [userId, setUserId] = useState('');
-  const [avatarOverridePhase, setAvatarOverridePhase] = useState('idle');
-  const [avatarOverrideEmotion, setAvatarOverrideEmotion] = useState('joy');
-  const [avatarOverrideLabel, setAvatarOverrideLabel] = useState('');
-  const [avatarOverrideAmplitude, setAvatarOverrideAmplitude] = useState('0.34');
+  const [avatarOverridePhase, setAvatarOverridePhase] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.phase);
+  const [avatarOverrideEmotion, setAvatarOverrideEmotion] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.emotion);
+  const [avatarOverrideLabel, setAvatarOverrideLabel] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.label);
+  const [avatarOverrideAmplitude, setAvatarOverrideAmplitude] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.amplitude);
   useEffect(() => {
     setAutonomyMode(props.runtimeInspect?.autonomyMode || 'off');
     setDailyTokenBudget(
@@ -132,20 +134,11 @@ export function AgentDiagnosticsPanel(props: {
   }, [props.runtimeInspect?.statusText, props.runtimeInspect?.activeWorldId, props.runtimeInspect?.activeUserId]);
   useEffect(() => {
     const syncFromOverride = () => {
-      const override = readChatAgentAvatarDebugOverride();
-      if (!override) {
-        return;
-      }
-      if (override.phase) {
-        setAvatarOverridePhase(override.phase);
-      }
-      if (override.emotion) {
-        setAvatarOverrideEmotion(override.emotion);
-      }
-      setAvatarOverrideLabel(override.label || '');
-      if (typeof override.amplitude === 'number') {
-        setAvatarOverrideAmplitude(String(override.amplitude));
-      }
+      const formState = resolveChatAgentAvatarDebugFormState(readChatAgentAvatarDebugOverride());
+      setAvatarOverridePhase(formState.phase);
+      setAvatarOverrideEmotion(formState.emotion);
+      setAvatarOverrideLabel(formState.label);
+      setAvatarOverrideAmplitude(formState.amplitude);
     };
     syncFromOverride();
     if (typeof window === 'undefined') {
@@ -376,7 +369,9 @@ export function AgentDiagnosticsPanel(props: {
               <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsAvatarOverridePhaseLabel', { defaultValue: 'Phase' })}>
                 <select
                   value={avatarOverridePhase}
-                  onChange={(event) => setAvatarOverridePhase(event.target.value)}
+                  onChange={(event) => setAvatarOverridePhase(
+                    event.target.value as (typeof CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS)[number]['value'],
+                  )}
                   className={DIAGNOSTIC_INPUT_CLASS_NAME}
                 >
                   {CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS.map((option) => (
@@ -389,7 +384,9 @@ export function AgentDiagnosticsPanel(props: {
               <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsAvatarOverrideEmotionLabel', { defaultValue: 'Mood' })}>
                 <select
                   value={avatarOverrideEmotion}
-                  onChange={(event) => setAvatarOverrideEmotion(event.target.value)}
+                  onChange={(event) => setAvatarOverrideEmotion(
+                    event.target.value as (typeof CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS)[number]['value'],
+                  )}
                   className={DIAGNOSTIC_INPUT_CLASS_NAME}
                 >
                   {CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS.map((option) => (

@@ -59,7 +59,7 @@ describe('avatar vrm state helpers', () => {
       },
     });
 
-    expect(weights.happy).toBe(0.52);
+    expect(weights.happy).toBe(0.82);
     expect(weights.ee).toBe(0.7);
   });
 
@@ -85,7 +85,7 @@ describe('avatar vrm state helpers', () => {
       },
     });
 
-    expect(weights.happy).toBe(0.3);
-    expect(weights.relaxed).toBe(0.18);
+    expect(weights.happy).toBe(0.66);
+    expect(weights.relaxed).toBe(0.3);
   });
 });

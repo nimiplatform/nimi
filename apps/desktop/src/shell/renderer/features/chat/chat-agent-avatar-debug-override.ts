@@ -10,6 +10,13 @@ export type ChatAgentAvatarDebugOverride = {
   visemeId?: NonNullable<ConversationCharacterData['interactionState']>['visemeId'];
 };
 
+export type ChatAgentAvatarDebugFormState = {
+  phase: ChatAgentAvatarDebugPhaseOption;
+  emotion: ChatAgentAvatarDebugEmotionOption;
+  label: string;
+  amplitude: string;
+};
+
 export const CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS = [
   { value: 'idle', label: 'Idle' },
   { value: 'thinking', label: 'Thinking' },
@@ -17,6 +24,9 @@ export const CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS = [
   { value: 'speaking', label: 'Speaking' },
   { value: 'loading', label: 'Loading' },
 ] as const;
+
+export type ChatAgentAvatarDebugPhaseOption =
+  (typeof CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS)[number]['value'];
 
 export const CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS = [
   { value: 'neutral', label: 'Neutral' },
@@ -27,6 +37,35 @@ export const CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS = [
   { value: 'concerned', label: 'Concerned' },
   { value: 'surprised', label: 'Surprised' },
 ] as const;
+
+export type ChatAgentAvatarDebugEmotionOption =
+  (typeof CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS)[number]['value'];
+
+export const CHAT_AGENT_AVATAR_DEBUG_DEFAULTS: ChatAgentAvatarDebugFormState = {
+  phase: 'idle',
+  emotion: 'joy',
+  label: '',
+  amplitude: '0.34',
+};
+
+export function resolveChatAgentAvatarDebugFormState(
+  override: ChatAgentAvatarDebugOverride | null | undefined,
+): ChatAgentAvatarDebugFormState {
+  const phase = CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS.some((option) => option.value === override?.phase)
+    ? override?.phase as ChatAgentAvatarDebugPhaseOption
+    : CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.phase;
+  const emotion = CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS.some((option) => option.value === override?.emotion)
+    ? override?.emotion as ChatAgentAvatarDebugEmotionOption
+    : CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.emotion;
+  return {
+    phase,
+    emotion,
+    label: override?.label || CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.label,
+    amplitude: typeof override?.amplitude === 'number'
+      ? String(override.amplitude)
+      : CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.amplitude,
+  };
+}
 
 function clampUnit(value: number | null | undefined): number | undefined {
   if (typeof value !== 'number' || Number.isNaN(value)) {

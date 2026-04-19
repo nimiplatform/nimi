@@ -582,21 +582,23 @@ export function resolveAvatarVrmExpressionWeights(
 
   switch (emotion) {
     case 'joy':
-      weights.happy = 0.52;
+      weights.happy = 0.82;
       break;
     case 'playful':
-      weights.happy = 0.3;
-      weights.relaxed = 0.18;
+      weights.happy = 0.66;
+      weights.relaxed = 0.3;
       break;
     case 'concerned':
-      weights.sad = 0.42;
+      weights.sad = 0.72;
       break;
     case 'calm':
+      weights.relaxed = 0.56;
+      break;
     case 'focus':
-      weights.relaxed = 0.34;
+      weights.relaxed = 0.42;
       break;
     case 'surprised':
-      weights.surprised = 0.58;
+      weights.surprised = 0.84;
       break;
     default:
       break;

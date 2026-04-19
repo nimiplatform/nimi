@@ -193,6 +193,32 @@ test('avatar vrm viewport state resolves concrete asset urls only for non-fallba
   assert.equal(resolveChatAgentAvatarVrmAssetUrl(' https://cdn.nimi.test/avatars/airi.vrm '), 'https://cdn.nimi.test/avatars/airi.vrm');
 });
 
+test('avatar vrm viewport state exposes stronger playful expression weights by default', () => {
+  const weights = resolveChatAgentAvatarVrmExpressionWeights({
+    label: 'Companion',
+    assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+    posterUrl: null,
+    idlePreset: null,
+    expressionProfileRef: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+    style: undefined,
+    snapshot: {
+      presentation: {
+        backendKind: 'vrm',
+        avatarAssetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
+      },
+      interaction: {
+        phase: 'idle',
+        emotion: 'playful',
+      },
+    },
+  });
+
+  assert.equal(weights.happy, 0.66);
+  assert.equal(weights.relaxed, 0.3);
+});
+
 test('avatar vrm viewport state parses desktop-local avatar refs', () => {
   assert.deepEqual(
     parseDesktopAgentAvatarAssetRef('desktop-avatar://resource-1/AliciaSolid.vrm'),
@@ -258,7 +284,7 @@ test('avatar vrm viewport state maps emotion and viseme cues into expression wei
     },
   });
 
-  assert.equal(weights.happy, 0.52);
+  assert.equal(weights.happy, 0.82);
   assert.equal(weights.ee, 0.7);
 });
 
@@ -284,8 +310,8 @@ test('avatar vrm viewport state maps playful mood into explicit expression weigh
     },
   });
 
-  assert.equal(weights.happy, 0.3);
-  assert.equal(weights.relaxed, 0.18);
+  assert.equal(weights.happy, 0.66);
+  assert.equal(weights.relaxed, 0.3);
 });
 
 test('avatar vrm viewport state provides explicit speaking fallback when viseme is missing', () => {
