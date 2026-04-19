@@ -109,4 +109,39 @@ describe('avatar vrm framing helpers', () => {
       intent: 'chat-focus',
     }).mode).toBe('default');
   });
+
+  it('returns a stronger bust crop for bottom companion intent on landscape rails', () => {
+    const policy = resolveAvatarVrmFramingPolicy({
+      railWidth: 920,
+      railHeight: 360,
+      metrics: createMetrics({
+        width: 0.9,
+        height: 1.8,
+        depth: 0.75,
+      }),
+      intent: 'bottom-companion',
+    });
+    expect(policy.mode).toBe('chat-focus');
+    expect(policy.selectionReason).toBe('chat-focus-intent');
+    expect(policy.fitHeight).toBe(4.8);
+    expect(policy.targetTop).toBe(1.28);
+  });
+
+  it('returns a side-stage presence crop for scene placement', () => {
+    const policy = resolveAvatarVrmFramingPolicy({
+      railWidth: 420,
+      railHeight: 920,
+      metrics: createMetrics({
+        width: 0.9,
+        height: 1.8,
+        depth: 0.75,
+      }),
+      intent: 'scene-presence',
+    });
+    expect(policy.mode).toBe('chat-focus');
+    expect(policy.selectionReason).toBe('chat-focus-intent');
+    expect(policy.fitHeight).toBe(3.25);
+    expect(policy.fitWidth).toBe(2.12);
+    expect(policy.targetTop).toBe(1.12);
+  });
 });

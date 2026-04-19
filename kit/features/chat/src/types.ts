@@ -173,6 +173,8 @@ export type ChatComposerMediaAction = {
   onAction: () => void;
 };
 
+export type ChatComposerLayout = 'inline' | 'stacked';
+
 // ---------------------------------------------------------------------------
 // Composer attachment slots
 // ---------------------------------------------------------------------------
@@ -223,6 +225,7 @@ export type ConversationInteractionStateSummary = {
 export type ConversationPresenceTheme = {
   roomSurface?: string;
   roomAura?: string;
+  appBackdropImageUrl?: string;
   accentSoft?: string;
   accentStrong?: string;
   border?: string;

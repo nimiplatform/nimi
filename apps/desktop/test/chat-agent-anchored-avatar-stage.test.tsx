@@ -6,10 +6,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
 
 import {
-  ChatRightPanelAvatarStageRail,
+  ChatAgentAnchoredAvatarStage,
   resolveChatAgentAvatarLive2dDiagnosticPanelModel,
   resolveChatAgentAvatarVrmDiagnosticPanelModel,
-} from '../src/shell/renderer/features/chat/chat-right-panel-avatar-stage-rail.js';
+} from '../src/shell/renderer/features/chat/chat-agent-anchored-avatar-stage.js';
 import {
   ChatRightPanelUtilityRail,
 } from '../src/shell/renderer/features/chat/chat-right-panel-character-rail.js';
@@ -20,12 +20,12 @@ import {
 
 (globalThis as typeof globalThis & { React?: typeof React }).React = React;
 
-test('avatar stage rail renders standalone primary and settings cards around a single stage viewport without the identity status card', () => {
+test('anchored avatar stage renders inside the chat scene without embedding a settings panel', () => {
   const queryClient = new QueryClient();
   const markup = renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ChatRightPanelAvatarStageRail
+        <ChatAgentAnchoredAvatarStage
           selectedTarget={{
             id: 'agent-1',
             source: 'agent',
@@ -50,35 +50,32 @@ test('avatar stage rail renders standalone primary and settings cards around a s
               label: 'Here with you',
             },
           }}
-          onToggleSettings={() => undefined}
           settingsActive={false}
           thinkingState="off"
           onThinkingToggle={() => undefined}
-          onToggleFold={() => undefined}
-          settingsContent={<div>Settings body</div>}
         />
       </TooltipProvider>
     </QueryClientProvider>,
   );
 
-  assert.match(markup, /data-chat-mode-column="agent"/);
-  assert.match(markup, /data-chat-right-card="primary"/);
-  assert.doesNotMatch(markup, /data-chat-right-card="status"/);
-  assert.doesNotMatch(markup, /data-chat-right-card="diagnostic"/);
-  assert.match(markup, /data-chat-right-card="settings"/);
+  assert.match(markup, /data-chat-agent-anchored-stage="true"/);
+  assert.match(markup, /data-chat-agent-stage-placement="right-center"/);
+  assert.match(markup, /data-chat-agent-stage-layout="h-full w-full"/);
+  assert.doesNotMatch(markup, /data-chat-agent-stage-hud="true"/);
+  assert.doesNotMatch(markup, /data-chat-surface-card=/);
   assert.match(markup, /data-avatar-stage-viewport="true"/);
+  assert.match(markup, /relative h-full w-full overflow-visible/);
   assert.match(markup, /data-avatar-stage-attention-enabled="true"/);
   assert.match(markup, /data-avatar-stage-attention-active="false"/);
-  assert.doesNotMatch(markup, /data-avatar-stage-dock="true"/);
   assert.match(markup, /data-avatar-backend-kind="sprite2d"/);
 });
 
-test('avatar stage rail keeps the unified stage shell when runtime presentation already resolves to Live2D', () => {
+test('anchored avatar stage keeps the unified stage shell when runtime presentation already resolves to Live2D', () => {
   const queryClient = new QueryClient();
   const markup = renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ChatRightPanelAvatarStageRail
+        <ChatAgentAnchoredAvatarStage
           selectedTarget={{
             id: 'agent-live2d',
             source: 'agent',
@@ -108,12 +105,9 @@ test('avatar stage rail keeps the unified stage shell when runtime presentation 
               label: 'Speaking…',
             },
           }}
-          onToggleSettings={() => undefined}
           settingsActive={false}
           thinkingState="off"
           onThinkingToggle={() => undefined}
-          onToggleFold={() => undefined}
-          settingsContent={<div>Settings body</div>}
         />
       </TooltipProvider>
     </QueryClientProvider>,
@@ -121,10 +115,10 @@ test('avatar stage rail keeps the unified stage shell when runtime presentation 
 
   assert.match(markup, /data-avatar-stage-viewport="true"/);
   assert.match(markup, /data-avatar-live2d-status="loading"/);
-  assert.doesNotMatch(markup, /data-chat-right-card="status"/);
+  assert.doesNotMatch(markup, /data-chat-agent-stage-hud="true"/);
 });
 
-test('avatar stage rail resolves live2d from shared binding and resource query caches without key-shape collisions', () => {
+test('anchored avatar stage resolves live2d from shared binding and resource query caches without key-shape collisions', () => {
   const queryClient = new QueryClient();
   queryClient.setQueryData(
     desktopAgentAvatarBindingQueryKey('agent-live2d'),
@@ -153,7 +147,7 @@ test('avatar stage rail resolves live2d from shared binding and resource query c
   const markup = renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ChatRightPanelAvatarStageRail
+        <ChatAgentAnchoredAvatarStage
           selectedTarget={{
             id: 'agent-live2d',
             source: 'agent',
@@ -178,12 +172,9 @@ test('avatar stage rail resolves live2d from shared binding and resource query c
               label: 'Here with you',
             },
           }}
-          onToggleSettings={() => undefined}
           settingsActive={false}
           thinkingState="off"
           onThinkingToggle={() => undefined}
-          onToggleFold={() => undefined}
-          settingsContent={<div>Settings body</div>}
         />
       </TooltipProvider>
     </QueryClientProvider>,

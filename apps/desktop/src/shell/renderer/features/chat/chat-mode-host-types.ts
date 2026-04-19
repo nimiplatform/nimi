@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type {
+  CanonicalConversationAnchoredSurfacePlacement,
   CanonicalStagePanelProps,
   CanonicalTranscriptViewProps,
 } from '@nimiplatform/nimi-kit/features/chat';
@@ -36,6 +37,8 @@ export type DesktopConversationModeHost = {
     CanonicalStagePanelProps,
     'messages' | 'characterData' | 'anchorViewportRef' | 'cardAnchorOffsetPx' | 'onIntentOpenHistory'
   >;
+  /** Optional anchored placement for a scene-level avatar stage inside the conversation surface. */
+  avatarStagePlacement?: CanonicalConversationAnchoredSurfacePlacement;
   topContent?: ReactNode;
   composerContent?: ReactNode;
   auxiliaryOverlayContent?: ReactNode;

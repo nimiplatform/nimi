@@ -25,6 +25,11 @@ export function resolveAgentConversationHostView(input: {
     emptyEyebrow: string;
     loadingLabel: string;
   };
+  transcriptWidthClassName?: string;
+  transcriptWidthPositionClassName?: string;
+  transcriptScrollViewportWidthClassName?: string;
+  transcriptScrollViewportPositionClassName?: string;
+  transcriptContentPaddingBottomClassName?: string;
   renderMessageContent: CanonicalMessageContentSlot;
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   onMessageContextMenu?: (message: import('@nimiplatform/nimi-kit/features/chat/headless').ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => void;
@@ -47,7 +52,11 @@ export function resolveAgentConversationHostView(input: {
       emptyDescription: input.labels.emptyDescription,
       emptyStateVariant: 'compact',
       loadingLabel: input.labels.loadingLabel,
-      widthClassName: 'max-w-[min(920px,calc(100vw-620px))]',
+      widthClassName: input.transcriptWidthClassName || 'max-w-[min(920px,calc(100vw-620px))]',
+      widthPositionClassName: input.transcriptWidthPositionClassName || 'mx-auto',
+      scrollViewportWidthClassName: input.transcriptScrollViewportWidthClassName || 'w-full',
+      scrollViewportPositionClassName: input.transcriptScrollViewportPositionClassName || '',
+      contentPaddingBottomClassName: input.transcriptContentPaddingBottomClassName || 'pb-10',
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
       renderMessageAccessory: input.renderMessageAccessory,

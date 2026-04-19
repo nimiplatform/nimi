@@ -6,24 +6,20 @@ import {
 } from '@nimiplatform/nimi-kit/features/chat';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useHumanConversationModeHost } from './chat-human-adapter';
-import { ChatRightPanelCharacterRail } from './chat-right-panel-character-rail';
+import { ChatSideSheet } from './chat-side-sheet';
 
 export type ChatHumanModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
-  rightPanelMode: 'auto' | 'settings';
-  rightPanelFolded: boolean;
-  onToggleRightPanelFold: () => void;
-  onToggleRightPanelSettings: () => void;
+  settingsOpen: boolean;
+  onCloseSettings: () => void;
   onSetupAction: (action: ConversationSetupAction) => void;
   onSelectTarget: (targetId: string | null) => void;
 };
 
 export function ChatHumanModeContent({
   allTargets,
-  rightPanelMode,
-  rightPanelFolded,
-  onToggleRightPanelFold,
-  onToggleRightPanelSettings,
+  settingsOpen,
+  onCloseSettings,
   onSetupAction,
   onSelectTarget,
 }: ChatHumanModeContentProps) {
@@ -121,17 +117,17 @@ export function ChatHumanModeContent({
         composer={host.composerContent}
         auxiliaryOverlayContent={host.auxiliaryOverlayContent}
       />
-      {selectedTarget && !rightPanelFolded ? (
-        <ChatRightPanelCharacterRail
-          selectedTarget={selectedTarget}
-          characterData={host.characterData}
-          onToggleSettings={onToggleRightPanelSettings}
-          settingsActive={rightPanelMode === 'settings'}
-          thinkingState={host.thinkingState}
-          onThinkingToggle={host.onThinkingToggle}
-          onToggleFold={onToggleRightPanelFold}
-          settingsContent={host.settingsContent ?? null}
-        />
+      {selectedTarget && settingsOpen && host.settingsContent ? (
+        <ChatSideSheet
+          sheetKey="settings"
+          title={host.settingsDrawerTitle || 'Settings'}
+          subtitle={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget.title}
+          onClose={onCloseSettings}
+        >
+          <div className="px-3 py-3">
+            {host.settingsContent}
+          </div>
+        </ChatSideSheet>
       ) : null}
     </div>
   );

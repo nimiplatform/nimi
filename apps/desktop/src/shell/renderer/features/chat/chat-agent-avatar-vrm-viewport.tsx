@@ -64,7 +64,7 @@ type ChatAgentAvatarVrmViewportProps = AvatarVrmViewportComponentProps & {
   framingIntent?: ChatAgentAvatarVrmFramingIntent;
 };
 
-const MINIMAL_CHAT_AGENT_VRM_VERTICAL_OFFSET_Y = -0.16;
+const MINIMAL_CHAT_AGENT_VRM_VERTICAL_OFFSET_Y = -0.12;
 
 export default function ChatAgentAvatarVrmViewport({
   input,
@@ -637,7 +637,7 @@ export default function ChatAgentAvatarVrmViewport({
       className={cn(
         'relative flex h-full w-full items-center justify-center overflow-hidden',
         chrome === 'minimal'
-          ? 'bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.98),rgba(239,250,248,0.92)_34%,rgba(214,235,247,0.84)_68%,rgba(186,230,253,0.34))]'
+          ? 'bg-transparent'
           : 'bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(224,231,255,0.88)_45%,rgba(186,230,253,0.7)_68%,rgba(14,165,233,0.16))]',
       )}
       data-desktop-agent-vrm-viewport="true"
@@ -645,24 +645,21 @@ export default function ChatAgentAvatarVrmViewport({
       data-avatar-vrm-stage={diagnostic.stage}
       data-avatar-attention-active={attentionState?.active ? 'true' : 'false'}
     >
-      {input.posterUrl ? (
+      {chrome === 'minimal' || !input.posterUrl ? null : (
         <img
           src={input.posterUrl}
           alt={input.label}
           className={cn(
             'absolute inset-0 h-full w-full object-cover saturate-150',
-            chrome === 'minimal' ? 'opacity-[0.08]' : 'opacity-20',
+            'opacity-20',
           )}
         />
-      ) : null}
-      <span
-        className={cn(
-          'pointer-events-none absolute inset-0',
-          chrome === 'minimal'
-            ? 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.62),transparent_52%),linear-gradient(180deg,rgba(255,255,255,0.08),transparent_34%,rgba(15,23,42,0.05)_100%)]'
-            : 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.58),transparent_54%)]',
-        )}
-      />
+      )}
+      {chrome === 'minimal' ? null : (
+        <span
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.58),transparent_54%)]"
+        />
+      )}
       <div className={cn(
         'absolute overflow-hidden',
         chrome === 'minimal'
@@ -670,20 +667,24 @@ export default function ChatAgentAvatarVrmViewport({
           : 'inset-[6%] rounded-[46%] border border-white/70 bg-white/18 shadow-[0_30px_80px_rgba(14,165,233,0.14)]',
       )} ref={viewportHostRef}>
         {showPosterFallback ? (
-          <div className="relative h-full w-full overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0.02))]">
+          <div className="relative h-full w-full overflow-hidden bg-transparent">
             <img
               src={input.posterUrl || ''}
               alt={input.label}
               className={cn(
-                'absolute opacity-[0.94] saturate-[1.08]',
+                'absolute saturate-[1.08]',
                 chrome === 'minimal'
-                  ? 'inset-[4%] h-[92%] w-[92%] object-contain object-center'
+                  ? 'inset-0 h-full w-full object-contain object-center opacity-[0.96]'
                   : 'inset-0 h-full w-full object-cover object-top',
               )}
             />
-            <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_14%,rgba(255,255,255,0.72),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.12),transparent_26%,rgba(15,23,42,0.08)_94%)]" />
-            <span className="absolute inset-x-[12%] bottom-[8%] h-[22%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.24),rgba(14,165,233,0.12)_48%,transparent_78%)] blur-2xl" />
-            <span className="absolute inset-x-0 bottom-0 h-[28%] bg-[linear-gradient(180deg,transparent,rgba(255,255,255,0.16)_18%,rgba(9,22,34,0.28))]" />
+            {chrome === 'minimal' ? null : (
+              <>
+                <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_14%,rgba(255,255,255,0.72),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.12),transparent_26%,rgba(15,23,42,0.08)_94%)]" />
+                <span className="absolute inset-x-[12%] bottom-[8%] h-[22%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.24),rgba(14,165,233,0.12)_48%,transparent_78%)] blur-2xl" />
+                <span className="absolute inset-x-0 bottom-0 h-[28%] bg-[linear-gradient(180deg,transparent,rgba(255,255,255,0.16)_18%,rgba(9,22,34,0.28))]" />
+              </>
+            )}
           </div>
         ) : (
           <Canvas
@@ -715,6 +716,7 @@ export default function ChatAgentAvatarVrmViewport({
                 loadedVrm={activeLoadedVrm}
                 framing={activeVrmFraming}
                 verticalOffsetY={stageVerticalOffsetY}
+                transparentBackground={chrome === 'minimal'}
               />
             </Suspense>
           </Canvas>

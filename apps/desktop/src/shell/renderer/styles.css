@@ -4,6 +4,63 @@
 @import "@nimiplatform/nimi-kit/ui/themes/desktop-accent.css";
 @import "tailwindcss";
 
+/* ---- Agent chat four-layer stack (D-LLM-065) ----
+   Layer 0: app-native glass base (bottom) — preserves the app's established
+            glass aesthetic; stays inside the app window, not over the desktop
+   Layer 1: optional backdrop mask (per-agent in-app imported image)
+   Layer 2: avatar stage (Live2D / VRM)
+   Layer 3: components (nav / transcript / composer / rail)
+*/
+
+.chat-agent-layer-glass {
+  /* Very light tint so an imported Layer 1 backdrop image (or the app's base
+     aesthetic) remains visually dominant. Keep Layer 0 purely decorative —
+     never obscure downstream layers. */
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  pointer-events: none;
+}
+
+.chat-agent-layer-mask {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.chat-agent-layer-avatar {
+  pointer-events: none;
+}
+
+/* ---- Visible transcript scrollbar ----
+   Default browser scrollbars are hidden on macOS and some global utility rules
+   set `scrollbar-width: none`. Force visible scrollbar on the transcript
+   scroll viewport so long conversations are obviously scrollable. !important
+   is required to defeat global hide-scrollbar rules. */
+[data-canonical-transcript-root="true"] {
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: auto !important;
+  scrollbar-color: rgba(15, 23, 42, 0.35) transparent !important;
+  overflow-y: auto !important;
+}
+[data-canonical-transcript-root="true"]::-webkit-scrollbar {
+  width: 10px !important;
+  height: 10px !important;
+  display: block !important;
+}
+[data-canonical-transcript-root="true"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-canonical-transcript-root="true"]::-webkit-scrollbar-thumb {
+  background-color: rgba(15, 23, 42, 0.28) !important;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+[data-canonical-transcript-root="true"]::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
 /* ---- Custom utilities ---- */
 
 @utility brand-gradient {

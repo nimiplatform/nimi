@@ -57,12 +57,12 @@ export type AgentHostConsumerSnapshot = {
 };
 
 const AGENT_THEME = {
-  roomSurface: 'linear-gradient(180deg, rgba(250,252,252,0.98), rgba(244,247,248,0.96))',
-  roomAura: 'linear-gradient(135deg,rgba(255,255,255,0.9),rgba(236,253,245,0.78))',
-  accentSoft: 'rgba(16,185,129,0.20)',
-  accentStrong: '#10b981',
-  border: 'rgba(16,185,129,0.34)',
-  text: '#065f46',
+  roomSurface: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.94))',
+  roomAura: 'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.90))',
+  accentSoft: 'rgba(148,163,184,0.12)',
+  accentStrong: '#475569',
+  border: 'rgba(148,163,184,0.20)',
+  text: '#0f172a',
 } as const;
 
 function isEmptyPendingAssistantMessage(message: ConversationMessageViewModel): boolean {

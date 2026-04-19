@@ -276,6 +276,7 @@ describe('conversation shell ui', () => {
           <CanonicalStagePanel messages={[]} />
           <CanonicalTranscriptView messages={[]} />
           <CanonicalComposer
+            layout="stacked"
             adapter={{
               submit: async () => undefined,
             }}
@@ -300,6 +301,7 @@ describe('conversation shell ui', () => {
     expect(container.querySelector('[data-canonical-stage-width="max-w-[min(1240px,calc(100vw-520px))]"]')).not.toBeNull();
     expect(container.querySelector('[data-canonical-transcript-width="max-w-[min(1240px,calc(100vw-520px))]"]')).not.toBeNull();
     expect(container.querySelector('[data-canonical-composer-width="max-w-[min(1240px,calc(100vw-520px))]"]')).not.toBeNull();
+    expect(container.querySelector('[data-chat-composer-layout="stacked"]')).not.toBeNull();
 
     const rightSidebar = container.querySelector('[data-canonical-right-sidebar="true"]') as HTMLDivElement | null;
     expect(rightSidebar?.style.width).toBe('320px');
@@ -397,6 +399,126 @@ describe('conversation shell ui', () => {
     expect(LOCAL_CHAT_CONVERSATION_PANE_SOURCE).toContain('LOCAL_CHAT_STAGE_SURFACE_WIDTH_CLASS');
     expect(container.querySelector('[data-canonical-conversation-pane="true"]')).not.toBeNull();
     expect(container.querySelector('[data-canonical-pane-controls="true"]')).toBeNull();
+  });
+
+  it('renders an anchored surface inside the canonical conversation scene instead of a separate sidebar', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <div className="h-[720px]">
+          <CanonicalConversationPane
+            selectedTarget={{
+              id: 'agent-1',
+              source: 'agent',
+              canonicalSessionId: 'session-1',
+              title: 'Zhao',
+            }}
+            characterData={{
+              name: 'Zhao',
+              theme: {
+                roomSurface: 'linear-gradient(180deg,#ffffff,#f8fbfb)',
+                roomAura: 'linear-gradient(180deg,#ffffff,#f8fbfb)',
+              },
+            }}
+            viewMode="chat"
+            onBackToTargets={() => undefined}
+            onViewModeChange={() => undefined}
+            stagePanel={<div>Stage Slot</div>}
+            transcript={<div>Transcript Slot</div>}
+            anchoredSurface={{
+              content: <div data-test-anchored-surface="true">Anchored Surface</div>,
+              placement: 'right-center',
+              reserveSpaceClassName: 'pr-[320px]',
+              visibleInModes: ['chat'],
+            }}
+            composer={<div>Composer Slot</div>}
+          />
+        </div>,
+      );
+      await flush();
+    });
+
+    expect(container.querySelector('[data-canonical-conversation-scene="true"]')).not.toBeNull();
+    expect(container.querySelector('[data-canonical-anchored-surface="true"]')).not.toBeNull();
+    expect(container.querySelector('[data-test-anchored-surface="true"]')).not.toBeNull();
+    expect(container.textContent).toContain('Anchored Surface');
+  });
+
+  it('sanitizes and applies conversation backdrop images through theme background style', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalConversationPane
+          selectedTarget={{
+            id: 'agent-1',
+            source: 'agent',
+            canonicalSessionId: 'session-1',
+            title: 'Zhao',
+          }}
+          characterData={{
+            name: 'Zhao',
+            theme: {
+              roomSurface: 'linear-gradient(180deg,#ffffff,#f8fbfb)',
+              roomAura: 'linear-gradient(180deg,#ffffff,#f8fbfb)',
+              appBackdropImageUrl: 'https://cdn.nimi.test/backdrop.png',
+            },
+          }}
+          viewMode="chat"
+          onBackToTargets={() => undefined}
+          onViewModeChange={() => undefined}
+          stagePanel={<div>Stage Slot</div>}
+          transcript={<div>Transcript Slot</div>}
+          composer={<div>Composer Slot</div>}
+        />,
+      );
+      await flush();
+    });
+
+    const pane = container.querySelector('[data-canonical-conversation-pane="true"]') as HTMLElement | null;
+    expect(pane?.style.backgroundImage).toContain('https://cdn.nimi.test/backdrop.png');
+  });
+
+  it('accepts local file backdrop images for desktop chat themes', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalConversationPane
+          selectedTarget={{
+            id: 'agent-1',
+            source: 'agent',
+            canonicalSessionId: 'session-1',
+            title: 'Zhao',
+          }}
+          characterData={{
+            name: 'Zhao',
+            theme: {
+              roomSurface: 'linear-gradient(180deg,#ffffff,#f8fbfb)',
+              roomAura: 'linear-gradient(180deg,#ffffff,#f8fbfb)',
+              appBackdropImageUrl: 'file:///tmp/nimi/backdrop.png',
+            },
+          }}
+          viewMode="chat"
+          onBackToTargets={() => undefined}
+          onViewModeChange={() => undefined}
+          stagePanel={<div>Stage Slot</div>}
+          transcript={<div>Transcript Slot</div>}
+          composer={<div>Composer Slot</div>}
+        />,
+      );
+      await flush();
+    });
+
+    const pane = container.querySelector('[data-canonical-conversation-pane="true"]') as HTMLElement | null;
+    expect(pane?.style.backgroundImage).toContain('file:///tmp/nimi/backdrop.png');
   });
 
   it('renders empty state when no thread is selected', async () => {
@@ -587,6 +709,109 @@ describe('conversation shell ui', () => {
     expect(container.textContent).toContain('Inspect Sidebar');
     expect(Array.from(container.querySelectorAll('button'))
       .find((button) => button.getAttribute('aria-label') === 'Show history')).toBeUndefined();
+  });
+
+  it('renders a shell-level scene background beneath the canonical shell UI', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalConversationShell
+          sourceFilter="all"
+          targets={[
+            {
+              id: 'agent:scene',
+              source: 'agent',
+              canonicalSessionId: 'session-agent',
+              title: 'Scene Agent',
+              avatarFallback: 'S',
+              previewText: 'Ready in the scene.',
+            },
+          ]}
+          selectedTargetId="agent:scene"
+          selectedTarget={{
+            id: 'agent:scene',
+            source: 'agent',
+            canonicalSessionId: 'session-agent',
+            title: 'Scene Agent',
+            avatarFallback: 'S',
+            previewText: 'Ready in the scene.',
+          }}
+          onSelectTarget={() => undefined}
+          viewMode="chat"
+          onViewModeChange={() => undefined}
+          hideTargetPane
+          hideCharacterRail
+          sceneBackground={<div data-test-scene-background="true">Scene Background</div>}
+          transcriptProps={{
+            content: <div>Transcript body</div>,
+          }}
+          composer={<div>Composer</div>}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.querySelector('[data-conversation-scene-background="true"]')).not.toBeNull();
+    expect(container.querySelector('[data-test-scene-background="true"]')).not.toBeNull();
+    expect(container.textContent).toContain('Scene Background');
+  });
+
+  it('keeps the transcript scroll root inside the content column and reserves bottom space for the composer', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <div className="h-[720px]">
+          <CanonicalConversationShell
+            sourceFilter="all"
+            targets={[
+              {
+                id: 'agent:scene',
+                source: 'agent',
+                canonicalSessionId: 'session-agent',
+                title: 'Scene Agent',
+                avatarFallback: 'S',
+              },
+            ]}
+            selectedTargetId="agent:scene"
+            selectedTarget={{
+              id: 'agent:scene',
+              source: 'agent',
+              canonicalSessionId: 'session-agent',
+              title: 'Scene Agent',
+              avatarFallback: 'S',
+            }}
+            onSelectTarget={() => undefined}
+            viewMode="chat"
+            onViewModeChange={() => undefined}
+            hideTargetPane
+            hideCharacterRail
+            transcriptProps={{
+              content: <div>Transcript body</div>,
+              scrollViewportWidthClassName: 'max-w-[520px]',
+              scrollViewportPositionClassName: 'ml-0 mr-auto',
+              contentPaddingBottomClassName: 'pb-[clamp(168px,20vh,240px)]',
+            }}
+            composer={<div data-test-composer="true">Composer</div>}
+          />
+        </div>,
+      );
+      await flush();
+    });
+
+    const transcriptRoot = container.querySelector('[data-canonical-transcript-root="true"]');
+    const transcriptWidth = container.querySelector('[data-canonical-transcript-width]');
+    expect(transcriptRoot?.className).toContain('max-w-[520px]');
+    expect(transcriptRoot?.className).toContain('ml-0');
+    expect(transcriptRoot?.className).toContain('overflow-y-auto');
+    expect(transcriptRoot?.className).toContain('overscroll-contain');
+    expect(transcriptWidth?.className).toContain('pb-[clamp(168px,20vh,240px)]');
+    expect(container.querySelector('[data-test-composer="true"]')).not.toBeNull();
   });
 
   it('renders canonical setup state before target landing', async () => {

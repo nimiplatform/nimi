@@ -253,17 +253,23 @@ export function AvatarScene({
   loadedVrm,
   framing,
   verticalOffsetY,
+  transparentBackground = false,
 }: {
   state: ChatAgentAvatarVrmViewportState;
   input: AvatarVrmViewportComponentProps['input'];
   loadedVrm: LoadedVrmState;
   framing: ChatAgentAvatarVrmFramingResult | null;
   verticalOffsetY: number;
+  transparentBackground?: boolean;
 }) {
   return (
     <>
-      <color attach="background" args={['#edf3f7']} />
-      <fog attach="fog" args={['#e5eef4', 6.8, 11.8]} />
+      {!transparentBackground ? (
+        <>
+          <color attach="background" args={['#edf3f7']} />
+          <fog attach="fog" args={['#e5eef4', 6.8, 11.8]} />
+        </>
+      ) : null}
       <ambientLight intensity={0.74} color="#f5f8fb" />
       <directionalLight position={[1.45, 2.8, 4.2]} intensity={1.08} color="#fff5ea" />
       <directionalLight position={[-2.2, 1.9, 2.7]} intensity={0.42} color="#d9e9fa" />

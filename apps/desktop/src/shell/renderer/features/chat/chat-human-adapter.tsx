@@ -118,7 +118,7 @@ export function useHumanConversationModeHost(
       title={t('Chat.settingsTitle', { defaultValue: 'Settings' })}
       subtitle={t('Chat.humanTitle', { defaultValue: 'Human Chat' })}
       statusTitle={t('Chat.mode.human', { defaultValue: 'Human' })}
-      statusHint={t('Chat.aiProfileSubtitle', {
+      statusHint={t('Chat.nimiProfileSubtitle', {
         defaultValue: 'Route, target, and conversation details.',
       })}
       statusSummary={(
@@ -305,7 +305,16 @@ export function useHumanConversationModeHost(
         })}
       />
     ),
-    composerContent: selectedChatId ? <HumanCanonicalComposer selectedChatId={selectedChatId} /> : null,
+    composerContent: selectedChatId ? (
+      <HumanCanonicalComposer
+        selectedChatId={selectedChatId}
+        leadingAvatar={selectedChat ? {
+          name: getHumanChatTitle(selectedChat),
+          imageUrl: String(selectedChat.otherUser?.avatarUrl || '').trim() || null,
+          fallbackLabel: getHumanChatTitle(selectedChat).charAt(0).toUpperCase() || 'H',
+        } : null}
+      />
+    ) : null,
     auxiliaryOverlayContent: (
       <HumanConversationGiftModal
         open={giftModalOpen}

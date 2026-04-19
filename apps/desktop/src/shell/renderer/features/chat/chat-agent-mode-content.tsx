@@ -1,29 +1,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CanonicalConversationShell,
+  type CanonicalConversationAnchoredSurfacePlacement,
   type ConversationSetupAction,
   type ConversationTargetSummary,
 } from '@nimiplatform/nimi-kit/features/chat';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
-import { ChatRightPanelAvatarStageRail } from './chat-right-panel-avatar-stage-rail';
+import { ChatAgentSceneBackground } from './chat-agent-scene-background';
+import { ChatAgentAvatarOverlay } from './chat-agent-avatar-overlay';
+import { ChatSideSheet } from './chat-side-sheet';
 
 export type ChatAgentModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
-  rightPanelMode: 'auto' | 'settings';
-  rightPanelFolded: boolean;
-  onToggleRightPanelFold: () => void;
-  onToggleRightPanelSettings: () => void;
+  settingsOpen: boolean;
+  onCloseSettings: () => void;
   onSetupAction: (action: ConversationSetupAction) => void;
   onSelectTarget: (targetId: string | null) => void;
 };
 
 export function ChatAgentModeContent({
   allTargets,
-  rightPanelMode,
-  rightPanelFolded,
-  onToggleRightPanelFold,
-  onToggleRightPanelSettings,
+  settingsOpen,
+  onCloseSettings,
   onSetupAction,
   onSelectTarget,
 }: ChatAgentModeContentProps) {
@@ -40,7 +39,7 @@ export function ChatAgentModeContent({
 
   const host = useAgentConversationModeHost({
     authStatus,
-    diagnosticsVisible: rightPanelMode === 'settings' && !rightPanelFolded && diagnosticsSectionVisible,
+    diagnosticsVisible: settingsOpen && diagnosticsSectionVisible,
     onDiagnosticsVisibilityChange: setDiagnosticsSectionVisible,
     runtimeConfigState: null,
     runtimeFields,
@@ -71,11 +70,11 @@ export function ChatAgentModeContent({
     setSelectedTargetForSource('agent', host.selectedTargetId);
   }, [host.selectedTargetId, setSelectedTargetForSource, storeSelectedTargetId]);
   useEffect(() => {
-    if (rightPanelMode === 'settings' && !rightPanelFolded) {
+    if (settingsOpen) {
       return;
     }
     setDiagnosticsSectionVisible(false);
-  }, [rightPanelFolded, rightPanelMode]);
+  }, [settingsOpen]);
 
   const selectedTargetId = storeSelectedTargetId || host.selectedTargetId || null;
   const selectedTarget = useMemo(
@@ -91,6 +90,12 @@ export function ChatAgentModeContent({
   const currentViewMode = useAppStore((state) => state.viewModeBySourceTarget[currentViewModeKey] || 'chat');
 
   const canonicalMessages = host.messages || [];
+  const avatarStagePlacement: CanonicalConversationAnchoredSurfacePlacement = host.avatarStagePlacement || 'right-center';
+  const sceneBackground = selectedTarget ? (
+    <ChatAgentSceneBackground
+      characterData={host.characterData}
+    />
+  ) : null;
 
   const handleViewModeChange = useCallback((mode: 'stage' | 'chat') => {
     if (!selectedTarget) {
@@ -100,7 +105,7 @@ export function ChatAgentModeContent({
   }, [selectedTarget, setChatViewMode]);
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1">
+    <div className="relative flex min-h-0 min-w-0 flex-1">
       <CanonicalConversationShell
         className="min-h-0 flex-1"
         chrome="transparent"
@@ -121,21 +126,32 @@ export function ChatAgentModeContent({
         transcriptProps={host.transcriptProps}
         stagePanelProps={host.stagePanelProps}
         topContent={host.topContent}
+        sceneBackground={sceneBackground}
         composer={host.composerContent}
         auxiliaryOverlayContent={host.auxiliaryOverlayContent}
       />
-      {selectedTarget && !rightPanelFolded ? (
-        <ChatRightPanelAvatarStageRail
+      {selectedTarget ? (
+        <ChatAgentAvatarOverlay
           selectedTarget={selectedTarget}
           characterData={host.characterData}
-          onToggleSettings={onToggleRightPanelSettings}
-          settingsActive={rightPanelMode === 'settings'}
+          placement={avatarStagePlacement}
+          settingsActive={settingsOpen}
           thinkingState={host.thinkingState}
           onThinkingToggle={host.onThinkingToggle}
-          onToggleFold={onToggleRightPanelFold}
           handsFreeState={host.handsFreeState}
-          settingsContent={host.settingsContent ?? null}
         />
+      ) : null}
+      {selectedTarget && settingsOpen && host.settingsContent ? (
+        <ChatSideSheet
+          sheetKey="settings"
+          title={host.settingsDrawerTitle || 'Settings'}
+          subtitle={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget.title}
+          onClose={onCloseSettings}
+        >
+          <div className="px-3 py-3">
+            {host.settingsContent}
+          </div>
+        </ChatSideSheet>
       ) : null}
     </div>
   );

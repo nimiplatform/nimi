@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
-import { Avatar, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/nimi-kit/ui';
+import { useQuery } from '@tanstack/react-query';
 import {
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
@@ -20,6 +20,10 @@ import type { DesktopConversationModeHost } from './chat-mode-host-types';
 import { ChatSettingsPanel } from './chat-settings-panel';
 import { RuntimeStreamFooter } from './chat-runtime-stream-ui';
 import { ChatAgentAvatarBindingSettings } from './chat-agent-avatar-binding-settings';
+import {
+  desktopAgentBackdropBindingQueryKey,
+  getDesktopAgentBackdropBinding,
+} from '@renderer/bridge/runtime-bridge/chat-agent-backdrop-store';
 import { cancelStream } from '../turns/stream-controller';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
@@ -55,23 +59,10 @@ import {
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
-import {
-  applyChatAgentAvatarDebugOverride,
-  CHAT_AGENT_AVATAR_DEBUG_DEFAULTS,
-  CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS,
-  CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS,
-  CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT,
-  clearChatAgentAvatarDebugOverride,
-  readChatAgentAvatarDebugOverride,
-  resolveChatAgentAvatarDebugFormState,
-} from './chat-agent-avatar-debug-override';
-import {
-  resolveAgentIdentityAutonomyModeLabel,
-  resolveAgentIdentityRuntimeActivityLabel,
-  resolveAgentIdentityRuntimeStatusLabel,
-} from './chat-agent-identity-card-model';
-
-const AGENT_CARD_INPUT_CLASS_NAME = 'mt-1 w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-white/80 px-3 py-2 text-sm font-medium text-[var(--nimi-text-primary)] outline-none transition focus:border-[var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)]';
+import { ChatComposerLeadingAvatar } from './chat-composer-leading-avatar';
+import { resolveChatAgentAvatarStageLayoutContract } from './chat-agent-avatar-stage-layout';
+import { useAgentAvatarPlacement } from '@renderer/app-shell/providers/chat-agent-avatar-placement-storage';
+import { resetChatAgentAvatarTransform } from './chat-agent-avatar-transform-store';
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -154,6 +145,7 @@ export function useAgentConversationPresentation(
   | 'adapter'
   | 'activeThreadId'
   | 'availability'
+  | 'avatarStagePlacement'
   | 'characterData'
   | 'composerContent'
   | 'messages'
@@ -243,17 +235,39 @@ export function useAgentConversationPresentation(
       }),
     },
   }), [footerViewState, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, input.voiceCaptureState, input.voicePlaybackState, input.voiceSessionState, latestStatusCue, runtimeCommittedStatus]);
+  const backdropBindingQuery = useQuery({
+    queryKey: input.activeTarget?.agentId
+      ? desktopAgentBackdropBindingQueryKey(input.activeTarget.agentId)
+      : ['desktop-agent-backdrop-binding', 'none'],
+    queryFn: async () => (
+      input.activeTarget?.agentId
+        ? getDesktopAgentBackdropBinding(input.activeTarget.agentId)
+        : null
+    ),
+    enabled: Boolean(input.activeTarget?.agentId),
+    staleTime: 30_000,
+  });
+  // Rust store returns a `file://` URL; Tauri 2 webview cannot load `file://`
+  // assets directly under CSP. Convert to the allowed `asset://localhost/...`
+  // protocol (scope registered in tauri.conf.json).
+  const rawBackdropFileUrl = backdropBindingQuery.data?.fileUrl;
+  const backdropImageUrl = rawBackdropFileUrl
+    ? rawBackdropFileUrl.startsWith('file://')
+      ? rawBackdropFileUrl.replace(/^file:\/\//, 'asset://localhost')
+      : rawBackdropFileUrl
+    : undefined;
   const characterData = useMemo(() => ({
     ...surfaceState.character,
     theme: {
-      roomSurface: 'linear-gradient(180deg, rgba(250,252,252,0.98), rgba(244,247,248,0.96))',
-      roomAura: 'linear-gradient(135deg,rgba(255,255,255,0.9),rgba(236,253,245,0.78))',
-      accentSoft: 'rgba(16,185,129,0.20)',
-      accentStrong: '#10b981',
-      border: 'rgba(16,185,129,0.34)',
-      text: '#065f46',
+      roomSurface: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.94))',
+      roomAura: 'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.90))',
+      appBackdropImageUrl: backdropImageUrl,
+      accentSoft: 'rgba(148,163,184,0.12)',
+      accentStrong: '#475569',
+      border: 'rgba(148,163,184,0.20)',
+      text: '#0f172a',
     },
-  }), [surfaceState.character]);
+  }), [backdropImageUrl, surfaceState.character]);
   const resolvedAgentDisplayName = useMemo(
     () =>
       characterData.name
@@ -261,39 +275,6 @@ export function useAgentConversationPresentation(
       || input.t('Chat.agentGenericIdentity', { defaultValue: 'Agent' }),
     [characterData.name, input.activeTarget?.displayName, input.t],
   );
-  const runtimeStatusLabel = useMemo(
-    () => resolveAgentIdentityRuntimeStatusLabel(input.runtimeInspect),
-    [input.runtimeInspect],
-  );
-  const runtimeActivityLabel = useMemo(
-    () => resolveAgentIdentityRuntimeActivityLabel(input.runtimeInspect),
-    [input.runtimeInspect],
-  );
-  const autonomyModeLabel = useMemo(
-    () => resolveAgentIdentityAutonomyModeLabel(input.runtimeInspect),
-    [input.runtimeInspect],
-  );
-  const [avatarOverridePhase, setAvatarOverridePhase] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.phase);
-  const [avatarOverrideEmotion, setAvatarOverrideEmotion] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.emotion);
-  const [avatarOverrideLabel, setAvatarOverrideLabel] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.label);
-  const [avatarOverrideAmplitude, setAvatarOverrideAmplitude] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.amplitude);
-  useEffect(() => {
-    const syncFromOverride = () => {
-      const formState = resolveChatAgentAvatarDebugFormState(readChatAgentAvatarDebugOverride());
-      setAvatarOverridePhase(formState.phase);
-      setAvatarOverrideEmotion(formState.emotion);
-      setAvatarOverrideLabel(formState.label);
-      setAvatarOverrideAmplitude(formState.amplitude);
-    };
-    syncFromOverride();
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-    window.addEventListener(CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT, syncFromOverride);
-    return () => {
-      window.removeEventListener(CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT, syncFromOverride);
-    };
-  }, []);
   const canonicalMessages = useMemo(
     () => resolveAgentCanonicalMessages({
       messages: input.messages,
@@ -316,6 +297,24 @@ export function useAgentConversationPresentation(
       cancelStream(input.activeThreadId);
     }
   }, [input.activeThreadId]);
+  // D-LLM-065 — per-target cosmetic preference; default 'right-center'.
+  const [avatarStagePlacement] = useAgentAvatarPlacement(
+    input.activeTarget?.agentId ?? selectedTargetId ?? null,
+  );
+  const avatarStageLayout = useMemo(
+    () => resolveChatAgentAvatarStageLayoutContract(avatarStagePlacement),
+    [avatarStagePlacement],
+  );
+  // D-LLM-057 / D-LLM-065 — avatar transform is transient surface-local state
+  // and must deterministic-reset on agent switch, thread switch, or surface close.
+  const transformResetAgentKey = input.activeTarget?.agentId ?? null;
+  const transformResetThreadKey = input.activeThreadId ?? null;
+  useEffect(() => {
+    resetChatAgentAvatarTransform();
+    return () => {
+      resetChatAgentAvatarTransform();
+    };
+  }, [transformResetAgentKey, transformResetThreadKey]);
   const hostView = useMemo(() => resolveAgentConversationHostView({
     threads: targetSummaries,
     selectedTargetId,
@@ -353,11 +352,18 @@ export function useAgentConversationPresentation(
       }),
       loadingLabel: input.t('Chat.agentTranscriptLoading', { defaultValue: 'Loading local agent conversation…' }),
     },
-    renderMessageContent: input.renderMessageContent,
+      transcriptWidthClassName: avatarStageLayout.transcriptWidthClassName,
+      transcriptWidthPositionClassName: avatarStageLayout.transcriptWidthPositionClassName,
+      transcriptScrollViewportWidthClassName: avatarStageLayout.transcriptScrollViewportWidthClassName,
+      transcriptScrollViewportPositionClassName: avatarStageLayout.transcriptScrollViewportPositionClassName,
+      transcriptContentPaddingBottomClassName: avatarStageLayout.transcriptContentBottomReserveClassName,
+      renderMessageContent: input.renderMessageContent,
     renderMessageAccessory: input.renderMessageAccessory,
     onMessageContextMenu: input.onMessageContextMenu,
     onStopGenerating: handleStopGenerating,
   }), [
+    avatarStageLayout.transcriptWidthClassName,
+    avatarStageLayout.transcriptWidthPositionClassName,
     characterData.avatarUrl,
     characterData.name,
     input.activeThreadId,
@@ -461,6 +467,7 @@ export function useAgentConversationPresentation(
   return useMemo(() => ({
     ...hostSnapshot,
     adapter,
+    avatarStagePlacement,
     settingsContent: (
       <div className="space-y-4">
         <ChatSettingsPanel
@@ -498,181 +505,32 @@ export function useAgentConversationPresentation(
             onInputCaptureText={(text) => {
               input.currentDraftTextRef.current = text;
             }}
+            thinkingState={input.thinkingSupported
+              ? (input.thinkingPreference === 'on' ? 'on' : 'off')
+              : 'unsupported'}
+            onThinkingToggle={() => input.setBehaviorSettings({
+              ...input.behaviorSettings,
+              thinkingPreference: input.thinkingPreference === 'on' ? 'off' : 'on',
+            })}
+            handsFreeState={{
+              mode: input.voiceSessionState.mode,
+              status: input.voiceSessionState.status,
+              disabled: Boolean(input.submittingThreadId)
+                || input.voiceSessionState.status === 'transcribing'
+                || input.voiceSessionState.status === 'listening',
+              onEnter: input.onEnterHandsFreeVoiceSession,
+              onExit: input.onExitHandsFreeVoiceSession,
+            }}
             leadingSlot={(
-              <div
-                data-chat-agent-identity-chip="true"
-                className="relative flex h-11 w-11 shrink-0 items-center justify-center"
-              >
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--nimi-action-primary-bg)] focus:ring-offset-2 focus:ring-offset-white"
-                      aria-label={`${resolvedAgentDisplayName} card`}
-                    >
-                      <Avatar
-                        src={characterData.avatarUrl || null}
-                        alt={resolvedAgentDisplayName}
-                        className="h-11 w-11 text-sm"
-                      />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    side="top"
-                    align="start"
-                    sideOffset={12}
-                    className="w-[min(360px,calc(100vw-48px))] p-4"
-                  >
-                    <div
-                      data-chat-agent-identity-card="true"
-                      className="flex flex-col gap-3 text-left"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-                          {resolvedAgentDisplayName}
-                        </span>
-                        {characterData.handle ? (
-                          <span className="text-[11px] leading-4 text-[var(--nimi-text-secondary)]">
-                            {characterData.handle}
-                          </span>
-                        ) : null}
-                      </div>
-                      {runtimeStatusLabel || runtimeActivityLabel || autonomyModeLabel ? (
-                        <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]/90 px-3 py-2.5">
-                          {runtimeStatusLabel ? (
-                            <div className="flex items-start justify-between gap-3">
-                              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
-                                Runtime Status
-                              </span>
-                              <span className="text-[11px] leading-4 text-[var(--nimi-text-primary)]">
-                                {runtimeStatusLabel}
-                              </span>
-                            </div>
-                          ) : null}
-                          {runtimeActivityLabel ? (
-                            <div className="mt-1.5 flex items-start justify-between gap-3">
-                              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
-                                Activity
-                              </span>
-                              <span className="text-[11px] leading-4 text-[var(--nimi-text-secondary)]">
-                                {runtimeActivityLabel}
-                              </span>
-                            </div>
-                          ) : null}
-                          {autonomyModeLabel ? (
-                            <div className="mt-1.5 flex items-start justify-between gap-3">
-                              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
-                                Mode
-                              </span>
-                              <span className="text-[11px] leading-4 text-[var(--nimi-text-secondary)]">
-                                {autonomyModeLabel}
-                              </span>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]/90 px-3 py-3">
-                        <div className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
-                          Avatar Debug
-                        </div>
-                        <div className="mb-3 text-[11px] leading-4 text-[var(--nimi-text-secondary)]">
-                          Renderer-side mood override for VRM and Live2D testing only.
-                        </div>
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <label className="text-xs font-semibold text-[var(--nimi-text-secondary)]">
-                            Phase
-                            <select
-                              value={avatarOverridePhase}
-                              onChange={(event) => setAvatarOverridePhase(
-                                event.target.value as (typeof CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS)[number]['value'],
-                              )}
-                              className={AGENT_CARD_INPUT_CLASS_NAME}
-                            >
-                              {CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="text-xs font-semibold text-[var(--nimi-text-secondary)]">
-                            Mood
-                            <select
-                              value={avatarOverrideEmotion}
-                              onChange={(event) => setAvatarOverrideEmotion(
-                                event.target.value as (typeof CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS)[number]['value'],
-                              )}
-                              className={AGENT_CARD_INPUT_CLASS_NAME}
-                            >
-                              {CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="text-xs font-semibold text-[var(--nimi-text-secondary)]">
-                            Amplitude
-                            <input
-                              type="number"
-                              min="0"
-                              max="1"
-                              step="0.01"
-                              value={avatarOverrideAmplitude}
-                              onChange={(event) => setAvatarOverrideAmplitude(event.target.value)}
-                              className={AGENT_CARD_INPUT_CLASS_NAME}
-                            />
-                          </label>
-                          <label className="text-xs font-semibold text-[var(--nimi-text-secondary)]">
-                            Label
-                            <input
-                              type="text"
-                              value={avatarOverrideLabel}
-                              onChange={(event) => setAvatarOverrideLabel(event.target.value)}
-                              placeholder="Joy test"
-                              className={AGENT_CARD_INPUT_CLASS_NAME}
-                            />
-                          </label>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            className="rounded-full bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--nimi-action-primary-fg)] transition hover:opacity-90"
-                            onClick={() => {
-                              applyChatAgentAvatarDebugOverride({
-                                phase: avatarOverridePhase as (typeof CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS)[number]['value'],
-                                emotion: avatarOverrideEmotion as (typeof CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS)[number]['value'],
-                                label: avatarOverrideLabel,
-                                amplitude: Number(avatarOverrideAmplitude),
-                              });
-                            }}
-                          >
-                            Apply avatar override
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-full border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-semibold text-[var(--nimi-text-secondary)] transition hover:bg-black/5"
-                            onClick={() => {
-                              clearChatAgentAvatarDebugOverride();
-                              setAvatarOverridePhase(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.phase);
-                              setAvatarOverrideEmotion(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.emotion);
-                              setAvatarOverrideLabel(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.label);
-                              setAvatarOverrideAmplitude(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.amplitude);
-                            }}
-                          >
-                            Clear avatar override
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute bottom-0.5 right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white"
-                />
-              </div>
+              <ChatComposerLeadingAvatar
+                kind="agent"
+                name={resolvedAgentDisplayName}
+                imageUrl={characterData.avatarUrl || null}
+                fallbackLabel={characterData.avatarFallback || resolvedAgentDisplayName}
+              />
             )}
+            widthClassName={avatarStageLayout.composerWidthClassName}
+            widthPositionClassName={avatarStageLayout.composerWidthPositionClassName}
           />
         </div>
       ) : null
@@ -719,12 +577,8 @@ export function useAgentConversationPresentation(
     input.pendingAttachments,
     schedulingGuard.disabled,
     resolvedAgentDisplayName,
-    runtimeActivityLabel,
-    runtimeStatusLabel,
-    autonomyModeLabel,
-    avatarOverrideAmplitude,
-    avatarOverrideEmotion,
-    avatarOverrideLabel,
-    avatarOverridePhase,
+    avatarStageLayout.composerWidthClassName,
+    avatarStageLayout.composerWidthPositionClassName,
+    avatarStagePlacement,
   ]);
 }

@@ -120,11 +120,11 @@ export function useAiConversationPresentation(
         },
         disabled: Boolean(input.submittingThreadId) || schedulingGuard.disabled,
         disabledReason: input.submittingThreadId
-          ? input.t('Chat.aiSending', { defaultValue: 'Generating response…' })
+          ? input.t('Chat.nimiSending', { defaultValue: 'Generating response…' })
           : schedulingGuard.disabledReason,
         placeholder: input.setupState.status === 'ready'
-          ? input.t('Chat.aiComposerPlaceholder', { defaultValue: 'Ask anything…' })
-          : input.t('Chat.aiComposerSetupPlaceholder', { defaultValue: 'Set up a model to start chatting…' }),
+          ? input.t('Chat.nimiComposerPlaceholder', { defaultValue: 'Ask Nimi anything…' })
+          : input.t('Chat.nimiComposerSetupPlaceholder', { defaultValue: 'Set up a model to start chatting with Nimi…' }),
       }
       : null,
   }), [input.bundle, input.composerReady, input.handleSubmit, input.messages, input.setupState, input.submittingThreadId, input.t, input.threads, schedulingGuard.disabled, schedulingGuard.disabledReason]);
@@ -158,10 +158,10 @@ export function useAiConversationPresentation(
     transcriptProps: {
       loading: input.isBundleLoading,
       error: input.bundleError instanceof Error ? input.bundleError.message : input.bundleError ? String(input.bundleError) : null,
-      emptyEyebrow: 'AI',
-      emptyTitle: input.t('Chat.aiTranscriptEmptyTitle', { defaultValue: 'Start the AI conversation' }),
-      emptyDescription: input.t('Chat.aiTranscriptEmpty', { defaultValue: 'Send a message to start this conversation.' }),
-      loadingLabel: input.t('Chat.aiTranscriptLoading', { defaultValue: 'Loading conversation…' }),
+      emptyEyebrow: 'Nimi',
+      emptyTitle: input.t('Chat.nimiTranscriptEmptyTitle', { defaultValue: 'Start a Nimi Chat' }),
+      emptyDescription: input.t('Chat.nimiTranscriptEmpty', { defaultValue: 'Send a message to start this conversation.' }),
+      loadingLabel: input.t('Chat.nimiTranscriptLoading', { defaultValue: 'Loading conversation…' }),
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
       pendingFirstBeat: input.pendingFirstBeat,
@@ -180,7 +180,8 @@ export function useAiConversationPresentation(
             adapter={adapter.composerAdapter}
             initialText={input.bundle?.draft?.text || ''}
             disabled={Boolean(input.submittingThreadId) || schedulingGuard.disabled}
-            placeholder={input.t('Chat.aiComposerPlaceholder', { defaultValue: 'Ask anything…' })}
+            placeholder={input.t('Chat.nimiComposerPlaceholder', { defaultValue: 'Ask Nimi anything…' })}
+            layout="stacked"
             onInputCaptureText={(text) => {
               input.currentDraftTextRef.current = text;
             }}
@@ -188,8 +189,8 @@ export function useAiConversationPresentation(
         </div>
       ) : null
     ),
-    setupDescription: input.t('Chat.aiRouteRequired', {
-      defaultValue: 'Configure a local chat route or a healthy cloud connector before AI mode can open a conversation.',
+    setupDescription: input.t('Chat.nimiRouteRequired', {
+      defaultValue: 'Configure a local chat route or a healthy cloud connector before Nimi Chat can open a conversation.',
     }),
     thinkingState: input.thinkingSupported
       ? (input.thinkingPreference === 'on' ? 'on' : 'off')

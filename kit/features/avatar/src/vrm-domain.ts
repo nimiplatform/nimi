@@ -41,7 +41,7 @@ export type AvatarVrmFramingMetrics = {
   widthRatio: number;
 };
 
-export type AvatarVrmFramingIntent = 'auto' | 'chat-focus' | 'showcase';
+export type AvatarVrmFramingIntent = 'auto' | 'chat-focus' | 'scene-presence' | 'bottom-companion' | 'showcase';
 
 export type AvatarVrmFramingPolicy = {
   mode: 'full-body-tall' | 'upper-body-portrait' | 'broad-portrait' | 'default' | 'chat-focus';
@@ -391,6 +391,32 @@ export function resolveAvatarVrmFramingPolicy(input: {
   // ~70% larger than the portrait full-body framing and relying on the viewport
   // to crop below the torso. 'showcase' keeps the legacy full-body behaviour
   // for intros and profile screens.
+  if (intent === 'bottom-companion') {
+    return {
+      mode: 'chat-focus',
+      selectionReason: 'chat-focus-intent',
+      fitHeight: 4.8,
+      fitWidth: 2.7,
+      fitDepth: 2.1,
+      targetTop: 1.28,
+      minBottom: -6,
+      zOffset: -0.3,
+    };
+  }
+
+  if (intent === 'scene-presence') {
+    return {
+      mode: 'chat-focus',
+      selectionReason: 'chat-focus-intent',
+      fitHeight: 3.25,
+      fitWidth: 2.12,
+      fitDepth: 1.85,
+      targetTop: 1.12,
+      minBottom: -3.8,
+      zOffset: -0.18,
+    };
+  }
+
   if (intent === 'chat-focus' && rail.railIsPortrait) {
     return {
       mode: 'chat-focus',

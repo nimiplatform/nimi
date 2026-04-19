@@ -10,6 +10,7 @@ import type {
 import { CanonicalMessageBubble } from './canonical-message-bubble.js';
 import { CanonicalTypingBubble } from './canonical-typing-bubble.js';
 import { CANONICAL_STAGE_SURFACE_WIDTH_CLASS } from './canonical-conversation-pane.js';
+import { resolveConversationThemeBackgroundStyle } from './conversation-theme-background.js';
 
 const STAGE_SWITCH_DELTA_THRESHOLD = 300;
 const STAGE_SWITCH_WINDOW_MS = 600;
@@ -157,6 +158,11 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
   const showEmptyState = !props.content && slice.userMessages.length === 0 && slice.assistantMessages.length === 0 && !slice.pendingFirstBeat;
   const totalBeats = slice.userMessages.length + slice.assistantMessages.length;
   const widthClassName = props.widthClassName || CANONICAL_STAGE_SURFACE_WIDTH_CLASS;
+  const stageBackgroundStyle = resolveConversationThemeBackgroundStyle({
+    theme,
+    fallbackBackground: 'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.90))',
+    overlay: 'linear-gradient(180deg, rgba(255,255,255,0.76), rgba(255,255,255,0.90))',
+  });
 
   const handleWheelCapture = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
     if (!props.onIntentOpenHistory) {
@@ -189,7 +195,7 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
     >
       <div
         className="pointer-events-none absolute inset-0"
-        style={{ background: theme?.roomAura || 'radial-gradient(circle at top, rgba(16,185,129,0.14), transparent 72%)', opacity: 0.9 }}
+        style={{ ...stageBackgroundStyle, opacity: 0.9 }}
       />
 
       <div className="relative z-10 flex h-full min-h-0 items-center justify-center">

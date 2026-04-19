@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
+import { DesktopIconToggleAction } from '@renderer/components/action';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 // ---------------------------------------------------------------------------
@@ -11,8 +12,13 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 export type ChatContactsSidebarProps = {
   targets: readonly ConversationTargetSummary[];
   selectedTargetId: string | null;
+  activeMode: 'ai' | 'human' | 'agent' | 'group';
   onSelectTarget: (targetId: string) => void;
   onCreateGroup?: () => void;
+  settingsOpen: boolean;
+  onToggleSettings: () => void;
+  nimiThreadListOpen: boolean;
+  onToggleNimiThreadList: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -135,8 +141,13 @@ function SidebarSeparator() {
 export function ChatContactsSidebar({
   targets,
   selectedTargetId,
+  activeMode,
   onSelectTarget,
   onCreateGroup,
+  settingsOpen,
+  onToggleSettings,
+  nimiThreadListOpen,
+  onToggleNimiThreadList,
 }: ChatContactsSidebarProps) {
   const { t } = useTranslation();
   const aiTargets = targets.filter((t) => t.source === 'ai');
@@ -144,6 +155,7 @@ export function ChatContactsSidebar({
   const agentTargets = targets.filter((t) => t.source === 'agent');
   const groupTargets = targets.filter((t) => t.source === 'group');
   const createGroupLabel = t('Chat.createGroupShortcut', { defaultValue: 'New Group' });
+  const showNimiThreadToggle = activeMode === 'ai';
 
   return (
     <aside
@@ -232,6 +244,38 @@ export function ChatContactsSidebar({
           </>
         ) : null}
       </ScrollArea>
+      <div className="mt-2 flex w-full shrink-0 flex-col items-center gap-2 border-t border-white/70 px-1 pb-1 pt-3">
+        {showNimiThreadToggle ? (
+          <DesktopIconToggleAction
+            icon={(
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path d="M8 8h8M8 12h8M8 16h5" />
+              </svg>
+            )}
+            active={nimiThreadListOpen}
+            aria-label={t('Chat.toggleNimiThreadList', { defaultValue: 'Toggle Nimi conversations' })}
+            title={t('Chat.toggleNimiThreadList', { defaultValue: 'Toggle Nimi conversations' })}
+            onClick={onToggleNimiThreadList}
+            data-chat-nimi-thread-toggle="true"
+            className="h-10 w-10 rounded-2xl"
+          />
+        ) : null}
+        <DesktopIconToggleAction
+          icon={(
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          )}
+          active={settingsOpen}
+          aria-label={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
+          title={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
+          onClick={onToggleSettings}
+          data-chat-settings-toggle="true"
+          className="h-10 w-10 rounded-2xl"
+        />
+      </div>
     </aside>
   );
 }

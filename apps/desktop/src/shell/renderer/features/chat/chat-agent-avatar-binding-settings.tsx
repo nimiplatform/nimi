@@ -15,6 +15,13 @@ import {
   pickDesktopAgentAvatarVrmSourcePath,
   setDesktopAgentAvatarBinding,
 } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-store';
+import {
+  clearDesktopAgentBackdropBinding,
+  desktopAgentBackdropBindingQueryKey,
+  getDesktopAgentBackdropBinding,
+  importDesktopAgentBackdrop,
+  pickDesktopAgentBackdropImageSourcePath,
+} from '@renderer/bridge/runtime-bridge/chat-agent-backdrop-store';
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 
@@ -61,6 +68,26 @@ function ResourceStatusDot(props: { status: 'ready' | 'invalid' | 'missing' }) {
   return <span className={`inline-block h-1.5 w-1.5 rounded-full ${statusClass}`} aria-hidden="true" />;
 }
 
+function resolveBackdropPreviewImage(rawUrl: string | null | undefined): string | null {
+  const normalized = String(rawUrl || '').trim();
+  if (!normalized) {
+    return null;
+  }
+  try {
+    const baseUrl =
+      typeof window !== 'undefined' && typeof window.location?.href === 'string'
+        ? window.location.href
+        : 'https://nimi.invalid';
+    const parsed = new URL(normalized, baseUrl);
+    if (!['http:', 'https:', 'file:', 'asset:', 'blob:', 'data:'].includes(parsed.protocol)) {
+      return null;
+    }
+    return `url(${JSON.stringify(parsed.toString())})`;
+  } catch {
+    return null;
+  }
+}
+
 export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSettingsProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -81,6 +108,12 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
     enabled: tauriReady && Boolean(agentId),
     staleTime: 30_000,
   });
+  const backdropBindingQuery = useQuery({
+    queryKey: agentId ? desktopAgentBackdropBindingQueryKey(agentId) : ['desktop-agent-backdrop-binding', 'none'],
+    queryFn: async () => (agentId ? getDesktopAgentBackdropBinding(agentId) : null),
+    enabled: tauriReady && Boolean(agentId),
+    staleTime: 30_000,
+  });
 
   const currentResource = useMemo(() => {
     if (!bindingQuery.data) {
@@ -93,6 +126,7 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
     await queryClient.invalidateQueries({ queryKey: desktopAgentAvatarResourcesQueryKey() });
     if (agentId) {
       await queryClient.invalidateQueries({ queryKey: desktopAgentAvatarBindingQueryKey(agentId) });
+      await queryClient.invalidateQueries({ queryKey: desktopAgentBackdropBindingQueryKey(agentId) });
     }
   };
 
@@ -175,21 +209,60 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
       await refresh();
     },
   });
+  const importBackdropMutation = useMutation({
+    mutationFn: async () => {
+      const sourcePath = await pickDesktopAgentBackdropImageSourcePath();
+      if (!sourcePath || !agentId) {
+        return null;
+      }
+      return importDesktopAgentBackdrop({
+        agentId,
+        sourcePath,
+        importedAtMs: Date.now(),
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result) {
+        return;
+      }
+      setFeedback(t('Chat.agentBackdropImportedFeedback', { defaultValue: 'Chat backdrop imported for this agent.' }));
+      await refresh();
+    },
+  });
+  const clearBackdropMutation = useMutation({
+    mutationFn: async () => {
+      if (!agentId) {
+        throw new Error('Agent selection is required');
+      }
+      return clearDesktopAgentBackdropBinding(agentId);
+    },
+    onSuccess: async () => {
+      setFeedback(t('Chat.agentBackdropClearedFeedback', { defaultValue: 'Chat backdrop cleared for this agent.' }));
+      await refresh();
+    },
+  });
 
   const resources = (resourcesQuery.data || []).slice().sort((left, right) => right.updatedAtMs - left.updatedAtMs);
   const pending = bindMutation.isPending
     || clearBindingMutation.isPending
     || deleteResourceMutation.isPending
     || importVrmMutation.isPending
-    || importLive2dMutation.isPending;
+    || importLive2dMutation.isPending
+    || importBackdropMutation.isPending
+    || clearBackdropMutation.isPending;
   const error = bindMutation.error
     || clearBindingMutation.error
     || deleteResourceMutation.error
     || importVrmMutation.error
     || importLive2dMutation.error
+    || importBackdropMutation.error
+    || clearBackdropMutation.error
     || resourcesQuery.error
-    || bindingQuery.error;
+    || bindingQuery.error
+    || backdropBindingQuery.error;
   const errorMessage = error instanceof Error ? error.message : null;
+  const currentBackdrop = backdropBindingQuery.data || null;
+  const backdropPreviewImage = resolveBackdropPreviewImage(currentBackdrop?.fileUrl || null);
 
   const disabledReason = !tauriReady
     ? t('Chat.avatarBindingTauriOnly', { defaultValue: 'Local avatar import requires the desktop runtime.' })
@@ -216,7 +289,7 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
         </div>
         <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
           {t('Chat.avatarBindingDescription', {
-            defaultValue: 'Import a local VRM or Live2D asset for this desktop only. Local binding overrides runtime presentation in the right rail.',
+            defaultValue: 'Import a local VRM or Live2D asset for this desktop only. Local binding overrides runtime presentation in the inline chat avatar stage.',
           })}
         </p>
       </div>
@@ -280,6 +353,91 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
         >
           {t('Chat.avatarBindingImportLive2d', { defaultValue: 'Import Live2D' })}
         </Button>
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_92%,white)] p-3">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-primary)]">
+              {t('Chat.agentBackdropHeading', { defaultValue: 'Chat Backdrop' })}
+            </h4>
+            {currentBackdrop ? (
+              <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-action-primary-bg)] ring-1 ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)]">
+                {t('Chat.agentBackdropBoundLabel', { defaultValue: 'Active' })}
+              </span>
+            ) : null}
+          </div>
+          <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
+            {t('Chat.agentBackdropDescription', {
+              defaultValue: 'Import one desktop-local image to sit under the chat glass surface for this agent. The transcript stays above it; the backdrop is scene atmosphere only.',
+            })}
+          </p>
+        </div>
+
+        {currentBackdrop ? (
+          <div className="space-y-3">
+            <div
+              className="overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(248,250,252,0.92))]"
+              data-chat-agent-backdrop-preview="true"
+            >
+              <div
+                className="h-28 w-full bg-cover bg-center"
+                style={backdropPreviewImage
+                  ? { backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.52)), ${backdropPreviewImage}` }
+                  : undefined}
+              />
+              <div className="space-y-1 px-3 py-2.5">
+                <p className="truncate text-[13px] font-semibold text-[var(--nimi-text-primary)]">
+                  {currentBackdrop.displayName}
+                </p>
+                <p className="truncate text-[11px] text-[var(--nimi-text-muted)]">
+                  {currentBackdrop.sourceFilename}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                tone="secondary"
+                size="sm"
+                onClick={() => {
+                  setFeedback(null);
+                  importBackdropMutation.mutate();
+                }}
+                disabled={Boolean(disabledReason) || pending}
+              >
+                {t('Chat.agentBackdropReplace', { defaultValue: 'Replace Image' })}
+              </Button>
+              <Button
+                tone="ghost"
+                size="sm"
+                onClick={() => {
+                  setFeedback(null);
+                  clearBackdropMutation.mutate();
+                }}
+                disabled={Boolean(disabledReason) || pending}
+              >
+                {t('Chat.agentBackdropClear', { defaultValue: 'Clear' })}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-dashed border-[var(--nimi-border-subtle)] px-3 py-3 text-xs text-[var(--nimi-text-muted)]">
+              {t('Chat.agentBackdropEmpty', { defaultValue: 'No local chat backdrop is bound to this agent yet.' })}
+            </div>
+            <Button
+              tone="secondary"
+              size="sm"
+              onClick={() => {
+                setFeedback(null);
+                importBackdropMutation.mutate();
+              }}
+              disabled={Boolean(disabledReason) || pending}
+            >
+              {t('Chat.agentBackdropImport', { defaultValue: 'Import Backdrop Image' })}
+            </Button>
+          </div>
+        )}
       </div>
 
       {feedback ? (
@@ -417,7 +575,7 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
 
       <p className="text-[11px] text-[var(--nimi-text-muted)]">
         {t('Chat.avatarBindingFootnote', {
-          defaultValue: 'Live2D resources are stored and bound locally now. Until a Live2D viewport lands, the rail will continue falling back when it cannot render that backend.',
+          defaultValue: 'Live2D resources are stored and bound locally now. Until a Live2D viewport lands, the inline avatar stage will continue falling back when it cannot render that backend.',
         })}
       </p>
     </section>

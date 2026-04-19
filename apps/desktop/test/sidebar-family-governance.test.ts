@@ -71,7 +71,7 @@ test('governed sidebar modules import and use the shared sidebar primitive', () 
 test('chat surface composes the canonical shell with an app-owned contact rail', () => {
   assert.match(chatPageSource, /ChatContactsSidebar/);
   assert.match(chatPageSource, /ChatHumanModeContent/);
-  assert.match(chatPageSource, /ChatAiModeContent/);
+  assert.match(chatPageSource, /ChatNimiModeContent/);
   assert.match(chatPageSource, /ChatAgentModeContent/);
   assert.match(chatPageSource, /E2E_IDS\.chatPage/);
   for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource]) {

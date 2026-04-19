@@ -2,6 +2,10 @@ export { ChatComposer } from './components/chat-composer.js';
 export type { ChatComposerProps } from './components/chat-composer.js';
 export { ChatMarkdownRenderer } from './components/chat-markdown-renderer.js';
 export type { ChatMarkdownRendererProps } from './components/chat-markdown-renderer.js';
+export {
+  resolveConversationThemeBackgroundStyle,
+  toSafeBackgroundImage,
+} from './components/conversation-theme-background.js';
 export { CanonicalConversationShell } from './components/canonical-conversation-shell.js';
 export type {
   CanonicalConversationShellProps,
@@ -12,7 +16,11 @@ export type { CanonicalComposerProps } from './components/canonical-composer.js'
 export { CanonicalCharacterRail } from './components/canonical-character-rail.js';
 export type { CanonicalCharacterRailProps } from './components/canonical-character-rail.js';
 export { CanonicalConversationPane } from './components/canonical-conversation-pane.js';
-export type { CanonicalConversationPaneProps } from './components/canonical-conversation-pane.js';
+export type {
+  CanonicalConversationAnchoredSurfaceConfig,
+  CanonicalConversationAnchoredSurfacePlacement,
+  CanonicalConversationPaneProps,
+} from './components/canonical-conversation-pane.js';
 export { CanonicalMessageBubble } from './components/canonical-message-bubble.js';
 export type { CanonicalMessageBubbleProps } from './components/canonical-message-bubble.js';
 export { CanonicalDrawerSection } from './components/canonical-drawer-section.js';
@@ -90,6 +98,7 @@ export type {
   CanonicalRuntimeInspectStatusChip,
   CanonicalTranscriptGroup,
   ChatComposerAttachmentsSlot,
+  ChatComposerLayout,
   ChatComposerMediaAction,
   ChatComposerVoiceState,
 } from './types.js';

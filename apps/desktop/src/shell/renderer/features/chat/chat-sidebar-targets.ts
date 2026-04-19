@@ -114,7 +114,7 @@ export function useChatTargetsForSidebar(
     id: 'ai:assistant',
     source: 'ai' as const,
     canonicalSessionId: 'ai:assistant',
-    title: t('Chat.aiAssistant', { defaultValue: 'AI Assistant' }),
+    title: t('Chat.nimiAssistant', { defaultValue: 'Nimi' }),
     handle: null,
     bio: null,
     avatarUrl: null,

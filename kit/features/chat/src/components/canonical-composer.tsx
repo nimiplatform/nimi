@@ -4,6 +4,7 @@ import type {
   AttachmentAdapter,
   ChatComposerAdapter,
   ChatComposerAttachmentsSlot,
+  ChatComposerLayout,
   ChatComposerVoiceState,
 } from '../types.js';
 import { ChatComposer } from './chat-composer.js';
@@ -18,6 +19,7 @@ export type CanonicalComposerProps<TAttachment = never> = {
   runtimeHint?: string | null;
   mode?: 'stage' | 'chat';
   className?: string;
+  toolbarSlot?: ReactNode;
   sendHint?: ReactNode;
   modelLabel?: ReactNode;
   onInputCaptureText?: (text: string) => void;
@@ -27,7 +29,9 @@ export type CanonicalComposerProps<TAttachment = never> = {
   attachmentsSlot?: ChatComposerAttachmentsSlot<TAttachment>;
   attachLabel?: string;
   voiceState?: ChatComposerVoiceState;
+  layout?: ChatComposerLayout;
   widthClassName?: string;
+  widthPositionClassName?: string;
   leadingSlot?: ReactNode;
 };
 
@@ -39,6 +43,7 @@ export function CanonicalComposer<TAttachment = never>({
   runtimeHint,
   mode = 'chat',
   className,
+  toolbarSlot,
   sendHint,
   modelLabel,
   onInputCaptureText,
@@ -48,12 +53,14 @@ export function CanonicalComposer<TAttachment = never>({
   attachmentsSlot,
   attachLabel,
   voiceState,
+  layout = 'inline',
   widthClassName = CANONICAL_STAGE_SURFACE_WIDTH_CLASS,
+  widthPositionClassName = 'mx-auto',
   leadingSlot,
 }: CanonicalComposerProps<TAttachment>) {
   return (
     <div className={cn('shrink-0 px-5 pb-5', mode === 'stage' ? 'pt-1' : 'pt-2', className)} data-canonical-composer-root="true">
-      <div className={cn('mx-auto', widthClassName)} data-canonical-composer-width={widthClassName}>
+      <div className={cn(widthPositionClassName, widthClassName)} data-canonical-composer-width={widthClassName}>
         {runtimeHint ? (
           <div className="mb-3 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-2 text-sm text-amber-800 shadow-[0_12px_24px_rgba(217,119,6,0.08)]">
             {runtimeHint}
@@ -74,6 +81,7 @@ export function CanonicalComposer<TAttachment = never>({
               initialText={initialText}
               disabled={disabled}
               placeholder={placeholder}
+              toolbarSlot={toolbarSlot}
               modelLabel={modelLabel}
               sendHint={sendHint}
               attachmentAdapter={attachmentAdapter}
@@ -82,6 +90,7 @@ export function CanonicalComposer<TAttachment = never>({
               attachmentsSlot={attachmentsSlot}
               attachLabel={attachLabel}
               voiceState={voiceState}
+              layout={layout}
               leadingSlot={leadingSlot}
             />
           </ConversationComposerShell>

@@ -9,12 +9,15 @@ function readWorkspaceFile(relativePath: string): string {
 
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
 const chatContactsSidebarSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');
-const chatAiPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-session-list-panel.tsx');
-const chatHumanPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-right-panel-character-rail.tsx');
-const chatAgentPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-right-panel-avatar-stage-rail.tsx');
-const chatGroupPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-right-column.tsx');
-const chatRightColumnPrimitivesSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-right-column-primitives.tsx');
-const chatRightPanelSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-right-panel-settings.tsx');
+const chatNimiSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-session-list-panel.tsx');
+const chatHumanModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
+const chatNimiModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-mode-content.tsx');
+const chatAgentAnchoredStageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-anchored-avatar-stage.tsx');
+const chatAgentSceneBackgroundSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-scene-background.tsx');
+const chatAgentStageLayoutSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-avatar-stage-layout.ts');
+const chatAgentModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
+const chatGroupModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
+const chatSideSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-side-sheet.tsx');
 
 test('chat page split layout keeps contacts on the far-right transparent rail', () => {
   assert.match(chatPageSource, /data-chat-page-layout="split"/);
@@ -24,19 +27,49 @@ test('chat page split layout keeps contacts on the far-right transparent rail', 
   assert.doesNotMatch(chatContactsSidebarSource, /border-l/u);
 });
 
-test('chat mode right columns render three standalone cards outside the canonical shell', () => {
-  for (const source of [chatAiPanelSource, chatHumanPanelSource, chatAgentPanelSource, chatGroupPanelSource]) {
-    assert.match(source, /ChatRightColumn/);
-    assert.match(source, /data-chat-mode-column=/);
-    assert.match(source, /cardKey="primary"/);
-    assert.match(source, /cardKey="status"/);
-    assert.match(source, /ChatRightPanelSettings/);
-  }
-  assert.doesNotMatch(chatAiPanelSource, /border-l/u);
-  assert.doesNotMatch(chatHumanPanelSource, /data-right-panel="agent-utility-rail"[\s\S]*border-l/u);
-  assert.doesNotMatch(chatRightColumnPrimitivesSource, /RIGHT_COLUMN_CARD_BASE_CLASS[\s\S]*\bborder\b/u);
-  assert.match(chatRightColumnPrimitivesSource, /'ml-2 flex min-h-0 w-\[320px\] shrink-0 flex-col gap-3'/);
-  assert.doesNotMatch(chatRightPanelSettingsSource, /border-t/u);
-  assert.match(chatAgentPanelSource, /data-avatar-stage-viewport="true"/);
-  assert.doesNotMatch(chatAgentPanelSource, /data-avatar-stage-dock="true"/);
+test('chat page uses transient side sheets; agent avatar renders as an app-wide overlay above the scene background (D-LLM-065)', () => {
+  const chatAgentOverlaySource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-avatar-overlay.tsx');
+
+  assert.match(chatPageSource, /chatSettingsOpen/);
+  assert.match(chatPageSource, /nimiThreadListOpen/);
+  assert.match(chatSideSheetSource, /data-chat-side-sheet=/);
+  assert.match(chatNimiSheetSource, /ChatSideSheet/);
+  assert.doesNotMatch(chatNimiSheetSource, /Assistant status/u);
+  assert.match(chatHumanModeSource, /ChatSideSheet/);
+  assert.match(chatNimiModeSource, /ChatSideSheet/);
+  assert.match(chatGroupModeSource, /ChatSideSheet/);
+
+  // Agent mode mounts the scene background (glass + mask only) inside the canonical
+  // shell, and mounts the avatar as an independent sibling overlay.
+  assert.match(chatAgentModeSource, /sceneBackground=\{sceneBackground\}/);
+  assert.match(chatAgentModeSource, /ChatAgentSceneBackground/);
+  assert.match(chatAgentModeSource, /ChatAgentAvatarOverlay/);
+  assert.match(chatAgentModeSource, /host\.avatarStagePlacement \|\| 'right-center'/);
+
+  // Scene background is purely decorative: Layer 0 glass + Layer 1 in-app mask.
+  // It must not render the avatar or placement-driven scene-actor slot anymore.
+  assert.match(chatAgentSceneBackgroundSource, /data-chat-agent-scene-background="true"/);
+  assert.match(chatAgentSceneBackgroundSource, /data-chat-agent-scene-layer="glass"/);
+  assert.match(chatAgentSceneBackgroundSource, /data-chat-agent-scene-layer="mask"/);
+  assert.doesNotMatch(chatAgentSceneBackgroundSource, /data-chat-agent-scene-actor/u);
+  assert.doesNotMatch(chatAgentSceneBackgroundSource, /ChatAgentAnchoredAvatarStage/u);
+
+  // Avatar overlay covers the entire app area as a transparent Layer 2 (above mask).
+  assert.match(chatAgentOverlaySource, /data-chat-agent-avatar-overlay="true"/);
+  assert.match(chatAgentOverlaySource, /absolute inset-0/);
+  assert.match(chatAgentOverlaySource, /ChatAgentAnchoredAvatarStage/);
+
+  // Stage layout contract: no placement-driven transcript width carve-out; the
+  // chat domain occupies the full middle area with uniform mx-auto centering.
+  assert.match(chatAgentStageLayoutSource, /scenePlacementClassName:/);
+  assert.doesNotMatch(chatAgentStageLayoutSource, /sceneVeilClassName:/);
+  assert.doesNotMatch(chatAgentStageLayoutSource, /actorUnderlayClassName:/);
+  assert.match(chatAgentStageLayoutSource, /UNIFORM_CENTER_POSITION/);
+  assert.match(chatAgentStageLayoutSource, /transcriptContentBottomReserveClassName: CHAT_AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS/);
+
+  // Anchored stage continues to emit its data attributes.
+  assert.match(chatAgentAnchoredStageSource, /data-chat-agent-anchored-stage="true"/);
+  assert.match(chatAgentAnchoredStageSource, /data-chat-agent-stage-layout=/);
+  assert.match(chatAgentAnchoredStageSource, /data-avatar-stage-viewport="true"/);
+  assert.doesNotMatch(chatAgentAnchoredStageSource, /ChatRightPanelSettings/u);
 });

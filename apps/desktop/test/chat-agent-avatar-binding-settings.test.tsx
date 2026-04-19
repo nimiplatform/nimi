@@ -17,6 +17,8 @@ test('agent avatar binding settings exposes import actions and local-library cop
   assert.match(markup, /data-testid="agent-avatar-binding-settings"/);
   assert.match(markup, /Import VRM/);
   assert.match(markup, /Import Live2D/);
+  assert.match(markup, /Chat Backdrop/);
+  assert.match(markup, /Import Backdrop Image/);
   assert.match(markup, /Local Avatar Library/);
   assert.match(markup, /desktop runtime/i);
 });

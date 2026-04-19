@@ -379,6 +379,10 @@ export type CanonicalTranscriptViewProps = {
   bannerContent?: ReactNode;
   content?: ReactNode;
   widthClassName?: string;
+  widthPositionClassName?: string;
+  scrollViewportWidthClassName?: string;
+  scrollViewportPositionClassName?: string;
+  contentPaddingBottomClassName?: string;
   onNearBottomChange?: (value: boolean) => void;
   onSeedFirstTurn?: () => void;
   footerContent?: ReactNode;
@@ -412,6 +416,10 @@ export function CanonicalTranscriptView({
   bannerContent,
   content,
   widthClassName = CANONICAL_STAGE_SURFACE_WIDTH_CLASS,
+  widthPositionClassName = 'mx-auto',
+  scrollViewportWidthClassName = 'w-full',
+  scrollViewportPositionClassName = '',
+  contentPaddingBottomClassName = 'pb-10',
   onNearBottomChange,
   onSeedFirstTurn,
   footerContent,
@@ -512,17 +520,25 @@ export function CanonicalTranscriptView({
   }, [footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat]);
 
   return (
-    <div
-      ref={scrollRootRef}
-      className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-0"
-      data-canonical-transcript-root="true"
-      onScroll={handleScroll}
-      onWheelCapture={handleWheelCapture}
-      style={{
-        overflowAnchor: 'none',
-      }}
-    >
-      <div className={cn('mx-auto space-y-5', widthClassName)} data-canonical-transcript-width={widthClassName}>
+    <div className="min-h-0 flex flex-1 overflow-hidden px-6 pt-0">
+      <div
+        ref={scrollRootRef}
+        className={cn(
+          'h-full min-h-0 flex-1 overflow-y-auto overscroll-contain',
+          scrollViewportPositionClassName,
+          scrollViewportWidthClassName,
+        )}
+        data-canonical-transcript-root="true"
+        onScroll={handleScroll}
+        onWheelCapture={handleWheelCapture}
+        style={{
+          overflowAnchor: 'none',
+        }}
+      >
+        <div
+          className={cn(widthPositionClassName, 'space-y-5 pt-2', widthClassName, contentPaddingBottomClassName)}
+          data-canonical-transcript-width={widthClassName}
+        >
         {loading ? (
           <div className="rounded-[30px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(237,247,247,0.86))] px-6 py-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
             <div className="h-4 w-28 rounded-full bg-slate-200/80" />
@@ -620,6 +636,7 @@ export function CanonicalTranscriptView({
         ) : null}
 
         {!loading && !error && !pendingFirstBeat && footerContent ? footerContent : null}
+        </div>
       </div>
     </div>
   );

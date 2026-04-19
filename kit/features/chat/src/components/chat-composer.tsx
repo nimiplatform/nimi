@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode, type CompositionEvent } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import { useChatComposer, type UseChatComposerOptions } from '../hooks/use-chat-composer.js';
-import type { ChatComposerAttachmentsSlot, ChatComposerVoiceState, ChatComposerMediaAction } from '../types.js';
+import type {
+  ChatComposerAttachmentsSlot,
+  ChatComposerLayout,
+  ChatComposerVoiceState,
+  ChatComposerMediaAction,
+} from '../types.js';
 
 const MIN_TEXTAREA_HEIGHT = 48;
 const MAX_TEXTAREA_HEIGHT = 128;
@@ -30,6 +35,7 @@ export type ChatComposerProps<TAttachment = never> = UseChatComposerOptions<TAtt
   placeholder?: string;
   className?: string;
   toolbar?: ReactNode;
+  toolbarSlot?: ReactNode;
   modelLabel?: ReactNode;
   sendHint?: ReactNode;
   sendLabel?: string;
@@ -41,6 +47,7 @@ export type ChatComposerProps<TAttachment = never> = UseChatComposerOptions<TAtt
   mediaActions?: readonly ChatComposerMediaAction[];
   /** Optional slot rendered at the leading edge of the input controls row (before the voice button). */
   leadingSlot?: ReactNode;
+  layout?: ChatComposerLayout;
 };
 
 export function ChatComposer<TAttachment = never>({
@@ -50,10 +57,12 @@ export function ChatComposer<TAttachment = never>({
   sendHint,
   sendLabel = 'Send',
   attachLabel = 'Attach',
+  toolbarSlot,
   attachmentsSlot,
   voiceState,
   mediaActions,
   leadingSlot,
+  layout = 'inline',
   ...options
 }: ChatComposerProps<TAttachment>) {
   const state = useChatComposer(options);
@@ -149,8 +158,97 @@ export function ChatComposer<TAttachment = never>({
     await originalHandleSubmit();
   }, [originalHandleSubmit]);
 
+  const hasAttachmentControl = Boolean(options.attachmentAdapter || (mediaActions && mediaActions.length > 0));
+  const hasMeta = Boolean(modelLabel || sendHint);
+  const isStacked = layout === 'stacked';
+
+  const textareaNode = (
+    <textarea
+      ref={(el) => {
+        (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+        if (state.textareaRef) {
+          (state.textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+        }
+      }}
+      rows={1}
+      data-chat-composer-textarea="true"
+      className={cn(
+        'min-h-[48px] max-h-32 min-w-0 flex-1 resize-none overflow-y-hidden',
+        isStacked
+          ? 'w-full rounded-[24px] border-0 bg-transparent px-4 py-3.5 text-[15px] leading-6 shadow-none'
+          : 'rounded-[20px] border border-slate-200 bg-white px-4 py-3',
+        'text-sm text-slate-900 outline-none',
+        'transition-colors duration-200',
+        'placeholder:text-slate-400',
+        isStacked ? 'focus:ring-0' : 'focus:border-emerald-300',
+        isStacked ? 'disabled:bg-transparent' : 'disabled:bg-slate-100',
+      )}
+      placeholder={placeholder}
+      value={state.text}
+      onChange={handleChange}
+      onCompositionStart={handleCompositionStart}
+      onCompositionEnd={handleCompositionEnd}
+      onKeyDown={state.handleKeyDown}
+      disabled={options.disabled || state.isSubmitting}
+      style={{ height: `${lastHeightRef.current}px` }}
+    />
+  );
+
+  const sendButtonNode = (
+    <button
+      type="submit"
+      disabled={!state.canSubmit}
+      aria-label={sendLabel}
+      data-chat-composer-send="true"
+      className={cn(
+        'flex shrink-0 items-center justify-center text-white transition-all duration-150',
+        isStacked
+          ? 'h-9 w-9 rounded-full bg-slate-500 shadow-[0_8px_20px_rgba(100,116,139,0.22)] hover:bg-slate-600 hover:shadow-[0_12px_24px_rgba(100,116,139,0.28)]'
+          : 'h-12 w-12 rounded-[20px] bg-gradient-to-br from-emerald-400 via-teal-400 to-emerald-500 shadow-[0_18px_36px_rgba(78,204,163,0.3)] hover:-translate-y-px hover:shadow-[0_22px_44px_rgba(78,204,163,0.4)]',
+        'active:scale-[0.92]',
+        'disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-inherit',
+      )}
+    >
+      <span className={isStacked ? 'scale-[0.88]' : undefined}>{ICON_SEND}</span>
+    </button>
+  );
+
+  const voiceButtonNode = voiceState ? (
+    <VoiceButton
+      voiceState={voiceState}
+      disabled={options.disabled || state.isSubmitting}
+      compact={isStacked}
+    />
+  ) : null;
+
+  const attachmentButtonNode = hasAttachmentControl ? (
+    <button
+      type="button"
+      data-chat-composer-attach="true"
+      disabled={options.disabled || state.isSubmitting}
+      onClick={() => {
+        if (options.attachmentAdapter) {
+          void state.openAttachmentPicker();
+        } else if (mediaActions && mediaActions.length > 0) {
+          setShowMediaActions((v) => !v);
+        }
+      }}
+      className={cn(
+        'flex shrink-0 items-center justify-center transition-colors',
+        isStacked
+          ? 'h-9 w-9 rounded-full border border-slate-200/80 bg-white/90 text-slate-500 hover:border-emerald-300 hover:text-teal-700'
+          : 'h-11 w-11 rounded-2xl border border-slate-200/80 bg-white/90 text-slate-600 hover:border-emerald-300 hover:text-teal-700',
+        showMediaActions ? 'border border-sky-200 bg-sky-50 text-sky-700' : '',
+        'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200/80 disabled:hover:text-slate-500',
+      )}
+      title={attachLabel}
+    >
+      {ICON_PLUS}
+    </button>
+  ) : null;
+
   return (
-    <div className={className}>
+    <div className={className} data-chat-composer-layout={layout}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -190,105 +288,88 @@ export function ChatComposer<TAttachment = never>({
           </div>
         ) : null}
 
-        {/* input controls row */}
-        <div className="flex items-end gap-2.5">
-          {leadingSlot ? <div className="flex items-end">{leadingSlot}</div> : null}
-          {/* voice button — interactive when voiceState provided, disabled placeholder otherwise */}
-          {voiceState ? (
-            <VoiceButton voiceState={voiceState} disabled={options.disabled || state.isSubmitting} />
-          ) : (
-            <button
-              type="button"
-              disabled
-              className={cn(
-                'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
-                'border border-slate-200 bg-slate-100 text-slate-400',
-              )}
-              title="Voice input"
+        {isStacked ? (
+          <div className="flex flex-col gap-2.5">
+            <div data-chat-composer-textarea-row="true">
+              {textareaNode}
+            </div>
+            <div
+              data-chat-composer-toolbar="true"
+              className="flex items-center gap-3 px-1"
             >
-              {ICON_MIC}
-            </button>
-          )}
-
-          {/* media / attachment button */}
-          <button
-            type="button"
-            disabled={!options.attachmentAdapter && (!mediaActions || mediaActions.length === 0) || options.disabled || state.isSubmitting}
-            onClick={() => {
-              if (options.attachmentAdapter) {
-                void state.openAttachmentPicker();
-              } else if (mediaActions && mediaActions.length > 0) {
-                setShowMediaActions((v) => !v);
-              }
-            }}
-            className={cn(
-              'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
-              (options.attachmentAdapter || (mediaActions && mediaActions.length > 0))
-                ? showMediaActions
-                  ? 'border border-sky-200 bg-sky-50 text-sky-700 transition-colors'
-                  : 'border border-slate-200/80 bg-white/90 text-slate-600 transition-colors hover:border-emerald-300 hover:text-teal-700'
-                : 'border border-slate-200 bg-slate-100 text-slate-400',
-            )}
-            title={attachLabel}
-          >
-            {ICON_PLUS}
-          </button>
-
-          {/* textarea */}
-          <textarea
-            ref={(el) => {
-              (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
-              if (state.textareaRef) {
-                (state.textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
-              }
-            }}
-            rows={1}
-            className={cn(
-              'min-h-[48px] max-h-32 min-w-0 flex-1 resize-none overflow-y-hidden',
-              'rounded-[20px] border border-slate-200 bg-white px-4 py-3',
-              'text-sm text-slate-900 outline-none',
-              'transition-colors duration-200',
-              'placeholder:text-slate-400',
-              'focus:border-emerald-300',
-              'disabled:bg-slate-100',
-            )}
-            placeholder={placeholder}
-            value={state.text}
-            onChange={handleChange}
-            onCompositionStart={handleCompositionStart}
-            onCompositionEnd={handleCompositionEnd}
-            onKeyDown={state.handleKeyDown}
-            disabled={options.disabled || state.isSubmitting}
-            style={{ height: `${lastHeightRef.current}px` }}
-          />
-
-          {/* send button */}
-          <button
-            type="submit"
-            disabled={!state.canSubmit}
-            aria-label={sendLabel}
-            className={cn(
-              'flex h-12 w-12 shrink-0 items-center justify-center rounded-[20px]',
-              'bg-gradient-to-br from-emerald-400 via-teal-400 to-emerald-500',
-              'text-white',
-              'shadow-[0_18px_36px_rgba(78,204,163,0.3)]',
-              'transition-all duration-150',
-              'hover:-translate-y-px hover:shadow-[0_22px_44px_rgba(78,204,163,0.4)]',
-              'active:scale-[0.92]',
-              'disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0',
-            )}
-          >
-            {ICON_SEND}
-          </button>
-        </div>
-
-        {/* bottom bar: model label + send hint */}
-        {modelLabel || sendHint ? (
-          <div className="mt-1.5 flex items-center justify-end gap-3 px-1 text-[11px] text-slate-400">
-            {modelLabel ? <span>{modelLabel}</span> : null}
-            {sendHint ? <span>{sendHint}</span> : null}
+              <div
+                data-chat-composer-toolbar-leading="true"
+                className="flex min-w-0 flex-1 items-center gap-2.5"
+              >
+                {leadingSlot ? <div className="flex items-center">{leadingSlot}</div> : null}
+                {voiceButtonNode}
+                {attachmentButtonNode}
+                {toolbarSlot ? (
+                  <div data-chat-composer-toolbar-slot="true" className="flex items-center gap-2">
+                    {toolbarSlot}
+                  </div>
+                ) : null}
+              </div>
+              {hasMeta ? (
+                <div
+                  data-chat-composer-toolbar-meta="true"
+                  className="flex min-w-0 flex-1 items-center justify-center gap-3 text-[11px] text-slate-400"
+                >
+                  {modelLabel ? <span className="truncate">{modelLabel}</span> : null}
+                  {sendHint ? <span className="truncate">{sendHint}</span> : null}
+                </div>
+              ) : null}
+              <div
+                data-chat-composer-toolbar-trailing="true"
+                className="ml-auto flex shrink-0 items-center justify-end"
+              >
+                {sendButtonNode}
+              </div>
+            </div>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <div className="flex items-end gap-2.5">
+              {leadingSlot ? <div className="flex items-end">{leadingSlot}</div> : null}
+              {voiceState ? (
+                <VoiceButton voiceState={voiceState} disabled={options.disabled || state.isSubmitting} />
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className={cn(
+                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
+                    'border border-slate-200 bg-slate-100 text-slate-400',
+                  )}
+                  title="Voice input"
+                >
+                  {ICON_MIC}
+                </button>
+              )}
+              {attachmentButtonNode ?? (
+                <button
+                  type="button"
+                  disabled
+                  className={cn(
+                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
+                    'border border-slate-200 bg-slate-100 text-slate-400',
+                  )}
+                  title={attachLabel}
+                >
+                  {ICON_PLUS}
+                </button>
+              )}
+              {textareaNode}
+              {sendButtonNode}
+            </div>
+            {modelLabel || sendHint ? (
+              <div className="mt-1.5 flex items-center justify-end gap-3 px-1 text-[11px] text-slate-400">
+                {modelLabel ? <span>{modelLabel}</span> : null}
+                {sendHint ? <span>{sendHint}</span> : null}
+              </div>
+            ) : null}
+          </>
+        )}
 
         {/* error */}
         {state.error ? (
@@ -311,20 +392,29 @@ const ICON_SPINNER = (
   </svg>
 );
 
-function VoiceButton({ voiceState, disabled }: { voiceState: ChatComposerVoiceState; disabled?: boolean }) {
+function VoiceButton({
+  voiceState,
+  disabled,
+  compact = false,
+}: {
+  voiceState: ChatComposerVoiceState;
+  disabled?: boolean;
+  compact?: boolean;
+}) {
   const { status, onToggle, onCancel } = voiceState;
   const isRecording = status === 'recording';
   const isTranscribing = status === 'transcribing';
   const isFailed = status === 'failed';
 
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
+    <div className="flex shrink-0 items-center gap-1.5" data-chat-composer-voice="true">
       <button
         type="button"
         disabled={disabled || isTranscribing}
         onClick={onToggle}
         className={cn(
-          'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors',
+          'flex shrink-0 items-center justify-center transition-colors',
+          compact ? 'h-9 w-9 rounded-full' : 'h-11 w-11 rounded-2xl',
           isRecording
             ? 'border border-rose-200/80 bg-gradient-to-b from-rose-50 to-white text-rose-600 shadow-[0_4px_12px_rgba(244,63,94,0.12)]'
             : isTranscribing

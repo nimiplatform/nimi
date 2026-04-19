@@ -4,44 +4,47 @@ import {
   type ConversationSetupAction,
   type ConversationTargetSummary,
 } from '@nimiplatform/nimi-kit/features/chat';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useAiConversationModeHost } from './chat-ai-shell-adapter';
-import { ChatAiSessionListPanel } from './chat-ai-session-list-panel';
+import { ChatNimiThreadListSheet } from './chat-ai-session-list-panel';
+import { ChatSideSheet } from './chat-side-sheet';
 
-export type ChatAiModeContentProps = {
+export type ChatNimiModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
-  rightPanelMode: 'auto' | 'settings';
-  rightPanelFolded: boolean;
-  onToggleRightPanelFold: () => void;
-  onToggleRightPanelSettings: () => void;
+  settingsOpen: boolean;
+  onCloseSettings: () => void;
+  threadListOpen: boolean;
+  onCloseThreadList: () => void;
   onSetupAction: (action: ConversationSetupAction) => void;
   onSelectTarget: (targetId: string | null) => void;
 };
 
-export function ChatAiModeContent({
+export function ChatNimiModeContent({
   allTargets,
-  rightPanelMode,
-  rightPanelFolded,
-  onToggleRightPanelFold,
-  onToggleRightPanelSettings,
+  settingsOpen,
+  onCloseSettings,
+  threadListOpen,
+  onCloseThreadList,
   onSetupAction,
   onSelectTarget,
-}: ChatAiModeContentProps) {
+}: ChatNimiModeContentProps) {
+  const { t } = useTranslation();
   const runtimeFields = useAppStore((state) => state.runtimeFields);
   const setChatViewMode = useAppStore((state) => state.setChatViewMode);
   const setChatSetupState = useAppStore((state) => state.setChatSetupState);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const aiConversationSelection = useAppStore((state) => state.aiConversationSelection);
-  const setAiConversationSelection = useAppStore((state) => state.setAiConversationSelection);
+  const nimiConversationSelection = useAppStore((state) => state.nimiConversationSelection);
+  const setNimiConversationSelection = useAppStore((state) => state.setNimiConversationSelection);
   const lastSelectedAiThread = useAppStore((state) => state.lastSelectedThreadByMode.ai ?? null);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.ai ?? null);
 
   const { host } = useAiConversationModeHost({
     runtimeConfigState: null,
     runtimeFields,
-    selection: aiConversationSelection,
+    selection: nimiConversationSelection,
     lastSelectedThreadId: lastSelectedAiThread,
-    setSelection: setAiConversationSelection,
+    setSelection: setNimiConversationSelection,
   });
 
   // Sync setupState to store
@@ -109,24 +112,34 @@ export function ChatAiModeContent({
         composer={host.composerContent}
         auxiliaryOverlayContent={host.auxiliaryOverlayContent}
       />
-      {selectedTarget && !rightPanelFolded ? (
-        <ChatAiSessionListPanel
+      {selectedTarget && threadListOpen ? (
+        <ChatNimiThreadListSheet
           threads={threadSummaries}
           activeThreadId={host.activeThreadId}
-          onSelectThread={(threadId) => host.onSelectThread?.(threadId)}
+          onSelectThread={(threadId) => {
+            host.onSelectThread?.(threadId);
+            onCloseThreadList();
+          }}
           onCreateThread={host.onCreateThread ? () => void host.onCreateThread!() : undefined}
           onArchiveThread={host.onArchiveThread ? (id) => void host.onArchiveThread!(id) : undefined}
           onRenameThread={host.onRenameThread}
-          onToggleSettings={onToggleRightPanelSettings}
-          settingsActive={rightPanelMode === 'settings'}
-          thinkingState={host.thinkingState}
-          onThinkingToggle={host.onThinkingToggle}
-          onToggleFold={onToggleRightPanelFold}
-          assistantTitle={host.characterData?.name || selectedTarget.title}
-          assistantHandle={host.characterData?.handle || selectedTarget.handle}
-          assistantBio={host.characterData?.bio || selectedTarget.bio}
-          settingsContent={host.settingsContent ?? null}
+          onClose={onCloseThreadList}
+          title={host.characterData?.name || selectedTarget.title}
+          subtitle={host.characterData?.handle || selectedTarget.handle}
+          description={host.characterData?.bio || selectedTarget.bio}
         />
+      ) : null}
+      {selectedTarget && settingsOpen && host.settingsContent ? (
+        <ChatSideSheet
+          sheetKey="settings"
+          title={host.characterData?.name || selectedTarget.title}
+          subtitle={host.settingsDrawerSubtitle || t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' })}
+          onClose={onCloseSettings}
+        >
+          <div className="px-3 py-3">
+            {host.settingsContent}
+          </div>
+        </ChatSideSheet>
       ) : null}
     </div>
   );

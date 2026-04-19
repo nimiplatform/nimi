@@ -4,12 +4,12 @@ import type {
   ChatAiThreadBundle,
   ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import type { AiConversationSelection } from './chat-shell-types';
+import type { NimiConversationSelection } from './chat-shell-types';
 import { bundleQueryKey, THREADS_QUERY_KEY } from './chat-ai-shell-core';
 
 type UseAiConversationEffectsInput = {
   queryClient: QueryClient;
-  setSelection: (selection: AiConversationSelection) => void;
+  setSelection: (selection: NimiConversationSelection) => void;
 };
 
 export function useAiConversationEffects(input: UseAiConversationEffectsInput) {

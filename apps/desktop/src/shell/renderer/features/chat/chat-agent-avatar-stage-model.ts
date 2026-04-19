@@ -59,7 +59,7 @@ function resolveBaselineAvatarPresentationProfile(input: {
   }
   return {
     backendKind: 'canvas2d',
-    avatarAssetRef: 'fallback://agent-live-rail',
+    avatarAssetRef: 'fallback://agent-avatar-stage',
     expressionProfileRef: null,
     idlePreset: null,
     interactionPolicyRef: null,
@@ -175,7 +175,7 @@ function resolveChatAgentAvatarInteractionState(
   };
 }
 
-export type ChatAgentLiveAvatarRailModel = {
+export type ChatAgentAvatarStageModel = {
   displayName: string;
   statusLabel: string;
   imageUrl: string | null;
@@ -203,12 +203,12 @@ export type ChatAgentAvatarStageRenderModel = {
   rendererFallbackApplied: boolean;
 };
 
-export function resolveChatAgentLiveAvatarRailModel(input: {
+export function resolveChatAgentAvatarStageModel(input: {
   selectedTarget: ConversationTargetSummary;
   characterData?: ConversationCharacterData | null;
   localResource?: DesktopAgentAvatarResourceRecord | null;
   attentionState?: ChatAgentAvatarAttentionState | null;
-}): ChatAgentLiveAvatarRailModel {
+}): ChatAgentAvatarStageModel {
   const displayName = input.characterData?.name || input.selectedTarget.title || 'Agent';
   const interactionState = resolveChatAgentAvatarInteractionState(input.characterData?.interactionState || null);
   const statusLabel = interactionState?.label || resolveFallbackPhaseLabel(interactionState?.phase);
@@ -255,23 +255,23 @@ export function resolveChatAgentLiveAvatarRailModel(input: {
 }
 
 export function resolveChatAgentAvatarStageRenderModel(input: {
-  railModel: ChatAgentLiveAvatarRailModel;
+  stageModel: ChatAgentAvatarStageModel;
   loadStatus: ChatAgentAvatarBackendLoadStatus;
 }): ChatAgentAvatarStageRenderModel {
-  const rendererFallbackApplied = input.railModel.presentation.backendKind === 'live2d'
+  const rendererFallbackApplied = input.stageModel.presentation.backendKind === 'live2d'
     && input.loadStatus.live2d === 'error';
   const snapshot = rendererFallbackApplied
-    ? input.railModel.fallbackSnapshot
-    : input.railModel.snapshot;
+    ? input.stageModel.fallbackSnapshot
+    : input.stageModel.snapshot;
 
   return {
-    label: input.railModel.displayName,
-    imageUrl: input.railModel.imageUrl,
-    fallbackLabel: input.railModel.fallbackLabel,
-    attentionState: input.railModel.attentionState,
+    label: input.stageModel.displayName,
+    imageUrl: input.stageModel.imageUrl,
+    fallbackLabel: input.stageModel.fallbackLabel,
+    attentionState: input.stageModel.attentionState,
     snapshot,
     viewportInput: {
-      ...input.railModel.viewportInput,
+      ...input.stageModel.viewportInput,
       assetRef: snapshot.presentation.avatarAssetRef,
       snapshot,
     },

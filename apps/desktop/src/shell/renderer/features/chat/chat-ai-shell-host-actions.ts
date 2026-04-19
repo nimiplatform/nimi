@@ -451,7 +451,7 @@ export function useAiConversationHostActions(
           'turn-canceled': (nextEvent) => {
             runtimeTraceId = (nextEvent.trace?.traceId || '').trim() || runtimeTraceId;
             promptTraceId = (nextEvent.trace?.promptTraceId || '').trim() || promptTraceId;
-            throw toAbortError(input.t('Chat.aiGenerationStopped', { defaultValue: 'Generation stopped.' }));
+            throw toAbortError(input.t('Chat.nimiGenerationStopped', { defaultValue: 'Generation stopped.' }));
           },
           'message-sealed': () => {
             throw new Error('simple-ai provider emitted unsupported message-sealed event');
@@ -519,7 +519,7 @@ export function useAiConversationHostActions(
       const runtimeError = streamSnapshot.cancelSource === 'user'
         ? {
           code: 'OPERATION_ABORTED',
-          message: input.t('Chat.aiGenerationStopped', { defaultValue: 'Generation stopped.' }),
+          message: input.t('Chat.nimiGenerationStopped', { defaultValue: 'Generation stopped.' }),
         }
         : toChatAiRuntimeError(error);
       if (streamSnapshot.phase === 'waiting' || streamSnapshot.phase === 'streaming') {

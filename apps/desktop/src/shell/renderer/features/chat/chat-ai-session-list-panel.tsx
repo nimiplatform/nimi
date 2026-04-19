@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ScrollArea, cn } from '@nimiplatform/nimi-kit/ui';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationThreadSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { DesktopCompactAction } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';
-import { ChatRightColumn, ChatRightColumnCard, ChatRightColumnCardTitle } from './chat-right-column-primitives';
-import { ChatRightPanelSettings } from './chat-right-panel-settings';
+import { ChatSideSheet } from './chat-side-sheet';
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -28,22 +27,17 @@ function formatRelativeTime(dateStr: string): string {
   return `${diffMonth}mo`;
 }
 
-export type ChatAiSessionListPanelProps = {
+export type ChatNimiThreadListSheetProps = {
   threads: readonly ConversationThreadSummary[];
   activeThreadId: string | null;
   onSelectThread: (threadId: string) => void;
   onCreateThread?: () => void;
   onArchiveThread?: (threadId: string) => void;
   onRenameThread?: (threadId: string, title: string) => void;
-  onToggleSettings: () => void;
-  settingsActive: boolean;
-  thinkingState?: 'on' | 'off' | 'unsupported';
-  onThinkingToggle?: () => void;
-  onToggleFold?: () => void;
-  assistantTitle: string;
-  assistantHandle?: string | null;
-  assistantBio?: string | null;
-  settingsContent?: ReactNode;
+  onClose: () => void;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
 };
 
 function SessionThreadItem({
@@ -152,99 +146,55 @@ function SessionThreadItem({
   );
 }
 
-export function ChatAiSessionListPanel(props: ChatAiSessionListPanelProps) {
+export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
   const { t } = useTranslation();
-  const activeThread = props.threads.find((thread) => thread.id === props.activeThreadId) || null;
 
   return (
-    <ChatRightColumn data-chat-mode-column="ai">
-      <ChatRightColumnCard cardKey="primary" className="flex min-h-0 flex-1 flex-col">
-        <div className="shrink-0 border-b border-white/70 px-4 pb-3 pt-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-sky-400 to-teal-500 text-base font-semibold text-white shadow-[0_10px_20px_rgba(56,189,248,0.22)]">
-              {(props.assistantTitle || 'A').charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <ChatRightColumnCardTitle
-                title={props.assistantTitle}
-                subtitle={props.assistantHandle || t('Chat.aiModeSubtitle', { defaultValue: 'Assistant threads and summaries' })}
-              />
-            </div>
-          </div>
-          <p className="mt-3 text-xs leading-5 text-slate-500">
-            {props.assistantBio || t('Chat.aiTranscriptEmpty', { defaultValue: 'Send a message to start this conversation.' })}
-          </p>
-          <DesktopCompactAction
-            tone="primary"
-            fullWidth
-            onClick={props.onCreateThread}
-            disabled={!props.onCreateThread}
-            className="mt-4 gap-2"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            {t('Chat.newConversation', { defaultValue: 'New conversation' })}
-          </DesktopCompactAction>
-        </div>
-        {props.threads.length === 0 ? (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-            <p className="text-sm font-medium text-slate-500">{t('Chat.noConversationsYet', { defaultValue: 'No conversations yet' })}</p>
-            <p className="text-xs text-slate-400">{t('Chat.startNewConversation', { defaultValue: 'Start a new conversation above' })}</p>
-          </div>
-        ) : (
-          <ScrollArea className="min-h-0 flex-1 px-3 py-3">
-            <div className="flex flex-col gap-1.5">
-              {props.threads.map((thread) => (
-                <SessionThreadItem
-                  key={thread.id}
-                  thread={thread}
-                  active={thread.id === props.activeThreadId}
-                  onSelect={() => props.onSelectThread(thread.id)}
-                  onArchive={props.onArchiveThread ? () => props.onArchiveThread!(thread.id) : undefined}
-                  onRename={props.onRenameThread ? (title) => props.onRenameThread!(thread.id, title) : undefined}
-                />
-              ))}
-            </div>
-          </ScrollArea>
-        )}
-      </ChatRightColumnCard>
-
-      <ChatRightColumnCard cardKey="status" className="px-4 py-4">
-        <ChatRightColumnCardTitle
-          title={t('Chat.statusCardTitle', { defaultValue: 'Assistant status' })}
-          subtitle={activeThread
-            ? t('Chat.activeThreadSummary', {
-              defaultValue: 'Active thread updated {{time}}',
-              time: formatRelativeTime(activeThread.updatedAt),
-            })
-            : t('Chat.aiStatusSummary', { defaultValue: 'Ready when you are.' })}
-        />
-        <div className="mt-4 flex items-center gap-2">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg)]" />
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--nimi-action-primary-bg)]">
-            {t('Chat.aiPresenceLabel', { defaultValue: 'Assistant online' })}
-          </p>
-        </div>
-        <p className="mt-3 text-sm font-semibold text-slate-900">{props.assistantTitle}</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          {activeThread?.title || t('Chat.aiStatusFallback', { defaultValue: 'Select a thread or start a new one.' })}
+    <ChatSideSheet
+      sheetKey="nimi-thread-list"
+      title={props.title}
+      subtitle={props.subtitle || t('Chat.nimiModeSubtitle', { defaultValue: 'Nimi threads and summaries' })}
+      onClose={props.onClose}
+      footer={(
+        <DesktopCompactAction
+          tone="primary"
+          fullWidth
+          onClick={props.onCreateThread}
+          disabled={!props.onCreateThread}
+          className="gap-2"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          {t('Chat.newConversation', { defaultValue: 'New conversation' })}
+        </DesktopCompactAction>
+      )}
+    >
+      <div className="px-4 py-4">
+        <p className="text-xs leading-5 text-slate-500">
+          {props.description || t('Chat.nimiTranscriptEmpty', { defaultValue: 'Send a message to start this conversation.' })}
         </p>
-      </ChatRightColumnCard>
-
-      <ChatRightPanelSettings
-        onToggleSettings={props.onToggleSettings}
-        thinkingState={props.thinkingState}
-        onThinkingToggle={props.onThinkingToggle}
-        onToggleFold={props.onToggleFold}
-        expanded={props.settingsActive}
-        collapsedSummary={t('Chat.aiSettingsCollapsedSummary', {
-          defaultValue: 'Model and diagnostics stay docked here when you need them.',
-        })}
-      >
-        {props.settingsContent ?? null}
-      </ChatRightPanelSettings>
-    </ChatRightColumn>
+      </div>
+      {props.threads.length === 0 ? (
+        <div className="flex min-h-full flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+          <p className="text-sm font-medium text-slate-500">{t('Chat.noConversationsYet', { defaultValue: 'No conversations yet' })}</p>
+          <p className="text-xs text-slate-400">{t('Chat.startNewConversation', { defaultValue: 'Start a new conversation above' })}</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1.5 px-3 py-3">
+          {props.threads.map((thread) => (
+            <SessionThreadItem
+              key={thread.id}
+              thread={thread}
+              active={thread.id === props.activeThreadId}
+              onSelect={() => props.onSelectThread(thread.id)}
+              onArchive={props.onArchiveThread ? () => props.onArchiveThread!(thread.id) : undefined}
+              onRename={props.onRenameThread ? (title) => props.onRenameThread!(thread.id, title) : undefined}
+            />
+          ))}
+        </div>
+      )}
+    </ChatSideSheet>
   );
 }

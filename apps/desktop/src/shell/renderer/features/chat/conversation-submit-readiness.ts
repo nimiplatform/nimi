@@ -25,12 +25,12 @@ function resolveAiSubmitRouteUnavailableMessage(
   projection: ConversationCapabilityProjection | null,
 ): string {
   if (projection?.reasonCode === 'selection_missing' || projection?.reasonCode === 'selection_cleared') {
-    return t('Chat.aiSubmitRouteUnavailable', {
-      defaultValue: 'Select an AI route before sending a message.',
+    return t('Chat.nimiSubmitRouteUnavailable', {
+      defaultValue: 'Select a Nimi route before sending a message.',
     });
   }
-  return t('Chat.aiSubmitRouteUnavailable', {
-    defaultValue: 'Choose a ready AI route before sending a message.',
+  return t('Chat.nimiSubmitRouteUnavailable', {
+    defaultValue: 'Choose a ready Nimi route before sending a message.',
   });
 }
 

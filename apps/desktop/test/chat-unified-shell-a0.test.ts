@@ -84,10 +84,10 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
   state.setChatViewMode('human', 'user-7', 'chat');
   assert.equal(harness.getState().viewModeBySourceTarget['human:user-7'], 'chat');
 
-  state.setAiConversationSelection({
+  state.setNimiConversationSelection({
     threadId: 'ai-thread-1',
   });
-  assert.equal(harness.getState().aiConversationSelection.threadId, 'ai-thread-1');
+  assert.equal(harness.getState().nimiConversationSelection.threadId, 'ai-thread-1');
   assert.equal(harness.getState().lastSelectedThreadByMode.ai, 'ai-thread-1');
 
   state.setAgentConversationSelection({

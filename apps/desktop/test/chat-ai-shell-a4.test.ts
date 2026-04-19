@@ -179,7 +179,7 @@ test('chat ai a4: composer submit is fire-and-forget and host actions project th
   assert.match(presentationSource, /return Promise\.resolve\(\);/);
   assert.match(adapterSource, /const optimisticWaiting = submittingThreadId === activeThreadId/);
   assert.match(adapterSource, /optimisticWaiting=\{optimisticWaiting\}/);
-  assert.match(adapterSource, /waitingLabel=\{t\('Chat\.aiSending'/);
+  assert.match(adapterSource, /waitingLabel=\{t\('Chat\.nimiSending'/);
   assert.match(adapterSource, /submittingThreadId === activeThreadId\s*&& \(!streamState \|\| streamState\.phase === 'idle'\)/);
 
   const optimisticProjectionIndex = hostActionsSource.indexOf(

@@ -24,7 +24,7 @@ import {
   resolveAiConversationActiveThreadId,
   toConversationMessageViewModel,
 } from './chat-ai-thread-model';
-import type { AiConversationSelection } from './chat-shell-types';
+import type { NimiConversationSelection } from './chat-shell-types';
 import {
   createReasoningMessageContentRenderer,
   RuntimeStreamFooter,
@@ -59,9 +59,9 @@ import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop
 type UseAiConversationModeHostInput = {
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
-  selection: AiConversationSelection;
+  selection: NimiConversationSelection;
   lastSelectedThreadId: string | null;
-  setSelection: (selection: AiConversationSelection) => void;
+  setSelection: (selection: NimiConversationSelection) => void;
 };
 
 export function useAiConversationModeHost(
@@ -89,7 +89,7 @@ export function useAiConversationModeHost(
     });
   }, []);
 
-  const setSelection = useCallback((selection: AiConversationSelection) => {
+  const setSelection = useCallback((selection: NimiConversationSelection) => {
     if (input.selection.threadId === selection.threadId) {
       return;
     }
@@ -310,7 +310,7 @@ export function useAiConversationModeHost(
   );
 
   const aiCharacterData = useMemo(() => ({
-    name: t('Chat.aiAssistantName', { defaultValue: 'AI Assistant' }),
+    name: t('Chat.nimiAssistantName', { defaultValue: 'Nimi' }),
     avatarUrl: null,
     avatarFallback: 'AI',
     handle: routeSummary.detail || null,
@@ -404,7 +404,7 @@ export function useAiConversationModeHost(
         stopLabel={t('ChatTimeline.stopGenerating', 'Stop generating')}
         interruptedLabel={t('ChatTimeline.streamInterrupted', 'Response interrupted')}
         reasoningLabel={reasoningLabel}
-        waitingLabel={t('Chat.aiSending', {
+        waitingLabel={t('Chat.nimiSending', {
           defaultValue: 'Generating response...',
         })}
       />

@@ -11,24 +11,20 @@ import {
   useGroupCanonicalStagePanelProps,
   useGroupCanonicalTranscriptProps,
 } from './chat-group-canonical-components';
-import { ChatGroupRightColumn } from './chat-group-right-column';
+import { ChatSideSheet } from './chat-side-sheet';
 
 export type ChatGroupModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
-  rightPanelMode: 'auto' | 'settings';
-  rightPanelFolded: boolean;
-  onToggleRightPanelFold: () => void;
-  onToggleRightPanelSettings: () => void;
+  settingsOpen: boolean;
+  onCloseSettings: () => void;
   onSetupAction: (action: ConversationSetupAction) => void;
   onSelectTarget: (targetId: string | null) => void;
 };
 
 export function ChatGroupModeContent({
   allTargets,
-  rightPanelMode,
-  rightPanelFolded,
-  onToggleRightPanelFold,
-  onToggleRightPanelSettings,
+  settingsOpen,
+  onCloseSettings,
   onSetupAction,
   onSelectTarget,
 }: ChatGroupModeContentProps) {
@@ -134,15 +130,21 @@ export function ChatGroupModeContent({
         composer={host.composerContent}
         auxiliaryOverlayContent={host.auxiliaryOverlayContent}
       />
-      {selectedTarget && !rightPanelFolded ? (
-        <ChatGroupRightColumn
-          selectedTarget={selectedTarget}
-          characterData={host.characterData}
-          primaryContent={host.rightPanelContent}
-          settingsActive={rightPanelMode === 'settings'}
-          onToggleSettings={onToggleRightPanelSettings}
-          onToggleFold={onToggleRightPanelFold}
-        />
+      {selectedTarget && settingsOpen ? (
+        <ChatSideSheet
+          sheetKey="settings"
+          title={host.settingsDrawerTitle || 'Group'}
+          subtitle={host.characterData?.bio || selectedTarget.title}
+          onClose={onCloseSettings}
+        >
+          <div className="px-3 py-3">
+            {host.rightPanelContent ?? (
+              <p className="text-sm text-slate-500">
+                Group settings are not available for this conversation yet.
+              </p>
+            )}
+          </div>
+        </ChatSideSheet>
       ) : null}
     </div>
   );

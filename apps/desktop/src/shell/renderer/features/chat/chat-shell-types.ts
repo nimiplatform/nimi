@@ -5,7 +5,7 @@ import type {
   ConversationViewMode,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
 
-export type AiConversationSelection = {
+export type NimiConversationSelection = {
   threadId: string | null;
 };
 
@@ -37,7 +37,7 @@ export const DEFAULT_SELECTED_TARGET_BY_SOURCE: SelectedTargetBySource = {
 export const DEFAULT_CHAT_SOURCE_FILTER: ConversationSourceFilter = 'all';
 export const DEFAULT_VIEW_MODE_BY_SOURCE_TARGET: ViewModeBySourceTarget = {};
 
-export const EMPTY_AI_CONVERSATION_SELECTION: AiConversationSelection = {
+export const EMPTY_NIMI_CONVERSATION_SELECTION: NimiConversationSelection = {
   threadId: null,
 };
 

@@ -3,12 +3,12 @@ import test from 'node:test';
 
 import {
   resolveChatAgentAvatarStageRenderModel,
-  resolveChatAgentLiveAvatarRailModel,
-} from '../src/shell/renderer/features/chat/chat-agent-live-avatar-rail-model.js';
+  resolveChatAgentAvatarStageModel,
+} from '../src/shell/renderer/features/chat/chat-agent-avatar-stage-model.js';
 import { createIdleChatAgentAvatarAttentionState } from '../src/shell/renderer/features/chat/chat-agent-avatar-attention-state.js';
 
-test('agent live avatar rail model prefers desktop-local bound VRM resource when present', () => {
-  const model = resolveChatAgentLiveAvatarRailModel({
+test('agent avatar stage model prefers desktop-local bound VRM resource when present', () => {
+  const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-1',
       source: 'agent',
@@ -64,8 +64,8 @@ test('agent live avatar rail model prefers desktop-local bound VRM resource when
   assert.equal(model.snapshot.interaction.attentionTarget, 'camera');
 });
 
-test('agent live avatar rail model prefers desktop-local bound Live2D resource when present', () => {
-  const model = resolveChatAgentLiveAvatarRailModel({
+test('agent avatar stage model prefers desktop-local bound Live2D resource when present', () => {
+  const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-live2d',
       source: 'agent',
@@ -116,8 +116,8 @@ test('agent live avatar rail model prefers desktop-local bound Live2D resource w
   assert.equal(model.viewportInput.assetRef, 'desktop-avatar://resource-live2d/airi.model3.json');
 });
 
-test('agent live avatar rail model preserves runtime-backed VRM presentation when present', () => {
-  const model = resolveChatAgentLiveAvatarRailModel({
+test('agent avatar stage model preserves runtime-backed VRM presentation when present', () => {
+  const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-2',
       source: 'agent',
@@ -156,8 +156,8 @@ test('agent live avatar rail model preserves runtime-backed VRM presentation whe
   assert.equal(model.snapshot.interaction.actionCue, 'Here with you');
 });
 
-test('agent live avatar rail model carries idle status cue label and emotion into the snapshot', () => {
-  const model = resolveChatAgentLiveAvatarRailModel({
+test('agent avatar stage model carries idle status cue label and emotion into the snapshot', () => {
+  const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-status-cue',
       source: 'agent',
@@ -191,8 +191,8 @@ test('agent live avatar rail model carries idle status cue label and emotion int
   assert.equal(model.snapshot.interaction.amplitude, 0.58);
 });
 
-test('agent live avatar rail model carries runtime committed steady-state label into the snapshot', () => {
-  const model = resolveChatAgentLiveAvatarRailModel({
+test('agent avatar stage model carries runtime committed steady-state label into the snapshot', () => {
+  const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-runtime-projection',
       source: 'agent',
@@ -225,8 +225,8 @@ test('agent live avatar rail model carries runtime committed steady-state label 
   assert.equal(model.snapshot.interaction.amplitude, 0.12);
 });
 
-test('agent live avatar rail model preserves voice phase while admitting attention locally', () => {
-  const model = resolveChatAgentLiveAvatarRailModel({
+test('agent avatar stage model preserves voice phase while admitting attention locally', () => {
+  const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-4',
       source: 'agent',
@@ -267,7 +267,7 @@ test('agent live avatar rail model preserves voice phase while admitting attenti
   assert.equal(model.attentionState.attentionBoost, 'engaged');
 });
 
-test('agent live avatar rail model applies chat avatar smoke override to bound vrm interaction state', () => {
+test('agent avatar stage model applies chat avatar smoke override to bound vrm interaction state', () => {
   const runtimeWindow = globalThis as typeof globalThis & {
     __NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__?: Record<string, unknown> | null;
   };
@@ -280,7 +280,7 @@ test('agent live avatar rail model applies chat avatar smoke override to bound v
   };
 
   try {
-    const model = resolveChatAgentLiveAvatarRailModel({
+    const model = resolveChatAgentAvatarStageModel({
       selectedTarget: {
         id: 'agent-vrm-override',
         source: 'agent',
@@ -331,8 +331,8 @@ test('agent live avatar rail model applies chat avatar smoke override to bound v
   }
 });
 
-test('agent live avatar rail model falls back to idle attention state when none is provided', () => {
-  const model = resolveChatAgentLiveAvatarRailModel({
+test('agent avatar stage model falls back to idle attention state when none is provided', () => {
+  const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-5',
       source: 'agent',
@@ -361,8 +361,8 @@ test('agent live avatar rail model falls back to idle attention state when none 
   assert.equal(model.snapshot.interaction.attentionTarget, 'camera');
 });
 
-test('agent live avatar rail model falls back to sprite presentation when no local binding or runtime live backend exists', () => {
-  const model = resolveChatAgentLiveAvatarRailModel({
+test('agent avatar stage model falls back to sprite presentation when no local binding or runtime live backend exists', () => {
+  const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-3',
       source: 'agent',
@@ -393,8 +393,8 @@ test('agent live avatar rail model falls back to sprite presentation when no loc
   assert.equal(model.viewportInput.posterUrl, 'https://cdn.nimi.test/poster.png');
 });
 
-test('agent live avatar rail stage render model keeps active live2d snapshot until the viewport fails closed', () => {
-  const railModel = resolveChatAgentLiveAvatarRailModel({
+test('agent avatar stage render model keeps active live2d snapshot until the viewport fails closed', () => {
+  const stageModel = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-live2d-stage',
       source: 'agent',
@@ -434,14 +434,14 @@ test('agent live avatar rail stage render model keeps active live2d snapshot unt
   });
 
   const activeStage = resolveChatAgentAvatarStageRenderModel({
-    railModel,
+    stageModel,
     loadStatus: {
       live2d: 'loading',
       vrm: 'idle',
     },
   });
   const fallbackStage = resolveChatAgentAvatarStageRenderModel({
-    railModel,
+    stageModel,
     loadStatus: {
       live2d: 'error',
       vrm: 'idle',
@@ -453,11 +453,11 @@ test('agent live avatar rail stage render model keeps active live2d snapshot unt
   assert.equal(activeStage.viewportInput.assetRef, 'desktop-avatar://resource-live2d/airi.model3.json');
   assert.equal(fallbackStage.rendererFallbackApplied, true);
   assert.equal(fallbackStage.snapshot.presentation.backendKind, 'sprite2d');
-  assert.equal(fallbackStage.viewportInput.assetRef, railModel.fallbackSnapshot.presentation.avatarAssetRef);
+  assert.equal(fallbackStage.viewportInput.assetRef, stageModel.fallbackSnapshot.presentation.avatarAssetRef);
 });
 
-test('agent live avatar rail stage render model does not rewrite vrm stage selection on load errors', () => {
-  const railModel = resolveChatAgentLiveAvatarRailModel({
+test('agent avatar stage render model does not rewrite vrm stage selection on load errors', () => {
+  const stageModel = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-vrm-stage',
       source: 'agent',
@@ -496,7 +496,7 @@ test('agent live avatar rail stage render model does not rewrite vrm stage selec
   });
 
   const stage = resolveChatAgentAvatarStageRenderModel({
-    railModel,
+    stageModel,
     loadStatus: {
       live2d: 'idle',
       vrm: 'error',

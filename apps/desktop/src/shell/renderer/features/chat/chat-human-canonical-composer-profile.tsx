@@ -16,6 +16,7 @@ import { createCanonicalChatAttachmentPayload, extractChatAttachmentTargetId } f
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
 import { formatPendingAttachmentSize, appendPendingAttachment, clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
 import type { HumanChatViewDto } from './chat-human-thread-model';
+import { ChatComposerLeadingAvatar } from './chat-composer-leading-avatar';
 
 function HumanAttachmentStrip(props: {
   attachments: readonly PendingAttachment[];
@@ -69,6 +70,11 @@ function HumanAttachmentStrip(props: {
 
 export function HumanCanonicalComposer(props: {
   selectedChatId: string | null;
+  leadingAvatar?: {
+    name: string;
+    imageUrl?: string | null;
+    fallbackLabel?: string | null;
+  } | null;
 }) {
   const { t } = useTranslation();
   const offlineTier = useAppStore((state) => state.offlineTier);
@@ -296,6 +302,15 @@ export function HumanCanonicalComposer(props: {
         )}
         attachLabel={t('TurnInput.uploadFile')}
         runtimeHint={offlineTier === 'L2' ? t('TurnInput.runtimeUnavailableReadOnly') : null}
+        layout="stacked"
+        leadingSlot={props.leadingAvatar ? (
+          <ChatComposerLeadingAvatar
+            kind="human"
+            name={props.leadingAvatar.name}
+            imageUrl={props.leadingAvatar.imageUrl || null}
+            fallbackLabel={props.leadingAvatar.fallbackLabel || props.leadingAvatar.name}
+          />
+        ) : null}
       />
       <input
         ref={fileInputRef}

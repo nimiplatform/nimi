@@ -30,7 +30,7 @@ type ChatAgentAvatarLive2dViewportProps = AvatarLive2dViewportComponentProps & {
   framingIntent?: ChatAgentAvatarLive2dFramingIntent;
 };
 
-const MINIMAL_CHAT_AGENT_LIVE2D_VERTICAL_OFFSET_Y = -0.08;
+const MINIMAL_CHAT_AGENT_LIVE2D_VERTICAL_OFFSET_Y = 0.14;
 
 export default function ChatAgentAvatarLive2dViewport({
   input,
@@ -661,27 +661,20 @@ export default function ChatAgentAvatarLive2dViewport({
       data-avatar-live2d-emotion={viewportState.emotion}
       data-avatar-live2d-asset={viewportState.assetLabel}
     >
-      <div className="pointer-events-none absolute inset-0">
-        <div
-          className="absolute left-[-10%] top-[-12%] h-44 w-44 rounded-full blur-3xl"
-          style={{ background: `radial-gradient(circle, ${viewportState.glowColor}, transparent 70%)` }}
-        />
-        <div
-          className="absolute bottom-[-10%] right-[-6%] h-52 w-52 rounded-full blur-3xl"
-          style={{ background: `radial-gradient(circle, ${viewportState.accentColor}33, transparent 72%)` }}
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.22),transparent_22%,transparent_80%,rgba(255,255,255,0.16))]" />
-      </div>
+      {chrome === 'minimal' ? null : (
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent_26%,rgba(255,255,255,0.10))]" />
+      )}
       <div ref={hostRef} className="relative z-[1] h-full w-full" />
-      {loadState.status === 'loading' ? <Live2dLoadingShell label={input.label} /> : null}
+      {loadState.status === 'loading' ? <Live2dLoadingShell label={input.label} transparent={chrome === 'minimal'} /> : null}
       {loadState.status === 'error' ? (
         <Live2dErrorShell
           label={input.label}
           errorMessage={loadState.error || 'Live2D model failed to load'}
           posterUrl={input.posterUrl}
+          transparent={chrome === 'minimal'}
         />
       ) : null}
-      {viewportState.phase === 'idle' ? null : (
+      {chrome === 'minimal' || viewportState.phase === 'idle' ? null : (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] flex justify-center pb-4">
           <span className="rounded-full border border-white/80 bg-slate-950/84 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)]">
             {viewportState.badgeLabel}

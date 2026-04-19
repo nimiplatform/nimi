@@ -211,7 +211,8 @@ Fixed rules:
 ## D-LLM-062a — Desktop-Local Live2D Viewport Boundary
 
 When avatar render resolution selects a desktop-local bound resource with
-`kind: live2d`, desktop owns the first shipped right-rail Live2D viewport lifecycle.
+`kind: live2d`, desktop owns the first shipped desktop agent chat Live2D
+viewport lifecycle for the active avatar-stage surface.
 
 Fixed rules:
 
@@ -221,7 +222,8 @@ Fixed rules:
   must not become a second owner of persistent presentation truth, local binding truth,
   or generic chat behavior truth
 - desktop owns Live2D runtime loading, stage lifecycle, and load-fail handling for the
-  active right-rail surface; runtime does not own those responsibilities by default
+  active desktop avatar-stage surface; runtime does not own those responsibilities by
+  default
 - a resolved `live2d` presentation must dispatch to a Live2D backend path rather than
   probing the VRM viewport first or treating the asset as a generic file attachment
 - desktop-local viewport lifecycle must remain surface-local and teardown deterministically
@@ -235,7 +237,8 @@ future VRM interaction scope.
 Fixed rules:
 
 - first-wave Live2D support is accepted only when desktop can render a bound `live2d`
-  resource in the right rail with readable `idle` and `speaking` states
+  resource in the active desktop avatar-stage surface with readable `idle` and
+  `speaking` states
 - deterministic fail-close is required when the bound Live2D asset is invalid, missing,
   or the desktop-local runtime support is unavailable; renderer code must not leave a
   blank half-loaded stage, pseudo-success poster, or undefined mixed-backend state
@@ -303,6 +306,53 @@ Fixed rules:
 - the following remain explicitly deferred: click / poke reactions,
   drag-to-rotate behavior, orbit camera or camera choreography, model-inspector
   style manipulation, and runtime ownership of pointer / gaze truth
+
+## D-LLM-065 — Surface Layer Stacking And Placement / Transform Persistence
+
+Desktop agent chat surface organizes its visual truth as a fixed four-layer stack
+and separates persistable cosmetic preferences from transient interaction truth.
+
+The admitted layer stack is, from bottom to top:
+
+1. app-native glass base layer — the desktop app's established in-window glass
+   aesthetic; it is an app-internal visual, not a transparent passthrough to the
+   host desktop
+2. optional in-app backdrop mask layer — sourced from the admitted per-agent
+   backdrop binding (see `desktop_agent_backdrop_store`); the mask image is an
+   in-app asset imported by the user, not a desktop wallpaper projection;
+   defaults to fully transparent when absent
+3. avatar layer — Live2D / VRM / fallback viewport owned by this contract,
+   rendered as an **app-internal absolute-positioned overlay** that does not
+   participate in the chat shell's flex layout and does not carve out transcript
+   width; it visually floats over the chat surface and yields only light
+   right-padding from the transcript, not a column-split
+4. component layer — chat shell interactive widgets (nav, transcript, composer,
+   contacts rail); the chat domain occupies the full middle area between the
+   left navigation and the right contacts rail, not a sub-column beside the
+   avatar
+
+Fixed rules:
+
+- layer 0–2 must not capture pointer events above what layer 3 requires to
+  remain interactive; layer composition is a rendering concern and does not
+  become a second owner of interaction semantics
+- layer 1 strictly consumes the admitted per-agent backdrop binding; it does
+  not introduce a parallel backdrop truth
+- avatar placement (`CanonicalConversationAnchoredSurfacePlacement`) is
+  admitted as a per-target cosmetic preference that may be persisted in
+  desktop-local storage (renderer-local key) with a canonical default of
+  `right-center`; it must not be promoted into runtime-owned presentation truth
+- avatar transform (`{ x, y, scale }` and optional `rotate`) is admitted as
+  strict surface-local transient state that must deterministically reset on
+  surface teardown, thread switch, agent switch, or permission loss, in keeping
+  with `D-LLM-057`
+- script / debug overrides may mutate avatar transform through a single
+  renderer-local channel (currently the admitted debug override); this channel
+  remains a non-stable surface contract and must not be exposed through SDK,
+  runtime, or mod public surface until a separate authority admits it
+- placement persistence and transform transience together must not invent
+  camera choreography, cross-thread avatar synchronization, or standalone
+  editor surface; those remain deferred per `D-LLM-058`
 
 ## Fact Sources
 

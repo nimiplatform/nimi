@@ -12,7 +12,10 @@ import type {
 } from '../types.js';
 import { ConversationAnimationStyles } from './conversation-animations.js';
 import { CanonicalCharacterRail } from './canonical-character-rail.js';
-import { CanonicalConversationPane } from './canonical-conversation-pane.js';
+import {
+  CanonicalConversationPane,
+  type CanonicalConversationAnchoredSurfaceConfig,
+} from './canonical-conversation-pane.js';
 import { CanonicalDrawerShell } from './canonical-drawer-shell.js';
 import { CanonicalRightSidebar } from './canonical-right-sidebar.js';
 import { CanonicalStagePanel, type CanonicalStagePanelProps } from './canonical-stage-panel.js';
@@ -88,10 +91,14 @@ export type CanonicalConversationShellProps = {
   auxiliaryOverlayContent?: ReactNode;
   /** When true, skip the built-in target pane and show an empty placeholder instead. */
   hideTargetPane?: boolean;
-  /** When true, skip the built-in character rail on the left side. Use when the character rail is rendered elsewhere (e.g. in a right panel). */
+  /** When true, skip the built-in character rail on the left side. Use when avatar/presence affordances are rendered elsewhere. */
   hideCharacterRail?: boolean;
   /** Optional right panel content rendered between the conversation pane and any external sidebar. */
   rightPanel?: ReactNode;
+  /** Optional anchored surface rendered inside the active conversation pane rather than as a separate sidebar. */
+  conversationAnchoredSurface?: CanonicalConversationAnchoredSurfaceConfig;
+  /** Optional scene background rendered beneath the shell UI layers. */
+  sceneBackground?: ReactNode;
 };
 
 export function CanonicalConversationShell(props: CanonicalConversationShellProps) {
@@ -209,7 +216,15 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
       data-ui-version="v5-room"
     >
       <ConversationAnimationStyles />
-      <div className="flex min-h-0 w-full min-w-0 flex-1">
+      {props.sceneBackground ? (
+        <div
+          className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+          data-conversation-scene-background="true"
+        >
+          {props.sceneBackground}
+        </div>
+      ) : null}
+      <div className="relative z-[1] flex min-h-0 w-full min-w-0 flex-1">
         {setupBlocking ? (
           <>
             <div className="flex min-h-0 flex-1 items-center justify-center px-6">
@@ -271,6 +286,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
                 setProfileOpen(false);
               } : undefined}
               topContent={props.topContent}
+              anchoredSurface={props.conversationAnchoredSurface}
               stagePanel={(
                 <CanonicalStagePanel
                   {...props.stagePanelProps}

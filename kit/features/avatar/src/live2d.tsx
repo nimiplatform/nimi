@@ -9,7 +9,7 @@ import {
   type AvatarVrmViewportRenderInput,
 } from './vrm.js';
 
-export type AvatarLive2dFramingIntent = 'auto' | 'chat-focus' | 'showcase';
+export type AvatarLive2dFramingIntent = 'auto' | 'chat-focus' | 'scene-presence' | 'bottom-companion' | 'showcase';
 
 export type AvatarLive2dFramingInput = {
   railWidth: number;
@@ -282,6 +282,24 @@ export function resolveAvatarLive2dFramingPolicy(
   // regardless of model sheet aspect. Conversation UX values eye contact and
   // expression over full-body showcase; 'showcase' intent keeps the legacy
   // full-body behaviour for introductions and profile screens.
+  if (intent === 'bottom-companion') {
+    return {
+      mode: 'chat-focus',
+      height: 2.72,
+      centerX: 0,
+      centerY: -0.34,
+    };
+  }
+
+  if (intent === 'scene-presence') {
+    return {
+      mode: 'chat-focus',
+      height: 2.38,
+      centerX: 0,
+      centerY: -0.08,
+    };
+  }
+
   if (intent === 'chat-focus' && railIsPortrait) {
     return {
       mode: 'chat-focus',

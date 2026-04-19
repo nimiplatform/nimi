@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import React, { type CSSProperties, type ReactNode } from 'react';
 import { cn } from '../design-tokens.js';
 import { ScrollArea } from './scroll-area.js';
 import { Surface } from './surface.js';
