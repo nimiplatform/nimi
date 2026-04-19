@@ -71,6 +71,10 @@ vi.mock('./vision-guide.js', () => ({
   VisionGuide: () => <div>Vision Guide</div>,
 }));
 
+vi.mock('./outdoor-summary-card.js', () => ({
+  OutdoorSummaryCard: () => <div>Outdoor Summary</div>,
+}));
+
 describe('VisionPage OCR intake', () => {
   beforeEach(() => {
     getMeasurementsMock.mockClear();

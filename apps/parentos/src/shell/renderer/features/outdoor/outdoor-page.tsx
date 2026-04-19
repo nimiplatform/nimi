@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { S } from '../../app-shell/page-style.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
@@ -12,12 +11,13 @@ import {
   deleteOutdoorRecord,
   type OutdoorRecordRow,
 } from '../../bridge/sqlite-bridge.js';
+import { VisionSummaryCard } from './vision-summary-card.js';
 import {
   getWeekStart,
   shiftWeek,
   formatWeekRange,
   computeWeekSummary,
-  computeRecentWeeks,
+  computeHeatmap,
   buildOutdoorMessage,
   fmtDate,
   parseDate,
@@ -25,6 +25,8 @@ import {
   weekdayLabel,
   DEFAULT_OUTDOOR_GOAL_MINUTES,
   DURATION_PRESETS,
+  type HeatmapCell,
+  type HeatmapLevel,
 } from './outdoor-helpers.js';
 
 const textMain = '#1e293b';
@@ -81,8 +83,8 @@ export function OutdoorPage() {
     [records, effectiveGoal, selectedWeekStart, todayStr],
   );
 
-  const recentWeeks = useMemo(
-    () => computeRecentWeeks(records, effectiveGoal, 4, todayStr),
+  const heatmap = useMemo(
+    () => computeHeatmap(records, effectiveGoal, 20, todayStr),
     [records, effectiveGoal, todayStr],
   );
 
@@ -297,54 +299,26 @@ export function OutdoorPage() {
         )}
       </div>
 
-      {/* 7-day bar chart */}
-      <div className="mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 24 }}>
-        <h3 className="mb-4 text-[14px] font-semibold" style={{ color: textMain }}>每日户外时长</h3>
-        <div style={{ height: 160 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={weekSummary.dailyBreakdown} barCategoryGap="20%">
-              <XAxis dataKey="weekday" tick={{ fontSize: 11, fill: textMuted }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: textMuted }} axisLine={false} tickLine={false} width={36} />
-              <ReferenceLine y={effectiveGoal / 7} stroke={accentGreen} strokeDasharray="4 4" strokeOpacity={0.5} />
-              <Bar dataKey="minutes" radius={[6, 6, 0, 0]} maxBarSize={32}>
-                {weekSummary.dailyBreakdown.map((entry) => (
-                  <Cell key={entry.date} fill={entry.minutes > 0 ? accentBlue : 'rgba(226,232,240,0.4)'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <p className="mt-2 text-right text-[10px]" style={{ color: textMuted }}>
-          虚线为日均目标 {Math.round(effectiveGoal / 7)} 分钟
-        </p>
-      </div>
+      {/* Vision-archive cross-link — close the myopia-prevention loop */}
+      <VisionSummaryCard childId={child.childId} />
 
-      {/* 4-week trend */}
+      {/* Heatmap (daily intensity over recent weeks) */}
       <div className="mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 24 }}>
-        <h3 className="mb-4 text-[14px] font-semibold" style={{ color: textMain }}>最近 4 周</h3>
-        <div className="space-y-3">
-          {recentWeeks.map((week) => {
-            const pct = Math.min(100, Math.round((week.totalMinutes / effectiveGoal) * 100));
-            const barColor = week.isComplete ? accentGreen : 'rgba(129,140,248,0.6)';
-            return (
-              <button
-                key={week.weekStart}
-                onClick={() => setSelectedWeekStart(week.weekStart)}
-                className="flex w-full items-center gap-3 rounded-xl px-2 py-1 text-left transition-colors hover:bg-white/40"
-              >
-                <span className="w-24 shrink-0 text-[11px]" style={{ color: textMuted }}>
-                  {formatShortDate(week.weekStart)}–{formatShortDate(week.weekEnd)}
-                </span>
-                <div className="h-2 flex-1 overflow-hidden rounded-full" style={{ background: 'rgba(226,232,240,0.4)' }}>
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: barColor }} />
-                </div>
-                <span className="w-14 shrink-0 text-right text-[11px] tabular-nums" style={{ color: week.isComplete ? accentGreen : textMuted }}>
-                  {week.totalMinutes} 分钟
-                </span>
-                {week.isComplete && <span className="text-[11px]" style={{ color: accentGreen }}>✓</span>}
-              </button>
-            );
-          })}
+        <div className="mb-4 flex items-baseline justify-between">
+          <h3 className="text-[14px] font-semibold" style={{ color: textMain }}>户外活动热力图</h3>
+          <span className="text-[11px]" style={{ color: textMuted }}>
+            近 {heatmap.weeksBack} 周 · 日均目标 {heatmap.dailyTargetMinutes} 分钟
+          </span>
+        </div>
+        <HeatmapGrid heatmap={heatmap} />
+        <div className="mt-4 flex items-center justify-end gap-1 text-[10px]" style={{ color: textMuted }}>
+          <span>少</span>
+          <LegendSwatch level={0} />
+          <LegendSwatch level={1} />
+          <LegendSwatch level={2} />
+          <LegendSwatch level={3} />
+          <LegendSwatch level={4} />
+          <span>多</span>
         </div>
       </div>
 
@@ -425,6 +399,110 @@ export function OutdoorPage() {
           onClose={() => { setModalOpen(false); setEditingRecord(null); }}
         />
       )}
+    </div>
+  );
+}
+
+// ── Heatmap ───────────────────────────────────────────────
+
+const HEATMAP_LEVELS = [
+  'rgba(226,232,240,0.35)', // 0 — empty
+  'rgba(129,140,248,0.25)', // 1 — <50% of daily target
+  'rgba(129,140,248,0.55)', // 2 — 50–100%
+  'rgba(78,204,163,0.65)',  // 3 — 100–150%
+  'rgba(78,204,163,0.95)',  // 4 — ≥150%
+] as const;
+
+const HEATMAP_CELL_PX = 16;
+const HEATMAP_GAP_PX = 3;
+const WEEKDAY_LABELS_SPARSE = ['一', '', '三', '', '五', '', '日'] as const;
+
+function LegendSwatch({ level }: { level: HeatmapLevel }) {
+  return (
+    <span
+      className="inline-block h-3 w-3 rounded-sm"
+      style={{ background: HEATMAP_LEVELS[level] }}
+    />
+  );
+}
+
+function HeatmapCellView({ cell }: { cell: HeatmapCell }) {
+  const bg = HEATMAP_LEVELS[cell.level];
+  const opacity = cell.isFuture ? 0.3 : 1;
+  const title = cell.isFuture
+    ? `${cell.date} · 未来`
+    : cell.minutes > 0
+      ? `${cell.date} · ${cell.minutes} 分钟`
+      : `${cell.date} · 无记录`;
+
+  return (
+    <div
+      title={title}
+      className="rounded-[3px] transition-colors"
+      style={{
+        background: bg,
+        opacity,
+        width: HEATMAP_CELL_PX,
+        height: HEATMAP_CELL_PX,
+        outline: cell.isToday ? `1.5px solid ${accentBlue}` : undefined,
+        outlineOffset: -1,
+      }}
+    />
+  );
+}
+
+function HeatmapGrid({ heatmap }: { heatmap: import('./outdoor-helpers.js').Heatmap }) {
+  const gridWidth =
+    heatmap.weeksBack * HEATMAP_CELL_PX + Math.max(0, heatmap.weeksBack - 1) * HEATMAP_GAP_PX;
+  const colStride = HEATMAP_CELL_PX + HEATMAP_GAP_PX;
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="flex gap-2">
+        {/* Weekday labels */}
+        <div
+          className="flex flex-col"
+          style={{ gap: HEATMAP_GAP_PX, paddingTop: 16 }}
+        >
+          {WEEKDAY_LABELS_SPARSE.map((label, i) => (
+            <div
+              key={i}
+              className="flex items-center text-[9px]"
+              style={{ height: HEATMAP_CELL_PX, color: textMuted }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+
+        {/* Grid + month labels */}
+        <div style={{ width: gridWidth }}>
+          <div className="relative" style={{ height: 14 }}>
+            {heatmap.monthLabels.map((ml) => (
+              <span
+                key={`${ml.weekIndex}-${ml.label}`}
+                className="absolute top-0 text-[10px]"
+                style={{ left: ml.weekIndex * colStride, color: textMuted }}
+              >
+                {ml.label}
+              </span>
+            ))}
+          </div>
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: `repeat(${heatmap.weeksBack}, ${HEATMAP_CELL_PX}px)`,
+              gridTemplateRows: `repeat(7, ${HEATMAP_CELL_PX}px)`,
+              gridAutoFlow: 'column',
+              gap: HEATMAP_GAP_PX,
+            }}
+          >
+            {heatmap.weeks.map((week) =>
+              week.map((cell) => <HeatmapCellView key={cell.date} cell={cell} />),
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -19,6 +19,7 @@ import {
 } from './vision-data.js';
 import { BatchForm } from './vision-batch-form.js';
 import { VisionGuide } from './vision-guide.js';
+import { OutdoorSummaryCard } from './outdoor-summary-card.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 
@@ -665,6 +666,9 @@ export default function VisionPage() {
       )}
 
       {showGuide && <VisionGuide onClose={() => setShowGuide(false)} />}
+
+      {/* Outdoor-activity cross-link — myopia prevention context */}
+      <OutdoorSummaryCard childId={child.childId} />
 
       {/* AI Summary */}
       <AISummaryCard domain="vision" childName={child.displayName} childId={child.childId}

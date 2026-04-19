@@ -11,15 +11,6 @@ export function getWeekStart(date: Date): string {
   return fmtDate(d);
 }
 
-/** Return YYYY-MM-DD of the Sunday for the week containing `date`. */
-export function getWeekEnd(date: Date): string {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? 0 : 7 - day;
-  d.setDate(d.getDate() + diff);
-  return fmtDate(d);
-}
-
 /** Days remaining in the current week *including* today (1–7). */
 export function getRemainingDaysInWeek(date: Date): number {
   const day = date.getDay(); // 0=Sun
@@ -258,3 +249,95 @@ export const DEFAULT_OUTDOOR_GOAL_MINUTES = 630;
 
 /** Quick-select duration presets in minutes. */
 export const DURATION_PRESETS = [30, 60, 90, 120] as const;
+
+// ── Heatmap (multi-week daily intensity grid) ────────────
+
+export type HeatmapLevel = 0 | 1 | 2 | 3 | 4;
+
+export interface HeatmapCell {
+  date: string;
+  minutes: number;
+  /** minutes ÷ daily target. 0 when no record. */
+  ratio: number;
+  level: HeatmapLevel;
+  isFuture: boolean;
+  isToday: boolean;
+}
+
+export interface HeatmapMonthLabel {
+  /** Column (week) index where this month's first Monday falls. */
+  weekIndex: number;
+  label: string; // e.g. "4月"
+}
+
+export interface Heatmap {
+  weeksBack: number;
+  dailyTargetMinutes: number;
+  /** weeks[col] = 7 cells (Monday → Sunday), oldest week first. */
+  weeks: HeatmapCell[][];
+  monthLabels: HeatmapMonthLabel[];
+}
+
+export function ratioToHeatmapLevel(ratio: number, hasRecord: boolean): HeatmapLevel {
+  if (!hasRecord) return 0;
+  if (ratio < 0.5) return 1;
+  if (ratio < 1) return 2;
+  if (ratio < 1.5) return 3;
+  return 4;
+}
+
+export function computeHeatmap(
+  records: OutdoorRecordRow[],
+  goalMinutes: number,
+  weeksBack: number,
+  today?: string,
+): Heatmap {
+  const todayStr = today ?? fmtDate(new Date());
+  const currentWeekStart = getWeekStart(parseDate(todayStr));
+  const dailyTarget = goalMinutes / 7;
+
+  const minuteMap = new Map<string, number>();
+  for (const r of records) {
+    minuteMap.set(r.activityDate, (minuteMap.get(r.activityDate) ?? 0) + r.durationMinutes);
+  }
+
+  const weeks: HeatmapCell[][] = [];
+  const monthLabels: HeatmapMonthLabel[] = [];
+  let lastMonth = -1;
+
+  for (let w = weeksBack - 1; w >= 0; w--) {
+    const weekStart = shiftWeek(currentWeekStart, -w);
+    const base = parseDate(weekStart);
+    const col: HeatmapCell[] = [];
+    for (let d = 0; d < 7; d++) {
+      const cursor = new Date(base);
+      cursor.setDate(cursor.getDate() + d);
+      const dateStr = fmtDate(cursor);
+      const minutes = minuteMap.get(dateStr) ?? 0;
+      const ratio = dailyTarget > 0 ? minutes / dailyTarget : 0;
+      col.push({
+        date: dateStr,
+        minutes,
+        ratio,
+        level: ratioToHeatmapLevel(ratio, minutes > 0),
+        isFuture: dateStr > todayStr,
+        isToday: dateStr === todayStr,
+      });
+    }
+
+    const colIdx = weeks.length;
+    const mondayMonth = base.getMonth();
+    if (mondayMonth !== lastMonth) {
+      monthLabels.push({ weekIndex: colIdx, label: `${mondayMonth + 1}月` });
+      lastMonth = mondayMonth;
+    }
+    weeks.push(col);
+  }
+
+  return {
+    weeksBack,
+    dailyTargetMinutes: Math.round(dailyTarget),
+    weeks,
+    monthLabels,
+  };
+}
