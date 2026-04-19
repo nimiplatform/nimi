@@ -38,6 +38,10 @@ import { AdvisorTranscript } from './advisor-transcript.js';
 import { AdvisorComposer } from './advisor-composer.js';
 import { AdvisorEmptyState } from './advisor-empty-state.js';
 import { AdvisorJournalContext, type JournalEntryAdvisorContext } from './advisor-journal-context.js';
+import { AdvisorSuggestions, AdvisorSuggestionsSkeleton } from './advisor-suggestions.js';
+import { generateAdvisorSuggestions, type AdvisorSuggestion } from './advisor-suggestion-engine.js';
+import { AdvisorOpeningCard } from './advisor-opening-card.js';
+import type { AdvisorSnapshot } from './advisor-boundary.js';
 
 type StreamingState = 'idle' | 'streaming';
 
@@ -149,7 +153,12 @@ function buildSystemPrompt(
 - 不得出现"应该吃""建议用药""建议服用""推荐治疗"。
 - 不得出现"落后""危险""警告"。
 - 如涉及数据异常，只能描述结构化事实，并提醒"建议咨询专业人士"。
-- 回答结尾不要自行编造来源标签，来源会由系统追加。`;
+- 回答结尾不要自行编造来源标签，来源会由系统追加。
+
+排版与呈现：
+- 使用 Markdown，核心关键词用 **双星号加粗**（例如 **身高**、**敏感期**、**户外时间**），每段最多加粗 2-3 个词，避免整句加粗。
+- 段与段之间用空行分隔，句子不要挤在一起。
+- 不要在回答末尾用 Markdown 列表列出"睡眠 / 敏感期 / 性教育 / 数字使用"等领域名称作为选项；用户界面另有"推荐问题"入口，正文里只做一句自然收尾即可。`;
 }
 
 /* ── page ─────────────────────────────────────────────────── */
@@ -257,6 +266,12 @@ export default function AdvisorPage() {
   const topicHandledRef = useRef<string | null>(null);
   const journalHandledRef = useRef<string | null>(null);
   const [pendingJournalContext, setPendingJournalContext] = useState<JournalEntryAdvisorContext | null>(null);
+  const [suggestions, setSuggestions] = useState<AdvisorSuggestion[]>([]);
+  const [suggestionsState, setSuggestionsState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [openingSnapshot, setOpeningSnapshot] = useState<AdvisorSnapshot | null>(null);
+  const suggestionsAbortRef = useRef<AbortController | null>(null);
+  const snapshotConvRef = useRef<string | null>(null);
+  const suggestionConvRef = useRef<string | null>(null);
 
   const saveAssistantMsg = async (convId: string, content: string, contextSnapshot: string | null) => {
     await insertAiMessage({ messageId: ulid(), conversationId: convId, role: 'assistant', content, contextSnapshot, now: isoNow() });
@@ -454,6 +469,74 @@ export default function AdvisorPage() {
     setPendingJournalContext(journalEntryContext);
   }, [child, journalEntryContext]);
 
+  useEffect(() => {
+    if (!child || !activeConvId) return;
+    if (messages.length > 0) return;
+    if (snapshotConvRef.current === activeConvId) return;
+    snapshotConvRef.current = activeConvId;
+
+    suggestionsAbortRef.current?.abort();
+    setSuggestions([]);
+    setOpeningSnapshot(null);
+    setSuggestionsState('idle');
+    suggestionConvRef.current = null;
+
+    (async () => {
+      try {
+        const snapshot = await buildAdvisorSnapshot({
+          childId: child.childId,
+          displayName: child.displayName,
+          gender: child.gender,
+          birthDate: child.birthDate,
+          nurtureMode: child.nurtureMode,
+          ageMonths: computeAgeMonths(child.birthDate),
+        });
+        setOpeningSnapshot(snapshot);
+      } catch (err) {
+        catchLog('advisor', 'action:build-opening-snapshot-failed')(err);
+        setSuggestions([]);
+        setOpeningSnapshot(null);
+        setSuggestionsState('error');
+      }
+    })();
+  }, [child, activeConvId, messages.length]);
+
+  useEffect(() => {
+    if (!activeConvId || !openingSnapshot) return;
+    if (messages.length > 0) return;
+    if (runtimeAvailable !== true) {
+      setSuggestionsState('idle');
+      return;
+    }
+    if (suggestionConvRef.current === activeConvId) return;
+    suggestionConvRef.current = activeConvId;
+
+    suggestionsAbortRef.current?.abort();
+    const ac = new AbortController();
+    suggestionsAbortRef.current = ac;
+    setSuggestions([]);
+    setSuggestionsState('loading');
+
+    (async () => {
+      try {
+        const items = await generateAdvisorSuggestions(openingSnapshot, { signal: ac.signal });
+        if (ac.signal.aborted) return;
+        setSuggestions(items);
+        setSuggestionsState('ready');
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        if (ac.signal.aborted) return;
+        catchLog('advisor', 'action:generate-suggestions-failed')(err);
+        setSuggestions([]);
+        setSuggestionsState('error');
+      }
+    })();
+
+    return () => {
+      ac.abort();
+    };
+  }, [activeConvId, openingSnapshot, runtimeAvailable, messages.length]);
+
   if (!child) return <div className="p-8 text-slate-400">请先添加孩子</div>;
 
   const ageMonths = computeAgeMonths(child.birthDate);
@@ -500,6 +583,22 @@ export default function AdvisorPage() {
     } catch { /* bridge */ }
   };
 
+  const handleSuggestionSelect = async (question: string) => {
+    if (streamingState === 'streaming') return;
+    if (pendingJournalContext && !activeConvId) {
+      await handleStartJournalConversation(question);
+      return;
+    }
+    if (!activeConvId) return;
+    try {
+      await runAdvisorTurn({
+        conversationId: activeConvId,
+        question,
+        ageMonthsAtRequest: ageMonths,
+      });
+    } catch { /* bridge */ }
+  };
+
   return (
     <div className="flex h-full gap-4 px-4" style={{ paddingTop: 16 }}>
       <AdvisorSidebar
@@ -528,6 +627,27 @@ export default function AdvisorPage() {
               streamingContent={streamingContent}
               onStopGenerating={() => abortRef.current?.abort()}
             />
+            {messages.length === 0 && streamingState === 'idle' && !input.trim() && (
+              <>
+                <AdvisorOpeningCard
+                  childName={child.displayName}
+                  ageLabel={formatAge(ageMonths)}
+                  snapshot={openingSnapshot}
+                  siblingNames={children
+                    .filter((c) => c.childId !== child.childId)
+                    .map((c) => c.displayName)}
+                />
+                {suggestionsState === 'loading' ? (
+                  <AdvisorSuggestionsSkeleton />
+                ) : suggestionsState === 'ready' && suggestions.length > 0 ? (
+                  <AdvisorSuggestions
+                    suggestions={suggestions}
+                    disabled={false}
+                    onSelect={handleSuggestionSelect}
+                  />
+                ) : null}
+              </>
+            )}
             <AdvisorComposer
               value={input}
               onChange={setInput}

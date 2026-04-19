@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -657,21 +657,32 @@ describe('AdvisorPage', () => {
       reasonCode: ReasonCode.AI_STREAM_BROKEN,
       message: 'retry stream request',
     }));
-    generateMock.mockResolvedValue({
-      text: 'cloud fallback reply',
-      finishReason: 'stop',
-      usage: {},
-      trace: {
-        routeDecision: 'cloud',
-        modelResolved: 'cloud/gpt-5.4',
-      },
-    });
+    generateMock
+      .mockResolvedValueOnce({
+        text: JSON.stringify([
+          '最近睡眠节律稳定吗？',
+          '户外活动还够吗？',
+          '敏感期要注意什么？',
+        ]),
+      })
+      .mockResolvedValueOnce({
+        text: 'cloud fallback reply',
+        finishReason: 'stop',
+        usage: {},
+        trace: {
+          routeDecision: 'cloud',
+          modelResolved: 'cloud/gpt-5.4',
+        },
+      });
 
     renderAdvisorPage();
 
     fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
     await waitFor(() => {
       expect(screen.getByPlaceholderText('输入问题...')).toBeTruthy();
+    });
+    await waitFor(() => {
+      expect(generateMock).toHaveBeenCalledTimes(1);
     });
 
     fireEvent.change(screen.getByPlaceholderText('输入问题...'), {
@@ -681,7 +692,7 @@ describe('AdvisorPage', () => {
 
     await waitFor(() => {
       expect(streamMock).toHaveBeenCalledTimes(1);
-      expect(generateMock).toHaveBeenCalledTimes(1);
+      expect(generateMock).toHaveBeenCalledTimes(2);
     });
 
     const streamInput = streamMock.mock.calls[0]?.[0] as {
@@ -693,7 +704,7 @@ describe('AdvisorPage', () => {
     expect(streamInput.model).toBe('cloud/gpt-5.4');
     expect(streamInput.connectorId).toBe('connector-1');
 
-    const generateInput = generateMock.mock.calls[0]?.[0] as {
+    const generateInput = generateMock.mock.calls[1]?.[0] as {
       route: string;
       model: string;
       connectorId?: string;
@@ -744,5 +755,28 @@ describe('AdvisorPage', () => {
     // Raw UTC segments must not leak to the UI
     expect(screen.queryByText('16:39:14')).toBeNull();
     expect(screen.queryByText('16:41:55')).toBeNull();
+  });
+
+  it('generates starter suggestions once runtime availability becomes ready', async () => {
+    generateMock.mockResolvedValue({
+      text: JSON.stringify([
+        '最近睡眠节律稳定吗？',
+        '户外活动还够吗？',
+        '敏感期要注意什么？',
+      ]),
+    });
+
+    renderAdvisorPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
+    });
+
+    await waitFor(() => {
+      expect(generateMock).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '最近睡眠节律稳定吗？' })).toBeTruthy();
+    });
   });
 });

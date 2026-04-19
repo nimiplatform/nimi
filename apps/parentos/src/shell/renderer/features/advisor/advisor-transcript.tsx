@@ -91,6 +91,24 @@ function AdvisorAnimationStyles() {
 .conversation-root .lc-typing-dot {
   background: linear-gradient(180deg, rgba(16,185,129,0.9), rgba(20,184,166,0.7));
 }
+.conversation-root p,
+.conversation-root li {
+  line-height: 1.85 !important;
+}
+.conversation-root p + p,
+.conversation-root p + ul,
+.conversation-root p + ol,
+.conversation-root ul + p,
+.conversation-root ol + p,
+.conversation-root p + h1,
+.conversation-root p + h2,
+.conversation-root p + h3 {
+  margin-top: 0.9em;
+}
+.conversation-root strong {
+  color: #047857;
+  font-weight: 600;
+}
 @media (prefers-reduced-motion: reduce) {
   .conversation-root .lc-typing-bubble,
   .conversation-root .lc-typing-dot {
