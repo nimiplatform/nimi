@@ -5,13 +5,16 @@ import { I18nextProvider } from 'react-i18next';
 import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { i18n } from '@renderer/i18n';
+import { AppAttentionProvider } from './app-attention-context';
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <HashRouter>{children}</HashRouter>
+          <AppAttentionProvider>
+            <HashRouter>{children}</HashRouter>
+          </AppAttentionProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </I18nextProvider>

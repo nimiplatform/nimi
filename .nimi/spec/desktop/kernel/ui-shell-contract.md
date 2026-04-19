@@ -509,6 +509,37 @@ candidate 状态永久停留在 Desktop authority 里。
   7. `profile.media.cards`
   8. `profile.gifts.cards`
 
+## D-SHELL-033 — App-Level Attention Context Boundary
+
+Desktop UI shell may own an app-level transient `AttentionContext` for the
+active desktop viewport.
+
+The admitted shell-level attention signal set is limited to:
+
+- viewport-scoped active / inactive presence
+- continuous presence strength for entry / exit degrade
+- normalized app-viewport `x / y` coordinates
+
+Fixed rules:
+
+- UI shell owns desktop window / app viewport attention intake; feature-local
+  surfaces must not each become independent DOM pointer owners for the same
+  canonical app-level attention line
+- app-level attention remains desktop-shell-local transient truth; it must not
+  become runtime truth, cross-thread persistence truth, or generic chat
+  behavior truth
+- shell-owned attention is an upstream input for surface-specific consumers
+  such as avatar projection; shell does not thereby become owner of those
+  product semantics
+- loss of viewport validity, blur, or shell teardown must deterministically
+  clear or degrade active attention state
+- app-level attention admission does not authorize generic click semantics,
+  drag semantics, orbit camera behavior, or arbitrary expansion into unrelated
+  feature-local interaction contracts
+- when a downstream surface requires a narrower semantic projection, that
+  projection must be defined in the consuming surface authority instead of
+  backfilling a second shell-local or feature-local raw attention owner
+
 ## Fact Sources
 
 - `tables/app-tabs.yaml` — 导航 Tab 枚举
@@ -520,3 +551,4 @@ candidate 状态永久停留在 Desktop authority 里。
 - `tables/renderer-design-overlays.yaml` — shared overlay taxonomy
 - `tables/renderer-design-allowlists.yaml` — arbitrary value / inline style allowlists
 - `menu-bar-shell-contract.md` — macOS menu bar shell 入口
+- `agent-avatar-surface-contract.md` — avatar projection consume boundary for shell-owned attention

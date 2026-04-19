@@ -7,7 +7,7 @@ import {
   resolveChatAgentAvatarVrmExpressionWeights,
   resolveChatAgentAvatarVrmViewportState,
 } from '../src/shell/renderer/features/chat/chat-agent-avatar-vrm-viewport-state.js';
-import type { ChatAgentAvatarPointerInteractionState } from '../src/shell/renderer/features/chat/chat-agent-avatar-pointer-interaction.js';
+import type { ChatAgentAvatarAttentionState } from '../src/shell/renderer/features/chat/chat-agent-avatar-attention-state.js';
 
 function assertCloseTo(actual: number, expected: number, epsilon = 1e-9) {
   assert.ok(
@@ -51,7 +51,7 @@ test('avatar vrm viewport state clamps amplitude and derives speaking motion sta
   assert.ok(state.speakingPulseAmount > 0.04);
   assert.equal(state.eyeOpen, 0.082);
   assert.equal(state.accentColor, '#38bdf8');
-  assert.equal(state.pointerInfluence, 0);
+  assert.equal(state.attentionInfluence, 0);
 });
 
 test('avatar vrm viewport state uses stable idle defaults when interaction detail is sparse', () => {
@@ -85,12 +85,13 @@ test('avatar vrm viewport state uses stable idle defaults when interaction detai
   assert.equal(state.eyeOpen, 0.08);
 });
 
-test('avatar vrm viewport state derives bounded pointer-follow offsets under idle hover', () => {
-  const pointerInteraction: ChatAgentAvatarPointerInteractionState = {
-    hovered: true,
+test('avatar vrm viewport state derives bounded attention-follow offsets under idle attention', () => {
+  const attentionState: ChatAgentAvatarAttentionState = {
+    active: true,
+    presence: 1,
     normalizedX: 2,
     normalizedY: -2,
-    interactionBoost: 'engaged',
+    attentionBoost: 'engaged',
   };
   const state = resolveChatAgentAvatarVrmViewportState({
     label: 'Companion',
@@ -111,9 +112,9 @@ test('avatar vrm viewport state derives bounded pointer-follow offsets under idl
         attentionTarget: 'pointer',
       },
     },
-  }, pointerInteraction);
+  }, attentionState);
 
-  assertCloseTo(state.pointerInfluence, 0.5616);
+  assertCloseTo(state.attentionInfluence, 0.5616);
   assert.equal(state.posture, 'idle-settled');
   assertCloseTo(state.headFollowX, 0.134784);
   assertCloseTo(state.headFollowY, 0.078624);
@@ -122,12 +123,13 @@ test('avatar vrm viewport state derives bounded pointer-follow offsets under idl
   assert.ok(state.motionSpeed > 0.35);
 });
 
-test('avatar vrm viewport state reduces pointer influence while speaking to preserve readability', () => {
-  const pointerInteraction: ChatAgentAvatarPointerInteractionState = {
-    hovered: true,
+test('avatar vrm viewport state reduces attention influence while speaking to preserve readability', () => {
+  const attentionState: ChatAgentAvatarAttentionState = {
+    active: true,
+    presence: 1,
     normalizedX: 0.9,
     normalizedY: -0.4,
-    interactionBoost: 'engaged',
+    attentionBoost: 'engaged',
   };
   const state = resolveChatAgentAvatarVrmViewportState({
     label: 'Companion',
@@ -149,9 +151,9 @@ test('avatar vrm viewport state reduces pointer influence while speaking to pres
         amplitude: 0.9,
       },
     },
-  }, pointerInteraction);
+  }, attentionState);
 
-  assertCloseTo(state.pointerInfluence, 0.20952);
+  assertCloseTo(state.attentionInfluence, 0.20952);
   assert.equal(state.posture, 'speaking-energized');
   assert.ok(state.headFollowX < 0.05);
   assert.ok(state.motionSpeed > 2.45);

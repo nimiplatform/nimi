@@ -10,6 +10,7 @@ import ChatAgentAvatarVrmViewport, {
   resolveChatAgentAvatarVrmEffectiveLoadState,
   resolveChatAgentAvatarVrmViewportStatus,
 } from '../src/shell/renderer/features/chat/chat-agent-avatar-vrm-viewport.js';
+import { resolveChatAgentAvatarVrmFramingViewportSize } from '../src/shell/renderer/features/chat/chat-agent-avatar-vrm-runtime.js';
 
 test('vrm effective load state fails closed against a stale ready asset during asset switch churn', () => {
   const state = resolveChatAgentAvatarVrmEffectiveLoadState({
@@ -127,6 +128,63 @@ test('vrm viewport status stays loading while a ready asset waits for a renderab
   });
 });
 
+test('vrm framing viewport size uses the current renderable host metrics directly', () => {
+  assert.deepEqual(
+    resolveChatAgentAvatarVrmFramingViewportSize({
+      currentHostMetrics: {
+        width: 320,
+        height: 560,
+        renderable: true,
+      },
+      lastRenderableSize: {
+        width: 320,
+        height: 720,
+      },
+    }),
+    {
+      width: 320,
+      height: 560,
+    },
+  );
+});
+
+test('vrm framing viewport size preserves the last renderable size through transient host collapse', () => {
+  assert.deepEqual(
+    resolveChatAgentAvatarVrmFramingViewportSize({
+      currentHostMetrics: {
+        width: 320,
+        height: 2,
+        renderable: false,
+      },
+      lastRenderableSize: {
+        width: 320,
+        height: 680,
+      },
+    }),
+    {
+      width: 320,
+      height: 680,
+    },
+  );
+});
+
+test('vrm framing viewport size fails closed when no renderable host size has been observed yet', () => {
+  assert.deepEqual(
+    resolveChatAgentAvatarVrmFramingViewportSize({
+      currentHostMetrics: {
+        width: 320,
+        height: 2,
+        renderable: false,
+      },
+      lastRenderableSize: null,
+    }),
+    {
+      width: 0,
+      height: 0,
+    },
+  );
+});
+
 test('vrm diagnostic preserves ready-stage recovery details when the renderer host degrades', () => {
   const diagnostic = createChatAgentAvatarVrmDiagnostic({
     assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
@@ -139,7 +197,7 @@ test('vrm diagnostic preserves ready-stage recovery details when the renderer ho
     loadedError: null,
     status: 'loading',
     error: null,
-    pointerHovered: true,
+    attentionActive: true,
     recoveryAttemptCount: 1,
     recoveryReason: 'webgl-context-lost',
     resizePosture: 'tracked-host-size',
@@ -173,7 +231,7 @@ test('vrm diagnostic advances desktop resources into vrm-load once bytes are res
     loadedError: null,
     status: 'loading',
     error: null,
-    pointerHovered: false,
+    attentionActive: false,
     resizePosture: 'tracked-host-size',
     viewportWidth: 320,
     viewportHeight: 480,

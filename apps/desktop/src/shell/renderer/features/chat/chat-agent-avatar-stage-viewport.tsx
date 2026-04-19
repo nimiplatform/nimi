@@ -20,13 +20,13 @@ export type ChatAgentAvatarStageViewportProps = {
 export function ChatAgentAvatarStageViewport(props: ChatAgentAvatarStageViewportProps) {
   if (props.stage.snapshot.presentation.backendKind === 'vrm') {
     return (
-      <ChatAgentAvatarVrmViewport
-        input={props.stage.viewportInput}
-        chrome="minimal"
-        pointerInteraction={props.stage.pointerInteraction}
-        onLoadStateChange={props.onVrmLoadStateChange}
-        onLoadErrorChange={props.onVrmLoadErrorChange}
-        onDiagnosticChange={props.onVrmDiagnosticChange}
+        <ChatAgentAvatarVrmViewport
+          input={props.stage.viewportInput}
+          chrome="minimal"
+          attentionState={props.stage.attentionState}
+          onLoadStateChange={props.onVrmLoadStateChange}
+          onLoadErrorChange={props.onVrmLoadErrorChange}
+          onDiagnosticChange={props.onVrmDiagnosticChange}
       />
     );
   }

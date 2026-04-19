@@ -62,7 +62,7 @@ export type ChatAgentAvatarVrmDiagnostic = {
   posterUrl: string | null;
   error: string | null;
   source: 'desktop-resource' | 'network' | 'none';
-  pointerHovered: boolean;
+  attentionActive: boolean;
   recoveryAttemptCount: number;
   recoveryReason: ChatAgentAvatarVrmRuntimeLifecycleState['reason'];
   resizePosture: ChatAgentAvatarVrmResizePosture;
@@ -82,7 +82,7 @@ type ChatAgentAvatarVrmDebugSnapshot = {
     assetLabel: ChatAgentAvatarVrmViewportState['assetLabel'];
     amplitude: ChatAgentAvatarVrmViewportState['amplitude'];
     speakingEnergy: ChatAgentAvatarVrmViewportState['speakingEnergy'];
-    pointerInfluence: ChatAgentAvatarVrmViewportState['pointerInfluence'];
+    attentionInfluence: ChatAgentAvatarVrmViewportState['attentionInfluence'];
     mouthOpen: ChatAgentAvatarVrmViewportState['mouthOpen'];
     eyeOpen: ChatAgentAvatarVrmViewportState['eyeOpen'];
     blinkSpeed: ChatAgentAvatarVrmViewportState['blinkSpeed'];
@@ -351,7 +351,7 @@ export function createChatAgentAvatarVrmDiagnostic(input: {
   loadedError: string | null;
   status?: VrmViewportStatus;
   error?: string | null;
-  pointerHovered: boolean;
+  attentionActive: boolean;
   assetResolved?: boolean;
   recoveryAttemptCount?: number;
   recoveryReason?: ChatAgentAvatarVrmRuntimeLifecycleState['reason'];
@@ -387,7 +387,7 @@ export function createChatAgentAvatarVrmDiagnostic(input: {
     posterUrl: input.posterUrl || null,
     error: effectiveError,
     source,
-    pointerHovered: input.pointerHovered,
+    attentionActive: input.attentionActive,
     recoveryAttemptCount: input.recoveryAttemptCount ?? 0,
     recoveryReason: input.recoveryReason ?? null,
     resizePosture: input.resizePosture ?? 'tracked-host-size',
@@ -418,7 +418,7 @@ export function publishGlobalVrmDebugSnapshot(input: {
       assetLabel: input.state.assetLabel,
       amplitude: input.state.amplitude,
       speakingEnergy: input.state.speakingEnergy,
-      pointerInfluence: input.state.pointerInfluence,
+      attentionInfluence: input.state.attentionInfluence,
       mouthOpen: input.state.mouthOpen,
       eyeOpen: input.state.eyeOpen,
       blinkSpeed: input.state.blinkSpeed,

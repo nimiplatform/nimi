@@ -21,6 +21,11 @@ export type ChatAgentAvatarVrmViewportHostMetrics = {
   renderable: boolean;
 };
 
+export type ChatAgentAvatarVrmFramingViewportSize = {
+  width: number;
+  height: number;
+};
+
 export type ChatAgentAvatarVrmResolvedAssetState = {
   assetRef: string;
   url: string | null;
@@ -108,6 +113,27 @@ export function resolveChatAgentAvatarVrmViewportHostMetrics(host: HTMLElement |
     width,
     height,
     renderable: width >= MIN_RENDERABLE_VRM_VIEWPORT_SIZE && height >= MIN_RENDERABLE_VRM_VIEWPORT_SIZE,
+  };
+}
+
+export function resolveChatAgentAvatarVrmFramingViewportSize(input: {
+  currentHostMetrics: ChatAgentAvatarVrmViewportHostMetrics;
+  lastRenderableSize: ChatAgentAvatarVrmFramingViewportSize | null;
+}): ChatAgentAvatarVrmFramingViewportSize {
+  if (input.currentHostMetrics.renderable) {
+    return {
+      width: input.currentHostMetrics.width,
+      height: input.currentHostMetrics.height,
+    };
+  }
+
+  if (input.lastRenderableSize && input.lastRenderableSize.width > 0 && input.lastRenderableSize.height > 0) {
+    return input.lastRenderableSize;
+  }
+
+  return {
+    width: 0,
+    height: 0,
   };
 }
 

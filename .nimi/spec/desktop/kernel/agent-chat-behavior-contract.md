@@ -195,22 +195,22 @@ Fixed rules:
 ## D-LLM-026d — Pointer Interaction Non-Owner Boundary
 
 Desktop agent chat behavior may continue to resolve high-level interaction phase and
-voice-related cues that the avatar surface consumes, but it does not own desktop-local
-pointer intake or right-rail-local pointer interaction truth.
+voice-related cues that the avatar surface consumes, but it does not own shell-level
+attention intake or avatar attention projection truth.
 
 Fixed rules:
 
 - generic behavior may resolve `idle` / `thinking` / `listening` / `speaking`
-  posture and voice-related cue inputs, but it must not own pointer enter /
-  leave semantics, normalized pointer coordinates, hover escalation, or
-  gaze-follow state for the right rail
+  posture and voice-related cue inputs, but it must not own app viewport
+  attention presence, normalized app attention coordinates, attention degrade
+  policy, or avatar gaze-follow projection state
 - generic chat interaction-summary truth must remain narrow behavior-facing
   summary truth; it must not silently widen into a carrier for raw pointer
-  vectors, stage bounds, or hover persistence
-- pointer interaction may influence how the avatar surface presents the current
+  vectors, app viewport bounds, or attention persistence
+- app-level attention may influence how the avatar surface presents the current
   behavior state, but it must not mutate single-message semantics, turn-mode
   semantics, or resolved experience policy truth
-- any future broader cross-surface or non-chat pointer semantics require a new
+- any future broader cross-surface or non-chat attention semantics require a new
   admitted authority cut; they must not be backfilled through behavior summary
   fields or settings persistence
 

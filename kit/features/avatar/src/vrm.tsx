@@ -8,7 +8,7 @@ import type {
   AvatarStageSnapshot,
 } from './types.js';
 export type {
-  AvatarPointerInteractionState,
+  AvatarAttentionState,
   AvatarVrmExpressionWeights,
   AvatarVrmFramingIntent,
   AvatarVrmFramingMetrics,

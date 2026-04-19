@@ -1,5 +1,5 @@
 import type {
-  AvatarPointerInteractionState,
+  AvatarAttentionState,
   AvatarVrmExpressionWeights,
   AvatarVrmViewportRenderInput,
   AvatarVrmViewportState,
@@ -9,7 +9,7 @@ import {
   resolveAvatarVrmViewportState,
 } from '@nimiplatform/nimi-kit/features/avatar/vrm';
 import { convertTauriFileSrc, hasTauriRuntime } from '@runtime/tauri-api';
-import type { ChatAgentAvatarPointerInteractionState } from './chat-agent-avatar-pointer-interaction';
+import type { ChatAgentAvatarAttentionState } from './chat-agent-avatar-attention-state';
 
 export type ChatAgentAvatarVrmViewportState = AvatarVrmViewportState;
 
@@ -66,11 +66,11 @@ export function resolveChatAgentAvatarVrmAssetUrl(assetRef: string): string | nu
 
 export function resolveChatAgentAvatarVrmViewportState(
   input: AvatarVrmViewportRenderInput,
-  pointerInteraction?: ChatAgentAvatarPointerInteractionState | null,
+  attentionState?: ChatAgentAvatarAttentionState | null,
 ): ChatAgentAvatarVrmViewportState {
   return resolveAvatarVrmViewportState(
     input,
-    pointerInteraction as AvatarPointerInteractionState | null | undefined,
+    attentionState as AvatarAttentionState | null | undefined,
   );
 }
 

@@ -2,15 +2,16 @@ import * as THREE from 'three';
 
 import type { AvatarVrmViewportRenderInput } from './vrm.js';
 
-export type AvatarPointerInteractionState = {
-  hovered: boolean;
+export type AvatarAttentionState = {
+  active: boolean;
+  presence: number;
   normalizedX: number;
   normalizedY: number;
-  interactionBoost: 'idle' | 'hover' | 'engaged';
+  attentionBoost: 'idle' | 'attentive' | 'engaged';
 };
 
-const POINTER_ENGAGED_WEIGHT = 1.08;
-const POINTER_HOVER_WEIGHT = 0.74;
+const ATTENTION_ENGAGED_WEIGHT = 1.08;
+const ATTENTION_ATTENTIVE_WEIGHT = 0.74;
 const HEAD_FOLLOW_X_SCALE = 0.24;
 const HEAD_FOLLOW_Y_SCALE = 0.14;
 const EYE_FOLLOW_X_SCALE = 0.09;
@@ -77,7 +78,7 @@ export type AvatarVrmViewportState = {
   emotion: NonNullable<AvatarVrmViewportRenderInput['snapshot']['interaction']['emotion']> | 'neutral';
   amplitude: number;
   speakingEnergy: number;
-  pointerInfluence: number;
+  attentionInfluence: number;
   headFollowX: number;
   headFollowY: number;
   eyeFollowX: number;
@@ -211,7 +212,7 @@ function createFallbackMetrics(): AvatarVrmFramingMetrics {
 function resolvePhasePosture(input: {
   phase: AvatarVrmViewportRenderInput['snapshot']['interaction']['phase'];
   amplitude: number;
-  hoverLift: number;
+  attentionLift: number;
 }): Pick<
   AvatarVrmViewportState,
   | 'posture'
@@ -235,8 +236,8 @@ function resolvePhasePosture(input: {
       return {
         posture: 'speaking-energized',
         speakingEnergy,
-        motionSpeed: 1.45 + input.amplitude * 1.15 + input.hoverLift * 0.35,
-        sparklesSpeed: 0.82 + input.amplitude * 0.72 + input.hoverLift * 0.5,
+        motionSpeed: 1.45 + input.amplitude * 1.15 + input.attentionLift * 0.35,
+        sparklesSpeed: 0.82 + input.amplitude * 0.72 + input.attentionLift * 0.5,
         bodyYawAmplitude: 0.075,
         bodyPitchAmplitude: 0.028,
         bodyLiftAmplitude: 0.022,
@@ -253,8 +254,8 @@ function resolvePhasePosture(input: {
       return {
         posture: 'listening-attentive',
         speakingEnergy: 0,
-        motionSpeed: 0.54 + input.hoverLift * 0.8,
-        sparklesSpeed: 0.28 + input.hoverLift * 0.5,
+        motionSpeed: 0.54 + input.attentionLift * 0.8,
+        sparklesSpeed: 0.28 + input.attentionLift * 0.5,
         bodyYawAmplitude: 0.09,
         bodyPitchAmplitude: 0.035,
         bodyLiftAmplitude: 0.03,
@@ -270,8 +271,8 @@ function resolvePhasePosture(input: {
       return {
         posture: 'thinking-reflective',
         speakingEnergy: 0,
-        motionSpeed: 0.76 + input.hoverLift * 0.45,
-        sparklesSpeed: 0.42 + input.hoverLift * 0.38,
+        motionSpeed: 0.76 + input.attentionLift * 0.45,
+        sparklesSpeed: 0.42 + input.attentionLift * 0.38,
         bodyYawAmplitude: 0.11,
         bodyPitchAmplitude: 0.05,
         bodyLiftAmplitude: 0.034,
@@ -287,8 +288,8 @@ function resolvePhasePosture(input: {
       return {
         posture: 'transitioning-settle',
         speakingEnergy: 0,
-        motionSpeed: 0.44 + input.hoverLift * 0.6,
-        sparklesSpeed: 0.24 + input.hoverLift * 0.4,
+        motionSpeed: 0.44 + input.attentionLift * 0.6,
+        sparklesSpeed: 0.24 + input.attentionLift * 0.4,
         bodyYawAmplitude: 0.095,
         bodyPitchAmplitude: 0.032,
         bodyLiftAmplitude: 0.026,
@@ -305,8 +306,8 @@ function resolvePhasePosture(input: {
       return {
         posture: 'idle-settled',
         speakingEnergy: 0,
-        motionSpeed: 0.35 + input.hoverLift,
-        sparklesSpeed: 0.25 + input.hoverLift * 0.85,
+        motionSpeed: 0.35 + input.attentionLift,
+        sparklesSpeed: 0.25 + input.attentionLift * 0.85,
         bodyYawAmplitude: 0.1,
         bodyPitchAmplitude: 0.032,
         bodyLiftAmplitude: 0.03,
@@ -501,17 +502,20 @@ export function resolveAvatarVrmFramingFromScene(input: {
 
 export function resolveAvatarVrmViewportState(
   input: AvatarVrmViewportRenderInput,
-  pointerInteraction?: AvatarPointerInteractionState | null,
+  attention?: AvatarAttentionState | null,
 ): AvatarVrmViewportState {
   const phase = input.snapshot.interaction.phase;
   const emotion = input.snapshot.interaction.emotion || 'neutral';
   const amplitude = clampUnit(input.snapshot.interaction.amplitude);
   const palette = resolvePalette(emotion);
-  const pointerWeight = !pointerInteraction?.hovered
+  const attentionWeight = !attention?.active
     ? 0
-    : pointerInteraction.interactionBoost === 'engaged'
-      ? POINTER_ENGAGED_WEIGHT
-      : POINTER_HOVER_WEIGHT;
+    : attention.attentionBoost === 'engaged'
+      ? ATTENTION_ENGAGED_WEIGHT
+      : ATTENTION_ATTENTIVE_WEIGHT;
+  const attentionPresence = clampUnit(
+    attention?.presence ?? (attention?.active ? 1 : 0),
+  );
   const phaseWeight = phase === 'speaking'
     ? 0.18 + (1 - amplitude) * 0.14
     : phase === 'listening'
@@ -521,18 +525,18 @@ export function resolveAvatarVrmViewportState(
         : phase === 'transitioning'
           ? 0.2
           : 0.52;
-  const pointerInfluence = clampUnit(pointerWeight * phaseWeight);
-  const normalizedX = clampSignedUnit(pointerInteraction?.normalizedX);
-  const normalizedY = clampSignedUnit(pointerInteraction?.normalizedY);
-  const headFollowX = normalizedX * pointerInfluence * HEAD_FOLLOW_X_SCALE;
-  const headFollowY = -normalizedY * pointerInfluence * HEAD_FOLLOW_Y_SCALE;
-  const eyeFollowX = normalizedX * pointerInfluence * EYE_FOLLOW_X_SCALE;
-  const eyeFollowY = -normalizedY * pointerInfluence * EYE_FOLLOW_Y_SCALE;
-  const hoverLift = pointerInfluence * (phase === 'speaking' ? 0.06 : 0.12);
+  const attentionInfluence = clampUnit(attentionWeight * phaseWeight * attentionPresence);
+  const normalizedX = clampSignedUnit(attention?.normalizedX);
+  const normalizedY = clampSignedUnit(attention?.normalizedY);
+  const headFollowX = normalizedX * attentionInfluence * HEAD_FOLLOW_X_SCALE;
+  const headFollowY = -normalizedY * attentionInfluence * HEAD_FOLLOW_Y_SCALE;
+  const eyeFollowX = normalizedX * attentionInfluence * EYE_FOLLOW_X_SCALE;
+  const eyeFollowY = -normalizedY * attentionInfluence * EYE_FOLLOW_Y_SCALE;
+  const attentionLift = attentionInfluence * (phase === 'speaking' ? 0.06 : 0.12);
   const posture = resolvePhasePosture({
     phase,
     amplitude,
-    hoverLift,
+    attentionLift,
   });
   const assetLabel = input.assetRef.trim().startsWith('fallback://')
     ? input.assetRef.trim().replace('fallback://', '')
@@ -544,7 +548,7 @@ export function resolveAvatarVrmViewportState(
     emotion,
     amplitude,
     speakingEnergy: posture.speakingEnergy,
-    pointerInfluence,
+    attentionInfluence,
     headFollowX,
     headFollowY,
     eyeFollowX,

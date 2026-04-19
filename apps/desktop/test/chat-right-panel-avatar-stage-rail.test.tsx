@@ -67,8 +67,8 @@ test('avatar stage rail renders standalone primary and settings cards around a s
   assert.doesNotMatch(markup, /data-chat-right-card="diagnostic"/);
   assert.match(markup, /data-chat-right-card="settings"/);
   assert.match(markup, /data-avatar-stage-viewport="true"/);
-  assert.match(markup, /data-avatar-stage-pointer-enabled="true"/);
-  assert.match(markup, /data-avatar-stage-hovered="false"/);
+  assert.match(markup, /data-avatar-stage-attention-enabled="true"/);
+  assert.match(markup, /data-avatar-stage-attention-active="false"/);
   assert.doesNotMatch(markup, /data-avatar-stage-dock="true"/);
   assert.match(markup, /data-avatar-backend-kind="sprite2d"/);
 });
@@ -278,7 +278,7 @@ test('vrm diagnostic panel model exposes asset-resolve loading details before re
       posterUrl: 'file:///tmp/airi.png',
       error: null,
       source: 'desktop-resource',
-      pointerHovered: false,
+      attentionActive: false,
       recoveryAttemptCount: 0,
       recoveryReason: null,
       resizePosture: 'tracked-host-size',
@@ -313,7 +313,7 @@ test('vrm diagnostic panel model exposes fail-closed error details', () => {
       posterUrl: null,
       error: 'A VRM profile was requested, but the asset did not expose VRM data.',
       source: 'network',
-      pointerHovered: true,
+      attentionActive: true,
       recoveryAttemptCount: 1,
       recoveryReason: 'webgl-context-lost',
       resizePosture: 'tracked-host-size',
@@ -350,7 +350,7 @@ test('vrm diagnostic panel model exposes bounded recovery details while a ready 
       posterUrl: null,
       error: null,
       source: 'network',
-      pointerHovered: true,
+      attentionActive: true,
       recoveryAttemptCount: 1,
       recoveryReason: 'webgl-context-lost',
       resizePosture: 'tracked-host-size',
@@ -384,7 +384,7 @@ test('vrm diagnostic panel model exposes waiting-for-renderable-host details bef
       posterUrl: null,
       error: null,
       source: 'desktop-resource',
-      pointerHovered: false,
+      attentionActive: false,
       recoveryAttemptCount: 0,
       recoveryReason: null,
       resizePosture: 'awaiting-renderable-host',

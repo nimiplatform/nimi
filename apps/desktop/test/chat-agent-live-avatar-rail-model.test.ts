@@ -5,7 +5,7 @@ import {
   resolveChatAgentAvatarStageRenderModel,
   resolveChatAgentLiveAvatarRailModel,
 } from '../src/shell/renderer/features/chat/chat-agent-live-avatar-rail-model.js';
-import { createIdleChatAgentAvatarPointerInteractionState } from '../src/shell/renderer/features/chat/chat-agent-avatar-pointer-interaction.js';
+import { createIdleChatAgentAvatarAttentionState } from '../src/shell/renderer/features/chat/chat-agent-avatar-attention-state.js';
 
 test('agent live avatar rail model prefers desktop-local bound VRM resource when present', () => {
   const model = resolveChatAgentLiveAvatarRailModel({
@@ -225,7 +225,7 @@ test('agent live avatar rail model carries runtime committed steady-state label 
   assert.equal(model.snapshot.interaction.amplitude, 0.12);
 });
 
-test('agent live avatar rail model preserves voice phase while admitting pointer attention locally', () => {
+test('agent live avatar rail model preserves voice phase while admitting attention locally', () => {
   const model = resolveChatAgentLiveAvatarRailModel({
     selectedTarget: {
       id: 'agent-4',
@@ -253,17 +253,18 @@ test('agent live avatar rail model preserves voice phase while admitting pointer
         visemeId: 'ee',
       },
     },
-    pointerInteraction: {
-      hovered: true,
+    attentionState: {
+      active: true,
+      presence: 1,
       normalizedX: 0.55,
       normalizedY: -0.35,
-      interactionBoost: 'engaged',
+      attentionBoost: 'engaged',
     },
   });
 
   assert.equal(model.snapshot.interaction.phase, 'speaking');
   assert.equal(model.snapshot.interaction.attentionTarget, 'pointer');
-  assert.equal(model.pointerInteraction.interactionBoost, 'engaged');
+  assert.equal(model.attentionState.attentionBoost, 'engaged');
 });
 
 test('agent live avatar rail model applies chat avatar smoke override to bound vrm interaction state', () => {
@@ -330,7 +331,7 @@ test('agent live avatar rail model applies chat avatar smoke override to bound v
   }
 });
 
-test('agent live avatar rail model falls back to idle pointer state when none is provided', () => {
+test('agent live avatar rail model falls back to idle attention state when none is provided', () => {
   const model = resolveChatAgentLiveAvatarRailModel({
     selectedTarget: {
       id: 'agent-5',
@@ -356,7 +357,7 @@ test('agent live avatar rail model falls back to idle pointer state when none is
     },
   });
 
-  assert.deepEqual(model.pointerInteraction, createIdleChatAgentAvatarPointerInteractionState());
+  assert.deepEqual(model.attentionState, createIdleChatAgentAvatarAttentionState());
   assert.equal(model.snapshot.interaction.attentionTarget, 'camera');
 });
 

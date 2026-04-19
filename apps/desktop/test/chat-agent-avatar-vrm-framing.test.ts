@@ -250,6 +250,39 @@ test('vrm framing result keeps normalized rail posture consistent with policy se
   assert.equal(framing.railIsPortrait, true);
 });
 
+test('vrm framing result preserves live portrait rail heights below the old canonical floor', () => {
+  const shortRailFraming = resolveChatAgentAvatarVrmFramingResult({
+    railWidth: 320,
+    railHeight: 560,
+    metrics: createMetrics({
+      width: 0.9,
+      height: 1.8,
+      depth: 0.75,
+    }),
+    intent: 'chat-focus',
+  });
+  const tallRailFraming = resolveChatAgentAvatarVrmFramingResult({
+    railWidth: 320,
+    railHeight: 720,
+    metrics: createMetrics({
+      width: 0.9,
+      height: 1.8,
+      depth: 0.75,
+    }),
+    intent: 'chat-focus',
+  });
+
+  assert.equal(shortRailFraming.policy.mode, 'chat-focus');
+  assert.equal(tallRailFraming.policy.mode, 'chat-focus');
+  assert.equal(shortRailFraming.railWidth, 320);
+  assert.equal(shortRailFraming.railHeight, 560);
+  assert.equal(tallRailFraming.railWidth, 320);
+  assert.equal(tallRailFraming.railHeight, 720);
+  assert.notEqual(shortRailFraming.railHeight, tallRailFraming.railHeight);
+  assertApprox(shortRailFraming.railAspect, 560 / 320);
+  assertApprox(tallRailFraming.railAspect, 720 / 320);
+});
+
 test('vrm framing from measured scene geometry classifies broad portrait assets deterministically', () => {
   const scene = createSceneFromBoxes([
     { width: 0.8, height: 1.6, depth: 0.6, x: 0.2, y: 0.8, z: -0.1 },
@@ -363,6 +396,40 @@ test('vrm framing policy returns chat-focus bust crop in portrait rails when int
       zOffset: -0.22,
     },
   );
+});
+
+test('vrm framing result keeps chat-focus bust composition on resized portrait rails', () => {
+  const compactRailFraming = resolveChatAgentAvatarVrmFramingResult({
+    railWidth: 320,
+    railHeight: 560,
+    metrics: createMetrics({
+      width: 0.9,
+      height: 1.8,
+      depth: 0.75,
+      minY: -0.9,
+      maxY: 0.9,
+    }),
+    intent: 'chat-focus',
+  });
+  const expandedRailFraming = resolveChatAgentAvatarVrmFramingResult({
+    railWidth: 320,
+    railHeight: 760,
+    metrics: createMetrics({
+      width: 0.9,
+      height: 1.8,
+      depth: 0.75,
+      minY: -0.9,
+      maxY: 0.9,
+    }),
+    intent: 'chat-focus',
+  });
+
+  assert.equal(compactRailFraming.policy.mode, 'chat-focus');
+  assert.equal(expandedRailFraming.policy.mode, 'chat-focus');
+  assertApprox(compactRailFraming.scale, 3.8 / 1.8);
+  assertApprox(expandedRailFraming.scale, 3.8 / 1.8);
+  assertApprox(compactRailFraming.positionY, expandedRailFraming.positionY);
+  assertApprox(compactRailFraming.positionZ, expandedRailFraming.positionZ);
 });
 
 test('vrm framing policy chat-focus intent overrides tall silhouette thresholds in portrait rails', () => {

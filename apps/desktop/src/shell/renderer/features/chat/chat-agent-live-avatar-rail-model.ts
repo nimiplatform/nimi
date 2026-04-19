@@ -3,9 +3,9 @@ import type { AvatarVrmViewportRenderInput } from '@nimiplatform/nimi-kit/featur
 import type { ConversationCharacterData, ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type { DesktopAgentAvatarResourceRecord } from '@renderer/bridge/runtime-bridge/types';
 import {
-  createIdleChatAgentAvatarPointerInteractionState,
-  type ChatAgentAvatarPointerInteractionState,
-} from './chat-agent-avatar-pointer-interaction';
+  createIdleChatAgentAvatarAttentionState,
+  type ChatAgentAvatarAttentionState,
+} from './chat-agent-avatar-attention-state';
 
 type ChatAgentAvatarSmokeInteractionOverride = {
   phase?: NonNullable<ConversationCharacterData['interactionState']>['phase'];
@@ -97,7 +97,7 @@ function buildAvatarSnapshot(input: {
   presentation: AvatarPresentationProfile;
   interactionState: ConversationCharacterData['interactionState'] | null | undefined;
   statusLabel: string;
-  pointerInteraction: ChatAgentAvatarPointerInteractionState;
+  attentionState: ChatAgentAvatarAttentionState;
 }): AvatarStageSnapshot {
   const interactionState = input.interactionState || null;
   return {
@@ -114,7 +114,7 @@ function buildAvatarSnapshot(input: {
               : 'idle',
       emotion: interactionState?.emotion || 'calm',
       actionCue: input.statusLabel,
-      attentionTarget: input.pointerInteraction.hovered ? 'pointer' : 'camera',
+      attentionTarget: input.attentionState.active ? 'pointer' : 'camera',
       amplitude: typeof interactionState?.amplitude === 'number' ? interactionState.amplitude : 0.12,
       visemeId: interactionState?.visemeId || null,
     },
@@ -182,7 +182,7 @@ export type ChatAgentLiveAvatarRailModel = {
   fallbackLabel: string;
   presentation: AvatarPresentationProfile;
   fallbackPresentation: AvatarPresentationProfile;
-  pointerInteraction: ChatAgentAvatarPointerInteractionState;
+  attentionState: ChatAgentAvatarAttentionState;
   snapshot: AvatarStageSnapshot;
   fallbackSnapshot: AvatarStageSnapshot;
   viewportInput: AvatarVrmViewportRenderInput;
@@ -197,7 +197,7 @@ export type ChatAgentAvatarStageRenderModel = {
   label: string;
   imageUrl: string | null;
   fallbackLabel: string;
-  pointerInteraction: ChatAgentAvatarPointerInteractionState;
+  attentionState: ChatAgentAvatarAttentionState;
   snapshot: AvatarStageSnapshot;
   viewportInput: AvatarVrmViewportRenderInput;
   rendererFallbackApplied: boolean;
@@ -207,12 +207,12 @@ export function resolveChatAgentLiveAvatarRailModel(input: {
   selectedTarget: ConversationTargetSummary;
   characterData?: ConversationCharacterData | null;
   localResource?: DesktopAgentAvatarResourceRecord | null;
-  pointerInteraction?: ChatAgentAvatarPointerInteractionState | null;
+  attentionState?: ChatAgentAvatarAttentionState | null;
 }): ChatAgentLiveAvatarRailModel {
   const displayName = input.characterData?.name || input.selectedTarget.title || 'Agent';
   const interactionState = resolveChatAgentAvatarInteractionState(input.characterData?.interactionState || null);
   const statusLabel = interactionState?.label || resolveFallbackPhaseLabel(interactionState?.phase);
-  const pointerInteraction = input.pointerInteraction || createIdleChatAgentAvatarPointerInteractionState();
+  const attentionState = input.attentionState || createIdleChatAgentAvatarAttentionState();
   const fallbackPresentation = resolveBaselineAvatarPresentationProfile({
     presentationProfile: input.characterData?.avatarPresentationProfile || null,
     avatarUrl: input.characterData?.avatarUrl || input.selectedTarget.avatarUrl || null,
@@ -222,13 +222,13 @@ export function resolveChatAgentLiveAvatarRailModel(input: {
     presentation,
     interactionState,
     statusLabel,
-    pointerInteraction,
+    attentionState,
   });
   const fallbackSnapshot = buildAvatarSnapshot({
     presentation: fallbackPresentation,
     interactionState,
     statusLabel,
-    pointerInteraction,
+    attentionState,
   });
 
   return {
@@ -238,7 +238,7 @@ export function resolveChatAgentLiveAvatarRailModel(input: {
     fallbackLabel: input.selectedTarget.avatarFallback || displayName,
     presentation,
     fallbackPresentation,
-    pointerInteraction,
+    attentionState,
     snapshot,
     fallbackSnapshot,
     viewportInput: {
@@ -268,7 +268,7 @@ export function resolveChatAgentAvatarStageRenderModel(input: {
     label: input.railModel.displayName,
     imageUrl: input.railModel.imageUrl,
     fallbackLabel: input.railModel.fallbackLabel,
-    pointerInteraction: input.railModel.pointerInteraction,
+    attentionState: input.railModel.attentionState,
     snapshot,
     viewportInput: {
       ...input.railModel.viewportInput,

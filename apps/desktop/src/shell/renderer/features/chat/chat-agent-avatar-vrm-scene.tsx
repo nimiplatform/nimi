@@ -79,7 +79,7 @@ function AvatarBust({
     followRef.current.headY = THREE.MathUtils.damp(followRef.current.headY, state.headFollowY, 8.8, delta);
     followRef.current.eyeX = THREE.MathUtils.damp(followRef.current.eyeX, state.eyeFollowX, 10.2, delta);
     followRef.current.eyeY = THREE.MathUtils.damp(followRef.current.eyeY, state.eyeFollowY, 10.2, delta);
-    const ambientWeight = THREE.MathUtils.clamp(1 - state.pointerInfluence * 0.82, 0.18, 1);
+    const ambientWeight = THREE.MathUtils.clamp(1 - state.attentionInfluence * 0.82, 0.18, 1);
     if (groupRef.current) {
       groupRef.current.rotation.y = Math.sin(renderState.clock.elapsedTime * 0.45 * state.motionSpeed) * state.bodyYawAmplitude * ambientWeight + followRef.current.headX;
       groupRef.current.rotation.x = Math.cos(renderState.clock.elapsedTime * 0.28 * state.motionSpeed) * state.bodyPitchAmplitude * ambientWeight + followRef.current.headY;
@@ -175,7 +175,7 @@ function RuntimeVrmModel({
     followRef.current.headY = THREE.MathUtils.damp(followRef.current.headY, state.headFollowY, 8.2, delta);
     followRef.current.eyeX = THREE.MathUtils.damp(followRef.current.eyeX, state.eyeFollowX, 9.6, delta);
     followRef.current.eyeY = THREE.MathUtils.damp(followRef.current.eyeY, state.eyeFollowY, 9.6, delta);
-    const ambientWeight = THREE.MathUtils.clamp(1 - state.pointerInfluence * 0.78, 0.24, 1);
+    const ambientWeight = THREE.MathUtils.clamp(1 - state.attentionInfluence * 0.78, 0.24, 1);
 
     if (rootRef.current) {
       rootRef.current.rotation.y = Math.sin(renderState.clock.elapsedTime * 0.3 * state.motionSpeed) * state.bodyYawAmplitude * ambientWeight;

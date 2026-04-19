@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationCharacterData, ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
@@ -12,11 +12,8 @@ import {
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import { ChatAgentAvatarStageViewport } from './chat-agent-avatar-stage-viewport';
 import {
-  createIdleChatAgentAvatarPointerInteractionState,
-  resolveChatAgentAvatarPointerInteractionScopeKey,
-  resolveChatAgentAvatarPointerInteraction,
-  shouldUpdateChatAgentAvatarPointerInteraction,
-} from './chat-agent-avatar-pointer-interaction';
+  resolveChatAgentAvatarAttentionStateFromAppAttention,
+} from './chat-agent-avatar-attention-state';
 import {
   CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT,
   resolveChatAgentAvatarStageRenderModel,
@@ -29,6 +26,7 @@ import { ChatRightPanelSettings } from './chat-right-panel-settings';
 import { ChatRightColumn, ChatRightColumnCard, ChatRightColumnCardTitle } from './chat-right-column-primitives';
 import type { ChatAgentAvatarLive2dDiagnostic } from './chat-agent-avatar-live2d-diagnostics';
 import type { ChatAgentAvatarVrmDiagnostic } from './chat-agent-avatar-vrm-viewport';
+import { useAppAttention } from '@renderer/app-shell/providers/app-attention-context';
 
 export type ChatRightPanelAvatarStageRailProps = {
   selectedTarget: ConversationTargetSummary;
@@ -192,9 +190,6 @@ export function resolveChatAgentAvatarVrmDiagnosticPanelModel(input: {
 
 export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRailProps) {
   const { t } = useTranslation();
-  const [pointerInteraction, setPointerInteraction] = useState(
-    () => createIdleChatAgentAvatarPointerInteractionState(),
-  );
   const [live2dLoadStatus, setLive2dLoadStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [live2dLoadError, setLive2dLoadError] = useState<string | null>(null);
   const [live2dDiagnostic, setLive2dDiagnostic] = useState<ChatAgentAvatarLive2dDiagnostic | null>(null);
@@ -202,6 +197,7 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
   const [vrmLoadError, setVrmLoadError] = useState<string | null>(null);
   const [vrmDiagnostic, setVrmDiagnostic] = useState<ChatAgentAvatarVrmDiagnostic | null>(null);
   const [, setSmokeOverrideVersion] = useState(0);
+  const appAttention = useAppAttention();
   const avatarResourcesQuery = useQuery({
     queryKey: desktopAgentAvatarResourcesQueryKey(),
     queryFn: listDesktopAgentAvatarResources,
@@ -220,15 +216,17 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
       : null,
     [avatarBindingQuery.data, avatarResourcesQuery.data],
   );
-  const pointerInteractionScopeKey = resolveChatAgentAvatarPointerInteractionScopeKey({
-    targetId: props.selectedTarget.id,
-    canonicalSessionId: props.selectedTarget.canonicalSessionId,
-  });
+  const attentionState = useMemo(
+    () => resolveChatAgentAvatarAttentionStateFromAppAttention({
+      attention: appAttention,
+    }),
+    [appAttention],
+  );
   const railModel = resolveChatAgentLiveAvatarRailModel({
     selectedTarget: props.selectedTarget,
     characterData: props.characterData,
     localResource,
-    pointerInteraction,
+    attentionState,
   });
   const stageRenderModel = resolveChatAgentAvatarStageRenderModel({
     railModel,
@@ -247,10 +245,6 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
     error: vrmLoadError,
     diagnostic: vrmDiagnostic,
   });
-
-  useEffect(() => {
-    setPointerInteraction(createIdleChatAgentAvatarPointerInteractionState());
-  }, [pointerInteractionScopeKey]);
 
   useEffect(() => {
     setLive2dLoadStatus('idle');
@@ -274,70 +268,53 @@ export function ChatRightPanelAvatarStageRail(props: ChatRightPanelAvatarStageRa
     };
   }, []);
 
-  function handlePointerStageMove(event: ReactPointerEvent<HTMLDivElement>) {
-    const nextInteraction = resolveChatAgentAvatarPointerInteraction({
-      clientX: event.clientX,
-      clientY: event.clientY,
-      rect: event.currentTarget.getBoundingClientRect(),
-    });
-    setPointerInteraction((current) => (
-      shouldUpdateChatAgentAvatarPointerInteraction(current, nextInteraction)
-        ? nextInteraction
-        : current
-    ));
-  }
-
-  function handlePointerStageLeave() {
-    setPointerInteraction(createIdleChatAgentAvatarPointerInteractionState());
-  }
+  const settingsCoversAvatar = props.settingsActive;
 
   return (
-    <ChatRightColumn data-chat-mode-column="agent">
-      <ChatRightColumnCard cardKey="primary" className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-[-36px] top-[-20px] h-40 w-40 rounded-full bg-mint-100/45 blur-3xl" />
-          <div className="absolute bottom-10 right-[-30px] h-44 w-44 rounded-full bg-sky-100/45 blur-3xl" />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.22),transparent_22%,transparent_78%,rgba(255,255,255,0.18))]" />
-        </div>
-        <div
-          className="relative flex min-h-0 flex-1 overflow-hidden"
-          data-avatar-stage-viewport="true"
-          data-avatar-stage-pointer-enabled="true"
-          data-avatar-stage-hovered={pointerInteraction.hovered ? 'true' : 'false'}
-          onPointerEnter={handlePointerStageMove}
-          onPointerMove={handlePointerStageMove}
-          onPointerLeave={handlePointerStageLeave}
-          onPointerCancel={handlePointerStageLeave}
-        >
-          <span className="pointer-events-none absolute inset-x-10 top-6 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-          <span className="pointer-events-none absolute inset-x-6 bottom-5 h-10 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.08),transparent_72%)] blur-2xl" />
-          <ChatAgentAvatarStageViewport
-            stage={stageRenderModel}
-            onVrmLoadStateChange={(status) => {
-              setVrmLoadStatus((current) => {
-                if (current === status) {
-                  return current;
-                }
-                return status;
-              });
-            }}
-            onVrmLoadErrorChange={setVrmLoadError}
-            onVrmDiagnosticChange={setVrmDiagnostic}
-            onLive2dLoadStateChange={(status) => {
-              setLive2dLoadStatus((current) => {
-                if (current === status) {
-                  return current;
-                }
-                return status;
-              });
-            }}
-            onLive2dLoadErrorChange={setLive2dLoadError}
-            onLive2dDiagnosticChange={setLive2dDiagnostic}
-          />
-        </div>
-      </ChatRightColumnCard>
+    <ChatRightColumn data-chat-mode-column="agent" data-chat-right-settings-active={settingsCoversAvatar ? 'true' : 'false'}>
+      {settingsCoversAvatar ? null : (
+        <ChatRightColumnCard cardKey="primary" className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute left-[-36px] top-[-20px] h-40 w-40 rounded-full bg-mint-100/45 blur-3xl" />
+            <div className="absolute bottom-10 right-[-30px] h-44 w-44 rounded-full bg-sky-100/45 blur-3xl" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.22),transparent_22%,transparent_78%,rgba(255,255,255,0.18))]" />
+          </div>
+          <div
+            className="relative flex min-h-0 flex-1 overflow-hidden"
+            data-avatar-stage-viewport="true"
+            data-avatar-stage-attention-enabled="true"
+            data-avatar-stage-attention-active={attentionState.active ? 'true' : 'false'}
+          >
+            <span className="pointer-events-none absolute inset-x-10 top-6 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+            <span className="pointer-events-none absolute inset-x-6 bottom-5 h-10 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.08),transparent_72%)] blur-2xl" />
+            <ChatAgentAvatarStageViewport
+              stage={stageRenderModel}
+              onVrmLoadStateChange={(status) => {
+                setVrmLoadStatus((current) => {
+                  if (current === status) {
+                    return current;
+                  }
+                  return status;
+                });
+              }}
+              onVrmLoadErrorChange={setVrmLoadError}
+              onVrmDiagnosticChange={setVrmDiagnostic}
+              onLive2dLoadStateChange={(status) => {
+                setLive2dLoadStatus((current) => {
+                  if (current === status) {
+                    return current;
+                  }
+                  return status;
+                });
+              }}
+              onLive2dLoadErrorChange={setLive2dLoadError}
+              onLive2dDiagnosticChange={setLive2dDiagnostic}
+            />
+          </div>
+        </ChatRightColumnCard>
+      )}
 
-      {live2dDiagnosticPanel || vrmDiagnosticPanel ? (
+      {!settingsCoversAvatar && (live2dDiagnosticPanel || vrmDiagnosticPanel) ? (
         <ChatRightColumnCard cardKey="diagnostic" className="px-4 py-3">
           {live2dDiagnosticPanel ? (
             <div

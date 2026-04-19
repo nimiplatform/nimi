@@ -17,7 +17,7 @@ import {
   type ChatAgentAvatarVrmFramingIntent,
   type ChatAgentAvatarVrmFramingResult,
 } from './chat-agent-avatar-vrm-framing';
-import type { ChatAgentAvatarPointerInteractionState } from './chat-agent-avatar-pointer-interaction';
+import type { ChatAgentAvatarAttentionState } from './chat-agent-avatar-attention-state';
 import { readDesktopAgentAvatarResourceAsset } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-store';
 import {
   collectChatAgentAvatarVrmSceneResourceCounts,
@@ -32,10 +32,12 @@ import {
 import {
   createChatAgentAvatarVrmNonReadyState,
   resolveChatAgentAvatarVrmEffectiveLoadState,
+  resolveChatAgentAvatarVrmFramingViewportSize,
   resolveChatAgentAvatarVrmViewportHostMetrics,
   resolveChatAgentAvatarVrmViewportStatus,
   suspendCreateImageBitmapForTauriVrmLoad,
   VRM_CONTEXT_RECOVERY_TIMEOUT_MS,
+  type ChatAgentAvatarVrmFramingViewportSize,
   type ChatAgentAvatarVrmResolvedAssetState,
   type ChatAgentAvatarVrmRuntimeLifecycleState,
   type ChatAgentAvatarVrmViewportHostMetrics,
@@ -55,7 +57,7 @@ export {
 } from './chat-agent-avatar-vrm-runtime';
 
 type ChatAgentAvatarVrmViewportProps = AvatarVrmViewportComponentProps & {
-  pointerInteraction?: ChatAgentAvatarPointerInteractionState | null;
+  attentionState?: ChatAgentAvatarAttentionState | null;
   onLoadStateChange?: (status: VrmViewportStatus) => void;
   onLoadErrorChange?: (error: string | null) => void;
   onDiagnosticChange?: (diagnostic: ChatAgentAvatarVrmDiagnostic) => void;
@@ -67,7 +69,7 @@ const MINIMAL_CHAT_AGENT_VRM_VERTICAL_OFFSET_Y = -0.16;
 export default function ChatAgentAvatarVrmViewport({
   input,
   chrome = 'default',
-  pointerInteraction,
+  attentionState,
   onLoadStateChange,
   onLoadErrorChange,
   onDiagnosticChange,
@@ -75,8 +77,8 @@ export default function ChatAgentAvatarVrmViewport({
 }: ChatAgentAvatarVrmViewportProps) {
   const stageVerticalOffsetY = chrome === 'minimal' ? MINIMAL_CHAT_AGENT_VRM_VERTICAL_OFFSET_Y : 0;
   const state = useMemo(
-    () => resolveChatAgentAvatarVrmViewportState(input, pointerInteraction),
-    [input, pointerInteraction],
+    () => resolveChatAgentAvatarVrmViewportState(input, attentionState),
+    [input, attentionState],
   );
   const debugExpressionWeights = useMemo(
     () => resolveChatAgentAvatarVrmExpressionWeights(input),
@@ -103,6 +105,7 @@ export default function ChatAgentAvatarVrmViewport({
     height: 0,
     renderable: true,
   });
+  const [lastRenderableFramingViewportSize, setLastRenderableFramingViewportSize] = useState<ChatAgentAvatarVrmFramingViewportSize | null>(null);
   const [runtimeLifecycle, setRuntimeLifecycle] = useState<ChatAgentAvatarVrmRuntimeLifecycleState>({
     phase: 'stable',
     reason: null,
@@ -139,8 +142,13 @@ export default function ChatAgentAvatarVrmViewport({
         }),
     [effectiveLoadState.error, effectiveLoadState.status, input.assetRef, loadedVrm],
   );
-  const resolvedRailWidth = Math.max(viewportHostMetrics.width, 360);
-  const resolvedRailHeight = Math.max(viewportHostMetrics.height, 820);
+  const framingViewportSize = useMemo(
+    () => resolveChatAgentAvatarVrmFramingViewportSize({
+      currentHostMetrics: viewportHostMetrics,
+      lastRenderableSize: lastRenderableFramingViewportSize,
+    }),
+    [lastRenderableFramingViewportSize, viewportHostMetrics],
+  );
   const activeVrmResourceCounts = useMemo<ChatAgentAvatarVrmResourceCounts | null>(
     () => activeLoadedVrm.status === 'ready'
       ? collectChatAgentAvatarVrmSceneResourceCounts(activeLoadedVrm.vrm.scene)
@@ -151,13 +159,13 @@ export default function ChatAgentAvatarVrmViewport({
   const activeVrmFraming = useMemo<ChatAgentAvatarVrmFramingResult | null>(
     () => activeLoadedVrm.status === 'ready'
       ? resolveChatAgentAvatarVrmFramingFromScene({
-          railWidth: resolvedRailWidth,
-          railHeight: resolvedRailHeight,
+          railWidth: framingViewportSize.width,
+          railHeight: framingViewportSize.height,
           scene: activeLoadedVrm.vrm.scene,
           intent: framingIntent,
         })
       : null,
-    [activeLoadedVrm, framingIntent, resolvedRailHeight, resolvedRailWidth],
+    [activeLoadedVrm, framingIntent, framingViewportSize.height, framingViewportSize.width],
   );
   const resolvedViewportStatus = useMemo(
     () => resolveChatAgentAvatarVrmViewportStatus({
@@ -184,7 +192,7 @@ export default function ChatAgentAvatarVrmViewport({
       loadedError: effectiveLoadState.error,
       status: resolvedViewportStatus.status,
       error: resolvedViewportStatus.error,
-      pointerHovered: Boolean(pointerInteraction?.hovered),
+      attentionActive: Boolean(attentionState?.active),
       recoveryAttemptCount: runtimeLifecycle.attemptCount,
       recoveryReason: runtimeLifecycle.reason,
       resizePosture,
@@ -203,7 +211,7 @@ export default function ChatAgentAvatarVrmViewport({
       input.assetRef,
       input.posterUrl,
       networkAssetUrl,
-      pointerInteraction?.hovered,
+      attentionState?.active,
       resizePosture,
       resolvedViewportStatus.error,
       resolvedViewportStatus.status,
@@ -265,7 +273,7 @@ export default function ChatAgentAvatarVrmViewport({
     state.eyeOpen,
     state.mouthOpen,
     state.phase,
-    state.pointerInfluence,
+    state.attentionInfluence,
     state.posture,
     state.speakingEnergy,
     activeVrmResourceCounts,
@@ -323,6 +331,20 @@ export default function ChatAgentAvatarVrmViewport({
       observer.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (!viewportHostMetrics.renderable) {
+      return;
+    }
+    setLastRenderableFramingViewportSize((current) => (
+      current?.width === viewportHostMetrics.width && current?.height === viewportHostMetrics.height
+        ? current
+        : {
+            width: viewportHostMetrics.width,
+            height: viewportHostMetrics.height,
+          }
+    ));
+  }, [viewportHostMetrics.height, viewportHostMetrics.renderable, viewportHostMetrics.width]);
 
   useEffect(() => {
     if (!viewportHostMetrics.renderable) {
@@ -621,7 +643,7 @@ export default function ChatAgentAvatarVrmViewport({
       data-desktop-agent-vrm-viewport="true"
       data-avatar-vrm-status={resolvedViewportStatus.status}
       data-avatar-vrm-stage={diagnostic.stage}
-      data-avatar-pointer-hovered={pointerInteraction?.hovered ? 'true' : 'false'}
+      data-avatar-attention-active={attentionState?.active ? 'true' : 'false'}
     >
       {input.posterUrl ? (
         <img

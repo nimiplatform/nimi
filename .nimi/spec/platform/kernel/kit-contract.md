@@ -175,23 +175,23 @@ Fixed rules:
 
 ## P-KIT-074 — Desktop Pointer Interaction Consumer Boundary
 
-`kit/features/avatar` may consume desktop-resolved pointer-follow inputs for an active
-avatar surface, but it does not own desktop-local pointer intake or pointer-truth
+`kit/features/avatar` may consume desktop-resolved app-attention inputs for an active
+avatar surface, but it does not own desktop-local attention intake or attention-truth
 authority.
 
 Fixed rules:
 
-- kit avatar surfaces may consume already-resolved attention targets, hover
-  escalation, and bounded pointer-follow inputs, but they must not become the
-  canonical home for DOM pointer capture, stage-bound measurement, or desktop
-  smoothing / clamp policy
+- kit avatar surfaces may consume already-resolved attention targets,
+  continuous presence, and bounded app-attention-follow inputs, but they must
+  not become the canonical home for DOM pointer capture, app viewport
+  measurement, or desktop attention smoothing / clamp policy
 - backend-specific optional surfaces such as `/vrm` remain renderer seams only;
-  they must not become the semantic owner of pointer interaction truth,
-  speaking-vs-pointer precedence, or right-rail stop-line policy
+  they must not become the semantic owner of attention interaction truth,
+  speaking-vs-attention precedence, or surface stop-line policy
 - reusable kit contracts may expose admitted interaction-state fields needed by
-  consumers, but raw pointer vectors and hover-lifecycle ownership remain with
-  the consuming desktop surface unless a later platform authority explicitly
-  widens that boundary
+  consumers, but raw attention intake lifecycle ownership remains with the
+  consuming desktop shell unless a later platform authority explicitly widens
+  that boundary
 
 ## P-KIT-080 — Adapter Injection Contract
 

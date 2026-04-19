@@ -250,56 +250,57 @@ Fixed rules:
 - Live2D Wave 1 must remain an agent-presence surface rather than widening into a raw
   Cubism model viewer or backend-specific inspection tool
 
-## D-LLM-063 — Desktop Pointer Interaction Intake Boundary
+## D-LLM-063 — App Attention To Avatar Projection Boundary
 
-Desktop agent chat may admit bounded pointer interaction for the active avatar stage,
-but that interaction remains a desktop-local surface truth.
+Desktop agent avatar surfaces may consume shell-owned app-level attention, but
+the avatar surface owns the projection from that upstream attention into avatar
+consume semantics.
 
-The first admitted pointer signal set is limited to:
+The admitted avatar-side projection output is limited to:
 
-- `pointer_enter`
-- `pointer_leave`
-- `pointer_move_normalized`
+- active attention presence for the current app viewport
+- continuous attention presence strength for soft entry / exit degrade
+- normalized app-level attention vector
+- bounded escalation into `attentionTarget: 'pointer'` and subtle head / eye
+  attention bias
 
 Fixed rules:
 
-- `pointer_move_normalized` must remain stage-local and bounded to a normalized
-  symmetric range; it must not become runtime truth, cross-thread truth, or
-  generic chat behavior truth
-- desktop must own raw pointer intake and the derived right-rail-local pointer
-  interaction structure for the active avatar surface
-- the pointer interaction structure must remain a sibling desktop-local surface
-  layer that coexists with `AvatarInteractionState`; raw pointer coordinates and
-  hover booleans must not be smuggled into runtime-owned
+- raw app viewport attention intake remains owned by `ui-shell-contract.md`;
+  avatar surfaces must not reopen a second DOM pointer owner at card or
+  viewport level for the same canonical interaction line
+- avatar projection may narrow app attention into a bounded interaction object
+  for reusable consume, but it must not smuggle raw pointer coordinates,
+  viewport bounds, or shell-owned lifecycle events into runtime-owned
   `AgentPresentationProfile` truth or generic chat interaction-summary truth
-- the admitted pointer interaction output for Wave 1 is limited to hover
-  presence escalation, `attentionTarget: 'pointer'`, and bounded head / eye
-  attention bias
-- loss of valid stage bounds, surface teardown, thread switch, or agent switch
-  must deterministically clear active pointer interaction truth
+- avatar projection must remain one normalized surface contract shared across
+  current chat avatar placements and future backend consume; renderer backends
+  must not fork their own semantic attention owner
+- surface teardown, thread switch, agent switch, or loss of valid shell
+  attention input must deterministically clear active projected attention truth
 
-## D-LLM-064 — Pointer Precedence, Bounds, And Stop Line
+## D-LLM-064 — Avatar Attention Precedence, Bounds, And Stop Line
 
-Desktop pointer interaction must preserve avatar readability as an agent-presence
+Avatar attention projection must preserve readability as an agent-presence
 surface rather than widen into model-viewer behavior.
 
-Canonical precedence order for Wave 1 is:
+Canonical precedence order is:
 
-1. active-surface validation, bounds, and clamp rules
+1. active surface validity and fail-closed consume rules
 2. speaking / listening phase truth and lip-sync readability
-3. pointer-derived attention bias
+3. app-attention-derived head / eye bias
 4. idle breathing / ambient motion
 
 Fixed rules:
 
-- pointer interaction may bias gaze or head direction, but it must not override
+- app-level attention may bias gaze or head direction, but it must not override
   speaking / listening phase truth or make lip-sync unreadable
-- pointer leave must return the surface smoothly to idle or voice-led behavior;
-  pointer cues must not latch as persistent state
-- pointer-derived movement must remain subtle and bounded; unrestricted body
+- attention degrade must return the surface smoothly to idle or voice-led
+  behavior; attention cues must not latch as persistent state
+- attention-derived movement must remain subtle and bounded; unrestricted body
   rotation, unrestricted bone manipulation, or free camera responses are not
   admitted
-- the following remain explicitly deferred for Wave 1: click / poke reactions,
+- the following remain explicitly deferred: click / poke reactions,
   drag-to-rotate behavior, orbit camera or camera choreography, model-inspector
   style manipulation, and runtime ownership of pointer / gaze truth
 
@@ -314,4 +315,5 @@ Fixed rules:
 - `.nimi/local/report/ongoing/2026-04-15-agent-live-avatar-airi-audit/design.md` — topic-local avatar landing rationale
 - `.nimi/local/report/ongoing/2026-04-17-desktop-agent-local-avatar-resource-binding/design.md` — desktop-local avatar resource registry / binding authority rationale
 - `.nimi/local/report/proposal/2026-04-17-desktop-agent-live2d-render-integration/design.md` — Live2D backend admission, fallback, and ownership rationale
-- `.nimi/local/report/ongoing/2026-04-17-desktop-agent-vrm-pointer-interaction/design.md` — desktop-local pointer interaction ownership and stop-line rationale
+- `.nimi/local/report/closed/2026-04-17-desktop-agent-vrm-pointer-interaction/design.md` — stage-local pointer Wave 1 rationale now superseded by app-level attention redesign
+- `.nimi/local/report/ongoing/2026-04-19-desktop-app-level-avatar-attention-context/design.md` — app-level attention projection redesign rationale

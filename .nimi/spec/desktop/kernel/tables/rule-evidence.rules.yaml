@@ -1016,6 +1016,12 @@
     - desktop_kernel_consistency
     - desktop_spec_docs_drift_gate
     - desktop_design_contract_gate
+- rule_id: D-SHELL-033
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
 - rule_id: D-STATE-001
   status: covered
   evidence_refs:

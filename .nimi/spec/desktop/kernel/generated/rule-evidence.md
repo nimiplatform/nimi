@@ -218,6 +218,7 @@
 | `D-SHELL-030` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate` |
 | `D-SHELL-031` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate` |
 | `D-SHELL-032` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate` |
+| `D-SHELL-033` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate` |
 | `D-STATE-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STATE-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STATE-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
