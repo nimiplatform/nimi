@@ -6,6 +6,7 @@ import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { buildRuntimeRequestMetadata, ensureRuntimeLocalModelWarm, } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 import { LifecycleSubscriptionManager } from '@renderer/mod-ui/lifecycle/lifecycle-subscription-manager';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
 import { createModLocalProfileSnapshotResolver } from './runtime-bootstrap-host-capabilities-profiles';
@@ -15,6 +16,8 @@ import { describeRuntimeRouteMetadata } from './runtime-bootstrap-host-capabilit
 import { getRuntimeFieldsFromStore, hydrateLocalRouteBindingFromOptions, hydrateCloudRouteBindingFromOptions, requireModel, toResolvedBinding, toRouteHealthResult, } from './runtime-bootstrap-host-capabilities-routing';
 import {
     buildRuntimeAIConfigCapabilities,
+    buildRuntimeMemoryEmbeddingConfigCapabilities,
+    buildRuntimeMemoryEmbeddingRuntimeCapabilities,
     buildRuntimeAISnapshotCapabilities,
     buildRuntimeCompatibilityAdapters,
     buildRuntimeLocalCapabilities,
@@ -75,6 +78,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
     const hookRuntime = input.getRuntimeHookRuntime();
     const worldEvolution = createDesktopWorldEvolutionSelectorReadAdapter();
     const desktopAIConfigService = getDesktopAIConfigService();
+    const desktopMemoryEmbeddingConfigService = getDesktopMemoryEmbeddingConfigService();
     hookRuntime.setModLocalProfileSnapshotResolver(createModLocalProfileSnapshotResolver());
     const resolveRuntimeBinding = createResolveRuntimeBinding(() => getRuntimeFieldsFromStore());
     const resolvedBindingRegistry = new Map<string, {
@@ -313,6 +317,16 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                 authorizeRuntimeCapability,
                 desktopAIConfigService,
                 isCanonicalModAIScopeRef,
+                toCanonicalModScopeRef,
+            }),
+            memoryEmbeddingConfig: buildRuntimeMemoryEmbeddingConfigCapabilities({
+                authorizeRuntimeCapability,
+                desktopMemoryEmbeddingConfigService,
+                toCanonicalModScopeRef,
+            }),
+            memoryEmbeddingRuntime: buildRuntimeMemoryEmbeddingRuntimeCapabilities({
+                authorizeRuntimeCapability,
+                desktopMemoryEmbeddingConfigService,
                 toCanonicalModScopeRef,
             }),
             aiSnapshot: buildRuntimeAISnapshotCapabilities({

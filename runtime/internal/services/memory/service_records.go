@@ -103,7 +103,10 @@ func (s *Service) Recall(ctx context.Context, req *runtimev1.RecallRequest) (*ru
 		finalScore float64
 		reason     string
 	}
-	vectorScores := s.embeddingRecallScores(bankState.Bank, req.GetQuery().GetQuery())
+	vectorScores, err := s.embeddingRecallScores(ctx, bankState.Bank, req.GetQuery().GetQuery())
+	if err != nil {
+		return nil, err
+	}
 	ftsScores := s.ftsRecallScores(bankState.Bank, req.GetQuery().GetQuery())
 	recordFeedback := s.recallFeedbackBiases(locatorKey(bankState.Bank.GetLocator()), recallFeedbackTargetRecord, stateOrderIDs(bankState))
 	scored := make([]scoredHit, 0, len(records))

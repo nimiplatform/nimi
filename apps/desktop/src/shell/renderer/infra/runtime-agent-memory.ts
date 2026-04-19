@@ -1,5 +1,13 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  createDefaultAIScopeRef,
+  type AIScopeRef,
+  type MemoryEmbeddingConfig,
+  type MemoryEmbeddingConfigSurface,
+  type MemoryEmbeddingRuntimeState,
+  type MemoryEmbeddingRuntimeSurface,
+} from '@nimiplatform/sdk/mod';
+import {
   asNimiError,
   type AgentStateMutation,
   createRuntimeProtectedScopeHelper,
@@ -10,10 +18,9 @@ import {
   toProtoStruct,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { bindAgentMemoryStandard } from '@renderer/bridge/runtime-bridge/agent-memory';
+import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
 import { listLocalRuntimeAssets } from '@renderer/bridge/runtime-bridge/local-ai';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
-import type { AgentMemoryBindStandardResult } from '@renderer/bridge/runtime-bridge/types';
 
 export type DesktopAgentMemoryRecord = {
   actorRefs: Array<Record<string, never>>;
@@ -41,14 +48,22 @@ export type CanonicalMemoryBankStatus = {
   mode: CanonicalMemoryMode;
   bankId?: string;
   embeddingProfileModelId?: string;
+  bindingSourceKind?: 'cloud' | 'local';
+  blockedReasonCode?: string;
+  pendingCutover?: boolean;
 };
 
 type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];
+type DesktopMemoryEmbeddingConfigService = {
+  memoryEmbeddingConfig: MemoryEmbeddingConfigSurface;
+  memoryEmbeddingRuntime: MemoryEmbeddingRuntimeSurface;
+};
 
 type RuntimeAgentMemoryDeps = {
   getRuntime?: () => RuntimeClient;
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
-  bindStandard?: (payload: { agentId: string }) => Promise<AgentMemoryBindStandardResult>;
+  getMemoryEmbeddingConfigService?: () => DesktopMemoryEmbeddingConfigService;
+  getMemoryEmbeddingScopeRef?: () => AIScopeRef;
   listLocalRuntimeAssets?: typeof listLocalRuntimeAssets;
   now?: () => Date;
 };
@@ -187,6 +202,18 @@ function isRuntimeAuthInvalid(error: unknown): boolean {
     || normalizeText(normalized.message).toUpperCase().includes('AUTH_TOKEN_INVALID');
 }
 
+function hasMemoryEmbeddingBindingIntent(config: MemoryEmbeddingConfig): boolean {
+  return Boolean(config.sourceKind && config.bindingRef);
+}
+
+function isStandardCanonicalBankStatus(value: string | undefined): boolean {
+  const normalized = normalizeText(value);
+  return normalized === 'bound_equivalent'
+    || normalized === 'bound_profile_mismatch'
+    || normalized === 'rebuild_pending'
+    || normalized === 'cutover_ready';
+}
+
 export function summarizeCanonicalMemoryView(view: CanonicalMemoryView): string {
   const payload = view.record?.payload;
   switch (payload?.oneofKind) {
@@ -244,7 +271,10 @@ export function canonicalMemoryViewToDesktopRecord(view: CanonicalMemoryView): D
 
 export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {}) {
   const getRuntime = deps.getRuntime ?? (() => getPlatformClient().runtime);
-  const bindStandard = deps.bindStandard ?? ((payload: { agentId: string }) => bindAgentMemoryStandard(payload));
+  const getMemoryEmbeddingConfigService = deps.getMemoryEmbeddingConfigService
+    ?? (() => getDesktopMemoryEmbeddingConfigService());
+  const getMemoryEmbeddingScopeRef = deps.getMemoryEmbeddingScopeRef
+    ?? (() => createDefaultAIScopeRef());
   const listAssets = deps.listLocalRuntimeAssets ?? listLocalRuntimeAssets;
   const now = deps.now ?? (() => new Date());
   let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
@@ -391,6 +421,164 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
     }
   };
 
+  const readCanonicalBankMetadata = async (agentId: string): Promise<{
+    bankId?: string;
+    embeddingProfileModelId?: string;
+  }> => {
+    const runtime = getRuntime();
+    const subjectUserId = await resolveSubjectUserId();
+    const context = {
+      appId: runtime.appId,
+      subjectUserId,
+    };
+    const locator = {
+      scope: MemoryBankScope.AGENT_CORE,
+      owner: {
+        oneofKind: 'agentCore' as const,
+        agentCore: {
+          agentId,
+        },
+      },
+    };
+    const response = await getProtectedAccess().withScopes(['runtime.memory.read'], (options) => runtime.memory.getBank({
+      context,
+      locator,
+    }, options));
+    const bank = response.bank;
+    return {
+      bankId: normalizeText(bank?.bankId) || undefined,
+      embeddingProfileModelId: normalizeText(bank?.embeddingProfile?.modelId) || undefined,
+    };
+  };
+
+  const getLegacyCanonicalBankStatus = async (agentId: string): Promise<CanonicalMemoryBankStatus> => {
+    try {
+      const metadata = await readCanonicalBankMetadata(agentId);
+      if (metadata.embeddingProfileModelId) {
+        return {
+          mode: 'standard',
+          bankId: metadata.bankId,
+          embeddingProfileModelId: metadata.embeddingProfileModelId,
+        };
+      }
+      if (await hasActiveEmbeddingAsset()) {
+        return {
+          mode: 'baseline',
+          bankId: metadata.bankId,
+        };
+      }
+      return {
+        mode: 'unavailable',
+        bankId: metadata.bankId,
+      };
+    } catch (error) {
+      if (isRuntimeMemoryUnavailable(error)) {
+        return { mode: 'unavailable' };
+      }
+      if (isRuntimeAuthInvalid(error)) {
+        try {
+          const smokeContext = await getDesktopMacosSmokeContext();
+          if (smokeContext.enabled && smokeContext.scenarioId === 'chat.memory-standard-bind') {
+            return { mode: 'baseline' };
+          }
+        } catch {
+          // Ignore smoke context lookup failure and fall back to the real runtime error.
+        }
+      }
+      if (!isRuntimeNotFound(error)) {
+        throw error;
+      }
+      return (await hasActiveEmbeddingAsset())
+        ? { mode: 'baseline' }
+        : { mode: 'unavailable' };
+    }
+  };
+
+  const getMemoryEmbeddingRuntimeInput = (agentId: string) => ({
+    scopeRef: getMemoryEmbeddingScopeRef(),
+    targetRef: {
+      kind: 'agent-core' as const,
+      agentId,
+    },
+  });
+
+  const deriveCanonicalBankStatus = async (
+    agentId: string,
+    state: MemoryEmbeddingRuntimeState,
+    config: MemoryEmbeddingConfig,
+  ): Promise<CanonicalMemoryBankStatus> => {
+    let metadata: { bankId?: string; embeddingProfileModelId?: string } = {};
+    try {
+      metadata = await readCanonicalBankMetadata(agentId);
+    } catch (error) {
+      if (!isRuntimeNotFound(error) && !isRuntimeMemoryUnavailable(error)) {
+        throw error;
+      }
+    }
+
+    if (metadata.embeddingProfileModelId || isStandardCanonicalBankStatus(state.canonicalBankStatus)) {
+      return {
+        mode: 'standard',
+        bankId: metadata.bankId,
+        embeddingProfileModelId: metadata.embeddingProfileModelId || state.resolvedProfileIdentity || undefined,
+        bindingSourceKind: state.bindingSourceKind || undefined,
+        blockedReasonCode: normalizeText(state.blockedReasonCode || '') || undefined,
+        pendingCutover: state.canonicalBankStatus === 'rebuild_pending'
+          || state.canonicalBankStatus === 'cutover_ready',
+      };
+    }
+
+    if (state.resolutionState === 'resolved') {
+      return {
+        mode: 'baseline',
+        bankId: metadata.bankId,
+        bindingSourceKind: state.bindingSourceKind || undefined,
+      };
+    }
+
+    if (!hasMemoryEmbeddingBindingIntent(config) && await hasActiveEmbeddingAsset()) {
+      return {
+        mode: 'baseline',
+        bankId: metadata.bankId,
+        bindingSourceKind: 'local',
+      };
+    }
+
+    return {
+      mode: 'unavailable',
+      bankId: metadata.bankId,
+      bindingSourceKind: state.bindingSourceKind || undefined,
+      blockedReasonCode: normalizeText(state.blockedReasonCode || '') || undefined,
+    };
+  };
+
+  const ensureDefaultMemoryEmbeddingBinding = async (scopeRef: AIScopeRef): Promise<MemoryEmbeddingConfig> => {
+    const memoryEmbeddingService = getMemoryEmbeddingConfigService();
+    const current = memoryEmbeddingService.memoryEmbeddingConfig.get(scopeRef);
+    if (hasMemoryEmbeddingBindingIntent(current)) {
+      return current;
+    }
+    let first: { assetId?: string; localAssetId?: string } | undefined;
+    try {
+      first = (await listAssets({ kind: 'embedding', status: 'active' }))[0];
+    } catch {
+      return current;
+    }
+    const targetId = normalizeText(first?.assetId) || normalizeText(first?.localAssetId);
+    if (!targetId) {
+      return current;
+    }
+    memoryEmbeddingService.memoryEmbeddingConfig.update(scopeRef, {
+      ...current,
+      sourceKind: 'local',
+      bindingRef: {
+        kind: 'local',
+        targetId,
+      },
+    });
+    return memoryEmbeddingService.memoryEmbeddingConfig.get(scopeRef);
+  };
+
   return {
     ensureSession,
 
@@ -401,65 +589,14 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       if (!normalizedAgentID) {
         throw new Error('AGENT_ID_REQUIRED');
       }
-      const runtime = getRuntime();
-      const subjectUserId = await resolveSubjectUserId();
-      const context = {
-        appId: runtime.appId,
-        subjectUserId,
-      };
-      const locator = {
-        scope: MemoryBankScope.AGENT_CORE,
-        owner: {
-          oneofKind: 'agentCore' as const,
-          agentCore: {
-            agentId: normalizedAgentID,
-          },
-        },
-      };
-
       try {
-        const response = await getProtectedAccess().withScopes(['runtime.memory.read'], (options) => runtime.memory.getBank({
-          context,
-          locator,
-        }, options));
-        const bank = response.bank;
-        if (bank?.embeddingProfile?.modelId) {
-          return {
-            mode: 'standard',
-            bankId: normalizeText(bank.bankId) || undefined,
-            embeddingProfileModelId: normalizeText(bank.embeddingProfile.modelId) || undefined,
-          };
-        }
-        if (await hasActiveEmbeddingAsset()) {
-          return {
-            mode: 'baseline',
-            bankId: normalizeText(bank?.bankId) || undefined,
-          };
-        }
-        return {
-          mode: 'unavailable',
-          bankId: normalizeText(bank?.bankId) || undefined,
-        };
-      } catch (error) {
-        if (isRuntimeMemoryUnavailable(error)) {
-          return { mode: 'unavailable' };
-        }
-        if (isRuntimeAuthInvalid(error)) {
-          try {
-            const smokeContext = await getDesktopMacosSmokeContext();
-            if (smokeContext.enabled && smokeContext.scenarioId === 'chat.memory-standard-bind') {
-              return { mode: 'baseline' };
-            }
-          } catch {
-            // Ignore smoke context lookup failure and fall back to the real runtime error.
-          }
-        }
-        if (!isRuntimeNotFound(error)) {
-          throw error;
-        }
-        return (await hasActiveEmbeddingAsset())
-          ? { mode: 'baseline' }
-          : { mode: 'unavailable' };
+        const memoryEmbeddingService = getMemoryEmbeddingConfigService();
+        const runtimeInput = getMemoryEmbeddingRuntimeInput(normalizedAgentID);
+        const config = memoryEmbeddingService.memoryEmbeddingConfig.get(runtimeInput.scopeRef);
+        const state = await memoryEmbeddingService.memoryEmbeddingRuntime.inspect(runtimeInput);
+        return deriveCanonicalBankStatus(normalizedAgentID, state, config);
+      } catch {
+        return getLegacyCanonicalBankStatus(normalizedAgentID);
       }
     },
 
@@ -475,18 +612,14 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       if (!normalizedAgentID) {
         throw new Error('AGENT_ID_REQUIRED');
       }
-      const result = await bindStandard({ agentId: normalizedAgentID });
-      const bank = result.bank || {};
-      const embeddingProfile = (
-        typeof bank.embeddingProfile === 'object' && bank.embeddingProfile
-          ? bank.embeddingProfile as Record<string, unknown>
-          : {}
-      );
-      return {
-        mode: normalizeText(String(embeddingProfile.modelId || '')) ? 'standard' : 'baseline',
-        bankId: normalizeText(String(bank.bankId || '')) || undefined,
-        embeddingProfileModelId: normalizeText(String(embeddingProfile.modelId || '')) || undefined,
-      };
+      const memoryEmbeddingService = getMemoryEmbeddingConfigService();
+      const runtimeInput = getMemoryEmbeddingRuntimeInput(normalizedAgentID);
+      await ensureDefaultMemoryEmbeddingBinding(runtimeInput.scopeRef);
+      const bindResult = await memoryEmbeddingService.memoryEmbeddingRuntime.requestBind(runtimeInput);
+      if (bindResult.outcome === 'staged_rebuild' || bindResult.pendingCutover) {
+        await memoryEmbeddingService.memoryEmbeddingRuntime.requestCutover(runtimeInput);
+      }
+      return this.getCanonicalBankStatus(normalizedAgentID);
     },
 
     async writeDyadicObservation(input: RuntimeDyadicObservationInput): Promise<CanonicalMemoryView[]> {

@@ -20,6 +20,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/httpserver"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
 // Daemon wires runtime servers and health state lifecycle.
@@ -96,7 +97,16 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 		listEmbeddingAssetsFn:    listEmbeddingAssets,
 		providerFailureHints:     map[string]string{},
 	}
-	d.http = httpserver.New(cfg.HTTPAddr, state, logger, grpcServer.AIHealthTracker(), d.bindCanonicalMemoryStandard)
+	d.http = httpserver.New(
+		cfg.HTTPAddr,
+		state,
+		logger,
+		grpcServer.AIHealthTracker(),
+		d.bindCanonicalMemoryStandard,
+		d.inspectMemoryEmbeddingForAgent,
+		d.requestMemoryEmbeddingBindForAgent,
+		d.requestMemoryEmbeddingCutoverForAgent,
+	)
 	return d, nil
 }
 
@@ -381,6 +391,135 @@ func (d *Daemon) bindCanonicalMemoryStandard(ctx context.Context, agentID string
 		AlreadyBound: false,
 		Bank:         bound,
 	}, nil
+}
+
+func memoryEmbeddingIntentSnapshotFromHTTP(input *httpserver.MemoryEmbeddingBindingIntentSnapshot) *memoryservice.MemoryEmbeddingBindingIntentSnapshot {
+	if input == nil {
+		return nil
+	}
+	return &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
+		SourceKind: memoryservice.MemoryEmbeddingBindingSourceKind(strings.TrimSpace(input.SourceKind)),
+		CloudBinding: func() *memoryservice.MemoryEmbeddingCloudBindingRef {
+			if input.CloudBinding == nil {
+				return nil
+			}
+			return &memoryservice.MemoryEmbeddingCloudBindingRef{
+				ConnectorID: strings.TrimSpace(input.CloudBinding.ConnectorID),
+				ModelID:     strings.TrimSpace(input.CloudBinding.ModelID),
+			}
+		}(),
+		LocalBinding: func() *memoryservice.MemoryEmbeddingLocalBindingRef {
+			if input.LocalBinding == nil {
+				return nil
+			}
+			return &memoryservice.MemoryEmbeddingLocalBindingRef{
+				LocalModelID: strings.TrimSpace(input.LocalBinding.TargetID),
+			}
+		}(),
+		RevisionToken: strings.TrimSpace(input.RevisionToken),
+	}
+}
+
+func agentCoreLocator(agentID string) *runtimev1.MemoryBankLocator {
+	return &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: strings.TrimSpace(agentID)},
+		},
+	}
+}
+
+func (d *Daemon) inspectMemoryEmbeddingForAgent(ctx context.Context, req httpserver.MemoryEmbeddingAgentRequest) (httpserver.MemoryEmbeddingInspectResult, error) {
+	memorySvc := d.grpc.MemoryService()
+	if memorySvc == nil {
+		return httpserver.MemoryEmbeddingInspectResult{}, fmt.Errorf("memory service is unavailable")
+	}
+	if err := d.refreshManagedEmbeddingProfile(ctx); err != nil {
+		return httpserver.MemoryEmbeddingInspectResult{}, err
+	}
+	state, err := memorySvc.InspectMemoryEmbeddingState(ctx, memoryservice.InspectMemoryEmbeddingStateRequest{
+		Locator:               agentCoreLocator(req.TargetRef.AgentID),
+		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromHTTP(req.BindingIntentSnapshot),
+	})
+	if err != nil {
+		return httpserver.MemoryEmbeddingInspectResult{}, err
+	}
+	result := httpserver.MemoryEmbeddingInspectResult{
+		BindingIntentPresent:    state.BindingIntentPresent,
+		BindingSourceKind:       strings.TrimSpace(string(state.BindingSourceKind)),
+		ResolutionState:         strings.TrimSpace(state.ResolutionState),
+		ResolvedProfileIdentity: memoryserviceProfileIdentity(state.ResolvedProfileIdentity),
+		CanonicalBankStatus:     strings.TrimSpace(state.CanonicalBankStatus),
+		BlockedReasonCode:       reasonCodeString(state.BlockedReasonCode),
+	}
+	result.OperationReadiness.BindAllowed = state.OperationReadiness.BindAllowed
+	result.OperationReadiness.CutoverAllowed = state.OperationReadiness.CutoverAllowed
+	return result, nil
+}
+
+func (d *Daemon) requestMemoryEmbeddingBindForAgent(ctx context.Context, req httpserver.MemoryEmbeddingAgentRequest) (httpserver.MemoryEmbeddingBindResult, error) {
+	memorySvc := d.grpc.MemoryService()
+	if memorySvc == nil {
+		return httpserver.MemoryEmbeddingBindResult{}, fmt.Errorf("memory service is unavailable")
+	}
+	if err := d.refreshManagedEmbeddingProfile(ctx); err != nil {
+		return httpserver.MemoryEmbeddingBindResult{}, err
+	}
+	result, err := memorySvc.RequestCanonicalMemoryEmbeddingBind(ctx, memoryservice.RequestCanonicalMemoryEmbeddingBindRequest{
+		Locator:               agentCoreLocator(req.TargetRef.AgentID),
+		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromHTTP(req.BindingIntentSnapshot),
+	})
+	if err != nil {
+		return httpserver.MemoryEmbeddingBindResult{}, err
+	}
+	return httpserver.MemoryEmbeddingBindResult{
+		Outcome:                  strings.TrimSpace(result.Outcome),
+		BlockedReasonCode:        reasonCodeString(result.BlockedReasonCode),
+		CanonicalBankStatusAfter: strings.TrimSpace(result.CanonicalBankStatusAfter),
+		PendingCutover:           result.PendingCutover,
+	}, nil
+}
+
+func (d *Daemon) requestMemoryEmbeddingCutoverForAgent(ctx context.Context, req httpserver.MemoryEmbeddingAgentRequest) (httpserver.MemoryEmbeddingCutoverResult, error) {
+	memorySvc := d.grpc.MemoryService()
+	if memorySvc == nil {
+		return httpserver.MemoryEmbeddingCutoverResult{}, fmt.Errorf("memory service is unavailable")
+	}
+	if err := d.refreshManagedEmbeddingProfile(ctx); err != nil {
+		return httpserver.MemoryEmbeddingCutoverResult{}, err
+	}
+	result, err := memorySvc.RequestMemoryEmbeddingCutover(ctx, memoryservice.RequestMemoryEmbeddingCutoverRequest{
+		Locator:               agentCoreLocator(req.TargetRef.AgentID),
+		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromHTTP(req.BindingIntentSnapshot),
+	})
+	if err != nil {
+		return httpserver.MemoryEmbeddingCutoverResult{}, err
+	}
+	return httpserver.MemoryEmbeddingCutoverResult{
+		Outcome:                  strings.TrimSpace(result.Outcome),
+		BlockedReasonCode:        reasonCodeString(result.BlockedReasonCode),
+		CanonicalBankStatusAfter: strings.TrimSpace(result.CanonicalBankStatusAfter),
+	}, nil
+}
+
+func reasonCodeString(value runtimev1.ReasonCode) string {
+	if value == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return ""
+	}
+	return value.String()
+}
+
+func memoryserviceProfileIdentity(profile *runtimev1.MemoryEmbeddingProfile) string {
+	if profile == nil {
+		return ""
+	}
+	version := strings.TrimSpace(profile.GetVersion())
+	modelID := strings.TrimSpace(profile.GetModelId())
+	provider := strings.TrimSpace(profile.GetProvider())
+	if version != "" {
+		return strings.TrimSpace(strings.Join([]string{provider, modelID, version}, ":"))
+	}
+	return strings.TrimSpace(strings.Join([]string{provider, modelID}, ":"))
 }
 
 func waitForShutdownDrain(ctx context.Context, timeout time.Duration) {

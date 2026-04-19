@@ -51,6 +51,11 @@ import type {
   AISchedulingJudgement,
   AIScopeRef,
   AISnapshot,
+  MemoryEmbeddingBindResult,
+  MemoryEmbeddingConfig,
+  MemoryEmbeddingCutoverResult,
+  MemoryEmbeddingRuntimeInput,
+  MemoryEmbeddingRuntimeState,
 } from './ai-config.js';
 
 export type ModRuntimeResolvedBinding = {
@@ -358,6 +363,16 @@ export type ModRuntimeClient = {
     record(scopeRef: AIScopeRef, snapshot: AISnapshot): void;
     get(executionId: string): AISnapshot | null;
     getLatest(scopeRef: AIScopeRef): AISnapshot | null;
+  };
+  memoryEmbeddingConfig: {
+    get(scopeRef: AIScopeRef): MemoryEmbeddingConfig;
+    update(scopeRef: AIScopeRef, config: MemoryEmbeddingConfig): void;
+    subscribe(scopeRef: AIScopeRef, callback: (config: MemoryEmbeddingConfig) => void): () => void;
+  };
+  memoryEmbeddingRuntime: {
+    inspect(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingRuntimeState>;
+    requestBind(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingBindResult>;
+    requestCutover(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingCutoverResult>;
   };
   ai: {
     text: {

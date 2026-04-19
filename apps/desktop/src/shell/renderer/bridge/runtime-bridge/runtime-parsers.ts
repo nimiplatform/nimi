@@ -21,6 +21,9 @@ import type {
   CatalogState,
   CatalogTrustTier,
   AgentMemoryBindStandardResult,
+  MemoryEmbeddingRuntimeBindResult,
+  MemoryEmbeddingRuntimeCutoverResult,
+  MemoryEmbeddingRuntimeInspectResult,
   DesktopMacosSmokeContext,
   DesktopMacosSmokeReportResult,
   ConfirmPrivateSyncResult,
@@ -543,6 +546,67 @@ export function parseAgentMemoryBindStandardResult(value: unknown): AgentMemoryB
   return {
     alreadyBound: Boolean(record.alreadyBound),
     bank: parseOptionalJsonObject(record.bank) || {},
+  };
+}
+
+export function parseMemoryEmbeddingRuntimeInspectResult(value: unknown): MemoryEmbeddingRuntimeInspectResult {
+  const record = assertRecord(value, 'memory_embedding_runtime_inspect returned invalid payload');
+  const readiness = assertRecord(
+    record.operationReadiness,
+    'memory_embedding_runtime_inspect operationReadiness payload is invalid',
+  );
+  return {
+    bindingIntentPresent: Boolean(record.bindingIntentPresent),
+    bindingSourceKind: (() => {
+      const value = parseOptionalString(record.bindingSourceKind);
+      return value === 'cloud' || value === 'local' ? value : undefined;
+    })(),
+    resolutionState: parseRequiredString(
+      record.resolutionState,
+      'resolutionState',
+      'memory_embedding_runtime_inspect',
+    ),
+    resolvedProfileIdentity: parseOptionalString(record.resolvedProfileIdentity),
+    canonicalBankStatus: parseRequiredString(
+      record.canonicalBankStatus,
+      'canonicalBankStatus',
+      'memory_embedding_runtime_inspect',
+    ),
+    blockedReasonCode: parseOptionalString(record.blockedReasonCode),
+    operationReadiness: {
+      bindAllowed: Boolean(readiness.bindAllowed),
+      cutoverAllowed: Boolean(readiness.cutoverAllowed),
+    },
+    traceId: parseOptionalString(record.traceId),
+  };
+}
+
+export function parseMemoryEmbeddingRuntimeBindResult(value: unknown): MemoryEmbeddingRuntimeBindResult {
+  const record = assertRecord(value, 'memory_embedding_runtime_request_bind returned invalid payload');
+  return {
+    outcome: parseRequiredString(record.outcome, 'outcome', 'memory_embedding_runtime_request_bind'),
+    blockedReasonCode: parseOptionalString(record.blockedReasonCode),
+    canonicalBankStatusAfter: parseRequiredString(
+      record.canonicalBankStatusAfter,
+      'canonicalBankStatusAfter',
+      'memory_embedding_runtime_request_bind',
+    ),
+    pendingCutover: Boolean(record.pendingCutover),
+    traceId: parseOptionalString(record.traceId),
+  };
+}
+
+export function parseMemoryEmbeddingRuntimeCutoverResult(value: unknown): MemoryEmbeddingRuntimeCutoverResult {
+  const record = assertRecord(value, 'memory_embedding_runtime_request_cutover returned invalid payload');
+  return {
+    outcome: parseRequiredString(record.outcome, 'outcome', 'memory_embedding_runtime_request_cutover'),
+    blockedReasonCode: parseOptionalString(record.blockedReasonCode),
+    canonicalBankStatusAfter: parseRequiredString(
+      record.canonicalBankStatusAfter,
+      'canonicalBankStatusAfter',
+      'memory_embedding_runtime_request_cutover',
+    ),
+    traceId: parseOptionalString(record.traceId),
   };
 }
 

@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"sort"
 	"strconv"
 	"strings"
@@ -11,6 +13,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+const memoryMetadataFieldEmbeddingGenerationID = "_runtime_embedding_generation_id"
 
 func sortBanks(items []*runtimev1.MemoryBank) {
 	sort.Slice(items, func(i, j int) bool {
@@ -100,14 +104,68 @@ func cloneBankState(input *bankState) *bankState {
 		return nil
 	}
 	out := &bankState{
-		Bank:    cloneBank(input.Bank),
-		Records: make(map[string]*runtimev1.MemoryRecord, len(input.Records)),
-		Order:   append([]string(nil), input.Order...),
+		Bank:                    cloneBank(input.Bank),
+		Records:                 make(map[string]*runtimev1.MemoryRecord, len(input.Records)),
+		Order:                   append([]string(nil), input.Order...),
+		PendingEmbeddingCutover: clonePendingEmbeddingCutoverState(input.PendingEmbeddingCutover),
 	}
 	for key, record := range input.Records {
 		out.Records[key] = cloneRecord(record)
 	}
 	return out
+}
+
+func clonePendingEmbeddingCutoverState(input *pendingEmbeddingCutoverState) *pendingEmbeddingCutoverState {
+	if input == nil {
+		return nil
+	}
+	return &pendingEmbeddingCutoverState{
+		GenerationID:      strings.TrimSpace(input.GenerationID),
+		TargetProfile:     cloneEmbeddingProfile(input.TargetProfile),
+		RevisionToken:     strings.TrimSpace(input.RevisionToken),
+		ReadyForCutover:   input.ReadyForCutover,
+		BlockedReasonCode: input.BlockedReasonCode,
+	}
+}
+
+func ensureStruct(input *structpb.Struct) *structpb.Struct {
+	if input != nil {
+		if input.Fields == nil {
+			input.Fields = make(map[string]*structpb.Value)
+		}
+		return input
+	}
+	return &structpb.Struct{Fields: make(map[string]*structpb.Value)}
+}
+
+func currentEmbeddingGenerationID(bank *runtimev1.MemoryBank) string {
+	if bank == nil {
+		return ""
+	}
+	return firstStringFromStruct(bank.GetMetadata(), memoryMetadataFieldEmbeddingGenerationID)
+}
+
+func setCurrentEmbeddingGenerationID(bank *runtimev1.MemoryBank, generationID string) {
+	if bank == nil {
+		return
+	}
+	trimmed := strings.TrimSpace(generationID)
+	metadata := ensureStruct(cloneStruct(bank.GetMetadata()))
+	if trimmed == "" {
+		delete(metadata.Fields, memoryMetadataFieldEmbeddingGenerationID)
+	} else {
+		metadata.Fields[memoryMetadataFieldEmbeddingGenerationID] = structpb.NewStringValue(trimmed)
+	}
+	bank.Metadata = metadata
+}
+
+func embeddingGenerationID(seed string) string {
+	trimmed := strings.TrimSpace(seed)
+	if trimmed == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(trimmed))
+	return "megen_" + hex.EncodeToString(sum[:8])
 }
 
 func clampPageSize(raw int32, fallback int, max int) int {

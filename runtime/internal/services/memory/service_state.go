@@ -26,6 +26,7 @@ const (
 	memoryMetaLegacyImportSourceSHA256Key        = "legacy_import_source_sha256"
 	memoryMetaLegacyImportSourceSchemaVersionKey = "legacy_import_source_schema_version"
 	memoryMetaLegacyImportedAtKey                = "legacy_imported_at"
+	memoryMetaPendingEmbeddingCutoverPrefix      = "pending_embedding_cutover:"
 )
 
 func (s *Service) bankForLocator(locator *runtimev1.MemoryBankLocator) (*bankState, error) {
@@ -301,9 +302,10 @@ func (s *Service) persistLockedWithTxHook(txHook persistTxHook) error {
 			recordRaws = append(recordRaws, recordRaw)
 		}
 		snapshot.Banks = append(snapshot.Banks, persistedBankState{
-			LocatorKey: key,
-			Bank:       bankRaw,
-			Records:    recordRaws,
+			LocatorKey:              key,
+			Bank:                    bankRaw,
+			Records:                 recordRaws,
+			PendingEmbeddingCutover: marshalPendingEmbeddingCutoverForPersist(state.PendingEmbeddingCutover),
 		})
 	}
 	backlogKeys := make([]string, 0, len(s.replicationBacklog))
@@ -466,6 +468,9 @@ func (s *Service) loadStateFromDB() error {
 		}
 		s.sequence = value
 	}
+	if err := s.loadPendingEmbeddingCutoverStateFromDB(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -477,6 +482,9 @@ func (s *Service) persistSnapshotWithTxHook(snapshot persistedMemoryState, txHoo
 	if s.backend == nil {
 		return nil
 	}
+	managedProfile := cloneEmbeddingProfile(s.managedEmbeddingProfile)
+	hasResolver := s.runtimeEmbeddingResolver != nil
+	executor := s.runtimeEmbeddingExecutor
 	return s.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
 		if _, err := tx.Exec(`DELETE FROM memory_record_fts`); err != nil {
 			return fmt.Errorf("clear memory_record_fts: %w", err)
@@ -521,8 +529,11 @@ func (s *Service) persistSnapshotWithTxHook(snapshot persistedMemoryState, txHoo
 				`, record.GetMemoryId(), item.LocatorKey, searchText, searchTokens); err != nil {
 					return fmt.Errorf("insert memory_record_fts %s: %w", record.GetMemoryId(), err)
 				}
-				if bank.GetEmbeddingProfile() != nil && embeddingProfilesMatch(s.managedEmbeddingProfile, bank.GetEmbeddingProfile()) {
-					vector := computeEmbeddingVectorForRecord(&record, bank.GetEmbeddingProfile().GetDimension())
+				if bank.GetEmbeddingProfile() != nil && embeddingAvailableForProfileWithState(bank.GetEmbeddingProfile(), managedProfile, hasResolver) {
+					vector, err := embeddingVectorWithExecutor(context.Background(), executor, bank.GetEmbeddingProfile(), strings.TrimSpace(strings.Join([]string{recordContent(&record), recordContext(&record)}, " ")))
+					if err != nil {
+						return fmt.Errorf("compute memory_record_embedding %s: %w", record.GetMemoryId(), err)
+					}
 					if _, err := tx.Exec(`
 						INSERT OR REPLACE INTO memory_record_embedding(memory_id, locator_key, dimension, vector_json, updated_at)
 						VALUES (?, ?, ?, ?, ?)
@@ -550,6 +561,25 @@ func (s *Service) persistSnapshotWithTxHook(snapshot persistedMemoryState, txHoo
 		if txHook != nil {
 			if err := txHook(context.Background(), tx); err != nil {
 				return err
+			}
+		}
+		if _, err := tx.Exec(`DELETE FROM memory_meta WHERE key LIKE ?`, memoryMetaPendingEmbeddingCutoverPrefix+"%"); err != nil {
+			return fmt.Errorf("clear pending embedding cutover meta: %w", err)
+		}
+		for _, item := range snapshot.Banks {
+			if item.PendingEmbeddingCutover == nil {
+				continue
+			}
+			raw, err := json.Marshal(item.PendingEmbeddingCutover)
+			if err != nil {
+				return fmt.Errorf("marshal pending embedding cutover %s: %w", item.LocatorKey, err)
+			}
+			if _, err := tx.Exec(`
+				INSERT INTO memory_meta(key, value)
+				VALUES (?, ?)
+				ON CONFLICT(key) DO UPDATE SET value=excluded.value
+			`, pendingEmbeddingCutoverMetaKey(item.LocatorKey), string(raw)); err != nil {
+				return fmt.Errorf("insert pending embedding cutover %s: %w", item.LocatorKey, err)
 			}
 		}
 		if _, err := tx.Exec(`INSERT INTO memory_meta(key, value) VALUES ('state_initialized','1') ON CONFLICT(key) DO UPDATE SET value=excluded.value`); err != nil {
@@ -587,6 +617,90 @@ func (s *Service) markMemoryStateInitialized(sequence uint64) error {
 		}
 		return nil
 	})
+}
+
+func pendingEmbeddingCutoverMetaKey(locatorKey string) string {
+	return memoryMetaPendingEmbeddingCutoverPrefix + strings.TrimSpace(locatorKey)
+}
+
+func marshalPendingEmbeddingCutoverForPersist(input *pendingEmbeddingCutoverState) *persistedPendingEmbeddingCutoverRef {
+	if input == nil || input.TargetProfile == nil {
+		return nil
+	}
+	raw, err := protojson.Marshal(input.TargetProfile)
+	if err != nil {
+		return nil
+	}
+	return &persistedPendingEmbeddingCutoverRef{
+		GenerationID:      strings.TrimSpace(input.GenerationID),
+		TargetProfile:     raw,
+		RevisionToken:     strings.TrimSpace(input.RevisionToken),
+		ReadyForCutover:   input.ReadyForCutover,
+		BlockedReasonCode: strings.TrimSpace(input.BlockedReasonCode.String()),
+	}
+}
+
+func unmarshalPendingEmbeddingCutoverFromPersist(input *persistedPendingEmbeddingCutoverRef) (*pendingEmbeddingCutoverState, error) {
+	if input == nil {
+		return nil, nil
+	}
+	var profile runtimev1.MemoryEmbeddingProfile
+	if err := protojson.Unmarshal(input.TargetProfile, &profile); err != nil {
+		return nil, fmt.Errorf("unmarshal pending target profile: %w", err)
+	}
+	blockedReason := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	if raw := strings.TrimSpace(input.BlockedReasonCode); raw != "" {
+		value, ok := runtimev1.ReasonCode_value[raw]
+		if !ok {
+			return nil, fmt.Errorf("decode pending blocked reason code: %s", raw)
+		}
+		blockedReason = runtimev1.ReasonCode(value)
+	}
+	return &pendingEmbeddingCutoverState{
+		GenerationID:      strings.TrimSpace(input.GenerationID),
+		TargetProfile:     cloneEmbeddingProfile(&profile),
+		RevisionToken:     strings.TrimSpace(input.RevisionToken),
+		ReadyForCutover:   input.ReadyForCutover,
+		BlockedReasonCode: blockedReason,
+	}, nil
+}
+
+func (s *Service) loadPendingEmbeddingCutoverStateFromDB() error {
+	if s.backend == nil {
+		return nil
+	}
+	rows, err := s.backend.DB().Query(`
+		SELECT key, value
+		FROM memory_meta
+		WHERE key LIKE ?
+		ORDER BY key
+	`, memoryMetaPendingEmbeddingCutoverPrefix+"%")
+	if err != nil {
+		return fmt.Errorf("load pending embedding cutover state: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var key string
+		var raw string
+		if err := rows.Scan(&key, &raw); err != nil {
+			return fmt.Errorf("scan pending embedding cutover state: %w", err)
+		}
+		locatorKeyValue := strings.TrimPrefix(strings.TrimSpace(key), memoryMetaPendingEmbeddingCutoverPrefix)
+		state := s.banks[locatorKeyValue]
+		if state == nil {
+			continue
+		}
+		var persisted persistedPendingEmbeddingCutoverRef
+		if err := json.Unmarshal([]byte(raw), &persisted); err != nil {
+			return fmt.Errorf("unmarshal pending embedding cutover state %s: %w", locatorKeyValue, err)
+		}
+		pending, err := unmarshalPendingEmbeddingCutoverFromPersist(&persisted)
+		if err != nil {
+			return fmt.Errorf("decode pending embedding cutover state %s: %w", locatorKeyValue, err)
+		}
+		state.PendingEmbeddingCutover = pending
+	}
+	return rows.Err()
 }
 
 func (s *Service) validateImportedSnapshot(snapshot persistedMemoryState) error {

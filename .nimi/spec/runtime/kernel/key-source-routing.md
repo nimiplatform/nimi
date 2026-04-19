@@ -120,3 +120,22 @@ K-KEYSRC-004 step 9 的 `model_id` 校验按路径分行为：
 - 匹配后模型不可用（非 `ACTIVE` 状态）时，返回 `AI_LOCAL_MODEL_UNAVAILABLE`。
 
 `model_id` 为空或缺失时，必须返回 `INVALID_ARGUMENT` + `AI_MODEL_ID_REQUIRED`。
+
+## K-KEYSRC-011 Memory Embedding Cloud Binding Resolution Boundary
+
+Desktop-host-owned memory embedding live config 若选择 `cloud` source，其 remote
+binding resolution 必须复用 managed connector 路径语义，而不是发明第二套凭据路径。
+
+固定规则：
+
+- admitted cloud binding shape 必须至少包含 `connector_id + model_id`
+- host 持久化的 memory embedding config 不得使用 inline credential metadata、
+  inline endpoint、或任何 escape-hatch secret shape
+- runtime 在解析 cloud memory embedding binding 时，必须沿用 managed connector
+  的 owner/status/credential/endpoint 安全校验，而不是跳过到 provider-specific
+  shortcut
+- 若 `connector_id` 指向 local connector、无效 connector、或 owner/status 校验
+  不通过，则该 cloud binding 必须 fail-close
+- 本规则只冻结 remote credential/routing legality；resolved embedding profile、
+  readiness、以及 canonical bank bind / cutover 结果仍由 runtime memory authority
+  决定

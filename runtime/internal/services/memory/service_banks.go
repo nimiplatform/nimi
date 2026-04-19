@@ -45,6 +45,14 @@ func (s *Service) CreateBank(ctx context.Context, req *runtimev1.CreateBankReque
 		CreatedAt:           timestamppb.New(now),
 		UpdatedAt:           timestamppb.New(now),
 	}
+	if bank.GetEmbeddingProfile() != nil {
+		setCurrentEmbeddingGenerationID(bank, embeddingGenerationID(strings.Join([]string{
+			"create",
+			strings.TrimSpace(locatorKey(locator)),
+			memoryEmbeddingProfileIdentity(bank.GetEmbeddingProfile()),
+			now.Format(time.RFC3339Nano),
+		}, "|")))
+	}
 
 	event := &runtimev1.MemoryEvent{
 		EventType: runtimev1.MemoryEventType_MEMORY_EVENT_TYPE_BANK_CREATED,

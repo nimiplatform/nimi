@@ -375,6 +375,76 @@ export type AgentMemoryBindStandardResult = {
   bank: JsonObject;
 };
 
+export type MemoryEmbeddingScopeRef = {
+  kind: string;
+  ownerId: string;
+  surfaceId?: string;
+};
+
+export type MemoryEmbeddingRuntimeTargetRef = {
+  kind: 'agent-core';
+  agentId: string;
+};
+
+export type MemoryEmbeddingBindingIntentSnapshot = {
+  sourceKind?: 'cloud' | 'local';
+  cloudBinding?: {
+    connectorId: string;
+    modelId: string;
+  };
+  localBinding?: {
+    targetId: string;
+  };
+  revisionToken?: string;
+};
+
+export type MemoryEmbeddingRuntimeInspectPayload = {
+  scopeRef: MemoryEmbeddingScopeRef;
+  targetRef: MemoryEmbeddingRuntimeTargetRef;
+  bindingIntentSnapshot?: MemoryEmbeddingBindingIntentSnapshot;
+};
+
+export type MemoryEmbeddingRuntimeInspectResult = {
+  bindingIntentPresent: boolean;
+  bindingSourceKind?: 'cloud' | 'local';
+  resolutionState: 'missing' | 'resolved' | 'unresolved' | 'unavailable' | string;
+  resolvedProfileIdentity?: string;
+  canonicalBankStatus: 'unbound' | 'bound_equivalent' | 'bound_profile_mismatch' | 'rebuild_pending' | 'cutover_ready' | string;
+  blockedReasonCode?: string;
+  operationReadiness: {
+    bindAllowed: boolean;
+    cutoverAllowed: boolean;
+  };
+  traceId?: string;
+};
+
+export type MemoryEmbeddingRuntimeBindPayload = {
+  scopeRef: MemoryEmbeddingScopeRef;
+  targetRef: MemoryEmbeddingRuntimeTargetRef;
+  bindingIntentSnapshot?: MemoryEmbeddingBindingIntentSnapshot;
+};
+
+export type MemoryEmbeddingRuntimeBindResult = {
+  outcome: 'bound' | 'already_bound' | 'staged_rebuild' | 'rejected' | string;
+  blockedReasonCode?: string;
+  canonicalBankStatusAfter: 'unbound' | 'bound_equivalent' | 'bound_profile_mismatch' | 'rebuild_pending' | 'cutover_ready' | string;
+  pendingCutover: boolean;
+  traceId?: string;
+};
+
+export type MemoryEmbeddingRuntimeCutoverPayload = {
+  scopeRef: MemoryEmbeddingScopeRef;
+  targetRef: MemoryEmbeddingRuntimeTargetRef;
+  bindingIntentSnapshot?: MemoryEmbeddingBindingIntentSnapshot;
+};
+
+export type MemoryEmbeddingRuntimeCutoverResult = {
+  outcome: 'cutover_committed' | 'already_current' | 'not_ready' | 'rejected' | string;
+  blockedReasonCode?: string;
+  canonicalBankStatusAfter: 'unbound' | 'bound_equivalent' | 'bound_profile_mismatch' | 'rebuild_pending' | 'cutover_ready' | string;
+  traceId?: string;
+};
+
 export type DesktopMacosSmokeContext = {
   enabled: boolean;
   scenarioId?: string;

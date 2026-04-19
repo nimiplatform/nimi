@@ -35,7 +35,7 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 	if err := tracker.Mark("cloud-dashscope", false, "timeout"); err != nil {
 		t.Fatalf("Mark unhealthy provider: %v", err)
 	}
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker, nil)
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker, nil, nil, nil, nil)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/v1/runtime/health", nil)
@@ -79,7 +79,7 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 func TestHandleRuntimeHealthReturnsUnavailableWhenNotReady(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusDegraded, "warming")
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil, nil, nil)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/v1/runtime/health", nil)
@@ -92,7 +92,7 @@ func TestHandleRuntimeHealthReturnsUnavailableWhenNotReady(t *testing.T) {
 
 func TestHandleRuntimeHealthRejectsNonReadMethods(t *testing.T) {
 	state := health.NewState()
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil, nil, nil)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/v1/runtime/health", nil)
@@ -121,7 +121,7 @@ func TestAllowReadMethodRejectsNilRequests(t *testing.T) {
 }
 
 func TestNewSetsMaxHeaderBytes(t *testing.T) {
-	server := New("127.0.0.1:0", health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
+	server := New("127.0.0.1:0", health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil, nil, nil)
 	if got := server.http.MaxHeaderBytes; got != 1<<16 {
 		t.Fatalf("max header bytes mismatch: got=%d want=%d", got, 1<<16)
 	}
@@ -130,7 +130,7 @@ func TestNewSetsMaxHeaderBytes(t *testing.T) {
 func TestDiagnosticEndpointsExposeExpectedStatusesAndHeaders(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusDegraded, "warming")
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil, nil, nil)
 
 	testCases := []struct {
 		name       string
@@ -166,7 +166,7 @@ func TestHandleCanonicalBindRejectsNonLoopbackRequests(t *testing.T) {
 	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, func(context.Context, string) (CanonicalBindResult, error) {
 		t.Fatal("bind handler should not run for non-loopback request")
 		return CanonicalBindResult{}, nil
-	})
+	}, nil, nil, nil)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/v1/runtime/private/memory/canonical-bind", strings.NewReader(`{"agentId":"agent-1"}`))
@@ -195,7 +195,7 @@ func TestHandleCanonicalBindReturnsBoundBank(t *testing.T) {
 				},
 			},
 		}, nil
-	})
+	}, nil, nil, nil)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/v1/runtime/private/memory/canonical-bind", strings.NewReader(`{"agentId":"agent-1"}`))

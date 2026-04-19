@@ -34,7 +34,8 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "$HOME/.nimi/data/avatar-resources/resources/**"
+          "$HOME/.nimi/data/avatar-resources/resources/**",
+          "$HOME/.nimi/data/chat-agent-backdrops/assets/**"
         ]
       },
       "csp": "default-src 'self' ipc:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: asset: http://asset.localhost; media-src 'self' data: blob: file: asset: http://asset.localhost; font-src 'self' data: asset: http://asset.localhost; connect-src 'self' https: asset: http://asset.localhost http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*;"

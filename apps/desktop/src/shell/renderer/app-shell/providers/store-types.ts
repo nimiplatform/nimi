@@ -18,7 +18,7 @@ import type {
 } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type { OfflineTier } from '@runtime/offline/types.js';
 import type {
-  AiConversationSelection,
+  NimiConversationSelection,
   AgentConversationSelection,
   ChatSetupStateByMode,
   LastSelectedThreadByMode,
@@ -114,7 +114,7 @@ export type AppStoreState = {
   selectedTargetBySource: SelectedTargetBySource;
   viewModeBySourceTarget: ViewModeBySourceTarget;
   lastSelectedThreadByMode: LastSelectedThreadByMode;
-  aiConversationSelection: AiConversationSelection;
+  nimiConversationSelection: NimiConversationSelection;
   agentConversationSelection: AgentConversationSelection;
   chatSetupState: ChatSetupStateByMode;
   selectedChatId: string | null;
@@ -180,7 +180,7 @@ export type AppStoreState = {
     mode: ConversationViewMode,
   ) => void;
   setLastSelectedThreadForMode: (mode: ConversationMode, threadId: string | null) => void;
-  setAiConversationSelection: (selection: AiConversationSelection) => void;
+  setNimiConversationSelection: (selection: NimiConversationSelection) => void;
   setAgentConversationSelection: (selection: AgentConversationSelection) => void;
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
   setSelectedChatId: (chatId: string | null) => void;

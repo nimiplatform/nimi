@@ -9,6 +9,8 @@ import {
   assertCanonicalModAIScopeRef,
   type AIConfig,
   type AIScopeRef,
+  type MemoryEmbeddingConfig,
+  type MemoryEmbeddingRuntimeInput,
 } from './ai-config.js';
 export { createModRuntimeInspector } from './inspector.js';
 export {
@@ -53,9 +55,28 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
     assertCanonicalModAIScopeRef(scopeRef, normalizedModId);
   const getAIConfigBridge = () => requireRuntimeHostBridge(runtimeHost.aiConfig, 'aiConfig');
   const getAISnapshotBridge = () => requireRuntimeHostBridge(runtimeHost.aiSnapshot, 'aiSnapshot');
+  const getMemoryEmbeddingConfigBridge = () => requireRuntimeHostBridge(runtimeHost.memoryEmbeddingConfig, 'memoryEmbeddingConfig');
+  const getMemoryEmbeddingRuntimeBridge = () => requireRuntimeHostBridge(runtimeHost.memoryEmbeddingRuntime, 'memoryEmbeddingRuntime');
   const normalizeScopedConfig = (scopeRef: AIScopeRef, config: AIConfig): AIConfig => ({
     ...config,
     scopeRef,
+  });
+  const normalizeScopedMemoryEmbeddingConfig = (
+    scopeRef: AIScopeRef,
+    config: MemoryEmbeddingConfig,
+  ): MemoryEmbeddingConfig => ({
+    ...config,
+    scopeRef,
+  });
+  const normalizeMemoryEmbeddingRuntimeInput = (
+    input: MemoryEmbeddingRuntimeInput,
+  ): MemoryEmbeddingRuntimeInput => ({
+    ...input,
+    scopeRef: getCanonicalScopeRef(input.scopeRef),
+    targetRef: {
+      ...input.targetRef,
+      agentId: String(input.targetRef?.agentId || '').trim(),
+    },
   });
 
   return {
@@ -157,6 +178,39 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
       getLatest: (scopeRef) => getAISnapshotBridge().getLatest({
         modId: normalizedModId,
         scopeRef: getCanonicalScopeRef(scopeRef),
+      }),
+    },
+    memoryEmbeddingConfig: {
+      get: (scopeRef) => getMemoryEmbeddingConfigBridge().get({
+        modId: normalizedModId,
+        scopeRef: getCanonicalScopeRef(scopeRef),
+      }),
+      update: (scopeRef, config) => {
+        const canonicalScopeRef = getCanonicalScopeRef(scopeRef);
+        getMemoryEmbeddingConfigBridge().update({
+          modId: normalizedModId,
+          scopeRef: canonicalScopeRef,
+          config: normalizeScopedMemoryEmbeddingConfig(canonicalScopeRef, config),
+        });
+      },
+      subscribe: (scopeRef, callback) => getMemoryEmbeddingConfigBridge().subscribe({
+        modId: normalizedModId,
+        scopeRef: getCanonicalScopeRef(scopeRef),
+        callback,
+      }),
+    },
+    memoryEmbeddingRuntime: {
+      inspect: async (input) => getMemoryEmbeddingRuntimeBridge().inspect({
+        modId: normalizedModId,
+        request: normalizeMemoryEmbeddingRuntimeInput(input),
+      }),
+      requestBind: async (input) => getMemoryEmbeddingRuntimeBridge().requestBind({
+        modId: normalizedModId,
+        request: normalizeMemoryEmbeddingRuntimeInput(input),
+      }),
+      requestCutover: async (input) => getMemoryEmbeddingRuntimeBridge().requestCutover({
+        modId: normalizedModId,
+        request: normalizeMemoryEmbeddingRuntimeInput(input),
       }),
     },
     ai: {

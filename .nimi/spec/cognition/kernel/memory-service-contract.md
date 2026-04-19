@@ -63,6 +63,8 @@ Fixed rules:
 
 - memory service does not own runtime provider routing, embedding bridge,
   replication truth, canonical review scheduling, or runtime event streaming
+- memory service does not own editable memory embedding live config, resolved
+  runtime embedding state, bank identity, or bank migration / cutover truth
 - standalone memory may expose lifecycle and history semantics, but that does
   not make it a runtime replication owner
 - runtime-facing republication of overlapping memory semantics must route

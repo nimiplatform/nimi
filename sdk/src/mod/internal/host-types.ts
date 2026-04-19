@@ -70,6 +70,11 @@ import type {
   AISchedulingJudgement,
   AIScopeRef,
   AISnapshot,
+  MemoryEmbeddingBindResult,
+  MemoryEmbeddingConfig,
+  MemoryEmbeddingCutoverResult,
+  MemoryEmbeddingRuntimeInput,
+  MemoryEmbeddingRuntimeState,
 } from '../runtime/ai-config.js';
 import type {
   WorldEvolutionCheckpointSelector,
@@ -320,7 +325,21 @@ export type ModSdkHost = {
     get: (input: { modId: string; executionId: string }) => AISnapshot | null;
     getLatest: (input: { modId: string; scopeRef: AIScopeRef }) => AISnapshot | null;
   };
-    ai: {
+  memoryEmbeddingConfig: {
+    get: (input: { modId: string; scopeRef: AIScopeRef }) => MemoryEmbeddingConfig;
+    update: (input: { modId: string; scopeRef: AIScopeRef; config: MemoryEmbeddingConfig }) => void;
+    subscribe: (input: {
+      modId: string;
+      scopeRef: AIScopeRef;
+      callback: (config: MemoryEmbeddingConfig) => void;
+    }) => () => void;
+  };
+  memoryEmbeddingRuntime: {
+    inspect: (input: { modId: string; request: MemoryEmbeddingRuntimeInput }) => Promise<MemoryEmbeddingRuntimeState>;
+    requestBind: (input: { modId: string; request: MemoryEmbeddingRuntimeInput }) => Promise<MemoryEmbeddingBindResult>;
+    requestCutover: (input: { modId: string; request: MemoryEmbeddingRuntimeInput }) => Promise<MemoryEmbeddingCutoverResult>;
+  };
+  ai: {
       text: {
         generate: (input: ModRuntimeBoundTextGenerateInput & { modId: string }) => Promise<TextGenerateOutput>;
         stream: (input: ModRuntimeBoundTextStreamInput & { modId: string }) => Promise<TextStreamOutput>;

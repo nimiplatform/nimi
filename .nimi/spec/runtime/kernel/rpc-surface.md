@@ -192,6 +192,8 @@ RPC 面。
 - public surface 只暴露 Nimi-owned typed contract；provider-native API truth、
   cognition internal storage、以及 runtime-private review/bank/replication
   truth 均不得外露
+- memory embedding editable config 不属于 `RuntimeCognitionService` public
+  method family；其 live-config read/write owner 仍在 host-local typed surface
 - `Working memory` 不属于 `RuntimeCognitionService` 方法范围
 - public app-facing 路径只服务 infra scopes；canonical scopes 通过
   runtime-private typed path 由 runtime-owned owner 消费
@@ -199,6 +201,9 @@ RPC 面。
   仍由 `RuntimeAgentCoreService` 与 retained runtime-private memory depth 拥有
 - absorbed memory/knowledge 方法族必须保留 fail-close 语义；不得以
   adapter-first 方式重新引入 dual-owner public surface
+- host product 若需要 memory embedding resolved state、canonical bind、rebuild、
+  或 cutover command，必须通过 host bridge 映射到 runtime-private typed path；
+  这不构成新增 `RuntimeCognitionService` public methods 的 admission
 
 最小 access matrix：
 

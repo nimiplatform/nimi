@@ -7,7 +7,7 @@ import {
 } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT } from '@renderer/features/chat/chat-agent-live-avatar-rail-model';
+import { CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT } from '@renderer/features/chat/chat-agent-avatar-stage-model';
 import {
   type DesktopMacosSmokeCanvasStats,
   type DesktopMacosSmokeDriverDeps,

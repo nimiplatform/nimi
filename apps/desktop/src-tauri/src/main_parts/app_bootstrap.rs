@@ -1,7 +1,8 @@
 use super::*;
 use crate::{
-    chat_agent_store, chat_ai_store, desktop_agent_avatar_store, desktop_release, desktop_updates,
-    external_agent_gateway, local_runtime, menu_bar_shell, runtime_bridge, runtime_mod,
+    chat_agent_store, chat_ai_store, desktop_agent_avatar_store, desktop_agent_backdrop_store,
+    desktop_release, desktop_updates, external_agent_gateway, local_runtime, menu_bar_shell,
+    runtime_bridge, runtime_mod,
 };
 
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
@@ -273,6 +274,9 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::oauth_token_exchange,
             super::defaults_and_commands::oauth_listen_for_code,
             super::defaults_and_commands::runtime_agent_memory::agent_memory_bind_standard,
+            super::defaults_and_commands::runtime_memory_embedding::memory_embedding_runtime_inspect,
+            super::defaults_and_commands::runtime_memory_embedding::memory_embedding_runtime_request_bind,
+            super::defaults_and_commands::runtime_memory_embedding::memory_embedding_runtime_request_cutover,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_context_get,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_report_write,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_ping,
@@ -358,6 +362,10 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             chat_agent_store::chat_agent_commit_turn_result,
             chat_agent_store::chat_agent_cancel_turn,
             chat_agent_store::chat_agent_rebuild_projection,
+            desktop_agent_backdrop_store::desktop_agent_backdrop_pick_image,
+            desktop_agent_backdrop_store::desktop_agent_backdrop_get_binding,
+            desktop_agent_backdrop_store::desktop_agent_backdrop_import,
+            desktop_agent_backdrop_store::desktop_agent_backdrop_clear,
             desktop_agent_avatar_store::desktop_agent_avatar_resource_pick_vrm,
             desktop_agent_avatar_store::desktop_agent_avatar_resource_pick_live2d,
             desktop_agent_avatar_store::desktop_agent_avatar_resource_import_vrm,

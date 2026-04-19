@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
@@ -103,6 +104,50 @@ func computeEmbeddingVector(raw string, dimension int32) []float64 {
 	return vector
 }
 
+func (s *Service) embeddingVector(ctx context.Context, profile *runtimev1.MemoryEmbeddingProfile, raw string) ([]float64, error) {
+	vectors, err := s.embeddingVectors(ctx, profile, []string{raw})
+	if err != nil {
+		return nil, err
+	}
+	if len(vectors) == 0 {
+		return nil, nil
+	}
+	return vectors[0], nil
+}
+
+func (s *Service) embeddingVectors(ctx context.Context, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
+	return embeddingVectorsWithExecutor(ctx, s.runtimeEmbeddingVectorExecutor(), profile, raws)
+}
+
+func embeddingVectorWithExecutor(ctx context.Context, executor MemoryEmbeddingVectorExecutor, profile *runtimev1.MemoryEmbeddingProfile, raw string) ([]float64, error) {
+	vectors, err := embeddingVectorsWithExecutor(ctx, executor, profile, []string{raw})
+	if err != nil {
+		return nil, err
+	}
+	if len(vectors) == 0 {
+		return nil, nil
+	}
+	return vectors[0], nil
+}
+
+func embeddingVectorsWithExecutor(ctx context.Context, executor MemoryEmbeddingVectorExecutor, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
+	if len(raws) == 0 {
+		return nil, nil
+	}
+	if profile != nil && executor != nil {
+		return executor(ctx, cloneEmbeddingProfile(profile), append([]string(nil), raws...))
+	}
+	out := make([][]float64, 0, len(raws))
+	dimension := int32(0)
+	if profile != nil {
+		dimension = profile.GetDimension()
+	}
+	for _, raw := range raws {
+		out = append(out, computeEmbeddingVector(raw, dimension))
+	}
+	return out, nil
+}
+
 func cosineSimilarity(left []float64, right []float64) float64 {
 	if len(left) == 0 || len(left) != len(right) {
 		return 0
@@ -161,12 +206,20 @@ func deleteMissingEmbeddings(tx *sql.Tx, liveRecordIDs map[string]struct{}) erro
 }
 
 func (s *Service) embeddingAvailableForProfile(profile *runtimev1.MemoryEmbeddingProfile) bool {
+	s.mu.RLock()
+	managed := cloneEmbeddingProfile(s.managedEmbeddingProfile)
+	hasResolver := s.runtimeEmbeddingResolver != nil
+	s.mu.RUnlock()
+	return embeddingAvailableForProfileWithState(profile, managed, hasResolver)
+}
+
+func embeddingAvailableForProfileWithState(profile *runtimev1.MemoryEmbeddingProfile, managed *runtimev1.MemoryEmbeddingProfile, hasResolver bool) bool {
 	if profile == nil {
 		return false
 	}
-	s.mu.RLock()
-	managed := cloneEmbeddingProfile(s.managedEmbeddingProfile)
-	s.mu.RUnlock()
+	if hasResolver {
+		return true
+	}
 	return embeddingProfilesMatch(managed, profile)
 }
 

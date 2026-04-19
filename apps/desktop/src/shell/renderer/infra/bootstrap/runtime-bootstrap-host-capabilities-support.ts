@@ -22,6 +22,7 @@ import { readManifestProfiles } from './runtime-bootstrap-host-capabilities-prof
 
 type RuntimeClient = ReturnType<typeof import('@nimiplatform/sdk').getPlatformClient>['runtime'];
 type DesktopAIConfigService = ReturnType<typeof import('@renderer/app-shell/providers/desktop-ai-config-service').getDesktopAIConfigService>;
+type DesktopMemoryEmbeddingConfigService = ReturnType<typeof import('@renderer/app-shell/providers/desktop-memory-embedding-config-service').getDesktopMemoryEmbeddingConfigService>;
 
 type AuthorizeRuntimeCapability = (payload: {
   modId: string;
@@ -348,6 +349,90 @@ export function buildRuntimeAISnapshotCapabilities(input: {
       });
       return input.desktopAIConfigService.aiSnapshot.getLatest(
         input.toCanonicalModScopeRef(scopeRef, modId),
+      );
+    },
+  };
+}
+
+export function buildRuntimeMemoryEmbeddingConfigCapabilities(input: {
+  authorizeRuntimeCapability: AuthorizeRuntimeCapability;
+  desktopMemoryEmbeddingConfigService: DesktopMemoryEmbeddingConfigService;
+  toCanonicalModScopeRef: (scopeRef: AIScopeRef | null | undefined, modId: string) => AIScopeRef;
+}): ModSdkHost['runtime']['memoryEmbeddingConfig'] {
+  return {
+    get: ({ modId, scopeRef }) => {
+      input.authorizeRuntimeCapability({
+        modId,
+        capabilityKey: 'runtime.memory-embedding-config.get',
+      });
+      return input.desktopMemoryEmbeddingConfigService.memoryEmbeddingConfig.get(
+        input.toCanonicalModScopeRef(scopeRef, modId),
+      );
+    },
+    update: ({ modId, scopeRef, config }) => {
+      input.authorizeRuntimeCapability({
+        modId,
+        capabilityKey: 'runtime.memory-embedding-config.update',
+      });
+      const canonicalScopeRef = input.toCanonicalModScopeRef(scopeRef, modId);
+      input.desktopMemoryEmbeddingConfigService.memoryEmbeddingConfig.update(canonicalScopeRef, {
+        ...config,
+        scopeRef: canonicalScopeRef,
+      });
+    },
+    subscribe: ({ modId, scopeRef, callback }) => {
+      input.authorizeRuntimeCapability({
+        modId,
+        capabilityKey: 'runtime.memory-embedding-config.subscribe',
+      });
+      return input.desktopMemoryEmbeddingConfigService.memoryEmbeddingConfig.subscribe(
+        input.toCanonicalModScopeRef(scopeRef, modId),
+        callback,
+      );
+    },
+  };
+}
+
+export function buildRuntimeMemoryEmbeddingRuntimeCapabilities(input: {
+  authorizeRuntimeCapability: AuthorizeRuntimeCapability;
+  desktopMemoryEmbeddingConfigService: DesktopMemoryEmbeddingConfigService;
+  toCanonicalModScopeRef: (scopeRef: AIScopeRef | null | undefined, modId: string) => AIScopeRef;
+}): ModSdkHost['runtime']['memoryEmbeddingRuntime'] {
+  return {
+    inspect: ({ modId, request }) => {
+      input.authorizeRuntimeCapability({
+        modId,
+        capabilityKey: 'runtime.memory-embedding-runtime.inspect',
+      });
+      return input.desktopMemoryEmbeddingConfigService.memoryEmbeddingRuntime.inspect(
+        {
+          ...request,
+          scopeRef: input.toCanonicalModScopeRef(request.scopeRef, modId),
+        },
+      );
+    },
+    requestBind: ({ modId, request }) => {
+      input.authorizeRuntimeCapability({
+        modId,
+        capabilityKey: 'runtime.memory-embedding-runtime.bind',
+      });
+      return input.desktopMemoryEmbeddingConfigService.memoryEmbeddingRuntime.requestBind(
+        {
+          ...request,
+          scopeRef: input.toCanonicalModScopeRef(request.scopeRef, modId),
+        },
+      );
+    },
+    requestCutover: ({ modId, request }) => {
+      input.authorizeRuntimeCapability({
+        modId,
+        capabilityKey: 'runtime.memory-embedding-runtime.cutover',
+      });
+      return input.desktopMemoryEmbeddingConfigService.memoryEmbeddingRuntime.requestCutover(
+        {
+          ...request,
+          scopeRef: input.toCanonicalModScopeRef(request.scopeRef, modId),
+        },
       );
     },
   };

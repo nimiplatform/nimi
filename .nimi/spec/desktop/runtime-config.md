@@ -80,6 +80,25 @@ Connector 凭据路由：AI 请求凭据通过 `connector_id` 路由（K-KEYSRC-
 - restart-required 行为：`D-IPC-003`
 - removed legacy runtime config surface：`D-ERR-009` 与上游 runtime config contract
 
+### Memory Embedding Config Editor Boundary
+
+Runtime Config 是 Desktop host live config 的 authority editor，不是 runtime
+memory execution truth owner。
+
+对 memory embedding config，Runtime Config 的固定边界为：
+
+- Runtime Config 可以展示并编辑 Desktop-host-owned memory embedding adjacent
+  live config
+- 该 config 只表达 user-selected source / binding intent；不表达 resolved
+  profile、bind success、bank identity、migration readiness、或 cutover completion
+- Runtime Config 必须通过 admitted typed Desktop-host surface 读写这份 live
+  config；不得把 renderer-local form state、private loopback HTTP、或本地资产启发式当成 canonical truth
+- Runtime Config 对 runtime memory resolved state、bank availability、bind /
+  rebuild / cutover readiness 的读取，必须通过 admitted typed host/runtime
+  boundary；不得本地重算一份 memory mode truth
+- 现有 private loopback convenience path（例如 canonical-bind 之类的
+  endpoint）不得被 Runtime Config 长成正式产品 contract
+
 ### Security (D-SEC-001)
 
 本地端点回环限制：仅允许 `localhost`、`127.0.0.1`、`[::1]`。

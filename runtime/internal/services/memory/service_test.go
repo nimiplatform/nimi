@@ -136,6 +136,109 @@ func TestMemoryServiceCreateRetainRecallDelete(t *testing.T) {
 
 }
 
+func TestMemoryServiceRecallUsesInjectedEmbeddingExecutor(t *testing.T) {
+	t.Parallel()
+
+	svc, err := New(nil, config.Config{
+		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	profile := &runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "local/embed-memory-test",
+		Dimension:       2,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "local/embed-memory-test@v1",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	}
+	svc.SetManagedEmbeddingProfile(profile)
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, _ *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
+		out := make([][]float64, 0, len(inputs))
+		for _, input := range inputs {
+			lower := strings.ToLower(strings.TrimSpace(input))
+			switch {
+			case strings.Contains(lower, "needle"), strings.Contains(lower, "beta"):
+				out = append(out, []float64{1, 0})
+			case strings.Contains(lower, "alpha"):
+				out = append(out, []float64{0, 1})
+			default:
+				out = append(out, []float64{0.5, 0.5})
+			}
+		}
+		return out, nil
+	})
+
+	ctx := context.Background()
+	createResp, err := svc.CreateBank(ctx, &runtimev1.CreateBankRequest{
+		Context: &runtimev1.MemoryRequestContext{AppId: "app.embed.test"},
+		Locator: &runtimev1.PublicMemoryBankLocator{
+			Locator: &runtimev1.PublicMemoryBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.AppPrivateBankOwner{
+					AccountId: "acct-embed",
+					AppId:     "app.embed.test",
+				},
+			},
+		},
+		DisplayName:      "Embedding Test Bank",
+		EmbeddingProfile: cloneEmbeddingProfile(profile),
+	})
+	if err != nil {
+		t.Fatalf("CreateBank: %v", err)
+	}
+
+	retainResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: createResp.GetBank().GetLocator(),
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+				Payload: &runtimev1.MemoryRecordInput_Semantic{
+					Semantic: &runtimev1.SemanticMemoryRecord{
+						Subject:   "Alpha",
+						Predicate: "stores",
+						Object:    "Document",
+					},
+				},
+			},
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+				Payload: &runtimev1.MemoryRecordInput_Semantic{
+					Semantic: &runtimev1.SemanticMemoryRecord{
+						Subject:   "Beta",
+						Predicate: "stores",
+						Object:    "Document",
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	if len(retainResp.GetRecords()) != 2 {
+		t.Fatalf("expected 2 retained records, got %d", len(retainResp.GetRecords()))
+	}
+
+	recallResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+		Bank: createResp.GetBank().GetLocator(),
+		Query: &runtimev1.MemoryRecallQuery{
+			Query: "needle",
+			Limit: 2,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Recall: %v", err)
+	}
+	if len(recallResp.GetHits()) < 2 {
+		t.Fatalf("expected 2 recall hits, got %d", len(recallResp.GetHits()))
+	}
+	top := recallResp.GetHits()[0].GetRecord()
+	if top == nil || !strings.Contains(strings.ToLower(top.String()), "beta") {
+		t.Fatalf("expected injected embedding executor to rank beta first, got %#v", top)
+	}
+}
+
 func TestMemoryServiceRetainSemanticDedupReusesExistingRecordOnEligibleBank(t *testing.T) {
 	t.Parallel()
 

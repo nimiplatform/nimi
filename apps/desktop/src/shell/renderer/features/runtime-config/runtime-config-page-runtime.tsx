@@ -15,6 +15,7 @@ import { ExternalAgentAccessPanel } from './runtime-config-external-agent-access
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import { localSpeechReasonSummary } from './runtime-config-model-center-utils';
+import { RuntimeConfigMemoryEmbeddingSection } from './runtime-config-memory-embedding-section';
 import { Button, Card, DaemonStatusBadge, Input, StatusBadge } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
 
@@ -154,6 +155,8 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
 
   return (
     <RuntimePageShell>
+      <RuntimeConfigMemoryEmbeddingSection state={state} />
+
       {/* Endpoint */}
       <section>
         <SectionTitle description={t('runtimeConfig.runtime.localEndpointDescription', { defaultValue: 'Local runtime endpoint configuration.' })}>

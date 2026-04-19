@@ -3,6 +3,7 @@
 use nimi_kit_shell_tauri::auth_session_commands;
 mod chat_agent_store;
 mod chat_ai_store;
+mod desktop_agent_backdrop_store;
 mod desktop_agent_avatar_store;
 mod desktop_e2e_fixture;
 mod desktop_paths;

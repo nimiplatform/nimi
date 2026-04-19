@@ -86,6 +86,22 @@ func sourceMemoryInvalidationCascadeHook(locator *runtimev1.MemoryBankLocator, m
 	}
 }
 
+func clearNarrativeEmbeddingsForLocatorHook(locator *runtimev1.MemoryBankLocator) persistTxHook {
+	bankLocatorKey := locatorKey(locator)
+	if bankLocatorKey == "" {
+		return nil
+	}
+	return func(ctx context.Context, tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `
+			DELETE FROM memory_narrative_embedding
+			WHERE locator_key = ?
+		`, bankLocatorKey); err != nil {
+			return fmt.Errorf("delete memory_narrative_embedding rows for cutover: %w", err)
+		}
+		return nil
+	}
+}
+
 func updateNarrativeCascadeState(ctx context.Context, tx *sql.Tx, bankLocatorKey string, narrativeIDs []string, status string, now string) error {
 	ids := uniqueTrimmedStrings(narrativeIDs)
 	if tx == nil || bankLocatorKey == "" || len(ids) == 0 {

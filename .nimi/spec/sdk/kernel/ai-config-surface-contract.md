@@ -28,6 +28,40 @@ SDK AI config surface 固定分为以下 logical operation 类别：
 - `aiConfig.listScopes()` — 列出已知 scope 集合
 - 上述 config read / write 适用于 app / mod / module / feature scope；mod-facing consumer 不得以 ad hoc settings object、route override store、domain payload field 取代该 formal surface。
 
+### Adjacent live config
+
+- SDK host surface 可暴露与 `AIConfig` 相邻但不属于 `AIConfig.capabilities` 的
+  typed adjacent live config family
+- memory embedding 是第一类 admitted adjacent live config
+- 对 memory embedding，host-facing logical family 至少允许：
+  - `memoryEmbeddingConfig.get(scopeRef)` — 读取当前 user-editable config intent
+  - `memoryEmbeddingConfig.update(scopeRef, patch)` — 更新 user-editable config
+    intent
+  - `memoryEmbeddingConfig.subscribe(scopeRef, callback)` — 订阅该 adjacent
+    config 的 host-local 变化
+- 该 family 只拥有 host-local editable config truth；不得返回或持久化 resolved
+  embedding profile、bank bind result、migration state、或 cutover outcome
+
+### Runtime-owned memory state / operation projection
+
+- SDK host surface 可以为 memory embedding 暴露与 runtime 交互的 typed logical
+  projection/command family，但这不是 daemon public RPC parity 要求
+- 对 memory embedding，host-facing logical family 至少允许：
+  - `memoryEmbeddingRuntime.inspect(input)` — 读取 runtime-resolved state、
+    availability、以及 bind / cutover readiness
+  - `memoryEmbeddingRuntime.requestBind(input)` — 请求 runtime 执行 canonical
+    bind
+  - `memoryEmbeddingRuntime.requestCutover(input)` — 当 admitted runtime
+    policy 要求 rebuild / generation cutover 时，请求执行 explicit cutover
+- 当 runtime canonical bank lifecycle target 不被 `AIScopeRef` 自身唯一标识时，
+  `input` 必须包含显式 runtime target identity；host 不得通过 active chat
+  selection、renderer-local current agent、或默认 app scope 隐式猜测 bank
+  owner
+- 这些 logical methods 只表达 host product surface；它们可以由 host bridge 映射到
+  runtime-private typed path，但不得被解释成新增 daemon public method family
+- 其 runtime-side logical owner 对齐 `K-MEM-006b` 的 runtime-private memory
+  embedding operation family；host facade 不得私自扩展第二套 product semantics
+
 ### Probe
 
 - `aiConfig.probe(scopeRef)` — 对当前 AIConfig 执行 runtime availability probe（D-AIPC-012 第二层），消费 `runtime.route.checkHealth` / `runtime.route.describe`。返回 `AIConfigProbeResult`。
@@ -80,6 +114,10 @@ SDK AI config surface 在 Phase 1 是 host-local surface（数据存储与 proje
 - scheduling probe 操作消费 runtime daemon `Peek`（K-SCHED-002）。
 - snapshot record / read 操作走 desktop host persistence。
 - 本契约不在 runtime daemon 上新增 AIConfig CRUD RPC。
+- adjacent live config（例如 memory embedding config）同样走 host-local
+  persistence / subscription surface，不走 runtime daemon config CRUD RPC
+- memory embedding 的 runtime-resolved state 与 canonical bind / rebuild /
+  cutover 请求，可由 host typed surface 暴露为 logical methods，但其 runtime 侧承载面必须是 admitted typed boundary，不得退化成 private loopback convenience HTTP 的产品化包装
 - 对 desktop mod consumer 而言，host-local surface 由 Desktop host 通过 mod host bridge 暴露；mod business code 不得自行持久化另一份 `AIConfig` truth 充当正式 owner。
 
 ## S-AICONF-006 — Subscription Surface
@@ -96,6 +134,7 @@ SDK 必须提供 AIConfig 变更订阅：
 - `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` — D-AIPC-001~012
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~005
 - `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` — K-AIEXEC-001~005
+- `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md` — K-MEM-004~006b
 - `.nimi/spec/runtime/kernel/scheduling-contract.md` — K-SCHED-001~007
 - `.nimi/spec/sdk/kernel/runtime-route-contract.md` — S-RUNTIME-074~078
 - `.nimi/spec/sdk/kernel/surface-contract.md` — S-SURFACE-001~011

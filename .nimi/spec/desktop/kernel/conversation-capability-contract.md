@@ -62,6 +62,23 @@ store codec / migration 不得把 key 缺失与 `null` 互相折叠；presence b
 
 本规则未允许的字段不得进入 SelectionStore；Desktop 不得持久化 resolved binding、health、metadata、reasoning support、multimodal support 或 passive asset path truth。
 
+## D-LLM-016a — Memory Embedding Config Non-Owner Boundary
+
+`ConversationCapabilitySelectionStore`、`ConversationCapabilityProjection`、
+`AgentEffectiveCapabilityResolution`、以及 `ConversationExecutionSnapshot`
+不得吸收 memory embedding live config 或 runtime memory bank truth。
+
+固定边界：
+
+- editable memory embedding config 不属于 `selectedBindings`
+- memory embedding source 的 user intent 不得被编码成普通 conversation
+  capability selection truth
+- resolved memory embedding state、bank bind result、bank migration / rebuild /
+  cutover state 也不属于 conversation capability projection truth
+- `text.embed` 或其他 embedding-related route truth 若被 runtime memory path
+  消费，也不使 Desktop conversation capability submodel 自动成为 memory
+  embedding config owner
+
 ## D-LLM-017 — Conversation Capability Projection
 
 `ConversationCapabilityProjection` 是 shared builder 的唯一 app-facing read model，最小字段固定为：

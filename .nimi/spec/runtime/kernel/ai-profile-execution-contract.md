@@ -103,11 +103,33 @@ Five-state scheduling judgement 由独立契约 `scheduling-contract.md`（K-SCH
 - `ResolveProfile` / `ApplyProfile` 是 per-call 操作，不建立持久 runtime-global profile binding。
 - 多个 scope 可并发执行不同 profile 的 resolve/apply，runtime 不做跨 scope 联动。
 
+## K-AIEXEC-006 — Memory Embedding Binding Resolution Boundary
+
+memory embedding 的 editable binding intent 可以由 Desktop host 持有，但 runtime
+负责把该 intent 解析为真正的 execution/bank truth。
+
+固定规则：
+
+- runtime 必须把 host 提供的 memory embedding binding intent 解析成
+  runtime-owned resolved embedding profile 或 fail-close result
+- `cloud` binding 的 legality 继续消费 connector / key-source authority：
+  admitted shape 至少为 `connector_id + model_id`
+- `local` binding 的 legality 继续消费 runtime local/model authority：
+  admitted shape 必须是可由 runtime authoritative local inventory 解析的 typed
+  local embedding target reference
+- Desktop/SDK 不得自行计算 resolved embedding profile、profile identity、或
+  canonical bank binding truth；它们只能持有 user intent 与 runtime projection
+- 若 binding intent 不能解析到 admitted embedding-capable execution path，
+  runtime 必须返回 fail-close result，不得静默回退到别的 connector、provider、
+  或本地默认 embedding target
+
 ## Fact Sources
 
 - `local-category-capability.md` — K-LOCAL-013~015, K-LOCAL-014a (`ResolveProfile`, `ApplyProfile`)
 - `device-profile-contract.md` — K-DEV-001~009 (device profile collection)
 - `model-service-contract.md` — K-MODEL-001~008 (model descriptor, health check)
 - `scheduling-contract.md` — K-SCHED-001~007 (five-state scheduling judgement)
+- `key-source-routing.md` — K-KEYSRC-001~011 (remote binding legality)
+- `connector-contract.md` — K-CONN-001~017 (connector custody and legality)
 - `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` — D-AIPC-001~012 (desktop AI config authority)
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~005 (AIScopeRef)

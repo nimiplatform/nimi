@@ -78,6 +78,99 @@ export type AIConfig = {
 };
 
 // ---------------------------------------------------------------------------
+// Memory embedding adjacent config / runtime projection
+// ---------------------------------------------------------------------------
+
+export type MemoryEmbeddingSourceKind = 'cloud' | 'local';
+
+export type MemoryEmbeddingCloudBindingRef = {
+  kind: 'cloud';
+  connectorId: string;
+  modelId: string;
+};
+
+export type MemoryEmbeddingLocalBindingRef = {
+  kind: 'local';
+  targetId: string;
+};
+
+export type MemoryEmbeddingBindingRef =
+  | MemoryEmbeddingCloudBindingRef
+  | MemoryEmbeddingLocalBindingRef;
+
+export type MemoryEmbeddingConfig = {
+  scopeRef: AIScopeRef;
+  sourceKind: MemoryEmbeddingSourceKind | null;
+  bindingRef: MemoryEmbeddingBindingRef | null;
+  revisionToken: string;
+  updatedAt: string;
+};
+
+export type MemoryEmbeddingResolutionState =
+  | 'missing'
+  | 'resolved'
+  | 'unresolved'
+  | 'unavailable';
+
+export type MemoryEmbeddingCanonicalBankStatus =
+  | 'unbound'
+  | 'bound_equivalent'
+  | 'bound_profile_mismatch'
+  | 'rebuild_pending'
+  | 'cutover_ready';
+
+export type MemoryEmbeddingRuntimeState = {
+  bindingIntentPresent: boolean;
+  bindingSourceKind: MemoryEmbeddingSourceKind | null;
+  resolutionState: MemoryEmbeddingResolutionState;
+  resolvedProfileIdentity: string | null;
+  canonicalBankStatus: MemoryEmbeddingCanonicalBankStatus;
+  blockedReasonCode: string | null;
+  operationReadiness: {
+    bindAllowed: boolean;
+    cutoverAllowed: boolean;
+  };
+  traceId?: string;
+};
+
+export type MemoryEmbeddingRuntimeTargetRef = {
+  kind: 'agent-core';
+  agentId: string;
+};
+
+export type MemoryEmbeddingRuntimeInput = {
+  scopeRef: AIScopeRef;
+  targetRef: MemoryEmbeddingRuntimeTargetRef;
+};
+
+export type MemoryEmbeddingBindOutcome =
+  | 'bound'
+  | 'already_bound'
+  | 'staged_rebuild'
+  | 'rejected';
+
+export type MemoryEmbeddingBindResult = {
+  outcome: MemoryEmbeddingBindOutcome;
+  blockedReasonCode: string | null;
+  canonicalBankStatusAfter: MemoryEmbeddingCanonicalBankStatus;
+  pendingCutover: boolean;
+  traceId?: string;
+};
+
+export type MemoryEmbeddingCutoverOutcome =
+  | 'cutover_committed'
+  | 'already_current'
+  | 'not_ready'
+  | 'rejected';
+
+export type MemoryEmbeddingCutoverResult = {
+  outcome: MemoryEmbeddingCutoverOutcome;
+  blockedReasonCode: string | null;
+  canonicalBankStatusAfter: MemoryEmbeddingCanonicalBankStatus;
+  traceId?: string;
+};
+
+// ---------------------------------------------------------------------------
 // AISnapshot  (D-AIPC-004) — execution evidence
 // ---------------------------------------------------------------------------
 
@@ -249,6 +342,18 @@ export function createEmptyAIConfig(scopeRef?: AIScopeRef): AIConfig {
   };
 }
 
+/** Create an empty adjacent memory-embedding config for a given scope. */
+export function createEmptyMemoryEmbeddingConfig(scopeRef?: AIScopeRef): MemoryEmbeddingConfig {
+  const now = new Date().toISOString();
+  return {
+    scopeRef: scopeRef || createDefaultAIScopeRef(),
+    sourceKind: null,
+    bindingRef: null,
+    revisionToken: now,
+    updatedAt: now,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Probe result types  (S-AICONF-002)
 // ---------------------------------------------------------------------------
@@ -305,6 +410,18 @@ export type AISnapshotSurface = {
   record(scopeRef: AIScopeRef, snapshot: AISnapshot): void;
   get(executionId: string): AISnapshot | null;
   getLatest(scopeRef: AIScopeRef): AISnapshot | null;
+};
+
+export type MemoryEmbeddingConfigSurface = {
+  get(scopeRef: AIScopeRef): MemoryEmbeddingConfig;
+  update(scopeRef: AIScopeRef, config: MemoryEmbeddingConfig): void;
+  subscribe(scopeRef: AIScopeRef, callback: (config: MemoryEmbeddingConfig) => void): () => void;
+};
+
+export type MemoryEmbeddingRuntimeSurface = {
+  inspect(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingRuntimeState>;
+  requestBind(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingBindResult>;
+  requestCutover(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingCutoverResult>;
 };
 
 /** Aggregate SDK AI config surface (S-AICONF-001~006). */

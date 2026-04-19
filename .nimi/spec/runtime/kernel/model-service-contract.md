@@ -118,3 +118,23 @@
 | `FAILED` | `REMOVED` | 移除失败模型 |
 
 不在此表中的转换为非法，实现必须拒绝。
+
+## K-MODEL-009 Local Embedding Binding Reference Legality
+
+当 Desktop-host-owned memory embedding live config 选择 `local` source 时，
+binding reference 的合法性由 runtime local/model authority 冻结。
+
+固定规则：
+
+- admitted local binding 必须使用 typed local target reference，指向 runtime
+  authoritative local inventory 中的 embedding-capable target；不得退化成 raw
+  filesystem path、engine 名称、或 renderer-local asset heuristic
+- 该 local target reference 必须能被 `RuntimeLocalService` /
+  `RuntimeModelService` 的 authoritative inventory 解析
+- 被引用 target 必须证明具备 embedding capability；不具备 embedding capability
+  的 local model / asset 不构成 legal binding
+- binding legality 与 readiness 必须分离：引用合法不等于当前 healthy /
+  warm / ready；resolved availability 仍由 runtime health / warm / bundle truth
+  决定
+- Desktop/SDK 不得通过“有某个本地文件/asset 存在”来推断 legal local memory
+  embedding binding；合法性必须来自 admitted runtime local/model authority

@@ -178,7 +178,10 @@ func (s *Service) upsertNarrativeEmbeddings(ctx context.Context, locator *runtim
 				}
 				continue
 			}
-			vector := computeEmbeddingVector(strings.TrimSpace(strings.Join([]string{narrative.Topic, narrative.Content}, " ")), profile.GetDimension())
+			vector, err := s.embeddingVector(ctx, profile, strings.TrimSpace(strings.Join([]string{narrative.Topic, narrative.Content}, " ")))
+			if err != nil {
+				return err
+			}
 			if _, err := tx.ExecContext(ctx, `
 				INSERT OR REPLACE INTO memory_narrative_embedding(locator_key, narrative_id, embedding_profile_json, vector_json, updated_at)
 				VALUES (?, ?, ?, ?, ?)
@@ -190,13 +193,16 @@ func (s *Service) upsertNarrativeEmbeddings(ctx context.Context, locator *runtim
 	})
 }
 
-func (s *Service) narrativeEmbeddingRecallScores(bank *runtimev1.MemoryBank, query string) map[string]float64 {
+func (s *Service) narrativeEmbeddingRecallScores(ctx context.Context, bank *runtimev1.MemoryBank, query string) (map[string]float64, error) {
 	if s == nil || s.backend == nil || bank == nil || bank.GetEmbeddingProfile() == nil || !s.embeddingAvailableForProfile(bank.GetEmbeddingProfile()) {
-		return nil
+		return nil, nil
 	}
-	queryVector := computeEmbeddingVector(query, bank.GetEmbeddingProfile().GetDimension())
+	queryVector, err := s.embeddingVector(ctx, bank.GetEmbeddingProfile(), query)
+	if err != nil {
+		return nil, err
+	}
 	if len(queryVector) == 0 {
-		return nil
+		return nil, nil
 	}
 	rows, err := s.backend.DB().Query(`
 		SELECT narrative_id, vector_json
@@ -204,7 +210,7 @@ func (s *Service) narrativeEmbeddingRecallScores(bank *runtimev1.MemoryBank, que
 		WHERE locator_key = ?
 	`, locatorKey(bank.GetLocator()))
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 	defer rows.Close()
 	out := make(map[string]float64)
@@ -212,11 +218,11 @@ func (s *Service) narrativeEmbeddingRecallScores(bank *runtimev1.MemoryBank, que
 		var narrativeID string
 		var vectorRaw string
 		if err := rows.Scan(&narrativeID, &vectorRaw); err != nil {
-			return nil
+			return nil, nil
 		}
 		out[narrativeID] = cosineSimilarity(queryVector, unmarshalFloatVector(vectorRaw))
 	}
-	return out
+	return out, nil
 }
 
 func (s *Service) recallFeedbackBiases(bankLocatorKey string, targetKind string, targetIDs []string) map[string]float64 {

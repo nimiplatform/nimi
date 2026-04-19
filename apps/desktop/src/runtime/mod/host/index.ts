@@ -116,6 +116,16 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
                 get: () => { throw notReady(); },
                 getLatest: () => { throw notReady(); },
             },
+            memoryEmbeddingConfig: {
+                get: () => { throw notReady(); },
+                update: () => { throw notReady(); },
+                subscribe: () => { throw notReady(); },
+            },
+            memoryEmbeddingRuntime: {
+                inspect: async () => { throw notReady(); },
+                requestBind: async () => { throw notReady(); },
+                requestCutover: async () => { throw notReady(); },
+            },
             ai: {
                 text: {
                     generate: async () => { throw notReady(); },

@@ -7,7 +7,7 @@ import {
   DEFAULT_SELECTED_TARGET_BY_SOURCE,
   DEFAULT_VIEW_MODE_BY_SOURCE_TARGET,
   EMPTY_AGENT_CONVERSATION_SELECTION,
-  EMPTY_AI_CONVERSATION_SELECTION,
+  EMPTY_NIMI_CONVERSATION_SELECTION,
 } from '@renderer/features/chat/chat-shell-types';
 import { loadStoredChatThinkingPreference, persistStoredChatThinkingPreference } from '@renderer/features/chat/chat-settings-storage';
 import type { AppStoreSet, AppStoreState } from './store-types';
@@ -28,7 +28,7 @@ type UiSlice = Pick<AppStoreState,
   | 'selectedTargetBySource'
   | 'viewModeBySourceTarget'
   | 'lastSelectedThreadByMode'
-  | 'aiConversationSelection'
+  | 'nimiConversationSelection'
   | 'agentConversationSelection'
   | 'chatSetupState'
   | 'selectedChatId'
@@ -54,7 +54,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setSelectedTargetForSource'
   | 'setChatViewMode'
   | 'setLastSelectedThreadForMode'
-  | 'setAiConversationSelection'
+  | 'setNimiConversationSelection'
   | 'setAgentConversationSelection'
   | 'setChatSetupState'
   | 'setSelectedChatId'
@@ -87,7 +87,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     selectedTargetBySource: { ...DEFAULT_SELECTED_TARGET_BY_SOURCE },
     viewModeBySourceTarget: { ...DEFAULT_VIEW_MODE_BY_SOURCE_TARGET },
     lastSelectedThreadByMode: { ...DEFAULT_LAST_SELECTED_THREAD_BY_MODE },
-    aiConversationSelection: { ...EMPTY_AI_CONVERSATION_SELECTION },
+    nimiConversationSelection: { ...EMPTY_NIMI_CONVERSATION_SELECTION },
     agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
     chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
     selectedChatId: null,
@@ -147,9 +147,9 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
           [mode]: threadId,
         },
       })),
-    setAiConversationSelection: (selection) =>
+    setNimiConversationSelection: (selection) =>
       set((state) => ({
-        aiConversationSelection: selection,
+        nimiConversationSelection: selection,
         lastSelectedThreadByMode: {
           ...state.lastSelectedThreadByMode,
           ai: selection.threadId,

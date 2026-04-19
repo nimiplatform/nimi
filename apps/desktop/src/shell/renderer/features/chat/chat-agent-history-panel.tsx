@@ -50,7 +50,7 @@ export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
       const confirmation = await confirmDialog({
         title: t('Chat.upgradeStandardMemoryTitle', { defaultValue: 'Upgrade to Standard memory' }),
         description: t('Chat.upgradeStandardMemoryConfirm', {
-          defaultValue: 'Bind {{name}} canonical memory to this device embedding profile? This is an explicit upgrade from Baseline to Standard memory.',
+          defaultValue: 'Bind {{name}} canonical memory to the configured memory embedding profile? This is an explicit upgrade from Baseline to Standard memory.',
           name: props.targetTitle,
         }),
         level: 'warning',
@@ -79,15 +79,19 @@ export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
         ? t('Chat.memoryModeUnavailable', { defaultValue: 'Unavailable' })
         : t('Chat.memoryModeBaseline', { defaultValue: 'Baseline' });
   const memoryModeHint = props.memoryStatus?.mode === 'standard'
-    ? t('Chat.memoryModeStandardHint', {
-      defaultValue: 'Canonical memory is bound to the local embedding profile for richer recall.',
-    })
+    ? props.memoryStatus?.pendingCutover
+      ? t('Chat.memoryModeStandardCutoverHint', {
+        defaultValue: 'Canonical memory already has Standard recall, and a new embedding generation is staged for cutover.',
+      })
+      : t('Chat.memoryModeStandardHint', {
+        defaultValue: 'Canonical memory is bound to the configured embedding profile for richer recall.',
+      })
     : props.memoryStatus?.mode === 'unavailable'
       ? t('Chat.memoryModeUnavailableHint', {
-        defaultValue: 'Standard memory is unavailable until the runtime has an active local embedding asset.',
+        defaultValue: 'Standard memory is unavailable until a valid local or cloud memory embedding source is configured.',
       })
       : t('Chat.memoryModeBaselineHint', {
-        defaultValue: 'Canonical memory stays in Baseline until you explicitly bind a local embedding profile.',
+        defaultValue: 'Canonical memory stays in Baseline until you explicitly bind the configured memory embedding profile.',
       });
 
   return (

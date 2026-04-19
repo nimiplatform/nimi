@@ -111,13 +111,16 @@ func (s *Service) ftsRecallScores(bank *runtimev1.MemoryBank, query string) map[
 	return out
 }
 
-func (s *Service) embeddingRecallScores(bank *runtimev1.MemoryBank, query string) map[string]float64 {
+func (s *Service) embeddingRecallScores(ctx context.Context, bank *runtimev1.MemoryBank, query string) (map[string]float64, error) {
 	if bank == nil || bank.GetEmbeddingProfile() == nil || !s.embeddingAvailableForProfile(bank.GetEmbeddingProfile()) {
-		return nil
+		return nil, nil
 	}
-	queryVector := computeEmbeddingVector(query, bank.GetEmbeddingProfile().GetDimension())
+	queryVector, err := s.embeddingVector(ctx, bank.GetEmbeddingProfile(), query)
+	if err != nil {
+		return nil, err
+	}
 	if len(queryVector) == 0 {
-		return nil
+		return nil, nil
 	}
 	rows, err := s.backend.DB().Query(`
 		SELECT memory_id, vector_json
@@ -125,7 +128,7 @@ func (s *Service) embeddingRecallScores(bank *runtimev1.MemoryBank, query string
 		WHERE locator_key = ?
 	`, locatorKey(bank.GetLocator()))
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 	defer rows.Close()
 	out := make(map[string]float64)
@@ -133,11 +136,11 @@ func (s *Service) embeddingRecallScores(bank *runtimev1.MemoryBank, query string
 		var memoryID string
 		var vectorRaw string
 		if err := rows.Scan(&memoryID, &vectorRaw); err != nil {
-			return nil
+			return nil, nil
 		}
 		out[memoryID] = cosineSimilarity(queryVector, unmarshalFloatVector(vectorRaw))
 	}
-	return out
+	return out, nil
 }
 
 func (s *Service) searchNarratives(ctx context.Context, locator *runtimev1.MemoryBankLocator, query string, limit int) ([]*runtimev1.NarrativeRecallHit, error) {
@@ -155,7 +158,10 @@ func (s *Service) searchNarratives(ctx context.Context, locator *runtimev1.Memor
 	if limit <= 0 || limit > len(candidates) {
 		limit = len(candidates)
 	}
-	semanticScores := s.narrativeEmbeddingRecallScores(bankState.Bank, query)
+	semanticScores, err := s.narrativeEmbeddingRecallScores(ctx, bankState.Bank, query)
+	if err != nil {
+		return nil, err
+	}
 	targetIDs := make([]string, 0, len(candidates))
 	for _, candidate := range candidates {
 		targetIDs = append(targetIDs, candidate.NarrativeID)

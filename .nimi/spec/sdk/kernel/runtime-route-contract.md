@@ -73,3 +73,6 @@ mod-facing 的 `runtime.route.*` 能力只允许通过 host-injected typed facad
 - 允许共享类型与 host facade interface。
 - 不允许在 runtime client surface 上引入与 `K-RPC-020` 冲突的 transport 假设。
 - 在 runtime transport authority 正式定稿前，route metadata 的 app-facing 成功路径以 host typed surface 为准；SDK 不得先行发明私有临时 API。
+- route facade 可能被 host/runtime memory binding 解析路径复用作 legality /
+  health dependency，但 `runtime.route.*` 本身不是 memory embedding editable
+  config surface，也不是 canonical bank bind / cutover command surface。

@@ -106,8 +106,39 @@ Fixed rules:
 - bank writes and embedding-backed recalls must use the same bound profile
 - provider engines must not silently switch embedding models
 - profile dimension changes require explicit migration rather than in-place drift
+- any material profile change to `provider`、`model_id`、`dimension`、
+  `distance_metric`、`version`、or equivalent bound profile identity field must
+  be treated as bank-identity change rather than route retargeting
+- the first admitted switching form for a materially changed non-null profile is
+  runtime-owned create-new-bank-or-generation rebuild plus explicit cutover;
+  silent in-place mutation is not admitted
 - runtime-owned embedding execution is the only admitted embedding authority
 - when the default `Hindsight` substrate runs in supervised mode, runtime must inject the substrate's embedding path onto a runtime-owned llama OpenAI-compatible loopback rather than allowing direct external embedding provider configuration
+
+## K-MEM-004a Desktop Live Config And Runtime Resolved Truth Split
+
+Editable memory embedding config may exist as Desktop-host-owned live config
+truth, but runtime remains the sole owner of resolved retained-memory execution
+truth.
+
+Fixed rules:
+
+- Desktop host may own user-editable memory embedding source / binding intent as
+  canonical host-local persistence truth
+- runtime does not become a second canonical persistence owner for that editable
+  config
+- runtime is the only admitted owner of resolved embedding profile, binding
+  legality/readiness, bank identity, rebuild state, migration state, and
+  cutover result
+- runtime must consume host-provided memory embedding intent through an admitted
+  typed boundary and fail-close when the requested binding cannot resolve to an
+  admitted runtime execution path
+- if host config scope identity does not uniquely determine the runtime
+  canonical bank lifecycle target, the admitted typed boundary must carry an
+  explicit runtime target identity rather than inferring one from host-local UI
+  state
+- renderer-local heuristics, local-asset presence checks, or host convenience
+  projections must not be reinterpreted as runtime bank truth
 
 ## K-MEM-005 Realm Replication Boundary
 
@@ -158,6 +189,67 @@ Fixed rules:
   public service surface
 - extracting implementation logic into runtime-owned internal libraries must not
   recreate `RuntimeMemoryService` as a second public owner surface
+
+## K-MEM-006a Typed Boundary And Canonical Bind/Cutover Boundary
+
+Canonical retained-memory bind / rebuild / cutover flows must not be admitted
+through convenience transport by drift.
+
+Fixed rules:
+
+- the current private loopback HTTP convenience path for canonical bind is not
+  the admitted steady-state product contract
+- Desktop/app consumers may read/write editable memory embedding config only
+  through admitted typed host-owned config surfaces
+- Desktop/app consumers may inspect resolved memory embedding state and request
+  canonical bank bind / rebuild / cutover only through an admitted typed
+  host/runtime boundary
+- `RuntimeCognitionService` public memory family remains fixed by `K-MEM-006`;
+  migration convenience must not expand that public family just to expose
+  canonical agent-facing bank control
+- canonical agent-facing bind / rebuild / cutover semantics remain on
+  runtime-private typed paths owned by retained runtime memory depth
+
+## K-MEM-006b Runtime-Private Memory Embedding Operation Family
+
+当 host product 需要 memory embedding resolved state 与 canonical bank lifecycle
+操作时，retained runtime-private memory depth 必须提供最小的 typed logical
+operation family。
+
+该 family 是 runtime-private typed boundary，不是新的 public RPC family。
+
+最小 logical operations 固定为：
+
+- `InspectMemoryEmbeddingState`
+- `RequestCanonicalMemoryEmbeddingBind`
+- `RequestMemoryEmbeddingCutover`
+
+固定规则：
+
+- `InspectMemoryEmbeddingState` 必须返回 typed runtime contract data，至少覆盖：
+  - 当前 host-provided binding intent 的 resolution verdict
+  - resolved embedding profile identity 或 fail-close unavailable result
+  - 当前 canonical bank binding status
+  - 是否存在 rebuild / generation / cutover pending state
+  - explicit unavailable / blocked reason
+- 若 host-facing config scope 不足以唯一确定 canonical bank lifecycle owner，
+  runtime-private request payload 必须包含显式 runtime target identity；不得从
+  active app scope、renderer-local selected agent、或 convenience default bank
+  推断目标
+- `RequestCanonicalMemoryEmbeddingBind` 只允许做 runtime-owned bind admission；
+  它不得把 material profile change 解释成 in-place bank mutation
+- 当当前 bank 未绑定且 binding intent 可解析时，
+  `RequestCanonicalMemoryEmbeddingBind` 可执行首次 canonical bind
+- 当当前 bank 已绑定且 resolved profile 与既有 bank identity 等价时，
+  `RequestCanonicalMemoryEmbeddingBind` 必须是 idempotent no-op 或 typed
+  “already-bound” success，不得制造第二份 bank truth
+- 当当前 bank 已绑定且 resolved profile 发生 material identity change 时，
+  `RequestCanonicalMemoryEmbeddingBind` 必须进入 runtime-owned rebuild /
+  generation path，并把后续切换表达为 pending cutover，而不是静默原地重绑
+- `RequestMemoryEmbeddingCutover` 只允许在 admitted rebuild/generation result
+  已准备完成时提交 explicit cutover；cutover 未就绪时必须 fail-close
+- 上述 operations 可由 host bridge 暴露为 host logical methods，但其 runtime 语义
+  owner 始终是 retained runtime-private memory depth
 
 ## K-MEM-007 Failure Model
 

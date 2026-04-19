@@ -30,15 +30,33 @@ type persistedMemoryState struct {
 }
 
 type persistedBankState struct {
-	LocatorKey string            `json:"locatorKey"`
-	Bank       json.RawMessage   `json:"bank"`
-	Records    []json.RawMessage `json:"records"`
+	LocatorKey              string                               `json:"locatorKey"`
+	Bank                    json.RawMessage                      `json:"bank"`
+	Records                 []json.RawMessage                    `json:"records"`
+	PendingEmbeddingCutover *persistedPendingEmbeddingCutoverRef `json:"pendingEmbeddingCutover,omitempty"`
+}
+
+type persistedPendingEmbeddingCutoverRef struct {
+	GenerationID      string          `json:"generationId,omitempty"`
+	TargetProfile     json.RawMessage `json:"targetProfile"`
+	RevisionToken     string          `json:"revisionToken,omitempty"`
+	ReadyForCutover   bool            `json:"readyForCutover,omitempty"`
+	BlockedReasonCode string          `json:"blockedReasonCode,omitempty"`
+}
+
+type pendingEmbeddingCutoverState struct {
+	GenerationID      string
+	TargetProfile     *runtimev1.MemoryEmbeddingProfile
+	RevisionToken     string
+	ReadyForCutover   bool
+	BlockedReasonCode runtimev1.ReasonCode
 }
 
 type bankState struct {
-	Bank    *runtimev1.MemoryBank
-	Records map[string]*runtimev1.MemoryRecord
-	Order   []string
+	Bank                    *runtimev1.MemoryBank
+	Records                 map[string]*runtimev1.MemoryRecord
+	Order                   []string
+	PendingEmbeddingCutover *pendingEmbeddingCutoverState
 }
 
 type subscriber struct {
@@ -57,6 +75,15 @@ type memoryEventStream interface {
 	Context() context.Context
 	Send(*runtimev1.MemoryEvent) error
 }
+
+type MemoryEmbeddingResolvedProfile struct {
+	Profile           *runtimev1.MemoryEmbeddingProfile
+	ResolutionState   string
+	BlockedReasonCode runtimev1.ReasonCode
+}
+
+type MemoryEmbeddingProfileResolver func(context.Context, *MemoryEmbeddingBindingIntentSnapshot) MemoryEmbeddingResolvedProfile
+type MemoryEmbeddingVectorExecutor func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error)
 
 type Service struct {
 	logger    *slog.Logger
@@ -82,6 +109,8 @@ type Service struct {
 	acceleratorCleanupMu       sync.Mutex
 	lastAcceleratorCleanupAt   time.Time
 	acceleratorCleanupCooldown time.Duration
+	runtimeEmbeddingResolver   MemoryEmbeddingProfileResolver
+	runtimeEmbeddingExecutor   MemoryEmbeddingVectorExecutor
 }
 
 func New(logger *slog.Logger, cfg config.Config) (*Service, error) {
