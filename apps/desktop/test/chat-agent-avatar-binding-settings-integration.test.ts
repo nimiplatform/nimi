@@ -16,9 +16,11 @@ test('agent shell settings content mounts ChatAgentAvatarBindingSettings', () =>
   assert.match(source, /<ChatAgentAvatarBindingSettings/);
 });
 
-test('ChatSettingsPanel AI mode renders presenceContent above summary home', () => {
+test('ChatSettingsPanel AI mode routes presenceContent into the avatar module detail', () => {
   const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
   assert.match(source, /presenceContent\?: ReactNode/);
   assert.match(source, /{props\.presenceContent}/);
   assert.match(source, /presenceContent=\{presenceContent\}/);
+  assert.match(source, /activeModuleId === 'avatar'/);
+  assert.match(source, /avatarSummary=\{avatarSummary\}/);
 });

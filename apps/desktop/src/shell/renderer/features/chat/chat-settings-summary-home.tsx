@@ -39,12 +39,20 @@ function deriveSectionSummary(section: ModelConfigSection): {
   return { subtitle, statusDot, statusLabel };
 }
 
+export type ChatSettingsAvatarSummary = {
+  title: string;
+  subtitle?: string | null;
+  statusDot?: 'ready' | 'attention' | 'neutral';
+  statusLabel?: string | null;
+};
+
 export type ChatSettingsSummaryHomeProps = {
   sections: ModelConfigSection[];
   profile?: ModelConfigProfileController;
   onSelectModule: (moduleId: string) => void;
   schedulingContent?: ReactNode;
   diagnosticsContent?: ReactNode;
+  avatarSummary?: ChatSettingsAvatarSummary | null;
 };
 
 export function ChatSettingsSummaryHome({
@@ -53,6 +61,7 @@ export function ChatSettingsSummaryHome({
   onSelectModule,
   schedulingContent,
   diagnosticsContent,
+  avatarSummary,
 }: ChatSettingsSummaryHomeProps) {
   const { t } = useTranslation();
 
@@ -76,8 +85,29 @@ export function ChatSettingsSummaryHome({
         </div>
       ) : null}
 
+      {/* ── Avatar module (identity / presentation) ── */}
+      {avatarSummary ? (
+        <>
+          {profile ? (
+            <div className="mb-2 border-t border-slate-100 px-6 pt-5">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                {t('Chat.avatarSectionLabel', { defaultValue: 'Avatar' })}
+              </h3>
+            </div>
+          ) : null}
+          <SettingsSummaryCard
+            key="avatar"
+            title={avatarSummary.title}
+            subtitle={avatarSummary.subtitle}
+            statusDot={avatarSummary.statusDot}
+            statusLabel={avatarSummary.statusLabel}
+            onClick={() => onSelectModule('avatar')}
+          />
+        </>
+      ) : null}
+
       {/* ── Divider + Section Label ── */}
-      {profile && hasCapabilities ? (
+      {(profile || avatarSummary) && hasCapabilities ? (
         <div className="mb-3 border-t border-slate-100 px-6 pt-5">
           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
             {t('Chat.modelCapabilitiesLabel', { defaultValue: 'Model Capabilities' })}

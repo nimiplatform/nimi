@@ -33,7 +33,7 @@ export function ChatRightPanelSettings(props: ChatRightPanelSettingsProps) {
   return (
     <ChatRightColumnCard
       cardKey="settings"
-      className="flex flex-col"
+      className={`flex flex-col ${props.expanded ? 'min-h-0 flex-1' : ''}`}
     >
       {props.expanded ? (
         <ScrollArea className="min-h-0 flex-1 px-3 py-3">

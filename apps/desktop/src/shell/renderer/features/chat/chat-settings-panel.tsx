@@ -193,22 +193,55 @@ function AiModeSettings(props: {
     };
   }, [activeModuleId, props.onDiagnosticsVisibilityChange]);
 
+  const avatarSummary = props.presenceContent
+    ? {
+      title: t('Chat.avatarBindingTitle', { defaultValue: 'Avatar' }),
+      subtitle: t('Chat.avatarSummarySubtitle', {
+        defaultValue: 'Import VRM or Live2D and bind it locally',
+      }),
+      statusDot: 'neutral' as const,
+      statusLabel: null,
+    }
+    : null;
+
   if (activeModuleId) {
     return (
       <div className="space-y-5">
         {props.headerSlot}
         <div className="animate-in slide-in-from-right-4 duration-200">
-          <ChatSettingsModuleDetail
-            moduleId={activeModuleId}
-            sections={sections}
-            items={items}
-            profile={profile}
-            onBack={() => setActiveModuleId(null)}
-            imageContext={imageContext}
-            imageEditorCopy={imageEditorCopy}
-            schedulingContent={schedulingContent}
-            diagnosticsContent={diagnosticsNode}
-          />
+          {activeModuleId === 'avatar' ? (
+            <div data-chat-settings-module="avatar">
+              {/* Avatar detail — Local VRM/Live2D import + binding (moved from top-level) */}
+              <div className="mb-5 flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveModuleId(null)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-white text-[var(--nimi-text-muted)] transition-all hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] hover:text-[var(--nimi-action-primary-bg)]"
+                  aria-label={t('Chat.settingsBack', { defaultValue: 'Back' })}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m15 18-6-6 6-6" />
+                  </svg>
+                </button>
+                <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+                  {t('Chat.avatarBindingTitle', { defaultValue: 'Avatar' })}
+                </h2>
+              </div>
+              {props.presenceContent}
+            </div>
+          ) : (
+            <ChatSettingsModuleDetail
+              moduleId={activeModuleId}
+              sections={sections}
+              items={items}
+              profile={profile}
+              onBack={() => setActiveModuleId(null)}
+              imageContext={imageContext}
+              imageEditorCopy={imageEditorCopy}
+              schedulingContent={schedulingContent}
+              diagnosticsContent={diagnosticsNode}
+            />
+          )}
         </div>
       </div>
     );
@@ -217,13 +250,13 @@ function AiModeSettings(props: {
   return (
     <div className="space-y-5">
       {props.headerSlot}
-      {props.presenceContent}
       <ChatSettingsSummaryHome
         sections={sections}
         profile={profile}
         onSelectModule={setActiveModuleId}
         schedulingContent={schedulingContent}
         diagnosticsContent={diagnosticsNode}
+        avatarSummary={avatarSummary}
       />
     </div>
   );

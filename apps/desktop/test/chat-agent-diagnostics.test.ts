@@ -576,6 +576,13 @@ test('agent diagnostics panel renders runtime control actions when inspect data 
   assert.match(markup, /Daily token budget/u);
   assert.match(markup, /Max tokens per hook/u);
   assert.match(markup, /Disable autonomy/u);
+  assert.match(markup, /Avatar Override/u);
+  assert.match(markup, /Debug-only override for avatar phase and mood/u);
+  assert.match(markup, /Phase/u);
+  assert.match(markup, /Mood/u);
+  assert.match(markup, /Amplitude/u);
+  assert.match(markup, /Apply avatar override/u);
+  assert.match(markup, /Clear avatar override/u);
   assert.match(markup, /Cancel hook-1/u);
   assert.match(markup, /Cancel hook-2/u);
   assert.match(markup, /Runtime autonomy is on/u);

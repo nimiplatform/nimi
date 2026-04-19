@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@nimiplatform/nimi-kit/ui';
 import {
   clearDesktopAgentAvatarBinding,
   deleteDesktopAgentAvatarResource,
@@ -34,6 +35,30 @@ function describeResourceStatus(status: 'ready' | 'invalid' | 'missing'): string
     return 'Missing';
   }
   return 'Invalid';
+}
+
+function ResourceKindGlyph(props: { kind: 'vrm' | 'live2d' }) {
+  const label = props.kind === 'live2d' ? 'L' : 'V';
+  const bgClass = props.kind === 'live2d'
+    ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)] ring-1 ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)]'
+    : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_16%,var(--nimi-surface-card))] text-[var(--nimi-status-success)] ring-1 ring-[color-mix(in_srgb,var(--nimi-status-success)_24%,transparent)]';
+  return (
+    <span
+      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[12px] font-bold tracking-wider ${bgClass}`}
+      aria-hidden="true"
+    >
+      {label}
+    </span>
+  );
+}
+
+function ResourceStatusDot(props: { status: 'ready' | 'invalid' | 'missing' }) {
+  const statusClass = props.status === 'ready'
+    ? 'bg-[var(--nimi-status-success)]'
+    : props.status === 'missing'
+      ? 'bg-[var(--nimi-status-warning)]'
+      : 'bg-[var(--nimi-status-danger)]';
+  return <span className={`inline-block h-1.5 w-1.5 rounded-full ${statusClass}`} aria-hidden="true" />;
 }
 
 export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSettingsProps) {
@@ -174,21 +199,22 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
 
   return (
     <section
-      className="space-y-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,var(--nimi-surface-panel))] p-4"
+      className="space-y-3 overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_94%,var(--nimi-surface-panel))] p-3 shadow-[0_10px_22px_rgba(15,23,42,0.04)]"
       data-testid="agent-avatar-binding-settings"
+      data-chat-avatar-binding-surface="true"
     >
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {t('Chat.avatarBindingTitle', { defaultValue: 'Avatar' })}
+          <h3 className="text-[13px] font-semibold text-[var(--nimi-text-primary)]">
+            {t('Chat.avatarBindingSectionHeading', { defaultValue: 'Local Avatar Binding' })}
           </h3>
           {currentResource ? (
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-status-success)]">
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-status-success)] ring-1 ring-[color-mix(in_srgb,var(--nimi-status-success)_24%,transparent)]">
               {describeResourceKind(currentResource.kind)}
             </span>
           ) : null}
         </div>
-        <p className="text-xs text-[var(--nimi-text-muted)]">
+        <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
           {t('Chat.avatarBindingDescription', {
             defaultValue: 'Import a local VRM or Live2D asset for this desktop only. Local binding overrides runtime presentation in the right rail.',
           })}
@@ -202,29 +228,28 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
       ) : null}
 
       {currentResource ? (
-        <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-success)_20%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-success)_5%,var(--nimi-surface-card))] px-3 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{currentResource.displayName}</p>
-              <p className="mt-1 text-[11px] text-[var(--nimi-text-muted)]">
-                {t('Chat.avatarBindingCurrentLabel', {
-                  defaultValue: 'Bound locally to {{name}}',
-                  name: props.agentName || t('Chat.agentLabel', { defaultValue: 'this agent' }),
-                })}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setFeedback(null);
-                clearBindingMutation.mutate();
-              }}
-              disabled={pending}
-              className="rounded-lg border border-[var(--nimi-border-subtle)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-bg)] disabled:opacity-50"
-            >
-              {t('Chat.avatarBindingClear', { defaultValue: 'Clear' })}
-            </button>
+        <div className="flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-success)_20%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-success)_5%,var(--nimi-surface-card))] px-3 py-2.5">
+          <ResourceKindGlyph kind={currentResource.kind} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-semibold text-[var(--nimi-text-primary)]">{currentResource.displayName}</p>
+            <p className="mt-0.5 truncate text-[11px] text-[var(--nimi-text-muted)]">
+              {t('Chat.avatarBindingCurrentLabel', {
+                defaultValue: 'Bound locally to {{name}}',
+                name: props.agentName || t('Chat.agentLabel', { defaultValue: 'this agent' }),
+              })}
+            </p>
           </div>
+          <Button
+            tone="ghost"
+            size="sm"
+            onClick={() => {
+              setFeedback(null);
+              clearBindingMutation.mutate();
+            }}
+            disabled={pending}
+          >
+            {t('Chat.avatarBindingClear', { defaultValue: 'Clear' })}
+          </Button>
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-[var(--nimi-border-subtle)] px-3 py-3 text-xs text-[var(--nimi-text-muted)]">
@@ -233,28 +258,28 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
       )}
 
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
+        <Button
+          tone="primary"
+          size="sm"
           onClick={() => {
             setFeedback(null);
             importVrmMutation.mutate();
           }}
           disabled={Boolean(disabledReason) || pending}
-          className="rounded-xl bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {t('Chat.avatarBindingImportVrm', { defaultValue: 'Import VRM' })}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          tone="secondary"
+          size="sm"
           onClick={() => {
             setFeedback(null);
             importLive2dMutation.mutate();
           }}
           disabled={Boolean(disabledReason) || pending}
-          className="rounded-xl border border-[var(--nimi-border-subtle)] bg-white px-3 py-2 text-xs font-semibold text-[var(--nimi-text-primary)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-bg)] disabled:opacity-50"
         >
           {t('Chat.avatarBindingImportLive2d', { defaultValue: 'Import Live2D' })}
-        </button>
+        </Button>
       </div>
 
       {feedback ? (
@@ -285,69 +310,108 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
             {t('Chat.avatarBindingLibraryEmpty', { defaultValue: 'Imported avatar resources will appear here.' })}
           </div>
         ) : (
-          <div className="space-y-2">
+          <ul
+            className="divide-y divide-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-white"
+            role="listbox"
+            aria-label={t('Chat.avatarBindingLibraryTitle', { defaultValue: 'Local Avatar Library' })}
+          >
             {resources.map((resource) => {
               const bound = resource.resourceId === currentResource?.resourceId;
+              const selectDisabled = pending || Boolean(disabledReason) || bound;
               return (
-                <div
+                <li
                   key={resource.resourceId}
-                  className="rounded-xl border border-[var(--nimi-border-subtle)] bg-white px-3 py-3"
+                  className="relative"
+                  data-chat-avatar-library-item={resource.resourceId}
+                  data-chat-avatar-library-bound={bound ? 'true' : 'false'}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">
-                        {resource.displayName}
-                      </p>
-                      <p className="mt-1 text-[11px] text-[var(--nimi-text-muted)]">
-                        {describeResourceKind(resource.kind)} · {describeResourceStatus(resource.status)}
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={bound}
+                    onClick={() => {
+                      if (selectDisabled) {
+                        return;
+                      }
+                      setFeedback(null);
+                      bindMutation.mutate(resource.resourceId);
+                    }}
+                    disabled={selectDisabled}
+                    className={`flex w-full items-center gap-3 px-3 py-2.5 pr-10 text-left transition-colors disabled:cursor-default ${
+                      bound
+                        ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_6%,transparent)]'
+                        : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)]'
+                    }`}
+                  >
+                    <ResourceKindGlyph kind={resource.kind} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-[13px] font-semibold text-[var(--nimi-text-primary)]">
+                          {resource.displayName}
+                        </p>
+                        {bound ? (
+                          <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--nimi-status-success)]">
+                            {t('Chat.avatarBindingBoundLabel', { defaultValue: 'Bound' })}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[var(--nimi-text-muted)]">
+                        <ResourceStatusDot status={resource.status} />
+                        <span>{describeResourceKind(resource.kind)}</span>
+                        <span className="text-[var(--nimi-text-muted)]/60">·</span>
+                        <span>{describeResourceStatus(resource.status)}</span>
                       </p>
                     </div>
                     {bound ? (
-                      <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--nimi-status-success)]">
-                        {t('Chat.avatarBindingBoundLabel', { defaultValue: 'Bound' })}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {!bound ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFeedback(null);
-                          bindMutation.mutate(resource.resourceId);
-                        }}
-                        disabled={pending || Boolean(disabledReason)}
-                        className="rounded-lg border border-[var(--nimi-border-subtle)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-bg)] disabled:opacity-50"
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="shrink-0 text-[var(--nimi-status-success)]"
+                        aria-hidden="true"
                       >
-                        {t('Chat.avatarBindingUseForAgent', { defaultValue: 'Use for this agent' })}
-                      </button>
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
                     ) : null}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const confirmed = await confirmDialog({
-                          title: t('Chat.avatarBindingDeleteConfirmTitle', { defaultValue: 'Remove local avatar resource?' }),
-                          description: t('Chat.avatarBindingDeleteConfirmBody', {
-                            defaultValue: 'This removes the imported avatar asset from local desktop storage. Existing bindings will be cleared.',
-                          }),
-                          level: 'warning',
-                        });
-                        if (!confirmed.confirmed) {
-                          return;
-                        }
-                        setFeedback(null);
-                        deleteResourceMutation.mutate(resource.resourceId);
-                      }}
-                      disabled={pending}
-                      className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--nimi-status-danger)] transition-opacity hover:opacity-80 disabled:opacity-50"
-                    >
-                      {t('Chat.avatarBindingDelete', { defaultValue: 'Delete' })}
-                    </button>
-                  </div>
-                </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const confirmed = await confirmDialog({
+                        title: t('Chat.avatarBindingDeleteConfirmTitle', { defaultValue: 'Remove local avatar resource?' }),
+                        description: t('Chat.avatarBindingDeleteConfirmBody', {
+                          defaultValue: 'This removes the imported avatar asset from local desktop storage. Existing bindings will be cleared.',
+                        }),
+                        level: 'warning',
+                      });
+                      if (!confirmed.confirmed) {
+                        return;
+                      }
+                      setFeedback(null);
+                      deleteResourceMutation.mutate(resource.resourceId);
+                    }}
+                    disabled={pending}
+                    aria-label={t('Chat.avatarBindingDelete', { defaultValue: 'Delete' })}
+                    title={t('Chat.avatarBindingDelete', { defaultValue: 'Delete' })}
+                    className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] hover:text-[var(--nimi-status-danger)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                    </svg>
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </div>
 
