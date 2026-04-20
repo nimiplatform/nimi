@@ -129,6 +129,10 @@ async function ensureCubismSdkExtracted(
   extractZipArchive(cacheZipPath, path.dirname(cacheRoot));
 }
 
+function matchesAny(value: string, patterns: readonly string[]): boolean {
+  return patterns.some((pattern) => value.includes(pattern));
+}
+
 function cubismWebCorePlugin(): PluginOption {
   return {
     name: 'nimi-sync-cubism-web-sdk',
@@ -299,6 +303,145 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             const normalizedId = id.split(path.sep).join('/');
+            if (normalizedId.includes('/apps/desktop/src/shell/renderer/features/chat/')) {
+              if (
+                normalizedId.includes('/chat-agent-runtime')
+                || normalizedId.includes('/chat-agent-orchestration')
+                || normalizedId.includes('/chat-agent-continuity')
+                || normalizedId.includes('/chat-agent-turn-plan')
+                || normalizedId.includes('/chat-agent-voice-workflow')
+                || normalizedId.includes('/chat-agent-voice-workflow-tracker')
+                || normalizedId.includes('/chat-agent-voice-capture')
+                || normalizedId.includes('/chat-agent-user-projection')
+              ) {
+                return 'chat-agent-engine';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-agent-avatar-',
+                '/chat-right-panel-character-rail',
+                '/chat-agent-anchored-avatar-stage',
+              ])) {
+                return 'chat-agent-avatar';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-agent-diagnostics',
+                '/chat-agent-debug-metadata',
+              ])) {
+                return 'chat-agent-diagnostics';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-runtime-stream-ui',
+                '/chat-stream-',
+              ])) {
+                return 'chat-stream-ui';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-human-canonical-composer-profile',
+              ])) {
+                return 'chat-composer-profile';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-group-composer',
+              ])) {
+                return 'chat-group-composer';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-agent-canonical-composer',
+                '/chat-composer-',
+              ])) {
+                return 'chat-composer-ui';
+              }
+              if (normalizedId.includes('/chat-human-canonical-components')) {
+                return 'chat-human-ui';
+              }
+              if (normalizedId.includes('/chat-human-')) {
+                return 'chat-human-core';
+              }
+              if (
+                normalizedId.includes('/conversation-capability')
+                || normalizedId.includes('/conversation-submit-readiness')
+                || normalizedId.includes('/chat-conversation-capability-settings')
+                || normalizedId.includes('/capability-settings-shared')
+                || normalizedId.includes('/chat-thinking')
+                || normalizedId.includes('/chat-execution-scheduling-guard')
+              ) {
+                return 'chat-capabilities';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-settings-',
+                '/chat-settings-panel',
+              ])) {
+                return 'chat-settings-ui';
+              }
+              if (normalizedId.includes('/chat-ai-')) {
+                return 'chat-ai-core';
+              }
+              if (normalizedId.includes('/chat-agent-')) {
+                return 'chat-agent-shell';
+              }
+            }
+            if (normalizedId.includes('/apps/desktop/src/shell/renderer/features/runtime-config/')) {
+              if (matchesAny(normalizedId, [
+                '/runtime-config-page-overview',
+                '/runtime-config-usage-stats-section',
+                '/runtime-config-global-audit-',
+              ])) {
+                return 'runtime-config-overview';
+              }
+              if (matchesAny(normalizedId, [
+                '/runtime-config-page-cloud',
+                '/runtime-config-provider-',
+                '/runtime-config-pricing-',
+                '/runtime-config-cost-estimator',
+                '/runtime-config-external-agent-access',
+              ])) {
+                return 'runtime-config-cloud';
+              }
+              if (matchesAny(normalizedId, [
+                '/runtime-config-page-local',
+                '/runtime-config-local-',
+                '/runtime-config-memory-embedding-',
+                '/desktop-model-config-profile-controller',
+              ])) {
+                return 'runtime-config-local';
+              }
+              if (matchesAny(normalizedId, [
+                '/runtime-config-page-runtime',
+                '/runtime-daemon-',
+                '/runtime-health-',
+                '/runtime-config-runtime-',
+              ])) {
+                return 'runtime-config-runtime';
+              }
+              if (matchesAny(normalizedId, [
+                '/runtime-config-page-knowledge',
+                '/runtime-config-page-knowledge-',
+                '/runtime-config-knowledge-',
+              ])) {
+                return 'runtime-config-knowledge';
+              }
+              if (normalizedId.includes('/runtime-config-page-mods')) {
+                return 'runtime-config-mods';
+              }
+              if (matchesAny(normalizedId, [
+                '/runtime-config-page-catalog',
+                '/runtime-config-catalog-',
+              ])) {
+                return 'runtime-config-catalog';
+              }
+              if (matchesAny(normalizedId, [
+                '/runtime-config-page-profiles',
+                '/runtime-config-profile-',
+              ])) {
+                return 'runtime-config-profiles';
+              }
+              if (matchesAny(normalizedId, [
+                '/runtime-config-page-recommend',
+                '/runtime-config-page-recommend-',
+              ])) {
+                return 'runtime-config-recommend';
+              }
+            }
             if (normalizedId.includes('/sdk/src/runtime/generated/')) {
               return 'vendor-sdk-runtime-generated';
             }
@@ -320,6 +463,12 @@ export default defineConfig(({ mode }) => {
               || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge.ts')
             ) {
               return 'runtime-bridge';
+            }
+            if (normalizedId.endsWith('/apps/desktop/src/shell/renderer/locales/en.json')) {
+              return 'vendor-shell-locale-en';
+            }
+            if (normalizedId.endsWith('/apps/desktop/src/shell/renderer/locales/zh.json')) {
+              return 'vendor-shell-locale-zh';
             }
 
             if (!id.includes('node_modules')) {

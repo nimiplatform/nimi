@@ -16,6 +16,9 @@ import type {
   CubismModelHandle,
   OfficialCubismRuntime,
 } from './chat-agent-avatar-live2d-cubism-runtime-types';
+import {
+  loadOfficialCubismRuntimeModules,
+} from '@renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime-loader';
 
 export type ChatAgentAvatarLive2dMotionSelection = AvatarLive2dMotionSelection;
 
@@ -47,47 +50,7 @@ async function loadOfficialCubismRuntime(): Promise<OfficialCubismRuntime> {
       throw new Error('Live2D Cubism Core is not available in the desktop shell.');
     }
 
-    const [
-      frameworkModule,
-      modelSettingModule,
-      userModelModule,
-      motionModule,
-      eyeBlinkModule,
-      breathModule,
-      physicsModule,
-      poseModule,
-      matrixModule,
-      offscreenManagerModule,
-      defaultParameterModule,
-    ] = await Promise.all([
-      import('@framework/live2dcubismframework'),
-      import('@framework/cubismmodelsettingjson'),
-      import('@framework/model/cubismusermodel'),
-      import('@framework/motion/cubismmotion'),
-      import('@framework/effect/cubismeyeblink'),
-      import('@framework/effect/cubismbreath'),
-      import('@framework/physics/cubismphysics'),
-      import('@framework/effect/cubismpose'),
-      import('@framework/math/cubismmatrix44'),
-      import('@framework/rendering/cubismoffscreenmanager'),
-      import('@framework/cubismdefaultparameterid'),
-    ]);
-
-    const runtime: OfficialCubismRuntime = {
-      CubismFramework: frameworkModule.CubismFramework,
-      Option: frameworkModule.Option,
-      CubismUserModel: userModelModule.CubismUserModel,
-      CubismModelSettingJson: modelSettingModule.CubismModelSettingJson,
-      CubismMotion: motionModule.CubismMotion,
-      CubismEyeBlink: eyeBlinkModule.CubismEyeBlink,
-      CubismBreath: breathModule.CubismBreath,
-      BreathParameterData: breathModule.BreathParameterData,
-      CubismPhysics: physicsModule.CubismPhysics,
-      CubismPose: poseModule.CubismPose,
-      CubismMatrix44: matrixModule.CubismMatrix44,
-      CubismWebGLOffscreenManager: offscreenManagerModule.CubismWebGLOffscreenManager,
-      CubismDefaultParameterId: defaultParameterModule.CubismDefaultParameterId,
-    };
+    const runtime = await loadOfficialCubismRuntimeModules();
 
     if (!runtime.CubismFramework.isStarted()) {
       const option = new runtime.Option();

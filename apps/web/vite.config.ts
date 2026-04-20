@@ -67,6 +67,10 @@ function resolveRealtimeProxyTarget(env: Record<string, string>, realmTarget: st
   }
 }
 
+function matchesAny(value: string, patterns: readonly string[]): boolean {
+  return patterns.some((pattern) => value.includes(pattern));
+}
+
 export default defineConfig(({ mode }) => {
   loadWebBuildEnvFiles();
   const env = loadEnv(mode, __dirname, '');
@@ -126,6 +130,10 @@ export default defineConfig(({ mode }) => {
         {
           find: /^@renderer\/bridge$/,
           replacement: path.resolve(__dirname, 'src/desktop-adapter/bridge.web.ts'),
+        },
+        {
+          find: '@renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime-loader',
+          replacement: path.resolve(__dirname, 'src/desktop-adapter/chat-agent-avatar-live2d-cubism-runtime-loader.web.ts'),
         },
         {
           find: /^@runtime\/mod$/,
@@ -224,15 +232,43 @@ export default defineConfig(({ mode }) => {
               ) {
                 return 'chat-agent-engine';
               }
-              if (normalizedId.includes('/chat-agent-')) {
-                return 'chat-agent-shell';
+              if (matchesAny(normalizedId, [
+                '/chat-agent-avatar-',
+                '/chat-right-panel-character-rail',
+                '/chat-agent-anchored-avatar-stage',
+              ])) {
+                return 'chat-agent-avatar';
               }
-              if (normalizedId.includes('/chat-ai-')) {
-                return 'chat-ai-core';
+              if (matchesAny(normalizedId, [
+                '/chat-agent-diagnostics',
+                '/chat-agent-debug-metadata',
+              ])) {
+                return 'chat-agent-diagnostics';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-runtime-stream-ui',
+                '/chat-stream-',
+              ])) {
+                return 'chat-stream-ui';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-human-canonical-composer-profile',
+              ])) {
+                return 'chat-composer-profile';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-group-composer',
+              ])) {
+                return 'chat-group-composer';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-agent-canonical-composer',
+                '/chat-composer-',
+              ])) {
+                return 'chat-composer-ui';
               }
               if (
                 normalizedId.includes('/chat-human-canonical-components')
-                || normalizedId.includes('/chat-human-canonical-composer-profile')
               ) {
                 return 'chat-human-ui';
               }
@@ -250,6 +286,18 @@ export default defineConfig(({ mode }) => {
                 || normalizedId.includes('/chat-execution-scheduling-guard')
               ) {
                 return 'chat-capabilities';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-settings-',
+                '/chat-settings-panel',
+              ])) {
+                return 'chat-settings-ui';
+              }
+              if (normalizedId.includes('/chat-ai-')) {
+                return 'chat-ai-core';
+              }
+              if (normalizedId.includes('/chat-agent-')) {
+                return 'chat-agent-shell';
               }
             }
             if (normalizedId.includes('/sdk/src/runtime/generated/')) {
@@ -294,6 +342,12 @@ export default defineConfig(({ mode }) => {
               || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge.ts')
             ) {
               return 'vendor-runtime-bridge-core';
+            }
+            if (normalizedId.endsWith('/apps/desktop/src/shell/renderer/locales/en.json')) {
+              return 'vendor-shell-locale-en';
+            }
+            if (normalizedId.endsWith('/apps/desktop/src/shell/renderer/locales/zh.json')) {
+              return 'vendor-shell-locale-zh';
             }
 
             if (!id.includes('node_modules')) {

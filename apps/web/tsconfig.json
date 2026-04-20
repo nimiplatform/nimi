@@ -2,6 +2,7 @@
   "compilerOptions": {
     "paths": {
       "@desktop-public/*": ["../desktop/src/public-web/*"],
+      "@renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime-loader": ["./src/desktop-adapter/chat-agent-avatar-live2d-cubism-runtime-loader.web.ts"],
       "@renderer/infra/bootstrap/runtime-bootstrap": ["./src/desktop-adapter/runtime-bootstrap.web.ts"],
       "@renderer/mod-ui/host/slot-host": ["./src/desktop-adapter/slot-host.web.tsx"],
       "@renderer/mod-ui/host/slot-context": ["./src/desktop-adapter/slot-context.web.ts"],
@@ -41,9 +42,11 @@
     "types": ["node"]
   },
   "include": [
+    "src/**/*.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
     "vite.config.ts",
+    "../desktop/src/**/*.d.ts",
     "../desktop/src/**/*.ts",
     "../desktop/src/**/*.tsx",
     "../../sdk/src/**/*.ts",
