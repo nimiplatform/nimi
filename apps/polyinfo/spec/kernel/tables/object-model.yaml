@@ -1,0 +1,128 @@
+# Polyinfo — Object Model
+# Authoritative source for current active objects, relationships, and invariants.
+
+object_model:
+  current_active_objects:
+    - Sector
+    - Narrative
+    - CoreVariable
+    - TrackedMarket
+    - SignalSnapshot
+    - DiscussionThread
+
+  sector:
+    upstream_source: polymarket_tag_v1
+    required_fields:
+      - id
+      - sourceTagId
+      - title
+      - sourceType
+      - createdAt
+      - updatedAt
+    optional_fields:
+      - description
+      - aliasGroup
+      - overlayMetadata
+    invariants:
+      - sourceType must be polymarket_tag in v1
+      - sourceTagId must remain stable once admitted
+
+  narrative:
+    required_fields:
+      - id
+      - sectorId
+      - title
+      - definition
+      - confirmationState
+      - createdAt
+      - updatedAt
+    optional_fields:
+      - provenance
+    invariants:
+      - narrative belongs to exactly one sector
+      - confirmed narratives require a non-empty definition
+
+  core_variable:
+    required_fields:
+      - id
+      - sectorId
+      - title
+      - definition
+      - confirmationState
+      - createdAt
+      - updatedAt
+    optional_fields:
+      - provenance
+    invariants:
+      - core variable belongs to exactly one sector
+      - confirmed core variables require a non-empty definition
+
+  tracked_market:
+    required_fields:
+      - id
+      - sectorId
+      - sourceMarketId
+      - sourceEventId
+      - sourceConditionId
+      - primaryNarrativeId
+      - displayTitle
+      - activeState
+      - createdAt
+      - updatedAt
+    optional_fields:
+      - sourceAssetIds
+      - relatedCoreVariableIds
+      - mappingOverrides
+    invariants:
+      - tracked market belongs to exactly one sector
+      - tracked market must expose exactly one primaryNarrativeId when active in signal construction
+      - tracked market may bind to multiple core variables
+
+  signal_snapshot:
+    required_fields:
+      - id
+      - sectorId
+      - window
+      - outputType
+      - evaluatedAt
+      - taxonomyVersion
+      - includedMarketIds
+      - analystConclusion
+      - analystProfileVersion
+    optional_fields:
+      - narrativeIds
+      - coreVariableIds
+      - explanationTrace
+    invariants:
+      - window must be one of the admitted signal windows
+      - outputType must be one of the admitted signal outputs
+
+  discussion_thread:
+    required_fields:
+      - id
+      - sectorId
+      - contextType
+      - createdAt
+      - updatedAt
+    optional_fields:
+      - narrativeId
+      - coreVariableId
+      - signalSnapshotId
+      - analystProfileVersion
+    invariants:
+      - every thread belongs to exactly one sector
+      - thread contextType must match its bound optional references
+
+  confirmation_states:
+    - proposed
+    - confirmed
+    - retired
+
+  discussion_context_types:
+    - sector
+    - narrative
+    - core_variable
+    - signal_snapshot
+
+  source_types:
+    - polymarket_tag

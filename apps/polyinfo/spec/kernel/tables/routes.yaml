@@ -1,0 +1,33 @@
+# Polyinfo — Route Table
+# Authoritative source for all application routes.
+
+routes:
+  - path: /
+    feature: dashboard
+    component: DashboardPage
+    lazy: true
+    description: Default home with active sector dashboard, narrative clusters, and signal summaries
+
+  - path: /sectors
+    feature: sector-directory
+    component: SectorDirectoryPage
+    lazy: true
+    description: Search and browse available sectors imported from the upstream source
+
+  - path: /sectors/:sectorId
+    feature: sector-workspace
+    component: SectorWorkspacePage
+    lazy: true
+    description: Sector-local workspace with narratives, core variables, tracked markets, live analysis, and sector analyst chat
+
+  - path: /signals
+    feature: signal-history
+    component: SignalHistoryPage
+    lazy: true
+    description: Search and filter saved signal snapshots across sectors and windows
+
+  - path: /settings
+    feature: settings
+    component: SettingsPage
+    lazy: true
+    description: Upstream connection health, refresh controls, weighting preferences, and app-local persistence settings

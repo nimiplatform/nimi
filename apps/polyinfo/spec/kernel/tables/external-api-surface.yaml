@@ -1,0 +1,55 @@
+# Polyinfo — External API Surface
+# Authoritative source for upstream Polymarket API usage admitted by this spec.
+
+surfaces:
+  - name: gamma-tags
+    kind: rest
+    provider: polymarket
+    endpoint: GET /tags
+    purpose: Fetch sector source catalog in v1
+
+  - name: gamma-events-by-tag
+    kind: rest
+    provider: polymarket
+    endpoint: GET /events
+    purpose: Event-first sector discovery scoped by upstream tag
+
+  - name: gamma-event-tags
+    kind: rest
+    provider: polymarket
+    endpoint: GET /events/{id}/tags
+    purpose: Confirm event-to-tag linkage
+
+  - name: gamma-market-detail
+    kind: rest
+    provider: polymarket
+    endpoint: GET /markets/{id}
+    purpose: Read market metadata, display fields, and upstream activity facts
+
+  - name: price-history
+    kind: rest
+    provider: polymarket
+    endpoint: GET /prices-history
+    purpose: Reconstruct canonical historical windows for one market
+
+  - name: batch-price-history
+    kind: rest
+    provider: polymarket
+    endpoint: POST /batch-prices-history
+    purpose: Reconstruct canonical historical windows for multiple related markets
+
+  - name: event-live-volume
+    kind: rest
+    provider: polymarket
+    endpoint: GET /live-volume?id={eventId}
+    purpose: Read realtime event-local activity distribution when available
+
+  - name: market-websocket
+    kind: websocket
+    provider: polymarket
+    endpoint: wss://ws-subscriptions-clob.polymarket.com/ws/market
+    purpose: Receive realtime market updates for subscribed asset ids
+    protocol_notes:
+      - subscription identity uses asset ids
+      - keepalive is required
+      - reconnect must preserve explicit stale state

@@ -1,0 +1,35 @@
+# Polyinfo — Signal Model
+# Authoritative source for admitted windows, weighting factors, and output types.
+
+signal_model:
+  windows:
+    - id: 24h
+      label: 24 hours
+    - id: 48h
+      label: 48 hours
+    - id: 7d
+      label: 7 days
+
+  weighting_factors:
+    - volume
+    - volume24hr
+    - liquidity
+    - market_recency_health
+
+  output_types:
+    - strengthening
+    - weakening
+    - mixed
+    - low_confidence
+
+  aggregation_order:
+    - market
+    - narrative
+    - core_variable
+
+  invariants:
+    - weighting is soft and strong rather than binary
+    - low-activity markets stay visible but should not dominate major markets
+    - output types are typed records even when paired with richer natural-language explanation
+    - final analytical conclusion is produced by the sector analyst from the structured evidence package
+    - analyst output must stay inside the admitted evidence boundary

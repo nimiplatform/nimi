@@ -1,0 +1,129 @@
+# Polyinfo — Feature Matrix
+# Authoritative source for feature phasing, priority, and dependencies.
+
+features:
+  - feature: app-shell
+    phase: 1
+    priority: P0
+    contract: PI-SHELL-*
+    backend-dependency: none
+    external-dependency: none
+    migration-source: standalone app shell pattern
+    description: Tauri app shell, routing, layout, and app store
+
+  - feature: sector-catalog
+    phase: 1
+    priority: P0
+    contract: PI-TAX-001, PI-DATA-002
+    backend-dependency: none
+    external-dependency: Polymarket Gamma API
+    migration-source: new
+    description: Import and cache upstream sectors and event-linked market discovery
+
+  - feature: taxonomy-management
+    phase: 1
+    priority: P0
+    contract: PI-TAX-002..008
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: Create, edit, confirm, and version narratives and core variables
+
+  - feature: tracked-market-mapping
+    phase: 1
+    priority: P0
+    contract: PI-TAX-006
+    backend-dependency: none
+    external-dependency: Polymarket Gamma API
+    migration-source: new
+    description: Bind discovered markets to narratives and core variables with manual override
+
+  - feature: price-history-windows
+    phase: 2
+    priority: P0
+    contract: PI-DATA-004
+    backend-dependency: none
+    external-dependency: Polymarket price history APIs
+    migration-source: new
+    description: Reconstruct canonical 24h, 48h, and 7d windows for tracked markets
+
+  - feature: realtime-dashboard
+    phase: 2
+    priority: P0
+    contract: PI-DATA-005
+    backend-dependency: none
+    external-dependency: Polymarket market WebSocket
+    migration-source: new
+    description: Maintain live market movement views for the active sector workspace
+
+  - feature: analysis-input-package
+    phase: 2
+    priority: P0
+    contract: PI-DATA-008, PI-SIGNAL-001..004
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: Prepare sector-local structured evidence packages for analyst runs
+
+  - feature: analyst-run-signal-engine
+    phase: 2
+    priority: P0
+    contract: PI-SIGNAL-005..008
+    backend-dependency: none
+    external-dependency: Runtime SDK
+    migration-source: new
+    description: Run the sector analyst over structured evidence to produce typed conclusions
+
+  - feature: explanation-trace
+    phase: 2
+    priority: P0
+    contract: PI-SHELL-010, PI-SIGNAL-007
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: Inspect included markets, window deltas, mappings, and weight impact
+
+  - feature: sector-analyst-session
+    phase: 3
+    priority: P0
+    contract: PI-SHELL-006, PI-DISCUSS-001..003
+    backend-dependency: none
+    external-dependency: Runtime SDK
+    migration-source: nimi kit runtime chat shell
+    description: Sector-bound analyst chat that starts with sector taxonomy and current market context loaded
+
+  - feature: proposal-confirmation
+    phase: 3
+    priority: P0
+    contract: PI-DISCUSS-004..007
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: Turn agent suggestions into user-confirmed taxonomy updates
+
+  - feature: chat-initiated-structure-editing
+    phase: 3
+    priority: P0
+    contract: PI-SHELL-009, PI-DISCUSS-005
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: Create, revise, retire, and remap narratives or core variables from inside chat
+
+  - feature: discussion-history
+    phase: 3
+    priority: P1
+    contract: PI-DISCUSS-009
+    backend-dependency: none
+    external-dependency: none
+    migration-source: new
+    description: Persist sector-bound discussion threads and proposal history
+
+  - feature: connection-health
+    phase: 4
+    priority: P1
+    contract: PI-DATA-007
+    backend-dependency: none
+    external-dependency: Polymarket APIs
+    migration-source: new
+    description: Surface cache age, subscription health, reconnect state, and stale warnings
