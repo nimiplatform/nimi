@@ -1,16 +1,60 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Component, Suspense, lazy, useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { ConversationSetupAction } from '@nimiplatform/nimi-kit/features/chat';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { dispatchRuntimeConfigOpenPage } from '@renderer/features/runtime-config/runtime-config-navigation-events';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatContactsSidebar } from './chat-contacts-sidebar';
 import { useChatTargetsForSidebar } from './chat-sidebar-targets';
 import { ChatHumanModeContent } from './chat-human-mode-content';
 import { ChatNimiModeContent } from './chat-ai-mode-content';
-import { ChatAgentModeContent } from './chat-agent-mode-content';
 import { ChatGroupModeContent } from './chat-group-mode-content';
 import { GROUP_CREATE_INTENT_TARGET_ID } from './chat-group-flow-constants';
+
+const ChatAgentModeContent = lazy(async () => {
+  const mod = await import('./chat-agent-mode-content');
+  return { default: mod.ChatAgentModeContent };
+});
+
+type ChatModeSurfaceErrorBoundaryProps = {
+  children: ReactNode;
+  fallback: ReactNode;
+};
+
+type ChatModeSurfaceErrorBoundaryState = {
+  failed: boolean;
+};
+
+class ChatModeSurfaceErrorBoundary extends Component<
+  ChatModeSurfaceErrorBoundaryProps,
+  ChatModeSurfaceErrorBoundaryState
+> {
+  constructor(props: ChatModeSurfaceErrorBoundaryProps) {
+    super(props);
+    this.state = { failed: false };
+  }
+
+  static getDerivedStateFromError(): ChatModeSurfaceErrorBoundaryState {
+    return { failed: true };
+  }
+
+  override componentDidCatch(error: Error): void {
+    logRendererEvent({
+      level: 'error',
+      area: 'chat',
+      message: 'action:chat-mode-surface:failed',
+      details: {
+        chatMode: 'agent',
+        error: error.message,
+      },
+    });
+  }
+
+  override render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
 
 function toRuntimePageId(targetId: Extract<ConversationSetupAction, { kind: 'open-settings' }>['targetId']) {
   if (targetId === 'runtime-local') {
@@ -152,7 +196,19 @@ export function ChatPage() {
           onCloseThreadList={() => setNimiThreadListOpen(false)}
         />
       ) : null}
-      {chatMode === 'agent' ? <ChatAgentModeContent {...sharedProps} /> : null}
+      {chatMode === 'agent' ? (
+        <ChatModeSurfaceErrorBoundary
+          fallback={(
+            <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center px-6 text-center text-sm text-[var(--nimi-text-secondary)]">
+              Agent mode is temporarily unavailable. Switch to another conversation mode or reopen the app.
+            </div>
+          )}
+        >
+          <Suspense fallback={<div className="flex min-h-0 min-w-0 flex-1" />}>
+            <ChatAgentModeContent {...sharedProps} />
+          </Suspense>
+        </ChatModeSurfaceErrorBoundary>
+      ) : null}
       {chatMode === 'group' ? <ChatGroupModeContent {...sharedProps} /> : null}
       {authStatus === 'authenticated' ? (
         <ChatContactsSidebar

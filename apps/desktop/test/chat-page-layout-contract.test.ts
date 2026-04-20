@@ -73,3 +73,15 @@ test('chat page uses transient side sheets; agent avatar renders as an app-wide 
   assert.match(chatAgentAnchoredStageSource, /data-avatar-stage-viewport="true"/);
   assert.doesNotMatch(chatAgentAnchoredStageSource, /ChatRightPanelSettings/u);
 });
+
+test('chat page startup keeps agent-only avatar modules behind local lazy boundaries', () => {
+  assert.match(chatPageSource, /const ChatAgentModeContent = lazy\(async \(\) => \{/);
+  assert.match(chatPageSource, /import\('\.\/chat-agent-mode-content'\)/);
+  assert.match(chatPageSource, /ChatModeSurfaceErrorBoundary/);
+  assert.match(chatPageSource, /Agent mode is temporarily unavailable/);
+
+  assert.match(chatAgentModeSource, /const ChatAgentAvatarOverlay = lazy\(async \(\) => \{/);
+  assert.match(chatAgentModeSource, /import\('\.\/chat-agent-avatar-overlay'\)/);
+  assert.match(chatAgentModeSource, /ChatAvatarOverlayErrorBoundary/);
+  assert.match(chatAgentModeSource, /<Suspense fallback=\{null\}>/);
+});

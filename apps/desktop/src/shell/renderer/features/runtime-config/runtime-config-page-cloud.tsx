@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
@@ -216,10 +217,13 @@ function Input({
 }
 
 export function CloudPage({ model, state }: CloudPageProps) {
+  const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
+  const CONNECTORS_LOAD_ERROR_LABEL = 'Load connectors failed';
   const { t } = useTranslation();
   const { selectedConnector, orderedConnectors, updateState } = model;
   const authStatus = useAppStore((s) => s.auth.status);
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
+  const pageFeedbackRef = useRef(model.pageFeedback);
 
   const [tokenDraft, setTokenDraft] = useState('');
   const [savingToken, setSavingToken] = useState(false);
@@ -233,6 +237,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const isSystemOwned = isRuntimeSystem;
   const isDraft = selectedConnector?.isDraft || false;
   const canEditVendor = !isRuntimeSystem && isDraft;
+
+  useEffect(() => {
+    pageFeedbackRef.current = model.pageFeedback;
+  }, [model.pageFeedback]);
 
   useEffect(() => {
     setTokenDraft('');
@@ -255,25 +263,24 @@ export function CloudPage({ model, state }: CloudPageProps) {
     });
   }, [model]);
 
+  const clearPageErrorByLabel = useCallback((label: string) => {
+    if (
+      pageFeedbackRef.current?.kind === 'error'
+      && String(pageFeedbackRef.current.message || '').includes(label)
+    ) {
+      model.setPageFeedback(null);
+    }
+  }, [model]);
+
   useEffect(() => {
     model.setConnectorTestFeedback(null);
   }, [model, selectedConnectorId]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void sdkListProviderCatalog()
-      .then((providers) => {
-        if (!cancelled) {
-          setProviderCatalog(Array.isArray(providers) ? providers : []);
-        }
-      })
-      .catch((error) => {
-        reportError('Load provider catalog failed', error);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reportError]);
+  const loadProviderCatalog = useCallback(async () => {
+    const providers = await sdkListProviderCatalog();
+    setProviderCatalog(Array.isArray(providers) ? providers : []);
+    clearPageErrorByLabel(PROVIDER_CATALOG_ERROR_LABEL);
+  }, [clearPageErrorByLabel, PROVIDER_CATALOG_ERROR_LABEL]);
 
   const vendorOptions = useMemo(() => {
     const known = [...VENDOR_ORDER_V11];
@@ -296,7 +303,41 @@ export function CloudPage({ model, state }: CloudPageProps) {
       const drafts = prev.connectors.filter((c) => c.isDraft);
       return replaceConnectorsInState(prev, [...connectors, ...drafts]);
     });
-  }, [updateState]);
+    clearPageErrorByLabel(CONNECTORS_LOAD_ERROR_LABEL);
+  }, [clearPageErrorByLabel, updateState, CONNECTORS_LOAD_ERROR_LABEL]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadProviderCatalog()
+      .catch((error) => {
+        if (!cancelled) {
+          reportError(PROVIDER_CATALOG_ERROR_LABEL, error);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadProviderCatalog, reportError, PROVIDER_CATALOG_ERROR_LABEL]);
+
+  useEffect(() => {
+    const unsubscribe = getPlatformClient().runtime.events.on('runtime.connected', () => {
+      void loadProviderCatalog()
+        .catch((error) => {
+          reportError(PROVIDER_CATALOG_ERROR_LABEL, error);
+        });
+      void refreshConnectorsFromSdk()
+        .catch((error) => {
+          reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
+        });
+    });
+    return unsubscribe;
+  }, [
+    loadProviderCatalog,
+    refreshConnectorsFromSdk,
+    reportError,
+    PROVIDER_CATALOG_ERROR_LABEL,
+    CONNECTORS_LOAD_ERROR_LABEL,
+  ]);
 
   const onAddConnector = useCallback(async () => {
     const vendor: ApiVendor = 'openrouter';

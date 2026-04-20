@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Component, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   CanonicalConversationShell,
   type CanonicalConversationAnchoredSurfacePlacement,
@@ -6,10 +6,53 @@ import {
   type ConversationTargetSummary,
 } from '@nimiplatform/nimi-kit/features/chat';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
 import { ChatAgentSceneBackground } from './chat-agent-scene-background';
-import { ChatAgentAvatarOverlay } from './chat-agent-avatar-overlay';
 import { ChatSideSheet } from './chat-side-sheet';
+
+const ChatAgentAvatarOverlay = lazy(async () => {
+  const mod = await import('./chat-agent-avatar-overlay');
+  return { default: mod.ChatAgentAvatarOverlay };
+});
+
+type ChatAvatarOverlayErrorBoundaryProps = {
+  children: ReactNode;
+  fallback?: ReactNode;
+};
+
+type ChatAvatarOverlayErrorBoundaryState = {
+  failed: boolean;
+};
+
+class ChatAvatarOverlayErrorBoundary extends Component<
+  ChatAvatarOverlayErrorBoundaryProps,
+  ChatAvatarOverlayErrorBoundaryState
+> {
+  constructor(props: ChatAvatarOverlayErrorBoundaryProps) {
+    super(props);
+    this.state = { failed: false };
+  }
+
+  static getDerivedStateFromError(): ChatAvatarOverlayErrorBoundaryState {
+    return { failed: true };
+  }
+
+  override componentDidCatch(error: Error): void {
+    logRendererEvent({
+      level: 'error',
+      area: 'chat',
+      message: 'action:chat-agent-avatar-overlay:failed',
+      details: {
+        error: error.message,
+      },
+    });
+  }
+
+  override render() {
+    return this.state.failed ? (this.props.fallback ?? null) : this.props.children;
+  }
+}
 
 export type ChatAgentModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
@@ -131,15 +174,19 @@ export function ChatAgentModeContent({
         auxiliaryOverlayContent={host.auxiliaryOverlayContent}
       />
       {selectedTarget ? (
-        <ChatAgentAvatarOverlay
-          selectedTarget={selectedTarget}
-          characterData={host.characterData}
-          placement={avatarStagePlacement}
-          settingsActive={settingsOpen}
-          thinkingState={host.thinkingState}
-          onThinkingToggle={host.onThinkingToggle}
-          handsFreeState={host.handsFreeState}
-        />
+        <ChatAvatarOverlayErrorBoundary>
+          <Suspense fallback={null}>
+            <ChatAgentAvatarOverlay
+              selectedTarget={selectedTarget}
+              characterData={host.characterData}
+              placement={avatarStagePlacement}
+              settingsActive={settingsOpen}
+              thinkingState={host.thinkingState}
+              onThinkingToggle={host.onThinkingToggle}
+              handsFreeState={host.handsFreeState}
+            />
+          </Suspense>
+        </ChatAvatarOverlayErrorBoundary>
       ) : null}
       {selectedTarget && settingsOpen && host.settingsContent ? (
         <ChatSideSheet
