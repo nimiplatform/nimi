@@ -6,14 +6,14 @@
 
 | Document | Scope |
 |----------|-------|
-| [video-food-map.md](video-food-map.md) | Product positioning, module map, staged scope |
+| [video-food-map.md](video-food-map.md) | Personal food space positioning, module map, staged scope |
 | [execution-plan.md](execution-plan.md) | Phase-by-phase delivery scope |
 
 ## Kernel Contracts
 
 | Contract | Rule IDs | Scope |
 |----------|----------|-------|
-| [app-shell-contract.md](kernel/app-shell-contract.md) | VFM-SHELL-001 ~ 010 | Standalone app shell, stage boundaries, runtime dependency, kit-first UI, theme, surface mapping, adoption, runtime route settings, pre-menu preference setup |
+| [app-shell-contract.md](kernel/app-shell-contract.md) | VFM-SHELL-001 ~ 012 | Standalone app shell, personal-space-first shell rules, glass material direction, runtime dependency, kit-first UI, theme, surface mapping, adoption, runtime route settings, profile surface |
 | [extraction-contract.md](kernel/extraction-contract.md) | VFM-PIPE-001 ~ 012 | Video intake, extraction order, coverage disclosure, dedupe, STT language, cookieless API, future creator batch boundary, FFmpeg |
 | [discovery-contract.md](kernel/discovery-contract.md) | VFM-DISC-001 ~ 010 | Map promotion, creator search, confirmation order, comment supplement, geocoding gate, user curation, current-location nearby discovery, navigation handoff |
 | [menu-advisor-contract.md](kernel/menu-advisor-contract.md) | VFM-MENU-001 ~ 005 | Menu capture, dietary guardrails, party-size recommendations, dining preference profile persistence |

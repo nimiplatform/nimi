@@ -6,8 +6,8 @@ Video Food Map should be delivered as a real standalone app under `apps/video-fo
 
 The delivery order is now:
 
-1. keep the shipped standalone shell and canonical records stable
-2. harden single-video discovery, map, and review flows
+1. reshape the standalone shell into a personal food space without breaking canonical records
+2. harden personal-space discovery, map, and review flows
 3. add creator-scaled intake and richer review actions
 4. add menu capture and dining advice last
 
@@ -30,16 +30,19 @@ The current app baseline already includes:
 
 The biggest gaps relative to the intended product are:
 
+- the first screen still reads more like an intake tool than a personal food space
+- saved places, favorites, review work, and dining profile are not yet framed as one coherent personal dashboard
 - creator intake still lacks deeper history sync, re-sync controls, and persistent sync management
 - targeted visual clues are not shipped yet
 - review tooling is still lightweight; there is no explicit reject / keep-in-review workflow yet
 - menu photo capture and dining advice are still future work
 
-## Phase 1 — Stabilize the Shipped Baseline
+## Phase 1 — Personal Space Baseline
 
-Goal: keep the current single-video flow trustworthy while the product grows.
+Goal: make the app feel like the user's own food space while keeping the current discovery pipeline trustworthy.
 
 - preserve one-video-one-record dedupe behavior
+- make favorites, confirmed venues, recent discovery work, and dining profile first-class shell content
 - keep comment-based completion subordinate to the first extraction pass
 - keep map promotion fail-close on missing coordinates
 - preserve user confirmation and favorites as app-owned curation actions
@@ -47,6 +50,7 @@ Goal: keep the current single-video flow trustworthy while the product grows.
 
 Phase 1 is done when:
 
+- the shell's first screen is clearly a personal-space dashboard instead of only an intake panel
 - repeated imports refresh the same video record instead of multiplying it
 - unresolved records remain searchable and reviewable but off-map
 - operator curation does not bypass the coordinate gate
@@ -96,6 +100,6 @@ Phase 4 is done when:
 ## Non-Blocking Work
 
 - cross-platform creator identity
-- broader visual polish beyond the current shell baseline
+- broader visual polish beyond the personal-space baseline
 - future map-provider abstraction if the current AMap-backed implementation stops fitting product needs
 - deeper menu-advisor UX once stage-3 behavior exists

@@ -213,9 +213,9 @@ describe('Video Food Map App', () => {
     render(<App />);
 
     const user = userEvent.setup();
-    await screen.findByText('视频清单');
-    await user.type(screen.getByPlaceholderText('粘贴 Bilibili 视频链接或博主主页...'), 'https://www.bilibili.com/video/BV1xx411c7mD');
-    await user.click(screen.getByRole('button', { name: /\+?\s*解析提取/ }));
+    await screen.findByPlaceholderText('把新种草放进空间里，贴视频或博主主页...');
+    await user.type(screen.getByPlaceholderText('把新种草放进空间里，贴视频或博主主页...'), 'https://www.bilibili.com/video/BV1xx411c7mD');
+    await user.click(screen.getByRole('button', { name: '放进我的空间' }));
 
     await waitFor(() => expect(apiMocks.importVideo).toHaveBeenCalledWith('https://www.bilibili.com/video/BV1xx411c7mD'));
     expect(apiMocks.importCreator).not.toHaveBeenCalled();
@@ -225,9 +225,9 @@ describe('Video Food Map App', () => {
     render(<App />);
 
     const user = userEvent.setup();
-    await screen.findByText('视频清单');
-    await user.type(screen.getByPlaceholderText('粘贴 Bilibili 视频链接或博主主页...'), 'https://space.bilibili.com/123456');
-    await user.click(screen.getByRole('button', { name: /\+?\s*同步最近视频/ }));
+    await screen.findByPlaceholderText('把新种草放进空间里，贴视频或博主主页...');
+    await user.type(screen.getByPlaceholderText('把新种草放进空间里，贴视频或博主主页...'), 'https://space.bilibili.com/123456');
+    await user.click(screen.getByRole('button', { name: '同步最近视频' }));
 
     await waitFor(() => expect(apiMocks.importCreator).toHaveBeenCalledWith('https://space.bilibili.com/123456'));
     expect(apiMocks.importVideo).not.toHaveBeenCalled();
@@ -248,12 +248,12 @@ describe('Video Food Map App', () => {
     render(<App />);
 
     const user = userEvent.setup();
-    await screen.findByText('视频清单');
-    await user.click(screen.getByRole('button', { name: '待确认' }));
-    expect(await screen.findByText('待确认队列')).toBeInTheDocument();
+    await screen.findByPlaceholderText('把新种草放进空间里，贴视频或博主主页...');
+    await user.click(screen.getByLabelText('待整理'));
+    expect(await screen.findByText('待整理队列')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '偏好设置' }));
-    expect(await screen.findByText('偏好与设置')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('口味档案'));
+    expect(await screen.findByText('口味档案与空间设置')).toBeInTheDocument();
   });
 
   it('preserves review actions and can jump back to details', async () => {
@@ -284,8 +284,8 @@ describe('Video Food Map App', () => {
     render(<App />);
 
     const user = userEvent.setup();
-    await screen.findByText('视频清单');
-    await user.click(screen.getByRole('button', { name: '待确认' }));
+    await screen.findByPlaceholderText('把新种草放进空间里，贴视频或博主主页...');
+    await user.click(screen.getByLabelText('待整理'));
     expect((await screen.findAllByText('阿婆牛杂')).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: '确认收录' }));
@@ -298,7 +298,7 @@ describe('Video Food Map App', () => {
     expect((await screen.findAllByText('芳村糖水铺')).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: '回到视频详情' }));
-    expect(await screen.findByText('视频信息')).toBeInTheDocument();
+    expect(await screen.findByText('种草理由')).toBeInTheDocument();
   });
 
   it('syncs discover detail cards when switching venues', async () => {
@@ -348,7 +348,7 @@ describe('Video Food Map App', () => {
     render(<App />);
 
     const user = userEvent.setup();
-    await screen.findByText('视频清单');
+    await screen.findByPlaceholderText('把新种草放进空间里，贴视频或博主主页...');
     expect((await screen.findAllByText('天巢法国餐厅')).length).toBeGreaterThan(0);
     expect(screen.getByText('新葡京43楼那家法餐就是它。')).toBeInTheDocument();
 
@@ -357,6 +357,6 @@ describe('Video Food Map App', () => {
     await waitFor(() => expect(screen.getAllByText('阿文咖喱屋').length).toBeGreaterThan(0));
     expect(screen.getByText('阿文咖喱屋在旧城区小巷里。')).toBeInTheDocument();
     expect(screen.queryByText('新葡京43楼那家法餐就是它。')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '看单视频地图' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '放到地图里看' })).toBeInTheDocument();
   });
 });

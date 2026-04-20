@@ -69,9 +69,9 @@ function RuntimeRouteSettingsPanel(props: {
     <Surface tone="panel" elevation="base" className="vfm-radius-panel space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xl font-semibold text-[var(--nimi-text-primary)]">模型设置</div>
+          <div className="text-xl font-semibold text-[var(--nimi-text-primary)]">空间设置</div>
           <p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">
-            这里继续沿用现有能力，只是从顶部移到设置页。视频导入时会按这里的选择走。
+            这些设置会影响你往空间里放新线索时走哪一路能力。
           </p>
         </div>
         <Button tone="secondary" size="sm" onClick={props.onRefreshRuntimeOptions} disabled={props.runtimeOptionsPending}>
@@ -213,9 +213,9 @@ export function SettingsSurface(props: {
       <Surface tone="panel" elevation="base" className="vfm-radius-shell p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-2xl font-semibold text-[var(--nimi-text-primary)]">偏好与设置</div>
+            <div className="text-2xl font-semibold text-[var(--nimi-text-primary)]">口味档案与空间设置</div>
             <div className="mt-2 max-w-3xl text-sm leading-7 text-[var(--nimi-text-secondary)]">
-              用餐偏好继续单独保存，后面的点菜建议会直接复用。模型设置也统一收进这里，不再挤占首页顶部。
+              这里专门放你自己的饮食偏好和导入设置。首页只负责看空间本身，不再把这些细项挤在最显眼的位置。
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -242,7 +242,7 @@ export function SettingsSurface(props: {
               <StatusBadge tone="info">Stage 3</StatusBadge>
               <StatusBadge tone="neutral">预留入口</StatusBadge>
             </div>
-            <div className="mt-4 text-2xl font-semibold text-[var(--nimi-text-primary)]">点菜建议会在后面接上</div>
+            <div className="mt-4 text-2xl font-semibold text-[var(--nimi-text-primary)]">点菜建议后面再接</div>
             <div className="mt-3 text-sm leading-7 text-[var(--nimi-text-secondary)]">
               这一版先把偏好记好。后面接菜单拍照和点菜建议时，会优先避开你的忌口，再结合你喜欢的口味和常吃菜系给建议。
             </div>

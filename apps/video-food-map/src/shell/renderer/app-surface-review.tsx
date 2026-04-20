@@ -18,9 +18,9 @@ export function ReviewSurface(props: {
     return (
       <Surface tone="panel" elevation="base" className="vfm-radius-shell flex h-full min-h-[540px] items-center justify-center p-10 text-center">
         <div className="max-w-xl space-y-3">
-          <div className="text-2xl font-semibold text-[var(--nimi-text-primary)]">当前没有待确认项</div>
+          <div className="text-2xl font-semibold text-[var(--nimi-text-primary)]">当前没有待整理项</div>
           <div className="text-sm leading-7 text-[var(--nimi-text-secondary)]">
-            已确认或者已经能稳定上图的店都会从这里退出。你可以先回到发现页继续导入更多视频。
+            已确认或者已经能稳定上图的店都会从这里退出。你可以先回到我的空间，继续整理最近的种草记录。
           </div>
         </div>
       </Surface>
@@ -105,13 +105,13 @@ export function ReviewSurface(props: {
 
       <div className="space-y-4">
         <Surface tone="panel" elevation="base" className="vfm-radius-panel p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-lg font-semibold text-[var(--nimi-text-primary)]">待确认队列</div>
-              <div className="mt-1 text-sm text-[var(--nimi-text-secondary)]">宽窗口会在这里显示其余项，窄窗口就保留主卡片。</div>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+              <div className="text-lg font-semibold text-[var(--nimi-text-primary)]">待整理队列</div>
+              <div className="mt-1 text-sm text-[var(--nimi-text-secondary)]">把还没稳的店逐条整理干净，空间才会越来越像你自己的地方。</div>
+              </div>
+              <StatusBadge tone="warning">{props.reviewItems.length} 条</StatusBadge>
             </div>
-            <StatusBadge tone="warning">{props.reviewItems.length} 条</StatusBadge>
-          </div>
         </Surface>
 
         <ScrollArea className="max-h-[620px]" contentClassName="space-y-3">

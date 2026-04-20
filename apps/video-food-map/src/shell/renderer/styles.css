@@ -16,37 +16,13 @@ body,
 body {
   font-family: var(--nimi-font-sans);
   color: var(--nimi-text-primary);
-  background:
-    radial-gradient(circle at top left, rgba(251, 146, 60, 0.18), transparent 24%),
-    radial-gradient(circle at top right, rgba(251, 191, 36, 0.12), transparent 22%),
-    linear-gradient(180deg, #f5f4ef 0%, #efece4 42%, #f6f2eb 100%);
+  background: var(--nimi-surface-app-background);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 * {
   box-sizing: border-box;
-}
-
-.dark body {
-  background:
-    radial-gradient(circle at top left, rgba(251, 146, 60, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(239, 68, 68, 0.14), transparent 24%),
-    linear-gradient(180deg, #190f0b 0%, #23120d 44%, #1b100d 100%);
-}
-
-.vfm-hero {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--nimi-surface-hero) 88%, rgba(255, 255, 255, 0.72)) 0%, color-mix(in srgb, var(--nimi-surface-panel) 92%, rgba(255, 255, 255, 0.80)) 100%);
-  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 18%, var(--nimi-border-subtle));
-  box-shadow:
-    0 22px 56px rgba(120, 53, 15, 0.10),
-    inset 0 1px 0 rgba(255, 255, 255, 0.64);
-}
-
-.vfm-card-shell {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--nimi-surface-card) 88%, rgba(255, 255, 255, 0.76)) 0%, color-mix(in srgb, var(--nimi-surface-panel) 94%, rgba(255, 255, 255, 0.60)) 100%);
 }
 
 .vfm-map-grid::before {
@@ -61,30 +37,10 @@ body {
   pointer-events: none;
 }
 
-.vfm-app-shell {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.14)),
-    radial-gradient(circle at top right, rgba(255, 237, 213, 0.78), transparent 22%);
-}
-
-.vfm-window-frame {
-  background:
-    linear-gradient(180deg, rgba(17, 24, 39, 0.94), rgba(17, 24, 39, 0.94)) top / 100% 44px no-repeat,
-    linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.14)),
-    radial-gradient(circle at top right, rgba(255, 237, 213, 0.78), transparent 22%);
-}
-
-.vfm-rail {
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.10), transparent 28%),
-    linear-gradient(180deg, #171717 0%, #111827 58%, #0f172a 100%);
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.06);
-}
-
 .vfm-drag-strip {
   position: relative;
   z-index: 20;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.18em;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -160,6 +116,10 @@ button {
 
 .vfm-radius-badge {
   border-radius: 1.125rem;
+}
+
+.vfm-shell-nav-button {
+  backdrop-filter: blur(var(--nimi-backdrop-blur-thin));
 }
 
 .vfm-pill-neutral {

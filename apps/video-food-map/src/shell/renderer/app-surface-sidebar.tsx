@@ -18,25 +18,21 @@ export function ContextSidebar(props: {
   onSelectFavoriteVenue: (entry: { venue: VenueRecord; record: ImportRecord }) => void;
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col border-r border-black/6 bg-white/94">
-      <div className="border-b border-black/6 px-4 py-5">
+    <div className="flex h-full min-h-0 flex-col bg-transparent">
+      <div className="border-b border-[var(--nimi-border-subtle)] px-4 py-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-[15px] font-semibold text-[var(--nimi-text-primary)]">视频清单</div>
+            <div className="text-[15px] font-semibold text-[var(--nimi-text-primary)]">我的清单</div>
+            <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">从这里切回最近的视频、收藏和常看的博主。</div>
           </div>
-          <button
-            type="button"
-            className="vfm-filter-chip inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-xs font-medium"
-          >
-            筛选
-          </button>
+          <StatusBadge tone="neutral">{props.filteredImports.length} 条</StatusBadge>
         </div>
         <div className="mt-4 space-y-3">
           <div className="relative">
             <input
               value={props.searchText}
               onChange={(event) => props.onSearchTextChange(event.target.value)}
-              placeholder="搜索视频标题、博主..."
+              placeholder="搜索视频、店铺、博主..."
               className="vfm-search-field w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition"
             />
           </div>
@@ -53,7 +49,7 @@ export function ContextSidebar(props: {
           />
           <div className="flex items-center justify-between text-xs text-[var(--nimi-text-muted)]">
             <span>{props.filteredImports.length} 条结果</span>
-            <span>按时间排序</span>
+            <span>越新的越靠前</span>
           </div>
         </div>
       </div>
@@ -105,7 +101,7 @@ export function ContextSidebar(props: {
         ))}
 
         {!props.snapshotPending && props.favoriteVenues.length > 0 ? (
-          <Surface tone="card" elevation="base" className="vfm-radius-card p-4">
+          <Surface tone="card" material="glass-thin" elevation="base" className="vfm-radius-card p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">我的收藏</div>
               <StatusBadge tone="warning">{props.favoriteVenues.length} 家</StatusBadge>
@@ -127,9 +123,9 @@ export function ContextSidebar(props: {
         ) : null}
 
         {!props.snapshotPending && props.creatorSyncs.length > 0 ? (
-          <Surface tone="card" elevation="base" className="vfm-radius-card p-4">
+          <Surface tone="card" material="glass-thin" elevation="base" className="vfm-radius-card p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">最近同步的博主</div>
+              <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">最近常看的博主</div>
               <StatusBadge tone="info">{props.creatorSyncs.length} 个</StatusBadge>
             </div>
             <div className="space-y-2">

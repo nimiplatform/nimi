@@ -23,11 +23,9 @@ import type {
   VideoFoodMapSettings,
   VideoFoodMapSnapshot,
 } from '@renderer/data/types.js';
+
 import { requestNearbyLocation } from './app-nearby-location.js';
-import { type NearbyLocationState } from './app-shell-sections.js';
-import { VideoFoodMapShellFrame } from './app-shell-frame.js';
-import { ContextSidebar } from './app-surface-sidebar.js';
-import { VideoFoodMapSurfaceRouter } from './app-surface-router.js';
+import type { PersonalMapMode, RuntimeSettingsCapability, SurfaceId } from './app-helpers.js';
 import {
   buildMapPointFromVenue,
   createDefaultVideoFoodMapSettings,
@@ -35,10 +33,12 @@ import {
   pickPreferredVenueId,
   resolveImportProgressText,
   resolveImportStatusLabel,
-  type RuntimeSettingsCapability,
-  type SurfaceId,
   venueShowsOnMap,
 } from './app-helpers.js';
+import { VideoFoodMapShellFrame } from './app-shell-frame.js';
+import { type NearbyLocationState } from './app-shell-sections.js';
+import { ContextSidebar } from './app-surface-sidebar.js';
+import { VideoFoodMapSurfaceRouter } from './app-surface-router.js';
 import { detectVideoFoodMapIntakeTarget } from './intake.js';
 
 function handleWindowDragStart(event: MouseEvent<HTMLDivElement>) {
@@ -69,12 +69,12 @@ function AppBody() {
 
   const [intakeInput, setIntakeInput] = useState('');
   const [surface, setSurface] = useState<SurfaceId>('discover');
+  const [mapMode, setMapMode] = useState<PersonalMapMode>('all');
   const [searchText, setSearchText] = useState('');
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>('all');
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
   const [selectedDetailVenueId, setSelectedDetailVenueId] = useState<string | null>(null);
-  const [selectedDiscoveryVenueId, setSelectedDiscoveryVenueId] = useState<string | null>(null);
-  const [selectedVideoVenueId, setSelectedVideoVenueId] = useState<string | null>(null);
+  const [selectedMapVenueId, setSelectedMapVenueId] = useState<string | null>(null);
   const [nearbyRadiusKm, setNearbyRadiusKm] = useState(10);
   const [creatorSyncFeedbackText, setCreatorSyncFeedbackText] = useState<string | null>(null);
   const [intakeFeedbackText, setIntakeFeedbackText] = useState<string | null>(null);
@@ -111,8 +111,7 @@ function AppBody() {
       setSelectedImportId(record.id);
       const preferredVenueId = pickPreferredVenueId(record);
       setSelectedDetailVenueId(preferredVenueId);
-      setSelectedVideoVenueId(preferredVenueId);
-      setSelectedDiscoveryVenueId(preferredVenueId);
+      setSelectedMapVenueId(preferredVenueId);
       setSurface('discover');
     },
     onSettled: refreshSnapshot,
@@ -141,8 +140,7 @@ function AppBody() {
     onSuccess: async (record, payload) => {
       setSelectedImportId(record.id);
       setSelectedDetailVenueId(payload.venueId);
-      setSelectedVideoVenueId(payload.venueId);
-      setSelectedDiscoveryVenueId(payload.venueId);
+      setSelectedMapVenueId(payload.venueId);
     },
     onSettled: refreshSnapshot,
   });
@@ -152,8 +150,7 @@ function AppBody() {
     onSuccess: async (record, venueId) => {
       setSelectedImportId(record.id);
       setSelectedDetailVenueId(venueId);
-      setSelectedVideoVenueId(venueId);
-      setSelectedDiscoveryVenueId(venueId);
+      setSelectedMapVenueId(venueId);
     },
     onSettled: refreshSnapshot,
   });
@@ -164,8 +161,7 @@ function AppBody() {
       setSelectedImportId(record.id);
       const preferredVenueId = pickPreferredVenueId(record);
       setSelectedDetailVenueId(preferredVenueId);
-      setSelectedVideoVenueId(preferredVenueId);
-      setSelectedDiscoveryVenueId(preferredVenueId);
+      setSelectedMapVenueId(preferredVenueId);
     },
     onSettled: refreshSnapshot,
   });
@@ -235,17 +231,13 @@ function AppBody() {
   useEffect(() => {
     if (!selectedImport) {
       setSelectedDetailVenueId(null);
-      setSelectedVideoVenueId(null);
       return;
     }
     const preferredVenueId = pickPreferredVenueId(selectedImport);
     if (!selectedDetailVenueId || !selectedImport.venues.some((venue) => venue.id === selectedDetailVenueId)) {
       setSelectedDetailVenueId(preferredVenueId);
     }
-    if (!selectedVideoVenueId || !selectedImport.venues.some((venue) => venue.id === selectedVideoVenueId)) {
-      setSelectedVideoVenueId(preferredVenueId);
-    }
-  }, [selectedDetailVenueId, selectedImport, selectedVideoVenueId]);
+  }, [selectedDetailVenueId, selectedImport]);
 
   const selectedVenue = selectedImport?.venues.find((venue) => venue.id === selectedDetailVenueId) || selectedImport?.venues[0] || null;
   const visibleCommentClues = useMemo(() => {
@@ -260,62 +252,6 @@ function AppBody() {
     );
     return matched.length > 0 ? matched : selectedImport.commentClues;
   }, [selectedImport, selectedVenue]);
-
-  const allowedImportIds = new Set(filteredImports.map((record) => record.id));
-  const discoveryMapPoints = filterMapPoints(snapshot?.mapPoints || [], allowedImportIds);
-  const videoMapPoints = useMemo(() => {
-    if (!selectedImport) {
-      return [];
-    }
-    return selectedImport.venues
-      .map((venue) => buildMapPointFromVenue(selectedImport, venue))
-      .filter((point): point is MapPoint => point != null);
-  }, [selectedImport]);
-  const currentLocation = nearbyLocationState.status === 'ready' ? nearbyLocationState.location : null;
-  const rankedDiscoveryMapPoints = useMemo(
-    () => (currentLocation ? rankMapPointsByDistance(discoveryMapPoints, currentLocation) : []),
-    [currentLocation, discoveryMapPoints],
-  );
-  const nearbyDiscoveryRankedPoints = useMemo(
-    () => (currentLocation ? filterRankedMapPointsByRadius(rankedDiscoveryMapPoints, nearbyRadiusKm) : []),
-    [currentLocation, nearbyRadiusKm, rankedDiscoveryMapPoints],
-  );
-  const visibleDiscoveryMapPoints = currentLocation
-    ? nearbyDiscoveryRankedPoints.map(({ distanceKm: _distanceKm, ...point }) => point)
-    : discoveryMapPoints;
-  const discoveryCreatorCount = new Set(visibleDiscoveryMapPoints.map((point) => point.creatorName).filter(Boolean)).size;
-  const rankedVideoMapPoints = useMemo(
-    () => (currentLocation ? rankMapPointsByDistance(videoMapPoints, currentLocation) : []),
-    [currentLocation, videoMapPoints],
-  );
-
-  useEffect(() => {
-    if (visibleDiscoveryMapPoints.length === 0) {
-      setSelectedDiscoveryVenueId(null);
-      return;
-    }
-    if (!selectedDiscoveryVenueId || !visibleDiscoveryMapPoints.some((point) => point.venueId === selectedDiscoveryVenueId)) {
-      setSelectedDiscoveryVenueId(visibleDiscoveryMapPoints[0]!.venueId);
-    }
-  }, [selectedDiscoveryVenueId, visibleDiscoveryMapPoints]);
-
-  const selectedDiscoveryPoint =
-    visibleDiscoveryMapPoints.find((point) => point.venueId === selectedDiscoveryVenueId)
-    || visibleDiscoveryMapPoints[0]
-    || null;
-  const selectedVideoPoint =
-    videoMapPoints.find((point) => point.venueId === selectedVideoVenueId)
-    || videoMapPoints[0]
-    || null;
-  const selectedDiscoveryDistance = currentLocation
-    ? rankedDiscoveryMapPoints.find((point) => point.venueId === selectedDiscoveryPoint?.venueId)?.distanceKm ?? null
-    : null;
-  const selectedVideoDistance = currentLocation
-    ? rankedVideoMapPoints.find((point) => point.venueId === selectedVideoPoint?.venueId)?.distanceKm ?? null
-    : null;
-  const nearestDiscoveryDistance = currentLocation ? rankedDiscoveryMapPoints[0]?.distanceKm ?? null : null;
-  const selectedDiscoveryImport =
-    filteredImports.find((record) => record.id === selectedDiscoveryPoint?.importId) || null;
 
   const reviewItems = filteredImports.flatMap((record) =>
     record.venues
@@ -341,6 +277,75 @@ function AppBody() {
       .map((venue) => ({ venue, record })),
   );
 
+  const mappedVenues = filteredImports.flatMap((record) =>
+    record.venues
+      .filter((venue) => venueShowsOnMap(venue))
+      .map((venue) => ({ venue, record })),
+  );
+
+  const allowedImportIds = new Set(filteredImports.map((record) => record.id));
+  const allMapPoints = filterMapPoints(snapshot?.mapPoints || [], allowedImportIds);
+  const favoriteMapPoints = allMapPoints.filter((point) => point.isFavorite);
+  const selectedImportMapPoints = useMemo(() => {
+    if (!selectedImport) {
+      return [];
+    }
+    return selectedImport.venues
+      .map((venue) => buildMapPointFromVenue(selectedImport, venue))
+      .filter((point): point is MapPoint => point != null);
+  }, [selectedImport]);
+
+  const currentLocation = nearbyLocationState.status === 'ready' ? nearbyLocationState.location : null;
+  const rankedAllMapPoints = useMemo(
+    () => (currentLocation ? rankMapPointsByDistance(allMapPoints, currentLocation) : []),
+    [allMapPoints, currentLocation],
+  );
+  const rankedVisibleNearbyPoints = useMemo(
+    () => (currentLocation ? filterRankedMapPointsByRadius(rankedAllMapPoints, nearbyRadiusKm) : []),
+    [currentLocation, nearbyRadiusKm, rankedAllMapPoints],
+  );
+
+  const visibleMapPoints = useMemo(() => {
+    switch (mapMode) {
+      case 'favorites':
+        return favoriteMapPoints;
+      case 'selected':
+        return selectedImportMapPoints;
+      case 'nearby':
+        return currentLocation
+          ? rankedVisibleNearbyPoints.map(({ distanceKm: _distanceKm, ...point }) => point)
+          : allMapPoints;
+      default:
+        return allMapPoints;
+    }
+  }, [allMapPoints, currentLocation, favoriteMapPoints, mapMode, rankedVisibleNearbyPoints, selectedImportMapPoints]);
+
+  const rankedVisibleMapPoints = useMemo(
+    () => (currentLocation ? rankMapPointsByDistance(visibleMapPoints, currentLocation) : []),
+    [currentLocation, visibleMapPoints],
+  );
+
+  useEffect(() => {
+    if (visibleMapPoints.length === 0) {
+      setSelectedMapVenueId(null);
+      return;
+    }
+    if (!selectedMapVenueId || !visibleMapPoints.some((point) => point.venueId === selectedMapVenueId)) {
+      setSelectedMapVenueId(visibleMapPoints[0]!.venueId);
+    }
+  }, [selectedMapVenueId, visibleMapPoints]);
+
+  const selectedMapPoint =
+    visibleMapPoints.find((point) => point.venueId === selectedMapVenueId)
+    || visibleMapPoints[0]
+    || null;
+  const selectedMapDistance = currentLocation
+    ? rankedVisibleMapPoints.find((point) => point.venueId === selectedMapPoint?.venueId)?.distanceKm ?? null
+    : null;
+  const selectedMapImport =
+    filteredImports.find((record) => record.id === selectedMapPoint?.importId)
+    || null;
+
   const headerFeedbackText = intakeFeedbackText
     || (importMutation.isError ? (importMutation.error instanceof Error ? importMutation.error.message : '导入失败') : null)
     || (creatorImportMutation.isError ? (creatorImportMutation.error instanceof Error ? creatorImportMutation.error.message : '博主同步失败') : null)
@@ -349,7 +354,23 @@ function AppBody() {
     || (snapshotQuery.isError ? (snapshotQuery.error instanceof Error ? snapshotQuery.error.message : '加载失败') : null);
 
   const intakeBusy = importMutation.isPending || creatorImportMutation.isPending;
-  const intakeActionLabel = intakeTarget.kind === 'creator' ? '同步最近视频' : '解析提取';
+  const intakeActionLabel = intakeTarget.kind === 'creator' ? '同步最近视频' : '放进我的空间';
+
+  const openImportInSpace = (recordId: string, venueId: string | null) => {
+    setSelectedImportId(recordId);
+    setSelectedDetailVenueId(venueId);
+    setSelectedMapVenueId(venueId);
+    setSurface('discover');
+    setSidebarOpen(false);
+  };
+
+  const openBestAvailableSource = () => {
+    const url = selectedMapImport?.sourceUrl || selectedImport?.sourceUrl;
+    if (!url) {
+      return;
+    }
+    void openExternalUrl(url);
+  };
 
   return (
     <VideoFoodMapShellFrame
@@ -361,6 +382,7 @@ function AppBody() {
       headerFeedbackText={headerFeedbackText}
       intakeHelperText={intakeTarget.helperText}
       mappedVenueCount={snapshot?.stats.mappedVenueCount || 0}
+      favoriteCount={snapshot?.stats.favoriteVenueCount || 0}
       reviewCount={reviewItems.length}
       onWindowDragStart={handleWindowDragStart}
       onSurfaceChange={setSurface}
@@ -380,40 +402,33 @@ function AppBody() {
           onSearchTextChange={setSearchText}
           onReviewFilterChange={setReviewFilter}
           onSelectImport={(record) => {
-            setSelectedImportId(record.id);
-            const preferredVenueId = pickPreferredVenueId(record);
-            setSelectedDetailVenueId(preferredVenueId);
-            setSelectedVideoVenueId(preferredVenueId);
-            setSidebarOpen(false);
+            openImportInSpace(record.id, pickPreferredVenueId(record));
           }}
           onSelectFavoriteVenue={(entry) => {
-            setSelectedImportId(entry.record.id);
-            setSelectedDetailVenueId(entry.venue.id);
-            setSelectedVideoVenueId(entry.venue.id);
-            setSurface('discover');
-            setSidebarOpen(false);
+            openImportInSpace(entry.record.id, entry.venue.id);
           }}
         />
       )}
     >
       <VideoFoodMapSurfaceRouter
+        snapshot={snapshot}
         surface={surface}
         selectedImport={selectedImport}
         selectedVenue={selectedVenue}
         selectedDetailVenueId={selectedDetailVenueId}
         visibleCommentClues={visibleCommentClues}
-        videoMapPoints={videoMapPoints}
-        selectedDiscoveryPoint={selectedDiscoveryPoint}
-        selectedDiscoveryDistance={selectedDiscoveryDistance}
-        selectedDiscoveryImport={selectedDiscoveryImport}
+        favoriteVenues={favoriteVenues}
+        mappedVenues={mappedVenues}
+        recentImports={filteredImports}
+        creatorSyncs={snapshot?.creatorSyncs || []}
+        mapMode={mapMode}
+        visibleMapPoints={visibleMapPoints}
+        selectedMapPoint={selectedMapPoint}
+        selectedMapDistance={selectedMapDistance}
+        selectedMapImport={selectedMapImport}
         currentLocation={currentLocation}
         nearbyLocationState={nearbyLocationState}
         nearbyRadiusKm={nearbyRadiusKm}
-        discoveryCreatorCount={discoveryCreatorCount}
-        nearestDiscoveryDistance={nearestDiscoveryDistance}
-        visibleDiscoveryMapPoints={visibleDiscoveryMapPoints}
-        selectedVideoPoint={selectedVideoPoint}
-        selectedVideoDistance={selectedVideoDistance}
         reviewItems={reviewItems}
         reviewIndex={reviewIndex}
         selectedReviewItem={selectedReviewItem}
@@ -431,33 +446,30 @@ function AppBody() {
         saveSettingsPending={saveSettingsMutation.isPending}
         onSelectDiscoverVenue={(venueId) => {
           setSelectedDetailVenueId(venueId);
-          setSelectedVideoVenueId(venueId);
+          setSelectedMapVenueId(venueId);
         }}
-        onOpenSelectedSource={() => {
-          if (!selectedImport?.sourceUrl) {
-            return;
-          }
-          void openExternalUrl(selectedImport.sourceUrl);
-        }}
+        onOpenSelectedSource={openBestAvailableSource}
         onConfirmVenue={(venueId, confirmed) => confirmationMutation.mutate({ venueId, confirmed })}
         onToggleFavorite={(venueId) => favoriteMutation.mutate(venueId)}
-        onSwitchToVideoMap={() => setSurface('video-map')}
+        onOpenMap={() => setSurface('nearby-map')}
+        onOpenReview={() => setSurface('review')}
+        onOpenProfile={() => setSurface('menu')}
+        onOpenImport={openImportInSpace}
         onRetryImport={(importId) => retryImportMutation.mutate(importId)}
+        onMapModeChange={(next) => {
+          setMapMode(next);
+          if (next === 'nearby' && nearbyLocationState.status === 'idle') {
+            void requestNearbyLocation(setNearbyLocationState);
+          }
+        }}
         onRequestCurrentLocation={() => requestNearbyLocation(setNearbyLocationState)}
         onRadiusChange={setNearbyRadiusKm}
-        onSelectDiscoveryMapVenue={(venueId) => setSelectedDiscoveryVenueId(venueId)}
+        onSelectMapVenue={(venueId) => setSelectedMapVenueId(venueId)}
         onViewImportFromPoint={() => {
-          if (!selectedDiscoveryImport || !selectedDiscoveryPoint) {
+          if (!selectedMapImport || !selectedMapPoint) {
             return;
           }
-          setSelectedImportId(selectedDiscoveryImport.id);
-          setSelectedDetailVenueId(selectedDiscoveryPoint.venueId);
-          setSelectedVideoVenueId(selectedDiscoveryPoint.venueId);
-          setSurface('discover');
-        }}
-        onSelectVideoMapVenue={(venueId) => {
-          setSelectedVideoVenueId(venueId);
-          setSelectedDetailVenueId(venueId);
+          openImportInSpace(selectedMapImport.id, selectedMapPoint.venueId);
         }}
         onSelectReviewIndex={setReviewIndex}
         onNextReview={() => {
@@ -467,10 +479,7 @@ function AppBody() {
           setReviewIndex((current) => (current + 1) % reviewItems.length);
         }}
         onOpenReviewInDiscover={(recordId, venueId) => {
-          setSelectedImportId(recordId);
-          setSelectedDetailVenueId(venueId);
-          setSelectedVideoVenueId(venueId);
-          setSurface('discover');
+          openImportInSpace(recordId, venueId);
         }}
         onToggleDiningPreference={updateDiningPreference}
         onUpdateCapabilitySetting={updateCapabilitySetting}

@@ -2,37 +2,39 @@ import type {
   ImportRecord,
   MapPoint,
   VenueRecord,
+  VideoFoodMapSnapshot,
   VideoFoodMapRuntimeOptionsCatalog,
   VideoFoodMapSettings,
 } from '@renderer/data/types.js';
 import type { DiningPreferenceCategoryId } from '@renderer/data/preferences.js';
 
 import type { ReviewItem } from './app-surface-shared.js';
-import { DiscoverSurface } from './app-surface-discover.js';
-import { SharedMapSection } from './app-surface-map.js';
+import { PersonalMapSurface } from './app-surface-personal-map.js';
+import { PersonalSpaceSurface } from './app-surface-space.js';
 import { ReviewSurface } from './app-surface-review.js';
 import { SettingsSurface } from './app-surface-settings.js';
-import type { RuntimeSettingsCapability, SurfaceId } from './app-helpers.js';
+import type { PersonalMapMode, RuntimeSettingsCapability, SurfaceId } from './app-helpers.js';
 import type { NearbyLocationState } from './app-shell-sections.js';
 
 export function VideoFoodMapSurfaceRouter(props: {
+  snapshot: VideoFoodMapSnapshot | undefined;
   surface: SurfaceId;
   selectedImport: ImportRecord | null;
   selectedVenue: VenueRecord | null;
   selectedDetailVenueId: string | null;
   visibleCommentClues: ImportRecord['commentClues'];
-  videoMapPoints: MapPoint[];
-  selectedDiscoveryPoint: MapPoint | null;
-  selectedDiscoveryDistance: number | null;
-  selectedDiscoveryImport: ImportRecord | null;
+  favoriteVenues: ReviewItem[];
+  mappedVenues: ReviewItem[];
+  recentImports: ImportRecord[];
+  creatorSyncs: VideoFoodMapSnapshot['creatorSyncs'];
+  mapMode: PersonalMapMode;
+  visibleMapPoints: MapPoint[];
+  selectedMapPoint: MapPoint | null;
+  selectedMapDistance: number | null;
+  selectedMapImport: ImportRecord | null;
   currentLocation: NearbyLocationState['location'];
   nearbyLocationState: NearbyLocationState;
   nearbyRadiusKm: number;
-  discoveryCreatorCount: number;
-  nearestDiscoveryDistance: number | null;
-  visibleDiscoveryMapPoints: MapPoint[];
-  selectedVideoPoint: MapPoint | null;
-  selectedVideoDistance: number | null;
   reviewItems: ReviewItem[];
   reviewIndex: number;
   selectedReviewItem: ReviewItem | null;
@@ -52,13 +54,16 @@ export function VideoFoodMapSurfaceRouter(props: {
   onOpenSelectedSource: () => void;
   onConfirmVenue: (venueId: string, confirmed: boolean) => void;
   onToggleFavorite: (venueId: string) => void;
-  onSwitchToVideoMap: () => void;
+  onOpenMap: () => void;
+  onOpenReview: () => void;
+  onOpenProfile: () => void;
+  onOpenImport: (recordId: string, venueId: string | null) => void;
   onRetryImport: (importId: string) => void;
+  onMapModeChange: (next: PersonalMapMode) => void;
   onRequestCurrentLocation: () => void;
   onRadiusChange: (next: number) => void;
-  onSelectDiscoveryMapVenue: (venueId: string) => void;
+  onSelectMapVenue: (venueId: string) => void;
   onViewImportFromPoint: () => void;
-  onSelectVideoMapVenue: (venueId: string) => void;
   onSelectReviewIndex: (next: number) => void;
   onNextReview: () => void;
   onOpenReviewInDiscover: (recordId: string, venueId: string) => void;
@@ -69,17 +74,26 @@ export function VideoFoodMapSurfaceRouter(props: {
   return (
     <>
       {props.surface === 'discover' ? (
-        <DiscoverSurface
+        <PersonalSpaceSurface
+          snapshot={props.snapshot}
           selectedImport={props.selectedImport}
           selectedVenue={props.selectedVenue}
+          favoriteVenues={props.favoriteVenues}
+          mappedVenues={props.mappedVenues}
+          reviewItems={props.reviewItems}
+          creatorSyncs={props.creatorSyncs}
+          diningProfile={props.diningProfile}
           selectedDetailVenueId={props.selectedDetailVenueId}
           visibleCommentClues={props.visibleCommentClues}
-          videoMapPoints={props.videoMapPoints}
+          recentImports={props.recentImports}
           onSelectVenue={props.onSelectDiscoverVenue}
           onOpenSource={props.onOpenSelectedSource}
           onConfirmVenue={props.onConfirmVenue}
           onToggleFavorite={props.onToggleFavorite}
-          onSwitchToVideoMap={props.onSwitchToVideoMap}
+          onOpenMap={props.onOpenMap}
+          onOpenReview={props.onOpenReview}
+          onOpenProfile={props.onOpenProfile}
+          onOpenImport={props.onOpenImport}
           onRetryImport={props.onRetryImport}
           confirmationPending={props.confirmationPending}
           favoritePending={props.favoritePending}
@@ -88,44 +102,22 @@ export function VideoFoodMapSurfaceRouter(props: {
       ) : null}
 
       {props.surface === 'nearby-map' ? (
-        <SharedMapSection
-          mode="nearby-map"
-          points={props.visibleDiscoveryMapPoints}
-          selectedPoint={props.selectedDiscoveryPoint}
-          selectedPointDistanceKm={props.selectedDiscoveryDistance}
-          selectedImport={props.selectedDiscoveryImport}
-          selectedVenue={props.selectedVenue}
+        <PersonalMapSurface
+          snapshot={props.snapshot}
+          selectedImport={props.selectedMapImport}
+          mode={props.mapMode}
+          points={props.visibleMapPoints}
+          selectedPoint={props.selectedMapPoint}
+          selectedPointDistanceKm={props.selectedMapDistance}
           currentLocation={props.currentLocation}
           nearbyLocationState={props.nearbyLocationState}
           nearbyRadiusKm={props.nearbyRadiusKm}
-          discoveryCreatorCount={props.discoveryCreatorCount}
-          nearestDiscoveryDistance={props.nearestDiscoveryDistance}
+          onModeChange={props.onMapModeChange}
           onRequestCurrentLocation={props.onRequestCurrentLocation}
           onRadiusChange={props.onRadiusChange}
-          onSelectVenue={props.onSelectDiscoveryMapVenue}
+          onSelectVenue={props.onSelectMapVenue}
           onOpenSourceImport={props.onOpenSelectedSource}
-          onViewImportFromPoint={props.onViewImportFromPoint}
-        />
-      ) : null}
-
-      {props.surface === 'video-map' ? (
-        <SharedMapSection
-          mode="video-map"
-          points={props.videoMapPoints}
-          selectedPoint={props.selectedVideoPoint}
-          selectedPointDistanceKm={props.selectedVideoDistance}
-          selectedImport={props.selectedImport}
-          selectedVenue={props.selectedVenue}
-          currentLocation={props.currentLocation}
-          nearbyLocationState={props.nearbyLocationState}
-          nearbyRadiusKm={props.nearbyRadiusKm}
-          discoveryCreatorCount={props.discoveryCreatorCount}
-          nearestDiscoveryDistance={props.nearestDiscoveryDistance}
-          onRequestCurrentLocation={props.onRequestCurrentLocation}
-          onRadiusChange={props.onRadiusChange}
-          onSelectVenue={props.onSelectVideoMapVenue}
-          onOpenSourceImport={props.onOpenSelectedSource}
-          onViewImportFromPoint={() => {}}
+          onOpenImportFromPoint={props.onViewImportFromPoint}
         />
       ) : null}
 

@@ -6,11 +6,10 @@ import type { SurfaceId } from './app-helpers.js';
 import type { VideoFoodMapIntakeTarget } from './intake.js';
 
 export const SURFACES: Array<{ id: SurfaceId; label: string; badge: string; description: string }> = [
-  { id: 'discover', label: '发现', badge: '罗', description: '视频与店铺详情' },
-  { id: 'nearby-map', label: '附近地图', badge: '位', description: '按当前位置找店' },
-  { id: 'video-map', label: '单视频地图', badge: '图', description: '只看当前视频点位' },
-  { id: 'review', label: '待确认', badge: '列', description: '逐条审核未上图店铺' },
-  { id: 'menu', label: '偏好设置', badge: '设', description: '偏好与模型设置' },
+  { id: 'discover', label: '我的空间', badge: '我', description: '把收藏、种草和今天想吃的整理在一起' },
+  { id: 'nearby-map', label: '我的地图', badge: '图', description: '在地图上看我已经确认或收藏的地方' },
+  { id: 'review', label: '待整理', badge: '整', description: '把还没稳的店逐条整理清楚' },
+  { id: 'menu', label: '口味档案', badge: '味', description: '管理偏好、模型和后面的点菜基础' },
 ];
 
 export type ReviewItem = {

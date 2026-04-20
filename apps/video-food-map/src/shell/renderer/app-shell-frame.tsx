@@ -1,4 +1,5 @@
 import type { MouseEvent, ReactNode } from 'react';
+import { AmbientBackground, Button, SearchField, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
 
 import type { SurfaceId } from './app-helpers.js';
 import { SURFACES } from './app-surface-shared.js';
@@ -12,6 +13,7 @@ export function VideoFoodMapShellFrame(props: {
   headerFeedbackText: string | null;
   intakeHelperText: string;
   mappedVenueCount: number;
+  favoriteCount: number;
   reviewCount: number;
   onWindowDragStart: (event: MouseEvent<HTMLDivElement>) => void;
   onSurfaceChange: (surface: SurfaceId) => void;
@@ -23,116 +25,134 @@ export function VideoFoodMapShellFrame(props: {
   children: ReactNode;
 }) {
   return (
-    <div className="vfm-window-frame flex h-full min-h-0 flex-col overflow-hidden">
+    <AmbientBackground variant="mesh" className="flex h-full min-h-0 flex-col overflow-hidden">
       <div
-        className="vfm-drag-strip flex h-11 shrink-0 items-center justify-center px-28 text-xs font-medium tracking-[0.2em] text-white/42"
+        className="vfm-drag-strip flex h-11 shrink-0 items-center justify-center px-28 text-xs font-medium tracking-[0.18em] text-[var(--nimi-text-muted)]"
         data-tauri-drag-region
         onMouseDown={props.onWindowDragStart}
       >
         VIDEO FOOD MAP
       </div>
-      <div className="vfm-app-shell flex min-h-0 flex-1 overflow-hidden">
-        <nav className="vfm-rail flex w-20 flex-shrink-0 flex-col items-center gap-8 px-3 py-6">
-          <div className="vfm-nav-brand flex h-10 w-10 items-center justify-center rounded-xl text-base font-bold text-white shadow-[0_16px_36px_rgba(249,115,22,0.28)]">
-            图
-          </div>
-          <div className="flex w-full flex-col gap-4">
-            {SURFACES.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-label={item.label}
-                onClick={() => props.onSurfaceChange(item.id)}
-                className={`relative flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-xl text-center transition ${
-                  props.surface === item.id
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/58 hover:bg-white/6 hover:text-white'
-                }`}
-              >
-                <span className={`relative z-10 flex h-6 w-6 items-center justify-center rounded-lg text-sm font-semibold ${props.surface === item.id ? 'bg-white/10' : ''}`}>
-                  {item.badge}
-                </span>
-                <span className="relative z-10 text-[10px] font-medium leading-3">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
 
-        <div className="relative flex min-w-0 flex-1 overflow-hidden">
-          <div className={`fixed inset-0 z-20 bg-black/28 transition xl:hidden ${props.sidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`} onClick={props.onSidebarClose} />
-          <aside
-            className={`absolute inset-y-0 left-0 z-30 w-[min(340px,calc(100vw-112px))] max-w-full border-r border-black/6 transition-transform xl:static xl:z-0 xl:w-80 xl:translate-x-0 ${
-              props.sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            }`}
-          >
-            {props.sidebar}
-          </aside>
+      <div className="flex min-h-0 flex-1 gap-3 px-3 pb-3">
+        <Surface tone="panel" material="glass-thick" elevation="raised" className="hidden w-[92px] shrink-0 flex-col items-center gap-5 rounded-[30px] px-3 py-5 xl:flex">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--nimi-action-primary-bg)] text-sm font-bold text-white shadow-[0_18px_40px_rgba(249,115,22,0.24)]">
+            食
+          </div>
+          <div className="flex w-full flex-col gap-3">
+            {SURFACES.map((item) => {
+              const active = props.surface === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-label={item.label}
+                  onClick={() => props.onSurfaceChange(item.id)}
+                  className={`vfm-shell-nav-button flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-2xl px-2 text-center transition ${
+                    active
+                      ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,white)] text-[var(--nimi-text-primary)]'
+                      : 'text-[var(--nimi-text-secondary)] hover:bg-white/40 hover:text-[var(--nimi-text-primary)]'
+                  }`}
+                >
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-xl text-xs font-semibold ${active ? 'bg-white/70 text-[var(--nimi-action-primary-bg)]' : 'bg-white/28'}`}>
+                    {item.badge}
+                  </span>
+                  <span className="text-[10px] font-medium leading-3">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Surface>
 
-          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <header className="shrink-0 border-b border-black/6 bg-white/70 px-4 py-4 backdrop-blur md:px-6 xl:px-8">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={props.onSidebarOpen}
-                    className="vfm-mobile-sidebar-button inline-flex h-12 items-center justify-center rounded-2xl border px-4 text-sm font-medium xl:hidden"
-                  >
-                    打开清单
-                  </button>
-                  <div className="min-w-0 max-w-2xl flex-1">
-                    <div className="relative">
-                      <input
-                        value={props.intakeInput}
-                        onChange={(event) => props.onIntakeInputChange(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            props.onIntakeSubmit();
-                          }
-                        }}
-                        placeholder="粘贴 Bilibili 视频链接或博主主页..."
-                        className="vfm-intake-input w-full rounded-2xl border px-5 py-3.5 pr-[150px] text-sm shadow-sm outline-none transition"
-                      />
-                      <div className="absolute right-2 top-2">
-                        <button
-                          type="button"
-                          onClick={props.onIntakeSubmit}
-                          disabled={!props.intakeInput.trim() || props.intakeBusy}
-                          className="vfm-intake-submit inline-flex min-h-[40px] items-center justify-center rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {props.intakeBusy ? '处理中...' : `+ ${props.intakeActionLabel}`}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--nimi-text-secondary)]">
-                      <span>{props.headerFeedbackText || props.intakeHelperText}</span>
-                    </div>
+        <div className="relative flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+          <Surface tone="panel" material="glass-regular" elevation="raised" className="vfm-radius-shell shrink-0 p-4 md:p-5">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2 xl:hidden">
+                    <Button tone="secondary" size="sm" onClick={props.onSidebarOpen}>
+                      打开我的清单
+                    </Button>
+                    {SURFACES.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => props.onSurfaceChange(item.id)}
+                        className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                          props.surface === item.id
+                            ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] text-[var(--nimi-action-primary-bg)]'
+                            : 'border-[var(--nimi-border-subtle)] text-[var(--nimi-text-secondary)]'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-2xl font-semibold tracking-[-0.03em] text-[var(--nimi-text-primary)]">
+                    {SURFACES.find((item) => item.id === props.surface)?.label || '我的空间'}
+                  </div>
+                  <div className="text-sm leading-7 text-[var(--nimi-text-secondary)]">
+                    {SURFACES.find((item) => item.id === props.surface)?.description}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-5 self-end xl:self-auto">
-                  <div className="text-right">
-                    <div className="text-2xl font-bold leading-none text-[var(--nimi-text-primary)]">{props.mappedVenueCount}</div>
-                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">已上图店铺</div>
-                  </div>
-                  <div className="h-8 w-px bg-black/8" />
-                  <div className="text-right">
-                    <div className="text-2xl font-bold leading-none text-[var(--nimi-action-primary-bg)]">{props.reviewCount}</div>
-                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">待确认</div>
-                  </div>
+                <div className="flex flex-wrap gap-3">
+                  <StatusBadge tone="warning">{props.reviewCount} 条待整理</StatusBadge>
+                  <StatusBadge tone="success">{props.favoriteCount} 家收藏</StatusBadge>
+                  <StatusBadge tone="info">{props.mappedVenueCount} 家上图</StatusBadge>
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center gap-3 text-sm text-[var(--nimi-text-secondary)]">
-                <span>{SURFACES.find((item) => item.id === props.surface)?.description}</span>
+              <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+                <div className="space-y-2">
+                  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                    <SearchField
+                      value={props.intakeInput}
+                      onChange={(event) => props.onIntakeInputChange(event.target.value)}
+                      placeholder="把新种草放进空间里，贴视频或博主主页..."
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          props.onIntakeSubmit();
+                        }
+                      }}
+                    />
+                    <Button
+                      tone="primary"
+                      onClick={props.onIntakeSubmit}
+                      disabled={!props.intakeInput.trim() || props.intakeBusy}
+                    >
+                      {props.intakeBusy ? '处理中...' : props.intakeActionLabel}
+                    </Button>
+                  </div>
+                  <div className="text-xs leading-6 text-[var(--nimi-text-muted)]">
+                    {props.headerFeedbackText || props.intakeHelperText}
+                  </div>
+                </div>
               </div>
-            </header>
-
-            <div className="flex-1 overflow-auto overflow-x-hidden px-4 py-6 md:px-6 xl:px-8 xl:py-8">
-              {props.children}
             </div>
-          </main>
+          </Surface>
+
+          <div className={`fixed inset-0 z-20 bg-black/28 transition xl:hidden ${props.sidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`} onClick={props.onSidebarClose} />
+
+          <div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
+            <aside
+              className={`absolute inset-y-0 left-0 z-30 w-[min(360px,calc(100vw-32px))] max-w-full transition-transform xl:static xl:z-0 xl:w-[340px] xl:translate-x-0 ${
+                props.sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+              }`}
+            >
+              <Surface tone="panel" material="glass-regular" elevation="base" className="vfm-radius-shell h-full overflow-hidden">
+                {props.sidebar}
+              </Surface>
+            </aside>
+
+            <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              <div className="flex-1 overflow-auto overflow-x-hidden">
+                {props.children}
+              </div>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </AmbientBackground>
   );
 }

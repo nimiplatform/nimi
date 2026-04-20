@@ -1,6 +1,6 @@
 # Video Food Map Spec
 
-> Scope: creator-video food discovery app with map search, recommendation extraction, and staged dining assistance
+> Scope: personal food space built from creator-video discovery, saved venue curation, map search, and staged dining assistance
 > Normative Imports: spec/runtime/kernel/multimodal-provider-contract.md, spec/sdk/kernel/runtime-contract.md
 
 ## 0. Authoritative Imports
@@ -18,11 +18,11 @@ Video Food Map is a standalone app, not a panel inside Desktop.
 
 Its product baseline is:
 
-1. accept creator video links
+1. accept creator video links and creator-homepage sync as intake actions
 2. extract store, dishes, cuisine and flavor tags from the video
-3. promote locatable records onto a map
-4. support creator-centric and dish-centric search
-5. add menu-based dining advice only after the first-stage extraction path is stable
+3. turn confirmed or mappable records into a personal food map
+4. preserve favorites, shortlist signals, and dining preferences as app-owned personal state
+5. add menu-based dining advice only after the personal-space baseline is stable
 
 The product truth unit is a single video extraction record. Multi-creator aggregation is built by combining those records, not by inventing a second truth source.
 
@@ -30,6 +30,7 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 
 | Module | Purpose |
 |--------|---------|
+| Personal Space Dashboard | center the user's saved places, favorites, recent discovery evidence, and decision support |
 | Video Intake | accept Bilibili (stage 1), Douyin and user-submitted links (future) |
 | Runtime Route Settings | choose local or cloud routes for speech transcription and text extraction from current runtime options |
 | Creator Intake | sync a Bilibili creator homepage's recent videos into the existing extraction pipeline; deeper history is future work |
@@ -50,6 +51,7 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 - platform subtitle-first; speech transcription as fallback
 - structured recommendation record out
 - public-comment clue screening and store/address completion
+- personal dashboard that foregrounds favorites, confirmed places, and recent discovery work
 - locatable records on map
 - explicit current-location lookup for nearby mapped venues
 - creator / store / dish / cuisine / flavor search
@@ -84,3 +86,4 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 - no dependence on Dianping-like external APIs as a launch precondition
 - no full-video visual understanding as the default extraction path
 - no yt-dlp or heavy external CLI dependencies; video and audio fetching uses direct platform APIs
+- no public social feed, follower graph, or "who recommended this to me" activity layer in the personal-space baseline

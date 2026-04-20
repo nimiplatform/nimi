@@ -59,11 +59,10 @@ function SurfaceSwitcher(props: {
   onChange: (next: SurfaceId) => void;
 }) {
   const items: Array<{ id: SurfaceId; label: string }> = [
-    { id: 'discover', label: '视频清单' },
-    { id: 'nearby-map', label: '发现地图' },
-    { id: 'video-map', label: '单视频地图' },
-    { id: 'review', label: '待确认' },
-    { id: 'menu', label: '点菜建议' },
+    { id: 'discover', label: '我的空间' },
+    { id: 'nearby-map', label: '我的地图' },
+    { id: 'review', label: '待整理' },
+    { id: 'menu', label: '口味档案' },
   ];
   return (
     <div className="flex flex-wrap gap-2">

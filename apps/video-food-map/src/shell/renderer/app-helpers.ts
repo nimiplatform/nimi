@@ -10,8 +10,9 @@ import type {
   VideoFoodMapSettings,
 } from './data/types.js';
 
-export type SurfaceId = 'discover' | 'nearby-map' | 'video-map' | 'review' | 'menu';
+export type SurfaceId = 'discover' | 'nearby-map' | 'review' | 'menu';
 export type RuntimeSettingsCapability = 'stt' | 'text';
+export type PersonalMapMode = 'all' | 'favorites' | 'selected' | 'nearby';
 
 export function formatImportTime(value: string): string {
   const date = new Date(value);
