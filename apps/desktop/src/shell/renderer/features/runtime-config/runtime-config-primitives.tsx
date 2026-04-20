@@ -228,6 +228,31 @@ export function DaemonStatusBadge({ running }: { running: boolean }) {
   );
 }
 
+export function RuntimeHealthBadge({
+  daemonRunning,
+  providerStatus,
+}: {
+  daemonRunning: boolean;
+  providerStatus: ProviderStatusV11;
+}) {
+  if (!daemonRunning) {
+    return (
+      <StatusIndicator
+        status="stopped"
+        text={i18n.t('runtimeConfig.overview.stopped', { defaultValue: 'daemon stopped' })}
+        variant="daemon"
+      />
+    );
+  }
+  return (
+    <StatusIndicator
+      status={providerStatus}
+      text={statusTextV11(providerStatus)}
+      variant="provider"
+    />
+  );
+}
+
 export function renderModelChips(models: string[], prefix: string) {
   if (models.length === 0) {
     return (

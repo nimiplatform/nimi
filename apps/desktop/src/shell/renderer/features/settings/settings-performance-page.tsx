@@ -159,7 +159,7 @@ export function PerformancePage() {
     >
       <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} title={t('Performance.pageTitle')} />
       <section className="mt-8">
-        <SectionTitle description={t('Performance.sectionRenderingDescription')}>
+        <SectionTitle>
           {t('Performance.sectionRendering')}
         </SectionTitle>
         <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
@@ -182,7 +182,7 @@ export function PerformancePage() {
       </section>
 
       <section className="mt-8">
-        <SectionTitle description={t('Performance.sectionUpdatesDescription')}>
+        <SectionTitle>
           {t('Performance.sectionUpdates')}
         </SectionTitle>
         <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
@@ -269,7 +269,7 @@ export function PerformancePage() {
       </section>
 
       <section className="mt-8">
-        <SectionTitle description={t('Performance.sectionDeveloperDescription')}>
+        <SectionTitle>
           {t('Performance.sectionDeveloper')}
         </SectionTitle>
         <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">

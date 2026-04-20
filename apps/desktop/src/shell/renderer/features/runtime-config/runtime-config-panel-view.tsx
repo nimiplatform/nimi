@@ -5,7 +5,7 @@ import { SidebarAffordanceChevron, SidebarHeader, SidebarItem, SidebarResizeHand
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';
-import { StatusBadge, DaemonStatusBadge } from './runtime-config-primitives';
+import { RuntimeHealthBadge } from './runtime-config-primitives';
 import { OverviewPage } from './runtime-config-page-overview';
 import { RecommendPage } from './runtime-config-page-recommend';
 import { LocalPage } from './runtime-config-page-local';
@@ -202,8 +202,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                     : t('runtimeConfig.panel.checkingHealth', { defaultValue: 'Checking...' })}
                 </span>
               )}
-              <DaemonStatusBadge running={daemonRunning} />
-              <StatusBadge status={runtimeStatus} />
+              <RuntimeHealthBadge daemonRunning={daemonRunning} providerStatus={runtimeStatus} />
             </div>
           </div>
         </div>

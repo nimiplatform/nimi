@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { CanonicalConversationAnchoredSurfacePlacement } from '@nimiplatform/nimi-kit/features/chat';
@@ -59,6 +59,65 @@ export type ChatAgentAvatarVrmDiagnosticPanelModel = {
   detailClassName: string;
   details: string[];
 };
+
+function listKey(values: readonly string[]): string {
+  return values.join('||');
+}
+
+function live2dDiagnosticKey(diagnostic: ChatAgentAvatarLive2dDiagnostic | null): string {
+  if (!diagnostic) {
+    return '';
+  }
+  return [
+    diagnostic.backendKind,
+    diagnostic.stage,
+    diagnostic.status,
+    diagnostic.assetRef,
+    diagnostic.assetLabel || '',
+    diagnostic.mocVersion === null ? '' : String(diagnostic.mocVersion),
+    diagnostic.resourceId || '',
+    diagnostic.fileUrl || '',
+    diagnostic.modelUrl || '',
+    diagnostic.error || '',
+    diagnostic.errorUrl || '',
+    diagnostic.errorStatus === null ? '' : String(diagnostic.errorStatus),
+    diagnostic.cubismCoreAvailable ? '1' : '0',
+    listKey(diagnostic.runtimeUrls),
+    listKey(diagnostic.assetProbeFailures),
+    listKey(diagnostic.motionGroups),
+    diagnostic.idleMotionGroup || '',
+    diagnostic.speechMotionGroup || '',
+    String(diagnostic.recoveryAttemptCount),
+    diagnostic.recoveryReason || '',
+  ].join('::');
+}
+
+function vrmDiagnosticKey(diagnostic: ChatAgentAvatarVrmDiagnostic | null): string {
+  if (!diagnostic) {
+    return '';
+  }
+  return [
+    diagnostic.backendKind,
+    diagnostic.stage,
+    diagnostic.status,
+    diagnostic.assetRef,
+    diagnostic.assetLabel || '',
+    diagnostic.resourceId || '',
+    diagnostic.assetUrl || '',
+    diagnostic.networkAssetUrl || '',
+    diagnostic.posterUrl || '',
+    diagnostic.error || '',
+    diagnostic.source,
+    diagnostic.attentionActive ? '1' : '0',
+    String(diagnostic.recoveryAttemptCount),
+    diagnostic.recoveryReason || '',
+    diagnostic.resizePosture,
+    String(diagnostic.viewportWidth),
+    String(diagnostic.viewportHeight),
+    diagnostic.hostRenderable ? '1' : '0',
+    String(diagnostic.canvasEpoch),
+  ].join('::');
+}
 
 export function resolveChatAgentAvatarLive2dDiagnosticPanelModel(input: {
   status: 'idle' | 'loading' | 'ready' | 'error';
@@ -239,19 +298,25 @@ export function ChatAgentAnchoredAvatarStage(props: ChatAgentAnchoredAvatarStage
     }),
     [appAttention],
   );
-  const stageModel = resolveChatAgentAvatarStageModel({
-    selectedTarget: props.selectedTarget,
-    characterData: props.characterData,
-    localResource,
-    attentionState,
-  });
-  const stageRenderModel = resolveChatAgentAvatarStageRenderModel({
-    stageModel,
-    loadStatus: {
-      live2d: live2dLoadStatus,
-      vrm: vrmLoadStatus,
-    },
-  });
+  const stageModel = useMemo(
+    () => resolveChatAgentAvatarStageModel({
+      selectedTarget: props.selectedTarget,
+      characterData: props.characterData,
+      localResource,
+      attentionState,
+    }),
+    [attentionState, localResource, props.characterData, props.selectedTarget],
+  );
+  const stageRenderModel = useMemo(
+    () => resolveChatAgentAvatarStageRenderModel({
+      stageModel,
+      loadStatus: {
+        live2d: live2dLoadStatus,
+        vrm: vrmLoadStatus,
+      },
+    }),
+    [live2dLoadStatus, stageModel, vrmLoadStatus],
+  );
   const live2dDiagnosticPanel = resolveChatAgentAvatarLive2dDiagnosticPanelModel({
     status: live2dLoadStatus,
     error: live2dLoadError,
@@ -285,6 +350,32 @@ export function ChatAgentAnchoredAvatarStage(props: ChatAgentAnchoredAvatarStage
     };
   }, []);
 
+  const handleVrmLoadStateChange = useCallback((status: 'idle' | 'loading' | 'ready' | 'error') => {
+    setVrmLoadStatus((current) => (current === status ? current : status));
+  }, []);
+  const handleVrmLoadErrorChange = useCallback((error: string | null) => {
+    setVrmLoadError((current) => (current === error ? current : error));
+  }, []);
+  const handleVrmDiagnosticChange = useCallback((nextDiagnostic: ChatAgentAvatarVrmDiagnostic) => {
+    setVrmDiagnostic((current) => (
+      vrmDiagnosticKey(current) === vrmDiagnosticKey(nextDiagnostic)
+        ? current
+        : nextDiagnostic
+    ));
+  }, []);
+  const handleLive2dLoadStateChange = useCallback((status: 'loading' | 'ready' | 'error') => {
+    setLive2dLoadStatus((current) => (current === status ? current : status));
+  }, []);
+  const handleLive2dLoadErrorChange = useCallback((error: string | null) => {
+    setLive2dLoadError((current) => (current === error ? current : error));
+  }, []);
+  const handleLive2dDiagnosticChange = useCallback((nextDiagnostic: ChatAgentAvatarLive2dDiagnostic) => {
+    setLive2dDiagnostic((current) => (
+      live2dDiagnosticKey(current) === live2dDiagnosticKey(nextDiagnostic)
+        ? current
+        : nextDiagnostic
+    ));
+  }, []);
   return (
     <div
       className={cn(
@@ -310,26 +401,12 @@ export function ChatAgentAnchoredAvatarStage(props: ChatAgentAnchoredAvatarStage
           stage={stageRenderModel}
           live2dFramingIntent={live2dFramingIntent}
           vrmFramingIntent={vrmFramingIntent}
-          onVrmLoadStateChange={(status) => {
-            setVrmLoadStatus((current) => {
-              if (current === status) {
-                return current;
-              }
-              return status;
-            });
-          }}
-          onVrmLoadErrorChange={setVrmLoadError}
-          onVrmDiagnosticChange={setVrmDiagnostic}
-          onLive2dLoadStateChange={(status) => {
-            setLive2dLoadStatus((current) => {
-              if (current === status) {
-                return current;
-              }
-              return status;
-            });
-          }}
-          onLive2dLoadErrorChange={setLive2dLoadError}
-          onLive2dDiagnosticChange={setLive2dDiagnostic}
+          onVrmLoadStateChange={handleVrmLoadStateChange}
+          onVrmLoadErrorChange={handleVrmLoadErrorChange}
+          onVrmDiagnosticChange={handleVrmDiagnosticChange}
+          onLive2dLoadStateChange={handleLive2dLoadStateChange}
+          onLive2dLoadErrorChange={handleLive2dLoadErrorChange}
+          onLive2dDiagnosticChange={handleLive2dDiagnosticChange}
         />
       </div>
       {(live2dDiagnosticPanel || vrmDiagnosticPanel) ? (

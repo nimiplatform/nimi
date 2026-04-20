@@ -14,6 +14,7 @@ import type {
 } from './runtime-config-local-model-center-helpers';
 import { LocalModelCenterCatalogCard } from './runtime-config-local-model-center-catalog-card';
 import { LocalModelCenterImportControls } from './runtime-config-local-model-center-import-controls';
+import { LocalModelCenterInstalledAssetsSection } from './runtime-config-local-model-center-installed-section';
 import {
   LocalModelCenterActiveDownloadsSection,
   LocalModelCenterActiveImportsSection,
@@ -179,15 +180,50 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onEndpointChange={props.onUnregisteredEndpointChange}
           onImport={props.onImportUnregisteredAsset}
         />
-        <LocalModelCenterCatalogCard
-          searchQuery={props.searchQuery}
-          catalogCapability={props.catalogCapability}
+        <LocalModelCenterActiveDownloadsSection
+          downloads={props.downloads}
+          onPause={props.onPauseDownload}
+          onResume={props.onResumeDownload}
+          onCancel={props.onCancelDownload}
+        />
+        <LocalModelCenterActiveImportsSection imports={props.imports} onDismiss={props.onDismissSession} />
+        <LocalModelCenterAssetTasksSection
+          tasks={props.visibleAssetTasks}
+          pendingTemplateIds={props.assetPendingTemplateIds}
+          onRetryTask={props.onInstallAsset}
+        />
+        <LocalModelCenterInstalledAssetsSection
           filteredInstalledRunnableAssets={props.filteredInstalledRunnableAssets}
           filteredInstalledDependencyAssets={props.filteredInstalledDependencyAssets}
-          loadingCatalog={props.loadingCatalog}
           loadingInstalledAssets={props.loadingInstalledAssets}
           loadingVerifiedAssets={props.loadingVerifiedAssets}
           assetKindFilter={props.assetKindFilter}
+          assetBusy={props.assetBusy}
+          onArtifactKindFilterChange={props.onArtifactKindFilterChange}
+          onRefreshAssets={props.onRefreshAssets}
+          onRemoveAsset={props.onRemoveAsset}
+          onRepairAsset={props.onRepairAsset}
+          onRescanAsset={props.onRescanAsset}
+        />
+        {!props.hasSearchQuery ? (
+          <LocalModelCenterQuickPicksSection
+            loadingVerifiedModels={props.loadingVerifiedModels}
+            installing={props.installing}
+            assetBusy={props.assetBusy}
+            verifiedModels={props.verifiedModels}
+            relatedAssetsByModelTemplate={props.relatedAssetsByModelTemplate}
+            installedAssetsById={props.installedAssetsById}
+            isAssetPending={props.isAssetPending}
+            onRefresh={props.onRefreshQuickPicks}
+            onInstallVerifiedModel={props.onInstallVerifiedModel}
+            onInstallAsset={props.onInstallAsset}
+            onInstallMissingAssets={props.onInstallMissingAssets}
+          />
+        ) : null}
+        <LocalModelCenterCatalogCard
+          searchQuery={props.searchQuery}
+          catalogCapability={props.catalogCapability}
+          loadingCatalog={props.loadingCatalog}
           assetBusy={props.assetBusy}
           hasSearchQuery={props.hasSearchQuery}
           verifiedModels={props.verifiedModels}
@@ -204,11 +240,6 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           isAssetPending={props.isAssetPending}
           onSearchQueryChange={props.onSearchQueryChange}
           onCatalogCapabilityChange={props.onCatalogCapabilityChange}
-          onArtifactKindFilterChange={props.onArtifactKindFilterChange}
-          onRefreshAssets={props.onRefreshAssets}
-          onRemoveAsset={props.onRemoveAsset}
-          onRepairAsset={props.onRepairAsset}
-          onRescanAsset={props.onRescanAsset}
           onInstallMissingAssets={props.onInstallMissingAssets}
           onInstallVerifiedModel={props.onInstallVerifiedModel}
           onInstallAsset={props.onInstallAsset}
@@ -229,33 +260,6 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onRefresh={props.onRefreshAssets}
           onInstallAsset={props.onInstallAsset}
         />
-        <LocalModelCenterActiveDownloadsSection
-          downloads={props.downloads}
-          onPause={props.onPauseDownload}
-          onResume={props.onResumeDownload}
-          onCancel={props.onCancelDownload}
-        />
-        <LocalModelCenterActiveImportsSection imports={props.imports} onDismiss={props.onDismissSession} />
-        <LocalModelCenterAssetTasksSection
-          tasks={props.visibleAssetTasks}
-          pendingTemplateIds={props.assetPendingTemplateIds}
-          onRetryTask={props.onInstallAsset}
-        />
-        {!props.hasSearchQuery ? (
-          <LocalModelCenterQuickPicksSection
-            loadingVerifiedModels={props.loadingVerifiedModels}
-            installing={props.installing}
-            assetBusy={props.assetBusy}
-            verifiedModels={props.verifiedModels}
-            relatedAssetsByModelTemplate={props.relatedAssetsByModelTemplate}
-            installedAssetsById={props.installedAssetsById}
-            isAssetPending={props.isAssetPending}
-            onRefresh={props.onRefreshQuickPicks}
-            onInstallVerifiedModel={props.onInstallVerifiedModel}
-            onInstallAsset={props.onInstallAsset}
-            onInstallMissingAssets={props.onInstallMissingAssets}
-          />
-        ) : null}
       </ScrollArea>
     </div>
   );

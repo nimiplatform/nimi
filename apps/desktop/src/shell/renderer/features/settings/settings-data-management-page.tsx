@@ -187,7 +187,7 @@ export function DataManagementPage() {
 
       {/* Clear Cache */}
       <section className="mt-8">
-        <SectionTitle description={t('DataManagement.clearCacheDescription')}>
+        <SectionTitle>
           {t('DataManagement.clearCacheTitle')}
         </SectionTitle>
         <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -205,7 +205,7 @@ export function DataManagementPage() {
 
       {/* Danger Zone */}
       <section className="mt-8">
-        <SectionTitle description={t('DataManagement.dangerDescription')}>
+        <SectionTitle>
           {t('DataManagement.dangerTitle')}
         </SectionTitle>
         <div className="mt-3 rounded-2xl border border-red-100 bg-red-50/50 p-5">

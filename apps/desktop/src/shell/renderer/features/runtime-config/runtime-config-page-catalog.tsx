@@ -17,7 +17,6 @@ import {
   sdkUpsertModelCatalogProvider,
   type RuntimeCatalogModelDetail,
   type RuntimeCatalogModelOverlayInput,
-  type RuntimeCatalogModelSummary,
   type RuntimeCatalogProviderModelsResponse,
   type RuntimeCatalogVoiceEntry,
   type RuntimeCatalogWorkflowBinding,
@@ -137,12 +136,6 @@ function createEmptyFormState(_selectedProvider: RuntimeModelCatalogProvider | n
 
 function splitCsv(value: string): string[] {
   return value.split(',').map((item) => item.trim()).filter(Boolean);
-}
-
-function sourceTone(source: RuntimeModelCatalogProvider['source'] | RuntimeCatalogModelSummary['source']) {
-  if (source === 'overridden') return 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]';
-  if (source === 'custom') return 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]';
-  return 'border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]';
 }
 
 export function CatalogPage({ model, state: _state }: CatalogPageProps) {
@@ -350,18 +343,20 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
 
 function ProviderCapabilities({ provider }: { provider: RuntimeModelCatalogProvider | null }) {
   if (!provider) return null;
+  const sourceLabel = provider.source === 'builtin'
+    ? 'Built-in'
+    : provider.source === 'custom'
+      ? 'Custom'
+      : provider.source === 'overridden'
+        ? 'Overridden'
+        : provider.source;
+  const inventoryLabel = (provider.inventoryMode || 'static_source') === 'dynamic_endpoint'
+    ? 'Dynamic inventory'
+    : 'Static catalog';
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sourceTone(provider.source)}`}>{provider.source}</span>
-      <span className="rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-action-primary-bg)]">
-        {provider.inventoryMode || 'static_source'}
-      </span>
-      <span className="text-xs text-[var(--nimi-text-muted)]">{provider.modelCount} models</span>
-      {provider.capabilities.map((capability) => (
-        <span key={`${provider.provider}-${capability}`} className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] px-2 py-0.5 text-[11px] text-[var(--nimi-action-primary-bg)]">
-          {capability}
-        </span>
-      ))}
+    <div className="flex flex-col justify-center leading-tight">
+      <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{provider.modelCount} models</span>
+      <span className="text-xs text-[var(--nimi-text-muted)]">{sourceLabel} · {inventoryLabel}</span>
     </div>
   );
 }

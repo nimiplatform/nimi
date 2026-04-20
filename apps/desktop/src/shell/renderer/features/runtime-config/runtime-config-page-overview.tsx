@@ -253,7 +253,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
   return (
     <RuntimePageShell>
       <section>
-        <SectionTitle description={t('runtimeConfig.overview.snapshotDescription', { defaultValue: 'System summary and key runtime stats.' })}>
+        <SectionTitle>
           {t('runtimeConfig.overview.snapshotTitle', { defaultValue: 'Overview Snapshot' })}
         </SectionTitle>
         <div className="mt-3 grid grid-cols-4 gap-4">
@@ -284,14 +284,13 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
       </section>
 
       <section className="mt-8">
-        <SectionTitle description={t('runtimeConfig.overview.runtimeLoadDescription', { defaultValue: 'Live system usage and aggregated runtime consumption.' })}>
+        <SectionTitle>
           {t('runtimeConfig.overview.runtimeLoadTitle', { defaultValue: 'Runtime Load & Usage' })}
         </SectionTitle>
         <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5')}>
             <div className="mb-4">
               <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.systemResources', { defaultValue: 'System Resources' })}</p>
-              <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.systemResourcesDescription', { defaultValue: 'Live snapshot from desktop runtime' })}</p>
             </div>
             {sysResources.status === 'idle' || sysResources.status === 'loading' ? (
               <ResourceLoadingSkeleton />
@@ -357,7 +356,6 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
           <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5')}>
             <div className="mb-4">
               <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.usageEstimate', { defaultValue: 'Usage Estimate' })}</p>
-              <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.usageEstimateDescription', { defaultValue: 'Aggregated from runtime usage stats' })}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className={METRIC_CARD_CLASS}>
@@ -399,7 +397,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
       </section>
 
       <section className="mt-8">
-        <SectionTitle description={t('runtimeConfig.overview.capabilityCoverageDescription', { defaultValue: 'Available AI capabilities from local runtime and cloud fallback.' })}>
+        <SectionTitle>
           {t('runtimeConfig.overview.capabilityCoverageTitle', { defaultValue: 'Capability Coverage' })}
         </SectionTitle>
         <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-3 p-5')}>
@@ -446,7 +444,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
       </section>
 
       <section className="mt-8">
-        <SectionTitle description={t('runtimeConfig.overview.runtimeDaemonDescription', { defaultValue: 'Control and inspect local runtime daemon status.' })}>
+        <SectionTitle>
           {t('runtimeConfig.overview.runtimeDaemonTitle', { defaultValue: 'Runtime Daemon' })}
         </SectionTitle>
         <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-3 p-5')}>
@@ -517,7 +515,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
       </section>
 
       <section className="mt-8">
-        <SectionTitle description={t('runtimeConfig.overview.quickNavigationDescription', { defaultValue: 'Fast entry points to key runtime configuration pages.' })}>
+        <SectionTitle>
           {t('runtimeConfig.overview.quickNavigationTitle', { defaultValue: 'Quick Navigation' })}
         </SectionTitle>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

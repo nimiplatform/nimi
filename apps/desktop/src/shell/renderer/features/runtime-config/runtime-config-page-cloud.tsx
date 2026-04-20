@@ -455,7 +455,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
     <RuntimePageShell className="space-y-4">
       {/* Top bar: actions */}
       <div className="flex items-center justify-between gap-3">
-        <SectionTitle description={t('runtimeConfig.cloud.connectorsManagement', { defaultValue: 'Manage your cloud API connectors' })}>
+        <SectionTitle>
           {t('runtimeConfig.cloud.connectors')}
         </SectionTitle>
         <div className="flex items-center gap-2">

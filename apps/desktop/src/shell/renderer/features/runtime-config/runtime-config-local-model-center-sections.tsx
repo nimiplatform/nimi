@@ -168,55 +168,56 @@ type ToolbarProps = {
 
 export function LocalModelCenterToolbar(props: ToolbarProps) {
   const healthTooltip = formatLastCheckedAgo(props.lastCheckedAt);
-  const ghostBtnClass = 'flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)] disabled:opacity-50 transition-colors';
+  const iconBtnClass = 'flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)] hover:text-[var(--nimi-text-secondary)] disabled:opacity-50 transition-colors';
+  const primaryBtnClass = 'flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50';
 
   return (
-    <div className="flex items-center justify-end">
-      <div className="flex items-center gap-1">
+    <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center gap-0.5">
         <button
           type="button"
           onClick={props.onHealthCheck}
           disabled={props.checkingHealth}
-          title={healthTooltip}
-          className={`${ghostBtnClass} ${
-            props.localHealthy
-              ? 'text-[var(--nimi-status-success)]'
-              : ''
-          }`}
-        >
-          <HeartPulseIcon className="h-4 w-4" />
-          {props.checkingHealth
+          title={props.checkingHealth
             ? i18n.t('runtimeConfig.localModelCenter.checking', { defaultValue: 'Checking...' })
-            : i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Health' })}
+            : `${i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Health' })}${healthTooltip ? ` \u00b7 ${healthTooltip}` : ''}`}
+          aria-label={i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Health' })}
+          className={iconBtnClass}
+        >
+          <HeartPulseIcon className={`h-4 w-4 ${props.checkingHealth ? 'animate-pulse' : ''}`} />
         </button>
         <button
           type="button"
           onClick={props.onRefresh}
           disabled={props.discovering}
-          className={ghostBtnClass}
-        >
-          <RefreshIcon className="h-4 w-4" />
-          {props.discovering
+          title={props.discovering
             ? i18n.t('runtimeConfig.localModelCenter.refreshing', { defaultValue: 'Refreshing...' })
             : i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
+          aria-label={i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
+          className={iconBtnClass}
+        >
+          <RefreshIcon className={`h-4 w-4 ${props.discovering ? 'animate-spin' : ''}`} />
         </button>
         <button
           type="button"
           onClick={props.onOpenModelsFolder}
-          className={ghostBtnClass}
+          title={i18n.t('runtimeConfig.localModelCenter.openModelsFolder', { defaultValue: 'Open Folder' })}
+          aria-label={i18n.t('runtimeConfig.localModelCenter.openModelsFolder', { defaultValue: 'Open Folder' })}
+          className={iconBtnClass}
         >
           <FolderOpenIcon className="h-4 w-4" />
-          {i18n.t('runtimeConfig.localModelCenter.openModelsFolder', { defaultValue: 'Open Folder' })}
         </button>
-        <div className="relative" ref={props.importMenuRef}>
-          <button
-            type="button"
-            onClick={props.onToggleImportMenu}
-            className={ghostBtnClass}
-          >
-            <DownloadIcon className="h-4 w-4" />
-            {i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
-          </button>
+      </div>
+      <div className="h-5 w-px bg-[var(--nimi-border-subtle)]" aria-hidden="true" />
+      <div className="relative" ref={props.importMenuRef}>
+        <button
+          type="button"
+          onClick={props.onToggleImportMenu}
+          className={primaryBtnClass}
+        >
+          <DownloadIcon className="h-3.5 w-3.5" />
+          {i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
+        </button>
           {props.showImportMenu ? (
             <div className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-white shadow-lg">
               <button type="button" onClick={props.onOpenImportFile} className="w-full px-3 py-2.5 text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
@@ -251,7 +252,6 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
               </button>
             </div>
           ) : null}
-        </div>
       </div>
     </div>
   );
@@ -422,11 +422,6 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                 defaultValue: 'Unregistered Assets',
               })}
             </h3>
-            <p className="text-xs text-[var(--nimi-text-muted)]">
-              {i18n.t('runtimeConfig.localModelCenter.unregisteredAssetsDescription', {
-                defaultValue: 'Typed folders import automatically. Unknown files stay here until you confirm the type.',
-              })}
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -439,7 +434,7 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
             className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]"
           >
             <RefreshIcon className="h-3 w-3" />
-            {i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
+            {i18n.t('runtimeConfig.localModelCenter.rescanFolder', { defaultValue: 'Rescan folder' })}
           </button>
         </div>
       </div>
@@ -465,13 +460,6 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
           const confidenceClass = asset.confidence === 'high'
             ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]'
             : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]';
-          const sourceLabel = asset.suggestionSource === 'folder'
-            ? i18n.t('runtimeConfig.localModelCenter.sourceFolder', { defaultValue: 'Folder' })
-            : asset.suggestionSource === 'filename'
-              ? i18n.t('runtimeConfig.localModelCenter.sourceFilename', { defaultValue: 'Filename' })
-              : asset.suggestionSource === 'manifest'
-                ? i18n.t('runtimeConfig.localModelCenter.sourceManifest', { defaultValue: 'Manifest' })
-                : i18n.t('runtimeConfig.localModelCenter.sourceUnknown', { defaultValue: 'Unknown' });
 
           return (
             <div key={asset.path} className="rounded-xl border border-[var(--nimi-border-subtle)]/70 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-all hover:border-[var(--nimi-border-strong)] hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)]">
@@ -488,16 +476,8 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                         : i18n.t('runtimeConfig.localModelCenter.reviewNeeded', { defaultValue: 'Review needed' })}
                     </span>
                   </div>
-                  <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)]">
-                    <span>{formatBytes(asset.sizeBytes)}</span>
-                    <span className="text-[var(--nimi-border-subtle)]">&middot;</span>
-                    <span>{sourceLabel}</span>
-                    {asset.folderName ? (
-                      <>
-                        <span className="text-[var(--nimi-border-subtle)]">&middot;</span>
-                        <span>{asset.folderName}</span>
-                      </>
-                    ) : null}
+                  <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                    {formatBytes(asset.sizeBytes)}
                   </p>
                 </div>
               </div>
