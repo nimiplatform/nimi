@@ -35,6 +35,24 @@ func (o stateEventOrigin) apply(detail *runtimev1.AgentStateEventDetail) {
 	}
 }
 
+func stateEventOriginFromHookIntent(intent *runtimev1.HookIntent) stateEventOrigin {
+	if intent == nil {
+		return stateEventOrigin{}
+	}
+	return stateEventOrigin{
+		ConversationAnchorID: strings.TrimSpace(intent.GetConversationAnchorId()),
+		OriginatingTurnID:    strings.TrimSpace(intent.GetOriginatingTurnId()),
+		OriginatingStreamID:  strings.TrimSpace(intent.GetOriginatingStreamId()),
+	}
+}
+
+func stateEventOriginFromPendingHook(hook *runtimev1.PendingHook) stateEventOrigin {
+	if hook == nil {
+		return stateEventOrigin{}
+	}
+	return stateEventOriginFromHookIntent(hook.GetIntent())
+}
+
 // stateStatusTextChangedEvent projects runtime.agent.state.status_text_changed.
 // `previous` may be empty; when non-empty we set has_previous_status_text.
 func (s *Service) stateStatusTextChangedEvent(agentID string, current string, previous string, hadPrevious bool, origin stateEventOrigin, observedAt time.Time) *runtimev1.AgentEvent {
@@ -59,6 +77,33 @@ func (s *Service) stateExecutionStateChangedEvent(agentID string, current runtim
 	}
 	origin.apply(detail)
 	return s.newEventAt(agentID, runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE, &runtimev1.AgentEvent_State{State: detail}, observedAt)
+}
+
+// applyExecutionStateTransition commits an execution-state change and returns
+// the admitted `runtime.agent.state.execution_state_changed` projection when
+// the committed state actually changes. Callers must pass truthful origin and
+// keep it empty for no-origin lifecycle/admin transitions.
+func (s *Service) applyExecutionStateTransition(entry *agentEntry, next runtimev1.AgentExecutionState, origin stateEventOrigin, observedAt time.Time) *runtimev1.AgentEvent {
+	if s == nil || entry == nil || entry.Agent == nil || entry.State == nil {
+		return nil
+	}
+	previous := entry.State.GetExecutionState()
+	if previous == next {
+		return nil
+	}
+	if observedAt.IsZero() {
+		observedAt = time.Now().UTC()
+	}
+	entry.State.ExecutionState = next
+	entry.State.UpdatedAt = timestamppb.New(observedAt)
+	return s.stateExecutionStateChangedEvent(entry.Agent.GetAgentId(), next, previous, origin, observedAt)
+}
+
+func (s *Service) refreshLifeTrackExecutionState(entry *agentEntry, origin stateEventOrigin, observedAt time.Time) *runtimev1.AgentEvent {
+	if entry == nil || entry.State == nil {
+		return nil
+	}
+	return s.applyExecutionStateTransition(entry, resolveLifeTrackExecutionState(entry), origin, observedAt)
 }
 
 // stateEmotionChangedEvent projects runtime.agent.state.emotion_changed.

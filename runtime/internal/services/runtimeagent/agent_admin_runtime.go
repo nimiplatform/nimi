@@ -102,8 +102,6 @@ func (r agentAdminRuntime) terminate(req *runtimev1.TerminateAgentRequest) (*run
 	now := time.Now().UTC()
 	entry.Agent.LifecycleStatus = runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED
 	entry.Agent.UpdatedAt = timestamppb.New(now)
-	entry.State.ExecutionState = runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_SUSPENDED
-	entry.State.UpdatedAt = timestamppb.New(now)
 	events := []*runtimev1.AgentEvent{
 		r.svc.newEvent(agentID, runtimev1.AgentEventType_AGENT_EVENT_TYPE_LIFECYCLE, &runtimev1.AgentEvent_Lifecycle{
 			Lifecycle: &runtimev1.AgentLifecycleEventDetail{
@@ -112,7 +110,7 @@ func (r agentAdminRuntime) terminate(req *runtimev1.TerminateAgentRequest) (*run
 			},
 		}),
 	}
-	events = append(events, cancelActiveHooks(entry, "runtime", firstNonEmpty(strings.TrimSpace(req.GetReason()), "agent terminated"), now)...)
+	events = append(events, r.svc.cancelActiveHooks(entry, "runtime", firstNonEmpty(strings.TrimSpace(req.GetReason()), "agent terminated"), now)...)
 	if err := r.svc.updateAgent(entry, events...); err != nil {
 		return nil, err
 	}

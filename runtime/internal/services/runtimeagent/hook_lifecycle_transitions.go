@@ -34,7 +34,7 @@ func (s *Service) admitPendingHook(agentID string, hook *runtimev1.PendingHook) 
 		normalized.Intent.AgentId = entry.Agent.GetAgentId()
 	}
 	entry.Hooks[intentID] = normalized
-	refreshLifeTrackState(entry, now)
+	stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(normalized), now)
 	// Emit proposed-then-pending to project the admission transition.
 	proposedIntent := cloneHookIntent(normalized.GetIntent())
 	proposedIntent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
@@ -47,6 +47,9 @@ func (s *Service) admitPendingHook(agentID string, hook *runtimev1.PendingHook) 
 			Intent:     cloneHookIntent(normalized.GetIntent()),
 			ObservedAt: timestamppb.New(now),
 		}, now),
+	}
+	if stateEvent != nil {
+		events = append(events, stateEvent)
 	}
 	return s.updateAgent(entry, events...)
 }
@@ -101,12 +104,15 @@ func (s *Service) transitionHookAt(agentID string, intentID string, now time.Tim
 	if err != nil {
 		return nil, err
 	}
-	refreshLifeTrackState(entry, now)
+	stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(hook), now)
 	events := make([]*runtimev1.AgentEvent, 0, len(extraEvents)+1)
 	if outcome != nil {
 		events = append(events, hookEventAt(entry.Agent.GetAgentId(), outcome, now))
 	}
 	events = append(events, extraEvents...)
+	if stateEvent != nil {
+		events = append(events, stateEvent)
+	}
 	if err := s.updateAgent(entry, events...); err != nil {
 		return nil, err
 	}
@@ -238,7 +244,7 @@ func (s *Service) rescheduleHookAt(agentID string, intentID string, nextIntent *
 	})
 }
 
-func cancelActiveHooks(entry *agentEntry, canceledBy string, reason string, now time.Time) []*runtimev1.AgentEvent {
+func (s *Service) cancelActiveHooks(entry *agentEntry, canceledBy string, reason string, now time.Time) []*runtimev1.AgentEvent {
 	if entry == nil {
 		return nil
 	}
@@ -255,7 +261,9 @@ func cancelActiveHooks(entry *agentEntry, canceledBy string, reason string, now 
 			Message:    firstNonEmpty(strings.TrimSpace(canceledBy), "runtime"),
 		}, now))
 	}
-	refreshLifeTrackState(entry, now)
+	if stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOrigin{}, now); stateEvent != nil {
+		events = append(events, stateEvent)
+	}
 	return events
 }
 

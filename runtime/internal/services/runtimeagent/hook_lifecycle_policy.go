@@ -158,9 +158,9 @@ func validateHookIntent(intent *runtimev1.HookIntent) error {
 	return nil
 }
 
-func refreshLifeTrackState(entry *agentEntry, now time.Time) {
+func resolveLifeTrackExecutionState(entry *agentEntry) runtimev1.AgentExecutionState {
 	if entry == nil || entry.State == nil {
-		return
+		return runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_UNSPECIFIED
 	}
 	next := entry.State.GetExecutionState()
 	switch {
@@ -173,6 +173,14 @@ func refreshLifeTrackState(entry *agentEntry, now time.Time) {
 	case next != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_CHAT_ACTIVE:
 		next = runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE
 	}
+	return next
+}
+
+func refreshLifeTrackState(entry *agentEntry, now time.Time) {
+	if entry == nil || entry.State == nil {
+		return
+	}
+	next := resolveLifeTrackExecutionState(entry)
 	if entry.State.GetExecutionState() != next {
 		entry.State.ExecutionState = next
 		entry.State.UpdatedAt = timestamppb.New(now)
@@ -576,7 +584,9 @@ func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error
 				Reason:     firstNonEmpty(strings.TrimSpace(reason), autonomyCadenceHookCancelReason),
 			}, now))
 		}
-		refreshLifeTrackState(entry, now)
+		if stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOrigin{}, now); stateEvent != nil {
+			events = append(events, stateEvent)
+		}
 		return s.updateAgent(entry, events...)
 	}
 
@@ -601,11 +611,14 @@ func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error
 			AdmittedAt:   timestamppb.New(now),
 		}
 		entry.Hooks[intent.GetIntentId()] = hook
-		refreshLifeTrackState(entry, now)
-		return s.updateAgent(entry, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+		events := []*runtimev1.AgentEvent{hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
 			Intent:     cloneHookIntent(intent),
 			ObservedAt: timestamppb.New(now),
-		}, now))
+		}, now)}
+		if stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOrigin{}, now); stateEvent != nil {
+			events = append(events, stateEvent)
+		}
+		return s.updateAgent(entry, events...)
 	}
 
 	primary := pendingCadence[0]
@@ -617,8 +630,11 @@ func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error
 	primary.Intent.NotBefore = timestamppb.New(scheduledAt)
 	primary.Intent.Reason = autonomyCadenceHookReason
 	primary.ScheduledFor = timestamppb.New(scheduledAt)
-	refreshLifeTrackState(entry, now)
-	if err := s.updateAgent(entry); err != nil {
+	var events []*runtimev1.AgentEvent
+	if stateEvent := s.refreshLifeTrackExecutionState(entry, stateEventOrigin{}, now); stateEvent != nil {
+		events = append(events, stateEvent)
+	}
+	if err := s.updateAgent(entry, events...); err != nil {
 		return err
 	}
 	if len(pendingCadence) <= 1 {

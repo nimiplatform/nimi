@@ -336,10 +336,13 @@ func (c lifeTrackController) applyResult(ctx context.Context, agentID string, in
 		}
 	}
 
-	refreshLifeTrackState(entry, now)
+	executionStateEvent := c.svc.refreshLifeTrackExecutionState(entry, stateEventOriginFromPendingHook(hook), now)
 	events = append(events, postureStateEvents...)
 	events = append(events, hookEventAt(entry.Agent.GetAgentId(), outcome, now))
 	events = append(events, followupEvents...)
+	if executionStateEvent != nil {
+		events = append(events, executionStateEvent)
+	}
 	if len(accepted) > 0 || len(rejected) > 0 {
 		events = append(events, c.svc.newEventAt(entry.Agent.GetAgentId(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY, &runtimev1.AgentEvent_Memory{
 			Memory: &runtimev1.AgentMemoryEventDetail{

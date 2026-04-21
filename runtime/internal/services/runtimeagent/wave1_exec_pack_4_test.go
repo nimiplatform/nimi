@@ -402,7 +402,7 @@ func TestWave1ExecPack4InterruptIsolationRejectsWrongAnchor(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnInterruptedType)
 }
 
-func TestWave1RemediationATrimHookLifecycleDoesNotEmitExecutionStateSpread(t *testing.T) {
+func TestWave1ExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
@@ -434,35 +434,58 @@ func TestWave1RemediationATrimHookLifecycleDoesNotEmitExecutionStateSpread(t *te
 
 	streamCtx, cancel := context.WithTimeout(ctx, 150*time.Millisecond)
 	defer cancel()
-	stream := newAgentEventCaptureStreamLimit(streamCtx, 5)
+	stream := newAgentEventCaptureStreamLimit(streamCtx, 7)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
 		AgentId: "agent-pack4-hook-origin",
 		Cursor:  encodeCursor(cursor),
 	}, stream); err != context.Canceled && err != context.DeadlineExceeded {
 		t.Fatalf("SubscribeAgentEvents: %v", err)
 	}
-	if len(stream.events) != 4 {
-		t.Fatalf("expected 4 hook events without execution_state_changed spread, got %d", len(stream.events))
+	if len(stream.events) != 7 {
+		t.Fatalf("expected 7 bounded lifecycle events after execution-state closure, got %d", len(stream.events))
 	}
 
-	wantFamilies := []runtimev1.HookAdmissionState{
-		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
-		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
-		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING,
-		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED,
+	wantKinds := []struct {
+		eventType runtimev1.AgentEventType
+		hook      runtimev1.HookAdmissionState
+		exec      runtimev1.AgentExecutionState
+	}{
+		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK, hook: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED},
+		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK, hook: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING},
+		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE, exec: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING},
+		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK, hook: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING},
+		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE, exec: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_RUNNING},
+		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK, hook: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED},
+		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE, exec: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE},
 	}
 	for i, event := range stream.events {
-		if event.GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK {
-			t.Fatalf("expected hook-only backlog after trim, got %#v", event)
+		if event.GetEventType() != wantKinds[i].eventType {
+			t.Fatalf("unexpected event type at index %d: got %s want %s", i, event.GetEventType(), wantKinds[i].eventType)
 		}
-		if got := event.GetHook().GetFamily(); got != wantFamilies[i] {
-			t.Fatalf("unexpected hook family at index %d: got %s want %s", i, got, wantFamilies[i])
-		}
-		intent := event.GetHook().GetIntent()
-		if strings.TrimSpace(intent.GetConversationAnchorId()) != "" ||
-			strings.TrimSpace(intent.GetOriginatingTurnId()) != "" ||
-			strings.TrimSpace(intent.GetOriginatingStreamId()) != "" {
-			t.Fatalf("no-origin hook event must not fabricate linkage, got %#v", intent)
+		switch event.GetEventType() {
+		case runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK:
+			if got := event.GetHook().GetFamily(); got != wantKinds[i].hook {
+				t.Fatalf("unexpected hook family at index %d: got %s want %s", i, got, wantKinds[i].hook)
+			}
+			intent := event.GetHook().GetIntent()
+			if strings.TrimSpace(intent.GetConversationAnchorId()) != "" ||
+				strings.TrimSpace(intent.GetOriginatingTurnId()) != "" ||
+				strings.TrimSpace(intent.GetOriginatingStreamId()) != "" {
+				t.Fatalf("no-origin hook event must not fabricate linkage, got %#v", intent)
+			}
+		case runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE:
+			detail := event.GetState()
+			if detail.GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
+				t.Fatalf("expected execution_state_changed at index %d, got %#v", i, detail)
+			}
+			if got := detail.GetCurrentExecutionState(); got != wantKinds[i].exec {
+				t.Fatalf("unexpected current execution state at index %d: got %s want %s", i, got, wantKinds[i].exec)
+			}
+			if strings.TrimSpace(detail.GetConversationAnchorId()) != "" ||
+				strings.TrimSpace(detail.GetOriginatingTurnId()) != "" ||
+				strings.TrimSpace(detail.GetOriginatingStreamId()) != "" {
+				t.Fatalf("no-origin execution-state event must not fabricate linkage, got %#v", detail)
+			}
 		}
 	}
 }
