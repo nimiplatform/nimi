@@ -19,20 +19,22 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAgentService_InitializeAgent_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent"
-	RuntimeAgentService_TerminateAgent_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
-	RuntimeAgentService_GetAgent_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
-	RuntimeAgentService_ListAgents_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
-	RuntimeAgentService_GetAgentState_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
-	RuntimeAgentService_UpdateAgentState_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
-	RuntimeAgentService_EnableAutonomy_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy"
-	RuntimeAgentService_DisableAutonomy_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy"
-	RuntimeAgentService_SetAutonomyConfig_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig"
-	RuntimeAgentService_ListPendingHooks_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks"
-	RuntimeAgentService_CancelHook_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/CancelHook"
-	RuntimeAgentService_QueryAgentMemory_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
-	RuntimeAgentService_WriteAgentMemory_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
-	RuntimeAgentService_SubscribeAgentEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
+	RuntimeAgentService_InitializeAgent_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent"
+	RuntimeAgentService_TerminateAgent_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
+	RuntimeAgentService_GetAgent_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
+	RuntimeAgentService_ListAgents_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
+	RuntimeAgentService_OpenConversationAnchor_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
+	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
+	RuntimeAgentService_GetAgentState_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
+	RuntimeAgentService_UpdateAgentState_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
+	RuntimeAgentService_EnableAutonomy_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy"
+	RuntimeAgentService_DisableAutonomy_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy"
+	RuntimeAgentService_SetAutonomyConfig_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig"
+	RuntimeAgentService_ListPendingHooks_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks"
+	RuntimeAgentService_CancelHook_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/CancelHook"
+	RuntimeAgentService_QueryAgentMemory_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
+	RuntimeAgentService_WriteAgentMemory_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
+	RuntimeAgentService_SubscribeAgentEvents_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
 )
 
 // RuntimeAgentServiceClient is the client API for RuntimeAgentService service.
@@ -43,6 +45,8 @@ type RuntimeAgentServiceClient interface {
 	TerminateAgent(ctx context.Context, in *TerminateAgentRequest, opts ...grpc.CallOption) (*TerminateAgentResponse, error)
 	GetAgent(ctx context.Context, in *GetAgentRequest, opts ...grpc.CallOption) (*GetAgentResponse, error)
 	ListAgents(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*ListAgentsResponse, error)
+	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
+	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
 	GetAgentState(ctx context.Context, in *GetAgentStateRequest, opts ...grpc.CallOption) (*GetAgentStateResponse, error)
 	UpdateAgentState(ctx context.Context, in *UpdateAgentStateRequest, opts ...grpc.CallOption) (*UpdateAgentStateResponse, error)
 	EnableAutonomy(ctx context.Context, in *EnableAutonomyRequest, opts ...grpc.CallOption) (*EnableAutonomyResponse, error)
@@ -97,6 +101,26 @@ func (c *runtimeAgentServiceClient) ListAgents(ctx context.Context, in *ListAgen
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListAgentsResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_ListAgents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenConversationAnchorResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_OpenConversationAnchor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetConversationAnchorSnapshotResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +244,8 @@ type RuntimeAgentServiceServer interface {
 	TerminateAgent(context.Context, *TerminateAgentRequest) (*TerminateAgentResponse, error)
 	GetAgent(context.Context, *GetAgentRequest) (*GetAgentResponse, error)
 	ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error)
+	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
+	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
 	GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error)
 	UpdateAgentState(context.Context, *UpdateAgentStateRequest) (*UpdateAgentStateResponse, error)
 	EnableAutonomy(context.Context, *EnableAutonomyRequest) (*EnableAutonomyResponse, error)
@@ -250,6 +276,12 @@ func (UnimplementedRuntimeAgentServiceServer) GetAgent(context.Context, *GetAgen
 }
 func (UnimplementedRuntimeAgentServiceServer) ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAgents not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OpenConversationAnchor not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetConversationAnchorSnapshot not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAgentState not implemented")
@@ -369,6 +401,42 @@ func _RuntimeAgentService_ListAgents_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).ListAgents(ctx, req.(*ListAgentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_OpenConversationAnchor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenConversationAnchorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).OpenConversationAnchor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_OpenConversationAnchor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).OpenConversationAnchor(ctx, req.(*OpenConversationAnchorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetConversationAnchorSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetConversationAnchorSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetConversationAnchorSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetConversationAnchorSnapshot(ctx, req.(*GetConversationAnchorSnapshotRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -568,6 +636,14 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListAgents",
 			Handler:    _RuntimeAgentService_ListAgents_Handler,
+		},
+		{
+			MethodName: "OpenConversationAnchor",
+			Handler:    _RuntimeAgentService_OpenConversationAnchor_Handler,
+		},
+		{
+			MethodName: "GetConversationAnchorSnapshot",
+			Handler:    _RuntimeAgentService_GetConversationAnchorSnapshot_Handler,
 		},
 		{
 			MethodName: "GetAgentState",

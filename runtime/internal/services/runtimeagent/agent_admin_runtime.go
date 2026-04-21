@@ -176,6 +176,11 @@ func (r agentAdminRuntime) updateState(req *runtimev1.UpdateAgentStateRequest) (
 	if nextState.Attributes == nil {
 		nextState.Attributes = map[string]string{}
 	}
+	// K-AGCORE-037 state_envelope: admin mutations have no continuity origin.
+	// Runtime MUST NOT fabricate anchor/turn/stream linkage.
+	adminOrigin := stateEventOrigin{}
+	previousStatusText := strings.TrimSpace(entry.State.GetStatusText())
+	hadPreviousStatusText := previousStatusText != ""
 	for _, mutation := range req.GetMutations() {
 		switch item := mutation.GetMutation().(type) {
 		case *runtimev1.AgentStateMutation_SetStatusText:
@@ -200,9 +205,22 @@ func (r agentAdminRuntime) updateState(req *runtimev1.UpdateAgentStateRequest) (
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
 	}
-	nextState.UpdatedAt = timestamppb.New(time.Now().UTC())
+	now := time.Now().UTC()
+	nextState.UpdatedAt = timestamppb.New(now)
 	entry.State = nextState
-	if err := r.svc.updateAgent(entry); err != nil {
+	events := make([]*runtimev1.AgentEvent, 0, 1)
+	newStatusText := strings.TrimSpace(nextState.GetStatusText())
+	if newStatusText != previousStatusText {
+		events = append(events, r.svc.stateStatusTextChangedEvent(
+			entry.Agent.GetAgentId(),
+			newStatusText,
+			previousStatusText,
+			hadPreviousStatusText,
+			adminOrigin,
+			now,
+		))
+	}
+	if err := r.svc.updateAgent(entry, events...); err != nil {
 		return nil, err
 	}
 	return &runtimev1.UpdateAgentStateResponse{State: cloneAgentState(nextState)}, nil
@@ -307,15 +325,16 @@ func (r agentAdminRuntime) listPendingHooks(req *runtimev1.ListPendingHooksReque
 	}
 	items := make([]*runtimev1.PendingHook, 0, len(entry.Hooks))
 	for _, hook := range entry.Hooks {
-		if req.GetStatusFilter() == runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_UNSPECIFIED && !isCancelableHookStatus(hook.GetStatus()) {
+		state := hookAdmissionState(hook)
+		if req.GetAdmissionStateFilter() == runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_UNSPECIFIED && !isCancelableAdmissionState(state) {
 			continue
 		}
-		if req.GetTriggerFilter() != runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_UNSPECIFIED &&
-			hook.GetTrigger().GetTriggerKind() != req.GetTriggerFilter() {
+		if req.GetTriggerFamilyFilter() != runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_UNSPECIFIED &&
+			hook.GetIntent().GetTriggerFamily() != req.GetTriggerFamilyFilter() {
 			continue
 		}
-		if req.GetStatusFilter() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_UNSPECIFIED &&
-			hook.GetStatus() != req.GetStatusFilter() {
+		if req.GetAdmissionStateFilter() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_UNSPECIFIED &&
+			state != req.GetAdmissionStateFilter() {
 			continue
 		}
 		items = append(items, clonePendingHook(hook))
@@ -324,7 +343,7 @@ func (r agentAdminRuntime) listPendingHooks(req *runtimev1.ListPendingHooksReque
 		left := items[i].GetScheduledFor().AsTime()
 		right := items[j].GetScheduledFor().AsTime()
 		if left.Equal(right) {
-			return items[i].GetHookId() < items[j].GetHookId()
+			return hookIntentID(items[i]) < hookIntentID(items[j])
 		}
 		return left.Before(right)
 	})
@@ -336,7 +355,7 @@ func (r agentAdminRuntime) listPendingHooks(req *runtimev1.ListPendingHooksReque
 }
 
 func (r agentAdminRuntime) cancelHook(req *runtimev1.CancelHookRequest) (*runtimev1.CancelHookResponse, error) {
-	outcome, err := r.svc.cancelHook(strings.TrimSpace(req.GetAgentId()), strings.TrimSpace(req.GetHookId()), "app", req.GetReason())
+	outcome, err := r.svc.cancelHook(strings.TrimSpace(req.GetAgentId()), strings.TrimSpace(req.GetIntentId()), "app", req.GetReason())
 	if err != nil {
 		return nil, err
 	}

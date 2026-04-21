@@ -231,16 +231,18 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 2. `TerminateAgent`
 3. `GetAgent`
 4. `ListAgents`
-5. `GetAgentState`
-6. `UpdateAgentState`
-7. `EnableAutonomy`
-8. `DisableAutonomy`
-9. `SetAutonomyConfig`
-10. `ListPendingHooks`
-11. `CancelHook`
-12. `QueryAgentMemory`
-13. `WriteAgentMemory`
-14. `SubscribeAgentEvents`
+5. `OpenConversationAnchor`
+6. `GetConversationAnchorSnapshot`
+7. `GetAgentState`
+8. `UpdateAgentState`
+9. `EnableAutonomy`
+10. `DisableAutonomy`
+11. `SetAutonomyConfig`
+12. `ListPendingHooks`
+13. `CancelHook`
+14. `QueryAgentMemory`
+15. `WriteAgentMemory`
+16. `SubscribeAgentEvents`
 
 固定约束：
 
@@ -265,7 +267,8 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 最小 access matrix：
 
 - `InitializeAgent` / `TerminateAgent`：`runtime.agent.admin`
-- `GetAgent` / `ListAgents` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
+- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
+- `OpenConversationAnchor`：`runtime.agent.write`
 - `UpdateAgentState` / `WriteAgentMemory` / `CancelHook`：`runtime.agent.write`
 - `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`
 
@@ -275,9 +278,9 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 matrix 固定为：
 
 - `SendAppMessage` 发往 `to_app_id=runtime.agent` 且消息类型属于
-  `K-APP-008` admitted ingress family：`runtime.agent.chat.write`
+  `K-APP-008` admitted ingress family：`runtime.agent.turn.write`
 - `SubscribeAppMessages` 订阅中 `from_app_ids` 包含 `runtime.agent`：
-  `runtime.agent.chat.read`
+  `runtime.agent.turn.read`
 - generic cross-app `SendAppMessage`（非保留 `runtime.agent` seam）：
   `runtime.app.send.cross_app`
 

@@ -9,14 +9,18 @@ import (
 
 const lifeTrackLoopInterval = time.Second
 
+// hookExecutionDecision is the runtime-side decision carried from gate /
+// executor into the admission-state transition writer. `admissionState` is
+// the target committed state; `nextIntent` is set on RESCHEDULED only and
+// must be a valid HookIntent per K-AGCORE-041.
 type hookExecutionDecision struct {
-	status     runtimev1.AgentHookStatus
-	summary    string
-	reasonCode runtimev1.ReasonCode
-	message    string
-	retryable  bool
-	nextIntent *runtimev1.NextHookIntent
-	tokensUsed int64
+	admissionState runtimev1.HookAdmissionState
+	summary        string
+	reasonCode     runtimev1.ReasonCode
+	message        string
+	retryable      bool
+	nextIntent     *runtimev1.HookIntent
+	tokensUsed     int64
 }
 
 type hookExecutor func(context.Context, *lifeTurnRequest) (*lifeTurnResult, error)
@@ -35,9 +39,9 @@ type dueHookRef struct {
 
 func (rejectingLifeTrackExecutor) ExecuteLifeTrackHook(_ context.Context, _ *lifeTurnRequest) (*lifeTurnResult, error) {
 	return nil, &lifeTurnExecutionError{
-		status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_REJECTED,
-		reasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
-		message:    "runtime internal life-track executor unavailable or not admitted",
+		admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
+		reasonCode:     runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+		message:        "runtime internal life-track executor unavailable or not admitted",
 	}
 }
 

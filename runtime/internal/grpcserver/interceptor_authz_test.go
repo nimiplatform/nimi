@@ -95,9 +95,53 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			request: &runtimev1.SendAppMessageRequest{
 				FromAppId:   "nimi.desktop",
 				ToAppId:     "runtime.agent",
-				MessageType: "agent.chat.turn.request.v1",
+				MessageType: "runtime.agent.turn.request",
 			},
 			capability: "runtime.agent.chat.write",
+		},
+		// K-AGCORE-032 hard cut proof: legacy agent.chat.*.v1 on the primary
+		// runtime.agent target must NOT route through the admitted
+		// runtime.agent.chat.write seam; it falls back to a generic
+		// cross-app capability (and therefore is not silently accepted as a
+		// primary public chat ingress carrier).
+		{
+			method: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
+			request: &runtimev1.SendAppMessageRequest{
+				FromAppId:   "nimi.desktop",
+				ToAppId:     "runtime.agent",
+				MessageType: "agent.chat.turn.request.v1",
+			},
+			capability: "runtime.app.send.cross_app",
+		},
+		{
+			method: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
+			request: &runtimev1.SendAppMessageRequest{
+				FromAppId:   "nimi.desktop",
+				ToAppId:     "runtime.agent",
+				MessageType: "agent.chat.turn.interrupt.v1",
+			},
+			capability: "runtime.app.send.cross_app",
+		},
+		{
+			method: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
+			request: &runtimev1.SendAppMessageRequest{
+				FromAppId:   "nimi.desktop",
+				ToAppId:     "runtime.agent",
+				MessageType: "agent.chat.session.snapshot.request.v1",
+			},
+			capability: "runtime.app.send.cross_app",
+		},
+		// Affirmative: OpenConversationAnchor is guarded by the admitted
+		// runtime.agent.chat.write capability.
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
+			request:    &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.chat.write",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
+			request:    &runtimev1.GetConversationAnchorSnapshotRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.chat.read",
 		},
 		{
 			method: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",

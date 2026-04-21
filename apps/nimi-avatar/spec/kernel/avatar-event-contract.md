@@ -185,8 +185,8 @@ before_cancel_policy:
 subscriptions:
   - "runtime.agent.turn.*"                   # text / commit / interrupt continuity
   - "runtime.agent.presentation.*"           # activity / motion / expression / pose / lookat
-  - "runtime.agent.state.*"                  # posture / status_text / emotion 同步
-  - "desktop.chat.message.send"              # 根据 chat 内容触发 activity
+  - "runtime.agent.state.*"                  # posture_projection / status_text / execution_state / emotion 同步
+  - "desktop.chat.message.send"              # 可选 first-party UI cue；不是 runtime chat ingress
   - "desktop.chat.message.receive"
   - "system.focus.*"                         # 系统焦点变化
   # Layer B (apml.*) 订阅请求会被 runtime 拒绝 (internal-only)
@@ -200,11 +200,11 @@ Avatar app 订阅对方 app 的 events（通过 runtime 中转）：
 
 | Subscription | 用途 |
 |---|---|
-| `desktop.chat.message.send` | 用户发送消息时，avatar 做"注视用户"的 activity |
+| `desktop.chat.message.send` | 可选 first-party UI cue：用户发送消息时，avatar 做"注视用户"的 activity |
 | `desktop.chat.message.receive` | Agent 回复完成时，avatar 做对应情绪 activity |
 | `runtime.agent.turn.message_committed` | 同 anchor 内 chat turn commit → avatar 可做响应收尾 |
 | `runtime.agent.presentation.activity_requested` | runtime 请求 avatar 做某个 activity |
-| `runtime.agent.state.posture_changed` | Posture 变化 → avatar 调整姿态 |
+| `runtime.agent.state.posture_changed` | `PostureProjection` 变化 → avatar 调整姿态 |
 | `runtime.agent.state.emotion_changed` | emotion 变化 → avatar 调整 affect baseline |
 | `runtime.agent.state.status_text_changed` | Status 变化 → avatar 显示 status bubble |
 | `runtime.agent.hook.running` | Life-track hook 运行中 → avatar 做对应的 state activity（如 sleeping / focused） |

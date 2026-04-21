@@ -292,6 +292,10 @@ services:
         type: unary
       - name: ListAgents
         type: unary
+      - name: OpenConversationAnchor
+        type: unary
+      - name: GetConversationAnchorSnapshot
+        type: unary
       - name: GetAgentState
         type: unary
       - name: UpdateAgentState

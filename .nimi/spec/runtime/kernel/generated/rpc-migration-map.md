@@ -151,6 +151,8 @@
 | `RuntimeAgentService` | `TerminateAgent` | `RuntimeAgentService` | `TerminateAgent` | `aligned` |
 | `RuntimeAgentService` | `GetAgent` | `RuntimeAgentService` | `GetAgent` | `aligned` |
 | `RuntimeAgentService` | `ListAgents` | `RuntimeAgentService` | `ListAgents` | `aligned` |
+| `RuntimeAgentService` | `OpenConversationAnchor` | `RuntimeAgentService` | `OpenConversationAnchor` | `aligned` |
+| `RuntimeAgentService` | `GetConversationAnchorSnapshot` | `RuntimeAgentService` | `GetConversationAnchorSnapshot` | `aligned` |
 | `RuntimeAgentService` | `GetAgentState` | `RuntimeAgentService` | `GetAgentState` | `aligned` |
 | `RuntimeAgentService` | `UpdateAgentState` | `RuntimeAgentService` | `UpdateAgentState` | `aligned` |
 | `RuntimeAgentService` | `EnableAutonomy` | `RuntimeAgentService` | `EnableAutonomy` | `aligned` |

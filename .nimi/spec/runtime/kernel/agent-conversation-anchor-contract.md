@@ -7,6 +7,9 @@
 `RuntimeAgentService` owns conversation continuity for live agent surfaces
 through runtime-owned `ConversationAnchor` truth.
 
+`RuntimeAgentService` remains multi-agent by default. `ConversationAnchor`
+closes per-agent continuity only; it is not a system-wide singleton session.
+
 It owns:
 
 - cross-surface conversation continuity identity
@@ -31,12 +34,15 @@ truth and include at least:
 
 - `conversation_anchor_id`
 - `agent_id`
-- optional `subject_user_id`
+- `subject_user_id`
 - anchor status / lifecycle metadata
 - last committed turn/message identity
 
 Fixed rules:
 
+- runtime owns no platform-level default/current agent; any app-local
+  current/default/pinned agent choice must resolve to explicit `agent_id`
+  before crossing into runtime-owned truth
 - `agent_id` is agent identity scope, not conversation continuity scope
 - `conversation_anchor_id` is the only admitted cross-surface conversation
   continuity scope
@@ -46,6 +52,11 @@ Fixed rules:
   anchor-scoped
 - host surfaces may attach to an existing anchor or open a new one explicitly;
   they must not infer "same agent means same conversation" by default
+- `OpenConversationAnchor` must require explicit `agent_id` plus
+  `subject_user_id` and return a committed `ConversationAnchorSnapshot`
+- `GetConversationAnchorSnapshot` must recover committed continuity through
+  explicit `agent_id` + `conversation_anchor_id`; late-join surfaces must not
+  reconstruct canonical anchor truth from app-local history
 
 ## K-AGCORE-035 Sharing, Isolation, And Recovery Rules
 
@@ -64,6 +75,8 @@ Fixed rules:
 - late-join surfaces must recover current continuity through runtime-owned
   anchor/session snapshot truth, not by replaying parser internals or guessing
   from UI-local history
+- `runtime.agent.turn.request` may reference only an existing committed
+  `conversation_anchor_id`; client-side shadow anchor creation is not admitted
 
 ## Fact Sources
 

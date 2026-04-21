@@ -37,6 +37,10 @@ func (s *Service) newEventAt(agentID string, eventType runtimev1.AgentEventType,
 		event.Detail = typed
 	case *runtimev1.AgentEvent_Replication:
 		event.Detail = typed
+	case *runtimev1.AgentEvent_State:
+		event.Detail = typed
+	case *runtimev1.AgentEvent_Presentation:
+		event.Detail = typed
 	}
 	return event
 }
@@ -261,13 +265,6 @@ func clonePendingHook(input *runtimev1.PendingHook) *runtimev1.PendingHook {
 		return nil
 	}
 	return proto.Clone(input).(*runtimev1.PendingHook)
-}
-
-func cloneTriggerDetail(input *runtimev1.HookTriggerDetail) *runtimev1.HookTriggerDetail {
-	if input == nil {
-		return nil
-	}
-	return proto.Clone(input).(*runtimev1.HookTriggerDetail)
 }
 
 func cloneHookOutcome(input *runtimev1.HookExecutionOutcome) *runtimev1.HookExecutionOutcome {

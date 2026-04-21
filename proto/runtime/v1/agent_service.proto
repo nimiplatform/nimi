@@ -34,32 +34,35 @@ enum AgentTrackType {
   AGENT_TRACK_TYPE_LIFE = 2;
 }
 
-enum HookTriggerKind {
-  HOOK_TRIGGER_KIND_UNSPECIFIED = 0;
-  HOOK_TRIGGER_KIND_TURN_COMPLETED = 1;
-  HOOK_TRIGGER_KIND_SCHEDULED_TIME = 2;
-  HOOK_TRIGGER_KIND_USER_IDLE = 3;
-  HOOK_TRIGGER_KIND_CHAT_ENDED = 4;
-  HOOK_TRIGGER_KIND_STATE_CONDITION = 5;
-  HOOK_TRIGGER_KIND_WORLD_EVENT = 6;
-  HOOK_TRIGGER_KIND_COMPOUND = 7;
+// K-AGCORE-041 HookIntent trigger family is limited to `time` and `event`.
+// Non-admitted trigger families (turn_completed, scheduled_time absolute,
+// state_condition, world_event, compound) are not part of the mounted
+// vocabulary and must not be reintroduced by implementation rename.
+enum HookTriggerFamily {
+  HOOK_TRIGGER_FAMILY_UNSPECIFIED = 0;
+  HOOK_TRIGGER_FAMILY_TIME = 1;
+  HOOK_TRIGGER_FAMILY_EVENT = 2;
 }
 
-enum CompoundTriggerOperator {
-  COMPOUND_TRIGGER_OPERATOR_UNSPECIFIED = 0;
-  COMPOUND_TRIGGER_OPERATOR_ALL_OF = 1;
-  COMPOUND_TRIGGER_OPERATOR_ANY_OF = 2;
+// K-AGCORE-041 admitted effect is limited to `follow-up-turn`. Widening
+// beyond this matrix requires a later dedicated runtime rule.
+enum HookEffect {
+  HOOK_EFFECT_UNSPECIFIED = 0;
+  HOOK_EFFECT_FOLLOW_UP_TURN = 1;
 }
 
-enum AgentHookStatus {
-  AGENT_HOOK_STATUS_UNSPECIFIED = 0;
-  AGENT_HOOK_STATUS_PENDING = 1;
-  AGENT_HOOK_STATUS_RUNNING = 2;
-  AGENT_HOOK_STATUS_COMPLETED = 3;
-  AGENT_HOOK_STATUS_FAILED = 4;
-  AGENT_HOOK_STATUS_CANCELED = 5;
-  AGENT_HOOK_STATUS_RESCHEDULED = 6;
-  AGENT_HOOK_STATUS_REJECTED = 7;
+// K-AGCORE-041 admission states that must remain reconstructable through
+// committed runtime truth.
+enum HookAdmissionState {
+  HOOK_ADMISSION_STATE_UNSPECIFIED = 0;
+  HOOK_ADMISSION_STATE_PROPOSED = 1;
+  HOOK_ADMISSION_STATE_PENDING = 2;
+  HOOK_ADMISSION_STATE_REJECTED = 3;
+  HOOK_ADMISSION_STATE_RUNNING = 4;
+  HOOK_ADMISSION_STATE_COMPLETED = 5;
+  HOOK_ADMISSION_STATE_FAILED = 6;
+  HOOK_ADMISSION_STATE_CANCELED = 7;
+  HOOK_ADMISSION_STATE_RESCHEDULED = 8;
 }
 
 enum AgentEventType {
@@ -69,6 +72,35 @@ enum AgentEventType {
   AGENT_EVENT_TYPE_MEMORY = 3;
   AGENT_EVENT_TYPE_BUDGET = 4;
   AGENT_EVENT_TYPE_REPLICATION = 5;
+  AGENT_EVENT_TYPE_STATE = 6;
+  AGENT_EVENT_TYPE_PRESENTATION = 7;
+}
+
+// K-AGCORE-037 AgentStateEventFamily discriminates runtime.agent.state.* event
+// families. Mapping is 1:1 to the mounted public family names
+// (runtime.agent.state.{status_text_changed|execution_state_changed|
+// emotion_changed|posture_changed}). Consumers MUST dispatch on `family`;
+// reading payload fields alone is not a substitute for the discriminator.
+enum AgentStateEventFamily {
+  AGENT_STATE_EVENT_FAMILY_UNSPECIFIED = 0;
+  AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED = 1;
+  AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED = 2;
+  AGENT_STATE_EVENT_FAMILY_EMOTION_CHANGED = 3;
+  AGENT_STATE_EVENT_FAMILY_POSTURE_CHANGED = 4;
+}
+
+// K-AGCORE-037 AgentPresentationEventFamily discriminates
+// runtime.agent.presentation.* families. Mapping is 1:1 to
+// runtime.agent.presentation.{activity_requested|motion_requested|
+// expression_requested|pose_requested|pose_cleared|lookat_requested}.
+enum AgentPresentationEventFamily {
+  AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED = 0;
+  AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1;
+  AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED = 2;
+  AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED = 3;
+  AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED = 4;
+  AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5;
+  AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6;
 }
 
 enum AgentAutonomyMode {
@@ -79,12 +111,12 @@ enum AgentAutonomyMode {
   AGENT_AUTONOMY_MODE_HIGH = 4;
 }
 
-enum HookCadenceInteraction {
-  HOOK_CADENCE_INTERACTION_UNSPECIFIED = 0;
-  HOOK_CADENCE_INTERACTION_NORMAL = 1;
-  HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED = 2;
-  HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED = 3;
+enum ConversationAnchorStatus {
+  CONVERSATION_ANCHOR_STATUS_UNSPECIFIED = 0;
+  CONVERSATION_ANCHOR_STATUS_ACTIVE = 1;
+  CONVERSATION_ANCHOR_STATUS_CLOSED = 2;
 }
+
 
 message AgentRequestContext {
   string app_id = 1;
@@ -126,6 +158,12 @@ message AgentStateProjection {
   string active_user_id = 4;
   map<string, string> attributes = 5;
   google.protobuf.Timestamp updated_at = 6;
+  // K-AGCORE-038: current_emotion is durable-until-replace runtime state and
+  // must project through AgentStateProjection.current_emotion. Emitting only
+  // runtime.agent.state.emotion_changed without writing here is authority
+  // drift: GetAgentState / snapshot / recovery would not observe committed
+  // emotion truth.
+  string current_emotion = 7;
 }
 
 message AgentStateSetStatusText {
@@ -165,148 +203,69 @@ message AgentStateMutation {
   }
 }
 
-message TurnCompletedTriggerDetail {
-  string turn_id = 1;
-  AgentTrackType track = 2;
+// K-AGCORE-041 HookIntent admitted trigger detail shapes.
+// `time(delay)` uses a relative delay applied at admission time.
+// `event(user_idle, idle_for)` and `event(chat_ended)` are the only admitted
+// event-family details. No absolute-time, turn-completed, state-condition,
+// world-event, or compound trigger is admitted in the v1 matrix.
+message HookTriggerTimeDetail {
+  google.protobuf.Duration delay = 1;
 }
 
-message ScheduledTimeTriggerDetail {
-  google.protobuf.Timestamp scheduled_for = 1;
-}
-
-message UserIdleTriggerDetail {
+message HookTriggerEventUserIdleDetail {
   google.protobuf.Duration idle_for = 1;
 }
 
-message ChatEndedTriggerDetail {
-  string conversation_id = 1;
-}
-
-message StateConditionTriggerDetail {
-  string condition_key = 1;
-  string condition_value = 2;
-}
-
-message WorldEventTriggerDetail {
-  string world_id = 1;
-  string event_type = 2;
-  string event_id = 3;
-}
+message HookTriggerEventChatEndedDetail {}
 
 message HookTriggerDetail {
-  HookTriggerKind trigger_kind = 1;
   oneof detail {
-    TurnCompletedTriggerDetail turn_completed = 10;
-    ScheduledTimeTriggerDetail scheduled_time = 11;
-    UserIdleTriggerDetail user_idle = 12;
-    ChatEndedTriggerDetail chat_ended = 13;
-    StateConditionTriggerDetail state_condition = 14;
-    WorldEventTriggerDetail world_event = 15;
-    CompoundHookTriggerDetail compound = 16;
+    HookTriggerTimeDetail time = 10;
+    HookTriggerEventUserIdleDetail event_user_idle = 11;
+    HookTriggerEventChatEndedDetail event_chat_ended = 12;
   }
 }
 
-message CompoundHookTriggerDetail {
-  CompoundTriggerOperator operator = 1;
-  repeated HookTriggerDetail triggers = 2;
+// K-AGCORE-041 HookIntent minimum typed shape.
+// `intent_id` is hook identity across the admission lifecycle.
+// `trigger_family` + `trigger_detail` + `effect` + `admission_state` together
+// form the committed runtime truth projected on `runtime.agent.hook.*`.
+// Origin linkage (`conversation_anchor_id`, `originating_turn_id`,
+// `originating_stream_id`) is preserved when present but never fabricated.
+message HookIntent {
+  string intent_id = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  string originating_turn_id = 4;
+  string originating_stream_id = 5;
+  HookTriggerFamily trigger_family = 6;
+  HookTriggerDetail trigger_detail = 7;
+  HookEffect effect = 8;
+  HookAdmissionState admission_state = 9;
+  google.protobuf.Timestamp not_before = 10;
+  google.protobuf.Timestamp expires_at = 11;
+  string reason = 12;
 }
 
-message TurnCompletedHookIntent {
-  string after_turn_id = 1;
-  AgentTrackType track = 2;
-}
-
-message ScheduledTimeHookIntent {
-  google.protobuf.Timestamp scheduled_for = 1;
-}
-
-message UserIdleHookIntent {
-  google.protobuf.Duration idle_for = 1;
-}
-
-message ChatEndedHookIntent {
-  string conversation_id = 1;
-}
-
-message StateConditionHookIntent {
-  string condition_key = 1;
-  string condition_value = 2;
-}
-
-message WorldEventHookIntent {
-  string world_id = 1;
-  string event_type = 2;
-  string event_id = 3;
-}
-
-message NextHookIntent {
-  HookTriggerKind trigger_kind = 1;
-  google.protobuf.Timestamp not_before = 2;
-  google.protobuf.Timestamp expires_at = 3;
-  string reason = 4;
-  HookCadenceInteraction cadence_interaction = 5;
-  oneof detail {
-    TurnCompletedHookIntent turn_completed = 10;
-    ScheduledTimeHookIntent scheduled_time = 11;
-    UserIdleHookIntent user_idle = 12;
-    ChatEndedHookIntent chat_ended = 13;
-    StateConditionHookIntent state_condition = 14;
-    WorldEventHookIntent world_event = 15;
-    CompoundHookIntent compound = 16;
-  }
-}
-
-message CompoundHookIntent {
-  CompoundTriggerOperator operator = 1;
-  repeated NextHookIntent intents = 2;
-}
-
-message HookCompletedDetail {
-  string summary = 1;
-  google.protobuf.Timestamp completed_at = 2;
-}
-
-message HookFailedDetail {
-  ReasonCode reason_code = 1;
-  string message = 2;
-  bool retryable = 3;
-}
-
-message HookCanceledDetail {
-  string canceled_by = 1;
-  string reason = 2;
-}
-
-message HookRescheduledDetail {
-  NextHookIntent next_intent = 1;
-}
-
-message HookRejectedDetail {
-  ReasonCode reason_code = 1;
-  string message = 2;
-}
-
+// HookExecutionOutcome projects a single admission-state transition of a
+// `HookIntent`. `reason_code` is populated only on rejected/failed states;
+// `reason` is populated only on canceled state. `observed_at` is the
+// committed transition time.
 message HookExecutionOutcome {
-  string hook_id = 1;
-  AgentHookStatus status = 2;
-  HookTriggerDetail trigger = 3;
-  google.protobuf.Timestamp observed_at = 4;
-  oneof detail {
-    HookCompletedDetail completed = 10;
-    HookFailedDetail failed = 11;
-    HookCanceledDetail canceled = 12;
-    HookRescheduledDetail rescheduled = 13;
-    HookRejectedDetail rejected = 14;
-  }
+  HookIntent intent = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  ReasonCode reason_code = 3;
+  string message = 4;
+  string reason = 5;
 }
 
+// PendingHook represents admitted scheduler truth for a HookIntent that has
+// reached `pending` admission state. The embedded HookIntent carries all
+// admitted hook vocabulary; there is no parallel trigger/next-intent shape.
 message PendingHook {
-  string hook_id = 1;
-  AgentHookStatus status = 2;
-  HookTriggerDetail trigger = 3;
-  NextHookIntent next_intent = 4;
-  google.protobuf.Timestamp scheduled_for = 5;
-  google.protobuf.Timestamp admitted_at = 6;
+  HookIntent intent = 1;
+  google.protobuf.Timestamp scheduled_for = 2;
+  google.protobuf.Timestamp admitted_at = 3;
 }
 
 message CanonicalMemoryCandidate {
@@ -337,8 +296,21 @@ message AgentLifecycleEventDetail {
   AgentLifecycleStatus current_status = 2;
 }
 
+// AgentHookEventDetail projects a `runtime.agent.hook.*` event per
+// K-AGCORE-042. `family` is the first-class runtime-owned discriminator
+// (mirror of `intent.admission_state`) and maps 1:1 to the mounted public
+// seam family name (`runtime.agent.hook.intent_proposed` / `pending` /
+// `rejected` / `running` / `completed` / `failed` / `canceled` /
+// `rescheduled`). Consumers MUST read `family` to dispatch; reading
+// `intent.admission_state` alone is admitted but treated as an internal
+// consistency check, not as the discriminator.
 message AgentHookEventDetail {
-  HookExecutionOutcome outcome = 1;
+  HookAdmissionState family = 1;
+  HookIntent intent = 2;
+  google.protobuf.Timestamp observed_at = 3;
+  ReasonCode reason_code = 4;
+  string message = 5;
+  string reason = 6;
 }
 
 message AgentMemoryEventDetail {
@@ -357,6 +329,91 @@ message AgentReplicationEventDetail {
   MemoryReplicationState replication = 2;
 }
 
+// K-AGCORE-037 PostureProjection is the canonical schema alias for
+// runtime.agent.state.posture_changed.detail.current_posture. Only the
+// narrow read-only projection admitted through K-AGCORE-037 may cross the
+// public RuntimeAgentService surface; runtime-private posture truth (truth
+// basis ids, transition reason, posture class) is not exposed here.
+message AgentPostureProjection {
+  string action_family = 1;
+  string interrupt_mode = 2;
+}
+
+// AgentStateEventDetail projects runtime.agent.state.* events per
+// K-AGCORE-037 / state_envelope. `agent_id` is REQUIRED at the AgentEvent
+// envelope level; origin linkage (`conversation_anchor_id` /
+// `originating_turn_id` / `originating_stream_id`) is OPTIONAL and is carried
+// ONLY when the state projection is traceable to a specific continuity
+// branch. Runtime MUST NOT fabricate origin linkage for no-origin state
+// transitions (admin posture change, lifecycle-driven state, etc.).
+message AgentStateEventDetail {
+  AgentStateEventFamily family = 1;
+
+  // Optional origin linkage (state_envelope.optional_origin_fields).
+  string conversation_anchor_id = 2;
+  string originating_turn_id = 3;
+  string originating_stream_id = 4;
+
+  // Family-specific payload fields. Exactly one family's block is populated
+  // per event; discriminator is `family`.
+  string current_status_text = 10;
+  string previous_status_text = 11;
+  bool has_previous_status_text = 12;
+
+  AgentExecutionState current_execution_state = 20;
+  AgentExecutionState previous_execution_state = 21;
+
+  string current_emotion = 30;
+  string previous_emotion = 31;
+  string emotion_source = 32;
+
+  AgentPostureProjection current_posture = 40;
+  AgentPostureProjection previous_posture = 41;
+}
+
+// AgentPresentationEventDetail projects runtime.agent.presentation.* events
+// per K-AGCORE-037 / presentation_envelope. `agent_id` is REQUIRED at the
+// AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
+// `stream_id` are ALSO REQUIRED on every presentation event because
+// presentation is stream-scoped transient projection derived from committed
+// runtime interpretation. Runtime MUST NOT emit presentation events without
+// real stream-identity linkage.
+message AgentPresentationEventDetail {
+  AgentPresentationEventFamily family = 1;
+  string conversation_anchor_id = 2;
+  string turn_id = 3;
+  string stream_id = 4;
+
+  // activity_requested
+  string activity_name = 10;
+  string activity_category = 11;
+  string activity_intensity = 12;
+  string activity_source = 13;
+
+  // motion_requested
+  string motion_id = 20;
+  string motion_priority = 21;
+  int64 motion_expected_duration_ms = 22;
+
+  // expression_requested
+  string expression_id = 30;
+  int64 expression_expected_duration_ms = 31;
+
+  // pose_requested / pose_cleared
+  string pose_id = 40;
+  int64 pose_expected_duration_ms = 41;
+  string previous_pose_id = 42;
+
+  // lookat_requested
+  string lookat_target_kind = 50;
+  double lookat_x = 51;
+  double lookat_y = 52;
+  double lookat_z = 53;
+  bool lookat_has_x = 54;
+  bool lookat_has_y = 55;
+  bool lookat_has_z = 56;
+}
+
 message AgentEvent {
   AgentEventType event_type = 1;
   uint64 sequence = 2;
@@ -368,6 +425,8 @@ message AgentEvent {
     AgentMemoryEventDetail memory = 12;
     AgentBudgetEventDetail budget = 13;
     AgentReplicationEventDetail replication = 14;
+    AgentStateEventDetail state = 15;
+    AgentPresentationEventDetail presentation = 16;
   }
 }
 
@@ -468,8 +527,8 @@ message SetAutonomyConfigResponse {
 message ListPendingHooksRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
-  HookTriggerKind trigger_filter = 3;
-  AgentHookStatus status_filter = 4;
+  HookTriggerFamily trigger_family_filter = 3;
+  HookAdmissionState admission_state_filter = 4;
   int32 page_size = 5;
   string page_token = 6;
 }
@@ -482,7 +541,7 @@ message ListPendingHooksResponse {
 message CancelHookRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
-  string hook_id = 3;
+  string intent_id = 3;
   string reason = 4;
 }
 
@@ -523,11 +582,57 @@ message SubscribeAgentEventsRequest {
   repeated AgentEventType event_filters = 4;
 }
 
+// K-AGCORE-034 ConversationAnchor boundary: runtime-owned continuity anchor.
+// `conversation_anchor_id` is the only admitted cross-surface continuity
+// scope; `agent_id` is agent identity only. `turn_id` and `message_id` are
+// anchor-scoped. `subject_user_id` is explicit runtime truth at anchor-open
+// time; hosts must not infer anchor continuity from agent identity.
+message ConversationAnchor {
+  string conversation_anchor_id = 1;
+  string agent_id = 2;
+  string subject_user_id = 3;
+  ConversationAnchorStatus status = 4;
+  string last_turn_id = 5;
+  string last_message_id = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  google.protobuf.Struct metadata = 9;
+}
+
+message ConversationAnchorSnapshot {
+  ConversationAnchor anchor = 1;
+  string active_turn_id = 2;
+  string active_stream_id = 3;
+}
+
+message OpenConversationAnchorRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string subject_user_id = 3;
+  google.protobuf.Struct metadata = 4;
+}
+
+message OpenConversationAnchorResponse {
+  ConversationAnchorSnapshot snapshot = 1;
+}
+
+message GetConversationAnchorSnapshotRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+}
+
+message GetConversationAnchorSnapshotResponse {
+  ConversationAnchorSnapshot snapshot = 1;
+}
+
 service RuntimeAgentService {
   rpc InitializeAgent(InitializeAgentRequest) returns (InitializeAgentResponse);
   rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
   rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+  rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
+  rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
   rpc GetAgentState(GetAgentStateRequest) returns (GetAgentStateResponse);
   rpc UpdateAgentState(UpdateAgentStateRequest) returns (UpdateAgentStateResponse);
   rpc EnableAutonomy(EnableAutonomyRequest) returns (EnableAutonomyResponse);

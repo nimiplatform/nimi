@@ -1,0 +1,248 @@
+version: 1
+
+turn_envelope:
+  source_rule: K-AGCORE-037
+  required_fields:
+    - agent_id
+    - conversation_anchor_id
+    - turn_id
+    - stream_id
+  extra_fields_by_event:
+    runtime.agent.turn.message_committed:
+      - message_id
+
+presentation_envelope:
+  source_rule: K-AGCORE-037
+  required_fields:
+    - agent_id
+    - conversation_anchor_id
+    - turn_id
+    - stream_id
+
+session_envelope:
+  source_rule: K-AGCORE-037
+  required_fields:
+    - agent_id
+    - conversation_anchor_id
+
+state_envelope:
+  source_rule: K-AGCORE-037
+  required_fields:
+    - agent_id
+  optional_origin_fields:
+    - conversation_anchor_id
+    - originating_turn_id
+    - originating_stream_id
+
+hook_envelope:
+  source_rule: K-AGCORE-042
+  required_fields:
+    - agent_id
+  optional_origin_fields:
+    - conversation_anchor_id
+    - originating_turn_id
+    - originating_stream_id
+
+schema_aliases:
+  PostureProjection:
+    source_rule: K-AGCORE-037
+    equals: runtime.agent.state.posture_changed.detail.current_posture
+
+governance:
+  source_rule: K-AGCORE-037
+  stable_projection_payload_schema_truth: true
+  breaking_change_requires:
+    - pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency
+    - pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check
+
+turn_events:
+  - event: runtime.agent.turn.accepted
+    source_rule: K-AGCORE-032
+    detail:
+      request_id: string
+  - event: runtime.agent.turn.started
+    source_rule: K-AGCORE-037
+    detail:
+      track: enum(chat|life)
+  - event: runtime.agent.turn.reasoning_delta
+    source_rule: K-AGCORE-032
+    detail:
+      text: string
+  - event: runtime.agent.turn.text_delta
+    source_rule: K-AGCORE-037
+    detail:
+      text: string
+  - event: runtime.agent.turn.structured
+    source_rule: K-AGCORE-032
+    detail:
+      kind: string
+      payload: struct
+  - event: runtime.agent.turn.message_committed
+    source_rule: K-AGCORE-037
+    detail:
+      message_id: string
+      text: string
+  - event: runtime.agent.turn.post_turn
+    source_rule: K-AGCORE-032
+    detail:
+      action: struct_optional
+      hook_intent: struct_optional
+    notes:
+      - hook_intent is turn-close indication only; canonical hook lifecycle
+        truth remains on runtime.agent.hook.*
+  - event: runtime.agent.turn.completed
+    source_rule: K-AGCORE-037
+    detail:
+      terminal_reason: string_optional
+  - event: runtime.agent.turn.failed
+    source_rule: K-AGCORE-037
+    detail:
+      reason_code: string
+      message: string_optional
+  - event: runtime.agent.turn.interrupted
+    source_rule: K-AGCORE-037
+    detail:
+      reason: string
+  - event: runtime.agent.turn.interrupt_ack
+    source_rule: K-AGCORE-032
+    detail:
+      interrupted_turn_id: string
+
+session_events:
+  - event: runtime.agent.session.snapshot
+    source_rule: K-AGCORE-032
+    detail:
+      snapshot: struct
+
+presentation_events:
+  - event: runtime.agent.presentation.activity_requested
+    source_rule: K-AGCORE-037
+    detail:
+      activity_name: string
+      category: string
+      intensity: string_optional
+      source: string
+  - event: runtime.agent.presentation.motion_requested
+    source_rule: K-AGCORE-037
+    detail:
+      motion_id: string
+      priority: string_optional
+      expected_duration_ms: int_optional
+  - event: runtime.agent.presentation.expression_requested
+    source_rule: K-AGCORE-037
+    detail:
+      expression_id: string
+      expected_duration_ms: int_optional
+  - event: runtime.agent.presentation.pose_requested
+    source_rule: K-AGCORE-037
+    detail:
+      pose_id: string
+      expected_duration_ms: int_optional
+  - event: runtime.agent.presentation.pose_cleared
+    source_rule: K-AGCORE-037
+    detail:
+      previous_pose_id: string_optional
+  - event: runtime.agent.presentation.lookat_requested
+    source_rule: K-AGCORE-037
+    detail:
+      target_kind: string
+      x: number_optional
+      y: number_optional
+      z: number_optional
+
+state_events:
+  - event: runtime.agent.state.status_text_changed
+    source_rule: K-AGCORE-037
+    detail:
+      current_status_text: string
+      previous_status_text: string_optional
+  - event: runtime.agent.state.execution_state_changed
+    source_rule: K-AGCORE-037
+    detail:
+      current_execution_state: string
+      previous_execution_state: string_optional
+  - event: runtime.agent.state.emotion_changed
+    source_rule: K-AGCORE-038
+    detail:
+      current_emotion: string
+      previous_emotion: string_optional
+      source: string
+  - event: runtime.agent.state.posture_changed
+    source_rule: K-AGCORE-037
+    detail:
+      current_posture:
+        action_family: string
+        interrupt_mode: string
+      previous_posture:
+        action_family: string
+        interrupt_mode: string
+        optional: true
+
+hook_events:
+  - event: runtime.agent.hook.intent_proposed
+    source_rule: K-AGCORE-042
+    detail:
+      intent_id: string
+      trigger_family: string
+      trigger_detail: struct
+      effect: string
+      admission_state: string
+  - event: runtime.agent.hook.pending
+    source_rule: K-AGCORE-042
+    detail:
+      intent_id: string
+      trigger_family: string
+      trigger_detail: struct
+      effect: string
+      admission_state: string
+  - event: runtime.agent.hook.rejected
+    source_rule: K-AGCORE-042
+    detail:
+      intent_id: string
+      trigger_family: string
+      trigger_detail: struct
+      effect: string
+      admission_state: string
+      reason_code: string_optional
+  - event: runtime.agent.hook.running
+    source_rule: K-AGCORE-042
+    detail:
+      intent_id: string
+      trigger_family: string
+      trigger_detail: struct
+      effect: string
+      admission_state: string
+  - event: runtime.agent.hook.completed
+    source_rule: K-AGCORE-042
+    detail:
+      intent_id: string
+      trigger_family: string
+      trigger_detail: struct
+      effect: string
+      admission_state: string
+  - event: runtime.agent.hook.failed
+    source_rule: K-AGCORE-042
+    detail:
+      intent_id: string
+      trigger_family: string
+      trigger_detail: struct
+      effect: string
+      admission_state: string
+      reason_code: string_optional
+  - event: runtime.agent.hook.canceled
+    source_rule: K-AGCORE-042
+    detail:
+      intent_id: string
+      trigger_family: string
+      trigger_detail: struct
+      effect: string
+      admission_state: string
+      reason: string_optional
+  - event: runtime.agent.hook.rescheduled
+    source_rule: K-AGCORE-042
+    detail:
+      intent_id: string
+      trigger_family: string
+      trigger_detail: struct
+      effect: string
+      admission_state: string

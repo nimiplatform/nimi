@@ -11,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -183,17 +184,19 @@ Rules:
   - transition_reason: string
   - truth_basis_ids: array of truth ids
   - status_text: string
-- cancel_pending_hook_ids may only reference hook ids present in pending_hooks.
-- next_hook_intent must be valid NextHookIntent proto-json if present.
-- next_hook_intent remains callback intent only; runtime host still owns cadence truth.
-- next_hook_intent may set cadence_interaction only as:
-  - NORMAL
-  - SUPPRESS_BASE_TICK_UNTIL_FIRED
-  - SUPPRESS_BASE_TICK_UNTIL_EXPIRED
-- use suppress_base_tick_until_fired only when the follow-up hook itself represents the next meaningful wake-up for a sustained state.
-- use suppress_base_tick_until_expired only for a sustained state with a clear suppression boundary, and always include expires_at when using it.
-- do not invent cadence_interaction for ordinary short follow-ups, lightweight reminders, or generic "check back later" timing.
-- examples that may justify suppression: sleep, meditation, focused deep work, long travel, or another explicitly continuous state.
+- cancel_pending_hook_ids may only reference intent ids present in pending_hooks.
+- next_hook_intent must be valid HookIntent proto-json if present and is
+  constrained to the K-AGCORE-041 narrow-admission matrix:
+    - trigger_family: TIME or EVENT
+    - trigger_detail:
+        time { delay: google.protobuf.Duration }  (family = TIME)
+        event_user_idle { idle_for: google.protobuf.Duration }  (family = EVENT)
+        event_chat_ended {}  (family = EVENT)
+    - effect: FOLLOW_UP_TURN (only admitted effect)
+    - admission_state: leave as PROPOSED; runtime admission finalizes it
+- runtime host owns cadence truth; no cadence_interaction field is admitted.
+- no absolute scheduled time, turn_completed, state_condition, world_event,
+  or compound trigger is admitted in v1.
 - canonical_memory_candidates entries may only contain:
   - canonical_class: PUBLIC_SHARED | WORLD_SHARED | DYADIC
   - policy_reason: string
@@ -261,12 +264,15 @@ func decodeChatTrackSidecarExecutorResult(raw string, req *ChatTrackSidecarExecu
 		}
 	}
 	if len(payload.NextHookIntent) > 0 && string(payload.NextHookIntent) != "null" {
-		intent := &runtimev1.NextHookIntent{}
+		intent := &runtimev1.HookIntent{}
 		unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
 		if err := unmarshal.Unmarshal(payload.NextHookIntent, intent); err != nil {
 			return nil, fmt.Errorf("chat track sidecar executor next_hook_intent invalid: %w", err)
 		}
-		if err := validateNextHookIntent(intent); err != nil {
+		if strings.TrimSpace(intent.GetIntentId()) == "" {
+			intent.IntentId = "hook_" + ulid.Make().String()
+		}
+		if err := validateHookIntent(intent); err != nil {
 			return nil, fmt.Errorf("chat track sidecar executor next_hook_intent invalid: %w", err)
 		}
 		result.NextHookIntent = intent
@@ -346,7 +352,7 @@ func clonePendingHooksSorted(input map[string]*runtimev1.PendingHook) []*runtime
 		left := out[i].GetScheduledFor().AsTime()
 		right := out[j].GetScheduledFor().AsTime()
 		if left.Equal(right) {
-			return out[i].GetHookId() < out[j].GetHookId()
+			return hookIntentID(out[i]) < hookIntentID(out[j])
 		}
 		return left.Before(right)
 	})

@@ -158,6 +158,16 @@ export interface AgentStateProjection {
      * @generated from protobuf field: google.protobuf.Timestamp updated_at = 6
      */
     updatedAt?: Timestamp;
+    /**
+     * K-AGCORE-038: current_emotion is durable-until-replace runtime state and
+     * must project through AgentStateProjection.current_emotion. Emitting only
+     * runtime.agent.state.emotion_changed without writing here is authority
+     * drift: GetAgentState / snapshot / recovery would not observe committed
+     * emotion truth.
+     *
+     * @generated from protobuf field: string current_emotion = 7
+     */
+    currentEmotion: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentStateSetStatusText
@@ -272,449 +282,171 @@ export interface AgentStateMutation {
     };
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.TurnCompletedTriggerDetail
+ * K-AGCORE-041 HookIntent admitted trigger detail shapes.
+ * `time(delay)` uses a relative delay applied at admission time.
+ * `event(user_idle, idle_for)` and `event(chat_ended)` are the only admitted
+ * event-family details. No absolute-time, turn-completed, state-condition,
+ * world-event, or compound trigger is admitted in the v1 matrix.
+ *
+ * @generated from protobuf message nimi.runtime.v1.HookTriggerTimeDetail
  */
-export interface TurnCompletedTriggerDetail {
+export interface HookTriggerTimeDetail {
     /**
-     * @generated from protobuf field: string turn_id = 1
+     * @generated from protobuf field: google.protobuf.Duration delay = 1
      */
-    turnId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentTrackType track = 2
-     */
-    track: AgentTrackType;
+    delay?: Duration;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.ScheduledTimeTriggerDetail
+ * @generated from protobuf message nimi.runtime.v1.HookTriggerEventUserIdleDetail
  */
-export interface ScheduledTimeTriggerDetail {
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 1
-     */
-    scheduledFor?: Timestamp;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UserIdleTriggerDetail
- */
-export interface UserIdleTriggerDetail {
+export interface HookTriggerEventUserIdleDetail {
     /**
      * @generated from protobuf field: google.protobuf.Duration idle_for = 1
      */
     idleFor?: Duration;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.ChatEndedTriggerDetail
+ * @generated from protobuf message nimi.runtime.v1.HookTriggerEventChatEndedDetail
  */
-export interface ChatEndedTriggerDetail {
-    /**
-     * @generated from protobuf field: string conversation_id = 1
-     */
-    conversationId: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.StateConditionTriggerDetail
- */
-export interface StateConditionTriggerDetail {
-    /**
-     * @generated from protobuf field: string condition_key = 1
-     */
-    conditionKey: string;
-    /**
-     * @generated from protobuf field: string condition_value = 2
-     */
-    conditionValue: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.WorldEventTriggerDetail
- */
-export interface WorldEventTriggerDetail {
-    /**
-     * @generated from protobuf field: string world_id = 1
-     */
-    worldId: string;
-    /**
-     * @generated from protobuf field: string event_type = 2
-     */
-    eventType: string;
-    /**
-     * @generated from protobuf field: string event_id = 3
-     */
-    eventId: string;
+export interface HookTriggerEventChatEndedDetail {
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.HookTriggerDetail
  */
 export interface HookTriggerDetail {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.HookTriggerKind trigger_kind = 1
-     */
-    triggerKind: HookTriggerKind;
-    /**
      * @generated from protobuf oneof: detail
      */
     detail: {
-        oneofKind: "turnCompleted";
+        oneofKind: "time";
         /**
-         * @generated from protobuf field: nimi.runtime.v1.TurnCompletedTriggerDetail turn_completed = 10
+         * @generated from protobuf field: nimi.runtime.v1.HookTriggerTimeDetail time = 10
          */
-        turnCompleted: TurnCompletedTriggerDetail;
+        time: HookTriggerTimeDetail;
     } | {
-        oneofKind: "scheduledTime";
+        oneofKind: "eventUserIdle";
         /**
-         * @generated from protobuf field: nimi.runtime.v1.ScheduledTimeTriggerDetail scheduled_time = 11
+         * @generated from protobuf field: nimi.runtime.v1.HookTriggerEventUserIdleDetail event_user_idle = 11
          */
-        scheduledTime: ScheduledTimeTriggerDetail;
+        eventUserIdle: HookTriggerEventUserIdleDetail;
     } | {
-        oneofKind: "userIdle";
+        oneofKind: "eventChatEnded";
         /**
-         * @generated from protobuf field: nimi.runtime.v1.UserIdleTriggerDetail user_idle = 12
+         * @generated from protobuf field: nimi.runtime.v1.HookTriggerEventChatEndedDetail event_chat_ended = 12
          */
-        userIdle: UserIdleTriggerDetail;
-    } | {
-        oneofKind: "chatEnded";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.ChatEndedTriggerDetail chat_ended = 13
-         */
-        chatEnded: ChatEndedTriggerDetail;
-    } | {
-        oneofKind: "stateCondition";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.StateConditionTriggerDetail state_condition = 14
-         */
-        stateCondition: StateConditionTriggerDetail;
-    } | {
-        oneofKind: "worldEvent";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.WorldEventTriggerDetail world_event = 15
-         */
-        worldEvent: WorldEventTriggerDetail;
-    } | {
-        oneofKind: "compound";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.CompoundHookTriggerDetail compound = 16
-         */
-        compound: CompoundHookTriggerDetail;
+        eventChatEnded: HookTriggerEventChatEndedDetail;
     } | {
         oneofKind: undefined;
     };
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.CompoundHookTriggerDetail
+ * K-AGCORE-041 HookIntent minimum typed shape.
+ * `intent_id` is hook identity across the admission lifecycle.
+ * `trigger_family` + `trigger_detail` + `effect` + `admission_state` together
+ * form the committed runtime truth projected on `runtime.agent.hook.*`.
+ * Origin linkage (`conversation_anchor_id`, `originating_turn_id`,
+ * `originating_stream_id`) is preserved when present but never fabricated.
+ *
+ * @generated from protobuf message nimi.runtime.v1.HookIntent
  */
-export interface CompoundHookTriggerDetail {
+export interface HookIntent {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.CompoundTriggerOperator operator = 1
+     * @generated from protobuf field: string intent_id = 1
      */
-    operator: CompoundTriggerOperator;
+    intentId: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.HookTriggerDetail triggers = 2
+     * @generated from protobuf field: string agent_id = 2
      */
-    triggers: HookTriggerDetail[];
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.TurnCompletedHookIntent
- */
-export interface TurnCompletedHookIntent {
+    agentId: string;
     /**
-     * @generated from protobuf field: string after_turn_id = 1
+     * @generated from protobuf field: string conversation_anchor_id = 3
      */
-    afterTurnId: string;
+    conversationAnchorId: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentTrackType track = 2
+     * @generated from protobuf field: string originating_turn_id = 4
      */
-    track: AgentTrackType;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ScheduledTimeHookIntent
- */
-export interface ScheduledTimeHookIntent {
+    originatingTurnId: string;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 1
+     * @generated from protobuf field: string originating_stream_id = 5
      */
-    scheduledFor?: Timestamp;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.UserIdleHookIntent
- */
-export interface UserIdleHookIntent {
+    originatingStreamId: string;
     /**
-     * @generated from protobuf field: google.protobuf.Duration idle_for = 1
+     * @generated from protobuf field: nimi.runtime.v1.HookTriggerFamily trigger_family = 6
      */
-    idleFor?: Duration;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ChatEndedHookIntent
- */
-export interface ChatEndedHookIntent {
+    triggerFamily: HookTriggerFamily;
     /**
-     * @generated from protobuf field: string conversation_id = 1
+     * @generated from protobuf field: nimi.runtime.v1.HookTriggerDetail trigger_detail = 7
      */
-    conversationId: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.StateConditionHookIntent
- */
-export interface StateConditionHookIntent {
+    triggerDetail?: HookTriggerDetail;
     /**
-     * @generated from protobuf field: string condition_key = 1
+     * @generated from protobuf field: nimi.runtime.v1.HookEffect effect = 8
      */
-    conditionKey: string;
+    effect: HookEffect;
     /**
-     * @generated from protobuf field: string condition_value = 2
+     * @generated from protobuf field: nimi.runtime.v1.HookAdmissionState admission_state = 9
      */
-    conditionValue: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.WorldEventHookIntent
- */
-export interface WorldEventHookIntent {
+    admissionState: HookAdmissionState;
     /**
-     * @generated from protobuf field: string world_id = 1
-     */
-    worldId: string;
-    /**
-     * @generated from protobuf field: string event_type = 2
-     */
-    eventType: string;
-    /**
-     * @generated from protobuf field: string event_id = 3
-     */
-    eventId: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.NextHookIntent
- */
-export interface NextHookIntent {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.HookTriggerKind trigger_kind = 1
-     */
-    triggerKind: HookTriggerKind;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp not_before = 2
+     * @generated from protobuf field: google.protobuf.Timestamp not_before = 10
      */
     notBefore?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 3
+     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 11
      */
     expiresAt?: Timestamp;
     /**
-     * @generated from protobuf field: string reason = 4
-     */
-    reason: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.HookCadenceInteraction cadence_interaction = 5
-     */
-    cadenceInteraction: HookCadenceInteraction;
-    /**
-     * @generated from protobuf oneof: detail
-     */
-    detail: {
-        oneofKind: "turnCompleted";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.TurnCompletedHookIntent turn_completed = 10
-         */
-        turnCompleted: TurnCompletedHookIntent;
-    } | {
-        oneofKind: "scheduledTime";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.ScheduledTimeHookIntent scheduled_time = 11
-         */
-        scheduledTime: ScheduledTimeHookIntent;
-    } | {
-        oneofKind: "userIdle";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.UserIdleHookIntent user_idle = 12
-         */
-        userIdle: UserIdleHookIntent;
-    } | {
-        oneofKind: "chatEnded";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.ChatEndedHookIntent chat_ended = 13
-         */
-        chatEnded: ChatEndedHookIntent;
-    } | {
-        oneofKind: "stateCondition";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.StateConditionHookIntent state_condition = 14
-         */
-        stateCondition: StateConditionHookIntent;
-    } | {
-        oneofKind: "worldEvent";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.WorldEventHookIntent world_event = 15
-         */
-        worldEvent: WorldEventHookIntent;
-    } | {
-        oneofKind: "compound";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.CompoundHookIntent compound = 16
-         */
-        compound: CompoundHookIntent;
-    } | {
-        oneofKind: undefined;
-    };
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.CompoundHookIntent
- */
-export interface CompoundHookIntent {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.CompoundTriggerOperator operator = 1
-     */
-    operator: CompoundTriggerOperator;
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.NextHookIntent intents = 2
-     */
-    intents: NextHookIntent[];
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.HookCompletedDetail
- */
-export interface HookCompletedDetail {
-    /**
-     * @generated from protobuf field: string summary = 1
-     */
-    summary: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp completed_at = 2
-     */
-    completedAt?: Timestamp;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.HookFailedDetail
- */
-export interface HookFailedDetail {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 1
-     */
-    reasonCode: ReasonCode;
-    /**
-     * @generated from protobuf field: string message = 2
-     */
-    message: string;
-    /**
-     * @generated from protobuf field: bool retryable = 3
-     */
-    retryable: boolean;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.HookCanceledDetail
- */
-export interface HookCanceledDetail {
-    /**
-     * @generated from protobuf field: string canceled_by = 1
-     */
-    canceledBy: string;
-    /**
-     * @generated from protobuf field: string reason = 2
+     * @generated from protobuf field: string reason = 12
      */
     reason: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.HookRescheduledDetail
- */
-export interface HookRescheduledDetail {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.NextHookIntent next_intent = 1
-     */
-    nextIntent?: NextHookIntent;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.HookRejectedDetail
- */
-export interface HookRejectedDetail {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 1
-     */
-    reasonCode: ReasonCode;
-    /**
-     * @generated from protobuf field: string message = 2
-     */
-    message: string;
-}
-/**
+ * HookExecutionOutcome projects a single admission-state transition of a
+ * `HookIntent`. `reason_code` is populated only on rejected/failed states;
+ * `reason` is populated only on canceled state. `observed_at` is the
+ * committed transition time.
+ *
  * @generated from protobuf message nimi.runtime.v1.HookExecutionOutcome
  */
 export interface HookExecutionOutcome {
     /**
-     * @generated from protobuf field: string hook_id = 1
+     * @generated from protobuf field: nimi.runtime.v1.HookIntent intent = 1
      */
-    hookId: string;
+    intent?: HookIntent;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentHookStatus status = 2
-     */
-    status: AgentHookStatus;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.HookTriggerDetail trigger = 3
-     */
-    trigger?: HookTriggerDetail;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp observed_at = 4
+     * @generated from protobuf field: google.protobuf.Timestamp observed_at = 2
      */
     observedAt?: Timestamp;
     /**
-     * @generated from protobuf oneof: detail
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
      */
-    detail: {
-        oneofKind: "completed";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.HookCompletedDetail completed = 10
-         */
-        completed: HookCompletedDetail;
-    } | {
-        oneofKind: "failed";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.HookFailedDetail failed = 11
-         */
-        failed: HookFailedDetail;
-    } | {
-        oneofKind: "canceled";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.HookCanceledDetail canceled = 12
-         */
-        canceled: HookCanceledDetail;
-    } | {
-        oneofKind: "rescheduled";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.HookRescheduledDetail rescheduled = 13
-         */
-        rescheduled: HookRescheduledDetail;
-    } | {
-        oneofKind: "rejected";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.HookRejectedDetail rejected = 14
-         */
-        rejected: HookRejectedDetail;
-    } | {
-        oneofKind: undefined;
-    };
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string message = 4
+     */
+    message: string;
+    /**
+     * @generated from protobuf field: string reason = 5
+     */
+    reason: string;
 }
 /**
+ * PendingHook represents admitted scheduler truth for a HookIntent that has
+ * reached `pending` admission state. The embedded HookIntent carries all
+ * admitted hook vocabulary; there is no parallel trigger/next-intent shape.
+ *
  * @generated from protobuf message nimi.runtime.v1.PendingHook
  */
 export interface PendingHook {
     /**
-     * @generated from protobuf field: string hook_id = 1
+     * @generated from protobuf field: nimi.runtime.v1.HookIntent intent = 1
      */
-    hookId: string;
+    intent?: HookIntent;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentHookStatus status = 2
-     */
-    status: AgentHookStatus;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.HookTriggerDetail trigger = 3
-     */
-    trigger?: HookTriggerDetail;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.NextHookIntent next_intent = 4
-     */
-    nextIntent?: NextHookIntent;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 5
+     * @generated from protobuf field: google.protobuf.Timestamp scheduled_for = 2
      */
     scheduledFor?: Timestamp;
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp admitted_at = 6
+     * @generated from protobuf field: google.protobuf.Timestamp admitted_at = 3
      */
     admittedAt?: Timestamp;
 }
@@ -803,13 +535,42 @@ export interface AgentLifecycleEventDetail {
     currentStatus: AgentLifecycleStatus;
 }
 /**
+ * AgentHookEventDetail projects a `runtime.agent.hook.*` event per
+ * K-AGCORE-042. `family` is the first-class runtime-owned discriminator
+ * (mirror of `intent.admission_state`) and maps 1:1 to the mounted public
+ * seam family name (`runtime.agent.hook.intent_proposed` / `pending` /
+ * `rejected` / `running` / `completed` / `failed` / `canceled` /
+ * `rescheduled`). Consumers MUST read `family` to dispatch; reading
+ * `intent.admission_state` alone is admitted but treated as an internal
+ * consistency check, not as the discriminator.
+ *
  * @generated from protobuf message nimi.runtime.v1.AgentHookEventDetail
  */
 export interface AgentHookEventDetail {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.HookExecutionOutcome outcome = 1
+     * @generated from protobuf field: nimi.runtime.v1.HookAdmissionState family = 1
      */
-    outcome?: HookExecutionOutcome;
+    family: HookAdmissionState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.HookIntent intent = 2
+     */
+    intent?: HookIntent;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp observed_at = 3
+     */
+    observedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 4
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string message = 5
+     */
+    message: string;
+    /**
+     * @generated from protobuf field: string reason = 6
+     */
+    reason: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentMemoryEventDetail
@@ -853,6 +614,214 @@ export interface AgentReplicationEventDetail {
      * @generated from protobuf field: nimi.runtime.v1.MemoryReplicationState replication = 2
      */
     replication?: MemoryReplicationState;
+}
+/**
+ * K-AGCORE-037 PostureProjection is the canonical schema alias for
+ * runtime.agent.state.posture_changed.detail.current_posture. Only the
+ * narrow read-only projection admitted through K-AGCORE-037 may cross the
+ * public RuntimeAgentService surface; runtime-private posture truth (truth
+ * basis ids, transition reason, posture class) is not exposed here.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AgentPostureProjection
+ */
+export interface AgentPostureProjection {
+    /**
+     * @generated from protobuf field: string action_family = 1
+     */
+    actionFamily: string;
+    /**
+     * @generated from protobuf field: string interrupt_mode = 2
+     */
+    interruptMode: string;
+}
+/**
+ * AgentStateEventDetail projects runtime.agent.state.* events per
+ * K-AGCORE-037 / state_envelope. `agent_id` is REQUIRED at the AgentEvent
+ * envelope level; origin linkage (`conversation_anchor_id` /
+ * `originating_turn_id` / `originating_stream_id`) is OPTIONAL and is carried
+ * ONLY when the state projection is traceable to a specific continuity
+ * branch. Runtime MUST NOT fabricate origin linkage for no-origin state
+ * transitions (admin posture change, lifecycle-driven state, etc.).
+ *
+ * @generated from protobuf message nimi.runtime.v1.AgentStateEventDetail
+ */
+export interface AgentStateEventDetail {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentStateEventFamily family = 1
+     */
+    family: AgentStateEventFamily;
+    /**
+     * Optional origin linkage (state_envelope.optional_origin_fields).
+     *
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string originating_turn_id = 3
+     */
+    originatingTurnId: string;
+    /**
+     * @generated from protobuf field: string originating_stream_id = 4
+     */
+    originatingStreamId: string;
+    /**
+     * Family-specific payload fields. Exactly one family's block is populated
+     * per event; discriminator is `family`.
+     *
+     * @generated from protobuf field: string current_status_text = 10
+     */
+    currentStatusText: string;
+    /**
+     * @generated from protobuf field: string previous_status_text = 11
+     */
+    previousStatusText: string;
+    /**
+     * @generated from protobuf field: bool has_previous_status_text = 12
+     */
+    hasPreviousStatusText: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentExecutionState current_execution_state = 20
+     */
+    currentExecutionState: AgentExecutionState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentExecutionState previous_execution_state = 21
+     */
+    previousExecutionState: AgentExecutionState;
+    /**
+     * @generated from protobuf field: string current_emotion = 30
+     */
+    currentEmotion: string;
+    /**
+     * @generated from protobuf field: string previous_emotion = 31
+     */
+    previousEmotion: string;
+    /**
+     * @generated from protobuf field: string emotion_source = 32
+     */
+    emotionSource: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentPostureProjection current_posture = 40
+     */
+    currentPosture?: AgentPostureProjection;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentPostureProjection previous_posture = 41
+     */
+    previousPosture?: AgentPostureProjection;
+}
+/**
+ * AgentPresentationEventDetail projects runtime.agent.presentation.* events
+ * per K-AGCORE-037 / presentation_envelope. `agent_id` is REQUIRED at the
+ * AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
+ * `stream_id` are ALSO REQUIRED on every presentation event because
+ * presentation is stream-scoped transient projection derived from committed
+ * runtime interpretation. Runtime MUST NOT emit presentation events without
+ * real stream-identity linkage.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AgentPresentationEventDetail
+ */
+export interface AgentPresentationEventDetail {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentPresentationEventFamily family = 1
+     */
+    family: AgentPresentationEventFamily;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string turn_id = 3
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string stream_id = 4
+     */
+    streamId: string;
+    /**
+     * activity_requested
+     *
+     * @generated from protobuf field: string activity_name = 10
+     */
+    activityName: string;
+    /**
+     * @generated from protobuf field: string activity_category = 11
+     */
+    activityCategory: string;
+    /**
+     * @generated from protobuf field: string activity_intensity = 12
+     */
+    activityIntensity: string;
+    /**
+     * @generated from protobuf field: string activity_source = 13
+     */
+    activitySource: string;
+    /**
+     * motion_requested
+     *
+     * @generated from protobuf field: string motion_id = 20
+     */
+    motionId: string;
+    /**
+     * @generated from protobuf field: string motion_priority = 21
+     */
+    motionPriority: string;
+    /**
+     * @generated from protobuf field: int64 motion_expected_duration_ms = 22
+     */
+    motionExpectedDurationMs: string;
+    /**
+     * expression_requested
+     *
+     * @generated from protobuf field: string expression_id = 30
+     */
+    expressionId: string;
+    /**
+     * @generated from protobuf field: int64 expression_expected_duration_ms = 31
+     */
+    expressionExpectedDurationMs: string;
+    /**
+     * pose_requested / pose_cleared
+     *
+     * @generated from protobuf field: string pose_id = 40
+     */
+    poseId: string;
+    /**
+     * @generated from protobuf field: int64 pose_expected_duration_ms = 41
+     */
+    poseExpectedDurationMs: string;
+    /**
+     * @generated from protobuf field: string previous_pose_id = 42
+     */
+    previousPoseId: string;
+    /**
+     * lookat_requested
+     *
+     * @generated from protobuf field: string lookat_target_kind = 50
+     */
+    lookatTargetKind: string;
+    /**
+     * @generated from protobuf field: double lookat_x = 51
+     */
+    lookatX: number;
+    /**
+     * @generated from protobuf field: double lookat_y = 52
+     */
+    lookatY: number;
+    /**
+     * @generated from protobuf field: double lookat_z = 53
+     */
+    lookatZ: number;
+    /**
+     * @generated from protobuf field: bool lookat_has_x = 54
+     */
+    lookatHasX: boolean;
+    /**
+     * @generated from protobuf field: bool lookat_has_y = 55
+     */
+    lookatHasY: boolean;
+    /**
+     * @generated from protobuf field: bool lookat_has_z = 56
+     */
+    lookatHasZ: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentEvent
@@ -907,6 +876,18 @@ export interface AgentEvent {
          * @generated from protobuf field: nimi.runtime.v1.AgentReplicationEventDetail replication = 14
          */
         replication: AgentReplicationEventDetail;
+    } | {
+        oneofKind: "state";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AgentStateEventDetail state = 15
+         */
+        state: AgentStateEventDetail;
+    } | {
+        oneofKind: "presentation";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AgentPresentationEventDetail presentation = 16
+         */
+        presentation: AgentPresentationEventDetail;
     } | {
         oneofKind: undefined;
     };
@@ -1174,13 +1155,13 @@ export interface ListPendingHooksRequest {
      */
     agentId: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.HookTriggerKind trigger_filter = 3
+     * @generated from protobuf field: nimi.runtime.v1.HookTriggerFamily trigger_family_filter = 3
      */
-    triggerFilter: HookTriggerKind;
+    triggerFamilyFilter: HookTriggerFamily;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentHookStatus status_filter = 4
+     * @generated from protobuf field: nimi.runtime.v1.HookAdmissionState admission_state_filter = 4
      */
-    statusFilter: AgentHookStatus;
+    admissionStateFilter: HookAdmissionState;
     /**
      * @generated from protobuf field: int32 page_size = 5
      */
@@ -1216,9 +1197,9 @@ export interface CancelHookRequest {
      */
     agentId: string;
     /**
-     * @generated from protobuf field: string hook_id = 3
+     * @generated from protobuf field: string intent_id = 3
      */
-    hookId: string;
+    intentId: string;
     /**
      * @generated from protobuf field: string reason = 4
      */
@@ -1331,6 +1312,126 @@ export interface SubscribeAgentEventsRequest {
     eventFilters: AgentEventType[];
 }
 /**
+ * K-AGCORE-034 ConversationAnchor boundary: runtime-owned continuity anchor.
+ * `conversation_anchor_id` is the only admitted cross-surface continuity
+ * scope; `agent_id` is agent identity only. `turn_id` and `message_id` are
+ * anchor-scoped. `subject_user_id` is explicit runtime truth at anchor-open
+ * time; hosts must not infer anchor continuity from agent identity.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ConversationAnchor
+ */
+export interface ConversationAnchor {
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 1
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 3
+     */
+    subjectUserId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConversationAnchorStatus status = 4
+     */
+    status: ConversationAnchorStatus;
+    /**
+     * @generated from protobuf field: string last_turn_id = 5
+     */
+    lastTurnId: string;
+    /**
+     * @generated from protobuf field: string last_message_id = 6
+     */
+    lastMessageId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp created_at = 7
+     */
+    createdAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 8
+     */
+    updatedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 9
+     */
+    metadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ConversationAnchorSnapshot
+ */
+export interface ConversationAnchorSnapshot {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConversationAnchor anchor = 1
+     */
+    anchor?: ConversationAnchor;
+    /**
+     * @generated from protobuf field: string active_turn_id = 2
+     */
+    activeTurnId: string;
+    /**
+     * @generated from protobuf field: string active_stream_id = 3
+     */
+    activeStreamId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OpenConversationAnchorRequest
+ */
+export interface OpenConversationAnchorRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 3
+     */
+    subjectUserId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 4
+     */
+    metadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OpenConversationAnchorResponse
+ */
+export interface OpenConversationAnchorResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConversationAnchorSnapshot snapshot = 1
+     */
+    snapshot?: ConversationAnchorSnapshot;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetConversationAnchorSnapshotRequest
+ */
+export interface GetConversationAnchorSnapshotRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetConversationAnchorSnapshotResponse
+ */
+export interface GetConversationAnchorSnapshotResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConversationAnchorSnapshot snapshot = 1
+     */
+    snapshot?: ConversationAnchorSnapshot;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.AgentLifecycleStatus
  */
 export enum AgentLifecycleStatus {
@@ -1406,95 +1507,86 @@ export enum AgentTrackType {
     LIFE = 2
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.HookTriggerKind
+ * K-AGCORE-041 HookIntent trigger family is limited to `time` and `event`.
+ * Non-admitted trigger families (turn_completed, scheduled_time absolute,
+ * state_condition, world_event, compound) are not part of the mounted
+ * vocabulary and must not be reintroduced by implementation rename.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.HookTriggerFamily
  */
-export enum HookTriggerKind {
+export enum HookTriggerFamily {
     /**
-     * @generated from protobuf enum value: HOOK_TRIGGER_KIND_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: HOOK_TRIGGER_FAMILY_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: HOOK_TRIGGER_KIND_TURN_COMPLETED = 1;
+     * @generated from protobuf enum value: HOOK_TRIGGER_FAMILY_TIME = 1;
      */
-    TURN_COMPLETED = 1,
+    TIME = 1,
     /**
-     * @generated from protobuf enum value: HOOK_TRIGGER_KIND_SCHEDULED_TIME = 2;
+     * @generated from protobuf enum value: HOOK_TRIGGER_FAMILY_EVENT = 2;
      */
-    SCHEDULED_TIME = 2,
-    /**
-     * @generated from protobuf enum value: HOOK_TRIGGER_KIND_USER_IDLE = 3;
-     */
-    USER_IDLE = 3,
-    /**
-     * @generated from protobuf enum value: HOOK_TRIGGER_KIND_CHAT_ENDED = 4;
-     */
-    CHAT_ENDED = 4,
-    /**
-     * @generated from protobuf enum value: HOOK_TRIGGER_KIND_STATE_CONDITION = 5;
-     */
-    STATE_CONDITION = 5,
-    /**
-     * @generated from protobuf enum value: HOOK_TRIGGER_KIND_WORLD_EVENT = 6;
-     */
-    WORLD_EVENT = 6,
-    /**
-     * @generated from protobuf enum value: HOOK_TRIGGER_KIND_COMPOUND = 7;
-     */
-    COMPOUND = 7
+    EVENT = 2
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.CompoundTriggerOperator
+ * K-AGCORE-041 admitted effect is limited to `follow-up-turn`. Widening
+ * beyond this matrix requires a later dedicated runtime rule.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.HookEffect
  */
-export enum CompoundTriggerOperator {
+export enum HookEffect {
     /**
-     * @generated from protobuf enum value: COMPOUND_TRIGGER_OPERATOR_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: HOOK_EFFECT_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: COMPOUND_TRIGGER_OPERATOR_ALL_OF = 1;
+     * @generated from protobuf enum value: HOOK_EFFECT_FOLLOW_UP_TURN = 1;
      */
-    ALL_OF = 1,
-    /**
-     * @generated from protobuf enum value: COMPOUND_TRIGGER_OPERATOR_ANY_OF = 2;
-     */
-    ANY_OF = 2
+    FOLLOW_UP_TURN = 1
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.AgentHookStatus
+ * K-AGCORE-041 admission states that must remain reconstructable through
+ * committed runtime truth.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.HookAdmissionState
  */
-export enum AgentHookStatus {
+export enum HookAdmissionState {
     /**
-     * @generated from protobuf enum value: AGENT_HOOK_STATUS_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: HOOK_ADMISSION_STATE_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: AGENT_HOOK_STATUS_PENDING = 1;
+     * @generated from protobuf enum value: HOOK_ADMISSION_STATE_PROPOSED = 1;
      */
-    PENDING = 1,
+    PROPOSED = 1,
     /**
-     * @generated from protobuf enum value: AGENT_HOOK_STATUS_RUNNING = 2;
+     * @generated from protobuf enum value: HOOK_ADMISSION_STATE_PENDING = 2;
      */
-    RUNNING = 2,
+    PENDING = 2,
     /**
-     * @generated from protobuf enum value: AGENT_HOOK_STATUS_COMPLETED = 3;
+     * @generated from protobuf enum value: HOOK_ADMISSION_STATE_REJECTED = 3;
      */
-    COMPLETED = 3,
+    REJECTED = 3,
     /**
-     * @generated from protobuf enum value: AGENT_HOOK_STATUS_FAILED = 4;
+     * @generated from protobuf enum value: HOOK_ADMISSION_STATE_RUNNING = 4;
      */
-    FAILED = 4,
+    RUNNING = 4,
     /**
-     * @generated from protobuf enum value: AGENT_HOOK_STATUS_CANCELED = 5;
+     * @generated from protobuf enum value: HOOK_ADMISSION_STATE_COMPLETED = 5;
      */
-    CANCELED = 5,
+    COMPLETED = 5,
     /**
-     * @generated from protobuf enum value: AGENT_HOOK_STATUS_RESCHEDULED = 6;
+     * @generated from protobuf enum value: HOOK_ADMISSION_STATE_FAILED = 6;
      */
-    RESCHEDULED = 6,
+    FAILED = 6,
     /**
-     * @generated from protobuf enum value: AGENT_HOOK_STATUS_REJECTED = 7;
+     * @generated from protobuf enum value: HOOK_ADMISSION_STATE_CANCELED = 7;
      */
-    REJECTED = 7
+    CANCELED = 7,
+    /**
+     * @generated from protobuf enum value: HOOK_ADMISSION_STATE_RESCHEDULED = 8;
+     */
+    RESCHEDULED = 8
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentEventType
@@ -1523,7 +1615,84 @@ export enum AgentEventType {
     /**
      * @generated from protobuf enum value: AGENT_EVENT_TYPE_REPLICATION = 5;
      */
-    REPLICATION = 5
+    REPLICATION = 5,
+    /**
+     * @generated from protobuf enum value: AGENT_EVENT_TYPE_STATE = 6;
+     */
+    STATE = 6,
+    /**
+     * @generated from protobuf enum value: AGENT_EVENT_TYPE_PRESENTATION = 7;
+     */
+    PRESENTATION = 7
+}
+/**
+ * K-AGCORE-037 AgentStateEventFamily discriminates runtime.agent.state.* event
+ * families. Mapping is 1:1 to the mounted public family names
+ * (runtime.agent.state.{status_text_changed|execution_state_changed|
+ * emotion_changed|posture_changed}). Consumers MUST dispatch on `family`;
+ * reading payload fields alone is not a substitute for the discriminator.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AgentStateEventFamily
+ */
+export enum AgentStateEventFamily {
+    /**
+     * @generated from protobuf enum value: AGENT_STATE_EVENT_FAMILY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED = 1;
+     */
+    STATUS_TEXT_CHANGED = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED = 2;
+     */
+    EXECUTION_STATE_CHANGED = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_STATE_EVENT_FAMILY_EMOTION_CHANGED = 3;
+     */
+    EMOTION_CHANGED = 3,
+    /**
+     * @generated from protobuf enum value: AGENT_STATE_EVENT_FAMILY_POSTURE_CHANGED = 4;
+     */
+    POSTURE_CHANGED = 4
+}
+/**
+ * K-AGCORE-037 AgentPresentationEventFamily discriminates
+ * runtime.agent.presentation.* families. Mapping is 1:1 to
+ * runtime.agent.presentation.{activity_requested|motion_requested|
+ * expression_requested|pose_requested|pose_cleared|lookat_requested}.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AgentPresentationEventFamily
+ */
+export enum AgentPresentationEventFamily {
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1;
+     */
+    ACTIVITY_REQUESTED = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED = 2;
+     */
+    MOTION_REQUESTED = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED = 3;
+     */
+    EXPRESSION_REQUESTED = 3,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED = 4;
+     */
+    POSE_REQUESTED = 4,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5;
+     */
+    POSE_CLEARED = 5,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6;
+     */
+    LOOKAT_REQUESTED = 6
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentAutonomyMode
@@ -1551,25 +1720,21 @@ export enum AgentAutonomyMode {
     HIGH = 4
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.HookCadenceInteraction
+ * @generated from protobuf enum nimi.runtime.v1.ConversationAnchorStatus
  */
-export enum HookCadenceInteraction {
+export enum ConversationAnchorStatus {
     /**
-     * @generated from protobuf enum value: HOOK_CADENCE_INTERACTION_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: CONVERSATION_ANCHOR_STATUS_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: HOOK_CADENCE_INTERACTION_NORMAL = 1;
+     * @generated from protobuf enum value: CONVERSATION_ANCHOR_STATUS_ACTIVE = 1;
      */
-    NORMAL = 1,
+    ACTIVE = 1,
     /**
-     * @generated from protobuf enum value: HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED = 2;
+     * @generated from protobuf enum value: CONVERSATION_ANCHOR_STATUS_CLOSED = 2;
      */
-    SUPPRESS_BASE_TICK_UNTIL_FIRED = 2,
-    /**
-     * @generated from protobuf enum value: HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED = 3;
-     */
-    SUPPRESS_BASE_TICK_UNTIL_EXPIRED = 3
+    CLOSED = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
@@ -1894,7 +2059,8 @@ class AgentStateProjection$Type extends MessageType<AgentStateProjection> {
             { no: 3, name: "active_world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "active_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "attributes", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
-            { no: 6, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 6, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 7, name: "current_emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AgentStateProjection>): AgentStateProjection {
@@ -1904,6 +2070,7 @@ class AgentStateProjection$Type extends MessageType<AgentStateProjection> {
         message.activeWorldId = "";
         message.activeUserId = "";
         message.attributes = {};
+        message.currentEmotion = "";
         if (value !== undefined)
             reflectionMergePartial<AgentStateProjection>(this, message, value);
         return message;
@@ -1930,6 +2097,9 @@ class AgentStateProjection$Type extends MessageType<AgentStateProjection> {
                     break;
                 case /* google.protobuf.Timestamp updated_at */ 6:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* string current_emotion */ 7:
+                    message.currentEmotion = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1977,6 +2147,9 @@ class AgentStateProjection$Type extends MessageType<AgentStateProjection> {
         /* google.protobuf.Timestamp updated_at = 6; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* string current_emotion = 7; */
+        if (message.currentEmotion !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.currentEmotion);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2417,31 +2590,25 @@ class AgentStateMutation$Type extends MessageType<AgentStateMutation> {
  */
 export const AgentStateMutation = new AgentStateMutation$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class TurnCompletedTriggerDetail$Type extends MessageType<TurnCompletedTriggerDetail> {
+class HookTriggerTimeDetail$Type extends MessageType<HookTriggerTimeDetail> {
     constructor() {
-        super("nimi.runtime.v1.TurnCompletedTriggerDetail", [
-            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "track", kind: "enum", T: () => ["nimi.runtime.v1.AgentTrackType", AgentTrackType, "AGENT_TRACK_TYPE_"] }
+        super("nimi.runtime.v1.HookTriggerTimeDetail", [
+            { no: 1, name: "delay", kind: "message", T: () => Duration }
         ]);
     }
-    create(value?: PartialMessage<TurnCompletedTriggerDetail>): TurnCompletedTriggerDetail {
+    create(value?: PartialMessage<HookTriggerTimeDetail>): HookTriggerTimeDetail {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.turnId = "";
-        message.track = 0;
         if (value !== undefined)
-            reflectionMergePartial<TurnCompletedTriggerDetail>(this, message, value);
+            reflectionMergePartial<HookTriggerTimeDetail>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TurnCompletedTriggerDetail): TurnCompletedTriggerDetail {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HookTriggerTimeDetail): HookTriggerTimeDetail {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string turn_id */ 1:
-                    message.turnId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.AgentTrackType track */ 2:
-                    message.track = reader.int32();
+                case /* google.protobuf.Duration delay */ 1:
+                    message.delay = Duration.internalBinaryRead(reader, reader.uint32(), options, message.delay);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2454,13 +2621,10 @@ class TurnCompletedTriggerDetail$Type extends MessageType<TurnCompletedTriggerDe
         }
         return message;
     }
-    internalBinaryWrite(message: TurnCompletedTriggerDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string turn_id = 1; */
-        if (message.turnId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.turnId);
-        /* nimi.runtime.v1.AgentTrackType track = 2; */
-        if (message.track !== 0)
-            writer.tag(2, WireType.Varint).int32(message.track);
+    internalBinaryWrite(message: HookTriggerTimeDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* google.protobuf.Duration delay = 1; */
+        if (message.delay)
+            Duration.internalBinaryWrite(message.delay, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2468,69 +2632,23 @@ class TurnCompletedTriggerDetail$Type extends MessageType<TurnCompletedTriggerDe
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.TurnCompletedTriggerDetail
+ * @generated MessageType for protobuf message nimi.runtime.v1.HookTriggerTimeDetail
  */
-export const TurnCompletedTriggerDetail = new TurnCompletedTriggerDetail$Type();
+export const HookTriggerTimeDetail = new HookTriggerTimeDetail$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ScheduledTimeTriggerDetail$Type extends MessageType<ScheduledTimeTriggerDetail> {
+class HookTriggerEventUserIdleDetail$Type extends MessageType<HookTriggerEventUserIdleDetail> {
     constructor() {
-        super("nimi.runtime.v1.ScheduledTimeTriggerDetail", [
-            { no: 1, name: "scheduled_for", kind: "message", T: () => Timestamp }
-        ]);
-    }
-    create(value?: PartialMessage<ScheduledTimeTriggerDetail>): ScheduledTimeTriggerDetail {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<ScheduledTimeTriggerDetail>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScheduledTimeTriggerDetail): ScheduledTimeTriggerDetail {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* google.protobuf.Timestamp scheduled_for */ 1:
-                    message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ScheduledTimeTriggerDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* google.protobuf.Timestamp scheduled_for = 1; */
-        if (message.scheduledFor)
-            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ScheduledTimeTriggerDetail
- */
-export const ScheduledTimeTriggerDetail = new ScheduledTimeTriggerDetail$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UserIdleTriggerDetail$Type extends MessageType<UserIdleTriggerDetail> {
-    constructor() {
-        super("nimi.runtime.v1.UserIdleTriggerDetail", [
+        super("nimi.runtime.v1.HookTriggerEventUserIdleDetail", [
             { no: 1, name: "idle_for", kind: "message", T: () => Duration }
         ]);
     }
-    create(value?: PartialMessage<UserIdleTriggerDetail>): UserIdleTriggerDetail {
+    create(value?: PartialMessage<HookTriggerEventUserIdleDetail>): HookTriggerEventUserIdleDetail {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<UserIdleTriggerDetail>(this, message, value);
+            reflectionMergePartial<HookTriggerEventUserIdleDetail>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UserIdleTriggerDetail): UserIdleTriggerDetail {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HookTriggerEventUserIdleDetail): HookTriggerEventUserIdleDetail {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -2549,7 +2667,7 @@ class UserIdleTriggerDetail$Type extends MessageType<UserIdleTriggerDetail> {
         }
         return message;
     }
-    internalBinaryWrite(message: UserIdleTriggerDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: HookTriggerEventUserIdleDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* google.protobuf.Duration idle_for = 1; */
         if (message.idleFor)
             Duration.internalBinaryWrite(message.idleFor, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
@@ -2560,31 +2678,25 @@ class UserIdleTriggerDetail$Type extends MessageType<UserIdleTriggerDetail> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.UserIdleTriggerDetail
+ * @generated MessageType for protobuf message nimi.runtime.v1.HookTriggerEventUserIdleDetail
  */
-export const UserIdleTriggerDetail = new UserIdleTriggerDetail$Type();
+export const HookTriggerEventUserIdleDetail = new HookTriggerEventUserIdleDetail$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ChatEndedTriggerDetail$Type extends MessageType<ChatEndedTriggerDetail> {
+class HookTriggerEventChatEndedDetail$Type extends MessageType<HookTriggerEventChatEndedDetail> {
     constructor() {
-        super("nimi.runtime.v1.ChatEndedTriggerDetail", [
-            { no: 1, name: "conversation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
+        super("nimi.runtime.v1.HookTriggerEventChatEndedDetail", []);
     }
-    create(value?: PartialMessage<ChatEndedTriggerDetail>): ChatEndedTriggerDetail {
+    create(value?: PartialMessage<HookTriggerEventChatEndedDetail>): HookTriggerEventChatEndedDetail {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.conversationId = "";
         if (value !== undefined)
-            reflectionMergePartial<ChatEndedTriggerDetail>(this, message, value);
+            reflectionMergePartial<HookTriggerEventChatEndedDetail>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ChatEndedTriggerDetail): ChatEndedTriggerDetail {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HookTriggerEventChatEndedDetail): HookTriggerEventChatEndedDetail {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string conversation_id */ 1:
-                    message.conversationId = reader.string();
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2596,10 +2708,7 @@ class ChatEndedTriggerDetail$Type extends MessageType<ChatEndedTriggerDetail> {
         }
         return message;
     }
-    internalBinaryWrite(message: ChatEndedTriggerDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string conversation_id = 1; */
-        if (message.conversationId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.conversationId);
+    internalBinaryWrite(message: HookTriggerEventChatEndedDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2607,144 +2716,20 @@ class ChatEndedTriggerDetail$Type extends MessageType<ChatEndedTriggerDetail> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.ChatEndedTriggerDetail
+ * @generated MessageType for protobuf message nimi.runtime.v1.HookTriggerEventChatEndedDetail
  */
-export const ChatEndedTriggerDetail = new ChatEndedTriggerDetail$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class StateConditionTriggerDetail$Type extends MessageType<StateConditionTriggerDetail> {
-    constructor() {
-        super("nimi.runtime.v1.StateConditionTriggerDetail", [
-            { no: 1, name: "condition_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "condition_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<StateConditionTriggerDetail>): StateConditionTriggerDetail {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.conditionKey = "";
-        message.conditionValue = "";
-        if (value !== undefined)
-            reflectionMergePartial<StateConditionTriggerDetail>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StateConditionTriggerDetail): StateConditionTriggerDetail {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string condition_key */ 1:
-                    message.conditionKey = reader.string();
-                    break;
-                case /* string condition_value */ 2:
-                    message.conditionValue = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: StateConditionTriggerDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string condition_key = 1; */
-        if (message.conditionKey !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.conditionKey);
-        /* string condition_value = 2; */
-        if (message.conditionValue !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.conditionValue);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.StateConditionTriggerDetail
- */
-export const StateConditionTriggerDetail = new StateConditionTriggerDetail$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class WorldEventTriggerDetail$Type extends MessageType<WorldEventTriggerDetail> {
-    constructor() {
-        super("nimi.runtime.v1.WorldEventTriggerDetail", [
-            { no: 1, name: "world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "event_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<WorldEventTriggerDetail>): WorldEventTriggerDetail {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.worldId = "";
-        message.eventType = "";
-        message.eventId = "";
-        if (value !== undefined)
-            reflectionMergePartial<WorldEventTriggerDetail>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldEventTriggerDetail): WorldEventTriggerDetail {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string world_id */ 1:
-                    message.worldId = reader.string();
-                    break;
-                case /* string event_type */ 2:
-                    message.eventType = reader.string();
-                    break;
-                case /* string event_id */ 3:
-                    message.eventId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: WorldEventTriggerDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string world_id = 1; */
-        if (message.worldId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.worldId);
-        /* string event_type = 2; */
-        if (message.eventType !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.eventType);
-        /* string event_id = 3; */
-        if (message.eventId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.eventId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.WorldEventTriggerDetail
- */
-export const WorldEventTriggerDetail = new WorldEventTriggerDetail$Type();
+export const HookTriggerEventChatEndedDetail = new HookTriggerEventChatEndedDetail$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class HookTriggerDetail$Type extends MessageType<HookTriggerDetail> {
     constructor() {
         super("nimi.runtime.v1.HookTriggerDetail", [
-            { no: 1, name: "trigger_kind", kind: "enum", T: () => ["nimi.runtime.v1.HookTriggerKind", HookTriggerKind, "HOOK_TRIGGER_KIND_"] },
-            { no: 10, name: "turn_completed", kind: "message", oneof: "detail", T: () => TurnCompletedTriggerDetail },
-            { no: 11, name: "scheduled_time", kind: "message", oneof: "detail", T: () => ScheduledTimeTriggerDetail },
-            { no: 12, name: "user_idle", kind: "message", oneof: "detail", T: () => UserIdleTriggerDetail },
-            { no: 13, name: "chat_ended", kind: "message", oneof: "detail", T: () => ChatEndedTriggerDetail },
-            { no: 14, name: "state_condition", kind: "message", oneof: "detail", T: () => StateConditionTriggerDetail },
-            { no: 15, name: "world_event", kind: "message", oneof: "detail", T: () => WorldEventTriggerDetail },
-            { no: 16, name: "compound", kind: "message", oneof: "detail", T: () => CompoundHookTriggerDetail }
+            { no: 10, name: "time", kind: "message", oneof: "detail", T: () => HookTriggerTimeDetail },
+            { no: 11, name: "event_user_idle", kind: "message", oneof: "detail", T: () => HookTriggerEventUserIdleDetail },
+            { no: 12, name: "event_chat_ended", kind: "message", oneof: "detail", T: () => HookTriggerEventChatEndedDetail }
         ]);
     }
     create(value?: PartialMessage<HookTriggerDetail>): HookTriggerDetail {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.triggerKind = 0;
         message.detail = { oneofKind: undefined };
         if (value !== undefined)
             reflectionMergePartial<HookTriggerDetail>(this, message, value);
@@ -2755,49 +2740,22 @@ class HookTriggerDetail$Type extends MessageType<HookTriggerDetail> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.HookTriggerKind trigger_kind */ 1:
-                    message.triggerKind = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.TurnCompletedTriggerDetail turn_completed */ 10:
+                case /* nimi.runtime.v1.HookTriggerTimeDetail time */ 10:
                     message.detail = {
-                        oneofKind: "turnCompleted",
-                        turnCompleted: TurnCompletedTriggerDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).turnCompleted)
+                        oneofKind: "time",
+                        time: HookTriggerTimeDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).time)
                     };
                     break;
-                case /* nimi.runtime.v1.ScheduledTimeTriggerDetail scheduled_time */ 11:
+                case /* nimi.runtime.v1.HookTriggerEventUserIdleDetail event_user_idle */ 11:
                     message.detail = {
-                        oneofKind: "scheduledTime",
-                        scheduledTime: ScheduledTimeTriggerDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).scheduledTime)
+                        oneofKind: "eventUserIdle",
+                        eventUserIdle: HookTriggerEventUserIdleDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).eventUserIdle)
                     };
                     break;
-                case /* nimi.runtime.v1.UserIdleTriggerDetail user_idle */ 12:
+                case /* nimi.runtime.v1.HookTriggerEventChatEndedDetail event_chat_ended */ 12:
                     message.detail = {
-                        oneofKind: "userIdle",
-                        userIdle: UserIdleTriggerDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).userIdle)
-                    };
-                    break;
-                case /* nimi.runtime.v1.ChatEndedTriggerDetail chat_ended */ 13:
-                    message.detail = {
-                        oneofKind: "chatEnded",
-                        chatEnded: ChatEndedTriggerDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).chatEnded)
-                    };
-                    break;
-                case /* nimi.runtime.v1.StateConditionTriggerDetail state_condition */ 14:
-                    message.detail = {
-                        oneofKind: "stateCondition",
-                        stateCondition: StateConditionTriggerDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).stateCondition)
-                    };
-                    break;
-                case /* nimi.runtime.v1.WorldEventTriggerDetail world_event */ 15:
-                    message.detail = {
-                        oneofKind: "worldEvent",
-                        worldEvent: WorldEventTriggerDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).worldEvent)
-                    };
-                    break;
-                case /* nimi.runtime.v1.CompoundHookTriggerDetail compound */ 16:
-                    message.detail = {
-                        oneofKind: "compound",
-                        compound: CompoundHookTriggerDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).compound)
+                        oneofKind: "eventChatEnded",
+                        eventChatEnded: HookTriggerEventChatEndedDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).eventChatEnded)
                     };
                     break;
                 default:
@@ -2812,30 +2770,15 @@ class HookTriggerDetail$Type extends MessageType<HookTriggerDetail> {
         return message;
     }
     internalBinaryWrite(message: HookTriggerDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.HookTriggerKind trigger_kind = 1; */
-        if (message.triggerKind !== 0)
-            writer.tag(1, WireType.Varint).int32(message.triggerKind);
-        /* nimi.runtime.v1.TurnCompletedTriggerDetail turn_completed = 10; */
-        if (message.detail.oneofKind === "turnCompleted")
-            TurnCompletedTriggerDetail.internalBinaryWrite(message.detail.turnCompleted, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ScheduledTimeTriggerDetail scheduled_time = 11; */
-        if (message.detail.oneofKind === "scheduledTime")
-            ScheduledTimeTriggerDetail.internalBinaryWrite(message.detail.scheduledTime, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.UserIdleTriggerDetail user_idle = 12; */
-        if (message.detail.oneofKind === "userIdle")
-            UserIdleTriggerDetail.internalBinaryWrite(message.detail.userIdle, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ChatEndedTriggerDetail chat_ended = 13; */
-        if (message.detail.oneofKind === "chatEnded")
-            ChatEndedTriggerDetail.internalBinaryWrite(message.detail.chatEnded, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.StateConditionTriggerDetail state_condition = 14; */
-        if (message.detail.oneofKind === "stateCondition")
-            StateConditionTriggerDetail.internalBinaryWrite(message.detail.stateCondition, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.WorldEventTriggerDetail world_event = 15; */
-        if (message.detail.oneofKind === "worldEvent")
-            WorldEventTriggerDetail.internalBinaryWrite(message.detail.worldEvent, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.CompoundHookTriggerDetail compound = 16; */
-        if (message.detail.oneofKind === "compound")
-            CompoundHookTriggerDetail.internalBinaryWrite(message.detail.compound, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.HookTriggerTimeDetail time = 10; */
+        if (message.detail.oneofKind === "time")
+            HookTriggerTimeDetail.internalBinaryWrite(message.detail.time, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.HookTriggerEventUserIdleDetail event_user_idle = 11; */
+        if (message.detail.oneofKind === "eventUserIdle")
+            HookTriggerEventUserIdleDetail.internalBinaryWrite(message.detail.eventUserIdle, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.HookTriggerEventChatEndedDetail event_chat_ended = 12; */
+        if (message.detail.oneofKind === "eventChatEnded")
+            HookTriggerEventChatEndedDetail.internalBinaryWrite(message.detail.eventChatEnded, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2847,461 +2790,78 @@ class HookTriggerDetail$Type extends MessageType<HookTriggerDetail> {
  */
 export const HookTriggerDetail = new HookTriggerDetail$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class CompoundHookTriggerDetail$Type extends MessageType<CompoundHookTriggerDetail> {
+class HookIntent$Type extends MessageType<HookIntent> {
     constructor() {
-        super("nimi.runtime.v1.CompoundHookTriggerDetail", [
-            { no: 1, name: "operator", kind: "enum", T: () => ["nimi.runtime.v1.CompoundTriggerOperator", CompoundTriggerOperator, "COMPOUND_TRIGGER_OPERATOR_"] },
-            { no: 2, name: "triggers", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => HookTriggerDetail }
+        super("nimi.runtime.v1.HookIntent", [
+            { no: 1, name: "intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "originating_turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "originating_stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "trigger_family", kind: "enum", T: () => ["nimi.runtime.v1.HookTriggerFamily", HookTriggerFamily, "HOOK_TRIGGER_FAMILY_"] },
+            { no: 7, name: "trigger_detail", kind: "message", T: () => HookTriggerDetail },
+            { no: 8, name: "effect", kind: "enum", T: () => ["nimi.runtime.v1.HookEffect", HookEffect, "HOOK_EFFECT_"] },
+            { no: 9, name: "admission_state", kind: "enum", T: () => ["nimi.runtime.v1.HookAdmissionState", HookAdmissionState, "HOOK_ADMISSION_STATE_"] },
+            { no: 10, name: "not_before", kind: "message", T: () => Timestamp },
+            { no: 11, name: "expires_at", kind: "message", T: () => Timestamp },
+            { no: 12, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<CompoundHookTriggerDetail>): CompoundHookTriggerDetail {
+    create(value?: PartialMessage<HookIntent>): HookIntent {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.operator = 0;
-        message.triggers = [];
-        if (value !== undefined)
-            reflectionMergePartial<CompoundHookTriggerDetail>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CompoundHookTriggerDetail): CompoundHookTriggerDetail {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.CompoundTriggerOperator operator */ 1:
-                    message.operator = reader.int32();
-                    break;
-                case /* repeated nimi.runtime.v1.HookTriggerDetail triggers */ 2:
-                    message.triggers.push(HookTriggerDetail.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: CompoundHookTriggerDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.CompoundTriggerOperator operator = 1; */
-        if (message.operator !== 0)
-            writer.tag(1, WireType.Varint).int32(message.operator);
-        /* repeated nimi.runtime.v1.HookTriggerDetail triggers = 2; */
-        for (let i = 0; i < message.triggers.length; i++)
-            HookTriggerDetail.internalBinaryWrite(message.triggers[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.CompoundHookTriggerDetail
- */
-export const CompoundHookTriggerDetail = new CompoundHookTriggerDetail$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class TurnCompletedHookIntent$Type extends MessageType<TurnCompletedHookIntent> {
-    constructor() {
-        super("nimi.runtime.v1.TurnCompletedHookIntent", [
-            { no: 1, name: "after_turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "track", kind: "enum", T: () => ["nimi.runtime.v1.AgentTrackType", AgentTrackType, "AGENT_TRACK_TYPE_"] }
-        ]);
-    }
-    create(value?: PartialMessage<TurnCompletedHookIntent>): TurnCompletedHookIntent {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.afterTurnId = "";
-        message.track = 0;
-        if (value !== undefined)
-            reflectionMergePartial<TurnCompletedHookIntent>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TurnCompletedHookIntent): TurnCompletedHookIntent {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string after_turn_id */ 1:
-                    message.afterTurnId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.AgentTrackType track */ 2:
-                    message.track = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: TurnCompletedHookIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string after_turn_id = 1; */
-        if (message.afterTurnId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.afterTurnId);
-        /* nimi.runtime.v1.AgentTrackType track = 2; */
-        if (message.track !== 0)
-            writer.tag(2, WireType.Varint).int32(message.track);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.TurnCompletedHookIntent
- */
-export const TurnCompletedHookIntent = new TurnCompletedHookIntent$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ScheduledTimeHookIntent$Type extends MessageType<ScheduledTimeHookIntent> {
-    constructor() {
-        super("nimi.runtime.v1.ScheduledTimeHookIntent", [
-            { no: 1, name: "scheduled_for", kind: "message", T: () => Timestamp }
-        ]);
-    }
-    create(value?: PartialMessage<ScheduledTimeHookIntent>): ScheduledTimeHookIntent {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<ScheduledTimeHookIntent>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScheduledTimeHookIntent): ScheduledTimeHookIntent {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* google.protobuf.Timestamp scheduled_for */ 1:
-                    message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ScheduledTimeHookIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* google.protobuf.Timestamp scheduled_for = 1; */
-        if (message.scheduledFor)
-            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ScheduledTimeHookIntent
- */
-export const ScheduledTimeHookIntent = new ScheduledTimeHookIntent$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class UserIdleHookIntent$Type extends MessageType<UserIdleHookIntent> {
-    constructor() {
-        super("nimi.runtime.v1.UserIdleHookIntent", [
-            { no: 1, name: "idle_for", kind: "message", T: () => Duration }
-        ]);
-    }
-    create(value?: PartialMessage<UserIdleHookIntent>): UserIdleHookIntent {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<UserIdleHookIntent>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UserIdleHookIntent): UserIdleHookIntent {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* google.protobuf.Duration idle_for */ 1:
-                    message.idleFor = Duration.internalBinaryRead(reader, reader.uint32(), options, message.idleFor);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: UserIdleHookIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* google.protobuf.Duration idle_for = 1; */
-        if (message.idleFor)
-            Duration.internalBinaryWrite(message.idleFor, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.UserIdleHookIntent
- */
-export const UserIdleHookIntent = new UserIdleHookIntent$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ChatEndedHookIntent$Type extends MessageType<ChatEndedHookIntent> {
-    constructor() {
-        super("nimi.runtime.v1.ChatEndedHookIntent", [
-            { no: 1, name: "conversation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ChatEndedHookIntent>): ChatEndedHookIntent {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.conversationId = "";
-        if (value !== undefined)
-            reflectionMergePartial<ChatEndedHookIntent>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ChatEndedHookIntent): ChatEndedHookIntent {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string conversation_id */ 1:
-                    message.conversationId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ChatEndedHookIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string conversation_id = 1; */
-        if (message.conversationId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.conversationId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ChatEndedHookIntent
- */
-export const ChatEndedHookIntent = new ChatEndedHookIntent$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class StateConditionHookIntent$Type extends MessageType<StateConditionHookIntent> {
-    constructor() {
-        super("nimi.runtime.v1.StateConditionHookIntent", [
-            { no: 1, name: "condition_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "condition_value", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<StateConditionHookIntent>): StateConditionHookIntent {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.conditionKey = "";
-        message.conditionValue = "";
-        if (value !== undefined)
-            reflectionMergePartial<StateConditionHookIntent>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StateConditionHookIntent): StateConditionHookIntent {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string condition_key */ 1:
-                    message.conditionKey = reader.string();
-                    break;
-                case /* string condition_value */ 2:
-                    message.conditionValue = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: StateConditionHookIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string condition_key = 1; */
-        if (message.conditionKey !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.conditionKey);
-        /* string condition_value = 2; */
-        if (message.conditionValue !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.conditionValue);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.StateConditionHookIntent
- */
-export const StateConditionHookIntent = new StateConditionHookIntent$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class WorldEventHookIntent$Type extends MessageType<WorldEventHookIntent> {
-    constructor() {
-        super("nimi.runtime.v1.WorldEventHookIntent", [
-            { no: 1, name: "world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "event_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<WorldEventHookIntent>): WorldEventHookIntent {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.worldId = "";
-        message.eventType = "";
-        message.eventId = "";
-        if (value !== undefined)
-            reflectionMergePartial<WorldEventHookIntent>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldEventHookIntent): WorldEventHookIntent {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string world_id */ 1:
-                    message.worldId = reader.string();
-                    break;
-                case /* string event_type */ 2:
-                    message.eventType = reader.string();
-                    break;
-                case /* string event_id */ 3:
-                    message.eventId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: WorldEventHookIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string world_id = 1; */
-        if (message.worldId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.worldId);
-        /* string event_type = 2; */
-        if (message.eventType !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.eventType);
-        /* string event_id = 3; */
-        if (message.eventId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.eventId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.WorldEventHookIntent
- */
-export const WorldEventHookIntent = new WorldEventHookIntent$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class NextHookIntent$Type extends MessageType<NextHookIntent> {
-    constructor() {
-        super("nimi.runtime.v1.NextHookIntent", [
-            { no: 1, name: "trigger_kind", kind: "enum", T: () => ["nimi.runtime.v1.HookTriggerKind", HookTriggerKind, "HOOK_TRIGGER_KIND_"] },
-            { no: 2, name: "not_before", kind: "message", T: () => Timestamp },
-            { no: 3, name: "expires_at", kind: "message", T: () => Timestamp },
-            { no: 4, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "cadence_interaction", kind: "enum", T: () => ["nimi.runtime.v1.HookCadenceInteraction", HookCadenceInteraction, "HOOK_CADENCE_INTERACTION_"] },
-            { no: 10, name: "turn_completed", kind: "message", oneof: "detail", T: () => TurnCompletedHookIntent },
-            { no: 11, name: "scheduled_time", kind: "message", oneof: "detail", T: () => ScheduledTimeHookIntent },
-            { no: 12, name: "user_idle", kind: "message", oneof: "detail", T: () => UserIdleHookIntent },
-            { no: 13, name: "chat_ended", kind: "message", oneof: "detail", T: () => ChatEndedHookIntent },
-            { no: 14, name: "state_condition", kind: "message", oneof: "detail", T: () => StateConditionHookIntent },
-            { no: 15, name: "world_event", kind: "message", oneof: "detail", T: () => WorldEventHookIntent },
-            { no: 16, name: "compound", kind: "message", oneof: "detail", T: () => CompoundHookIntent }
-        ]);
-    }
-    create(value?: PartialMessage<NextHookIntent>): NextHookIntent {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.triggerKind = 0;
+        message.intentId = "";
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        message.originatingTurnId = "";
+        message.originatingStreamId = "";
+        message.triggerFamily = 0;
+        message.effect = 0;
+        message.admissionState = 0;
         message.reason = "";
-        message.cadenceInteraction = 0;
-        message.detail = { oneofKind: undefined };
         if (value !== undefined)
-            reflectionMergePartial<NextHookIntent>(this, message, value);
+            reflectionMergePartial<HookIntent>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: NextHookIntent): NextHookIntent {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HookIntent): HookIntent {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.HookTriggerKind trigger_kind */ 1:
-                    message.triggerKind = reader.int32();
+                case /* string intent_id */ 1:
+                    message.intentId = reader.string();
                     break;
-                case /* google.protobuf.Timestamp not_before */ 2:
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string originating_turn_id */ 4:
+                    message.originatingTurnId = reader.string();
+                    break;
+                case /* string originating_stream_id */ 5:
+                    message.originatingStreamId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.HookTriggerFamily trigger_family */ 6:
+                    message.triggerFamily = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.HookTriggerDetail trigger_detail */ 7:
+                    message.triggerDetail = HookTriggerDetail.internalBinaryRead(reader, reader.uint32(), options, message.triggerDetail);
+                    break;
+                case /* nimi.runtime.v1.HookEffect effect */ 8:
+                    message.effect = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.HookAdmissionState admission_state */ 9:
+                    message.admissionState = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp not_before */ 10:
                     message.notBefore = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.notBefore);
                     break;
-                case /* google.protobuf.Timestamp expires_at */ 3:
+                case /* google.protobuf.Timestamp expires_at */ 11:
                     message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
                     break;
-                case /* string reason */ 4:
+                case /* string reason */ 12:
                     message.reason = reader.string();
-                    break;
-                case /* nimi.runtime.v1.HookCadenceInteraction cadence_interaction */ 5:
-                    message.cadenceInteraction = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.TurnCompletedHookIntent turn_completed */ 10:
-                    message.detail = {
-                        oneofKind: "turnCompleted",
-                        turnCompleted: TurnCompletedHookIntent.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).turnCompleted)
-                    };
-                    break;
-                case /* nimi.runtime.v1.ScheduledTimeHookIntent scheduled_time */ 11:
-                    message.detail = {
-                        oneofKind: "scheduledTime",
-                        scheduledTime: ScheduledTimeHookIntent.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).scheduledTime)
-                    };
-                    break;
-                case /* nimi.runtime.v1.UserIdleHookIntent user_idle */ 12:
-                    message.detail = {
-                        oneofKind: "userIdle",
-                        userIdle: UserIdleHookIntent.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).userIdle)
-                    };
-                    break;
-                case /* nimi.runtime.v1.ChatEndedHookIntent chat_ended */ 13:
-                    message.detail = {
-                        oneofKind: "chatEnded",
-                        chatEnded: ChatEndedHookIntent.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).chatEnded)
-                    };
-                    break;
-                case /* nimi.runtime.v1.StateConditionHookIntent state_condition */ 14:
-                    message.detail = {
-                        oneofKind: "stateCondition",
-                        stateCondition: StateConditionHookIntent.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).stateCondition)
-                    };
-                    break;
-                case /* nimi.runtime.v1.WorldEventHookIntent world_event */ 15:
-                    message.detail = {
-                        oneofKind: "worldEvent",
-                        worldEvent: WorldEventHookIntent.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).worldEvent)
-                    };
-                    break;
-                case /* nimi.runtime.v1.CompoundHookIntent compound */ 16:
-                    message.detail = {
-                        oneofKind: "compound",
-                        compound: CompoundHookIntent.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).compound)
-                    };
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3314,43 +2874,43 @@ class NextHookIntent$Type extends MessageType<NextHookIntent> {
         }
         return message;
     }
-    internalBinaryWrite(message: NextHookIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.HookTriggerKind trigger_kind = 1; */
-        if (message.triggerKind !== 0)
-            writer.tag(1, WireType.Varint).int32(message.triggerKind);
-        /* google.protobuf.Timestamp not_before = 2; */
+    internalBinaryWrite(message: HookIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string intent_id = 1; */
+        if (message.intentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.intentId);
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string originating_turn_id = 4; */
+        if (message.originatingTurnId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.originatingTurnId);
+        /* string originating_stream_id = 5; */
+        if (message.originatingStreamId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.originatingStreamId);
+        /* nimi.runtime.v1.HookTriggerFamily trigger_family = 6; */
+        if (message.triggerFamily !== 0)
+            writer.tag(6, WireType.Varint).int32(message.triggerFamily);
+        /* nimi.runtime.v1.HookTriggerDetail trigger_detail = 7; */
+        if (message.triggerDetail)
+            HookTriggerDetail.internalBinaryWrite(message.triggerDetail, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.HookEffect effect = 8; */
+        if (message.effect !== 0)
+            writer.tag(8, WireType.Varint).int32(message.effect);
+        /* nimi.runtime.v1.HookAdmissionState admission_state = 9; */
+        if (message.admissionState !== 0)
+            writer.tag(9, WireType.Varint).int32(message.admissionState);
+        /* google.protobuf.Timestamp not_before = 10; */
         if (message.notBefore)
-            Timestamp.internalBinaryWrite(message.notBefore, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp expires_at = 3; */
+            Timestamp.internalBinaryWrite(message.notBefore, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp expires_at = 11; */
         if (message.expiresAt)
-            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* string reason = 4; */
+            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* string reason = 12; */
         if (message.reason !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.reason);
-        /* nimi.runtime.v1.HookCadenceInteraction cadence_interaction = 5; */
-        if (message.cadenceInteraction !== 0)
-            writer.tag(5, WireType.Varint).int32(message.cadenceInteraction);
-        /* nimi.runtime.v1.TurnCompletedHookIntent turn_completed = 10; */
-        if (message.detail.oneofKind === "turnCompleted")
-            TurnCompletedHookIntent.internalBinaryWrite(message.detail.turnCompleted, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ScheduledTimeHookIntent scheduled_time = 11; */
-        if (message.detail.oneofKind === "scheduledTime")
-            ScheduledTimeHookIntent.internalBinaryWrite(message.detail.scheduledTime, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.UserIdleHookIntent user_idle = 12; */
-        if (message.detail.oneofKind === "userIdle")
-            UserIdleHookIntent.internalBinaryWrite(message.detail.userIdle, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ChatEndedHookIntent chat_ended = 13; */
-        if (message.detail.oneofKind === "chatEnded")
-            ChatEndedHookIntent.internalBinaryWrite(message.detail.chatEnded, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.StateConditionHookIntent state_condition = 14; */
-        if (message.detail.oneofKind === "stateCondition")
-            StateConditionHookIntent.internalBinaryWrite(message.detail.stateCondition, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.WorldEventHookIntent world_event = 15; */
-        if (message.detail.oneofKind === "worldEvent")
-            WorldEventHookIntent.internalBinaryWrite(message.detail.worldEvent, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.CompoundHookIntent compound = 16; */
-        if (message.detail.oneofKind === "compound")
-            CompoundHookIntent.internalBinaryWrite(message.detail.compound, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+            writer.tag(12, WireType.LengthDelimited).string(message.reason);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3358,357 +2918,25 @@ class NextHookIntent$Type extends MessageType<NextHookIntent> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.NextHookIntent
+ * @generated MessageType for protobuf message nimi.runtime.v1.HookIntent
  */
-export const NextHookIntent = new NextHookIntent$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class CompoundHookIntent$Type extends MessageType<CompoundHookIntent> {
-    constructor() {
-        super("nimi.runtime.v1.CompoundHookIntent", [
-            { no: 1, name: "operator", kind: "enum", T: () => ["nimi.runtime.v1.CompoundTriggerOperator", CompoundTriggerOperator, "COMPOUND_TRIGGER_OPERATOR_"] },
-            { no: 2, name: "intents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => NextHookIntent }
-        ]);
-    }
-    create(value?: PartialMessage<CompoundHookIntent>): CompoundHookIntent {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.operator = 0;
-        message.intents = [];
-        if (value !== undefined)
-            reflectionMergePartial<CompoundHookIntent>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CompoundHookIntent): CompoundHookIntent {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.CompoundTriggerOperator operator */ 1:
-                    message.operator = reader.int32();
-                    break;
-                case /* repeated nimi.runtime.v1.NextHookIntent intents */ 2:
-                    message.intents.push(NextHookIntent.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: CompoundHookIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.CompoundTriggerOperator operator = 1; */
-        if (message.operator !== 0)
-            writer.tag(1, WireType.Varint).int32(message.operator);
-        /* repeated nimi.runtime.v1.NextHookIntent intents = 2; */
-        for (let i = 0; i < message.intents.length; i++)
-            NextHookIntent.internalBinaryWrite(message.intents[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.CompoundHookIntent
- */
-export const CompoundHookIntent = new CompoundHookIntent$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class HookCompletedDetail$Type extends MessageType<HookCompletedDetail> {
-    constructor() {
-        super("nimi.runtime.v1.HookCompletedDetail", [
-            { no: 1, name: "summary", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "completed_at", kind: "message", T: () => Timestamp }
-        ]);
-    }
-    create(value?: PartialMessage<HookCompletedDetail>): HookCompletedDetail {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.summary = "";
-        if (value !== undefined)
-            reflectionMergePartial<HookCompletedDetail>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HookCompletedDetail): HookCompletedDetail {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string summary */ 1:
-                    message.summary = reader.string();
-                    break;
-                case /* google.protobuf.Timestamp completed_at */ 2:
-                    message.completedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.completedAt);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: HookCompletedDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string summary = 1; */
-        if (message.summary !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.summary);
-        /* google.protobuf.Timestamp completed_at = 2; */
-        if (message.completedAt)
-            Timestamp.internalBinaryWrite(message.completedAt, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.HookCompletedDetail
- */
-export const HookCompletedDetail = new HookCompletedDetail$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class HookFailedDetail$Type extends MessageType<HookFailedDetail> {
-    constructor() {
-        super("nimi.runtime.v1.HookFailedDetail", [
-            { no: 1, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 2, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "retryable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<HookFailedDetail>): HookFailedDetail {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.reasonCode = 0;
-        message.message = "";
-        message.retryable = false;
-        if (value !== undefined)
-            reflectionMergePartial<HookFailedDetail>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HookFailedDetail): HookFailedDetail {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 1:
-                    message.reasonCode = reader.int32();
-                    break;
-                case /* string message */ 2:
-                    message.message = reader.string();
-                    break;
-                case /* bool retryable */ 3:
-                    message.retryable = reader.bool();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: HookFailedDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.ReasonCode reason_code = 1; */
-        if (message.reasonCode !== 0)
-            writer.tag(1, WireType.Varint).int32(message.reasonCode);
-        /* string message = 2; */
-        if (message.message !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.message);
-        /* bool retryable = 3; */
-        if (message.retryable !== false)
-            writer.tag(3, WireType.Varint).bool(message.retryable);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.HookFailedDetail
- */
-export const HookFailedDetail = new HookFailedDetail$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class HookCanceledDetail$Type extends MessageType<HookCanceledDetail> {
-    constructor() {
-        super("nimi.runtime.v1.HookCanceledDetail", [
-            { no: 1, name: "canceled_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<HookCanceledDetail>): HookCanceledDetail {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.canceledBy = "";
-        message.reason = "";
-        if (value !== undefined)
-            reflectionMergePartial<HookCanceledDetail>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HookCanceledDetail): HookCanceledDetail {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string canceled_by */ 1:
-                    message.canceledBy = reader.string();
-                    break;
-                case /* string reason */ 2:
-                    message.reason = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: HookCanceledDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string canceled_by = 1; */
-        if (message.canceledBy !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.canceledBy);
-        /* string reason = 2; */
-        if (message.reason !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.reason);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.HookCanceledDetail
- */
-export const HookCanceledDetail = new HookCanceledDetail$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class HookRescheduledDetail$Type extends MessageType<HookRescheduledDetail> {
-    constructor() {
-        super("nimi.runtime.v1.HookRescheduledDetail", [
-            { no: 1, name: "next_intent", kind: "message", T: () => NextHookIntent }
-        ]);
-    }
-    create(value?: PartialMessage<HookRescheduledDetail>): HookRescheduledDetail {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<HookRescheduledDetail>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HookRescheduledDetail): HookRescheduledDetail {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.NextHookIntent next_intent */ 1:
-                    message.nextIntent = NextHookIntent.internalBinaryRead(reader, reader.uint32(), options, message.nextIntent);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: HookRescheduledDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.NextHookIntent next_intent = 1; */
-        if (message.nextIntent)
-            NextHookIntent.internalBinaryWrite(message.nextIntent, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.HookRescheduledDetail
- */
-export const HookRescheduledDetail = new HookRescheduledDetail$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class HookRejectedDetail$Type extends MessageType<HookRejectedDetail> {
-    constructor() {
-        super("nimi.runtime.v1.HookRejectedDetail", [
-            { no: 1, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 2, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<HookRejectedDetail>): HookRejectedDetail {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.reasonCode = 0;
-        message.message = "";
-        if (value !== undefined)
-            reflectionMergePartial<HookRejectedDetail>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HookRejectedDetail): HookRejectedDetail {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 1:
-                    message.reasonCode = reader.int32();
-                    break;
-                case /* string message */ 2:
-                    message.message = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: HookRejectedDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.ReasonCode reason_code = 1; */
-        if (message.reasonCode !== 0)
-            writer.tag(1, WireType.Varint).int32(message.reasonCode);
-        /* string message = 2; */
-        if (message.message !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.message);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.HookRejectedDetail
- */
-export const HookRejectedDetail = new HookRejectedDetail$Type();
+export const HookIntent = new HookIntent$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class HookExecutionOutcome$Type extends MessageType<HookExecutionOutcome> {
     constructor() {
         super("nimi.runtime.v1.HookExecutionOutcome", [
-            { no: 1, name: "hook_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.AgentHookStatus", AgentHookStatus, "AGENT_HOOK_STATUS_"] },
-            { no: 3, name: "trigger", kind: "message", T: () => HookTriggerDetail },
-            { no: 4, name: "observed_at", kind: "message", T: () => Timestamp },
-            { no: 10, name: "completed", kind: "message", oneof: "detail", T: () => HookCompletedDetail },
-            { no: 11, name: "failed", kind: "message", oneof: "detail", T: () => HookFailedDetail },
-            { no: 12, name: "canceled", kind: "message", oneof: "detail", T: () => HookCanceledDetail },
-            { no: 13, name: "rescheduled", kind: "message", oneof: "detail", T: () => HookRescheduledDetail },
-            { no: 14, name: "rejected", kind: "message", oneof: "detail", T: () => HookRejectedDetail }
+            { no: 1, name: "intent", kind: "message", T: () => HookIntent },
+            { no: 2, name: "observed_at", kind: "message", T: () => Timestamp },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 4, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<HookExecutionOutcome>): HookExecutionOutcome {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.hookId = "";
-        message.status = 0;
-        message.detail = { oneofKind: undefined };
+        message.reasonCode = 0;
+        message.message = "";
+        message.reason = "";
         if (value !== undefined)
             reflectionMergePartial<HookExecutionOutcome>(this, message, value);
         return message;
@@ -3718,47 +2946,20 @@ class HookExecutionOutcome$Type extends MessageType<HookExecutionOutcome> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string hook_id */ 1:
-                    message.hookId = reader.string();
+                case /* nimi.runtime.v1.HookIntent intent */ 1:
+                    message.intent = HookIntent.internalBinaryRead(reader, reader.uint32(), options, message.intent);
                     break;
-                case /* nimi.runtime.v1.AgentHookStatus status */ 2:
-                    message.status = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.HookTriggerDetail trigger */ 3:
-                    message.trigger = HookTriggerDetail.internalBinaryRead(reader, reader.uint32(), options, message.trigger);
-                    break;
-                case /* google.protobuf.Timestamp observed_at */ 4:
+                case /* google.protobuf.Timestamp observed_at */ 2:
                     message.observedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.observedAt);
                     break;
-                case /* nimi.runtime.v1.HookCompletedDetail completed */ 10:
-                    message.detail = {
-                        oneofKind: "completed",
-                        completed: HookCompletedDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).completed)
-                    };
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
                     break;
-                case /* nimi.runtime.v1.HookFailedDetail failed */ 11:
-                    message.detail = {
-                        oneofKind: "failed",
-                        failed: HookFailedDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).failed)
-                    };
+                case /* string message */ 4:
+                    message.message = reader.string();
                     break;
-                case /* nimi.runtime.v1.HookCanceledDetail canceled */ 12:
-                    message.detail = {
-                        oneofKind: "canceled",
-                        canceled: HookCanceledDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).canceled)
-                    };
-                    break;
-                case /* nimi.runtime.v1.HookRescheduledDetail rescheduled */ 13:
-                    message.detail = {
-                        oneofKind: "rescheduled",
-                        rescheduled: HookRescheduledDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).rescheduled)
-                    };
-                    break;
-                case /* nimi.runtime.v1.HookRejectedDetail rejected */ 14:
-                    message.detail = {
-                        oneofKind: "rejected",
-                        rejected: HookRejectedDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).rejected)
-                    };
+                case /* string reason */ 5:
+                    message.reason = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3772,33 +2973,21 @@ class HookExecutionOutcome$Type extends MessageType<HookExecutionOutcome> {
         return message;
     }
     internalBinaryWrite(message: HookExecutionOutcome, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string hook_id = 1; */
-        if (message.hookId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.hookId);
-        /* nimi.runtime.v1.AgentHookStatus status = 2; */
-        if (message.status !== 0)
-            writer.tag(2, WireType.Varint).int32(message.status);
-        /* nimi.runtime.v1.HookTriggerDetail trigger = 3; */
-        if (message.trigger)
-            HookTriggerDetail.internalBinaryWrite(message.trigger, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp observed_at = 4; */
+        /* nimi.runtime.v1.HookIntent intent = 1; */
+        if (message.intent)
+            HookIntent.internalBinaryWrite(message.intent, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp observed_at = 2; */
         if (message.observedAt)
-            Timestamp.internalBinaryWrite(message.observedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.HookCompletedDetail completed = 10; */
-        if (message.detail.oneofKind === "completed")
-            HookCompletedDetail.internalBinaryWrite(message.detail.completed, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.HookFailedDetail failed = 11; */
-        if (message.detail.oneofKind === "failed")
-            HookFailedDetail.internalBinaryWrite(message.detail.failed, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.HookCanceledDetail canceled = 12; */
-        if (message.detail.oneofKind === "canceled")
-            HookCanceledDetail.internalBinaryWrite(message.detail.canceled, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.HookRescheduledDetail rescheduled = 13; */
-        if (message.detail.oneofKind === "rescheduled")
-            HookRescheduledDetail.internalBinaryWrite(message.detail.rescheduled, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.HookRejectedDetail rejected = 14; */
-        if (message.detail.oneofKind === "rejected")
-            HookRejectedDetail.internalBinaryWrite(message.detail.rejected, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+            Timestamp.internalBinaryWrite(message.observedAt, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        /* string message = 4; */
+        if (message.message !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.message);
+        /* string reason = 5; */
+        if (message.reason !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.reason);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3813,18 +3002,13 @@ export const HookExecutionOutcome = new HookExecutionOutcome$Type();
 class PendingHook$Type extends MessageType<PendingHook> {
     constructor() {
         super("nimi.runtime.v1.PendingHook", [
-            { no: 1, name: "hook_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.AgentHookStatus", AgentHookStatus, "AGENT_HOOK_STATUS_"] },
-            { no: 3, name: "trigger", kind: "message", T: () => HookTriggerDetail },
-            { no: 4, name: "next_intent", kind: "message", T: () => NextHookIntent },
-            { no: 5, name: "scheduled_for", kind: "message", T: () => Timestamp },
-            { no: 6, name: "admitted_at", kind: "message", T: () => Timestamp }
+            { no: 1, name: "intent", kind: "message", T: () => HookIntent },
+            { no: 2, name: "scheduled_for", kind: "message", T: () => Timestamp },
+            { no: 3, name: "admitted_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<PendingHook>): PendingHook {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.hookId = "";
-        message.status = 0;
         if (value !== undefined)
             reflectionMergePartial<PendingHook>(this, message, value);
         return message;
@@ -3834,22 +3018,13 @@ class PendingHook$Type extends MessageType<PendingHook> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string hook_id */ 1:
-                    message.hookId = reader.string();
+                case /* nimi.runtime.v1.HookIntent intent */ 1:
+                    message.intent = HookIntent.internalBinaryRead(reader, reader.uint32(), options, message.intent);
                     break;
-                case /* nimi.runtime.v1.AgentHookStatus status */ 2:
-                    message.status = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.HookTriggerDetail trigger */ 3:
-                    message.trigger = HookTriggerDetail.internalBinaryRead(reader, reader.uint32(), options, message.trigger);
-                    break;
-                case /* nimi.runtime.v1.NextHookIntent next_intent */ 4:
-                    message.nextIntent = NextHookIntent.internalBinaryRead(reader, reader.uint32(), options, message.nextIntent);
-                    break;
-                case /* google.protobuf.Timestamp scheduled_for */ 5:
+                case /* google.protobuf.Timestamp scheduled_for */ 2:
                     message.scheduledFor = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.scheduledFor);
                     break;
-                case /* google.protobuf.Timestamp admitted_at */ 6:
+                case /* google.protobuf.Timestamp admitted_at */ 3:
                     message.admittedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.admittedAt);
                     break;
                 default:
@@ -3864,24 +3039,15 @@ class PendingHook$Type extends MessageType<PendingHook> {
         return message;
     }
     internalBinaryWrite(message: PendingHook, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string hook_id = 1; */
-        if (message.hookId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.hookId);
-        /* nimi.runtime.v1.AgentHookStatus status = 2; */
-        if (message.status !== 0)
-            writer.tag(2, WireType.Varint).int32(message.status);
-        /* nimi.runtime.v1.HookTriggerDetail trigger = 3; */
-        if (message.trigger)
-            HookTriggerDetail.internalBinaryWrite(message.trigger, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.NextHookIntent next_intent = 4; */
-        if (message.nextIntent)
-            NextHookIntent.internalBinaryWrite(message.nextIntent, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp scheduled_for = 5; */
+        /* nimi.runtime.v1.HookIntent intent = 1; */
+        if (message.intent)
+            HookIntent.internalBinaryWrite(message.intent, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp scheduled_for = 2; */
         if (message.scheduledFor)
-            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp admitted_at = 6; */
+            Timestamp.internalBinaryWrite(message.scheduledFor, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp admitted_at = 3; */
         if (message.admittedAt)
-            Timestamp.internalBinaryWrite(message.admittedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+            Timestamp.internalBinaryWrite(message.admittedAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4175,11 +3341,20 @@ export const AgentLifecycleEventDetail = new AgentLifecycleEventDetail$Type();
 class AgentHookEventDetail$Type extends MessageType<AgentHookEventDetail> {
     constructor() {
         super("nimi.runtime.v1.AgentHookEventDetail", [
-            { no: 1, name: "outcome", kind: "message", T: () => HookExecutionOutcome }
+            { no: 1, name: "family", kind: "enum", T: () => ["nimi.runtime.v1.HookAdmissionState", HookAdmissionState, "HOOK_ADMISSION_STATE_"] },
+            { no: 2, name: "intent", kind: "message", T: () => HookIntent },
+            { no: 3, name: "observed_at", kind: "message", T: () => Timestamp },
+            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 5, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AgentHookEventDetail>): AgentHookEventDetail {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.family = 0;
+        message.reasonCode = 0;
+        message.message = "";
+        message.reason = "";
         if (value !== undefined)
             reflectionMergePartial<AgentHookEventDetail>(this, message, value);
         return message;
@@ -4189,8 +3364,23 @@ class AgentHookEventDetail$Type extends MessageType<AgentHookEventDetail> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.HookExecutionOutcome outcome */ 1:
-                    message.outcome = HookExecutionOutcome.internalBinaryRead(reader, reader.uint32(), options, message.outcome);
+                case /* nimi.runtime.v1.HookAdmissionState family */ 1:
+                    message.family = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.HookIntent intent */ 2:
+                    message.intent = HookIntent.internalBinaryRead(reader, reader.uint32(), options, message.intent);
+                    break;
+                case /* google.protobuf.Timestamp observed_at */ 3:
+                    message.observedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.observedAt);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 4:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string message */ 5:
+                    message.message = reader.string();
+                    break;
+                case /* string reason */ 6:
+                    message.reason = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4204,9 +3394,24 @@ class AgentHookEventDetail$Type extends MessageType<AgentHookEventDetail> {
         return message;
     }
     internalBinaryWrite(message: AgentHookEventDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.HookExecutionOutcome outcome = 1; */
-        if (message.outcome)
-            HookExecutionOutcome.internalBinaryWrite(message.outcome, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.HookAdmissionState family = 1; */
+        if (message.family !== 0)
+            writer.tag(1, WireType.Varint).int32(message.family);
+        /* nimi.runtime.v1.HookIntent intent = 2; */
+        if (message.intent)
+            HookIntent.internalBinaryWrite(message.intent, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp observed_at = 3; */
+        if (message.observedAt)
+            Timestamp.internalBinaryWrite(message.observedAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 4; */
+        if (message.reasonCode !== 0)
+            writer.tag(4, WireType.Varint).int32(message.reasonCode);
+        /* string message = 5; */
+        if (message.message !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.message);
+        /* string reason = 6; */
+        if (message.reason !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.reason);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4389,6 +3594,433 @@ class AgentReplicationEventDetail$Type extends MessageType<AgentReplicationEvent
  */
 export const AgentReplicationEventDetail = new AgentReplicationEventDetail$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AgentPostureProjection$Type extends MessageType<AgentPostureProjection> {
+    constructor() {
+        super("nimi.runtime.v1.AgentPostureProjection", [
+            { no: 1, name: "action_family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "interrupt_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentPostureProjection>): AgentPostureProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.actionFamily = "";
+        message.interruptMode = "";
+        if (value !== undefined)
+            reflectionMergePartial<AgentPostureProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentPostureProjection): AgentPostureProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string action_family */ 1:
+                    message.actionFamily = reader.string();
+                    break;
+                case /* string interrupt_mode */ 2:
+                    message.interruptMode = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentPostureProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string action_family = 1; */
+        if (message.actionFamily !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.actionFamily);
+        /* string interrupt_mode = 2; */
+        if (message.interruptMode !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.interruptMode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentPostureProjection
+ */
+export const AgentPostureProjection = new AgentPostureProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentStateEventDetail$Type extends MessageType<AgentStateEventDetail> {
+    constructor() {
+        super("nimi.runtime.v1.AgentStateEventDetail", [
+            { no: 1, name: "family", kind: "enum", T: () => ["nimi.runtime.v1.AgentStateEventFamily", AgentStateEventFamily, "AGENT_STATE_EVENT_FAMILY_"] },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "originating_turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "originating_stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "current_status_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "previous_status_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "has_previous_status_text", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 20, name: "current_execution_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentExecutionState", AgentExecutionState, "AGENT_EXECUTION_STATE_"] },
+            { no: 21, name: "previous_execution_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentExecutionState", AgentExecutionState, "AGENT_EXECUTION_STATE_"] },
+            { no: 30, name: "current_emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 31, name: "previous_emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 32, name: "emotion_source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 40, name: "current_posture", kind: "message", T: () => AgentPostureProjection },
+            { no: 41, name: "previous_posture", kind: "message", T: () => AgentPostureProjection }
+        ]);
+    }
+    create(value?: PartialMessage<AgentStateEventDetail>): AgentStateEventDetail {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.family = 0;
+        message.conversationAnchorId = "";
+        message.originatingTurnId = "";
+        message.originatingStreamId = "";
+        message.currentStatusText = "";
+        message.previousStatusText = "";
+        message.hasPreviousStatusText = false;
+        message.currentExecutionState = 0;
+        message.previousExecutionState = 0;
+        message.currentEmotion = "";
+        message.previousEmotion = "";
+        message.emotionSource = "";
+        if (value !== undefined)
+            reflectionMergePartial<AgentStateEventDetail>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentStateEventDetail): AgentStateEventDetail {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentStateEventFamily family */ 1:
+                    message.family = reader.int32();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string originating_turn_id */ 3:
+                    message.originatingTurnId = reader.string();
+                    break;
+                case /* string originating_stream_id */ 4:
+                    message.originatingStreamId = reader.string();
+                    break;
+                case /* string current_status_text */ 10:
+                    message.currentStatusText = reader.string();
+                    break;
+                case /* string previous_status_text */ 11:
+                    message.previousStatusText = reader.string();
+                    break;
+                case /* bool has_previous_status_text */ 12:
+                    message.hasPreviousStatusText = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.AgentExecutionState current_execution_state */ 20:
+                    message.currentExecutionState = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentExecutionState previous_execution_state */ 21:
+                    message.previousExecutionState = reader.int32();
+                    break;
+                case /* string current_emotion */ 30:
+                    message.currentEmotion = reader.string();
+                    break;
+                case /* string previous_emotion */ 31:
+                    message.previousEmotion = reader.string();
+                    break;
+                case /* string emotion_source */ 32:
+                    message.emotionSource = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AgentPostureProjection current_posture */ 40:
+                    message.currentPosture = AgentPostureProjection.internalBinaryRead(reader, reader.uint32(), options, message.currentPosture);
+                    break;
+                case /* nimi.runtime.v1.AgentPostureProjection previous_posture */ 41:
+                    message.previousPosture = AgentPostureProjection.internalBinaryRead(reader, reader.uint32(), options, message.previousPosture);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentStateEventDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentStateEventFamily family = 1; */
+        if (message.family !== 0)
+            writer.tag(1, WireType.Varint).int32(message.family);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string originating_turn_id = 3; */
+        if (message.originatingTurnId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.originatingTurnId);
+        /* string originating_stream_id = 4; */
+        if (message.originatingStreamId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.originatingStreamId);
+        /* string current_status_text = 10; */
+        if (message.currentStatusText !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.currentStatusText);
+        /* string previous_status_text = 11; */
+        if (message.previousStatusText !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.previousStatusText);
+        /* bool has_previous_status_text = 12; */
+        if (message.hasPreviousStatusText !== false)
+            writer.tag(12, WireType.Varint).bool(message.hasPreviousStatusText);
+        /* nimi.runtime.v1.AgentExecutionState current_execution_state = 20; */
+        if (message.currentExecutionState !== 0)
+            writer.tag(20, WireType.Varint).int32(message.currentExecutionState);
+        /* nimi.runtime.v1.AgentExecutionState previous_execution_state = 21; */
+        if (message.previousExecutionState !== 0)
+            writer.tag(21, WireType.Varint).int32(message.previousExecutionState);
+        /* string current_emotion = 30; */
+        if (message.currentEmotion !== "")
+            writer.tag(30, WireType.LengthDelimited).string(message.currentEmotion);
+        /* string previous_emotion = 31; */
+        if (message.previousEmotion !== "")
+            writer.tag(31, WireType.LengthDelimited).string(message.previousEmotion);
+        /* string emotion_source = 32; */
+        if (message.emotionSource !== "")
+            writer.tag(32, WireType.LengthDelimited).string(message.emotionSource);
+        /* nimi.runtime.v1.AgentPostureProjection current_posture = 40; */
+        if (message.currentPosture)
+            AgentPostureProjection.internalBinaryWrite(message.currentPosture, writer.tag(40, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentPostureProjection previous_posture = 41; */
+        if (message.previousPosture)
+            AgentPostureProjection.internalBinaryWrite(message.previousPosture, writer.tag(41, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentStateEventDetail
+ */
+export const AgentStateEventDetail = new AgentStateEventDetail$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEventDetail> {
+    constructor() {
+        super("nimi.runtime.v1.AgentPresentationEventDetail", [
+            { no: 1, name: "family", kind: "enum", T: () => ["nimi.runtime.v1.AgentPresentationEventFamily", AgentPresentationEventFamily, "AGENT_PRESENTATION_EVENT_FAMILY_"] },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "activity_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "activity_category", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "activity_intensity", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "activity_source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "motion_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "motion_priority", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "motion_expected_duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 30, name: "expression_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 31, name: "expression_expected_duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 40, name: "pose_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 41, name: "pose_expected_duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 42, name: "previous_pose_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 50, name: "lookat_target_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 51, name: "lookat_x", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 52, name: "lookat_y", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 53, name: "lookat_z", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 54, name: "lookat_has_x", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 55, name: "lookat_has_y", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 56, name: "lookat_has_z", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentPresentationEventDetail>): AgentPresentationEventDetail {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.family = 0;
+        message.conversationAnchorId = "";
+        message.turnId = "";
+        message.streamId = "";
+        message.activityName = "";
+        message.activityCategory = "";
+        message.activityIntensity = "";
+        message.activitySource = "";
+        message.motionId = "";
+        message.motionPriority = "";
+        message.motionExpectedDurationMs = "0";
+        message.expressionId = "";
+        message.expressionExpectedDurationMs = "0";
+        message.poseId = "";
+        message.poseExpectedDurationMs = "0";
+        message.previousPoseId = "";
+        message.lookatTargetKind = "";
+        message.lookatX = 0;
+        message.lookatY = 0;
+        message.lookatZ = 0;
+        message.lookatHasX = false;
+        message.lookatHasY = false;
+        message.lookatHasZ = false;
+        if (value !== undefined)
+            reflectionMergePartial<AgentPresentationEventDetail>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentPresentationEventDetail): AgentPresentationEventDetail {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentPresentationEventFamily family */ 1:
+                    message.family = reader.int32();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string turn_id */ 3:
+                    message.turnId = reader.string();
+                    break;
+                case /* string stream_id */ 4:
+                    message.streamId = reader.string();
+                    break;
+                case /* string activity_name */ 10:
+                    message.activityName = reader.string();
+                    break;
+                case /* string activity_category */ 11:
+                    message.activityCategory = reader.string();
+                    break;
+                case /* string activity_intensity */ 12:
+                    message.activityIntensity = reader.string();
+                    break;
+                case /* string activity_source */ 13:
+                    message.activitySource = reader.string();
+                    break;
+                case /* string motion_id */ 20:
+                    message.motionId = reader.string();
+                    break;
+                case /* string motion_priority */ 21:
+                    message.motionPriority = reader.string();
+                    break;
+                case /* int64 motion_expected_duration_ms */ 22:
+                    message.motionExpectedDurationMs = reader.int64().toString();
+                    break;
+                case /* string expression_id */ 30:
+                    message.expressionId = reader.string();
+                    break;
+                case /* int64 expression_expected_duration_ms */ 31:
+                    message.expressionExpectedDurationMs = reader.int64().toString();
+                    break;
+                case /* string pose_id */ 40:
+                    message.poseId = reader.string();
+                    break;
+                case /* int64 pose_expected_duration_ms */ 41:
+                    message.poseExpectedDurationMs = reader.int64().toString();
+                    break;
+                case /* string previous_pose_id */ 42:
+                    message.previousPoseId = reader.string();
+                    break;
+                case /* string lookat_target_kind */ 50:
+                    message.lookatTargetKind = reader.string();
+                    break;
+                case /* double lookat_x */ 51:
+                    message.lookatX = reader.double();
+                    break;
+                case /* double lookat_y */ 52:
+                    message.lookatY = reader.double();
+                    break;
+                case /* double lookat_z */ 53:
+                    message.lookatZ = reader.double();
+                    break;
+                case /* bool lookat_has_x */ 54:
+                    message.lookatHasX = reader.bool();
+                    break;
+                case /* bool lookat_has_y */ 55:
+                    message.lookatHasY = reader.bool();
+                    break;
+                case /* bool lookat_has_z */ 56:
+                    message.lookatHasZ = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentPresentationEventDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentPresentationEventFamily family = 1; */
+        if (message.family !== 0)
+            writer.tag(1, WireType.Varint).int32(message.family);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string turn_id = 3; */
+        if (message.turnId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.turnId);
+        /* string stream_id = 4; */
+        if (message.streamId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.streamId);
+        /* string activity_name = 10; */
+        if (message.activityName !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.activityName);
+        /* string activity_category = 11; */
+        if (message.activityCategory !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.activityCategory);
+        /* string activity_intensity = 12; */
+        if (message.activityIntensity !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.activityIntensity);
+        /* string activity_source = 13; */
+        if (message.activitySource !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.activitySource);
+        /* string motion_id = 20; */
+        if (message.motionId !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.motionId);
+        /* string motion_priority = 21; */
+        if (message.motionPriority !== "")
+            writer.tag(21, WireType.LengthDelimited).string(message.motionPriority);
+        /* int64 motion_expected_duration_ms = 22; */
+        if (message.motionExpectedDurationMs !== "0")
+            writer.tag(22, WireType.Varint).int64(message.motionExpectedDurationMs);
+        /* string expression_id = 30; */
+        if (message.expressionId !== "")
+            writer.tag(30, WireType.LengthDelimited).string(message.expressionId);
+        /* int64 expression_expected_duration_ms = 31; */
+        if (message.expressionExpectedDurationMs !== "0")
+            writer.tag(31, WireType.Varint).int64(message.expressionExpectedDurationMs);
+        /* string pose_id = 40; */
+        if (message.poseId !== "")
+            writer.tag(40, WireType.LengthDelimited).string(message.poseId);
+        /* int64 pose_expected_duration_ms = 41; */
+        if (message.poseExpectedDurationMs !== "0")
+            writer.tag(41, WireType.Varint).int64(message.poseExpectedDurationMs);
+        /* string previous_pose_id = 42; */
+        if (message.previousPoseId !== "")
+            writer.tag(42, WireType.LengthDelimited).string(message.previousPoseId);
+        /* string lookat_target_kind = 50; */
+        if (message.lookatTargetKind !== "")
+            writer.tag(50, WireType.LengthDelimited).string(message.lookatTargetKind);
+        /* double lookat_x = 51; */
+        if (message.lookatX !== 0)
+            writer.tag(51, WireType.Bit64).double(message.lookatX);
+        /* double lookat_y = 52; */
+        if (message.lookatY !== 0)
+            writer.tag(52, WireType.Bit64).double(message.lookatY);
+        /* double lookat_z = 53; */
+        if (message.lookatZ !== 0)
+            writer.tag(53, WireType.Bit64).double(message.lookatZ);
+        /* bool lookat_has_x = 54; */
+        if (message.lookatHasX !== false)
+            writer.tag(54, WireType.Varint).bool(message.lookatHasX);
+        /* bool lookat_has_y = 55; */
+        if (message.lookatHasY !== false)
+            writer.tag(55, WireType.Varint).bool(message.lookatHasY);
+        /* bool lookat_has_z = 56; */
+        if (message.lookatHasZ !== false)
+            writer.tag(56, WireType.Varint).bool(message.lookatHasZ);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentPresentationEventDetail
+ */
+export const AgentPresentationEventDetail = new AgentPresentationEventDetail$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class AgentEvent$Type extends MessageType<AgentEvent> {
     constructor() {
         super("nimi.runtime.v1.AgentEvent", [
@@ -4400,7 +4032,9 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
             { no: 11, name: "hook", kind: "message", oneof: "detail", T: () => AgentHookEventDetail },
             { no: 12, name: "memory", kind: "message", oneof: "detail", T: () => AgentMemoryEventDetail },
             { no: 13, name: "budget", kind: "message", oneof: "detail", T: () => AgentBudgetEventDetail },
-            { no: 14, name: "replication", kind: "message", oneof: "detail", T: () => AgentReplicationEventDetail }
+            { no: 14, name: "replication", kind: "message", oneof: "detail", T: () => AgentReplicationEventDetail },
+            { no: 15, name: "state", kind: "message", oneof: "detail", T: () => AgentStateEventDetail },
+            { no: 16, name: "presentation", kind: "message", oneof: "detail", T: () => AgentPresentationEventDetail }
         ]);
     }
     create(value?: PartialMessage<AgentEvent>): AgentEvent {
@@ -4460,6 +4094,18 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
                         replication: AgentReplicationEventDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).replication)
                     };
                     break;
+                case /* nimi.runtime.v1.AgentStateEventDetail state */ 15:
+                    message.detail = {
+                        oneofKind: "state",
+                        state: AgentStateEventDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).state)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AgentPresentationEventDetail presentation */ 16:
+                    message.detail = {
+                        oneofKind: "presentation",
+                        presentation: AgentPresentationEventDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).presentation)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -4499,6 +4145,12 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
         /* nimi.runtime.v1.AgentReplicationEventDetail replication = 14; */
         if (message.detail.oneofKind === "replication")
             AgentReplicationEventDetail.internalBinaryWrite(message.detail.replication, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentStateEventDetail state = 15; */
+        if (message.detail.oneofKind === "state")
+            AgentStateEventDetail.internalBinaryWrite(message.detail.state, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentPresentationEventDetail presentation = 16; */
+        if (message.detail.oneofKind === "presentation")
+            AgentPresentationEventDetail.internalBinaryWrite(message.detail.presentation, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5515,8 +5167,8 @@ class ListPendingHooksRequest$Type extends MessageType<ListPendingHooksRequest> 
         super("nimi.runtime.v1.ListPendingHooksRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
             { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "trigger_filter", kind: "enum", T: () => ["nimi.runtime.v1.HookTriggerKind", HookTriggerKind, "HOOK_TRIGGER_KIND_"] },
-            { no: 4, name: "status_filter", kind: "enum", T: () => ["nimi.runtime.v1.AgentHookStatus", AgentHookStatus, "AGENT_HOOK_STATUS_"] },
+            { no: 3, name: "trigger_family_filter", kind: "enum", T: () => ["nimi.runtime.v1.HookTriggerFamily", HookTriggerFamily, "HOOK_TRIGGER_FAMILY_"] },
+            { no: 4, name: "admission_state_filter", kind: "enum", T: () => ["nimi.runtime.v1.HookAdmissionState", HookAdmissionState, "HOOK_ADMISSION_STATE_"] },
             { no: 5, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 6, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -5524,8 +5176,8 @@ class ListPendingHooksRequest$Type extends MessageType<ListPendingHooksRequest> 
     create(value?: PartialMessage<ListPendingHooksRequest>): ListPendingHooksRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.agentId = "";
-        message.triggerFilter = 0;
-        message.statusFilter = 0;
+        message.triggerFamilyFilter = 0;
+        message.admissionStateFilter = 0;
         message.pageSize = 0;
         message.pageToken = "";
         if (value !== undefined)
@@ -5543,11 +5195,11 @@ class ListPendingHooksRequest$Type extends MessageType<ListPendingHooksRequest> 
                 case /* string agent_id */ 2:
                     message.agentId = reader.string();
                     break;
-                case /* nimi.runtime.v1.HookTriggerKind trigger_filter */ 3:
-                    message.triggerFilter = reader.int32();
+                case /* nimi.runtime.v1.HookTriggerFamily trigger_family_filter */ 3:
+                    message.triggerFamilyFilter = reader.int32();
                     break;
-                case /* nimi.runtime.v1.AgentHookStatus status_filter */ 4:
-                    message.statusFilter = reader.int32();
+                case /* nimi.runtime.v1.HookAdmissionState admission_state_filter */ 4:
+                    message.admissionStateFilter = reader.int32();
                     break;
                 case /* int32 page_size */ 5:
                     message.pageSize = reader.int32();
@@ -5573,12 +5225,12 @@ class ListPendingHooksRequest$Type extends MessageType<ListPendingHooksRequest> 
         /* string agent_id = 2; */
         if (message.agentId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.agentId);
-        /* nimi.runtime.v1.HookTriggerKind trigger_filter = 3; */
-        if (message.triggerFilter !== 0)
-            writer.tag(3, WireType.Varint).int32(message.triggerFilter);
-        /* nimi.runtime.v1.AgentHookStatus status_filter = 4; */
-        if (message.statusFilter !== 0)
-            writer.tag(4, WireType.Varint).int32(message.statusFilter);
+        /* nimi.runtime.v1.HookTriggerFamily trigger_family_filter = 3; */
+        if (message.triggerFamilyFilter !== 0)
+            writer.tag(3, WireType.Varint).int32(message.triggerFamilyFilter);
+        /* nimi.runtime.v1.HookAdmissionState admission_state_filter = 4; */
+        if (message.admissionStateFilter !== 0)
+            writer.tag(4, WireType.Varint).int32(message.admissionStateFilter);
         /* int32 page_size = 5; */
         if (message.pageSize !== 0)
             writer.tag(5, WireType.Varint).int32(message.pageSize);
@@ -5656,14 +5308,14 @@ class CancelHookRequest$Type extends MessageType<CancelHookRequest> {
         super("nimi.runtime.v1.CancelHookRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
             { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "hook_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CancelHookRequest>): CancelHookRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.agentId = "";
-        message.hookId = "";
+        message.intentId = "";
         message.reason = "";
         if (value !== undefined)
             reflectionMergePartial<CancelHookRequest>(this, message, value);
@@ -5680,8 +5332,8 @@ class CancelHookRequest$Type extends MessageType<CancelHookRequest> {
                 case /* string agent_id */ 2:
                     message.agentId = reader.string();
                     break;
-                case /* string hook_id */ 3:
-                    message.hookId = reader.string();
+                case /* string intent_id */ 3:
+                    message.intentId = reader.string();
                     break;
                 case /* string reason */ 4:
                     message.reason = reader.string();
@@ -5704,9 +5356,9 @@ class CancelHookRequest$Type extends MessageType<CancelHookRequest> {
         /* string agent_id = 2; */
         if (message.agentId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.agentId);
-        /* string hook_id = 3; */
-        if (message.hookId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.hookId);
+        /* string intent_id = 3; */
+        if (message.intentId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.intentId);
         /* string reason = 4; */
         if (message.reason !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.reason);
@@ -6126,6 +5778,399 @@ class SubscribeAgentEventsRequest$Type extends MessageType<SubscribeAgentEventsR
  * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeAgentEventsRequest
  */
 export const SubscribeAgentEventsRequest = new SubscribeAgentEventsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConversationAnchor$Type extends MessageType<ConversationAnchor> {
+    constructor() {
+        super("nimi.runtime.v1.ConversationAnchor", [
+            { no: 1, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.ConversationAnchorStatus", ConversationAnchorStatus, "CONVERSATION_ANCHOR_STATUS_"] },
+            { no: 5, name: "last_turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "last_message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 8, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 9, name: "metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<ConversationAnchor>): ConversationAnchor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.conversationAnchorId = "";
+        message.agentId = "";
+        message.subjectUserId = "";
+        message.status = 0;
+        message.lastTurnId = "";
+        message.lastMessageId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ConversationAnchor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConversationAnchor): ConversationAnchor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string conversation_anchor_id */ 1:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string subject_user_id */ 3:
+                    message.subjectUserId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ConversationAnchorStatus status */ 4:
+                    message.status = reader.int32();
+                    break;
+                case /* string last_turn_id */ 5:
+                    message.lastTurnId = reader.string();
+                    break;
+                case /* string last_message_id */ 6:
+                    message.lastMessageId = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp created_at */ 7:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 8:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* google.protobuf.Struct metadata */ 9:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConversationAnchor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string conversation_anchor_id = 1; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string subject_user_id = 3; */
+        if (message.subjectUserId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.subjectUserId);
+        /* nimi.runtime.v1.ConversationAnchorStatus status = 4; */
+        if (message.status !== 0)
+            writer.tag(4, WireType.Varint).int32(message.status);
+        /* string last_turn_id = 5; */
+        if (message.lastTurnId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.lastTurnId);
+        /* string last_message_id = 6; */
+        if (message.lastMessageId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.lastMessageId);
+        /* google.protobuf.Timestamp created_at = 7; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 8; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct metadata = 9; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConversationAnchor
+ */
+export const ConversationAnchor = new ConversationAnchor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConversationAnchorSnapshot$Type extends MessageType<ConversationAnchorSnapshot> {
+    constructor() {
+        super("nimi.runtime.v1.ConversationAnchorSnapshot", [
+            { no: 1, name: "anchor", kind: "message", T: () => ConversationAnchor },
+            { no: 2, name: "active_turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "active_stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ConversationAnchorSnapshot>): ConversationAnchorSnapshot {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.activeTurnId = "";
+        message.activeStreamId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ConversationAnchorSnapshot>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConversationAnchorSnapshot): ConversationAnchorSnapshot {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ConversationAnchor anchor */ 1:
+                    message.anchor = ConversationAnchor.internalBinaryRead(reader, reader.uint32(), options, message.anchor);
+                    break;
+                case /* string active_turn_id */ 2:
+                    message.activeTurnId = reader.string();
+                    break;
+                case /* string active_stream_id */ 3:
+                    message.activeStreamId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConversationAnchorSnapshot, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ConversationAnchor anchor = 1; */
+        if (message.anchor)
+            ConversationAnchor.internalBinaryWrite(message.anchor, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string active_turn_id = 2; */
+        if (message.activeTurnId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.activeTurnId);
+        /* string active_stream_id = 3; */
+        if (message.activeStreamId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.activeStreamId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConversationAnchorSnapshot
+ */
+export const ConversationAnchorSnapshot = new ConversationAnchorSnapshot$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenConversationAnchorRequest$Type extends MessageType<OpenConversationAnchorRequest> {
+    constructor() {
+        super("nimi.runtime.v1.OpenConversationAnchorRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<OpenConversationAnchorRequest>): OpenConversationAnchorRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.subjectUserId = "";
+        if (value !== undefined)
+            reflectionMergePartial<OpenConversationAnchorRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenConversationAnchorRequest): OpenConversationAnchorRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string subject_user_id */ 3:
+                    message.subjectUserId = reader.string();
+                    break;
+                case /* google.protobuf.Struct metadata */ 4:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenConversationAnchorRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string subject_user_id = 3; */
+        if (message.subjectUserId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.subjectUserId);
+        /* google.protobuf.Struct metadata = 4; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenConversationAnchorRequest
+ */
+export const OpenConversationAnchorRequest = new OpenConversationAnchorRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenConversationAnchorResponse$Type extends MessageType<OpenConversationAnchorResponse> {
+    constructor() {
+        super("nimi.runtime.v1.OpenConversationAnchorResponse", [
+            { no: 1, name: "snapshot", kind: "message", T: () => ConversationAnchorSnapshot }
+        ]);
+    }
+    create(value?: PartialMessage<OpenConversationAnchorResponse>): OpenConversationAnchorResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<OpenConversationAnchorResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenConversationAnchorResponse): OpenConversationAnchorResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ConversationAnchorSnapshot snapshot */ 1:
+                    message.snapshot = ConversationAnchorSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenConversationAnchorResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ConversationAnchorSnapshot snapshot = 1; */
+        if (message.snapshot)
+            ConversationAnchorSnapshot.internalBinaryWrite(message.snapshot, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenConversationAnchorResponse
+ */
+export const OpenConversationAnchorResponse = new OpenConversationAnchorResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetConversationAnchorSnapshotRequest$Type extends MessageType<GetConversationAnchorSnapshotRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetConversationAnchorSnapshotRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetConversationAnchorSnapshotRequest>): GetConversationAnchorSnapshotRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetConversationAnchorSnapshotRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetConversationAnchorSnapshotRequest): GetConversationAnchorSnapshotRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetConversationAnchorSnapshotRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetConversationAnchorSnapshotRequest
+ */
+export const GetConversationAnchorSnapshotRequest = new GetConversationAnchorSnapshotRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetConversationAnchorSnapshotResponse$Type extends MessageType<GetConversationAnchorSnapshotResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetConversationAnchorSnapshotResponse", [
+            { no: 1, name: "snapshot", kind: "message", T: () => ConversationAnchorSnapshot }
+        ]);
+    }
+    create(value?: PartialMessage<GetConversationAnchorSnapshotResponse>): GetConversationAnchorSnapshotResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetConversationAnchorSnapshotResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetConversationAnchorSnapshotResponse): GetConversationAnchorSnapshotResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ConversationAnchorSnapshot snapshot */ 1:
+                    message.snapshot = ConversationAnchorSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetConversationAnchorSnapshotResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ConversationAnchorSnapshot snapshot = 1; */
+        if (message.snapshot)
+            ConversationAnchorSnapshot.internalBinaryWrite(message.snapshot, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetConversationAnchorSnapshotResponse
+ */
+export const GetConversationAnchorSnapshotResponse = new GetConversationAnchorSnapshotResponse$Type();
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeAgentService
  */
@@ -6134,6 +6179,8 @@ export const RuntimeAgentService = new ServiceType("nimi.runtime.v1.RuntimeAgent
     { name: "TerminateAgent", options: {}, I: TerminateAgentRequest, O: TerminateAgentResponse },
     { name: "GetAgent", options: {}, I: GetAgentRequest, O: GetAgentResponse },
     { name: "ListAgents", options: {}, I: ListAgentsRequest, O: ListAgentsResponse },
+    { name: "OpenConversationAnchor", options: {}, I: OpenConversationAnchorRequest, O: OpenConversationAnchorResponse },
+    { name: "GetConversationAnchorSnapshot", options: {}, I: GetConversationAnchorSnapshotRequest, O: GetConversationAnchorSnapshotResponse },
     { name: "GetAgentState", options: {}, I: GetAgentStateRequest, O: GetAgentStateResponse },
     { name: "UpdateAgentState", options: {}, I: UpdateAgentStateRequest, O: UpdateAgentStateResponse },
     { name: "EnableAutonomy", options: {}, I: EnableAutonomyRequest, O: EnableAutonomyResponse },

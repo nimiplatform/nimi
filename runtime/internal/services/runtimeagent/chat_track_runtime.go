@@ -103,7 +103,7 @@ func (c chatTrackRuntime) applySidecar(ctx context.Context, agentID string, sour
 		return nil, err
 	}
 	if result.NextHookIntent != nil {
-		if err := validateNextHookIntent(result.NextHookIntent); err != nil {
+		if err := validateHookIntent(result.NextHookIntent); err != nil {
 			return nil, err
 		}
 	}
@@ -125,53 +125,63 @@ func (c chatTrackRuntime) applySidecar(ctx context.Context, agentID string, sour
 			accepted = append(accepted, view)
 		}
 	}
+	// Sidecar state linkage must be proven from committed runtime chat truth.
+	// Arbitrary source_event_id must not be fabricated into
+	// originating_turn_id when no unique committed turn provenance exists.
+	postureOrigin := c.svc.resolveCommittedChatTurnOrigin(entry.Agent.GetAgentId(), sourceEventID)
+	events := make([]*runtimev1.AgentEvent, 0, len(cancelHookIDs)+6)
 	if posture != nil {
-		if err := c.svc.PutBehavioralPosture(ctx, *posture); err != nil {
+		stateEvents, err := c.svc.applyBehavioralPostureUpdate(ctx, entry, *posture, postureOrigin, now)
+		if err != nil {
 			return nil, err
 		}
 		entry.State.StatusText = posture.StatusText
 		entry.State.UpdatedAt = timestamppb.New(now)
+		events = append(events, stateEvents...)
 	}
-
-	events := make([]*runtimev1.AgentEvent, 0, len(cancelHookIDs)+2)
 	scheduledHookID := ""
 	for _, hookID := range cancelHookIDs {
 		hook := entry.Hooks[hookID]
-		hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED
+		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED
 		events = append(events, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
-			HookId:     hookID,
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED,
-			Trigger:    cloneTriggerDetail(hook.GetTrigger()),
+			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(now),
-			Detail: &runtimev1.HookExecutionOutcome_Canceled{
-				Canceled: &runtimev1.HookCanceledDetail{
-					CanceledBy: "chat_sidecar",
-					Reason:     "chat sidecar",
-				},
-			},
+			Reason:     "chat sidecar",
+			Message:    "chat_sidecar",
 		}, now))
 	}
 	if result.NextHookIntent != nil {
-		scheduledFor, err := scheduledTimeFromIntent(result.NextHookIntent, now)
+		scheduledFor, err := resolveHookScheduledFor(result.NextHookIntent, now)
 		if err != nil {
 			return nil, err
 		}
+		followupIntent := cloneHookIntent(result.NextHookIntent)
+		if strings.TrimSpace(followupIntent.GetAgentId()) == "" {
+			followupIntent.AgentId = entry.Agent.GetAgentId()
+		}
+		if strings.TrimSpace(followupIntent.GetIntentId()) == "" {
+			followupIntent.IntentId = "hook_" + ulid.Make().String()
+		}
+		followupIntent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING
 		followup := &runtimev1.PendingHook{
-			HookId:       "hook_" + ulid.Make().String(),
-			Status:       runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
-			Trigger:      triggerDetailFromIntent(result.NextHookIntent),
-			NextIntent:   cloneNextHookIntent(result.NextHookIntent),
+			Intent:       followupIntent,
 			ScheduledFor: timestamppb.New(scheduledFor),
 			AdmittedAt:   timestamppb.New(now),
 		}
-		entry.Hooks[followup.GetHookId()] = followup
-		events = append(events, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
-			HookId:     followup.GetHookId(),
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
-			Trigger:    cloneTriggerDetail(followup.GetTrigger()),
-			ObservedAt: timestamppb.New(now),
-		}, now))
-		scheduledHookID = followup.GetHookId()
+		entry.Hooks[followupIntent.GetIntentId()] = followup
+		proposedFollowup := cloneHookIntent(followupIntent)
+		proposedFollowup.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
+		events = append(events,
+			hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+				Intent:     proposedFollowup,
+				ObservedAt: timestamppb.New(now),
+			}, now),
+			hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+				Intent:     cloneHookIntent(followupIntent),
+				ObservedAt: timestamppb.New(now),
+			}, now),
+		)
+		scheduledHookID = followupIntent.GetIntentId()
 	}
 	if len(accepted) > 0 {
 		events = append(events, c.svc.newEventAt(entry.Agent.GetAgentId(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY, &runtimev1.AgentEvent_Memory{

@@ -7,6 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -41,6 +42,7 @@ type publicChatTurnProjectionState struct {
 	FollowUp          *publicChatFollowUpOutcome
 	FinishReason      string
 	StreamSimulated   bool
+	Usage             *runtimev1.UsageStats
 	ReasonCode        runtimev1.ReasonCode
 	ActionHint        string
 	Message           string
@@ -73,6 +75,9 @@ func clonePublicChatTurnProjectionState(input *publicChatTurnProjectionState) *p
 	out.AssistantMemory = clonePublicChatAssistantMemoryOutcome(input.AssistantMemory)
 	out.Sidecar = clonePublicChatSidecarOutcome(input.Sidecar)
 	out.FollowUp = clonePublicChatFollowUpOutcome(input.FollowUp)
+	if input.Usage != nil {
+		out.Usage = proto.Clone(input.Usage).(*runtimev1.UsageStats)
+	}
 	return &out
 }
 
@@ -133,6 +138,9 @@ func (p *publicChatTurnProjectionState) payload() map[string]any {
 	if p.StreamSimulated {
 		out["stream_simulated"] = true
 	}
+	if p.Usage != nil {
+		out["usage"] = usagePayload(p.Usage)
+	}
 	if p.ReasonCode != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		out["reason_code"] = publicChatReasonCodeLabel(p.ReasonCode)
 	}
@@ -191,7 +199,7 @@ func (s *Service) mutatePublicChatTurnProjection(turnID string, persist bool, mu
 		mutate(projection)
 	}
 	projection.UpdatedAt = time.Now().UTC()
-	if session := s.chatSessions[turn.SessionID]; session != nil {
+	if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil {
 		session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(projection)
 	}
 	out := clonePublicChatTurnProjectionState(projection)
@@ -222,9 +230,14 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 	}
 	projection.UpdatedAt = time.Now().UTC()
 	out := clonePublicChatTurnProjectionState(projection)
-	if session := s.chatSessions[turn.SessionID]; session != nil {
+	if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil {
 		session.ActiveTurnSnapshot = nil
 		session.LastTurnSnapshot = clonePublicChatTurnProjectionState(projection)
+		if strings.TrimSpace(projection.MessageID) != "" {
+			session.LastMessageID = strings.TrimSpace(projection.MessageID)
+		}
+		session.LastTurnID = trimmedTurnID
+		session.UpdatedAt = time.Now().UTC()
 	}
 	s.chatSurfaceMu.Unlock()
 	if persist {
@@ -233,19 +246,24 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 	return out
 }
 
-func (s *Service) snapshotPublicChatSessionForCaller(callerAppID string, sessionID string) (publicChatSessionState, *publicChatTurnProjectionState, *publicChatTurnProjectionState, *publicChatFollowUpState, error) {
-	trimmedSessionID := strings.TrimSpace(sessionID)
-	if strings.TrimSpace(callerAppID) == "" || trimmedSessionID == "" {
-		return publicChatSessionState{}, nil, nil, nil, status.Error(codes.InvalidArgument, "public chat session snapshot requires caller app and session id")
+// snapshotPublicChatAnchorForCaller returns an anchor snapshot for a given
+// caller. Per K-AGCORE-034 the lookup key is `conversation_anchor_id` (the
+// only admitted cross-surface continuity scope). Late-join surfaces recover
+// continuity through this anchor-native snapshot, not through app-local
+// history replay.
+func (s *Service) snapshotPublicChatAnchorForCaller(callerAppID string, anchorID string) (publicChatAnchorState, *publicChatTurnProjectionState, *publicChatTurnProjectionState, *publicChatFollowUpState, error) {
+	trimmedAnchorID := strings.TrimSpace(anchorID)
+	if strings.TrimSpace(callerAppID) == "" || trimmedAnchorID == "" {
+		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.InvalidArgument, "public chat anchor snapshot requires caller app and conversation_anchor_id")
 	}
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
-	session := s.chatSessions[trimmedSessionID]
+	session := s.chatAnchors[trimmedAnchorID]
 	if session == nil {
-		return publicChatSessionState{}, nil, nil, nil, status.Error(codes.NotFound, "public chat session not found")
+		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.NotFound, "conversation anchor not found")
 	}
 	if session.CallerAppID != strings.TrimSpace(callerAppID) {
-		return publicChatSessionState{}, nil, nil, nil, status.Error(codes.PermissionDenied, "public chat session caller mismatch")
+		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
 	}
 	snapshot := *session
 	snapshot.Reasoning = clonePublicChatReasoningConfig(session.Reasoning)

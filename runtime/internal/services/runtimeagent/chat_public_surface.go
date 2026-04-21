@@ -17,23 +17,32 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// K-AGCORE-032 reactive chat consume seam constants.
+// Primary carrier names are the mounted runtime.agent.turn.* /
+// runtime.agent.session.* families only. The retired agent.chat.*.v1 names
+// are not admitted anywhere in the primary runtime path; no parallel runtime
+// event family is minted under the reserved runtime.agent app target by this
+// exec pack. Follow-up cancellation remains internal runtime bookkeeping and
+// surfaces only through the admitted session_envelope projection
+// (`session.snapshot.last_turn.follow_up.status`). No stealth
+// `runtime.agent.follow_up.*` public family is emitted.
 const (
 	publicChatRuntimeAppID                     = "runtime.agent"
-	publicChatTurnRequestType                  = "agent.chat.turn.request.v1"
-	publicChatTurnInterruptType                = "agent.chat.turn.interrupt.v1"
-	publicChatSessionSnapshotRequestType       = "agent.chat.session.snapshot.request.v1"
-	publicChatTurnAcceptedType                 = "agent.chat.turn.accepted.v1"
-	publicChatTurnStartedType                  = "agent.chat.turn.started.v1"
-	publicChatTurnTextDeltaType                = "agent.chat.turn.text_delta.v1"
-	publicChatTurnReasoningDeltaType           = "agent.chat.turn.reasoning_delta.v1"
-	publicChatTurnStructuredType               = "agent.chat.turn.structured.v1"
-	publicChatTurnPostTurnType                 = "agent.chat.turn.post_turn.v1"
-	publicChatTurnCompletedType                = "agent.chat.turn.completed.v1"
-	publicChatTurnFailedType                   = "agent.chat.turn.failed.v1"
-	publicChatTurnInterruptedType              = "agent.chat.turn.interrupted.v1"
-	publicChatTurnInterruptAckType             = "agent.chat.turn.interrupt_ack.v1"
-	publicChatSessionSnapshotType              = "agent.chat.session.snapshot.v1"
-	publicChatFollowUpCanceledType             = "agent.chat.follow_up.canceled.v1"
+	publicChatTurnRequestType                  = "runtime.agent.turn.request"
+	publicChatTurnInterruptType                = "runtime.agent.turn.interrupt"
+	publicChatSessionSnapshotRequestType       = "runtime.agent.session.snapshot.request"
+	publicChatTurnAcceptedType                 = "runtime.agent.turn.accepted"
+	publicChatTurnStartedType                  = "runtime.agent.turn.started"
+	publicChatTurnTextDeltaType                = "runtime.agent.turn.text_delta"
+	publicChatTurnReasoningDeltaType           = "runtime.agent.turn.reasoning_delta"
+	publicChatTurnStructuredType               = "runtime.agent.turn.structured"
+	publicChatTurnMessageCommittedType         = "runtime.agent.turn.message_committed"
+	publicChatTurnPostTurnType                 = "runtime.agent.turn.post_turn"
+	publicChatTurnCompletedType                = "runtime.agent.turn.completed"
+	publicChatTurnFailedType                   = "runtime.agent.turn.failed"
+	publicChatTurnInterruptedType              = "runtime.agent.turn.interrupted"
+	publicChatTurnInterruptAckType             = "runtime.agent.turn.interrupt_ack"
+	publicChatSessionSnapshotType              = "runtime.agent.session.snapshot"
 	publicChatAssistantMemorySource            = "runtime.agent.chat"
 	publicChatAssistantMemoryPolicy            = "runtime_agent_chat_assistant_turn"
 	publicChatDefaultTurnTimeoutMs       int32 = 120_000
@@ -46,6 +55,12 @@ const (
 	publicChatTurnOriginUser     = "user"
 	publicChatTurnOriginFollowUp = "follow_up"
 )
+
+// publicChatTurnTrackLabel pins the `runtime.agent.turn.started.detail.track`
+// value for the public chat reactive surface to the chat track per yaml
+// `turn.started.detail.track: enum(chat|life)`. The life track surface
+// emits its own `runtime.agent.turn.started` with `track="life"`.
+const publicChatTurnTrackLabel = "chat"
 
 type publicChatAppMessageEmitter func(context.Context, *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error)
 
@@ -61,26 +76,48 @@ type publicChatReasoningConfig struct {
 	BudgetTokens int32
 }
 
-type publicChatSessionState struct {
-	SessionID          string
-	AgentID            string
-	CallerAppID        string
-	SubjectUserID      string
-	ThreadID           string
-	Binding            publicChatExecutionBinding
-	ActiveTurnID       string
-	SystemPrompt       string
-	MaxTokens          int32
-	Reasoning          *publicChatReasoningConfig
-	Transcript         []*runtimev1.ChatMessage
-	ActiveTurnSnapshot *publicChatTurnProjectionState
-	LastTurnSnapshot   *publicChatTurnProjectionState
-	PendingFollowUpID  string
+// publicChatAnchorState is the runtime-owned ConversationAnchor continuity
+// state per K-AGCORE-034. It is keyed by `conversation_anchor_id` only;
+// `agent_id` is agent identity scope, not continuity scope.
+// `subject_user_id` is captured at anchor-open time and is runtime truth.
+// ActiveTurn / LastTurn remain anchor-scoped per K-AGCORE-035.
+type publicChatAnchorState struct {
+	ConversationAnchorID string
+	AgentID              string
+	CallerAppID          string
+	SubjectUserID        string
+	ThreadID             string
+	Binding              publicChatExecutionBinding
+	ActiveTurnID         string
+	SystemPrompt         string
+	MaxTokens            int32
+	Reasoning            *publicChatReasoningConfig
+	Transcript           []*runtimev1.ChatMessage
+	ActiveTurnSnapshot   *publicChatTurnProjectionState
+	LastTurnSnapshot     *publicChatTurnProjectionState
+	PendingFollowUpID    string
+	Status               runtimev1.ConversationAnchorStatus
+	LastTurnID           string
+	LastMessageID        string
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
 }
 
 type publicChatTurnState struct {
-	SessionID        string
-	TurnID           string
+	ConversationAnchorID string
+	TurnID               string
+	// StreamID identifies the owned foreground presentation/turn stream per
+	// K-AGCORE-030. One turn may own multiple stream units; this field is
+	// the primary admitted foreground stream for the reactive chat path and
+	// is allocated distinctly from `turn_id` so consumers can distinguish
+	// turn identity from stream identity without fabrication.
+	StreamID string
+	// RequestID identifies the upstream `runtime.agent.turn.request` (or the
+	// internal follow-up) that opened this turn. It surfaces only on
+	// `runtime.agent.turn.accepted.detail.request_id` per yaml
+	// `accepted.detail.request_id`; runtime carrier execution truth (trace
+	// id, model resolved, etc.) does not live on turn projection events.
+	RequestID        string
 	AgentID          string
 	CallerAppID      string
 	SubjectUserID    string
@@ -117,27 +154,32 @@ type publicChatReasoningPayload struct {
 	BudgetTokens int32  `json:"budget_tokens,omitempty"`
 }
 
+// publicChatTurnRequestPayload is the mounted `runtime.agent.turn.request`
+// ingress payload per K-AGCORE-032 / K-AGCORE-034. `conversation_anchor_id`
+// is required; hosts must obtain it through `OpenConversationAnchor` or
+// `GetConversationAnchorSnapshot` before turn request. Runtime rejects
+// requests that reference a non-existent anchor (no implicit creation).
 type publicChatTurnRequestPayload struct {
-	AgentID          string                             `json:"agent_id"`
-	SessionID        string                             `json:"session_id,omitempty"`
-	ThreadID         string                             `json:"thread_id,omitempty"`
-	SystemPrompt     string                             `json:"system_prompt,omitempty"`
-	WorldID          string                             `json:"world_id,omitempty"`
-	MaxOutputTokens  int32                              `json:"max_output_tokens,omitempty"`
-	Messages         []publicChatMessagePayload         `json:"messages"`
-	ExecutionBinding *publicChatExecutionBindingPayload `json:"execution_binding,omitempty"`
-	Reasoning        *publicChatReasoningPayload        `json:"reasoning,omitempty"`
+	AgentID              string                             `json:"agent_id"`
+	ConversationAnchorID string                             `json:"conversation_anchor_id"`
+	ThreadID             string                             `json:"thread_id,omitempty"`
+	SystemPrompt         string                             `json:"system_prompt,omitempty"`
+	WorldID              string                             `json:"world_id,omitempty"`
+	MaxOutputTokens      int32                              `json:"max_output_tokens,omitempty"`
+	Messages             []publicChatMessagePayload         `json:"messages"`
+	ExecutionBinding     *publicChatExecutionBindingPayload `json:"execution_binding,omitempty"`
+	Reasoning            *publicChatReasoningPayload        `json:"reasoning,omitempty"`
 }
 
 type publicChatTurnInterruptPayload struct {
-	SessionID string `json:"session_id"`
-	TurnID    string `json:"turn_id,omitempty"`
-	Reason    string `json:"reason,omitempty"`
+	ConversationAnchorID string `json:"conversation_anchor_id"`
+	TurnID               string `json:"turn_id,omitempty"`
+	Reason               string `json:"reason,omitempty"`
 }
 
 type publicChatSessionSnapshotRequestPayload struct {
-	SessionID string `json:"session_id"`
-	RequestID string `json:"request_id,omitempty"`
+	ConversationAnchorID string `json:"conversation_anchor_id"`
+	RequestID            string `json:"request_id,omitempty"`
 }
 
 type PublicChatTurnExecutionRequest struct {
@@ -351,7 +393,7 @@ func (s *Service) handlePublicChatSessionSnapshotRequest(
 
 func (s *Service) runPublicChatTurn(
 	ctx context.Context,
-	session publicChatSessionState,
+	session publicChatAnchorState,
 	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
 ) {
@@ -363,7 +405,7 @@ func (s *Service) reservePublicChatTurn(
 	callerAppID string,
 	subjectUserID string,
 	req publicChatTurnRequestPayload,
-) (publicChatSessionState, publicChatTurnState, context.Context, error) {
+) (publicChatAnchorState, publicChatTurnState, context.Context, error) {
 	return s.publicChatRuntime().reserveTurn(parent, callerAppID, subjectUserID, req)
 }
 
@@ -374,7 +416,7 @@ func (s *Service) releasePublicChatTurn(sessionID string, turnID string) {
 func (s *Service) lookupPublicChatTurnForInterrupt(
 	callerAppID string,
 	req publicChatTurnInterruptPayload,
-) (publicChatSessionState, publicChatTurnState, error) {
+) (publicChatAnchorState, publicChatTurnState, error) {
 	return s.publicChatRuntime().lookupTurnForInterrupt(callerAppID, req)
 }
 
@@ -398,11 +440,25 @@ func (s *Service) nextPublicChatStreamSequence(turnID string) uint64 {
 	turn.StreamSequence++
 	if turn.Projection != nil {
 		turn.Projection.StreamSequence = turn.StreamSequence
-		if session := s.chatSessions[turn.SessionID]; session != nil && session.ActiveTurnSnapshot != nil {
+		if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil && session.ActiveTurnSnapshot != nil {
 			session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
 		}
 	}
 	return turn.StreamSequence
+}
+
+// publicChatTurnStreamID returns the runtime-owned foreground stream id for
+// the given turn. Per K-AGCORE-030 stream identity is distinct from turn
+// identity; per K-AGCORE-037 `runtime.agent.turn.*` and
+// `runtime.agent.presentation.*` envelopes require real `stream_id`.
+func (s *Service) publicChatTurnStreamID(turnID string) string {
+	s.chatSurfaceMu.Lock()
+	defer s.chatSurfaceMu.Unlock()
+	turn := s.chatTurns[strings.TrimSpace(turnID)]
+	if turn == nil {
+		return ""
+	}
+	return strings.TrimSpace(turn.StreamID)
 }
 
 func (s *Service) recordPublicChatTraceID(turnID string, traceID string) {
@@ -416,7 +472,7 @@ func (s *Service) recordPublicChatTraceID(turnID string, traceID string) {
 		if turn.Projection != nil {
 			turn.Projection.TraceID = strings.TrimSpace(traceID)
 			turn.Projection.UpdatedAt = time.Now().UTC()
-			if session := s.chatSessions[turn.SessionID]; session != nil {
+			if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil {
 				session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
 			}
 		}
@@ -432,8 +488,18 @@ func (s *Service) setPublicChatExecutionState(
 	return s.publicChatRuntime().setExecutionState(agentID, subjectUserID, worldID, state)
 }
 
+func (s *Service) setPublicChatExecutionStateWithOrigin(
+	agentID string,
+	subjectUserID string,
+	worldID string,
+	state runtimev1.AgentExecutionState,
+	origin stateEventOrigin,
+) error {
+	return s.publicChatRuntime().setExecutionStateWithOrigin(agentID, subjectUserID, worldID, state, origin)
+}
+
 func (s *Service) emitPublicChatTurnInterrupted(
-	session publicChatSessionState,
+	session publicChatAnchorState,
 	turn publicChatTurnState,
 	traceID string,
 	modelResolved string,
@@ -444,7 +510,7 @@ func (s *Service) emitPublicChatTurnInterrupted(
 }
 
 func (s *Service) emitPublicChatTurnFailed(
-	session publicChatSessionState,
+	session publicChatAnchorState,
 	turn publicChatTurnState,
 	traceID string,
 	modelResolved string,
@@ -457,7 +523,7 @@ func (s *Service) emitPublicChatTurnFailed(
 }
 
 func (s *Service) emitPublicChatTurnEvent(
-	session publicChatSessionState,
+	session publicChatAnchorState,
 	turnID string,
 	messageType string,
 	payload map[string]any,
@@ -480,7 +546,7 @@ func (s *Service) shutdownPublicChatSurface() {
 
 func (s *Service) applyPublicChatPostTurn(
 	ctx context.Context,
-	session publicChatSessionState,
+	session publicChatAnchorState,
 	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
 	structured *publicChatStructuredEnvelope,
@@ -490,7 +556,7 @@ func (s *Service) applyPublicChatPostTurn(
 
 func (s *Service) applyPublicChatAssistantTurnMemory(
 	ctx context.Context,
-	session publicChatSessionState,
+	session publicChatAnchorState,
 	turn publicChatTurnState,
 	assistantText string,
 ) publicChatAssistantMemoryOutcome {
@@ -596,8 +662,8 @@ func decodePublicChatTurnInterruptPayload(payload any) (publicChatTurnInterruptP
 		}
 		return publicChatTurnInterruptPayload{}, status.Error(codes.InvalidArgument, "public chat interrupt payload invalid")
 	}
-	if strings.TrimSpace(decoded.SessionID) == "" {
-		return publicChatTurnInterruptPayload{}, status.Error(codes.InvalidArgument, "public chat interrupt payload requires session_id")
+	if strings.TrimSpace(decoded.ConversationAnchorID) == "" {
+		return publicChatTurnInterruptPayload{}, status.Error(codes.InvalidArgument, "public chat interrupt payload requires conversation_anchor_id")
 	}
 	return decoded, nil
 }
@@ -620,8 +686,8 @@ func decodePublicChatSessionSnapshotRequestPayload(payload any) (publicChatSessi
 		}
 		return publicChatSessionSnapshotRequestPayload{}, status.Error(codes.InvalidArgument, "public chat session snapshot payload invalid")
 	}
-	if strings.TrimSpace(decoded.SessionID) == "" {
-		return publicChatSessionSnapshotRequestPayload{}, status.Error(codes.InvalidArgument, "public chat session snapshot payload requires session_id")
+	if strings.TrimSpace(decoded.ConversationAnchorID) == "" {
+		return publicChatSessionSnapshotRequestPayload{}, status.Error(codes.InvalidArgument, "public chat session snapshot payload requires conversation_anchor_id")
 	}
 	return decoded, nil
 }

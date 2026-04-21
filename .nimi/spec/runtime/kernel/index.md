@@ -53,7 +53,7 @@
 | `runtime-memory-service-contract.md` | `K-MEM-*` | Runtime-owned memory substrate、bank scope、provider boundary、Realm replication |
 | `runtime-memory-substrate-contract.md` | `K-MEMSUB-*` | Runtime-private local memory substrate / Hindsight bridge、health、daemon boundary、runtime-owned typed overlay |
 | `runtime-agent-service-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、conversation continuity、agent memory policy |
-| `agent-conversation-anchor-contract.md` | `K-AGCORE-*` | Runtime-owned `ConversationAnchor` continuity truth for single-agent multi-surface chat/session sharing |
+| `agent-conversation-anchor-contract.md` | `K-AGCORE-*` | Runtime-owned `ConversationAnchor` continuity truth for per-agent multi-surface chat/session sharing inside a multi-agent runtime |
 | `agent-presentation-contract.md` | `K-AGCORE-*` | Runtime-owned persistent `AgentPresentationProfile` truth、default avatar binding、and non-owner boundary for renderer-local state |
 | `agent-presentation-stream-contract.md` | `K-AGCORE-*` | Runtime-owned transient `turn` / `presentation` projection seam、current emotion projection、and stream commit semantics |
 | `agent-hook-intent-contract.md` | `K-AGCORE-*` | Runtime-owned narrow-admit `HookIntent` truth、admission states、and event seam |
@@ -105,6 +105,7 @@
 - `tables/runtime-memory-hook-trigger.yaml`
 - `tables/runtime-memory-replication-outcome.yaml`
 - `tables/runtime-agent-service-typed-family.yaml`
+- `tables/runtime-agent-event-projection.yaml`
 - `tables/runtime-delivery-gates.yaml`
 - `tables/runtime-proto-governance-gates.yaml`
 - `tables/capability-vocabulary-mapping.yaml`

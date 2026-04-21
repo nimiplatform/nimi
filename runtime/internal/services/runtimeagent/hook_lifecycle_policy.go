@@ -16,6 +16,15 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// K-AGCORE-041 / K-AGCORE-043 narrow-admission vocabulary.
+// Admitted trigger matrix is:
+//   - time(delay)        family = TIME
+//   - event(user_idle)   family = EVENT, event_user_idle detail
+//   - event(chat_ended)  family = EVENT, event_chat_ended detail
+// Admitted effect is: follow-up-turn.
+// No absolute scheduled time, turn_completed, state_condition, world_event,
+// or compound trigger is admitted. No cadence-interaction blob is admitted.
+
 const (
 	autonomyCadenceHookReason       = "runtime.autonomy.cadence_tick"
 	autonomyCadenceHookCancelReason = "runtime autonomy cadence reconciliation"
@@ -27,28 +36,30 @@ type resolvedCadencePolicy struct {
 	minSpacing time.Duration
 }
 
+// normalizePendingHook validates and commits a fresh PendingHook carrying a
+// `pending` HookIntent. Caller supplies the HookIntent; runtime stamps
+// scheduled_for from the TIME trigger detail (or leaves zero for EVENT
+// family, since event-driven hooks are not driven by scheduled_for).
 func normalizePendingHook(input *runtimev1.PendingHook, now time.Time) (*runtimev1.PendingHook, error) {
-	if input == nil || strings.TrimSpace(input.GetHookId()) == "" || input.GetTrigger() == nil || input.GetNextIntent() == nil {
+	if input == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if err := validateHookTriggerDetail(input.GetTrigger()); err != nil {
-		return nil, err
-	}
-	if err := validateNextHookIntent(input.GetNextIntent()); err != nil {
-		return nil, err
-	}
-	if input.GetTrigger().GetTriggerKind() != input.GetNextIntent().GetTriggerKind() {
+	intent := input.GetIntent()
+	if intent == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	scheduledFor, err := resolveScheduledFor(input, now)
+	if err := validateHookIntent(intent); err != nil {
+		return nil, err
+	}
+	scheduledFor, err := resolveHookScheduledFor(intent, now)
 	if err != nil {
 		return nil, err
 	}
-	hook := clonePendingHook(input)
-	hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING
-	hook.Trigger = cloneTriggerDetail(input.GetTrigger())
-	hook.NextIntent = cloneNextHookIntent(input.GetNextIntent())
-	hook.ScheduledFor = timestamppb.New(scheduledFor)
+	hook := &runtimev1.PendingHook{
+		Intent:       cloneHookIntent(intent),
+		ScheduledFor: timestamppb.New(scheduledFor),
+	}
+	hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING
 	if input.GetAdmittedAt() == nil {
 		hook.AdmittedAt = timestamppb.New(now)
 	} else {
@@ -57,144 +68,91 @@ func normalizePendingHook(input *runtimev1.PendingHook, now time.Time) (*runtime
 	return hook, nil
 }
 
-func resolveScheduledFor(hook *runtimev1.PendingHook, now time.Time) (time.Time, error) {
-	_ = now
-	intent := hook.GetNextIntent()
-	if intent == nil {
+// resolveHookScheduledFor computes admitted scheduler truth from a HookIntent.
+// TIME family: now + delay (also respecting intent.not_before if set later).
+// EVENT family: returns zero time — event hooks are not driven by
+// scheduled_for; they fire on the admitted event detail matching.
+func resolveHookScheduledFor(intent *runtimev1.HookIntent, now time.Time) (time.Time, error) {
+	if intent == nil || intent.GetTriggerDetail() == nil {
 		return time.Time{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	var scheduled time.Time
-	switch intent.GetTriggerKind() {
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME:
-		detail := intent.GetScheduledTime()
-		if detail == nil || detail.GetScheduledFor() == nil {
+	switch intent.GetTriggerFamily() {
+	case runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME:
+		detail := intent.GetTriggerDetail().GetTime()
+		if detail == nil || detail.GetDelay() == nil {
 			return time.Time{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-		scheduled = detail.GetScheduledFor().AsTime()
+		delay := detail.GetDelay().AsDuration()
+		if delay < 0 {
+			return time.Time{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		scheduled := now.Add(delay)
+		if intent.GetNotBefore() != nil {
+			nb := intent.GetNotBefore().AsTime()
+			if nb.After(scheduled) {
+				scheduled = nb
+			}
+		}
+		return scheduled.UTC(), nil
+	case runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_EVENT:
+		// Event-driven hooks do not carry scheduled_for; they fire on
+		// admitted event matching (user_idle / chat_ended). Return zero.
+		return time.Time{}, nil
 	default:
-		switch {
-		case intent.GetNotBefore() != nil:
-			scheduled = intent.GetNotBefore().AsTime()
-		case hook.GetScheduledFor() != nil && !hook.GetScheduledFor().AsTime().IsZero():
-			scheduled = hook.GetScheduledFor().AsTime()
-		default:
-			return time.Time{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-	}
-	if hook.GetScheduledFor() != nil && !hook.GetScheduledFor().AsTime().IsZero() && !hook.GetScheduledFor().AsTime().Equal(scheduled) {
 		return time.Time{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	return scheduled.UTC(), nil
 }
 
-func scheduledTimeFromIntent(intent *runtimev1.NextHookIntent, now time.Time) (time.Time, error) {
-	return resolveScheduledFor(&runtimev1.PendingHook{
-		HookId:     "hook_preview",
-		Trigger:    triggerDetailFromIntent(intent),
-		NextIntent: cloneNextHookIntent(intent),
-	}, now)
-}
-
-func validateHookTriggerDetail(detail *runtimev1.HookTriggerDetail) error {
+// validateHookIntent enforces the K-AGCORE-041 narrow-admission matrix.
+func validateHookIntent(intent *runtimev1.HookIntent) error {
+	if intent == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if strings.TrimSpace(intent.GetIntentId()) == "" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	// agent_id must be present once admitted; proposers (model-side) may emit
+	// the field empty and runtime fills it at admission. This validator is
+	// called both for proposal and admission paths; the caller sets agent_id.
+	if intent.GetEffect() != runtimev1.HookEffect_HOOK_EFFECT_FOLLOW_UP_TURN {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	detail := intent.GetTriggerDetail()
 	if detail == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	switch detail.GetTriggerKind() {
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_TURN_COMPLETED:
-		if detail.GetTurnCompleted() == nil {
+	switch intent.GetTriggerFamily() {
+	case runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME:
+		timeDetail := detail.GetTime()
+		if timeDetail == nil || timeDetail.GetDelay() == nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME:
-		if detail.GetScheduledTime() == nil || detail.GetScheduledTime().GetScheduledFor() == nil {
+		if detail.GetEventUserIdle() != nil || detail.GetEventChatEnded() != nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_USER_IDLE:
-		if detail.GetUserIdle() == nil {
+		if timeDetail.GetDelay().AsDuration() < 0 {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_CHAT_ENDED:
-		if detail.GetChatEnded() == nil {
+	case runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_EVENT:
+		hasUserIdle := detail.GetEventUserIdle() != nil
+		hasChatEnded := detail.GetEventChatEnded() != nil
+		if !hasUserIdle && !hasChatEnded {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_STATE_CONDITION:
-		if detail.GetStateCondition() == nil {
+		if hasUserIdle && hasChatEnded {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_WORLD_EVENT:
-		if detail.GetWorldEvent() == nil {
+		if detail.GetTime() != nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_COMPOUND:
-		compound := detail.GetCompound()
-		if compound == nil || len(compound.GetTriggers()) == 0 {
+		if hasUserIdle && detail.GetEventUserIdle().GetIdleFor() == nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-		for _, nested := range compound.GetTriggers() {
-			if err := validateHookTriggerDetail(nested); err != nil {
-				return err
-			}
 		}
 	default:
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	return nil
-}
-
-func validateNextHookIntent(intent *runtimev1.NextHookIntent) error {
-	if intent == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if intent.GetNotBefore() != nil && intent.GetExpiresAt() != nil &&
 		intent.GetExpiresAt().AsTime().Before(intent.GetNotBefore().AsTime()) {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	switch intent.GetCadenceInteraction() {
-	case runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_UNSPECIFIED,
-		runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_NORMAL,
-		runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED:
-	case runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED:
-		if intent.GetExpiresAt() == nil || intent.GetExpiresAt().AsTime().IsZero() {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-	default:
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	switch intent.GetTriggerKind() {
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_TURN_COMPLETED:
-		if intent.GetTurnCompleted() == nil {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME:
-		if intent.GetScheduledTime() == nil || intent.GetScheduledTime().GetScheduledFor() == nil {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_USER_IDLE:
-		if intent.GetUserIdle() == nil {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_CHAT_ENDED:
-		if intent.GetChatEnded() == nil {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_STATE_CONDITION:
-		if intent.GetStateCondition() == nil {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_WORLD_EVENT:
-		if intent.GetWorldEvent() == nil {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-	case runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_COMPOUND:
-		compound := intent.GetCompound()
-		if compound == nil || len(compound.GetIntents()) == 0 {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-		for _, nested := range compound.GetIntents() {
-			if err := validateNextHookIntent(nested); err != nil {
-				return err
-			}
-		}
-	default:
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	return nil
@@ -208,9 +166,9 @@ func refreshLifeTrackState(entry *agentEntry, now time.Time) {
 	switch {
 	case entry.Agent != nil && entry.Agent.GetLifecycleStatus() == runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED:
 		next = runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_SUSPENDED
-	case hasHookStatus(entry, runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING):
+	case hasAdmissionState(entry, runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING):
 		next = runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_RUNNING
-	case hasHookStatus(entry, runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING):
+	case hasAdmissionState(entry, runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING):
 		next = runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING
 	case next != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_CHAT_ACTIVE:
 		next = runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE
@@ -221,28 +179,52 @@ func refreshLifeTrackState(entry *agentEntry, now time.Time) {
 	}
 }
 
-func hasHookStatus(entry *agentEntry, expected runtimev1.AgentHookStatus) bool {
+func hasAdmissionState(entry *agentEntry, expected runtimev1.HookAdmissionState) bool {
 	if entry == nil {
 		return false
 	}
 	for _, hook := range entry.Hooks {
-		if hook != nil && hook.GetStatus() == expected {
+		if hook != nil && hook.GetIntent().GetAdmissionState() == expected {
 			return true
 		}
 	}
 	return false
 }
 
-func isCancelableHookStatus(status runtimev1.AgentHookStatus) bool {
-	return status == runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING ||
-		status == runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING
+func isCancelableAdmissionState(state runtimev1.HookAdmissionState) bool {
+	return state == runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING ||
+		state == runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING
 }
 
-func cloneNextHookIntent(input *runtimev1.NextHookIntent) *runtimev1.NextHookIntent {
+// hookAdmissionState returns the committed admission state of a PendingHook.
+// This is the single canonical accessor; callers must not read from parallel
+// status fields (no such field exists on the new PendingHook shape).
+func hookAdmissionState(hook *runtimev1.PendingHook) runtimev1.HookAdmissionState {
+	if hook == nil {
+		return runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_UNSPECIFIED
+	}
+	return hook.GetIntent().GetAdmissionState()
+}
+
+func hookIntentID(hook *runtimev1.PendingHook) string {
+	if hook == nil {
+		return ""
+	}
+	return strings.TrimSpace(hook.GetIntent().GetIntentId())
+}
+
+func cloneHookIntent(input *runtimev1.HookIntent) *runtimev1.HookIntent {
 	if input == nil {
 		return nil
 	}
-	return proto.Clone(input).(*runtimev1.NextHookIntent)
+	return proto.Clone(input).(*runtimev1.HookIntent)
+}
+
+func cloneHookTriggerDetail(input *runtimev1.HookTriggerDetail) *runtimev1.HookTriggerDetail {
+	if input == nil {
+		return nil
+	}
+	return proto.Clone(input).(*runtimev1.HookTriggerDetail)
 }
 
 func worldSharedAdmissionError() error {
@@ -292,8 +274,13 @@ func (s *Service) duePendingHooks(now time.Time) []dueHookRef {
 		if entry == nil {
 			continue
 		}
-		for hookID, hook := range entry.Hooks {
-			if hook == nil || hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING {
+		for _, hook := range entry.Hooks {
+			if hook == nil || hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
+				continue
+			}
+			// Only TIME-family hooks are driven by scheduled_for. EVENT-family
+			// hooks fire on event matching, not on time sweep.
+			if hook.GetIntent().GetTriggerFamily() != runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME {
 				continue
 			}
 			if hook.GetScheduledFor() == nil || hook.GetScheduledFor().AsTime().IsZero() {
@@ -303,7 +290,7 @@ func (s *Service) duePendingHooks(now time.Time) []dueHookRef {
 			if scheduledFor.After(now) {
 				continue
 			}
-			items = append(items, dueHookRef{agentID: agentID, hookID: hookID, scheduledFor: scheduledFor})
+			items = append(items, dueHookRef{agentID: agentID, hookID: hookIntentID(hook), scheduledFor: scheduledFor})
 		}
 	}
 	s.mu.RUnlock()
@@ -334,48 +321,64 @@ func gateHookExecution(entry *agentEntry, hook *runtimev1.PendingHook, now time.
 		return rejectedHookDecision(runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "agent autonomy mode is off")
 	}
 	if suspendedUntil := autonomy.GetSuspendedUntil(); suspendedUntil != nil && suspendedUntil.AsTime().After(now) {
-		return rescheduledHookDecision(&runtimev1.NextHookIntent{
-			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
-			NotBefore:   cloneTimestamp(suspendedUntil),
-			Reason:      "autonomy suspended",
-			Detail: &runtimev1.NextHookIntent_ScheduledTime{
-				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{
-					ScheduledFor: cloneTimestamp(suspendedUntil),
-				},
-			},
-		}, 0)
+		// Reschedule as a TIME hook targeting the resumption instant.
+		delay := suspendedUntil.AsTime().Sub(now)
+		if delay < 0 {
+			delay = 0
+		}
+		return rescheduledHookDecision(timeHookIntentForDelay(entry.Agent.GetAgentId(), delay, "autonomy suspended"), 0)
 	}
 	if autonomy.GetBudgetExhausted() {
 		resumeAt := nextAutonomyWindowStart(autonomy, now)
-		return rescheduledHookDecision(&runtimev1.NextHookIntent{
-			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
-			NotBefore:   timestamppb.New(resumeAt),
-			Reason:      "autonomy budget exhausted",
-			Detail: &runtimev1.NextHookIntent_ScheduledTime{
-				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{
-					ScheduledFor: timestamppb.New(resumeAt),
-				},
-			},
-		}, 0)
+		delay := resumeAt.Sub(now)
+		if delay < 0 {
+			delay = 0
+		}
+		return rescheduledHookDecision(timeHookIntentForDelay(entry.Agent.GetAgentId(), delay, "autonomy budget exhausted"), 0)
 	}
 	if policy, ok := resolveCadencePolicy(autonomy.GetConfig()); ok {
 		if anchor, ok := latestLifeTurnAnchor(entry); ok {
 			minAllowed := anchor.Add(policy.minSpacing)
 			if now.Before(minAllowed) {
-				return rescheduledHookDecision(&runtimev1.NextHookIntent{
-					TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
-					NotBefore:   timestamppb.New(minAllowed),
-					Reason:      firstNonEmpty(hook.GetNextIntent().GetReason(), "min spacing gate"),
-					Detail: &runtimev1.NextHookIntent_ScheduledTime{
-						ScheduledTime: &runtimev1.ScheduledTimeHookIntent{
-							ScheduledFor: timestamppb.New(minAllowed),
-						},
-					},
-				}, 0)
+				delay := minAllowed.Sub(now)
+				if delay < 0 {
+					delay = 0
+				}
+				reason := strings.TrimSpace(hook.GetIntent().GetReason())
+				if reason == "" {
+					reason = "min spacing gate"
+				}
+				return rescheduledHookDecision(timeHookIntentForDelay(entry.Agent.GetAgentId(), delay, reason), 0)
 			}
 		}
 	}
 	return nil
+}
+
+// timeHookIntentForDelay builds a minimally-valid TIME-family HookIntent for
+// reschedule flows. It carries follow-up-turn effect and proposed admission
+// state; the admission transition finalizes to pending on acceptance.
+func timeHookIntentForDelay(agentID string, delay time.Duration, reason string) *runtimev1.HookIntent {
+	if delay < 0 {
+		delay = 0
+	}
+	return &runtimev1.HookIntent{
+		IntentId:       "hook_" + ulid.Make().String(),
+		AgentId:        strings.TrimSpace(agentID),
+		TriggerFamily:  runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME,
+		TriggerDetail:  timeTriggerDetail(delay),
+		Effect:         runtimev1.HookEffect_HOOK_EFFECT_FOLLOW_UP_TURN,
+		AdmissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
+		Reason:         strings.TrimSpace(reason),
+	}
+}
+
+func timeTriggerDetail(delay time.Duration) *runtimev1.HookTriggerDetail {
+	return &runtimev1.HookTriggerDetail{
+		Detail: &runtimev1.HookTriggerDetail_Time{
+			Time: &runtimev1.HookTriggerTimeDetail{Delay: durationpb.New(delay)},
+		},
+	}
 }
 
 func resolveCadencePolicy(config *runtimev1.AgentAutonomyConfig) (resolvedCadencePolicy, bool) {
@@ -415,14 +418,14 @@ func firstPositiveDuration(value *durationpb.Duration, fallback time.Duration) t
 	return duration
 }
 
-func isCadenceTickIntent(intent *runtimev1.NextHookIntent) bool {
+func isCadenceTickIntent(intent *runtimev1.HookIntent) bool {
 	return intent != nil &&
-		intent.GetTriggerKind() == runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME &&
+		intent.GetTriggerFamily() == runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME &&
 		strings.TrimSpace(intent.GetReason()) == autonomyCadenceHookReason
 }
 
 func isCadenceTickHook(hook *runtimev1.PendingHook) bool {
-	return hook != nil && isCadenceTickIntent(hook.GetNextIntent())
+	return hook != nil && isCadenceTickIntent(hook.GetIntent())
 }
 
 func latestLifeTurnAnchor(entry *agentEntry) (time.Time, bool) {
@@ -434,11 +437,11 @@ func latestLifeTurnAnchor(entry *agentEntry) (time.Time, bool) {
 		if hook == nil {
 			continue
 		}
-		switch hook.GetStatus() {
-		case runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_COMPLETED,
-			runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED,
-			runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RESCHEDULED,
-			runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_REJECTED:
+		switch hookAdmissionState(hook) {
+		case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED,
+			runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
+			runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED,
+			runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED:
 		default:
 			continue
 		}
@@ -461,54 +464,13 @@ func latestLifeTurnAnchor(entry *agentEntry) (time.Time, bool) {
 	return latest, true
 }
 
-func activeCadenceSuppressionUntil(entry *agentEntry, now time.Time) (time.Time, bool) {
-	if entry == nil {
-		return time.Time{}, false
-	}
-	var suppression time.Time
-	for _, hook := range entry.Hooks {
-		if hook == nil || isCadenceTickHook(hook) {
-			continue
-		}
-		if hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING &&
-			hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING {
-			continue
-		}
-		intent := hook.GetNextIntent()
-		if intent == nil {
-			continue
-		}
-		var candidate time.Time
-		switch intent.GetCadenceInteraction() {
-		case runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED:
-			if hook.GetScheduledFor() != nil && !hook.GetScheduledFor().AsTime().IsZero() {
-				candidate = hook.GetScheduledFor().AsTime().UTC()
-			}
-		case runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED:
-			if intent.GetExpiresAt() != nil && !intent.GetExpiresAt().AsTime().IsZero() {
-				candidate = intent.GetExpiresAt().AsTime().UTC()
-			}
-		}
-		if candidate.IsZero() || candidate.Before(now) {
-			continue
-		}
-		if suppression.IsZero() || candidate.After(suppression) {
-			suppression = candidate
-		}
-	}
-	if suppression.IsZero() {
-		return time.Time{}, false
-	}
-	return suppression, true
-}
-
 func earliestPendingNonCadenceHookAt(entry *agentEntry) (time.Time, bool) {
 	if entry == nil {
 		return time.Time{}, false
 	}
 	var earliest time.Time
 	for _, hook := range entry.Hooks {
-		if hook == nil || isCadenceTickHook(hook) || hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING {
+		if hook == nil || isCadenceTickHook(hook) || hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
 			continue
 		}
 		if hook.GetScheduledFor() == nil || hook.GetScheduledFor().AsTime().IsZero() {
@@ -541,9 +503,6 @@ func cadenceTickScheduledAt(entry *agentEntry, now time.Time) (time.Time, bool) 
 	if scheduledAt.Before(now) {
 		scheduledAt = now
 	}
-	if suppression, ok := activeCadenceSuppressionUntil(entry, now); ok && suppression.After(scheduledAt) {
-		scheduledAt = suppression
-	}
 	if latest, ok := latestLifeTurnAnchor(entry); ok {
 		minAllowed := latest.Add(policy.minSpacing)
 		if scheduledAt.Before(minAllowed) {
@@ -553,28 +512,22 @@ func cadenceTickScheduledAt(entry *agentEntry, now time.Time) (time.Time, bool) 
 	return scheduledAt.UTC(), true
 }
 
-func cadenceTickIntent(scheduledAt time.Time) *runtimev1.NextHookIntent {
-	return &runtimev1.NextHookIntent{
-		TriggerKind:        runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
-		NotBefore:          timestamppb.New(scheduledAt),
-		Reason:             autonomyCadenceHookReason,
-		CadenceInteraction: runtimev1.HookCadenceInteraction_HOOK_CADENCE_INTERACTION_NORMAL,
-		Detail: &runtimev1.NextHookIntent_ScheduledTime{
-			ScheduledTime: &runtimev1.ScheduledTimeHookIntent{
-				ScheduledFor: timestamppb.New(scheduledAt),
-			},
-		},
+// cadenceTickHookIntent builds the baseline autonomy cadence HookIntent as a
+// TIME-family intent with a delay computed from the scheduled instant.
+func cadenceTickHookIntent(agentID string, scheduledAt time.Time, now time.Time) *runtimev1.HookIntent {
+	delay := scheduledAt.Sub(now)
+	if delay < 0 {
+		delay = 0
 	}
-}
-
-func cadenceTickTrigger(scheduledAt time.Time) *runtimev1.HookTriggerDetail {
-	return &runtimev1.HookTriggerDetail{
-		TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
-		Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
-			ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{
-				ScheduledFor: timestamppb.New(scheduledAt),
-			},
-		},
+	return &runtimev1.HookIntent{
+		IntentId:       "hook_tick_" + ulid.Make().String(),
+		AgentId:        strings.TrimSpace(agentID),
+		TriggerFamily:  runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME,
+		TriggerDetail:  timeTriggerDetail(delay),
+		Effect:         runtimev1.HookEffect_HOOK_EFFECT_FOLLOW_UP_TURN,
+		AdmissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
+		NotBefore:      timestamppb.New(scheduledAt),
+		Reason:         autonomyCadenceHookReason,
 	}
 }
 
@@ -602,12 +555,12 @@ func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error
 
 	pendingCadence := make([]*runtimev1.PendingHook, 0)
 	for _, hook := range entry.Hooks {
-		if hook != nil && isCadenceTickHook(hook) && hook.GetStatus() == runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING {
+		if hook != nil && isCadenceTickHook(hook) && hookAdmissionState(hook) == runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
 			pendingCadence = append(pendingCadence, hook)
 		}
 	}
 	sort.Slice(pendingCadence, func(i, j int) bool {
-		return pendingCadence[i].GetHookId() < pendingCadence[j].GetHookId()
+		return hookIntentID(pendingCadence[i]) < hookIntentID(pendingCadence[j])
 	})
 
 	cancelHooks := func(hooks []*runtimev1.PendingHook, reason string) error {
@@ -616,18 +569,11 @@ func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error
 		}
 		events := make([]*runtimev1.AgentEvent, 0, len(hooks))
 		for _, hook := range hooks {
-			hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED
+			hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED
 			events = append(events, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
-				HookId:     hook.GetHookId(),
-				Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED,
-				Trigger:    cloneTriggerDetail(hook.GetTrigger()),
+				Intent:     cloneHookIntent(hook.GetIntent()),
 				ObservedAt: timestamppb.New(now),
-				Detail: &runtimev1.HookExecutionOutcome_Canceled{
-					Canceled: &runtimev1.HookCanceledDetail{
-						CanceledBy: "runtime",
-						Reason:     firstNonEmpty(strings.TrimSpace(reason), autonomyCadenceHookCancelReason),
-					},
-				},
+				Reason:     firstNonEmpty(strings.TrimSpace(reason), autonomyCadenceHookCancelReason),
 			}, now))
 		}
 		refreshLifeTrackState(entry, now)
@@ -648,27 +594,28 @@ func (s *Service) reconcileAgentCadenceHook(agentID string, now time.Time) error
 	}
 
 	if len(pendingCadence) == 0 {
-		hookID := "hook_tick_" + ulid.Make().String()
-		entry.Hooks[hookID] = &runtimev1.PendingHook{
-			HookId:       hookID,
-			Status:       runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
-			Trigger:      cadenceTickTrigger(scheduledAt),
-			NextIntent:   cadenceTickIntent(scheduledAt),
+		intent := cadenceTickHookIntent(entry.Agent.GetAgentId(), scheduledAt, now)
+		hook := &runtimev1.PendingHook{
+			Intent:       intent,
 			ScheduledFor: timestamppb.New(scheduledAt),
 			AdmittedAt:   timestamppb.New(now),
 		}
+		entry.Hooks[intent.GetIntentId()] = hook
 		refreshLifeTrackState(entry, now)
 		return s.updateAgent(entry, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
-			HookId:     hookID,
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
-			Trigger:    cadenceTickTrigger(scheduledAt),
+			Intent:     cloneHookIntent(intent),
 			ObservedAt: timestamppb.New(now),
 		}, now))
 	}
 
 	primary := pendingCadence[0]
-	primary.Trigger = cadenceTickTrigger(scheduledAt)
-	primary.NextIntent = cadenceTickIntent(scheduledAt)
+	delay := scheduledAt.Sub(now)
+	if delay < 0 {
+		delay = 0
+	}
+	primary.Intent.TriggerDetail = timeTriggerDetail(delay)
+	primary.Intent.NotBefore = timestamppb.New(scheduledAt)
+	primary.Intent.Reason = autonomyCadenceHookReason
 	primary.ScheduledFor = timestamppb.New(scheduledAt)
 	refreshLifeTrackState(entry, now)
 	if err := s.updateAgent(entry); err != nil {
@@ -687,37 +634,42 @@ func nextAutonomyWindowStart(autonomy *runtimev1.AgentAutonomyState, now time.Ti
 	return autonomy.GetWindowStartedAt().AsTime().Add(24 * time.Hour).UTC()
 }
 
+// hookExecutionDecision carries the runtime-side decision tree for a
+// completed life-turn attempt. Its `admissionState` field is the committed
+// post-execution admission target; `nextIntent` is set on RESCHEDULED only.
+type hookExecutionDecisionTerminal struct{}
+
 func completedHookDecision(summary string, tokensUsed int64) *hookExecutionDecision {
 	return &hookExecutionDecision{
-		status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_COMPLETED,
-		summary:    strings.TrimSpace(summary),
-		tokensUsed: tokensUsed,
+		admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED,
+		summary:        strings.TrimSpace(summary),
+		tokensUsed:     tokensUsed,
 	}
 }
 
 func failedHookDecision(reasonCode runtimev1.ReasonCode, message string, retryable bool, tokensUsed int64) *hookExecutionDecision {
 	return &hookExecutionDecision{
-		status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED,
-		reasonCode: reasonCode,
-		message:    strings.TrimSpace(message),
-		retryable:  retryable,
-		tokensUsed: tokensUsed,
+		admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
+		reasonCode:     reasonCode,
+		message:        strings.TrimSpace(message),
+		retryable:      retryable,
+		tokensUsed:     tokensUsed,
 	}
 }
 
-func rescheduledHookDecision(nextIntent *runtimev1.NextHookIntent, tokensUsed int64) *hookExecutionDecision {
+func rescheduledHookDecision(nextIntent *runtimev1.HookIntent, tokensUsed int64) *hookExecutionDecision {
 	return &hookExecutionDecision{
-		status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RESCHEDULED,
-		nextIntent: cloneNextHookIntent(nextIntent),
-		tokensUsed: tokensUsed,
+		admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED,
+		nextIntent:     cloneHookIntent(nextIntent),
+		tokensUsed:     tokensUsed,
 	}
 }
 
 func rejectedHookDecision(reasonCode runtimev1.ReasonCode, message string) *hookExecutionDecision {
 	return &hookExecutionDecision{
-		status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_REJECTED,
-		reasonCode: reasonCode,
-		message:    strings.TrimSpace(message),
+		admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
+		reasonCode:     reasonCode,
+		message:        strings.TrimSpace(message),
 	}
 }
 
@@ -791,73 +743,4 @@ func optionalEvents(events ...*runtimev1.AgentEvent) []*runtimev1.AgentEvent {
 		}
 	}
 	return out
-}
-
-func triggerDetailFromIntent(intent *runtimev1.NextHookIntent) *runtimev1.HookTriggerDetail {
-	if intent == nil {
-		return nil
-	}
-	trigger := &runtimev1.HookTriggerDetail{
-		TriggerKind: intent.GetTriggerKind(),
-	}
-	switch detail := intent.GetDetail().(type) {
-	case *runtimev1.NextHookIntent_TurnCompleted:
-		trigger.Detail = &runtimev1.HookTriggerDetail_TurnCompleted{
-			TurnCompleted: &runtimev1.TurnCompletedTriggerDetail{
-				TurnId: detail.TurnCompleted.GetAfterTurnId(),
-				Track:  detail.TurnCompleted.GetTrack(),
-			},
-		}
-	case *runtimev1.NextHookIntent_ScheduledTime:
-		trigger.Detail = &runtimev1.HookTriggerDetail_ScheduledTime{
-			ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{
-				ScheduledFor: cloneTimestamp(detail.ScheduledTime.GetScheduledFor()),
-			},
-		}
-	case *runtimev1.NextHookIntent_UserIdle:
-		var idleFor *durationpb.Duration
-		if detail.UserIdle != nil && detail.UserIdle.GetIdleFor() != nil {
-			idleFor = durationpb.New(detail.UserIdle.GetIdleFor().AsDuration())
-		}
-		trigger.Detail = &runtimev1.HookTriggerDetail_UserIdle{
-			UserIdle: &runtimev1.UserIdleTriggerDetail{
-				IdleFor: idleFor,
-			},
-		}
-	case *runtimev1.NextHookIntent_ChatEnded:
-		trigger.Detail = &runtimev1.HookTriggerDetail_ChatEnded{
-			ChatEnded: &runtimev1.ChatEndedTriggerDetail{
-				ConversationId: detail.ChatEnded.GetConversationId(),
-			},
-		}
-	case *runtimev1.NextHookIntent_StateCondition:
-		trigger.Detail = &runtimev1.HookTriggerDetail_StateCondition{
-			StateCondition: &runtimev1.StateConditionTriggerDetail{
-				ConditionKey:   detail.StateCondition.GetConditionKey(),
-				ConditionValue: detail.StateCondition.GetConditionValue(),
-			},
-		}
-	case *runtimev1.NextHookIntent_WorldEvent:
-		trigger.Detail = &runtimev1.HookTriggerDetail_WorldEvent{
-			WorldEvent: &runtimev1.WorldEventTriggerDetail{
-				WorldId:   detail.WorldEvent.GetWorldId(),
-				EventType: detail.WorldEvent.GetEventType(),
-				EventId:   detail.WorldEvent.GetEventId(),
-			},
-		}
-	case *runtimev1.NextHookIntent_Compound:
-		triggers := make([]*runtimev1.HookTriggerDetail, 0, len(detail.Compound.GetIntents()))
-		for _, nested := range detail.Compound.GetIntents() {
-			if converted := triggerDetailFromIntent(nested); converted != nil {
-				triggers = append(triggers, converted)
-			}
-		}
-		trigger.Detail = &runtimev1.HookTriggerDetail_Compound{
-			Compound: &runtimev1.CompoundHookTriggerDetail{
-				Operator: detail.Compound.GetOperator(),
-				Triggers: triggers,
-			},
-		}
-	}
-	return trigger
 }

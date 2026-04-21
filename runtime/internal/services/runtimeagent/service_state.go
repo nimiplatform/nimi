@@ -275,7 +275,7 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 		if err := protojson.Unmarshal([]byte(hookRaw), hook); err != nil {
 			return fmt.Errorf("parse persisted hook %s: %w", agentID, err)
 		}
-		entry.Hooks[hook.GetHookId()] = hook
+		entry.Hooks[hookIntentID(hook)] = hook
 	}
 	eventRows, err := r.backend.DB().Query(`SELECT event_json FROM runtime_agent_event_log ORDER BY sequence`)
 	if err != nil {
@@ -337,7 +337,7 @@ func (r *runtimeAgentStateRepository) persistSnapshot(persisted persistedRuntime
 				if err := protojson.Unmarshal(hookRaw, hook); err != nil {
 					return err
 				}
-				if _, err := tx.Exec(`INSERT INTO runtime_agent_hook(agent_id, hook_id, status, scheduled_for, hook_json) VALUES (?, ?, ?, ?, ?)`, agent.GetAgentId(), hook.GetHookId(), int(hook.GetStatus()), timestampString(hook.GetScheduledFor()), string(hookRaw)); err != nil {
+				if _, err := tx.Exec(`INSERT INTO runtime_agent_hook(agent_id, hook_id, status, scheduled_for, hook_json) VALUES (?, ?, ?, ?, ?)`, agent.GetAgentId(), hookIntentID(hook), int(hookAdmissionState(hook)), timestampString(hook.GetScheduledFor()), string(hookRaw)); err != nil {
 					return err
 				}
 			}

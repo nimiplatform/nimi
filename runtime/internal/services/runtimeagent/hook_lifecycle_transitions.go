@@ -11,6 +11,9 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// admitPendingHook commits a validated HookIntent as `pending` scheduler
+// truth. Per K-AGCORE-042 this emits `runtime.agent.hook.intent_proposed`
+// then `runtime.agent.hook.pending` so admission is externally observable.
 func (s *Service) admitPendingHook(agentID string, hook *runtimev1.PendingHook) error {
 	entry, err := s.agentByID(strings.TrimSpace(agentID))
 	if err != nil {
@@ -21,70 +24,76 @@ func (s *Service) admitPendingHook(agentID string, hook *runtimev1.PendingHook) 
 	if err != nil {
 		return err
 	}
-	if _, exists := entry.Hooks[normalized.GetHookId()]; exists {
+	intentID := normalized.GetIntent().GetIntentId()
+	if _, exists := entry.Hooks[intentID]; exists {
 		return status.Error(codes.AlreadyExists, "hook already exists")
 	}
-	entry.Hooks[normalized.GetHookId()] = normalized
+	// Stamp agent_id onto intent if caller omitted it (runtime truth binds
+	// HookIntent to the agent it was admitted under).
+	if strings.TrimSpace(normalized.Intent.GetAgentId()) == "" {
+		normalized.Intent.AgentId = entry.Agent.GetAgentId()
+	}
+	entry.Hooks[intentID] = normalized
 	refreshLifeTrackState(entry, now)
-	return s.updateAgent(entry, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
-		HookId:     normalized.GetHookId(),
-		Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
-		Trigger:    cloneTriggerDetail(normalized.GetTrigger()),
-		ObservedAt: timestamppb.New(now),
-	}, now))
+	// Emit proposed-then-pending to project the admission transition.
+	proposedIntent := cloneHookIntent(normalized.GetIntent())
+	proposedIntent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
+	events := []*runtimev1.AgentEvent{
+		hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+			Intent:     proposedIntent,
+			ObservedAt: timestamppb.New(now),
+		}, now),
+		hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+			Intent:     cloneHookIntent(normalized.GetIntent()),
+			ObservedAt: timestamppb.New(now),
+		}, now),
+	}
+	return s.updateAgent(entry, events...)
 }
 
-func (s *Service) markHookRunning(agentID string, hookID string) (*runtimev1.HookExecutionOutcome, error) {
-	return s.markHookRunningAt(agentID, hookID, time.Now().UTC())
+func (s *Service) markHookRunning(agentID string, intentID string) (*runtimev1.HookExecutionOutcome, error) {
+	return s.markHookRunningAt(agentID, intentID, time.Now().UTC())
 }
 
-func (s *Service) markHookRunningAt(agentID string, hookID string, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
-	return s.transitionHookAt(agentID, hookID, now, func(_ *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
-		if hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING {
+func (s *Service) markHookRunningAt(agentID string, intentID string, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
+	return s.transitionHookAt(agentID, intentID, now, func(_ *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
+		if hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
 			return nil, nil, status.Error(codes.FailedPrecondition, "hook is not pending")
 		}
-		hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING
+		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING
 		return &runtimev1.HookExecutionOutcome{
-			HookId:     hook.GetHookId(),
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING,
-			Trigger:    cloneTriggerDetail(hook.GetTrigger()),
+			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(now),
 		}, nil, nil
 	})
 }
 
-func (s *Service) cancelHook(agentID string, hookID string, canceledBy string, reason string) (*runtimev1.HookExecutionOutcome, error) {
-	return s.transitionHook(agentID, hookID, func(_ *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
-		if !isCancelableHookStatus(hook.GetStatus()) {
+func (s *Service) cancelHook(agentID string, intentID string, canceledBy string, reason string) (*runtimev1.HookExecutionOutcome, error) {
+	return s.transitionHook(agentID, intentID, func(_ *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
+		if !isCancelableAdmissionState(hookAdmissionState(hook)) {
 			return nil, nil, status.Error(codes.FailedPrecondition, "hook is not cancelable")
 		}
-		hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED
+		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED
 		return &runtimev1.HookExecutionOutcome{
-			HookId:     hook.GetHookId(),
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED,
-			Trigger:    cloneTriggerDetail(hook.GetTrigger()),
+			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(now),
-			Detail: &runtimev1.HookExecutionOutcome_Canceled{
-				Canceled: &runtimev1.HookCanceledDetail{
-					CanceledBy: firstNonEmpty(canceledBy, "runtime"),
-					Reason:     firstNonEmpty(strings.TrimSpace(reason), "hook canceled"),
-				},
-			},
+			Reason:     firstNonEmpty(strings.TrimSpace(reason), "hook canceled"),
+			Message:    strings.TrimSpace(canceledBy),
 		}, nil, nil
 	})
 }
 
-func (s *Service) transitionHook(agentID string, hookID string, mutate func(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error)) (*runtimev1.HookExecutionOutcome, error) {
-	return s.transitionHookAt(agentID, hookID, time.Now().UTC(), mutate)
+func (s *Service) transitionHook(agentID string, intentID string, mutate func(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error)) (*runtimev1.HookExecutionOutcome, error) {
+	return s.transitionHookAt(agentID, intentID, time.Now().UTC(), mutate)
 }
 
-func (s *Service) transitionHookAt(agentID string, hookID string, now time.Time, mutate func(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error)) (*runtimev1.HookExecutionOutcome, error) {
+func (s *Service) transitionHookAt(agentID string, intentID string, now time.Time, mutate func(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error)) (*runtimev1.HookExecutionOutcome, error) {
 	entry, err := s.agentByID(strings.TrimSpace(agentID))
 	if err != nil {
 		return nil, err
 	}
-	hookID = strings.TrimSpace(hookID)
-	hook := entry.Hooks[hookID]
+	intentID = strings.TrimSpace(intentID)
+	hook := entry.Hooks[intentID]
 	if hook == nil {
 		return nil, status.Error(codes.NotFound, "hook not found")
 	}
@@ -107,135 +116,124 @@ func (s *Service) transitionHookAt(agentID string, hookID string, now time.Time,
 	return cloneHookOutcome(outcome), nil
 }
 
-func (s *Service) completeHook(agentID string, hookID string, summary string, tokensUsed int64) (*runtimev1.HookExecutionOutcome, error) {
-	return s.completeHookAt(agentID, hookID, summary, tokensUsed, time.Now().UTC())
+func (s *Service) completeHook(agentID string, intentID string, summary string, tokensUsed int64) (*runtimev1.HookExecutionOutcome, error) {
+	return s.completeHookAt(agentID, intentID, summary, tokensUsed, time.Now().UTC())
 }
 
-func (s *Service) completeHookAt(agentID string, hookID string, summary string, tokensUsed int64, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
-	return s.transitionHookAt(agentID, hookID, now, func(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
-		if hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING {
+func (s *Service) completeHookAt(agentID string, intentID string, summary string, tokensUsed int64, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
+	return s.transitionHookAt(agentID, intentID, now, func(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
+		if hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING {
 			return nil, nil, status.Error(codes.FailedPrecondition, "hook is not running")
 		}
 		beforeBudget := snapshotAutonomy(entry.Agent.GetAutonomy())
-		hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_COMPLETED
+		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED
 		applyTokenUsage(entry, tokensUsed, now)
 		outcome := &runtimev1.HookExecutionOutcome{
-			HookId:     hook.GetHookId(),
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_COMPLETED,
-			Trigger:    cloneTriggerDetail(hook.GetTrigger()),
+			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(now),
-			Detail: &runtimev1.HookExecutionOutcome_Completed{
-				Completed: &runtimev1.HookCompletedDetail{
-					Summary:     strings.TrimSpace(summary),
-					CompletedAt: timestamppb.New(now),
-				},
-			},
+			Message:    strings.TrimSpace(summary),
 		}
 		return outcome, optionalEvents(budgetEventForTransition(entry.Agent.GetAgentId(), beforeBudget, entry.Agent.GetAutonomy(), now)), nil
 	})
 }
 
-func (s *Service) failHook(agentID string, hookID string, reasonCode runtimev1.ReasonCode, message string, retryable bool, tokensUsed int64) (*runtimev1.HookExecutionOutcome, error) {
-	return s.failHookAt(agentID, hookID, reasonCode, message, retryable, tokensUsed, time.Now().UTC())
+func (s *Service) failHook(agentID string, intentID string, reasonCode runtimev1.ReasonCode, message string, retryable bool, tokensUsed int64) (*runtimev1.HookExecutionOutcome, error) {
+	return s.failHookAt(agentID, intentID, reasonCode, message, retryable, tokensUsed, time.Now().UTC())
 }
 
-func (s *Service) failHookAt(agentID string, hookID string, reasonCode runtimev1.ReasonCode, message string, retryable bool, tokensUsed int64, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
-	return s.transitionHookAt(agentID, hookID, now, func(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
-		if hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING {
+func (s *Service) failHookAt(agentID string, intentID string, reasonCode runtimev1.ReasonCode, message string, retryable bool, tokensUsed int64, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
+	_ = retryable // retry policy remains internal; no public field on outcome.
+	return s.transitionHookAt(agentID, intentID, now, func(entry *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
+		if hookAdmissionState(hook) != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING {
 			return nil, nil, status.Error(codes.FailedPrecondition, "hook is not running")
 		}
 		beforeBudget := snapshotAutonomy(entry.Agent.GetAutonomy())
-		hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED
+		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED
 		applyTokenUsage(entry, tokensUsed, now)
 		outcome := &runtimev1.HookExecutionOutcome{
-			HookId:     hook.GetHookId(),
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED,
-			Trigger:    cloneTriggerDetail(hook.GetTrigger()),
+			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(now),
-			Detail: &runtimev1.HookExecutionOutcome_Failed{
-				Failed: &runtimev1.HookFailedDetail{
-					ReasonCode: reasonCode,
-					Message:    strings.TrimSpace(message),
-					Retryable:  retryable,
-				},
-			},
+			ReasonCode: reasonCode,
+			Message:    strings.TrimSpace(message),
 		}
 		return outcome, optionalEvents(budgetEventForTransition(entry.Agent.GetAgentId(), beforeBudget, entry.Agent.GetAutonomy(), now)), nil
 	})
 }
 
-func (s *Service) rejectHook(agentID string, hookID string, reasonCode runtimev1.ReasonCode, message string) (*runtimev1.HookExecutionOutcome, error) {
-	return s.rejectHookAt(agentID, hookID, reasonCode, message, time.Now().UTC())
+func (s *Service) rejectHook(agentID string, intentID string, reasonCode runtimev1.ReasonCode, message string) (*runtimev1.HookExecutionOutcome, error) {
+	return s.rejectHookAt(agentID, intentID, reasonCode, message, time.Now().UTC())
 }
 
-func (s *Service) rejectHookAt(agentID string, hookID string, reasonCode runtimev1.ReasonCode, message string, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
-	return s.transitionHookAt(agentID, hookID, now, func(_ *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
-		if hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING &&
-			hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING {
+func (s *Service) rejectHookAt(agentID string, intentID string, reasonCode runtimev1.ReasonCode, message string, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
+	return s.transitionHookAt(agentID, intentID, now, func(_ *agentEntry, hook *runtimev1.PendingHook, now time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
+		state := hookAdmissionState(hook)
+		if state != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING &&
+			state != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING {
 			return nil, nil, status.Error(codes.FailedPrecondition, "hook is not rejectable")
 		}
-		hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_REJECTED
+		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED
 		return &runtimev1.HookExecutionOutcome{
-			HookId:     hook.GetHookId(),
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_REJECTED,
-			Trigger:    cloneTriggerDetail(hook.GetTrigger()),
+			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(now),
-			Detail: &runtimev1.HookExecutionOutcome_Rejected{
-				Rejected: &runtimev1.HookRejectedDetail{
-					ReasonCode: reasonCode,
-					Message:    strings.TrimSpace(message),
-				},
-			},
+			ReasonCode: reasonCode,
+			Message:    strings.TrimSpace(message),
 		}, nil, nil
 	})
 }
 
-func (s *Service) rescheduleHook(agentID string, hookID string, nextIntent *runtimev1.NextHookIntent, tokensUsed int64, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
-	return s.rescheduleHookAt(agentID, hookID, nextIntent, tokensUsed, now)
-}
-
-func (s *Service) rescheduleHookAt(agentID string, hookID string, nextIntent *runtimev1.NextHookIntent, tokensUsed int64, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
-	if err := validateNextHookIntent(nextIntent); err != nil {
+// rescheduleHookAt transitions the current hook to RESCHEDULED and admits a
+// fresh follow-up PendingHook derived from `nextIntent`. The follow-up is
+// projected via proposed-then-pending events.
+func (s *Service) rescheduleHookAt(agentID string, intentID string, nextIntent *runtimev1.HookIntent, tokensUsed int64, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
+	if err := validateHookIntent(nextIntent); err != nil {
 		return nil, err
 	}
-	return s.transitionHookAt(agentID, hookID, now, func(entry *agentEntry, hook *runtimev1.PendingHook, transitionTime time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
-		if hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING && hook.GetStatus() != runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RUNNING {
+	return s.transitionHookAt(agentID, intentID, now, func(entry *agentEntry, hook *runtimev1.PendingHook, transitionTime time.Time) (*runtimev1.HookExecutionOutcome, []*runtimev1.AgentEvent, error) {
+		state := hookAdmissionState(hook)
+		if state != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING &&
+			state != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING {
 			return nil, nil, status.Error(codes.FailedPrecondition, "hook is not reschedulable")
 		}
 		beforeBudget := snapshotAutonomy(entry.Agent.GetAutonomy())
-		scheduledFor, err := scheduledTimeFromIntent(nextIntent, now)
+		scheduledFor, err := resolveHookScheduledFor(nextIntent, transitionTime)
 		if err != nil {
 			return nil, nil, err
 		}
-		hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RESCHEDULED
+		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED
+
+		// Normalize follow-up intent: stamp agent_id, admission_state, unique intent_id.
+		followupIntent := cloneHookIntent(nextIntent)
+		if strings.TrimSpace(followupIntent.GetAgentId()) == "" {
+			followupIntent.AgentId = entry.Agent.GetAgentId()
+		}
+		if strings.TrimSpace(followupIntent.GetIntentId()) == "" {
+			followupIntent.IntentId = "hook_" + ulid.Make().String()
+		}
+		followupIntent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING
 		followup := &runtimev1.PendingHook{
-			HookId:       "hook_" + ulid.Make().String(),
-			Status:       runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
-			Trigger:      triggerDetailFromIntent(nextIntent),
-			NextIntent:   cloneNextHookIntent(nextIntent),
+			Intent:       followupIntent,
 			ScheduledFor: timestamppb.New(scheduledFor),
 			AdmittedAt:   timestamppb.New(transitionTime),
 		}
-		entry.Hooks[followup.GetHookId()] = followup
+		entry.Hooks[followupIntent.GetIntentId()] = followup
 		applyTokenUsage(entry, tokensUsed, transitionTime)
 		outcome := &runtimev1.HookExecutionOutcome{
-			HookId:     hook.GetHookId(),
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_RESCHEDULED,
-			Trigger:    cloneTriggerDetail(hook.GetTrigger()),
+			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(transitionTime),
-			Detail: &runtimev1.HookExecutionOutcome_Rescheduled{
-				Rescheduled: &runtimev1.HookRescheduledDetail{
-					NextIntent: cloneNextHookIntent(nextIntent),
-				},
-			},
 		}
 		events := optionalEvents(budgetEventForTransition(entry.Agent.GetAgentId(), beforeBudget, entry.Agent.GetAutonomy(), transitionTime))
-		events = append(events, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
-			HookId:     followup.GetHookId(),
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
-			Trigger:    cloneTriggerDetail(followup.GetTrigger()),
-			ObservedAt: timestamppb.New(transitionTime),
-		}, transitionTime))
+		proposedFollowup := cloneHookIntent(followupIntent)
+		proposedFollowup.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED
+		events = append(events,
+			hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+				Intent:     proposedFollowup,
+				ObservedAt: timestamppb.New(transitionTime),
+			}, transitionTime),
+			hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+				Intent:     cloneHookIntent(followupIntent),
+				ObservedAt: timestamppb.New(transitionTime),
+			}, transitionTime),
+		)
 		return outcome, events, nil
 	})
 }
@@ -245,22 +243,16 @@ func cancelActiveHooks(entry *agentEntry, canceledBy string, reason string, now 
 		return nil
 	}
 	events := make([]*runtimev1.AgentEvent, 0, len(entry.Hooks))
-	for hookID, hook := range entry.Hooks {
-		if hook == nil || !isCancelableHookStatus(hook.GetStatus()) {
+	for _, hook := range entry.Hooks {
+		if hook == nil || !isCancelableAdmissionState(hookAdmissionState(hook)) {
 			continue
 		}
-		hook.Status = runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED
+		hook.Intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED
 		events = append(events, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
-			HookId:     hookID,
-			Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED,
-			Trigger:    cloneTriggerDetail(hook.GetTrigger()),
+			Intent:     cloneHookIntent(hook.GetIntent()),
 			ObservedAt: timestamppb.New(now),
-			Detail: &runtimev1.HookExecutionOutcome_Canceled{
-				Canceled: &runtimev1.HookCanceledDetail{
-					CanceledBy: firstNonEmpty(canceledBy, "runtime"),
-					Reason:     firstNonEmpty(strings.TrimSpace(reason), "agent terminated"),
-				},
-			},
+			Reason:     firstNonEmpty(strings.TrimSpace(reason), "agent terminated"),
+			Message:    firstNonEmpty(strings.TrimSpace(canceledBy), "runtime"),
 		}, now))
 	}
 	refreshLifeTrackState(entry, now)
@@ -275,15 +267,40 @@ func hookEvent(agentID string, outcome *runtimev1.HookExecutionOutcome) *runtime
 	return hookEventAt(agentID, outcome, observedAt)
 }
 
+// hookEventAt emits a `runtime.agent.hook.*` projection event through the
+// AgentEvent stream. Per K-AGCORE-042 / hook_envelope the envelope requires
+// `agent_id`; origin linkage (conversation_anchor_id / originating_turn_id /
+// originating_stream_id) is carried inside the HookIntent when present and
+// is never fabricated when absent. `family` is the first-class public seam
+// discriminator mapping 1:1 to `runtime.agent.hook.{intent_proposed|pending|
+// rejected|running|completed|failed|canceled|rescheduled}`. HookIntent
+// inside the detail carries the admitted vocabulary (`intent_id`,
+// `trigger_family`, `trigger_detail`, `effect`, `admission_state`).
 func hookEventAt(agentID string, outcome *runtimev1.HookExecutionOutcome, observedAt time.Time) *runtimev1.AgentEvent {
+	var detail *runtimev1.AgentHookEventDetail
+	if outcome != nil {
+		detail = &runtimev1.AgentHookEventDetail{
+			Family:     outcome.GetIntent().GetAdmissionState(),
+			Intent:     cloneHookIntent(outcome.GetIntent()),
+			ObservedAt: cloneTimestamp(outcome.GetObservedAt()),
+			ReasonCode: outcome.GetReasonCode(),
+			Message:    strings.TrimSpace(outcome.GetMessage()),
+			Reason:     strings.TrimSpace(outcome.GetReason()),
+		}
+		if detail.ObservedAt == nil {
+			detail.ObservedAt = timestamppb.New(observedAt.UTC())
+		}
+	} else {
+		detail = &runtimev1.AgentHookEventDetail{
+			ObservedAt: timestamppb.New(observedAt.UTC()),
+		}
+	}
 	return &runtimev1.AgentEvent{
 		EventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK,
 		AgentId:   strings.TrimSpace(agentID),
 		Timestamp: timestamppb.New(observedAt.UTC()),
 		Detail: &runtimev1.AgentEvent_Hook{
-			Hook: &runtimev1.AgentHookEventDetail{
-				Outcome: cloneHookOutcome(outcome),
-			},
+			Hook: detail,
 		},
 	}
 }

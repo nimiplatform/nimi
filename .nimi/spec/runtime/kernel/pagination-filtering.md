@@ -76,7 +76,7 @@
 | `TraverseGraph` | RuntimeCognitionService | 是（K-PAGE-005） | depth ASC, page_id ASC | bank_id（必填）, root_page_id（必填）, link_type, max_depth | K-KNOW-005 |
 | `ListBanks` | RuntimeCognitionService | 是（K-PAGE-005） | scope ASC, bank_id ASC | scope_filter, app_id, workspace_id, agent_id, world_id | K-MEM-002/K-MEM-006 |
 | `ListAgents` | RuntimeAgentService | 是（K-PAGE-005） | created_at DESC, agent_id ASC | lifecycle_status, autonomy_enabled | K-AGCORE-006 |
-| `ListPendingHooks` | RuntimeAgentService | 是（K-PAGE-005） | scheduled_for ASC, hook_id ASC | agent_id（必填）, trigger_filter, status_filter | K-AGCORE-003/K-AGCORE-006 |
+| `ListPendingHooks` | RuntimeAgentService | 是（K-PAGE-005） | scheduled_for ASC, intent_id ASC | agent_id（必填）, trigger_family_filter, trigger_detail_filter, admission_state_filter | K-AGCORE-003/K-AGCORE-006 |
 | `SearchCatalogModels` | RuntimeLocalService | 是（K-PAGE-005） | verified DESC, title ASC（K-LOCAL-021） | query（必填）, category_filter, engine_filter | K-LOCAL-030 |
 
 **注意**：`ListAIProviderHealth` 不使用分页，因 provider 总数通常 < 20，全量返回更适合 UI 消费。

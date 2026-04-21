@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type eventStreamRuntime struct {
@@ -15,6 +17,13 @@ func (s *Service) eventStreamRuntime() eventStreamRuntime {
 }
 
 func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest, stream runtimev1.RuntimeAgentService_SubscribeAgentEventsServer) error {
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "subscribe agent events request is required")
+	}
+	agentID := strings.TrimSpace(req.GetAgentId())
+	if agentID == "" {
+		return status.Error(codes.InvalidArgument, "agent_id is required")
+	}
 	filterMap := make(map[runtimev1.AgentEventType]struct{}, len(req.GetEventFilters()))
 	for _, filter := range req.GetEventFilters() {
 		if filter != runtimev1.AgentEventType_AGENT_EVENT_TYPE_UNSPECIFIED {
@@ -26,7 +35,7 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 		return err
 	}
 	sub := &subscriber{
-		agentID:      strings.TrimSpace(req.GetAgentId()),
+		agentID:      agentID,
 		eventFilters: filterMap,
 		ch:           make(chan *runtimev1.AgentEvent, subscriberBuffer),
 	}

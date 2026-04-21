@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-04-20
+> 生成时间: 2026-04-21
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -1419,7 +1419,7 @@ surface 必须维持 runtime-owned authority cut：
   `runtime.agent.*`
 - reactive agent-chat consumption is currently carried separately on the
   reserved `runtime.agent` app-message seam via the admitted app-messaging
-  transport, rather than a parallel `runtime.agent.chat.*` RPC subgroup
+  transport, rather than a parallel reactive-chat RPC subgroup
 - app-facing canonical agent control plane and canonical agent memory write path
   must remain unified on that runtime-owned agent projection, rather than
   drifting back to direct Realm memory mutation or provider-native memory API
@@ -4179,6 +4179,8 @@ Fixed rules:
 | TerminateAgent | unary |
 | GetAgent | unary |
 | ListAgents | unary |
+| OpenConversationAnchor | unary |
+| GetConversationAnchorSnapshot | unary |
 | GetAgentState | unary |
 | UpdateAgentState | unary |
 | EnableAutonomy | unary |

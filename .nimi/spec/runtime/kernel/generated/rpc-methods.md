@@ -213,6 +213,8 @@ Source: `K-RPC-004b`
 | `TerminateAgent` | `unary` |
 | `GetAgent` | `unary` |
 | `ListAgents` | `unary` |
+| `OpenConversationAnchor` | `unary` |
+| `GetConversationAnchorSnapshot` | `unary` |
 | `GetAgentState` | `unary` |
 | `UpdateAgentState` | `unary` |
 | `EnableAutonomy` | `unary` |

@@ -114,22 +114,22 @@ AppService 的跨域消费契约状态：
 - `runtime.agent` 不是通用 app-bus target；只有本规则 admit 的消息族可
   以通过该 target 传输
 - admitted ingress families 固定为：
-  `agent.chat.turn.request.v1`,
-  `agent.chat.turn.interrupt.v1`,
-  `agent.chat.session.snapshot.request.v1`
+  `runtime.agent.turn.request`,
+  `runtime.agent.turn.interrupt`,
+  `runtime.agent.session.snapshot.request`
 - admitted projection families 固定为：
-  `agent.chat.turn.accepted.v1`,
-  `agent.chat.turn.started.v1`,
-  `agent.chat.turn.text_delta.v1`,
-  `agent.chat.turn.reasoning_delta.v1`,
-  `agent.chat.turn.structured.v1`,
-  `agent.chat.turn.post_turn.v1`,
-  `agent.chat.turn.completed.v1`,
-  `agent.chat.turn.failed.v1`,
-  `agent.chat.turn.interrupted.v1`,
-  `agent.chat.turn.interrupt_ack.v1`,
-  `agent.chat.follow_up.canceled.v1`,
-  `agent.chat.session.snapshot.v1`
+  `runtime.agent.turn.accepted`,
+  `runtime.agent.turn.started`,
+  `runtime.agent.turn.reasoning_delta`,
+  `runtime.agent.turn.text_delta`,
+  `runtime.agent.turn.structured`,
+  `runtime.agent.turn.message_committed`,
+  `runtime.agent.turn.post_turn`,
+  `runtime.agent.turn.completed`,
+  `runtime.agent.turn.failed`,
+  `runtime.agent.turn.interrupted`,
+  `runtime.agent.turn.interrupt_ack`,
+  `runtime.agent.session.snapshot`
 - semantic ownership of these families remains on `RuntimeAgentService` even
   when the transport owner is `RuntimeAppService`
 - first-party consumers may use `SendAppMessage` /
@@ -138,9 +138,9 @@ AppService 的跨域消费契约状态：
 - `runtime.agent` reactive chat seam admits a dedicated transport capability
   family:
   - admitted ingress via `SendAppMessage` to `to_app_id=runtime.agent` with an
-    admitted ingress message type requires `runtime.agent.chat.write`
+    admitted ingress message type requires `runtime.agent.turn.write`
   - admitted `SubscribeAppMessages` reads that filter `from_app_ids` including
-    `runtime.agent` require `runtime.agent.chat.read`
+    `runtime.agent` require `runtime.agent.turn.read`
   - generic cross-app app-bus traffic outside this reserved seam continues to
     use `runtime.app.send.cross_app`
 - `runtime.agent.*` RPC projection remains separate and covers

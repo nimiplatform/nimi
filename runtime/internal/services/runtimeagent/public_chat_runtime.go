@@ -68,28 +68,37 @@ func (r publicChatRuntime) handleTurnRequest(
 	}
 	callerAppID := strings.TrimSpace(event.GetFromAppId())
 	subjectUserID := strings.TrimSpace(event.GetSubjectUserId())
-	r.svc.cancelPublicChatFollowUpsForRequest(callerAppID, strings.TrimSpace(req.SessionID), strings.TrimSpace(req.ThreadID), "user_message")
+	r.svc.cancelPublicChatFollowUpsForRequest(callerAppID, strings.TrimSpace(req.ConversationAnchorID), strings.TrimSpace(req.ThreadID), "user_message")
 	session, turn, turnCtx, err := r.reserveTurn(ctx, callerAppID, subjectUserID, req)
 	if err != nil {
 		return err
 	}
 	released := false
+	turnOrigin := stateEventOrigin{
+		ConversationAnchorID: session.ConversationAnchorID,
+		OriginatingTurnID:    turn.TurnID,
+		OriginatingStreamID:  turn.StreamID,
+	}
 	defer func() {
 		if released {
 			return
 		}
-		r.releaseTurn(session.SessionID, turn.TurnID)
-		_ = r.setExecutionState(session.AgentID, "", "", runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE)
+		r.releaseTurn(session.ConversationAnchorID, turn.TurnID)
+		_ = r.setExecutionStateWithOrigin(session.AgentID, "", "", runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE, turnOrigin)
 	}()
-	if err := r.setExecutionState(
+	if err := r.setExecutionStateWithOrigin(
 		session.AgentID,
 		session.SubjectUserID,
 		strings.TrimSpace(req.WorldID),
 		runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_CHAT_ACTIVE,
+		turnOrigin,
 	); err != nil {
 		return err
 	}
-	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnAcceptedType, publicChatAcceptedPayload(session)); err != nil {
+	requestID := strings.TrimSpace(event.GetMessageId())
+	r.svc.setPublicChatTurnRequestID(turn.TurnID, requestID)
+	turn.RequestID = requestID
+	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnAcceptedType, publicChatAcceptedDetail(requestID)); err != nil {
 		return err
 	}
 	released = true
@@ -115,8 +124,7 @@ func (r publicChatRuntime) handleTurnInterrupt(
 	r.svc.chatSurfaceMu.Unlock()
 	r.svc.persistCurrentPublicChatSurfaceState()
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnInterruptAckType, map[string]any{
-		"accepted":      true,
-		"interrupt_for": firstNonEmpty(strings.TrimSpace(req.Reason), "interrupt_requested"),
+		"interrupted_turn_id": turn.TurnID,
 	}); err != nil {
 		return err
 	}
@@ -133,13 +141,18 @@ func (r publicChatRuntime) handleSessionSnapshotRequest(
 	if r.svc == nil || r.svc.isClosed() || r.svc.chatAppEmit == nil {
 		return status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable")
 	}
-	session, activeTurn, lastTurn, pendingFollowUp, err := r.svc.snapshotPublicChatSessionForCaller(strings.TrimSpace(event.GetFromAppId()), req.SessionID)
+	session, activeTurn, lastTurn, pendingFollowUp, err := r.svc.snapshotPublicChatAnchorForCaller(strings.TrimSpace(event.GetFromAppId()), req.ConversationAnchorID)
 	if err != nil {
 		return err
 	}
-	payload := map[string]any{
-		"agent_id":                 session.AgentID,
-		"session_id":               session.SessionID,
+	// K-AGCORE-037 session_envelope requires agent_id + conversation_anchor_id
+	// at the envelope; per `runtime-agent-event-projection.yaml`
+	// `session_events.runtime.agent.session.snapshot.detail.snapshot` is the
+	// only admitted carrier for committed continuity / execution / follow-up
+	// truth. Runtime carrier execution truth (model_resolved, trace_id,
+	// transcript metadata, follow-up state, etc.) lives ONLY inside this
+	// `detail.snapshot` projection — never on `runtime.agent.turn.*`.
+	snapshotDetail := map[string]any{
 		"thread_id":                session.ThreadID,
 		"subject_user_id":          session.SubjectUserID,
 		"session_status":           publicChatSessionStatus(activeTurn, pendingFollowUp),
@@ -147,40 +160,47 @@ func (r publicChatRuntime) handleSessionSnapshotRequest(
 		"execution_binding":        publicChatExecutionBindingProjectionPayload(session.Binding),
 	}
 	if trimmed := strings.TrimSpace(req.RequestID); trimmed != "" {
-		payload["request_id"] = trimmed
+		snapshotDetail["request_id"] = trimmed
 	}
 	if strings.TrimSpace(session.SystemPrompt) != "" {
-		payload["system_prompt"] = strings.TrimSpace(session.SystemPrompt)
+		snapshotDetail["system_prompt"] = strings.TrimSpace(session.SystemPrompt)
 	}
 	if session.MaxTokens > 0 {
-		payload["max_output_tokens"] = session.MaxTokens
+		snapshotDetail["max_output_tokens"] = session.MaxTokens
 	}
 	if reasoning := publicChatReasoningPayloadFromConfig(session.Reasoning); reasoning != nil {
-		payload["reasoning"] = map[string]any{
+		snapshotDetail["reasoning"] = map[string]any{
 			"mode":          reasoning.Mode,
 			"trace_mode":    reasoning.TraceMode,
 			"budget_tokens": reasoning.BudgetTokens,
 		}
 	}
 	if activeTurn != nil {
-		payload["active_turn"] = activeTurn.payload()
+		snapshotDetail["active_turn"] = activeTurn.payload()
 	}
 	if lastTurn != nil {
-		payload["last_turn"] = lastTurn.payload()
+		snapshotDetail["last_turn"] = lastTurn.payload()
 	}
 	if pendingFollowUp != nil {
-		payload["pending_follow_up"] = publicChatPendingFollowUpPayload(pendingFollowUp)
+		snapshotDetail["pending_follow_up"] = publicChatPendingFollowUpPayload(pendingFollowUp)
+	}
+	payload := map[string]any{
+		"agent_id":               session.AgentID,
+		"conversation_anchor_id": session.ConversationAnchorID,
+		"detail": map[string]any{
+			"snapshot": snapshotDetail,
+		},
 	}
 	return r.emitEvent(session.CallerAppID, session.SubjectUserID, publicChatSessionSnapshotType, payload)
 }
 
 func (r publicChatRuntime) runTurn(
 	ctx context.Context,
-	session publicChatSessionState,
+	session publicChatAnchorState,
 	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
 ) {
-	defer r.releaseTurn(session.SessionID, turn.TurnID)
+	defer r.releaseTurn(session.ConversationAnchorID, turn.TurnID)
 	defer func() {
 		if err := r.setExecutionState(session.AgentID, "", "", runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE); err != nil && r.svc.logger != nil {
 			r.svc.logger.Warn("set public chat agent idle state failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
@@ -224,10 +244,12 @@ func (r publicChatRuntime) runTurn(
 				projection.ModelResolved = modelResolved
 				projection.RouteDecision = routeDecision
 			})
+			// Per yaml `turn.started.detail` the only admitted field is
+			// `track: enum(chat|life)`. trace_id / model_resolved /
+			// route_decision are runtime execution truth and live on the
+			// session.snapshot active_turn projection only.
 			return r.emitTurnEvent(session, turn.TurnID, publicChatTurnStartedType, map[string]any{
-				"trace_id":       traceID,
-				"model_resolved": modelResolved,
-				"route_decision": publicChatRouteLabel(routeDecision),
+				"track": publicChatTurnTrackLabel,
 			})
 		case runtimev1.StreamEventType_STREAM_EVENT_DELTA:
 			delta := event.GetDelta()
@@ -246,9 +268,10 @@ func (r publicChatRuntime) runTurn(
 					projection.TraceID = traceID
 					projection.OutputObserved = true
 				})
+				// yaml `turn.text_delta.detail` admits only `text`. trace_id
+				// is runtime-internal and is recovered through session.snapshot.
 				return r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{
-					"trace_id": traceID,
-					"text":     textDelta,
+					"text": textDelta,
 				})
 			case *runtimev1.ScenarioStreamDelta_Reasoning:
 				reasoningDelta := item.Reasoning.GetText()
@@ -260,9 +283,9 @@ func (r publicChatRuntime) runTurn(
 					projection.TraceID = traceID
 					projection.ReasoningObserved = true
 				})
+				// yaml `turn.reasoning_delta.detail` admits only `text`.
 				return r.emitTurnEvent(session, turn.TurnID, publicChatTurnReasoningDeltaType, map[string]any{
-					"trace_id": traceID,
-					"text":     item.Reasoning.GetText(),
+					"text": item.Reasoning.GetText(),
 				})
 			default:
 				return nil
@@ -369,19 +392,37 @@ func (r publicChatRuntime) runTurn(
 		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, parseErr.Error(), "")
 		return
 	}
+	// yaml `turn.structured.detail` admits `kind` + `payload` only. The full
+	// structured envelope lives under `payload`; the schema id is the
+	// admitted `kind`. trace_id is recovered through session.snapshot.
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnStructuredType, map[string]any{
-		"trace_id":   traceID,
-		"structured": structured.payload(),
+		"kind":    structured.SchemaID,
+		"payload": structured.payload(),
 	}); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat structured event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}
+	// Project committed runtime interpretation into state+presentation per
+	// K-AGCORE-037 / K-AGCORE-038: StatusCue.Mood is the committed emotion
+	// update for this turn. emotion_changed carries real anchor/turn/stream
+	// origin linkage (this IS a chat turn); presentation.expression_requested
+	// is stream-scoped and uses the same identifiers. Mood is optional — when
+	// absent, no presentation/emotion projection is synthesized.
+	r.projectCommittedStatusCue(session, turn, structured)
+	// K-AGCORE-039 commit point: emit `runtime.agent.turn.message_committed`
+	// with the schema-compliant detail (`message_id`, `text`) and the
+	// required `message_id` envelope extra per yaml `extra_fields_by_event`.
+	// All `text_delta` slices preceding this commit point are provisional;
+	// late-join consumers reconcile the committed text from this event.
+	if err := r.emitTurnMessageCommitted(session, turn.TurnID, structured.Message.MessageID, structured.Message.Text); err != nil && r.svc.logger != nil {
+		r.svc.logger.Warn("emit public chat message_committed event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
+	}
 	postTurnOutcome := r.applyPostTurn(ctx, session, turn, req, structured)
-	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnPostTurnType, map[string]any{
-		"trace_id":         traceID,
-		"assistant_memory": postTurnOutcome.AssistantMemory.payload(),
-		"chat_sidecar":     postTurnOutcome.Sidecar.payload(),
-		"follow_up":        postTurnOutcome.FollowUp.payload(),
-	}); err != nil && r.svc.logger != nil {
+	// yaml `turn.post_turn.detail` admits indication-only `action?` and
+	// `hook_intent?`. Runtime execution truth (assistant_memory result,
+	// chat_sidecar outcome, follow-up scheduling state, trace_id) lives on
+	// `runtime.agent.session.snapshot.detail.snapshot.last_turn` only;
+	// canonical hook lifecycle remains on `runtime.agent.hook.*`.
+	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnPostTurnType, publicChatPostTurnIndicationDetail(structured, postTurnOutcome.FollowUp)); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat post-turn event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}
 	r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
@@ -398,43 +439,49 @@ func (r publicChatRuntime) runTurn(
 		projection.FollowUp = clonePublicChatFollowUpOutcome(&postTurnOutcome.FollowUp)
 		projection.FinishReason = publicChatFinishReasonLabel(finish.GetFinishReason())
 		projection.StreamSimulated = finish.GetStreamSimulated()
+		if usage != nil {
+			projection.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
+		}
 	})
-	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnCompletedType, map[string]any{
-		"trace_id":         traceID,
-		"text":             structured.Message.Text,
-		"message_id":       structured.Message.MessageID,
-		"finish_reason":    publicChatFinishReasonLabel(finish.GetFinishReason()),
-		"stream_simulated": finish.GetStreamSimulated(),
-		"usage":            usagePayload(usage),
-		"model_resolved":   modelResolved,
-		"route_decision":   publicChatRouteLabel(routeDecision),
-	}); err != nil && r.svc.logger != nil {
+	// yaml `turn.completed.detail` admits only `terminal_reason?`. The
+	// committed message text/message_id is on `turn.message_committed`;
+	// usage / finish_reason / stream_simulated / model_resolved /
+	// route_decision are runtime execution truth and live on
+	// `session.snapshot.detail.snapshot.last_turn` only.
+	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnCompletedType, publicChatTurnCompletedDetail(finish.GetFinishReason())); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat completion failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}
 }
 
+// reserveTurn binds a new turn to an existing ConversationAnchor. Per
+// K-AGCORE-034/K-AGCORE-035 runtime MUST NOT implicitly create anchors from
+// turn requests; `OpenConversationAnchor` is the only admitted anchor-open
+// seam. An unknown `conversation_anchor_id` fails-closed with NotFound.
 func (r publicChatRuntime) reserveTurn(
 	parent context.Context,
 	callerAppID string,
 	subjectUserID string,
 	req publicChatTurnRequestPayload,
-) (publicChatSessionState, publicChatTurnState, context.Context, error) {
+) (publicChatAnchorState, publicChatTurnState, context.Context, error) {
 	agentID := strings.TrimSpace(req.AgentID)
+	anchorID := strings.TrimSpace(req.ConversationAnchorID)
 	if callerAppID == "" || agentID == "" {
-		return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat request requires caller app and agent id")
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat request requires caller app and agent id")
+	}
+	if anchorID == "" {
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat request requires conversation_anchor_id")
 	}
 	entry, err := r.svc.agentByID(agentID)
 	if err != nil {
-		return publicChatSessionState{}, publicChatTurnState{}, nil, err
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
 	}
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
-		return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "agent is not active")
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "agent is not active")
 	}
 
-	sessionID := firstNonEmpty(strings.TrimSpace(req.SessionID), "agent_chat_session_"+ulid.Make().String())
 	binding, hasBinding, err := r.svc.resolvePublicChatBinding(parent, subjectUserID, req)
 	if err != nil {
-		return publicChatSessionState{}, publicChatTurnState{}, nil, err
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
 	}
 	reasoning := normalizePublicChatReasoning(req.Reasoning)
 	transcript := cloneChatMessages(toProtoPublicChatMessages(req.Messages))
@@ -443,104 +490,97 @@ func (r publicChatRuntime) reserveTurn(
 	if activeTurnID := strings.TrimSpace(r.svc.chatActiveByAgent[agentID]); activeTurnID != "" {
 		if activeTurn := r.svc.chatTurns[activeTurnID]; activeTurn != nil {
 			r.svc.chatSurfaceMu.Unlock()
-			return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "agent already has an active public chat turn")
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "agent already has an active public chat turn")
 		}
 		delete(r.svc.chatActiveByAgent, agentID)
 	}
 
-	session := r.svc.chatSessions[sessionID]
+	session := r.svc.chatAnchors[anchorID]
 	if session == nil {
-		if !hasBinding {
+		// Hard fail: runtime.agent.turn.request must reference an existing
+		// ConversationAnchor opened through OpenConversationAnchor.
+		r.svc.chatSurfaceMu.Unlock()
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.NotFound, "conversation_anchor_id not found; open ConversationAnchor first")
+	}
+	if session.CallerAppID != callerAppID {
+		r.svc.chatSurfaceMu.Unlock()
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
+	}
+	if session.AgentID != agentID {
+		r.svc.chatSurfaceMu.Unlock()
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor agent mismatch")
+	}
+	if session.Status == runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_CLOSED {
+		r.svc.chatSurfaceMu.Unlock()
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "conversation anchor is closed")
+	}
+	if session.ActiveTurnID != "" {
+		r.svc.chatSurfaceMu.Unlock()
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor already has an active turn")
+	}
+	if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" &&
+		strings.TrimSpace(session.SubjectUserID) != "" &&
+		strings.TrimSpace(session.SubjectUserID) != trimmed {
+		r.svc.chatSurfaceMu.Unlock()
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor subject_user_id mismatch")
+	}
+	if trimmed := strings.TrimSpace(req.ThreadID); trimmed != "" &&
+		strings.TrimSpace(session.ThreadID) != "" &&
+		strings.TrimSpace(session.ThreadID) != trimmed {
+		r.svc.chatSurfaceMu.Unlock()
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor thread_id mismatch")
+	}
+	if hasBinding {
+		if session.Binding.ModelID != "" && publicChatExecutionBindingMismatch(session.Binding, binding) {
 			r.svc.chatSurfaceMu.Unlock()
-			return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat request requires execution_binding for a new session")
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor execution_binding mismatch")
 		}
-		session = &publicChatSessionState{
-			SessionID:     sessionID,
-			AgentID:       agentID,
-			CallerAppID:   callerAppID,
-			SubjectUserID: strings.TrimSpace(subjectUserID),
-			ThreadID:      strings.TrimSpace(req.ThreadID),
-			Binding:       binding,
-			SystemPrompt:  strings.TrimSpace(req.SystemPrompt),
-			MaxTokens:     req.MaxOutputTokens,
-			Reasoning:     clonePublicChatReasoningConfig(reasoning),
-			Transcript:    transcript,
-		}
-		r.svc.chatSessions[sessionID] = session
-	} else {
-		if session.CallerAppID != callerAppID {
-			r.svc.chatSurfaceMu.Unlock()
-			return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.PermissionDenied, "public chat session caller mismatch")
-		}
-		if session.AgentID != agentID {
-			r.svc.chatSurfaceMu.Unlock()
-			return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat session agent mismatch")
-		}
-		if session.ActiveTurnID != "" {
-			r.svc.chatSurfaceMu.Unlock()
-			return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat session already has an active turn")
-		}
-		if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" &&
-			strings.TrimSpace(session.SubjectUserID) != "" &&
-			strings.TrimSpace(session.SubjectUserID) != trimmed {
-			r.svc.chatSurfaceMu.Unlock()
-			return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat session subject_user_id mismatch")
-		}
-		if trimmed := strings.TrimSpace(req.ThreadID); trimmed != "" &&
-			strings.TrimSpace(session.ThreadID) != "" &&
-			strings.TrimSpace(session.ThreadID) != trimmed {
-			r.svc.chatSurfaceMu.Unlock()
-			return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat session thread_id mismatch")
-		}
-		if hasBinding {
-			if publicChatExecutionBindingMismatch(session.Binding, binding) {
-				r.svc.chatSurfaceMu.Unlock()
-				return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat session execution_binding mismatch")
-			}
-			session.Binding = binding
-		}
-		if session.Binding.ModelID == "" || session.Binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-			r.svc.chatSurfaceMu.Unlock()
-			return publicChatSessionState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat session requires execution_binding")
-		}
-		if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" {
-			session.SubjectUserID = trimmed
-		}
-		if trimmed := strings.TrimSpace(req.ThreadID); trimmed != "" {
-			session.ThreadID = trimmed
-		}
-		if trimmed := strings.TrimSpace(req.SystemPrompt); trimmed != "" || session.SystemPrompt == "" {
-			session.SystemPrompt = trimmed
-		}
-		if req.MaxOutputTokens > 0 || session.MaxTokens == 0 {
-			session.MaxTokens = req.MaxOutputTokens
-		}
-		if reasoning != nil || session.Reasoning == nil {
-			session.Reasoning = clonePublicChatReasoningConfig(reasoning)
-		}
-		if len(transcript) > 0 {
-			session.Transcript = transcript
-		}
+		session.Binding = binding
+	}
+	if session.Binding.ModelID == "" || session.Binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		r.svc.chatSurfaceMu.Unlock()
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat anchor requires execution_binding")
+	}
+	if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" {
+		session.SubjectUserID = trimmed
+	}
+	if trimmed := strings.TrimSpace(req.ThreadID); trimmed != "" {
+		session.ThreadID = trimmed
+	}
+	if trimmed := strings.TrimSpace(req.SystemPrompt); trimmed != "" || session.SystemPrompt == "" {
+		session.SystemPrompt = trimmed
+	}
+	if req.MaxOutputTokens > 0 || session.MaxTokens == 0 {
+		session.MaxTokens = req.MaxOutputTokens
+	}
+	if reasoning != nil || session.Reasoning == nil {
+		session.Reasoning = clonePublicChatReasoningConfig(reasoning)
+	}
+	if len(transcript) > 0 {
+		session.Transcript = transcript
 	}
 
 	if parent == nil {
 		parent = context.Background()
 	}
 	turnID := "agent_turn_" + ulid.Make().String()
+	streamID := "agent_stream_" + ulid.Make().String()
 	turnCtx, cancel := context.WithCancel(parent)
 	turn := &publicChatTurnState{
-		SessionID:     session.SessionID,
-		TurnID:        turnID,
-		AgentID:       session.AgentID,
-		CallerAppID:   session.CallerAppID,
-		SubjectUserID: session.SubjectUserID,
-		ThreadID:      session.ThreadID,
-		Cancel:        cancel,
-		Origin:        publicChatTurnOriginUser,
+		ConversationAnchorID: session.ConversationAnchorID,
+		TurnID:               turnID,
+		StreamID:             streamID,
+		AgentID:              session.AgentID,
+		CallerAppID:          session.CallerAppID,
+		SubjectUserID:        session.SubjectUserID,
+		ThreadID:             session.ThreadID,
+		Cancel:               cancel,
+		Origin:               publicChatTurnOriginUser,
 	}
 	turn.Projection = newPublicChatTurnProjection(turn)
 	session.ActiveTurnID = turnID
 	session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
+	session.UpdatedAt = time.Now().UTC()
 	r.svc.chatTurns[turnID] = turn
 	r.svc.chatActiveByAgent[agentID] = turnID
 	snapshot := *session
@@ -550,13 +590,14 @@ func (r publicChatRuntime) reserveTurn(
 	return snapshot, turnSnapshot, turnCtx, nil
 }
 
-func (r publicChatRuntime) releaseTurn(sessionID string, turnID string) {
+func (r publicChatRuntime) releaseTurn(anchorID string, turnID string) {
 	r.svc.chatSurfaceMu.Lock()
 	turn := r.svc.chatTurns[strings.TrimSpace(turnID)]
 	delete(r.svc.chatTurns, strings.TrimSpace(turnID))
-	if session := r.svc.chatSessions[strings.TrimSpace(sessionID)]; session != nil && session.ActiveTurnID == strings.TrimSpace(turnID) {
+	if session := r.svc.chatAnchors[strings.TrimSpace(anchorID)]; session != nil && session.ActiveTurnID == strings.TrimSpace(turnID) {
 		session.ActiveTurnID = ""
 		session.ActiveTurnSnapshot = nil
+		session.UpdatedAt = time.Now().UTC()
 	}
 	if turn != nil && strings.TrimSpace(r.svc.chatActiveByAgent[turn.AgentID]) == strings.TrimSpace(turnID) {
 		delete(r.svc.chatActiveByAgent, turn.AgentID)
@@ -565,32 +606,51 @@ func (r publicChatRuntime) releaseTurn(sessionID string, turnID string) {
 	r.svc.persistCurrentPublicChatSurfaceState()
 }
 
+// lookupTurnForInterrupt resolves the anchor+turn pair targeted by an
+// interrupt. Per K-AGCORE-035 interrupt semantics are anchor-scoped; only
+// turns under the referenced `conversation_anchor_id` are candidates.
 func (r publicChatRuntime) lookupTurnForInterrupt(
 	callerAppID string,
 	req publicChatTurnInterruptPayload,
-) (publicChatSessionState, publicChatTurnState, error) {
-	sessionID := strings.TrimSpace(req.SessionID)
-	if callerAppID == "" || sessionID == "" {
-		return publicChatSessionState{}, publicChatTurnState{}, status.Error(codes.InvalidArgument, "public chat interrupt requires caller app and session id")
+) (publicChatAnchorState, publicChatTurnState, error) {
+	anchorID := strings.TrimSpace(req.ConversationAnchorID)
+	if callerAppID == "" || anchorID == "" {
+		return publicChatAnchorState{}, publicChatTurnState{}, status.Error(codes.InvalidArgument, "public chat interrupt requires caller app and conversation_anchor_id")
 	}
 	r.svc.chatSurfaceMu.Lock()
 	defer r.svc.chatSurfaceMu.Unlock()
-	session := r.svc.chatSessions[sessionID]
+	session := r.svc.chatAnchors[anchorID]
 	if session == nil {
-		return publicChatSessionState{}, publicChatTurnState{}, status.Error(codes.NotFound, "public chat session not found")
+		return publicChatAnchorState{}, publicChatTurnState{}, status.Error(codes.NotFound, "conversation anchor not found")
 	}
 	if session.CallerAppID != callerAppID {
-		return publicChatSessionState{}, publicChatTurnState{}, status.Error(codes.PermissionDenied, "public chat session caller mismatch")
+		return publicChatAnchorState{}, publicChatTurnState{}, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
 	}
 	turnID := firstNonEmpty(strings.TrimSpace(req.TurnID), session.ActiveTurnID)
 	turn := r.svc.chatTurns[turnID]
 	if turn == nil {
-		return publicChatSessionState{}, publicChatTurnState{}, status.Error(codes.NotFound, "public chat turn not found")
+		return publicChatAnchorState{}, publicChatTurnState{}, status.Error(codes.NotFound, "public chat turn not found")
+	}
+	// Anchor-scoped isolation: the resolved turn must live under the
+	// referenced anchor. Different anchors under the same agent MUST NOT
+	// share interrupt propagation by implication (K-AGCORE-035).
+	if strings.TrimSpace(turn.ConversationAnchorID) != "" && turn.ConversationAnchorID != session.ConversationAnchorID {
+		return publicChatAnchorState{}, publicChatTurnState{}, status.Error(codes.NotFound, "public chat turn not found under referenced anchor")
 	}
 	return *session, *turn, nil
 }
 
+// setExecutionState mutates committed execution-state truth and, when the
+// execution state actually transitions, emits
+// `runtime.agent.state.execution_state_changed` with optional origin linkage
+// back to the anchor/turn/stream that caused the change. Per K-AGCORE-037
+// state_envelope origin linkage is OPTIONAL and MUST be omitted when the
+// transition has no real continuity branch (e.g. IDLE on shutdown).
 func (r publicChatRuntime) setExecutionState(agentID string, subjectUserID string, worldID string, state runtimev1.AgentExecutionState) error {
+	return r.setExecutionStateWithOrigin(agentID, subjectUserID, worldID, state, stateEventOrigin{})
+}
+
+func (r publicChatRuntime) setExecutionStateWithOrigin(agentID string, subjectUserID string, worldID string, state runtimev1.AgentExecutionState, origin stateEventOrigin) error {
 	if r.svc == nil || r.svc.isClosed() {
 		return nil
 	}
@@ -598,77 +658,188 @@ func (r publicChatRuntime) setExecutionState(agentID string, subjectUserID strin
 	if err != nil {
 		return err
 	}
-	changed := false
-	if entry.State.GetExecutionState() != state {
+	previousExecution := entry.State.GetExecutionState()
+	executionChanged := false
+	if previousExecution != state {
 		entry.State.ExecutionState = state
-		changed = true
+		executionChanged = true
 	}
 	if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" && entry.State.GetActiveUserId() != trimmed {
 		entry.State.ActiveUserId = trimmed
-		changed = true
 	}
 	if trimmed := strings.TrimSpace(worldID); trimmed != "" && entry.State.GetActiveWorldId() != trimmed {
 		entry.State.ActiveWorldId = trimmed
-		changed = true
 	}
-	if !changed {
+	if !executionChanged && strings.TrimSpace(subjectUserID) == "" && strings.TrimSpace(worldID) == "" {
 		return nil
 	}
-	entry.State.UpdatedAt = timestamppb.New(time.Now().UTC())
-	return r.svc.updateAgent(entry)
+	now := time.Now().UTC()
+	entry.State.UpdatedAt = timestamppb.New(now)
+	events := make([]*runtimev1.AgentEvent, 0, 1)
+	if executionChanged {
+		events = append(events, r.svc.stateExecutionStateChangedEvent(entry.Agent.GetAgentId(), state, previousExecution, origin, now))
+	}
+	return r.svc.updateAgent(entry, events...)
 }
 
-func (r publicChatRuntime) emitTurnInterrupted(session publicChatSessionState, turn publicChatTurnState, traceID string, modelResolved string, routeDecision runtimev1.RoutePolicy, reason string) {
+// emitTurnInterrupted projects yaml `turn.interrupted.detail.reason`.
+// trace_id / model_resolved / route_decision belong to runtime execution
+// truth and surface only via session.snapshot.detail.snapshot.last_turn.
+func (r publicChatRuntime) emitTurnInterrupted(session publicChatAnchorState, turn publicChatTurnState, _ string, _ string, _ runtimev1.RoutePolicy, reason string) {
 	payload := map[string]any{
-		"trace_id": traceID,
-		"reason":   firstNonEmpty(reason, "interrupt_requested"),
-	}
-	if trimmed := strings.TrimSpace(modelResolved); trimmed != "" {
-		payload["model_resolved"] = trimmed
-	}
-	if routeDecision != runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		payload["route_decision"] = publicChatRouteLabel(routeDecision)
+		"reason": firstNonEmpty(reason, "interrupt_requested"),
 	}
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnInterruptedType, payload); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat interrupted event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}
 }
 
-func (r publicChatRuntime) emitTurnFailed(session publicChatSessionState, turn publicChatTurnState, traceID string, modelResolved string, routeDecision runtimev1.RoutePolicy, reasonCode runtimev1.ReasonCode, message string, actionHint string) {
+// emitTurnFailed projects yaml `turn.failed.detail` admitting only
+// `reason_code` (required) and `message?`. action_hint / trace_id /
+// model_resolved / route_decision are runtime execution truth and live
+// on session.snapshot.detail.snapshot.last_turn only.
+func (r publicChatRuntime) emitTurnFailed(session publicChatAnchorState, turn publicChatTurnState, _ string, _ string, _ runtimev1.RoutePolicy, reasonCode runtimev1.ReasonCode, message string, _ string) {
 	payload := map[string]any{
-		"trace_id":    traceID,
 		"reason_code": publicChatReasonCodeLabel(reasonCode),
-		"message":     strings.TrimSpace(message),
 	}
-	if trimmed := strings.TrimSpace(actionHint); trimmed != "" {
-		payload["action_hint"] = trimmed
-	}
-	if trimmed := strings.TrimSpace(modelResolved); trimmed != "" {
-		payload["model_resolved"] = trimmed
-	}
-	if routeDecision != runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		payload["route_decision"] = publicChatRouteLabel(routeDecision)
+	if trimmed := strings.TrimSpace(message); trimmed != "" {
+		payload["message"] = trimmed
 	}
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnFailedType, payload); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat failed event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}
 }
 
-func (r publicChatRuntime) emitTurnEvent(session publicChatSessionState, turnID string, messageType string, payload map[string]any) error {
+// projectCommittedStatusCue emits runtime.agent.state.emotion_changed and
+// runtime.agent.presentation.expression_requested derived from the structured
+// envelope's StatusCue once the turn has committed. Runtime MUST NOT emit
+// presentation events without real stream identity; when origin linkage
+// cannot be constructed the projection is skipped rather than fabricated.
+func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
+	if r.svc == nil || r.svc.isClosed() || structured == nil || structured.StatusCue == nil {
+		return
+	}
+	mood := strings.TrimSpace(structured.StatusCue.Mood)
+	if mood == "" {
+		return
+	}
+	anchorID := strings.TrimSpace(session.ConversationAnchorID)
+	turnID := strings.TrimSpace(turn.TurnID)
+	streamID := strings.TrimSpace(turn.StreamID)
+	if anchorID == "" || turnID == "" || streamID == "" {
+		return
+	}
+	entry, err := r.svc.agentByID(strings.TrimSpace(session.AgentID))
+	if err != nil {
+		return
+	}
+	now := time.Now().UTC()
+	origin := stateEventOrigin{
+		ConversationAnchorID: anchorID,
+		OriginatingTurnID:    turnID,
+		OriginatingStreamID:  streamID,
+	}
+	previousEmotion := strings.TrimSpace(entry.State.GetCurrentEmotion())
+	if previousEmotion == mood {
+		// Already at this emotion; skip re-emission to preserve
+		// durable-until-replace semantics per K-AGCORE-038.
+		return
+	}
+	// K-AGCORE-038: current_emotion is durable runtime state. Commit it into
+	// AgentStateProjection alongside the projection event so GetAgentState /
+	// snapshot / recovery observe the same truth.
+	entry.State.CurrentEmotion = mood
+	entry.State.UpdatedAt = timestamppb.New(now)
+	events := make([]*runtimev1.AgentEvent, 0, 2)
+	events = append(events, r.svc.stateEmotionChangedEvent(
+		entry.Agent.GetAgentId(),
+		mood,
+		previousEmotion,
+		"chat_status_cue",
+		origin,
+		now,
+	))
+	presentationEvent, perr := r.svc.emitPresentationExpressionEvent(entry.Agent.GetAgentId(), anchorID, turnID, streamID, mood, 0, now)
+	if perr != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("skip presentation.expression_requested; envelope invalid", "agent_id", session.AgentID, "error", perr)
+		}
+	} else {
+		events = append(events, presentationEvent)
+	}
+	if err := r.svc.updateAgent(entry, events...); err != nil && r.svc.logger != nil {
+		r.svc.logger.Warn("emit runtime.agent.state+presentation from status cue failed", "agent_id", session.AgentID, "turn_id", turnID, "error", err)
+	}
+}
+
+// emitTurnEvent composes the runtime.agent.turn.* envelope per
+// K-AGCORE-037 / runtime-agent-event-projection.yaml `turn_envelope`:
+// payload top level carries the required envelope fields (`agent_id`,
+// `conversation_anchor_id`, `turn_id`, `stream_id`); event-specific
+// fields live under `detail` per the mounted `turn_events.detail`
+// schema. Runtime execution truth (model_resolved, trace_id,
+// follow_up_depth, transcript metadata, etc.) is NOT carried on
+// `runtime.agent.turn.*` projection events; it is recovered exclusively
+// through `runtime.agent.session.snapshot.detail.snapshot`. Per
+// K-AGCORE-030 stream identity is distinct from turn identity and is
+// allocated at turn open onto `publicChatTurnState.StreamID`.
+//
+// Per yaml `extra_fields_by_event`, `runtime.agent.turn.message_committed`
+// additionally carries `message_id` at envelope level; callers must
+// emit it through emitTurnMessageCommitted, which sets that envelope
+// extra explicitly rather than relying on detail merge.
+func (r publicChatRuntime) emitTurnEvent(session publicChatAnchorState, turnID string, messageType string, detail map[string]any) error {
+	trimmedTurnID := strings.TrimSpace(turnID)
+	streamID := r.svc.publicChatTurnStreamID(trimmedTurnID)
+	if streamID == "" {
+		// Stream identity must be real per K-AGCORE-030; if lookup fails we
+		// fail-closed rather than fabricate stream_id from turn_id.
+		return status.Error(codes.FailedPrecondition, "runtime.agent.turn.* stream identity unavailable")
+	}
+	// Track stream sequence as runtime-private bookkeeping for the snapshot
+	// projection only; do not surface as turn envelope/detail per yaml.
+	r.svc.nextPublicChatStreamSequence(trimmedTurnID)
 	out := map[string]any{
-		"agent_id":        session.AgentID,
-		"session_id":      session.SessionID,
-		"turn_id":         strings.TrimSpace(turnID),
-		"thread_id":       session.ThreadID,
-		"stream_sequence": r.svc.nextPublicChatStreamSequence(turnID),
+		"agent_id":               session.AgentID,
+		"conversation_anchor_id": session.ConversationAnchorID,
+		"turn_id":                trimmedTurnID,
+		"stream_id":              streamID,
 	}
-	for key, value := range r.svc.publicChatTurnMetadataPayload(turnID) {
-		out[key] = value
-	}
-	for key, value := range payload {
-		out[key] = value
+	if detail == nil {
+		out["detail"] = map[string]any{}
+	} else {
+		out["detail"] = detail
 	}
 	return r.emitEvent(session.CallerAppID, session.SubjectUserID, messageType, out)
+}
+
+// emitTurnMessageCommitted emits runtime.agent.turn.message_committed with
+// the required `message_id` envelope extra (per
+// runtime-agent-event-projection.yaml `extra_fields_by_event`) plus the
+// committed message detail (`message_id`, `text`).
+func (r publicChatRuntime) emitTurnMessageCommitted(session publicChatAnchorState, turnID string, messageID string, text string) error {
+	trimmedTurnID := strings.TrimSpace(turnID)
+	trimmedMessageID := strings.TrimSpace(messageID)
+	if trimmedMessageID == "" {
+		return status.Error(codes.FailedPrecondition, "runtime.agent.turn.message_committed requires message_id")
+	}
+	streamID := r.svc.publicChatTurnStreamID(trimmedTurnID)
+	if streamID == "" {
+		return status.Error(codes.FailedPrecondition, "runtime.agent.turn.* stream identity unavailable")
+	}
+	r.svc.nextPublicChatStreamSequence(trimmedTurnID)
+	out := map[string]any{
+		"agent_id":               session.AgentID,
+		"conversation_anchor_id": session.ConversationAnchorID,
+		"turn_id":                trimmedTurnID,
+		"stream_id":              streamID,
+		"message_id":             trimmedMessageID,
+		"detail": map[string]any{
+			"message_id": trimmedMessageID,
+			"text":       strings.TrimSpace(text),
+		},
+	}
+	return r.emitEvent(session.CallerAppID, session.SubjectUserID, publicChatTurnMessageCommittedType, out)
 }
 
 func (r publicChatRuntime) emitEvent(callerAppID string, subjectUserID string, messageType string, payload map[string]any) error {
@@ -723,7 +894,7 @@ func (r publicChatRuntime) shutdownSurface() {
 
 func (r publicChatRuntime) applyPostTurn(
 	ctx context.Context,
-	session publicChatSessionState,
+	session publicChatAnchorState,
 	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
 	structured *publicChatStructuredEnvelope,
@@ -740,7 +911,7 @@ func (r publicChatRuntime) applyPostTurn(
 	if strings.TrimSpace(assistantText) == "" {
 		return outcome
 	}
-	r.svc.appendPublicChatAssistantMessage(session.SessionID, assistantText)
+	r.svc.appendPublicChatAssistantMessage(session.ConversationAnchorID, assistantText)
 	outcome.AssistantMemory = r.applyAssistantTurnMemory(ctx, session, turn, assistantText)
 	summary, err := r.svc.executeChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
 		AgentID:       session.AgentID,
@@ -776,7 +947,7 @@ func (r publicChatRuntime) applyPostTurn(
 
 func (r publicChatRuntime) applyAssistantTurnMemory(
 	ctx context.Context,
-	session publicChatSessionState,
+	session publicChatAnchorState,
 	turn publicChatTurnState,
 	assistantText string,
 ) publicChatAssistantMemoryOutcome {

@@ -67,6 +67,14 @@ canonical truth。
 固定约束：
 
 - 该 state 必须始终可恢复到当前 `conversation_anchor_id`、当前 surface instance、以及当前 agent projection relation
+- 同一 desktop app 允许多个 avatar surface instances 并存；每个 instance
+  必须绑定一个显式 `{ agent_id, conversation_anchor_id, surface_instance_id }`
+  三元组，且不同 instance 间不得共享 `AvatarInteractionState`
+- `surface_instance_id` 是 desktop app-local identity，只用于当前 app 内的
+  `AvatarInteractionState` scoping；它不是 runtime-owned 字段，也不得进入
+  `runtime.agent.*` event payload
+- 多个 surface instances 可以订阅同一 `agent_id + conversation_anchor_id`
+  的 runtime projection；surface-level routing 仍由 app 自己负责
 - 它可以由多个上游信号归一化而成，但归一化后只能作为 transient surface truth 使用
 - renderer-local interpolation、physics、blend-shape implementation detail 可以继续存在，但不得冒充 canonical `AvatarInteractionState`
 - 缺少合法 conversation-anchor / surface / agent relation 时必须 fail-close；不得猜测一份 active avatar state

@@ -39,7 +39,7 @@ surface 必须维持 runtime-owned authority cut：
   `runtime.agent.*`
 - reactive agent-chat consumption is currently carried separately on the
   reserved `runtime.agent` app-message seam via the admitted app-messaging
-  transport, rather than a parallel `runtime.agent.chat.*` RPC subgroup
+  transport, rather than a parallel reactive-chat RPC subgroup
 - app-facing canonical agent control plane and canonical agent memory write path
   must remain unified on that runtime-owned agent projection, rather than
   drifting back to direct Realm memory mutation or provider-native memory API

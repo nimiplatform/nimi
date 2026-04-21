@@ -702,6 +702,16 @@ method_mappings:
   proto_method: ListAgents
   mapping_status: aligned
 - design_service: RuntimeAgentService
+  design_method: OpenConversationAnchor
+  proto_service: RuntimeAgentService
+  proto_method: OpenConversationAnchor
+  mapping_status: aligned
+- design_service: RuntimeAgentService
+  design_method: GetConversationAnchorSnapshot
+  proto_service: RuntimeAgentService
+  proto_method: GetConversationAnchorSnapshot
+  mapping_status: aligned
+- design_service: RuntimeAgentService
   design_method: GetAgentState
   proto_service: RuntimeAgentService
   proto_method: GetAgentState

@@ -67,8 +67,9 @@ Fixed rules:
 - `pending` is the only admitted "accepted into scheduler truth" state
 - reject reasons, conflict replacement, and budget/autonomy denial must remain
   observable through `runtime.agent.hook.rejected`
-- origin linkage back to `conversation_anchor_id`, `turn_id`, and `stream_id`
-  must be preserved when present
+- hook event projection requires `agent_id`; origin linkage back to
+  `conversation_anchor_id`, `originating_turn_id`, and
+  `originating_stream_id` must be preserved when present
 
 ## K-AGCORE-043 Narrow-Admission Constraints
 

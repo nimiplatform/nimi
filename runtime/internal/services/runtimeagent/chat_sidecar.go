@@ -31,9 +31,11 @@ type chatTrackSidecarIngressPayload struct {
 }
 
 type ChatTrackSidecarResult struct {
-	PosturePatch              *BehavioralPosturePatch
-	CancelPendingHookIDs      []string
-	NextHookIntent            *runtimev1.NextHookIntent
+	PosturePatch         *BehavioralPosturePatch
+	CancelPendingHookIDs []string
+	// NextHookIntent carries a model-proposed follow-up HookIntent per
+	// K-AGCORE-041. Runtime admission validates and finalizes it.
+	NextHookIntent            *runtimev1.HookIntent
 	CanonicalMemoryCandidates []*runtimev1.CanonicalMemoryCandidate
 }
 
@@ -67,7 +69,7 @@ func validateChatTrackSidecarCancelHookIDs(entry *agentEntry, values []string) (
 		if hook == nil {
 			return nil, status.Error(codes.NotFound, "hook not found")
 		}
-		if !isCancelableHookStatus(hook.GetStatus()) {
+		if !isCancelableAdmissionState(hookAdmissionState(hook)) {
 			return nil, status.Error(codes.FailedPrecondition, "hook is not cancelable")
 		}
 		seen[hookID] = struct{}{}

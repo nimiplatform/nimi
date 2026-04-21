@@ -20,6 +20,7 @@ import (
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -404,7 +405,7 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	}()
 
 	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
-	waitForDaemonHookStatus(t, daemon, "agent-daemon-loop", runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_COMPLETED, 2*time.Second)
+	waitForDaemonHookStatus(t, daemon, "agent-daemon-loop", runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED, 2*time.Second)
 
 	cancel()
 	if err := <-done; err != nil {
@@ -669,24 +670,30 @@ func writePersistedRuntimeAgentState(localStatePath string, agentID string, sche
 	if err != nil {
 		return err
 	}
+	// K-AGCORE-041 mounted hook vocabulary: TIME-family HookIntent with
+	// relative delay = scheduledFor - now. not_before pins the earliest
+	// firing so the normalizer's max(delay, not_before) preserves the
+	// absolute-schedule semantics this integration test historically relied
+	// on, without reintroducing SCHEDULED_TIME / NextHookIntent.
+	hookDelay := scheduledFor.Sub(now)
+	if hookDelay < 0 {
+		hookDelay = 0
+	}
 	hookRaw, err := protojson.Marshal(&runtimev1.PendingHook{
-		HookId: "hook-daemon-loop",
-		Status: runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
-		Trigger: &runtimev1.HookTriggerDetail{
-			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
-			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
-				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{
-					ScheduledFor: timestamppb.New(scheduledFor),
+		Intent: &runtimev1.HookIntent{
+			IntentId:      "hook-daemon-loop",
+			AgentId:       "agent-daemon-loop",
+			TriggerFamily: runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME,
+			TriggerDetail: &runtimev1.HookTriggerDetail{
+				Detail: &runtimev1.HookTriggerDetail_Time{
+					Time: &runtimev1.HookTriggerTimeDetail{
+						Delay: durationpb.New(hookDelay),
+					},
 				},
 			},
-		},
-		NextIntent: &runtimev1.NextHookIntent{
-			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
-			Detail: &runtimev1.NextHookIntent_ScheduledTime{
-				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{
-					ScheduledFor: timestamppb.New(scheduledFor),
-				},
-			},
+			Effect:         runtimev1.HookEffect_HOOK_EFFECT_FOLLOW_UP_TURN,
+			AdmissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
+			NotBefore:      timestamppb.New(scheduledFor),
 		},
 		ScheduledFor: timestamppb.New(scheduledFor),
 		AdmittedAt:   timestamppb.New(now),
@@ -743,20 +750,20 @@ func waitForDaemonStatus(t *testing.T, daemon *Daemon, expected health.Status, t
 	t.Fatalf("expected daemon status %s, got %s", expected, daemon.state.Snapshot().Status)
 }
 
-func waitForDaemonHookStatus(t *testing.T, daemon *Daemon, agentID string, expected runtimev1.AgentHookStatus, timeout time.Duration) {
+func waitForDaemonHookStatus(t *testing.T, daemon *Daemon, agentID string, expected runtimev1.HookAdmissionState, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		resp, err := daemon.grpc.AgentService().ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
-			AgentId:      agentID,
-			StatusFilter: expected,
+			AgentId:               agentID,
+			AdmissionStateFilter:  expected,
 		})
 		if err == nil && len(resp.GetHooks()) == 1 {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatalf("expected hook status %s for agent %s", expected, agentID)
+	t.Fatalf("expected hook admission_state %s for agent %s", expected, agentID)
 }
 
 func waitForMemoryReplicationAttempt(t *testing.T, svc interface {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -33,9 +34,13 @@ type lifeTurnResult struct {
 	PosturePatch              *BehavioralPosturePatch
 	StatusText                *string
 	CanonicalMemoryCandidates []*lifeTurnMemoryCandidate
-	NextHookIntent            *runtimev1.NextHookIntent
-	Summary                   string
-	TokensUsed                int64
+	// NextHookIntent carries the runtime-admitted follow-up HookIntent
+	// (K-AGCORE-041). `intent_id`, `trigger_family`, `trigger_detail`,
+	// `effect`, and `admission_state` are all runtime-bound; admission
+	// validation finalizes the state to `pending` on acceptance.
+	NextHookIntent *runtimev1.HookIntent
+	Summary        string
+	TokensUsed     int64
 }
 
 type lifeTurnMemoryCandidate struct {
@@ -53,11 +58,11 @@ type aiBackedLifeTrackExecutor struct {
 }
 
 type lifeTurnExecutionError struct {
-	status     runtimev1.AgentHookStatus
-	reasonCode runtimev1.ReasonCode
-	message    string
-	retryable  bool
-	tokensUsed int64
+	admissionState runtimev1.HookAdmissionState
+	reasonCode     runtimev1.ReasonCode
+	message        string
+	retryable      bool
+	tokensUsed     int64
 }
 
 type lifeTurnExecutorJSON struct {
@@ -102,10 +107,10 @@ func (e *lifeTurnExecutionError) decision() *hookExecutionDecision {
 	if e == nil {
 		return failedHookDecision(runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "life turn execution failed", false, 0)
 	}
-	switch e.status {
-	case runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_REJECTED:
+	switch e.admissionState {
+	case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED:
 		return rejectedHookDecision(e.reasonCode, e.message)
-	case runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED:
+	case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED:
 		return failedHookDecision(e.reasonCode, e.message, e.retryable, e.tokensUsed)
 	default:
 		return failedHookDecision(runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, firstNonEmpty(e.message, "life turn execution failed"), e.retryable, e.tokensUsed)
@@ -115,7 +120,7 @@ func (e *lifeTurnExecutionError) decision() *hookExecutionDecision {
 func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, req *lifeTurnRequest) (*lifeTurnResult, error) {
 	if e == nil || e.ai == nil {
 		return nil, &lifeTurnExecutionError{
-			status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_REJECTED,
+			admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
 			reasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
 			message:    "runtime internal life-track executor unavailable or not admitted",
 		}
@@ -123,7 +128,7 @@ func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, re
 	execReq, err := buildLifeTurnScenarioRequest(req)
 	if err != nil {
 		return nil, &lifeTurnExecutionError{
-			status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED,
+			admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
 			reasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
 			message:    err.Error(),
 		}
@@ -131,7 +136,7 @@ func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, re
 	resp, err := e.ai.ExecuteScenario(ctx, execReq)
 	if err != nil {
 		return nil, &lifeTurnExecutionError{
-			status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED,
+			admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
 			reasonCode: reasonCodeFromError(err),
 			message:    err.Error(),
 			retryable:  false,
@@ -141,7 +146,7 @@ func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, re
 	result, err := decodeLifeTurnExecutorResult(text, responseTokensUsed(resp))
 	if err != nil {
 		return nil, &lifeTurnExecutionError{
-			status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED,
+			admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
 			reasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
 			message:    err.Error(),
 		}
@@ -247,16 +252,18 @@ Rules:
   - canonical_class: PUBLIC_SHARED | WORLD_SHARED | DYADIC
   - policy_reason: string
   - record: MemoryRecordInput proto-json using exactly one payload branch: episodic, semantic, or observational
-- next_hook_intent must be valid NextHookIntent proto-json if present.
-- next_hook_intent remains callback intent only; runtime host still owns cadence truth.
-- next_hook_intent may set cadence_interaction only as:
-  - NORMAL
-  - SUPPRESS_BASE_TICK_UNTIL_FIRED
-  - SUPPRESS_BASE_TICK_UNTIL_EXPIRED
-- use suppress_base_tick_until_fired only when the follow-up hook itself represents the next meaningful wake-up for a sustained state.
-- use suppress_base_tick_until_expired only for a sustained state with a clear suppression boundary, and always include expires_at when using it.
-- do not invent cadence_interaction for ordinary short follow-ups, lightweight reminders, or generic "check back later" timing.
-- examples that may justify suppression: sleep, meditation, focused deep work, long travel, or another explicitly continuous state.
+- next_hook_intent must be valid HookIntent proto-json if present and is
+  constrained to the K-AGCORE-041 narrow-admission matrix:
+    - trigger_family: TIME or EVENT
+    - trigger_detail:
+        time { delay: google.protobuf.Duration }  (family = TIME)
+        event_user_idle { idle_for: google.protobuf.Duration }  (family = EVENT)
+        event_chat_ended {}  (family = EVENT)
+    - effect: FOLLOW_UP_TURN (only admitted effect)
+    - admission_state: leave as PROPOSED; runtime admission finalizes it
+- runtime host owns cadence truth; no cadence_interaction field is admitted.
+- no absolute scheduled time, turn_completed, state_condition, world_event,
+  or compound trigger is admitted in v1.
 - If no follow-up hook is needed, set next_hook_intent to null.
 - If no canonical memory should be written, set canonical_memory_candidates to [].
 - If status text should remain unchanged, set status_text to null.
@@ -338,12 +345,16 @@ func decodeLifeTurnExecutorResult(raw string, fallbackTokens int64) (*lifeTurnRe
 		}
 	}
 	if len(payload.NextHookIntent) > 0 && string(payload.NextHookIntent) != "null" {
-		intent := &runtimev1.NextHookIntent{}
+		intent := &runtimev1.HookIntent{}
 		unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
 		if err := unmarshal.Unmarshal(payload.NextHookIntent, intent); err != nil {
 			return nil, fmt.Errorf("life turn executor next_hook_intent invalid: %w", err)
 		}
-		if err := validateNextHookIntent(intent); err != nil {
+		// Model-proposed intents may omit intent_id; runtime stamps it.
+		if strings.TrimSpace(intent.GetIntentId()) == "" {
+			intent.IntentId = "hook_" + ulid.Make().String()
+		}
+		if err := validateHookIntent(intent); err != nil {
 			return nil, fmt.Errorf("life turn executor next_hook_intent invalid: %w", err)
 		}
 		result.NextHookIntent = intent
@@ -372,7 +383,7 @@ func buildLifeTurnCanonicalMemoryCandidate(entry *agentEntry, hook *runtimev1.Pe
 			Message:    "life turn memory candidate requires triggering hook",
 		}
 	}
-	sourceEventID := strings.TrimSpace(hook.GetHookId())
+	sourceEventID := hookIntentID(hook)
 	if input == nil {
 		return nil, &runtimev1.CanonicalMemoryRejection{
 			SourceEventId: sourceEventID,

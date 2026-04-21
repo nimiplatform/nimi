@@ -82,7 +82,7 @@ phases:
         desc: "Mock → real SDK 切换,app logic 不变"
       - id: sdk_event_api_integration
         title: "SDK Event API integration"
-        desc: "使用 @nimiplatform/sdk 的 client.events / client.agent / client.streams"
+        desc: "使用 @nimiplatform/sdk 的 client.events / client.agentState / client.agentTurns / client.agentAnchors"
       - id: presentation_timeline_integration
         title: "Presentation timeline coordination"
         desc: "多 channel 对齐 + interrupt 传播"

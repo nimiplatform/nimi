@@ -59,10 +59,16 @@ type Service struct {
 
 	chatSurfaceMu      sync.Mutex
 	chatSurfaceVersion uint64
-	chatSessions       map[string]*publicChatSessionState
-	chatTurns          map[string]*publicChatTurnState
-	chatFollowUps      map[string]*publicChatFollowUpState
-	chatActiveByAgent  map[string]string
+	// chatAnchors holds runtime-owned ConversationAnchor truth keyed by
+	// conversation_anchor_id. Per K-AGCORE-034 this is the only admitted
+	// cross-surface continuity scope; agent identity is not continuity.
+	chatAnchors       map[string]*publicChatAnchorState
+	chatTurns         map[string]*publicChatTurnState
+	chatFollowUps     map[string]*publicChatFollowUpState
+	// chatActiveByAgent tracks the currently-active chat turn per agent.
+	// With per-anchor isolation, each agent may still run only one active
+	// chat turn at a time across anchors to preserve single-speaker truth.
+	chatActiveByAgent map[string]string
 
 	lifeLoopMu     sync.Mutex
 	lifeLoopCancel context.CancelFunc
@@ -95,7 +101,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		agents:            make(map[string]*agentEntry),
 		events:            make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
 		subscribers:       make(map[uint64]*subscriber),
-		chatSessions:      make(map[string]*publicChatSessionState),
+		chatAnchors:       make(map[string]*publicChatAnchorState),
 		chatTurns:         make(map[string]*publicChatTurnState),
 		chatFollowUps:     make(map[string]*publicChatFollowUpState),
 		chatActiveByAgent: make(map[string]string),

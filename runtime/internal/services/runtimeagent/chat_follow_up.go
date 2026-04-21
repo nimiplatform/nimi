@@ -10,23 +10,26 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+// publicChatFollowUpState is post-turn runtime-owned follow-up bookkeeping.
+// Per K-AGCORE-034 it is bound to a ConversationAnchor; continuity is via
+// `ConversationAnchorID`, never a freestanding session identity.
 type publicChatFollowUpState struct {
-	FollowUpID       string
-	SessionID        string
-	AgentID          string
-	CallerAppID      string
-	SubjectUserID    string
-	ThreadID         string
-	Instruction      string
-	ScheduledFor     time.Time
-	ChainID          string
-	FollowUpDepth    int
-	MaxFollowUpTurns int
-	SourceTurnID     string
-	SourceActionID   string
-	Context          context.Context
-	Cancel           context.CancelFunc
-	Armed            bool
+	FollowUpID           string
+	ConversationAnchorID string
+	AgentID              string
+	CallerAppID          string
+	SubjectUserID        string
+	ThreadID             string
+	Instruction          string
+	ScheduledFor         time.Time
+	ChainID              string
+	FollowUpDepth        int
+	MaxFollowUpTurns     int
+	SourceTurnID         string
+	SourceActionID       string
+	Context              context.Context
+	Cancel               context.CancelFunc
+	Armed                bool
 }
 
 type publicChatFollowUpOutcome struct {
@@ -76,51 +79,139 @@ func (o publicChatFollowUpOutcome) payload() map[string]any {
 	return payload
 }
 
-func (s *Service) publicChatTurnMetadataPayload(turnID string) map[string]any {
-	s.chatSurfaceMu.Lock()
-	defer s.chatSurfaceMu.Unlock()
-	turn := s.chatTurns[strings.TrimSpace(turnID)]
-	if turn == nil {
-		return map[string]any{}
+// publicChatAcceptedDetail builds the
+// `runtime.agent.turn.accepted.detail` payload per yaml. Only `request_id`
+// is admitted on the detail; transcript/binding/session_status etc. are
+// session-level execution truth and live exclusively on
+// `runtime.agent.session.snapshot.detail.snapshot`. RequestID is the
+// inbound `runtime.agent.turn.request` message id (or, for follow-up
+// turns, the runtime-owned follow-up id) — when neither is available we
+// emit `{}` rather than fabricating one.
+func publicChatAcceptedDetail(requestID string) map[string]any {
+	out := map[string]any{}
+	if trimmed := strings.TrimSpace(requestID); trimmed != "" {
+		out["request_id"] = trimmed
 	}
-	payload := map[string]any{
-		"turn_origin": firstNonEmpty(strings.TrimSpace(turn.Origin), publicChatTurnOriginUser),
-	}
-	if strings.TrimSpace(turn.ChainID) != "" {
-		payload["chain_id"] = turn.ChainID
-	}
-	if turn.FollowUpDepth > 0 {
-		payload["follow_up_depth"] = turn.FollowUpDepth
-	}
-	if turn.MaxFollowUpTurns > 0 {
-		payload["max_follow_up_turns"] = turn.MaxFollowUpTurns
-	}
-	if strings.TrimSpace(turn.SourceTurnID) != "" {
-		payload["source_turn_id"] = turn.SourceTurnID
-	}
-	if strings.TrimSpace(turn.SourceActionID) != "" {
-		payload["source_action_id"] = turn.SourceActionID
-	}
-	return payload
+	return out
 }
 
-func publicChatAcceptedPayload(session publicChatSessionState) map[string]any {
-	payload := map[string]any{
-		"session_status":           "turn_active",
-		"transcript_message_count": len(session.Transcript),
-		"execution_binding":        publicChatExecutionBindingProjectionPayload(session.Binding),
-	}
-	if session.MaxTokens > 0 {
-		payload["max_output_tokens"] = session.MaxTokens
-	}
-	if reasoning := publicChatReasoningPayloadFromConfig(session.Reasoning); reasoning != nil {
-		payload["reasoning"] = map[string]any{
-			"mode":          reasoning.Mode,
-			"trace_mode":    reasoning.TraceMode,
-			"budget_tokens": reasoning.BudgetTokens,
+// publicChatPostTurnIndicationDetail scrubs the `turn.post_turn.detail`
+// down to the mounted indication-only shape: `action?` (the modeled
+// action selected at turn-close, when present) and `hook_intent?` (a
+// turn-close indication; canonical hook lifecycle is on
+// `runtime.agent.hook.*`). Runtime execution truth (assistant_memory,
+// chat_sidecar, follow_up scheduling) is NOT carried here; consumers
+// recover it from `session.snapshot.detail.snapshot.last_turn`.
+func publicChatPostTurnIndicationDetail(structured *publicChatStructuredEnvelope, followUp publicChatFollowUpOutcome) map[string]any {
+	out := map[string]any{}
+	action := firstPublicChatTopLevelAction(structured)
+	if action != nil {
+		out["action"] = map[string]any{
+			"action_id":   action.ActionID,
+			"modality":    action.Modality,
+			"operation":   action.Operation,
+			"action_cue":  publicChatStatusCueActionLabel(structured),
+			"source_kind": "structured_action",
 		}
 	}
-	return payload
+	if hookIntent := publicChatHookIntentIndication(structured, followUp); hookIntent != nil {
+		out["hook_intent"] = hookIntent
+	}
+	return out
+}
+
+// publicChatHookIntentIndication projects only the mounted HookIntent
+// vocabulary back onto `turn.post_turn.detail.hook_intent` when the turn
+// selected a follow-up proposal. This is an indication seam only: it must
+// not leak session/execution truth such as `follow_up_id`, `scheduled_for`,
+// runtime cancellation state, or delivery outcomes back onto turn events.
+func publicChatHookIntentIndication(structured *publicChatStructuredEnvelope, followUp publicChatFollowUpOutcome) map[string]any {
+	action := firstPublicChatFollowUpAction(structured)
+	if action == nil {
+		return nil
+	}
+	admissionState := publicChatHookIntentAdmissionState(followUp.Status)
+	if admissionState == "" {
+		return nil
+	}
+	out := map[string]any{
+		"trigger_family": "time",
+		"trigger_detail": map[string]any{
+			"time": map[string]any{
+				"delay_ms": action.PromptPayload.DelayMs,
+			},
+		},
+		"effect":          "follow-up-turn",
+		"admission_state": admissionState,
+	}
+	// Use the modeled action id as the indication identifier so the turn-close
+	// seam does not leak runtime follow-up execution ids back onto turn events.
+	if trimmed := strings.TrimSpace(action.ActionID); trimmed != "" {
+		out["intent_id"] = trimmed
+	}
+	return out
+}
+
+func publicChatHookIntentAdmissionState(status string) string {
+	switch strings.TrimSpace(status) {
+	case "scheduled":
+		return "pending"
+	case "rejected":
+		return "rejected"
+	default:
+		return ""
+	}
+}
+
+func firstPublicChatTopLevelAction(structured *publicChatStructuredEnvelope) *publicChatStructuredAction {
+	if structured == nil {
+		return nil
+	}
+	for index := range structured.Actions {
+		action := &structured.Actions[index]
+		if strings.TrimSpace(action.ActionID) == "" {
+			continue
+		}
+		return action
+	}
+	return nil
+}
+
+func publicChatStatusCueActionLabel(structured *publicChatStructuredEnvelope) string {
+	if structured == nil || structured.StatusCue == nil {
+		return ""
+	}
+	return strings.TrimSpace(structured.StatusCue.ActionCue)
+}
+
+// publicChatTurnCompletedDetail projects yaml `turn.completed.detail`
+// admitting only `terminal_reason?`. The terminal reason mirrors the
+// committed finish reason when one is observed. Runtime execution truth
+// (usage, finish_reason, stream_simulated, model/route resolution) is
+// recovered through session.snapshot only.
+func publicChatTurnCompletedDetail(finish runtimev1.FinishReason) map[string]any {
+	out := map[string]any{}
+	if finish != runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED {
+		out["terminal_reason"] = publicChatFinishReasonLabel(finish)
+	}
+	return out
+}
+
+// setPublicChatTurnRequestID records the upstream request id onto
+// runtime-owned turn state so subsequent `accepted` emissions can
+// surface it on `accepted.detail.request_id` per yaml.
+func (s *Service) setPublicChatTurnRequestID(turnID string, requestID string) {
+	trimmedTurnID := strings.TrimSpace(turnID)
+	if trimmedTurnID == "" {
+		return
+	}
+	s.chatSurfaceMu.Lock()
+	defer s.chatSurfaceMu.Unlock()
+	turn := s.chatTurns[trimmedTurnID]
+	if turn == nil {
+		return
+	}
+	turn.RequestID = strings.TrimSpace(requestID)
 }
 
 func clonePublicChatReasoningConfig(input *publicChatReasoningConfig) *publicChatReasoningConfig {
@@ -162,12 +253,12 @@ func publicChatMessagePayloadsFromProto(input []*runtimev1.ChatMessage) []public
 	return out
 }
 
-func (s *Service) appendPublicChatAssistantMessage(sessionID string, assistantText string) {
-	if strings.TrimSpace(sessionID) == "" || strings.TrimSpace(assistantText) == "" {
+func (s *Service) appendPublicChatAssistantMessage(anchorID string, assistantText string) {
+	if strings.TrimSpace(anchorID) == "" || strings.TrimSpace(assistantText) == "" {
 		return
 	}
 	s.chatSurfaceMu.Lock()
-	session := s.chatSessions[strings.TrimSpace(sessionID)]
+	session := s.chatAnchors[strings.TrimSpace(anchorID)]
 	if session == nil {
 		s.chatSurfaceMu.Unlock()
 		return
@@ -176,16 +267,17 @@ func (s *Service) appendPublicChatAssistantMessage(sessionID string, assistantTe
 		Role:    "assistant",
 		Content: strings.TrimSpace(assistantText),
 	})
+	session.UpdatedAt = time.Now().UTC()
 	s.chatSurfaceMu.Unlock()
 	s.persistCurrentPublicChatSurfaceState()
 }
 
-func (s *Service) publicChatSessionSnapshot(sessionID string) (publicChatSessionState, bool) {
+func (s *Service) publicChatAnchorSnapshot(anchorID string) (publicChatAnchorState, bool) {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
-	session := s.chatSessions[strings.TrimSpace(sessionID)]
+	session := s.chatAnchors[strings.TrimSpace(anchorID)]
 	if session == nil {
-		return publicChatSessionState{}, false
+		return publicChatAnchorState{}, false
 	}
 	snapshot := *session
 	snapshot.Reasoning = clonePublicChatReasoningConfig(session.Reasoning)
@@ -193,15 +285,15 @@ func (s *Service) publicChatSessionSnapshot(sessionID string) (publicChatSession
 	return snapshot, true
 }
 
-func (s *Service) setPublicChatStoredFollowUpOutcome(sessionID string, sourceTurnID string, outcome publicChatFollowUpOutcome) {
-	trimmedSessionID := strings.TrimSpace(sessionID)
+func (s *Service) setPublicChatStoredFollowUpOutcome(anchorID string, sourceTurnID string, outcome publicChatFollowUpOutcome) {
+	trimmedAnchorID := strings.TrimSpace(anchorID)
 	trimmedSourceTurnID := strings.TrimSpace(sourceTurnID)
-	if trimmedSessionID == "" || trimmedSourceTurnID == "" {
+	if trimmedAnchorID == "" || trimmedSourceTurnID == "" {
 		return
 	}
 	changed := false
 	s.chatSurfaceMu.Lock()
-	session := s.chatSessions[trimmedSessionID]
+	session := s.chatAnchors[trimmedAnchorID]
 	if session != nil {
 		for _, snapshot := range []*publicChatTurnProjectionState{session.ActiveTurnSnapshot, session.LastTurnSnapshot} {
 			if snapshot == nil || strings.TrimSpace(snapshot.TurnID) != trimmedSourceTurnID {
@@ -218,14 +310,15 @@ func (s *Service) setPublicChatStoredFollowUpOutcome(sessionID string, sourceTur
 	}
 }
 
-func (s *Service) setPublicChatSessionBaseSystemPrompt(sessionID string, systemPrompt string) {
+func (s *Service) setPublicChatAnchorBaseSystemPrompt(anchorID string, systemPrompt string) {
 	s.chatSurfaceMu.Lock()
-	session := s.chatSessions[strings.TrimSpace(sessionID)]
+	session := s.chatAnchors[strings.TrimSpace(anchorID)]
 	if session == nil {
 		s.chatSurfaceMu.Unlock()
 		return
 	}
 	session.SystemPrompt = strings.TrimSpace(systemPrompt)
+	session.UpdatedAt = time.Now().UTC()
 	s.chatSurfaceMu.Unlock()
 	s.persistCurrentPublicChatSurfaceState()
 }
@@ -249,7 +342,7 @@ func buildPublicChatFollowUpSystemPrompt(base string, instruction string, depth 
 }
 
 func (s *Service) schedulePublicChatFollowUp(
-	session publicChatSessionState,
+	session publicChatAnchorState,
 	turn publicChatTurnState,
 	_ publicChatTurnRequestPayload,
 	structured *publicChatStructuredEnvelope,
@@ -283,27 +376,27 @@ func (s *Service) schedulePublicChatFollowUp(
 	scheduledFor := time.Now().UTC().Add(time.Duration(action.PromptPayload.DelayMs) * time.Millisecond)
 	ctx, cancel := context.WithCancel(context.Background())
 	state := &publicChatFollowUpState{
-		FollowUpID:       followUpID,
-		SessionID:        session.SessionID,
-		AgentID:          session.AgentID,
-		CallerAppID:      session.CallerAppID,
-		SubjectUserID:    session.SubjectUserID,
-		ThreadID:         session.ThreadID,
-		Instruction:      strings.TrimSpace(action.PromptPayload.PromptText),
-		ScheduledFor:     scheduledFor,
-		ChainID:          chainID,
-		FollowUpDepth:    nextDepth,
-		MaxFollowUpTurns: maxTurns,
-		SourceTurnID:     turn.TurnID,
-		SourceActionID:   action.ActionID,
-		Context:          ctx,
-		Cancel:           cancel,
+		FollowUpID:           followUpID,
+		ConversationAnchorID: session.ConversationAnchorID,
+		AgentID:              session.AgentID,
+		CallerAppID:          session.CallerAppID,
+		SubjectUserID:        session.SubjectUserID,
+		ThreadID:             session.ThreadID,
+		Instruction:          strings.TrimSpace(action.PromptPayload.PromptText),
+		ScheduledFor:         scheduledFor,
+		ChainID:              chainID,
+		FollowUpDepth:        nextDepth,
+		MaxFollowUpTurns:     maxTurns,
+		SourceTurnID:         turn.TurnID,
+		SourceActionID:       action.ActionID,
+		Context:              ctx,
+		Cancel:               cancel,
 	}
 
-	s.cancelPublicChatFollowUpForSession(session.SessionID, "superseded", false)
+	s.cancelPublicChatFollowUpForAnchor(session.ConversationAnchorID, "superseded", false)
 
 	s.chatSurfaceMu.Lock()
-	if current := s.chatSessions[session.SessionID]; current != nil {
+	if current := s.chatAnchors[session.ConversationAnchorID]; current != nil {
 		current.PendingFollowUpID = followUpID
 	}
 	s.chatFollowUps[followUpID] = state
@@ -389,19 +482,19 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 	if followUp == nil {
 		return
 	}
-	session, ok := s.publicChatSessionSnapshot(followUp.SessionID)
+	session, ok := s.publicChatAnchorSnapshot(followUp.ConversationAnchorID)
 	if !ok {
-		s.emitPublicChatFollowUpCanceled(*followUp, "session_unavailable", runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", "public chat session unavailable")
+		s.emitPublicChatFollowUpCanceled(*followUp, "anchor_unavailable", runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", "public chat anchor unavailable")
 		return
 	}
 	req := publicChatTurnRequestPayload{
-		AgentID:         session.AgentID,
-		SessionID:       session.SessionID,
-		ThreadID:        session.ThreadID,
-		SystemPrompt:    buildPublicChatFollowUpSystemPrompt(session.SystemPrompt, followUp.Instruction, followUp.FollowUpDepth, followUp.MaxFollowUpTurns),
-		MaxOutputTokens: session.MaxTokens,
-		Messages:        publicChatMessagePayloadsFromProto(session.Transcript),
-		Reasoning:       publicChatReasoningPayloadFromConfig(session.Reasoning),
+		AgentID:              session.AgentID,
+		ConversationAnchorID: session.ConversationAnchorID,
+		ThreadID:             session.ThreadID,
+		SystemPrompt:         buildPublicChatFollowUpSystemPrompt(session.SystemPrompt, followUp.Instruction, followUp.FollowUpDepth, followUp.MaxFollowUpTurns),
+		MaxOutputTokens:      session.MaxTokens,
+		Messages:             publicChatMessagePayloadsFromProto(session.Transcript),
+		Reasoning:            publicChatReasoningPayloadFromConfig(session.Reasoning),
 	}
 	reservedSession, reservedTurn, turnCtx, err := s.reservePublicChatTurn(context.Background(), followUp.CallerAppID, followUp.SubjectUserID, req)
 	if err != nil {
@@ -409,27 +502,34 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 		s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
 		return
 	}
-	s.setPublicChatSessionBaseSystemPrompt(reservedSession.SessionID, session.SystemPrompt)
+	s.setPublicChatAnchorBaseSystemPrompt(reservedSession.ConversationAnchorID, session.SystemPrompt)
 	turn := s.markPublicChatTurnAsFollowUp(reservedTurn.TurnID, *followUp)
 	s.persistCurrentPublicChatSurfaceState()
-	if err := s.setPublicChatExecutionState(
+	if err := s.setPublicChatExecutionStateWithOrigin(
 		reservedSession.AgentID,
 		reservedSession.SubjectUserID,
 		"",
 		runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_CHAT_ACTIVE,
+		stateEventOrigin{
+			ConversationAnchorID: reservedSession.ConversationAnchorID,
+			OriginatingTurnID:    reservedTurn.TurnID,
+			OriginatingStreamID:  reservedTurn.StreamID,
+		},
 	); err != nil {
-		s.releasePublicChatTurn(reservedSession.SessionID, reservedTurn.TurnID)
+		s.releasePublicChatTurn(reservedSession.ConversationAnchorID, reservedTurn.TurnID)
 		failure := runtimeErrorDetailFromError(err)
 		s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
 		return
 	}
-	if err := s.emitPublicChatTurnEvent(reservedSession, turn.TurnID, publicChatTurnAcceptedType, publicChatAcceptedPayload(reservedSession)); err != nil {
-		s.releasePublicChatTurn(reservedSession.SessionID, reservedTurn.TurnID)
+	s.setPublicChatTurnRequestID(turn.TurnID, followUp.FollowUpID)
+	turn.RequestID = followUp.FollowUpID
+	if err := s.emitPublicChatTurnEvent(reservedSession, turn.TurnID, publicChatTurnAcceptedType, publicChatAcceptedDetail(followUp.FollowUpID)); err != nil {
+		s.releasePublicChatTurn(reservedSession.ConversationAnchorID, reservedTurn.TurnID)
 		failure := runtimeErrorDetailFromError(err)
 		s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
 		return
 	}
-	s.setPublicChatStoredFollowUpOutcome(followUp.SessionID, followUp.SourceTurnID, publicChatFollowUpOutcome{
+	s.setPublicChatStoredFollowUpOutcome(followUp.ConversationAnchorID, followUp.SourceTurnID, publicChatFollowUpOutcome{
 		Status:           "launched",
 		FollowUpID:       followUp.FollowUpID,
 		ChainID:          followUp.ChainID,
@@ -472,15 +572,18 @@ func (s *Service) markPublicChatTurnAsFollowUp(turnID string, followUp publicCha
 		turn.Projection.SourceActionID = followUp.SourceActionID
 		turn.Projection.UpdatedAt = time.Now().UTC()
 	}
-	if session := s.chatSessions[turn.SessionID]; session != nil {
+	if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil {
 		session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
 	}
 	return *turn
 }
 
-func (s *Service) cancelPublicChatFollowUpForSession(sessionID string, reason string, emit bool) *publicChatFollowUpState {
+// cancelPublicChatFollowUpForAnchor cancels any pending follow-up bound to
+// the given ConversationAnchor. Interrupt/cancel propagation is anchor-scoped
+// per K-AGCORE-035; other anchors under the same agent are not affected.
+func (s *Service) cancelPublicChatFollowUpForAnchor(anchorID string, reason string, emit bool) *publicChatFollowUpState {
 	s.chatSurfaceMu.Lock()
-	session := s.chatSessions[strings.TrimSpace(sessionID)]
+	session := s.chatAnchors[strings.TrimSpace(anchorID)]
 	if session == nil || strings.TrimSpace(session.PendingFollowUpID) == "" {
 		s.chatSurfaceMu.Unlock()
 		return nil
@@ -506,36 +609,36 @@ func (s *Service) cancelPublicChatFollowUpsForThread(callerAppID string, threadI
 	if callerAppID == "" || threadID == "" {
 		return
 	}
-	sessionIDs := make([]string, 0)
+	anchorIDs := make([]string, 0)
 	s.chatSurfaceMu.Lock()
-	for _, session := range s.chatSessions {
+	for _, session := range s.chatAnchors {
 		if session == nil {
 			continue
 		}
 		if strings.TrimSpace(session.CallerAppID) == callerAppID && strings.TrimSpace(session.ThreadID) == threadID && strings.TrimSpace(session.PendingFollowUpID) != "" {
-			sessionIDs = append(sessionIDs, session.SessionID)
+			anchorIDs = append(anchorIDs, session.ConversationAnchorID)
 		}
 	}
 	s.chatSurfaceMu.Unlock()
-	for _, sessionID := range sessionIDs {
-		s.cancelPublicChatFollowUpForSession(sessionID, reason, true)
+	for _, anchorID := range anchorIDs {
+		s.cancelPublicChatFollowUpForAnchor(anchorID, reason, true)
 	}
 }
 
-func (s *Service) cancelPublicChatFollowUpsForRequest(callerAppID string, sessionID string, threadID string, reason string) {
+func (s *Service) cancelPublicChatFollowUpsForRequest(callerAppID string, anchorID string, threadID string, reason string) {
 	callerAppID = strings.TrimSpace(callerAppID)
-	sessionID = strings.TrimSpace(sessionID)
+	anchorID = strings.TrimSpace(anchorID)
 	threadID = strings.TrimSpace(threadID)
 	if callerAppID == "" {
 		return
 	}
-	if sessionID != "" {
+	if anchorID != "" {
 		s.chatSurfaceMu.Lock()
-		session := s.chatSessions[sessionID]
+		session := s.chatAnchors[anchorID]
 		ownedByCaller := session != nil && strings.TrimSpace(session.CallerAppID) == callerAppID
 		s.chatSurfaceMu.Unlock()
 		if ownedByCaller {
-			s.cancelPublicChatFollowUpForSession(sessionID, reason, true)
+			s.cancelPublicChatFollowUpForAnchor(anchorID, reason, true)
 		}
 	}
 	if threadID != "" {
@@ -551,7 +654,7 @@ func (s *Service) takePublicChatFollowUp(followUpID string) *publicChatFollowUpS
 		return nil
 	}
 	delete(s.chatFollowUps, strings.TrimSpace(followUpID))
-	if session := s.chatSessions[followUp.SessionID]; session != nil && session.PendingFollowUpID == strings.TrimSpace(followUpID) {
+	if session := s.chatAnchors[followUp.ConversationAnchorID]; session != nil && session.PendingFollowUpID == strings.TrimSpace(followUpID) {
 		session.PendingFollowUpID = ""
 	}
 	s.chatSurfaceMu.Unlock()
@@ -559,6 +662,13 @@ func (s *Service) takePublicChatFollowUp(followUpID string) *publicChatFollowUpS
 	return followUp
 }
 
+// emitPublicChatFollowUpCanceled records the follow-up cancellation into the
+// runtime-owned turn projection only. Per Exec Pack 1 scope, no stealth
+// `runtime.agent.follow_up.*` public event family is minted; the cancellation
+// surfaces via the admitted session_envelope projection
+// (`session.snapshot.last_turn.follow_up.status == "canceled"`). Expanding
+// public event families beyond `turn.*` / `session.*` would require a new
+// authority admission outside Exec Pack 1.
 func (s *Service) emitPublicChatFollowUpCanceled(
 	followUp publicChatFollowUpState,
 	reason string,
@@ -566,7 +676,8 @@ func (s *Service) emitPublicChatFollowUpCanceled(
 	actionHint string,
 	message string,
 ) {
-	s.setPublicChatStoredFollowUpOutcome(followUp.SessionID, followUp.SourceTurnID, publicChatFollowUpOutcome{
+	_ = reason // retained for audit/debug logging only; not surfaced on any public event.
+	s.setPublicChatStoredFollowUpOutcome(followUp.ConversationAnchorID, followUp.SourceTurnID, publicChatFollowUpOutcome{
 		Status:           "canceled",
 		FollowUpID:       followUp.FollowUpID,
 		ChainID:          followUp.ChainID,
@@ -579,31 +690,6 @@ func (s *Service) emitPublicChatFollowUpCanceled(
 		ActionHint:       strings.TrimSpace(actionHint),
 		Message:          strings.TrimSpace(message),
 	})
-	payload := map[string]any{
-		"agent_id":            followUp.AgentID,
-		"session_id":          followUp.SessionID,
-		"thread_id":           followUp.ThreadID,
-		"follow_up_id":        followUp.FollowUpID,
-		"chain_id":            followUp.ChainID,
-		"follow_up_depth":     followUp.FollowUpDepth,
-		"max_follow_up_turns": followUp.MaxFollowUpTurns,
-		"source_turn_id":      followUp.SourceTurnID,
-		"source_action_id":    followUp.SourceActionID,
-		"reason":              strings.TrimSpace(reason),
-		"scheduled_for":       followUp.ScheduledFor.Format(time.RFC3339Nano),
-	}
-	if reasonCode != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		payload["reason_code"] = publicChatReasonCodeLabel(reasonCode)
-	}
-	if trimmed := strings.TrimSpace(actionHint); trimmed != "" {
-		payload["action_hint"] = trimmed
-	}
-	if trimmed := strings.TrimSpace(message); trimmed != "" {
-		payload["message"] = trimmed
-	}
-	if err := s.emitPublicChatEvent(followUp.CallerAppID, followUp.SubjectUserID, publicChatFollowUpCanceledType, payload); err != nil && s.logger != nil {
-		s.logger.Warn("emit public chat follow-up canceled event failed", "session_id", followUp.SessionID, "follow_up_id", followUp.FollowUpID, "error", err)
-	}
 }
 
 func firstPublicChatFollowUpAction(structured *publicChatStructuredEnvelope) *publicChatStructuredAction {

@@ -28,6 +28,14 @@ It owns:
 It consumes `RuntimeCognitionService` plus retained runtime-private memory depth
 and must not be collapsed into a cognition or memory engine.
 
+Fixed rules:
+
+- runtime is multi-agent by default and may host multiple live `agent_id`
+  lifecycles concurrently
+- runtime must not infer or persist any platform-level default/current agent
+- every agent-scoped ingress must resolve to explicit `agent_id`; app-local
+  current/default/pinned agent selection remains above runtime-owned truth
+
 ## K-AGCORE-002 Chat Track / Life Track Split
 
 `RuntimeAgentService` must maintain two distinct execution tracks:
@@ -108,6 +116,8 @@ Apps may not:
 - `TerminateAgent`
 - `GetAgent`
 - `ListAgents`
+- `OpenConversationAnchor`
+- `GetConversationAnchorSnapshot`
 - `GetAgentState`
 - `UpdateAgentState`
 - `EnableAutonomy`
@@ -126,6 +136,9 @@ Primary semantic outputs on this surface must use Nimi-owned typed messages:
 - `QueryAgentMemory` may expose additive narrative projections, but it must not expose admitted truth state or behavioral posture as public wire truth
 - when `QueryAgentMemory` exposes a stale narrative projection, the stale marker must remain explicit; RuntimeAgentService must not collapse stale narrative context into admitted truth state
 - agent events must expose explicit failure / reschedule / budget states as typed event kinds
+- app-facing transient turn / presentation / state projections must use the
+  stable family-specific envelopes and detail shapes pinned in
+  `tables/runtime-agent-event-projection.yaml`
 - dynamic envelopes remain limited to auxiliary details / extensions fields
 - implementation-facing transport must distinguish read projections from mutation commands; public agent state mutation may not devolve into arbitrary blob replacement
 - implementation-facing transport must reserve typed families for `HookIntent`,
@@ -135,7 +148,10 @@ Primary semantic outputs on this surface must use Nimi-owned typed messages:
 - no public RuntimeAgentService method may admit proactive initiate-chat, public truth read/write, or public posture mutation unless a later rule explicitly admits those surfaces
 - runtime-owned `AgentPresentationProfile` plus admitted
   `runtime.agent.turn.*` / `runtime.agent.presentation.*` /
-  `runtime.agent.state.emotion_changed` projections may be exposed on read or
+  `runtime.agent.state.status_text_changed` /
+  `runtime.agent.state.execution_state_changed` /
+  `runtime.agent.state.emotion_changed` /
+  `runtime.agent.state.posture_changed` projections may be exposed on read or
   subscription surfaces, but renderer-local session state must remain out of
   the public runtime truth model
 
@@ -177,7 +193,8 @@ Fixed rules:
 It owns:
 
 - admitted pending-hook persistence
-- status transitions for `pending`, `running`, `completed`, `failed`, `canceled`, `rescheduled`, and `rejected`
+- admission-state transitions for `pending`, `running`, `completed`, `failed`,
+  `canceled`, `rescheduled`, and `rejected`
 - host-owned cancellation checks
 - life-track execution-state projection derived from hook lifecycle truth
 
@@ -187,7 +204,8 @@ Fixed rules:
 - `CancelHook` may only transition hooks that remain host-cancelable; terminal hook outcomes must stay immutable
 - typed `HookIntent` and typed trigger detail must be validated before a hook
   becomes admitted scheduler truth
-- hook status transitions must persist before event publication so that replayed event cursors and hook listing observe the same committed truth
+- hook admission-state transitions must persist before event publication so that
+  replayed event cursors and hook listing observe the same committed truth
 - runtime may keep terminal hook outcomes visible for audit/history, but active hook visibility must remain distinguishable from terminal outcomes
 
 ## K-AGCORE-010 Agent Event Stream Source
@@ -288,7 +306,9 @@ Fixed rules:
 - posture truth must retain explicit linkage to the admitted truth ids that constrain it when such linkage is present
 - chat-track and life-track outputs may propose posture mutation only through admitted runtime-private typed contracts validated by RuntimeAgentService
 - invalid posture output must fail closed rather than silently mutating committed state
-- behavioral posture remains outside the public RuntimeAgentService RPC surface unless a later rule explicitly admits it
+- behavioral posture remains runtime-private machine truth; only the narrower
+  read-only `PostureProjection` admitted through `K-AGCORE-037` may cross the
+  public RuntimeAgentService surface
 
 ## K-AGCORE-016 Canonical Review Ownership
 
@@ -548,30 +568,37 @@ Fixed rules:
 - the canonical transport target for that seam is the reserved runtime app
   target `runtime.agent`
 - the admitted ingress families on that target are:
-  `agent.chat.turn.request.v1`,
-  `agent.chat.turn.interrupt.v1`,
-  and `agent.chat.session.snapshot.request.v1`
+  `runtime.agent.turn.request`,
+  `runtime.agent.turn.interrupt`,
+  and `runtime.agent.session.snapshot.request`
 - the admitted projection families on that target are:
-  `agent.chat.turn.accepted.v1`,
-  `agent.chat.turn.started.v1`,
-  `agent.chat.turn.text_delta.v1`,
-  `agent.chat.turn.reasoning_delta.v1`,
-  `agent.chat.turn.structured.v1`,
-  `agent.chat.turn.post_turn.v1`,
-  `agent.chat.turn.completed.v1`,
-  `agent.chat.turn.failed.v1`,
-  `agent.chat.turn.interrupted.v1`,
-  `agent.chat.turn.interrupt_ack.v1`,
-  `agent.chat.follow_up.canceled.v1`,
-  and `agent.chat.session.snapshot.v1`
+  `runtime.agent.turn.accepted`,
+  `runtime.agent.turn.started`,
+  `runtime.agent.turn.reasoning_delta`,
+  `runtime.agent.turn.text_delta`,
+  `runtime.agent.turn.structured`,
+  `runtime.agent.turn.message_committed`,
+  `runtime.agent.turn.post_turn`,
+  `runtime.agent.turn.completed`,
+  `runtime.agent.turn.failed`,
+  `runtime.agent.turn.interrupted`,
+  `runtime.agent.turn.interrupt_ack`,
+  and `runtime.agent.session.snapshot`
 - `runtime.agent.*` remains the steady-state lifecycle/state/memory/admin/read
   RPC projection and must not be restated as a second reactive-chat RPC family
+- the reserved app target is only the carrier for this seam; semantic
+  ownership of `runtime.agent.turn.*` / `runtime.agent.session.*` remains on
+  `RuntimeAgentService`
 - host surfaces must consume runtime-owned `session` / `turn` / `stream` truth
   through this seam rather than reconstructing shadow chat orchestration,
   provider-native sidecar parsing, or provider-native transcript truth locally
 - host surfaces must bind or recover the appropriate `conversation_anchor_id`
   explicitly; runtime must not infer that all host surfaces attached to one
   `agent_id` belong to the same reactive conversation
+- host surfaces must open or recover anchors through the runtime-owned
+  `OpenConversationAnchor` / `GetConversationAnchorSnapshot` surface before
+  sending `runtime.agent.turn.request`; app-local guessed anchor ids are not
+  admitted continuity truth
 - typed chat-sidecar / structured projection on this seam remains runtime-owned
   semantic output; hosts may render or act on it, but must not reinterpret raw
   provider output as canonical chat truth
