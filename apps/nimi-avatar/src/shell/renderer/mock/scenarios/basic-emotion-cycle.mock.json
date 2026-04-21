@@ -1,0 +1,34 @@
+{
+  "scenario_id": "basic-emotion-cycle",
+  "version": "1",
+  "description": "Rotates through 10 core emotions with varying intensity to validate motion group fallback + intensity variant suffix.",
+  "duration_ms": 24000,
+  "loop": true,
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-emotion",
+    "active_user_id": "user-mock-emotion",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "engage",
+      "interrupt_mode": "welcome",
+      "transition_reason": "emotion_cycle_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "情绪循环",
+    "initial_execution_state": "IDLE"
+  },
+  "events": [
+    { "kind": "time", "at_ms":     0, "type": "apml.state.activity", "detail": { "activity_name": "neutral",     "category": "state",   "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms":  2000, "type": "apml.state.activity", "detail": { "activity_name": "happy",       "category": "emotion", "intensity": "weak",     "source": "mock" } },
+    { "kind": "time", "at_ms":  4500, "type": "apml.state.activity", "detail": { "activity_name": "happy",       "category": "emotion", "intensity": "strong",   "source": "mock" } },
+    { "kind": "time", "at_ms":  7000, "type": "apml.state.activity", "detail": { "activity_name": "sad",         "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms":  9000, "type": "apml.state.activity", "detail": { "activity_name": "surprised",   "category": "emotion", "intensity": "strong",   "source": "mock" } },
+    { "kind": "time", "at_ms": 11000, "type": "apml.state.activity", "detail": { "activity_name": "shy",         "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 13000, "type": "apml.state.activity", "detail": { "activity_name": "angry",       "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 15000, "type": "apml.state.activity", "detail": { "activity_name": "confused",    "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 17000, "type": "apml.state.activity", "detail": { "activity_name": "excited",     "category": "emotion", "intensity": "strong",   "source": "mock" } },
+    { "kind": "time", "at_ms": 19000, "type": "apml.state.activity", "detail": { "activity_name": "worried",     "category": "emotion", "intensity": "weak",     "source": "mock" } },
+    { "kind": "time", "at_ms": 21000, "type": "apml.state.activity", "detail": { "activity_name": "embarrassed", "category": "emotion", "intensity": "moderate", "source": "mock" } }
+  ]
+}

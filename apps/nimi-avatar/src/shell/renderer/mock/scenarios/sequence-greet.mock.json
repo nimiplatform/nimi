@@ -1,0 +1,27 @@
+{
+  "scenario_id": "sequence-greet",
+  "version": "1",
+  "description": "Emits greet then pre-empts with happy 2s later to validate handler AbortSignal respect.",
+  "duration_ms": 20000,
+  "loop": true,
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-sequence",
+    "active_user_id": "user-mock-sequence",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "engage",
+      "interrupt_mode": "welcome",
+      "transition_reason": "scenario_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "序列测试",
+    "initial_execution_state": "IDLE"
+  },
+  "events": [
+    { "kind": "time", "at_ms": 0,     "event_id": "greet-1",    "type": "apml.state.activity", "detail": { "activity_name": "greet",   "category": "interaction", "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms": 2000,  "event_id": "happy-1",    "type": "apml.state.activity", "detail": { "activity_name": "happy",   "category": "emotion",     "intensity": "strong",   "source": "mock" } },
+    { "kind": "time", "at_ms": 8000,  "event_id": "farewell-1", "type": "apml.state.activity", "detail": { "activity_name": "farewell","category": "interaction", "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms": 14000, "event_id": "idle-1",     "type": "apml.state.activity", "detail": { "activity_name": "idle",    "category": "state",       "intensity": null,       "source": "mock" } }
+  ]
+}

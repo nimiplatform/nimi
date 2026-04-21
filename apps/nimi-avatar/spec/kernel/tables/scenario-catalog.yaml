@@ -1,0 +1,113 @@
+version: 1
+description: >
+  Mock scenario catalog for Nimi Avatar Phase 1 mock-driven development. Each
+  scenario is a *.mock.json file in src/shell/renderer/mock/scenarios/ driving
+  NAS handler execution via the MockDriver (see mock-fixture-contract.md).
+  These scenarios also serve as integration test fixtures in Phase 2 when the
+  real gRPC backend replaces the mock driver.
+
+default_scenario: "default"
+
+scenarios:
+  - id: "default"
+    title: "Default bootstrap scenario"
+    file: "src/shell/renderer/mock/scenarios/default.mock.json"
+    duration_ms: 15000
+    loop: true
+    description: >
+      Basic scenario loaded on app start when no other scenario is selected.
+      Cycles a small activity sequence (neutral → happy → greet → thinking) to
+      exercise the fallback motion group lookup and expression blending.
+    tags: ["phase-1", "bootstrap", "smoke"]
+    validates:
+      - "Activity fallback motion group lookup"
+      - "NAS runtime startup + handler discovery"
+      - "Agent bundle initial projection"
+
+  - id: "basic-emotion-cycle"
+    title: "Basic emotion cycle"
+    file: "src/shell/renderer/mock/scenarios/basic-emotion-cycle.mock.json"
+    duration_ms: 24000
+    loop: true
+    description: >
+      Rotates through all 10 core emotion activities with varying intensity.
+      Validates motion group mapping for the emotion category and intensity
+      variant suffix lookup.
+    tags: ["phase-1", "emotion", "fallback"]
+    validates:
+      - "10 core emotion activities all present"
+      - "Intensity variants (weak / moderate / strong) applied correctly"
+      - "Activity interrupt (new activity pre-empts previous)"
+
+  - id: "user-click-interaction"
+    title: "User click → NAS event handler"
+    file: "src/shell/renderer/mock/scenarios/user-click-interaction.mock.json"
+    duration_ms: null
+    loop: false
+    description: >
+      Idle scenario until user clicks avatar; trigger definitions fire reactive
+      activity events based on click region (head / body / face). Validates
+      reactive trigger flow from shell → driver.emit → MockDriver trigger match
+      → runtime.agent.presentation.activity_requested injection → NAS event handler execution.
+    tags: ["phase-1", "interaction", "reactive"]
+    validates:
+      - "avatar.user.click event delivery"
+      - "MockDriver trigger filter matching"
+      - "NAS event handler (avatar_user_click.js) execution"
+
+  - id: "continuous-eye-tracking"
+    title: "Continuous eye tracking handler"
+    file: "src/shell/renderer/mock/scenarios/continuous-eye-tracking.mock.json"
+    duration_ms: null
+    loop: false
+    description: >
+      Idle agent bundle; relies on a continuous handler (eye_tracker.js) running
+      at 60fps reading ctx.app.cursor_x / cursor_y and driving
+      ParamEyeBallX / Y + ParamAngleX / Y. Validates continuous handler frame
+      scheduling and parameter API throughput.
+    tags: ["phase-1", "continuous", "parameter-api"]
+    validates:
+      - "Continuous handler fps scheduling"
+      - "Parameter direct write (setParameter)"
+      - "Frame budget warnings"
+
+  - id: "sequence-greet"
+    title: "Sequence handler with abort signal"
+    file: "src/shell/renderer/mock/scenarios/sequence-greet.mock.json"
+    duration_ms: 20000
+    loop: true
+    description: >
+      Scenario emits 'greet' activity, then after 2000ms emits 'happy' to
+      pre-empt mid-sequence. Validates that the greet handler's multi-step
+      sequence (wave → wait → smile) respects the AbortSignal and yields to
+      the new activity handler.
+    tags: ["phase-1", "sequencing", "abort-signal"]
+    validates:
+      - "Handler execute() respects AbortSignal"
+      - "New activity pre-empts previous mid-sequence"
+      - "await wait() interrupted on abort"
+
+  - id: "posture-sync"
+    title: "Posture change → agent bundle projection"
+    file: "src/shell/renderer/mock/scenarios/posture-sync.mock.json"
+    duration_ms: 20000
+    loop: true
+    description: >
+      Cycles posture.action_family through [observe, engage, support, rest] with
+      runtime.agent.presentation.activity_requested appropriate for each. Validates that the agent bundle
+      ctx delivered to handlers reflects the current posture, and handlers can
+      branch behavior on ctx.posture.action_family.
+    tags: ["phase-1", "posture", "bundle"]
+    validates:
+      - "Agent bundle posture update propagation"
+      - "Handler branching on ctx.posture.action_family"
+      - "Status text projection"
+
+constraints:
+  drift_checks:
+    - description: "每个 scenario file 必须存在于指定路径"
+    - description: "每个 scenario id 在 catalog 内唯一"
+    - description: "default_scenario 必须在 scenarios 列表中"
+    - description: "loop: true 的 scenario 必须有 finite duration_ms"
+    - description: "scenario file 内的 scenario_id 字段必须等于 catalog id"
+    - description: "新增 scenario 必须更新本 catalog，不允许 floating scenario files"

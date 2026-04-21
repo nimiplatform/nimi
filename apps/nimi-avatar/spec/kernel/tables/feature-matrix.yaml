@@ -1,0 +1,120 @@
+version: 1
+description: >
+  Feature phasing for Nimi Avatar. Phase 1 focuses on Live2D rendering + NAS adaptation
+  with mock-driven development. Phase 2 adds chat + voice + real runtime. Phase 3
+  extends to cross-app integration and advanced features.
+
+phases:
+  phase_1:
+    title: "Live2D rendering + NAS adaptation"
+    status: active
+    start_date: "2026-04-21"
+    target: "Self-contained avatar app running mock scenarios end-to-end with product-grade quality"
+    scope:
+      - id: live2d_sdk_integration
+        title: "Cubism SDK for Web 集成"
+        desc: "官方 Cubism Web SDK 接入,渲染 pipeline"
+      - id: model_loading
+        title: "Model loading from official runtime folder"
+        desc: "从 <model>/runtime/*.model3.json 加载 Live2D model + assets"
+      - id: nas_handler_discovery
+        title: "NAS handler 自动发现"
+        desc: "扫描 <model>/runtime/nimi/ 目录 (activity/event/continuous/lib)"
+      - id: nas_handler_execution
+        title: "Handler 执行引擎"
+        desc: "Activity / event / continuous handler 调度 + abort signal 支持"
+      - id: live2d_api_v1
+        title: "Live2D API v1 封装"
+        desc: "motion + parameter + expression + pose + wait 供 handler 调用"
+      - id: default_fallback
+        title: "Convention-based default fallback"
+        desc: "Handler 缺失时按 Activity_<CamelCase> 查 motion group"
+      - id: window_drag
+        title: "Window drag"
+        desc: "拖动 pet 到桌面任意位置"
+      - id: always_on_top
+        title: "Always-on-top"
+        desc: "默认置顶,配置可覆盖"
+      - id: click_through
+        title: "Click-through outside model"
+        desc: "Pet 形状外区域穿透鼠标到下层 app"
+      - id: transparent_window
+        title: "Transparent window"
+        desc: "无 chrome、透明背景"
+      - id: dynamic_size
+        title: "Dynamic window size"
+        desc: "窗口尺寸跟随 Live2D model bounds"
+      - id: user_click_event
+        title: "User click event → handler"
+        desc: "点击 pet body 触发 avatar.user.click → NAS handler"
+      - id: mock_scenario_driver
+        title: "Mock scenario driver"
+        desc: "scenario 文件按 timeline 注入 activity events 到 NAS runtime"
+      - id: hot_reload_nas
+        title: "NAS handler hot reload (dev + prod)"
+        desc: "File watcher + ES module reload + in-flight continue"
+
+  phase_2:
+    title: "Chat + Voice + Real Runtime"
+    status: deferred
+    estimated_start: "after_runtime_refactor_complete"
+    scope:
+      - id: chat_bubble_ui
+        title: "Chat bubble UI (latest message)"
+        desc: "Pet 旁显示最近一条 message,无历史"
+      - id: floating_chat_input
+        title: "Floating input box"
+        desc: "点击 small button 出现,提交后消失"
+      - id: small_button_trigger
+        title: "Small UI button for chat trigger"
+        desc: "Pet 旁小 button,激活 chat"
+      - id: voice_input
+        title: "Voice input via runtime STT"
+        desc: "Push-to-talk or VAD,STT 在 runtime 端"
+      - id: voice_output
+        title: "Voice output via runtime TTS"
+        desc: "TTS 由 runtime 产生 audio + voice.level stream"
+      - id: lipsync_from_voice_level
+        title: "Lipsync from voice.level events"
+        desc: "订阅 runtime 广播的 voice.level,驱动 ParamMouthOpenY"
+      - id: real_grpc_connection
+        title: "Real gRPC connection"
+        desc: "Mock → real SDK 切换,app logic 不变"
+      - id: sdk_event_api_integration
+        title: "SDK Event API integration"
+        desc: "使用 @nimiplatform/sdk 的 client.events / client.agent / client.streams"
+      - id: presentation_timeline_integration
+        title: "Presentation timeline coordination"
+        desc: "多 channel 对齐 + interrupt 传播"
+
+  phase_3:
+    title: "Desktop integration + Advanced"
+    status: deferred
+    scope:
+      - id: cross_app_events
+        title: "Cross-app event subscription"
+        desc: "Subscribe desktop.chat.* 做协调反应"
+      - id: desktop_app_integration
+        title: "Desktop app integration"
+        desc: "两 app 一致的 agent state / memory projection"
+      - id: global_hotkey
+        title: "Optional global hotkey (future)"
+        desc: "系统级 hotkey 激活 avatar / chat"
+      - id: model_marketplace_integration
+        title: "Model marketplace integration (future)"
+        desc: "发现 / 下载 / update 第三方 model packages"
+      - id: multi_backend_rendering
+        title: "VRM / 3D rendering backend (future)"
+        desc: "Rendering backend 抽象,支持 VRM / 3D / Lottie"
+      - id: voice_conversation_mode
+        title: "Continuous voice conversation mode"
+        desc: "免 trigger 常驻语音对话"
+      - id: thin_client_protocol
+        title: "Thin client for mobile / hub (future)"
+        desc: "Mobile companion / home hub 设备投影"
+
+constraints:
+  drift_checks:
+    - description: "每个实现的 feature 必须对应 feature-matrix 里已声明的 id"
+    - description: "Phase 1 scope 以外的 feature 不允许进入 Phase 1 代码"
+    - description: "Phase 1 未完成的 scope item 不允许跳过进 Phase 2"

@@ -1,0 +1,25 @@
+[package]
+name = "nimiplatform-nimi-avatar"
+version = "0.1.0"
+description = "Nimi Avatar (阿凡达) — Desktop Floating Live2D Agent (Tauri)"
+authors = ["Nimi Team"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "6"
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+notify = "8"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "net", "sync", "time"] }
+url = "2"
+chrono = { version = "0.4", default-features = true, features = ["clock"] }
+dotenvy = "0.15"
+nimi-kit-shell-tauri = { path = "../../../kit/shell/tauri" }
+
+[dev-dependencies]

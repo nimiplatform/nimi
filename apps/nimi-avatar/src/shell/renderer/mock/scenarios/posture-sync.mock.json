@@ -1,0 +1,27 @@
+{
+  "scenario_id": "posture-sync",
+  "version": "1",
+  "description": "Cycles action_family observe → engage → support → rest with matching activities; validates posture bundle projection to handler ctx.",
+  "duration_ms": 20000,
+  "loop": true,
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-posture",
+    "active_user_id": "user-mock-posture",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "observe",
+      "interrupt_mode": "welcome",
+      "transition_reason": "posture_cycle_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "姿态循环",
+    "initial_execution_state": "IDLE"
+  },
+  "events": [
+    { "kind": "time", "at_ms": 0,     "type": "apml.state.activity", "detail": { "activity_name": "listening",   "category": "interaction", "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms": 5000,  "type": "apml.state.activity", "detail": { "activity_name": "excited",     "category": "emotion",     "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 10000, "type": "apml.state.activity", "detail": { "activity_name": "celebrating", "category": "state",       "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms": 15000, "type": "apml.state.activity", "detail": { "activity_name": "sleeping",    "category": "state",       "intensity": null,       "source": "mock" } }
+  ]
+}

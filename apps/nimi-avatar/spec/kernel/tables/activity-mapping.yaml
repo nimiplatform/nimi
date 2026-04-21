@@ -1,0 +1,168 @@
+version: 1
+description: >
+  Activity id → Live2D motion group naming convention for Nimi Avatar default
+  fallback handler. When a NAS activity handler is absent, the runtime looks up
+  the convention-based motion group name derived from the activity id.
+
+  Rule: split activity id by '-' and ':', CamelCase each segment,
+  prefix with 'Activity_'.
+
+  Model creators who do not provide a NAS handler for an activity MUST provide
+  the corresponding motion group in their model3.json to get default fallback
+  behavior; otherwise the runtime falls back to the 'Idle' group with a warning.
+
+naming_rule:
+  prefix: "Activity_"
+  segment_separator: "_"
+  splitter_chars: ["-", ":"]
+  case: "CamelCase"
+  examples:
+    - activity_id: "happy"
+      motion_group: "Activity_Happy"
+    - activity_id: "ext:grateful"
+      motion_group: "Activity_ExtGrateful"
+    - activity_id: "mod-weather:storm-watching"
+      motion_group: "Activity_ModWeatherStormWatching"
+
+core_activities:
+  emotion:
+    - activity_id: "happy"
+      motion_group: "Activity_Happy"
+      description: "Joy, positive affect"
+    - activity_id: "sad"
+      motion_group: "Activity_Sad"
+      description: "Sorrow, negative affect"
+    - activity_id: "shy"
+      motion_group: "Activity_Shy"
+      description: "Bashful, self-conscious"
+    - activity_id: "angry"
+      motion_group: "Activity_Angry"
+      description: "Frustration, anger"
+    - activity_id: "surprised"
+      motion_group: "Activity_Surprised"
+      description: "Startled, astonished"
+    - activity_id: "confused"
+      motion_group: "Activity_Confused"
+      description: "Puzzled, uncertain"
+    - activity_id: "excited"
+      motion_group: "Activity_Excited"
+      description: "High energy positive"
+    - activity_id: "worried"
+      motion_group: "Activity_Worried"
+      description: "Anxious, concerned"
+    - activity_id: "embarrassed"
+      motion_group: "Activity_Embarrassed"
+      description: "Ashamed, flustered"
+    - activity_id: "neutral"
+      motion_group: "Activity_Neutral"
+      description: "Default baseline"
+
+  interaction:
+    - activity_id: "greet"
+      motion_group: "Activity_Greet"
+      description: "Wave / hello gesture"
+    - activity_id: "farewell"
+      motion_group: "Activity_Farewell"
+      description: "Wave goodbye"
+    - activity_id: "agree"
+      motion_group: "Activity_Agree"
+      description: "Nod, affirmation"
+    - activity_id: "disagree"
+      motion_group: "Activity_Disagree"
+      description: "Head shake, negation"
+    - activity_id: "listening"
+      motion_group: "Activity_Listening"
+      description: "Attentive, receiving input"
+    - activity_id: "thinking"
+      motion_group: "Activity_Thinking"
+      description: "Processing, reflecting"
+
+  state:
+    - activity_id: "idle"
+      motion_group: "Activity_Idle"
+      description: "Default resting state"
+    - activity_id: "celebrating"
+      motion_group: "Activity_Celebrating"
+      description: "Victory, praise"
+    - activity_id: "sleeping"
+      motion_group: "Activity_Sleeping"
+      description: "Low energy / inactive"
+    - activity_id: "focused"
+      motion_group: "Activity_Focused"
+      description: "Concentrated on task"
+
+extended_examples:
+  description: >
+    Extended activities use 'ext:' prefix. Model creators may use these if their
+    model supports richer emotion palette. Not required for core coverage.
+  samples:
+    - activity_id: "ext:grateful"
+      motion_group: "Activity_ExtGrateful"
+    - activity_id: "ext:proud"
+      motion_group: "Activity_ExtProud"
+    - activity_id: "ext:nostalgic"
+      motion_group: "Activity_ExtNostalgic"
+    - activity_id: "ext:determined"
+      motion_group: "Activity_ExtDetermined"
+    - activity_id: "ext:jealous"
+      motion_group: "Activity_ExtJealous"
+    - activity_id: "ext:relieved"
+      motion_group: "Activity_ExtRelieved"
+    - activity_id: "ext:bored"
+      motion_group: "Activity_ExtBored"
+    - activity_id: "ext:curious"
+      motion_group: "Activity_ExtCurious"
+    - activity_id: "ext:amused"
+      motion_group: "Activity_ExtAmused"
+    - activity_id: "ext:disgusted"
+      motion_group: "Activity_ExtDisgusted"
+
+mod_custom_examples:
+  description: >
+    Mod-custom activities use 'mod-<modname>:<activity>' prefix. Declared by mods
+    extending the activity ontology. Full list depends on installed mods.
+  samples:
+    - activity_id: "mod-weather:storm-watching"
+      motion_group: "Activity_ModWeatherStormWatching"
+    - activity_id: "mod-pomodoro:break-encouragement"
+      motion_group: "Activity_ModPomodoroBreakEncouragement"
+    - activity_id: "mod-music:rhythm-nodding"
+      motion_group: "Activity_ModMusicRhythmNodding"
+
+intensity_variants:
+  description: >
+    If APML provides an 'intensity' attribute on the activity (weak / moderate /
+    strong), model creators may optionally provide intensity-suffixed motion
+    groups. When present, the default fallback picks the matching variant; when
+    absent, falls back to the base group.
+  naming_rule:
+    suffix_map:
+      weak: "_Weak"
+      moderate: ""  # default, no suffix
+      strong: "_Strong"
+  examples:
+    - activity_id: "happy"
+      intensity: "weak"
+      motion_group: "Activity_Happy_Weak"
+    - activity_id: "happy"
+      intensity: "moderate"
+      motion_group: "Activity_Happy"
+    - activity_id: "happy"
+      intensity: "strong"
+      motion_group: "Activity_Happy_Strong"
+
+lookup_algorithm:
+  description: >
+    Default fallback lookup order when no NAS handler is registered:
+
+    1. If intensity given and "<base>_<intensity_suffix>" motion group exists → use it
+    2. Else if "<base>" motion group exists → use it
+    3. Else → fall back to 'Idle' motion group + console.warn
+    4. Else → fall back to no motion + emit avatar.model.motion.unavailable
+
+constraints:
+  drift_checks:
+    - description: "所有 core_activities 必须对齐 activity-ontology §4 (20 items)"
+    - description: "Motion group 名严格遵守 naming_rule（split + CamelCase + prefix）"
+    - description: "Intensity 变体若存在必须匹配 enum(weak|moderate|strong)"
+    - description: "新增 extended / mod activity 时文档需更新"

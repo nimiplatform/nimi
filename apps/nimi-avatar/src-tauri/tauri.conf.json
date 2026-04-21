@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "NimiAvatar",
+  "version": "0.1.0",
+  "identifier": "app.nimi.avatar",
+  "build": {
+    "beforeDevCommand": "pnpm --filter @nimiplatform/nimi-avatar run dev:renderer",
+    "beforeBuildCommand": "pnpm --filter @nimiplatform/nimi-avatar run build:renderer",
+    "devUrl": "http://127.0.0.1:1427",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "avatar",
+        "title": "Nimi Avatar",
+        "url": "/",
+        "width": 400,
+        "height": 600,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "resizable": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$HOME/.nimi/**",
+          "$HOME/ai/**"
+        ]
+      },
+      "csp": "default-src 'self' ipc:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: https://asset.localhost asset:; media-src 'self' data: blob: file: https://asset.localhost asset:; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*;"
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ]
+  }
+}

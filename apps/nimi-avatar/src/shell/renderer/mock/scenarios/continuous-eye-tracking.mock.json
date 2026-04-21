@@ -1,0 +1,24 @@
+{
+  "scenario_id": "continuous-eye-tracking",
+  "version": "1",
+  "description": "Idle scenario to validate continuous handler frame scheduling + parameter API (eye_tracker.js drives ParamEyeBallX/Y).",
+  "duration_ms": null,
+  "loop": false,
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-continuous",
+    "active_user_id": "user-mock-continuous",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "observe",
+      "interrupt_mode": "welcome",
+      "transition_reason": "scenario_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "视线跟随",
+    "initial_execution_state": "IDLE"
+  },
+  "events": [
+    { "kind": "time", "at_ms": 0, "type": "apml.state.activity", "detail": { "activity_name": "idle", "category": "state", "intensity": null, "source": "mock" } }
+  ]
+}

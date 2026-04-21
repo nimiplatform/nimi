@@ -1,0 +1,30 @@
+{
+  "scenario_id": "user-click-interaction",
+  "version": "1",
+  "description": "Idle scenario: user click on different regions triggers reactive activity events.",
+  "duration_ms": null,
+  "loop": false,
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-interaction",
+    "active_user_id": "user-mock-interaction",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "observe",
+      "interrupt_mode": "welcome",
+      "transition_reason": "scenario_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "等待互动",
+    "initial_execution_state": "IDLE"
+  },
+  "events": [
+    { "kind": "time", "at_ms": 0, "type": "apml.state.activity", "detail": { "activity_name": "idle", "category": "state", "intensity": null, "source": "mock" } }
+  ],
+  "triggers": [
+    { "trigger_id": "head-click-shy", "on": "avatar.user.click", "filter": { "region": "head" }, "emit": { "type": "apml.state.activity", "detail": { "activity_name": "shy", "category": "emotion", "intensity": "strong", "source": "mock" } } },
+    { "trigger_id": "body-click-happy", "on": "avatar.user.click", "filter": { "region": "body" }, "emit": { "type": "apml.state.activity", "detail": { "activity_name": "happy", "category": "emotion", "intensity": "moderate", "source": "mock" } } },
+    { "trigger_id": "face-click-greet", "on": "avatar.user.click", "filter": { "region": "face" }, "emit": { "type": "apml.state.activity", "detail": { "activity_name": "greet", "category": "interaction", "intensity": null, "source": "mock" } } },
+    { "trigger_id": "double-click-surprised", "on": "avatar.user.double_click", "emit": { "type": "apml.state.activity", "detail": { "activity_name": "surprised", "category": "emotion", "intensity": "strong", "source": "mock" } } }
+  ]
+}
