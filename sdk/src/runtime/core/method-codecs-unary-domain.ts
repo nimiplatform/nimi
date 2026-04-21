@@ -80,7 +80,7 @@ import {
   UpdateAgentStateResponse,
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
-} from '../generated/runtime/v1/agent_core';
+} from '../generated/runtime/v1/agent_service';
 import {
   CreateConnectorRequest,
   CreateConnectorResponse,
@@ -291,55 +291,55 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
     requestType: DeleteMemoryRequest,
     responseType: DeleteMemoryResponse,
   },
-  [RuntimeMethodIds.agentCore.initializeAgent]: {
+  [RuntimeMethodIds.agent.initializeAgent]: {
     requestType: InitializeAgentRequest,
     responseType: InitializeAgentResponse,
   },
-  [RuntimeMethodIds.agentCore.terminateAgent]: {
+  [RuntimeMethodIds.agent.terminateAgent]: {
     requestType: TerminateAgentRequest,
     responseType: TerminateAgentResponse,
   },
-  [RuntimeMethodIds.agentCore.getAgent]: {
+  [RuntimeMethodIds.agent.getAgent]: {
     requestType: GetAgentRequest,
     responseType: GetAgentResponse,
   },
-  [RuntimeMethodIds.agentCore.listAgents]: {
+  [RuntimeMethodIds.agent.listAgents]: {
     requestType: ListAgentsRequest,
     responseType: ListAgentsResponse,
   },
-  [RuntimeMethodIds.agentCore.getAgentState]: {
+  [RuntimeMethodIds.agent.getAgentState]: {
     requestType: GetAgentStateRequest,
     responseType: GetAgentStateResponse,
   },
-  [RuntimeMethodIds.agentCore.updateAgentState]: {
+  [RuntimeMethodIds.agent.updateAgentState]: {
     requestType: UpdateAgentStateRequest,
     responseType: UpdateAgentStateResponse,
   },
-  [RuntimeMethodIds.agentCore.enableAutonomy]: {
+  [RuntimeMethodIds.agent.enableAutonomy]: {
     requestType: EnableAutonomyRequest,
     responseType: EnableAutonomyResponse,
   },
-  [RuntimeMethodIds.agentCore.disableAutonomy]: {
+  [RuntimeMethodIds.agent.disableAutonomy]: {
     requestType: DisableAutonomyRequest,
     responseType: DisableAutonomyResponse,
   },
-  [RuntimeMethodIds.agentCore.setAutonomyConfig]: {
+  [RuntimeMethodIds.agent.setAutonomyConfig]: {
     requestType: SetAutonomyConfigRequest,
     responseType: SetAutonomyConfigResponse,
   },
-  [RuntimeMethodIds.agentCore.listPendingHooks]: {
+  [RuntimeMethodIds.agent.listPendingHooks]: {
     requestType: ListPendingHooksRequest,
     responseType: ListPendingHooksResponse,
   },
-  [RuntimeMethodIds.agentCore.cancelHook]: {
+  [RuntimeMethodIds.agent.cancelHook]: {
     requestType: CancelHookRequest,
     responseType: CancelHookResponse,
   },
-  [RuntimeMethodIds.agentCore.queryMemory]: {
+  [RuntimeMethodIds.agent.queryMemory]: {
     requestType: QueryAgentMemoryRequest,
     responseType: QueryAgentMemoryResponse,
   },
-  [RuntimeMethodIds.agentCore.writeMemory]: {
+  [RuntimeMethodIds.agent.writeMemory]: {
     requestType: WriteAgentMemoryRequest,
     responseType: WriteAgentMemoryResponse,
   },

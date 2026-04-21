@@ -526,14 +526,14 @@ func TestSendAppMessageRejectsContextAppMismatch(t *testing.T) {
 func TestSendAppMessageDispatchesRegisteredInternalConsumer(t *testing.T) {
 	svc := newTestService()
 	var received *runtimev1.AppMessageEvent
-	svc.RegisterInternalConsumer("runtime.agentcore", func(_ context.Context, event *runtimev1.AppMessageEvent) error {
+	svc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", func(_ context.Context, event *runtimev1.AppMessageEvent) error {
 		received = event
 		return nil
 	})
 
 	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "desktop.core",
-		ToAppId:       "runtime.agentcore",
+		ToAppId:       "runtime.agent.internal.chat_track_sidecar",
 		SubjectUserId: "user-1",
 		MessageType:   "agent.chat_track.sidecar_input.v1",
 		Payload: &structpb.Struct{Fields: map[string]*structpb.Value{
@@ -546,10 +546,10 @@ func TestSendAppMessageDispatchesRegisteredInternalConsumer(t *testing.T) {
 	if received == nil {
 		t.Fatal("expected internal consumer to receive event")
 	}
-	if received.GetToAppId() != "runtime.agentcore" || received.GetMessageType() != "agent.chat_track.sidecar_input.v1" {
+	if received.GetToAppId() != "runtime.agent.internal.chat_track_sidecar" || received.GetMessageType() != "agent.chat_track.sidecar_input.v1" {
 		t.Fatalf("unexpected consumer event: %#v", received)
 	}
-	if !svc.HasInternalConsumer("runtime.agentcore") {
+	if !svc.HasInternalConsumer("runtime.agent.internal.chat_track_sidecar") {
 		t.Fatal("expected registered internal consumer")
 	}
 }
@@ -575,13 +575,13 @@ func TestSendAppMessageWithoutInternalConsumerKeepsAcceptedBehavior(t *testing.T
 func TestSendAppMessageFailsClosedWhenInternalConsumerReturnsError(t *testing.T) {
 	svc := newTestService()
 	wantErr := status.Error(codes.InvalidArgument, "consumer rejected payload")
-	svc.RegisterInternalConsumer("runtime.agentcore", func(_ context.Context, _ *runtimev1.AppMessageEvent) error {
+	svc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", func(_ context.Context, _ *runtimev1.AppMessageEvent) error {
 		return wantErr
 	})
 
 	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId: "desktop.core",
-		ToAppId:   "runtime.agentcore",
+		ToAppId:   "runtime.agent.internal.chat_track_sidecar",
 	})
 	if !errors.Is(err, wantErr) && status.Convert(err).Message() != status.Convert(wantErr).Message() {
 		t.Fatalf("expected consumer error, got %v", err)

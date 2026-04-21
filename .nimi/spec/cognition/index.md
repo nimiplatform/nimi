@@ -26,7 +26,7 @@
 5. `.nimi/spec/cognition/kernel/runtime-bridge-contract.md`
 6. `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md`
 7. `.nimi/spec/runtime/kernel/knowledge-contract.md`
-8. `.nimi/spec/runtime/kernel/runtime-agent-core-contract.md`
+8. `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
 
 ### 收口 standalone cognition implementation
 

@@ -11,11 +11,14 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
+	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 )
 
 type protectedCapabilityAuthorizer interface {
 	ValidateProtectedCapability(appID string, tokenID string, secret string, capability string) (runtimev1.ReasonCode, string, bool)
 }
+
+const deferredStreamCapability = "__deferred__"
 
 func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
@@ -43,7 +46,7 @@ func newStreamAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.St
 		if authorizer == nil {
 			return handler(srv, ss)
 		}
-		capability, required := protectedCapabilityForStream(info.FullMethod)
+		capability, required := protectedCapabilityForStream(info.FullMethod, nil)
 		if !required {
 			return handler(srv, ss)
 		}
@@ -81,6 +84,13 @@ func (s *authzStream) RecvMsg(m any) error {
 		return nil
 	}
 	s.checked = true
+	capability, required := protectedCapabilityForStream("", m)
+	if required {
+		s.capability = capability
+	}
+	if s.capability == deferredStreamCapability {
+		return nil
+	}
 	appID := strings.TrimSpace(s.metadataAppID)
 	if appID == "" {
 		appID = appIDFromRequest(m)
@@ -145,40 +155,44 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.knowledge.write", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask":
 		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/InitializeAgent":
+	case "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent":
 		return "runtime.agent.admin", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/TerminateAgent":
+	case "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent":
 		return "runtime.agent.admin", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/GetAgent":
+	case "/nimi.runtime.v1.RuntimeAgentService/GetAgent":
 		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/ListAgents":
+	case "/nimi.runtime.v1.RuntimeAgentService/ListAgents":
 		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/GetAgentState":
+	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentState":
 		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/UpdateAgentState":
+	case "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState":
 		return "runtime.agent.write", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/EnableAutonomy":
+	case "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy":
 		return "runtime.agent.autonomy.write", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/DisableAutonomy":
+	case "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy":
 		return "runtime.agent.autonomy.write", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/SetAutonomyConfig":
+	case "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig":
 		return "runtime.agent.autonomy.write", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/ListPendingHooks":
+	case "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks":
 		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/CancelHook":
+	case "/nimi.runtime.v1.RuntimeAgentService/CancelHook":
 		return "runtime.agent.write", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/QueryAgentMemory":
+	case "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory":
 		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/WriteAgentMemory":
+	case "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory":
 		return "runtime.agent.write", true
 	case "/nimi.runtime.v1.RuntimeAppService/SendAppMessage":
 		message, ok := req.(*runtimev1.SendAppMessageRequest)
 		if !ok {
 			return "", false
 		}
-		if strings.TrimSpace(message.GetFromAppId()) != "" &&
-			strings.TrimSpace(message.GetToAppId()) != "" &&
-			strings.TrimSpace(message.GetFromAppId()) != strings.TrimSpace(message.GetToAppId()) {
+		fromAppID := strings.TrimSpace(message.GetFromAppId())
+		toAppID := strings.TrimSpace(message.GetToAppId())
+		if fromAppID != "" && toAppID != "" && fromAppID != toAppID {
+			if toAppID == runtimeagentservice.PublicChatRuntimeAppID &&
+				runtimeagentservice.IsPublicChatIngressMessageType(message.GetMessageType()) {
+				return "runtime.agent.chat.write", true
+			}
 			return "runtime.app.send.cross_app", true
 		}
 		return "", false
@@ -196,14 +210,27 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	}
 }
 
-func protectedCapabilityForStream(fullMethod string) (string, bool) {
+func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
+	if subscribeReq, ok := req.(*runtimev1.SubscribeAppMessagesRequest); ok {
+		for _, fromAppID := range subscribeReq.GetFromAppIds() {
+			if strings.TrimSpace(fromAppID) == runtimeagentservice.PublicChatRuntimeAppID {
+				return "runtime.agent.chat.read", true
+			}
+		}
+		if strings.TrimSpace(subscribeReq.GetAppId()) == runtimeagentservice.PublicChatRuntimeAppID {
+			return "runtime.agent.chat.read", true
+		}
+	}
+
 	switch fullMethod {
 	case "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents":
 		return "runtime.audit.export", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents":
 		return "runtime.memory.read", true
-	case "/nimi.runtime.v1.RuntimeAgentCoreService/SubscribeAgentEvents":
+	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents":
 		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":
+		return deferredStreamCapability, true
 	default:
 		return "", false
 	}

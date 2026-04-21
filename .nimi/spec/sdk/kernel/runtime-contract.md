@@ -17,13 +17,20 @@ Runtime 子路径公开方法集合由 `runtime-method-groups.yaml` 约束，必
 
 允许在 `Runtime` 类上提供 ergonomic convenience 方法（如 `generate()` / `stream()`），但必须是对既有 runtime text surface 的薄投影，不得分叉推理语义、错误语义或 trace/usage 语义。
 
-当 `RuntimeCognitionService` 与 `RuntimeAgentCoreService` 进入 public projection 后，runtime 子路径必须保持以下 authority split：
+当 `RuntimeCognitionService` 与 `RuntimeAgentService` 进入 public projection
+后，runtime 子路径必须保持以下 authority split：
 
 - `runtime.memory.*` 投影 `RuntimeCognitionService` 的 runtime-owned memory family
 - `runtime.knowledge.*` 投影 `RuntimeCognitionService` 的 runtime-owned knowledge family
-- `runtime.agentCore.*` 投影 runtime-owned live agent control plane
-- `runtime.agentCore.*` may additionally project runtime-owned persistent `AgentPresentationProfile`
-- canonical agent memory 的 app-facing mutation 统一经 `runtime.agentCore.*`
+- steady-state runtime-owned live agent control plane belongs to
+  `RuntimeAgentService`
+- the app-facing steady-state agent projection is `runtime.agent.*`
+- reactive agent-chat consumption is currently carried through the admitted
+  app-messaging transport addressed to reserved target `runtime.agent`, rather
+  than a separate `runtime.agent.chat.*` RPC family
+- that agent projection may additionally project runtime-owned
+  persistent `AgentPresentationProfile`
+- canonical agent memory 的 app-facing mutation 统一经该 runtime-owned agent projection
 - `runtime.memory.*` 不得被 app 误用为 canonical agent memory 直写捷径
 - current-thread avatar interaction state must stay above runtime and must not be promoted into a new `runtime.avatar.*` truth surface
 
@@ -224,20 +231,35 @@ Boundary rules:
 
 ## S-RUNTIME-103 Agent Presentation Projection Boundary
 
-SDK runtime may project runtime-owned persistent `AgentPresentationProfile` only as part of `runtime.agentCore.*` read surfaces.
+SDK runtime may project runtime-owned persistent `AgentPresentationProfile` and
+the admitted transient `runtime.agent.turn.*` / `runtime.agent.presentation.*`
+families only as part of `runtime.agent.*` surfaces.
 
 Fixed rules:
 
-- the SDK may expose stable avatar asset refs, backend kind, expression/idle preset refs, and default `VoiceReference` binding when runtime makes them public
+- the SDK may expose stable avatar asset refs, backend kind,
+  expression/idle preset refs, default `VoiceReference` binding, anchor-scoped
+  turn/text projections, and backend-neutral presentation requests when runtime
+  makes them public
 - projection must remain downstream of `K-AGCORE-022` through `K-AGCORE-026`; SDK must not reinterpret missing profile fields into fallback avatar truth
+- anchor-scoped turn/presentation projection must preserve
+  `conversation_anchor_id`, `turn_id`, `stream_id`, and `message_id` semantics
+  rather than collapsing them into app-local session guesses
 - SDK must not publish a parallel top-level `runtime.avatar.*` daemon convenience surface for the same persistent truth
 
-## S-RUNTIME-104 Transient Avatar State Non-Owner Boundary
+## S-RUNTIME-104 Renderer-Local Transient Non-Owner Boundary
 
-SDK runtime is not the semantic owner of transient avatar interaction state.
+SDK runtime is not the semantic owner of renderer-local transient avatar
+interaction state.
 
 Fixed rules:
 
-- current emotion, speaking/listening phase, viseme, amplitude, and attention target remain app/surface-side inputs even when they are derived from runtime or voice-session evidence
-- SDK may carry those values only inside app-local or kit-local adapter contracts layered above runtime; it must not elevate them into runtime canonical read/write truth
+- runtime-owned current emotion may project through
+  `runtime.agent.state.current_emotion` /
+  `runtime.agent.state.emotion_changed`
+- speaking/listening phase, viseme, amplitude, and renderer-local attention
+  target remain app/surface-side inputs unless a later runtime contract admits
+  them explicitly
+- SDK may carry runtime-owned turn/presentation/emotion projections, but it
+  must not elevate renderer-local values into runtime canonical read/write truth
 - when first-party apps combine runtime-owned presentation profile with surface-local avatar interaction state, the ownership cut must remain explicit and fail-closed

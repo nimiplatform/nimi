@@ -4,7 +4,7 @@
 
 ## K-AGCORE-022 Agent Presentation Authority Home
 
-`RuntimeAgentCoreService` owns persistent agent presentation truth through `AgentPresentationProfile`.
+`RuntimeAgentService` owns persistent agent presentation truth through `AgentPresentationProfile`.
 
 It owns:
 
@@ -16,11 +16,16 @@ It owns:
 
 It does not own:
 
-- current emotion
+- current emotion as persistent profile truth
 - current gesture or action cue
 - current speaking / listening phase
 - per-frame viseme or amplitude state
 - renderer-local camera, lighting, or post-process state
+
+Current emotion is instead runtime-owned transient state on the
+`runtime.agent.state.*` seam defined by
+`agent-presentation-stream-contract.md`; it must not be smuggled into
+`AgentPresentationProfile`.
 
 ## K-AGCORE-023 AgentPresentationProfile Boundary
 
@@ -54,24 +59,30 @@ Fixed rules:
 
 ## K-AGCORE-025 Public Projection And Consumer Boundary
 
-Apps and SDK consumers may read `AgentPresentationProfile` only as runtime-owned projection through `runtime.agentCore.*`.
+Apps and SDK consumers may read `AgentPresentationProfile` only as runtime-owned
+projection through `runtime.agent.*`.
 
 Fixed rules:
 
 - apps may cache or adapt the profile into surface-local renderer inputs, but that adapted shape is not canonical runtime truth
+- apps may also consume transient `runtime.agent.turn.*`,
+  `runtime.agent.presentation.*`, and `runtime.agent.state.emotion_changed`
+  projections, but those remain distinct from the persistent profile
 - app-local avatar interaction state, voice-session state, and thread-local animation cues must not be written back as `AgentPresentationProfile`
-- runtime mutation of presentation truth must remain on admitted agent-core command paths; consumers must not replace full profile blobs through arbitrary metadata write paths
+- runtime mutation of presentation truth must remain on admitted RuntimeAgentService command paths; consumers must not replace full profile blobs through arbitrary metadata write paths
 
 ## K-AGCORE-026 Deferred Scope And Non-Owners
 
 The following remain outside runtime-owned persistent presentation truth unless later admitted explicitly:
 
 - per-frame lip-sync / viseme streams
-- thread-local emotion state
 - session-local listening / speaking state
 - pointer / gaze targets
 - physics simulation or gesture queues
 - renderer camera choreography and post-processing
+
+Current emotion no longer belongs to this deferred list because it is now
+runtime-owned transient state. It remains outside persistent profile truth.
 
 If a consumer needs these semantics, it must own them on the surface side or wait for later authority admission; runtime must not absorb them into `AgentPresentationProfile` as a generic state bag.
 
@@ -112,7 +123,8 @@ Fixed rules:
 
 ## Fact Sources
 
-- `.nimi/spec/runtime/kernel/runtime-agent-core-contract.md` — runtime-owned live agent lifecycle and app-facing control-plane boundary
+- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — runtime-owned live agent lifecycle and app-facing control-plane boundary
+- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime-owned transient presentation / turn seam and current emotion projection
 - `.nimi/spec/runtime/kernel/voice-contract.md` — runtime-owned `VoiceReference` and voice asset truth
 - `.nimi/local/report/ongoing/2026-04-15-agent-live-avatar-airi-audit/design.md` — topic-local authority blueprint and landing rationale
 - `.nimi/local/report/ongoing/2026-04-15-agent-live-avatar-airi-audit/preflight.md` — admitted high-risk scope and non-owner framing

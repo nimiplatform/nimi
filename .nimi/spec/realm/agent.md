@@ -11,7 +11,7 @@ updated: 2026-04-18
 ## Normative Imports
 
 - `kernel/truth-contract.md`: `R-TRUTH-001..014`
-- `.nimi/spec/runtime/kernel/runtime-agent-core-contract.md`: `K-AGCORE-004`
+- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`: `K-AGCORE-004`
 - `kernel/world-state-contract.md`: `R-WSTATE-002..004`（仅引用与 Agent 可见共享当前状态相关的子集，不引入 World State 全量写入边界）
 
 ## Scope
@@ -26,7 +26,7 @@ Agent 在当前 public canonical 中不承担 memory/brain/chat/orchestration �
 ## Reading Path
 
 1. `kernel/truth-contract.md`
-2. `.nimi/spec/runtime/kernel/runtime-agent-core-contract.md`
+2. `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
 3. `kernel/world-state-contract.md`
 4. `kernel/tables/rule-catalog.yaml`
 5. `kernel/tables/truth-contract.yaml`

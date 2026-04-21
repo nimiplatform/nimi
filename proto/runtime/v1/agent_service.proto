@@ -1,0 +1,541 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+import "runtime/v1/memory.proto";
+
+enum AgentLifecycleStatus {
+  AGENT_LIFECYCLE_STATUS_UNSPECIFIED = 0;
+  AGENT_LIFECYCLE_STATUS_INITIALIZING = 1;
+  AGENT_LIFECYCLE_STATUS_ACTIVE = 2;
+  AGENT_LIFECYCLE_STATUS_SUSPENDED = 3;
+  AGENT_LIFECYCLE_STATUS_TERMINATING = 4;
+  AGENT_LIFECYCLE_STATUS_TERMINATED = 5;
+}
+
+enum AgentExecutionState {
+  AGENT_EXECUTION_STATE_UNSPECIFIED = 0;
+  AGENT_EXECUTION_STATE_IDLE = 1;
+  AGENT_EXECUTION_STATE_CHAT_ACTIVE = 2;
+  AGENT_EXECUTION_STATE_LIFE_PENDING = 3;
+  AGENT_EXECUTION_STATE_LIFE_RUNNING = 4;
+  AGENT_EXECUTION_STATE_SUSPENDED = 5;
+}
+
+enum AgentTrackType {
+  AGENT_TRACK_TYPE_UNSPECIFIED = 0;
+  AGENT_TRACK_TYPE_CHAT = 1;
+  AGENT_TRACK_TYPE_LIFE = 2;
+}
+
+enum HookTriggerKind {
+  HOOK_TRIGGER_KIND_UNSPECIFIED = 0;
+  HOOK_TRIGGER_KIND_TURN_COMPLETED = 1;
+  HOOK_TRIGGER_KIND_SCHEDULED_TIME = 2;
+  HOOK_TRIGGER_KIND_USER_IDLE = 3;
+  HOOK_TRIGGER_KIND_CHAT_ENDED = 4;
+  HOOK_TRIGGER_KIND_STATE_CONDITION = 5;
+  HOOK_TRIGGER_KIND_WORLD_EVENT = 6;
+  HOOK_TRIGGER_KIND_COMPOUND = 7;
+}
+
+enum CompoundTriggerOperator {
+  COMPOUND_TRIGGER_OPERATOR_UNSPECIFIED = 0;
+  COMPOUND_TRIGGER_OPERATOR_ALL_OF = 1;
+  COMPOUND_TRIGGER_OPERATOR_ANY_OF = 2;
+}
+
+enum AgentHookStatus {
+  AGENT_HOOK_STATUS_UNSPECIFIED = 0;
+  AGENT_HOOK_STATUS_PENDING = 1;
+  AGENT_HOOK_STATUS_RUNNING = 2;
+  AGENT_HOOK_STATUS_COMPLETED = 3;
+  AGENT_HOOK_STATUS_FAILED = 4;
+  AGENT_HOOK_STATUS_CANCELED = 5;
+  AGENT_HOOK_STATUS_RESCHEDULED = 6;
+  AGENT_HOOK_STATUS_REJECTED = 7;
+}
+
+enum AgentEventType {
+  AGENT_EVENT_TYPE_UNSPECIFIED = 0;
+  AGENT_EVENT_TYPE_LIFECYCLE = 1;
+  AGENT_EVENT_TYPE_HOOK = 2;
+  AGENT_EVENT_TYPE_MEMORY = 3;
+  AGENT_EVENT_TYPE_BUDGET = 4;
+  AGENT_EVENT_TYPE_REPLICATION = 5;
+}
+
+enum AgentAutonomyMode {
+  AGENT_AUTONOMY_MODE_UNSPECIFIED = 0;
+  AGENT_AUTONOMY_MODE_OFF = 1;
+  AGENT_AUTONOMY_MODE_LOW = 2;
+  AGENT_AUTONOMY_MODE_MEDIUM = 3;
+  AGENT_AUTONOMY_MODE_HIGH = 4;
+}
+
+enum HookCadenceInteraction {
+  HOOK_CADENCE_INTERACTION_UNSPECIFIED = 0;
+  HOOK_CADENCE_INTERACTION_NORMAL = 1;
+  HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_FIRED = 2;
+  HOOK_CADENCE_INTERACTION_SUPPRESS_BASE_TICK_UNTIL_EXPIRED = 3;
+}
+
+message AgentRequestContext {
+  string app_id = 1;
+  string subject_user_id = 2;
+}
+
+message AgentAutonomyConfig {
+  int64 daily_token_budget = 1;
+  int64 max_tokens_per_hook = 2;
+  google.protobuf.Duration min_hook_interval = 3;
+  google.protobuf.Timestamp suspend_until = 4;
+  AgentAutonomyMode mode = 5;
+  google.protobuf.Struct extensions = 10;
+}
+
+message AgentAutonomyState {
+  bool enabled = 1;
+  AgentAutonomyConfig config = 2;
+  int64 used_tokens_in_window = 3;
+  google.protobuf.Timestamp window_started_at = 4;
+  bool budget_exhausted = 5;
+  google.protobuf.Timestamp suspended_until = 6;
+}
+
+message AgentRecord {
+  string agent_id = 1;
+  string display_name = 2;
+  AgentLifecycleStatus lifecycle_status = 3;
+  AgentAutonomyState autonomy = 4;
+  google.protobuf.Struct metadata = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message AgentStateProjection {
+  AgentExecutionState execution_state = 1;
+  string status_text = 2;
+  string active_world_id = 3;
+  string active_user_id = 4;
+  map<string, string> attributes = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message AgentStateSetStatusText {
+  string status_text = 1;
+}
+
+message AgentStateSetWorldContext {
+  string world_id = 1;
+}
+
+message AgentStateClearWorldContext {}
+
+message AgentStateSetDyadicContext {
+  string user_id = 1;
+}
+
+message AgentStateClearDyadicContext {}
+
+message AgentStatePutAttribute {
+  string key = 1;
+  string value = 2;
+}
+
+message AgentStateRemoveAttribute {
+  string key = 1;
+}
+
+message AgentStateMutation {
+  oneof mutation {
+    AgentStateSetStatusText set_status_text = 1;
+    AgentStateSetWorldContext set_world_context = 2;
+    AgentStateClearWorldContext clear_world_context = 3;
+    AgentStateSetDyadicContext set_dyadic_context = 4;
+    AgentStateClearDyadicContext clear_dyadic_context = 5;
+    AgentStatePutAttribute put_attribute = 6;
+    AgentStateRemoveAttribute remove_attribute = 7;
+  }
+}
+
+message TurnCompletedTriggerDetail {
+  string turn_id = 1;
+  AgentTrackType track = 2;
+}
+
+message ScheduledTimeTriggerDetail {
+  google.protobuf.Timestamp scheduled_for = 1;
+}
+
+message UserIdleTriggerDetail {
+  google.protobuf.Duration idle_for = 1;
+}
+
+message ChatEndedTriggerDetail {
+  string conversation_id = 1;
+}
+
+message StateConditionTriggerDetail {
+  string condition_key = 1;
+  string condition_value = 2;
+}
+
+message WorldEventTriggerDetail {
+  string world_id = 1;
+  string event_type = 2;
+  string event_id = 3;
+}
+
+message HookTriggerDetail {
+  HookTriggerKind trigger_kind = 1;
+  oneof detail {
+    TurnCompletedTriggerDetail turn_completed = 10;
+    ScheduledTimeTriggerDetail scheduled_time = 11;
+    UserIdleTriggerDetail user_idle = 12;
+    ChatEndedTriggerDetail chat_ended = 13;
+    StateConditionTriggerDetail state_condition = 14;
+    WorldEventTriggerDetail world_event = 15;
+    CompoundHookTriggerDetail compound = 16;
+  }
+}
+
+message CompoundHookTriggerDetail {
+  CompoundTriggerOperator operator = 1;
+  repeated HookTriggerDetail triggers = 2;
+}
+
+message TurnCompletedHookIntent {
+  string after_turn_id = 1;
+  AgentTrackType track = 2;
+}
+
+message ScheduledTimeHookIntent {
+  google.protobuf.Timestamp scheduled_for = 1;
+}
+
+message UserIdleHookIntent {
+  google.protobuf.Duration idle_for = 1;
+}
+
+message ChatEndedHookIntent {
+  string conversation_id = 1;
+}
+
+message StateConditionHookIntent {
+  string condition_key = 1;
+  string condition_value = 2;
+}
+
+message WorldEventHookIntent {
+  string world_id = 1;
+  string event_type = 2;
+  string event_id = 3;
+}
+
+message NextHookIntent {
+  HookTriggerKind trigger_kind = 1;
+  google.protobuf.Timestamp not_before = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  string reason = 4;
+  HookCadenceInteraction cadence_interaction = 5;
+  oneof detail {
+    TurnCompletedHookIntent turn_completed = 10;
+    ScheduledTimeHookIntent scheduled_time = 11;
+    UserIdleHookIntent user_idle = 12;
+    ChatEndedHookIntent chat_ended = 13;
+    StateConditionHookIntent state_condition = 14;
+    WorldEventHookIntent world_event = 15;
+    CompoundHookIntent compound = 16;
+  }
+}
+
+message CompoundHookIntent {
+  CompoundTriggerOperator operator = 1;
+  repeated NextHookIntent intents = 2;
+}
+
+message HookCompletedDetail {
+  string summary = 1;
+  google.protobuf.Timestamp completed_at = 2;
+}
+
+message HookFailedDetail {
+  ReasonCode reason_code = 1;
+  string message = 2;
+  bool retryable = 3;
+}
+
+message HookCanceledDetail {
+  string canceled_by = 1;
+  string reason = 2;
+}
+
+message HookRescheduledDetail {
+  NextHookIntent next_intent = 1;
+}
+
+message HookRejectedDetail {
+  ReasonCode reason_code = 1;
+  string message = 2;
+}
+
+message HookExecutionOutcome {
+  string hook_id = 1;
+  AgentHookStatus status = 2;
+  HookTriggerDetail trigger = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  oneof detail {
+    HookCompletedDetail completed = 10;
+    HookFailedDetail failed = 11;
+    HookCanceledDetail canceled = 12;
+    HookRescheduledDetail rescheduled = 13;
+    HookRejectedDetail rejected = 14;
+  }
+}
+
+message PendingHook {
+  string hook_id = 1;
+  AgentHookStatus status = 2;
+  HookTriggerDetail trigger = 3;
+  NextHookIntent next_intent = 4;
+  google.protobuf.Timestamp scheduled_for = 5;
+  google.protobuf.Timestamp admitted_at = 6;
+}
+
+message CanonicalMemoryCandidate {
+  MemoryCanonicalClass canonical_class = 1;
+  MemoryBankLocator target_bank = 2;
+  MemoryRecordInput record = 3;
+  string source_event_id = 4;
+  string policy_reason = 5;
+  google.protobuf.Struct extensions = 10;
+}
+
+message CanonicalMemoryView {
+  MemoryCanonicalClass canonical_class = 1;
+  MemoryBankLocator source_bank = 2;
+  MemoryRecord record = 3;
+  double recall_score = 4;
+  string policy_reason = 5;
+}
+
+message CanonicalMemoryRejection {
+  string source_event_id = 1;
+  ReasonCode reason_code = 2;
+  string message = 3;
+}
+
+message AgentLifecycleEventDetail {
+  AgentLifecycleStatus previous_status = 1;
+  AgentLifecycleStatus current_status = 2;
+}
+
+message AgentHookEventDetail {
+  HookExecutionOutcome outcome = 1;
+}
+
+message AgentMemoryEventDetail {
+  repeated CanonicalMemoryView accepted = 1;
+  repeated CanonicalMemoryRejection rejected = 2;
+}
+
+message AgentBudgetEventDetail {
+  bool budget_exhausted = 1;
+  int64 remaining_tokens = 2;
+  google.protobuf.Timestamp window_started_at = 3;
+}
+
+message AgentReplicationEventDetail {
+  string memory_id = 1;
+  MemoryReplicationState replication = 2;
+}
+
+message AgentEvent {
+  AgentEventType event_type = 1;
+  uint64 sequence = 2;
+  string agent_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  oneof detail {
+    AgentLifecycleEventDetail lifecycle = 10;
+    AgentHookEventDetail hook = 11;
+    AgentMemoryEventDetail memory = 12;
+    AgentBudgetEventDetail budget = 13;
+    AgentReplicationEventDetail replication = 14;
+  }
+}
+
+message InitializeAgentRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string display_name = 3;
+  AgentAutonomyConfig autonomy_config = 4;
+  string world_id = 5;
+  google.protobuf.Struct metadata = 6;
+}
+
+message InitializeAgentResponse {
+  AgentRecord agent = 1;
+  AgentStateProjection state = 2;
+}
+
+message TerminateAgentRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string reason = 3;
+}
+
+message TerminateAgentResponse {
+  Ack ack = 1;
+}
+
+message GetAgentRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+}
+
+message GetAgentResponse {
+  AgentRecord agent = 1;
+}
+
+message ListAgentsRequest {
+  AgentRequestContext context = 1;
+  AgentLifecycleStatus lifecycle_filter = 2;
+  optional bool autonomy_enabled = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListAgentsResponse {
+  repeated AgentRecord agents = 1;
+  string next_page_token = 2;
+}
+
+message GetAgentStateRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+}
+
+message GetAgentStateResponse {
+  AgentStateProjection state = 1;
+}
+
+message UpdateAgentStateRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  repeated AgentStateMutation mutations = 3;
+}
+
+message UpdateAgentStateResponse {
+  AgentStateProjection state = 1;
+}
+
+message EnableAutonomyRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+}
+
+message EnableAutonomyResponse {
+  AgentAutonomyState autonomy = 1;
+}
+
+message DisableAutonomyRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string reason = 3;
+}
+
+message DisableAutonomyResponse {
+  AgentAutonomyState autonomy = 1;
+}
+
+message SetAutonomyConfigRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  AgentAutonomyConfig config = 3;
+}
+
+message SetAutonomyConfigResponse {
+  AgentAutonomyState autonomy = 1;
+}
+
+message ListPendingHooksRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  HookTriggerKind trigger_filter = 3;
+  AgentHookStatus status_filter = 4;
+  int32 page_size = 5;
+  string page_token = 6;
+}
+
+message ListPendingHooksResponse {
+  repeated PendingHook hooks = 1;
+  string next_page_token = 2;
+}
+
+message CancelHookRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string hook_id = 3;
+  string reason = 4;
+}
+
+message CancelHookResponse {
+  HookExecutionOutcome outcome = 1;
+}
+
+message QueryAgentMemoryRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string query = 3;
+  int32 limit = 4;
+  repeated MemoryCanonicalClass canonical_classes = 5;
+  repeated MemoryRecordKind kinds = 6;
+  bool include_invalidated = 7;
+}
+
+message QueryAgentMemoryResponse {
+  repeated CanonicalMemoryView memories = 1;
+  repeated NarrativeRecallHit narratives = 2;
+}
+
+message WriteAgentMemoryRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  repeated CanonicalMemoryCandidate candidates = 3;
+}
+
+message WriteAgentMemoryResponse {
+  repeated CanonicalMemoryView accepted = 1;
+  repeated CanonicalMemoryRejection rejected = 2;
+}
+
+message SubscribeAgentEventsRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string cursor = 3;
+  repeated AgentEventType event_filters = 4;
+}
+
+service RuntimeAgentService {
+  rpc InitializeAgent(InitializeAgentRequest) returns (InitializeAgentResponse);
+  rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
+  rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+  rpc GetAgentState(GetAgentStateRequest) returns (GetAgentStateResponse);
+  rpc UpdateAgentState(UpdateAgentStateRequest) returns (UpdateAgentStateResponse);
+  rpc EnableAutonomy(EnableAutonomyRequest) returns (EnableAutonomyResponse);
+  rpc DisableAutonomy(DisableAutonomyRequest) returns (DisableAutonomyResponse);
+  rpc SetAutonomyConfig(SetAutonomyConfigRequest) returns (SetAutonomyConfigResponse);
+  rpc ListPendingHooks(ListPendingHooksRequest) returns (ListPendingHooksResponse);
+  rpc CancelHook(CancelHookRequest) returns (CancelHookResponse);
+  rpc QueryAgentMemory(QueryAgentMemoryRequest) returns (QueryAgentMemoryResponse);
+  rpc WriteAgentMemory(WriteAgentMemoryRequest) returns (WriteAgentMemoryResponse);
+  rpc SubscribeAgentEvents(SubscribeAgentEventsRequest) returns (stream AgentEvent);
+}

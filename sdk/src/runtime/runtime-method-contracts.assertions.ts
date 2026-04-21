@@ -5,7 +5,7 @@ import type {
   SubscribeAgentEventsRequest,
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
-} from './generated/runtime/v1/agent_core.js';
+} from './generated/runtime/v1/agent_service.js';
 import type {
   ExecuteScenarioRequest,
   ExecuteScenarioResponse,
@@ -36,9 +36,9 @@ const runtimeUnaryResult = runtime.call(RuntimeMethodIds.ai.executeScenario, {} 
 const rawMemoryUnaryResult = raw.call(RuntimeMethodIds.memory.createBank, {} as CreateBankRequest);
 const rawMemoryStreamResult = raw.call(RuntimeMethodIds.memory.subscribeEvents, {} as SubscribeMemoryEventsRequest);
 const runtimeMemoryUnaryResult = runtime.call(RuntimeMethodIds.memory.createBank, {} as CreateBankRequest);
-const rawAgentCoreUnaryResult = raw.call(RuntimeMethodIds.agentCore.queryMemory, {} as QueryAgentMemoryRequest);
-const rawAgentCoreStreamResult = raw.call(RuntimeMethodIds.agentCore.subscribeEvents, {} as SubscribeAgentEventsRequest);
-const runtimeAgentCoreUnaryResult = runtime.call(RuntimeMethodIds.agentCore.writeMemory, {} as WriteAgentMemoryRequest);
+const rawAgentUnaryResult = raw.call(RuntimeMethodIds.agent.queryMemory, {} as QueryAgentMemoryRequest);
+const rawAgentStreamResult = raw.call(RuntimeMethodIds.agent.subscribeEvents, {} as SubscribeAgentEventsRequest);
+const runtimeAgentUnaryResult = runtime.call(RuntimeMethodIds.agent.writeMemory, {} as WriteAgentMemoryRequest);
 const fallbackRawResult = raw.call('/nimi.runtime.v1.Custom/Unknown', {});
 
 type _GuardRawUnaryResult = Assert<IsEqual<
@@ -65,16 +65,16 @@ type _GuardRuntimeMemoryUnaryResult = Assert<IsEqual<
   Awaited<typeof runtimeMemoryUnaryResult>,
   CreateBankResponse
 >>;
-type _GuardRawAgentCoreUnaryResult = Assert<IsEqual<
-  Awaited<typeof rawAgentCoreUnaryResult>,
+type _GuardRawAgentUnaryResult = Assert<IsEqual<
+  Awaited<typeof rawAgentUnaryResult>,
   QueryAgentMemoryResponse
 >>;
-type _GuardRawAgentCoreStreamResult = Assert<IsEqual<
-  Awaited<typeof rawAgentCoreStreamResult>,
+type _GuardRawAgentStreamResult = Assert<IsEqual<
+  Awaited<typeof rawAgentStreamResult>,
   AsyncIterable<AgentEvent>
 >>;
-type _GuardRuntimeAgentCoreUnaryResult = Assert<IsEqual<
-  Awaited<typeof runtimeAgentCoreUnaryResult>,
+type _GuardRuntimeAgentUnaryResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentUnaryResult>,
   WriteAgentMemoryResponse
 >>;
 type _GuardFallbackRawResult = Assert<IsEqual<
@@ -91,5 +91,5 @@ raw.call(RuntimeMethodIds.ai.streamScenario, { invalid: true });
 // @ts-expect-error known memory method ids must reject incompatible request payloads
 raw.call(RuntimeMethodIds.memory.createBank, { invalid: true });
 
-// @ts-expect-error known agentCore method ids must reject incompatible request payloads
-raw.call(RuntimeMethodIds.agentCore.queryMemory, { invalid: true });
+// @ts-expect-error known agent method ids must reject incompatible request payloads
+raw.call(RuntimeMethodIds.agent.queryMemory, { invalid: true });

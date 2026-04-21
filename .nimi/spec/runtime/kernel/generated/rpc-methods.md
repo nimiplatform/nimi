@@ -203,7 +203,7 @@ Source: `K-APP-001`
 | `SendAppMessage` | `unary` |
 | `SubscribeAppMessages` | `server_stream` |
 
-## RuntimeAgentCoreService
+## RuntimeAgentService
 
 Source: `K-RPC-004b`
 

@@ -60,6 +60,17 @@ import type {
   RuntimeCallOptions,
   RuntimeStreamCallOptions,
 } from './types.js';
+import type {
+  NimiFinishReason,
+  NimiReasoningConfig,
+  NimiRoutePolicy,
+  NimiTokenUsage,
+  NimiTraceInfo,
+} from './types-media.js';
+import type {
+  RuntimeAgentClient,
+} from './types-client-interfaces.js';
+import type { SendAppMessageResponse } from './generated/runtime/v1/app';
 
 export type RuntimeRealmBridgeContext = {
   appId: string;
@@ -194,4 +205,215 @@ export type RuntimeAiModule = {
   embedding: {
     generate(input: EmbeddingGenerateInput): Promise<EmbeddingGenerateOutput>;
   };
+};
+
+export type RuntimeAgentChatMessage = {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string;
+  name?: string;
+};
+
+export type RuntimeAgentChatExecutionBinding = {
+  route: NimiRoutePolicy;
+  modelId: string;
+  connectorId?: string;
+};
+
+export type RuntimeAgentChatReasoningConfig = NimiReasoningConfig;
+
+export type RuntimeAgentChatTurnRequest = {
+  agentId: string;
+  sessionId?: string;
+  threadId?: string;
+  systemPrompt?: string;
+  worldId?: string;
+  maxOutputTokens?: number;
+  messages: RuntimeAgentChatMessage[];
+  executionBinding: RuntimeAgentChatExecutionBinding;
+  reasoning?: RuntimeAgentChatReasoningConfig;
+};
+
+export type RuntimeAgentChatInterruptRequest = {
+  sessionId: string;
+  turnId?: string;
+  reason?: string;
+};
+
+export type RuntimeAgentChatSessionSnapshotRequest = {
+  sessionId: string;
+  requestId?: string;
+};
+
+export type RuntimeAgentChatAcceptedEvent = {
+  type: 'accepted';
+  sessionId: string;
+  turnId: string;
+  sessionStatus?: string;
+  transcriptMessageCount?: number;
+  executionBinding?: RuntimeAgentChatExecutionBinding;
+  maxOutputTokens?: number;
+  reasoning?: RuntimeAgentChatReasoningConfig;
+};
+
+export type RuntimeAgentChatStartedEvent = {
+  type: 'started';
+  sessionId: string;
+  turnId: string;
+  trace?: NimiTraceInfo;
+};
+
+export type RuntimeAgentChatTextDeltaEvent = {
+  type: 'text_delta';
+  sessionId: string;
+  turnId: string;
+  textDelta: string;
+};
+
+export type RuntimeAgentChatReasoningDeltaEvent = {
+  type: 'reasoning_delta';
+  sessionId: string;
+  turnId: string;
+  textDelta: string;
+};
+
+export type RuntimeAgentChatStructuredEvent = {
+  type: 'structured';
+  sessionId: string;
+  turnId: string;
+  structured: Record<string, unknown>;
+  trace?: NimiTraceInfo;
+};
+
+export type RuntimeAgentChatPostTurnEvent = {
+  type: 'post_turn';
+  sessionId: string;
+  turnId: string;
+  postTurn: Record<string, unknown>;
+};
+
+export type RuntimeAgentChatCompletedEvent = {
+  type: 'completed';
+  sessionId: string;
+  turnId: string;
+  text?: string;
+  finishReason?: NimiFinishReason;
+  usage?: NimiTokenUsage;
+  trace?: NimiTraceInfo;
+};
+
+export type RuntimeAgentChatFailedEvent = {
+  type: 'failed';
+  sessionId: string;
+  turnId: string;
+  text?: string;
+  reasoningText?: string;
+  finishReason?: NimiFinishReason;
+  message?: string;
+  reasonCode?: string;
+  actionHint?: string;
+  usage?: NimiTokenUsage;
+  trace?: NimiTraceInfo;
+};
+
+export type RuntimeAgentChatInterruptedEvent = {
+  type: 'interrupted';
+  sessionId: string;
+  turnId: string;
+  text?: string;
+  reasoningText?: string;
+  trace?: NimiTraceInfo;
+};
+
+export type RuntimeAgentChatInterruptAckEvent = {
+  type: 'interrupt_ack';
+  sessionId: string;
+  turnId: string;
+  accepted: boolean;
+  interruptFor?: string;
+};
+
+export type RuntimeAgentChatStreamEvent =
+  | RuntimeAgentChatAcceptedEvent
+  | RuntimeAgentChatStartedEvent
+  | RuntimeAgentChatTextDeltaEvent
+  | RuntimeAgentChatReasoningDeltaEvent
+  | RuntimeAgentChatStructuredEvent
+  | RuntimeAgentChatPostTurnEvent
+  | RuntimeAgentChatCompletedEvent
+  | RuntimeAgentChatFailedEvent
+  | RuntimeAgentChatInterruptedEvent
+  | RuntimeAgentChatInterruptAckEvent;
+
+export type RuntimeAgentChatSessionTurnSnapshot = {
+  turnId: string;
+  status?: string;
+  streamSequence?: number;
+  turnOrigin?: string;
+  followUpDepth?: number;
+  maxFollowUpTurns?: number;
+  outputObserved?: boolean;
+  reasoningObserved?: boolean;
+  updatedAt?: string;
+  trace?: NimiTraceInfo;
+  chainId?: string;
+  sourceTurnId?: string;
+  sourceActionId?: string;
+  messageId?: string;
+  text?: string;
+  structured?: Record<string, unknown>;
+  assistantMemory?: Record<string, unknown>;
+  chatSidecar?: Record<string, unknown>;
+  followUp?: Record<string, unknown>;
+  finishReason?: string;
+  streamSimulated?: boolean;
+  reasonCode?: string;
+  actionHint?: string;
+  message?: string;
+};
+
+export type RuntimeAgentChatPendingFollowUpSnapshot = {
+  status?: string;
+  followUpId?: string;
+  scheduledFor?: string;
+  chainId?: string;
+  followUpDepth?: number;
+  maxFollowUpTurns?: number;
+  sourceTurnId?: string;
+  sourceActionId?: string;
+};
+
+export type RuntimeAgentChatSessionSnapshot = {
+  requestId?: string;
+  agentId: string;
+  sessionId: string;
+  threadId?: string;
+  subjectUserId?: string;
+  sessionStatus?: string;
+  transcriptMessageCount?: number;
+  executionBinding?: RuntimeAgentChatExecutionBinding;
+  systemPrompt?: string;
+  maxOutputTokens?: number;
+  reasoning?: RuntimeAgentChatReasoningConfig;
+  activeTurn?: RuntimeAgentChatSessionTurnSnapshot;
+  lastTurn?: RuntimeAgentChatSessionTurnSnapshot;
+  pendingFollowUp?: RuntimeAgentChatPendingFollowUpSnapshot;
+};
+
+export type RuntimeAgentChatModule = {
+  streamTurn(
+    request: RuntimeAgentChatTurnRequest,
+    options?: RuntimeStreamCallOptions,
+  ): Promise<AsyncIterable<RuntimeAgentChatStreamEvent>>;
+  interruptTurn(
+    request: RuntimeAgentChatInterruptRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<SendAppMessageResponse>;
+  getSessionSnapshot(
+    request: RuntimeAgentChatSessionSnapshotRequest,
+    options?: RuntimeStreamCallOptions,
+  ): Promise<RuntimeAgentChatSessionSnapshot>;
+};
+
+export type RuntimeAgentModule = RuntimeAgentClient & {
+  chat: RuntimeAgentChatModule;
 };

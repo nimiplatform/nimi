@@ -509,7 +509,7 @@ rules:
   - rule_id: S-RUNTIME-103
     status: covered
     evidence_refs: [sdk_kernel_consistency]
-    note: "Persistent agent presentation profile may project only through runtime.agentCore.* and must not create a parallel top-level runtime avatar surface"
+    note: "Persistent agent presentation profile may project only through runtime.agent.* and must not create a parallel top-level runtime avatar surface"
   - rule_id: S-RUNTIME-104
     status: covered
     evidence_refs: [sdk_kernel_consistency]

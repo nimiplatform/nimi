@@ -36,7 +36,7 @@ export {
   AgentLifecycleStatus,
   AgentTrackType,
   HookTriggerKind,
-} from './generated/runtime/v1/agent_core.js';
+} from './generated/runtime/v1/agent_service.js';
 export type {
   CatalogModelDetail,
   CatalogModelInput,
@@ -66,7 +66,7 @@ export type {
   DeleteCatalogModelOverlayResponse,
 } from './generated/runtime/v1/connector.js';
 export type * from './generated/runtime/v1/memory.js';
-export type * from './generated/runtime/v1/agent_core.js';
+export type * from './generated/runtime/v1/agent_service.js';
 export { RuntimeHealthStatus, UsageWindow } from './generated/runtime/v1/audit.js';
 export type {
   AuditEventRecord,

@@ -56,7 +56,7 @@ export const PHASE2_MODULE_KEYS: ReadonlySet<string> = new Set([
   'model',
   'knowledge',
   'memory',
-  'agentCore',
+  'agent',
   'app',
 ]);
 

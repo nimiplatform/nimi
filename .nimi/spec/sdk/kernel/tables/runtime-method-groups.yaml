@@ -256,16 +256,16 @@ groups:
       - DeleteMemory
       - SubscribeMemoryEvents
     source_rule: S-SURFACE-002
-  - group: agent_core_service_projection
-    service: RuntimeAgentCoreService
+  - group: agent_service_projection
+    service: RuntimeAgentService
     phase: 1
     status: active
     note: >
-      Final-state runtime-owned live agent substrate. SDK projection is the
-      app-facing authority for lifecycle, state, autonomy, hook inspection, and
-      canonical agent memory policy. Agent canonical memory writes must project
-      through runtime.agentCore, not through direct Realm memory mutation or
-      raw MemoryService scope writes.
+      Final-state runtime-owned live agent substrate belongs to
+      RuntimeAgentService. The admitted SDK public projection namespace is
+      runtime.agent.*, and canonical agent memory writes must remain unified on
+      that runtime-owned agent projection rather than drifting to direct Realm
+      memory mutation or raw MemoryService scope writes.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - InitializeAgent

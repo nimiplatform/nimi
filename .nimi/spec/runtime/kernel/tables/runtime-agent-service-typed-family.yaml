@@ -1,0 +1,26 @@
+version: 1
+families:
+  - family: NEXT_HOOK_INTENT
+    source_rule: K-AGCORE-006
+    mutable_by_app: false
+    description: Typed HookIntent family emitted by chat/life execution and interpreted by runtime-owned narrow admission.
+  - family: HOOK_OUTCOME
+    source_rule: K-AGCORE-006
+    mutable_by_app: false
+    description: Typed result family covering completed, failed, canceled, or rescheduled hook execution.
+  - family: CANONICAL_MEMORY_CANDIDATE
+    source_rule: K-AGCORE-006
+    mutable_by_app: false
+    description: Typed candidate family for memory admission before canonical write policy accepts or rejects it.
+  - family: CANONICAL_MEMORY_VIEW
+    source_rule: K-AGCORE-006
+    mutable_by_app: false
+    description: Typed agent-facing recall/result family projected from retained runtime-private memory depth into RuntimeAgentService reads.
+  - family: CONSTRAINED_STATE_MUTATION
+    source_rule: K-AGCORE-006
+    mutable_by_app: true
+    description: Typed command/patch family for admitted public state changes; arbitrary full-state blob replacement is forbidden.
+  - family: AGENT_EVENT
+    source_rule: K-AGCORE-006
+    mutable_by_app: false
+    description: Typed event family covering lifecycle, hook, memory, budget, and replication-related observability.

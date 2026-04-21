@@ -57,15 +57,15 @@ profiles:
   agent_memory:
     openapi:
       - RPC RuntimeCognitionService.SubscribeMemoryEvents
-      - RPC RuntimeAgentCoreService.QueryAgentMemory
-      - RPC RuntimeAgentCoreService.WriteAgentMemory
+      - RPC RuntimeAgentService.QueryAgentMemory
+      - RPC RuntimeAgentService.WriteAgentMemory
     prisma_models: [MemoryBank, MemoryRecord]
     service_files:
       - runtime/internal/services/cognition/service.go
-      - runtime/internal/services/agentcore/service.go
+      - runtime/internal/services/runtimeagent/service.go
     test_files:
       - runtime/internal/services/cognition/service_test.go
-      - runtime/internal/services/agentcore/service_test.go
+      - runtime/internal/services/runtimeagent/service_test.go
   chat:
     openapi:
       - GET /api/human/chats

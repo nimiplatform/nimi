@@ -1,6 +1,6 @@
 # Runtime Kernel Contracts
 
-> Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Voice / Audit / Model / Knowledge / Memory / Agent Core / App / Daemon / Config / Connector / Multimodal / Proto Governance）。
+> Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Voice / Audit / Model / Knowledge / Memory / Agent Service / App / Daemon / Config / Connector / Multimodal / Proto Governance）。
 
 ## 1. 目标
 
@@ -52,8 +52,11 @@
 | `knowledge-contract.md` | `K-KNOW-*` | runtime-local knowledge banks、page lifecycle、keyword search |
 | `runtime-memory-service-contract.md` | `K-MEM-*` | Runtime-owned memory substrate、bank scope、provider boundary、Realm replication |
 | `runtime-memory-substrate-contract.md` | `K-MEMSUB-*` | Runtime-private local memory substrate / Hindsight bridge、health、daemon boundary、runtime-owned typed overlay |
-| `runtime-agent-core-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、agent memory policy |
-| `agent-presentation-contract.md` | `K-AGCORE-*` | Runtime-owned persistent `AgentPresentationProfile` truth、default avatar binding、and non-owner boundary for transient avatar state |
+| `runtime-agent-service-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、conversation continuity、agent memory policy |
+| `agent-conversation-anchor-contract.md` | `K-AGCORE-*` | Runtime-owned `ConversationAnchor` continuity truth for single-agent multi-surface chat/session sharing |
+| `agent-presentation-contract.md` | `K-AGCORE-*` | Runtime-owned persistent `AgentPresentationProfile` truth、default avatar binding、and non-owner boundary for renderer-local state |
+| `agent-presentation-stream-contract.md` | `K-AGCORE-*` | Runtime-owned transient `turn` / `presentation` projection seam、current emotion projection、and stream commit semantics |
+| `agent-hook-intent-contract.md` | `K-AGCORE-*` | Runtime-owned narrow-admit `HookIntent` truth、admission states、and event seam |
 | `app-messaging-contract.md` | `K-APP-*` | 应用间消息、事件流 |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
 | `config-contract.md` | `K-CFG-*` | 配置路径、优先级、secret policy、写入语义 |
@@ -101,7 +104,7 @@
 - `tables/runtime-memory-bank-scope.yaml`
 - `tables/runtime-memory-hook-trigger.yaml`
 - `tables/runtime-memory-replication-outcome.yaml`
-- `tables/runtime-agent-core-typed-family.yaml`
+- `tables/runtime-agent-service-typed-family.yaml`
 - `tables/runtime-delivery-gates.yaml`
 - `tables/runtime-proto-governance-gates.yaml`
 - `tables/capability-vocabulary-mapping.yaml`

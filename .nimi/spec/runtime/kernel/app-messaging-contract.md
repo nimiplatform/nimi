@@ -103,3 +103,45 @@ AppService 的跨域消费契约状态：
 | **消息保留策略** | 未定义 | 需确定消息是否持久化、保留时长、容量上限（环形缓冲 vs 无限增长） |
 | **投递顺序保证** | `sequence` 单调递增，但未定义跨重启行为 | 需确定 sequence 是否持久化、重启后是否重置 |
 | **背压机制** | 未定义 | 高频消息场景下 `SubscribeAppMessages` 的流控策略（丢弃/缓冲/拒绝）。K-APP-005 的速率限制是入口层保护，背压是出口层保护，两者互补 |
+
+## K-APP-008 Reserved `runtime.agent` Reactive Chat Target
+
+`runtime.agent` 是保留的 runtime-owned app target，用于
+`RuntimeAgentService` 的 app-facing reactive chat consume seam。
+
+固定规则：
+
+- `runtime.agent` 不是通用 app-bus target；只有本规则 admit 的消息族可
+  以通过该 target 传输
+- admitted ingress families 固定为：
+  `agent.chat.turn.request.v1`,
+  `agent.chat.turn.interrupt.v1`,
+  `agent.chat.session.snapshot.request.v1`
+- admitted projection families 固定为：
+  `agent.chat.turn.accepted.v1`,
+  `agent.chat.turn.started.v1`,
+  `agent.chat.turn.text_delta.v1`,
+  `agent.chat.turn.reasoning_delta.v1`,
+  `agent.chat.turn.structured.v1`,
+  `agent.chat.turn.post_turn.v1`,
+  `agent.chat.turn.completed.v1`,
+  `agent.chat.turn.failed.v1`,
+  `agent.chat.turn.interrupted.v1`,
+  `agent.chat.turn.interrupt_ack.v1`,
+  `agent.chat.follow_up.canceled.v1`,
+  `agent.chat.session.snapshot.v1`
+- semantic ownership of these families remains on `RuntimeAgentService` even
+  when the transport owner is `RuntimeAppService`
+- first-party consumers may use `SendAppMessage` /
+  `SubscribeAppMessages` against `runtime.agent` for this seam, but must not
+  reinterpret that transport path as proof of a generic cross-app chat bus
+- `runtime.agent` reactive chat seam admits a dedicated transport capability
+  family:
+  - admitted ingress via `SendAppMessage` to `to_app_id=runtime.agent` with an
+    admitted ingress message type requires `runtime.agent.chat.write`
+  - admitted `SubscribeAppMessages` reads that filter `from_app_ids` including
+    `runtime.agent` require `runtime.agent.chat.read`
+  - generic cross-app app-bus traffic outside this reserved seam continues to
+    use `runtime.app.send.cross_app`
+- `runtime.agent.*` RPC projection remains separate and covers
+  lifecycle/state/memory/admin/read rather than reactive chat transport

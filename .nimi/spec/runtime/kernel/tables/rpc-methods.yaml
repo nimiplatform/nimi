@@ -281,7 +281,7 @@ services:
         type: unary
       - name: SubscribeAppMessages
         type: server_stream
-  - name: RuntimeAgentCoreService
+  - name: RuntimeAgentService
     source_rule: K-RPC-004b
     methods:
       - name: InitializeAgent

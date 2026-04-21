@@ -159,14 +159,14 @@ func (d *Daemon) Run(ctx context.Context) error {
 	startupDegradedReason := d.consumeStartupDegradedReason()
 	d.state.SetStatus(health.StatusReady, "ready")
 	d.grpc.SyncServingState()
-	if agentCoreSvc := d.grpc.AgentCoreService(); agentCoreSvc != nil {
-		if err := agentCoreSvc.StartLifeTrackLoop(backgroundCtx); err != nil {
+	if agentSvc := d.grpc.AgentService(); agentSvc != nil {
+		if err := agentSvc.StartLifeTrackLoop(backgroundCtx); err != nil {
 			cancelBackground()
 			backgroundWG.Wait()
 			if shutdownErr := d.shutdown(); shutdownErr != nil {
-				return fmt.Errorf("start agentcore life-track loop: %w (shutdown: %v)", err, shutdownErr)
+				return fmt.Errorf("start runtime-agent life-track loop: %w (shutdown: %v)", err, shutdownErr)
 			}
-			return fmt.Errorf("start agentcore life-track loop: %w", err)
+			return fmt.Errorf("start runtime-agent life-track loop: %w", err)
 		}
 	}
 	d.logger.Info("runtime ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
@@ -208,8 +208,8 @@ waitForShutdown:
 
 	cancelBackground()
 	backgroundWG.Wait()
-	if agentCoreSvc := d.grpc.AgentCoreService(); agentCoreSvc != nil {
-		agentCoreSvc.StopLifeTrackLoop()
+	if agentSvc := d.grpc.AgentService(); agentSvc != nil {
+		agentSvc.StopLifeTrackLoop()
 	}
 	shutdownErr := d.shutdown()
 
@@ -420,7 +420,7 @@ func memoryEmbeddingIntentSnapshotFromHTTP(input *httpserver.MemoryEmbeddingBind
 	}
 }
 
-func agentCoreLocator(agentID string) *runtimev1.MemoryBankLocator {
+func runtimeAgentBankLocator(agentID string) *runtimev1.MemoryBankLocator {
 	return &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
@@ -438,7 +438,7 @@ func (d *Daemon) inspectMemoryEmbeddingForAgent(ctx context.Context, req httpser
 		return httpserver.MemoryEmbeddingInspectResult{}, err
 	}
 	state, err := memorySvc.InspectMemoryEmbeddingState(ctx, memoryservice.InspectMemoryEmbeddingStateRequest{
-		Locator:               agentCoreLocator(req.TargetRef.AgentID),
+		Locator:               runtimeAgentBankLocator(req.TargetRef.AgentID),
 		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromHTTP(req.BindingIntentSnapshot),
 	})
 	if err != nil {
@@ -466,7 +466,7 @@ func (d *Daemon) requestMemoryEmbeddingBindForAgent(ctx context.Context, req htt
 		return httpserver.MemoryEmbeddingBindResult{}, err
 	}
 	result, err := memorySvc.RequestCanonicalMemoryEmbeddingBind(ctx, memoryservice.RequestCanonicalMemoryEmbeddingBindRequest{
-		Locator:               agentCoreLocator(req.TargetRef.AgentID),
+		Locator:               runtimeAgentBankLocator(req.TargetRef.AgentID),
 		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromHTTP(req.BindingIntentSnapshot),
 	})
 	if err != nil {
@@ -489,7 +489,7 @@ func (d *Daemon) requestMemoryEmbeddingCutoverForAgent(ctx context.Context, req 
 		return httpserver.MemoryEmbeddingCutoverResult{}, err
 	}
 	result, err := memorySvc.RequestMemoryEmbeddingCutover(ctx, memoryservice.RequestMemoryEmbeddingCutoverRequest{
-		Locator:               agentCoreLocator(req.TargetRef.AgentID),
+		Locator:               runtimeAgentBankLocator(req.TargetRef.AgentID),
 		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromHTTP(req.BindingIntentSnapshot),
 	})
 	if err != nil {

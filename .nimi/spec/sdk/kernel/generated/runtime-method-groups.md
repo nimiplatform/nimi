@@ -207,7 +207,7 @@ Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `DeleteMemory` | `S-SURFACE-002` |
 | `SubscribeMemoryEvents` | `S-SURFACE-002` |
 
-## agent_core_service_projection
+## agent_service_projection
 
 Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 

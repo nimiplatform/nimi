@@ -352,11 +352,11 @@ function checkMemoryProtoAdmission() {
   }
 }
 
-function checkAgentCoreProtoAdmission() {
-  const rel = 'proto/runtime/v1/agent_core.proto';
+function checkRuntimeAgentServiceProtoAdmission() {
+  const rel = 'proto/runtime/v1/agent_service.proto';
   const content = read(rel);
 
-  expectRegex(content, /service\s+RuntimeAgentCoreService\s*\{[\s\S]*rpc\s+InitializeAgent\(InitializeAgentRequest\)\s+returns\s+\(InitializeAgentResponse\);[\s\S]*rpc\s+SubscribeAgentEvents\(SubscribeAgentEventsRequest\)\s+returns\s+\(stream\s+AgentEvent\);[\s\S]*\}/m, `${rel} RuntimeAgentCoreService method set`);
+  expectRegex(content, /service\s+RuntimeAgentService\s*\{[\s\S]*rpc\s+InitializeAgent\(InitializeAgentRequest\)\s+returns\s+\(InitializeAgentResponse\);[\s\S]*rpc\s+SubscribeAgentEvents\(SubscribeAgentEventsRequest\)\s+returns\s+\(stream\s+AgentEvent\);[\s\S]*\}/m, `${rel} RuntimeAgentService method set`);
 
   const nextHookIntent = getProtoMessageBlock(content, 'NextHookIntent', rel);
   assertMessageHasFields(nextHookIntent, 'NextHookIntent', rel, ['trigger_kind', 'not_before', 'expires_at', 'turn_completed', 'scheduled_time', 'user_idle', 'chat_ended', 'state_condition', 'world_event', 'compound']);
@@ -385,14 +385,14 @@ function checkAgentCoreProtoAdmission() {
   assertMessageHasFields(listHooksReq, 'ListPendingHooksRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listHooksResp, 'ListPendingHooksResponse', rel, ['next_page_token']);
 
-  const specAgentCore = read('.nimi/spec/runtime/kernel/runtime-agent-core-contract.md');
+  const specAgentService = read('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
   for (const token of [
     'typed trigger-detail and next-hook-intent families',
     'typed completed / failed / canceled / rescheduled / rejected families',
     'typed command/patch union',
   ]) {
-    if (!specAgentCore.includes(token)) {
-      fail(`.nimi/spec/runtime/kernel/runtime-agent-core-contract.md missing token: ${token}`);
+    if (!specAgentService.includes(token)) {
+      fail(`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md missing token: ${token}`);
     }
   }
 
@@ -441,7 +441,7 @@ function main() {
   checkReasonCodes359To363Linkage();
   checkPagingPairsInConnectorAndGrantProto();
   checkMemoryProtoAdmission();
-  checkAgentCoreProtoAdmission();
+  checkRuntimeAgentServiceProtoAdmission();
 
   if (failed) {
     process.exit(1);

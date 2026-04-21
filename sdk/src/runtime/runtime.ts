@@ -11,7 +11,7 @@ import type {
 } from './runtime-method-contracts.js';
 import type {
   RuntimeAppAuthClient,
-  RuntimeAgentCoreClient,
+  RuntimeAgentModule,
   RuntimeAuditClient,
   RuntimeAuthClient,
   RuntimeCallOptions,
@@ -61,6 +61,8 @@ import {
   emitAuthTokenIssuedEvent,
   emitAuthTokenRevokedEvent,
 } from './runtime-modules.js';
+import { createRuntimeAgentChatModule } from './runtime-agent-chat.js';
+import { createRuntimeProtectedScopeHelper } from './protected-access.js';
 import {
   ensureRuntimeClientForCall,
   invokeWithRuntimeRetry,
@@ -116,7 +118,7 @@ export class Runtime {
   readonly connector: RuntimeConnectorClient;
   readonly knowledge: RuntimeKnowledgeClient;
   readonly memory: RuntimeMemoryClient;
-  readonly agentCore: RuntimeAgentCoreClient;
+  readonly agent: RuntimeAgentModule;
   readonly app: {
     sendMessage: RuntimeClient['app']['sendAppMessage'];
     subscribeMessages: RuntimeClient['app']['subscribeAppMessages'];
@@ -259,7 +261,6 @@ export class Runtime {
     this.connector = passthrough.connector;
     this.knowledge = passthrough.knowledge;
     this.memory = passthrough.memory;
-    this.agentCore = passthrough.agentCore;
     this.audit = passthrough.audit;
     const healthStreams = createHealthEventStreams({
       audit: this.audit,
@@ -282,6 +283,26 @@ export class Runtime {
         emitTokenRevoked: (tokenId) => emitAuthTokenRevokedEvent(this.#eventBus, tokenId),
       },
     });
+
+    const protectedScopeHelper = createRuntimeProtectedScopeHelper({
+      runtime: {
+        appId: this.appId,
+        transport: this.transport,
+        auth: this.auth,
+        appAuth: this.appAuth,
+      },
+      getSubjectUserId: () => this.#ctx.resolveSubjectUserId(undefined),
+    });
+
+    this.agent = {
+      ...passthrough.agent,
+      chat: createRuntimeAgentChatModule({
+        appId: this.appId,
+        app: this.app,
+        protectedAccess: protectedScopeHelper,
+        resolveSubjectUserId: () => this.#ctx.resolveSubjectUserId(undefined),
+      }),
+    };
 
     this.scope = createScopeClient({
       invoke: (operation) => this.#invoke(operation),

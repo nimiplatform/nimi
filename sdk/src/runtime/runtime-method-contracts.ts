@@ -3,7 +3,7 @@ import type { RuntimeClient } from './types-client-interfaces.js';
 
 type RuntimeClientModuleKey = Extract<
   keyof RuntimeClient,
-  'auth' | 'appAuth' | 'ai' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'memory' | 'agentCore' | 'app' | 'audit'
+  'auth' | 'appAuth' | 'ai' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'memory' | 'agent' | 'app' | 'audit'
 >;
 
 type RuntimeClientMethodContract<
@@ -122,19 +122,19 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.memory.recall]: RuntimeClientMethodContract<'memory', 'recall'>;
   [RuntimeMethodIds.memory.history]: RuntimeClientMethodContract<'memory', 'history'>;
   [RuntimeMethodIds.memory.deleteMemory]: RuntimeClientMethodContract<'memory', 'deleteMemory'>;
-  [RuntimeMethodIds.agentCore.initializeAgent]: RuntimeClientMethodContract<'agentCore', 'initializeAgent'>;
-  [RuntimeMethodIds.agentCore.terminateAgent]: RuntimeClientMethodContract<'agentCore', 'terminateAgent'>;
-  [RuntimeMethodIds.agentCore.getAgent]: RuntimeClientMethodContract<'agentCore', 'getAgent'>;
-  [RuntimeMethodIds.agentCore.listAgents]: RuntimeClientMethodContract<'agentCore', 'listAgents'>;
-  [RuntimeMethodIds.agentCore.getAgentState]: RuntimeClientMethodContract<'agentCore', 'getAgentState'>;
-  [RuntimeMethodIds.agentCore.updateAgentState]: RuntimeClientMethodContract<'agentCore', 'updateAgentState'>;
-  [RuntimeMethodIds.agentCore.enableAutonomy]: RuntimeClientMethodContract<'agentCore', 'enableAutonomy'>;
-  [RuntimeMethodIds.agentCore.disableAutonomy]: RuntimeClientMethodContract<'agentCore', 'disableAutonomy'>;
-  [RuntimeMethodIds.agentCore.setAutonomyConfig]: RuntimeClientMethodContract<'agentCore', 'setAutonomyConfig'>;
-  [RuntimeMethodIds.agentCore.listPendingHooks]: RuntimeClientMethodContract<'agentCore', 'listPendingHooks'>;
-  [RuntimeMethodIds.agentCore.cancelHook]: RuntimeClientMethodContract<'agentCore', 'cancelHook'>;
-  [RuntimeMethodIds.agentCore.queryMemory]: RuntimeClientMethodContract<'agentCore', 'queryMemory'>;
-  [RuntimeMethodIds.agentCore.writeMemory]: RuntimeClientMethodContract<'agentCore', 'writeMemory'>;
+  [RuntimeMethodIds.agent.initializeAgent]: RuntimeClientMethodContract<'agent', 'initializeAgent'>;
+  [RuntimeMethodIds.agent.terminateAgent]: RuntimeClientMethodContract<'agent', 'terminateAgent'>;
+  [RuntimeMethodIds.agent.getAgent]: RuntimeClientMethodContract<'agent', 'getAgent'>;
+  [RuntimeMethodIds.agent.listAgents]: RuntimeClientMethodContract<'agent', 'listAgents'>;
+  [RuntimeMethodIds.agent.getAgentState]: RuntimeClientMethodContract<'agent', 'getAgentState'>;
+  [RuntimeMethodIds.agent.updateAgentState]: RuntimeClientMethodContract<'agent', 'updateAgentState'>;
+  [RuntimeMethodIds.agent.enableAutonomy]: RuntimeClientMethodContract<'agent', 'enableAutonomy'>;
+  [RuntimeMethodIds.agent.disableAutonomy]: RuntimeClientMethodContract<'agent', 'disableAutonomy'>;
+  [RuntimeMethodIds.agent.setAutonomyConfig]: RuntimeClientMethodContract<'agent', 'setAutonomyConfig'>;
+  [RuntimeMethodIds.agent.listPendingHooks]: RuntimeClientMethodContract<'agent', 'listPendingHooks'>;
+  [RuntimeMethodIds.agent.cancelHook]: RuntimeClientMethodContract<'agent', 'cancelHook'>;
+  [RuntimeMethodIds.agent.queryMemory]: RuntimeClientMethodContract<'agent', 'queryMemory'>;
+  [RuntimeMethodIds.agent.writeMemory]: RuntimeClientMethodContract<'agent', 'writeMemory'>;
   [RuntimeMethodIds.app.sendAppMessage]: RuntimeClientMethodContract<'app', 'sendAppMessage'>;
   [RuntimeMethodIds.audit.listAuditEvents]: RuntimeClientMethodContract<'audit', 'listAuditEvents'>;
   [RuntimeMethodIds.audit.listUsageStats]: RuntimeClientMethodContract<'audit', 'listUsageStats'>;
@@ -153,7 +153,7 @@ export type RuntimeStreamMethodContractMap = {
   [RuntimeMethodIds.workflow.subscribeEvents]: RuntimeClientMethodContract<'workflow', 'subscribeEvents'>;
   [RuntimeMethodIds.local.watchLocalTransfers]: RuntimeClientMethodContract<'local', 'watchLocalTransfers'>;
   [RuntimeMethodIds.memory.subscribeEvents]: RuntimeClientMethodContract<'memory', 'subscribeEvents'>;
-  [RuntimeMethodIds.agentCore.subscribeEvents]: RuntimeClientMethodContract<'agentCore', 'subscribeEvents'>;
+  [RuntimeMethodIds.agent.subscribeEvents]: RuntimeClientMethodContract<'agent', 'subscribeEvents'>;
   [RuntimeMethodIds.app.subscribeAppMessages]: RuntimeClientMethodContract<'app', 'subscribeAppMessages'>;
   [RuntimeMethodIds.audit.exportAuditEvents]: RuntimeClientMethodContract<'audit', 'exportAuditEvents'>;
   [RuntimeMethodIds.audit.subscribeAIProviderHealthEvents]: RuntimeClientMethodContract<'audit', 'subscribeAIProviderHealthEvents'>;

@@ -158,9 +158,9 @@ const specs = [
     render: renderRuntimeMemoryReplicationOutcome,
   },
   {
-    input: 'runtime-agent-core-typed-family.yaml',
-    output: 'runtime-agent-core-typed-family.md',
-    render: renderRuntimeAgentCoreTypedFamily,
+    input: 'runtime-agent-service-typed-family.yaml',
+    output: 'runtime-agent-typed-family.md',
+    render: renderRuntimeAgentTypedFamily,
   },
   {
     input: 'scenario-profile-fields.yaml',
@@ -1002,9 +1002,9 @@ function renderRuntimeMemoryReplicationOutcome(doc, sourceName) {
   return normalizeMarkdown(out);
 }
 
-function renderRuntimeAgentCoreTypedFamily(doc, sourceName) {
+function renderRuntimeAgentTypedFamily(doc, sourceName) {
   const families = Array.isArray(doc?.families) ? doc.families : [];
-  let out = header('Generated Runtime Agent Core Typed Family', sourceName);
+  let out = header('Generated Runtime Agent Typed Family', sourceName);
   out += '| Family | Mutable By App | Source |\n';
   out += '|---|---:|---|\n';
   for (const item of families) {

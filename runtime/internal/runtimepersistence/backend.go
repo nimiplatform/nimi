@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -28,6 +29,20 @@ const (
 	integrityCheckPragma = "PRAGMA quick_check"
 )
 
+var runtimeAgentNamespaceRenamePairs = []struct {
+	old string
+	new string
+}{
+	{old: "agentcore_meta", new: "runtime_agent_meta"},
+	{old: "agentcore_agent", new: "runtime_agent_agent"},
+	{old: "agentcore_state_projection", new: "runtime_agent_state_projection"},
+	{old: "agentcore_hook", new: "runtime_agent_hook"},
+	{old: "agentcore_event_log", new: "runtime_agent_event_log"},
+	{old: "agentcore_behavioral_posture", new: "runtime_agent_behavioral_posture"},
+	{old: "agentcore_review_run", new: "runtime_agent_review_run"},
+	{old: "agentcore_review_followup", new: "runtime_agent_review_followup"},
+}
+
 type Backend struct {
 	logger    *slog.Logger
 	path      string
@@ -38,6 +53,7 @@ type Backend struct {
 
 	writeCh   chan writeRequest
 	closeOnce sync.Once
+	closed    atomic.Bool
 }
 
 type writeRequest struct {
@@ -113,6 +129,7 @@ func (b *Backend) WriteTx(ctx context.Context, fn func(*sql.Tx) error) error {
 func (b *Backend) Close() error {
 	var closeErr error
 	b.closeOnce.Do(func() {
+		b.closed.Store(true)
 		close(b.writeCh)
 		var errs []error
 		if b.readDB != nil {
@@ -162,13 +179,21 @@ func (b *Backend) runWriteLoop() {
 	}
 }
 
-func (b *Backend) runSerialized(ctx context.Context, op func(context.Context) error) error {
+func (b *Backend) runSerialized(ctx context.Context, op func(context.Context) error) (err error) {
 	if op == nil {
 		return nil
+	}
+	if b == nil || b.closed.Load() {
+		return sql.ErrConnDone
 	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	defer func() {
+		if recover() != nil {
+			err = sql.ErrConnDone
+		}
+	}()
 	req := writeRequest{
 		ctx: ctx,
 		op:  op,
@@ -227,6 +252,9 @@ func (b *Backend) ensureHealthyOrRestore() error {
 }
 
 func (b *Backend) ensureSchema() error {
+	if err := b.migrateRuntimeAgentNamespace(); err != nil {
+		return err
+	}
 	stmts := []string{
 		`CREATE TABLE IF NOT EXISTS memory_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS knowledge_snapshot (
@@ -381,16 +409,16 @@ func (b *Backend) ensureSchema() error {
 			checkpoint_json TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS agentcore_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
-		`CREATE TABLE IF NOT EXISTS agentcore_agent (
+		`CREATE TABLE IF NOT EXISTS runtime_agent_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
+		`CREATE TABLE IF NOT EXISTS runtime_agent_agent (
 			agent_id TEXT PRIMARY KEY,
 			agent_json TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS agentcore_state_projection (
+		`CREATE TABLE IF NOT EXISTS runtime_agent_state_projection (
 			agent_id TEXT PRIMARY KEY,
 			state_json TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS agentcore_hook (
+		`CREATE TABLE IF NOT EXISTS runtime_agent_hook (
 			agent_id TEXT NOT NULL,
 			hook_id TEXT NOT NULL,
 			status INTEGER NOT NULL,
@@ -398,21 +426,21 @@ func (b *Backend) ensureSchema() error {
 			hook_json TEXT NOT NULL,
 			PRIMARY KEY (agent_id, hook_id)
 		)`,
-		`CREATE TABLE IF NOT EXISTS agentcore_event_log (
+		`CREATE TABLE IF NOT EXISTS runtime_agent_event_log (
 			sequence INTEGER PRIMARY KEY,
 			agent_id TEXT NOT NULL,
 			event_type INTEGER NOT NULL,
 			timestamp TEXT,
 			event_json TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS agentcore_behavioral_posture (
+		`CREATE TABLE IF NOT EXISTS runtime_agent_behavioral_posture (
 			agent_id TEXT PRIMARY KEY,
 			status_text TEXT NOT NULL,
 			truth_basis_json TEXT NOT NULL,
 			posture_json TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS agentcore_review_run (
+		`CREATE TABLE IF NOT EXISTS runtime_agent_review_run (
 			review_run_id TEXT PRIMARY KEY,
 			agent_id TEXT NOT NULL,
 			bank_locator_key TEXT NOT NULL,
@@ -423,7 +451,7 @@ func (b *Backend) ensureSchema() error {
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS agentcore_review_followup (
+		`CREATE TABLE IF NOT EXISTS runtime_agent_review_followup (
 			bank_locator_key TEXT PRIMARY KEY,
 			review_run_id TEXT NOT NULL,
 			checkpoint_basis TEXT,
@@ -438,10 +466,51 @@ func (b *Backend) ensureSchema() error {
 	if _, err := b.writeDB.Exec(`INSERT INTO memory_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
 		return err
 	}
-	if _, err := b.writeDB.Exec(`INSERT INTO agentcore_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
+	if _, err := b.writeDB.Exec(`INSERT INTO runtime_agent_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (b *Backend) migrateRuntimeAgentNamespace() error {
+	tx, err := b.writeDB.Begin()
+	if err != nil {
+		return fmt.Errorf("begin runtime agent namespace migration: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+	for _, pair := range runtimeAgentNamespaceRenamePairs {
+		oldExists, err := sqliteTableExists(tx, pair.old)
+		if err != nil {
+			return fmt.Errorf("check legacy runtime agent table %s: %w", pair.old, err)
+		}
+		if !oldExists {
+			continue
+		}
+		newExists, err := sqliteTableExists(tx, pair.new)
+		if err != nil {
+			return fmt.Errorf("check target runtime agent table %s: %w", pair.new, err)
+		}
+		if newExists {
+			return fmt.Errorf("runtime agent namespace migration blocked: both %s and %s exist", pair.old, pair.new)
+		}
+		if _, err := tx.Exec(fmt.Sprintf(`ALTER TABLE %s RENAME TO %s`, pair.old, pair.new)); err != nil {
+			return fmt.Errorf("rename runtime agent table %s -> %s: %w", pair.old, pair.new, err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit runtime agent namespace migration: %w", err)
+	}
+	return nil
+}
+
+func sqliteTableExists(tx *sql.Tx, name string) (bool, error) {
+	var count int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, name).Scan(&count); err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 func databasePath(localStatePath string) (string, error) {

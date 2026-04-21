@@ -33,7 +33,7 @@
 | `runtime-memory-bank-scope.md` | `tables/runtime-memory-bank-scope.yaml` |
 | `runtime-memory-hook-trigger.md` | `tables/runtime-memory-hook-trigger.yaml` |
 | `runtime-memory-replication-outcome.md` | `tables/runtime-memory-replication-outcome.yaml` |
-| `runtime-agent-core-typed-family.md` | `tables/runtime-agent-core-typed-family.yaml` |
+| `runtime-agent-typed-family.md` | `tables/runtime-agent-service-typed-family.yaml` |
 | `scenario-profile-fields.md` | `tables/scenario-profile-fields.yaml` |
 | `runtime-delivery-gates.md` | `tables/runtime-delivery-gates.yaml` |
 | `runtime-proto-governance-gates.md` | `tables/runtime-proto-governance-gates.yaml` |

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -15,6 +16,7 @@ import (
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
@@ -202,6 +204,25 @@ func (s *Service) SetSchedulerDependencyChecker(checker scheduler.DependencyFeas
 // managed media profile materialization.
 func (s *Service) SetLocalImageProfileResolver(resolver localImageProfileResolver) {
 	s.localImageProfile = resolver
+}
+
+func (s *Service) ResolvePublicChatTextBinding(
+	ctx context.Context,
+	routeHint runtimev1.RoutePolicy,
+	modelID string,
+) (runtimev1.RoutePolicy, string, error) {
+	if s == nil || s.selector == nil {
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	requested := routeHint
+	if requested == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		requested = preferredRoute(modelID)
+	}
+	_, routeDecision, modelResolved, _, err := s.selector.resolveProvider(ctx, requested, runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW, modelID)
+	if err != nil {
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", err
+	}
+	return routeDecision, modelResolved, nil
 }
 
 // SetLocalProviderEndpoint hot-swaps the in-process local provider backend

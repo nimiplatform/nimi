@@ -159,14 +159,14 @@ async function ensureRuntimeAgent(input: {
   };
   const agentId = normalizeText(input.agentId);
   try {
-    await runtimeProtectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agentCore.getAgent({
+    await runtimeProtectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.getAgent({
       context,
       agentId,
     }, options));
   } catch (error) {
     const normalized = asNimiError(error, {
       reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-      actionHint: 'check_runtime_agent_core',
+      actionHint: 'check_runtime_agent',
       source: 'runtime',
     });
     if (normalized.reasonCode !== 'RUNTIME_GRPC_NOT_FOUND') {
@@ -176,7 +176,7 @@ async function ensureRuntimeAgent(input: {
       return null;
     }
     try {
-      await runtimeProtectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agentCore.initializeAgent({
+      await runtimeProtectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
         context,
         agentId,
         displayName: agentId,
@@ -196,7 +196,7 @@ async function ensureRuntimeAgent(input: {
     }
   }
 
-  await runtimeProtectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agentCore.updateAgentState({
+  await runtimeProtectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agent.updateAgentState({
     context,
     agentId,
     mutations: [
@@ -243,7 +243,7 @@ export async function recallAgentMemory(agentId: string, learnerId: string): Pro
       return [];
     }
 
-    const response = await runtimeProtectedAccess.withScopes(['runtime.agent.read'], (options) => session.runtime.agentCore.queryMemory({
+    const response = await runtimeProtectedAccess.withScopes(['runtime.agent.read'], (options) => session.runtime.agent.queryMemory({
       context: session.context,
       agentId: normalizeText(agentId),
       query: '',
@@ -284,7 +284,7 @@ export async function writeAgentMemory(input: WriteAgentMemoryInput): Promise<vo
 
     const subjectUserId = requireSubjectUserId();
     const now = new Date();
-    const response = await runtimeProtectedAccess.withScopes(['runtime.agent.write'], (options) => session.runtime.agentCore.writeMemory({
+    const response = await runtimeProtectedAccess.withScopes(['runtime.agent.write'], (options) => session.runtime.agent.writeMemory({
       context: session.context,
       agentId: normalizeText(agentId),
       candidates: [
@@ -329,7 +329,7 @@ export async function writeAgentMemory(input: WriteAgentMemoryInput): Promise<vo
     }, options));
 
     if (response.rejected.length > 0 || response.accepted.length === 0) {
-      throw new Error('runtime.agentCore.writeMemory did not admit shiji dyadic memory');
+      throw new Error('runtime.agent.writeMemory did not admit shiji dyadic memory');
     }
   } catch (error) {
     if (isRuntimeMemoryUnavailable(error)) {

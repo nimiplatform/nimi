@@ -35,7 +35,7 @@ import type {
   RuntimeAiSubmitScenarioJobRequestInput,
   RuntimeAiUploadArtifactInput,
   RuntimeAppAuthClient,
-  RuntimeAgentCoreClient,
+  RuntimeAgentClient,
   RuntimeAuditClient,
   RuntimeAuthClient,
   RuntimeCallOptions,
@@ -68,7 +68,7 @@ type RuntimePassthroughModuleKey =
   | 'connector'
   | 'knowledge'
   | 'memory'
-  | 'agentCore'
+  | 'agent'
   | 'audit';
 
 type RuntimePassthroughClient = Record<string, (request: any, options?: any) => Promise<any>>;
@@ -106,7 +106,7 @@ export type RuntimeCorePassthroughClients = {
   connector: RuntimeConnectorClient;
   knowledge: RuntimeKnowledgeClient;
   memory: RuntimeMemoryClient;
-  agentCore: RuntimeAgentCoreClient;
+  agent: RuntimeAgentClient;
   audit: RuntimeAuditClient;
 };
 
@@ -216,7 +216,7 @@ const MEMORY_METHODS = [
   'subscribeEvents',
 ] as const satisfies readonly RuntimePassthroughMethod<RuntimeMemoryClient>[];
 
-const AGENT_CORE_METHODS = [
+const AGENT_METHODS = [
   'initializeAgent',
   'terminateAgent',
   'getAgent',
@@ -231,7 +231,7 @@ const AGENT_CORE_METHODS = [
   'queryMemory',
   'writeMemory',
   'subscribeEvents',
-] as const satisfies readonly RuntimePassthroughMethod<RuntimeAgentCoreClient>[];
+] as const satisfies readonly RuntimePassthroughMethod<RuntimeAgentClient>[];
 
 const AUDIT_METHODS = [
   'listAuditEvents',
@@ -331,18 +331,18 @@ export function createCorePassthroughClients(input: {
     },
   };
 
-  const agentCoreBase = createPassthroughModule('agentCore', AGENT_CORE_METHODS, { guard, invokeWithClient });
-  const agentCore: RuntimeAgentCoreClient = {
-    ...agentCoreBase,
+  const agentBase = createPassthroughModule('agent', AGENT_METHODS, { guard, invokeWithClient });
+  const agent: RuntimeAgentClient = {
+    ...agentBase,
     subscribeEvents: async (request, optionsValue) => {
-      guard('agentCore', 'subscribeEvents');
-      return invokeWithClient(async (client) => client.agentCore.subscribeEvents(request, optionsValue));
+      guard('agent', 'subscribeEvents');
+      return invokeWithClient(async (client) => client.agent.subscribeEvents(request, optionsValue));
     },
   };
 
   const audit: RuntimeAuditClient = createPassthroughModule('audit', AUDIT_METHODS, { guard, invokeWithClient });
 
-  return { auth, workflow, model, local, connector, knowledge, memory, agentCore, audit };
+  return { auth, workflow, model, local, connector, knowledge, memory, agent, audit };
 }
 
 export function createAppClient(input: {

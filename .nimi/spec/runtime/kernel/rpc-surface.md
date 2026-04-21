@@ -20,7 +20,7 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 - `RuntimeAuditService`（`K-AUDIT-*`）
 - `RuntimeModelService`（`K-MODEL-*`）
 - `RuntimeCognitionService`（`K-MEM-*`, `K-KNOW-*`, `K-RPC-004a`）
-- `RuntimeAgentCoreService`（`K-AGCORE-*`, `K-RPC-004b`）
+- `RuntimeAgentService`（`K-AGCORE-*`, `K-RPC-004b`）
 - `RuntimeAppService`（`K-APP-*`）
 
 补充约束：
@@ -198,7 +198,7 @@ RPC 面。
 - public app-facing 路径只服务 infra scopes；canonical scopes 通过
   runtime-private typed path 由 runtime-owned owner 消费
 - `Reflect` 被明确退休，不再属于 steady-state public RPC；canonical review
-  仍由 `RuntimeAgentCoreService` 与 retained runtime-private memory depth 拥有
+  仍由 `RuntimeAgentService` 与 retained runtime-private memory depth 拥有
 - absorbed memory/knowledge 方法族必须保留 fail-close 语义；不得以
   adapter-first 方式重新引入 dual-owner public surface
 - host product 若需要 memory embedding resolved state、canonical bind、rebuild、
@@ -216,9 +216,14 @@ RPC 面。
 - runtime-owned internal callers 使用 runtime-private typed path 时，不经
   app-facing public authz surface
 
-## K-RPC-004b RuntimeAgentCoreService 方法集合
+## K-RPC-004b RuntimeAgentService 方法集合
 
-`RuntimeAgentCoreService` 是 runtime-owned live agent substrate 的唯一稳定 RPC 面。
+`RuntimeAgentService` 是 runtime-owned live agent substrate 的唯一稳定
+design RPC 面。
+
+当前 implementation-facing proto transport 必须直接对齐
+`RuntimeAgentService`；`RuntimeAgentCoreService` 不再是 admitted transport
+name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 
 方法固定为：
 
@@ -239,11 +244,23 @@ RPC 面。
 
 固定约束：
 
-- agent canonical memory write policy 固定由 RuntimeAgentCoreService 拥有
+- agent canonical memory write policy 固定由 RuntimeAgentService 拥有
 - apps 可以控制与消费 agent，但不得拥有 renderer-local agent truth
-- proactive life scheduling 通过 typed next-hook intent + host-owned admission 执行
+- proactive life scheduling 通过 typed HookIntent + host-owned admission 执行
 - hook trigger detail、agent memory recall result、以及 failure/reschedule/budget-related agent events 必须使用 typed runtime messages，而不是自由 JSON payload
 - app-facing state mutation contract 必须是 constrained command / patch family，而不是任意 agent-state blob replacement
+- account-scoped source/profile and binding mutation require canonical durable
+  mutation-event grammar on the runtime spec path, but this landing does not by
+  itself expand the current public RPC method family
+- app-facing reactive chat consumption does not add a second
+  `RuntimeAgentService` RPC method family; the admitted transport seam is the
+  reserved `runtime.agent` app-message target governed by `K-APP-008`
+- current multi-agent admission is limited to durable delegation lifecycle and
+  attribution visibility; it does not by itself admit delegated-authority trust
+  semantics
+- `turn` / `stream` terminal-coupling and temporal-autonomy deferral remain
+  part of the canonical RuntimeAgentService authority cut even when they do not
+  add new public RPC methods yet
 
 最小 access matrix：
 
@@ -251,6 +268,18 @@ RPC 面。
 - `GetAgent` / `ListAgents` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
 - `UpdateAgentState` / `WriteAgentMemory` / `CancelHook`：`runtime.agent.write`
 - `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`
+
+## K-RPC-004c RuntimeAppService reserved `runtime.agent` chat access matrix
+
+`RuntimeAppService` 保留 `runtime.agent` reactive chat seam 的最小 access
+matrix 固定为：
+
+- `SendAppMessage` 发往 `to_app_id=runtime.agent` 且消息类型属于
+  `K-APP-008` admitted ingress family：`runtime.agent.chat.write`
+- `SubscribeAppMessages` 订阅中 `from_app_ids` 包含 `runtime.agent`：
+  `runtime.agent.chat.read`
+- generic cross-app `SendAppMessage`（非保留 `runtime.agent` seam）：
+  `runtime.app.send.cross_app`
 
 ## K-RPC-005 Design 名称与 Proto 名称映射
 

@@ -23,7 +23,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
-	agentcoreservice "github.com/nimiplatform/nimi/runtime/internal/services/agentcore"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	appservice "github.com/nimiplatform/nimi/runtime/internal/services/app"
 	auditservice "github.com/nimiplatform/nimi/runtime/internal/services/audit"
@@ -35,6 +34,7 @@ import (
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	modelservice "github.com/nimiplatform/nimi/runtime/internal/services/model"
+	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	workflowservice "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
 	"google.golang.org/grpc"
 	grpcHealth "google.golang.org/grpc/health"
@@ -56,7 +56,7 @@ type Server struct {
 	localService     *localservice.Service
 	memoryService    *memoryservice.Service
 	cognitionService *cognitionservice.Service
-	agentCoreService *agentcoreservice.Service
+	agentService     *runtimeagentservice.Service
 }
 
 const (
@@ -184,15 +184,13 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		return resolveRuntimeMemoryEmbeddingProfile(ctx, snapshot, localSvc, connStore, aiSvc.SpeechCatalogResolver())
 	})
 	memorySvc.SetRuntimeEmbeddingVectorExecutor(aiSvc.EmbedTextsForMemory)
-	agentCoreSvc, err := agentcoreservice.New(logger, cfg.LocalStatePath, memorySvc)
+	agentSvc, err := runtimeagentservice.New(logger, cfg.LocalStatePath, memorySvc)
 	if err != nil {
 		_ = memorySvc.Close()
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
-	agentCoreSvc.SetLifeTrackExecutor(agentcoreservice.NewAIBackedLifeTrackExecutor(aiSvc))
-	agentCoreSvc.SetChatTrackSidecarExecutor(agentcoreservice.NewAIBackedChatTrackSidecarExecutor(aiSvc))
-	agentCoreSvc.SetCanonicalReviewExecutor(agentcoreservice.NewAIBackedCanonicalReviewExecutor(aiSvc))
-	runtimev1.RegisterRuntimeAgentCoreServiceServer(g, agentCoreSvc)
+	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
+	runtimev1.RegisterRuntimeAgentServiceServer(g, agentSvc)
 
 	// K-SCHED-004: register target-agnostic denial checks. Device profile is
 	// collected on each Peek (no caching per K-SCHED-004).
@@ -310,7 +308,9 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
 	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionSvc)
 	appSvc := appservice.New(logger, appservice.WithSessionValidator(authSvc))
-	appSvc.RegisterInternalConsumer("runtime.agentcore", agentCoreSvc.ConsumeChatTrackSidecarAppMessage)
+	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
+	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
+	agentSvc.SetPublicChatAppEmitter(appSvc.SendAppMessage)
 	runtimev1.RegisterRuntimeAppServiceServer(g, appSvc) // Phase 2 Draft
 
 	s := &Server{
@@ -327,7 +327,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		localService:     localSvc,
 		memoryService:    memorySvc,
 		cognitionService: cognitionSvc,
-		agentCoreService: agentCoreSvc,
+		agentService:     agentSvc,
 	}
 	s.SyncServingState()
 	return s, nil
@@ -363,8 +363,8 @@ func (s *Server) CognitionService() *cognitionservice.Service {
 	return s.cognitionService
 }
 
-func (s *Server) AgentCoreService() *agentcoreservice.Service {
-	return s.agentCoreService
+func (s *Server) AgentService() *runtimeagentservice.Service {
+	return s.agentService
 }
 
 func resolveRuntimeMemoryEmbeddingProfile(
@@ -640,7 +640,7 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus(runtimev1.RuntimeModelService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeLocalService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeAgentCoreService_ServiceDesc.ServiceName, servingStatus)
+	s.healthServer.SetServingStatus(runtimev1.RuntimeAgentService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeGrantService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAuthService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAppService_ServiceDesc.ServiceName, servingStatus)

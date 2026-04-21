@@ -34,8 +34,9 @@ Fixed rules:
 - no second runtime-facing memory/knowledge owner surface may remain admitted in
   steady state beside `RuntimeCognitionService`
 - retained runtime-private memory depth must stay explicit; topology
-  replacement must not collapse Agent Core, bank/access, provider, replication,
-  workflow, or canonical review truth into cognition by implication
+  replacement must not collapse RuntimeAgentService, bank/access, provider,
+  replication, workflow, or canonical review truth into cognition by
+  implication
 
 `Working memory` remains outside retained runtime memory truth. Prompt assembly
 state, tool traces, turn plans, and other runtime execution scratch state must
@@ -80,7 +81,7 @@ Fixed rules:
 - memory is explicit opt-in rather than a baseline product capability; when enabled without an attached override, the default experimental substrate is runtime-managed `Hindsight`
 - retired public `Reflect` must not be reintroduced as a substrate-owned
   pseudo-review surface; canonical review remains runtime-private under
-  `RuntimeAgentCoreService`
+  `RuntimeAgentService`
 - runtime-private substrate connectivity, feature floor, and typed identity overlay requirements are governed by `K-MEMSUB-*`
 - provider engines must not own account auth, app authz, agent ownership, or canonical memory semantics
 
@@ -342,20 +343,20 @@ Fixed rules:
 - stale narrative projection is tolerated adaptation lag rather than admitted truth; runtime must not silently treat a stale narrative as an admitted truth row or canonical source record
 - runtime may later suppress, replace, or further down-rank stale narrative projections through admitted runtime-owned review or decay policy, but that later lifecycle must not silently promote narrative projection into canonical memory
 - runtime-facing cognition recall may expose admitted narrative projections, but
-  admitted truths remain runtime-private and are consumed through Agent Core
-  owned internal paths only
+  admitted truths remain runtime-private and are consumed through
+  RuntimeAgentService-owned internal paths only
 
 ## K-MEM-012 Runtime-Private Canonical Read And Review Commit Boundary
 
 Retained runtime-private memory depth owns the typed read and commit boundary
-consumed by `RuntimeAgentCoreService` for canonical review.
+consumed by `RuntimeAgentService` for canonical review.
 
 Fixed rules:
 
-- Agent Core must read admitted truths, narrative context, canonical review inputs, and review checkpoints through a runtime-private typed facade rather than direct store access
+- RuntimeAgentService must read admitted truths, narrative context, canonical review inputs, and review checkpoints through a runtime-private typed facade rather than direct store access
 - runtime-private read surfaces must return typed runtime contract data, not raw SQLite rows or provider-native blobs
 - review result commit must be idempotent by `review_run_id`
-- all Memory Service owned narrative / truth / lineage mutations for a canonical review run must commit atomically before Agent Core publishes follow-up checkpoint or event truth
+- all Memory Service owned narrative / truth / lineage mutations for a canonical review run must commit atomically before RuntimeAgentService publishes follow-up checkpoint or event truth
 - the typed facade may be implemented by a runtime-owned internal memory
   library, but that library must remain behind the retained runtime-private
   memory boundary

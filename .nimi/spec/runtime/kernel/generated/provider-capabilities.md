@@ -6,13 +6,13 @@
 |---|---|---|---|---|---|---|---|
 | `anthropic` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `aws_polly` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `audio.synthesize` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `azure` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `image.generate`, `text.embed`, `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `azure` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `image.generate`, `text.embed`, `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `azure_speech` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `audio.synthesize` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `bedrock` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `cohere` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `text.embed`, `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `dashscope` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision`, `voice_workflow.tts_t2v`, `voice_workflow.tts_v2v` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `dashscope` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision`, `video.generate`, `voice_workflow.tts_t2v`, `voice_workflow.tts_v2v` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `deepseek` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `elevenlabs` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `voice_workflow.tts_t2v`, `voice_workflow.tts_v2v` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `elevenlabs` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe`, `voice_workflow.tts_t2v`, `voice_workflow.tts_v2v` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `fireworks` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `fish_audio` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `voice_workflow.tts_v2v` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `flux` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `image.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
@@ -20,10 +20,10 @@
 | `glm` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `google_cloud_tts` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `audio.synthesize` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `google_veo` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `groq` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.transcribe`, `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `groq` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe`, `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `hunyuan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `image.generate`, `text.embed`, `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `ideogram` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `image.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `kimi` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `image.generate`, `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `kimi` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `kling` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `image.generate`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `local` | `local` | `local-model` | `true` | `false` | `empty_string_only` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `music.generate`, `text.embed`, `text.generate`, `video.generate`, `voice_workflow.tts_t2v`, `voice_workflow.tts_v2v` | `K-MCAT-027`, `K-LOCAL-001`, `K-LOCAL-002` |
 | `loudly` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `music.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
@@ -34,19 +34,19 @@
 | `nimillm` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | — | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `openai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `openai_compatible` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | — | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `openrouter` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `perplexity` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `openrouter` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `perplexity` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `pika` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `qianfan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `text.embed`, `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `qianfan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `text.embed`, `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `runway` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `siliconflow` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `text.embed`, `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `siliconflow` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `soundverse` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `music.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `spark` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `spark_reasoning` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `stability` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `image.generate`, `music.generate`, `music.generate.iteration` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `stepfun` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `image.generate`, `text.generate`, `text.generate.vision`, `voice_workflow.tts_v2v` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `suno` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `music.generate`, `music.generate.iteration` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `together` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `volcengine` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `image.generate`, `text.embed`, `text.generate`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `together` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `volcengine` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `image.generate`, `text.embed`, `text.generate`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `volcengine_openspeech` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | — | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `worldlabs` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `world.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `xai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `image.generate`, `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `xai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.generate`, `text.generate.vision`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |

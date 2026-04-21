@@ -108,7 +108,7 @@ Registered public runtime gRPC services currently include:
 - `RuntimeWorkflowService` — workflow DAG orchestration
 - `RuntimeModelService` — model lifecycle, listing, routing
 - `RuntimeLocalService` — local execution, supervision, provider health
-- `RuntimeAgentCoreService` — live agent execution, hook lifecycle, canonical review
+- `RuntimeAgentService` — live agent execution, hook lifecycle, canonical review
 - `RuntimeConnectorService` — provider connector lifecycle, credential hosting
 - `RuntimeGrantService` — permission and grant management
 - `RuntimeAuthService` — authentication and token management

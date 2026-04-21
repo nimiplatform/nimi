@@ -55,8 +55,8 @@ classifiers:
     - "nimi-coding/cli/lib/doctor.mjs"
     - "nimi-coding/cli/lib/validators.mjs"
     - "runtime/internal/managedimagebackend/server.go"
-    - "runtime/internal/services/agentcore/hook_lifecycle.go"
-    - "runtime/internal/services/agentcore/service.go"
+    - "runtime/internal/services/runtimeagent/hook_lifecycle.go"
+    - "runtime/internal/services/runtimeagent/service.go"
     - "runtime/internal/services/memory/service.go"
     - "sdk/src/internal/world-evolution-selector-read.ts"
     - "sdk/src/runtime/core/method-codecs.ts"
@@ -143,6 +143,6 @@ waivers:
   - path: nimi-coding/test/nimicoding.test.mjs
     until: 2026-07-31
     reason: NimiCoding end-to-end coverage remains in one matrix file pending suite sharding.
-  - path: runtime/internal/services/agentcore/service_test.go
+  - path: runtime/internal/services/runtimeagent/service_test.go
     until: 2026-07-31
     reason: Agentcore service coverage remains in one matrix file pending test sharding.

@@ -41,9 +41,9 @@
 | `siliconflow` | — | `true` | `K-MCAT-027` |
 | `soundverse` | `https://api.soundverse.ai` | `false` | `K-MCAT-027` |
 | `spark` | `https://spark-api-open.xf-yun.com/v1` | `false` | `K-MCAT-027` |
+| `spark_reasoning` | `https://spark-api-open.xf-yun.com/x2` | `false` | `K-MCAT-027` |
 | `stability` | `https://api.stability.ai` | `false` | `K-MCAT-027` |
 | `stepfun` | `https://api.stepfun.ai/v1` | `false` | `K-MCAT-027` |
-| `suno` | `https://apibox.erweima.ai` | `false` | `K-MCAT-027` |
 | `together` | — | `true` | `K-MCAT-027` |
 | `volcengine` | `https://ark.cn-beijing.volces.com/api/v3` | `false` | `K-MCAT-027` |
 | `volcengine_openspeech` | `https://openspeech.bytedance.com/api/v1` | `false` | `K-MCAT-027` |

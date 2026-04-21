@@ -55,8 +55,8 @@ service_mappings:
   mapping_status: aligned
   phase: phase2
   source_rule: K-APP-001
-- design_service: RuntimeAgentCoreService
-  proto_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
+  proto_service: RuntimeAgentService
   mapping_status: aligned
   phase: phase2
   source_rule: K-RPC-004b
@@ -681,74 +681,74 @@ method_mappings:
   proto_service: RuntimeCognitionService
   proto_method: SubscribeMemoryEvents
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: InitializeAgent
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: InitializeAgent
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: TerminateAgent
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: TerminateAgent
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: GetAgent
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: GetAgent
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: ListAgents
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: ListAgents
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: GetAgentState
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: GetAgentState
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: UpdateAgentState
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: UpdateAgentState
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: EnableAutonomy
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: EnableAutonomy
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: DisableAutonomy
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: DisableAutonomy
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: SetAutonomyConfig
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: SetAutonomyConfig
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: ListPendingHooks
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: ListPendingHooks
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: CancelHook
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: CancelHook
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: QueryAgentMemory
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: QueryAgentMemory
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: WriteAgentMemory
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: WriteAgentMemory
   mapping_status: aligned
-- design_service: RuntimeAgentCoreService
+- design_service: RuntimeAgentService
   design_method: SubscribeAgentEvents
-  proto_service: RuntimeAgentCoreService
+  proto_service: RuntimeAgentService
   proto_method: SubscribeAgentEvents
   mapping_status: aligned
 excluded_proto_methods:

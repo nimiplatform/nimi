@@ -69,7 +69,7 @@ export {
   AgentLifecycleStatus,
   AgentTrackType,
   HookTriggerKind,
-} from './generated/runtime/v1/agent_core.js';
+} from './generated/runtime/v1/agent_service.js';
 export type {
   AuditEventRecord,
   ListAuditEventsRequest,
@@ -90,7 +90,7 @@ export type {
   SubscribeAIProviderHealthEventsRequest,
 } from './generated/runtime/v1/audit.js';
 export type * from './generated/runtime/v1/memory.js';
-export type * from './generated/runtime/v1/agent_core.js';
+export type * from './generated/runtime/v1/agent_service.js';
 export { CallerKind } from './generated/runtime/v1/common.js';
 export { ReasonCode as RuntimeReasonCode, ExternalPrincipalType } from './generated/runtime/v1/common.js';
 export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v1/auth.js';

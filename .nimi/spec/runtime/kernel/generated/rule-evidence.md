@@ -26,6 +26,7 @@
 | `K-APP-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-APP-006a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-APP-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-APP-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-AUDIT-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-AUDIT-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-AUDIT-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -125,6 +126,7 @@
 | `K-CONN-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-CONN-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-CONN-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-CONN-017` | `deferred` | — |
 | `K-DAEMON-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-DAEMON-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-DAEMON-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -197,6 +199,7 @@
 | `K-KEYSRC-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KEYSRC-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KEYSRC-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KEYSRC-011` | `deferred` | — |
 | `K-KNOW-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KNOW-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KNOW-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -302,6 +305,7 @@
 | `K-MODEL-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MODEL-009` | `deferred` | — |
 | `K-NIMI-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-NIMI-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-NIMI-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -425,12 +429,16 @@
 | `K-AIEXEC-003` | `deferred` | — |
 | `K-AIEXEC-004` | `deferred` | — |
 | `K-AIEXEC-005` | `deferred` | — |
+| `K-AIEXEC-006` | `deferred` | — |
 | `K-MEM-001` | `deferred` | — |
 | `K-MEM-002` | `deferred` | — |
 | `K-MEM-003` | `deferred` | — |
 | `K-MEM-004` | `deferred` | — |
+| `K-MEM-004a` | `deferred` | — |
 | `K-MEM-005` | `deferred` | — |
 | `K-MEM-006` | `deferred` | — |
+| `K-MEM-006a` | `deferred` | — |
+| `K-MEM-006b` | `deferred` | — |
 | `K-MEM-007` | `deferred` | — |
 | `K-MEM-008` | `deferred` | — |
 | `K-MEM-009` | `deferred` | — |
@@ -475,8 +483,26 @@
 | `K-AGCORE-026` | `covered` | `runtime_kernel_consistency` |
 | `K-AGCORE-026a` | `covered` | `runtime_kernel_consistency` |
 | `K-AGCORE-026b` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-027` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AGCORE-028` | `deferred` | — |
+| `K-AGCORE-029` | `deferred` | — |
+| `K-AGCORE-030` | `deferred` | — |
+| `K-AGCORE-031` | `deferred` | — |
+| `K-AGCORE-032` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AGCORE-033` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-034` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-035` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-036` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-037` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-038` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-039` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-040` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-041` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-042` | `covered` | `runtime_kernel_consistency` |
+| `K-AGCORE-043` | `covered` | `runtime_kernel_consistency` |
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
+| `K-RPC-004c` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-SCHED-001` | `deferred` | — |
 | `K-SCHED-002` | `deferred` | — |
 | `K-SCHED-003` | `deferred` | — |

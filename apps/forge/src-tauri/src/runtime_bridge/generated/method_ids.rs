@@ -2,20 +2,20 @@
 // DO NOT EDIT MANUALLY.
 
 pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
-    "/nimi.runtime.v1.RuntimeAgentCoreService/CancelHook",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/DisableAutonomy",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/EnableAutonomy",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/GetAgent",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/GetAgentState",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/InitializeAgent",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/ListAgents",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/ListPendingHooks",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/QueryAgentMemory",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/SetAutonomyConfig",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/SubscribeAgentEvents",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/TerminateAgent",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/UpdateAgentState",
-    "/nimi.runtime.v1.RuntimeAgentCoreService/WriteAgentMemory",
+    "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
+    "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
+    "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
+    "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
+    "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
+    "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
+    "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
+    "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
+    "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
+    "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
+    "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
+    "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
+    "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
+    "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
@@ -143,7 +143,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
 ];
 
 pub const RUNTIME_BRIDGE_STREAM_METHODS: &[&str] = &[
-    "/nimi.runtime.v1.RuntimeAgentCoreService/SubscribeAgentEvents",
+    "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",

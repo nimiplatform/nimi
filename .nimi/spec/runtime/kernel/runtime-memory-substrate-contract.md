@@ -73,7 +73,7 @@ Fixed rules:
 
 Fixed rules:
 
-- public memory and agent-core RPC surfaces must continue to emit Nimi-owned typed payloads only
+- public memory and agent-service RPC surfaces must continue to emit Nimi-owned typed payloads only
 - provider-native wire shapes remain runtime-private
 - internal extraction into a runtime-owned overlay library must not create a second public engine-facing contract, proto package, or provider-style identity boundary
 - runtime may project provider-backed reflect / recall results into Nimi typed families, but the projection boundary must stay in runtime-owned code under `runtime/internal/**`

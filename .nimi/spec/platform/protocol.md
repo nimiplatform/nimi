@@ -26,7 +26,7 @@
 2. 授权与 scope：P-PROTO-020、P-PROTO-030、P-PROTO-035、P-PROTO-040。
 3. World-App 与模式边界：P-PROTO-050、P-PROTO-060。
 4. 六原语与一致性：P-PROTO-070、P-PROTO-100–105。
-5. 下游实现锚点：`.nimi/spec/runtime/kernel/auth-service.md`、`.nimi/spec/runtime/kernel/grant-service.md`、`.nimi/spec/sdk/kernel/scope-contract.md`、`.nimi/spec/realm/kernel/world-state-contract.md`、`.nimi/spec/realm/kernel/world-history-contract.md`、`.nimi/spec/runtime/kernel/runtime-memory-service-contract.md`、`.nimi/spec/runtime/kernel/runtime-agent-core-contract.md`、`.nimi/spec/realm/kernel/transit-contract.md`。
+5. 下游实现锚点：`.nimi/spec/runtime/kernel/auth-service.md`、`.nimi/spec/runtime/kernel/grant-service.md`、`.nimi/spec/sdk/kernel/scope-contract.md`、`.nimi/spec/realm/kernel/world-state-contract.md`、`.nimi/spec/realm/kernel/world-history-contract.md`、`.nimi/spec/runtime/kernel/runtime-memory-service-contract.md`、`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`、`.nimi/spec/realm/kernel/transit-contract.md`。
 
 ## 3. 事实源映射
 

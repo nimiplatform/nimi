@@ -21,7 +21,7 @@ vi.mock('@nimiplatform/sdk', () => ({
       appAuth: {
         authorizeExternalPrincipal: mockAuthorizeExternalPrincipal,
       },
-      agentCore: {
+      agent: {
         getAgent: mockGetAgent,
         initializeAgent: mockInitializeAgent,
         updateAgentState: mockUpdateAgentState,
@@ -72,7 +72,7 @@ describe('shiji memory-client', () => {
   it('recallAgentMemory maps runtime dyadic memories and returns [] when agent is missing', async () => {
     mockGetAgent.mockRejectedValueOnce({
       reasonCode: 'RUNTIME_GRPC_NOT_FOUND',
-      actionHint: 'check_runtime_agent_core',
+      actionHint: 'check_runtime_agent',
       traceId: '',
       retryable: false,
       source: 'runtime',
@@ -160,7 +160,7 @@ describe('shiji memory-client', () => {
   it('writeAgentMemory initializes missing agents and writes admitted dyadic observational memories', async () => {
     mockGetAgent.mockRejectedValueOnce({
       reasonCode: 'RUNTIME_GRPC_NOT_FOUND',
-      actionHint: 'check_runtime_agent_core',
+      actionHint: 'check_runtime_agent',
       traceId: '',
       retryable: false,
       source: 'runtime',
@@ -242,7 +242,7 @@ describe('shiji memory-client', () => {
 
     mockGetAgent.mockRejectedValueOnce({
       reasonCode: 'RUNTIME_GRPC_NOT_FOUND',
-      actionHint: 'check_runtime_agent_core',
+      actionHint: 'check_runtime_agent',
       traceId: '',
       retryable: false,
       source: 'runtime',

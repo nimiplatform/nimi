@@ -22,6 +22,9 @@
 - rule_id: K-APP-007
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-APP-008
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-AUDIT-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
@@ -1407,12 +1410,63 @@
 - rule_id: K-AGCORE-027
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-AGCORE-028
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-029
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-030
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-031
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-032
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-AGCORE-033
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-034
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-035
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-036
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-037
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-038
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-039
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-040
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-041
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-042
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-AGCORE-043
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
 - rule_id: K-RPC-004a
   status: deferred
   evidence_refs: []
 - rule_id: K-RPC-004b
   status: deferred
   evidence_refs: []
+- rule_id: K-RPC-004c
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 # Scheduling five-state judgement (K-SCHED-*)
 - rule_id: K-SCHED-001
   status: deferred

@@ -16,8 +16,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
-	agentcoreservice "github.com/nimiplatform/nimi/runtime/internal/services/agentcore"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
+	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -363,10 +363,10 @@ func TestDaemonStopSupervisedEnginesRunsOnlyOnce(t *testing.T) {
 	}
 }
 
-func TestDaemonRunStartsAgentCoreLifeTrackLoop(t *testing.T) {
+func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-	if err := writePersistedAgentCoreState(localStatePath, "agent-daemon-loop", time.Now().UTC().Add(-time.Second)); err != nil {
-		t.Fatalf("writePersistedAgentCoreState: %v", err)
+	if err := writePersistedRuntimeAgentState(localStatePath, "agent-daemon-loop", time.Now().UTC().Add(-time.Second)); err != nil {
+		t.Fatalf("writePersistedRuntimeAgentState: %v", err)
 	}
 
 	cfg := config.Config{
@@ -385,7 +385,7 @@ func TestDaemonRunStartsAgentCoreLifeTrackLoop(t *testing.T) {
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
-	daemon.grpc.AgentCoreService().SetLifeTrackExecutor(agentcoreservice.NewAIBackedLifeTrackExecutor(&daemonLifeTurnAI{
+	daemon.grpc.AgentService().SetLifeTrackExecutor(runtimeagentservice.NewAIBackedLifeTrackExecutor(&daemonLifeTurnAI{
 		response: &runtimev1.ExecuteScenarioResponse{
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
@@ -476,8 +476,8 @@ func TestDaemonNewImportsLegacyStateBeforeReadiness(t *testing.T) {
 	if err := writePersistedMemoryState(localStatePath, "agent-import", "mem-import"); err != nil {
 		t.Fatalf("writePersistedMemoryState: %v", err)
 	}
-	if err := writePersistedAgentCoreState(localStatePath, "agent-import", time.Now().UTC().Add(time.Minute)); err != nil {
-		t.Fatalf("writePersistedAgentCoreState: %v", err)
+	if err := writePersistedRuntimeAgentState(localStatePath, "agent-import", time.Now().UTC().Add(time.Minute)); err != nil {
+		t.Fatalf("writePersistedRuntimeAgentState: %v", err)
 	}
 
 	cfg := config.Config{
@@ -506,8 +506,8 @@ func TestDaemonNewImportsLegacyStateBeforeReadiness(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(runtimeDir, "memory-state.json.wave3-imported.json.bak")); err != nil {
 		t.Fatalf("expected memory legacy rename before Run: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(runtimeDir, "agent-core-state.json.wave3-imported.json.bak")); err != nil {
-		t.Fatalf("expected agentcore legacy rename before Run: %v", err)
+	if _, err := os.Stat(filepath.Join(runtimeDir, "runtime-agent-state.json.wave4-imported.json.bak")); err != nil {
+		t.Fatalf("expected runtime-agent legacy rename before Run: %v", err)
 	}
 }
 
@@ -642,7 +642,7 @@ func TestDaemonNewRestoresHealthySQLiteBackup(t *testing.T) {
 	}
 }
 
-func writePersistedAgentCoreState(localStatePath string, agentID string, scheduledFor time.Time) error {
+func writePersistedRuntimeAgentState(localStatePath string, agentID string, scheduledFor time.Time) error {
 	now := time.Now().UTC()
 	agentRaw, err := protojson.Marshal(&runtimev1.AgentRecord{
 		AgentId:         agentID,
@@ -712,7 +712,7 @@ func writePersistedAgentCoreState(localStatePath string, agentID string, schedul
 	if err != nil {
 		return err
 	}
-	statePath := filepath.Join(filepath.Dir(localStatePath), "agent-core-state.json")
+	statePath := filepath.Join(filepath.Dir(localStatePath), "runtime-agent-state.json")
 	return os.WriteFile(statePath, append(content, '\n'), 0o600)
 }
 
@@ -747,7 +747,7 @@ func waitForDaemonHookStatus(t *testing.T, daemon *Daemon, agentID string, expec
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		resp, err := daemon.grpc.AgentCoreService().ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
+		resp, err := daemon.grpc.AgentService().ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
 			AgentId:      agentID,
 			StatusFilter: expected,
 		})

@@ -242,7 +242,7 @@ import type {
   UpdateAgentStateResponse,
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
-} from './generated/runtime/v1/agent_core';
+} from './generated/runtime/v1/agent_service';
 import type {
   AppMessageEvent,
   SendAppMessageRequest,
@@ -400,7 +400,7 @@ export type RuntimeMemoryClient = {
   ): Promise<AsyncIterable<MemoryEvent>>;
 };
 
-export type RuntimeAgentCoreClient = {
+export type RuntimeAgentClient = {
   initializeAgent(request: InitializeAgentRequest, options?: RuntimeCallOptions): Promise<InitializeAgentResponse>;
   terminateAgent(request: TerminateAgentRequest, options?: RuntimeCallOptions): Promise<TerminateAgentResponse>;
   getAgent(request: GetAgentRequest, options?: RuntimeCallOptions): Promise<GetAgentResponse>;
@@ -523,7 +523,7 @@ export type RuntimeClient = {
   workflow: RuntimeWorkflowClient;
   model: RuntimeModelClient;
   memory: RuntimeMemoryClient;
-  agentCore: RuntimeAgentCoreClient;
+  agent: RuntimeAgentClient;
   local: RuntimeLocalServiceClient;
   connector: RuntimeConnectorClient;
   knowledge: RuntimeKnowledgeClient;

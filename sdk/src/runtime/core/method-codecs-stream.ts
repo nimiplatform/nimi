@@ -22,7 +22,7 @@ import {
 import {
   AgentEvent,
   SubscribeAgentEventsRequest,
-} from '../generated/runtime/v1/agent_core';
+} from '../generated/runtime/v1/agent_service';
 import {
   AppMessageEvent,
   SubscribeAppMessagesRequest,
@@ -62,7 +62,7 @@ export const runtimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = {
     requestType: SubscribeMemoryEventsRequest,
     eventType: MemoryEvent,
   },
-  [RuntimeMethodIds.agentCore.subscribeEvents]: {
+  [RuntimeMethodIds.agent.subscribeEvents]: {
     requestType: SubscribeAgentEventsRequest,
     eventType: AgentEvent,
   },

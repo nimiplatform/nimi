@@ -12,7 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 )
 
-func TestNewConfiguresAgentCoreDefaultExecutors(t *testing.T) {
+func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Config{
@@ -38,24 +38,33 @@ func TestNewConfiguresAgentCoreDefaultExecutors(t *testing.T) {
 		}
 	})
 
-	agentCoreSvc := server.AgentCoreService()
-	if agentCoreSvc == nil {
-		t.Fatal("expected agent core service")
+	agentSvc := server.AgentService()
+	if agentSvc == nil {
+		t.Fatal("expected runtime agent service")
 	}
 	appSvc := server.AppService()
 	if appSvc == nil {
 		t.Fatal("expected app service")
 	}
-	if !agentCoreSvc.HasLifeTrackExecutor() {
+	if !agentSvc.HasLifeTrackExecutor() {
 		t.Fatal("expected life-track executor to be configured")
 	}
-	if !agentCoreSvc.HasChatTrackSidecarExecutor() {
+	if !agentSvc.HasChatTrackSidecarExecutor() {
 		t.Fatal("expected chat-track sidecar executor to be configured")
 	}
-	if !agentCoreSvc.HasCanonicalReviewExecutor() {
+	if !agentSvc.HasPublicChatBindingResolver() {
+		t.Fatal("expected public chat binding resolver to be configured")
+	}
+	if !agentSvc.HasPublicChatTurnExecutor() {
+		t.Fatal("expected public chat turn executor to be configured")
+	}
+	if !agentSvc.HasCanonicalReviewExecutor() {
 		t.Fatal("expected canonical review executor to be configured")
 	}
-	if !appSvc.HasInternalConsumer("runtime.agentcore") {
-		t.Fatal("expected runtime.agentcore app consumer to be configured")
+	if !appSvc.HasInternalConsumer("runtime.agent.internal.chat_track_sidecar") {
+		t.Fatal("expected runtime.agent.internal.chat_track_sidecar app consumer to be configured")
+	}
+	if !appSvc.HasInternalConsumer("runtime.agent") {
+		t.Fatal("expected runtime.agent app consumer to be configured")
 	}
 }

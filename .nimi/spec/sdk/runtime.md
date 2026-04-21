@@ -43,8 +43,14 @@
 - `S-TRANSPORT-010`: Bearer 注入只允许发生在规定的路由/方法集，anonymous local consume 与只读 local RPC 不得强塞鉴权。
 - `S-ERROR-009` / `S-ERROR-012` / `S-ERROR-014`: 非错误终端 reason、Mode D `CANCELLED`、以及 `node-grpc` / `tauri-ipc` 的结构化错误投影必须等价。
 - `S-RUNTIME-072`: `runtime.media.music.iterate()` 必须对 iteration 输入做客户端 fail-fast 预校验，但不得替代 runtime 权威校验。
-- `S-RUNTIME-103`: persistent `AgentPresentationProfile` 只允许作为 `runtime.agentCore.*` 的下游 projection 暴露，不得扩写成新的 `runtime.avatar.*` public surface。
-- `S-RUNTIME-104`: current emotion / viseme / speaking-listening phase 等 avatar transient signals 继续留在 app 或 kit surface 层；SDK runtime 不得把它们提升为 canonical runtime truth。
+- `S-RUNTIME-103`: persistent `AgentPresentationProfile` 与 admitted
+  `runtime.agent.turn.*` / `runtime.agent.presentation.*` transient seam 只允许
+  作为 `runtime.agent.*` 的下游 projection 暴露，不得扩写成新的
+  `runtime.avatar.*` public surface。
+- `S-RUNTIME-104`: current emotion 已成为 runtime-owned transient state
+  projection；viseme / speaking-listening phase / renderer-local attention 等仍留在
+  app 或 kit surface 层，SDK runtime 不得把这些 renderer-local 值提升为 canonical
+  runtime truth。
 
 - `LocalAsset*` RPC 与统一 asset 列表/安装/导入/删除
 - 主模型 `engine_config` 字段投影
