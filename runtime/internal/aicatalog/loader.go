@@ -37,7 +37,7 @@ type mergedProviderDocument struct {
 	overlayUpdatedAt     string
 }
 
-var supportedProvidersOrdered = append([]string(nil), providerregistry.SourceProviders...)
+var supportedProvidersOrdered = providerregistry.SortedProviderIDs()
 
 var supportedProviderSet = func() map[string]struct{} {
 	set := make(map[string]struct{}, len(supportedProvidersOrdered))

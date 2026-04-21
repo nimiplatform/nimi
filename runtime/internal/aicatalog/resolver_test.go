@@ -41,6 +41,47 @@ func TestResolveVoicesDashScopeModel(t *testing.T) {
 	}
 }
 
+func TestResolveVoicesDashScopeLegacyQwenTTSAlias(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	result, err := resolver.ResolveVoices("dashscope", "qwen-tts")
+	if err != nil {
+		t.Fatalf("ResolveVoices(qwen-tts): %v", err)
+	}
+	if result.ModelID != "qwen3-tts-instruct-flash" {
+		t.Fatalf("expected qwen-tts to resolve to current canonical model, got=%q", result.ModelID)
+	}
+	if len(result.Voices) == 0 {
+		t.Fatalf("expected non-empty voices for qwen-tts compatibility alias")
+	}
+}
+
+func TestResolveVoicesVolcengineOpenSpeechLegacyResourceAlias(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	models, _, listErr := resolver.ListModelsForProvider("volcengine_openspeech")
+	if listErr != nil {
+		t.Fatalf("ListModelsForProvider(volcengine_openspeech): %v", listErr)
+	}
+	if len(models) == 0 {
+		t.Fatal("expected non-empty volcengine_openspeech models")
+	}
+
+	result, err := resolver.ResolveVoices("volcengine_openspeech", "volc.service_type.10029")
+	if err != nil {
+		t.Fatalf("ResolveVoices(volc.service_type.10029): %v", err)
+	}
+	if len(result.Voices) != 2 {
+		t.Fatalf("expected 2 voices for legacy Volcengine resource alias, got=%d", len(result.Voices))
+	}
+}
+
 func TestParseProviderDocumentYAMLPreservesDashScopeCanonicalVoiceIDs(t *testing.T) {
 	raw, err := runtimecatalog.DefaultProvidersFS.ReadFile("providers/dashscope.yaml")
 	if err != nil {

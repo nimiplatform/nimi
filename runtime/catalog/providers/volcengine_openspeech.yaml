@@ -52,7 +52,7 @@ models:
     capabilities:
       - audio.transcribe
     pricing:
-      unit: hour
+      unit: second
       input: unknown
       output: unknown
       currency: CNY
@@ -69,7 +69,7 @@ models:
     capabilities:
       - audio.transcribe
     pricing:
-      unit: hour
+      unit: second
       input: unknown
       output: unknown
       currency: CNY

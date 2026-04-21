@@ -237,13 +237,18 @@ func resolveModelEntry(snapshot *indexedSnapshot, provider string, normalizedMod
 	if len(providerModels) == 0 {
 		return ModelEntry{}, false
 	}
-	modelEntry, ok := providerModels[normalizedModel]
-	if ok {
-		return modelEntry, true
+	for _, candidate := range modelLookupCandidates(provider, normalizedModel) {
+		modelEntry, ok := providerModels[candidate]
+		if ok {
+			return modelEntry, true
+		}
+		base := modelIDBase(candidate)
+		modelEntry, ok = providerModels[base]
+		if ok {
+			return modelEntry, true
+		}
 	}
-	base := modelIDBase(normalizedModel)
-	modelEntry, ok = providerModels[base]
-	return modelEntry, ok
+	return ModelEntry{}, false
 }
 
 func resolveModelWorkflowBinding(snapshot *indexedSnapshot, provider string, normalizedModel string) (ModelWorkflowBinding, bool) {
@@ -313,6 +318,66 @@ func normalizeLookupModelID(raw string, provider string) string {
 		value = strings.TrimPrefix(value, prefix)
 	}
 	return strings.TrimSpace(value)
+}
+
+func modelLookupCandidates(provider string, normalizedModel string) []string {
+	candidates := []string{normalizedModel}
+	appendCandidate := func(value string) {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return
+		}
+		for _, existing := range candidates {
+			if existing == value {
+				return
+			}
+		}
+		candidates = append(candidates, value)
+	}
+
+	switch normalizeProvider(provider) {
+	case "dashscope":
+		switch {
+		case normalizedModel == "qwen-tts", normalizedModel == "qwen-tts-latest":
+			appendCandidate("qwen3-tts-instruct-flash")
+		case strings.HasPrefix(normalizedModel, "qwen-tts-"):
+			if isModelDateSuffix(strings.TrimPrefix(normalizedModel, "qwen-tts-")) {
+				appendCandidate("qwen3-tts-instruct-flash")
+			}
+		}
+	case "volcengine_openspeech":
+		switch normalizedModel {
+		case "volc.service_type.10029":
+			appendCandidate("doubao-tts")
+		case "doubao-tts":
+			appendCandidate("volc.service_type.10029")
+		case "volc.bigasr.auc_turbo":
+			appendCandidate("doubao-asr-flash")
+		case "doubao-asr-flash":
+			appendCandidate("volc.bigasr.auc_turbo")
+		}
+	}
+
+	return candidates
+}
+
+func isModelDateSuffix(value string) bool {
+	if len(value) != len("2026-01-26") {
+		return false
+	}
+	for idx, ch := range value {
+		switch idx {
+		case 4, 7:
+			if ch != '-' {
+				return false
+			}
+		default:
+			if ch < '0' || ch > '9' {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func modelIDBase(value string) string {

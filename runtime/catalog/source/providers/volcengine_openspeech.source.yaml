@@ -86,7 +86,7 @@ models:
     updated_at: 2026-04-18
     capabilities: [audio.transcribe]
     pricing:
-      unit: hour
+      unit: second
       input: unknown
       output: unknown
       currency: CNY
