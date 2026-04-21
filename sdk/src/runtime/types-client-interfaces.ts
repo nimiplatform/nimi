@@ -218,6 +218,8 @@ import type {
   CancelHookResponse,
   DisableAutonomyRequest,
   DisableAutonomyResponse,
+  GetConversationAnchorSnapshotRequest,
+  GetConversationAnchorSnapshotResponse,
   EnableAutonomyRequest,
   EnableAutonomyResponse,
   GetAgentRequest,
@@ -230,6 +232,8 @@ import type {
   ListAgentsResponse,
   ListPendingHooksRequest,
   ListPendingHooksResponse,
+  OpenConversationAnchorRequest,
+  OpenConversationAnchorResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   SetAutonomyConfigRequest,
@@ -405,6 +409,14 @@ export type RuntimeAgentClient = {
   terminateAgent(request: TerminateAgentRequest, options?: RuntimeCallOptions): Promise<TerminateAgentResponse>;
   getAgent(request: GetAgentRequest, options?: RuntimeCallOptions): Promise<GetAgentResponse>;
   listAgents(request: ListAgentsRequest, options?: RuntimeCallOptions): Promise<ListAgentsResponse>;
+  openConversationAnchor(
+    request: OpenConversationAnchorRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<OpenConversationAnchorResponse>;
+  getConversationAnchorSnapshot(
+    request: GetConversationAnchorSnapshotRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetConversationAnchorSnapshotResponse>;
   getAgentState(request: GetAgentStateRequest, options?: RuntimeCallOptions): Promise<GetAgentStateResponse>;
   updateAgentState(request: UpdateAgentStateRequest, options?: RuntimeCallOptions): Promise<UpdateAgentStateResponse>;
   enableAutonomy(request: EnableAutonomyRequest, options?: RuntimeCallOptions): Promise<EnableAutonomyResponse>;

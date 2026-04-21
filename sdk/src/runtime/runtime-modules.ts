@@ -221,6 +221,8 @@ const AGENT_METHODS = [
   'terminateAgent',
   'getAgent',
   'listAgents',
+  'openConversationAnchor',
+  'getConversationAnchorSnapshot',
   'getAgentState',
   'updateAgentState',
   'enableAutonomy',

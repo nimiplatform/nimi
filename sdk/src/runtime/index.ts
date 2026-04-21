@@ -65,10 +65,10 @@ export {
 export {
   AgentEventType,
   AgentExecutionState,
-  AgentHookStatus,
+  HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
-  HookTriggerKind,
+  HookTriggerFamily,
 } from './generated/runtime/v1/agent_service.js';
 export type {
   AuditEventRecord,

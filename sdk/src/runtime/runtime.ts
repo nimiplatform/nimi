@@ -61,7 +61,11 @@ import {
   emitAuthTokenIssuedEvent,
   emitAuthTokenRevokedEvent,
 } from './runtime-modules.js';
-import { createRuntimeAgentChatModule } from './runtime-agent-chat.js';
+import {
+  attachRuntimeAgentSurface,
+  createRuntimeAgentAnchorsModule,
+  createRuntimeAgentTurnsModule,
+} from './runtime-agent-surface.js';
 import { createRuntimeProtectedScopeHelper } from './protected-access.js';
 import {
   ensureRuntimeClientForCall,
@@ -294,15 +298,20 @@ export class Runtime {
       getSubjectUserId: () => this.#ctx.resolveSubjectUserId(undefined),
     });
 
-    this.agent = {
-      ...passthrough.agent,
-      chat: createRuntimeAgentChatModule({
+    this.agent = attachRuntimeAgentSurface(passthrough.agent, {
+      anchors: createRuntimeAgentAnchorsModule({
         appId: this.appId,
+        agent: passthrough.agent,
+        resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
+      }),
+      turns: createRuntimeAgentTurnsModule({
+        appId: this.appId,
+        agent: passthrough.agent,
         app: this.app,
         protectedAccess: protectedScopeHelper,
-        resolveSubjectUserId: () => this.#ctx.resolveSubjectUserId(undefined),
+        resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
       }),
-    };
+    });
 
     this.scope = createScopeClient({
       invoke: (operation) => this.#invoke(operation),

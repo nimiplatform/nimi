@@ -406,3 +406,15 @@ test('runtime public declaration does not expose ai fallback knobs on low-level 
   const source = readFileSync(distRuntimeTypesDtsPath, 'utf8');
   assert.equal(source.includes('fallback?:'), false);
 });
+
+test('runtime public declaration hard-cuts legacy agent chat/session-centric surface', () => {
+  assert.equal(existsSync(distRuntimeTypesDtsPath), true, 'dist/runtime/types-runtime-modules.d.ts must exist');
+  const source = readFileSync(distRuntimeTypesDtsPath, 'utf8');
+  assert.equal(source.includes('RuntimeAgentChat'), false);
+  assert.equal(source.includes('sessionId:'), false);
+  assert.equal(source.includes('conversationAnchorId:'), true);
+  assert.equal(source.includes('runtime.agent.turn.accepted'), true);
+  assert.equal(source.includes('runtime.agent.state.status_text_changed'), true);
+  assert.equal(source.includes('runtime.agent.hook.pending'), true);
+  assert.equal(source.includes('originatingTurnId?: string;'), true);
+});

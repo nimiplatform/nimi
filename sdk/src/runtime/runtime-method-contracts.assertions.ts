@@ -1,5 +1,9 @@
 import type {
   AgentEvent,
+  GetConversationAnchorSnapshotRequest,
+  GetConversationAnchorSnapshotResponse,
+  OpenConversationAnchorRequest,
+  OpenConversationAnchorResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   SubscribeAgentEventsRequest,
@@ -39,6 +43,8 @@ const runtimeMemoryUnaryResult = runtime.call(RuntimeMethodIds.memory.createBank
 const rawAgentUnaryResult = raw.call(RuntimeMethodIds.agent.queryMemory, {} as QueryAgentMemoryRequest);
 const rawAgentStreamResult = raw.call(RuntimeMethodIds.agent.subscribeEvents, {} as SubscribeAgentEventsRequest);
 const runtimeAgentUnaryResult = runtime.call(RuntimeMethodIds.agent.writeMemory, {} as WriteAgentMemoryRequest);
+const runtimeAgentOpenAnchorResult = runtime.agent.openConversationAnchor({} as OpenConversationAnchorRequest);
+const runtimeAgentGetAnchorSnapshotResult = runtime.agent.getConversationAnchorSnapshot({} as GetConversationAnchorSnapshotRequest);
 const fallbackRawResult = raw.call('/nimi.runtime.v1.Custom/Unknown', {});
 
 type _GuardRawUnaryResult = Assert<IsEqual<
@@ -76,6 +82,14 @@ type _GuardRawAgentStreamResult = Assert<IsEqual<
 type _GuardRuntimeAgentUnaryResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentUnaryResult>,
   WriteAgentMemoryResponse
+>>;
+type _GuardRuntimeAgentOpenAnchorResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentOpenAnchorResult>,
+  OpenConversationAnchorResponse
+>>;
+type _GuardRuntimeAgentGetAnchorSnapshotResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentGetAnchorSnapshotResult>,
+  GetConversationAnchorSnapshotResponse
 >>;
 type _GuardFallbackRawResult = Assert<IsEqual<
   Awaited<typeof fallbackRawResult>,

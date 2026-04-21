@@ -17,6 +17,12 @@ import {
   RuntimeUnaryMethodCodecs,
 } from './method-codecs.js';
 import {
+  GetConversationAnchorSnapshotRequest,
+  GetConversationAnchorSnapshotResponse,
+  OpenConversationAnchorRequest,
+  OpenConversationAnchorResponse,
+} from '../generated/runtime/v1/agent_service.js';
+import {
   decodeStreamEvent,
   decodeUnaryResponse,
   encodeRequest,
@@ -134,6 +140,20 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
     const wireResponse = await transport.invokeUnary(
       call,
     );
+    return decodeUnaryResponse(methodId, codec, wireResponse);
+  };
+
+  const customUnary = <Request, Response>(
+    methodId: string,
+    codec: RuntimeUnaryMethodCodec<Request, Response>,
+  ) => async (
+    request: Request,
+    options?: RuntimeCallOptions,
+  ): Promise<Response> => {
+    const normalizedRequest = normalizeRequestForMethod(methodId, request, options);
+    const wireRequest = encodeRequest(methodId, codec, normalizedRequest);
+    const call = await toUnaryCall(config, methodId, wireRequest, normalizedRequest, options);
+    const wireResponse = await transport.invokeUnary(call);
     return decodeUnaryResponse(methodId, codec, wireResponse);
   };
 
@@ -312,6 +332,14 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       terminateAgent: unary(RuntimeMethodIds.agent.terminateAgent),
       getAgent: unary(RuntimeMethodIds.agent.getAgent),
       listAgents: unary(RuntimeMethodIds.agent.listAgents),
+      openConversationAnchor: customUnary('/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor', {
+        requestType: OpenConversationAnchorRequest,
+        responseType: OpenConversationAnchorResponse,
+      }),
+      getConversationAnchorSnapshot: customUnary('/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot', {
+        requestType: GetConversationAnchorSnapshotRequest,
+        responseType: GetConversationAnchorSnapshotResponse,
+      }),
       getAgentState: unary(RuntimeMethodIds.agent.getAgentState),
       updateAgentState: unary(RuntimeMethodIds.agent.updateAgentState),
       enableAutonomy: unary(RuntimeMethodIds.agent.enableAutonomy),
