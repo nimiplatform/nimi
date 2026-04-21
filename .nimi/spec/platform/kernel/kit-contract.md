@@ -100,6 +100,25 @@
 - Feature modules must not import app-layer code, app state stores, `dataSync`, or platform bridge implementations directly.
 - Feature modules must remain portable across apps by consuming injected adapters only.
 
+## P-KIT-061 — Desktop Chat Obstacle-Flow Exception Consumer Boundary
+
+`kit/features/chat` remains the shared conversation-shell parity owner across
+apps, but the admitted desktop obstacle-aware transcript-flow line may consume
+it as a desktop-controlled exception consumer.
+
+Fixed rules:
+
+- the desktop obstacle-aware line does not by itself reopen shared canonical
+  shell ownership for `kit/features/chat`
+- desktop may inject host-local occupancy geometry and host-local obstacle-flow
+  taxonomy into the canonical adapter path, but it must not fork a private
+  transcript shell, private scroll-root truth, or private grouping /
+  virtualization truth
+- `kit/features/chat` remains the shared parity owner outside the admitted
+  desktop exception line
+- any future widening of obstacle-aware shell truth into shared non-desktop kit
+  ownership requires an explicit separate authority cut
+
 ## P-KIT-065 — Kit-First Reuse Protocol
 
 - Before adding or refactoring app-local UI or interaction logic, implementers must inspect `kit/ui`, `kit/auth`, relevant `kit/features/*` READMEs, and `tables/nimi-kit-registry.yaml`.

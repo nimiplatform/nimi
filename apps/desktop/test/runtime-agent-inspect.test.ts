@@ -51,7 +51,7 @@ function createRuntimeMock() {
         };
       },
     },
-    agentCore: {
+    agent: {
       getAgent: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
         calls.getAgent.push({ ...input, __options: options });
         return {
@@ -290,7 +290,7 @@ function createRuntimeMock() {
               sourceBank: {
                 owner: {
                   oneofKind: 'agentCore',
-                  agentCore: {
+                  agent: {
                     agentId: 'agent-1',
                   },
                 },

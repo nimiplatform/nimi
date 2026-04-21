@@ -830,7 +830,7 @@
     "agentDiagnosticsAutonomyModeLabel": "自治模式",
     "agentDiagnosticsAutonomyOffNeedsModeDetail": "先选择一个非 Off 的自治模式，再启用 runtime 托管的 life-track 行为。",
     "agentDiagnosticsAvatarOverrideTitle": "Avatar 覆盖（调试）",
-    "agentDiagnosticsAvatarOverrideDetail": "仅用于调试的 avatar 阶段与情绪覆盖，不会修改 RuntimeAgentCore 状态。",
+    "agentDiagnosticsAvatarOverrideDetail": "仅用于调试的 avatar 阶段与情绪覆盖，不会修改 RuntimeAgent 状态。",
     "agentDiagnosticsAvatarOverridePhaseLabel": "阶段",
     "agentDiagnosticsAvatarOverrideEmotionLabel": "情绪",
     "agentDiagnosticsAvatarOverrideAmplitudeLabel": "幅度",

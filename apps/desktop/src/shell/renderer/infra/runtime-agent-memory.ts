@@ -250,16 +250,16 @@ export function canonicalMemoryViewToDesktopRecord(view: CanonicalMemoryView): D
 
   return {
     actorRefs: [],
-    appId: normalizeText(view.record?.provenance?.sourceSystem) || 'runtime.agentCore',
+    appId: normalizeText(view.record?.provenance?.sourceSystem) || 'runtime.agent',
     commitId: memoryId,
     id: memoryId,
     content: summary,
     createdAt: timestampToIso(view.record?.createdAt || view.record?.updatedAt),
-    createdBy: normalizeText(view.record?.provenance?.authorId) || 'runtime.agentCore',
+    createdBy: normalizeText(view.record?.provenance?.authorId) || 'runtime.agent',
     effectClass: 'MEMORY_ONLY',
     importance: 1,
-    reason: normalizeText(view.policyReason) || 'runtime_agent_core_projection',
-    schemaId: 'runtime.agent_core.canonical_memory',
+    reason: normalizeText(view.policyReason) || 'runtime_agent_projection',
+    schemaId: 'runtime.agent.canonical_memory',
     schemaVersion: '1',
     sessionId: normalizeText(view.record?.provenance?.traceId),
     type: canonicalType,
@@ -313,17 +313,17 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
     };
 
     try {
-      await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agentCore.getAgent({
+      await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.getAgent({
         context,
         agentId,
       }, options));
     } catch (error) {
-      const normalized = normalizeRuntimeError(error, 'check_runtime_agent_core');
+      const normalized = normalizeRuntimeError(error, 'check_runtime_agent');
       if (normalized.reasonCode !== 'RUNTIME_GRPC_NOT_FOUND' || input.createIfMissing !== true) {
         throw normalized;
       }
       try {
-        await protectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agentCore.initializeAgent({
+        await protectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
           context,
           agentId,
           displayName: normalizeText(input.displayName) || agentId,
@@ -373,7 +373,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
         });
     }
     if (mutations.length > 0) {
-      await protectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agentCore.updateAgentState({
+      await protectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agent.updateAgentState({
         context,
         agentId,
         mutations,
@@ -391,7 +391,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
   const queryCanonicalViews = async (input: RuntimeMemoryQueryInput): Promise<CanonicalMemoryView[]> => {
     try {
       const session = await ensureSession(input);
-      const response = await session.protectedAccess.withScopes(['runtime.agent.read'], (options) => session.runtime.agentCore.queryMemory({
+      const response = await session.protectedAccess.withScopes(['runtime.agent.read'], (options) => session.runtime.agent.queryMemory({
         context: session.context,
         agentId: normalizeText(input.agentId),
         query: normalizeText(input.query),
@@ -638,7 +638,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
         const dyadicUserId = normalizeText(input.dyadicUserId) || session.subjectUserId;
         const authoredBy = normalizeText(input.authorId) || session.subjectUserId;
         const timestamp = toTimestamp(now());
-        const response = await session.protectedAccess.withScopes(['runtime.agent.write'], (options) => session.runtime.agentCore.writeMemory({
+        const response = await session.protectedAccess.withScopes(['runtime.agent.write'], (options) => session.runtime.agent.writeMemory({
           context: session.context,
           agentId: normalizeText(input.agentId),
           candidates: [
@@ -683,7 +683,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
         }, options));
 
         if (response.rejected.length > 0 || response.accepted.length === 0) {
-          throw new Error('runtime.agentCore.writeMemory did not admit desktop dyadic memory');
+          throw new Error('runtime.agent.writeMemory did not admit desktop dyadic memory');
         }
         return response.accepted;
       } catch (error) {
@@ -715,7 +715,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       const subjectUserId = await resolveSubjectUserId();
       await getProtectedAccess().withScopes(['runtime.app.send.cross_app'], (options) => runtime.app.sendMessage({
         fromAppId: runtime.appId,
-        toAppId: 'runtime.agentcore',
+        toAppId: 'runtime.agent.internal.chat_track_sidecar',
         subjectUserId,
         messageType: 'agent.chat_track.sidecar_input.v1',
         payload: toProtoStruct({

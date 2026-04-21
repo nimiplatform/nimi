@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-04-18
+> 生成时间: 2026-04-20
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -81,7 +81,7 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 - `RuntimeAuditService`（`K-AUDIT-*`）
 - `RuntimeModelService`（`K-MODEL-*`）
 - `RuntimeCognitionService`（`K-MEM-*`, `K-KNOW-*`, `K-RPC-004a`）
-- `RuntimeAgentCoreService`（`K-AGCORE-*`, `K-RPC-004b`）
+- `RuntimeAgentService`（`K-AGCORE-*`, `K-RPC-004b`）
 - `RuntimeAppService`（`K-APP-*`）
 
 补充约束：
@@ -1409,13 +1409,21 @@ Runtime SDK 对外方法投影按服务分组，方法集合必须与 `.nimi/spe
 
 app-facing route metadata / projection surface 是例外的 host-typed logical surface，遵循 `runtime-route-contract.md`（`S-RUNTIME-074` ~ `S-RUNTIME-078`），不得被误写成新增 daemon 顶层 RPC 投影。
 
-当 `RuntimeCognitionService` / `RuntimeAgentCoreService` 进入 SDK 投影时，公开 surface 必须维持 runtime-owned authority cut：
+当 `RuntimeCognitionService` / `RuntimeAgentService` 进入 SDK 投影时，公开
+surface 必须维持 runtime-owned authority cut：
 
 - `runtime.memory.*` 仅投影 `RuntimeCognitionService` 中的 runtime-owned memory family
 - `runtime.knowledge.*` 仅投影 `RuntimeCognitionService` 中的 runtime-owned knowledge family
-- `runtime.agentCore.*` 负责 app-facing canonical agent control plane
-- app-facing canonical agent memory write path 必须统一走 `runtime.agentCore.*`，不得漂移回 direct Realm memory mutation 或 provider-native memory API
-- `@nimiplatform/sdk/realm` 不再承载 canonical agent-memory public helper；runtime-era app path 只能消费 `runtime.agentCore.*`
+- steady-state agent authority surface is `RuntimeAgentService`
+- current admitted SDK public projection for the agent surface is
+  `runtime.agent.*`
+- reactive agent-chat consumption is currently carried separately on the
+  reserved `runtime.agent` app-message seam via the admitted app-messaging
+  transport, rather than a parallel `runtime.agent.chat.*` RPC subgroup
+- app-facing canonical agent control plane and canonical agent memory write path
+  must remain unified on that runtime-owned agent projection, rather than
+  drifting back to direct Realm memory mutation or provider-native memory API
+- `@nimiplatform/sdk/realm` 不再承载 canonical agent-memory public helper；runtime-era app path 只能消费 `runtime.agent.*`
 
 **S-SURFACE-009 — Runtime 方法投影表治理**
 
@@ -2135,16 +2143,16 @@ slice-local derived state、thread metadata 或 UI 临时字段都不得拥有
 `ResolvedExperiencePolicy`、`resolvedTurnMode` 的 canonical
 语义，也不得在 hydration / migration 时替这些 resolved outputs 猜默认值。
 
-若 Desktop 为 follow-up-turn 建立 thread-bound pending entry、为 modality action 建立执行投影或
-历史记录，这些字段也只能承载
-`agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）已解析 outputs 的
-projection / lifecycle evidence。store、hydration、migration、timer recovery、或
-UI state 不得决定 follow-up-turn 是否存在、是否继续有效、是否应被 delivery、或
-`promptPayload` 应是什么；缺失合法 resolved message/action outputs 时必须 fail-close。
+若 Desktop 为 runtime-owned deferred continuation / `HookIntent` 建立 anchor-bound pending
+indicator、为 modality action 建立执行投影或历史记录，这些字段也只能承载 admitted resolved
+outputs 的 projection / lifecycle evidence。store、hydration、migration、timer recovery、或
+UI state 不得决定 deferred continuation / `HookIntent` 是否存在、是否继续有效、是否应被
+delivery、或 `promptPayload` 应是什么；缺失合法 resolved message/action outputs 或
+runtime-owned hook outputs 时必须 fail-close。
 
-当前 admitted follow-up pending state 只允许 process-local ownership；持久化 store 不得在
-hydration 后自动恢复旧 pending follow-up timer，也不得把 thread metadata 升格成递归
-follow-up chain 的 owner。
+当前 admitted pending continuation state 只允许 process-local projection ownership；
+持久化 store 不得在 hydration 后自动恢复旧 pending continuation timer，也不得把
+thread/anchor metadata 升格成递归 continuation chain 的 owner。
 
 **D-STATE-003 — Mod Workspace Slice**
 
@@ -2762,14 +2770,14 @@ Desktop 侧 speech engine 只暴露 runtime-aligned 语音能力：
 - AI Chat、Agent Chat、Runtime Config 对 text/audio/voice workflow 的 capability projection 必须共用 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）规定的 shared builder，不得在本地 heuristic 中重建 route metadata truth
 - 本契约只拥有 runtime-aligned voice route/API truth；agent chat richer workflow 是否被
   admit、属于 `tts_v2v` 还是 `tts_t2v`、使用什么 voice identity、以及 workflow result
-  如何回到当前 thread，固定由 `agent-chat-voice-workflow-contract.md`
+  如何回到当前 conversation anchor，固定由 `agent-chat-voice-workflow-contract.md`
   （`D-LLM-047` ~ `D-LLM-052`）拥有
 - 本契约只拥有 runtime-aligned TTS route/API truth；agent chat resolved `voice`
   action consumption、`audio.synthesize` 首包 executor semantics、以及 playback-ready
   speech artifact outcome 固定由
   `agent-chat-voice-executor-contract.md`（`D-LLM-034` ~ `D-LLM-039`）拥有
 - 本契约同样不拥有 broader voice session product semantics；explicit entry / exit、
-  same-thread continuity、admitted listening modes、interruption、以及
+  same-anchor continuity、admitted listening modes、interruption、以及
   transcript / caption rules 固定由
   `agent-chat-voice-session-contract.md`（`D-LLM-040` ~ `D-LLM-046`）拥有
 
@@ -4163,7 +4171,7 @@ Fixed rules:
 | SendAppMessage | unary |
 | SubscribeAppMessages | server_stream |
 
-**RuntimeAgentCoreService**
+**RuntimeAgentService**
 
 | 方法 | 类型 |
 |---|---|
@@ -5067,7 +5075,7 @@ Fixed rules:
 - DeleteMemory
 - SubscribeMemoryEvents
 
-**agent_core_service_projection** → RuntimeAgentCoreService
+**agent_service_projection** → RuntimeAgentService
 
 - InitializeAgent
 - TerminateAgent

@@ -232,6 +232,9 @@ rules:
   - rule_id: P-KIT-060
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
+  - rule_id: P-KIT-061
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
   - rule_id: P-KIT-065
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_kit_gate]

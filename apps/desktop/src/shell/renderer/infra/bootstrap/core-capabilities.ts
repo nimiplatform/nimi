@@ -15,7 +15,7 @@ type AgentMemorySliceQuery = {
   query?: string;
 };
 
-type AgentCoreDataClient = {
+type RuntimeAgentDataClient = {
   getCurrentUser: () => Promise<unknown>;
   listMyFriendsWithDetails: (limit?: number) => Promise<unknown>;
   getUser: (userId: string) => Promise<unknown>;
@@ -34,7 +34,7 @@ type RuntimeMemoryResult = {
   source: 'runtime-only';
 };
 
-function createAgentCoreDataClient(): AgentCoreDataClient {
+function createRuntimeAgentDataClient(): RuntimeAgentDataClient {
   return {
     getCurrentUser: () => withRuntimeOpenApiContext((realm) => realm.services.MeService.getMe()),
     listMyFriendsWithDetails: (limit) => withRuntimeOpenApiContext((realm) => (
@@ -73,7 +73,7 @@ function toNonNegativeInt(value: unknown): number | undefined {
   return rounded >= 0 ? rounded : undefined;
 }
 
-async function resolveCurrentUserIdWith(client: AgentCoreDataClient): Promise<string> {
+async function resolveCurrentUserIdWith(client: RuntimeAgentDataClient): Promise<string> {
   const payload = await client.getCurrentUser();
   const userId = normalizeText(toRecord(payload).id);
   if (!userId) {
@@ -134,13 +134,13 @@ function unsupportedProfiles(): never {
   throw new Error('AGENT_MEMORY_PROFILES_UNSUPPORTED_BY_RUNTIME_AUTHORITY');
 }
 
-type AgentCoreDataCapabilityDeps = {
-  client?: Partial<AgentCoreDataClient>;
+type RuntimeAgentDataCapabilityDeps = {
+  client?: Partial<RuntimeAgentDataClient>;
   runtimeMemory?: RuntimeAgentMemoryPort;
   resolveCurrentUserId?: () => Promise<string | undefined>;
 };
 
-export type AgentCoreDataCapabilityHandlers = {
+export type RuntimeAgentDataCapabilityHandlers = {
   agentMemoryCoreList: (query: Record<string, unknown>) => Promise<RuntimeMemoryResult>;
   agentMemoryDyadicList: (query: Record<string, unknown>) => Promise<RuntimeMemoryResult & { userId: string }>;
   agentMemoryProfilesList: (_query: Record<string, unknown>) => Promise<{ items: Record<string, unknown>[] } & Record<string, unknown>>;
@@ -149,15 +149,15 @@ export type AgentCoreDataCapabilityHandlers = {
   agentMemoryStatsGet: (query: Record<string, unknown>) => Promise<{ coreCount: number; dyadicCount: number }>;
 };
 
-export function resetAgentCoreDataStateForTesting(): void {
+export function resetRuntimeAgentDataStateForTesting(): void {
   // runtime-backed hard-cut intentionally keeps no local memory cache
 }
 
-export function createAgentCoreDataCapabilityHandlers(
-  deps: AgentCoreDataCapabilityDeps = {},
-): AgentCoreDataCapabilityHandlers {
-  const client: AgentCoreDataClient = {
-    ...createAgentCoreDataClient(),
+export function createRuntimeAgentDataCapabilityHandlers(
+  deps: RuntimeAgentDataCapabilityDeps = {},
+): RuntimeAgentDataCapabilityHandlers {
+  const client: RuntimeAgentDataClient = {
+    ...createRuntimeAgentDataClient(),
     ...(deps.client || {}),
   };
   const resolveCurrentUserIdFn = deps.resolveCurrentUserId ?? (() => resolveCurrentUserIdWith(client));
@@ -298,8 +298,8 @@ export function createAgentCoreDataCapabilityHandlers(
 }
 
 export async function registerCoreDataCapabilities(): Promise<void> {
-  const client = createAgentCoreDataClient();
-  const agentHandlers = createAgentCoreDataCapabilityHandlers({ client });
+  const client = createRuntimeAgentDataClient();
+  const agentHandlers = createRuntimeAgentDataCapabilityHandlers({ client });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.friendsWithDetailsList, async () => {
     const payload = await client.listMyFriendsWithDetails(100);

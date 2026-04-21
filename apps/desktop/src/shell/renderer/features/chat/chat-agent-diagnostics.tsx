@@ -362,7 +362,7 @@ export function AgentDiagnosticsPanel(props: {
           <DiagnosticsSectionCard
             title={t('Chat.agentDiagnosticsAvatarOverrideTitle', { defaultValue: 'Avatar Override' })}
             hint={t('Chat.agentDiagnosticsAvatarOverrideDetail', {
-              defaultValue: 'Debug-only override for avatar phase and mood. Does not mutate RuntimeAgentCore status.',
+              defaultValue: 'Debug-only override for avatar phase and mood. Does not mutate RuntimeAgent status.',
             })}
           >
             <div className="grid grid-cols-2 gap-2">

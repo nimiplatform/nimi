@@ -1,8 +1,10 @@
 import type {
   ConversationProjectionRebuildResult,
+  ConversationRuntimeTrace,
   ConversationTurnEvent,
   ConversationTurnInput,
 } from '@nimiplatform/nimi-kit/features/chat';
+import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
@@ -107,6 +109,148 @@ function normalizeComparableText(value: unknown): string {
     .trim();
 }
 
+function buildFollowUpChainDiagnosticsRecord(
+  chainContext: AgentFollowUpChainContext,
+): Record<string, unknown> {
+  return {
+    chainId: chainContext.chainId,
+    followUpDepth: chainContext.followUpDepth,
+    maxFollowUpTurns: chainContext.maxFollowUpTurns,
+    followUpCanceledByUser: chainContext.canceledByUser,
+    followUpSourceActionId: chainContext.followUpSourceActionId,
+  };
+}
+
+function buildFollowUpTextMetadata(input: {
+  metadataJson?: JsonObject | null;
+  diagnostics: AgentModelOutputDiagnostics | null;
+  envelope: import('./chat-agent-behavior').AgentResolvedMessageActionEnvelope;
+  chainContext: AgentFollowUpChainContext;
+  followUpInstruction: string;
+  followUpActionId: string;
+  followUpDelayMs: number;
+}): JsonObject | null {
+  const baseRecord = input.metadataJson && typeof input.metadataJson === 'object' && !Array.isArray(input.metadataJson)
+    ? input.metadataJson as Record<string, unknown>
+    : null;
+  if (baseRecord && typeof baseRecord.debugType === 'string' && baseRecord.debugType === 'agent-text-turn') {
+    const prompt = normalizeText(baseRecord.prompt);
+    if (prompt) {
+      return {
+        ...baseRecord,
+        statusCue: input.envelope.statusCue || baseRecord.statusCue || null,
+        followUpInstruction: input.followUpInstruction,
+        followUpTurn: true,
+        chainId: input.chainContext.chainId,
+        followUpDepth: input.chainContext.followUpDepth,
+        maxFollowUpTurns: input.chainContext.maxFollowUpTurns,
+        followUpCanceledByUser: input.chainContext.canceledByUser,
+        followUpSourceActionId: input.followUpActionId,
+        followUpDelayMs: input.followUpDelayMs,
+      } satisfies JsonObject;
+    }
+  }
+  return buildAgentTextTurnDebugMetadata(input.diagnostics, {
+    statusCue: input.envelope.statusCue || null,
+    followUpTurn: true,
+    followUpInstruction: input.followUpInstruction,
+    chainId: input.chainContext.chainId,
+    followUpDepth: input.chainContext.followUpDepth,
+    maxFollowUpTurns: input.chainContext.maxFollowUpTurns,
+    followUpCanceledByUser: input.chainContext.canceledByUser,
+    followUpSourceActionId: input.followUpActionId,
+    followUpDelayMs: input.followUpDelayMs,
+  });
+}
+
+type FollowUpRuntimeAgentStreamResult =
+  | { status: 'unsupported' }
+  | { status: 'aborted' }
+  | { status: 'failed'; reason: string }
+  | {
+    status: 'ok';
+    envelope: import('./chat-agent-behavior').AgentResolvedMessageActionEnvelope;
+    diagnostics: Record<string, unknown> | null;
+    metadataJson: JsonObject | null;
+    trace: ConversationRuntimeTrace | undefined;
+  };
+
+async function runFollowUpRuntimeAgentStream(input: {
+  runtimeAdapter: AgentLocalChatRuntimeAdapter;
+  metadata: AgentLocalChatProviderMetadata;
+  executionRequest: AgentLocalChatExecutionTextRequest;
+  followUpHistory: ConversationTurnInput['history'];
+  baseInput: ConversationTurnInput;
+}): Promise<FollowUpRuntimeAgentStreamResult> {
+  if (!input.runtimeAdapter.streamAgentTurn) {
+    return { status: 'unsupported' };
+  }
+  const runtimeResult = await input.runtimeAdapter.streamAgentTurn({
+    agentId: input.metadata.agentId,
+    prompt: input.executionRequest.prompt,
+    history: input.followUpHistory,
+    messages: input.executionRequest.messages,
+    systemPrompt: input.executionRequest.systemPrompt,
+    maxOutputTokensRequested: input.executionRequest.diagnostics.maxOutputTokensRequested,
+    threadId: input.baseInput.threadId,
+    agentResolution: input.metadata.agentResolution,
+    textExecutionSnapshot: input.metadata.textExecutionSnapshot,
+    runtimeConfigState: input.metadata.runtimeConfigState,
+    runtimeFields: input.metadata.runtimeFields,
+    reasoningPreference: input.metadata.reasoningPreference,
+    signal: input.baseInput.signal,
+  });
+
+  let sealedEnvelope: import('./chat-agent-behavior').AgentResolvedMessageActionEnvelope | null = null;
+  let sealedMetadataJson: JsonObject | null = null;
+  let sealedDiagnostics: Record<string, unknown> | null = null;
+  let sealedTrace: ConversationRuntimeTrace | undefined;
+
+  for await (const part of runtimeResult.stream) {
+    switch (part.type) {
+      case 'reasoning-delta':
+        break;
+      case 'message-sealed':
+        sealedEnvelope = part.envelope;
+        sealedMetadataJson = part.metadataJson || null;
+        sealedDiagnostics = part.diagnostics || null;
+        sealedTrace = part.trace;
+        break;
+      case 'turn-completed':
+        if (!sealedEnvelope) {
+          return {
+            status: 'failed',
+            reason: 'runtime.agent follow-up stream completed without structured envelope',
+          };
+        }
+        return {
+          status: 'ok',
+          envelope: sealedEnvelope,
+          metadataJson: sealedMetadataJson,
+          trace: part.trace || sealedTrace,
+          diagnostics: {
+            ...(sealedDiagnostics || {}),
+            ...(part.diagnostics || {}),
+          },
+        };
+      case 'turn-failed':
+        return {
+          status: 'failed',
+          reason: part.error.message || 'runtime.agent follow-up turn failed',
+        };
+      case 'turn-canceled':
+        return { status: 'aborted' };
+      default:
+        break;
+    }
+  }
+
+  return {
+    status: 'failed',
+    reason: 'runtime.agent follow-up stream ended without terminal event',
+  };
+}
+
 export async function* runScheduledFollowUpTurn(input: {
   baseInput: ConversationTurnInput;
   metadata: AgentLocalChatProviderMetadata;
@@ -180,7 +324,11 @@ export async function* runScheduledFollowUpTurn(input: {
     signal: input.baseInput.signal,
   });
   let executionRequest: AgentLocalChatExecutionTextRequest;
-  let invokeResult: Awaited<ReturnType<AgentLocalChatRuntimeAdapter['invokeText']>>;
+  let followUpEnvelope: import('./chat-agent-behavior').AgentResolvedMessageActionEnvelope;
+  let followUpDiagnostics: AgentModelOutputDiagnostics | null;
+  let followUpTerminalDiagnostics: Record<string, unknown> | null = null;
+  let followUpTrace: ConversationRuntimeTrace | undefined;
+  let followUpMetadataJson: JsonObject | null = null;
   try {
     executionRequest = buildAgentLocalChatExecutionTextRequest({
       systemPrompt: normalizeText(input.baseInput.systemPrompt) || null,
@@ -195,20 +343,90 @@ export async function* runScheduledFollowUpTurn(input: {
       modelContextTokens: input.metadata.textModelContextTokens,
       maxOutputTokensRequested: input.metadata.textMaxOutputTokensRequested,
     });
-    invokeResult = await input.runtimeAdapter.invokeText({
-      agentId: input.metadata.agentId,
-      prompt: executionRequest.prompt,
-      messages: executionRequest.messages,
-      systemPrompt: executionRequest.systemPrompt,
-      maxOutputTokensRequested: executionRequest.diagnostics.maxOutputTokensRequested,
-      threadId: input.baseInput.threadId,
-      agentResolution: input.metadata.agentResolution,
-      textExecutionSnapshot: input.metadata.textExecutionSnapshot,
-      runtimeConfigState: input.metadata.runtimeConfigState,
-      runtimeFields: input.metadata.runtimeFields,
-      reasoningPreference: input.metadata.reasoningPreference,
-      signal: input.baseInput.signal,
+    const streamedFollowUp = await runFollowUpRuntimeAgentStream({
+      runtimeAdapter: input.runtimeAdapter,
+      metadata: input.metadata,
+      executionRequest,
+      followUpHistory,
+      baseInput: input.baseInput,
     });
+    if (streamedFollowUp.status === 'aborted') {
+      return;
+    }
+    if (streamedFollowUp.status === 'failed') {
+      logRendererEvent({
+        level: 'warn',
+        area: 'agent-chat-followup',
+        message: 'action:agent-local-chat-v1-follow-up-preflight-failed',
+        details: {
+          chainId: input.chainContext.chainId,
+          followUpDepth: input.chainContext.followUpDepth,
+          sourceActionId: input.chainContext.followUpSourceActionId,
+          reason: streamedFollowUp.reason,
+        },
+      });
+      return;
+    }
+    if (streamedFollowUp.status === 'ok') {
+      followUpEnvelope = streamedFollowUp.envelope;
+      followUpDiagnostics = null;
+      followUpTerminalDiagnostics = streamedFollowUp.diagnostics || null;
+      followUpTrace = streamedFollowUp.trace;
+      followUpMetadataJson = streamedFollowUp.metadataJson;
+    } else {
+      const invokeResult = await input.runtimeAdapter.invokeText({
+        agentId: input.metadata.agentId,
+        prompt: executionRequest.prompt,
+        history: followUpHistory,
+        messages: executionRequest.messages,
+        systemPrompt: executionRequest.systemPrompt,
+        maxOutputTokensRequested: executionRequest.diagnostics.maxOutputTokensRequested,
+        threadId: input.baseInput.threadId,
+        agentResolution: input.metadata.agentResolution,
+        textExecutionSnapshot: input.metadata.textExecutionSnapshot,
+        runtimeConfigState: input.metadata.runtimeConfigState,
+        runtimeFields: input.metadata.runtimeFields,
+        reasoningPreference: input.metadata.reasoningPreference,
+        signal: input.baseInput.signal,
+      });
+      const resolvedOutput = resolveAgentModelOutputEnvelope({
+        modelOutput: invokeResult.text,
+        requestPrompt: executionRequest.prompt,
+        requestSystemPrompt: executionRequest.systemPrompt,
+        trace: {
+          traceId: invokeResult.traceId,
+          promptTraceId: invokeResult.promptTraceId,
+        },
+        contextWindowSource: executionRequest.diagnostics.contextWindowSource,
+        maxOutputTokensRequested: executionRequest.diagnostics.maxOutputTokensRequested,
+        promptOverflow: executionRequest.diagnostics.promptOverflow,
+      });
+      if (!resolvedOutput.ok) {
+        const diagnostics = applyFollowUpChainDiagnostics(resolvedOutput.diagnostics, input.chainContext);
+        logRendererEvent({
+          level: 'warn',
+          area: 'agent-chat-output',
+          message: 'action:agent-local-chat-v1-follow-up-parse-failed',
+          details: {
+            classification: diagnostics.classification,
+            recoveryPath: diagnostics.recoveryPath,
+            suspectedTruncation: diagnostics.suspectedTruncation,
+            parseErrorDetail: diagnostics.parseErrorDetail,
+            traceId: diagnostics.traceId,
+            promptTraceId: diagnostics.promptTraceId,
+            chainId: diagnostics.chainId,
+            followUpDepth: diagnostics.followUpDepth,
+          },
+        });
+        return;
+      }
+      followUpEnvelope = resolvedOutput.envelope;
+      followUpDiagnostics = applyFollowUpChainDiagnostics(resolvedOutput.diagnostics, input.chainContext);
+      followUpTrace = {
+        traceId: invokeResult.traceId,
+        promptTraceId: invokeResult.promptTraceId,
+      };
+    }
   } catch (error) {
     if (isAbortLikeError(error) || input.baseInput.signal?.aborted) {
       return;
@@ -226,40 +444,6 @@ export async function* runScheduledFollowUpTurn(input: {
     });
     return;
   }
-  const resolvedOutput = resolveAgentModelOutputEnvelope({
-    modelOutput: invokeResult.text,
-    requestPrompt: executionRequest.prompt,
-    requestSystemPrompt: executionRequest.systemPrompt,
-    trace: {
-      traceId: invokeResult.traceId,
-      promptTraceId: invokeResult.promptTraceId,
-    },
-    contextWindowSource: executionRequest.diagnostics.contextWindowSource,
-    maxOutputTokensRequested: executionRequest.diagnostics.maxOutputTokensRequested,
-    promptOverflow: executionRequest.diagnostics.promptOverflow,
-  });
-  if (!resolvedOutput.ok) {
-    const diagnostics = applyFollowUpChainDiagnostics(resolvedOutput.diagnostics, input.chainContext);
-    logRendererEvent({
-      level: 'warn',
-      area: 'agent-chat-output',
-      message: 'action:agent-local-chat-v1-follow-up-parse-failed',
-      details: {
-        classification: diagnostics.classification,
-        recoveryPath: diagnostics.recoveryPath,
-        suspectedTruncation: diagnostics.suspectedTruncation,
-        parseErrorDetail: diagnostics.parseErrorDetail,
-        traceId: diagnostics.traceId,
-        promptTraceId: diagnostics.promptTraceId,
-        chainId: diagnostics.chainId,
-        followUpDepth: diagnostics.followUpDepth,
-      },
-    });
-    return;
-  }
-
-  const followUpEnvelope = resolvedOutput.envelope;
-  let followUpDiagnostics = applyFollowUpChainDiagnostics(resolvedOutput.diagnostics, input.chainContext);
   const followUpOutputText = buildAgentResolvedOutputText(followUpEnvelope);
   if (normalizeComparableText(followUpOutputText) === normalizeComparableText(input.priorAssistantText)) {
     logRendererEvent({
@@ -278,15 +462,13 @@ export async function* runScheduledFollowUpTurn(input: {
   const textMessageState = resolveCompletedTextMessageStateFromEnvelope({
     turnId: followUpTurnId,
     envelope: followUpEnvelope,
-    metadataJson: buildAgentTextTurnDebugMetadata(followUpDiagnostics, {
-      statusCue: followUpEnvelope.statusCue || null,
-      followUpTurn: true,
+    metadataJson: buildFollowUpTextMetadata({
+      metadataJson: followUpMetadataJson,
+      diagnostics: followUpDiagnostics,
+      envelope: followUpEnvelope,
+      chainContext: input.chainContext,
       followUpInstruction: followUpPromptPayload.promptText,
-      chainId: input.chainContext.chainId,
-      followUpDepth: input.chainContext.followUpDepth,
-      maxFollowUpTurns: input.chainContext.maxFollowUpTurns,
-      followUpCanceledByUser: input.chainContext.canceledByUser,
-      followUpSourceActionId: input.followUpAction.actionId,
+      followUpActionId: input.followUpAction.actionId,
       followUpDelayMs: followUpPromptPayload.delayMs,
     }),
   });
@@ -318,16 +500,18 @@ export async function* runScheduledFollowUpTurn(input: {
     },
   });
   followUpDiagnostics = actionResult.outputDiagnostics || followUpDiagnostics;
+  const terminalDiagnostics = {
+    ...(followUpTerminalDiagnostics || {}),
+    ...(followUpDiagnostics || {}),
+    ...buildFollowUpChainDiagnosticsRecord(input.chainContext),
+  };
   const terminalEvent: ConversationTurnEvent = {
     type: 'turn-completed',
     turnId: followUpTurnId,
     outputText: followUpOutputText,
     finishReason: 'stop',
-    trace: {
-      traceId: invokeResult.traceId,
-      promptTraceId: invokeResult.promptTraceId,
-    },
-    diagnostics: followUpDiagnostics as Record<string, unknown>,
+    trace: followUpTrace,
+    diagnostics: terminalDiagnostics,
   };
   const commitResult = await commitProviderOutcome({
     continuityAdapter: input.continuityAdapter,

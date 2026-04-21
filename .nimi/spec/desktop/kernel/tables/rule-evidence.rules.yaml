@@ -548,6 +548,10 @@
   status: covered
   evidence_refs:
     - desktop_kernel_consistency
+- rule_id: D-LLM-069
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
 - rule_id: D-MBAR-001
   status: covered
   evidence_refs:
@@ -1022,6 +1026,31 @@
     - desktop_kernel_consistency
     - desktop_spec_docs_drift_gate
     - desktop_design_contract_gate
+- rule_id: D-SHELL-034
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+  note: "Desktop obstacle-aware occupancy rectangle authority; executable behavior coverage lands with implementation wave"
+- rule_id: D-SHELL-035
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+  note: "Desktop obstacle-flow taxonomy and fail-closed fallback; renderer/parser widening remains blocked structurally until implementation wave"
+- rule_id: D-SHELL-036
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+  note: "Desktop transcript stability invariants; scroll/reflow behavior coverage lands with implementation wave"
+- rule_id: D-SHELL-037
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
+  note: "Desktop-controlled kit chat exception-consumer boundary for obstacle-aware line"
 - rule_id: D-STATE-001
   status: covered
   evidence_refs:

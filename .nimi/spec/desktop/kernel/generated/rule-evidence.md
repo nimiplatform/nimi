@@ -141,6 +141,7 @@
 | `D-LLM-062` | `covered` | `desktop_kernel_consistency` |
 | `D-LLM-063` | `covered` | `desktop_kernel_consistency` |
 | `D-LLM-064` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-069` | `covered` | `desktop_kernel_consistency` |
 | `D-MBAR-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MBAR-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MBAR-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
@@ -219,6 +220,10 @@
 | `D-SHELL-031` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate` |
 | `D-SHELL-032` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate` |
 | `D-SHELL-033` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate` |
+| `D-SHELL-034` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate` |
+| `D-SHELL-035` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate` |
+| `D-SHELL-036` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate` |
+| `D-SHELL-037` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate` |
 | `D-STATE-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STATE-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STATE-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

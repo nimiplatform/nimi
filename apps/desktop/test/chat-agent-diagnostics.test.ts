@@ -32,6 +32,7 @@ function baseLifecycle(): AgentTurnLifecycleState {
     error: null,
     usage: undefined,
     diagnostics: null,
+    runtimeAgentChat: null,
   };
 }
 
@@ -340,6 +341,56 @@ test('agent diagnostics view model shows follow-up chain diagnostics when presen
   assert.equal(chainCard?.value, '2/8');
   assert.match(chainCard?.detail || '', /chainId=chain-1/);
   assert.match(chainCard?.detail || '', /sourceActionId=action-follow-up-2/);
+});
+
+test('agent diagnostics view model shows runtime chat evidence when lifecycle carries runtime.agent session state', () => {
+  const viewModel = buildAgentDiagnosticsViewModel({
+    ...baseInput(),
+    lifecycle: {
+      ...baseLifecycle(),
+      terminal: 'completed',
+      traceId: 'trace-runtime-chat',
+      promptTraceId: 'trace-runtime-chat',
+      runtimeAgentChat: {
+        transport: 'runtime.agent',
+        sessionId: 'session-runtime-1',
+        runtimeTurnId: 'runtime-turn-1',
+        route: 'local',
+        modelId: 'kimi-k2',
+        connectorId: null,
+      },
+      diagnostics: {
+        classification: 'strict-json',
+        recoveryPath: 'none',
+        suspectedTruncation: false,
+        parseErrorDetail: null,
+        rawOutputChars: 42,
+        normalizedOutputChars: 42,
+        finishReason: 'stop',
+        traceId: 'trace-runtime-chat',
+        promptTraceId: 'trace-runtime-chat',
+        usage: null,
+        contextWindowSource: 'route-profile',
+        maxOutputTokensRequested: 256,
+        promptOverflow: false,
+        requestPrompt: null,
+        requestSystemPrompt: null,
+        rawModelOutputText: null,
+        normalizedModelOutputText: null,
+        chainId: null,
+        followUpDepth: null,
+        maxFollowUpTurns: null,
+        followUpCanceledByUser: false,
+        followUpSourceActionId: null,
+      },
+    },
+  });
+
+  const runtimeChatCard = viewModel.turnCards.find((card) => card.label === 'Runtime Chat');
+  assert.equal(runtimeChatCard?.value, 'session-runtime-1');
+  assert.match(runtimeChatCard?.detail || '', /runtimeTurnId=runtime-turn-1/);
+  assert.match(runtimeChatCard?.detail || '', /route=local/);
+  assert.match(runtimeChatCard?.detail || '', /modelId=kimi-k2/);
 });
 
 test('agent diagnostics view model shows runtime agent state and pending hook inspect when available', () => {

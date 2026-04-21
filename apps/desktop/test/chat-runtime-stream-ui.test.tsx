@@ -22,6 +22,15 @@ async function loadRuntimeStreamFooter() {
   return module.RuntimeStreamFooter;
 }
 
+async function loadRuntimeAgentDebugMessageAccessory() {
+  Object.defineProperty(globalThis, 'React', {
+    value: React,
+    configurable: true,
+  });
+  const module = await import('../src/shell/renderer/features/chat/chat-runtime-stream-ui.js');
+  return module.RuntimeAgentDebugMessageAccessory;
+}
+
 async function loadResolveRuntimeVoicePlaybackFrameCue() {
   Object.defineProperty(globalThis, 'React', {
     value: React,
@@ -129,6 +138,62 @@ test('runtime stream footer keeps a visible waiting label after first packet whe
 
   assert.match(markup, /The agent is replying\.\.\./u);
   assert.match(markup, /Stop generating/u);
+});
+
+test('runtime agent debug accessory renders runtime.agent session evidence', async () => {
+  const RuntimeAgentDebugMessageAccessory = await loadRuntimeAgentDebugMessageAccessory();
+  const markup = renderToStaticMarkup(
+    <RuntimeAgentDebugMessageAccessory
+      message={buildCanonicalMessage({
+        role: 'assistant',
+        text: 'Reused runtime session.',
+        kind: 'text',
+        metadata: {
+          debugType: 'agent-text-turn',
+          prompt: 'Messages:\n[]',
+          systemPrompt: 'Be concise.',
+          rawModelOutput: null,
+          normalizedModelOutput: null,
+          statusCue: null,
+          followUpInstruction: null,
+          followUpTurn: false,
+          chainId: null,
+          followUpDepth: null,
+          maxFollowUpTurns: null,
+          followUpCanceledByUser: false,
+          followUpSourceActionId: null,
+          followUpDelayMs: null,
+          runtimeAgentChat: {
+            transport: 'runtime.agent',
+            sessionId: 'session-rt-1',
+            runtimeTurnId: 'turn-rt-1',
+            route: 'local',
+            modelId: 'kimi-k2',
+            connectorId: null,
+            traceId: 'trace-rt-1',
+            modelResolved: 'kimi-k2',
+            routeDecision: 'local',
+          },
+        },
+      })}
+      debugVisible={true}
+      summaryLabel="Debug"
+      copyLabel="Copy"
+      copiedLabel="Copied"
+      followUpLabel="Follow-up"
+      followUpInstructionLabel="Follow-up instruction"
+      promptLabel="Prompt"
+      systemPromptLabel="System prompt"
+      rawOutputLabel="Raw output"
+      normalizedOutputLabel="Normalized output"
+    />,
+  );
+
+  assert.match(markup, /Runtime Agent Chat/u);
+  assert.match(markup, /sessionId=session-rt-1/u);
+  assert.match(markup, /runtimeTurnId=turn-rt-1/u);
+  assert.match(markup, /modelId=kimi-k2/u);
+  assert.match(markup, /traceId=trace-rt-1/u);
 });
 
 test('runtime voice frame cue prefers admitted envelope truth over local estimator fallback', async () => {

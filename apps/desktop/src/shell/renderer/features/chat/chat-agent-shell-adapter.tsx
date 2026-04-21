@@ -102,7 +102,7 @@ function normalizeText(value: unknown): string {
 function requireRuntimeSubjectUserId(): string {
   const subjectUserId = normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
   if (!subjectUserId) {
-    throw new Error('desktop agent shell requires authenticated subject user id for runtime.agentCore');
+    throw new Error('desktop agent shell requires authenticated subject user id for runtime.agent');
   }
   return subjectUserId;
 }

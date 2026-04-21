@@ -68,7 +68,7 @@ function createRuntimeMock() {
               scope: MemoryBankScope.AGENT_CORE,
               owner: {
                 oneofKind: 'agentCore',
-                agentCore: {
+                agent: {
                   agentId: 'agent-1',
                 },
               },
@@ -81,7 +81,7 @@ function createRuntimeMock() {
         };
       },
     },
-    agentCore: {
+    agent: {
       getAgent: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
         calls.getAgent.push({ ...input, __options: options });
         return {};
@@ -141,7 +141,7 @@ function createRuntimeMock() {
               sourceBank: {
                 owner: {
                   oneofKind: 'agentCore',
-                  agentCore: {
+                  agent: {
                     agentId: 'agent-1',
                   },
                 },
@@ -245,11 +245,11 @@ test('runtime agent memory adapter does not touch platform runtime before first 
 
 test('runtime agent memory adapter writes user turns through admitted dyadic observational memory', async () => {
   const { runtime, calls } = createRuntimeMock();
-  runtime.agentCore.getAgent = async () => {
+  runtime.agent.getAgent = async () => {
     throw createNimiError({
       message: 'agent missing',
       reasonCode: 'RUNTIME_GRPC_NOT_FOUND',
-      actionHint: 'check_runtime_agent_core',
+      actionHint: 'check_runtime_agent',
       traceId: '',
       retryable: false,
       source: 'runtime',
@@ -325,11 +325,11 @@ test('runtime agent memory adapter writes assistant turns with agent author id a
   assert.ok(candidate);
   assert.equal((((candidate.record as Record<string, unknown>).provenance as Record<string, unknown>).authorId), 'agent-1');
 
-  runtime.agentCore.getAgent = async () => {
+  runtime.agent.getAgent = async () => {
     throw createNimiError({
       message: 'agent missing',
       reasonCode: 'RUNTIME_GRPC_NOT_FOUND',
-      actionHint: 'check_runtime_agent_core',
+      actionHint: 'check_runtime_agent',
       traceId: '',
       retryable: false,
       source: 'runtime',
@@ -357,7 +357,7 @@ test('runtime agent memory adapter writes assistant turns with agent author id a
 
 test('runtime agent memory adapter soft-disables on memory substrate unavailable', async () => {
   const { runtime } = createRuntimeMock();
-  runtime.agentCore.initializeAgent = async () => {
+  runtime.agent.initializeAgent = async () => {
     throw createNimiError({
       message: 'local memory substrate is not configured',
       reasonCode: 'AI_LOCAL_SERVICE_UNAVAILABLE',
@@ -367,11 +367,11 @@ test('runtime agent memory adapter soft-disables on memory substrate unavailable
       source: 'runtime',
     });
   };
-  runtime.agentCore.getAgent = async () => {
+  runtime.agent.getAgent = async () => {
     throw createNimiError({
       message: 'agent missing',
       reasonCode: 'RUNTIME_GRPC_NOT_FOUND',
-      actionHint: 'check_runtime_agent_core',
+      actionHint: 'check_runtime_agent',
       traceId: '',
       retryable: false,
       source: 'runtime',
@@ -400,8 +400,8 @@ test('runtime agent memory adapter soft-disables on memory substrate unavailable
     assert.deepEqual(accepted, []);
   });
 
-  runtime.agentCore.getAgent = async () => ({});
-  runtime.agentCore.queryMemory = async () => {
+  runtime.agent.getAgent = async () => ({});
+  runtime.agent.queryMemory = async () => {
     throw createNimiError({
       message: 'local memory substrate is not configured',
       reasonCode: 'AI_LOCAL_SERVICE_UNAVAILABLE',
@@ -428,14 +428,14 @@ test('runtime agent memory adapter soft-disables on memory substrate unavailable
 
 test('runtime agent memory adapter ignores additive narratives in compatibility queries', async () => {
   const { runtime } = createRuntimeMock();
-  runtime.agentCore.queryMemory = async () => ({
+  runtime.agent.queryMemory = async () => ({
     memories: [
       {
         canonicalClass: MemoryCanonicalClass.PUBLIC_SHARED,
         sourceBank: {
           owner: {
             oneofKind: 'agentCore',
-            agentCore: {
+            agent: {
               agentId: 'agent-1',
             },
           },
@@ -553,7 +553,7 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
         scope: MemoryBankScope.AGENT_CORE,
         owner: {
           oneofKind: 'agentCore',
-          agentCore: {
+          agent: {
             agentId: 'agent-1',
           },
         },
@@ -637,7 +637,7 @@ test('runtime agent memory adapter keeps compatibility queries working when cano
         scope: MemoryBankScope.AGENT_CORE,
         owner: {
           oneofKind: 'agentCore',
-          agentCore: {
+          agent: {
             agentId: 'agent-1',
           },
         },
@@ -796,7 +796,7 @@ test('runtime agent memory adapter forwards chat sidecar input through app messa
   const request = calls.sendAppMessage[0];
   assert.ok(request);
   assert.equal(request.fromAppId, 'desktop-test');
-  assert.equal(request.toAppId, 'runtime.agentcore');
+  assert.equal(request.toAppId, 'runtime.agent.internal.chat_track_sidecar');
   assert.equal(request.subjectUserId, 'user-1');
   assert.equal(request.messageType, 'agent.chat_track.sidecar_input.v1');
   assert.equal(request.requireAck, false);
@@ -864,7 +864,7 @@ test('canonical memory view compatibility projection stays runtime-owned', async
       metadata: undefined,
     },
     recallScore: 0.5,
-    policyReason: 'runtime_agent_core_projection',
+    policyReason: 'runtime_agent_projection',
   });
 
   assert.deepEqual(record, {
@@ -877,8 +877,8 @@ test('canonical memory view compatibility projection stays runtime-owned', async
     createdBy: 'agent-1',
     effectClass: 'MEMORY_ONLY',
     importance: 1,
-    reason: 'runtime_agent_core_projection',
-    schemaId: 'runtime.agent_core.canonical_memory',
+    reason: 'runtime_agent_projection',
+    schemaId: 'runtime.agent.canonical_memory',
     schemaVersion: '1',
     sessionId: 'thread-7',
     type: 'DYADIC',

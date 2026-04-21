@@ -5,6 +5,7 @@ import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/nimi-k
 import {
   generateChatAgentImageRuntime,
   invokeChatAgentRuntime,
+  streamChatAgentRuntimeAgentTurn,
   submitChatAgentVoiceWorkflowRuntime,
   streamChatAgentRuntime,
   synthesizeChatAgentVoiceRuntime,
@@ -19,10 +20,14 @@ import type {
 
 export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChatRuntimeAdapter {
   return {
+    async streamAgentTurn(request) {
+      return streamChatAgentRuntimeAgentTurn(request);
+    },
     async streamText(request) {
       const result = await streamChatAgentRuntime({
         agentId: request.agentId,
         prompt: request.prompt,
+        history: request.history,
         messages: request.messages,
         systemPrompt: request.systemPrompt,
         maxOutputTokensRequested: request.maxOutputTokensRequested,
@@ -42,6 +47,7 @@ export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChat
       return invokeChatAgentRuntime({
         agentId: request.agentId,
         prompt: request.prompt,
+        history: request.history,
         messages: request.messages,
         systemPrompt: request.systemPrompt,
         maxOutputTokensRequested: request.maxOutputTokensRequested,

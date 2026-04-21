@@ -76,7 +76,7 @@ surfaces:
     surface_profile: secondary
     exception_policy: none
     testid_required: false
-    source_rule: D-SHELL-031
+    source_rule: D-SHELL-037
   - id: chat.avatar.live2d.viewport_exception
     module: features/chat/chat-agent-avatar-live2d-viewport.tsx
     role: chat_avatar_live2d_viewport_exception

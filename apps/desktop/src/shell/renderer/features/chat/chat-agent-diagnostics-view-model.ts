@@ -71,6 +71,7 @@ function hasRecentTurn(lifecycle: AgentTurnLifecycleState | null): boolean {
   return lifecycle.terminal !== 'running'
     || Boolean(lifecycle.traceId)
     || Boolean(lifecycle.promptTraceId)
+    || Boolean(lifecycle.runtimeAgentChat)
     || Boolean(lifecycle.outputText)
     || Boolean(lifecycle.reasoningText)
     || Boolean(lifecycle.error)
@@ -139,6 +140,31 @@ function buildTraceCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCar
     label: 'Trace',
     value: lifecycle.traceId || '-',
     detail: lifecycle.promptTraceId ? `promptTraceId=${lifecycle.promptTraceId}` : null,
+  };
+}
+
+function buildRuntimeAgentChatCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCardData | null {
+  if (!lifecycle.runtimeAgentChat) {
+    return null;
+  }
+  return {
+    key: 'turn-runtime-agent-chat',
+    label: 'Runtime Chat',
+    value: lifecycle.runtimeAgentChat.sessionId || 'Captured',
+    detail: joinDetails([
+      lifecycle.runtimeAgentChat.runtimeTurnId
+        ? `runtimeTurnId=${lifecycle.runtimeAgentChat.runtimeTurnId}`
+        : null,
+      lifecycle.runtimeAgentChat.route
+        ? `route=${lifecycle.runtimeAgentChat.route}`
+        : null,
+      lifecycle.runtimeAgentChat.modelId
+        ? `modelId=${lifecycle.runtimeAgentChat.modelId}`
+        : null,
+      lifecycle.runtimeAgentChat.connectorId
+        ? `connectorId=${lifecycle.runtimeAgentChat.connectorId}`
+        : null,
+    ]),
   };
 }
 
@@ -614,6 +640,7 @@ export function buildAgentDiagnosticsViewModel(input: {
     turnCards: [
       buildTurnStatusCard(lifecycle),
       buildTraceCard(lifecycle),
+      buildRuntimeAgentChatCard(lifecycle),
       buildFinishCard(lifecycle),
       buildOutputCard(lifecycle),
       buildBudgetCard(lifecycle),

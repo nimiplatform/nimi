@@ -39,7 +39,7 @@ function timestampToMs(timestamp?: { seconds: string; nanos: number }): number {
 function requireSubjectUserId(): string {
   const subjectUserId = normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
   if (!subjectUserId) {
-    throw new Error('desktop agent chat requires authenticated subject user id for runtime.agentCore');
+    throw new Error('desktop agent chat requires authenticated subject user id for runtime.agent');
   }
   return subjectUserId;
 }

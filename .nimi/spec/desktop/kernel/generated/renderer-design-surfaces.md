@@ -14,7 +14,7 @@
 | `chat.target_selector.surface` | `features/chat/chat-target-selector.tsx` | `chat_target_selector_surface` | `secondary` | `none` | `D-SHELL-030` |
 | `chat.inspect.operational` | `features/chat/chat-runtime-inspect-content.tsx` | `chat_runtime_inspect_operational` | `secondary` | `none` | `D-SHELL-030` |
 | `chat.diagnostics.operational` | `features/chat/chat-agent-diagnostics.tsx` | `chat_agent_diagnostics_operational` | `secondary` | `none` | `D-SHELL-030` |
-| `chat.canonical.conversation_shell_adapter` | `features/chat/chat-human-canonical-components.tsx` | `chat_canonical_conversation_shell_adapter` | `secondary` | `none` | `D-SHELL-031` |
+| `chat.canonical.conversation_shell_adapter` | `features/chat/chat-human-canonical-components.tsx` | `chat_canonical_conversation_shell_adapter` | `secondary` | `none` | `D-SHELL-037` |
 | `chat.avatar.live2d.viewport_exception` | `features/chat/chat-agent-avatar-live2d-viewport.tsx` | `chat_avatar_live2d_viewport_exception` | `exception` | `controlled` | `D-SHELL-031` |
 | `chat.avatar.vrm.viewport_exception` | `features/chat/chat-agent-avatar-vrm-viewport.tsx` | `chat_avatar_vrm_viewport_exception` | `exception` | `controlled` | `D-SHELL-031` |
 | `explore.view.root` | `features/explore/explore-view.tsx` | `explore_root` | `baseline` | `allowlisted_arbitrary` | `D-SHELL-019` |

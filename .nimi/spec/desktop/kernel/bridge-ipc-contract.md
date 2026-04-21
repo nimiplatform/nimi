@@ -184,7 +184,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 **SDK gRPC 路径**（D-BOOT-004 → SDK Runtime client）：
 - 应用层 Runtime 能力：AI 推理（ExecuteScenario、StreamScenario）、Connector 管理（CreateConnector、ListConnectors 等）、Auth/Grant（RegisterApp、OpenSession 等）、场景任务（SubmitScenarioJob 等）
 - 本地资产控制面：`RuntimeLocalService` 负责 local asset inventory 的 list、import/install、health/readiness、intake、audit、transfer session 与 progress watch；`StartLocalAsset` / `StopLocalAsset` 保留为 runtime 维护能力，不是 Desktop 产品主路径
-- agent presentation projection：runtime-owned persistent `AgentPresentationProfile` 通过 `runtime.agentCore.*` 暴露；Desktop avatar current-surface state 不得借道升格为 IPC canonical truth
+- agent presentation projection：runtime-owned persistent `AgentPresentationProfile` 通过 `runtime.agent.*` 暴露；Desktop avatar current-surface state 不得借道升格为 IPC canonical truth
 - Phase 1 健康监控（GetRuntimeHealth、ListAIProviderHealth、SubscribeRuntimeHealthEvents、SubscribeAIProviderHealthEvents）— 见 S-TRANSPORT-007 Mode D Phase 1 投影
 - Phase 2 服务（Workflow、Knowledge、Audit、AppMessage、Script）
 

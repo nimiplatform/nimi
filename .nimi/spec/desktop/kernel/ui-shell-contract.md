@@ -540,6 +540,130 @@ Fixed rules:
   projection must be defined in the consuming surface authority instead of
   backfilling a second shell-local or feature-local raw attention owner
 
+## D-SHELL-034 — Desktop Agent Chat Occupancy Rectangle Authority
+
+For the admitted desktop obstacle-aware transcript-flow line, `UI Shell` is the
+sole canonical owner of the occupancy rectangle consumed by transcript reflow.
+
+The admitted rectangle fields are:
+
+- `x`
+- `y`
+- `width`
+- `height`
+- `wrap_policy`
+
+Fixed rules:
+
+- the rectangle is transcript geometry truth, not avatar interaction truth,
+  renderer-local footprint truth, or runtime presentation truth
+- only one shell-owned right-dock occupancy rectangle is admitted in the first
+  desktop line
+- `UI Shell` owns transcript geometry, transcript viewport coordinates, scroll
+  root, composer clearance, occupancy clamping, final rectangle derivation, and
+  reflow trigger policy
+- `Agent Avatar Surface` may expose only non-canonical advisory inputs such as
+  `preferred_anchor` or `preferred_footprint_hint`; it must not own admitted
+  occupancy rectangle truth
+- `kit/features/chat` may consume shell-owned occupancy geometry only; it must
+  not derive admitted rectangle truth from avatar viewport state or slot output
+- runtime remains a non-owner of occupancy rectangle truth, transcript
+  geometry, and shell-local scene/layout state
+
+## D-SHELL-035 — Desktop Agent Chat Obstacle-Flow Taxonomy
+
+For the admitted desktop obstacle-aware transcript-flow line, only an explicit
+shell-owned flowing whitelist may participate in obstacle-aware transcript
+reflow.
+
+Admitted flowing blocks:
+
+- `paragraph text`
+- `heading text`
+- `list item text`
+- `quote text`
+
+These blocks may flow only when their inline children remain pure-text inline
+content.
+
+Fixed blocks:
+
+- `code fence`
+- `inline code`
+- `table`
+- `image block`
+- `video block`
+- `audio block`
+- `attachment block`
+- `inline image`
+- `HTML block`
+- `math block`
+- `custom embedded component`
+- `mixed-media block`
+- transcript shell chrome such as streaming / typing bubble, date separator,
+  loading / error / empty state / banner / history intro, and pending media
+  placeholder blocks
+
+Fixed rules:
+
+- any unknown, unclassified, or newly introduced block kind must fail closed to
+  `fixed`
+- parser, renderer, slot output, or engine capability must not silently widen
+  the flowing whitelist
+- `UI Shell` owns the admitted flowing/fixed classification used for obstacle
+  flow
+- `kit/features/chat` and desktop adapters must consume this taxonomy and must
+  not reclassify block kinds locally
+
+## D-SHELL-036 — Desktop Agent Chat Transcript Stability Invariants
+
+For the admitted desktop obstacle-aware transcript-flow line, transcript
+stability invariants are shell-owned canonical truth.
+
+Fixed invariants:
+
+- transcript history has exactly one canonical scroll root
+- composer clearance is shell-owned admitted geometry truth
+- occupancy change may trigger reflow only on discrete shell-admitted state
+  transitions
+- per-frame movement, animation ticks, transform sampling, physics motion, or
+  pointer-driven updates must not trigger transcript reflow
+- admitted occupancy must remain frozen while transcript streaming or
+  pending-first-beat growth is active
+- near-bottom detection and bottom-follow behavior remain shell-owned
+
+Fixed rules:
+
+- renderer, adapter, slot, or DOM-measurement logic may support implementation,
+  but they must not become canonical owners of scroll anchoring, composer
+  clearance, reflow timing, transcript root ownership, or bottom-follow
+  behavior
+- desktop-local obstacle-aware behavior must not fork grouping,
+  virtualization, or transcript scroll truth away from the canonical shell path
+
+## D-SHELL-037 — Desktop Chat Obstacle-Flow Kit Exception Consumer Boundary
+
+For the admitted desktop obstacle-aware transcript-flow line,
+`kit/features/chat` remains a desktop-controlled exception consumer rather than
+reopened shared canonical shell ownership.
+
+Fixed rules:
+
+- desktop `UI Shell` owns the occupancy-aware shell truth for this admitted
+  desktop line
+- `kit/features/chat` remains the shared parity owner outside that line
+- `kit/features/chat` may consume desktop-injected occupancy geometry or
+  taxonomy only through the canonical adapter surface; it must not become a
+  shadow transcript shell owner
+- `chat-human-canonical-components.tsx` remains an adapter surface and must not
+  bypass `CanonicalTranscriptView`, fork grouping/virtualization/scroll-root
+  truth, or rebuild a second bubble container through slot APIs
+- `tables/renderer-design-surfaces.yaml` must keep
+  `chat.canonical.conversation_shell_adapter` as the registered adapter surface
+  for this posture
+- any future widening into shared non-desktop shell truth requires an explicit
+  separate authority reopen
+
 ## Fact Sources
 
 - `tables/app-tabs.yaml` — 导航 Tab 枚举

@@ -19,6 +19,17 @@ export type AgentTextTurnDebugMetadata = {
   followUpCanceledByUser: boolean;
   followUpSourceActionId: string | null;
   followUpDelayMs: number | null;
+  runtimeAgentChat?: {
+    transport: 'runtime.agent';
+    sessionId: string | null;
+    runtimeTurnId: string | null;
+    route: string | null;
+    modelId: string | null;
+    connectorId: string | null;
+    traceId: string | null;
+    modelResolved: string | null;
+    routeDecision: string | null;
+  } | null;
 };
 
 function normalizeText(value: unknown): string {
@@ -50,6 +61,27 @@ function parseStatusCue(value: unknown): AgentResolvedStatusCue | null {
     ...(label ? { label } : {}),
     ...(intensity != null ? { intensity } : {}),
     ...(actionCue ? { actionCue } : {}),
+  };
+}
+
+function parseRuntimeAgentChat(value: unknown): AgentTextTurnDebugMetadata['runtimeAgentChat'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  if (normalizeNullableText(record.transport) !== 'runtime.agent') {
+    return null;
+  }
+  return {
+    transport: 'runtime.agent',
+    sessionId: normalizeNullableText(record.sessionId),
+    runtimeTurnId: normalizeNullableText(record.runtimeTurnId),
+    route: normalizeNullableText(record.route),
+    modelId: normalizeNullableText(record.modelId),
+    connectorId: normalizeNullableText(record.connectorId),
+    traceId: normalizeNullableText(record.traceId),
+    modelResolved: normalizeNullableText(record.modelResolved),
+    routeDecision: normalizeNullableText(record.routeDecision),
   };
 }
 
@@ -92,6 +124,7 @@ export function buildAgentTextTurnDebugMetadata(
     followUpDelayMs: Number.isFinite(Number(options?.followUpDelayMs))
       ? Number(options?.followUpDelayMs)
       : null,
+    runtimeAgentChat: null,
   } satisfies AgentTextTurnDebugMetadata;
 }
 
@@ -128,5 +161,6 @@ export function parseAgentTextTurnDebugMetadata(value: unknown): AgentTextTurnDe
     followUpDelayMs: Number.isFinite(Number(record.followUpDelayMs))
       ? Number(record.followUpDelayMs)
       : null,
+    runtimeAgentChat: parseRuntimeAgentChat(record.runtimeAgentChat),
   };
 }

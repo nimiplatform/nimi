@@ -15,7 +15,7 @@ Agent chat 的行为语义 owner 不在本文件。本契约只允许 capability
 `resolvedTurnMode`、`resolvedExperiencePolicy`，以及
 `agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）产出的 resolved
 message/action outputs。selection、projection、overlay、snapshot 或 bootstrap
-builder 不得重定义 single-message semantics、follow-up-turn action、modality action
+builder 不得重定义 single-message semantics、deferred continuation / HookIntent semantics、modality action
 envelope、model-generated modality prompt payload、或这些 behavior truths。
 
 ## D-LLM-015 — Authority Map And Bootstrap Home
@@ -176,7 +176,7 @@ Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
   layer 不得从 healthy projection 反推 action existence
 - `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` projection healthy 同样只表达
   execution readiness；某个 richer workflow 是否被 admit、属于哪种 workflow type、
-  使用什么 voice identity、以及 workflow result 如何回到当前 thread，固定由
+  使用什么 voice identity、以及 workflow result 如何回到当前 conversation anchor，固定由
   `agent-chat-voice-workflow-contract.md`（`D-LLM-047` ~ `D-LLM-052`）拥有，capability
   layer 不得从 healthy projection 反推 workflow semantics
 - `audio.synthesize` 或 `voice_workflow.*` projection healthy 同样只表达 execution
@@ -185,7 +185,7 @@ Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
   （`D-LLM-034` ~ `D-LLM-039`）拥有，capability layer 不得从 healthy projection 反推
   executor success truth
 - `audio.transcribe`、`audio.synthesize`、或 `voice_workflow.*` projection healthy 也不表达
-  broader voice session 已被 admit；explicit entry / exit、same-thread continuity、
+  broader voice session 已被 admit；explicit entry / exit、same-anchor continuity、
   admitted listening modes、interruption、以及 transcript / caption rules 固定由
   `agent-chat-voice-session-contract.md`（`D-LLM-040` ~ `D-LLM-046`）拥有，capability layer
   不得从 healthy projection 反推 session semantics
@@ -201,10 +201,13 @@ Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
   evidence，也只能作为对 `agent-chat-behavior-contract.md`
   （`D-LLM-022` ~ `D-LLM-025`）的只读引用或副本；snapshot 不得成为 behavior
   resolution 的平行 owner
-- snapshot 若携带 resolved message、follow-up-turn、resolved modality action、或
+- snapshot 若携带 resolved message、resolved immediate post-turn action、或
   `promptPayload` evidence，也只能作为对
   `agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）的只读引用或副本；
   snapshot 不得成为 message/action resolution 的平行 owner
+- snapshot 若携带 deferred continuation / `HookIntent` proposal、admission、或 outcome
+  evidence，也只能作为对 `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
+  的只读引用或副本；snapshot 不得成为 deferred continuation product semantics 的平行 owner
 - snapshot 若携带 richer voice workflow admission、workflow type、voice identity /
   `VoiceReference`、preset/custom voice selection、或 workflow return-path evidence，
   也只能作为对 `agent-chat-voice-workflow-contract.md`
@@ -235,11 +238,16 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
 - AI / Agent submit path 若还需要 `resolvedTurnMode`、`resolvedExperiencePolicy`，必须消费
   `agent-chat-behavior-contract.md` 定义的 behavior outputs；不得经由
   `runtimeFields` 再派生一份平行 behavior truth
-- AI / Agent submit path 若还需要 resolved message、follow-up-turn、resolved modality
-  action、或 model-generated modality prompt payload，必须消费
+- AI / Agent submit path 若还需要 resolved message、resolved immediate post-turn action、
+  或 model-generated modality prompt payload，必须消费
   `agent-chat-message-action-contract.md` 定义的 resolved message/action outputs；不得经由
   capability health、metadata、`runtimeFields`、或 connector/model 默认值派生一份
   平行 message/action truth
+- AI / Agent submit path 若还需要 deferred continuation / `HookIntent` proposal、
+  admission、或 outcome 决策，必须消费
+  `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md` 定义的 runtime-owned outputs；
+  不得经由 capability health、`runtimeFields`、scheduler queues、或 UI local state
+  派生一份平行 deferred continuation truth
 - AI / Agent submit path 若还需要 richer voice workflow admission、workflow type、
   agent chat voice identity / `VoiceReference`、preset/custom voice selection、或
   workflow return-path 决策，必须消费

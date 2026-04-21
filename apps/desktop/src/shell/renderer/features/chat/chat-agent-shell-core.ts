@@ -99,6 +99,7 @@ export function toConversationHistoryMessages(
       id: message.id,
       role: message.role,
       text,
+      metadata: message.metadataJson || undefined,
     }];
   });
 }

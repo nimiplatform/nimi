@@ -1,4 +1,5 @@
 import type { ConversationRuntimeTextMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationTurnHistoryMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type {
   buildRuntimeCallOptions,
   buildRuntimeRequestMetadata,
@@ -23,6 +24,7 @@ import type { AgentVoicePlaybackCueEnvelope } from './chat-agent-voice-playback-
 export type ChatAgentRuntimeInvokeInput = {
   agentId: string;
   prompt?: string;
+  history?: readonly ConversationTurnHistoryMessage[];
   messages?: readonly ConversationRuntimeTextMessage[];
   systemPrompt?: string | null;
   maxOutputTokensRequested?: number | null;

@@ -53,16 +53,16 @@ slice-local derived state、thread metadata 或 UI 临时字段都不得拥有
 `ResolvedExperiencePolicy`、`resolvedTurnMode` 的 canonical
 语义，也不得在 hydration / migration 时替这些 resolved outputs 猜默认值。
 
-若 Desktop 为 follow-up-turn 建立 thread-bound pending entry、为 modality action 建立执行投影或
-历史记录，这些字段也只能承载
-`agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）已解析 outputs 的
-projection / lifecycle evidence。store、hydration、migration、timer recovery、或
-UI state 不得决定 follow-up-turn 是否存在、是否继续有效、是否应被 delivery、或
-`promptPayload` 应是什么；缺失合法 resolved message/action outputs 时必须 fail-close。
+若 Desktop 为 runtime-owned deferred continuation / `HookIntent` 建立 anchor-bound pending
+indicator、为 modality action 建立执行投影或历史记录，这些字段也只能承载 admitted resolved
+outputs 的 projection / lifecycle evidence。store、hydration、migration、timer recovery、或
+UI state 不得决定 deferred continuation / `HookIntent` 是否存在、是否继续有效、是否应被
+delivery、或 `promptPayload` 应是什么；缺失合法 resolved message/action outputs 或
+runtime-owned hook outputs 时必须 fail-close。
 
-当前 admitted follow-up pending state 只允许 process-local ownership；持久化 store 不得在
-hydration 后自动恢复旧 pending follow-up timer，也不得把 thread metadata 升格成递归
-follow-up chain 的 owner。
+当前 admitted pending continuation state 只允许 process-local projection ownership；
+持久化 store 不得在 hydration 后自动恢复旧 pending continuation timer，也不得把
+thread/anchor metadata 升格成递归 continuation chain 的 owner。
 
 ## D-STATE-003 — Mod Workspace Slice
 

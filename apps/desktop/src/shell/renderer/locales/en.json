@@ -830,7 +830,7 @@
     "agentDiagnosticsAutonomyModeLabel": "Autonomy mode",
     "agentDiagnosticsAutonomyOffNeedsModeDetail": "Apply a non-off autonomy mode before enabling runtime-owned life-track behavior.",
     "agentDiagnosticsAvatarOverrideTitle": "Avatar Override",
-    "agentDiagnosticsAvatarOverrideDetail": "Debug-only override for avatar phase and mood. Does not mutate RuntimeAgentCore status.",
+    "agentDiagnosticsAvatarOverrideDetail": "Debug-only override for avatar phase and mood. Does not mutate RuntimeAgent status.",
     "agentDiagnosticsAvatarOverridePhaseLabel": "Phase",
     "agentDiagnosticsAvatarOverrideEmotionLabel": "Mood",
     "agentDiagnosticsAvatarOverrideAmplitudeLabel": "Amplitude",

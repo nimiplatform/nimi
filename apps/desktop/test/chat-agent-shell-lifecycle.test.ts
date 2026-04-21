@@ -35,6 +35,14 @@ test('agent shell lifecycle keeps projection rebuild and completed terminal stat
         traceId: 'trace-1',
         promptTraceId: 'prompt-1',
       },
+      diagnostics: {
+        transport: 'runtime.agent',
+        sessionId: 'session-1',
+        runtimeTurnId: 'runtime-turn-1',
+        route: 'local',
+        modelId: 'kimi-k2',
+        connectorId: null,
+      },
     },
   ]);
 
@@ -44,6 +52,14 @@ test('agent shell lifecycle keeps projection rebuild and completed terminal stat
   assert.equal(completed.reasoningText, 'hidden');
   assert.equal(completed.traceId, 'trace-1');
   assert.equal(completed.promptTraceId, 'prompt-1');
+  assert.deepEqual(completed.runtimeAgentChat, {
+    transport: 'runtime.agent',
+    sessionId: 'session-1',
+    runtimeTurnId: 'runtime-turn-1',
+    route: 'local',
+    modelId: 'kimi-k2',
+    connectorId: null,
+  });
   assert.deepEqual(completed.usage, {
     inputTokens: 11,
     outputTokens: 22,
@@ -93,6 +109,63 @@ test('agent shell lifecycle captures canceled terminals and stays fail-close on 
   assert.equal(state.outputText, 'sealed first beat');
   assert.equal(state.traceId, 'trace-cancel');
   assert.throws(() => assertAgentTurnLifecycleCompleted(state), /terminal success event/);
+});
+
+test('agent shell lifecycle preserves runtime.agent session evidence on failed and canceled terminals', () => {
+  const failedState = applyEvents([{
+    type: 'turn-failed',
+    turnId: 'turn-failed',
+    error: {
+      code: 'RUNTIME_AGENT_CHAT_FAILED',
+      message: 'runtime failed',
+    },
+    trace: {
+      traceId: 'trace-runtime-fail',
+      promptTraceId: 'prompt-runtime-fail',
+    },
+    diagnostics: {
+      transport: 'runtime.agent',
+      sessionId: 'session-runtime-fail',
+      runtimeTurnId: 'runtime-turn-fail',
+      route: 'cloud',
+      modelId: 'gpt-5.4-mini',
+      connectorId: 'connector-openai',
+    },
+  }]);
+  const canceledState = applyEvents([{
+    type: 'turn-canceled',
+    turnId: 'turn-canceled',
+    scope: 'turn',
+    trace: {
+      traceId: 'trace-runtime-cancel',
+      promptTraceId: 'prompt-runtime-cancel',
+    },
+    diagnostics: {
+      transport: 'runtime.agent',
+      sessionId: 'session-runtime-cancel',
+      runtimeTurnId: 'runtime-turn-cancel',
+      route: 'local',
+      modelId: 'kimi-k2',
+      connectorId: null,
+    },
+  }]);
+
+  assert.deepEqual(failedState.runtimeAgentChat, {
+    transport: 'runtime.agent',
+    sessionId: 'session-runtime-fail',
+    runtimeTurnId: 'runtime-turn-fail',
+    route: 'cloud',
+    modelId: 'gpt-5.4-mini',
+    connectorId: 'connector-openai',
+  });
+  assert.deepEqual(canceledState.runtimeAgentChat, {
+    transport: 'runtime.agent',
+    sessionId: 'session-runtime-cancel',
+    runtimeTurnId: 'runtime-turn-cancel',
+    route: 'local',
+    modelId: 'kimi-k2',
+    connectorId: null,
+  });
 });
 
 test('agent shell lifecycle fails close when provider exits without terminal success event', () => {

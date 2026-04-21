@@ -27,6 +27,7 @@ export {
   streamChatAgentRuntime,
   toChatAgentRuntimeError,
 } from './chat-agent-runtime-text';
+export { streamChatAgentRuntimeAgentTurn } from './chat-agent-runtime-agent';
 export { generateChatAgentImageRuntime } from './chat-agent-runtime-image';
 export {
   pollChatAgentVoiceWorkflowRuntime,

@@ -3,14 +3,14 @@ import test from 'node:test';
 import { MemoryCanonicalClass } from '@nimiplatform/sdk/runtime';
 import type { DesktopAgentMemoryRecord } from '../src/shell/renderer/infra/runtime-agent-memory';
 import {
-  createAgentCoreDataCapabilityHandlers,
-  resetAgentCoreDataStateForTesting,
+  createRuntimeAgentDataCapabilityHandlers,
+  resetRuntimeAgentDataStateForTesting,
 } from '../src/shell/renderer/infra/bootstrap/core-capabilities';
 
 function makeMemoryRecord(id: string, overrides: Partial<DesktopAgentMemoryRecord> = {}): DesktopAgentMemoryRecord {
   return {
     actorRefs: [],
-    appId: 'runtime.agentCore',
+    appId: 'runtime.agent',
     commitId: `${id}-commit`,
     id,
     content: `${id} content`,
@@ -19,7 +19,7 @@ function makeMemoryRecord(id: string, overrides: Partial<DesktopAgentMemoryRecor
     effectClass: 'MEMORY_ONLY',
     importance: 1,
     reason: 'runtime projection',
-    schemaId: 'runtime.agent_core.canonical_memory',
+    schemaId: 'runtime.agent.canonical_memory',
     schemaVersion: '1',
     sessionId: 'desktop-test-session',
     type: 'PUBLIC_SHARED',
@@ -31,10 +31,10 @@ function makeMemoryRecord(id: string, overrides: Partial<DesktopAgentMemoryRecor
 }
 
 test('agent memory core list is runtime-only and rejects missing agentId or offset', async () => {
-  resetAgentCoreDataStateForTesting();
+  resetRuntimeAgentDataStateForTesting();
 
   const calls: Array<Record<string, unknown>> = [];
-  const handlers = createAgentCoreDataCapabilityHandlers({
+  const handlers = createRuntimeAgentDataCapabilityHandlers({
     runtimeMemory: {
       queryCompatibilityRecords: async (input) => {
         calls.push(input as unknown as Record<string, unknown>);
@@ -71,7 +71,7 @@ test('agent memory core list is runtime-only and rejects missing agentId or offs
     includeInvalidated: false,
   });
 
-  const failingHandlers = createAgentCoreDataCapabilityHandlers({
+  const failingHandlers = createRuntimeAgentDataCapabilityHandlers({
     runtimeMemory: {
       queryCompatibilityRecords: async () => {
         throw new Error('RUNTIME_GRPC_NOT_FOUND');
@@ -85,10 +85,10 @@ test('agent memory core list is runtime-only and rejects missing agentId or offs
 });
 
 test('agent memory dyadic and e2e list require user context and map to runtime dyadic reads', async () => {
-  resetAgentCoreDataStateForTesting();
+  resetRuntimeAgentDataStateForTesting();
 
   const calls: Array<Record<string, unknown>> = [];
-  const handlers = createAgentCoreDataCapabilityHandlers({
+  const handlers = createRuntimeAgentDataCapabilityHandlers({
     resolveCurrentUserId: async () => 'user-1',
     runtimeMemory: {
       queryCompatibilityRecords: async (input) => {
@@ -98,7 +98,7 @@ test('agent memory dyadic and e2e list require user context and map to runtime d
     },
   });
 
-  const missingUserHandlers = createAgentCoreDataCapabilityHandlers({
+  const missingUserHandlers = createRuntimeAgentDataCapabilityHandlers({
     resolveCurrentUserId: async () => undefined,
     runtimeMemory: {
       queryCompatibilityRecords: async () => [],
@@ -147,10 +147,10 @@ test('agent memory dyadic and e2e list require user context and map to runtime d
 });
 
 test('agent memory recall for entity fans out to public_shared and dyadic runtime reads', async () => {
-  resetAgentCoreDataStateForTesting();
+  resetRuntimeAgentDataStateForTesting();
 
   const calls: Array<Record<string, unknown>> = [];
-  const handlers = createAgentCoreDataCapabilityHandlers({
+  const handlers = createRuntimeAgentDataCapabilityHandlers({
     runtimeMemory: {
       queryCompatibilityRecords: async (input) => {
         calls.push(input as unknown as Record<string, unknown>);
@@ -182,9 +182,9 @@ test('agent memory recall for entity fans out to public_shared and dyadic runtim
 });
 
 test('agent memory profiles fail closed while stats soft-disable to zero counts', async () => {
-  resetAgentCoreDataStateForTesting();
+  resetRuntimeAgentDataStateForTesting();
 
-  const handlers = createAgentCoreDataCapabilityHandlers();
+  const handlers = createRuntimeAgentDataCapabilityHandlers();
   await assert.rejects(
     () => handlers.agentMemoryProfilesList({ agentId: 'agent-profiles' }),
     /AGENT_MEMORY_PROFILES_UNSUPPORTED_BY_RUNTIME_AUTHORITY/,

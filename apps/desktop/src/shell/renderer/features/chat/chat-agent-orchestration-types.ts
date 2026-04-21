@@ -1,7 +1,12 @@
 import type {
+  ConversationTurnHistoryMessage,
+  ConversationRuntimeTrace,
   ConversationRuntimeTextMessage,
   ConversationRuntimeTextStreamPart,
+  ConversationRuntimeUsage,
+  ConversationTurnError,
 } from '@nimiplatform/nimi-kit/features/chat';
+import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type {
   AgentLocalTargetSnapshot,
@@ -10,6 +15,7 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import type { ChatThinkingPreference } from './chat-thinking';
 import type {
   AgentResolvedBehavior,
+  AgentResolvedMessageActionEnvelope,
 } from './chat-agent-behavior';
 import type {
   AgentEffectiveCapabilityResolution,
@@ -52,6 +58,7 @@ export type AgentPendingFollowUpEntry = {
 export type AgentLocalChatRuntimeRequest = {
   agentId: string;
   prompt?: string;
+  history?: readonly ConversationTurnHistoryMessage[];
   messages?: readonly ConversationRuntimeTextMessage[];
   systemPrompt?: string | null;
   maxOutputTokensRequested?: number | null;
@@ -79,7 +86,49 @@ export type AgentLocalChatVoiceRequest = {
 
 export type AgentLocalChatVoiceWorkflowRequest = ChatAgentVoiceWorkflowSubmitInput;
 
+export type AgentLocalChatTurnStreamPart =
+  | {
+    type: 'reasoning-delta';
+    textDelta: string;
+  }
+  | {
+    type: 'message-sealed';
+    envelope: AgentResolvedMessageActionEnvelope;
+    trace?: ConversationRuntimeTrace;
+    metadataJson?: JsonObject | null;
+    diagnostics?: Record<string, unknown>;
+  }
+  | {
+    type: 'turn-completed';
+    outputText: string;
+    finishReason?: string;
+    usage?: ConversationRuntimeUsage;
+    trace?: ConversationRuntimeTrace;
+    diagnostics?: Record<string, unknown>;
+  }
+  | {
+    type: 'turn-failed';
+    error: ConversationTurnError;
+    outputText?: string;
+    reasoningText?: string;
+    finishReason?: string;
+    usage?: ConversationRuntimeUsage;
+    trace?: ConversationRuntimeTrace;
+    diagnostics?: Record<string, unknown>;
+  }
+  | {
+    type: 'turn-canceled';
+    scope: 'turn';
+    outputText?: string;
+    reasoningText?: string;
+    trace?: ConversationRuntimeTrace;
+    diagnostics?: Record<string, unknown>;
+  };
+
 export interface AgentLocalChatRuntimeAdapter {
+  streamAgentTurn?: (
+    request: AgentLocalChatRuntimeRequest,
+  ) => Promise<{ stream: AsyncIterable<AgentLocalChatTurnStreamPart> }>;
   streamText: (
     request: AgentLocalChatRuntimeRequest,
   ) => Promise<{ stream: AsyncIterable<ConversationRuntimeTextStreamPart> }>;

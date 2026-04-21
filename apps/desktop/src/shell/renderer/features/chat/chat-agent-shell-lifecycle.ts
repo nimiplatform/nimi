@@ -9,6 +9,15 @@ import {
 
 type AgentTurnTerminalState = 'running' | 'completed' | 'failed' | 'canceled';
 
+export type AgentRuntimeChatLifecycleEvidence = {
+  transport: 'runtime.agent';
+  sessionId: string | null;
+  runtimeTurnId: string | null;
+  route: string | null;
+  modelId: string | null;
+  connectorId: string | null;
+};
+
 export type AgentTurnLifecycleState = {
   projectionVersion: string | null;
   terminal: AgentTurnTerminalState;
@@ -16,6 +25,7 @@ export type AgentTurnLifecycleState = {
   reasoningText: string;
   traceId: string | null;
   promptTraceId: string | null;
+  runtimeAgentChat: AgentRuntimeChatLifecycleEvidence | null;
   error: ConversationTurnError | null;
   usage: { inputTokens?: number; outputTokens?: number } | undefined;
   diagnostics: AgentModelOutputDiagnostics | null;
@@ -29,6 +39,28 @@ function normalizeReasoningText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function parseRuntimeAgentChatLifecycleEvidence(value: unknown): AgentRuntimeChatLifecycleEvidence | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const nested = record.runtimeAgentChat && typeof record.runtimeAgentChat === 'object' && !Array.isArray(record.runtimeAgentChat)
+    ? record.runtimeAgentChat as Record<string, unknown>
+    : record;
+  const transport = normalizeText(nested.transport);
+  if (transport !== 'runtime.agent') {
+    return null;
+  }
+  return {
+    transport: 'runtime.agent',
+    sessionId: normalizeText(nested.sessionId) || null,
+    runtimeTurnId: normalizeText(nested.runtimeTurnId) || null,
+    route: normalizeText(nested.route) || null,
+    modelId: normalizeText(nested.modelId) || null,
+    connectorId: normalizeText(nested.connectorId) || null,
+  };
+}
+
 export function createInitialAgentTurnLifecycleState(): AgentTurnLifecycleState {
   return {
     projectionVersion: null,
@@ -37,6 +69,7 @@ export function createInitialAgentTurnLifecycleState(): AgentTurnLifecycleState 
     reasoningText: '',
     traceId: null,
     promptTraceId: null,
+    runtimeAgentChat: null,
     error: null,
     usage: undefined,
     diagnostics: null,
@@ -61,6 +94,7 @@ export function reduceAgentTurnLifecycleState(
         reasoningText: normalizeReasoningText(event.reasoningText) || state.reasoningText,
         traceId: normalizeText(event.trace?.traceId) || state.traceId,
         promptTraceId: normalizeText(event.trace?.promptTraceId) || state.promptTraceId,
+        runtimeAgentChat: parseRuntimeAgentChatLifecycleEvidence(event.diagnostics) || state.runtimeAgentChat,
         usage: event.usage,
         diagnostics: parseAgentModelOutputDiagnostics(event.diagnostics) || state.diagnostics,
       };
@@ -72,6 +106,7 @@ export function reduceAgentTurnLifecycleState(
         reasoningText: normalizeReasoningText(event.reasoningText) || state.reasoningText,
         traceId: normalizeText(event.trace?.traceId) || state.traceId,
         promptTraceId: normalizeText(event.trace?.promptTraceId) || state.promptTraceId,
+        runtimeAgentChat: parseRuntimeAgentChatLifecycleEvidence(event.diagnostics) || state.runtimeAgentChat,
         error: event.error,
         usage: event.usage || state.usage,
         diagnostics: parseAgentModelOutputDiagnostics(event.diagnostics) || state.diagnostics,
@@ -84,6 +119,7 @@ export function reduceAgentTurnLifecycleState(
         reasoningText: normalizeReasoningText(event.reasoningText) || state.reasoningText,
         traceId: normalizeText(event.trace?.traceId) || state.traceId,
         promptTraceId: normalizeText(event.trace?.promptTraceId) || state.promptTraceId,
+        runtimeAgentChat: parseRuntimeAgentChatLifecycleEvidence(event.diagnostics) || state.runtimeAgentChat,
         usage: event.usage || state.usage,
         diagnostics: parseAgentModelOutputDiagnostics(event.diagnostics) || state.diagnostics,
       };

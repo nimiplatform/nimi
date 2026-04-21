@@ -749,11 +749,11 @@ test('agent local chat execution seam compacts continuity and packs history by b
         },
       ],
     },
-    modelContextTokens: 2000,
+    modelContextTokens: 2400,
   });
 
   assert.equal(request.diagnostics.contextWindowSource, 'route-profile');
-  assert.equal(request.diagnostics.budget.modelContextTokens, 2000);
+  assert.equal(request.diagnostics.budget.modelContextTokens, 2400);
   assert.equal(request.diagnostics.maxOutputTokensRequested, null);
   assert.ok(request.diagnostics.estimate.droppedHistoryMessages > 0);
   assert.ok(request.diagnostics.estimate.droppedRecallEntries > 0);
@@ -807,7 +807,7 @@ test('agent local chat execution seam drops assistant replies whose user turn no
     ],
     userText: 'What should we do next?',
     context: sampleTurnContext(),
-    modelContextTokens: 2000,
+    modelContextTokens: 2400,
   });
 
   assert.ok(request.messages.some((message) => message.text === 'Earlier assistant reply.'));
@@ -1090,6 +1090,249 @@ test('agent local chat provider emits a first-packet text-delta when raw output 
   );
   const firstPacketEvent = events.find((event) => event.type === 'text-delta');
   assert.equal(firstPacketEvent?.type === 'text-delta' ? firstPacketEvent.textDelta : null, '');
+});
+
+test('agent local chat provider prefers runtime.agent structured turns when the adapter exposes them', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamAgentTurn() {
+        async function* stream() {
+          yield { type: 'reasoning-delta' as const, textDelta: 'thinking' };
+          yield {
+            type: 'message-sealed' as const,
+            envelope: {
+              schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+              message: {
+                messageId: 'runtime-message-1',
+                text: 'hello from runtime.agent',
+              },
+              statusCue: {
+                sourceMessageId: 'runtime-message-1',
+                mood: 'focus' as const,
+              },
+              actions: [],
+            },
+            trace: {
+              traceId: 'runtime-trace-1',
+              promptTraceId: 'runtime-trace-1',
+              modelResolved: 'kimi',
+              routeDecision: 'cloud',
+            },
+            diagnostics: {
+              transport: 'runtime.agent',
+              sessionId: 'session-1',
+              runtimeTurnId: 'runtime-turn-1',
+            },
+          };
+          yield {
+            type: 'turn-completed' as const,
+            outputText: 'hello from runtime.agent',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'runtime-trace-1',
+              promptTraceId: 'runtime-trace-1',
+              modelResolved: 'kimi',
+              routeDecision: 'cloud',
+            },
+            diagnostics: {
+              transport: 'runtime.agent',
+              sessionId: 'session-1',
+              runtimeTurnId: 'runtime-turn-1',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+      async streamText() {
+        throw new Error('legacy raw runtime path should not be used');
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:runtime-agent'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput());
+
+  assert.deepEqual(
+    events.map((event) => event.type),
+    [
+      'turn-started',
+      'reasoning-delta',
+      'message-sealed',
+      'projection-rebuilt',
+      'turn-completed',
+    ],
+  );
+  assert.equal(committed.length, 1);
+  assert.equal(committed[0]?.outcome, 'completed');
+  assert.equal(committed[0]?.textMessageState?.messageId, 'runtime-message-1');
+  assert.equal(committed[0]?.events.some((event) => event.type === 'text-delta'), false);
+  assert.equal(
+    String((committed[0]?.textMessageState?.metadataJson?.runtimeAgentChat as Record<string, unknown> | undefined)?.sessionId || ''),
+    'session-1',
+  );
+});
+
+test('agent local chat provider forwards prior runtime.agent session metadata into the next turn request', async () => {
+  const observedHistory: AgentRuntimeStreamRequest['history'][] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamAgentTurn(request) {
+        observedHistory.push(request.history || []);
+        async function* stream() {
+          yield {
+            type: 'message-sealed' as const,
+            envelope: {
+              schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+              message: {
+                messageId: 'runtime-message-reuse',
+                text: 'reused runtime session',
+              },
+              statusCue: null,
+              actions: [],
+            },
+            trace: {
+              traceId: 'runtime-trace-reuse',
+              promptTraceId: 'runtime-trace-reuse',
+            },
+            diagnostics: {
+              transport: 'runtime.agent',
+              sessionId: 'session-reused',
+              runtimeTurnId: 'runtime-turn-reuse',
+            },
+          };
+          yield {
+            type: 'turn-completed' as const,
+            outputText: 'reused runtime session',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'runtime-trace-reuse',
+              promptTraceId: 'runtime-trace-reuse',
+            },
+            diagnostics: {
+              transport: 'runtime.agent',
+              sessionId: 'session-reused',
+              runtimeTurnId: 'runtime-turn-reuse',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter([], 'truth:runtime-agent-reuse'),
+  });
+
+  await collectEvents(provider, sampleTurnInput({
+    history: [{
+      id: 'message-prev-runtime',
+      role: 'assistant',
+      text: 'Previous runtime response',
+      metadata: {
+        runtimeAgentChat: {
+          transport: 'runtime.agent',
+          sessionId: 'session-reused',
+          runtimeTurnId: 'runtime-turn-previous',
+          route: 'local',
+          modelId: 'kimi-k2',
+          connectorId: null,
+        },
+      },
+    }],
+    agentLocalChat: {
+      agentResolution: {
+        ready: true,
+      },
+      textExecutionSnapshot: {
+        conversationCapabilitySlice: {
+          capability: 'text.generate',
+        },
+        resolvedBinding: {
+          source: 'local',
+          provider: 'ollama',
+          modelId: 'kimi-k2',
+          localModelId: 'kimi-k2',
+          localProviderEndpoint: 'http://127.0.0.1:11434',
+        },
+      },
+    },
+  }));
+
+  assert.equal(observedHistory.length, 1);
+  assert.equal(
+    String(((observedHistory[0]?.[0]?.metadata as Record<string, unknown> | undefined)?.runtimeAgentChat as Record<string, unknown> | undefined)?.sessionId || ''),
+    'session-reused',
+  );
+});
+
+test('agent local chat provider does not locally schedule follow-up timers for runtime.agent turns', async () => {
+  const fakeTimers = installFakeTimers();
+  const committed: AgentCommitInput[] = [];
+  try {
+    const provider = createAgentLocalChatConversationProvider({
+      runtimeAdapter: createRuntimeAdapter({
+        async streamAgentTurn() {
+          async function* stream() {
+            yield {
+              type: 'message-sealed' as const,
+              envelope: {
+                schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+                message: {
+                  messageId: 'runtime-message-follow-up',
+                  text: 'I will think about that.',
+                },
+                statusCue: null,
+                actions: [{
+                  actionId: 'action-follow-up',
+                  actionIndex: 0,
+                  actionCount: 1,
+                  modality: 'follow-up-turn' as const,
+                  operation: 'assistant.turn.schedule',
+                  promptPayload: {
+                    kind: 'follow-up-turn' as const,
+                    promptText: 'Follow up later.',
+                    delayMs: 400,
+                  },
+                  sourceMessageId: 'runtime-message-follow-up',
+                  deliveryCoupling: 'after-message' as const,
+                }],
+              },
+              trace: {
+                traceId: 'runtime-trace-follow-up',
+                promptTraceId: 'runtime-trace-follow-up',
+              },
+              diagnostics: {
+                transport: 'runtime.agent',
+                sessionId: 'session-follow-up',
+                runtimeTurnId: 'runtime-turn-follow-up',
+              },
+            };
+            yield {
+              type: 'turn-completed' as const,
+              outputText: 'I will think about that.',
+              finishReason: 'stop',
+              trace: {
+                traceId: 'runtime-trace-follow-up',
+                promptTraceId: 'runtime-trace-follow-up',
+              },
+            };
+          }
+          return { stream: stream() };
+        },
+        async streamText() {
+          throw new Error('legacy raw runtime path should not be used');
+        },
+      }),
+      continuityAdapter: createContinuityAdapter(committed, 'truth:runtime-agent-follow-up'),
+    });
+
+    const events = await collectEvents(provider, sampleTurnInput());
+
+    assert.equal(events.some((event) => event.type === 'projection-rebuilt'), true);
+    assert.equal(committed.length, 1);
+    assert.deepEqual(fakeTimers.getTimerIds(), []);
+  } finally {
+    fakeTimers.restore();
+  }
 });
 
 test('agent local chat provider commits canceled turns with turn scope before the envelope resolves', async () => {
@@ -1570,6 +1813,216 @@ test('agent local chat provider suppresses duplicate follow-up text and stops th
   } finally {
     fakeTimers.restore();
   }
+});
+
+test('agent local chat provider prefers runtime.agent stream for scheduled follow-up compatibility turns when available', async () => {
+  const fakeTimers = installFakeTimers();
+  const committed: AgentCommitInput[] = [];
+  const observedFollowUpHistories: AgentRuntimeStreamRequest['history'][] = [];
+  let invokeTextUsed = false;
+  try {
+    const runtimeAdapter = createRuntimeAdapter({
+      async streamText() {
+        runtimeAdapter.streamAgentTurn = async (request) => {
+          observedFollowUpHistories.push(request.history || []);
+          async function* stream() {
+            yield {
+              type: 'message-sealed' as const,
+              envelope: {
+                schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+                message: {
+                  messageId: 'message-follow-up-runtime-agent',
+                  text: '三秒后我来啦。',
+                },
+                statusCue: null,
+                actions: [],
+              },
+              trace: {
+                traceId: 'trace-follow-up-runtime-agent',
+                promptTraceId: 'trace-follow-up-runtime-agent',
+                modelResolved: 'kimi-k2',
+                routeDecision: 'local',
+              },
+              metadataJson: {
+                debugType: 'agent-text-turn',
+                prompt: String(request.prompt || ''),
+                systemPrompt: String(request.systemPrompt || ''),
+                rawModelOutput: null,
+                normalizedModelOutput: null,
+                statusCue: null,
+                followUpInstruction: null,
+                followUpTurn: false,
+                chainId: null,
+                followUpDepth: null,
+                maxFollowUpTurns: null,
+                followUpCanceledByUser: false,
+                followUpSourceActionId: null,
+                followUpDelayMs: null,
+                runtimeAgentChat: {
+                  transport: 'runtime.agent',
+                  sessionId: 'session-follow-up-runtime-agent',
+                  runtimeTurnId: 'runtime-turn-follow-up-runtime-agent',
+                  route: 'local',
+                  modelId: 'kimi-k2',
+                  connectorId: null,
+                  traceId: 'trace-follow-up-runtime-agent',
+                  modelResolved: 'kimi-k2',
+                  routeDecision: 'local',
+                },
+              },
+              diagnostics: {
+                transport: 'runtime.agent',
+                sessionId: 'session-follow-up-runtime-agent',
+                runtimeTurnId: 'runtime-turn-follow-up-runtime-agent',
+                route: 'local',
+                modelId: 'kimi-k2',
+                connectorId: null,
+              },
+            };
+            yield {
+              type: 'turn-completed' as const,
+              outputText: '三秒后我来啦。',
+              finishReason: 'stop',
+              trace: {
+                traceId: 'trace-follow-up-runtime-agent',
+                promptTraceId: 'trace-follow-up-runtime-agent',
+                modelResolved: 'kimi-k2',
+                routeDecision: 'local',
+              },
+              diagnostics: {
+                transport: 'runtime.agent',
+                sessionId: 'session-follow-up-runtime-agent',
+                runtimeTurnId: 'runtime-turn-follow-up-runtime-agent',
+                route: 'local',
+                modelId: 'kimi-k2',
+                connectorId: null,
+              },
+            };
+          }
+          return { stream: stream() };
+        };
+        const envelopeText = createBeatActionEnvelopeText({
+          beats: [{
+            beatId: 'beat-primary',
+            beatIndex: 0,
+            text: '先回你一句。',
+          }, {
+            beatId: 'beat-follow-up',
+            beatIndex: 1,
+            text: '三秒后再跟进一次。',
+            delayMs: 300,
+          }],
+        });
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield { type: 'text-delta', textDelta: envelopeText };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'trace-follow-up-root',
+              promptTraceId: 'prompt-follow-up-root',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+      async invokeText() {
+        invokeTextUsed = true;
+        throw new Error('invokeText fallback should not be used when streamAgentTurn is available');
+      },
+    });
+    runtimeAdapter.streamAgentTurn = undefined;
+
+    const provider = createAgentLocalChatConversationProvider({
+      runtimeAdapter,
+      continuityAdapter: createContinuityAdapter(committed, 'truth:follow-up-runtime-agent'),
+    });
+
+    const iterator = provider.runTurn(sampleTurnInput())[Symbol.asyncIterator]();
+    await iterator.next();
+    await iterator.next();
+    await iterator.next();
+    await iterator.next();
+    const completionEvent = await iterator.next();
+    assert.equal(completionEvent.value?.type, 'turn-completed');
+
+    const pendingProjection = iterator.next();
+    await Promise.resolve();
+    const delayId = fakeTimers.getTimerIds().find((id) => fakeTimers.getTimerDelay(id) === 300);
+    assert.ok(delayId, 'expected pending follow-up timer');
+    fakeTimers.runTimer(delayId);
+
+    const followUpProjection = await pendingProjection;
+    assert.equal(followUpProjection.value?.type, 'projection-rebuilt');
+
+    const completion = await iterator.next();
+    assert.equal(completion.done, true);
+    assert.equal(invokeTextUsed, false);
+    assert.equal(observedFollowUpHistories.length, 1);
+    assert.equal(committed.length, 2);
+    assert.equal(
+      String((committed[1]?.textMessageState?.metadataJson?.runtimeAgentChat as Record<string, unknown> | undefined)?.sessionId || ''),
+      'session-follow-up-runtime-agent',
+    );
+    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpTurn, true);
+    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpDepth, 1);
+  } finally {
+    fakeTimers.restore();
+  }
+});
+
+test('agent local chat provider fails closed when runtime.agent completes without a structured projection', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamAgentTurn() {
+        async function* stream() {
+          yield {
+            type: 'turn-completed' as const,
+            outputText: 'unstructured runtime completion',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'runtime-trace-missing-structured',
+              promptTraceId: 'runtime-trace-missing-structured',
+              modelResolved: 'kimi-k2',
+              routeDecision: 'local',
+            },
+            diagnostics: {
+              transport: 'runtime.agent',
+              sessionId: 'session-missing-structured',
+              runtimeTurnId: 'runtime-turn-missing-structured',
+              route: 'local',
+              modelId: 'kimi-k2',
+              connectorId: null,
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+      async streamText() {
+        throw new Error('legacy raw runtime path should not be used');
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:runtime-agent-missing-structured'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput());
+
+  assert.equal(committed.length, 1);
+  assert.equal(committed[0]?.outcome, 'failed');
+  assert.equal(events.some((event) => event.type === 'message-sealed'), false);
+  const failedEvent = events.at(-1);
+  assert.equal(failedEvent?.type, 'turn-failed');
+  if (failedEvent?.type !== 'turn-failed') {
+    assert.fail('expected a failed terminal event');
+  }
+  assert.equal(failedEvent.error.code, 'RUNTIME_AGENT_CHAT_INVALID');
+  assert.match(failedEvent.error.message, /completed without structured/i);
+  assert.equal(
+    (failedEvent.diagnostics as Record<string, unknown> | undefined)?.missingStructuredProjection,
+    true,
+  );
 });
 
 test('agent local chat provider stops a pending follow-up chain when the turn signal is aborted', async () => {
@@ -2492,7 +2945,7 @@ test('agent local chat provider completes fenced JSON outputs with recovery diag
 
   const events = await collectEvents(provider, sampleTurnInput({
     agentLocalChat: {
-      textModelContextTokens: 2048,
+      textModelContextTokens: 2400,
       textMaxOutputTokensRequested: 321,
     },
   }));

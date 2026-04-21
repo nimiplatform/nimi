@@ -424,6 +424,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
       followUpCanceledByUser: debugMetadata.followUpCanceledByUser,
       followUpSourceActionId: debugMetadata.followUpSourceActionId,
       followUpDelayMs: debugMetadata.followUpDelayMs,
+      runtimeAgentChat: debugMetadata.runtimeAgentChat,
     }, null, 2);
     void navigator.clipboard.writeText(payload).then(() => {
       setCopied(true);
@@ -443,6 +444,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
     debugMetadata.normalizedModelOutput,
     debugMetadata.prompt,
     debugMetadata.rawModelOutput,
+    debugMetadata.runtimeAgentChat,
     debugMetadata.systemPrompt,
   ]);
   if (!props.debugVisible && !debugMetadata.followUpTurn) {
@@ -539,6 +541,41 @@ export function RuntimeAgentDebugMessageAccessory(props: {
                       : null,
                     debugMetadata.followUpDelayMs !== null
                       ? `delayMs=${debugMetadata.followUpDelayMs}`
+                      : null,
+                  ].filter(Boolean).join('\n')}
+                </pre>
+              </div>
+            ) : null}
+            {debugMetadata.runtimeAgentChat ? (
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+                  Runtime Agent Chat
+                </div>
+                <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
+                  {[
+                    debugMetadata.runtimeAgentChat.sessionId
+                      ? `sessionId=${debugMetadata.runtimeAgentChat.sessionId}`
+                      : null,
+                    debugMetadata.runtimeAgentChat.runtimeTurnId
+                      ? `runtimeTurnId=${debugMetadata.runtimeAgentChat.runtimeTurnId}`
+                      : null,
+                    debugMetadata.runtimeAgentChat.route
+                      ? `route=${debugMetadata.runtimeAgentChat.route}`
+                      : null,
+                    debugMetadata.runtimeAgentChat.modelId
+                      ? `modelId=${debugMetadata.runtimeAgentChat.modelId}`
+                      : null,
+                    debugMetadata.runtimeAgentChat.connectorId
+                      ? `connectorId=${debugMetadata.runtimeAgentChat.connectorId}`
+                      : null,
+                    debugMetadata.runtimeAgentChat.traceId
+                      ? `traceId=${debugMetadata.runtimeAgentChat.traceId}`
+                      : null,
+                    debugMetadata.runtimeAgentChat.modelResolved
+                      ? `modelResolved=${debugMetadata.runtimeAgentChat.modelResolved}`
+                      : null,
+                    debugMetadata.runtimeAgentChat.routeDecision
+                      ? `routeDecision=${debugMetadata.runtimeAgentChat.routeDecision}`
                       : null,
                   ].filter(Boolean).join('\n')}
                 </pre>
