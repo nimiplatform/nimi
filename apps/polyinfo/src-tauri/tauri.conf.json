@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Polyinfo",
+  "version": "0.1.0",
+  "identifier": "app.nimi.polyinfo",
+  "build": {
+    "beforeDevCommand": "pnpm --filter @nimiplatform/polyinfo run dev:renderer",
+    "beforeBuildCommand": "pnpm --filter @nimiplatform/polyinfo run build:renderer",
+    "devUrl": "http://127.0.0.1:1426",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Polyinfo",
+        "url": "/",
+        "width": 1500,
+        "height": 920,
+        "minWidth": 1180,
+        "minHeight": 760,
+        "decorations": true,
+        "resizable": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 14,
+          "y": 24
+        }
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' ipc:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob: file:; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:* wss://ws-subscriptions-clob.polymarket.com;"
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
+    ]
+  }
+}

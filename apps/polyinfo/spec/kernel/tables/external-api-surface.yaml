@@ -2,17 +2,35 @@
 # Authoritative source for upstream Polymarket API usage admitted by this spec.
 
 surfaces:
+  - name: frontend-homepage-html
+    kind: rest
+    provider: polymarket
+    endpoint: GET https://polymarket.com/
+    purpose: Read Polymarket front-end root taxonomy candidates from the homepage navigation
+
+  - name: frontend-filtered-tags-by-slug
+    kind: rest
+    provider: polymarket
+    endpoint: GET https://polymarket.com/api/tags/filteredBySlug
+    purpose: Read left-rail front-end child categories for a selected root taxonomy slug
+
   - name: gamma-tags
     kind: rest
     provider: polymarket
     endpoint: GET /tags
-    purpose: Fetch sector source catalog in v1
+    purpose: Read raw upstream tag facts for secondary inspection only in v1
 
   - name: gamma-events-by-tag
     kind: rest
     provider: polymarket
     endpoint: GET /events
     purpose: Event-first sector discovery scoped by upstream tag
+
+  - name: gamma-events-keyset-by-tag-slug
+    kind: rest
+    provider: polymarket
+    endpoint: GET /events/keyset
+    purpose: Reconstruct the full front-end category to event mapping through keyset pagination
 
   - name: gamma-event-tags
     kind: rest

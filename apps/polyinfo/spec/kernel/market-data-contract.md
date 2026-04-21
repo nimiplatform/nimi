@@ -20,6 +20,23 @@ For sector discovery, Polyinfo is event-first rather than market-list-first.
 - event responses may provide the associated market set
 - app-local tracked markets derive from the discovered event set plus manual curation
 
+## PI-DATA-002A: Front-End Taxonomy Source
+
+Polyinfo v1 sector discovery must follow Polymarket's own front-end taxonomy rather than the raw gamma tag catalog alone.
+
+- root sector candidates come from the Polymarket homepage navigation surface
+- child category candidates come from the Polymarket front-end filtered-tag surface for a selected root slug
+- raw gamma tags remain upstream facts, but they are not the primary user-facing sector directory
+
+## PI-DATA-002B: Full Event Mapping Reconstruction
+
+For a selected front-end category slug, Polyinfo reconstructs the full event mapping by paginating the keyset event endpoint until exhaustion.
+
+- the canonical fetch shape is `tag_slug=<categorySlug>`, `closed=false`, `order=volume_24hr`, `ascending=false`
+- pagination continues through `after_cursor`
+- Polyinfo must preserve both the displayed front-end count and the fetched event count so mismatches are visible during verification
+- this mapping logic is authority for v1 taxonomy inspection screens
+
 ## PI-DATA-003: Price Semantics Alignment
 
 Visible probability in Polyinfo must align with Polymarket front-end semantics.
