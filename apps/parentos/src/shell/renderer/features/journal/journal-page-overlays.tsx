@@ -148,8 +148,11 @@ export function DeleteJournalEntryModal({
   );
 }
 
+export type KeepsakePromptMode = 'enrich' | 'confirm';
+
 export function KeepsakePromptModal({
   open,
+  mode = 'enrich',
   title,
   reason,
   saving,
@@ -159,6 +162,7 @@ export function KeepsakePromptModal({
   onSave,
 }: {
   open: boolean;
+  mode?: KeepsakePromptMode;
   title: string;
   reason: KeepsakeReason | null;
   saving: boolean;
@@ -169,6 +173,26 @@ export function KeepsakePromptModal({
 }) {
   if (!open) return null;
 
+  const copy = mode === 'confirm'
+    ? {
+        ariaLabel: '建议加入珍藏',
+        heading: '要不要把这条加入珍藏？',
+        bannerTitle: '看起来像一个值得珍藏的时刻',
+        bannerBody: '可以顺手补充标题或原因，之后回顾会更清楚。不想收藏点"跳过"就好。',
+        skipLabel: '不用',
+        saveLabel: '加入珍藏',
+        savingLabel: '保存中...',
+      }
+    : {
+        ariaLabel: '补充珍藏信息',
+        heading: '这条已经加入珍藏',
+        bannerTitle: '补充珍藏信息',
+        bannerBody: '可以顺手补充一个标题或珍藏原因，之后在回顾时会更清楚。现在跳过也没关系。',
+        skipLabel: '跳过',
+        saveLabel: '保存补充信息',
+        savingLabel: '保存中...',
+      };
+
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -178,7 +202,7 @@ export function KeepsakePromptModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="补充珍藏信息"
+        aria-label={copy.ariaLabel}
         className={`w-full max-w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} flex flex-col shadow-xl`}
         style={{ background: S.card }}
         onClick={(event) => event.stopPropagation()}
@@ -186,7 +210,7 @@ export function KeepsakePromptModal({
         <div className="flex items-center justify-between px-6 pt-6 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">⭐</span>
-            <h3 className="text-[15px] font-bold" style={{ color: S.text }}>这条已经加入珍藏</h3>
+            <h3 className="text-[15px] font-bold" style={{ color: S.text }}>{copy.heading}</h3>
           </div>
           <button
             type="button"
@@ -206,9 +230,9 @@ export function KeepsakePromptModal({
             className={`${S.radiusSm} px-4 py-3`}
             style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.18)' }}
           >
-            <p className="text-[12px] font-medium" style={{ color: '#92400e' }}>补充珍藏信息</p>
+            <p className="text-[12px] font-medium" style={{ color: '#92400e' }}>{copy.bannerTitle}</p>
             <p className="mt-1 text-[11px] leading-relaxed" style={{ color: S.sub }}>
-              可以顺手补充一个标题或珍藏原因，之后在回顾时会更清楚。现在跳过也没关系。
+              {copy.bannerBody}
             </p>
           </div>
 
@@ -263,7 +287,7 @@ export function KeepsakePromptModal({
               className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4] disabled:opacity-50`}
               style={{ background: '#f0f0ec', color: S.sub }}
             >
-              跳过
+              {copy.skipLabel}
             </button>
             <button
               type="button"
@@ -272,7 +296,7 @@ export function KeepsakePromptModal({
               className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
               style={{ background: S.accent }}
             >
-              {saving ? '保存中...' : '保存补充信息'}
+              {saving ? copy.savingLabel : copy.saveLabel}
             </button>
           </div>
         </div>

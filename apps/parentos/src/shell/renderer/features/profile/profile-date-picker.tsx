@@ -140,7 +140,7 @@ function DrumColumn({ items, selected, onSelect, label, itemHeight = ITEM_H, vis
           const translateY = (centerOffset > 0 ? 1 : -1) * Math.min(8, distanceRows * 3);
           const scale = 0.9 + emphasis * 0.2;
           const isCentered = Math.abs(centerOffset) < itemHeight * 0.35;
-          const color = isCentered ? '#5e7316' : `rgba(118, 123, 132, ${opacity})`;
+          const color = isCentered ? '#2F7D6B' : `rgba(118, 123, 132, ${opacity})`;
           return (
             <div key={v} onClick={() => { onSelect(v); scrollToIndex(items.indexOf(v), true); }}
               className="flex items-center justify-center cursor-pointer select-none" aria-selected={isCentered}
@@ -148,7 +148,7 @@ function DrumColumn({ items, selected, onSelect, label, itemHeight = ITEM_H, vis
                 transform: `translateY(${translateY}px) scale(${scale})`,
                 transition: 'font-size 0.12s ease, color 0.12s ease, font-weight 0.12s ease, transform 0.12s ease',
                 letterSpacing: isCentered ? '0.02em' : '0.01em',
-                textShadow: isCentered ? '0 1px 0 rgba(255,255,255,0.9), 0 4px 12px rgba(148,165,51,0.12)' : 'none',
+                textShadow: isCentered ? '0 1px 0 rgba(255,255,255,0.9), 0 4px 12px rgba(78,204,163,0.12)' : 'none',
               }}>
               {renderValue(v)}
             </div>
@@ -220,21 +220,21 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
       <div className="mb-3">
         <div className="flex items-center justify-between gap-2">
           <button type="button" onClick={() => onDisplayMonthChange(addMonths(displayMonth, -1))}
-            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[#eef4dd]"
-            style={{ color: '#6d7d2a', background: 'linear-gradient(180deg, rgba(148,165,51,0.12), rgba(148,165,51,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)' }}
+            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[#e6f7f0]"
+            style={{ color: '#3BB88A', background: 'linear-gradient(180deg, rgba(78,204,163,0.12), rgba(78,204,163,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)' }}
             aria-label="上个月">
             <ChevronLeft size={16} strokeWidth={1.75} />
           </button>
 
           <div className="relative flex-1">
             <button type="button" onClick={() => setShowMonthYearPicker((p) => !p)}
-              className="relative flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 transition-colors hover:bg-[#f3f7e8]"
-              style={{ background: 'linear-gradient(180deg, rgba(148,165,51,0.12), rgba(148,165,51,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)', color: '#5e7316' }}>
+              className="relative flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 transition-colors hover:bg-[#e6f7f0]"
+              style={{ background: 'linear-gradient(180deg, rgba(78,204,163,0.12), rgba(78,204,163,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)', color: '#2F7D6B' }}>
               <span className="text-[15px] font-semibold tracking-[0.02em]">{displayMonth.getFullYear()}年</span>
               <span className="relative pr-4 text-[15px] font-semibold tracking-[0.02em]">
                 {displayMonth.getMonth() + 1}月
                 <ChevronRight size={13} strokeWidth={2} className="absolute right-[-1px] bottom-[1px] transition-transform"
-                  style={{ color: '#7b8d30', transform: `rotate(${showMonthYearPicker ? 270 : 90}deg)` }} />
+                  style={{ color: '#3BB88A', transform: `rotate(${showMonthYearPicker ? 270 : 90}deg)` }} />
               </span>
             </button>
 
@@ -243,7 +243,7 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
                 style={{ background: '#fff', border: `1px solid ${S.border}`, boxShadow: '0 10px 28px rgba(0,0,0,0.14)' }}
                 onMouseDown={(e) => e.stopPropagation()}>
                 <div className="absolute inset-x-0 pointer-events-none z-[5]"
-                  style={{ top: 28, height: 28, background: 'linear-gradient(180deg, rgba(148,165,51,0.12), rgba(148,165,51,0.07))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.32), inset 0 -1px 0 rgba(255,255,255,0.24)' }} />
+                  style={{ top: 28, height: 28, background: 'linear-gradient(180deg, rgba(78,204,163,0.12), rgba(78,204,163,0.07))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.32), inset 0 -1px 0 rgba(255,255,255,0.24)' }} />
                 <div className="absolute top-0 bottom-0 left-1/2 w-px z-[6]" style={{ background: S.border }} />
                 <div className="flex relative" style={{ height: 84 }}>
                   <DrumColumn items={yearItems} selected={displayMonth.getFullYear()}
@@ -258,10 +258,10 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
           </div>
 
           <button type="button" onClick={() => { if (!isCurrentMonth) onDisplayMonthChange(addMonths(displayMonth, 1)); }}
-            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[#eef4dd]"
+            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-[#e6f7f0]"
             style={{
-              color: isCurrentMonth ? 'rgba(109,125,42,0.35)' : '#6d7d2a',
-              background: isCurrentMonth ? 'linear-gradient(180deg, rgba(148,165,51,0.06), rgba(148,165,51,0.03))' : 'linear-gradient(180deg, rgba(148,165,51,0.12), rgba(148,165,51,0.06))',
+              color: isCurrentMonth ? 'rgba(47,125,107,0.35)' : '#3BB88A',
+              background: isCurrentMonth ? 'linear-gradient(180deg, rgba(78,204,163,0.06), rgba(78,204,163,0.03))' : 'linear-gradient(180deg, rgba(78,204,163,0.12), rgba(78,204,163,0.06))',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)', cursor: isCurrentMonth ? 'not-allowed' : 'pointer', opacity: isCurrentMonth ? 0.72 : 1,
             }}
             aria-label="下个月" disabled={isCurrentMonth}>
@@ -279,13 +279,13 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
 
       {/* Day grid */}
       <div className="grid grid-cols-7 gap-1 rounded-[16px] p-2.5"
-        style={{ background: 'linear-gradient(180deg, rgba(251,252,247,0.98), rgba(247,249,241,0.95))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.82)' }}>
+        style={{ background: 'linear-gradient(180deg, rgba(244,252,249,0.98), rgba(232,249,241,0.95))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.82)' }}>
         {days.map((day) => {
           const inMonth = day.getMonth() === displayMonth.getMonth();
           const isSelected = sameDay(day, selectedDate);
           const isToday = sameDay(day, safeToday);
           const isFuture = isAfterDay(day, effectiveMax);
-          const textColor = isSelected ? '#556813' : isFuture ? 'rgba(164,170,178,0.46)' : inMonth ? S.text : 'rgba(139,145,153,0.62)';
+          const textColor = isSelected ? '#1F5D4A' : isFuture ? 'rgba(164,170,178,0.46)' : inMonth ? S.text : 'rgba(139,145,153,0.62)';
           return (
             <button key={day.toISOString()} type="button"
               onClick={() => { if (!isFuture) onChange(formatDateValue(day)); }}
@@ -293,14 +293,14 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
               disabled={isFuture}
               style={{
                 color: textColor,
-                background: isFuture ? 'transparent' : isSelected ? 'linear-gradient(180deg, rgba(148,165,51,0.24), rgba(148,165,51,0.12))' : isToday ? 'linear-gradient(180deg, rgba(148,165,51,0.10), rgba(148,165,51,0.05))' : 'transparent',
+                background: isFuture ? 'transparent' : isSelected ? 'linear-gradient(180deg, rgba(78,204,163,0.24), rgba(78,204,163,0.12))' : isToday ? 'linear-gradient(180deg, rgba(78,204,163,0.10), rgba(78,204,163,0.05))' : 'transparent',
                 fontWeight: isFuture ? 500 : isSelected ? 750 : isToday ? 650 : 520,
-                boxShadow: isFuture ? 'none' : isSelected ? '0 4px 12px rgba(148,165,51,0.12), inset 0 0 0 1px rgba(148,165,51,0.18)' : isToday ? 'inset 0 0 0 1px rgba(148,165,51,0.10)' : 'none',
+                boxShadow: isFuture ? 'none' : isSelected ? '0 4px 12px rgba(78,204,163,0.12), inset 0 0 0 1px rgba(78,204,163,0.18)' : isToday ? 'inset 0 0 0 1px rgba(78,204,163,0.10)' : 'none',
                 opacity: isFuture ? 0.42 : inMonth ? 1 : 0.78,
                 cursor: isFuture ? 'not-allowed' : 'pointer',
               }}>
               <span>{day.getDate()}</span>
-              {isToday && !isSelected && <span className="absolute bottom-[5px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style={{ background: 'rgba(148,165,51,0.75)' }} />}
+              {isToday && !isSelected && <span className="absolute bottom-[5px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full" style={{ background: 'rgba(78,204,163,0.75)' }} />}
             </button>
           );
         })}
@@ -309,7 +309,7 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
       {/* Footer */}
       <div className="mt-3 flex items-center justify-between px-1">
         <button type="button" onClick={() => { const now = new Date(); onDisplayMonthChange(new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0)); onChange(formatDateValue(clampToMax(now, maxDate))); }}
-          className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors hover:bg-[#f3f5ea]" style={{ color: '#5e7316' }}>
+          className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors hover:bg-[#e6f7f0]" style={{ color: '#2F7D6B' }}>
           今天
         </button>
         <div className="flex items-center gap-1">
@@ -405,7 +405,7 @@ export function ProfileDatePicker({
         <div className={`absolute right-2 flex items-center gap-1 ${size === 'small' ? 'text-[11px]' : ''}`}>
           {allowClear && value && (
             <button type="button" onClick={(e) => { e.stopPropagation(); onChange(''); setOpen(false); }}
-              className="flex h-5 w-5 items-center justify-center rounded-full transition-colors hover:bg-[#eef1e6]" style={{ color: '#9ea5ad' }} aria-label="清空日期">
+              className="flex h-5 w-5 items-center justify-center rounded-full transition-colors hover:bg-[#e6f7f0]" style={{ color: '#9ea5ad' }} aria-label="清空日期">
               <svg width={size === 'small' ? 12 : 13} height={size === 'small' ? 12 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
           )}

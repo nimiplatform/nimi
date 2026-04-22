@@ -27,6 +27,23 @@ fn extension_to_mime(extension: &str) -> Option<&'static str> {
 }
 
 #[tauri::command]
+pub fn pick_image_files(title: Option<String>) -> Result<Vec<String>, String> {
+    let start_dir = dirs::picture_dir()
+        .or_else(dirs::home_dir)
+        .unwrap_or_else(std::env::temp_dir);
+    let dialog = rfd::FileDialog::new()
+        .set_directory(&start_dir)
+        .set_title(title.as_deref().unwrap_or("Select photos"))
+        .add_filter("Images", &["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "bmp"])
+        .add_filter("All Files", &["*"]);
+    let selected = dialog.pick_files().unwrap_or_default();
+    Ok(selected
+        .into_iter()
+        .map(|path| path.to_string_lossy().to_string())
+        .collect())
+}
+
+#[tauri::command]
 pub fn read_dropped_image_as_base64(path: String) -> Result<DroppedImagePayload, String> {
     let candidate = PathBuf::from(path.trim());
     if !candidate.is_absolute() {

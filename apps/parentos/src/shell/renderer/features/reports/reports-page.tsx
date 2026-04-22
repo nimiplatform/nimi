@@ -12,6 +12,7 @@ import {
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { generateNarrativeReportForPeriod } from './narrative-prompt.js';
+import { MonthlyLetterViewer } from './reports-monthly-letter.js';
 import {
   buildStructuredGrowthReport, parseReportContent,
   type GrowthReportType, type NarrativeReportContent, type ParsedReportContent,
@@ -230,7 +231,35 @@ function StructuredViewer({ content }: { content: StructuredGrowthReportContent 
   </div>);
 }
 
-function ReportViewer({ content, reportId, onContentUpdate }: { content: ParsedReportContent; reportId?: string; onContentUpdate?: (u: NarrativeReportContent) => void }) {
+function isLetterContent(content: ParsedReportContent): boolean {
+  return content.version === 2 && content.reportType === 'monthly';
+}
+
+function ReportViewer({
+  content, reportId, onContentUpdate, persisted, childName, selfRoleName,
+}: {
+  content: ParsedReportContent;
+  reportId?: string;
+  onContentUpdate?: (u: NarrativeReportContent) => void;
+  persisted?: PersistedReport;
+  childName?: string;
+  selfRoleName?: string;
+}) {
+  if (content.version === 2 && isLetterContent(content)) {
+    return (
+      <MonthlyLetterViewer
+        content={content}
+        reportId={reportId}
+        onContentUpdate={onContentUpdate}
+        periodStart={persisted?.periodStart}
+        periodEnd={persisted?.periodEnd}
+        ageMonthsStart={persisted?.ageMonthsStart}
+        ageMonthsEnd={persisted?.ageMonthsEnd}
+        childName={childName}
+        selfRoleName={selfRoleName}
+      />
+    );
+  }
   if (content.version === 2) return <NarrativeViewer content={content} reportId={reportId} onContentUpdate={onContentUpdate} />;
   return <StructuredViewer content={content} />;
 }
@@ -381,7 +410,7 @@ export default function ReportsPage() {
 
         {latestContent && latestReport ? (
           <div className="mb-6">
-            <ReportViewer content={latestContent} reportId={latestReport.reportId} onContentUpdate={latestContent.version === 2 ? (u) => void handleContentUpdate(latestReport.reportId, u) : undefined} />
+            <ReportViewer content={latestContent} reportId={latestReport.reportId} persisted={latestReport} childName={activeChild.displayName} selfRoleName={activeChild.recorderProfiles?.[0]?.name} onContentUpdate={latestContent.version === 2 ? (u) => void handleContentUpdate(latestReport.reportId, u) : undefined} />
             <div className="mt-3"><button onClick={() => handleCopy(latestContent!)} className={`${S.radiusSm} px-4 py-2 text-[12px] font-medium`} style={{ background: S.card, border: `1px solid ${S.border}`, color: S.text }}>{copied ? '已复制 ✓' : '复制文本'}</button></div>
           </div>
         ) : (
@@ -408,7 +437,7 @@ export default function ReportsPage() {
                 <p className="text-[11px] mt-1" style={{ color: S.sub }}>{report.periodStart.slice(0, 10)} 至 {report.periodEnd.slice(0, 10)}</p>
               </button>
               {isExpanded && parsed && (<div ref={viewerRef} className="mt-2 pb-4">
-                <ReportViewer content={parsed} reportId={report.reportId} onContentUpdate={parsed.version === 2 ? (u) => void handleContentUpdate(report.reportId, u) : undefined} />
+                <ReportViewer content={parsed} reportId={report.reportId} persisted={report} childName={activeChild.displayName} selfRoleName={activeChild.recorderProfiles?.[0]?.name} onContentUpdate={parsed.version === 2 ? (u) => void handleContentUpdate(report.reportId, u) : undefined} />
                 <div className="mt-3"><button onClick={() => handleCopy(parsed!)} className={`${S.radiusSm} px-4 py-2 text-[12px] font-medium`} style={{ background: S.card, border: `1px solid ${S.border}`, color: S.text }}>{copied ? '已复制 ✓' : '复制文本'}</button></div>
               </div>)}
             </div>);

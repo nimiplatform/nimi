@@ -87,6 +87,7 @@ export default function JournalPage() {
   const [pendingKeepsakePromptEntry, setPendingKeepsakePromptEntry] = useState<JournalEntryRow | null>(null);
   const [promptKeepsakeTitle, setPromptKeepsakeTitle] = useState('');
   const [promptKeepsakeReason, setPromptKeepsakeReason] = useState<KeepsakeReason | null>(null);
+  const [promptKeepsakeMode, setPromptKeepsakeMode] = useState<'enrich' | 'confirm'>('enrich');
   const [savingKeepsakePrompt, setSavingKeepsakePrompt] = useState(false);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const recorderSessionRef = useRef<VoiceRecordingSession | null>(null);
@@ -158,24 +159,12 @@ export default function JournalPage() {
   const draftTextForTagging = captureMode === 'text'
     ? textContent.trim()
     : voiceDraft.transcript.trim();
-  const keepsakeSuggestion = useMemo(() => {
-    if (keepsake) return null;
-
-    const keyword = KEEPSAKE_KEYWORDS.find((item) => draftTextForTagging.includes(item));
-    if (keyword) {
-      return `这条里提到了“${keyword}”，如果这是值得纪念的时刻，可以顺手标记为珍藏。`;
-    }
-
-    if (photoDrafts.length > 0 && draftTextForTagging.length >= 24) {
-      return '这条同时有照片和较完整的描述，看起来很适合珍藏。';
-    }
-
-    if (draftTextForTagging.length >= 60) {
-      return '这条记录已经比较完整，如果想以后更容易回顾，可以标记为珍藏。';
-    }
-
-    return null;
-  }, [draftTextForTagging, keepsake, photoDrafts.length]);
+  const suggestsKeepsake = useMemo(() => {
+    if (KEEPSAKE_KEYWORDS.some((item) => draftTextForTagging.includes(item))) return true;
+    if (photoDrafts.length > 0 && draftTextForTagging.length >= 24) return true;
+    if (draftTextForTagging.length >= 60) return true;
+    return false;
+  }, [draftTextForTagging, photoDrafts.length]);
 
   /* ── Effects ── */
 
@@ -380,6 +369,7 @@ export default function JournalPage() {
     setPendingKeepsakePromptEntry(null);
     setPromptKeepsakeTitle('');
     setPromptKeepsakeReason(null);
+    setPromptKeepsakeMode('enrich');
     setSavingKeepsakePrompt(false);
   };
 
@@ -507,6 +497,7 @@ export default function JournalPage() {
     keepsake,
     keepsakeTitle,
     keepsakeReason,
+    suggestsKeepsake,
     moodTag,
     selectedRecorderId,
     editingEntryId,
@@ -526,6 +517,7 @@ export default function JournalPage() {
     setPendingKeepsakePromptEntry,
     setPromptKeepsakeTitle,
     setPromptKeepsakeReason,
+    setPromptKeepsakeMode,
     setSavingKeepsakePrompt,
     setPostSaveExperiment,
     setRestorableDraft,
@@ -587,13 +579,8 @@ export default function JournalPage() {
         onAddPhotos={handleAddPhotos}
         photoDrafts={photoDrafts}
         onRemovePhotoDraft={removePhotoDraft}
-        keepsakeSuggestion={keepsakeSuggestion}
         onToggleKeepsake={toggleComposerKeepsake}
         keepsake={keepsake}
-        keepsakeTitle={keepsakeTitle}
-        onKeepsakeTitleChange={setKeepsakeTitle}
-        keepsakeReason={keepsakeReason}
-        onKeepsakeReasonChange={setKeepsakeReason}
         showEmoji={showEmoji}
         onShowEmojiChange={setShowEmoji}
         emojiBtnRef={emojiBtnRef}
@@ -687,6 +674,7 @@ export default function JournalPage() {
       ) : null}
       <KeepsakePromptModal
         open={pendingKeepsakePromptEntry !== null}
+        mode={promptKeepsakeMode}
         title={promptKeepsakeTitle}
         reason={promptKeepsakeReason}
         saving={savingKeepsakePrompt}

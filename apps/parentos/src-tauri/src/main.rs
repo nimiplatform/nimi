@@ -179,6 +179,7 @@ fn main() {
             child_avatar::save_child_avatar,
             journal_photo::delete_journal_photo,
             dropped_file::read_dropped_image_as_base64,
+            dropped_file::pick_image_files,
             // Family & Children
             sqlite::queries::create_family,
             sqlite::queries::get_family,

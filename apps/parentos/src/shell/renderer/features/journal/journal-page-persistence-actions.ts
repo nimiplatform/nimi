@@ -45,6 +45,7 @@ export function createJournalPersistenceActions(input: {
   keepsake: boolean;
   keepsakeTitle: string;
   keepsakeReason: KeepsakeReason | null;
+  suggestsKeepsake: boolean;
   moodTag: string | null;
   selectedRecorderId: string | null;
   editingEntryId: string | null;
@@ -64,6 +65,7 @@ export function createJournalPersistenceActions(input: {
   setPendingKeepsakePromptEntry: SetOptionalEntry;
   setPromptKeepsakeTitle: (value: string) => void;
   setPromptKeepsakeReason: (value: KeepsakeReason | null) => void;
+  setPromptKeepsakeMode: (value: 'enrich' | 'confirm') => void;
   setSavingKeepsakePrompt: (value: boolean) => void;
   setPostSaveExperiment: Dispatch<SetStateAction<ExperimentTemplate | null>>;
   setRestorableDraft: Dispatch<SetStateAction<JournalLocalDraftRecord | null>>;
@@ -181,9 +183,10 @@ export function createJournalPersistenceActions(input: {
       await updateJournalKeepsake(entry.entryId, nextKeepsake, isoNow());
       await input.reloadEntries();
       if (nextKeepsake === 1 && !entry.keepsakeTitle && !entry.keepsakeReason) {
-        input.setPendingKeepsakePromptEntry({ ...entry, keepsake: 1 });
         input.setPromptKeepsakeTitle('');
         input.setPromptKeepsakeReason(null);
+        input.setPromptKeepsakeMode('enrich');
+        input.setPendingKeepsakePromptEntry({ ...entry, keepsake: 1 });
         return;
       }
       input.closeKeepsakePrompt();
@@ -263,6 +266,11 @@ export function createJournalPersistenceActions(input: {
     const now = isoNow();
     input.setSubmitError(null);
     input.setSaving(true);
+
+    const savedKeepsake = input.keepsake;
+    const savedKeepsakeTitle = input.keepsakeTitle.trim();
+    const savedKeepsakeReason = input.keepsakeReason;
+    const savedSuggestsKeepsake = input.suggestsKeepsake;
 
     try {
       const entryId = input.editingEntryId ?? ulid();
@@ -352,9 +360,43 @@ export function createJournalPersistenceActions(input: {
         input.setLastAutosavedAt(null);
         input.setLastSavedDraftSignature(null);
       }
+      const wasEditing = input.editingEntryId !== null;
       input.resetComposer();
-      if (!input.editingEntryId) {
+      if (!wasEditing) {
         input.setPostSaveExperiment(getExperimentSuggestion(savedDimensionId));
+
+        const promptMode: 'enrich' | 'confirm' | null = savedKeepsake
+          ? (!savedKeepsakeTitle && !savedKeepsakeReason ? 'enrich' : null)
+          : (savedSuggestsKeepsake ? 'confirm' : null);
+
+        if (promptMode) {
+          const stubEntry: JournalEntryRow = {
+            entryId,
+            childId: input.childId,
+            contentType: 'text',
+            textContent: null,
+            voicePath: null,
+            photoPaths: null,
+            recordedAt: now,
+            ageMonths: input.ageMonths,
+            observationMode: null,
+            dimensionId: null,
+            selectedTags: null,
+            guidedAnswers: null,
+            observationDuration: null,
+            keepsake: savedKeepsake ? 1 : 0,
+            keepsakeTitle: savedKeepsakeTitle || null,
+            keepsakeReason: savedKeepsakeReason,
+            moodTag: null,
+            recorderId: null,
+            createdAt: now,
+            updatedAt: now,
+          };
+          input.setPromptKeepsakeTitle(savedKeepsakeTitle);
+          input.setPromptKeepsakeReason(savedKeepsakeReason);
+          input.setPromptKeepsakeMode(promptMode);
+          input.setPendingKeepsakePromptEntry(stubEntry);
+        }
       }
     } catch {
       input.setSubmitError('保存失败，请检查本地运行时状态后重试。');

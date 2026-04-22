@@ -5,9 +5,6 @@ import { S } from '../../app-shell/page-style.js';
 import { PhotoBar, VoiceCapture } from './journal-sub-components.js';
 import {
   type EmojiCategory,
-  type KeepsakeReason,
-  KEEPSAKE_REASON_OPTIONS,
-  getKeepsakeReasonLabel,
   type PhotoDraft,
   type VoiceDraft,
 } from './journal-page-helpers.js';
@@ -38,13 +35,8 @@ export function JournalPageCapture(props: {
   onAddPhotos: (files: FileList | null) => void;
   photoDrafts: PhotoDraft[];
   onRemovePhotoDraft: (index: number) => void;
-  keepsakeSuggestion: string | null;
   onToggleKeepsake: () => void;
   keepsake: boolean;
-  keepsakeTitle: string;
-  onKeepsakeTitleChange: (value: string) => void;
-  keepsakeReason: KeepsakeReason | null;
-  onKeepsakeReasonChange: (value: KeepsakeReason | null) => void;
   showEmoji: boolean;
   onShowEmojiChange: (value: boolean) => void;
   emojiBtnRef: RefObject<HTMLButtonElement | null>;
@@ -214,68 +206,6 @@ export function JournalPageCapture(props: {
                 </div>
               ) : null}
 
-              {props.keepsakeSuggestion ? (
-                <div className="px-5 pb-2">
-                  <div className={`${S.radiusSm} flex items-center justify-between gap-3 px-3 py-2.5`} style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.28)' }}>
-                    <p className="text-[11px] leading-relaxed" style={{ color: '#92400e' }}>{props.keepsakeSuggestion}</p>
-                    <button
-                      type="button"
-                      onClick={props.onToggleKeepsake}
-                      className="shrink-0 rounded-full px-3 py-1 text-[11px] font-medium text-white"
-                      style={{ background: '#f59e0b' }}
-                    >
-                      标记珍藏
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {props.keepsake ? (
-                <div className="px-5 pb-2">
-                  <div className={`${S.radiusSm} space-y-3 px-3 py-3`} style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[12px] font-medium" style={{ color: '#92400e' }}>珍藏补充信息</p>
-                        <p className="mt-1 text-[11px] leading-relaxed" style={{ color: S.sub }}>
-                          可以跳过，之后也能回来补充。
-                        </p>
-                      </div>
-                      {props.keepsakeReason ? (
-                        <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: '#fef3c7', color: '#a16207' }}>
-                          {getKeepsakeReasonLabel(props.keepsakeReason)}
-                        </span>
-                      ) : null}
-                    </div>
-                    <label className="block">
-                      <span className="mb-1 block text-[11px] font-medium" style={{ color: S.text }}>标题（可选）</span>
-                      <input
-                        type="text"
-                        value={props.keepsakeTitle}
-                        maxLength={60}
-                        onChange={(event) => props.onKeepsakeTitleChange(event.target.value)}
-                        placeholder="比如：第一次独立完成早餐"
-                        className={`${S.radiusSm} w-full px-3 py-2 text-[12px] outline-none`}
-                        style={{ border: `1px solid ${S.border}`, background: '#fff' }}
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1 block text-[11px] font-medium" style={{ color: S.text }}>为什么值得珍藏（可选）</span>
-                      <select
-                        value={props.keepsakeReason ?? ''}
-                        onChange={(event) => props.onKeepsakeReasonChange(event.target.value ? event.target.value as KeepsakeReason : null)}
-                        className={`${S.radiusSm} w-full px-3 py-2 text-[12px] outline-none`}
-                        style={{ border: `1px solid ${S.border}`, background: '#fff' }}
-                      >
-                        <option value="">暂不选择</option>
-                        {KEEPSAKE_REASON_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                </div>
-              ) : null}
-
               <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: 'rgba(250,250,248,0.65)', borderTop: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 -1px 3px rgba(0,0,0,0.02) inset', borderRadius: '0 0 24px 24px' }}>
                 <button
                   type="button"
@@ -331,7 +261,8 @@ export function JournalPageCapture(props: {
                   onClick={props.onToggleKeepsake}
                   className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#f0f0ec]"
                   style={{ color: props.keepsake ? '#f59e0b' : S.sub }}
-                  title="珍藏"
+                  aria-label={props.keepsake ? '取消标记为珍藏' : '标记为珍藏'}
+                  title={props.keepsake ? '取消标记为珍藏' : '标记为珍藏'}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill={props.keepsake ? '#f59e0b' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -403,67 +334,14 @@ export function JournalPageCapture(props: {
                   onTranscriptChange={props.onVoiceTranscriptChange}
                 />
               )}
-              {props.keepsakeSuggestion ? (
-                <div className="mb-3 rounded-[12px] px-3 py-2.5" style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.28)' }}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] leading-relaxed" style={{ color: '#92400e' }}>{props.keepsakeSuggestion}</p>
-                    <button
-                      type="button"
-                      onClick={props.onToggleKeepsake}
-                      className="shrink-0 rounded-full px-3 py-1 text-[11px] font-medium text-white"
-                      style={{ background: '#f59e0b' }}
-                    >
-                      标记珍藏
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-              {props.keepsake ? (
-                <div className="mb-3 rounded-[14px] px-3 py-3" style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[12px] font-medium" style={{ color: '#92400e' }}>珍藏补充信息</p>
-                      <p className="mt-1 text-[11px] leading-relaxed" style={{ color: S.sub }}>
-                        标记珍藏后可以顺手补充标题或原因，也可以先跳过。
-                      </p>
-                    </div>
-                    {props.keepsakeReason ? (
-                      <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: '#fef3c7', color: '#a16207' }}>
-                        {getKeepsakeReasonLabel(props.keepsakeReason)}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-3 space-y-3">
-                    <input
-                      type="text"
-                      value={props.keepsakeTitle}
-                      maxLength={60}
-                      onChange={(event) => props.onKeepsakeTitleChange(event.target.value)}
-                      placeholder="比如：第一次独自上台分享"
-                      className={`${S.radiusSm} w-full px-3 py-2 text-[12px] outline-none`}
-                      style={{ border: `1px solid ${S.border}`, background: '#fff' }}
-                    />
-                    <select
-                      value={props.keepsakeReason ?? ''}
-                      onChange={(event) => props.onKeepsakeReasonChange(event.target.value ? event.target.value as KeepsakeReason : null)}
-                      className={`${S.radiusSm} w-full px-3 py-2 text-[12px] outline-none`}
-                      style={{ border: `1px solid ${S.border}`, background: '#fff' }}
-                    >
-                      <option value="">暂不选择珍藏原因</option>
-                      {KEEPSAKE_REASON_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ) : null}
               <div className="flex items-center justify-between mt-4">
                 <button
                   type="button"
                   onClick={props.onToggleKeepsake}
                   className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#f0f0ec]"
                   style={{ color: props.keepsake ? '#f59e0b' : S.sub }}
-                  title="珍藏"
+                  aria-label={props.keepsake ? '取消标记为珍藏' : '标记为珍藏'}
+                  title={props.keepsake ? '取消标记为珍藏' : '标记为珍藏'}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill={props.keepsake ? '#f59e0b' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />

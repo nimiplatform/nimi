@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { S } from '../../app-shell/page-style.js';
 import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
@@ -43,22 +44,51 @@ function EntryActionMenu({
   onDelete?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  const MENU_WIDTH = 120;
+  const MENU_GAP = 4;
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPos(null);
+      return;
+    }
+    const btn = buttonRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const left = Math.min(
+      Math.max(4, rect.right - MENU_WIDTH),
+      window.innerWidth - MENU_WIDTH - 4,
+    );
+    setPos({ top: rect.bottom + MENU_GAP, left });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
+    const scrollHandler = () => setOpen(false);
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    window.addEventListener('scroll', scrollHandler, true);
+    window.addEventListener('resize', scrollHandler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      window.removeEventListener('scroll', scrollHandler, true);
+      window.removeEventListener('resize', scrollHandler);
+    };
   }, [open]);
 
   return (
-    <div ref={menuRef} className="relative">
+    <>
       <button
+        ref={buttonRef}
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen((prev) => !prev); }}
         className="flex h-6 w-6 items-center justify-center rounded-lg transition-colors hover:bg-[#f0f0ec]"
@@ -72,10 +102,17 @@ function EntryActionMenu({
           <circle cx="12" cy="19" r="1.5" />
         </svg>
       </button>
-      {open ? (
+      {open && pos ? createPortal(
         <div
-          className="absolute right-0 top-full z-20 mt-1 min-w-[100px] overflow-hidden rounded-lg py-1 shadow-lg"
-          style={{ background: S.card, border: `1px solid ${S.border}` }}
+          ref={menuRef}
+          className="fixed z-50 overflow-hidden rounded-lg py-1 shadow-lg"
+          style={{
+            top: pos.top,
+            left: pos.left,
+            width: MENU_WIDTH,
+            background: S.card,
+            border: `1px solid ${S.border}`,
+          }}
         >
           <button
             type="button"
@@ -103,9 +140,10 @@ function EntryActionMenu({
               删除
             </button>
           ) : null}
-        </div>
+        </div>,
+        document.body,
       ) : null}
-    </div>
+    </>
   );
 }
 

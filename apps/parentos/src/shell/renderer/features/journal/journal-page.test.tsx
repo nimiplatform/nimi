@@ -277,19 +277,52 @@ describe('JournalPage', () => {
     });
   });
 
-  it('saves keepsake title and reason when the entry is marked as a keepsake', async () => {
+  it('does not interrupt writing with an inline keepsake prompt', async () => {
     renderPage();
 
     fireEvent.change(getComposerTextarea(), {
       target: { value: '这是第一次独立完成早餐，我们想记下来。' },
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: '标记珍藏' })).toBeTruthy();
+    expect(screen.queryByText(/可以顺手标记为珍藏/)).toBeNull();
+    expect(screen.queryByPlaceholderText('比如：第一次独立完成早餐')).toBeNull();
+  });
+
+  it('prompts to add the entry to keepsake after save when content matches the suggestion', async () => {
+    renderPage();
+
+    fireEvent.change(getComposerTextarea(), {
+      target: { value: '这是第一次独立完成早餐，我们想记下来。' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '标记珍藏' }));
-    fireEvent.change(screen.getByPlaceholderText('比如：第一次独立完成早餐'), {
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^保存$/i }));
+    });
+
+    // Confirm the save-confirmation modal first
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /保存随手记/i })).toBeTruthy();
+    });
+
+    await act(async () => {
+      const modalSaveButtons = screen.getAllByRole('button', { name: /^保存/ });
+      const confirmBtn = modalSaveButtons.find((btn) => btn.closest('[role="dialog"]'));
+      fireEvent.click(confirmBtn!);
+    });
+
+    await waitFor(() => {
+      expect(insertJournalEntryWithTagsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(insertJournalEntryWithTagsMock.mock.calls[0]?.[0]).toMatchObject({ keepsake: 0 });
+
+    // Keepsake suggestion modal appears post-save
+    let dialog!: HTMLElement;
+    await waitFor(() => {
+      dialog = screen.getByRole('dialog', { name: '建议加入珍藏' });
+      expect(dialog).toBeTruthy();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('比如：第一次独自上台分享'), {
       target: { value: '第一次独立完成早餐' },
     });
     fireEvent.change(screen.getByRole('combobox'), {
@@ -297,28 +330,49 @@ describe('JournalPage', () => {
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: '保存' }));
+      fireEvent.click(screen.getByRole('button', { name: '加入珍藏' }));
     });
 
-    let dialog!: HTMLElement;
     await waitFor(() => {
-      dialog = screen.getByRole('dialog');
-      expect(dialog).toBeTruthy();
+      expect(updateJournalKeepsakeMock).toHaveBeenCalledWith(
+        expect.any(String),
+        1,
+        expect.any(String),
+        '第一次独立完成早餐',
+        'first-time',
+      );
     });
+  });
+
+  it('prompts to enrich title and reason after saving an entry already marked as keepsake', async () => {
+    renderPage();
+
+    fireEvent.change(getComposerTextarea(), {
+      target: { value: '她今天主动分享了积木。' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '标记为珍藏' }));
 
     await act(async () => {
-      const buttons = dialog.querySelectorAll('button');
-      fireEvent.click(buttons[buttons.length - 1] as HTMLButtonElement);
+      fireEvent.click(screen.getByRole('button', { name: /^保存$/i }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /保存随手记/i })).toBeTruthy();
+    });
+    await act(async () => {
+      const modalSaveButtons = screen.getAllByRole('button', { name: /^保存/ });
+      const confirmBtn = modalSaveButtons.find((btn) => btn.closest('[role="dialog"]'));
+      fireEvent.click(confirmBtn!);
     });
 
     await waitFor(() => {
       expect(insertJournalEntryWithTagsMock).toHaveBeenCalledTimes(1);
     });
+    expect(insertJournalEntryWithTagsMock.mock.calls[0]?.[0]).toMatchObject({ keepsake: 1 });
 
-    expect(insertJournalEntryWithTagsMock.mock.calls[0]?.[0]).toMatchObject({
-      keepsake: 1,
-      keepsakeTitle: '第一次独立完成早餐',
-      keepsakeReason: 'first-time',
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: '补充珍藏信息' })).toBeTruthy();
     });
   });
 

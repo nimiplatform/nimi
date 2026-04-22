@@ -189,3 +189,94 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .bg-dashboard {
   background: #f1f5f9;
 }
+
+/* ── Print styles for monthly growth report ─────────────────────────
+ * Triggered when the user picks "保存为 PDF" or uses the browser's
+ * native print. We expose two print modes via body[data-print-mode]:
+ *   "letter"       — full growth-report letter (default)
+ *   "professional" — teacher/doctor redacted summary
+ * The app sets data-print-mode right before calling window.print() and
+ * clears it afterwards. Both modes share the same hiding rules.
+ */
+.report-printable-page,
+.report-printable-page * {
+  box-sizing: border-box;
+}
+
+@media print {
+  @page { margin: 18mm 16mm; size: A4 portrait; }
+
+  html, body {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    font-size: 12pt;
+  }
+
+  /* Hide everything outside the print target. The renderer marks the root
+   * of whatever it wants printed with .report-printable-page and sets
+   * data-print-mode on <body>. Non-printable siblings and chrome are
+   * hidden. */
+  body[data-print-mode] > *:not(.report-printable-page),
+  .hide-on-print,
+  .report-action-bar,
+  .report-legacy-banner,
+  .report-family-share-row,
+  .edit-pencil,
+  .report-note-composer,
+  nav,
+  aside.app-rail,
+  .app-topbar,
+  header.topbar {
+    display: none !important;
+  }
+
+  /* The printable frame: bleed to page edges, no shadow, no glass. */
+  .report-printable-page {
+    position: static !important;
+    inset: auto !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #1e293b !important;
+  }
+
+  /* Kill glass + backdrop filters globally within print target. */
+  .report-printable-page * {
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Allow glass cards to still read as soft surfaces on paper. */
+  .report-printable-page .report-soft-card {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Avoid splitting semantic blocks across pages where possible. */
+  .report-printable-page section,
+  .report-printable-page article,
+  .report-printable-page .report-avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Hero keyword stays on its own page if it would otherwise split. */
+  .report-hero-block {
+    break-after: avoid;
+  }
+
+  /* Links keep their text; show URL in brackets only for external links. */
+  .report-printable-page a[href]::after { content: ""; }
+
+  /* The pull-quote kraft box reads as a light box on paper. */
+  .report-pullquote-box {
+    background: #fffbeb !important;
+    border: 1px solid #fde68a !important;
+  }
+}

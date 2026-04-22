@@ -255,7 +255,7 @@ function formatDueDate(dueDate: string): string {
   return new Date(dueDate).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
 }
 
-function CustomTodoComposer({
+export function CustomTodoComposer({
   childId,
   onChanged,
   onAdded,
@@ -319,10 +319,12 @@ function CustomTodoComposer({
     background: '#fafaf8',
   };
 
+  const showSecondaryRow = isActive || Boolean(newDueDate);
+
   return (
     <div className="px-5 pb-3 pt-3">
       <div
-        className="rounded-2xl px-3 py-2 transition-all"
+        className="rounded-2xl px-3 py-2.5 transition-all"
         style={{
           background: isActive ? 'rgba(78, 204, 163, 0.10)' : 'transparent',
           boxShadow: isActive ? '0 10px 22px rgba(78, 204, 163, 0.08)' : 'none',
@@ -351,35 +353,52 @@ function CustomTodoComposer({
             placeholder="添加日常待办..."
             disabled={adding}
             rows={1}
-            className="min-w-0 flex-1 resize-none overflow-y-auto border-0 bg-transparent py-1 text-[12px] leading-5 outline-none placeholder:text-[12px]"
-            style={{ color: isActive ? '#3BB88A' : C.text }}
+            className="min-w-0 flex-1 resize-none overflow-y-auto border-0 bg-transparent py-1 text-[13px] leading-[1.55] outline-none placeholder:text-[12px]"
+            style={{ color: isActive ? '#1e293b' : C.text }}
           />
-          <button
-            type="button"
-            title={showDatePicker ? '收起日期' : '设置日期'}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              if (showDatePicker) {
-                setShowDatePicker(false);
-                return;
-              }
-              setShowDatePicker(true);
-              setDatePickerOpenNonce((value) => value + 1);
-            }}
-            className="mt-0.5 inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2 text-[10px] transition-all"
-            style={{
-              color: showDatePicker || newDueDate ? '#3BB88A' : '#64748b',
-              background: showDatePicker || newDueDate ? 'rgba(78, 204, 163, 0.12)' : 'transparent',
-              opacity: isActive || newDueDate ? 1 : 0.7,
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-            {newDueDate ? <span>{formatDueDate(newDueDate)}</span> : null}
-          </button>
         </div>
+        {showSecondaryRow && (
+          <div className="mt-1.5 flex items-center gap-1 pl-7">
+            <button
+              type="button"
+              title={showDatePicker ? '收起日期' : newDueDate ? '修改日期' : '设置日期'}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                if (showDatePicker) {
+                  setShowDatePicker(false);
+                  return;
+                }
+                setShowDatePicker(true);
+                setDatePickerOpenNonce((value) => value + 1);
+              }}
+              className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-[10px] transition-all"
+              style={{
+                color: showDatePicker || newDueDate ? '#3BB88A' : '#64748b',
+                background: showDatePicker || newDueDate ? 'rgba(78, 204, 163, 0.14)' : 'transparent',
+              }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              <span>{newDueDate ? formatDueDate(newDueDate) : '加日期'}</span>
+            </button>
+            {newDueDate && !showDatePicker ? (
+              <button
+                type="button"
+                title="清除日期"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setNewDueDate('')}
+                className="flex h-5 w-5 items-center justify-center rounded-full transition-colors hover:bg-white/70"
+                style={{ color: '#94a3b8' }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            ) : null}
+          </div>
+        )}
         {showDatePicker && (
           <div className="mt-2 pl-7">
             <ProfileDatePicker
@@ -408,7 +427,7 @@ function sortCustomTodos(todos: CustomTodoRow[]) {
   return { pending, completed };
 }
 
-function CustomTodoInlineList({
+export function CustomTodoInlineList({
   todos,
   onChanged,
   animatedTodoId,

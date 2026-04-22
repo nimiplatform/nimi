@@ -8,6 +8,7 @@ export type ParentosAISurfaceId =
   | 'parentos.advisor'
   | 'parentos.report'
   | 'parentos.profile.checkup-ocr'
+  | 'parentos.profile.dental-eruption-scan'
   | 'parentos.medical.ocr-intake'
   | 'parentos.medical.smart-insight'
   | 'parentos.medical.event-analysis'
@@ -43,6 +44,14 @@ const EXACT_SURFACE_POLICIES: Record<Exclude<ParentosAISurfaceId, `parentos.prof
   },
   'parentos.profile.checkup-ocr': {
     surfaceId: 'parentos.profile.checkup-ocr',
+    localOnly: false,
+    inputKind: 'ocr-extract',
+    requiresSafetyFilter: false,
+    requiresStructuredFallback: false,
+    persistFrozenExecutionSnapshot: false,
+  },
+  'parentos.profile.dental-eruption-scan': {
+    surfaceId: 'parentos.profile.dental-eruption-scan',
     localOnly: false,
     inputKind: 'ocr-extract',
     requiresSafetyFilter: false,
