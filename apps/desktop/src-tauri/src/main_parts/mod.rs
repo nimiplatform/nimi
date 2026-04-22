@@ -188,6 +188,24 @@ struct OpenExternalUrlResult {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAvatarLaunchHandoffPayload {
+    agent_id: String,
+    avatar_instance_id: String,
+    conversation_anchor_id: Option<String>,
+    anchor_mode: String,
+    launched_by: Option<String>,
+    source_surface: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAvatarLaunchHandoffResult {
+    opened: bool,
+    handoff_uri: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct OauthTokenExchangePayload {
     token_url: String,
     client_id: String,

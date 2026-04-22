@@ -59,6 +59,7 @@ import {
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
+import { ChatAgentAvatarAppLauncher } from './chat-agent-avatar-app-launcher';
 import { ChatComposerLeadingAvatar } from './chat-composer-leading-avatar';
 import { resolveChatAgentAvatarStageLayoutContract } from './chat-agent-avatar-stage-layout';
 import { useAgentAvatarPlacement } from '@renderer/app-shell/providers/chat-agent-avatar-placement-storage';
@@ -471,8 +472,32 @@ export function useAgentConversationPresentation(
     ...hostSnapshot,
     adapter,
     avatarStagePlacement,
+    stagePanelProps: undefined,
+    topContent: input.activeTarget ? (
+      <div className="space-y-3">
+        <ChatAgentAvatarAppLauncher
+          selectedTarget={{
+            id: input.activeTarget.agentId,
+            title: input.activeTarget.displayName || resolvedAgentDisplayName,
+          }}
+          activeThreadId={input.activeThreadId}
+          activeConversationAnchorId={input.activeConversationAnchorId}
+        />
+        {schedulingFeedbackNode}
+      </div>
+    ) : schedulingFeedbackNode,
     settingsContent: (
       <div className="space-y-4">
+        {input.activeTarget ? (
+          <ChatAgentAvatarAppLauncher
+            selectedTarget={{
+              id: input.activeTarget.agentId,
+              title: input.activeTarget.displayName || resolvedAgentDisplayName,
+            }}
+            activeThreadId={input.activeThreadId}
+            activeConversationAnchorId={input.activeConversationAnchorId}
+          />
+        ) : null}
         <ChatSettingsPanel
           onDiagnosticsVisibilityChange={input.onDiagnosticsVisibilityChange}
           onModelSelectionChange={input.onModelSelectionChange}
@@ -487,7 +512,6 @@ export function useAgentConversationPresentation(
         />
       </div>
     ),
-    topContent: schedulingFeedbackNode,
     composerContent: (
       adapter.composerAdapter ? (
         <div className="space-y-3">
@@ -554,7 +578,9 @@ export function useAgentConversationPresentation(
     hostFeedbackNode,
     schedulingFeedbackNode,
     hostSnapshot,
+    characterData.name,
     input.activeTarget,
+    input.activeConversationAnchorId,
     input.activeThreadId,
     input.agentRouteReady,
     input.behaviorSettings,
@@ -578,6 +604,7 @@ export function useAgentConversationPresentation(
     input.initialModelSelection,
     input.onModelSelectionChange,
     input.pendingAttachments,
+    selectedTargetId,
     schedulingGuard.disabled,
     resolvedAgentDisplayName,
     avatarStageLayout.composerWidthClassName,

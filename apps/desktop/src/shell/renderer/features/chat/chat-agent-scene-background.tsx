@@ -7,12 +7,11 @@ export type ChatAgentSceneBackgroundProps = {
 
 /**
  * Chat surface background — Layer 0 (app-native glass) + Layer 1 (optional
- * in-app imported backdrop mask) of the D-LLM-065 four-layer stack.
+ * in-app imported backdrop mask) of the current desktop shell stack.
  *
- * Avatar (Layer 2) is rendered as an independent absolute-positioned overlay
- * via `ChatAgentAvatarOverlay`, not here. The scene background stays purely
- * decorative and does not participate in the chat shell's flex layout or
- * reshape transcript width.
+ * Desktop no longer mounts a local avatar carrier overlay in ordinary chat.
+ * The scene background stays purely decorative and does not participate in the
+ * chat shell's flex layout or reshape transcript width.
  */
 export function ChatAgentSceneBackground(props: ChatAgentSceneBackgroundProps) {
   const backdropImageUrl = props.characterData?.theme?.appBackdropImageUrl;

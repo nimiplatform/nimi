@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -6,184 +8,29 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
 
 import {
-  ChatAgentAnchoredAvatarStage,
   resolveChatAgentAvatarLive2dDiagnosticPanelModel,
   resolveChatAgentAvatarVrmDiagnosticPanelModel,
 } from '../src/shell/renderer/features/chat/chat-agent-anchored-avatar-stage.js';
 import {
   ChatRightPanelUtilityRail,
 } from '../src/shell/renderer/features/chat/chat-right-panel-character-rail.js';
-import {
-  desktopAgentAvatarBindingQueryKey,
-  desktopAgentAvatarResourcesQueryKey,
-} from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.js';
 
 (globalThis as typeof globalThis & { React?: typeof React }).React = React;
 
-test('anchored avatar stage renders inside the chat scene without embedding a settings panel', () => {
-  const queryClient = new QueryClient();
-  const markup = renderToStaticMarkup(
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ChatAgentAnchoredAvatarStage
-          selectedTarget={{
-            id: 'agent-1',
-            source: 'agent',
-            canonicalSessionId: 'thread-1',
-            title: 'Companion',
-            handle: '@companion',
-            bio: 'friend agent',
-            avatarUrl: 'https://cdn.nimi.test/companion.png',
-            avatarFallback: 'C',
-            previewText: null,
-            updatedAt: null,
-            unreadCount: 0,
-            status: 'active',
-            isOnline: null,
-            metadata: {},
-          }}
-          characterData={{
-            name: 'Companion',
-            avatarUrl: 'https://cdn.nimi.test/companion.png',
-            interactionState: {
-              phase: 'idle',
-              label: 'Here with you',
-            },
-          }}
-          settingsActive={false}
-          thinkingState="off"
-          onThinkingToggle={() => undefined}
-        />
-      </TooltipProvider>
-    </QueryClientProvider>,
-  );
+function readWorkspaceFile(relativePath: string): string {
+  return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
+}
 
-  assert.match(markup, /data-chat-agent-anchored-stage="true"/);
-  assert.match(markup, /data-chat-agent-stage-placement="right-center"/);
-  assert.match(markup, /data-chat-agent-stage-layout="h-full w-full"/);
-  assert.doesNotMatch(markup, /data-chat-agent-stage-hud="true"/);
-  assert.doesNotMatch(markup, /data-chat-surface-card=/);
-  assert.match(markup, /data-avatar-stage-viewport="true"/);
-  assert.match(markup, /relative h-full w-full overflow-visible/);
-  assert.match(markup, /data-avatar-stage-attention-enabled="true"/);
-  assert.match(markup, /data-avatar-stage-attention-active="false"/);
-  assert.match(markup, /data-avatar-backend-kind="sprite2d"/);
+test('desktop agent mode no longer mounts anchored avatar stage as current chat truth', () => {
+  const modeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
+  const shellSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
+
+  assert.doesNotMatch(modeSource, /ChatAgentAvatarOverlay/);
+  assert.doesNotMatch(modeSource, /chat-agent-avatar-overlay/);
+  assert.match(shellSource, /stagePanelProps:\s*undefined/);
 });
 
-test('anchored avatar stage keeps the unified stage shell when runtime presentation already resolves to Live2D', () => {
-  const queryClient = new QueryClient();
-  const markup = renderToStaticMarkup(
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ChatAgentAnchoredAvatarStage
-          selectedTarget={{
-            id: 'agent-live2d',
-            source: 'agent',
-            canonicalSessionId: 'thread-live2d',
-            title: 'Airi',
-            handle: '@airi',
-            bio: 'friend agent',
-            avatarUrl: 'https://cdn.nimi.test/airi.png',
-            avatarFallback: 'A',
-            previewText: null,
-            updatedAt: null,
-            unreadCount: 0,
-            status: 'active',
-            isOnline: null,
-            metadata: {},
-          }}
-          characterData={{
-            name: 'Airi',
-            avatarUrl: 'https://cdn.nimi.test/airi.png',
-            avatarPresentationProfile: {
-              backendKind: 'live2d',
-              avatarAssetRef: 'https://cdn.nimi.test/airi.model3.json',
-              idlePreset: 'airi.idle',
-            },
-            interactionState: {
-              phase: 'speaking',
-              label: 'Speaking…',
-            },
-          }}
-          settingsActive={false}
-          thinkingState="off"
-          onThinkingToggle={() => undefined}
-        />
-      </TooltipProvider>
-    </QueryClientProvider>,
-  );
-
-  assert.match(markup, /data-avatar-stage-viewport="true"/);
-  assert.match(markup, /data-avatar-live2d-status="loading"/);
-  assert.doesNotMatch(markup, /data-chat-agent-stage-hud="true"/);
-});
-
-test('anchored avatar stage resolves live2d from shared binding and resource query caches without key-shape collisions', () => {
-  const queryClient = new QueryClient();
-  queryClient.setQueryData(
-    desktopAgentAvatarBindingQueryKey('agent-live2d'),
-    {
-      agentId: 'agent-live2d',
-      resourceId: 'resource-live2d',
-      updatedAtMs: 42,
-    },
-  );
-  queryClient.setQueryData(
-    desktopAgentAvatarResourcesQueryKey(),
-    [{
-      resourceId: 'resource-live2d',
-      kind: 'live2d',
-      displayName: 'Airi Live2D',
-      sourceFilename: 'airi.model3.json',
-      storedPath: '/tmp/airi-live2d',
-      fileUrl: 'file:///tmp/airi-live2d/airi.model3.json',
-      posterPath: null,
-      importedAtMs: 10,
-      updatedAtMs: 20,
-      status: 'ready',
-    }],
-  );
-
-  const markup = renderToStaticMarkup(
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ChatAgentAnchoredAvatarStage
-          selectedTarget={{
-            id: 'agent-live2d',
-            source: 'agent',
-            canonicalSessionId: 'thread-live2d',
-            title: 'Airi',
-            handle: '@airi',
-            bio: 'friend agent',
-            avatarUrl: 'https://cdn.nimi.test/airi.png',
-            avatarFallback: 'A',
-            previewText: null,
-            updatedAt: null,
-            unreadCount: 0,
-            status: 'active',
-            isOnline: null,
-            metadata: {},
-          }}
-          characterData={{
-            name: 'Airi',
-            avatarUrl: 'https://cdn.nimi.test/airi.png',
-            interactionState: {
-              phase: 'idle',
-              label: 'Here with you',
-            },
-          }}
-          settingsActive={false}
-          thinkingState="off"
-          onThinkingToggle={() => undefined}
-        />
-      </TooltipProvider>
-    </QueryClientProvider>,
-  );
-
-  assert.match(markup, /data-avatar-live2d-status="loading"/);
-});
-
-test('live2d diagnostic panel model exposes recovery diagnostics before hard fail-close', () => {
+test('live2d diagnostic panel model still reports bounded recovery details for isolated legacy diagnostics', () => {
   const panel = resolveChatAgentAvatarLive2dDiagnosticPanelModel({
     status: 'loading',
     error: null,
@@ -191,16 +38,15 @@ test('live2d diagnostic panel model exposes recovery diagnostics before hard fai
       backendKind: 'live2d',
       stage: 'ready',
       status: 'loading',
-      assetRef: 'desktop-agent-avatar://agent-live2d',
+      assetRef: 'https://cdn.nimi.test/avatars/airi.model3.json',
       assetLabel: 'Airi Live2D',
-      mocVersion: 6,
-      resourceId: 'resource-live2d',
-      fileUrl: 'file:///tmp/airi-live2d/airi.model3.json',
-      modelUrl: 'live2d-memory://resource-live2d/airi.model3.json',
+      resourceId: null,
+      fileUrl: 'https://cdn.nimi.test/avatars/airi.model3.json',
+      modelUrl: 'https://cdn.nimi.test/avatars/airi.model3.json',
       error: null,
       errorUrl: null,
       errorStatus: null,
-      runtimeUrls: ['live2d-memory://resource-live2d/airi.model3.json'],
+      runtimeUrls: ['https://cdn.nimi.test/avatars/airi.model3.json'],
       cubismCoreAvailable: true,
       assetProbeFailures: ['webgl-context-lost'],
       motionGroups: ['Idle', 'TapBody'],
@@ -208,6 +54,7 @@ test('live2d diagnostic panel model exposes recovery diagnostics before hard fai
       speechMotionGroup: 'TapBody',
       recoveryAttemptCount: 2,
       recoveryReason: 'webgl-context-lost',
+      mocVersion: 6,
     },
   });
 
@@ -218,114 +65,7 @@ test('live2d diagnostic panel model exposes recovery diagnostics before hard fai
   assert.ok(panel?.details.includes('motionGroups=Idle,TapBody'));
 });
 
-test('live2d diagnostic panel model exposes motion fallback details on hard error', () => {
-  const panel = resolveChatAgentAvatarLive2dDiagnosticPanelModel({
-    status: 'error',
-    error: 'Live2D model failed closed.',
-    diagnostic: {
-      backendKind: 'live2d',
-      stage: 'ready',
-      status: 'error',
-      assetRef: 'desktop-agent-avatar://agent-live2d',
-      assetLabel: 'Airi Live2D',
-      mocVersion: 6,
-      resourceId: 'resource-live2d',
-      fileUrl: 'file:///tmp/airi-live2d/airi.model3.json',
-      modelUrl: 'live2d-memory://resource-live2d/airi.model3.json',
-      error: 'Live2D model failed closed.',
-      errorUrl: null,
-      errorStatus: null,
-      runtimeUrls: ['live2d-memory://resource-live2d/airi.model3.json'],
-      cubismCoreAvailable: true,
-      assetProbeFailures: ['webgl-context-lost'],
-      motionGroups: ['Idle', 'TapBody'],
-      idleMotionGroup: 'Idle',
-      speechMotionGroup: 'TapBody',
-      recoveryAttemptCount: 1,
-      recoveryReason: 'webgl-context-lost',
-    },
-  });
-
-  assert.equal(panel?.kind, 'error');
-  assert.equal(panel?.message, 'Live2D model failed closed.');
-  assert.ok(panel?.details.includes('idleMotionGroup=Idle'));
-  assert.ok(panel?.details.includes('speechMotionGroup=TapBody'));
-  assert.ok(panel?.details.includes('motionGroups=Idle,TapBody'));
-});
-
-test('vrm diagnostic panel model exposes asset-resolve loading details before renderer readiness', () => {
-  const panel = resolveChatAgentAvatarVrmDiagnosticPanelModel({
-    status: 'loading',
-    error: null,
-    diagnostic: {
-      backendKind: 'vrm',
-      stage: 'asset-resolve',
-      status: 'loading',
-      assetRef: 'desktop-agent-avatar://agent-vrm',
-      assetLabel: 'Airi VRM',
-      resourceId: 'resource-vrm',
-      assetUrl: null,
-      networkAssetUrl: null,
-      posterUrl: 'file:///tmp/airi.png',
-      error: null,
-      source: 'desktop-resource',
-      attentionActive: false,
-      recoveryAttemptCount: 0,
-      recoveryReason: null,
-      resizePosture: 'tracked-host-size',
-      viewportWidth: 0,
-      viewportHeight: 0,
-      hostRenderable: true,
-      canvasEpoch: 0,
-    },
-  });
-
-  assert.equal(panel?.kind, 'loading');
-  assert.equal(panel?.message, 'Resolving VRM asset');
-  assert.ok(panel?.details.includes('source=desktop-resource'));
-  assert.ok(panel?.details.includes('resourceId=resource-vrm'));
-  assert.ok(panel?.details.includes('assetLabel=Airi VRM'));
-  assert.ok(panel?.details.includes('resizePosture=tracked-host-size'));
-});
-
-test('vrm diagnostic panel model exposes fail-closed error details', () => {
-  const panel = resolveChatAgentAvatarVrmDiagnosticPanelModel({
-    status: 'error',
-    error: 'A VRM profile was requested, but the asset did not expose VRM data.',
-    diagnostic: {
-      backendKind: 'vrm',
-      stage: 'vrm-load',
-      status: 'error',
-      assetRef: 'https://cdn.nimi.test/avatars/airi.vrm',
-      assetLabel: 'Airi VRM',
-      resourceId: null,
-      assetUrl: 'https://cdn.nimi.test/avatars/airi.vrm',
-      networkAssetUrl: 'https://cdn.nimi.test/avatars/airi.vrm',
-      posterUrl: null,
-      error: 'A VRM profile was requested, but the asset did not expose VRM data.',
-      source: 'network',
-      attentionActive: true,
-      recoveryAttemptCount: 1,
-      recoveryReason: 'webgl-context-lost',
-      resizePosture: 'tracked-host-size',
-      viewportWidth: 320,
-      viewportHeight: 480,
-      hostRenderable: true,
-      canvasEpoch: 2,
-    },
-  });
-
-  assert.equal(panel?.kind, 'error');
-  assert.equal(panel?.message, 'A VRM profile was requested, but the asset did not expose VRM data.');
-  assert.ok(panel?.details.includes('backend=vrm status=error stage=vrm-load'));
-  assert.ok(panel?.details.includes('source=network'));
-  assert.ok(panel?.details.includes('assetUrl=https://cdn.nimi.test/avatars/airi.vrm'));
-  assert.ok(panel?.details.includes('recoveryReason=webgl-context-lost'));
-  assert.ok(panel?.details.includes('recoveryAttemptCount=1'));
-  assert.ok(panel?.details.includes('error=A VRM profile was requested, but the asset did not expose VRM data.'));
-});
-
-test('vrm diagnostic panel model exposes bounded recovery details while a ready asset is rebuilding the viewport', () => {
+test('vrm diagnostic panel model still reports bounded network recovery details for isolated legacy diagnostics', () => {
   const panel = resolveChatAgentAvatarVrmDiagnosticPanelModel({
     status: 'loading',
     error: null,
@@ -354,44 +94,10 @@ test('vrm diagnostic panel model exposes bounded recovery details while a ready 
 
   assert.equal(panel?.kind, 'loading');
   assert.equal(panel?.message, 'Recovering VRM viewport');
+  assert.ok(panel?.details.includes('source=network'));
   assert.ok(panel?.details.includes('recoveryReason=webgl-context-lost'));
   assert.ok(panel?.details.includes('recoveryAttemptCount=1'));
   assert.ok(panel?.details.includes('canvasEpoch=3'));
-});
-
-test('vrm diagnostic panel model exposes waiting-for-renderable-host details before hard fail-close', () => {
-  const panel = resolveChatAgentAvatarVrmDiagnosticPanelModel({
-    status: 'loading',
-    error: null,
-    diagnostic: {
-      backendKind: 'vrm',
-      stage: 'ready',
-      status: 'loading',
-      assetRef: 'desktop-avatar://resource-vrm/airi.vrm',
-      assetLabel: 'Airi VRM',
-      resourceId: 'resource-vrm',
-      assetUrl: 'blob:resource-vrm',
-      networkAssetUrl: null,
-      posterUrl: null,
-      error: null,
-      source: 'desktop-resource',
-      attentionActive: false,
-      recoveryAttemptCount: 0,
-      recoveryReason: null,
-      resizePosture: 'awaiting-renderable-host',
-      viewportWidth: 0,
-      viewportHeight: 0,
-      hostRenderable: false,
-      canvasEpoch: 4,
-    },
-  });
-
-  assert.equal(panel?.kind, 'loading');
-  assert.equal(panel?.message, 'Waiting for renderable VRM host');
-  assert.ok(panel?.details.includes('resizePosture=awaiting-renderable-host'));
-  assert.ok(panel?.details.includes('hostRenderable=false'));
-  assert.ok(panel?.details.includes('viewport=0x0'));
-  assert.ok(panel?.details.includes('canvasEpoch=4'));
 });
 
 test('utility rail uses transparent chrome and keeps only materialized utility buttons', () => {

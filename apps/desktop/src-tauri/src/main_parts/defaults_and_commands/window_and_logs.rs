@@ -1,4 +1,134 @@
 use super::*;
+use std::process::Command;
+
+const AVATAR_HANDOFF_SCHEME: &str = "nimi-avatar";
+const AVATAR_HANDOFF_HOST: &str = "launch";
+
+fn structured_avatar_handoff_error(reason_code: &str, message: &str) -> String {
+    json!({
+        "reasonCode": reason_code,
+        "message": message,
+    })
+    .to_string()
+}
+
+fn normalize_required_handoff_value(value: &str, field: &str) -> Result<String, String> {
+    let normalized = value.trim();
+    if normalized.is_empty() {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            &format!("avatar handoff requires {}", field),
+        ));
+    }
+    Ok(normalized.to_string())
+}
+
+fn normalize_optional_handoff_value(value: Option<&str>) -> Option<String> {
+    let normalized = value.unwrap_or_default().trim();
+    if normalized.is_empty() {
+        None
+    } else {
+        Some(normalized.to_string())
+    }
+}
+
+fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Result<String, String> {
+    let agent_id = normalize_required_handoff_value(payload.agent_id.as_str(), "agent_id")?;
+    let avatar_instance_id = normalize_required_handoff_value(
+        payload.avatar_instance_id.as_str(),
+        "avatar_instance_id",
+    )?;
+    let launched_by = normalize_optional_handoff_value(payload.launched_by.as_deref())
+        .unwrap_or_else(|| "desktop".to_string());
+    let source_surface = normalize_optional_handoff_value(payload.source_surface.as_deref())
+        .unwrap_or_else(|| "desktop-agent-chat".to_string());
+    let anchor_mode =
+        normalize_required_handoff_value(payload.anchor_mode.as_str(), "anchor_mode")?;
+    if anchor_mode != "existing" && anchor_mode != "open_new" {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            "avatar handoff anchor_mode must be existing or open_new",
+        ));
+    }
+    let conversation_anchor_id =
+        normalize_optional_handoff_value(payload.conversation_anchor_id.as_deref());
+    if anchor_mode == "existing" && conversation_anchor_id.is_none() {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            "avatar handoff requires conversation_anchor_id when anchor_mode=existing",
+        ));
+    }
+    if anchor_mode == "open_new" && conversation_anchor_id.is_some() {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            "avatar handoff must omit conversation_anchor_id when anchor_mode=open_new",
+        ));
+    }
+
+    let mut serializer = url::form_urlencoded::Serializer::new(String::new());
+    serializer.append_pair("agent_id", agent_id.as_str());
+    serializer.append_pair("avatar_instance_id", avatar_instance_id.as_str());
+    serializer.append_pair("anchor_mode", anchor_mode.as_str());
+    serializer.append_pair("launched_by", launched_by.as_str());
+    serializer.append_pair("source_surface", source_surface.as_str());
+    if let Some(conversation_anchor_id) = conversation_anchor_id {
+        serializer.append_pair("conversation_anchor_id", conversation_anchor_id.as_str());
+    }
+    Ok(format!(
+        "{AVATAR_HANDOFF_SCHEME}://{AVATAR_HANDOFF_HOST}?{}",
+        serializer.finish()
+    ))
+}
+
+fn open_avatar_handoff_uri(uri: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg(uri)
+            .status()
+            .map_err(|error| error.to_string())
+            .and_then(|status| {
+                if status.success() {
+                    Ok(())
+                } else {
+                    Err(format!("open exited with status {}", status))
+                }
+            })?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(["/C", "start", "", uri])
+            .status()
+            .map_err(|error| error.to_string())
+            .and_then(|status| {
+                if status.success() {
+                    Ok(())
+                } else {
+                    Err(format!("cmd start exited with status {}", status))
+                }
+            })?;
+        return Ok(());
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        Command::new("xdg-open")
+            .arg(uri)
+            .status()
+            .map_err(|error| error.to_string())
+            .and_then(|status| {
+                if status.success() {
+                    Ok(())
+                } else {
+                    Err(format!("xdg-open exited with status {}", status))
+                }
+            })?;
+        return Ok(());
+    }
+}
 
 #[tauri::command]
 pub(crate) fn confirm_private_sync(payload: ConfirmPrivateSyncPayload) -> ConfirmPrivateSyncResult {
@@ -149,9 +279,29 @@ pub(crate) fn focus_main_window(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+pub(crate) fn desktop_avatar_launch_handoff(
+    payload: DesktopAvatarLaunchHandoffPayload,
+) -> Result<DesktopAvatarLaunchHandoffResult, String> {
+    let handoff_uri = build_avatar_handoff_uri(&payload)?;
+    open_avatar_handoff_uri(handoff_uri.as_str()).map_err(|error| {
+        structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_OPEN_FAILED",
+            &format!("failed to open avatar handoff uri: {error}"),
+        )
+    })?;
+    Ok(DesktopAvatarLaunchHandoffResult {
+        opened: true,
+        handoff_uri,
+    })
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{confirm_dialog, ConfirmDialogPayload};
+    use super::{
+        build_avatar_handoff_uri, confirm_dialog, ConfirmDialogPayload,
+        DesktopAvatarLaunchHandoffPayload,
+    };
     use crate::test_support::test_guard;
     use std::{fs, path::PathBuf};
 
@@ -213,5 +363,47 @@ mod tests {
         assert!(second.confirmed);
         assert!(third.confirmed);
         let _ = fs::remove_dir_all(temp);
+    }
+
+    #[test]
+    fn avatar_handoff_uri_includes_existing_anchor_context_without_identity_leak() {
+        let uri = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
+            agent_id: "agent-1".to_string(),
+            avatar_instance_id: "instance-1".to_string(),
+            conversation_anchor_id: Some("anchor-1".to_string()),
+            anchor_mode: "existing".to_string(),
+            launched_by: Some("desktop".to_string()),
+            source_surface: Some("desktop-agent-chat".to_string()),
+        })
+        .expect("valid handoff uri");
+
+        assert!(uri.starts_with("nimi-avatar://launch?"));
+        assert!(uri.contains("agent_id=agent-1"));
+        assert!(uri.contains("avatar_instance_id=instance-1"));
+        assert!(uri.contains("conversation_anchor_id=anchor-1"));
+        assert!(!uri.contains("subject_user_id"));
+        assert!(!uri.contains("access_token"));
+    }
+
+    #[test]
+    fn avatar_handoff_uri_rejects_missing_anchor_for_existing_mode() {
+        let error = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
+            agent_id: "agent-1".to_string(),
+            avatar_instance_id: "instance-1".to_string(),
+            conversation_anchor_id: None,
+            anchor_mode: "existing".to_string(),
+            launched_by: Some("desktop".to_string()),
+            source_surface: Some("desktop-agent-chat".to_string()),
+        })
+        .expect_err("missing anchor should fail");
+
+        let payload: serde_json::Value =
+            serde_json::from_str(error.as_str()).expect("structured error json");
+        assert_eq!(
+            payload
+                .get("reasonCode")
+                .and_then(serde_json::Value::as_str),
+            Some("DESKTOP_AVATAR_HANDOFF_INVALID"),
+        );
     }
 }

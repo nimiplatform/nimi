@@ -1,7 +1,5 @@
 use super::db_queries::read_resource_record;
-use super::db_support::{
-    mime_type_for_resource, normalize_resource_relative_path,
-};
+use super::db_support::{mime_type_for_resource, normalize_resource_relative_path};
 use super::types::*;
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use rusqlite::Connection;

@@ -1,8 +1,8 @@
 use super::*;
 use crate::{
-    chat_agent_store, chat_ai_store, desktop_agent_avatar_store, desktop_agent_backdrop_store,
-    desktop_release, desktop_updates, external_agent_gateway, local_runtime, menu_bar_shell,
-    runtime_bridge, runtime_mod,
+    chat_agent_store, chat_ai_store, desktop_agent_backdrop_store, desktop_release,
+    desktop_updates, external_agent_gateway, local_runtime, menu_bar_shell, runtime_bridge,
+    runtime_mod,
 };
 
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
@@ -271,6 +271,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::system_resources::get_system_resource_snapshot,
             super::defaults_and_commands::http_request,
             super::defaults_and_commands::open_external_url,
+            super::defaults_and_commands::window_and_logs::desktop_avatar_launch_handoff,
             super::defaults_and_commands::oauth_token_exchange,
             super::defaults_and_commands::oauth_listen_for_code,
             super::defaults_and_commands::runtime_agent_memory::agent_memory_bind_standard,
@@ -366,17 +367,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_agent_backdrop_store::desktop_agent_backdrop_get_binding,
             desktop_agent_backdrop_store::desktop_agent_backdrop_import,
             desktop_agent_backdrop_store::desktop_agent_backdrop_clear,
-            desktop_agent_avatar_store::desktop_agent_avatar_resource_pick_vrm,
-            desktop_agent_avatar_store::desktop_agent_avatar_resource_pick_live2d,
-            desktop_agent_avatar_store::desktop_agent_avatar_resource_import_vrm,
-            desktop_agent_avatar_store::desktop_agent_avatar_resource_import_live2d,
-            desktop_agent_avatar_store::desktop_agent_avatar_resource_list,
-            desktop_agent_avatar_store::desktop_agent_avatar_resource_delete,
-            desktop_agent_avatar_store::desktop_agent_avatar_resource_read_asset,
-            desktop_agent_avatar_store::desktop_agent_avatar_resource_read_relative_asset,
-            desktop_agent_avatar_store::desktop_agent_avatar_binding_get,
-            desktop_agent_avatar_store::desktop_agent_avatar_binding_set,
-            desktop_agent_avatar_store::desktop_agent_avatar_binding_clear,
             external_agent_gateway::external_agent_issue_token,
             external_agent_gateway::external_agent_revoke_token,
             external_agent_gateway::external_agent_list_tokens,

@@ -213,7 +213,9 @@ pub(super) fn derive_resource_record(
     let root = resource_root_dir()?;
     let stored_path = root.join(&resource_relative_dir);
     let entry_path = stored_path.join(&entry_relative_path);
-    let poster_path = poster_relative_path.as_ref().map(|value| stored_path.join(value));
+    let poster_path = poster_relative_path
+        .as_ref()
+        .map(|value| stored_path.join(value));
     let derived_status = if entry_path.exists() {
         status
     } else {

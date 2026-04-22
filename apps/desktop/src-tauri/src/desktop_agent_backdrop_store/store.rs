@@ -1,6 +1,4 @@
-use super::types::{
-    DesktopAgentBackdropBindingRecord, DesktopAgentBackdropImportPayload,
-};
+use super::types::{DesktopAgentBackdropBindingRecord, DesktopAgentBackdropImportPayload};
 use crate::desktop_paths::resolve_nimi_data_dir;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -99,7 +97,9 @@ fn allowed_extension(path: &Path) -> Result<String, String> {
         .and_then(|value| value.to_str())
         .map(|value| value.trim().to_ascii_lowercase())
         .filter(|value| !value.is_empty())
-        .ok_or_else(|| "desktop backdrop import requires an image filename extension".to_string())?;
+        .ok_or_else(|| {
+            "desktop backdrop import requires an image filename extension".to_string()
+        })?;
     match extension.as_str() {
         "png" | "jpg" | "jpeg" | "webp" | "gif" | "avif" => Ok(extension),
         _ => Err(format!(
@@ -110,11 +110,20 @@ fn allowed_extension(path: &Path) -> Result<String, String> {
 
 fn file_url_from_path(path: &Path) -> Result<String, String> {
     Url::from_file_path(path)
-        .map_err(|_| format!("failed to convert backdrop path to file url: {}", path.display()))
+        .map_err(|_| {
+            format!(
+                "failed to convert backdrop path to file url: {}",
+                path.display()
+            )
+        })
         .map(|url| url.to_string())
 }
 
-fn backdrop_asset_filename(agent_id: &str, source_path: &Path, imported_at_ms: i64) -> Result<String, String> {
+fn backdrop_asset_filename(
+    agent_id: &str,
+    source_path: &Path,
+    imported_at_ms: i64,
+) -> Result<String, String> {
     let extension = allowed_extension(source_path)?;
     let mut hasher = Sha256::new();
     hasher.update(agent_id.as_bytes());

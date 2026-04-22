@@ -197,7 +197,7 @@ function AiModeSettings(props: {
     ? {
       title: t('Chat.avatarBindingTitle', { defaultValue: 'Avatar' }),
       subtitle: t('Chat.avatarSummarySubtitle', {
-        defaultValue: 'Import VRM or Live2D and bind it locally',
+        defaultValue: 'Launch Nimi Avatar for carrier rendering; desktop keeps shell-only backdrop controls here.',
       }),
       statusDot: 'neutral' as const,
       statusLabel: null,

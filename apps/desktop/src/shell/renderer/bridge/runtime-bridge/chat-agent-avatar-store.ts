@@ -1,14 +1,3 @@
-import { hasTauriInvoke } from './env';
-import { invokeChecked } from './invoke';
-import {
-  parseDesktopAgentAvatarResourceAssetPayload,
-  parseDesktopAgentAvatarBindingRecord,
-  parseDesktopAgentAvatarBindingSetInput,
-  parseDesktopAgentAvatarImportLive2dInput,
-  parseDesktopAgentAvatarImportResult,
-  parseDesktopAgentAvatarImportVrmInput,
-  parseDesktopAgentAvatarResourceRecords,
-} from './chat-agent-avatar-parsers.js';
 import type {
   DesktopAgentAvatarResourceAssetPayload,
   DesktopAgentAvatarBindingRecord,
@@ -20,21 +9,11 @@ import type {
   DesktopAgentAvatarResourceRecord,
 } from './chat-agent-avatar-types.js';
 
-function requireTauri(commandName: string) {
-  if (!hasTauriInvoke()) {
-    throw new Error(`${commandName} requires Tauri runtime`);
-  }
-}
+const DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE =
+  'Desktop-local avatar import, binding, and asset loading were decommissioned in Wave 4 Exec Pack 4. Use Nimi Avatar as the only first-party avatar carrier.';
 
-function parseOptionalPath(value: unknown): string | null {
-  if (value == null) {
-    return null;
-  }
-  if (typeof value !== 'string') {
-    throw new Error('desktop avatar picker returned invalid payload');
-  }
-  const normalized = value.trim();
-  return normalized ? normalized : null;
+function decommissionedError(commandName: string): Error {
+  return new Error(`${commandName} is unavailable: ${DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE}`);
 }
 
 export function desktopAgentAvatarResourcesQueryKey() {
@@ -46,83 +25,61 @@ export function desktopAgentAvatarBindingQueryKey(agentId: string) {
 }
 
 export async function pickDesktopAgentAvatarVrmSourcePath(): Promise<string | null> {
-  requireTauri('desktop_agent_avatar_resource_pick_vrm');
-  return invokeChecked('desktop_agent_avatar_resource_pick_vrm', {}, parseOptionalPath);
+  throw decommissionedError('desktop_agent_avatar_resource_pick_vrm');
 }
 
 export async function pickDesktopAgentAvatarLive2dSourcePath(): Promise<string | null> {
-  requireTauri('desktop_agent_avatar_resource_pick_live2d');
-  return invokeChecked('desktop_agent_avatar_resource_pick_live2d', {}, parseOptionalPath);
+  throw decommissionedError('desktop_agent_avatar_resource_pick_live2d');
 }
 
 export async function importDesktopAgentAvatarVrm(
   input: DesktopAgentAvatarImportVrmInput,
 ): Promise<DesktopAgentAvatarImportResult> {
-  requireTauri('desktop_agent_avatar_resource_import_vrm');
-  return invokeChecked('desktop_agent_avatar_resource_import_vrm', {
-    payload: parseDesktopAgentAvatarImportVrmInput(input),
-  }, parseDesktopAgentAvatarImportResult);
+  void input;
+  throw decommissionedError('desktop_agent_avatar_resource_import_vrm');
 }
 
 export async function importDesktopAgentAvatarLive2d(
   input: DesktopAgentAvatarImportLive2dInput,
 ): Promise<DesktopAgentAvatarImportResult> {
-  requireTauri('desktop_agent_avatar_resource_import_live2d');
-  return invokeChecked('desktop_agent_avatar_resource_import_live2d', {
-    payload: parseDesktopAgentAvatarImportLive2dInput(input),
-  }, parseDesktopAgentAvatarImportResult);
+  void input;
+  throw decommissionedError('desktop_agent_avatar_resource_import_live2d');
 }
 
 export async function listDesktopAgentAvatarResources(): Promise<DesktopAgentAvatarResourceRecord[]> {
-  requireTauri('desktop_agent_avatar_resource_list');
-  return invokeChecked('desktop_agent_avatar_resource_list', {}, parseDesktopAgentAvatarResourceRecords);
+  throw decommissionedError('desktop_agent_avatar_resource_list');
 }
 
 export async function deleteDesktopAgentAvatarResource(resourceId: string): Promise<boolean> {
-  requireTauri('desktop_agent_avatar_resource_delete');
-  return invokeChecked('desktop_agent_avatar_resource_delete', {
-    payload: { resourceId },
-  }, (value) => Boolean(value));
+  void resourceId;
+  throw decommissionedError('desktop_agent_avatar_resource_delete');
 }
 
 export async function readDesktopAgentAvatarResourceAsset(resourceId: string): Promise<DesktopAgentAvatarResourceAssetPayload> {
-  requireTauri('desktop_agent_avatar_resource_read_asset');
-  return invokeChecked('desktop_agent_avatar_resource_read_asset', {
-    payload: { resourceId },
-  }, parseDesktopAgentAvatarResourceAssetPayload);
+  void resourceId;
+  throw decommissionedError('desktop_agent_avatar_resource_read_asset');
 }
 
 export async function readDesktopAgentAvatarResourceRelativeAsset(
   input: DesktopAgentAvatarResourceRelativeReadInput,
 ): Promise<DesktopAgentAvatarResourceAssetPayload> {
-  requireTauri('desktop_agent_avatar_resource_read_relative_asset');
-  return invokeChecked('desktop_agent_avatar_resource_read_relative_asset', {
-    payload: {
-      resourceId: input.resourceId,
-      relativePath: input.relativePath,
-    },
-  }, parseDesktopAgentAvatarResourceAssetPayload);
+  void input;
+  throw decommissionedError('desktop_agent_avatar_resource_read_relative_asset');
 }
 
 export async function getDesktopAgentAvatarBinding(agentId: string): Promise<DesktopAgentAvatarBindingRecord | null> {
-  requireTauri('desktop_agent_avatar_binding_get');
-  return invokeChecked('desktop_agent_avatar_binding_get', {
-    payload: { agentId },
-  }, (value) => (value == null ? null : parseDesktopAgentAvatarBindingRecord(value)));
+  void agentId;
+  throw decommissionedError('desktop_agent_avatar_binding_get');
 }
 
 export async function setDesktopAgentAvatarBinding(
   input: DesktopAgentAvatarBindingSetInput,
 ): Promise<DesktopAgentAvatarBindingRecord> {
-  requireTauri('desktop_agent_avatar_binding_set');
-  return invokeChecked('desktop_agent_avatar_binding_set', {
-    payload: parseDesktopAgentAvatarBindingSetInput(input),
-  }, parseDesktopAgentAvatarBindingRecord);
+  void input;
+  throw decommissionedError('desktop_agent_avatar_binding_set');
 }
 
 export async function clearDesktopAgentAvatarBinding(agentId: string): Promise<boolean> {
-  requireTauri('desktop_agent_avatar_binding_clear');
-  return invokeChecked('desktop_agent_avatar_binding_clear', {
-    payload: { agentId },
-  }, (value) => Boolean(value));
+  void agentId;
+  throw decommissionedError('desktop_agent_avatar_binding_clear');
 }

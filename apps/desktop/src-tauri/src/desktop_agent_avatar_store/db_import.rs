@@ -1,8 +1,8 @@
 use super::db_queries::{read_resource_record, set_binding_impl};
 use super::db_support::{
-    copy_directory_recursive, copy_file, generate_resource_id, kind_to_db, normalize_optional_string,
-    normalize_source_path, now_ms, require_non_negative_ms, resource_root_dir, status_to_db,
-    AVATAR_MANAGED_RESOURCES_DIR,
+    copy_directory_recursive, copy_file, generate_resource_id, kind_to_db,
+    normalize_optional_string, normalize_source_path, now_ms, require_non_negative_ms,
+    resource_root_dir, status_to_db, AVATAR_MANAGED_RESOURCES_DIR,
 };
 use super::types::*;
 use rusqlite::{params, Connection};
@@ -43,9 +43,9 @@ fn find_live2d_entry_relative_path(source_root: &Path) -> Result<String, String>
                 continue;
             };
             if filename.ends_with(".model3.json") {
-                let relative = path
-                    .strip_prefix(source_root)
-                    .map_err(|error| format!("failed to resolve Live2D relative entry path: {error}"))?;
+                let relative = path.strip_prefix(source_root).map_err(|error| {
+                    format!("failed to resolve Live2D relative entry path: {error}")
+                })?;
                 return Ok(relative.to_string_lossy().replace('\\', "/"));
             }
         }
@@ -81,8 +81,10 @@ pub(super) fn import_vrm_impl(
             .and_then(|value| value.to_str())
             .unwrap_or("VRM Avatar"),
     );
-    let imported_at_ms =
-        require_non_negative_ms(payload.imported_at_ms.unwrap_or_else(now_ms), "importedAtMs")?;
+    let imported_at_ms = require_non_negative_ms(
+        payload.imported_at_ms.unwrap_or_else(now_ms),
+        "importedAtMs",
+    )?;
     let resource_id = generate_resource_id(&display_name);
     let resource_relative_dir = format!("{}/{}", AVATAR_MANAGED_RESOURCES_DIR, resource_id);
     let entry_relative_path = source_filename.clone();
@@ -142,65 +144,65 @@ pub(super) fn import_live2d_impl(
     payload: &DesktopAgentAvatarImportLive2dPayload,
 ) -> Result<DesktopAgentAvatarImportResult, String> {
     let source_path = normalize_source_path(&payload.source_path, "sourcePath")?;
-    let (source_root, entry_relative_path, source_filename, default_display_name) =
-        if source_path.is_dir() {
-            let source_filename = source_path
-                .file_name()
-                .and_then(|value| value.to_str())
-                .unwrap_or("live2d")
-                .to_string();
-            let entry_relative_path = find_live2d_entry_relative_path(&source_path)?;
-            let display_name = source_path
-                .file_stem()
-                .and_then(|value| value.to_str())
-                .unwrap_or("Live2D Avatar")
-                .to_string();
-            (
-                source_path.clone(),
-                entry_relative_path,
-                source_filename,
-                display_name,
-            )
-        } else if source_path.is_file() {
-            let file_name = source_path
-                .file_name()
-                .and_then(|value| value.to_str())
-                .ok_or_else(|| "sourcePath must have a valid filename".to_string())?;
-            if !file_name.ends_with(".model3.json") {
-                return Err(
-                    "Live2D import file path must point to a *.model3.json file".to_string(),
-                );
-            }
-            let source_root = source_path
-                .parent()
-                .ok_or_else(|| "Live2D model path must have a parent directory".to_string())?
-                .to_path_buf();
-            let entry_relative_path = source_path
-                .file_name()
-                .and_then(|value| value.to_str())
-                .ok_or_else(|| "sourcePath must have a valid filename".to_string())?
-                .to_string();
-            let default_display_name = source_path
-                .file_stem()
-                .and_then(|value| value.to_str())
-                .unwrap_or("Live2D Avatar")
-                .replace(".model3", "");
-            (
-                source_root,
-                entry_relative_path,
-                file_name.to_string(),
-                default_display_name,
-            )
-        } else {
-            return Err(
-                "sourcePath must point to a Live2D runtime directory or *.model3.json file"
-                    .to_string(),
-            );
-        };
+    let (source_root, entry_relative_path, source_filename, default_display_name) = if source_path
+        .is_dir()
+    {
+        let source_filename = source_path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or("live2d")
+            .to_string();
+        let entry_relative_path = find_live2d_entry_relative_path(&source_path)?;
+        let display_name = source_path
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .unwrap_or("Live2D Avatar")
+            .to_string();
+        (
+            source_path.clone(),
+            entry_relative_path,
+            source_filename,
+            display_name,
+        )
+    } else if source_path.is_file() {
+        let file_name = source_path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| "sourcePath must have a valid filename".to_string())?;
+        if !file_name.ends_with(".model3.json") {
+            return Err("Live2D import file path must point to a *.model3.json file".to_string());
+        }
+        let source_root = source_path
+            .parent()
+            .ok_or_else(|| "Live2D model path must have a parent directory".to_string())?
+            .to_path_buf();
+        let entry_relative_path = source_path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| "sourcePath must have a valid filename".to_string())?
+            .to_string();
+        let default_display_name = source_path
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .unwrap_or("Live2D Avatar")
+            .replace(".model3", "");
+        (
+            source_root,
+            entry_relative_path,
+            file_name.to_string(),
+            default_display_name,
+        )
+    } else {
+        return Err(
+            "sourcePath must point to a Live2D runtime directory or *.model3.json file".to_string(),
+        );
+    };
 
     let display_name = resolve_display_name(payload.display_name.as_deref(), &default_display_name);
-    let imported_at_ms =
-        require_non_negative_ms(payload.imported_at_ms.unwrap_or_else(now_ms), "importedAtMs")?;
+    let imported_at_ms = require_non_negative_ms(
+        payload.imported_at_ms.unwrap_or_else(now_ms),
+        "importedAtMs",
+    )?;
     let resource_id = generate_resource_id(&display_name);
     let resource_relative_dir = format!("{}/{}", AVATAR_MANAGED_RESOURCES_DIR, resource_id);
     let destination_dir = resource_root_dir()?.join(&resource_relative_dir);

@@ -46,6 +46,8 @@ const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string 
   DESKTOP_HTTP_URL_HOST_MISSING: { key: 'BridgeErrors.codes.DESKTOP_HTTP_URL_HOST_MISSING', defaultValue: 'Request URL is missing a host. Please review the configuration.' },
   DESKTOP_HTTP_HEADER_RESTRICTED: { key: 'BridgeErrors.codes.DESKTOP_HTTP_HEADER_RESTRICTED', defaultValue: 'Restricted request headers cannot be overridden from the renderer.' },
   DESKTOP_HTTP_FETCH_UNAVAILABLE: { key: 'BridgeErrors.codes.DESKTOP_HTTP_FETCH_UNAVAILABLE', defaultValue: 'This feature is not available in the current environment.' },
+  DESKTOP_AVATAR_HANDOFF_INVALID: { key: 'BridgeErrors.codes.DESKTOP_AVATAR_HANDOFF_INVALID', defaultValue: 'Avatar handoff payload is invalid. Reopen the avatar from an active desktop agent target.' },
+  DESKTOP_AVATAR_HANDOFF_OPEN_FAILED: { key: 'BridgeErrors.codes.DESKTOP_AVATAR_HANDOFF_OPEN_FAILED', defaultValue: 'Failed to open the avatar app handoff. Check that the avatar app is available on this desktop.' },
   DESKTOP_OAUTH_TOKEN_EXCHANGE_INPUT_INVALID: { key: 'BridgeErrors.codes.DESKTOP_OAUTH_TOKEN_EXCHANGE_INPUT_INVALID', defaultValue: 'OAuth token exchange requires tokenUrl, clientId, and code.' },
   DESKTOP_OAUTH_TOKEN_EXCHANGE_UNAVAILABLE: { key: 'BridgeErrors.codes.DESKTOP_OAUTH_TOKEN_EXCHANGE_UNAVAILABLE', defaultValue: 'OAuth token exchange is not available in the current environment.' },
   DESKTOP_OAUTH_TOKEN_EXCHANGE_RESPONSE_INVALID: { key: 'BridgeErrors.codes.DESKTOP_OAUTH_TOKEN_EXCHANGE_RESPONSE_INVALID', defaultValue: 'OAuth token response is invalid.' },
