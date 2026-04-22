@@ -1,6 +1,6 @@
 import type { AgentDataBundle, AgentDataDriver, AgentEvent } from '../driver/types.js';
-import type { Live2DPluginApi } from '../live2d/plugin-api.js';
 import { createDefaultActivityHandler } from './default-fallback.js';
+import type { EmbodimentProjectionApi } from './embodiment-projection-api.js';
 import { HandlerExecutor } from './handler-executor.js';
 import type { HandlerRegistry } from './handler-registry.js';
 
@@ -8,7 +8,7 @@ export type DispatchContext = {
   driver: AgentDataDriver;
   registry: HandlerRegistry;
   executor: HandlerExecutor;
-  live2d: Live2DPluginApi;
+  projection: EmbodimentProjectionApi;
 };
 
 function bundleForEvent(base: AgentDataBundle, event: AgentEvent): AgentDataBundle {
@@ -24,7 +24,7 @@ function bundleForEvent(base: AgentDataBundle, event: AgentEvent): AgentDataBund
 }
 
 export function wireEventDispatch(context: DispatchContext): () => void {
-  const { driver, registry, executor, live2d } = context;
+  const { driver, registry, executor, projection } = context;
   const defaultActivity = createDefaultActivityHandler();
 
   const unsubscribe = driver.onEvent((event) => {
@@ -35,7 +35,7 @@ export function wireEventDispatch(context: DispatchContext): () => void {
       const entry = registry.activity.get(activityName);
       const handler = entry?.handler ?? defaultActivity;
       const key = `activity:${activityName}`;
-      void executor.run(key, handler, ctx, live2d);
+      void executor.run(key, handler, ctx, projection);
       return;
     }
 
@@ -43,7 +43,7 @@ export function wireEventDispatch(context: DispatchContext): () => void {
     if (!entry) return;
     const ctx = bundleForEvent(driver.getBundle(), event);
     const key = `event:${event.name}`;
-    void executor.run(key, entry.handler, ctx, live2d);
+    void executor.run(key, entry.handler, ctx, projection);
   });
 
   return unsubscribe;
@@ -56,7 +56,7 @@ export class ContinuousScheduler {
   constructor(
     private readonly registry: HandlerRegistry,
     private readonly getBundle: () => AgentDataBundle | null,
-    private readonly live2d: Live2DPluginApi,
+    private readonly projection: EmbodimentProjectionApi,
   ) {}
 
   start(): void {
@@ -74,7 +74,7 @@ export class ContinuousScheduler {
           if (now - prev < interval) continue;
           this.lastRun.set(key, now);
           try {
-            entry.handler.update(bundle, this.live2d);
+            entry.handler.update(bundle, this.projection);
           } catch (err) {
             console.warn(`[nas:continuous] ${key} threw: ${err instanceof Error ? err.message : String(err)}`);
           }

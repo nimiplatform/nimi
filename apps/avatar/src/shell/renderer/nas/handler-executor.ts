@@ -1,5 +1,5 @@
 import type { AgentDataBundle } from '../driver/types.js';
-import type { Live2DPluginApi } from '../live2d/plugin-api.js';
+import type { EmbodimentProjectionApi } from './embodiment-projection-api.js';
 import type { ActivityOrEventHandler } from './handler-types.js';
 
 export class HandlerExecutor {
@@ -9,7 +9,7 @@ export class HandlerExecutor {
     key: string,
     handler: ActivityOrEventHandler,
     ctx: AgentDataBundle,
-    live2d: Live2DPluginApi,
+    projection: EmbodimentProjectionApi,
   ): Promise<void> {
     const prev = this.inFlight.get(key);
     if (prev) {
@@ -18,7 +18,7 @@ export class HandlerExecutor {
     const controller = new AbortController();
     this.inFlight.set(key, controller);
     try {
-      await handler.execute(ctx, live2d, { signal: controller.signal });
+      await handler.execute(ctx, projection, { signal: controller.signal });
     } catch (err) {
       if (controller.signal.aborted) {
         return;

@@ -1,5 +1,5 @@
 import type { AgentDataBundle } from '../driver/types.js';
-import type { Live2DPluginApi } from '../live2d/plugin-api.js';
+import type { EmbodimentProjectionApi } from './embodiment-projection-api.js';
 
 export type HandlerMeta = {
   description?: string;
@@ -10,7 +10,7 @@ export type ActivityOrEventHandler = {
   meta?: HandlerMeta;
   execute(
     ctx: AgentDataBundle,
-    live2d: Live2DPluginApi,
+    projection: EmbodimentProjectionApi,
     options: { signal: AbortSignal },
   ): Promise<void>;
 };
@@ -19,7 +19,7 @@ export type ContinuousHandler = {
   meta?: HandlerMeta;
   fps?: number;
   enabled?: boolean;
-  update(ctx: AgentDataBundle, live2d: Live2DPluginApi): void;
+  update(ctx: AgentDataBundle, projection: EmbodimentProjectionApi): void;
 };
 
 export type RegisteredActivityHandler = {
