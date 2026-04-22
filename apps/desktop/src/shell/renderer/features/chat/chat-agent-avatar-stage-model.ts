@@ -17,10 +17,6 @@ type ChatAgentAvatarSmokeInteractionOverride = {
 
 export const CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT = 'nimi:chat-avatar-smoke-override-change';
 
-function buildDesktopAgentAvatarAssetRef(resource: DesktopAgentAvatarResourceRecord): string {
-  return `desktop-avatar://${resource.resourceId}/${encodeURIComponent(resource.sourceFilename)}`;
-}
-
 function resolveFallbackPhaseLabel(
   phase: NonNullable<ConversationCharacterData['interactionState']>['phase'] | null | undefined,
 ): string {
@@ -44,7 +40,7 @@ function resolveBaselineAvatarPresentationProfile(input: {
   avatarUrl?: string | null;
 }): AvatarPresentationProfile {
   const presentationProfile = input.presentationProfile || null;
-  if (presentationProfile) {
+  if (presentationProfile && presentationProfile.backendKind !== 'live2d' && presentationProfile.backendKind !== 'vrm') {
     return presentationProfile;
   }
   if (input.avatarUrl) {
@@ -67,30 +63,19 @@ function resolveBaselineAvatarPresentationProfile(input: {
   };
 }
 
-function resolveDesktopLocalPresentationProfile(
-  localResource: DesktopAgentAvatarResourceRecord | null,
-): AvatarPresentationProfile | null {
-  if (localResource?.kind === 'vrm' && localResource.status === 'ready') {
-    return {
-      backendKind: 'vrm',
-      avatarAssetRef: buildDesktopAgentAvatarAssetRef(localResource),
-      expressionProfileRef: 'desktop://agent-local-avatar/default-expression-profile',
-      idlePreset: 'desktop-agent-local-avatar-idle',
-      interactionPolicyRef: 'desktop://agent-local-avatar/default-interaction-policy',
-      defaultVoiceReference: null,
-    };
+export function resolveDesktopChatAvatarPresentationProfile(input: {
+  presentationProfile?: AvatarPresentationProfile | null;
+  avatarUrl?: string | null;
+}): AvatarPresentationProfile {
+  const fallbackPresentation = resolveBaselineAvatarPresentationProfile(input);
+  const presentationProfile = input.presentationProfile || null;
+  if (!presentationProfile) {
+    return fallbackPresentation;
   }
-  if (localResource?.kind === 'live2d' && localResource.status === 'ready') {
-    return {
-      backendKind: 'live2d',
-      avatarAssetRef: buildDesktopAgentAvatarAssetRef(localResource),
-      expressionProfileRef: 'desktop://agent-local-avatar/live2d-expression-profile',
-      idlePreset: 'desktop-agent-local-live2d-idle',
-      interactionPolicyRef: 'desktop://agent-local-avatar/live2d-interaction-policy',
-      defaultVoiceReference: null,
-    };
+  if (presentationProfile.backendKind === 'live2d' || presentationProfile.backendKind === 'vrm') {
+    return fallbackPresentation;
   }
-  return null;
+  return presentationProfile;
 }
 
 function buildAvatarSnapshot(input: {
@@ -188,11 +173,6 @@ export type ChatAgentAvatarStageModel = {
   viewportInput: AvatarVrmViewportRenderInput;
 };
 
-export type ChatAgentAvatarBackendLoadStatus = {
-  live2d: 'idle' | 'loading' | 'ready' | 'error';
-  vrm: 'idle' | 'loading' | 'ready' | 'error';
-};
-
 export type ChatAgentAvatarStageRenderModel = {
   label: string;
   imageUrl: string | null;
@@ -209,23 +189,17 @@ export function resolveChatAgentAvatarStageModel(input: {
   localResource?: DesktopAgentAvatarResourceRecord | null;
   attentionState?: ChatAgentAvatarAttentionState | null;
 }): ChatAgentAvatarStageModel {
+  void input.localResource;
   const displayName = input.characterData?.name || input.selectedTarget.title || 'Agent';
   const interactionState = resolveChatAgentAvatarInteractionState(input.characterData?.interactionState || null);
   const statusLabel = interactionState?.label || resolveFallbackPhaseLabel(interactionState?.phase);
   const attentionState = input.attentionState || createIdleChatAgentAvatarAttentionState();
-  const fallbackPresentation = resolveBaselineAvatarPresentationProfile({
+  const presentation = resolveDesktopChatAvatarPresentationProfile({
     presentationProfile: input.characterData?.avatarPresentationProfile || null,
     avatarUrl: input.characterData?.avatarUrl || input.selectedTarget.avatarUrl || null,
   });
-  const presentation = resolveDesktopLocalPresentationProfile(input.localResource || null) || fallbackPresentation;
   const snapshot = buildAvatarSnapshot({
     presentation,
-    interactionState,
-    statusLabel,
-    attentionState,
-  });
-  const fallbackSnapshot = buildAvatarSnapshot({
-    presentation: fallbackPresentation,
     interactionState,
     statusLabel,
     attentionState,
@@ -237,10 +211,10 @@ export function resolveChatAgentAvatarStageModel(input: {
     imageUrl: input.characterData?.avatarUrl || input.selectedTarget.avatarUrl || null,
     fallbackLabel: input.selectedTarget.avatarFallback || displayName,
     presentation,
-    fallbackPresentation,
+    fallbackPresentation: presentation,
     attentionState,
     snapshot,
-    fallbackSnapshot,
+    fallbackSnapshot: snapshot,
     viewportInput: {
       label: displayName,
       assetRef: presentation.avatarAssetRef,
@@ -256,25 +230,23 @@ export function resolveChatAgentAvatarStageModel(input: {
 
 export function resolveChatAgentAvatarStageRenderModel(input: {
   stageModel: ChatAgentAvatarStageModel;
-  loadStatus: ChatAgentAvatarBackendLoadStatus;
+  loadStatus?: {
+    live2d: 'idle' | 'loading' | 'ready' | 'error';
+    vrm: 'idle' | 'loading' | 'ready' | 'error';
+  };
 }): ChatAgentAvatarStageRenderModel {
-  const rendererFallbackApplied = input.stageModel.presentation.backendKind === 'live2d'
-    && input.loadStatus.live2d === 'error';
-  const snapshot = rendererFallbackApplied
-    ? input.stageModel.fallbackSnapshot
-    : input.stageModel.snapshot;
-
+  void input.loadStatus;
   return {
     label: input.stageModel.displayName,
     imageUrl: input.stageModel.imageUrl,
     fallbackLabel: input.stageModel.fallbackLabel,
     attentionState: input.stageModel.attentionState,
-    snapshot,
+    snapshot: input.stageModel.snapshot,
     viewportInput: {
       ...input.stageModel.viewportInput,
-      assetRef: snapshot.presentation.avatarAssetRef,
-      snapshot,
+      assetRef: input.stageModel.snapshot.presentation.avatarAssetRef,
+      snapshot: input.stageModel.snapshot,
     },
-    rendererFallbackApplied,
+    rendererFallbackApplied: false,
   };
 }

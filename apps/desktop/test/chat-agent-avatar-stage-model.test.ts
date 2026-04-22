@@ -7,7 +7,7 @@ import {
 } from '../src/shell/renderer/features/chat/chat-agent-avatar-stage-model.js';
 import { createIdleChatAgentAvatarAttentionState } from '../src/shell/renderer/features/chat/chat-agent-avatar-attention-state.js';
 
-test('agent avatar stage model prefers desktop-local bound VRM resource when present', () => {
+test('agent avatar stage model ignores retired desktop-local VRM binding and keeps non-carrier sprite presentation', () => {
   const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-1',
@@ -54,9 +54,11 @@ test('agent avatar stage model prefers desktop-local bound VRM resource when pre
     },
   });
 
-  assert.equal(model.presentation.backendKind, 'vrm');
-  assert.equal(model.presentation.avatarAssetRef, 'desktop-avatar://resource-1/bound.vrm');
+  assert.equal(model.presentation.backendKind, 'sprite2d');
+  assert.equal(model.presentation.avatarAssetRef, 'https://cdn.nimi.test/companion.png');
   assert.equal(model.fallbackPresentation.backendKind, 'sprite2d');
+  assert.equal(model.fallbackSnapshot.presentation.backendKind, 'sprite2d');
+  assert.equal(model.viewportInput.assetRef, 'https://cdn.nimi.test/companion.png');
   assert.equal(model.viewportInput.posterUrl, 'https://cdn.nimi.test/companion.png');
   assert.equal(model.snapshot.interaction.phase, 'speaking');
   assert.equal(model.snapshot.interaction.actionCue, 'Speaking…');
@@ -64,7 +66,7 @@ test('agent avatar stage model prefers desktop-local bound VRM resource when pre
   assert.equal(model.snapshot.interaction.attentionTarget, 'camera');
 });
 
-test('agent avatar stage model prefers desktop-local bound Live2D resource when present', () => {
+test('agent avatar stage model ignores retired desktop-local Live2D binding and keeps non-carrier sprite presentation', () => {
   const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-live2d',
@@ -109,14 +111,14 @@ test('agent avatar stage model prefers desktop-local bound Live2D resource when 
     },
   });
 
-  assert.equal(model.presentation.backendKind, 'live2d');
-  assert.equal(model.presentation.avatarAssetRef, 'desktop-avatar://resource-live2d/airi.model3.json');
+  assert.equal(model.presentation.backendKind, 'sprite2d');
+  assert.equal(model.presentation.avatarAssetRef, 'https://cdn.nimi.test/airi.png');
   assert.equal(model.fallbackPresentation.backendKind, 'sprite2d');
   assert.equal(model.fallbackSnapshot.presentation.backendKind, 'sprite2d');
-  assert.equal(model.viewportInput.assetRef, 'desktop-avatar://resource-live2d/airi.model3.json');
+  assert.equal(model.viewportInput.assetRef, 'https://cdn.nimi.test/airi.png');
 });
 
-test('agent avatar stage model preserves runtime-backed VRM presentation when present', () => {
+test('agent avatar stage model downgrades runtime live presentation to non-carrier sprite presentation when poster art exists', () => {
   const model = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-2',
@@ -149,10 +151,10 @@ test('agent avatar stage model preserves runtime-backed VRM presentation when pr
     },
   });
 
-  assert.equal(model.presentation.backendKind, 'vrm');
-  assert.equal(model.presentation.avatarAssetRef, 'https://cdn.nimi.test/scout.vrm');
-  assert.equal(model.viewportInput.assetRef, 'https://cdn.nimi.test/scout.vrm');
-  assert.equal(model.fallbackPresentation.backendKind, 'vrm');
+  assert.equal(model.presentation.backendKind, 'canvas2d');
+  assert.equal(model.presentation.avatarAssetRef, 'fallback://agent-avatar-stage');
+  assert.equal(model.viewportInput.assetRef, 'fallback://agent-avatar-stage');
+  assert.equal(model.fallbackPresentation.backendKind, 'canvas2d');
   assert.equal(model.snapshot.interaction.actionCue, 'Here with you');
 });
 
@@ -267,7 +269,7 @@ test('agent avatar stage model preserves voice phase while admitting attention l
   assert.equal(model.attentionState.attentionBoost, 'engaged');
 });
 
-test('agent avatar stage model applies chat avatar smoke override to bound vrm interaction state', () => {
+test('agent avatar stage model applies chat avatar smoke override without reviving retired carrier selection', () => {
   const runtimeWindow = globalThis as typeof globalThis & {
     __NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__?: Record<string, unknown> | null;
   };
@@ -306,21 +308,9 @@ test('agent avatar stage model applies chat avatar smoke override to bound vrm i
           amplitude: 0.08,
         },
       },
-      localResource: {
-        resourceId: 'resource-vrm-override',
-        kind: 'vrm',
-        displayName: 'Bound Avatar',
-        sourceFilename: 'bound.vrm',
-        storedPath: '/tmp/bound-avatar',
-        fileUrl: 'file:///tmp/bound-avatar/bound.vrm',
-        posterPath: null,
-        importedAtMs: 100,
-        updatedAtMs: 100,
-        status: 'ready',
-      },
     });
 
-    assert.equal(model.presentation.backendKind, 'vrm');
+    assert.equal(model.presentation.backendKind, 'sprite2d');
     assert.equal(model.snapshot.interaction.phase, 'speaking');
     assert.equal(model.snapshot.interaction.actionCue, 'Speaking…');
     assert.equal(model.snapshot.interaction.emotion, 'focus');
@@ -393,7 +383,7 @@ test('agent avatar stage model falls back to sprite presentation when no local b
   assert.equal(model.viewportInput.posterUrl, 'https://cdn.nimi.test/poster.png');
 });
 
-test('agent avatar stage render model keeps active live2d snapshot until the viewport fails closed', () => {
+test('agent avatar stage render model no longer changes selection based on retired carrier load status', () => {
   const stageModel = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-live2d-stage',
@@ -419,18 +409,6 @@ test('agent avatar stage render model keeps active live2d snapshot until the vie
         label: 'Speaking…',
       },
     },
-    localResource: {
-      resourceId: 'resource-live2d',
-      kind: 'live2d',
-      displayName: 'Airi Live2D',
-      sourceFilename: 'airi.model3.json',
-      storedPath: '/tmp/airi-live2d',
-      fileUrl: 'file:///tmp/airi-live2d/airi.model3.json',
-      posterPath: null,
-      importedAtMs: 100,
-      updatedAtMs: 100,
-      status: 'ready',
-    },
   });
 
   const activeStage = resolveChatAgentAvatarStageRenderModel({
@@ -449,14 +427,14 @@ test('agent avatar stage render model keeps active live2d snapshot until the vie
   });
 
   assert.equal(activeStage.rendererFallbackApplied, false);
-  assert.equal(activeStage.snapshot.presentation.backendKind, 'live2d');
-  assert.equal(activeStage.viewportInput.assetRef, 'desktop-avatar://resource-live2d/airi.model3.json');
-  assert.equal(fallbackStage.rendererFallbackApplied, true);
-  assert.equal(fallbackStage.snapshot.presentation.backendKind, 'sprite2d');
-  assert.equal(fallbackStage.viewportInput.assetRef, stageModel.fallbackSnapshot.presentation.avatarAssetRef);
+  assert.equal(activeStage.snapshot.presentation.backendKind, 'sprite2d');
+  assert.equal(activeStage.viewportInput.assetRef, 'https://cdn.nimi.test/airi.png');
+  assert.equal(fallbackStage.rendererFallbackApplied, false);
+  assert.deepEqual(fallbackStage.snapshot, activeStage.snapshot);
+  assert.equal(fallbackStage.viewportInput.assetRef, activeStage.viewportInput.assetRef);
 });
 
-test('agent avatar stage render model does not rewrite vrm stage selection on load errors', () => {
+test('agent avatar stage render model keeps non-carrier output even when runtime presentation starts as VRM', () => {
   const stageModel = resolveChatAgentAvatarStageModel({
     selectedTarget: {
       id: 'agent-vrm-stage',
@@ -481,18 +459,6 @@ test('agent avatar stage render model does not rewrite vrm stage selection on lo
         label: 'Speaking…',
       },
     },
-    localResource: {
-      resourceId: 'resource-vrm',
-      kind: 'vrm',
-      displayName: 'Bound Avatar',
-      sourceFilename: 'bound.vrm',
-      storedPath: '/tmp/bound-avatar',
-      fileUrl: 'file:///tmp/bound-avatar/bound.vrm',
-      posterPath: null,
-      importedAtMs: 100,
-      updatedAtMs: 100,
-      status: 'ready',
-    },
   });
 
   const stage = resolveChatAgentAvatarStageRenderModel({
@@ -504,6 +470,6 @@ test('agent avatar stage render model does not rewrite vrm stage selection on lo
   });
 
   assert.equal(stage.rendererFallbackApplied, false);
-  assert.equal(stage.snapshot.presentation.backendKind, 'vrm');
-  assert.equal(stage.viewportInput.assetRef, 'desktop-avatar://resource-vrm/bound.vrm');
+  assert.equal(stage.snapshot.presentation.backendKind, 'sprite2d');
+  assert.equal(stage.viewportInput.assetRef, 'https://cdn.nimi.test/companion.png');
 });

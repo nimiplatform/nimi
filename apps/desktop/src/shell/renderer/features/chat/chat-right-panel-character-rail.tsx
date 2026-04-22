@@ -5,12 +5,11 @@ import type { ConversationCharacterData, ConversationTargetSummary } from '@nimi
 import {
   AvatarStage,
   createAvatarStageSnapshot,
-  resolveAvatarPresentationProfile,
   resolveSpriteAvatarImageUrl,
 } from '@nimiplatform/nimi-kit/features/avatar';
 import { DesktopIconToggleAction } from '@renderer/components/action';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { DESKTOP_AGENT_AVATAR_RENDERERS } from './chat-agent-avatar-renderers';
+import { resolveDesktopChatAvatarPresentationProfile } from './chat-agent-avatar-stage-model';
 import { ChatRightColumn, ChatRightColumnCard, ChatRightColumnCardTitle } from './chat-right-column-primitives';
 import { ChatRightPanelSettings } from './chat-right-panel-settings';
 
@@ -278,14 +277,13 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
   const handsFreeActive = props.handsFreeState?.mode === 'hands-free';
   const handsFreeListening = handsFreeActive && props.handsFreeState?.status === 'listening';
   const rippleColor = theme?.accentSoft || 'rgba(16,185,129,0.35)';
-  const avatarPresentationProfile = resolveAvatarPresentationProfile({
-    presentation: props.characterData?.avatarPresentationProfile,
-    fallbackAssetRef: props.characterData?.avatarUrl || null,
-    fallbackProfileRef: 'fallback://agent-right-panel',
+  const avatarPresentationProfile = resolveDesktopChatAvatarPresentationProfile({
+    presentationProfile: props.characterData?.avatarPresentationProfile || null,
+    avatarUrl: props.characterData?.avatarUrl || props.selectedTarget.avatarUrl || null,
   });
   const avatarImageUrl = resolveSpriteAvatarImageUrl(
     avatarPresentationProfile,
-    props.characterData?.avatarUrl || null,
+    props.characterData?.avatarUrl || props.selectedTarget.avatarUrl || null,
   );
   const avatarSnapshot = createAvatarStageSnapshot(
     avatarPresentationProfile,
@@ -378,7 +376,6 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
                 fallbackLabel={props.characterData?.avatarFallback || props.selectedTarget.avatarFallback || props.selectedTarget.title}
                 showStatusBadge={false}
                 size="lg"
-                renderers={DESKTOP_AGENT_AVATAR_RENDERERS}
                 className="relative"
               />
             </div>
