@@ -62,7 +62,9 @@ export function App() {
   const postureFamily = bundle?.posture.action_family ?? '—';
   const authLabel = auth.status === 'authenticated'
     ? auth.user?.id ?? 'authenticated'
-    : 'anonymous';
+    : auth.failureReason
+      ? `anonymous:${auth.failureReason}`
+      : 'anonymous';
   const consumeLabel = consume.authority === 'runtime'
     ? `runtime:${consume.avatarInstanceId ?? 'pending'}`
     : consume.authority === 'fixture'

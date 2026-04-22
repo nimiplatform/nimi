@@ -1,5 +1,9 @@
 import { clearPlatformClient, createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
-import { persistSharedDesktopAuthSession, resolveDesktopBootstrapAuthSession } from '@nimiplatform/nimi-kit/auth';
+import {
+  persistSharedDesktopAuthSession,
+  resolveDesktopBootstrapAuthSession,
+  type SharedDesktopAuthSession,
+} from '@nimiplatform/nimi-kit/auth';
 import {
   clearAuthSession,
   getAvatarLaunchContext,
@@ -9,11 +13,16 @@ import {
   saveAuthSession,
   startDaemon,
   type AvatarLaunchContext,
+  watchAuthSessionChanges,
 } from '@renderer/bridge';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { bootstrapAuthSession } from './bootstrap-auth.js';
-import { useAvatarStore } from './app-store.js';
+import {
+  useAvatarStore,
+  type AvatarAuthFailureReason,
+  type AvatarAuthUser,
+} from './app-store.js';
 import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
 import { setAlwaysOnTop } from './tauri-commands.js';
 
@@ -24,6 +33,21 @@ export type BootstrapHandle = {
 
 function readNormalizedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeWatchedAuthUser(
+  session: SharedDesktopAuthSession,
+  fallbackUser: AvatarAuthUser,
+): AvatarAuthUser {
+  const displayName = readNormalizedString(session.user?.displayName) || fallbackUser.displayName;
+  const email = readNormalizedString(session.user?.email) || readNormalizedString(fallbackUser.email);
+  const avatarUrl = readNormalizedString(session.user?.avatarUrl) || readNormalizedString(fallbackUser.avatarUrl);
+  return {
+    id: fallbackUser.id,
+    displayName,
+    ...(email ? { email } : {}),
+    ...(avatarUrl ? { avatarUrl } : {}),
+  };
 }
 
 async function loadDefaultMockScenarioJson(): Promise<string> {
@@ -61,6 +85,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   const store = useAvatarStore.getState();
 
   let shellUnlisten: (() => void) | null = null;
+  let stopAuthSessionWatch = () => {};
   let driver: AgentDataDriver | null = null;
   let unsubscribeStatus = () => {};
   let unsubscribeBundle = () => {};
@@ -75,6 +100,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     unsubscribeStatus();
     unsubscribeBundle();
     shellUnlisten?.();
+    stopAuthSessionWatch();
     if (driver) {
       await driver.stop().catch(() => {});
     }
@@ -146,6 +172,19 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         bootstrapRefreshToken = '';
         await clearAuthSession();
       };
+      const failClosedAuthenticatedConsumer = async (
+        reason: AvatarAuthFailureReason,
+      ) => {
+        if (cleanedUp) {
+          return;
+        }
+        const storeState = useAvatarStore.getState();
+        storeState.clearBundle();
+        storeState.clearRuntimeBinding();
+        storeState.clearAuthSession(reason);
+        storeState.setDriverStatus('stopped');
+        await cleanup();
+      };
 
       const { runtime, realm } = await createPlatformClient({
         appId: 'nimi.avatar',
@@ -192,9 +231,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
               clearSession: () => clearAuthSession(),
             });
           },
-          clearAuthSession: () => {
-            useAvatarStore.getState().clearAuthSession();
-            void clearPersistedSession();
+          clearAuthSession: async () => {
+            await clearPersistedSession();
+            await failClosedAuthenticatedConsumer('shared_session_invalid');
           },
         },
       });
@@ -265,6 +304,56 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           },
         },
       });
+
+      if (resolvedBootstrapAuthSession.source === 'persisted') {
+        stopAuthSessionWatch = watchAuthSessionChanges({
+          initialSession: resolvedBootstrapAuthSession.session,
+          onChange: async (session) => {
+            if (!session) {
+              await failClosedAuthenticatedConsumer('shared_session_missing');
+              return;
+            }
+
+            const sessionRealmBaseUrl = readNormalizedString(session.realmBaseUrl);
+            if (sessionRealmBaseUrl !== runtimeDefaults.realm.realmBaseUrl) {
+              await failClosedAuthenticatedConsumer('shared_session_realm_mismatch');
+              return;
+            }
+
+            const sessionUserId = readNormalizedString(session.user?.id);
+            if (!sessionUserId || sessionUserId !== authUser.id) {
+              await failClosedAuthenticatedConsumer('shared_session_user_mismatch');
+              return;
+            }
+
+            const nextAccessToken = readNormalizedString(session.accessToken);
+            if (!nextAccessToken) {
+              await failClosedAuthenticatedConsumer('shared_session_invalid');
+              return;
+            }
+
+            const nextRefreshToken = readNormalizedString(session.refreshToken);
+            const currentAuth = useAvatarStore.getState().auth;
+            const nextUser = normalizeWatchedAuthUser(session, currentAuth.user ?? authUser);
+            const changed = currentAuth.accessToken !== nextAccessToken
+              || currentAuth.refreshToken !== nextRefreshToken
+              || currentAuth.user?.displayName !== nextUser.displayName
+              || currentAuth.user?.email !== nextUser.email
+              || currentAuth.user?.avatarUrl !== nextUser.avatarUrl;
+
+            if (!changed) {
+              return;
+            }
+
+            bootstrapAccessToken = nextAccessToken;
+            bootstrapRefreshToken = nextRefreshToken;
+            useAvatarStore.getState().setAuthSession(nextUser, nextAccessToken, nextRefreshToken);
+          },
+          onError: async () => {
+            await failClosedAuthenticatedConsumer('shared_session_invalid');
+          },
+        });
+      }
     }
 
     unsubscribeStatus = driver.onStatusChange((status) => {

@@ -16,6 +16,15 @@ export type DesktopAvatarLaunchHandoffResult = {
   handoffUri: string;
 };
 
+export type DesktopAvatarLaunchHandoffPayload = {
+  agentId: string;
+  avatarInstanceId: string;
+  conversationAnchorId: string | null;
+  anchorMode: DesktopAvatarLaunchAnchorMode;
+  launchedBy: string;
+  sourceSurface: string;
+};
+
 function normalizeRequiredString(value: string, field: string): string {
   const normalized = String(value || '').trim();
   if (!normalized) {
@@ -35,18 +44,24 @@ export function parseDesktopAvatarLaunchHandoffResult(value: unknown): DesktopAv
   };
 }
 
+export function buildDesktopAvatarLaunchHandoffPayload(
+  input: DesktopAvatarLaunchHandoffInput,
+): DesktopAvatarLaunchHandoffPayload {
+  return {
+    agentId: normalizeRequiredString(input.agentId, 'agentId'),
+    avatarInstanceId: normalizeRequiredString(input.avatarInstanceId, 'avatarInstanceId'),
+    conversationAnchorId: input.conversationAnchorId ?? null,
+    anchorMode: normalizeRequiredString(input.anchorMode, 'anchorMode') as DesktopAvatarLaunchAnchorMode,
+    launchedBy: input.launchedBy || 'desktop',
+    sourceSurface: input.sourceSurface || 'desktop-agent-chat',
+  };
+}
+
 export async function launchDesktopAvatarHandoff(
   input: DesktopAvatarLaunchHandoffInput,
 ): Promise<DesktopAvatarLaunchHandoffResult> {
   return invokeChecked('desktop_avatar_launch_handoff', {
-    payload: {
-      agentId: normalizeRequiredString(input.agentId, 'agentId'),
-      avatarInstanceId: normalizeRequiredString(input.avatarInstanceId, 'avatarInstanceId'),
-      conversationAnchorId: input.conversationAnchorId ?? null,
-      anchorMode: normalizeRequiredString(input.anchorMode, 'anchorMode'),
-      launchedBy: input.launchedBy || 'desktop',
-      sourceSurface: input.sourceSurface || 'desktop-agent-chat',
-    },
+    payload: buildDesktopAvatarLaunchHandoffPayload(input),
   }, parseDesktopAvatarLaunchHandoffResult);
 }
 

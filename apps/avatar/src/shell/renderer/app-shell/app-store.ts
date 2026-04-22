@@ -8,6 +8,11 @@ export type ModelLoadState = 'idle' | 'loading' | 'loaded' | 'error';
 export type DriverMode = 'sdk' | 'mock';
 export type DriverAuthority = 'runtime' | 'fixture';
 export type AuthStateStatus = 'anonymous' | 'authenticated';
+export type AvatarAuthFailureReason =
+  | 'shared_session_missing'
+  | 'shared_session_invalid'
+  | 'shared_session_realm_mismatch'
+  | 'shared_session_user_mismatch';
 
 export type AvatarAuthUser = {
   id: string;
@@ -47,6 +52,7 @@ export type AvatarAppState = {
     user: AvatarAuthUser | null;
     accessToken: string;
     refreshToken: string;
+    failureReason: AvatarAuthFailureReason | null;
   };
   runtime: {
     defaults: RuntimeDefaults | null;
@@ -79,9 +85,10 @@ export type AvatarAppState = {
   setLaunchContext(context: AvatarLaunchContext): void;
   setRuntimeDefaults(defaults: RuntimeDefaults): void;
   setAuthSession(user: AvatarAuthUser, accessToken: string, refreshToken?: string): void;
-  clearAuthSession(): void;
+  clearAuthSession(reason?: AvatarAuthFailureReason | null): void;
   setDriverStatus(status: DriverStatus): void;
   setBundle(bundle: AgentDataBundle): void;
+  clearBundle(): void;
 };
 
 export const useAvatarStore = create<AvatarAppState>((set) => ({
@@ -115,6 +122,7 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
     user: null,
     accessToken: '',
     refreshToken: '',
+    failureReason: null,
   },
   runtime: {
     defaults: null,
@@ -198,16 +206,18 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
         user,
         accessToken: String(accessToken || '').trim(),
         refreshToken: String(refreshToken || '').trim(),
+        failureReason: null,
       },
     });
   },
-  clearAuthSession() {
+  clearAuthSession(reason = null) {
     set({
       auth: {
         status: 'anonymous',
         user: null,
         accessToken: '',
         refreshToken: '',
+        failureReason: reason,
       },
     });
   },
@@ -216,5 +226,8 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
   },
   setBundle(bundle) {
     set({ bundle });
+  },
+  clearBundle() {
+    set({ bundle: null });
   },
 }));
