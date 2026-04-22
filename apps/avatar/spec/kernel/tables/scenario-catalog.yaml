@@ -1,10 +1,10 @@
 version: 1
 description: >
-  Mock scenario catalog for Nimi Avatar Phase 1 mock-driven development. Each
-  scenario is a *.mock.json file in src/shell/renderer/mock/scenarios/ driving
-  NAS handler execution via the MockDriver (see mock-fixture-contract.md).
-  These scenarios also serve as integration test fixtures in Phase 2 when the
-  real gRPC backend replaces the mock driver.
+  Mock scenario catalog for Nimi Avatar explicit fixture mode. Each scenario is
+  a *.mock.json file in src/shell/renderer/mock/scenarios/ driving NAS handler
+  execution via the MockDriver (see mock-fixture-contract.md). These scenarios
+  serve as dev/test integration fixtures while the normal app boot path runs
+  through the real runtime/SDK consume chain.
 
 default_scenario: "default"
 
@@ -15,7 +15,8 @@ scenarios:
     duration_ms: 15000
     loop: true
     description: >
-      Basic scenario loaded on app start when no other scenario is selected.
+      Default scenario loaded only when fixture mode is selected and no other
+      scenario is chosen.
       Cycles a small activity sequence (neutral → happy → greet → thinking) to
       exercise the fallback motion group lookup and expression blending.
     tags: ["phase-1", "bootstrap", "smoke"]

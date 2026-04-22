@@ -1,15 +1,16 @@
 version: 1
 description: >
-  Feature phasing for Nimi Avatar. Phase 1 focuses on Live2D rendering + NAS adaptation
-  with mock-driven development. Phase 2 adds chat + voice + real runtime. Phase 3
-  extends to cross-app integration and advanced features.
+  Feature phasing for Nimi Avatar. Phase 1 focuses on the avatar carrier slice:
+  Live2D rendering + NAS adaptation + real runtime/SDK consume path. Mock remains
+  explicit dev/test fixture tooling. Phase 2 adds chat + voice companion UX.
+  Phase 3 extends to cross-app integration and advanced features.
 
 phases:
   phase_1:
-    title: "Live2D rendering + NAS adaptation"
+    title: "Avatar carrier landing"
     status: active
     start_date: "2026-04-21"
-    target: "Self-contained avatar app running mock scenarios end-to-end with product-grade quality"
+    target: "Self-contained avatar app consuming runtime agent presentation/state as the primary carrier path with product-grade quality"
     scope:
       - id: live2d_sdk_integration
         title: "Cubism SDK for Web 集成"
@@ -47,15 +48,18 @@ phases:
       - id: user_click_event
         title: "User click event → handler"
         desc: "点击 pet body 触发 avatar.user.click → NAS handler"
-      - id: mock_scenario_driver
-        title: "Mock scenario driver"
-        desc: "scenario 文件按 timeline 注入 activity events 到 NAS runtime"
+      - id: runtime_sdk_consumer_primary
+        title: "Runtime/SDK consumer primary path"
+        desc: "默认启动路径消费 runtime agent presentation/state/turn surfaces"
+      - id: mock_scenario_fixture
+        title: "Mock scenario fixture"
+        desc: "scenario 文件仅作为显式 dev/test fixture 注入 activity events"
       - id: hot_reload_nas
         title: "NAS handler hot reload (dev + prod)"
         desc: "File watcher + ES module reload + in-flight continue"
 
   phase_2:
-    title: "Chat + Voice + Real Runtime"
+    title: "Chat + Voice Companion UX"
     status: deferred
     estimated_start: "after_runtime_refactor_complete"
     scope:
@@ -77,12 +81,6 @@ phases:
       - id: lipsync_from_voice_level
         title: "Lipsync from voice.level events"
         desc: "订阅 runtime 广播的 voice.level,驱动 ParamMouthOpenY"
-      - id: real_grpc_connection
-        title: "Real gRPC connection"
-        desc: "Mock → real SDK 切换,app logic 不变"
-      - id: sdk_event_api_integration
-        title: "SDK Event API integration"
-        desc: "使用 @nimiplatform/sdk 的 client.events / client.agentState / client.agentTurns / client.agentAnchors"
       - id: presentation_timeline_integration
         title: "Presentation timeline coordination"
         desc: "多 channel 对齐 + interrupt 传播"

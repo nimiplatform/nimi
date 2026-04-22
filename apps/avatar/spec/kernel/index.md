@@ -56,13 +56,13 @@ NimiAgentScript (NAS) handler convention:
 
 ### [`mock-fixture-contract.md`](mock-fixture-contract.md)
 
-Phase 1 mock-driven development:
+Explicit fixture tooling:
 
 - Scenario file format
 - Event injection into NAS runtime
 - Time-based and trigger-based event emission
 - Scenario validation rules
-- Mock vs real data source boundary
+- Explicit mock vs real data source boundary
 
 ## Tables
 

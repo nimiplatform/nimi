@@ -176,7 +176,7 @@ Settings UI（Phase 2+）提供开关：
 1. Tauri window created
 2. Renderer bootstrap (React mount)
 3. Emit avatar.app.start
-4. Connect to runtime (Phase 1: mock driver init; Phase 2: gRPC)
+4. Connect to runtime/SDK consume path (default) or explicit fixture mode (`VITE_AVATAR_DRIVER=mock`)
 5. Load Live2D model from configured path
 6. Scan <model>/runtime/nimi/ for NAS handlers (§agent-script-contract)
 7. Compute initial hit region + resize window to model bounds

@@ -8,7 +8,7 @@
 - **App name (English)**: Nimi Avatar
 - **App ID**: `app.nimi.avatar`
 - **One-line**: 桌面悬浮 Live2D 角色，agent 的视觉化身；通过 NAS handler 由第三方 model creator 定制动作 / 表情 / 交互。
-- **Status**: Pre-MVP, mock-driven development phase.
+- **Status**: Pre-MVP, Wave 4 carrier landing active. Real runtime/SDK consume path is primary; mock is dev/test-only.
 
 ## Architecture
 
@@ -19,7 +19,7 @@
 | Live2D runtime | Cubism SDK for Web (official) | `src/shell/renderer/live2d/` |
 | State | Zustand | `src/shell/renderer/app-shell/` |
 | NAS runtime | In-app handler discovery + execution + Live2D API | `src/shell/renderer/nas/` |
-| AI / Events | `@nimiplatform/sdk` (mocked in Phase 1, real in Phase 2) | workspace dep |
+| AI / Events | `@nimiplatform/sdk` real consume path | workspace dep |
 | UI components | `@nimiplatform/nimi-kit` | workspace dep |
 | Dev port | 1427 | `vite.config.ts` |
 
@@ -39,7 +39,7 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 Live2D 角色**：
 
 ## Phase 1 Scope (current)
 
-目标：Live2D 展示 + NAS 适配主干完成。
+目标：Live2D 展示 + NAS 适配主干完成，并且 `apps/avatar` 正常启动路径成为 real runtime/SDK consume path。
 
 - Live2D Cubism SDK for Web 接入
 - Model loading from `<model>/runtime/` official folder structure
@@ -47,7 +47,8 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 Live2D 角色**：
 - Handler execution with Live2D API v1（motion / parameter / expression / pose / wait）
 - Default fallback（convention-based motion group lookup）
 - 基础交互：click → `avatar.user.click` event → NAS handler；drag → window move；always-on-top
-- Mock activity driver：scripted scenario 文件驱动 activity events 触发 handlers
+- Runtime/SDK primary consume chain：presentation/state/turn events 进入 avatar app
+- Mock activity driver：仅显式 dev/test fixture，不能作为默认启动路径
 - **Product-grade quality**（不是 prototype，是最终可交付 UI/UX/code）
 
 ## Phase 2 Scope (deferred)
@@ -55,7 +56,6 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 Live2D 角色**：
 - Chat bubble UI + floating input
 - Small button UI trigger for chat
 - Voice I/O via runtime（STT + TTS + lipsync from `apml.voice.level`）
-- Real gRPC connection（mock → real switchover with zero app-level code change）
 - Desktop app cross-app event subscription
 
 ## Spec Authority & Sync
@@ -88,7 +88,7 @@ Nimi Avatar-specific contracts in this spec/kernel do not re-define upstream;只
 |-------|---------|
 | `feature-matrix.yaml` | Phase 1 / 2 / 3 feature phasing |
 | `activity-mapping.yaml` | Activity id → Live2D motion group naming convention (default fallback) |
-| `scenario-catalog.yaml` | Mock-driven development scenarios |
+| `scenario-catalog.yaml` | Dev/test fixture scenarios |
 
 ### Sync Rules
 
@@ -108,7 +108,7 @@ Rule → Table → Generate → Check → Evidence
 
 ### No Legacy, No Shims
 
-Nimi Avatar starts from zero. No compatibility layers, no "simple first" shortcuts, full product quality from day one. Mock layer is clearly bounded（`src/shell/renderer/mock/`）and will be replaced by real gRPC / SDK backend in Phase 2 without changing app logic.
+Nimi Avatar starts from zero. No compatibility layers, no "simple first" shortcuts, full product quality from day one. Mock layer is clearly bounded（`src/shell/renderer/mock/`）and remains fixture-only; runtime/SDK path is the current primary carrier line.
 
 ### Fail-Close
 
@@ -116,13 +116,14 @@ Nimi Avatar starts from zero. No compatibility layers, no "simple first" shortcu
 - NAS handler syntax error → reject handler + log, do not silently fall to default
 - Unknown activity name（超出 ontology core + extended + mod-declared）→ fallback to convention motion group + log warn
 - Live2D model load failure → display error UI, not empty canvas
-- Mock scenario file invalid → app does not start（Phase 1）
+- Runtime/bootstrap unavailable → app does not start; do not fall back to mock unless `VITE_AVATAR_DRIVER=mock` is explicit
+- Mock scenario file invalid → explicit fixture boot does not start
 
 ## Hard Boundaries
 
 ### Mock vs Real Data Source
 
-Phase 1 所有 agent data 是 **mock**。代码里 data source 必须清晰标注（via module path `src/shell/renderer/mock/` vs `src/shell/renderer/sdk/`）。Phase 2 wiring 只改 data source，app logic 不变。
+Normal app boot is **sdk/runtime-backed**. Mock remains bounded to explicit fixture mode (`VITE_AVATAR_DRIVER=mock`) and test corpus. Code-level data source boundaries must stay explicit（via module path `src/shell/renderer/mock/` vs `src/shell/renderer/sdk/`）, and runtime failures must not silently downgrade to mock.
 
 ### Window Behavior
 
