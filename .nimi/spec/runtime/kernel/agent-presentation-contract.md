@@ -86,40 +86,37 @@ runtime-owned transient state. It remains outside persistent profile truth.
 
 If a consumer needs these semantics, it must own them on the surface side or wait for later authority admission; runtime must not absorb them into `AgentPresentationProfile` as a generic state bag.
 
-## K-AGCORE-026a Desktop-Local Avatar Resource Non-Ownership
+## K-AGCORE-026a Desktop Local Carrier Decommission Boundary
 
-Runtime does not own desktop-imported VRM or Live2D resource files, desktop-local avatar
-resource registries, or desktop per-agent local avatar bindings by default.
+Runtime does not own desktop-local avatar registries, per-agent local avatar bindings,
+or desktop-imported VRM / Live2D carrier assets as active presentation truth.
 
 Fixed rules:
 
-- desktop-local imported avatar assets under `{nimi_data_dir}` remain desktop storage
-  truth unless and until a separate admitted runtime asset ownership surface exists
-- desktop may derive a local render override from desktop-local binding while still
-  consuming runtime `AgentPresentationProfile` as the persistent cross-app baseline
+- desktop shipped chat surfaces must not treat desktop-local avatar registry or binding
+  data as an admitted render-selection input
+- desktop may adapt runtime `AgentPresentationProfile` into surface-local non-carrier
+  presentation or avatar-app handoff input, but that adapted shape must not recreate a
+  desktop-local carrier override
 - runtime metadata, auxiliary profile fields, or generic agent settings must not be used
-  as a backdoor to smuggle desktop-local avatar registry or binding truth into
+  as a backdoor to smuggle desktop-local avatar registry, asset, or binding truth into
   `AgentPresentationProfile`
 
-## K-AGCORE-026b Desktop-Local Live2D Viewport Non-Ownership
+## K-AGCORE-026b Desktop Carrier Execution Non-Ownership
 
-Runtime does not own the desktop-local Live2D viewport lifecycle, desktop-local Live2D
-runtime packaging, or the active surface's load-fail fallback decision.
+Runtime does not own desktop-local Live2D / VRM carrier execution, desktop-local viewport
+lifecycle, or desktop-local load-fail precedence because desktop chat is no longer an
+admitted first-party carrier line.
 
 Fixed rules:
 
-- runtime-owned `AgentPresentationProfile` may still provide the persistent cross-app
-  baseline presentation, but desktop-local Live2D render support must not rewrite that
-  profile as a side effect of local viewport success or failure
-- renderer-local Live2D load status, runtime-availability diagnostics, motion/runtime
-  handles, and current fallback branch must remain surface-local or desktop-local
-  implementation detail; they must not be promoted into runtime canonical presentation
-  truth
-- desktop may continue canonical render precedence after a local Live2D failure, but that
-  continuation must consume existing runtime presentation truth rather than asking runtime
-  to own the failed desktop-local viewport lifecycle
-- runtime must not be treated as the owner of desktop-imported Cubism runtime files,
-  desktop-local model staging assets, or first-wave right-rail parity policy
+- desktop shipped chat paths must not interpret runtime `AgentPresentationProfile` as an
+  instruction to mount desktop-local Live2D or VRM carriers
+- if desktop consumers need embodiment beyond non-carrier shell presentation, they must
+  hand off to the admitted avatar-app carrier path instead of reviving local execution
+- renderer-local carrier diagnostics, runtime packaging handles, local fallback branches,
+  and desktop-imported staging assets from the retired carrier line are not admitted
+  runtime truth and must not regain shipped-path authority through `AgentPresentationProfile`
 
 ## Fact Sources
 

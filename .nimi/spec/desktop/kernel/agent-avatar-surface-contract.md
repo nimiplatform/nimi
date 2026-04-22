@@ -42,8 +42,9 @@ Desktop agent chat 的 canonical avatar transient surface / bridge authority 固
 - `apps/avatar/**` 是 first-party avatar carrier owner；Live2D / VRM carrier
   execution、avatar-app shell、carrier bootstrap、以及 desktop-selected launch
   context intake 由 avatar app 拥有
-- desktop 只拥有 chat shell bridge / handoff / orchestration semantics，以及仍未在
-  Exec Pack 4 关闭的 desktop-local residue boundary
+- desktop 只拥有 chat shell bridge / handoff / orchestration semantics；
+  decommissioned desktop-local carrier residue 若仍保留在源码中，也必须保持
+  unreachable，不再构成 admitted owner boundary
 - desktop 不得再把自身呈现为 future long-term avatar carrier home，也不得要求
   avatar app normal boot 静默自举默认 agent
 
