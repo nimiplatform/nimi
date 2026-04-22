@@ -31,7 +31,7 @@ import {
 
 type CapabilityConfig = {
   capability: ConversationCapability;
-  sectionId: 'chat' | 'tts' | 'image' | 'video';
+  sectionId: 'chat' | 'tts' | 'stt' | 'image' | 'video' | 'embed';
   sectionTitle: string;
   label: string;
   detail: string;
@@ -260,6 +260,20 @@ function createCapabilityConfigs(t: ReturnType<typeof useTranslation>['t']): Cap
       label: t('Chat.settingsVideoGenerateTitle', { defaultValue: 'Video generation' }),
       detail: t('Chat.settingsVideoGenerateHint', { defaultValue: 'Controls the route used when the conversation generates videos.' }),
       editorKind: 'video',
+    },
+    {
+      capability: 'audio.transcribe',
+      sectionId: 'stt',
+      sectionTitle: t('Chat.settingsSttSection', { defaultValue: 'STT' }),
+      label: t('Chat.settingsSttTranscribeTitle', { defaultValue: 'Speech recognition' }),
+      detail: t('Chat.settingsSttTranscribeHint', { defaultValue: 'Controls the route used when the conversation transcribes voice input to text.' }),
+    },
+    {
+      capability: 'text.embed',
+      sectionId: 'embed',
+      sectionTitle: t('Chat.settingsEmbedSection', { defaultValue: 'Embedding' }),
+      label: t('Chat.settingsEmbedTitle', { defaultValue: 'Text embedding' }),
+      detail: t('Chat.settingsEmbedHint', { defaultValue: 'Controls the route used to produce text embeddings for retrieval or memory features.' }),
     },
   ];
 }

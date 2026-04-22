@@ -25,6 +25,11 @@ type WorldBanner = {
   name: string;
   bannerUrl: string | null;
   type: string;
+  tagline: string | null;
+  eraLabel: string | null;
+  currentLabel: string | null;
+  flowRatio: number | null;
+  agentCount: number | null;
 };
 
 type ExploreViewProps = {
@@ -49,6 +54,57 @@ type ExploreViewProps = {
 
 function ExploreSkeletonBlock({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-3xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)] ${className}`} />;
+}
+
+function formatCount(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+  return String(value);
+}
+
+function StatCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-[88px] flex-col gap-1 px-3 text-center">
+      <span
+        style={{
+          fontFamily: 'var(--nimi-font-mono)',
+          fontSize: 9,
+          fontWeight: 600,
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color: 'color-mix(in srgb, var(--nimi-fg-inverse) 68%, transparent)',
+        }}
+      >
+        {label}
+      </span>
+      <span
+        className="truncate"
+        style={{
+          fontFamily: 'var(--nimi-font-mono)',
+          fontSize: 18,
+          fontWeight: 600,
+          letterSpacing: '-0.01em',
+          color: 'var(--nimi-fg-inverse)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function StatDivider() {
+  return (
+    <div
+      aria-hidden
+      className="self-stretch"
+      style={{
+        width: 1,
+        background: 'color-mix(in srgb, var(--nimi-fg-inverse) 22%, transparent)',
+      }}
+    />
+  );
 }
 
 export function ExploreView(props: ExploreViewProps) {
@@ -124,15 +180,10 @@ export function ExploreView(props: ExploreViewProps) {
     return (
       <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
         <div className="shrink-0">
-          <Surface
-            tone="panel"
-            material="glass-regular"
-            padding="none"
-            className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 rounded-[1.75rem] border-white/60 px-5 py-4 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
-          >
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-4">
             <ExploreSkeletonBlock className="h-9 w-40 rounded-xl" />
             <ExploreSkeletonBlock className="h-11 w-[300px] rounded-full" />
-          </Surface>
+          </div>
         </div>
         <ScrollArea className="flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto w-full max-w-6xl space-y-10 px-1 py-5">
             <section className="space-y-3">
@@ -190,15 +241,22 @@ export function ExploreView(props: ExploreViewProps) {
       `}</style>
       {/* Header bar */}
       <div className="shrink-0">
-        <Surface
-          tone="panel"
-          material="glass-regular"
-          padding="none"
-          className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 rounded-[1.75rem] border-white/60 px-5 py-4 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
-        >
-          <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>
-            {t('Explore.pageTitle')}
-          </h1>
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-end justify-between gap-4 px-5 py-4">
+          <div>
+            <div className="nimi-kicker-tiny mb-3">{t('Explore.pageKicker', { defaultValue: 'Nimi · Explore' })}</div>
+            <h1
+              className="m-0 leading-none"
+              style={{
+                fontFamily: 'var(--nimi-font-display)',
+                fontSize: 40,
+                fontWeight: 700,
+                letterSpacing: '-0.032em',
+                color: 'var(--nimi-fg-1)',
+              }}
+            >
+              {t('Explore.pageTitle')}
+            </h1>
+          </div>
           <div className="w-[300px] shrink-0">
             <Surface
               tone="panel"
@@ -207,19 +265,20 @@ export function ExploreView(props: ExploreViewProps) {
               padding="none"
               className="group relative flex h-11 items-center rounded-full border-white/70 px-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]"
             >
-              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[var(--nimi-text-secondary)] transition-colors group-focus-within:text-[var(--nimi-action-primary-bg)]">
+              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[color:var(--nimi-fg-3)] transition-colors group-focus-within:text-[color:var(--nimi-accent)]">
                 {ICON_SEARCH}
               </span>
               <input
                 type="search"
-                className="w-full bg-transparent py-2.5 pl-7 pr-1 text-sm text-[var(--nimi-text-primary)] outline-none placeholder:text-[var(--nimi-text-secondary)] focus:ring-0"
+                className="w-full bg-transparent py-2.5 pl-7 pr-1 text-sm text-[color:var(--nimi-fg-1)] outline-none placeholder:text-[color:var(--nimi-fg-3)] focus:ring-0"
+                style={{ fontFamily: 'var(--nimi-font-sans)' }}
                 placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, agents, posts...' })}
                 value={props.searchText}
                 onChange={(e) => props.onSearchTextChange(e.target.value)}
               />
             </Surface>
           </div>
-        </Surface>
+        </div>
       </div>
 
       {/* Scrollable content */}
@@ -230,127 +289,329 @@ export function ExploreView(props: ExploreViewProps) {
         contentClassName="mx-auto w-full max-w-6xl px-1 py-5"
         viewportRef={feedScrollRef}
       >
-          {/* World Banner Carousel */}
-          {worldsWithBanners.length > 0 && (
+          {/* Featured world hero */}
+          {worldsWithBanners.length > 0 && currentBanner && (
             <section className="relative mb-10">
-              {/* Worlds Title */}
-              <div className="mb-3">
-                <h2 className={`nimi-type-section-title text-[color:var(--nimi-text-primary)] mb-3`} style={{ fontFamily: 'var(--font-display)' }}>
-                  {t('World.title')}
+              <div className="mb-4">
+                <h2
+                  className="m-0"
+                  style={{
+                    fontFamily: 'var(--nimi-font-display)',
+                    fontSize: 26,
+                    fontWeight: 600,
+                    letterSpacing: '-0.02em',
+                    color: 'var(--nimi-fg-1)',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {t('Explore.featuredWorld', { defaultValue: 'Featured world' })}
                 </h2>
               </div>
-              <Surface
-                tone="hero"
-                elevation="floating"
-                padding="none"
-                className="relative h-[280px] cursor-pointer overflow-hidden rounded-2xl border-white/60"
-                onClick={() => currentBanner && props.onWorldOpen?.(currentBanner.id)}
+
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => props.onWorldOpen?.(currentBanner.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    props.onWorldOpen?.(currentBanner.id);
+                  }
+                }}
+                className="relative h-[360px] cursor-pointer overflow-hidden rounded-3xl"
+                style={{
+                  boxShadow: 'var(--nimi-elevation-floating)',
+                  border: '1px solid var(--nimi-border-subtle)',
+                }}
               >
-                {/* Banner Images Container with Animation */}
-                <div 
+                {/* Rotating cover layer */}
+                <div
                   className="flex h-full transition-transform duration-700 ease-in-out will-change-transform"
                   style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
                 >
-                  {worldsWithBanners.map((world, _idx) => (
-                    <div key={world.id} className="w-full h-full flex-shrink-0 relative">
-                      <img
-                        src={world.bannerUrl || ''}
-                        alt={world.name}
-                        className="w-full h-full object-cover"
-                      />
-                      {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                      {/* World Info */}
-                      <div className="absolute bottom-4 left-4">
-                        <h3 className="text-2xl font-bold text-white">{world.name}</h3>
-                      </div>
+                  {worldsWithBanners.map((world) => (
+                    <div key={world.id} className="relative h-full w-full flex-shrink-0">
+                      {world.bannerUrl ? (
+                        <img
+                          src={world.bannerUrl}
+                          alt={world.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full" style={{ background: 'var(--nimi-surface-hero)' }} />
+                      )}
                     </div>
                   ))}
                 </div>
-                
-                {/* Prev Button - Left */}
-                {worldsWithBanners.length > 1 && (
-                  <IconButton
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      prevBanner();
+
+                {/* Left-weighted dark wash + bottom vignette */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background: 'linear-gradient(100deg, rgba(8,6,28,0.75) 0%, rgba(8,6,28,0.45) 38%, rgba(8,6,28,0.15) 70%, transparent 100%)',
+                  }}
+                />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background: 'linear-gradient(180deg, transparent 55%, rgba(8,6,28,0.55) 100%)',
+                  }}
+                />
+
+                {/* Top-left glass chip: live state */}
+                <div
+                  className="absolute left-5 top-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5"
+                  style={{
+                    background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 28%, transparent)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                  }}
+                >
+                  <span className="nimi-world-pulse-dot" />
+                  <span
+                    style={{
+                      fontFamily: 'var(--nimi-font-mono)',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      color: 'var(--nimi-fg-inverse)',
                     }}
-                    tone="ghost"
-                    icon={(
-                      <svg
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="15 18 9 12 15 6" />
-                      </svg>
-                    )}
-                    className="absolute left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full border border-white/25 bg-white/18 text-white hover:bg-white/28 hover:text-white"
-                    aria-label={t('Explore.previousBanner', { defaultValue: 'Previous banner' })}
-                  />
-                )}
-                
-                {/* Next Button - Right */}
-                {worldsWithBanners.length > 1 && (
-                  <IconButton
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      nextBanner();
+                  >
+                    {t('Explore.featuredWorldLive', { defaultValue: 'Featured world · Live' })}
+                  </span>
+                </div>
+
+                {/* Top-right glass chip: mono world date */}
+                {currentBanner.currentLabel && (
+                  <div
+                    className="absolute right-5 top-5 inline-flex items-center rounded-full px-3 py-1.5"
+                    style={{
+                      background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 28%, transparent)',
+                      backdropFilter: 'blur(12px)',
+                      WebkitBackdropFilter: 'blur(12px)',
+                      fontFamily: 'var(--nimi-font-mono)',
+                      fontSize: 11,
+                      fontWeight: 500,
+                      letterSpacing: '0.02em',
+                      color: 'var(--nimi-fg-inverse)',
                     }}
-                    tone="ghost"
-                    icon={(
-                      <svg
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    )}
-                    className="absolute right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full border border-white/25 bg-white/18 text-white hover:bg-white/28 hover:text-white"
-                    aria-label={t('Explore.nextBanner', { defaultValue: 'Next banner' })}
-                  />
-                )}
-                
-                {/* Dots Indicator */}
-                {worldsWithBanners.length > 1 && (
-                  <div className="absolute bottom-4 right-4 flex gap-1.5">
-                    {worldsWithBanners.map((_, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCurrentBannerIndex(idx);
-                        }}
-                        className={`w-2 h-2 rounded-full transition-colors ${
-                          idx === currentBannerIndex ? 'bg-white' : 'bg-white/40'
-                        }`}
-                        aria-label={`Go to banner ${idx + 1}`}
-                      />
-                    ))}
+                  >
+                    {currentBanner.currentLabel}
                   </div>
                 )}
-              </Surface>
+
+                {/* Headline block (left column) */}
+                <div className="absolute left-20 top-[110px] z-[1] max-w-[58%]">
+                  {currentBanner.eraLabel && (
+                    <div
+                      className="mb-3"
+                      style={{
+                        fontFamily: 'var(--nimi-font-mono)',
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: '0.18em',
+                        textTransform: 'uppercase',
+                        color: 'color-mix(in srgb, var(--nimi-fg-inverse) 72%, transparent)',
+                      }}
+                    >
+                      {currentBanner.eraLabel}
+                    </div>
+                  )}
+                  <h3
+                    className="m-0"
+                    style={{
+                      fontFamily: 'var(--nimi-font-display)',
+                      fontSize: 68,
+                      fontWeight: 700,
+                      letterSpacing: '-0.035em',
+                      lineHeight: 1,
+                      color: 'var(--nimi-fg-inverse)',
+                    }}
+                  >
+                    {currentBanner.name}
+                  </h3>
+                  {currentBanner.tagline && (
+                    <p
+                      className="mt-3 line-clamp-2"
+                      style={{
+                        fontFamily: 'var(--nimi-font-sans)',
+                        fontSize: 15,
+                        lineHeight: 1.5,
+                        color: 'color-mix(in srgb, var(--nimi-fg-inverse) 78%, transparent)',
+                        margin: 0,
+                        maxWidth: 520,
+                      }}
+                    >
+                      {currentBanner.tagline}
+                    </p>
+                  )}
+
+                  {/* CTA row */}
+                  <div className="mt-5 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        props.onWorldOpen?.(currentBanner.id);
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full px-4 py-2 transition-colors"
+                      style={{
+                        fontFamily: 'var(--nimi-font-sans)',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        background: 'var(--nimi-accent)',
+                        color: 'var(--nimi-accent-onAccent)',
+                        border: '1px solid color-mix(in srgb, var(--nimi-accent) 80%, transparent)',
+                        boxShadow: 'var(--nimi-elevation-base)',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                      {t('Explore.enterWorld', { defaultValue: 'Enter world' })}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Stat rail (bottom-right) */}
+                {(currentBanner.agentCount !== null || currentBanner.flowRatio !== null || currentBanner.eraLabel) && (
+                  <div
+                    className="absolute bottom-5 right-5 flex items-stretch gap-0 rounded-2xl px-4 py-3"
+                    style={{
+                      background: 'color-mix(in srgb, var(--nimi-fg-inverse) 12%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 22%, transparent)',
+                      backdropFilter: 'blur(14px)',
+                      WebkitBackdropFilter: 'blur(14px)',
+                    }}
+                  >
+                    {currentBanner.agentCount !== null && (
+                      <StatCell
+                        label={t('World.totalPlayers', { defaultValue: 'Inhabitants' })}
+                        value={formatCount(currentBanner.agentCount)}
+                      />
+                    )}
+                    {currentBanner.agentCount !== null && (currentBanner.flowRatio !== null || currentBanner.eraLabel) && (
+                      <StatDivider />
+                    )}
+                    {currentBanner.flowRatio !== null && (
+                      <StatCell
+                        label={t('Explore.statChrono', { defaultValue: 'Chrono' })}
+                        value={`${currentBanner.flowRatio.toFixed(currentBanner.flowRatio < 10 ? 1 : 0)}×`}
+                      />
+                    )}
+                    {currentBanner.flowRatio !== null && currentBanner.eraLabel && <StatDivider />}
+                    {currentBanner.eraLabel && (
+                      <StatCell
+                        label={t('Explore.statEra', { defaultValue: 'Era' })}
+                        value={currentBanner.eraLabel}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Page indicator dots (bottom-left) */}
+                {worldsWithBanners.length > 1 && (
+                  <div className="absolute bottom-7 left-8 flex items-center gap-1.5">
+                    {worldsWithBanners.map((_, idx) => {
+                      const active = idx === currentBannerIndex;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentBannerIndex(idx);
+                          }}
+                          aria-label={t('Explore.goToBanner', { defaultValue: 'Go to banner', idx: idx + 1 })}
+                          className="h-1.5 rounded-full transition-all"
+                          style={{
+                            width: active ? 20 : 6,
+                            background: active
+                              ? 'var(--nimi-fg-inverse)'
+                              : 'color-mix(in srgb, var(--nimi-fg-inverse) 42%, transparent)',
+                            border: 0,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Prev / Next arrows */}
+                {worldsWithBanners.length > 1 && (
+                  <>
+                    <IconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        prevBanner();
+                      }}
+                      tone="ghost"
+                      icon={(
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                      )}
+                      className="absolute left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full"
+                      style={{
+                        background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 24%, transparent)',
+                        color: 'var(--nimi-fg-inverse)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                      }}
+                      aria-label={t('Explore.previousBanner', { defaultValue: 'Previous banner' })}
+                    />
+                    <IconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        nextBanner();
+                      }}
+                      tone="ghost"
+                      icon={(
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                      )}
+                      className="absolute right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full"
+                      style={{
+                        background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 24%, transparent)',
+                        color: 'var(--nimi-fg-inverse)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                      }}
+                      aria-label={t('Explore.nextBanner', { defaultValue: 'Next banner' })}
+                    />
+                  </>
+                )}
+              </div>
             </section>
           )}
 
           {props.topAgents.length > 0 && (
             <section className="mb-10">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h3 className={`nimi-type-section-title text-[color:var(--nimi-text-primary)]`} style={{ fontFamily: 'var(--font-display)' }}>
-                  {t('Explore.topAgents', { defaultValue: 'Top Agents' })}
-                </h3>
+              <div className="mb-4 flex items-end justify-between gap-4">
+                <div>
+                  <h2
+                    className="m-0"
+                    style={{
+                      fontFamily: 'var(--nimi-font-display)',
+                      fontSize: 26,
+                      fontWeight: 600,
+                      letterSpacing: '-0.02em',
+                      color: 'var(--nimi-fg-1)',
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {t('Explore.topAgents', { defaultValue: 'Top Agents' })}
+                  </h2>
+                </div>
                 {topAgentsPages.length > 1 ? (
                   <IconButton
                     onClick={handleTopAgentsPageChange}
@@ -363,7 +624,7 @@ export function ExploreView(props: ExploreViewProps) {
                         <polyline points="15 18 9 12 15 6" />
                       </svg>
                     )}
-                    className="h-8 w-8 shrink-0 rounded-full border border-white/55 bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] text-[var(--nimi-text-secondary)] shadow-[0_10px_24px_rgba(15,23,42,0.05)] hover:text-[var(--nimi-action-primary-bg)]"
+                    className="h-8 w-8 shrink-0 rounded-full border border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-accent-soft)] text-[color:var(--nimi-fg-2)] shadow-[0_10px_24px_rgba(15,23,42,0.05)] hover:border-[color:var(--nimi-border-strong)] hover:text-[color:var(--nimi-accent)]"
                     aria-label={hasNextTopAgentsPage
                       ? t('Explore.nextTopAgentsPage', { defaultValue: 'Next top agents page' })
                       : t('Explore.previousTopAgentsPage', { defaultValue: 'Previous top agents page' })}
@@ -397,7 +658,7 @@ export function ExploreView(props: ExploreViewProps) {
 
           <section ref={feedSectionRef} className="mt-12">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className={`nimi-type-section-title text-[color:var(--nimi-text-primary)]`} style={{ fontFamily: 'var(--font-display)' }}>
+              <h2 className={`nimi-type-section-title text-[color:var(--nimi-text-secondary)]`} style={{ fontFamily: 'var(--font-display)' }}>
                 {t('Explore.dynamicFeed', { defaultValue: 'Dynamic Feed' })}
               </h2>
             </div>

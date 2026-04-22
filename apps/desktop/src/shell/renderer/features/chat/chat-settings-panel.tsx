@@ -112,6 +112,7 @@ function createProfileCopy(t: ReturnType<typeof useTranslation>['t']): ModelConf
     cancelLabel: t('Chat.settingsAIProfileCancel', { defaultValue: 'Cancel' }),
     confirmLabel: t('Chat.settingsAIProfileConfirm', { defaultValue: 'Confirm & Apply' }),
     applyingLabel: t('Chat.settingsAIProfileApplying', { defaultValue: 'Applying...' }),
+    importLabel: t('Chat.settingsAIProfileImport', { defaultValue: 'Import AI Profile' }),
   };
 }
 

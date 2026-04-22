@@ -417,14 +417,13 @@ export function ContactsView(props: ContactsViewProps) {
         className="border border-white/60 border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         data-testid={E2E_IDS.panel('contacts')}
       >
-        <div className="relative flex shrink-0 items-center min-h-[var(--nimi-sidebar-header-height)] px-4 gap-2 overflow-hidden">
-          <h1
-            className={`nimi-type-page-title text-[color:var(--nimi-text-primary)] transition-opacity duration-200 ${searchOpen ? 'opacity-0' : 'opacity-100'}`}
-          >
+        <div className="flex shrink-0 flex-col px-4 pt-3 pb-2 gap-1">
+          <h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">
             {t('Contacts.title')}
           </h1>
+          <div className="relative flex items-center justify-end min-h-9 overflow-hidden">
           <div
-            className={`ml-auto flex items-center gap-1 transition-opacity duration-200 ${searchOpen ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
+            className={`flex items-center justify-end gap-1 transition-opacity duration-200 ${searchOpen ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
           >
             <Tooltip content={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })} placement="bottom">
               <IconButton
@@ -456,7 +455,7 @@ export function ContactsView(props: ContactsViewProps) {
             </Tooltip>
           </div>
           <div
-            className={`absolute inset-y-0 right-0 flex items-center gap-2 pl-3 pr-4 bg-[var(--nimi-sidebar-canvas)] transition-transform duration-200 ease-out ${searchOpen ? 'w-full translate-x-0' : 'w-full translate-x-full pointer-events-none'}`}
+            className={`absolute inset-0 flex items-center gap-2 bg-[var(--nimi-sidebar-canvas)] transition-transform duration-200 ease-out ${searchOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'}`}
           >
             <div className="flex min-w-0 flex-1 items-center rounded-full bg-[var(--nimi-action-ghost-hover)] px-3 py-1.5">
               <span className="shrink-0 text-[var(--nimi-text-muted)]">
@@ -493,6 +492,7 @@ export function ContactsView(props: ContactsViewProps) {
                 aria-label={t('Home.clear', { defaultValue: 'Clear' })}
               />
             </Tooltip>
+          </div>
           </div>
         </div>
 

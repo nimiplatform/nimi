@@ -4,6 +4,80 @@
 @import "@nimiplatform/nimi-kit/ui/themes/desktop-accent.css";
 @import "tailwindcss";
 
+/* ---- Nimi Glass typography tokens ----
+   Display family is not emitted by the generated theme yet, so we declare it
+   here alongside a fallback for --nimi-font-sans / --nimi-font-mono so the
+   cascade never falls through to UA defaults. The three tokens are the only
+   font-family source of truth for the desktop renderer. */
+:root {
+  --nimi-font-sans:
+    "Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC",
+    "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  --nimi-font-display:
+    "Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC",
+    "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  --nimi-font-mono:
+    "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace,
+    SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Foreground scale + accent aliases — thin consumption layer over the
+     generated theme so feature code can speak in fg-* / accent-* semantics
+     without hardcoding hex values. */
+  --nimi-fg-1: var(--nimi-text-primary);
+  --nimi-fg-2: var(--nimi-text-secondary);
+  --nimi-fg-3: var(--nimi-text-muted);
+  --nimi-fg-4: var(--nimi-field-placeholder);
+  --nimi-fg-inverse: var(--nimi-text-inverse);
+  --nimi-accent: var(--nimi-action-primary-bg);
+  --nimi-accent-hover: var(--nimi-action-primary-bg-hover);
+  --nimi-accent-soft: color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent);
+  --nimi-accent-onAccent: #06281e;
+}
+
+[data-nimi-scheme="dark"] {
+  --nimi-accent-onAccent: #062217;
+}
+
+/* Kicker + ghost pill utilities lifted from the handoff design system. */
+.nimi-kicker-tiny {
+  font-family: var(--nimi-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--nimi-fg-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.nimi-ghost-pill {
+  font-family: var(--nimi-font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--nimi-border-subtle);
+  background: color-mix(in srgb, var(--nimi-surface-card) 60%, transparent);
+  color: var(--nimi-fg-2);
+  cursor: pointer;
+  transition: border-color 160ms, color 160ms, background-color 160ms;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.nimi-ghost-pill:hover {
+  border-color: var(--nimi-border-strong);
+  color: var(--nimi-fg-1);
+}
+
+/* Map Tailwind v4 font-family utilities onto the nimi tokens so `font-sans`,
+   `font-mono`, and `font-serif` all resolve through the design system. */
+@theme {
+  --font-sans: var(--nimi-font-sans);
+  --font-mono: var(--nimi-font-mono);
+  --font-serif: var(--nimi-font-display);
+}
+
 /* ---- Agent chat four-layer stack (D-LLM-065) ----
    Layer 0: app-native glass base (bottom) — preserves the app's established
             glass aesthetic; stays inside the app window, not over the desktop
@@ -169,4 +243,51 @@
 
 .chrome-tab:not(.active) .chrome-tab__close:hover {
   background: rgba(15, 23, 42, 0.18);
+}
+
+/* ---- World list pulse dot ---- */
+.nimi-world-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nimi-action-primary-bg);
+  box-shadow: 0 0 0 0 rgba(78, 204, 163, 0.45);
+  animation: nimi-world-pulse-ring 2.4s ease-out infinite;
+  flex-shrink: 0;
+}
+@keyframes nimi-world-pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(78, 204, 163, 0.45); }
+  80% { box-shadow: 0 0 0 6px rgba(78, 204, 163, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(78, 204, 163, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nimi-world-pulse-dot { animation: none; }
+}
+
+/* ---- Tester page hero + history timeline (no inner card; content sits on outer glass) ---- */
+.tester-page-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--nimi-border-subtle);
+}
+.tester-cap-title {
+  font-family: var(--nimi-font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--nimi-fg-1);
+  line-height: 1.2;
+}
+.tester-cap-sub {
+  font-family: var(--nimi-font-sans);
+  font-size: 13px;
+  color: var(--nimi-fg-3);
+  margin-top: 4px;
+}
+@keyframes tester-pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(78, 204, 163, 0.45); }
+  80% { box-shadow: 0 0 0 6px rgba(78, 204, 163, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(78, 204, 163, 0); }
 }

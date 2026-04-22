@@ -163,7 +163,7 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
       ) : null}
       {state.output ? (
         <ScrollArea className="max-h-64 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-canvas)]">
-          <pre className="whitespace-pre-wrap p-3 text-xs">{asString(state.output)}</pre>
+          <pre className="whitespace-pre-wrap p-3 font-sans text-xs leading-relaxed text-[var(--nimi-text-primary)]">{asString(state.output)}</pre>
         </ScrollArea>
       ) : null}
       <DiagnosticsPanel diagnostics={state.diagnostics} />

@@ -131,14 +131,9 @@ export function HomeView(props: HomeViewProps) {
   return (
     <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
       {/* Top bar */}
-      <Surface
-        tone="panel"
-        material="glass-regular"
-        padding="none"
-        className="flex h-14 shrink-0 items-center gap-3 rounded-[1.75rem] border-white/60 px-5 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
-      >
+      <div className="flex h-14 shrink-0 items-center gap-3 px-5">
         <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Home.pageTitle')}</h1>
-      </Surface>
+      </div>
 
       <ScrollArea
         className="flex-1"

@@ -749,11 +749,11 @@ test('agent local chat execution seam compacts continuity and packs history by b
         },
       ],
     },
-    modelContextTokens: 2000,
+    modelContextTokens: 2800,
   });
 
   assert.equal(request.diagnostics.contextWindowSource, 'route-profile');
-  assert.equal(request.diagnostics.budget.modelContextTokens, 2000);
+  assert.equal(request.diagnostics.budget.modelContextTokens, 2800);
   assert.equal(request.diagnostics.maxOutputTokensRequested, null);
   assert.ok(request.diagnostics.estimate.droppedHistoryMessages > 0);
   assert.ok(request.diagnostics.estimate.droppedRecallEntries > 0);
@@ -807,7 +807,7 @@ test('agent local chat execution seam drops assistant replies whose user turn no
     ],
     userText: 'What should we do next?',
     context: sampleTurnContext(),
-    modelContextTokens: 2000,
+    modelContextTokens: 2400,
   });
 
   assert.ok(request.messages.some((message) => message.text === 'Earlier assistant reply.'));
@@ -2492,7 +2492,7 @@ test('agent local chat provider completes fenced JSON outputs with recovery diag
 
   const events = await collectEvents(provider, sampleTurnInput({
     agentLocalChat: {
-      textModelContextTokens: 2048,
+      textModelContextTokens: 4096,
       textMaxOutputTokensRequested: 321,
     },
   }));

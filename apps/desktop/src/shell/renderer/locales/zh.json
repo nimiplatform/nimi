@@ -641,6 +641,21 @@
     "previousTopAgentsPage": "上一页热门 Agent",
     "score": "评分",
     "topAgents": "热门 Agent",
+    "topAgentsKicker": "目录 · 本周",
+    "worldsKicker": "世界 · 精选",
+    "pageKicker": "Nimi · 探索",
+    "originLabel": "来源",
+    "featuredWorld": "精选世界",
+    "featuredWorldLive": "精选世界 · 在线",
+    "enterWorld": "进入世界",
+    "statChrono": "时流",
+    "statEra": "纪元",
+    "goToBanner": "跳转至横幅 {{idx}}",
+    "defaultRole": "伙伴",
+    "chatsLabel": "帖子",
+    "friendshipAdd": "加为好友",
+    "friendshipRequested": "已申请",
+    "friendshipFriends": "已是好友",
     "worldOwned": "世界归属"
   },
   "Chat": {
@@ -975,6 +990,12 @@
     "settingsTtsSection": "语音合成",
     "settingsImageSection": "图像",
     "settingsVideoSection": "视频",
+    "settingsSttSection": "语音识别",
+    "settingsSttTranscribeTitle": "语音识别",
+    "settingsSttTranscribeHint": "控制会话将语音输入转写为文字时使用的路由。",
+    "settingsEmbedSection": "向量嵌入",
+    "settingsEmbedTitle": "文本嵌入",
+    "settingsEmbedHint": "控制用于生成文本向量（用于检索或记忆功能）的路由。",
     "imageAdvancedParams": "高级参数",
     "ttsVoiceWorkflows": "语音工作流",
     "schedulingTitle": "调度",
@@ -1120,6 +1141,7 @@
     "settingsAIProfileCancel": "取消",
     "settingsAIProfileConfirm": "确认并应用",
     "settingsAIProfileApplying": "应用中...",
+    "settingsAIProfileImport": "导入 AI 配置文件",
     "settingsAIProfileApplyBtn": "应用配置文件",
     "settingsAIProfileChange": "更换",
     "settingsImageProfileTitle": "本地图片 Profile",
@@ -1272,6 +1294,55 @@
     "worldScoring": "世界评分",
     "syncTicker": "世界同步",
     "chronoFlow": "时间流速：{{value}}X",
+    "header": {
+      "kicker": "空间 · 你的世界",
+      "description": "可进入、塑造、分享的持续模拟。每个世界都有自己的时钟与规则。"
+    },
+    "toolbar": {
+      "heading": "你的世界",
+      "filterPlaceholder": "按名称或标签筛选…",
+      "gridView": "网格视图",
+      "listView": "列表视图",
+      "sort": {
+        "active": "最活跃",
+        "recent": "最近更新",
+        "alpha": "名称 A–Z",
+        "inhabitants": "居民数"
+      }
+    },
+    "sidebar": {
+      "create": "创建世界",
+      "library": "库",
+      "collections": "合集",
+      "pulse": "你的动态",
+      "activeWorlds": "活跃世界",
+      "activeWorldsSub": "共 {{total}} 个",
+      "inhabitants": "居民总数",
+      "inhabitantsSub": "跨所有世界",
+      "weeklyVisits": "本周访问",
+      "filters": {
+        "all": "全部世界",
+        "main": "主世界",
+        "sub": "子世界",
+        "archived": "已归档"
+      },
+      "noCollections": "暂无合集"
+    },
+    "status": {
+      "active": "活跃",
+      "idle": "静默"
+    },
+    "stats": {
+      "inhabitants": "居民",
+      "online": "在线",
+      "day": "天数",
+      "flow": "流速"
+    },
+    "card": {
+      "enter": "进入世界",
+      "featured": "精选世界",
+      "noMatch": "没有匹配的世界。"
+    },
     "createAgent": {
       "title": "创建新 Agent",
       "subtitle": "在 {{worldName}} 中塑造一个新角色",
@@ -2854,6 +2925,7 @@
       "addApiKey": "添加 API 密钥",
       "nodeMatrix": "节点能力矩阵",
       "nodeMatrixShort": "节点矩阵",
+      "nodeMatrixSubtitle": "底层节点诊断 · 仅高级排障场景使用",
       "collapse": "收起",
       "expand": "展开",
       "noNodeAvailabilityData": "暂无节点可用性数据。请点击刷新以探测本地运行时。",
@@ -2939,6 +3011,24 @@
       "state": "状态",
       "jobs": "任务数",
       "queue": "队列",
+      "avgCompute": "平均 {{value}} / 请求",
+      "errorsCount": "{{count}} 个错误",
+      "errorsCount_one": "{{count}} 个错误",
+      "errorsCount_other": "{{count}} 个错误",
+      "fromTime": "开始时间",
+      "groupAuthorization": "授权",
+      "groupTracing": "追踪",
+      "groupWhatHappened": "发生了什么",
+      "groupWho": "是谁调用的",
+      "managedEngineUnavailable": "当前主机上的托管本地引擎不可用。请配置已连接的端点来使用该提供方。",
+      "noAuditEventsHint": "当 Mod 或应用发起已授权的 runtime 调用时，事件会显示在这里。",
+      "noErrors": "无错误",
+      "noUsageHint": "当 Mod 或已连接应用开始发起 runtime 调用后，这里才会出现数据。",
+      "requestsBreakdown": "{{success}} 成功 · {{errors}} 错误",
+      "successRate": "成功率",
+      "showFullError": "显示完整错误",
+      "tokensBreakdown": "{{input}} 输入 · {{output}} 输出",
+      "toTime": "结束时间",
       "failures": "失败数",
       "lastChecked": "最近检查时间",
       "streamError": "流错误",
@@ -3612,6 +3702,24 @@
     },
     "settings": {
       "title": "AI 测试器设置"
+    },
+    "history": {
+      "title": "历史",
+      "nothing": "暂无记录",
+      "summary": "{{count}} 次运行 · 今日 {{todayCount}} 次",
+      "summary_one": "{{count}} 次运行 · 今日 {{todayCount}} 次",
+      "summary_other": "{{count}} 次运行 · 今日 {{todayCount}} 次",
+      "clear": "清空",
+      "today": "今天",
+      "yesterday": "昨天",
+      "failed": "失败",
+      "passed": "通过",
+      "copyOutput": "复制输出",
+      "removeFromHistory": "从历史中移除",
+      "youPrefix": "你",
+      "unrouted": "未路由",
+      "lastLatency": "最近延迟",
+      "free": "免费"
     },
     "worldTour": {
       "title": "World Tour 验收通道",

@@ -12,15 +12,17 @@ import { SettingsSummaryCard } from './chat-settings-summary-card';
 // ChatSettingsSummaryHome — summary card view for the settings panel
 // ---------------------------------------------------------------------------
 
-type SummaryModuleId = 'profile' | 'chat' | 'tts' | 'image' | 'video';
+type SummaryModuleId = 'profile' | 'chat' | 'tts' | 'stt' | 'image' | 'video' | 'embed';
 
-const MODULE_ORDER: SummaryModuleId[] = ['profile', 'chat', 'tts', 'image', 'video'];
+const MODULE_ORDER: SummaryModuleId[] = ['profile', 'chat', 'tts', 'stt', 'image', 'video', 'embed'];
 
 const SECTION_TO_MODULE: Record<string, SummaryModuleId> = {
   chat: 'chat',
   tts: 'tts',
+  stt: 'stt',
   image: 'image',
   video: 'video',
+  embed: 'embed',
 };
 
 function deriveSectionSummary(section: ModelConfigSection): {
@@ -78,10 +80,10 @@ export function ChatSettingsSummaryHome({
 
   return (
     <div className="space-y-2">
-      {/* ── Identity Header: AI Profile ── */}
+      {/* ── Import action: AI Profile ── */}
       {profile ? (
         <div key="profile">
-          <ProfileConfigSection controller={profile} />
+          <ProfileConfigSection controller={profile} variant="import-button" />
         </div>
       ) : null}
 
