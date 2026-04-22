@@ -7,7 +7,7 @@
 - **App name (Chinese)**: 阿凡达
 - **App name (English)**: Nimi Avatar
 - **App ID**: `app.nimi.avatar`
-- **One-line**: 桌面悬浮 Live2D 角色，agent 的视觉化身；通过 NAS handler 由第三方 model creator 定制动作 / 表情 / 交互。
+- **One-line**: 桌面悬浮 embodiment carrier，agent 的视觉化身；通过 NAS handler 把 agent semantics 投影到当前 backend branch。
 - **Status**: Pre-MVP, Wave 4 carrier landing active. Real runtime/SDK consume path is primary; mock is dev/test-only.
 
 ## Architecture
@@ -16,18 +16,18 @@
 |-------|-----------|----------|
 | Desktop shell | Tauri 2 (transparent, always-on-top, no-chrome) | `src-tauri/` |
 | Frontend | React 19 + Vite 7 + Tailwind 4 | `src/shell/renderer/` |
-| Live2D runtime | Cubism SDK for Web (official) | `src/shell/renderer/live2d/` |
+| Embodiment projection | App-local projection + NAS runtime | `src/shell/renderer/nas/` |
+| Current backend branch | Cubism SDK for Web (official) | `src/shell/renderer/live2d/` |
 | State | Zustand | `src/shell/renderer/app-shell/` |
-| NAS runtime | In-app handler discovery + execution + Live2D API | `src/shell/renderer/nas/` |
 | AI / Events | `@nimiplatform/sdk` real consume path | workspace dep |
 | UI components | `@nimiplatform/nimi-kit` | workspace dep |
 | Dev port | 1427 | `vite.config.ts` |
 
 ## Product Form
 
-Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 Live2D 角色**：
+Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface**：
 
-- 透明背景（形状跟随 Live2D model bounds）
+- 透明背景（形状跟随当前 embodiment backend 产出的 surface bounds）
 - 无 title bar / close / minimize buttons
 - Always-on-top default
 - Window drag 可在桌面自由移动
@@ -39,12 +39,13 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 Live2D 角色**：
 
 ## Phase 1 Scope (current)
 
-目标：Live2D 展示 + NAS 适配主干完成，并且 `apps/avatar` 正常启动路径成为 real runtime/SDK consume path。
+目标：embodiment projection 主干完成，并且 `apps/avatar` 正常启动路径成为 real runtime/SDK consume path。
 
-- Live2D Cubism SDK for Web 接入
-- Model loading from `<model>/runtime/` official folder structure
+- Embodiment projection protocol 作为 app-local canonical truth
+- Current Live2D backend branch 接入
+- Model loading from `<model>/runtime/` current Live2D package layout
 - NAS handler discovery from `<model>/runtime/nimi/` (activity / event / continuous / lib)
-- Handler execution with Live2D API v1（motion / parameter / expression / pose / wait）
+- Handler execution with embodiment projection API v1（当前由 Live2D branch 实现）
 - Default fallback（convention-based motion group lookup）
 - 基础交互：click → `avatar.user.click` event → NAS handler；drag → window move；always-on-top
 - Runtime/SDK primary consume chain：presentation/state/turn events 进入 avatar app
@@ -87,7 +88,7 @@ Nimi Avatar-specific contracts in this spec/kernel do not re-define upstream;只
 | Table | Governs |
 |-------|---------|
 | `feature-matrix.yaml` | Phase 1 / 2 / 3 feature phasing |
-| `activity-mapping.yaml` | Activity id → Live2D motion group naming convention (default fallback) |
+| `activity-mapping.yaml` | 当前 Live2D backend branch 的 activity → motion-group fallback naming |
 | `scenario-catalog.yaml` | Dev/test fixture scenarios |
 
 ### Sync Rules
@@ -115,7 +116,7 @@ Nimi Avatar starts from zero. No compatibility layers, no "simple first" shortcu
 - Missing model folder → display error UI, not silent fallback
 - NAS handler syntax error → reject handler + log, do not silently fall to default
 - Unknown activity name（超出 ontology core + extended + mod-declared）→ fallback to convention motion group + log warn
-- Live2D model load failure → display error UI, not empty canvas
+- Embodiment backend load failure → display error UI, not empty canvas
 - Runtime/bootstrap unavailable → app does not start; do not fall back to mock unless `VITE_AVATAR_DRIVER=mock` is explicit
 - Mock scenario file invalid → explicit fixture boot does not start
 
@@ -130,8 +131,8 @@ Normal app boot is **sdk/runtime-backed**. Mock remains bounded to explicit fixt
 - Transparent background 强制（非 option）
 - No title bar / no close/min buttons on pet window
 - Always-on-top default（配置可覆盖）
-- Click-through outside model bounds（hit-region 计算）
-- Dynamic window size 跟随 model bounds
+- Click-through outside active embodiment surface bounds（hit-region 计算）
+- Dynamic window size 跟随 active embodiment surface bounds
 
 ### Live2D SDK Licensing
 
@@ -139,7 +140,7 @@ Cubism SDK for Web 按 Live2D 官方 licensing terms 使用。App bundle 仅包�
 
 ### Model Package Integrity
 
-App 从 `<model-pkg>/runtime/` 加载：
+当前 Live2D backend branch 从 `<model-pkg>/runtime/` 加载：
 - 必须存在 `*.model3.json`（Cubism SDK 要求）
 - 可选 `nimi/` 目录（按 agent-script-contract 扫描）
 - 顶层 `.cmo3` / `.can3` source files 忽略（非 runtime 资源）
@@ -176,5 +177,5 @@ Skip: `node_modules/`, `dist/`, `target/`, lockfiles.
 - ISO 8601 for date/time fields
 - ESM imports use `.js` extension for `.ts` files
 - Handler files are ES modules（`export default`）
-- Live2D parameter ids 用 Cubism 官方命名（如 `ParamEyeBallX`）
+- Live2D parameter ids 用 Cubism 官方命名（如 `ParamEyeBallX`）仅适用于当前 Live2D backend branch
 - Mock data 用 `*.mock.json` 后缀区分于真实 fixture

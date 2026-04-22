@@ -1,20 +1,24 @@
 version: 1
 description: >
-  Feature phasing for Nimi Avatar. Phase 1 focuses on the avatar carrier slice:
-  Live2D rendering + NAS adaptation + real runtime/SDK consume path. Mock remains
-  explicit dev/test fixture tooling. Phase 2 adds chat + voice companion UX.
-  Phase 3 extends to cross-app integration and advanced features.
+  Feature phasing for Nimi Avatar. Phase 1 focuses on the embodiment carrier
+  slice: backend-agnostic embodiment projection + current Live2D backend branch
+  + real runtime/SDK consume path. Mock remains explicit dev/test fixture
+  tooling. Phase 2 adds chat + voice companion UX. Phase 3 extends to
+  cross-app integration and advanced features.
 
 phases:
   phase_1:
     title: "Avatar carrier landing"
     status: active
     start_date: "2026-04-21"
-    target: "Self-contained avatar app consuming runtime agent presentation/state as the primary carrier path with product-grade quality"
+    target: "Self-contained avatar app consuming runtime agent presentation/state as the primary embodiment carrier path with product-grade quality"
     scope:
+      - id: embodiment_projection_protocol
+        title: "Embodiment projection protocol"
+        desc: "Agent semantics -> embodiment projection -> backend-specific execution"
       - id: live2d_sdk_integration
-        title: "Cubism SDK for Web 集成"
-        desc: "官方 Cubism Web SDK 接入,渲染 pipeline"
+        title: "Current Live2D backend branch"
+        desc: "官方 Cubism Web SDK 接入,作为当前 shipped backend branch"
       - id: model_loading
         title: "Model loading from official runtime folder"
         desc: "从 <model>/runtime/*.model3.json 加载 Live2D model + assets"
@@ -25,8 +29,8 @@ phases:
         title: "Handler 执行引擎"
         desc: "Activity / event / continuous handler 调度 + abort signal 支持"
       - id: live2d_api_v1
-        title: "Live2D API v1 封装"
-        desc: "motion + parameter + expression + pose + wait 供 handler 调用"
+        title: "Embodiment backend API v1"
+        desc: "handler-facing backend API；当前 shipped branch 由 Live2D 实现"
       - id: default_fallback
         title: "Convention-based default fallback"
         desc: "Handler 缺失时按 Activity_<CamelCase> 查 motion group"
@@ -37,14 +41,14 @@ phases:
         title: "Always-on-top"
         desc: "默认置顶,配置可覆盖"
       - id: click_through
-        title: "Click-through outside model"
+        title: "Click-through outside embodiment surface"
         desc: "Pet 形状外区域穿透鼠标到下层 app"
       - id: transparent_window
         title: "Transparent window"
         desc: "无 chrome、透明背景"
       - id: dynamic_size
         title: "Dynamic window size"
-        desc: "窗口尺寸跟随 Live2D model bounds"
+        desc: "窗口尺寸跟随当前 embodiment surface bounds"
       - id: user_click_event
         title: "User click event → handler"
         desc: "点击 pet body 触发 avatar.user.click → NAS handler"

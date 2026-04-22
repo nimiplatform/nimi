@@ -4,6 +4,7 @@
 > **Authority**: App-local kernel contract
 > **Status**: Phase 1 baseline draft
 > **Sibling contracts**:
+> - [Embodiment projection contract](embodiment-projection-contract.md)
 > - [App shell contract](app-shell-contract.md)
 > - [Agent script contract](agent-script-contract.md)
 > - [Avatar event contract](avatar-event-contract.md)
@@ -12,9 +13,9 @@
 
 ## 0. 阅读指南
 
-本 contract 定义 Nimi Avatar 的 Live2D rendering pipeline：Cubism SDK for Web 官方集成边界、model loading、motion / expression / physics / parameter API、rendering loop 和 NAS continuous handler 的帧同步、默认 Cubism 行为（breath / blink / lipsync）与 NAS override 边界。
+本 contract 定义 Nimi Avatar 当前 shipped backend branch 的 Live2D rendering pipeline：Cubism SDK for Web 官方集成边界、model loading、motion / expression / physics / parameter API、rendering loop 和 NAS continuous handler 的帧同步、默认 Cubism 行为（breath / blink / lipsync）与 NAS override 边界。
 
-**本 contract 不定义** NAS handler 内部行为（见 `agent-script-contract.md`）或 shell / window 行为（见 `app-shell-contract.md`）。
+**本 contract 不定义** embodiment projection canonical truth（见 `embodiment-projection-contract.md`）、NAS handler convention（见 `agent-script-contract.md`）或 shell / window 行为（见 `app-shell-contract.md`）。
 
 ---
 
@@ -40,7 +41,7 @@
 | Cubism Core (binary) | MOC3 binary runtime | Live2D 官方 |
 | Cubism Framework | Motion / expression / physics / parameter runtime | 官方 npm |
 | `Live2DRenderer` (app) | Model lifecycle / WebGL canvas binding | `src/shell/renderer/live2d/` |
-| `Live2DPluginAPI` (app) | v1 API surface 暴露给 NAS handlers | `src/shell/renderer/live2d/plugin-api.ts` |
+| `Live2DPluginAPI` (app) | current Live2D branch implementation of embodiment projection API + branch-owned default activity fallback | `src/shell/renderer/live2d/plugin-api.ts` |
 
 ---
 
@@ -142,7 +143,7 @@ For each continuous handler h:
 
 ### 5.1 Motion Group 命名 Convention
 
-Activity handler 默认 fallback 查的 motion group 名：`Activity_<CamelCase>`（见 `tables/activity-mapping.yaml`）。
+Live2D branch 默认 activity fallback 查的 motion group 名：`Activity_<CamelCase>`（见 `tables/activity-mapping.yaml`），并按 intensity 追加 `_Weak` / `_Strong` 后缀。这是 branch-owned fallback，不属于 neutral NAS baseline。
 
 | Activity id | Motion group | Scope |
 |---|---|---|
@@ -217,7 +218,7 @@ Cubism 支持 expression overlay。Nimi Avatar 只维护**单一 active expressi
 
 ### 8.1 Direct Parameter Access (NAV-L2D-010)
 
-Plugin API v1 提供 parameter read/write/add：
+当前 Live2D backend branch 提供 parameter read/write/add：
 
 ```typescript
 live2d.setParameter(id: string, value: number, weight?: number): void;

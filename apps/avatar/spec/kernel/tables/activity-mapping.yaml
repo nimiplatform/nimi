@@ -1,8 +1,9 @@
 version: 1
 description: >
-  Activity id → Live2D motion group naming convention for Nimi Avatar default
-  fallback handler. When a NAS activity handler is absent, the runtime looks up
-  the convention-based motion group name derived from the activity id.
+  Activity id → current Live2D backend branch motion-group naming convention for
+  Nimi Avatar default fallback handler. When a NAS activity handler is absent,
+  the runtime looks up the convention-based motion group name derived from the
+  activity id.
 
   Rule: split activity id by '-' and ':', CamelCase each segment,
   prefix with 'Activity_'.

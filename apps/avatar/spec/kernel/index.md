@@ -11,12 +11,21 @@ SDK API / presentation timeline) are consumed as upstream references.
 
 ## Contracts
 
+### [`embodiment-projection-contract.md`](embodiment-projection-contract.md)
+
+Backend-agnostic embodiment projection truth:
+
+- runtime / SDK semantic bundle enters avatar app here
+- app-local projection cues are named independently from any renderer backend
+- shell consumes projection-produced surface bounds / hit masks
+- backend-specific execution is delegated to renderer branches
+
 ### [`app-shell-contract.md`](app-shell-contract.md)
 
 Desktop shell and window surface:
 
 - Transparent, always-on-top window without chrome
-- Dynamic window size based on Live2D model bounds
+- Dynamic window size based on active embodiment surface bounds
 - Window drag (reposition pet on desktop)
 - Click-through outside model hit region
 - Small UI button near pet for chat trigger (Phase 2 surface)
@@ -24,11 +33,11 @@ Desktop shell and window surface:
 
 ### [`live2d-render-contract.md`](live2d-render-contract.md)
 
-Live2D rendering pipeline:
+Current shipped backend-specific rendering branch:
 
 - Cubism SDK for Web integration boundaries
 - Model loading from `<model-pkg>/runtime/` (official Live2D folder structure)
-- Rendering driver + parameter API
+- Live2D backend driver + parameter API
 - Default lipsync behavior (Phase 2)
 - Physics / expression / motion playback
 
@@ -39,7 +48,7 @@ NimiAgentScript (NAS) handler convention:
 - Directory layout (`<model>/runtime/nimi/activity/` / `event/` / `continuous/` / `lib/`)
 - File name normalization (activity id / event name → filename)
 - Handler interface (3 types: activity / event / continuous)
-- Live2D Plugin API v1 surface
+- Embodiment projection API surface for handlers
 - Default fallback (convention-based)
 - Hot reload semantics
 - Sandbox placeholder (specific mechanism deferred)
@@ -72,7 +81,7 @@ Phase 1 / 2 / 3 feature phasing. **Drift check**: code features must map to decl
 
 ### [`tables/activity-mapping.yaml`](tables/activity-mapping.yaml)
 
-Activity id → Live2D motion group default mapping (used when NAS handler not provided for the activity).
+Current Live2D backend branch default fallback mapping (used when NAS handler not provided for the activity).
 
 ### [`tables/scenario-catalog.yaml`](tables/scenario-catalog.yaml)
 

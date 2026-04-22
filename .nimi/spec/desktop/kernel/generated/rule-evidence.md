@@ -8,6 +8,9 @@
 |---|---|---|---|---|
 | `desktop_kernel_consistency` | `static_gate` | `pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency` | `scripts/check-desktop-spec-kernel-consistency.mjs` | Kernel rule integrity and source/spec consistency checks for desktop domain. |
 | `desktop_spec_docs_drift_gate` | `static_gate` | `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check` | `scripts/generate-desktop-spec-kernel-docs.mjs` | Drift gate for generated desktop kernel docs vs YAML fact sources. |
+| `avatar_spec_consistency_gate` | `static_gate` | `pnpm --filter @nimiplatform/avatar check:spec-consistency` | `apps/avatar/package.json` | Avatar app-local authority drift gate for admitted carrier contracts and fact sources. |
+| `avatar_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/avatar lint` | `apps/avatar/package.json` | Avatar implementation typecheck, ESLint, and Rust compile coverage for shared-session fail-closed behavior. |
+| `avatar_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/avatar test` | `apps/avatar/package.json` | Avatar behavior regression coverage for launch handoff continuity and shared-session revalidation semantics. |
 | `desktop_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/desktop lint` | `apps/desktop/package.json` | TypeScript/ESLint/Rust compile gates for desktop app implementation. |
 | `desktop_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/desktop test` | `apps/desktop/package.json` | Desktop quality + unit tests for behavior regression coverage. |
 | `desktop_e2e_smoke_gate` | `e2e_gate` | `pnpm check:desktop-e2e-smoke` | `apps/desktop/package.json` | Desktop WebDriver smoke scenarios for Linux PR hard gate coverage. |
@@ -44,6 +47,7 @@
 | `D-AUTH-011` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
 | `D-AUTH-012` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
 | `D-AUTH-013` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
+| `D-AUTH-014` | `covered` | `desktop_kernel_consistency`, `avatar_spec_consistency_gate`, `avatar_lint_gate`, `avatar_test_gate` |
 | `D-BOOT-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate`, `desktop_runtime_config_path_gate` |
 | `D-BOOT-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-BOOT-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

@@ -10,6 +10,7 @@
 > - [Conversation anchor contract](../../../../.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
 > **Sibling kernel contracts**:
 > - [Agent script contract](agent-script-contract.md)
+> - [Embodiment projection contract](embodiment-projection-contract.md)
 > - [App shell contract](app-shell-contract.md)
 > - [Live2D render contract](live2d-render-contract.md)
 
@@ -17,7 +18,7 @@
 
 ## 0. 阅读指南
 
-本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 platform event contract（议题 3）convention。Avatar 是独立 app（可独立启动或随 desktop 启动），owner 为 `avatar.*`。合计 31 events（8 user + 18 avatar + 5 app）。
+本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 platform event contract（议题 3）convention。Avatar 是独立 app，但 current canonical normal path 由 desktop bridge / handoff 启动；owner 为 `avatar.*`。合计 31 events（8 user + 18 avatar + 5 app）。
 
 Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义 —— activity-ontology.md §8 已经把语义映射从 rendering 解耦。
 
@@ -79,7 +80,7 @@ projection 触发）：
 
 | Event | 语义 | Rate tier | Cancellable |
 |---|---|---|---|
-| `avatar.app.start` | App 启动（独立或随 desktop） | Burst | — |
+| `avatar.app.start` | App 启动（normal path 由 desktop handoff 选定 target；fixture / dev path 可显式独立启动） | Burst | — |
 | `avatar.app.ready` | 初始化完成（runtime 连上 + model 加载好） | Burst | — |
 | `avatar.app.focus.change` | Avatar 形象获得/失去焦点 | Low | — |
 | `avatar.app.visibility.change` | Avatar 可见性（on-screen / off-screen / tray-minimized） | Low | — |

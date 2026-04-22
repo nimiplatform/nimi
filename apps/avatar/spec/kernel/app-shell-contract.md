@@ -4,6 +4,7 @@
 > **Authority**: App-local kernel contract
 > **Status**: Phase 1 baseline draft
 > **Sibling contracts**:
+> - [Embodiment projection contract](embodiment-projection-contract.md)
 > - [Live2D render contract](live2d-render-contract.md)
 > - [Agent script contract](agent-script-contract.md)
 > - [Avatar event contract](avatar-event-contract.md)
@@ -12,7 +13,7 @@
 
 ## 0. 阅读指南
 
-本 contract 定义 Nimi Avatar 桌面 shell 的 window、交互、lifecycle 行为。Avatar 不是常规软件窗口，而是**桌面悬浮 Live2D 角色**：形象即 UI，透明背景，无 chrome，always-on-top。本 contract 专注 Tauri shell surface 的规则（与 Live2D rendering pipeline 和 NAS handler runtime 并列）。
+本 contract 定义 Nimi Avatar 桌面 shell 的 window、交互、lifecycle 行为。Avatar 不是常规软件窗口，而是**桌面悬浮 embodiment surface**：形象即 UI，透明背景，无 chrome，always-on-top。本 contract 专注 Tauri shell surface 的规则；shell 依赖 embodiment projection layer 提供 surface bounds / hit region，而不是直接拥有 backend truth。
 
 ---
 
@@ -34,9 +35,9 @@ Window 必须以如下 config 启动（不可 runtime 改变）：
 
 ### 1.2 Dynamic Window Size (NAV-SHELL-002)
 
-Window 尺寸**必须**跟随当前 Live2D model bounds：
+Window 尺寸**必须**跟随当前 embodiment backend 产出的 surface bounds：
 
-- Model 加载完成（`avatar.model.load`）→ renderer 计算 model bounds → 调用 Tauri `set_size` 同步 window
+- Model 加载完成（`avatar.model.load`）→ renderer 计算 surface bounds → 调用 Tauri `set_size` 同步 window
 - Model 切换（`avatar.model.switch`）→ 同上
 - User 手动 resize 不允许（通过 `resizable: false` 在 runtime 效果上禁止 drag-handle；程序化 set_size 仍然可用）
 
@@ -52,15 +53,15 @@ Window 尺寸**必须**跟随当前 Live2D model bounds：
 
 ### 2.1 Hit Region 定义
 
-Avatar window 形状为矩形，但用户视觉只看到 Live2D 形象本身。**形象外区域必须穿透鼠标事件到下层 app**。
+Avatar window 形状为矩形，但用户视觉只看到 embodiment surface 本身。**形象外区域必须穿透鼠标事件到下层 app**。
 
 ### 2.2 Hit Region 计算
 
-每帧（或 Live2D bounds 变化时）计算 hit region：
+每帧（或 active surface bounds / alpha mask 变化时）计算 hit region：
 
 ```
 hit_region = union of:
-  - Live2D model alpha > threshold (e.g. 0.5)
+  - 当前 backend surface alpha > threshold (current Live2D branch uses model alpha)
   - UI overlays (small button, chat bubble in Phase 2)
 ```
 
@@ -68,7 +69,7 @@ hit_region = union of:
 
 ### 2.3 Click-through 边界规则
 
-- **In-region**（Live2D 像素 / UI overlay）：鼠标事件属于 avatar，触发 `avatar.user.*` events
+- **In-region**（backend surface 像素 / UI overlay）：鼠标事件属于 avatar，触发 `avatar.user.*` events
 - **Out-of-region**（透明区域）：`set_ignore_cursor_events(true)` 状态，事件穿透到下层 app
 - **State transition**：mouse move 跨越 region 边界 → immediate switch；不做 hysteresis
 
@@ -177,13 +178,25 @@ Settings UI（Phase 2+）提供开关：
 2. Renderer bootstrap (React mount)
 3. Emit avatar.app.start
 4. Connect to runtime/SDK consume path (default) or explicit fixture mode (`VITE_AVATAR_DRIVER=mock`)
-5. Load Live2D model from configured path
+5. Load current backend resources from configured path
 6. Scan <model>/runtime/nimi/ for NAS handlers (§agent-script-contract)
-7. Compute initial hit region + resize window to model bounds
+7. Compute initial hit region + resize window to surface bounds
 8. Emit avatar.app.ready
 ```
 
-### 7.2 Shutdown 序列
+### 7.2 Auth Session Revalidation
+
+当 normal path 以 shared desktop auth session 启动时，app shell 必须持续 revalidate 该 shared session，而不是把 bootstrap token 当成独立 durable truth。
+
+- same-user token rotation：允许只更新 renderer-local auth state，保持当前 handoff / anchor / carrier 关系不变
+- shared session clear、schema/decrypt invalidation、realm mismatch、或 user switch：必须立即 fail closed
+- 对当前 Phase 1 avatar carrier，fail-closed 动作为：
+  - 清空本地 auth session state
+  - 停止 runtime/SDK consume driver
+  - 丢弃 stale runtime bundle / binding
+- 该规则不允许 silent downgrade 到 mock fixture
+
+### 7.3 Shutdown 序列
 
 ```
 1. User triggers quit (tray → exit / hotkey)
@@ -194,7 +207,7 @@ Settings UI（Phase 2+）提供开关：
 6. Process exit
 ```
 
-### 7.3 Event Payload Shapes
+### 7.4 Event Payload Shapes
 
 ```yaml
 avatar.app.start:
@@ -230,7 +243,8 @@ avatar.app.shutdown:
 | Concern | This contract | Other contract |
 |---|---|---|
 | Window config / sizing / drag / click-through | ✅ | — |
-| Live2D rendering pipeline | — | `live2d-render-contract.md` |
+| Embodiment projection truth | shell consumes only | `embodiment-projection-contract.md` |
+| Live2D rendering pipeline | current backend branch | `live2d-render-contract.md` |
 | NAS handler execution | — | `agent-script-contract.md` |
 | `avatar.user.*` / `avatar.app.*` event producer | App shell emits | `avatar-event-contract.md` defines schema |
 | Mock driver vs real SDK binding | — | `mock-fixture-contract.md` |

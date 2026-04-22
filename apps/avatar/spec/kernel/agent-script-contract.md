@@ -10,6 +10,7 @@
 > - [Runtime transient presentation seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 > **Sibling kernel contracts**:
 > - [Avatar event contract](avatar-event-contract.md)
+> - [Embodiment projection contract](embodiment-projection-contract.md)
 > - [Live2D render contract](live2d-render-contract.md)
 > - [App shell contract](app-shell-contract.md)
 > - [Mock fixture contract](mock-fixture-contract.md)
@@ -18,11 +19,11 @@
 
 ## 0. 阅读指南
 
-本 contract 定义 **NimiAgentScript (NAS) 1.0** —— 由 Live2D（未来扩展到 VRM / 3D / Lottie 等）model 创作者编写的 **convention-based JavaScript handlers**，为自己的 model 实现具体动作 / 表情 / 交互逻辑。
+本 contract 定义 **NimiAgentScript (NAS) 1.0** —— 由 embodiment package creator 编写的 **convention-based JavaScript handlers**，为自己的 backend package 实现具体动作 / 表情 / 交互逻辑。当前 shipped backend branch 仍然是 Live2D，但 NAS 不再把 Live2D 当 semantic home。
 
 **核心 framing**：NAS 不是 declarative DSL / mapping config。它是一套 **file-system convention**：model creator 在 `<model>/runtime/nimi/` 目录下放 JS 文件，文件路径对应 agent data 或 event，avatar app 的 runtime 自动发现并执行。**6 个分叉点**（44-49）均已按推荐锁定。
 
-**关键价值**：让第三方 model 开发者通过写 JS 代码获得**完整 Live2D 控制能力**（motion / parameter / expression / sequence / state machine / eye tracking / drag physics），实现真正的交互亮点。
+**关键价值**：让第三方 package creator 通过写 JS 代码把 runtime semantic bundle 投影成 embodiment-local 行为。当前 shipped branch 提供完整 Live2D 执行能力（motion / signal-to-parameter mapping / expression / sequence / state machine / eye tracking / drag physics），但这属于 backend-specific execution，而不是 NAS canonical truth。
 
 ---
 
@@ -30,20 +31,20 @@
 
 ### 1.1 Why NAS
 
-APML `<activity>` / `<expression>` / `<pose>` 是**语义意图**。每个 model 要把意图转成具体 Live2D 行为 —— 单纯 declarative mapping（"happy → motion X"）**不够**，因为:
+APML `<activity>` / `<expression>` / `<pose>` 是**语义意图**。每个 backend package 要把意图转成具体 embodiment 行为；当前 shipped branch 只是把它们落到 Live2D。单纯 declarative mapping（"happy → motion X"）**不够**，因为:
 
 - 复杂动作需要 **sequence**（挥手 → 鞠躬 → 微笑）
-- 动态响应需要 **parameter direct control**（眼神跟随 cursor）
+- 动态响应需要 **signal/channel direct control**（眼神跟随 cursor）
 - 交互需要 **state machine**（连续点击 3 次触发特殊反应）
-- Physics / drag / lipsync 需要 **调用 Live2D SDK**
+- backend-specific fine-grained control（physics / drag / lipsync 等）需要 **调用当前 backend API**
 
 这些都需要 **JS 编程能力**。NAS 就是"以 convention 的方式组织这些 JS handler"。
 
 ### 1.2 Target User
 
-**Model creator / 第三方 Avatar model 开发者**：
+**Embodiment package creator / 第三方 Avatar 开发者**：
 
-- 做 Live2D 美术 + 动作 + JS 代码
+- 做 backend asset + 动作 + JS 代码
 - **不是** app developer（app dev 用 SDK API code）
 - **不是** Nimi 内部（runtime / SDK 由 Nimi 团队实现）
 - **不是** end user（UI-level 自定义由 app 自己处理）
@@ -54,7 +55,7 @@ APML `<activity>` / `<expression>` / `<pose>` 是**语义意图**。每个 model
 - 目录 convention（`<model>/runtime/nimi/` 下 handler 文件的路径规则）
 - Handler interface（3 种类型：activity / event / continuous）
 - Agent data bundle context 形态
-- Live2D Plugin API v1 scope
+- Embodiment projection API v1 scope（当前 shipped branch 由 Live2D 实现）
 - Default fallback 机制
 - Hot reload 语义
 - File name normalization 规则（activity id / event name → 文件名）
@@ -63,7 +64,7 @@ APML `<activity>` / `<expression>` / `<pose>` 是**语义意图**。每个 model
 - 具体 sandbox 机制（下个 session 讨论）
 - 具体 pub/sub broker 实现（属 runtime implementation）
 - JS 运行时选型（QuickJS / iframe / Web Worker 等，属 implementation）
-- VRM / 3D backend 具体 API（future）
+- VRM / 3D / robot backend 具体 API（future）
 - End-user customization UI（app 自己实现，不在本 spec）
 
 ---
@@ -90,16 +91,16 @@ Avatar runtime 扫描目录 → 发现文件 → 注册 handler → 自动按 co
 
 ### 2.3 Default Fallback
 
-Handler 不存在 → avatar runtime 用 built-in default：
+Handler 不存在 → neutral NAS layer 走 app-owned default path：
 
-- **Activity**: 按 `Activity_<CamelCase>` convention 查 Live2D motion group 播放
+- **Activity**: 若 backend branch 注册了 `runDefaultActivity`，则委托给 branch-owned fallback
 - **Event**: 大多数 event 无 default（silently skip）
 
-Model creator 只为想**自定义**的 activity / event 写 handler。零 handler 就能跑（走所有 default）。
+Model creator 只为想**自定义**的 activity / event 写 handler。零 handler 也能跑，但具体 activity default 由当前 backend branch 自己定义。
 
 ### 2.4 运行位置
 
-NAS handler 在 **avatar app process 内**运行，由 SDK 提供 handler runtime + Live2D API:
+NAS handler 在 **avatar app process 内**运行，由 SDK 提供 handler runtime + embodiment backend API。当前 shipped branch 对应 Live2D:
 
 ```
 Runtime (Nimi daemon)
@@ -110,12 +111,13 @@ Avatar App (Tauri)
   │ SDK (TS + Rust)           │
   │  ├ Handler discoverer     │  ← scan <model>/runtime/nimi/
   │  ├ Handler runtime (sandbox) │
-  │  └ Live2D Plugin API      │
+  │  └ Embodiment Backend API │
   └───────────┬───────────────┘
-              │ Live2D commands
+              │ backend commands
               ▼
   ┌───────────────────────────┐
-  │ Live2D Cubism Web SDK     │
+  │ Current backend branch    │
+  │ (Live2D Cubism Web SDK)   │
   └───────────────────────────┘
 ```
 
@@ -123,7 +125,7 @@ Avatar App (Tauri)
 
 ## 3. Directory Structure
 
-### 3.1 Live2D Cubism 官方结构（Reference）
+### 3.1 Current Live2D Cubism 官方结构（backend-specific reference）
 
 Nimi model package 的组织 **尊重 Live2D Cubism 官方目录结构**。官方结构（从 Cubism Modeler / 下载的 model package）:
 
@@ -285,19 +287,19 @@ export default {
 
   /**
    * @param {AgentDataBundle} ctx — 当前 agent data（见 §5）
-   * @param {Live2DAPI} live2d — Live2D control API（见 §6）
+   * @param {EmbodimentProjectionAPI} projection — current backend control API（见 §6）
    * @param {AbortSignal} signal — 抢占信号（§12.1）
    * @returns {Promise<void>}
    */
-  async execute(ctx, live2d, { signal }) {
+  async execute(ctx, projection, { signal }) {
     if (ctx.activity.intensity === "strong" && ctx.posture.action_family === "engage") {
-      await live2d.playMotion("Emotion_ExtremeJoy", { priority: "high" });
-      live2d.setExpression("bright_smile");
+      await projection.triggerMotion("celebration.extreme", { priority: "high" });
+      await projection.setExpression("smile.bright");
     } else if (ctx.activity.intensity === "weak") {
-      await live2d.playMotion("Emotion_SmallJoy");
+      await projection.triggerMotion("joy.small");
     } else {
-      await live2d.playMotion("Emotion_Joy");
-      live2d.setExpression("smile");
+      await projection.triggerMotion("joy.default");
+      await projection.setExpression("smile.default");
     }
   }
 };
@@ -319,15 +321,15 @@ export default {
 
   /**
    * @param {AgentDataBundle} ctx
-   * @param {Live2DAPI} live2d
+   * @param {EmbodimentProjectionAPI} projection
    */
-  update(ctx, live2d) {
+  update(ctx, projection) {
     const x = clamp(ctx.app.cursor_x / ctx.app.window.width - 0.5, -1, 1);
     const y = clamp(ctx.app.cursor_y / ctx.app.window.height - 0.5, -1, 1);
-    live2d.setParameter("ParamEyeBallX", x);
-    live2d.setParameter("ParamEyeBallY", -y);
-    live2d.setParameter("ParamAngleX", x * 30);
-    live2d.setParameter("ParamAngleY", -y * 30);
+    projection.setSignal("gaze.x", x);
+    projection.setSignal("gaze.y", -y);
+    projection.setSignal("head.yaw", x * 30);
+    projection.setSignal("head.pitch", -y * 30);
   }
 };
 
@@ -342,19 +344,19 @@ function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
 ```js
 // nimi/lib/wave_sequence.js
-export async function waveSequence(live2d, { hand = "right", duration_ms = 3000 }) {
-  const motion = hand === "right" ? "Motion_WaveRight" : "Motion_WaveLeft";
-  await live2d.playMotion(motion, { priority: "high" });
-  await live2d.wait(duration_ms);
-  await live2d.playMotion("Idle");
+export async function waveSequence(projection, { hand = "right", duration_ms = 3000 }) {
+  const motion = hand === "right" ? "wave.right" : "wave.left";
+  await projection.triggerMotion(motion, { priority: "high" });
+  await projection.wait(duration_ms);
+  await projection.triggerMotion("idle.default");
 }
 
 // nimi/activity/greet.js
 import { waveSequence } from "../lib/wave_sequence.js";
 
 export default {
-  async execute(ctx, live2d) {
-    await waveSequence(live2d, { hand: "right", duration_ms: 3000 });
+  async execute(ctx, projection) {
+    await waveSequence(projection, { hand: "right", duration_ms: 3000 });
   }
 };
 ```
@@ -435,7 +437,7 @@ Runtime 在每次触发 handler 前打包最新 bundle。
 
 ### 5.1 History Opt-in
 
-`history` 字段默认关闭（性能考量）。Model 通过 `nimi/config.json` 启用:
+`history` 字段默认关闭（性能考量）。Package 通过 `nimi/config.json` 启用:
 
 ```json
 {
@@ -449,16 +451,16 @@ Runtime 在每次触发 handler 前打包最新 bundle。
 
 ---
 
-## 6. Live2D Plugin API v1 ⚠️ [分叉 46 — Option B]
+## 6. Embodiment Backend API v1 ⚠️ [分叉 46 — Option B]
 
-v1 covers subset: motion + parameter + expression + pose + wait。Physics / lipsync / drag 由 avatar app 内置，handler 不直接碰。
+v1 covers subset: motion cue + signal channel + expression + pose + wait。Physics / lipsync / drag 由 avatar app 内置，handler 不直接碰。当前 shipped branch 由 Live2D 实现该 API。
 
 ### 6.1 v1 API Surface
 
 ```typescript
-interface Live2DAPI {
-  // ========== Motion ==========
-  playMotion(group: string, opts?: {
+interface EmbodimentProjectionAPI {
+  // ========== Motion cue ==========
+  triggerMotion(motionId: string, opts?: {
     priority?: "low" | "normal" | "high";
     loop?: boolean;
     fadeIn?: number;
@@ -467,22 +469,28 @@ interface Live2DAPI {
 
   stopMotion(): void;
 
-  // ========== Parameter (核心) ==========
-  setParameter(id: string, value: number, weight?: number): void;
-  getParameter(id: string): number;
-  addParameter(id: string, delta: number): void;
+  // ========== Signal / control channels ==========
+  setSignal(signalId: string, value: number, weight?: number): void;
+  getSignal(signalId: string): number;
+  addSignal(signalId: string, delta: number): void;
 
   // ========== Expression ==========
-  setExpression(id: string): Promise<void>;
+  setExpression(expressionId: string): Promise<void>;
   clearExpression(): void;
 
   // ========== Pose (durable) ==========
-  setPose(group: string, loop?: boolean): void;
+  setPose(poseId: string, loop?: boolean): void;
   clearPose(): void;
 
   // ========== Utility ==========
   wait(ms: number): Promise<void>;
-  getModelBounds(): { x: number; y: number; width: number; height: number };
+  getSurfaceBounds(): { x: number; y: number; width: number; height: number };
+
+  // ========== Optional backend-owned fallback ==========
+  runDefaultActivity?(activityId: string, options: {
+    signal: AbortSignal;
+    bundle: AgentDataBundle;
+  }): Promise<void>;
 }
 ```
 
@@ -500,24 +508,23 @@ interface Live2DAPI {
 
 ## 7. Default Fallback Mechanism ⚠️ [分叉 47 — Option B]
 
-Activity handler 缺失 → built-in convention fallback；event handler 缺失 → silent skip。
+Activity handler 缺失 → neutral NAS layer 委托给 backend-owned default fallback hook（若 backend 未提供则 skip + warn）；event handler 缺失 → silent skip。
 
 ### 7.1 Activity Fallback
 
 ```js
-async function defaultActivityHandler(ctx, live2d) {
+async function defaultActivityHandler(ctx, projection, { signal }) {
   const id = ctx.activity.name;
-  const motionGroup = activityIdToMotionGroup(id);  // "happy" → "Activity_Happy"
-
-  try {
-    await live2d.playMotion(motionGroup, { priority: "normal" });
-  } catch (e) {
-    await live2d.playMotion("Idle", { priority: "low" });
+  if (!projection.runDefaultActivity) {
+    console.warn(`No backend default activity fallback for ${id}`);
+    return;
   }
+  await projection.runDefaultActivity(id, { signal, bundle: ctx });
 }
 ```
 
-`activityIdToMotionGroup` 规则：split by `-` / `:` → CamelCase 每段 → prefix `Activity_`:
+当前 Live2D branch 的 `runDefaultActivity` 规则是 `activityIdToMotionGroup`：
+split by `-` / `:` → CamelCase 每段 → prefix `Activity_`:
 
 | Activity id | Fallback motion group |
 |---|---|
@@ -531,7 +538,7 @@ Default = silent skip。大多数 event 没有有意义的 default 行为。
 
 ### 7.3 Lifecycle Events 的 Default
 
-部分 lifecycle event（如 `avatar.app.ready`）由 avatar app 自己处理（加载默认 model / 播放 welcome motion 等），不通过 handler。
+部分 lifecycle event（如 `avatar.app.ready`）由 avatar app 自己处理（加载默认 backend package / 播放 welcome cue 等），不通过 handler。
 
 ---
 
@@ -583,7 +590,7 @@ avatar.model.script.reloaded:
 Handler 是第三方 JS，必须 sandbox。**具体 sandbox 机制本 baseline 不决定**。占位要求：
 
 - Handler 不能 access `window` / `document` / `fetch` / `localStorage` / network
-- Handler 只能通过 `live2d` 和 `ctx` 两个 API 与外界交互
+- Handler 只能通过 `projection` 和 `ctx` 两个 API 与外界交互
 - 安全工具（`Math` / `Date` / `console` subset）可用
 - Handler 异常不影响 avatar app 主流程（runtime catch + log）
 - Continuous handler 每次 `update` 有 CPU budget（超时 → warn + skip 当帧）
@@ -665,16 +672,16 @@ Avatar app 加载 model 时：
 
 ### 12.1 Activity / Event Handler Execution
 
-事件触发 → 找 handler → 调用 `execute(ctx, live2d, { signal })` → 等 `Promise` resolve。新事件抢占旧执行：runtime 给旧的 `execute` 发 abort signal，handler 应 respect。
+事件触发 → 找 handler → 调用 `execute(ctx, projection, { signal })` → 等 `Promise` resolve。新事件抢占旧执行：runtime 给旧的 `execute` 发 abort signal，handler 应 respect。
 
 ```js
 export default {
-  async execute(ctx, live2d, { signal }) {
-    await live2d.playMotion("Motion_A", { priority: "high" });
+  async execute(ctx, projection, { signal }) {
+    await projection.triggerMotion("sequence.a", { priority: "high" });
     if (signal.aborted) return;
-    await live2d.wait(1000);
+    await projection.wait(1000);
     if (signal.aborted) return;
-    await live2d.playMotion("Motion_B");
+    await projection.triggerMotion("sequence.b");
   }
 };
 ```
@@ -683,7 +690,7 @@ export default {
 
 ### 12.2 Continuous Handler Execution
 
-按 handler 声明的 `fps` 调度。每帧一次 `update(ctx, live2d)`。
+按 handler 声明的 `fps` 调度。每帧一次 `update(ctx, projection)`。
 
 - Execute 是 **synchronous**（不 return Promise），防止帧间堆积
 - 超过 frame budget（建议 `1000/fps * 0.5` ms）→ warn + skip 下一帧
@@ -693,7 +700,7 @@ export default {
 
 - Continuous 和 activity/event handler **并行执行**
 - 多个 continuous handler **并行调用 update**（同帧内顺序由 filename 字典序决定）
-- 如果 activity handler 改了某参数，continuous handler 同帧可能覆盖 — **model creator 自己协调**
+- 如果 activity handler 改了某个 signal，continuous handler 同帧可能覆盖 — **model creator 自己协调**
 
 ---
 
@@ -717,14 +724,14 @@ my-model/
 ```js
 // nimi/activity/happy.js
 export default {
-  async execute(ctx, live2d) {
-    await live2d.playMotion("MyCustomJoyMotion");
-    live2d.setExpression("smile");
+  async execute(ctx, projection) {
+    await projection.triggerMotion("joy.custom");
+    await projection.setExpression("smile.default");
   }
 };
 ```
 
-其他 19 个 core activity → default fallback (convention `Activity_<Name>`)。
+其他 19 个 core activity → current backend branch default fallback（当前 Live2D branch 使用 convention `Activity_<Name>`）。
 
 ### 13.2 Rich Model: Sequence + Continuous + Cross-app
 
@@ -733,15 +740,15 @@ export default {
 import { waveSequence } from "../lib/wave_sequence.js";
 
 export default {
-  async execute(ctx, live2d, { signal }) {
+  async execute(ctx, projection, { signal }) {
     if (ctx.history?.last_activity?.name === "greet") {
-      await live2d.playMotion("Motion_Bow");
+      await projection.triggerMotion("bow.default");
       return;
     }
-    await waveSequence(live2d, { hand: "right", duration_ms: 2000 });
+    await waveSequence(projection, { hand: "right", duration_ms: 2000 });
     if (signal.aborted) return;
-    await live2d.wait(500);
-    live2d.setExpression("bright_smile");
+    await projection.wait(500);
+    await projection.setExpression("smile.bright");
   }
 };
 ```
@@ -752,17 +759,17 @@ let clickCount = 0;
 let resetTimer = null;
 
 export default {
-  async execute(ctx, live2d) {
+  async execute(ctx, projection) {
     clickCount++;
     clearTimeout(resetTimer);
     resetTimer = setTimeout(() => { clickCount = 0; }, 2000);
 
     if (clickCount === 3 && ctx.event.detail.region === "head") {
-      await live2d.playMotion("SpecialMotion_Tickled");
+      await projection.triggerMotion("tickled.special");
       clickCount = 0;
     } else if (ctx.event.detail.region === "head") {
-      await live2d.playMotion("Activity_Shy");
-      live2d.setExpression("blush");
+      await projection.triggerMotion("shy.default");
+      await projection.setExpression("blush.soft");
     }
   }
 };
@@ -772,15 +779,15 @@ export default {
 // nimi/continuous/eye_tracker.js
 export default {
   fps: 60,
-  update(ctx, live2d) {
+  update(ctx, projection) {
     const normX = (ctx.app.cursor_x / ctx.app.window.width - 0.5) * 2;
     const normY = (ctx.app.cursor_y / ctx.app.window.height - 0.5) * 2;
     const x = Math.max(-1, Math.min(1, normX));
     const y = Math.max(-1, Math.min(1, normY));
-    live2d.setParameter("ParamEyeBallX", x);
-    live2d.setParameter("ParamEyeBallY", -y);
-    live2d.setParameter("ParamAngleX", x * 30);
-    live2d.setParameter("ParamAngleY", -y * 20);
+    projection.setSignal("gaze.x", x);
+    projection.setSignal("gaze.y", -y);
+    projection.setSignal("head.yaw", x * 30);
+    projection.setSignal("head.pitch", -y * 20);
   }
 };
 ```
@@ -803,8 +810,8 @@ export default {
 |---|---|---|---|
 | **44** | File name normalization | ✅ Option A (非字母数字下划线 → `_`) | 扁平结构 + 单一规则 + filesystem-safe |
 | **45** | Continuous handler frame rate | ✅ Option B (handler 声明 `fps`) | 灵活可控，runtime 按需调度 |
-| **46** | Live2D API v1 scope | ✅ Option B (motion + parameter + expression + pose + wait) | 覆盖 90% 场景，physics/lipsync/drag 延后 |
-| **47** | Default fallback | ✅ Option B (convention-based activity fallback) | Zero-config 可用，与 ontology §8.1 对齐 |
+| **46** | Embodiment backend API v1 scope | ✅ Option B (motion cue + signal + expression + pose + wait) | 覆盖 90% 场景，physics/lipsync/drag 延后；当前 shipped branch 由 Live2D 实现 |
+| **47** | Default fallback | ✅ Option B (branch-owned activity fallback hook) | Neutral NAS baseline 不编码单一 backend 语义；当前 Live2D branch 继续提供 convention fallback |
 | **48** | Hot reload | ✅ Option B (dev + prod 都支持) | Model 调试 + 用户装新 model |
 | **49** | Handler execution model | ✅ Option B (新事件抢占旧执行) | 符合 activity transient 语义 |
 
@@ -842,29 +849,29 @@ Examples:
   system.focus.gained                      → system_focus_gained.js
 ```
 
-## 附录 C: Live2D API v1 Cheatsheet
+## 附录 C: Embodiment Backend API v1 Cheatsheet
 
 ```typescript
 // Motion
-await live2d.playMotion(group, { priority, loop, fadeIn, fadeOut });
-live2d.stopMotion();
+await projection.triggerMotion(id, { priority, loop, fadeIn, fadeOut });
+projection.stopMotion();
 
-// Parameter (核心)
-live2d.setParameter(id, value, weight?);
-const v = live2d.getParameter(id);
-live2d.addParameter(id, delta);
+// Signals / control channels
+projection.setSignal(id, value, weight?);
+const v = projection.getSignal(id);
+projection.addSignal(id, delta);
 
 // Expression
-await live2d.setExpression(id);
-live2d.clearExpression();
+await projection.setExpression(id);
+projection.clearExpression();
 
 // Pose (durable)
-live2d.setPose(group, loop?);
-live2d.clearPose();
+projection.setPose(id, loop?);
+projection.clearPose();
 
 // Utility
-await live2d.wait(ms);
-const bounds = live2d.getModelBounds();
+await projection.wait(ms);
+const bounds = projection.getSurfaceBounds();
 ```
 
 ## 附录 D: ctx 快速参考

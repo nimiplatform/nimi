@@ -48,6 +48,14 @@
     - desktop_kernel_consistency
     - desktop_test_gate
   note: "Email entry route typed decision; anonymous checkEmail call via S-REALM-038"
+- rule_id: D-AUTH-014
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - avatar_spec_consistency_gate
+    - avatar_lint_gate
+    - avatar_test_gate
+  note: "First-party local consumer revalidation is implemented in avatar and must fail closed on shared-session loss, invalidation, realm mismatch, or user switch."
 - rule_id: D-BOOT-001
   status: covered
   evidence_refs:

@@ -13,9 +13,10 @@ Reading path:
 
 | Contract | Scope |
 |----------|-------|
+| [kernel/embodiment-projection-contract.md](kernel/embodiment-projection-contract.md) | Backend-agnostic embodiment projection layer and protocol split |
 | [kernel/app-shell-contract.md](kernel/app-shell-contract.md) | Window behavior / drag / always-on-top / click-through / small button |
-| [kernel/live2d-render-contract.md](kernel/live2d-render-contract.md) | Live2D Cubism SDK integration, model loading, rendering pipeline |
-| [kernel/agent-script-contract.md](kernel/agent-script-contract.md) | NimiAgentScript (NAS) — convention-based JS handlers for model creators |
+| [kernel/live2d-render-contract.md](kernel/live2d-render-contract.md) | Current Live2D backend branch: Cubism SDK integration, model loading, rendering pipeline |
+| [kernel/agent-script-contract.md](kernel/agent-script-contract.md) | NimiAgentScript (NAS) — convention-based JS handlers for embodiment package creators |
 | [kernel/avatar-event-contract.md](kernel/avatar-event-contract.md) | `avatar.*` events produced and consumed by the app |
 | [kernel/mock-fixture-contract.md](kernel/mock-fixture-contract.md) | Mock data format + scenario catalog for Phase 1 development |
 
@@ -24,7 +25,7 @@ Reading path:
 | Table | Scope |
 |-------|-------|
 | [kernel/tables/feature-matrix.yaml](kernel/tables/feature-matrix.yaml) | Phase 1 / 2 / 3 feature phasing |
-| [kernel/tables/activity-mapping.yaml](kernel/tables/activity-mapping.yaml) | Activity id → Live2D motion group naming (default fallback) |
+| [kernel/tables/activity-mapping.yaml](kernel/tables/activity-mapping.yaml) | Current Live2D backend branch activity → motion-group naming (default fallback) |
 | [kernel/tables/scenario-catalog.yaml](kernel/tables/scenario-catalog.yaml) | Mock-driven dev scenarios |
 
 ## Upstream Platform Specs

@@ -4,11 +4,11 @@ This file is guide-only. Normative Nimi Avatar authority lives in [kernel/index.
 
 ## Product Positioning
 
-Nimi Avatar 是桌面悬浮 Live2D 角色，是 Nimi agent 的视觉化身。不是常规软件窗口，而是**桌面小程序**形态：
+Nimi Avatar 是桌面悬浮 embodiment carrier，是 Nimi agent 的视觉化身。不是常规软件窗口，而是**桌面小程序**形态：
 
 - 形象本身就是 UI
 - 透明背景、无 chrome、always-on-top
-- 大小跟随 Live2D model bounds 自动调整
+- 大小跟随当前 embodiment surface bounds 自动调整
 - 可在桌面任意位置拖拽移动
 - 点击 pet 身体响应（表情 / motion 等），点击 pet 外区域穿透到下层 app
 
@@ -18,7 +18,7 @@ Avatar **不是普通软件**：
 
 - 不是"带头像的聊天软件" — chat UI 是轻量 bubble + 浮动输入，不是常驻 window
 - 不是"桌面宠物玩具" — agent 的 life state / posture / memory 驱动真实行为
-- 不是"Live2D 展示器" — NAS handler 让第三方 model creator 定制具体 Live2D 行为
+- 不是"单一渲染后端展示器" — NAS handler 让第三方 embodiment package creator 定制具体投影行为；当前 shipped backend branch 只是 Live2D
 
 ### 多种交互方式
 
@@ -32,20 +32,20 @@ Avatar **不是普通软件**：
 
 ### Primary: End User
 
-使用桌面 Live2D avatar 陪伴 / 对话的用户：
+使用桌面 embodiment avatar 陪伴 / 对话的用户：
 
 - 希望 agent 形象一直在桌面（always-on）
 - 希望随时可对话（点击 / 快捷 trigger）
 - 希望 agent 有 life（主动状态变化，不只是响应）
 
-### Secondary: Live2D Model Creator / 第三方开发者
+### Secondary: Embodiment Package Creator / 第三方开发者
 
-为自己的 Live2D model 写 NAS handler 的开发者：
+为自己的 embodiment package 写 NAS handler 的开发者：
 
-- 美术作者：提供 Live2D model + NAS handlers (`nimi/` 目录) 就能 ship 完整 agent 角色
+- 内容作者：提供 backend package + NAS handlers (`nimi/` 目录) 就能 ship 完整 agent 角色
 - 生态参与者：创造带 programmable 行为的 agent avatar，可以独立分发
 
-NAS convention（见 `kernel/agent-script-contract.md`）允许完整的 Live2D SDK 调用能力（motion / parameter / expression / pose / wait），覆盖复杂交互（eye tracking / sequence / state machine 等）。
+NAS convention（见 `kernel/agent-script-contract.md`）把 agent semantics 投影到 embodiment backend API；当前 shipped branch 仍由 Live2D API 覆盖 motion / parameter / expression / pose / wait 等能力。
 
 ## Non-Goals
 
@@ -53,18 +53,18 @@ Nimi Avatar 当前**不**追求：
 
 - 多 agent 同屏（Phase 1 一次一个 agent）
 - Full chat experience（长历史 / 多线程 / 文件上传）— 由 desktop app 承载
-- 3D / VRM model rendering（Phase 1 只 Live2D；3D 作为 future rendering backend）
+- 新 backend branch 的 shipped implementation（当前仍只有 Live2D；VRM / 3D 作为 future rendering backend）
 - Global hotkey system（Phase 2 通过小 button 激活 chat，不做 hotkey）
 - Mobile / web thin client（future 可能通过 thin client protocol）
 - Multi-user agent（每个 avatar 对应一个 agent，一个 runtime 一个 user scope）
 
 ## AI Surface Summary
 
-Nimi Avatar 消费 Nimi runtime 的 agent data，通过 NAS handler 驱动 Live2D rendering：
+Nimi Avatar 消费 Nimi runtime 的 agent data，通过 embodiment projection layer + NAS handler 驱动当前 backend branch：
 
-- Activity events → NAS activity handlers → Live2D motion / expression
-- Posture changes → NAS event handlers → Live2D pose / 姿态调整
-- Voice level stream → lipsync handler → `ParamMouthOpenY` 参数
+- Activity events → NAS activity handlers → backend motion / expression
+- Posture changes → NAS event handlers → backend pose / 姿态调整
+- Voice level stream → lipsync handler → backend-specific speak / mouth projection
 - User interactions → emit `avatar.user.*` events → runtime observes
 - Cross-app events（future）：subscribe desktop chat 事件做协调反应
 
@@ -78,17 +78,25 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 NAS handler 驱动 Live2
 - avatar identity bootstrap 来自 shared auth session / shared JWT source
 - launch handoff payload 不携带 raw JWT、refresh token、或 `subject_user_id`
 
+当前 running-session posture 同时固定为：
+
+- avatar 不只在 bootstrap 时读取 shared auth session；正常路径下会持续 revalidate 本机 durable session truth
+- same-user shared-session token rotation 只更新 avatar 本地 auth state，不重开 handoff，也不发明 per-app grant
+- desktop logout、shared-session clear、persisted session invalidation、realm mismatch、或 user switch 后，avatar 必须立即停止 authenticated runtime/SDK consume path 并 clear stale authenticated state
+
 ## Product Form 详细
 
 ### Window Behavior (`kernel/app-shell-contract.md`)
 
 - 透明背景（`decorations: false, transparent: true`）
 - Always-on-top default
-- Dynamic size 跟随 model bounds
+- Dynamic size 跟随 active embodiment surface bounds
 - Window drag：整个 pet 可拖到桌面任意位置
 - Click-through：pet 形状外的区域穿透鼠标事件到下层 app（避免挡住别的 app）
 
 ### Live2D Rendering (`kernel/live2d-render-contract.md`)
+
+这是当前 shipped backend-specific branch：
 
 - Cubism SDK for Web 官方集成
 - 从 `<model>/runtime/*.model3.json` 加载
@@ -101,7 +109,7 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 NAS handler 驱动 Live2
 - 自动注册 handlers
 - 正常启动路径下，handlers 的 contexts 来自 desktop-selected launch context + runtime/SDK consume bundle
 - 显式 fixture mode 下，handlers 的 contexts 可由 mock scenario 注入
-- Live2D API v1 封装给 handlers 使用
+- handlers 消费 embodiment projection API；当前 shipped backend branch 由 Live2D 实现该 API
 
 ### Mock Fixture Driver (`kernel/mock-fixture-contract.md`)
 
@@ -121,6 +129,7 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 NAS handler 驱动 Live2
 ## Phase 1 Reading Path
 
 - shell / window / drag / click-through：`kernel/app-shell-contract.md`
+- embodiment projection protocol：`kernel/embodiment-projection-contract.md`
 - Live2D 接入 / model 加载：`kernel/live2d-render-contract.md`
 - NAS handler 系统：`kernel/agent-script-contract.md`
 - Mock fixture 规则：`kernel/mock-fixture-contract.md`

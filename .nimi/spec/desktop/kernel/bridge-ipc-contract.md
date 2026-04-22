@@ -19,6 +19,12 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/c
 - `auth_session_save`：原子覆写共享 auth session 文件；renderer 只提交 normalized user + tokens，backend 负责加密与落盘。
 - `auth_session_clear`：删除共享 auth session 文件。
 
+共享 renderer bridge 对 local consumer 的附加约束：
+
+- authenticated local consumer 可以基于 `auth_session_load` 做周期性 revalidation，以 shared session 持续校验本地 durable auth truth。
+- 该 revalidation surface 只服务于 shared-session coherence；不得借机引入 raw JWT handoff、per-app token grant、或 local permission UX。
+- consumer 发现 shared session 缺失、无效、realm mismatch、或 user mismatch 时，必须 fail closed。
+
 ## D-IPC-002 — Daemon 生命周期命令
 
 Daemon 管理命令集：`runtime_bridge_status`、`runtime_bridge_start`、`runtime_bridge_stop`、`runtime_bridge_restart`。

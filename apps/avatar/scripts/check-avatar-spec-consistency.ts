@@ -7,6 +7,7 @@ const ROOT = resolve(__dirname, '..');
 
 const requiredPaths = [
   'spec/kernel/index.md',
+  'spec/kernel/embodiment-projection-contract.md',
   'spec/kernel/agent-script-contract.md',
   'spec/kernel/avatar-event-contract.md',
   'spec/kernel/app-shell-contract.md',
