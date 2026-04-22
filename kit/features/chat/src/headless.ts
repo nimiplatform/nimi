@@ -112,8 +112,9 @@ import type {
   ConversationShellViewModel,
   ConversationThreadSummary,
 } from './types.js';
+import { CONVERSATION_MODES } from './types.js';
 
-const CONVERSATION_MODE_SET = new Set<string>(['ai', 'human', 'agent']);
+const CONVERSATION_MODE_SET = new Set<string>(CONVERSATION_MODES);
 
 export function isConversationMode(value: unknown): value is ConversationMode {
   return typeof value === 'string' && CONVERSATION_MODE_SET.has(value);
