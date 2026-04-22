@@ -1,6 +1,6 @@
 # Avatar Event Contract
 
-> **App**: `@nimiplatform/nimi-avatar`
+> **App**: `@nimiplatform/avatar`
 > **Authority**: App-local kernel contract
 > **Status**: Baseline updated 2026-04-21 (consumer-aligned to mounted runtime substrate)
 > **Upstream platform refs**:

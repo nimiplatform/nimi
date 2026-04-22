@@ -1,4 +1,4 @@
-# @nimiplatform/nimi-avatar
+# @nimiplatform/avatar
 
 Nimi Avatar（阿凡达）— 桌面悬浮 Live2D 角色，Nimi agent 的视觉化身。
 
@@ -38,28 +38,28 @@ Runtime Agent 当前在 `.nimi/local/report/ongoing/2026-04-19-runtime-agent-ser
 
 ```bash
 # Renderer dev
-pnpm --filter @nimiplatform/nimi-avatar dev:renderer
+pnpm --filter @nimiplatform/avatar dev:renderer
 
 # Shell dev (Tauri)
-pnpm --filter @nimiplatform/nimi-avatar dev:shell
+pnpm --filter @nimiplatform/avatar dev:shell
 
 # Typecheck
-pnpm --filter @nimiplatform/nimi-avatar typecheck
+pnpm --filter @nimiplatform/avatar typecheck
 
 # Lint
-pnpm --filter @nimiplatform/nimi-avatar lint
+pnpm --filter @nimiplatform/avatar lint
 
 # Test
-pnpm --filter @nimiplatform/nimi-avatar test
+pnpm --filter @nimiplatform/avatar test
 
 # Spec consistency
-pnpm --filter @nimiplatform/nimi-avatar check:spec-consistency
+pnpm --filter @nimiplatform/avatar check:spec-consistency
 ```
 
 ## Directory Structure
 
 ```
-apps/nimi-avatar/
+apps/avatar/
 ├── AGENTS.md                          # Module-level AI agent rules
 ├── package.json
 ├── tsconfig.json

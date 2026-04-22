@@ -1,6 +1,6 @@
 # App Shell Contract
 
-> **App**: `@nimiplatform/nimi-avatar`
+> **App**: `@nimiplatform/avatar`
 > **Authority**: App-local kernel contract
 > **Status**: Phase 1 baseline draft
 > **Sibling contracts**:

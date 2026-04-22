@@ -1,6 +1,6 @@
 # Agent Script Contract — NimiAgentScript (NAS) 1.0
 
-> **App**: `@nimiplatform/nimi-avatar`
+> **App**: `@nimiplatform/avatar`
 > **Authority**: App-local kernel contract
 > **Status**: Baseline locked 2026-04-21 (migrated from topic proposal 议题 4b)
 > **Upstream platform refs**:

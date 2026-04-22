@@ -1,5 +1,5 @@
 [package]
-name = "nimiplatform-nimi-avatar"
+name = "nimiplatform-avatar"
 version = "0.1.0"
 description = "Nimi Avatar (阿凡达) — Desktop Floating Live2D Agent (Tauri)"
 authors = ["Nimi Team"]

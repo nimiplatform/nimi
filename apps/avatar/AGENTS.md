@@ -60,7 +60,7 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 Live2D 角色**：
 
 ## Spec Authority & Sync
 
-`apps/nimi-avatar/spec/**` is Nimi Avatar's admitted app-local authority landing. Normative content belongs only in `spec/kernel/*.md` and `spec/kernel/tables/**`; `spec/INDEX.md` and `spec/nimi-avatar.md` are guides.
+`apps/avatar/spec/**` is Nimi Avatar's admitted app-local authority landing. Normative content belongs only in `spec/kernel/*.md` and `spec/kernel/tables/**`; `spec/INDEX.md` and `spec/nimi-avatar.md` are guides.
 
 ### Migrated from Topic Proposal
 
@@ -98,7 +98,7 @@ Rule → Table → Generate → Check → Evidence
 
 1. Modify YAML table or contract first
 2. Regenerate compiled TS constants
-3. Run `pnpm --filter @nimiplatform/nimi-avatar check:spec-consistency`
+3. Run `pnpm --filter @nimiplatform/avatar check:spec-consistency`
 4. Update code to match
 5. Run full test suite
 
@@ -147,17 +147,21 @@ App 从 `<model-pkg>/runtime/` 加载：
 
 ```bash
 # Spec layer
-pnpm --filter @nimiplatform/nimi-avatar check:spec-consistency
+pnpm --filter @nimiplatform/avatar check:spec-consistency
 
 # Code layer
-pnpm --filter @nimiplatform/nimi-avatar typecheck
-pnpm --filter @nimiplatform/nimi-avatar test
-pnpm --filter @nimiplatform/nimi-avatar lint
+pnpm --filter @nimiplatform/avatar typecheck
+pnpm --filter @nimiplatform/avatar test
+pnpm --filter @nimiplatform/avatar lint
 
 # Rust layer
-cd apps/nimi-avatar/src-tauri && cargo test
-cd apps/nimi-avatar/src-tauri && cargo check
+cd apps/avatar/src-tauri && cargo test
+cd apps/avatar/src-tauri && cargo check
 ```
+
+`lint` and `check:spec-consistency` are current supported commands for this app.
+If either command stops resolving, repair the app-local tooling surface before
+advertising the workflow as canonical.
 
 ## Retrieval Defaults
 

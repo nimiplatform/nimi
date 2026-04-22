@@ -1,5 +1,5 @@
 {
-  "name": "@nimiplatform/nimi-avatar",
+  "name": "@nimiplatform/avatar",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "build": "pnpm run typecheck && pnpm run build:renderer && (cd src-tauri && cargo check)",
     "lint": "pnpm run typecheck && eslint . --max-warnings 0 && (cd src-tauri && cargo check)",
-    "check:spec-consistency": "npx tsx scripts/check-nimi-avatar-spec-consistency.ts",
+    "check:spec-consistency": "npx tsx scripts/check-avatar-spec-consistency.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -1,6 +1,6 @@
 # Mock Fixture Contract
 
-> **App**: `@nimiplatform/nimi-avatar`
+> **App**: `@nimiplatform/avatar`
 > **Authority**: App-local kernel contract (Phase 1 only)
 > **Status**: Phase 1 baseline draft
 > **Sibling contracts**:

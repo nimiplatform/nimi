@@ -1,11 +1,11 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "NimiAvatar",
+  "productName": "Nimi Avatar",
   "version": "0.1.0",
   "identifier": "app.nimi.avatar",
   "build": {
-    "beforeDevCommand": "pnpm --filter @nimiplatform/nimi-avatar run dev:renderer",
-    "beforeBuildCommand": "pnpm --filter @nimiplatform/nimi-avatar run build:renderer",
+    "beforeDevCommand": "pnpm --filter @nimiplatform/avatar run dev:renderer",
+    "beforeBuildCommand": "pnpm --filter @nimiplatform/avatar run build:renderer",
     "devUrl": "http://127.0.0.1:1427",
     "frontendDist": "../dist"
   },
