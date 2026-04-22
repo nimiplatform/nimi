@@ -24,11 +24,13 @@ Polyinfo is a standalone app rather than a desktop subpage or runtime mod.
 Bootstrap must complete in this order:
 
 1. initialize app shell and persisted app-local settings
-2. initialize platform client and runtime sector-analyst capability
-3. load sector catalog source and sector-local overlay objects
-4. load the active sector's narratives, core variables, and recent discussion history
-5. start initial market discovery snapshot for the active sector
-6. attach realtime market subscriptions for currently tracked markets
+2. read runtime defaults and shared auth session
+3. initialize platform client and runtime-backed sector-analyst capability
+4. hydrate the app-level runtime chat config used by Polyinfo analyst chat
+5. load sector catalog source and sector-local overlay objects
+6. load the active sector's narratives, core variables, and recent discussion history
+7. start initial market discovery snapshot for the active sector
+8. attach realtime market subscriptions for currently tracked markets
 
 Realtime subscription attachment must remain delayed until a concrete active market set exists.
 
@@ -41,6 +43,7 @@ The shell must provide direct navigation for:
 - sector overview
 - sector detail
 - signal history
+- runtime
 - settings
 
 ## PI-SHELL-005: Main Layout
@@ -94,6 +97,22 @@ The shell must allow narrative and core-variable maintenance from inside the ana
 - proposed changes must remain reviewable before confirmation
 
 Separate management screens may exist, but chat-originated editing is a first-class workflow rather than a fallback.
+
+## PI-SHELL-011: Runtime Config Ownership
+
+Polyinfo chat must not maintain a private per-page model selection truth.
+
+- analyst chat route selection must read from the app-level runtime config surface
+- runtime config must have its own page-level entry rather than hiding inside chat-only controls
+- settings may summarize current chat routing, but must not become the write owner for runtime route selection
+
+## PI-SHELL-012: Desktop-Aligned Chat Boundary
+
+Polyinfo only admits the AI analyst subset of the desktop chat shell pattern.
+
+- Polyinfo does not expose desktop human, group, or generic agent chat modes
+- the sector analyst shell may reuse desktop-style chat structure, but remains bound to sector analysis semantics
+- sector context, proposal review, taxonomy mutation, and signal snapshots remain Polyinfo-owned product behavior
 
 ## PI-SHELL-010: Explanation Trace Visibility
 

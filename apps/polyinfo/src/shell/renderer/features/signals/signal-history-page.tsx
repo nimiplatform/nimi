@@ -1,10 +1,21 @@
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
+import { fetchSectorTags } from '@renderer/data/polymarket.js';
+
+function buildSectorRoute(input: { slug: string; parentSlug?: string }): string {
+  return input.parentSlug ? `/sectors/${input.parentSlug}/${input.slug}` : `/sectors/${input.slug}`;
+}
 
 export function SignalHistoryPage() {
   const snapshots = Object.values(useAppStore((state) => state.snapshotsBySector))
     .flat()
     .sort((left, right) => right.createdAt - left.createdAt);
+  const tagsQuery = useQuery({
+    queryKey: ['polyinfo', 'sectors'],
+    queryFn: () => fetchSectorTags(),
+    staleTime: 10 * 60 * 1000,
+  });
 
   return (
     <div className="rounded-md border border-white/10 bg-slate-950/55 p-6">
@@ -25,10 +36,13 @@ export function SignalHistoryPage() {
           <div className="rounded-md border border-white/8 bg-white/[0.03] p-4 text-sm text-slate-400">
             还没有可回看的分析历史。先进入任意 sector，让分析师给出一次结论。
           </div>
-        ) : snapshots.map((snapshot) => (
+        ) : snapshots.map((snapshot) => {
+          const tag = (tagsQuery.data ?? []).find((item) => item.slug === snapshot.sectorSlug);
+          const route = buildSectorRoute({ slug: snapshot.sectorSlug, parentSlug: tag?.parentSlug });
+          return (
           <Link
             key={snapshot.id}
-            to={`/sectors/${snapshot.sectorSlug}`}
+            to={route}
             className="block rounded-md border border-white/8 bg-white/[0.03] p-4 transition-colors hover:border-sky-300/35 hover:bg-sky-300/8"
           >
             <div className="flex items-center justify-between gap-3">
@@ -45,7 +59,8 @@ export function SignalHistoryPage() {
             <p className="mt-3 text-sm text-slate-200">{snapshot.headline}</p>
             <p className="mt-2 text-xs leading-6 text-slate-400">{snapshot.summary}</p>
           </Link>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -1,8 +1,16 @@
-import type { DraftProposal, TaxonomyOverlay } from './types.js';
+import type {
+  AnalysisSnapshot,
+  AnalystMessage,
+  AnalystRuntimeSettings,
+  DraftProposal,
+  SectorChatState,
+  TaxonomyOverlay,
+} from './types.js';
 
 const TAXONOMY_STORAGE_KEY = 'nimi:polyinfo:taxonomy:v1';
 const CHAT_STORAGE_KEY = 'nimi:polyinfo:chat:v1';
 const SNAPSHOT_STORAGE_KEY = 'nimi:polyinfo:snapshots:v1';
+export const LEGACY_ANALYST_RUNTIME_STORAGE_KEY = 'nimi:polyinfo:analyst-runtime:v1';
 
 export const seededTaxonomyBySector: Record<string, TaxonomyOverlay> = {
   iran: {
@@ -70,14 +78,14 @@ export function saveTaxonomy(value: Record<string, TaxonomyOverlay>): void {
   window.localStorage.setItem(TAXONOMY_STORAGE_KEY, JSON.stringify(value));
 }
 
-export function loadSavedChats(): Record<string, unknown> {
+export function loadSavedChats(): Record<string, SectorChatState> {
   if (typeof window === 'undefined') {
     return {};
   }
   try {
     const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as Record<string, unknown>;
+    return migrateSavedChats(JSON.parse(raw) as Record<string, unknown>);
   } catch {
     return {};
   }
@@ -90,14 +98,42 @@ export function saveChats(value: Record<string, unknown>): void {
   window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(value));
 }
 
-export function loadSavedSnapshots(): Record<string, unknown> {
+export function loadSavedSnapshots(): Record<string, AnalysisSnapshot[]> {
   if (typeof window === 'undefined') {
     return {};
   }
   try {
     const raw = window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as Record<string, unknown>;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return Object.fromEntries(Object.entries(parsed).map(([sectorSlug, value]) => {
+      const snapshots = Array.isArray(value)
+        ? value
+          .map((item) => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) {
+              return null;
+            }
+            const record = item as Record<string, unknown>;
+            const id = String(record.id || '').trim();
+            const sector = String(record.sectorSlug || sectorSlug).trim();
+            if (!id || !sector) {
+              return null;
+            }
+            return {
+              id,
+              sectorSlug: sector,
+              sectorLabel: String(record.sectorLabel || sector),
+              window: record.window === '24h' || record.window === '7d' ? record.window : '48h',
+              createdAt: Number(record.createdAt) || Date.now(),
+              headline: String(record.headline || ''),
+              summary: String(record.summary || ''),
+              messageId: String(record.messageId || id),
+            } satisfies AnalysisSnapshot;
+          })
+          .filter((item): item is AnalysisSnapshot => item !== null)
+        : [];
+      return [sectorSlug, snapshots];
+    }));
   } catch {
     return {};
   }
@@ -108,6 +144,147 @@ export function saveSnapshots(value: Record<string, unknown>): void {
     return;
   }
   window.localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(value));
+}
+
+export function loadSavedAnalystRuntimeSettings(): AnalystRuntimeSettings | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(LEGACY_ANALYST_RUNTIME_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<AnalystRuntimeSettings> & { model?: string };
+    const route = parsed?.route === 'cloud' ? 'cloud' : 'local';
+    const legacyModel = String(parsed?.model || '').trim();
+    return {
+      route,
+      localModel: String(parsed?.localModel || legacyModel || '').trim() || 'auto',
+      cloudConnectorId: String(parsed?.cloudConnectorId || '').trim(),
+      cloudModel: String(parsed?.cloudModel || legacyModel || '').trim() || 'auto',
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function clearLegacyAnalystRuntimeSettings(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  window.localStorage.removeItem(LEGACY_ANALYST_RUNTIME_STORAGE_KEY);
+}
+
+export function buildDefaultSectorChatState(sectorSlug = '', title?: string): SectorChatState {
+  const now = Date.now();
+  const normalizedSlug = String(sectorSlug || '').trim() || 'default';
+  return {
+    threadId: `sector-thread:${normalizedSlug}`,
+    title: title || normalizedSlug,
+    draftText: '',
+    createdAt: now,
+    updatedAt: now,
+    messages: [],
+    draftProposal: null,
+    isStreaming: false,
+    error: null,
+  };
+}
+
+function normalizeMessageList(value: unknown): AnalystMessage[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const messages: Array<AnalystMessage | null> = value
+    .map((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return null;
+      }
+      const record = item as Record<string, unknown>;
+      const id = String(record.id || '').trim();
+      const role: AnalystMessage['role'] = record.role === 'assistant' ? 'assistant' : 'user';
+      if (!id) {
+        return null;
+      }
+      const rawStatus = record.status;
+      const status: AnalystMessage['status'] =
+        rawStatus === 'streaming' || rawStatus === 'error' ? rawStatus : 'complete';
+      return {
+        id,
+        role,
+        content: String(record.content || ''),
+        createdAt: Number(record.createdAt) || Date.now(),
+        status,
+        error: record.error ? String(record.error) : undefined,
+      } satisfies AnalystMessage;
+    });
+  return messages.filter((item): item is AnalystMessage => item !== null);
+}
+
+function normalizeDraftProposal(value: unknown): DraftProposal | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const id = String(record.id || '').trim();
+  const title = String(record.title || '').trim();
+  if (!id || !title) {
+    return null;
+  }
+  const entityType = record.entityType === 'core-variable'
+    || record.entityType === 'market-mapping'
+    || record.entityType === 'narrative'
+    ? record.entityType
+    : null;
+  const action = record.action === 'create'
+    || record.action === 'update'
+    || record.action === 'deactivate'
+    || record.action === 'remap-market'
+    ? record.action
+    : null;
+  if (!entityType || !action) {
+    return null;
+  }
+  return {
+    id,
+    entityType,
+    action,
+    title,
+    definition: record.definition ? String(record.definition) : undefined,
+    keywords: Array.isArray(record.keywords)
+      ? record.keywords.map((item) => String(item || '').trim()).filter(Boolean)
+      : undefined,
+    recordId: record.recordId ? String(record.recordId) : undefined,
+    marketId: record.marketId ? String(record.marketId) : undefined,
+    narrativeId: record.narrativeId ? String(record.narrativeId) : undefined,
+    coreVariableIds: Array.isArray(record.coreVariableIds)
+      ? record.coreVariableIds.map((item) => String(item || '').trim()).filter(Boolean)
+      : undefined,
+    note: record.note ? String(record.note) : undefined,
+  };
+}
+
+function migrateSavedChats(value: Record<string, unknown>): Record<string, SectorChatState> {
+  return Object.fromEntries(Object.entries(value || {}).map(([sectorSlug, rawState]) => {
+    const base = buildDefaultSectorChatState(sectorSlug);
+    if (!rawState || typeof rawState !== 'object' || Array.isArray(rawState)) {
+      return [sectorSlug, base];
+    }
+    const record = rawState as Record<string, unknown>;
+    const messages = normalizeMessageList(record.messages);
+    const createdAt = Number(record.createdAt) || messages[0]?.createdAt || base.createdAt;
+    const updatedAt = Number(record.updatedAt) || messages[messages.length - 1]?.createdAt || createdAt;
+    return [sectorSlug, {
+      threadId: String(record.threadId || '').trim() || base.threadId,
+      title: String(record.title || '').trim() || base.title,
+      draftText: String(record.draftText || ''),
+      createdAt,
+      updatedAt,
+      messages,
+      draftProposal: normalizeDraftProposal(record.draftProposal),
+      isStreaming: Boolean(record.isStreaming),
+      error: record.error ? String(record.error) : null,
+    } satisfies SectorChatState];
+  }));
 }
 
 export function applyProposal(overlay: TaxonomyOverlay, proposal: DraftProposal): TaxonomyOverlay {

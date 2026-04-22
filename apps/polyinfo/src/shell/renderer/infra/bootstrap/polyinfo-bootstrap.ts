@@ -11,6 +11,7 @@ import {
   resolveDesktopBootstrapAuthSession,
 } from '@nimiplatform/nimi-kit/auth';
 import { bootstrapAuthSession } from './polyinfo-bootstrap-auth.js';
+import { loadPersistedAIConfig } from '@renderer/data/runtime-routes.js';
 
 function toAuthUser(user: Record<string, unknown> | null) {
   if (!user) {
@@ -31,6 +32,7 @@ function toAuthUser(user: Record<string, unknown> | null) {
 export async function runPolyinfoBootstrap(): Promise<void> {
   const store = useAppStore.getState();
   try {
+    store.setAuthBootstrapping();
     const runtimeDefaults = await getRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
 
@@ -131,7 +133,9 @@ export async function runPolyinfoBootstrap(): Promise<void> {
       },
     });
 
+    store.setAIConfig(loadPersistedAIConfig(runtimeDefaults));
     store.setBootstrapReady(true);
+    store.setBootstrapError(null);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     store.setBootstrapError(message);

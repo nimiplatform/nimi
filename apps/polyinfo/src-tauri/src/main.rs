@@ -6,6 +6,7 @@ use reqwest::Url;
 
 use nimi_kit_shell_tauri::auth_session_commands;
 use nimi_kit_shell_tauri::desktop_paths;
+use nimi_kit_shell_tauri::oauth_commands;
 use nimi_kit_shell_tauri::runtime_bridge;
 use nimi_kit_shell_tauri::runtime_defaults as defaults;
 use nimi_kit_shell_tauri::session_logging;
@@ -161,6 +162,9 @@ fn main() {
             auth_session_commands::auth_session_load,
             auth_session_commands::auth_session_save,
             auth_session_commands::auth_session_clear,
+            oauth_commands::open_external_url,
+            oauth_commands::oauth_token_exchange,
+            oauth_commands::oauth_listen_for_code,
             runtime_bridge::runtime_bridge_unary,
             runtime_bridge::runtime_bridge_stream_open,
             runtime_bridge::runtime_bridge_stream_close,

@@ -48,6 +48,10 @@ const HOMEPAGE_CATEGORY_BLACKLIST = new Set([
   'trending',
 ]);
 
+const FRONTEND_ROOT_CATEGORY_ALLOWLIST = new Set(
+  FRONTEND_ROOT_CATEGORY_FALLBACK.map((item) => item.slug),
+);
+
 type FrontendFilteredTagRecord = {
   id?: string | number;
   label?: string;
@@ -76,6 +80,9 @@ type FrontendEventsKeysetResponse = {
   events?: FrontendEventRecord[];
   next_cursor?: string;
 };
+
+let rootCategoryCache: Promise<FrontendCategoryGroup[]> | null = null;
+let sectorCatalogCache: Promise<SectorTag[]> | null = null;
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -131,6 +138,9 @@ function parseHomepageRootCategories(html: string): FrontendCategoryGroup[] {
     }
     const slug = href.slice(1).toLowerCase();
     if (HOMEPAGE_CATEGORY_BLACKLIST.has(slug)) {
+      return;
+    }
+    if (!FRONTEND_ROOT_CATEGORY_ALLOWLIST.has(slug)) {
       return;
     }
     const label = normalizeLabel(anchor.textContent ?? '');
@@ -271,9 +281,66 @@ async function mapWithConcurrency<TInput, TOutput>(
   return results;
 }
 
+export async function fetchFrontendRootCategories(): Promise<FrontendCategoryGroup[]> {
+  if (!rootCategoryCache) {
+    rootCategoryCache = fetchHomepageHtml().then((html) => parseHomepageRootCategories(html));
+  }
+  return rootCategoryCache;
+}
+
+export async function fetchFrontendSectorCatalog(): Promise<SectorTag[]> {
+  if (!sectorCatalogCache) {
+    sectorCatalogCache = (async () => {
+      const roots = await fetchFrontendRootCategories();
+      const subcategoryGroups = await mapWithConcurrency(roots, 4, (root) => fetchFrontendSubcategories(root));
+      const sectors = new Map<string, SectorTag>();
+
+      for (const root of roots) {
+        sectors.set(root.slug, {
+          id: root.id,
+          label: root.label,
+          slug: root.slug,
+          description: root.description ?? 'Polymarket 前台根分类。',
+        });
+      }
+
+      for (const children of subcategoryGroups) {
+        for (const child of children) {
+          if (child.slug === child.parentSlug) {
+            continue;
+          }
+          const parent = roots.find((root) => root.slug === child.parentSlug);
+          sectors.set(child.slug, {
+            id: child.id,
+            label: child.label,
+            slug: child.slug,
+            parentSlug: child.parentSlug,
+            displayedCount: child.displayedCount,
+            description: parent ? `${parent.label} / ${child.label}` : child.label,
+          });
+        }
+      }
+
+      return [...sectors.values()].sort((left, right) => {
+        const leftParent = left.parentSlug ?? left.slug;
+        const rightParent = right.parentSlug ?? right.slug;
+        if (leftParent !== rightParent) {
+          return leftParent.localeCompare(rightParent);
+        }
+        const leftKind = left.parentSlug ? 1 : 0;
+        const rightKind = right.parentSlug ? 1 : 0;
+        if (leftKind !== rightKind) {
+          return leftKind - rightKind;
+        }
+        return left.label.localeCompare(right.label);
+      });
+    })();
+  }
+  return sectorCatalogCache;
+}
+
 export async function fetchFrontendSectorDirectory(): Promise<SectorTag[]> {
-  const html = await fetchHomepageHtml();
-  const groups = parseHomepageRootCategories(html);
+  const groups = await fetchFrontendRootCategories();
   return groups.map((group) => ({
     id: group.id,
     label: group.label,

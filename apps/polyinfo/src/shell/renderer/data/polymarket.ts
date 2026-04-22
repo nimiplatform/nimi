@@ -1,6 +1,6 @@
 import type { AnalysisPackage, HistoryPoint, PreparedMarket, SectorTag, TaxonomyOverlay, WindowKey } from './types.js';
 import { hasTauriInvoke, invokeChecked } from '@renderer/bridge';
-import { fetchFrontendSectorDirectory } from './frontend-taxonomy.js';
+import { fetchFrontendSectorCatalog } from './frontend-taxonomy.js';
 
 const GAMMA_API_BASE = 'https://gamma-api.polymarket.com';
 const CLOB_API_BASE = 'https://clob.polymarket.com';
@@ -163,9 +163,9 @@ function classifyWeightTier(market: PreparedMarket, ordered: PreparedMarket[]): 
   return 'watch';
 }
 
-export async function fetchSectorTags(limit = 120): Promise<SectorTag[]> {
-  const sectors = await fetchFrontendSectorDirectory();
-  return sectors.slice(0, limit);
+export async function fetchSectorTags(limit?: number): Promise<SectorTag[]> {
+  const sectors = await fetchFrontendSectorCatalog();
+  return typeof limit === 'number' ? sectors.slice(0, limit) : sectors;
 }
 
 export async function fetchSectorMarkets(tag: SectorTag): Promise<PreparedMarket[]> {
@@ -267,15 +267,15 @@ function chunkArray<T>(items: T[], chunkSize: number): T[][] {
   return chunks;
 }
 
-function getHistoryRequestConfig(windowKey: WindowKey): { startTs: number; endTs: number; fidelity: number } {
+function getHistoryRequestConfig(): { startTs: number; endTs: number; fidelity: number } {
   const nowMs = Date.now();
-  const windowStart = getWindowStartTimestamp(windowKey, nowMs);
+  const windowStart = getWindowStartTimestamp('7d', nowMs);
   const windowSpan = nowMs - windowStart;
   const buffer = Math.max(Math.floor(windowSpan * 0.3), 60 * 60 * 1000);
   return {
     startTs: Math.floor((windowStart - buffer) / 1000),
     endTs: Math.floor(nowMs / 1000),
-    fidelity: windowKey === '7d' ? 180 : 60,
+    fidelity: 60,
   };
 }
 
@@ -298,13 +298,12 @@ export async function fetchPriceHistory(tokenId: string): Promise<HistoryPoint[]
 
 export async function fetchSectorHistory(
   markets: PreparedMarket[],
-  windowKey: WindowKey,
 ): Promise<Record<string, HistoryPoint[]>> {
   if (markets.length === 0) {
     return {};
   }
 
-  const { startTs, endTs, fidelity } = getHistoryRequestConfig(windowKey);
+  const { startTs, endTs, fidelity } = getHistoryRequestConfig();
   const byTokenId: Record<string, HistoryPoint[]> = {};
   for (const chunk of chunkArray(markets, 20)) {
     const tokenIds = chunk.map((market) => market.yesTokenId);

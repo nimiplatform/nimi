@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchFrontendCategoryMapping } from '@renderer/data/frontend-taxonomy.js';
-import { fetchSectorTags } from '@renderer/data/polymarket.js';
+import { fetchFrontendCategoryMapping, fetchFrontendRootCategories } from '@renderer/data/frontend-taxonomy.js';
 
 function formatCount(value: number | undefined): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -12,8 +12,8 @@ function formatCount(value: number | undefined): string {
 
 export function FrontendTaxonomyPage() {
   const sectorsQuery = useQuery({
-    queryKey: ['polyinfo', 'sectors'],
-    queryFn: () => fetchSectorTags(),
+    queryKey: ['polyinfo', 'frontend-root-sectors'],
+    queryFn: () => fetchFrontendRootCategories(),
     staleTime: 10 * 60 * 1000,
   });
   const sectors = sectorsQuery.data ?? [];
@@ -26,10 +26,7 @@ export function FrontendTaxonomyPage() {
     }
   }, [selectedSlug, sectors]);
 
-  const activeSector = useMemo(
-    () => sectors.find((sector) => sector.slug === selectedSlug) ?? sectors[0] ?? null,
-    [sectors, selectedSlug],
-  );
+  const activeSector = useMemo(() => sectors.find((sector) => sector.slug === selectedSlug) ?? sectors[0] ?? null, [sectors, selectedSlug]);
 
   const mappingQuery = useQuery({
     queryKey: ['polyinfo', 'frontend-taxonomy', activeSector?.slug],
@@ -136,6 +133,16 @@ export function FrontendTaxonomyPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-white">{row.category.label}</span>
                           <span className="text-[11px] uppercase tracking-[0.16em] text-slate-500">{row.category.slug}</span>
+                          <Link
+                            to={
+                              row.category.slug === row.category.parentSlug
+                                ? `/sectors/${row.category.parentSlug}`
+                                : `/sectors/${row.category.parentSlug}/${row.category.slug}`
+                            }
+                            className="rounded-md border border-sky-300/20 bg-sky-300/10 px-2 py-1 text-[11px] text-sky-100"
+                          >
+                            打开
+                          </Link>
                         </div>
                         {mismatch ? (
                           <p className="mt-1 text-xs text-amber-200">页面显示和抓取结果暂时不一致。</p>

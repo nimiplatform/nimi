@@ -5,6 +5,7 @@ import { SectorWorkspacePage } from '@renderer/features/sectors/sector-workspace
 import { SignalHistoryPage } from '@renderer/features/signals/signal-history-page.js';
 import { SettingsPage } from '@renderer/features/settings/settings-page.js';
 import { FrontendTaxonomyPage } from '@renderer/features/mapping/frontend-taxonomy-page.js';
+import { RuntimePage } from '@renderer/features/runtime-config/runtime-page.js';
 
 export function AppRoutes() {
   return (
@@ -12,9 +13,11 @@ export function AppRoutes() {
       <Routes>
         <Route element={<PolyinfoLayout />}>
           <Route index element={<DashboardPage />} />
-          <Route path="sectors/:sectorSlug" element={<SectorWorkspacePage />} />
+          <Route path="sectors/:rootSlug" element={<SectorWorkspacePage />} />
+          <Route path="sectors/:rootSlug/:sectorSlug" element={<SectorWorkspacePage />} />
           <Route path="mapping" element={<FrontendTaxonomyPage />} />
           <Route path="signals" element={<SignalHistoryPage />} />
+          <Route path="runtime" element={<RuntimePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

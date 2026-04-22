@@ -9,6 +9,7 @@ Every sector owns a first-class analyst session surface.
 - opening a sector must allow immediate analyst conversation
 - a new sector chat starts with that sector's active narratives and core variables already loaded
 - the analyst agent is sector-bound rather than generic across the entire app
+- route selection for that analyst chat must come from the app-level runtime config surface, not sector-local settings
 
 ## PI-DISCUSS-002: Discussion Scope
 
@@ -21,6 +22,12 @@ Polyinfo supports user-agent discussion about:
 - signal interpretation
 
 Discussion is app-local and does not redefine Realm chat authority.
+
+Polyinfo discussion is an AI analyst subset of the desktop chat pattern:
+
+- only the sector analyst mode is admitted
+- human / group / generic agent chat modes are out of scope for Polyinfo
+- runtime-backed route selection still follows the same config ownership pattern as desktop
 
 ## PI-DISCUSS-003: Evidence Boundary
 

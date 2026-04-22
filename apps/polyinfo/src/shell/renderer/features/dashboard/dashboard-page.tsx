@@ -3,6 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchSectorTags } from '@renderer/data/polymarket.js';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 
+function buildSectorRoute(input: { slug: string; parentSlug?: string }): string {
+  return input.parentSlug ? `/sectors/${input.parentSlug}/${input.slug}` : `/sectors/${input.slug}`;
+}
+
 export function DashboardPage() {
   const snapshotsBySector = useAppStore((state) => state.snapshotsBySector);
   const tagsQuery = useQuery({
@@ -46,7 +50,7 @@ export function DashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-lg font-semibold text-white">Sectors</h3>
             <span className="text-xs text-slate-500">
-              {tagsQuery.data?.length ?? 0} 个前台根分类
+              {tagsQuery.data?.length ?? 0} 个前台分类
             </span>
           </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -58,7 +62,7 @@ export function DashboardPage() {
             {(tagsQuery.data ?? []).slice(0, 18).map((tag) => (
               <Link
                 key={tag.id}
-                to={`/sectors/${tag.slug}`}
+                to={buildSectorRoute(tag)}
                 className="rounded-md border border-white/8 bg-white/[0.03] p-4 transition-colors hover:border-sky-300/35 hover:bg-sky-300/8"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -82,10 +86,13 @@ export function DashboardPage() {
               <div className="rounded-md border border-white/8 bg-white/[0.03] p-4 text-sm text-slate-400">
                 还没有分析历史。打开一个 sector 后，系统会保存每次完成的分析结论。
               </div>
-            ) : latestSnapshots.map((snapshot) => (
+            ) : latestSnapshots.map((snapshot) => {
+                const tag = (tagsQuery.data ?? []).find((item) => item.slug === snapshot.sectorSlug);
+                const route = buildSectorRoute({ slug: snapshot.sectorSlug, parentSlug: tag?.parentSlug });
+                return (
               <Link
                 key={snapshot.id}
-                to={`/sectors/${snapshot.sectorSlug}`}
+                to={route}
                 className="block rounded-md border border-white/8 bg-white/[0.03] p-4 transition-colors hover:border-sky-300/35 hover:bg-sky-300/8"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -97,7 +104,8 @@ export function DashboardPage() {
                 <p className="mt-2 text-sm text-slate-200">{snapshot.headline}</p>
                 <p className="mt-2 text-xs leading-6 text-slate-400">{snapshot.summary}</p>
               </Link>
-            ))}
+                );
+              })}
           </div>
         </div>
       </section>

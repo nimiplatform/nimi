@@ -2,6 +2,7 @@
   "compilerOptions": {
     "paths": {
       "@renderer/*": ["./src/shell/renderer/*"],
+      "@runtime/*": ["../desktop/src/runtime/*"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"],
       "@nimiplatform/nimi-kit/features/chat": ["../../kit/features/chat/src/index.ts"],

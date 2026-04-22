@@ -17,6 +17,7 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         '@renderer': path.resolve(__dirname, 'src/shell/renderer'),
+        '@runtime': path.resolve(__dirname, '../desktop/src/runtime'),
         '@nimiplatform/sdk': path.resolve(__dirname, '../../sdk/src'),
         '@nimiplatform/nimi-kit/features/chat': path.resolve(__dirname, '../../kit/features/chat/src'),
         '@nimiplatform/nimi-kit/core': path.resolve(__dirname, '../../kit/core/src'),

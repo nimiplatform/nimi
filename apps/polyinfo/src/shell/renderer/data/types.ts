@@ -7,6 +7,22 @@ export type AuthUser = {
 
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'anonymous';
 
+export type AnalystRoute = 'local' | 'cloud';
+
+export type AnalystRuntimeSettings = {
+  route: AnalystRoute;
+  localModel: string;
+  cloudConnectorId: string;
+  cloudModel: string;
+};
+
+export type RuntimeCloudConnector = {
+  id: string;
+  label: string;
+  provider: string;
+  models: string[];
+};
+
 export type WindowKey = '24h' | '48h' | '7d';
 
 export type NarrativeRecord = {
@@ -68,6 +84,8 @@ export type SectorTag = {
   label: string;
   slug: string;
   description?: string;
+  parentSlug?: string;
+  displayedCount?: number;
 };
 
 export type FrontendCategoryGroup = {
@@ -157,6 +175,11 @@ export type DraftProposal = {
 };
 
 export type SectorChatState = {
+  threadId: string;
+  title: string;
+  draftText: string;
+  createdAt: number;
+  updatedAt: number;
   messages: AnalystMessage[];
   draftProposal: DraftProposal | null;
   isStreaming: boolean;
