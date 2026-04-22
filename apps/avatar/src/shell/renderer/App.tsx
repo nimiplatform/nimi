@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import { startWindowDrag } from './app-shell/tauri-commands.js';
-import { isTauriRuntime } from './app-shell/tauri-lifecycle.js';
+import { isTauriRuntime, onLaunchContextUpdated } from './app-shell/tauri-lifecycle.js';
 
 export function App() {
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
@@ -11,6 +11,7 @@ export function App() {
   const driver = useAvatarStore((s) => s.driver);
   const consume = useAvatarStore((s) => s.consume);
   const auth = useAvatarStore((s) => s.auth);
+  const launchContext = useAvatarStore((s) => s.launch.context);
 
   useEffect(() => {
     let handle: BootstrapHandle | null = null;
@@ -24,6 +25,25 @@ export function App() {
       });
     return () => {
       void handle?.shutdown();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+    let active = true;
+    let unlisten: (() => void) | null = null;
+    void onLaunchContextUpdated(() => {
+      if (active && typeof window !== 'undefined') {
+        window.location.reload();
+      }
+    }).then((dispose) => {
+      unlisten = dispose;
+    });
+    return () => {
+      active = false;
+      unlisten?.();
     };
   }, []);
 
@@ -44,10 +64,13 @@ export function App() {
     ? auth.user?.id ?? 'authenticated'
     : 'anonymous';
   const consumeLabel = consume.authority === 'runtime'
-    ? `runtime:${consume.conversationAnchorId ?? 'pending'}`
+    ? `runtime:${consume.avatarInstanceId ?? 'pending'}`
     : consume.authority === 'fixture'
       ? `fixture:${consume.fixtureId ?? 'default'}`
       : 'pending';
+  const launchLabel = launchContext
+    ? `${launchContext.avatarInstanceId} · ${launchContext.anchorMode}${launchContext.conversationAnchorId ? `:${launchContext.conversationAnchorId}` : ''}`
+    : 'missing';
 
   return (
     <div className="avatar-root">
@@ -65,6 +88,9 @@ export function App() {
         </span>
         <span className="avatar-placeholder-hint">
           activity: {activityName} · posture: {postureFamily} · auth: {authLabel}
+        </span>
+        <span className="avatar-placeholder-hint">
+          launch: {launchLabel}
         </span>
       </div>
     </div>

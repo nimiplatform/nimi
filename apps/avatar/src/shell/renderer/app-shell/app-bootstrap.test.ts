@@ -8,6 +8,7 @@ const createPlatformClientMock = vi.fn();
 const clearPlatformClientMock = vi.fn();
 const resolveDesktopBootstrapAuthSessionMock = vi.fn();
 const bootstrapAuthSessionMock = vi.fn();
+const getAvatarLaunchContextMock = vi.fn();
 const getRuntimeDefaultsMock = vi.fn();
 const hasTauriInvokeMock = vi.fn();
 const loadAuthSessionMock = vi.fn();
@@ -33,6 +34,7 @@ vi.mock('@nimiplatform/nimi-kit/auth', () => ({
 }));
 
 vi.mock('@renderer/bridge', () => ({
+  getAvatarLaunchContext: (...args: unknown[]) => getAvatarLaunchContextMock(...args),
   getRuntimeDefaults: (...args: unknown[]) => getRuntimeDefaultsMock(...args),
   hasTauriInvoke: (...args: unknown[]) => hasTauriInvokeMock(...args),
   loadAuthSession: (...args: unknown[]) => loadAuthSessionMock(...args),
@@ -122,6 +124,7 @@ describe('bootstrapAvatar', () => {
     resolveDesktopBootstrapAuthSessionMock.mockReset();
     clearPlatformClientMock.mockReset();
     bootstrapAuthSessionMock.mockReset();
+    getAvatarLaunchContextMock.mockReset();
     getRuntimeDefaultsMock.mockReset();
     hasTauriInvokeMock.mockReset();
     loadAuthSessionMock.mockReset();
@@ -133,6 +136,14 @@ describe('bootstrapAvatar', () => {
     onShellReadyMock.mockResolvedValue(() => {});
     setAlwaysOnTopMock.mockResolvedValue(undefined);
     hasTauriInvokeMock.mockReturnValue(true);
+    getAvatarLaunchContextMock.mockResolvedValue({
+      agentId: 'agent-launch',
+      avatarInstanceId: 'instance-1',
+      conversationAnchorId: 'anchor-launch',
+      anchorMode: 'existing',
+      launchedBy: 'desktop',
+      sourceSurface: 'desktop-agent-chat',
+    });
     getRuntimeDefaultsMock.mockResolvedValue({
       realm: {
         realmBaseUrl: 'http://localhost:3002',
@@ -150,7 +161,7 @@ describe('bootstrapAvatar', () => {
         connectorId: '',
         targetType: '',
         targetAccountId: '',
-        agentId: 'agent-1',
+        agentId: 'runtime-default-agent',
         worldId: 'world-1',
         provider: '',
         userConfirmedUpload: false,
@@ -175,7 +186,7 @@ describe('bootstrapAvatar', () => {
         ready: async () => undefined,
         agent: {
           anchors: {
-            open: async () => ({ conversationAnchorId: 'anchor-1' }),
+            open: async () => ({ conversationAnchorId: 'anchor-opened' }),
           },
         },
       },
@@ -192,14 +203,40 @@ describe('bootstrapAvatar', () => {
     expect(createDriverMock).toHaveBeenCalledWith(expect.objectContaining({
       kind: 'sdk',
       sdk: expect.objectContaining({
-        agentId: 'agent-1',
-        conversationAnchorId: 'anchor-1',
+        agentId: 'agent-launch',
+        conversationAnchorId: 'anchor-launch',
         activeWorldId: 'world-1',
         activeUserId: 'user-1',
       }),
     }));
     expect(createDriverMock.mock.calls[0]?.[0]).not.toHaveProperty('scenarioJson');
     expect(useAvatarStore.getState().consume.authority).toBe('runtime');
+    expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('instance-1');
+
+    await handle.shutdown();
+  });
+
+  it('opens a new anchor only when launch context explicitly requires it', async () => {
+    getAvatarLaunchContextMock.mockResolvedValue({
+      agentId: 'agent-launch',
+      avatarInstanceId: 'instance-new-anchor',
+      conversationAnchorId: null,
+      anchorMode: 'open_new',
+      launchedBy: 'desktop',
+      sourceSurface: 'desktop-agent-chat',
+    });
+    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+
+    expect(createDriverMock).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'sdk',
+      sdk: expect.objectContaining({
+        agentId: 'agent-launch',
+        conversationAnchorId: 'anchor-opened',
+      }),
+    }));
 
     await handle.shutdown();
   });
@@ -218,6 +255,18 @@ describe('bootstrapAvatar', () => {
     expect(useAvatarStore.getState().consume.authority).toBe('fixture');
 
     await handle.shutdown();
+  });
+
+  it('fails closed when desktop launch context is missing', async () => {
+    getAvatarLaunchContextMock.mockRejectedValue(
+      new Error('avatar launch context is required; launch from desktop orchestrator'),
+    );
+    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    await expect(bootstrapAvatar()).rejects.toThrow(
+      'avatar launch context is required; launch from desktop orchestrator',
+    );
   });
 
   it('fails closed when runtime daemon cannot start instead of falling back to mock', async () => {

@@ -4,6 +4,7 @@
   "windows": ["avatar"],
   "permissions": [
     "core:default",
+    "deep-link:default",
     {
       "identifier": "core:window:allow-set-title",
       "allow": [{ "label": "avatar" }]

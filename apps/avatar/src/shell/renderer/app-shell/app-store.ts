@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { RuntimeDefaults } from '../bridge/index.js';
+import type { AvatarLaunchContext } from '../bridge/index.js';
 import type { AgentDataBundle, DriverStatus } from '../driver/types.js';
 
 export type ShellVisibility = 'on_screen' | 'off_screen' | 'tray_minimized';
@@ -33,9 +34,13 @@ export type AvatarAppState = {
     authority: DriverAuthority | null;
     fixtureId: string | null;
     fixturePlaying: boolean;
+    avatarInstanceId: string | null;
     conversationAnchorId: string | null;
     agentId: string | null;
     worldId: string | null;
+  };
+  launch: {
+    context: AvatarLaunchContext | null;
   };
   auth: {
     status: AuthStateStatus;
@@ -65,11 +70,13 @@ export type AvatarAppState = {
     fixturePlaying?: boolean;
   }): void;
   setRuntimeBinding(input: {
+    avatarInstanceId: string;
     conversationAnchorId: string;
     agentId: string;
     worldId: string;
   }): void;
   clearRuntimeBinding(): void;
+  setLaunchContext(context: AvatarLaunchContext): void;
   setRuntimeDefaults(defaults: RuntimeDefaults): void;
   setAuthSession(user: AvatarAuthUser, accessToken: string, refreshToken?: string): void;
   clearAuthSession(): void;
@@ -95,9 +102,13 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
     authority: null,
     fixtureId: null,
     fixturePlaying: false,
+    avatarInstanceId: null,
     conversationAnchorId: null,
     agentId: null,
     worldId: null,
+  },
+  launch: {
+    context: null,
   },
   auth: {
     status: 'anonymous',
@@ -152,6 +163,7 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
     set((state) => ({
       consume: {
         ...state.consume,
+        avatarInstanceId: input.avatarInstanceId,
         conversationAnchorId: input.conversationAnchorId,
         agentId: input.agentId,
         worldId: input.worldId,
@@ -162,11 +174,19 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
     set((state) => ({
       consume: {
         ...state.consume,
+        avatarInstanceId: null,
         conversationAnchorId: null,
         agentId: null,
         worldId: null,
       },
     }));
+  },
+  setLaunchContext(context) {
+    set({
+      launch: {
+        context,
+      },
+    });
   },
   setRuntimeDefaults(defaults) {
     set({ runtime: { defaults } });

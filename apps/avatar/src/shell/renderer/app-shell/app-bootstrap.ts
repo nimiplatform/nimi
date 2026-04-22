@@ -1,6 +1,15 @@
 import { clearPlatformClient, createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
 import { persistSharedDesktopAuthSession, resolveDesktopBootstrapAuthSession } from '@nimiplatform/nimi-kit/auth';
-import { clearAuthSession, getRuntimeDefaults, hasTauriInvoke, loadAuthSession, saveAuthSession, startDaemon } from '@renderer/bridge';
+import {
+  clearAuthSession,
+  getAvatarLaunchContext,
+  getRuntimeDefaults,
+  hasTauriInvoke,
+  loadAuthSession,
+  saveAuthSession,
+  startDaemon,
+  type AvatarLaunchContext,
+} from '@renderer/bridge';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { bootstrapAuthSession } from './bootstrap-auth.js';
@@ -24,12 +33,18 @@ async function loadDefaultMockScenarioJson(): Promise<string> {
 
 async function resolveConversationAnchorId(
   runtime: PlatformClient['runtime'],
-  agentId: string,
+  launchContext: AvatarLaunchContext,
 ): Promise<string> {
+  if (launchContext.anchorMode === 'existing') {
+    return launchContext.conversationAnchorId || '';
+  }
   const opened = await runtime.agent.anchors.open({
-    agentId,
+    agentId: launchContext.agentId,
     metadata: {
       surface: 'avatar-carrier',
+      launchedBy: launchContext.launchedBy,
+      avatarInstanceId: launchContext.avatarInstanceId,
+      sourceSurface: launchContext.sourceSurface || 'desktop-avatar-launcher',
     },
   });
   const record = opened as unknown as Record<string, unknown>;
@@ -102,6 +117,8 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       if (!isTauriRuntime() || !hasTauriInvoke()) {
         throw new Error('avatar real runtime bootstrap requires Tauri runtime');
       }
+      const launchContext = await getAvatarLaunchContext();
+      useAvatarStore.getState().setLaunchContext(launchContext);
 
       const runtimeDefaults = await getRuntimeDefaults();
       useAvatarStore.getState().setRuntimeDefaults(runtimeDefaults);
@@ -203,16 +220,19 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         }),
       ]);
 
-      const agentId = readNormalizedString(runtimeDefaults.runtime.agentId);
       const worldId = readNormalizedString(runtimeDefaults.runtime.worldId);
-      if (!agentId) {
-        throw new Error('avatar runtime defaults are missing runtime.agentId');
-      }
       if (!worldId) {
         throw new Error('avatar runtime defaults are missing runtime.worldId');
       }
 
-      const conversationAnchorId = await resolveConversationAnchorId(runtime, agentId);
+      const agentId = readNormalizedString(launchContext.agentId);
+      if (!agentId) {
+        throw new Error('avatar launch context is missing agentId');
+      }
+      const conversationAnchorId = await resolveConversationAnchorId(runtime, launchContext);
+      if (!conversationAnchorId) {
+        throw new Error('avatar launch context did not resolve conversationAnchorId');
+      }
       useAvatarStore.getState().setConsumeMode({
         mode: 'sdk',
         authority: 'runtime',
@@ -220,6 +240,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         fixturePlaying: false,
       });
       useAvatarStore.getState().setRuntimeBinding({
+        avatarInstanceId: launchContext.avatarInstanceId,
         conversationAnchorId,
         agentId,
         worldId,
