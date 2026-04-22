@@ -1,8 +1,19 @@
 import { create } from 'zustand';
+import type { RuntimeDefaults } from '../bridge/index.js';
 import type { AgentDataBundle, DriverStatus } from '../driver/types.js';
 
 export type ShellVisibility = 'on_screen' | 'off_screen' | 'tray_minimized';
 export type ModelLoadState = 'idle' | 'loading' | 'loaded' | 'error';
+export type DriverMode = 'sdk' | 'mock';
+export type DriverAuthority = 'runtime' | 'fixture';
+export type AuthStateStatus = 'anonymous' | 'authenticated';
+
+export type AvatarAuthUser = {
+  id: string;
+  displayName: string;
+  email?: string;
+  avatarUrl?: string;
+};
 
 export type AvatarAppState = {
   shell: {
@@ -17,9 +28,23 @@ export type AvatarAppState = {
     loadState: ModelLoadState;
     error: string | null;
   };
-  scenario: {
-    scenarioId: string | null;
-    playing: boolean;
+  consume: {
+    mode: DriverMode | null;
+    authority: DriverAuthority | null;
+    fixtureId: string | null;
+    fixturePlaying: boolean;
+    conversationAnchorId: string | null;
+    agentId: string | null;
+    worldId: string | null;
+  };
+  auth: {
+    status: AuthStateStatus;
+    user: AvatarAuthUser | null;
+    accessToken: string;
+    refreshToken: string;
+  };
+  runtime: {
+    defaults: RuntimeDefaults | null;
   };
   driver: {
     status: DriverStatus;
@@ -33,7 +58,21 @@ export type AvatarAppState = {
   setModelLoading(): void;
   setModelLoaded(modelId: string): void;
   setModelError(message: string): void;
-  setScenario(id: string, playing: boolean): void;
+  setConsumeMode(input: {
+    mode: DriverMode;
+    authority: DriverAuthority;
+    fixtureId?: string | null;
+    fixturePlaying?: boolean;
+  }): void;
+  setRuntimeBinding(input: {
+    conversationAnchorId: string;
+    agentId: string;
+    worldId: string;
+  }): void;
+  clearRuntimeBinding(): void;
+  setRuntimeDefaults(defaults: RuntimeDefaults): void;
+  setAuthSession(user: AvatarAuthUser, accessToken: string, refreshToken?: string): void;
+  clearAuthSession(): void;
   setDriverStatus(status: DriverStatus): void;
   setBundle(bundle: AgentDataBundle): void;
 };
@@ -51,9 +90,23 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
     loadState: 'idle',
     error: null,
   },
-  scenario: {
-    scenarioId: null,
-    playing: false,
+  consume: {
+    mode: null,
+    authority: null,
+    fixtureId: null,
+    fixturePlaying: false,
+    conversationAnchorId: null,
+    agentId: null,
+    worldId: null,
+  },
+  auth: {
+    status: 'anonymous',
+    user: null,
+    accessToken: '',
+    refreshToken: '',
+  },
+  runtime: {
+    defaults: null,
   },
   driver: {
     status: 'idle',
@@ -84,8 +137,59 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
   setModelError(message) {
     set((state) => ({ model: { ...state.model, loadState: 'error', error: message } }));
   },
-  setScenario(id, playing) {
-    set({ scenario: { scenarioId: id, playing } });
+  setConsumeMode(input) {
+    set((state) => ({
+      consume: {
+        ...state.consume,
+        mode: input.mode,
+        authority: input.authority,
+        fixtureId: input.fixtureId ?? null,
+        fixturePlaying: input.fixturePlaying ?? false,
+      },
+    }));
+  },
+  setRuntimeBinding(input) {
+    set((state) => ({
+      consume: {
+        ...state.consume,
+        conversationAnchorId: input.conversationAnchorId,
+        agentId: input.agentId,
+        worldId: input.worldId,
+      },
+    }));
+  },
+  clearRuntimeBinding() {
+    set((state) => ({
+      consume: {
+        ...state.consume,
+        conversationAnchorId: null,
+        agentId: null,
+        worldId: null,
+      },
+    }));
+  },
+  setRuntimeDefaults(defaults) {
+    set({ runtime: { defaults } });
+  },
+  setAuthSession(user, accessToken, refreshToken = '') {
+    set({
+      auth: {
+        status: 'authenticated',
+        user,
+        accessToken: String(accessToken || '').trim(),
+        refreshToken: String(refreshToken || '').trim(),
+      },
+    });
+  },
+  clearAuthSession() {
+    set({
+      auth: {
+        status: 'anonymous',
+        user: null,
+        accessToken: '',
+        refreshToken: '',
+      },
+    });
   },
   setDriverStatus(status) {
     set({ driver: { status } });

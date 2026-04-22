@@ -3,6 +3,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use nimi_kit_shell_tauri::auth_session_commands;
+use nimi_kit_shell_tauri::runtime_bridge;
+use nimi_kit_shell_tauri::runtime_defaults as defaults;
 use serde::Serialize;
 use tauri::{Emitter, Manager, PhysicalSize, WebviewWindow};
 
@@ -164,13 +167,33 @@ async fn nimi_avatar_read_text_file(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| format!("read {} failed: {}", path, e))
 }
 
+fn configure_runtime_bridge_env() {
+    if cfg!(debug_assertions) && std::env::var_os("NIMI_RUNTIME_BRIDGE_MODE").is_none() {
+        std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME");
+    }
+}
+
 fn main() {
     let _ = dotenvy::dotenv();
+    configure_runtime_bridge_env();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
+            defaults::runtime_defaults,
+            auth_session_commands::auth_session_load,
+            auth_session_commands::auth_session_save,
+            auth_session_commands::auth_session_clear,
+            runtime_bridge::runtime_bridge_unary,
+            runtime_bridge::runtime_bridge_stream_open,
+            runtime_bridge::runtime_bridge_stream_close,
+            runtime_bridge::runtime_bridge_status,
+            runtime_bridge::runtime_bridge_start,
+            runtime_bridge::runtime_bridge_stop,
+            runtime_bridge::runtime_bridge_restart,
+            runtime_bridge::runtime_bridge_config_get,
+            runtime_bridge::runtime_bridge_config_set,
             nimi_avatar_start_window_drag,
             nimi_avatar_set_window_size,
             nimi_avatar_set_ignore_cursor_events,

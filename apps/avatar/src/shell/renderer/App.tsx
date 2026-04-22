@@ -9,7 +9,8 @@ export function App() {
   const bundle = useAvatarStore((s) => s.bundle);
   const shell = useAvatarStore((s) => s.shell);
   const driver = useAvatarStore((s) => s.driver);
-  const scenario = useAvatarStore((s) => s.scenario);
+  const consume = useAvatarStore((s) => s.consume);
+  const auth = useAvatarStore((s) => s.auth);
 
   useEffect(() => {
     let handle: BootstrapHandle | null = null;
@@ -39,6 +40,14 @@ export function App() {
 
   const activityName = bundle?.activity?.name ?? '—';
   const postureFamily = bundle?.posture.action_family ?? '—';
+  const authLabel = auth.status === 'authenticated'
+    ? auth.user?.id ?? 'authenticated'
+    : 'anonymous';
+  const consumeLabel = consume.authority === 'runtime'
+    ? `runtime:${consume.conversationAnchorId ?? 'pending'}`
+    : consume.authority === 'fixture'
+      ? `fixture:${consume.fixtureId ?? 'default'}`
+      : 'pending';
 
   return (
     <div className="avatar-root">
@@ -52,10 +61,10 @@ export function App() {
       >
         <span className="avatar-placeholder-label">Nimi Avatar</span>
         <span className="avatar-placeholder-hint">
-          shell: {shell.shellReady ? 'ready' : 'booting'} · driver: {driver.status} · scenario: {scenario.scenarioId ?? '—'}
+          shell: {shell.shellReady ? 'ready' : 'booting'} · driver: {driver.status} · consume: {consumeLabel}
         </span>
         <span className="avatar-placeholder-hint">
-          activity: {activityName} · posture: {postureFamily}
+          activity: {activityName} · posture: {postureFamily} · auth: {authLabel}
         </span>
       </div>
     </div>
