@@ -50,7 +50,7 @@ import {
 } from './chat-agent-runtime-memory';
 import {
   assertAgentSubmitSchedulingAllowed,
-  createOrRestoreThreadForTarget,
+  ensureThreadAnchorBindingForTarget,
   isAbortLikeSubmitError,
   uploadPendingAttachment,
 } from './chat-agent-shell-host-actions-helpers';
@@ -102,10 +102,14 @@ export async function submitAgentConversationTurn(input: {
 
     let effectiveThreadRecord: AgentLocalThreadSummary | AgentLocalThreadRecord | null = input.hostInput.selectedThreadRecord;
     let effectiveThreadId = input.hostInput.activeThreadId;
-    if (!effectiveThreadId || !effectiveThreadRecord) {
-      effectiveThreadRecord = await createOrRestoreThreadForTarget(input.hostInput, activeTarget);
-      effectiveThreadId = effectiveThreadRecord.id;
-    }
+    const threadContext = await ensureThreadAnchorBindingForTarget({
+      input: input.hostInput,
+      target: activeTarget,
+      thread: effectiveThreadId && effectiveThreadRecord ? effectiveThreadRecord : null,
+    });
+    effectiveThreadRecord = threadContext.thread;
+    effectiveThreadId = threadContext.thread.id;
+    const conversationAnchorId = threadContext.anchorBinding.conversationAnchorId;
     const fallbackThreadRecord = toFallbackThreadRecord(effectiveThreadRecord);
 
     const existingSubmit = input.activeSubmitsByThreadRef.current.get(effectiveThreadId) || null;
@@ -138,6 +142,8 @@ export async function submitAgentConversationTurn(input: {
     const optimisticUserProjection = submittedText || optimisticPreviewAttachments.length > 0
       ? buildAgentUserProjectionCommit({
         threadId: effectiveThreadId,
+        agentId: activeTarget.agentId,
+        conversationAnchorId,
         turnId: userTurnId,
         submittedText,
         uploadedAttachments: optimisticPreviewAttachments,
@@ -188,6 +194,8 @@ export async function submitAgentConversationTurn(input: {
       : [];
     const userProjection = buildAgentUserProjectionCommit({
       threadId: effectiveThreadId,
+      agentId: activeTarget.agentId,
+      conversationAnchorId,
       turnId: userTurnId,
       submittedText,
       uploadedAttachments,
@@ -372,6 +380,7 @@ export async function submitAgentConversationTurn(input: {
       activeSubmit,
       input: input.hostInput,
       threadId: effectiveThreadId,
+      conversationAnchorId,
       turnId: assistantTurnId,
       userMessage: {
         id: userProjection.firstMessageId,

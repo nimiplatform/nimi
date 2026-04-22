@@ -5,6 +5,8 @@ import { buildAgentUserProjectionCommit } from '../src/shell/renderer/features/c
 test('agent user projection commit assigns unique projection message ids per beat for text plus images', () => {
   const projection = buildAgentUserProjectionCommit({
     threadId: 'thread-1',
+    agentId: 'agent-1',
+    conversationAnchorId: 'anchor-1',
     turnId: 'turn-user-1',
     submittedText: 'Please inspect these.',
     uploadedAttachments: [{
@@ -60,6 +62,8 @@ test('agent user projection commit assigns unique projection message ids per bea
 test('agent user projection commit supports attachment-only turns', () => {
   const projection = buildAgentUserProjectionCommit({
     threadId: 'thread-1',
+    agentId: 'agent-1',
+    conversationAnchorId: 'anchor-1',
     turnId: 'turn-user-2',
     submittedText: '   ',
     uploadedAttachments: [{

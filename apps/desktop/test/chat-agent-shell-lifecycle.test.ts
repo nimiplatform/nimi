@@ -36,9 +36,10 @@ test('agent shell lifecycle keeps projection rebuild and completed terminal stat
         promptTraceId: 'prompt-1',
       },
       diagnostics: {
-        transport: 'runtime.agent',
-        sessionId: 'session-1',
+        transport: 'runtime.agent.turns',
+        conversationAnchorId: 'anchor-1',
         runtimeTurnId: 'runtime-turn-1',
+        runtimeStreamId: 'runtime-stream-1',
         route: 'local',
         modelId: 'kimi-k2',
         connectorId: null,
@@ -52,10 +53,11 @@ test('agent shell lifecycle keeps projection rebuild and completed terminal stat
   assert.equal(completed.reasoningText, 'hidden');
   assert.equal(completed.traceId, 'trace-1');
   assert.equal(completed.promptTraceId, 'prompt-1');
-  assert.deepEqual(completed.runtimeAgentChat, {
-    transport: 'runtime.agent',
-    sessionId: 'session-1',
+  assert.deepEqual(completed.runtimeAgentTurns, {
+    transport: 'runtime.agent.turns',
+    conversationAnchorId: 'anchor-1',
     runtimeTurnId: 'runtime-turn-1',
+    runtimeStreamId: 'runtime-stream-1',
     route: 'local',
     modelId: 'kimi-k2',
     connectorId: null,
@@ -111,7 +113,7 @@ test('agent shell lifecycle captures canceled terminals and stays fail-close on 
   assert.throws(() => assertAgentTurnLifecycleCompleted(state), /terminal success event/);
 });
 
-test('agent shell lifecycle preserves runtime.agent session evidence on failed and canceled terminals', () => {
+test('agent shell lifecycle preserves runtime.agent.turns anchor evidence on failed and canceled terminals', () => {
   const failedState = applyEvents([{
     type: 'turn-failed',
     turnId: 'turn-failed',
@@ -124,9 +126,10 @@ test('agent shell lifecycle preserves runtime.agent session evidence on failed a
       promptTraceId: 'prompt-runtime-fail',
     },
     diagnostics: {
-      transport: 'runtime.agent',
-      sessionId: 'session-runtime-fail',
+      transport: 'runtime.agent.turns',
+      conversationAnchorId: 'anchor-runtime-fail',
       runtimeTurnId: 'runtime-turn-fail',
+      runtimeStreamId: 'runtime-stream-fail',
       route: 'cloud',
       modelId: 'gpt-5.4-mini',
       connectorId: 'connector-openai',
@@ -141,27 +144,30 @@ test('agent shell lifecycle preserves runtime.agent session evidence on failed a
       promptTraceId: 'prompt-runtime-cancel',
     },
     diagnostics: {
-      transport: 'runtime.agent',
-      sessionId: 'session-runtime-cancel',
+      transport: 'runtime.agent.turns',
+      conversationAnchorId: 'anchor-runtime-cancel',
       runtimeTurnId: 'runtime-turn-cancel',
+      runtimeStreamId: 'runtime-stream-cancel',
       route: 'local',
       modelId: 'kimi-k2',
       connectorId: null,
     },
   }]);
 
-  assert.deepEqual(failedState.runtimeAgentChat, {
-    transport: 'runtime.agent',
-    sessionId: 'session-runtime-fail',
+  assert.deepEqual(failedState.runtimeAgentTurns, {
+    transport: 'runtime.agent.turns',
+    conversationAnchorId: 'anchor-runtime-fail',
     runtimeTurnId: 'runtime-turn-fail',
+    runtimeStreamId: 'runtime-stream-fail',
     route: 'cloud',
     modelId: 'gpt-5.4-mini',
     connectorId: 'connector-openai',
   });
-  assert.deepEqual(canceledState.runtimeAgentChat, {
-    transport: 'runtime.agent',
-    sessionId: 'session-runtime-cancel',
+  assert.deepEqual(canceledState.runtimeAgentTurns, {
+    transport: 'runtime.agent.turns',
+    conversationAnchorId: 'anchor-runtime-cancel',
     runtimeTurnId: 'runtime-turn-cancel',
+    runtimeStreamId: 'runtime-stream-cancel',
     route: 'local',
     modelId: 'kimi-k2',
     connectorId: null,

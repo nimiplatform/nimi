@@ -10,6 +10,8 @@ function normalizeText(value: string): string {
 
 export function buildAgentUserProjectionCommit(input: {
   threadId: string;
+  agentId: string;
+  conversationAnchorId: string;
   turnId: string;
   submittedText: string;
   uploadedAttachments: readonly AgentChatUserAttachment[];
@@ -44,7 +46,11 @@ export function buildAgentUserProjectionCommit(input: {
       mediaUrl: null,
       mediaMimeType: null,
       artifactId: null,
-      metadataJson: null,
+      metadataJson: {
+        transport: 'runtime.agent.turns',
+        agentId: input.agentId,
+        conversationAnchorId: input.conversationAnchorId,
+      },
       createdAtMs: input.createdAtMs,
       updatedAtMs: input.createdAtMs,
     });
@@ -84,7 +90,11 @@ export function buildAgentUserProjectionCommit(input: {
       mediaUrl: attachment.url,
       mediaMimeType: attachment.mimeType,
       artifactId: attachment.resourceId,
-      metadataJson: null,
+      metadataJson: {
+        transport: 'runtime.agent.turns',
+        agentId: input.agentId,
+        conversationAnchorId: input.conversationAnchorId,
+      },
       createdAtMs: messageAtMs,
       updatedAtMs: messageAtMs,
     });

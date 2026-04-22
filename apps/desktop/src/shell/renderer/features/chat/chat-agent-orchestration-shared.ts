@@ -104,6 +104,10 @@ export function requireProviderMetadata(
   if (!agentId) {
     throw new Error('agent-local-chat-v1 metadata.agentId is required');
   }
+  const conversationAnchorId = normalizeText(nextRecord.conversationAnchorId);
+  if (!conversationAnchorId) {
+    throw new Error('agent-local-chat-v1 metadata.conversationAnchorId is required');
+  }
   const targetSnapshot = nextRecord.targetSnapshot;
   if (!targetSnapshot || typeof targetSnapshot !== 'object') {
     throw new Error('agent-local-chat-v1 metadata.targetSnapshot is required');
@@ -111,6 +115,7 @@ export function requireProviderMetadata(
   const reasoningPreference = nextRecord.reasoningPreference === 'on' ? 'on' : 'off';
   return {
     agentId,
+    conversationAnchorId,
     targetSnapshot: targetSnapshot as AgentLocalTargetSnapshot,
     agentResolution: (nextRecord.agentResolution ?? null) as AgentEffectiveCapabilityResolution | null,
     textExecutionSnapshot: (nextRecord.textExecutionSnapshot ?? null) as AISnapshot | null,

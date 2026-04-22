@@ -57,6 +57,7 @@ export type AgentPendingFollowUpEntry = {
 
 export type AgentLocalChatRuntimeRequest = {
   agentId: string;
+  conversationAnchorId: string;
   prompt?: string;
   history?: readonly ConversationTurnHistoryMessage[];
   messages?: readonly ConversationRuntimeTextMessage[];
@@ -89,6 +90,10 @@ export type AgentLocalChatVoiceWorkflowRequest = ChatAgentVoiceWorkflowSubmitInp
 export type AgentLocalChatTurnStreamPart =
   | {
     type: 'reasoning-delta';
+    textDelta: string;
+  }
+  | {
+    type: 'text-delta';
     textDelta: string;
   }
   | {
@@ -167,6 +172,7 @@ export interface AgentLocalChatRuntimeAdapter {
 
 export type AgentLocalChatProviderMetadata = {
   agentId: string;
+  conversationAnchorId: string;
   targetSnapshot: AgentLocalTargetSnapshot;
   agentResolution: AgentEffectiveCapabilityResolution | null;
   textExecutionSnapshot: AISnapshot | null;

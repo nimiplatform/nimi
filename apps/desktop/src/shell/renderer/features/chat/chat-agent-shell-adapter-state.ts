@@ -20,6 +20,7 @@ import { findRuntimeRouteModelProfile } from './chat-ai-route-view';
 import type { AgentConversationSelection } from './chat-shell-types';
 import { useAgentVisibleProjection } from './chat-agent-visible-projection-store';
 import { useConversationStreamState } from './chat-runtime-stream-ui';
+import { getAgentConversationAnchorBinding } from './chat-agent-anchor-binding-storage';
 import {
   bundleQueryKey,
   isEmptyPendingAssistantMessage,
@@ -47,6 +48,7 @@ type UseAgentConversationShellStateInput = {
 type AgentConversationShellState = {
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;
+  activeConversationAnchorId: string | null;
   agentResolution: ReturnType<typeof useAppStore.getState>['agentEffectiveCapabilityResolution'];
   agentRouteReady: boolean;
   bundle: AgentLocalThreadBundle | null;
@@ -172,6 +174,10 @@ export function useAgentConversationShellState(
     () => threads.find((thread) => thread.id === activeThreadId) || null,
     [activeThreadId, threads],
   );
+  const activeConversationAnchorId = useMemo(
+    () => getAgentConversationAnchorBinding(selectedThreadRecord?.id || null)?.conversationAnchorId || null,
+    [selectedThreadRecord?.id],
+  );
   const selectedTarget = useMemo(
     () => targetByAgentId.get(input.selection.agentId || '') || null,
     [input.selection.agentId, targetByAgentId],
@@ -200,6 +206,7 @@ export function useAgentConversationShellState(
   return {
     activeTarget,
     activeThreadId,
+    activeConversationAnchorId,
     agentResolution,
     agentRouteReady,
     bundle,

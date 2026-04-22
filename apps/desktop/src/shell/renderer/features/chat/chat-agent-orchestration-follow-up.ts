@@ -187,6 +187,7 @@ async function runFollowUpRuntimeAgentStream(input: {
   }
   const runtimeResult = await input.runtimeAdapter.streamAgentTurn({
     agentId: input.metadata.agentId,
+    conversationAnchorId: input.metadata.conversationAnchorId,
     prompt: input.executionRequest.prompt,
     history: input.followUpHistory,
     messages: input.executionRequest.messages,
@@ -376,6 +377,7 @@ export async function* runScheduledFollowUpTurn(input: {
     } else {
       const invokeResult = await input.runtimeAdapter.invokeText({
         agentId: input.metadata.agentId,
+        conversationAnchorId: input.metadata.conversationAnchorId,
         prompt: executionRequest.prompt,
         history: followUpHistory,
         messages: executionRequest.messages,

@@ -19,10 +19,11 @@ export type AgentTextTurnDebugMetadata = {
   followUpCanceledByUser: boolean;
   followUpSourceActionId: string | null;
   followUpDelayMs: number | null;
-  runtimeAgentChat?: {
-    transport: 'runtime.agent';
-    sessionId: string | null;
+  runtimeAgentTurns?: {
+    transport: 'runtime.agent.turns';
+    conversationAnchorId: string | null;
     runtimeTurnId: string | null;
+    runtimeStreamId: string | null;
     route: string | null;
     modelId: string | null;
     connectorId: string | null;
@@ -64,18 +65,19 @@ function parseStatusCue(value: unknown): AgentResolvedStatusCue | null {
   };
 }
 
-function parseRuntimeAgentChat(value: unknown): AgentTextTurnDebugMetadata['runtimeAgentChat'] {
+function parseRuntimeAgentTurns(value: unknown): AgentTextTurnDebugMetadata['runtimeAgentTurns'] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
   }
   const record = value as Record<string, unknown>;
-  if (normalizeNullableText(record.transport) !== 'runtime.agent') {
+  if (normalizeNullableText(record.transport) !== 'runtime.agent.turns') {
     return null;
   }
   return {
-    transport: 'runtime.agent',
-    sessionId: normalizeNullableText(record.sessionId),
+    transport: 'runtime.agent.turns',
+    conversationAnchorId: normalizeNullableText(record.conversationAnchorId),
     runtimeTurnId: normalizeNullableText(record.runtimeTurnId),
+    runtimeStreamId: normalizeNullableText(record.runtimeStreamId),
     route: normalizeNullableText(record.route),
     modelId: normalizeNullableText(record.modelId),
     connectorId: normalizeNullableText(record.connectorId),
@@ -124,7 +126,7 @@ export function buildAgentTextTurnDebugMetadata(
     followUpDelayMs: Number.isFinite(Number(options?.followUpDelayMs))
       ? Number(options?.followUpDelayMs)
       : null,
-    runtimeAgentChat: null,
+    runtimeAgentTurns: null,
   } satisfies AgentTextTurnDebugMetadata;
 }
 
@@ -161,6 +163,6 @@ export function parseAgentTextTurnDebugMetadata(value: unknown): AgentTextTurnDe
     followUpDelayMs: Number.isFinite(Number(record.followUpDelayMs))
       ? Number(record.followUpDelayMs)
       : null,
-    runtimeAgentChat: parseRuntimeAgentChat(record.runtimeAgentChat),
+    runtimeAgentTurns: parseRuntimeAgentTurns(record.runtimeAgentTurns),
   };
 }

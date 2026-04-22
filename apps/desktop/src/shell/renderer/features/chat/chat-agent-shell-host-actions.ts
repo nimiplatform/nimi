@@ -5,10 +5,9 @@ import {
   normalizeText,
   upsertThreadSummary,
 } from './chat-agent-shell-core';
-import { findAgentConversationThreadByAgentId } from './chat-agent-thread-model';
+import { clearAgentConversationAnchorBinding } from './chat-agent-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import {
-  createOrRestoreThreadForTarget,
   persistDraftForThread,
 } from './chat-agent-shell-host-actions-helpers';
 import { submitAgentConversationTurn } from './chat-agent-shell-host-actions-submit';
@@ -38,13 +37,6 @@ export function useAgentConversationHostActions(
     [input],
   );
 
-  const ensureThreadForTarget = useCallback(
-    async (target: NonNullable<UseAgentConversationHostActionsInput['activeTarget']>) => (
-      createOrRestoreThreadForTarget(input, target)
-    ),
-    [input],
-  );
-
   useEffect(() => {
     if (!input.threadsReady) {
       return;
@@ -58,40 +50,8 @@ export function useAgentConversationHostActions(
     }
   }, [input]);
 
-  const creatingThreadForAgentIdRef = useRef<string | null>(null);
   const activeSubmitsByThreadRef = useRef<Map<string, ActiveAgentSubmit>>(new Map());
   const submittingLockTokenRef = useRef(0);
-
-  useEffect(() => {
-    if (!input.targetsReady || !input.threadsReady) {
-      return;
-    }
-    const normalizedAgentId = normalizeText(input.selectedAgentId);
-    if (!normalizedAgentId) {
-      return;
-    }
-    const target = input.targetByAgentId.get(normalizedAgentId) || null;
-    if (!target) {
-      if (!findAgentConversationThreadByAgentId(input.threads, normalizedAgentId)) {
-        input.syncSelectionToThread(null);
-      }
-      return;
-    }
-    if (findAgentConversationThreadByAgentId(input.threads, normalizedAgentId)) {
-      return;
-    }
-    if (creatingThreadForAgentIdRef.current === normalizedAgentId) {
-      return;
-    }
-    creatingThreadForAgentIdRef.current = normalizedAgentId;
-    void ensureThreadForTarget(target)
-      .catch(input.reportHostError)
-      .finally(() => {
-        if (creatingThreadForAgentIdRef.current === normalizedAgentId) {
-          creatingThreadForAgentIdRef.current = null;
-        }
-      });
-  }, [ensureThreadForTarget, input]);
 
   const handleSelectThread = useCallback((threadId: string) => {
     if (!threadId || threadId === input.activeThreadId || input.submittingThreadId) {
@@ -118,6 +78,7 @@ export function useAgentConversationHostActions(
       return;
     }
     await chatAgentStoreClient.deleteThread(normalizedThreadId);
+    clearAgentConversationAnchorBinding(normalizedThreadId);
     input.queryClient.removeQueries({ queryKey: bundleQueryKey(normalizedThreadId) });
     input.setFooterHostState(normalizedThreadId, null);
     input.setThreadsCache((current) => current.filter((item) => item.id !== normalizedThreadId));
@@ -167,9 +128,9 @@ export function useAgentConversationHostActions(
           defaultValue: 'The selected agent friend is no longer available.',
         }));
       }
-      await ensureThreadForTarget(target);
+      input.setSelectionForAgent(target.agentId);
     })().catch(input.reportHostError);
-  }, [ensureThreadForTarget, input, persistDraft]);
+  }, [input, persistDraft]);
 
   const handleSubmit = useCallback(async (payload: AgentConversationSubmitPayload) => {
     await submitAgentConversationTurn({

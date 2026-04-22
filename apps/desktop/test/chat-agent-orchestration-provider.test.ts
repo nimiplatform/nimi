@@ -523,6 +523,7 @@ function sampleTurnInput(overrides: Partial<ConversationTurnInput> & {
     metadata: {
       agentLocalChat: {
         agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
         targetSnapshot: sampleTarget(),
         routeResult: null,
         runtimeConfigState: null,
@@ -1120,9 +1121,10 @@ test('agent local chat provider prefers runtime.agent structured turns when the 
               routeDecision: 'cloud',
             },
             diagnostics: {
-              transport: 'runtime.agent',
-              sessionId: 'session-1',
+              transport: 'runtime.agent.turns',
+              conversationAnchorId: 'anchor-1',
               runtimeTurnId: 'runtime-turn-1',
+              runtimeStreamId: 'runtime-stream-1',
             },
           };
           yield {
@@ -1136,9 +1138,10 @@ test('agent local chat provider prefers runtime.agent structured turns when the 
               routeDecision: 'cloud',
             },
             diagnostics: {
-              transport: 'runtime.agent',
-              sessionId: 'session-1',
+              transport: 'runtime.agent.turns',
+              conversationAnchorId: 'anchor-1',
               runtimeTurnId: 'runtime-turn-1',
+              runtimeStreamId: 'runtime-stream-1',
             },
           };
         }
@@ -1168,12 +1171,12 @@ test('agent local chat provider prefers runtime.agent structured turns when the 
   assert.equal(committed[0]?.textMessageState?.messageId, 'runtime-message-1');
   assert.equal(committed[0]?.events.some((event) => event.type === 'text-delta'), false);
   assert.equal(
-    String((committed[0]?.textMessageState?.metadataJson?.runtimeAgentChat as Record<string, unknown> | undefined)?.sessionId || ''),
-    'session-1',
+    String((committed[0]?.textMessageState?.metadataJson?.runtimeAgentTurns as Record<string, unknown> | undefined)?.conversationAnchorId || ''),
+    'anchor-1',
   );
 });
 
-test('agent local chat provider forwards prior runtime.agent session metadata into the next turn request', async () => {
+test('agent local chat provider forwards prior runtime.agent.turns anchor metadata into the next turn request', async () => {
   const observedHistory: AgentRuntimeStreamRequest['history'][] = [];
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter: createRuntimeAdapter({
@@ -1196,9 +1199,10 @@ test('agent local chat provider forwards prior runtime.agent session metadata in
               promptTraceId: 'runtime-trace-reuse',
             },
             diagnostics: {
-              transport: 'runtime.agent',
-              sessionId: 'session-reused',
+              transport: 'runtime.agent.turns',
+              conversationAnchorId: 'anchor-reused',
               runtimeTurnId: 'runtime-turn-reuse',
+              runtimeStreamId: 'runtime-stream-reuse',
             },
           };
           yield {
@@ -1210,9 +1214,10 @@ test('agent local chat provider forwards prior runtime.agent session metadata in
               promptTraceId: 'runtime-trace-reuse',
             },
             diagnostics: {
-              transport: 'runtime.agent',
-              sessionId: 'session-reused',
+              transport: 'runtime.agent.turns',
+              conversationAnchorId: 'anchor-reused',
               runtimeTurnId: 'runtime-turn-reuse',
+              runtimeStreamId: 'runtime-stream-reuse',
             },
           };
         }
@@ -1228,10 +1233,11 @@ test('agent local chat provider forwards prior runtime.agent session metadata in
       role: 'assistant',
       text: 'Previous runtime response',
       metadata: {
-        runtimeAgentChat: {
-          transport: 'runtime.agent',
-          sessionId: 'session-reused',
+        runtimeAgentTurns: {
+          transport: 'runtime.agent.turns',
+          conversationAnchorId: 'anchor-reused',
           runtimeTurnId: 'runtime-turn-previous',
+          runtimeStreamId: 'runtime-stream-previous',
           route: 'local',
           modelId: 'kimi-k2',
           connectorId: null,
@@ -1259,8 +1265,8 @@ test('agent local chat provider forwards prior runtime.agent session metadata in
 
   assert.equal(observedHistory.length, 1);
   assert.equal(
-    String(((observedHistory[0]?.[0]?.metadata as Record<string, unknown> | undefined)?.runtimeAgentChat as Record<string, unknown> | undefined)?.sessionId || ''),
-    'session-reused',
+    String(((observedHistory[0]?.[0]?.metadata as Record<string, unknown> | undefined)?.runtimeAgentTurns as Record<string, unknown> | undefined)?.conversationAnchorId || ''),
+    'anchor-reused',
   );
 });
 
@@ -1301,9 +1307,10 @@ test('agent local chat provider does not locally schedule follow-up timers for r
                 promptTraceId: 'runtime-trace-follow-up',
               },
               diagnostics: {
-                transport: 'runtime.agent',
-                sessionId: 'session-follow-up',
+                transport: 'runtime.agent.turns',
+                conversationAnchorId: 'anchor-follow-up',
                 runtimeTurnId: 'runtime-turn-follow-up',
+                runtimeStreamId: 'runtime-stream-follow-up',
               },
             };
             yield {
@@ -1858,10 +1865,11 @@ test('agent local chat provider prefers runtime.agent stream for scheduled follo
                 followUpCanceledByUser: false,
                 followUpSourceActionId: null,
                 followUpDelayMs: null,
-                runtimeAgentChat: {
-                  transport: 'runtime.agent',
-                  sessionId: 'session-follow-up-runtime-agent',
+                runtimeAgentTurns: {
+                  transport: 'runtime.agent.turns',
+                  conversationAnchorId: 'anchor-follow-up-runtime-agent',
                   runtimeTurnId: 'runtime-turn-follow-up-runtime-agent',
+                  runtimeStreamId: 'runtime-stream-follow-up-runtime-agent',
                   route: 'local',
                   modelId: 'kimi-k2',
                   connectorId: null,
@@ -1871,9 +1879,10 @@ test('agent local chat provider prefers runtime.agent stream for scheduled follo
                 },
               },
               diagnostics: {
-                transport: 'runtime.agent',
-                sessionId: 'session-follow-up-runtime-agent',
+                transport: 'runtime.agent.turns',
+                conversationAnchorId: 'anchor-follow-up-runtime-agent',
                 runtimeTurnId: 'runtime-turn-follow-up-runtime-agent',
+                runtimeStreamId: 'runtime-stream-follow-up-runtime-agent',
                 route: 'local',
                 modelId: 'kimi-k2',
                 connectorId: null,
@@ -1890,9 +1899,10 @@ test('agent local chat provider prefers runtime.agent stream for scheduled follo
                 routeDecision: 'local',
               },
               diagnostics: {
-                transport: 'runtime.agent',
-                sessionId: 'session-follow-up-runtime-agent',
+                transport: 'runtime.agent.turns',
+                conversationAnchorId: 'anchor-follow-up-runtime-agent',
                 runtimeTurnId: 'runtime-turn-follow-up-runtime-agent',
+                runtimeStreamId: 'runtime-stream-follow-up-runtime-agent',
                 route: 'local',
                 modelId: 'kimi-k2',
                 connectorId: null,
@@ -1962,8 +1972,8 @@ test('agent local chat provider prefers runtime.agent stream for scheduled follo
     assert.equal(observedFollowUpHistories.length, 1);
     assert.equal(committed.length, 2);
     assert.equal(
-      String((committed[1]?.textMessageState?.metadataJson?.runtimeAgentChat as Record<string, unknown> | undefined)?.sessionId || ''),
-      'session-follow-up-runtime-agent',
+      String((committed[1]?.textMessageState?.metadataJson?.runtimeAgentTurns as Record<string, unknown> | undefined)?.conversationAnchorId || ''),
+      'anchor-follow-up-runtime-agent',
     );
     assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpTurn, true);
     assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpDepth, 1);
@@ -1972,7 +1982,7 @@ test('agent local chat provider prefers runtime.agent stream for scheduled follo
   }
 });
 
-test('agent local chat provider fails closed when runtime.agent completes without a structured projection', async () => {
+test('agent local chat provider fails closed when runtime.agent.turns completes without a structured projection', async () => {
   const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter: createRuntimeAdapter({
@@ -1989,9 +1999,10 @@ test('agent local chat provider fails closed when runtime.agent completes withou
               routeDecision: 'local',
             },
             diagnostics: {
-              transport: 'runtime.agent',
-              sessionId: 'session-missing-structured',
+              transport: 'runtime.agent.turns',
+              conversationAnchorId: 'anchor-missing-structured',
               runtimeTurnId: 'runtime-turn-missing-structured',
+              runtimeStreamId: 'runtime-stream-missing-structured',
               route: 'local',
               modelId: 'kimi-k2',
               connectorId: null,

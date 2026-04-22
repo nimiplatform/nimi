@@ -67,6 +67,7 @@ import { resetChatAgentAvatarTransform } from './chat-agent-avatar-transform-sto
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;
+  activeConversationAnchorId: string | null;
   bundle: AgentLocalThreadBundle | null;
   bundleError: unknown;
   composerReady: boolean;
@@ -113,7 +114,7 @@ type UseAgentConversationPresentationInput = {
     amplitude: number;
   } | null;
   voicePlaybackState: {
-    threadId: string;
+    conversationAnchorId: string;
     messageId: string;
     active: boolean;
     amplitude: number;
@@ -204,6 +205,7 @@ export function useAgentConversationPresentation(
     composerReady: input.composerReady,
     activeTarget: input.activeTarget,
     activeThreadId: input.activeThreadId,
+    activeConversationAnchorId: input.activeConversationAnchorId,
     submittingThreadId: input.submittingThreadId,
     voiceCaptureState: input.voiceCaptureState,
     voicePlaybackState: input.voicePlaybackState,
@@ -279,6 +281,7 @@ export function useAgentConversationPresentation(
     () => resolveAgentCanonicalMessages({
       messages: input.messages,
       activeThreadId: input.activeThreadId,
+      activeConversationAnchorId: input.activeConversationAnchorId,
       activeTargetId: input.activeTarget?.agentId || null,
       character: {
         name: characterData.name || 'Agent',
@@ -286,7 +289,7 @@ export function useAgentConversationPresentation(
         handle: characterData.handle || null,
       },
     }),
-    [characterData.avatarUrl, characterData.handle, characterData.name, input.activeTarget?.agentId, input.activeThreadId, input.messages],
+    [characterData.avatarUrl, characterData.handle, characterData.name, input.activeConversationAnchorId, input.activeTarget?.agentId, input.activeThreadId, input.messages],
   );
   const selectedTargetId = resolveAgentSelectedTargetId({
     selectionAgentId: input.inputSelectionAgentId,

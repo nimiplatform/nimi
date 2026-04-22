@@ -30,6 +30,7 @@ export async function runActiveAgentSubmit(input: {
   activeSubmit: ActiveAgentSubmit;
   input: UseAgentConversationHostActionsInput;
   threadId: string;
+  conversationAnchorId: string;
   turnId: string;
   userMessage: {
     id: string;
@@ -56,6 +57,7 @@ export async function runActiveAgentSubmit(input: {
 
   for await (const event of input.input.runAgentTurn({
     threadId: input.threadId,
+    conversationAnchorId: input.conversationAnchorId,
     turnId: input.turnId,
     userMessage: input.userMessage,
     history: input.history,

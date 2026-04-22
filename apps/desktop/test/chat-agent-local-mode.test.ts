@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
 import { ScenarioJobStatus, toProtoStruct } from '@nimiplatform/sdk/runtime';
 
 import {
   CORE_CHAT_AGENT_MOD_ID,
   generateChatAgentImageRuntime,
   invokeChatAgentRuntime,
+  streamChatAgentRuntimeAgentTurn,
   streamChatAgentRuntime,
   synthesizeChatAgentVoiceRuntime,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
@@ -34,6 +36,49 @@ import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
+}
+
+function createLocalTextProjection() {
+  return {
+    capability: 'text.generate' as const,
+    selectedBinding: {
+      source: 'local' as const,
+      connectorId: '',
+      model: 'llama3',
+    },
+    resolvedBinding: {
+      capability: 'text.generate' as const,
+      source: 'local' as const,
+      provider: 'llama',
+      model: 'llama3',
+      modelId: 'llama3',
+      localModelId: 'local-chat-1',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:11434/v1',
+      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: {
+      capability: 'text.generate' as const,
+      metadataVersion: 'v1' as const,
+      resolvedBindingRef: 'local:llama3',
+      metadataKind: 'text.generate' as const,
+      metadata: {
+        supportsThinking: false,
+        traceModeSupport: 'none' as const,
+        supportsImageInput: false,
+        supportsAudioInput: false,
+        supportsVideoInput: false,
+        supportsArtifactRefInput: false,
+      },
+    },
+    supported: true,
+    reasonCode: null,
+  };
 }
 
 type CapturedRuntimeTextStreamInput = {
@@ -98,7 +143,7 @@ test('agent local mode filters social snapshot to agent friends and fails close 
   }, /displayName is required/);
 });
 
-test('agent local mode keeps one thread per agent when restoring selection', () => {
+test('agent local mode restores selection from explicit thread state, not selected agent truth', () => {
   const threads: AgentLocalThreadSummary[] = [
     {
       id: 'thread-agent-1',
@@ -146,13 +191,138 @@ test('agent local mode keeps one thread per agent when restoring selection', () 
     selectionThreadId: null,
     selectionAgentId: 'agent-2',
     lastSelectedThreadId: 'thread-agent-1',
-  }), 'thread-agent-2');
+  }), 'thread-agent-1');
   assert.equal(resolveAgentConversationActiveThreadId({
     threads,
     selectionThreadId: 'thread-missing',
     selectionAgentId: 'agent-1',
     lastSelectedThreadId: 'thread-agent-2',
-  }), 'thread-agent-1');
+  }), 'thread-agent-2');
+});
+
+test('agent runtime turns interrupt stays bound to the aborted anchor and does not cross-wire sibling anchors', async () => {
+  clearPlatformClient();
+  const client = await createPlatformClient({
+    appId: 'nimi.desktop.test.anchor-interrupt',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+  const subscribeCalls: Array<{ agentId: string; conversationAnchorId?: string }> = [];
+  const requestCalls: Array<{ agentId: string; conversationAnchorId: string; threadId: string }> = [];
+  const interruptCalls: Array<{ agentId: string; conversationAnchorId: string; turnId?: string; reason: string }> = [];
+  (client as unknown as { runtime: unknown }).runtime = {
+    agent: {
+      turns: {
+        subscribe: async (request: { agentId: string; conversationAnchorId?: string }) => {
+          subscribeCalls.push(request);
+          return {
+            async *[Symbol.asyncIterator]() {
+              // Keep the stream inert. This test only proves interrupt routing.
+            },
+          };
+        },
+        request: async (request: { agentId: string; conversationAnchorId: string; threadId: string }) => {
+          requestCalls.push(request);
+        },
+        interrupt: async (request: { agentId: string; conversationAnchorId: string; turnId?: string; reason: string }) => {
+          interruptCalls.push(request);
+        },
+      },
+    },
+  };
+
+  try {
+    const projection = createLocalTextProjection();
+    const agentResolution = buildAgentEffectiveCapabilityResolution({
+      textProjection: projection,
+    });
+    const executionSnapshot = createAISnapshot({
+      config: createEmptyAIConfig(),
+      capability: 'text.generate',
+      projection,
+      agentResolution,
+    });
+
+    const anchorAController = new AbortController();
+    const anchorBController = new AbortController();
+    await streamChatAgentRuntimeAgentTurn({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-a',
+      threadId: 'thread-a',
+      messages: [{ role: 'user', text: 'hello anchor a' }],
+      reasoningPreference: 'off',
+      agentResolution,
+      textExecutionSnapshot: executionSnapshot,
+      runtimeConfigState: null,
+      runtimeFields: {
+        targetType: '',
+        targetAccountId: '',
+        agentId: 'agent-1',
+        targetId: '',
+        worldId: '',
+        provider: 'llama',
+        runtimeModelType: 'chat',
+        localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+        localProviderModel: 'llama3',
+        localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
+        connectorId: '',
+        mode: 'STORY',
+        turnIndex: 1,
+        userConfirmedUpload: false,
+      },
+      signal: anchorAController.signal,
+    });
+    await streamChatAgentRuntimeAgentTurn({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-b',
+      threadId: 'thread-b',
+      messages: [{ role: 'user', text: 'hello anchor b' }],
+      reasoningPreference: 'off',
+      agentResolution,
+      textExecutionSnapshot: executionSnapshot,
+      runtimeConfigState: null,
+      runtimeFields: {
+        targetType: '',
+        targetAccountId: '',
+        agentId: 'agent-1',
+        targetId: '',
+        worldId: '',
+        provider: 'llama',
+        runtimeModelType: 'chat',
+        localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+        localProviderModel: 'llama3',
+        localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
+        connectorId: '',
+        mode: 'STORY',
+        turnIndex: 2,
+        userConfirmedUpload: false,
+      },
+      signal: anchorBController.signal,
+    });
+
+    anchorAController.abort();
+    await Promise.resolve();
+
+    assert.deepEqual(
+      subscribeCalls.map((call) => call.conversationAnchorId),
+      ['anchor-a', 'anchor-b'],
+    );
+    assert.deepEqual(
+      requestCalls.map((call) => ({ conversationAnchorId: call.conversationAnchorId, threadId: call.threadId })),
+      [
+        { conversationAnchorId: 'anchor-a', threadId: 'thread-a' },
+        { conversationAnchorId: 'anchor-b', threadId: 'thread-b' },
+      ],
+    );
+    assert.deepEqual(interruptCalls, [{
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-a',
+      reason: 'desktop_agent_chat_abort',
+    }]);
+  } finally {
+    clearPlatformClient();
+  }
 });
 
 test('agent local runtime invoke uses runtime text generate with desktop-core metadata', async () => {
@@ -1730,7 +1900,7 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionSubmitSource, /resolveAuthoritativeAgentThreadBundle/);
   assert.match(hostActionSubmitRunSource, /assertAgentTurnLifecycleCompleted/);
   assert.match(hostActionSubmitSource, /const activeTarget = input\.hostInput\.activeTarget;/);
-  assert.match(hostActionSubmitSource, /if \(!effectiveThreadId \|\| !effectiveThreadRecord\) \{\s+effectiveThreadRecord = await createOrRestoreThreadForTarget\(input\.hostInput, activeTarget\);/);
+  assert.match(hostActionSubmitSource, /const threadContext = await ensureThreadAnchorBindingForTarget\(\{/);
   assert.match(hostActionSubmitSource, /setSubmittingThreadId\(effectiveThreadId\)/);
   assert.match(hostActionSubmitSource, /setFooterHostState\(effectiveThreadId,\s*null\)/);
   assert.match(hostActionSubmitSource, /releaseSubmittingIfCurrent/);

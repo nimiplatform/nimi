@@ -138,6 +138,7 @@ test('agent shell view model resolves canonical messages with user/agent sender 
       },
     }],
     activeThreadId: 'thread-agent-1',
+    activeConversationAnchorId: 'anchor-agent-1',
     activeTargetId: 'agent-1',
     character: {
       name: 'Companion',
@@ -150,7 +151,7 @@ test('agent shell view model resolves canonical messages with user/agent sender 
   assert.equal(messages[0]?.senderKind, 'human');
   assert.equal(messages[1]?.senderName, 'Companion');
   assert.equal(messages[1]?.senderKind, 'agent');
-  assert.equal(messages[1]?.sessionId, 'thread-agent-1');
+  assert.equal(messages[1]?.sessionId, 'anchor-agent-1');
   assert.equal(messages[1]?.targetId, 'agent-1');
   assert.equal((messages[1]?.metadata as Record<string, unknown>)?.followUpTurn, true);
   assert.equal((messages[1]?.metadata as Record<string, unknown>)?.followUpInstruction, '如果对方还没回复，就轻轻追问一句。');
@@ -189,6 +190,7 @@ test('agent shell view model maps image messages to canonical image kinds with m
       },
     }],
     activeThreadId: 'thread-agent-1',
+    activeConversationAnchorId: 'anchor-agent-1',
     activeTargetId: 'agent-1',
     character: {
       name: 'Companion',
@@ -230,6 +232,7 @@ test('agent shell view model maps voice messages to canonical voice kinds and pr
       },
     }],
     activeThreadId: 'thread-agent-1',
+    activeConversationAnchorId: 'anchor-agent-1',
     activeTargetId: 'agent-1',
     character: {
       name: 'Companion',
@@ -251,6 +254,50 @@ test('agent shell view model maps voice messages to canonical voice kinds and pr
       visemeId: 'aa',
     }],
   });
+});
+
+test('agent shell view model keeps same-agent different-anchor messages isolated instead of collapsing to one session truth', () => {
+  const messages = resolveAgentCanonicalMessages({
+    messages: [{
+      id: 'assistant-anchor-a',
+      threadId: 'thread-agent-1a',
+      role: 'assistant',
+      text: 'anchor a reply',
+      createdAt: '2026-04-05T00:01:00.000Z',
+      updatedAt: '2026-04-05T00:01:00.000Z',
+      status: 'complete',
+      error: null,
+      metadata: {
+        conversationAnchorId: 'anchor-a',
+      },
+    }, {
+      id: 'assistant-anchor-b',
+      threadId: 'thread-agent-1b',
+      role: 'assistant',
+      text: 'anchor b reply',
+      createdAt: '2026-04-05T00:02:00.000Z',
+      updatedAt: '2026-04-05T00:02:00.000Z',
+      status: 'complete',
+      error: null,
+      metadata: {
+        conversationAnchorId: 'anchor-b',
+      },
+    }],
+    activeThreadId: 'thread-agent-1a',
+    activeConversationAnchorId: 'anchor-active',
+    activeTargetId: 'agent-1',
+    character: {
+      name: 'Companion',
+      avatarUrl: null,
+      handle: '@companion',
+    },
+  });
+
+  assert.equal(messages[0]?.targetId, 'agent-1');
+  assert.equal(messages[1]?.targetId, 'agent-1');
+  assert.equal(messages[0]?.sessionId, 'anchor-a');
+  assert.equal(messages[1]?.sessionId, 'anchor-b');
+  assert.notEqual(messages[0]?.sessionId, messages[1]?.sessionId);
 });
 
 test('agent shell view model resolves selected target id fail-close', () => {

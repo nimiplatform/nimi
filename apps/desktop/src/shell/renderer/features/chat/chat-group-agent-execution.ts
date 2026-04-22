@@ -172,6 +172,7 @@ export async function executeGroupAgentTurn(
     const runtimeAdapter = createAgentLocalChatConversationRuntimeAdapter();
     const result = await runtimeAdapter.invokeText({
       agentId: agentAccountId,
+      conversationAnchorId: groupChatId,
       messages,
       systemPrompt,
       maxOutputTokensRequested: null,

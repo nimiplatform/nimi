@@ -1,6 +1,8 @@
 import { dataSync } from '@runtime/data-sync';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import type {
   AgentLocalTargetSnapshot,
+  AgentLocalThreadRecord,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
@@ -17,7 +19,11 @@ import {
 } from './chat-agent-shell-core';
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle';
 import { probeExecutionSchedulingGuard } from './chat-execution-scheduling-guard';
-import { findAgentConversationThreadByAgentId } from './chat-agent-thread-model';
+import {
+  getAgentConversationAnchorBinding,
+  persistAgentConversationAnchorBinding,
+  type AgentConversationAnchorBinding,
+} from './chat-agent-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-ai-execution-engine';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
@@ -76,44 +82,78 @@ export async function persistDraftForThread(
   );
 }
 
-export async function createOrRestoreThreadForTarget(
+async function openConversationAnchorForTarget(
+  target: AgentLocalTargetSnapshot,
+): Promise<string> {
+  const snapshot = await getPlatformClient().runtime.agent.anchors.open({
+    agentId: target.agentId,
+    metadata: {
+      surface: 'desktop-agent-chat',
+    },
+  });
+  const record = snapshot as unknown as Record<string, unknown>;
+  const conversationAnchorId = normalizeText(
+    record.conversationAnchorId ?? record.conversation_anchor_id,
+  );
+  if (!conversationAnchorId) {
+    throw new Error('runtime.agent anchor open did not return conversationAnchorId');
+  }
+  return conversationAnchorId;
+}
+
+export async function createThreadForTarget(
   input: UseAgentConversationHostActionsInput,
   target: AgentLocalTargetSnapshot,
 ): Promise<AgentLocalThreadSummary> {
-  const existingThread = findAgentConversationThreadByAgentId(input.threads, target.agentId);
-  if (existingThread) {
-    input.syncSelectionToThread(existingThread);
-    return existingThread;
-  }
   const timestampMs = Date.now();
-  try {
-    const thread = await chatAgentStoreClient.createThread({
-      id: randomIdV11('agent-thread'),
-      agentId: target.agentId,
-      title: target.displayName,
-      createdAtMs: timestampMs,
-      updatedAtMs: timestampMs,
-      lastMessageAtMs: null,
-      archivedAtMs: null,
-      targetSnapshot: target,
-    });
-    input.setThreadsCache((current) => upsertThreadSummary(current, thread));
-    input.queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyAgentThreadBundle(thread));
-    input.currentDraftTextRef.current = '';
-    input.syncSelectionToThread(thread);
-    return thread;
-  } catch (error) {
-    if (String((error instanceof Error ? error.message : error) || '').includes('duplicate primary key or unique value')) {
-      const refreshedThreads = await chatAgentStoreClient.listThreads();
-      input.queryClient.setQueryData(THREADS_QUERY_KEY, refreshedThreads);
-      const restored = findAgentConversationThreadByAgentId(refreshedThreads, target.agentId);
-      if (restored) {
-        input.syncSelectionToThread(restored);
-        return restored;
-      }
+  const thread = await chatAgentStoreClient.createThread({
+    id: randomIdV11('agent-thread'),
+    agentId: target.agentId,
+    title: target.displayName,
+    createdAtMs: timestampMs,
+    updatedAtMs: timestampMs,
+    lastMessageAtMs: null,
+    archivedAtMs: null,
+    targetSnapshot: target,
+  });
+  input.setThreadsCache((current) => upsertThreadSummary(current, thread));
+  input.queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyAgentThreadBundle(thread));
+  void input.queryClient.invalidateQueries({ queryKey: THREADS_QUERY_KEY });
+  input.currentDraftTextRef.current = '';
+  input.syncSelectionToThread(thread);
+  return thread;
+}
+
+export async function ensureThreadAnchorBindingForTarget(input: {
+  input: UseAgentConversationHostActionsInput;
+  target: AgentLocalTargetSnapshot;
+  thread: AgentLocalThreadSummary | AgentLocalThreadRecord | null;
+}): Promise<{
+  thread: AgentLocalThreadSummary | AgentLocalThreadRecord;
+  anchorBinding: AgentConversationAnchorBinding;
+}> {
+  const ensuredThread = input.thread ?? await createThreadForTarget(input.input, input.target);
+  const existingBinding = getAgentConversationAnchorBinding(ensuredThread.id);
+  if (existingBinding) {
+    if (existingBinding.agentId !== input.target.agentId) {
+      throw new Error('agent thread anchor binding does not match selected agent');
     }
-    throw error;
+    return {
+      thread: ensuredThread,
+      anchorBinding: existingBinding,
+    };
   }
+  const conversationAnchorId = await openConversationAnchorForTarget(input.target);
+  const anchorBinding = persistAgentConversationAnchorBinding({
+    threadId: ensuredThread.id,
+    agentId: input.target.agentId,
+    conversationAnchorId,
+    updatedAtMs: Date.now(),
+  });
+  return {
+    thread: ensuredThread,
+    anchorBinding,
+  };
 }
 
 export async function uploadPendingAttachment(

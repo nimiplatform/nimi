@@ -32,7 +32,7 @@ function baseLifecycle(): AgentTurnLifecycleState {
     error: null,
     usage: undefined,
     diagnostics: null,
-    runtimeAgentChat: null,
+    runtimeAgentTurns: null,
   };
 }
 
@@ -343,7 +343,7 @@ test('agent diagnostics view model shows follow-up chain diagnostics when presen
   assert.match(chainCard?.detail || '', /sourceActionId=action-follow-up-2/);
 });
 
-test('agent diagnostics view model shows runtime chat evidence when lifecycle carries runtime.agent session state', () => {
+test('agent diagnostics view model shows runtime turn evidence when lifecycle carries runtime.agent.turns anchor state', () => {
   const viewModel = buildAgentDiagnosticsViewModel({
     ...baseInput(),
     lifecycle: {
@@ -351,10 +351,11 @@ test('agent diagnostics view model shows runtime chat evidence when lifecycle ca
       terminal: 'completed',
       traceId: 'trace-runtime-chat',
       promptTraceId: 'trace-runtime-chat',
-      runtimeAgentChat: {
-        transport: 'runtime.agent',
-        sessionId: 'session-runtime-1',
+      runtimeAgentTurns: {
+        transport: 'runtime.agent.turns',
+        conversationAnchorId: 'anchor-runtime-1',
         runtimeTurnId: 'runtime-turn-1',
+        runtimeStreamId: 'runtime-stream-1',
         route: 'local',
         modelId: 'kimi-k2',
         connectorId: null,
@@ -386,9 +387,10 @@ test('agent diagnostics view model shows runtime chat evidence when lifecycle ca
     },
   });
 
-  const runtimeChatCard = viewModel.turnCards.find((card) => card.label === 'Runtime Chat');
-  assert.equal(runtimeChatCard?.value, 'session-runtime-1');
+  const runtimeChatCard = viewModel.turnCards.find((card) => card.label === 'Runtime Anchor');
+  assert.equal(runtimeChatCard?.value, 'anchor-runtime-1');
   assert.match(runtimeChatCard?.detail || '', /runtimeTurnId=runtime-turn-1/);
+  assert.match(runtimeChatCard?.detail || '', /runtimeStreamId=runtime-stream-1/);
   assert.match(runtimeChatCard?.detail || '', /route=local/);
   assert.match(runtimeChatCard?.detail || '', /modelId=kimi-k2/);
 });

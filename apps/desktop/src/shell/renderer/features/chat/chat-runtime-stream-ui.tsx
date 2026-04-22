@@ -157,7 +157,7 @@ export function RuntimeVoiceMessageContent(props: {
   transcriptUnavailableLabel: string;
   onPlaybackStateChange?: (state: {
     messageId: string;
-    threadId: string;
+    conversationAnchorId: string;
     active: boolean;
     amplitude: number;
     visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
@@ -185,7 +185,7 @@ export function RuntimeVoiceMessageContent(props: {
   const emitPlaybackState = useCallback((active: boolean, amplitude = 0, visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null = null) => {
     props.onPlaybackStateChange?.({
       messageId: props.message.id,
-      threadId: props.message.sessionId,
+      conversationAnchorId: props.message.sessionId,
       active,
       amplitude,
       visemeId,
@@ -424,7 +424,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
       followUpCanceledByUser: debugMetadata.followUpCanceledByUser,
       followUpSourceActionId: debugMetadata.followUpSourceActionId,
       followUpDelayMs: debugMetadata.followUpDelayMs,
-      runtimeAgentChat: debugMetadata.runtimeAgentChat,
+      runtimeAgentTurns: debugMetadata.runtimeAgentTurns,
     }, null, 2);
     void navigator.clipboard.writeText(payload).then(() => {
       setCopied(true);
@@ -444,7 +444,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
     debugMetadata.normalizedModelOutput,
     debugMetadata.prompt,
     debugMetadata.rawModelOutput,
-    debugMetadata.runtimeAgentChat,
+    debugMetadata.runtimeAgentTurns,
     debugMetadata.systemPrompt,
   ]);
   if (!props.debugVisible && !debugMetadata.followUpTurn) {
@@ -546,36 +546,39 @@ export function RuntimeAgentDebugMessageAccessory(props: {
                 </pre>
               </div>
             ) : null}
-            {debugMetadata.runtimeAgentChat ? (
+            {debugMetadata.runtimeAgentTurns ? (
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
-                  Runtime Agent Chat
+                  Runtime Agent Turns
                 </div>
                 <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
                   {[
-                    debugMetadata.runtimeAgentChat.sessionId
-                      ? `sessionId=${debugMetadata.runtimeAgentChat.sessionId}`
+                    debugMetadata.runtimeAgentTurns.conversationAnchorId
+                      ? `conversationAnchorId=${debugMetadata.runtimeAgentTurns.conversationAnchorId}`
                       : null,
-                    debugMetadata.runtimeAgentChat.runtimeTurnId
-                      ? `runtimeTurnId=${debugMetadata.runtimeAgentChat.runtimeTurnId}`
+                    debugMetadata.runtimeAgentTurns.runtimeTurnId
+                      ? `runtimeTurnId=${debugMetadata.runtimeAgentTurns.runtimeTurnId}`
                       : null,
-                    debugMetadata.runtimeAgentChat.route
-                      ? `route=${debugMetadata.runtimeAgentChat.route}`
+                    debugMetadata.runtimeAgentTurns.runtimeStreamId
+                      ? `runtimeStreamId=${debugMetadata.runtimeAgentTurns.runtimeStreamId}`
                       : null,
-                    debugMetadata.runtimeAgentChat.modelId
-                      ? `modelId=${debugMetadata.runtimeAgentChat.modelId}`
+                    debugMetadata.runtimeAgentTurns.route
+                      ? `route=${debugMetadata.runtimeAgentTurns.route}`
                       : null,
-                    debugMetadata.runtimeAgentChat.connectorId
-                      ? `connectorId=${debugMetadata.runtimeAgentChat.connectorId}`
+                    debugMetadata.runtimeAgentTurns.modelId
+                      ? `modelId=${debugMetadata.runtimeAgentTurns.modelId}`
                       : null,
-                    debugMetadata.runtimeAgentChat.traceId
-                      ? `traceId=${debugMetadata.runtimeAgentChat.traceId}`
+                    debugMetadata.runtimeAgentTurns.connectorId
+                      ? `connectorId=${debugMetadata.runtimeAgentTurns.connectorId}`
                       : null,
-                    debugMetadata.runtimeAgentChat.modelResolved
-                      ? `modelResolved=${debugMetadata.runtimeAgentChat.modelResolved}`
+                    debugMetadata.runtimeAgentTurns.traceId
+                      ? `traceId=${debugMetadata.runtimeAgentTurns.traceId}`
                       : null,
-                    debugMetadata.runtimeAgentChat.routeDecision
-                      ? `routeDecision=${debugMetadata.runtimeAgentChat.routeDecision}`
+                    debugMetadata.runtimeAgentTurns.modelResolved
+                      ? `modelResolved=${debugMetadata.runtimeAgentTurns.modelResolved}`
+                      : null,
+                    debugMetadata.runtimeAgentTurns.routeDecision
+                      ? `routeDecision=${debugMetadata.runtimeAgentTurns.routeDecision}`
                       : null,
                   ].filter(Boolean).join('\n')}
                 </pre>

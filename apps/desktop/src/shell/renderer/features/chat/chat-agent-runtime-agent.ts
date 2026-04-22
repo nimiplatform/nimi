@@ -1,6 +1,5 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type {
-  ConversationTurnHistoryMessage,
   ConversationRuntimeTrace,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
@@ -21,11 +20,11 @@ import {
   resolveTextExecutionSnapshotThinkingSupport,
 } from './chat-thinking';
 
-type RuntimeAgentSessionHint = {
-  sessionId: string;
-  route: string;
-  modelId: string;
-  connectorId: string | null;
+type PendingCommittedMessage = {
+  messageId: string;
+  text: string;
+  runtimeTurnId: string;
+  runtimeStreamId: string;
 };
 
 function toResolvedStatusCue(value: unknown): AgentResolvedStatusCue | null {
@@ -114,11 +113,26 @@ function toResolvedEnvelope(value: unknown): AgentResolvedMessageActionEnvelope 
   };
 }
 
+function cloneEnvelopeWithCommittedMessage(input: {
+  envelope: AgentResolvedMessageActionEnvelope;
+  messageId: string;
+  text: string;
+}): AgentResolvedMessageActionEnvelope {
+  return {
+    ...input.envelope,
+    message: {
+      messageId: input.messageId,
+      text: input.text,
+    },
+  };
+}
+
 function toDebugMetadata(input: {
   prompt: string;
   systemPrompt: string | null;
-  sessionId: string;
+  conversationAnchorId: string;
   runtimeTurnId: string;
+  runtimeStreamId: string;
   route: string;
   modelId: string;
   connectorId?: string;
@@ -140,10 +154,11 @@ function toDebugMetadata(input: {
     followUpCanceledByUser: false,
     followUpSourceActionId: null,
     followUpDelayMs: null,
-    runtimeAgentChat: {
-      transport: 'runtime.agent',
-      sessionId: input.sessionId,
+    runtimeAgentTurns: {
+      transport: 'runtime.agent.turns',
+      conversationAnchorId: input.conversationAnchorId,
       runtimeTurnId: input.runtimeTurnId,
+      runtimeStreamId: input.runtimeStreamId,
       route: input.route,
       modelId: input.modelId,
       connectorId: input.connectorId || null,
@@ -155,8 +170,9 @@ function toDebugMetadata(input: {
 }
 
 function buildRuntimeAgentDiagnostics(input: {
-  sessionId: string;
+  conversationAnchorId: string;
   runtimeTurnId: string;
+  runtimeStreamId: string;
   route: string;
   modelId: string;
   connectorId?: string;
@@ -164,9 +180,10 @@ function buildRuntimeAgentDiagnostics(input: {
   extra?: Record<string, unknown>;
 }): Record<string, unknown> {
   return {
-    transport: 'runtime.agent',
-    sessionId: input.sessionId,
+    transport: 'runtime.agent.turns',
+    conversationAnchorId: input.conversationAnchorId,
     runtimeTurnId: input.runtimeTurnId,
+    runtimeStreamId: input.runtimeStreamId,
     route: input.route,
     modelId: input.modelId,
     connectorId: input.connectorId || null,
@@ -177,70 +194,8 @@ function buildRuntimeAgentDiagnostics(input: {
   };
 }
 
-function parseRuntimeAgentSessionHint(value: unknown): RuntimeAgentSessionHint | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  const record = value as Record<string, unknown>;
-  if (normalizeText(record.transport) !== 'runtime.agent') {
-    return null;
-  }
-  const sessionId = normalizeText(record.sessionId);
-  const route = normalizeText(record.route);
-  const modelId = normalizeText(record.modelId);
-  if (!sessionId || !route || !modelId) {
-    return null;
-  }
-  return {
-    sessionId,
-    route,
-    modelId,
-    connectorId: normalizeText(record.connectorId) || null,
-  };
-}
-
-function resolveKnownRuntimeAgentSessionId(input: {
-  history?: readonly ConversationTurnHistoryMessage[];
-  route: string;
-  modelId: string;
-  connectorId?: string;
-}): string | null {
-  const history = Array.isArray(input.history) ? input.history : [];
-  const connectorId = normalizeText(input.connectorId) || null;
-  for (let index = history.length - 1; index >= 0; index -= 1) {
-    const hint = parseRuntimeAgentSessionHint(
-      (history[index]?.metadata as Record<string, unknown> | undefined)?.runtimeAgentChat,
-    );
-    if (!hint) {
-      continue;
-    }
-    if (hint.route !== input.route || hint.modelId !== input.modelId) {
-      continue;
-    }
-    if ((hint.connectorId || null) !== connectorId) {
-      continue;
-    }
-    return hint.sessionId;
-  }
-  return null;
-}
-
-function buildSessionId(input: {
-  agentId: string;
-  threadId: string;
-  route: string;
-  modelId: string;
-  connectorId?: string;
-}): string {
-  const parts = [
-    'desktop-agent-chat',
-    input.agentId,
-    input.threadId,
-    input.route,
-    input.connectorId || 'local',
-    input.modelId,
-  ].map((part) => normalizeText(part).replace(/[^a-zA-Z0-9._-]+/g, '_')).filter(Boolean);
-  return parts.join('__').slice(0, 240);
+function resolveRuntimeTrace(): ConversationRuntimeTrace | undefined {
+  return undefined;
 }
 
 export async function streamChatAgentRuntimeAgentTurn(
@@ -264,21 +219,34 @@ export async function streamChatAgentRuntimeAgentTurn(
   const route = normalizeText(routeInput.connectorId) ? 'cloud' : 'local';
   const modelId = normalizeText(routeInput.localProviderModel);
   const connectorId = normalizeText(routeInput.connectorId) || undefined;
-  const sessionId = resolveKnownRuntimeAgentSessionId({
-    history: request.history,
-    route,
-    modelId,
-    connectorId,
-  }) || buildSessionId({
+  const subscribed = await runtime.agent.turns.subscribe({
     agentId: request.agentId,
-    threadId: request.threadId,
-    route,
-    modelId,
-    connectorId,
+    conversationAnchorId: request.conversationAnchorId,
   });
-  const streamHandle = await runtime.agent.chat.streamTurn({
+
+  let requestSubmitted = false;
+  let interruptRequested = false;
+  let currentRuntimeTurnId = '';
+  let currentRuntimeStreamId = '';
+
+  const requestInterrupt = () => {
+    if (interruptRequested || !requestSubmitted) {
+      return;
+    }
+    interruptRequested = true;
+    void runtime.agent.turns.interrupt({
+      agentId: request.agentId,
+      conversationAnchorId: request.conversationAnchorId,
+      ...(normalizeText(currentRuntimeTurnId) ? { turnId: currentRuntimeTurnId } : {}),
+      reason: 'desktop_agent_chat_abort',
+    }).catch(() => undefined);
+  };
+
+  request.signal?.addEventListener('abort', requestInterrupt, { once: true });
+
+  await runtime.agent.turns.request({
     agentId: request.agentId,
-    sessionId,
+    conversationAnchorId: request.conversationAnchorId,
     threadId: request.threadId,
     systemPrompt: normalizeText(request.systemPrompt) || undefined,
     maxOutputTokens: Number.isFinite(Number(request.maxOutputTokensRequested))
@@ -288,7 +256,11 @@ export async function streamChatAgentRuntimeAgentTurn(
     messages: Array.isArray(request.messages)
       ? request.messages.map((message) => ({
         role: message.role,
-        content: normalizeText(message.content ?? message.text),
+        content: typeof message.content === 'string'
+          ? message.content
+          : typeof message.text === 'string'
+            ? message.text
+            : '',
         ...(normalizeText(message.name) ? { name: normalizeText(message.name) } : {}),
       }))
       : [],
@@ -315,175 +287,193 @@ export async function streamChatAgentRuntimeAgentTurn(
           : {}),
       };
     })(),
-  }, {
-    signal: request.signal,
   });
+  requestSubmitted = true;
 
   return {
     stream: (async function* stream(): AsyncIterable<AgentLocalChatTurnStreamPart> {
+      let structuredEnvelope: AgentResolvedMessageActionEnvelope | null = null;
+      let provisionalText = '';
+      let committedMessage: PendingCommittedMessage | null = null;
       let messageSealedEmitted = false;
-      for await (const event of streamHandle) {
-        switch (event.type) {
-          case 'accepted':
-          case 'started':
-          case 'text_delta':
-          case 'post_turn':
-          case 'interrupt_ack':
-            break;
-          case 'reasoning_delta':
-            if (normalizeText(event.textDelta)) {
-              yield {
-                type: 'reasoning-delta',
-                textDelta: normalizeText(event.textDelta),
-              };
+
+      const maybeYieldCommittedMessage = function* (
+        trace?: ConversationRuntimeTrace,
+      ): Generator<AgentLocalChatTurnStreamPart> {
+        if (messageSealedEmitted || !structuredEnvelope || !committedMessage) {
+          return;
+        }
+        messageSealedEmitted = true;
+        const sealedEnvelope = cloneEnvelopeWithCommittedMessage({
+          envelope: structuredEnvelope,
+          messageId: committedMessage.messageId,
+          text: committedMessage.text,
+        });
+        yield {
+          type: 'message-sealed',
+          envelope: sealedEnvelope,
+          trace,
+          metadataJson: toDebugMetadata({
+            prompt: typeof request.prompt === 'string' ? request.prompt : '',
+            systemPrompt: normalizeText(request.systemPrompt) || null,
+            conversationAnchorId: request.conversationAnchorId,
+            runtimeTurnId: committedMessage.runtimeTurnId,
+            runtimeStreamId: committedMessage.runtimeStreamId,
+            route,
+            modelId,
+            connectorId,
+            trace,
+            envelope: sealedEnvelope,
+          }),
+          diagnostics: buildRuntimeAgentDiagnostics({
+            conversationAnchorId: request.conversationAnchorId,
+            runtimeTurnId: committedMessage.runtimeTurnId,
+            runtimeStreamId: committedMessage.runtimeStreamId,
+            route,
+            modelId,
+            connectorId,
+            trace,
+          }),
+        };
+      };
+
+      try {
+        for await (const event of subscribed) {
+          if ('turnId' in event && typeof event.turnId === 'string' && normalizeText(event.turnId)) {
+            if (!currentRuntimeTurnId) {
+              currentRuntimeTurnId = event.turnId;
+            } else if (currentRuntimeTurnId !== event.turnId) {
+              continue;
             }
-            break;
-          case 'structured': {
-            const trace = event.trace
-              ? {
-                ...(event.trace.traceId ? { traceId: event.trace.traceId, promptTraceId: event.trace.traceId } : {}),
-                ...(event.trace.modelResolved ? { modelResolved: event.trace.modelResolved } : {}),
-                ...(event.trace.routeDecision ? { routeDecision: event.trace.routeDecision } : {}),
-              } satisfies ConversationRuntimeTrace
-              : undefined;
-            const envelope = toResolvedEnvelope(event.structured);
-            messageSealedEmitted = true;
-            yield {
-              type: 'message-sealed',
-              envelope,
-              trace,
-              metadataJson: toDebugMetadata({
-                prompt: normalizeText(request.prompt),
-                systemPrompt: normalizeText(request.systemPrompt) || null,
-                sessionId: event.sessionId || sessionId,
-                runtimeTurnId: event.turnId,
-                route,
-                modelId,
-                connectorId,
-                trace,
-                envelope,
-              }),
-              diagnostics: {
-                transport: 'runtime.agent',
-                sessionId: event.sessionId || sessionId,
-                runtimeTurnId: event.turnId,
-              },
-            };
-            break;
           }
-          case 'completed': {
-            const trace = event.trace
-              ? {
-                ...(event.trace.traceId ? { traceId: event.trace.traceId, promptTraceId: event.trace.traceId } : {}),
-                ...(event.trace.modelResolved ? { modelResolved: event.trace.modelResolved } : {}),
-                ...(event.trace.routeDecision ? { routeDecision: event.trace.routeDecision } : {}),
-              } satisfies ConversationRuntimeTrace
-              : undefined;
-            const outputText = normalizeText(event.text);
-            if (!messageSealedEmitted) {
+          if ('streamId' in event && typeof event.streamId === 'string' && normalizeText(event.streamId)) {
+            if (!currentRuntimeStreamId) {
+              currentRuntimeStreamId = event.streamId;
+            }
+          }
+          const trace = resolveRuntimeTrace();
+          switch (event.eventName) {
+            case 'runtime.agent.turn.accepted':
+            case 'runtime.agent.turn.started':
+            case 'runtime.agent.turn.post_turn':
+            case 'runtime.agent.turn.interrupt_ack':
+              break;
+            case 'runtime.agent.turn.reasoning_delta':
+              if (event.detail.text) {
+                yield {
+                  type: 'reasoning-delta',
+                  textDelta: event.detail.text,
+                };
+              }
+              break;
+            case 'runtime.agent.turn.text_delta':
+              provisionalText += event.detail.text;
+              if (event.detail.text) {
+                yield {
+                  type: 'text-delta',
+                  textDelta: event.detail.text,
+                };
+              }
+              break;
+            case 'runtime.agent.turn.structured':
+              structuredEnvelope = toResolvedEnvelope(event.detail.payload);
+              yield* maybeYieldCommittedMessage(trace);
+              break;
+            case 'runtime.agent.turn.message_committed':
+              committedMessage = {
+                messageId: event.detail.messageId,
+                text: event.detail.text,
+                runtimeTurnId: event.turnId,
+                runtimeStreamId: event.streamId,
+              };
+              yield* maybeYieldCommittedMessage(trace);
+              break;
+            case 'runtime.agent.turn.completed':
+              if (!messageSealedEmitted || !committedMessage) {
+                yield {
+                  type: 'turn-failed',
+                  error: {
+                    code: 'RUNTIME_AGENT_TURNS_INVALID',
+                    message: 'runtime.agent.turn.completed arrived without committed structured message',
+                  },
+                  outputText: committedMessage?.text || provisionalText || undefined,
+                  diagnostics: buildRuntimeAgentDiagnostics({
+                    conversationAnchorId: request.conversationAnchorId,
+                    runtimeTurnId: currentRuntimeTurnId || committedMessage?.runtimeTurnId || '',
+                    runtimeStreamId: currentRuntimeStreamId || committedMessage?.runtimeStreamId || '',
+                    route,
+                    modelId,
+                    connectorId,
+                    trace,
+                    extra: {
+                      missingStructuredProjection: true,
+                    },
+                  }),
+                };
+                return;
+              }
+              yield {
+                type: 'turn-completed',
+                outputText: committedMessage.text || provisionalText,
+                finishReason: normalizeText(event.detail.terminalReason) || undefined,
+                trace,
+                diagnostics: buildRuntimeAgentDiagnostics({
+                  conversationAnchorId: request.conversationAnchorId,
+                  runtimeTurnId: committedMessage.runtimeTurnId,
+                  runtimeStreamId: committedMessage.runtimeStreamId,
+                  route,
+                  modelId,
+                  connectorId,
+                  trace,
+                }),
+              };
+              return;
+            case 'runtime.agent.turn.failed':
               yield {
                 type: 'turn-failed',
                 error: {
-                  code: 'RUNTIME_AGENT_CHAT_INVALID',
-                  message: 'runtime.agent completed without structured projection',
+                  code: normalizeText(event.detail.reasonCode) || 'RUNTIME_AGENT_TURN_FAILED',
+                  message: normalizeText(event.detail.message) || 'runtime.agent turn failed',
                 },
-                outputText: outputText || undefined,
-                finishReason: normalizeText(event.finishReason) || undefined,
-                usage: event.usage,
+                outputText: committedMessage?.text || provisionalText || undefined,
                 trace,
                 diagnostics: buildRuntimeAgentDiagnostics({
-                  sessionId: event.sessionId || sessionId,
-                  runtimeTurnId: event.turnId,
+                  conversationAnchorId: request.conversationAnchorId,
+                  runtimeTurnId: currentRuntimeTurnId || committedMessage?.runtimeTurnId || '',
+                  runtimeStreamId: currentRuntimeStreamId || committedMessage?.runtimeStreamId || '',
+                  route,
+                  modelId,
+                  connectorId,
+                  trace,
+                }),
+              };
+              return;
+            case 'runtime.agent.turn.interrupted':
+              yield {
+                type: 'turn-canceled',
+                scope: 'turn',
+                outputText: committedMessage?.text || provisionalText || undefined,
+                trace,
+                diagnostics: buildRuntimeAgentDiagnostics({
+                  conversationAnchorId: request.conversationAnchorId,
+                  runtimeTurnId: currentRuntimeTurnId || committedMessage?.runtimeTurnId || '',
+                  runtimeStreamId: currentRuntimeStreamId || committedMessage?.runtimeStreamId || '',
                   route,
                   modelId,
                   connectorId,
                   trace,
                   extra: {
-                    missingStructuredProjection: true,
+                    reason: normalizeText(event.detail.reason) || 'interrupt_requested',
                   },
                 }),
               };
               return;
-            }
-            yield {
-              type: 'turn-completed',
-              outputText,
-              finishReason: normalizeText(event.finishReason) || undefined,
-              usage: event.usage,
-              trace,
-              diagnostics: buildRuntimeAgentDiagnostics({
-                sessionId: event.sessionId || sessionId,
-                runtimeTurnId: event.turnId,
-                route,
-                modelId,
-                connectorId,
-                trace,
-              }),
-            };
-            return;
+            default:
+              break;
           }
-          case 'failed': {
-            const trace = event.trace
-              ? {
-                ...(event.trace.traceId ? { traceId: event.trace.traceId, promptTraceId: event.trace.traceId } : {}),
-                ...(event.trace.modelResolved ? { modelResolved: event.trace.modelResolved } : {}),
-                ...(event.trace.routeDecision ? { routeDecision: event.trace.routeDecision } : {}),
-              } satisfies ConversationRuntimeTrace
-              : undefined;
-            yield {
-              type: 'turn-failed',
-              error: {
-                code: normalizeText(event.reasonCode) || 'RUNTIME_AGENT_CHAT_FAILED',
-                message: normalizeText(event.message) || 'runtime.agent turn failed',
-              },
-              outputText: normalizeText(event.text) || undefined,
-              finishReason: normalizeText(event.finishReason) || undefined,
-              usage: event.usage,
-              trace,
-              diagnostics: buildRuntimeAgentDiagnostics({
-                sessionId: event.sessionId || sessionId,
-                runtimeTurnId: event.turnId,
-                route,
-                modelId,
-                connectorId,
-                trace,
-                extra: {
-                  actionHint: normalizeText(event.actionHint) || undefined,
-                },
-              }),
-            };
-            return;
-          }
-          case 'interrupted': {
-            const trace = event.trace
-              ? {
-                ...(event.trace.traceId ? { traceId: event.trace.traceId, promptTraceId: event.trace.traceId } : {}),
-                ...(event.trace.modelResolved ? { modelResolved: event.trace.modelResolved } : {}),
-                ...(event.trace.routeDecision ? { routeDecision: event.trace.routeDecision } : {}),
-              } satisfies ConversationRuntimeTrace
-              : undefined;
-            yield {
-              type: 'turn-canceled',
-              scope: 'turn',
-              outputText: normalizeText(event.text) || undefined,
-              trace,
-              diagnostics: buildRuntimeAgentDiagnostics({
-                sessionId: event.sessionId || sessionId,
-                runtimeTurnId: event.turnId,
-                route,
-                modelId,
-                connectorId,
-                trace,
-                extra: {
-                  reason: 'interrupt_requested',
-                },
-              }),
-            };
-            return;
-          }
-          default:
-            break;
         }
+      } finally {
+        request.signal?.removeEventListener('abort', requestInterrupt);
       }
       throw new Error('runtime.agent turn stream ended without a terminal event');
     })(),

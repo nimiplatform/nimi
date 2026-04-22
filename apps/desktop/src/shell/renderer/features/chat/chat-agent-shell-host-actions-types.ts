@@ -25,6 +25,7 @@ import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 
 export type AgentRunTurn = (input: {
   threadId: string;
+  conversationAnchorId: string;
   turnId: string;
   userMessage: {
     id: string;

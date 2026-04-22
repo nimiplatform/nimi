@@ -158,12 +158,13 @@ export function resolveAgentConversationSurfaceState(input: {
   composerReady: boolean;
   activeTarget: AgentLocalTargetSnapshot | null;
   submittingThreadId: string | null;
+  activeConversationAnchorId: string | null;
   voiceCaptureState: {
     active: boolean;
     amplitude: number;
   } | null;
   voicePlaybackState: {
-    threadId: string;
+    conversationAnchorId: string;
     messageId: string;
     active: boolean;
     amplitude: number;
@@ -191,8 +192,8 @@ export function resolveAgentConversationSurfaceState(input: {
     ? input.voiceCaptureState
     : null;
   const activeVoicePlayback = input.voicePlaybackState?.active
-    && input.activeThreadId
-    && input.voicePlaybackState.threadId === input.activeThreadId
+    && input.activeConversationAnchorId
+    && input.voicePlaybackState.conversationAnchorId === input.activeConversationAnchorId
       ? input.voicePlaybackState
       : null;
   const statusCueInteractionState = resolveStatusCueInteractionState(input.latestStatusCue || null);

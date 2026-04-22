@@ -267,6 +267,7 @@ export function useAgentConversationModeHost(
   const {
     activeTarget: shellActiveTarget,
     activeThreadId,
+    activeConversationAnchorId,
     agentResolution,
     agentRouteReady,
     bundle,
@@ -831,14 +832,14 @@ export function useAgentConversationModeHost(
     [reasoningLabel],
   );
   const [voicePlaybackState, setVoicePlaybackState] = useState<{
-    threadId: string;
+    conversationAnchorId: string;
     messageId: string;
     active: boolean;
     amplitude: number;
     visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
   } | null>(null);
   const handleVoicePlaybackStateChange = useCallback((nextState: {
-    threadId: string;
+    conversationAnchorId: string;
     messageId: string;
     active: boolean;
     amplitude: number;
@@ -856,11 +857,11 @@ export function useAgentConversationModeHost(
   }, []);
   useEffect(() => {
     setVoicePlaybackState((current) => (
-      current && activeThreadId && current.threadId !== activeThreadId
+      current && activeConversationAnchorId && current.conversationAnchorId !== activeConversationAnchorId
         ? null
         : current
     ));
-  }, [activeThreadId]);
+  }, [activeConversationAnchorId]);
   const renderMessageContent = useMemo(() => (
     (
       message: Parameters<NonNullable<typeof renderReasoningMessageContent>>[0],
@@ -1004,6 +1005,7 @@ export function useAgentConversationModeHost(
       metadata: {
         agentLocalChat: {
           agentId: turnInput.target.agentId,
+          conversationAnchorId: turnInput.conversationAnchorId,
           targetSnapshot: turnInput.target,
           agentResolution: turnInput.agentResolution,
           textExecutionSnapshot: turnInput.textExecutionSnapshot,
@@ -1062,6 +1064,7 @@ export function useAgentConversationModeHost(
   const presentation = useAgentConversationPresentation({
     activeTarget,
     activeThreadId,
+    activeConversationAnchorId,
     bundle,
     bundleError,
     composerReady,

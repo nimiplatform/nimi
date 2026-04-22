@@ -187,6 +187,7 @@ export function resolveAgentConsumerSnapshotForHarness(input: {
     composerReady: input.composerReady ?? true,
     activeTarget: input.activeTarget,
     activeThreadId,
+    activeConversationAnchorId: activeThreadId,
     submittingThreadId: input.state.submittingThreadId,
     voiceCaptureState: null,
     voicePlaybackState: null,
@@ -225,6 +226,7 @@ export function resolveAgentConsumerSnapshotForHarness(input: {
   const canonicalMessages = resolveAgentCanonicalMessages({
     messages,
     activeThreadId,
+    activeConversationAnchorId: activeThreadId,
     activeTargetId: input.activeTarget?.agentId || null,
     character: {
       name: characterData.name,

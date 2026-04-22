@@ -46,6 +46,7 @@ export function resolveAgentTargetSummaries(input: {
 export function resolveAgentCanonicalMessages(input: {
   messages: readonly ConversationMessageViewModel[];
   activeThreadId: string | null;
+  activeConversationAnchorId: string | null;
   activeTargetId: string | null;
   character: {
     name: string;
@@ -59,9 +60,12 @@ export function resolveAgentCanonicalMessages(input: {
     const kind = String(metadata.kind || '').trim();
     const isImage = kind === 'image';
     const isVoice = kind === 'voice';
+    const conversationAnchorId = typeof metadata.conversationAnchorId === 'string' && metadata.conversationAnchorId.trim().length > 0
+      ? metadata.conversationAnchorId
+      : input.activeConversationAnchorId;
     return {
       id: message.id,
-      sessionId: input.activeThreadId || input.activeTargetId || 'agent',
+      sessionId: conversationAnchorId || input.activeThreadId || input.activeTargetId || 'agent',
       targetId: input.activeTargetId || '',
       source: 'agent' as const,
       role: message.role,

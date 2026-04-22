@@ -92,6 +92,7 @@ async function* runRuntimeAgentTurn(input: {
 
   const runtimeResult = await input.runtimeAdapter.streamAgentTurn?.({
     agentId: input.metadata.agentId,
+    conversationAnchorId: input.metadata.conversationAnchorId,
     prompt: input.executionRequest.prompt,
     history: input.baseInput.history,
     messages: input.executionRequest.messages,
@@ -122,6 +123,21 @@ async function* runRuntimeAgentTurn(input: {
         yield reasoningEvent;
         break;
       }
+      case 'text-delta': {
+        const textDelta = typeof part.textDelta === 'string' ? part.textDelta : '';
+        if (!textDelta) {
+          break;
+        }
+        outputText += textDelta;
+        const textDeltaEvent: ConversationTurnEvent = {
+          type: 'text-delta',
+          turnId: input.baseInput.turnId,
+          textDelta,
+        };
+        input.emittedEvents.push(textDeltaEvent);
+        yield textDeltaEvent;
+        break;
+      }
       case 'message-sealed': {
         textMessageState = resolveCompletedTextMessageStateFromEnvelope({
           turnId: input.baseInput.turnId,
@@ -141,10 +157,11 @@ async function* runRuntimeAgentTurn(input: {
             followUpCanceledByUser: false,
             followUpSourceActionId: null,
             followUpDelayMs: null,
-            runtimeAgentChat: {
-              transport: 'runtime.agent',
-              sessionId: String(part.diagnostics?.sessionId || ''),
+            runtimeAgentTurns: {
+              transport: 'runtime.agent.turns',
+              conversationAnchorId: String(part.diagnostics?.conversationAnchorId || ''),
               runtimeTurnId: String(part.diagnostics?.runtimeTurnId || ''),
+              runtimeStreamId: String(part.diagnostics?.runtimeStreamId || ''),
               traceId: String(part.trace?.traceId || ''),
               modelResolved: String(part.trace?.modelResolved || ''),
               routeDecision: String(part.trace?.routeDecision || ''),
@@ -417,6 +434,7 @@ export function createAgentLocalChatConversationProvider(
         }
         const runtimeResult = await runtimeAdapter.streamText({
           agentId: metadata.agentId,
+          conversationAnchorId: metadata.conversationAnchorId,
           prompt: executionRequest.prompt,
           history: input.history,
           messages: executionRequest.messages,

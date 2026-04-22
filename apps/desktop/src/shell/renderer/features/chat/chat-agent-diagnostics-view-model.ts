@@ -71,7 +71,7 @@ function hasRecentTurn(lifecycle: AgentTurnLifecycleState | null): boolean {
   return lifecycle.terminal !== 'running'
     || Boolean(lifecycle.traceId)
     || Boolean(lifecycle.promptTraceId)
-    || Boolean(lifecycle.runtimeAgentChat)
+    || Boolean(lifecycle.runtimeAgentTurns)
     || Boolean(lifecycle.outputText)
     || Boolean(lifecycle.reasoningText)
     || Boolean(lifecycle.error)
@@ -143,26 +143,29 @@ function buildTraceCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCar
   };
 }
 
-function buildRuntimeAgentChatCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCardData | null {
-  if (!lifecycle.runtimeAgentChat) {
+function buildRuntimeAgentTurnsCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCardData | null {
+  if (!lifecycle.runtimeAgentTurns) {
     return null;
   }
   return {
-    key: 'turn-runtime-agent-chat',
-    label: 'Runtime Chat',
-    value: lifecycle.runtimeAgentChat.sessionId || 'Captured',
+    key: 'turn-runtime-agent-turns',
+    label: 'Runtime Anchor',
+    value: lifecycle.runtimeAgentTurns.conversationAnchorId || 'Captured',
     detail: joinDetails([
-      lifecycle.runtimeAgentChat.runtimeTurnId
-        ? `runtimeTurnId=${lifecycle.runtimeAgentChat.runtimeTurnId}`
+      lifecycle.runtimeAgentTurns.runtimeTurnId
+        ? `runtimeTurnId=${lifecycle.runtimeAgentTurns.runtimeTurnId}`
         : null,
-      lifecycle.runtimeAgentChat.route
-        ? `route=${lifecycle.runtimeAgentChat.route}`
+      lifecycle.runtimeAgentTurns.runtimeStreamId
+        ? `runtimeStreamId=${lifecycle.runtimeAgentTurns.runtimeStreamId}`
         : null,
-      lifecycle.runtimeAgentChat.modelId
-        ? `modelId=${lifecycle.runtimeAgentChat.modelId}`
+      lifecycle.runtimeAgentTurns.route
+        ? `route=${lifecycle.runtimeAgentTurns.route}`
         : null,
-      lifecycle.runtimeAgentChat.connectorId
-        ? `connectorId=${lifecycle.runtimeAgentChat.connectorId}`
+      lifecycle.runtimeAgentTurns.modelId
+        ? `modelId=${lifecycle.runtimeAgentTurns.modelId}`
+        : null,
+      lifecycle.runtimeAgentTurns.connectorId
+        ? `connectorId=${lifecycle.runtimeAgentTurns.connectorId}`
         : null,
     ]),
   };
@@ -640,7 +643,7 @@ export function buildAgentDiagnosticsViewModel(input: {
     turnCards: [
       buildTurnStatusCard(lifecycle),
       buildTraceCard(lifecycle),
-      buildRuntimeAgentChatCard(lifecycle),
+      buildRuntimeAgentTurnsCard(lifecycle),
       buildFinishCard(lifecycle),
       buildOutputCard(lifecycle),
       buildBudgetCard(lifecycle),

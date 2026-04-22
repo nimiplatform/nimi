@@ -140,7 +140,7 @@ test('runtime stream footer keeps a visible waiting label after first packet whe
   assert.match(markup, /Stop generating/u);
 });
 
-test('runtime agent debug accessory renders runtime.agent session evidence', async () => {
+test('runtime agent debug accessory renders runtime.agent.turns anchor evidence', async () => {
   const RuntimeAgentDebugMessageAccessory = await loadRuntimeAgentDebugMessageAccessory();
   const markup = renderToStaticMarkup(
     <RuntimeAgentDebugMessageAccessory
@@ -163,10 +163,11 @@ test('runtime agent debug accessory renders runtime.agent session evidence', asy
           followUpCanceledByUser: false,
           followUpSourceActionId: null,
           followUpDelayMs: null,
-          runtimeAgentChat: {
-            transport: 'runtime.agent',
-            sessionId: 'session-rt-1',
+          runtimeAgentTurns: {
+            transport: 'runtime.agent.turns',
+            conversationAnchorId: 'anchor-rt-1',
             runtimeTurnId: 'turn-rt-1',
+            runtimeStreamId: 'stream-rt-1',
             route: 'local',
             modelId: 'kimi-k2',
             connectorId: null,
@@ -189,9 +190,10 @@ test('runtime agent debug accessory renders runtime.agent session evidence', asy
     />,
   );
 
-  assert.match(markup, /Runtime Agent Chat/u);
-  assert.match(markup, /sessionId=session-rt-1/u);
+  assert.match(markup, /Runtime Agent Turns/u);
+  assert.match(markup, /conversationAnchorId=anchor-rt-1/u);
   assert.match(markup, /runtimeTurnId=turn-rt-1/u);
+  assert.match(markup, /runtimeStreamId=stream-rt-1/u);
   assert.match(markup, /modelId=kimi-k2/u);
   assert.match(markup, /traceId=trace-rt-1/u);
 });

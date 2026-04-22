@@ -176,7 +176,7 @@ function resolveSurfaceState(input: {
     amplitude: number;
   } | null;
   voicePlaybackState?: {
-    threadId: string;
+    conversationAnchorId: string;
     messageId: string;
     active: boolean;
     amplitude: number;
@@ -186,6 +186,7 @@ function resolveSurfaceState(input: {
   return resolveAgentConversationSurfaceState({
     ...input,
     activeThreadId: input.activeThreadId ?? 'thread-1',
+    activeConversationAnchorId: input.activeThreadId ?? 'thread-1',
     labels: {
       title: 'Agent Chat',
       sendingDisabledReason: 'The agent is replying…',
@@ -487,7 +488,7 @@ test('agent visible state prefers active thread voice playback cues for speaking
       pendingFirstBeat: false,
     },
     voicePlaybackState: {
-      threadId: 'thread-1',
+      conversationAnchorId: 'thread-1',
       messageId: 'assistant-voice-1',
       active: true,
       amplitude: 0.58,
@@ -516,7 +517,7 @@ test('agent visible state derives focused speaking emotion from front visemes', 
       pendingFirstBeat: false,
     },
     voicePlaybackState: {
-      threadId: 'thread-1',
+      conversationAnchorId: 'thread-1',
       messageId: 'assistant-voice-3',
       active: true,
       amplitude: 0.44,
@@ -545,7 +546,7 @@ test('agent visible state keeps quiet speaking tails calm when amplitude is low 
       pendingFirstBeat: false,
     },
     voicePlaybackState: {
-      threadId: 'thread-1',
+      conversationAnchorId: 'thread-1',
       messageId: 'assistant-voice-4',
       active: true,
       amplitude: 0.18,
@@ -562,7 +563,7 @@ test('agent visible state keeps quiet speaking tails calm when amplitude is low 
   });
 });
 
-test('agent visible state ignores voice playback cues from a different thread', () => {
+test('agent visible state ignores voice playback cues from a different anchor', () => {
   const surfaceState = resolveSurfaceState({
     composerReady: true,
     activeTarget: sampleTarget(),
@@ -573,7 +574,7 @@ test('agent visible state ignores voice playback cues from a different thread', 
       pendingFirstBeat: false,
     },
     voicePlaybackState: {
-      threadId: 'thread-2',
+      conversationAnchorId: 'thread-2',
       messageId: 'assistant-voice-2',
       active: true,
       amplitude: 0.88,
