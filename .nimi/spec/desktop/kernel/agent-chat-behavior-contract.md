@@ -177,21 +177,20 @@ Relationship to D-LLM-025:
 - D-LLM-025 single-message semantics is preserved in group context. Each agent response in a group turn is exactly one message.
 - A single incoming group message may trigger zero, one, or multiple agent responses (fan-out across different agents), but each individual agent response remains a single message.
 
-## D-LLM-026c — Local Avatar Binding Non-Owner Boundary
+## D-LLM-026c — Retired Desktop Avatar Binding Non-Owner Boundary
 
-Desktop agent chat behavior may consume the result of desktop-local avatar binding, but
-it does not own local avatar registry truth, binding truth, or import/storage truth.
+Desktop agent chat behavior no longer consumes desktop-local avatar binding as a
+current product path.
 
 Fixed rules:
 
-- behavior/state may drive which live avatar cues are shown, but it must not own which
-  local VRM or Live2D resource is bound to an agent
-- local avatar binding changes render selection and presentation override resolution; it
-  does not change single-message semantics, turn-mode semantics, or resolved experience
-  policy truth
-- settings surfaces that edit local avatar bindings must route those writes through the
-  desktop-local avatar authority and IPC surface rather than reusing behavior settings
-  persistence as a parallel storage home
+- behavior/state may still drive live-avatar cues for canonical surfaces, but it
+  must not depend on desktop-local VRM / Live2D binding state
+- retired desktop-local avatar binding must not re-enter behavior semantics as a
+  hidden render-selection input or fallback path
+- shell settings that remain after Wave 4 Exec Pack 4 are limited to non-carrier
+  scope and must not recreate avatar binding persistence through behavior-owned
+  state
 
 ## D-LLM-026d — Pointer Interaction Non-Owner Boundary
 
@@ -236,4 +235,4 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md` — K-MEM-002 bank scope and isolation truth for `AGENT_DYADIC` continuity (referenced by D-LLM-026b)
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-002 scope lifecycle (referenced by D-LLM-026b)
 - `.nimi/spec/realm/kernel/truth-contract.md` — R-TRUTH-003 Agent truth boundary (referenced by D-LLM-026b)
-- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` — desktop-local avatar registry / binding and render-precedence ownership
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` — desktop-to-avatar bridge authority, carrier decommission boundary, and retained non-carrier shell scope

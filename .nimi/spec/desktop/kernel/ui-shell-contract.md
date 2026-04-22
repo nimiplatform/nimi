@@ -453,25 +453,20 @@ candidate 状态永久停留在 Desktop authority 里。
 - Desktop 不得因为 `chat-human-canonical-components.tsx` 仍包含本地 accessory /
   content renderer，就把整份 canonical shell 重新归类成 `chat`-owned
   art-directed exception。
-- `chat` avatar viewport chrome（Live2D / VRM）现正式升格为 Desktop controlled
-  exception。该 exception admission 仅覆盖：
-  1. viewport frame geometry
-  2. renderer-coupled loading / fallback / badge / diagnostic chrome
-  3. 与 `default` / `minimal` chrome mode 强绑定的 stage aura、orbital glow、
-     poster fallback 与 runtime status presentation
-- 上述 avatar viewport controlled exception 仍受以下约束：
-  1. 不得生成新的通用 Desktop card/button/token family
-  2. 不得把 renderer runtime behavior、provider integration、asset loading
-     语义混进 surface authority
-  3. 不得把 exception-specific chrome 反向扩散到 shared rail、settings、
-     diagnostics 或 canonical transcript shell
+- 先前的 `chat` avatar viewport chrome（Live2D / VRM）controlled exception 已在
+  Wave 4 Exec Pack 4 退役；desktop 不再把本地 avatar viewport/render chrome
+  作为当前 shell exception line。
+- Pack 4 之后，desktop 在该 area 只保留：
+  1. avatar-app launcher / handoff affordance chrome
+  2. 非-carrier backdrop / shell atmosphere chrome
+  3. 与 canonical transcript shell 共存但不重开本地 carrier 的辅助说明文案
 - `chat-human-canonical-components.tsx` 内剩余的 accessory / overlay / content
   renderer 漂移，不因本规则自动获得 exception admission；如果后续要收敛，必须在
   canonical-shell 或 kit-owned chat surface 线里单独 admitted。
 - `tables/renderer-design-surfaces.yaml` 必须把本轮 disposition 显式记录为：
   1. `chat.canonical.conversation_shell_adapter`
-  2. `chat.avatar.live2d.viewport_exception`
-  3. `chat.avatar.vrm.viewport_exception`
+  2. retired desktop avatar viewport exceptions remain history only and do not
+     constitute current shell authority
 
 ## D-SHELL-032 — Contacts Profile Branded Surface Split And Hero Exception Freeze
 

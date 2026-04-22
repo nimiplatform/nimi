@@ -307,61 +307,37 @@ Desktop 作为 mod developer host 时，开发态 source 管理与 reload 能力
 
 这些命令属于平台管理操作，不属于 mod 业务 API，不得要求第三方作者直接操作环境变量或文件系统约定来替代。
 
-## D-IPC-017 — Desktop Local Avatar Import And Binding 命令面
+## D-IPC-017 — Desktop-Local Avatar Carrier IPC Decommission Boundary
 
-Desktop-local agent avatar resource import and per-agent binding must use explicit
-desktop IPC commands rather than direct renderer filesystem writes.
+After Wave 4 Exec Pack 4, desktop no longer ships desktop-local avatar import,
+registry, binding, or asset-read IPC commands as an admitted carrier path.
 
-Admitted desktop-local command families are:
+Decommissioned command family:
 
-- source picking:
-  `desktop_agent_avatar_resource_pick_vrm`,
-  `desktop_agent_avatar_resource_pick_live2d`
-- resource import / registry:
-  `desktop_agent_avatar_resource_import_vrm`,
-  `desktop_agent_avatar_resource_import_live2d`,
-  `desktop_agent_avatar_resource_list`,
-  `desktop_agent_avatar_resource_delete`,
-  `desktop_agent_avatar_resource_read_asset`
-- per-agent local binding:
-  `desktop_agent_avatar_binding_get`,
-  `desktop_agent_avatar_binding_set`,
-  `desktop_agent_avatar_binding_clear`
+- `desktop_agent_avatar_resource_pick_vrm`
+- `desktop_agent_avatar_resource_pick_live2d`
+- `desktop_agent_avatar_resource_import_vrm`
+- `desktop_agent_avatar_resource_import_live2d`
+- `desktop_agent_avatar_resource_list`
+- `desktop_agent_avatar_resource_delete`
+- `desktop_agent_avatar_resource_read_asset`
+- `desktop_agent_avatar_resource_read_relative_asset`
+- `desktop_agent_avatar_binding_get`
+- `desktop_agent_avatar_binding_set`
+- `desktop_agent_avatar_binding_clear`
 
 Fixed rules:
 
-- these commands are desktop-local only and write into storage rooted at
-  `{nimi_data_dir}`; they must not delegate imported avatar file ownership to runtime
-- renderer must not bypass this surface by persisting Downloads paths, arbitrary
-  external paths, or ad hoc JSON blobs directly from client code
-- when renderer-local live avatar loading needs binary bytes for a desktop-local
-  resource, it must obtain them through admitted desktop IPC rather than guessing
-  `asset://` / external file URL reachability from WebView code
-- command payloads may reference user-selected source paths for import intake, but the
-  resulting admitted local resource record must point to normalized desktop-owned
-  storage rather than the original source location
-- admitting `live2d` import commands here does not imply runtime canonical Live2D
-  ownership or renderer support is already shipped
-- IPC binding commands only update desktop-local binding truth; they must not mutate
-  runtime-owned `AgentPresentationProfile`
-
-## D-IPC-017a — Live2D Render Admission Boundary
-
-Wave 1 Live2D render admission does not create a new canonical import or persistence path.
-
-Fixed rules:
-
-- the existing desktop-local avatar import, registry, binding, and asset-read commands are
-  the only admitted canonical bridge surface for a desktop-local Live2D resource in Wave 1
-- Live2D render admission does not by itself admit a runtime-owned Live2D asset service,
-  hidden host-side renderer daemon, or app-private filesystem bypass outside this command
-  family
-- if later desktop-local Live2D runtime packaging or helper commands are required, they
-  must land as explicit new IPC authority rather than being smuggled into renderer code or
-  treated as implicit consequences of `desktop_agent_avatar_resource_read_asset`
-- renderer-side fallback behavior after Live2D load failure remains a desktop surface
-  concern; IPC commands may provide bytes or structured errors, but they do not become the
-  owner of backend parity policy or fallback order
+- these commands must not be registered in the shipped desktop Tauri invoke
+  surface after Pack 4 closes
+- desktop renderer code must fail closed if stale code paths still reference
+  this retired command family; it must not recreate local carrier execution or
+  silently proxy the behavior through another helper
+- `desktop_avatar_launch_handoff` is the only admitted desktop avatar command
+  on the canonical bridge path
+- retained desktop shell-owned cosmetic surfaces such as backdrop storage remain
+  separate non-carrier authority and must not be conflated with avatar carrier
+  import/binding truth
 
 ## Fact Sources
 

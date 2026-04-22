@@ -26,7 +26,7 @@ module 只消费本契约定义的 normalized surface semantics，不得反向�
 
 ## D-LLM-053 — Canonical Avatar Surface Authority Home
 
-Desktop agent chat 的 canonical avatar transient surface owner 固定为本文件。
+Desktop agent chat 的 canonical avatar transient surface / bridge authority 固定为本文件。
 
 本 authority 固定拥有以下 product outputs：
 
@@ -34,7 +34,18 @@ Desktop agent chat 的 canonical avatar transient surface owner 固定为本文�
   `speaking` / `transitioning` 之类的交互阶段
 - 当前 avatar emotion / action / attention cue 的 product meaning 是什么
 - 上游 voice / message / lifecycle evidence 如何被降解为统一 avatar interaction signal
-- chat shell 如何把这些 signals 提供给 reusable avatar stage，而不再私有化 avatar semantics
+- chat shell 如何把这些 signals 提供给 reusable avatar stage 与 `apps/avatar`
+  launch/handoff consume，而不再私有化 avatar semantics
+
+固定 owner cut：
+
+- `apps/avatar/**` 是 first-party avatar carrier owner；Live2D / VRM carrier
+  execution、avatar-app shell、carrier bootstrap、以及 desktop-selected launch
+  context intake 由 avatar app 拥有
+- desktop 只拥有 chat shell bridge / handoff / orchestration semantics，以及仍未在
+  Exec Pack 4 关闭的 desktop-local residue boundary
+- desktop 不得再把自身呈现为 future long-term avatar carrier home，也不得要求
+  avatar app normal boot 静默自举默认 agent
 
 adjacent authority 边界固定为：
 
@@ -144,133 +155,72 @@ cross-session persistence truth。
 - runtime presentation profile、voice workflow inventory、或 app-local animation library 都不得被误写成本契约的 truth source
 - 若 downstream 需要更宽的 avatar product surface，必须先落新的 admitted desktop kernel authority；不得扩写本契约或 kit module 作为替代 owner
 
-## D-LLM-059 — Desktop Local Avatar Resource Registry Boundary
+## D-LLM-059 — Desktop Local Avatar Carrier Decommission Boundary
 
-Desktop may own a local avatar resource registry for agent avatar rendering under
-desktop-local storage.
-
-The admitted registry truth is limited to desktop-local records such as:
-
-- local `resource_id`
-- resource `kind` (`vrm` or `live2d`)
-- import-normalized storage location under `{nimi_data_dir}`
-- desktop-local import status, validation status, and lightweight display metadata
+After Wave 4 Exec Pack 4, desktop no longer owns a local avatar resource
+registry, import path, or renderer/backend path as an admitted first-party
+carrier line.
 
 Fixed rules:
 
-- registry truth is desktop-local only; it must not be promoted into runtime canonical
-  `AgentPresentationProfile` truth by default
-- imported avatar assets must not remain product-truth pointers to Downloads or other
-  arbitrary external folders once import succeeds
-- registry records may carry desktop-oriented metadata needed for import management,
-  but they must not silently become a second runtime-owned presentation profile schema
-- renderer-local cache handles, temporary object URLs, or ad hoc fallback file paths
-  must not become the canonical local resource key
+- desktop must not present a desktop-local `resource_id`, imported VRM/Live2D
+  asset record, or local asset-read path as current avatar carrier truth
+- stale desktop-local avatar registry code, if retained on disk for bounded
+  source-history reasons, must remain unreachable from the shipped desktop
+  product path
+- renderer helpers, shell view models, and Tauri command registration must fail
+  closed rather than silently reviving desktop-local avatar storage or carrier
+  loading
 
-## D-LLM-060 — Agent Local Avatar Binding Boundary
+## D-LLM-060 — No Desktop-Local Avatar Binding Authority
 
-Desktop may bind a local avatar resource to a specific `agentId` for desktop-local
-agent chat rendering.
-
-The admitted binding truth is limited to:
-
-- binding record identity
-- bound `agentId`
-- referenced local avatar `resource_id`
-- desktop-local status and update timestamps
+Desktop no longer binds a local avatar resource to an `agentId` as active avatar
+render selection truth.
 
 Fixed rules:
 
-- the binding is desktop-local surface truth, not runtime-owned agent identity truth
-- a local binding may override runtime presentation for desktop rendering, but it does
-  not mutate runtime persistent agent presentation by default
-- local binding must remain explicitly per-agent; renderer code must not infer or reuse
-  one agent's local avatar binding for another agent
-- absence of a local binding must fail back to the canonical precedence contract
-  instead of fabricating a remembered local override
+- desktop must not ship or expose a per-agent local avatar binding workflow
+- desktop must not override runtime presentation or `apps/avatar` carrier
+  selection through local desktop-only binding state
+- missing avatar launch / handoff context must fail closed; desktop must not
+  recreate a remembered local binding as fallback behavior
 
-## D-LLM-061 — Avatar Render Precedence Contract
+## D-LLM-061 — Desktop Avatar Carrier Precedence Stop Line
 
-Desktop agent avatar rendering must resolve avatar presentation in the following
-canonical order:
-
-1. explicit desktop-local avatar binding override
-2. runtime-owned `AgentPresentationProfile`
-3. ordinary avatar fallback
+Desktop no longer owns a local avatar render precedence contract.
 
 Fixed rules:
 
-- this precedence must be owned canonically here; rail components, shell adapters,
-  view-model helpers, and renderer helpers must not each invent their own override order
-- desktop-local binding only changes render selection; it does not become new runtime
-  truth or change broader agent-chat behavior semantics
-- fallback image/avatar routes remain valid only when neither desktop-local binding nor
-  runtime presentation yields an admitted live-avatar presentation
+- desktop shell surfaces must not resolve avatar rendering in a local order such
+  as binding override -> runtime profile -> fallback image as an active carrier
+  policy
+- `apps/avatar` is the only first-party carrier line for Live2D / VRM execution
+- desktop may still render ordinary static chat avatars or other non-live shell
+  decoration, but those surfaces must not be represented as a co-equal carrier
+  route
 
-## D-LLM-062 — Desktop Local Import Scope And Storage Boundary
+## D-LLM-062 — Retained Non-Carrier Shell Scope
 
-Desktop settings/import surfaces may import:
+Exec Pack 4 does not remove every desktop-local cosmetic surface. The remaining
+admitted desktop-local scope is narrow shell-owned configuration that does not
+constitute avatar carrier truth.
 
-- a VRM file
-- a Live2D runtime directory or admitted manifest root
+Admitted retained scope:
 
-Fixed rules:
-
-- imported resources must be normalized under desktop-owned storage rooted at
-  `{nimi_data_dir}` before they become admitted local avatar resources
-- import authority remains desktop-local and must not silently imply runtime canonical
-  support for Live2D, VRM package management, or cross-app resource portability
-- import/admission of a local `live2d` resource record only authorizes desktop-local
-  storage and binding semantics; renderer/runtime support still requires separate
-  admitted implementation
-- desktop-local import UX, storage lifecycle, and binding mutation may consume this
-  contract, but `kit/features/avatar` remains a consumer of resolved presentation inputs
-  rather than an owner of import or storage truth
-
-## D-LLM-062a — Desktop-Local Live2D Viewport Boundary
-
-When avatar render resolution selects a desktop-local bound resource with
-`kind: live2d`, desktop owns the first shipped desktop agent chat Live2D
-viewport lifecycle for the active avatar-stage surface.
+- per-agent in-app backdrop binding for chat atmosphere
+- surface-local placement preference for desktop shell chrome where separately
+  admitted
+- explicit avatar-app launcher / handoff affordances owned by desktop shell
 
 Fixed rules:
 
-- desktop may ship the first concrete Live2D viewport implementation locally while
-  consuming the admitted reusable stage semantics from `kit/features/avatar`
-- the desktop-local Live2D viewport is a renderer/backend consume boundary only; it
-  must not become a second owner of persistent presentation truth, local binding truth,
-  or generic chat behavior truth
-- desktop owns Live2D runtime loading, stage lifecycle, and load-fail handling for the
-  active desktop avatar-stage surface; runtime does not own those responsibilities by
-  default
-- a resolved `live2d` presentation must dispatch to a Live2D backend path rather than
-  probing the VRM viewport first or treating the asset as a generic file attachment
-- desktop-local viewport lifecycle must remain surface-local and teardown deterministically
-  on invalid bounds, agent switch, thread switch, or surface close
-
-## D-LLM-062b — Live2D First-Wave Parity, Fallback, And Stop Line
-
-The first admitted Live2D render wave is intentionally narrower than generic avatar or
-future VRM interaction scope.
-
-Fixed rules:
-
-- first-wave Live2D support is accepted only when desktop can render a bound `live2d`
-  resource in the active desktop avatar-stage surface with readable `idle` and
-  `speaking` states
-- deterministic fail-close is required when the bound Live2D asset is invalid, missing,
-  or the desktop-local runtime support is unavailable; renderer code must not leave a
-  blank half-loaded stage, pseudo-success poster, or undefined mixed-backend state
-- when a desktop-local `live2d` binding fails to yield an admitted live presentation,
-  desktop must continue the canonical render precedence contract instead of inventing a
-  special fallback order; the binding path fails closed first, then desktop continues to
-  runtime `AgentPresentationProfile`, and only then to ordinary avatar fallback if
-  runtime presentation also does not yield an admitted live-avatar presentation
-- first-wave parity does not admit pointer interaction parity, click / poke reactions,
-  camera choreography, renderer-baseline redesign, richer motion packs, or authoring
-  workflows
-- Live2D Wave 1 must remain an agent-presence surface rather than widening into a raw
-  Cubism model viewer or backend-specific inspection tool
+- retained shell scope must not import, bind, load, or render a desktop-local
+  Live2D / VRM carrier path
+- retained shell scope must not mutate runtime presentation truth or avatar-app
+  carrier truth
+- any future attempt to reintroduce desktop-local live-avatar execution requires
+  a new admitted desktop kernel authority; it cannot reuse the retired Pack 4
+  residue line
 
 ## D-LLM-063 — App Attention To Avatar Projection Boundary
 
@@ -328,7 +278,7 @@ Fixed rules:
 
 ## D-LLM-069 — Surface Layer Stacking And Placement / Transform Persistence
 
-Desktop agent chat surface organizes its visual truth as a fixed four-layer stack
+Desktop agent chat surface organizes its visual truth as a fixed three-layer stack
 and separates persistable cosmetic preferences from transient interaction truth.
 
 The admitted layer stack is, from bottom to top:
@@ -340,21 +290,14 @@ The admitted layer stack is, from bottom to top:
    backdrop binding (see `desktop_agent_backdrop_store`); the mask image is an
    in-app asset imported by the user, not a desktop wallpaper projection;
    defaults to fully transparent when absent
-3. avatar layer — Live2D / VRM / fallback viewport owned by this contract,
-   rendered as an app-internal avatar/stage consume layer. For the admitted
-   desktop obstacle-aware transcript-flow line, this layer may influence
-   transcript width only through the single shell-owned occupancy rectangle
-   defined by `D-SHELL-034`; this contract does not own transcript geometry,
-   admitted occupancy rectangle truth, or transcript reflow policy. No parallel
-   overlay-only fallback mode remains admitted for that desktop line.
-4. component layer — chat shell interactive widgets (nav, transcript, composer,
+3. component layer — chat shell interactive widgets (nav, transcript, composer,
    contacts rail); the chat domain occupies the full middle area between the
    left navigation and the right contacts rail, not a sub-column beside the
    avatar
 
 Fixed rules:
 
-- layer 0–2 must not capture pointer events above what layer 3 requires to
+- layer 0–1 must not capture pointer events above what layer 2 requires to
   remain interactive; layer composition is a rendering concern and does not
   become a second owner of interaction semantics
 - layer 1 strictly consumes the admitted per-agent backdrop binding; it does
@@ -389,7 +332,7 @@ Fixed rules:
 - `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md` — richer workflow / voice identity semantics
 - `.nimi/spec/platform/kernel/kit-contract.md` — reusable `kit/features/avatar` admission and ownership hardcut
 - `.nimi/local/report/ongoing/2026-04-15-agent-live-avatar-airi-audit/design.md` — topic-local avatar landing rationale
-- `.nimi/local/report/ongoing/2026-04-17-desktop-agent-local-avatar-resource-binding/design.md` — desktop-local avatar resource registry / binding authority rationale
-- `.nimi/local/report/proposal/2026-04-17-desktop-agent-live2d-render-integration/design.md` — Live2D backend admission, fallback, and ownership rationale
+- `.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/closeout-wave-4-exec-pack-3.md` — desktop bridge / handoff hard cut rationale
+- `.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/closeout-wave-4-exec-pack-4.md` — desktop carrier decommission and single-carrier closeout rationale
 - `.nimi/local/report/closed/2026-04-17-desktop-agent-vrm-pointer-interaction/design.md` — stage-local pointer Wave 1 rationale now superseded by app-level attention redesign
 - `.nimi/local/report/ongoing/2026-04-19-desktop-app-level-avatar-attention-context/design.md` — app-level attention projection redesign rationale

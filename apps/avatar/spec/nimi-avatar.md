@@ -70,6 +70,14 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 NAS handler 驱动 Live2
 
 当前正常启动路径使用 runtime/SDK consume chain。Mock scenario 仍保留，但只在显式 fixture mode 下参与；runtime 不可用时不会 silent fallback 到 mock。
 
+当前 canonical 启动模型固定为：
+
+- normal path 必须带 desktop-selected launch context
+- launch context 至少包含 `agent_id`、`avatar_instance_id`，以及显式 `conversation_anchor_id` 或 `open_new` anchor mode
+- 缺少 launch context 必须 fail closed；avatar app 不得默认 bootstrap 单个 agent
+- avatar identity bootstrap 来自 shared auth session / shared JWT source
+- launch handoff payload 不携带 raw JWT、refresh token、或 `subject_user_id`
+
 ## Product Form 详细
 
 ### Window Behavior (`kernel/app-shell-contract.md`)
@@ -91,7 +99,7 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 NAS handler 驱动 Live2
 
 - 扫描 `<model>/runtime/nimi/activity/` / `event/` / `continuous/` / `lib/`
 - 自动注册 handlers
-- 正常启动路径下，handlers 的 contexts 来自 runtime/SDK consume bundle
+- 正常启动路径下，handlers 的 contexts 来自 desktop-selected launch context + runtime/SDK consume bundle
 - 显式 fixture mode 下，handlers 的 contexts 可由 mock scenario 注入
 - Live2D API v1 封装给 handlers 使用
 
@@ -126,17 +134,18 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 NAS handler 驱动 Live2
 
 ## Relationship to Desktop App
 
-Nimi Avatar 和 Desktop App 是**独立 first-party app**，两者都连接同一 Nimi runtime：
+Nimi Avatar 和 Desktop App 仍然是两个 first-party app，但当前 owner-domain 关系已经固定成 bridge / handoff，而不是旧的“avatar app 自己默认 boot”模型：
 
-- Desktop app 承载 full chat experience（长历史 / 多线程）
-- Avatar 承载轻量 bubble + 悬浮交互
-- 两者通过 event bus 跨 app 协调（subscribe 对方 namespace events，通过 runtime 中转）
-- Phase 1 不做 cross-app integration，先让 avatar 独立跑通
+- Desktop app 是 multi-instance avatar launcher / orchestrator
+- Avatar app 是唯一 first-party avatar carrier line
+- Desktop 负责显式 handoff：`agent_id`、`avatar_instance_id`、以及 anchor targeting
+- Avatar app 负责 consume handoff、加载 shared auth session、并建立 real runtime/SDK carrier path
+- Desktop handoff 只传 target selection，不传 raw JWT
 
 ## Relationship to Runtime Refactor
 
 RuntimeAgent 的 admitted consume surface已经成为 `apps/avatar` 的 primary carrier line：
 
-- 默认 boot 使用 runtime defaults + shared desktop auth + runtime bridge + SDK consume
-- Mock fixtures 继续保留为 integration test corpus
+- normal path 使用 desktop-selected launch context + shared desktop auth + runtime bridge + SDK consume
+- mock fixtures 继续保留为 explicit fixture / integration test corpus
 - runtime 不可用时 fail closed，不允许 silent downgrade 到 mock

@@ -17,6 +17,7 @@
 | `get_system_resource_snapshot` | `system` | Collect system resource snapshot (CPU, memory, GPU) for device profiling | `D-IPC-009` |
 | `http_request` | `http` | Proxy HTTP request through Tauri backend (bypasses browser CORS) | `D-IPC-004` |
 | `open_external_url` | `ui` | Open external URL in system browser | `D-IPC-005` |
+| `desktop_avatar_launch_handoff` | `ui` | Launch the avatar app handoff URI with explicit agent/avatar-instance/anchor context and no raw JWT payload | `D-IPC-005` |
 | `oauth_token_exchange` | `oauth` | Exchange OAuth authorization code for tokens | `D-IPC-006` |
 | `oauth_listen_for_code` | `oauth` | Listen for OAuth callback code on redirect URI | `D-IPC-006` |
 | `confirm_private_sync` | `ui` | Confirm private data sync for agent/session | `D-IPC-005` |
@@ -24,16 +25,6 @@
 | `start_window_drag` | `ui` | Start native window drag operation | `D-IPC-005` |
 | `menu_bar_sync_runtime_health` | `ui` | Sync menu bar runtime/provider health summary from renderer to Tauri backend | `D-IPC-005` |
 | `menu_bar_complete_quit` | `ui` | Finalize explicit app quit after renderer cleanup | `D-IPC-005` |
-| `desktop_agent_avatar_resource_import_vrm` | `agent-avatar` | Import a VRM avatar file into desktop-local avatar resource storage under nimi_data | `D-IPC-017` |
-| `desktop_agent_avatar_resource_pick_vrm` | `agent-avatar` | Open a desktop-native file picker constrained for selecting a VRM avatar source file | `D-IPC-017` |
-| `desktop_agent_avatar_resource_pick_live2d` | `agent-avatar` | Open a desktop-native folder picker for selecting a Live2D runtime directory | `D-IPC-017` |
-| `desktop_agent_avatar_resource_import_live2d` | `agent-avatar` | Import a Live2D runtime directory or manifest root into desktop-local avatar resource storage under nimi_data | `D-IPC-017` |
-| `desktop_agent_avatar_resource_list` | `agent-avatar` | List desktop-local avatar resource records available for per-agent binding | `D-IPC-017` |
-| `desktop_agent_avatar_resource_delete` | `agent-avatar` | Delete a desktop-local avatar resource record and its managed imported assets | `D-IPC-017` |
-| `desktop_agent_avatar_resource_read_asset` | `agent-avatar` | Read a desktop-local avatar resource entry as binary payload for renderer-local live avatar loading | `D-IPC-017` |
-| `desktop_agent_avatar_binding_get` | `agent-avatar` | Read the desktop-local avatar binding for a specific agentId | `D-IPC-017` |
-| `desktop_agent_avatar_binding_set` | `agent-avatar` | Bind a desktop-local avatar resource record to a specific agentId | `D-IPC-017` |
-| `desktop_agent_avatar_binding_clear` | `agent-avatar` | Clear the desktop-local avatar binding for a specific agentId | `D-IPC-017` |
 | `runtime_mod_append_audit` | `mod-local` | Append mod audit record | `D-IPC-007` |
 | `runtime_mod_query_audit` | `mod-local` | Query mod audit records | `D-IPC-007` |
 | `runtime_mod_delete_audit` | `mod-local` | Delete mod audit record | `D-IPC-007` |

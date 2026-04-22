@@ -72,6 +72,11 @@ commands:
     description: Open external URL in system browser
     source_rule: D-IPC-005
 
+  - command: desktop_avatar_launch_handoff
+    module: ui
+    description: Launch the avatar app handoff URI with explicit agent/avatar-instance/anchor context and no raw JWT payload
+    source_rule: D-IPC-005
+
   - command: oauth_token_exchange
     module: oauth
     description: Exchange OAuth authorization code for tokens
@@ -106,56 +111,6 @@ commands:
     module: ui
     description: Finalize explicit app quit after renderer cleanup
     source_rule: D-IPC-005
-
-  - command: desktop_agent_avatar_resource_import_vrm
-    module: agent-avatar
-    description: Import a VRM avatar file into desktop-local avatar resource storage under nimi_data
-    source_rule: D-IPC-017
-
-  - command: desktop_agent_avatar_resource_pick_vrm
-    module: agent-avatar
-    description: Open a desktop-native file picker constrained for selecting a VRM avatar source file
-    source_rule: D-IPC-017
-
-  - command: desktop_agent_avatar_resource_pick_live2d
-    module: agent-avatar
-    description: Open a desktop-native folder picker for selecting a Live2D runtime directory
-    source_rule: D-IPC-017
-
-  - command: desktop_agent_avatar_resource_import_live2d
-    module: agent-avatar
-    description: Import a Live2D runtime directory or manifest root into desktop-local avatar resource storage under nimi_data
-    source_rule: D-IPC-017
-
-  - command: desktop_agent_avatar_resource_list
-    module: agent-avatar
-    description: List desktop-local avatar resource records available for per-agent binding
-    source_rule: D-IPC-017
-
-  - command: desktop_agent_avatar_resource_delete
-    module: agent-avatar
-    description: Delete a desktop-local avatar resource record and its managed imported assets
-    source_rule: D-IPC-017
-
-  - command: desktop_agent_avatar_resource_read_asset
-    module: agent-avatar
-    description: Read a desktop-local avatar resource entry as binary payload for renderer-local live avatar loading
-    source_rule: D-IPC-017
-
-  - command: desktop_agent_avatar_binding_get
-    module: agent-avatar
-    description: Read the desktop-local avatar binding for a specific agentId
-    source_rule: D-IPC-017
-
-  - command: desktop_agent_avatar_binding_set
-    module: agent-avatar
-    description: Bind a desktop-local avatar resource record to a specific agentId
-    source_rule: D-IPC-017
-
-  - command: desktop_agent_avatar_binding_clear
-    module: agent-avatar
-    description: Clear the desktop-local avatar binding for a specific agentId
-    source_rule: D-IPC-017
 
   # Mod local (runtime_mod::commands)
   - command: runtime_mod_append_audit

@@ -77,20 +77,6 @@ surfaces:
     exception_policy: none
     testid_required: false
     source_rule: D-SHELL-037
-  - id: chat.avatar.live2d.viewport_exception
-    module: features/chat/chat-agent-avatar-live2d-viewport.tsx
-    role: chat_avatar_live2d_viewport_exception
-    surface_profile: exception
-    exception_policy: controlled
-    testid_required: false
-    source_rule: D-SHELL-031
-  - id: chat.avatar.vrm.viewport_exception
-    module: features/chat/chat-agent-avatar-vrm-viewport.tsx
-    role: chat_avatar_vrm_viewport_exception
-    surface_profile: exception
-    exception_policy: controlled
-    testid_required: false
-    source_rule: D-SHELL-031
   - id: explore.view.root
     module: features/explore/explore-view.tsx
     role: explore_root
