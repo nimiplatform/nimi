@@ -477,6 +477,16 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
                 subject_user_id: 'subject-1',
                 session_status: 'active',
                 transcript_message_count: 2,
+                transcript: [
+                  {
+                    role: 'user',
+                    content: 'hello',
+                  },
+                  {
+                    role: 'assistant',
+                    content: 'hi there',
+                  },
+                ],
                 execution_binding: {
                   route: 'local',
                   model_id: 'local/qwen2.5',
@@ -520,10 +530,117 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
     assert.equal(snapshot.requestId, 'req-1');
     assert.equal(snapshot.threadId, 'thread-1');
     assert.equal(snapshot.sessionStatus, 'active');
+    assert.deepEqual(snapshot.transcript, [
+      {
+        role: 'user',
+        content: 'hello',
+      },
+      {
+        role: 'assistant',
+        content: 'hi there',
+      },
+    ]);
     assert.equal(snapshot.executionBinding?.modelId, 'local/qwen2.5');
     assert.equal(snapshot.activeTurn?.turnId, 'turn-1');
     assert.equal(snapshot.activeTurn?.streamSequence, 3);
     assert.equal('sessionId' in (snapshot as Record<string, unknown>), false);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('runtime agent turns subscribe can skip agent event stream for app-only turn consumers', async () => {
+  let registerCalls = 0;
+  let authorizeCalls = 0;
+  let appSubscribeCalls = 0;
+  let agentSubscribeCalls = 0;
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.auth.registerApp) {
+        registerCalls += 1;
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          accepted: true,
+        }));
+      }
+      if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+        authorizeCalls += 1;
+        return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
+          tokenId: `token-${authorizeCalls}`,
+          appId: APP_ID,
+          subjectUserId: 'subject-1',
+          externalPrincipalId: APP_ID,
+          effectiveScopes: ['runtime.agent.chat.read'],
+          policyVersion: '1.0.0',
+          issuedScopeCatalogVersion: '1.0.0',
+          canDelegate: false,
+          secret: `secret-${authorizeCalls}`,
+        }));
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.app.subscribeAppMessages) {
+        appSubscribeCalls += 1;
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield createAppEvent('runtime.agent.turn.accepted', {
+              agent_id: 'agent-1',
+              conversation_anchor_id: 'anchor-1',
+              turn_id: 'turn-1',
+              stream_id: 'stream-1',
+              detail: { request_id: 'req-1' },
+            });
+            yield createAppEvent('runtime.agent.turn.completed', {
+              agent_id: 'agent-1',
+              conversation_anchor_id: 'anchor-1',
+              turn_id: 'turn-1',
+              stream_id: 'stream-1',
+              detail: { terminal_reason: 'stop' },
+            });
+          },
+        };
+      }
+      if (input.methodId === RuntimeMethodIds.agent.subscribeEvents) {
+        agentSubscribeCalls += 1;
+        throw new Error('agent.subscribeEvents should not be opened when includeAgentEvents=false');
+      }
+      throw new Error(`unexpected stream method: ${input.methodId}`);
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      subjectContext: {
+        subjectUserId: 'subject-1',
+      },
+    });
+
+    const stream = await runtime.agent.turns.subscribe({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      includeAgentEvents: false,
+    });
+
+    const events: RuntimeAgentConsumeEvent[] = [];
+    for await (const event of stream) {
+      events.push(event);
+    }
+
+    assert.equal(registerCalls, 1);
+    assert.equal(authorizeCalls, 1);
+    assert.equal(appSubscribeCalls, 1);
+    assert.equal(agentSubscribeCalls, 0);
+    assert.deepEqual(events.map((event) => event.eventName), [
+      'runtime.agent.turn.accepted',
+      'runtime.agent.turn.completed',
+    ]);
   } finally {
     clearNodeGrpcBridge();
   }

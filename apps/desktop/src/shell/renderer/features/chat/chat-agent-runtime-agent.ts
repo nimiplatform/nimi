@@ -1,8 +1,16 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { asNimiError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   ConversationRuntimeTrace,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
+import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import {
+  ensureRuntimeLocalModelWarm,
+  resolveSourceAndModel,
+} from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 import {
   AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
   type AgentResolvedMessageActionEnvelope,
@@ -18,7 +26,7 @@ import { resolveRouteInput } from './chat-agent-runtime-text';
 import {
   resolveChatThinkingConfig,
   resolveTextExecutionSnapshotThinkingSupport,
-} from './chat-thinking';
+} from './chat-shared-thinking';
 
 type PendingCommittedMessage = {
   messageId: string;
@@ -26,6 +34,13 @@ type PendingCommittedMessage = {
   runtimeTurnId: string;
   runtimeStreamId: string;
 };
+
+function safeLogRuntimeAgentEvent(input: Parameters<typeof logRendererEvent>[0]): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  logRendererEvent(input);
+}
 
 function toResolvedStatusCue(value: unknown): AgentResolvedStatusCue | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -202,6 +217,18 @@ export async function streamChatAgentRuntimeAgentTurn(
   request: AgentLocalChatRuntimeRequest,
 ): Promise<{ stream: AsyncIterable<AgentLocalChatTurnStreamPart> }> {
   const runtime = getPlatformClient().runtime;
+  const requestId = randomIdV11('runtime-agent-turn-request');
+  safeLogRuntimeAgentEvent({
+    level: 'info',
+    area: 'agent-chat-runtime',
+    message: 'action:runtime-agent-turn:start',
+    details: {
+      agentId: request.agentId,
+      conversationAnchorId: request.conversationAnchorId,
+      threadId: request.threadId,
+      requestId,
+    },
+  });
   const routeInput = await resolveRouteInput({
     agentId: request.agentId,
     prompt: request.prompt,
@@ -216,18 +243,68 @@ export async function streamChatAgentRuntimeAgentTurn(
     runtimeFields: request.runtimeFields,
     signal: request.signal,
   });
-  const route = normalizeText(routeInput.connectorId) ? 'cloud' : 'local';
-  const modelId = normalizeText(routeInput.localProviderModel);
+  const resolved = resolveSourceAndModel(routeInput);
+  safeLogRuntimeAgentEvent({
+    level: 'info',
+    area: 'agent-chat-runtime',
+    message: 'action:runtime-agent-turn:route-resolved',
+    details: {
+      agentId: request.agentId,
+      conversationAnchorId: request.conversationAnchorId,
+      threadId: request.threadId,
+      requestId,
+      route: resolved.source,
+      modelId: resolved.modelId,
+      provider: resolved.provider,
+      connectorId: normalizeText(routeInput.connectorId) || null,
+    },
+  });
+  await ensureRuntimeLocalModelWarm({
+    modId: routeInput.modId,
+    source: resolved.source,
+    modelId: resolved.modelId,
+    engine: resolved.provider,
+    endpoint: resolved.endpoint,
+    timeoutMs: 120_000,
+  });
+  safeLogRuntimeAgentEvent({
+    level: 'info',
+    area: 'agent-chat-runtime',
+    message: 'action:runtime-agent-turn:local-warm-complete',
+    details: {
+      agentId: request.agentId,
+      conversationAnchorId: request.conversationAnchorId,
+      threadId: request.threadId,
+      requestId,
+      route: resolved.source,
+      modelId: resolved.modelId,
+    },
+  });
+  const route = resolved.source;
+  const modelId = normalizeText(resolved.modelId);
   const connectorId = normalizeText(routeInput.connectorId) || undefined;
   const subscribed = await runtime.agent.turns.subscribe({
     agentId: request.agentId,
     conversationAnchorId: request.conversationAnchorId,
+    includeAgentEvents: false,
+  });
+  safeLogRuntimeAgentEvent({
+    level: 'info',
+    area: 'agent-chat-runtime',
+    message: 'action:runtime-agent-turn:subscribed',
+    details: {
+      agentId: request.agentId,
+      conversationAnchorId: request.conversationAnchorId,
+      threadId: request.threadId,
+      requestId,
+    },
   });
 
   let requestSubmitted = false;
   let interruptRequested = false;
   let currentRuntimeTurnId = '';
   let currentRuntimeStreamId = '';
+  const acceptedRequestIds = new Set<string>([requestId]);
 
   const requestInterrupt = () => {
     if (interruptRequested || !requestSubmitted) {
@@ -244,7 +321,7 @@ export async function streamChatAgentRuntimeAgentTurn(
 
   request.signal?.addEventListener('abort', requestInterrupt, { once: true });
 
-  await runtime.agent.turns.request({
+  const requestPayloadBase = {
     agentId: request.agentId,
     conversationAnchorId: request.conversationAnchorId,
     threadId: request.threadId,
@@ -287,8 +364,41 @@ export async function streamChatAgentRuntimeAgentTurn(
           : {}),
       };
     })(),
-  });
+  };
+
+  let requestResponse: { messageId?: string } | void;
+  try {
+    requestResponse = await runtime.agent.turns.request({
+      ...requestPayloadBase,
+      requestId,
+    });
+  } catch (error) {
+    const normalized = asNimiError(error, { source: 'runtime' });
+    if (normalized.reasonCode !== ReasonCode.PROTOCOL_ENVELOPE_INVALID) {
+      throw error;
+    }
+    requestResponse = await runtime.agent.turns.request(requestPayloadBase);
+  }
+  const requestMessageId = normalizeText(requestResponse && typeof requestResponse === 'object' ? requestResponse.messageId : '');
+  if (requestMessageId) {
+    acceptedRequestIds.add(requestMessageId);
+  }
   requestSubmitted = true;
+  safeLogRuntimeAgentEvent({
+    level: 'info',
+    area: 'agent-chat-runtime',
+    message: 'action:runtime-agent-turn:request-acked',
+    details: {
+      agentId: request.agentId,
+      conversationAnchorId: request.conversationAnchorId,
+      threadId: request.threadId,
+      requestId,
+      requestMessageId,
+      route,
+      modelId,
+      connectorId: connectorId || null,
+    },
+  });
 
   return {
     stream: (async function* stream(): AsyncIterable<AgentLocalChatTurnStreamPart> {
@@ -296,6 +406,8 @@ export async function streamChatAgentRuntimeAgentTurn(
       let provisionalText = '';
       let committedMessage: PendingCommittedMessage | null = null;
       let messageSealedEmitted = false;
+      let currentTurnAccepted = false;
+      const iterator = subscribed[Symbol.asyncIterator]();
 
       const maybeYieldCommittedMessage = function* (
         trace?: ConversationRuntimeTrace,
@@ -338,27 +450,69 @@ export async function streamChatAgentRuntimeAgentTurn(
       };
 
       try {
-        for await (const event of subscribed) {
-          if ('turnId' in event && typeof event.turnId === 'string' && normalizeText(event.turnId)) {
-            if (!currentRuntimeTurnId) {
-              currentRuntimeTurnId = event.turnId;
-            } else if (currentRuntimeTurnId !== event.turnId) {
-              continue;
-            }
+        while (true) {
+          const nextResult = await iterator.next();
+          if (nextResult.done) {
+            break;
           }
-          if ('streamId' in event && typeof event.streamId === 'string' && normalizeText(event.streamId)) {
-            if (!currentRuntimeStreamId) {
-              currentRuntimeStreamId = event.streamId;
-            }
-          }
+          const event = nextResult.value;
           const trace = resolveRuntimeTrace();
           switch (event.eventName) {
             case 'runtime.agent.turn.accepted':
+              if (!acceptedRequestIds.has(event.detail.requestId)) {
+                break;
+              }
+              currentTurnAccepted = true;
+              currentRuntimeTurnId = event.turnId;
+              currentRuntimeStreamId = event.streamId;
+              safeLogRuntimeAgentEvent({
+                level: 'info',
+                area: 'agent-chat-runtime',
+                message: 'action:runtime-agent-turn:accepted',
+                details: {
+                  agentId: request.agentId,
+                  conversationAnchorId: request.conversationAnchorId,
+                  threadId: request.threadId,
+                  requestId,
+                  requestMessageId,
+                  acceptedRequestId: event.detail.requestId,
+                  runtimeTurnId: currentRuntimeTurnId,
+                  runtimeStreamId: currentRuntimeStreamId,
+                  route,
+                  modelId,
+                  connectorId: connectorId || null,
+                },
+              });
+              break;
             case 'runtime.agent.turn.started':
             case 'runtime.agent.turn.post_turn':
             case 'runtime.agent.turn.interrupt_ack':
+              if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
+                break;
+              }
+              if (event.eventName === 'runtime.agent.turn.started') {
+                safeLogRuntimeAgentEvent({
+                  level: 'info',
+                  area: 'agent-chat-runtime',
+                  message: 'action:runtime-agent-turn:started',
+                  details: {
+                    agentId: request.agentId,
+                    conversationAnchorId: request.conversationAnchorId,
+                    threadId: request.threadId,
+                    requestId,
+                    runtimeTurnId: currentRuntimeTurnId,
+                    runtimeStreamId: currentRuntimeStreamId,
+                    route,
+                    modelId,
+                    connectorId: connectorId || null,
+                  },
+                });
+              }
               break;
             case 'runtime.agent.turn.reasoning_delta':
+              if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
+                break;
+              }
               if (event.detail.text) {
                 yield {
                   type: 'reasoning-delta',
@@ -367,6 +521,9 @@ export async function streamChatAgentRuntimeAgentTurn(
               }
               break;
             case 'runtime.agent.turn.text_delta':
+              if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
+                break;
+              }
               provisionalText += event.detail.text;
               if (event.detail.text) {
                 yield {
@@ -376,19 +533,63 @@ export async function streamChatAgentRuntimeAgentTurn(
               }
               break;
             case 'runtime.agent.turn.structured':
+              if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
+                break;
+              }
               structuredEnvelope = toResolvedEnvelope(event.detail.payload);
               yield* maybeYieldCommittedMessage(trace);
               break;
             case 'runtime.agent.turn.message_committed':
+              if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
+                break;
+              }
               committedMessage = {
                 messageId: event.detail.messageId,
                 text: event.detail.text,
                 runtimeTurnId: event.turnId,
                 runtimeStreamId: event.streamId,
               };
+              safeLogRuntimeAgentEvent({
+                level: 'info',
+                area: 'agent-chat-runtime',
+                message: 'action:runtime-agent-turn:message-committed',
+                details: {
+                  agentId: request.agentId,
+                  conversationAnchorId: request.conversationAnchorId,
+                  threadId: request.threadId,
+                  requestId,
+                  runtimeTurnId: event.turnId,
+                  runtimeStreamId: event.streamId,
+                  messageId: event.detail.messageId,
+                  textLength: event.detail.text.length,
+                  route,
+                  modelId,
+                  connectorId: connectorId || null,
+                },
+              });
               yield* maybeYieldCommittedMessage(trace);
               break;
             case 'runtime.agent.turn.completed':
+              if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
+                break;
+              }
+              safeLogRuntimeAgentEvent({
+                level: 'info',
+                area: 'agent-chat-runtime',
+                message: 'action:runtime-agent-turn:completed',
+                details: {
+                  agentId: request.agentId,
+                  conversationAnchorId: request.conversationAnchorId,
+                  threadId: request.threadId,
+                  requestId,
+                  runtimeTurnId: event.turnId,
+                  runtimeStreamId: event.streamId,
+                  terminalReason: normalizeText(event.detail.terminalReason) || null,
+                  route,
+                  modelId,
+                  connectorId: connectorId || null,
+                },
+              });
               if (!messageSealedEmitted || !committedMessage) {
                 yield {
                   type: 'turn-failed',
@@ -429,6 +630,27 @@ export async function streamChatAgentRuntimeAgentTurn(
               };
               return;
             case 'runtime.agent.turn.failed':
+              if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
+                break;
+              }
+              safeLogRuntimeAgentEvent({
+                level: 'warn',
+                area: 'agent-chat-runtime',
+                message: 'action:runtime-agent-turn:failed',
+                details: {
+                  agentId: request.agentId,
+                  conversationAnchorId: request.conversationAnchorId,
+                  threadId: request.threadId,
+                  requestId,
+                  runtimeTurnId: event.turnId,
+                  runtimeStreamId: event.streamId,
+                  reasonCode: normalizeText(event.detail.reasonCode) || null,
+                  failureMessage: normalizeText(event.detail.message) || null,
+                  route,
+                  modelId,
+                  connectorId: connectorId || null,
+                },
+              });
               yield {
                 type: 'turn-failed',
                 error: {
@@ -449,6 +671,9 @@ export async function streamChatAgentRuntimeAgentTurn(
               };
               return;
             case 'runtime.agent.turn.interrupted':
+              if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
+                break;
+              }
               yield {
                 type: 'turn-canceled',
                 scope: 'turn',
@@ -474,6 +699,7 @@ export async function streamChatAgentRuntimeAgentTurn(
         }
       } finally {
         request.signal?.removeEventListener('abort', requestInterrupt);
+        await iterator.return?.();
       }
       throw new Error('runtime.agent turn stream ended without a terminal event');
     })(),

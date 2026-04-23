@@ -147,6 +147,27 @@ function optionalNumber(value: unknown): number | undefined {
   return parseCount(value);
 }
 
+function parseTranscript(value: unknown): RuntimeAgentMessage[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const transcript = value.flatMap((item) => {
+    const payload = asRecord(item);
+    const role = normalizeText(payload.role) as RuntimeAgentMessage['role'] | '';
+    const content = optionalContentString(payload.content);
+    const name = optionalString(payload.name);
+    if (!role || content === undefined) {
+      return [];
+    }
+    return [{
+      role,
+      content,
+      ...(name ? { name } : {}),
+    }];
+  });
+  return transcript.length > 0 ? transcript : undefined;
+}
+
 function parseExecutionBinding(value: unknown): RuntimeAgentExecutionBinding | undefined {
   const payload = asRecord(value);
   const route = normalizeText(payload.route) as RuntimeAgentExecutionBinding['route'] | '';
@@ -253,6 +274,7 @@ function parseSessionSnapshot(value: unknown): RuntimeAgentSessionSnapshot {
     ...(optionalNumber(payload.transcript_message_count) !== undefined
       ? { transcriptMessageCount: optionalNumber(payload.transcript_message_count) }
       : {}),
+    ...(parseTranscript(payload.transcript) ? { transcript: parseTranscript(payload.transcript) } : {}),
     ...(parseExecutionBinding(payload.execution_binding) ? { executionBinding: parseExecutionBinding(payload.execution_binding) } : {}),
     ...(optionalString(payload.system_prompt) ? { systemPrompt: optionalString(payload.system_prompt) } : {}),
     ...(optionalNumber(payload.max_output_tokens) !== undefined ? { maxOutputTokens: optionalNumber(payload.max_output_tokens) } : {}),
@@ -267,6 +289,7 @@ function toTurnPayload(request: RuntimeAgentTurnRequest): Record<string, unknown
   return {
     agent_id: request.agentId,
     conversation_anchor_id: request.conversationAnchorId,
+    ...(optionalString(request.requestId) ? { request_id: optionalString(request.requestId) } : {}),
     ...(optionalString(request.threadId) ? { thread_id: optionalString(request.threadId) } : {}),
     ...(optionalString(request.systemPrompt) ? { system_prompt: optionalString(request.systemPrompt) } : {}),
     ...(optionalString(request.worldId) ? { world_id: optionalString(request.worldId) } : {}),
@@ -932,15 +955,18 @@ export function createRuntimeAgentTurnsModule(input: {
         cursor: optionalString(request.cursor) || '',
         fromAppIds: [RUNTIME_AGENT_APP_ID],
       }, makeStreamOptions(subscribeBaseOptions, options?.signal));
-      const agentStreamHandle = await input.agent.subscribeEvents({
-        agentId: request.agentId,
-        cursor: optionalString(request.cursor) || '',
-        eventFilters: [AgentEventType.HOOK, AgentEventType.STATE],
-        context: {
-          appId: input.appId,
-          subjectUserId,
-        },
-      }, makeStreamOptions(options || {}, options?.signal));
+      const includeAgentEvents = request.includeAgentEvents !== false;
+      const agentStreamHandle = includeAgentEvents
+        ? await input.agent.subscribeEvents({
+          agentId: request.agentId,
+          cursor: optionalString(request.cursor) || '',
+          eventFilters: [AgentEventType.HOOK, AgentEventType.STATE],
+          context: {
+            appId: input.appId,
+            subjectUserId,
+          },
+        }, makeStreamOptions(options || {}, options?.signal))
+        : null;
 
       return {
         async *[Symbol.asyncIterator](): AsyncIterator<RuntimeAgentConsumeEvent> {
@@ -955,14 +981,17 @@ export function createRuntimeAgentTurnsModule(input: {
               }
             },
           };
-          const agentEvents = {
-            async *[Symbol.asyncIterator](): AsyncIterator<RuntimeAgentConsumeEvent> {
-              for await (const event of agentStreamHandle) {
-                yield parseAgentConsumeEvent(event);
-              }
-            },
-          };
-          for await (const event of mergeAsyncIterables([appEvents, agentEvents])) {
+          const agentEvents = agentStreamHandle
+            ? {
+              async *[Symbol.asyncIterator](): AsyncIterator<RuntimeAgentConsumeEvent> {
+                for await (const event of agentStreamHandle) {
+                  yield parseAgentConsumeEvent(event);
+                }
+              },
+            }
+            : null;
+          const sources = agentEvents ? [appEvents, agentEvents] : [appEvents];
+          for await (const event of mergeAsyncIterables(sources)) {
             if (!matchesConsumeRequest(event, request)) {
               continue;
             }

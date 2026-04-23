@@ -225,6 +225,7 @@ export type RuntimeAgentReasoningConfig = NimiReasoningConfig;
 export type RuntimeAgentTurnRequest = {
   agentId: string;
   conversationAnchorId: string;
+  requestId?: string;
   threadId?: string;
   systemPrompt?: string;
   worldId?: string;
@@ -252,6 +253,7 @@ export type RuntimeAgentConsumeRequest = {
   conversationAnchorId?: string;
   cursor?: string;
   subjectUserId?: string;
+  includeAgentEvents?: boolean;
 };
 
 export type RuntimeAgentSessionTurnSnapshot = {
@@ -298,6 +300,7 @@ export type RuntimeAgentSessionSnapshot = {
   subjectUserId?: string;
   sessionStatus?: string;
   transcriptMessageCount?: number;
+  transcript?: RuntimeAgentMessage[];
   executionBinding?: RuntimeAgentExecutionBinding;
   systemPrompt?: string;
   maxOutputTokens?: number;

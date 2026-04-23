@@ -6,6 +6,8 @@ import {
   useState,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import { asNimiError } from '@nimiplatform/sdk/runtime';
 import {
   createReadyConversationSetupState,
 } from '@nimiplatform/nimi-kit/features/chat';
@@ -20,7 +22,7 @@ import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types'
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import type { AgentLocalThreadBundle } from '@renderer/bridge/runtime-bridge/types';
 import { type RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { DesktopConversationModeHost } from './chat-mode-host-types';
+import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
   type AgentTurnLifecycleState,
 } from './chat-agent-shell-lifecycle';
@@ -34,11 +36,11 @@ import {
   RuntimeImageMessageContent,
   RuntimeVoiceMessageContent,
   createReasoningMessageContentRenderer,
-} from './chat-runtime-stream-ui';
+} from './chat-shared-runtime-stream-ui';
 import {
   getChatThinkingUnsupportedCopy,
   resolveAgentThinkingSupportFromProjection,
-} from './chat-thinking';
+} from './chat-shared-thinking';
 import {
   loadStoredAgentChatExperienceSettings,
   persistStoredAgentChatExperienceSettings,
@@ -52,6 +54,7 @@ import { resolveAgentChatBehavior } from './chat-agent-behavior-resolver';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   bundleQueryKey,
+  THREADS_QUERY_KEY,
   upsertBundleDraft,
   upsertThreadSummary,
   toErrorMessage,
@@ -59,7 +62,7 @@ import {
 import { useAgentConversationPresentation } from './chat-agent-shell-presentation';
 import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
-import { useSchedulingFeasibility } from './chat-execution-scheduling-guard';
+import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
 import { useAgentConversationHostActions } from './chat-agent-shell-host-actions';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
@@ -69,11 +72,12 @@ import { ChatAgentHistoryPanel } from './chat-agent-history-panel';
 import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voice';
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
 import { useAgentConversationMessageMenu } from './chat-agent-shell-adapter-menu';
-import { resolveAgentChatRequestedMaxOutputTokens } from './chat-ai-route-view';
+import { resolveAgentChatRequestedMaxOutputTokens } from './chat-nimi-route-view';
 import {
   buildAgentThreadMetadataUpdate,
   mergeAgentTargetWithPresentationProfile,
 } from './chat-agent-thread-model';
+import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from './chat-agent-session-hydration';
 import {
   createRuntimeAgentMemoryAdapter,
   type CanonicalMemoryBankStatus,
@@ -171,21 +175,43 @@ export function useAgentConversationModeHost(
     () => registry.require('agent-local-chat-v1'),
     [registry],
   );
-  const reportHostError = useCallback((error: unknown) => {
-    const message = toErrorMessage(error);
+  const buildHostErrorDetails = useCallback((error: unknown, action?: string, extra?: Record<string, unknown>) => {
+    const normalized = asNimiError(error, { source: 'runtime' });
+    const causeMessage = error instanceof Error && error.cause instanceof Error
+      ? error.cause.message
+      : undefined;
+    return {
+      error: toErrorMessage(error),
+      ...(action ? { action } : {}),
+      ...(typeof normalized.reasonCode === 'string' && normalized.reasonCode.trim()
+        ? { reasonCode: normalized.reasonCode.trim() }
+        : {}),
+      ...(typeof normalized.actionHint === 'string' && normalized.actionHint.trim()
+        ? { actionHint: normalized.actionHint.trim() }
+        : {}),
+      ...(causeMessage ? { causeMessage } : {}),
+      ...(extra || {}),
+    };
+  }, []);
+  const reportHostError = useCallback((error: unknown, options?: { action?: string; extra?: Record<string, unknown> }) => {
+    const details = buildHostErrorDetails(error, options?.action, options?.extra);
+    const message = [
+      String(details.error || '').trim(),
+      typeof details.reasonCode === 'string' && details.reasonCode.trim()
+        ? `[${details.reasonCode.trim()}]`
+        : '',
+    ].filter(Boolean).join(' ');
     logRendererEvent({
       level: 'error',
       area: 'agent-chat-shell',
       message: 'action:host-error',
-      details: {
-        error: message,
-      },
+      details,
     });
     setHostFeedback({
       kind: 'error',
       message,
     });
-  }, []);
+  }, [buildHostErrorDetails]);
   const thinkingSupport = useMemo(
     () => resolveAgentThinkingSupportFromProjection(textCapabilityProjection),
     [textCapabilityProjection],
@@ -228,25 +254,30 @@ export function useAgentConversationModeHost(
       const snapshot = await runtimeAgentInspect.getPublicInspect(normalizedAgentId);
       setRuntimeInspect(snapshot);
       lastInspectFetchedAgentIdRef.current = normalizedAgentId;
-    } catch (error) {
-      setRuntimeInspect(null);
-      lastInspectFetchedAgentIdRef.current = null;
-      if (options?.surfaceErrors) {
-        reportHostError(error);
-      } else {
-        logRendererEvent({
-          level: 'warn',
-          area: 'agent-chat-shell',
-          message: 'action:host-error',
-          details: {
-            error: error instanceof Error ? error.message : String(error || ''),
-          },
-        });
-      }
-    } finally {
+      } catch (error) {
+        setRuntimeInspect(null);
+        lastInspectFetchedAgentIdRef.current = null;
+        if (options?.surfaceErrors) {
+          reportHostError(error, {
+            action: 'load-runtime-agent-inspect',
+            extra: {
+              agentId: normalizedAgentId,
+            },
+          });
+        } else {
+          logRendererEvent({
+            level: 'warn',
+            area: 'agent-chat-shell',
+            message: 'action:host-error',
+            details: buildHostErrorDetails(error, 'load-runtime-agent-inspect', {
+              agentId: normalizedAgentId,
+            }),
+          });
+        }
+      } finally {
       setRuntimeInspectLoading(false);
     }
-  }, [input.authStatus, reportHostError, runtimeAgentInspect]);
+  }, [buildHostErrorDetails, input.authStatus, reportHostError, runtimeAgentInspect]);
   const refreshRuntimeInspect = useCallback(async (
     agentId: string,
     options?: { surfaceErrors?: boolean },
@@ -321,17 +352,15 @@ export function useAgentConversationModeHost(
           level: 'warn',
           area: 'agent-chat-shell',
           message: 'action:host-error',
-          details: {
-            error: error instanceof Error ? error.message : String(error || ''),
-            action: 'load-runtime-agent-presentation',
+          details: buildHostErrorDetails(error, 'load-runtime-agent-presentation', {
             agentId,
-          },
+          }),
         });
       });
     return () => {
       cancelled = true;
     };
-  }, [input.authStatus, runtimeAgentInspect, shellActiveTarget?.agentId]);
+  }, [buildHostErrorDetails, input.authStatus, runtimeAgentInspect, shellActiveTarget?.agentId]);
 
   useEffect(() => {
     const metadataUpdate = buildAgentThreadMetadataUpdate({
@@ -368,18 +397,91 @@ export function useAgentConversationModeHost(
           level: 'warn',
           area: 'agent-chat-shell',
           message: 'action:host-error',
-          details: {
-            error: error instanceof Error ? error.message : String(error || ''),
-            action: 'sync-agent-thread-target-snapshot',
+          details: buildHostErrorDetails(error, 'sync-agent-thread-target-snapshot', {
             threadId: metadataUpdate.id,
             agentId: metadataUpdate.targetSnapshot.agentId,
-          },
+          }),
         });
       });
     return () => {
       cancelled = true;
     };
-  }, [activeTarget, queryClient, selectedThreadRecord, threads]);
+  }, [activeTarget, buildHostErrorDetails, queryClient, selectedThreadRecord, threads]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const thread = selectedThreadRecord;
+    const agentId = normalizeText(activeTarget?.agentId || thread?.agentId);
+    const conversationAnchorId = normalizeText(activeConversationAnchorId);
+    if (
+      input.authStatus !== 'authenticated'
+      || !thread
+      || !agentId
+      || !conversationAnchorId
+      || isBundleLoading
+      || Boolean(bundleError)
+      || submittingThreadId === thread.id
+    ) {
+      return () => {
+        cancelled = true;
+      };
+    }
+    void getPlatformClient().runtime.agent.turns.getSessionSnapshot({
+      agentId,
+      conversationAnchorId,
+    })
+      .then((snapshot) => {
+        if (cancelled) {
+          return;
+        }
+        const currentBundle = queryClient.getQueryData<AgentLocalThreadBundle | null>(
+          bundleQueryKey(thread.id),
+        );
+        const hydratedBundle = hydrateAgentThreadBundleFromRuntimeSessionSnapshot({
+          thread,
+          bundle: currentBundle,
+          conversationAnchorId,
+          snapshot,
+          nowMs: Date.now(),
+        });
+        if (!hydratedBundle) {
+          return;
+        }
+        queryClient.setQueryData(bundleQueryKey(thread.id), hydratedBundle);
+        queryClient.setQueryData(THREADS_QUERY_KEY, (current: typeof threads | undefined) => (
+          upsertThreadSummary(current || [], hydratedBundle.thread)
+        ));
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        logRendererEvent({
+          level: 'warn',
+          area: 'agent-chat-shell',
+          message: 'action:host-error',
+          details: buildHostErrorDetails(error, 'hydrate-runtime-agent-session', {
+            threadId: thread.id,
+            conversationAnchorId,
+            agentId,
+          }),
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeConversationAnchorId,
+    activeTarget?.agentId,
+    buildHostErrorDetails,
+    bundleError,
+    input.authStatus,
+    isBundleLoading,
+    queryClient,
+    selectedThreadRecord,
+    submittingThreadId,
+    threads,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -408,9 +510,9 @@ export function useAgentConversationModeHost(
           level: 'warn',
           area: 'agent-chat-shell',
           message: 'action:host-error',
-          details: {
-            error: error instanceof Error ? error.message : String(error || ''),
-          },
+          details: buildHostErrorDetails(error, 'load-runtime-canonical-memory-status', {
+            agentId,
+          }),
         });
       })
       .finally(() => {
@@ -421,7 +523,7 @@ export function useAgentConversationModeHost(
     return () => {
       cancelled = true;
     };
-  }, [activeTarget?.agentId, input.authStatus, reportHostError, runtimeAgentMemory]);
+  }, [activeTarget?.agentId, buildHostErrorDetails, input.authStatus, reportHostError, runtimeAgentMemory]);
   useEffect(() => {
     let cancelled = false;
     const agentId = normalizeText(activeTarget?.agentId);
@@ -460,9 +562,9 @@ export function useAgentConversationModeHost(
           level: 'warn',
           area: 'agent-chat-shell',
           message: 'action:host-error',
-          details: {
-            error: error instanceof Error ? error.message : String(error || ''),
-          },
+          details: buildHostErrorDetails(error, 'load-runtime-agent-inspect-passive', {
+            agentId,
+          }),
         });
       })
       .finally(() => {
@@ -473,7 +575,7 @@ export function useAgentConversationModeHost(
     return () => {
       cancelled = true;
     };
-  }, [activeTarget?.agentId, input.authStatus, runtimeAgentInspect]);
+  }, [activeTarget?.agentId, buildHostErrorDetails, input.authStatus, runtimeAgentInspect]);
   // Coalesce event-driven state updates: buffer incoming events and flush at
   // most once per EVENTS_COALESCE_MS to reduce re-render frequency while the
   // diagnostics panel is open.  The subscription itself stays active whenever
@@ -533,9 +635,9 @@ export function useAgentConversationModeHost(
         level: 'warn',
         area: 'agent-chat-shell',
         message: 'action:host-error',
-        details: {
-          error: error instanceof Error ? error.message : String(error || ''),
-        },
+        details: buildHostErrorDetails(error, 'subscribe-runtime-agent-events', {
+          agentId,
+        }),
       });
     });
     return () => {
@@ -544,7 +646,7 @@ export function useAgentConversationModeHost(
         clearTimeout(flushTimer);
       }
     };
-  }, [activeTarget?.agentId, input.authStatus, input.diagnosticsVisible, runtimeAgentInspect]);
+  }, [activeTarget?.agentId, buildHostErrorDetails, input.authStatus, input.diagnosticsVisible, runtimeAgentInspect]);
   const handleEnableAutonomy = useCallback(() => {
     const agentId = normalizeText(activeTarget?.agentId);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
@@ -1061,6 +1163,13 @@ export function useAgentConversationModeHost(
     submittingThreadId,
     t,
   });
+  const handleDeleteCurrentThread = useCallback((threadId: string) => {
+    clearMessageContextMenu();
+    setPendingAttachmentsForThread(threadId, []);
+    clearLatestVoiceCaptureForThread(threadId);
+    void handleDeleteThread(threadId).catch(reportHostError);
+  }, [clearLatestVoiceCaptureForThread, clearMessageContextMenu, handleDeleteThread, reportHostError, setPendingAttachmentsForThread]);
+
   const presentation = useAgentConversationPresentation({
     activeTarget,
     activeThreadId,
@@ -1119,14 +1228,10 @@ export function useAgentConversationModeHost(
     thinkingSupported: thinkingSupport.supported,
     thinkingUnsupportedReason,
     agentRouteReady,
+    clearChatsTargetName: activeTarget?.displayName ?? null,
+    clearChatsDisabled: Boolean(submittingThreadId) || !activeThreadId,
+    onClearAgentHistory: activeThreadId ? () => handleDeleteCurrentThread(activeThreadId) : undefined,
   });
-
-  const handleDeleteCurrentThread = useCallback((threadId: string) => {
-    clearMessageContextMenu();
-    setPendingAttachmentsForThread(threadId, []);
-    clearLatestVoiceCaptureForThread(threadId);
-    void handleDeleteThread(threadId).catch(reportHostError);
-  }, [clearLatestVoiceCaptureForThread, clearMessageContextMenu, handleDeleteThread, reportHostError, setPendingAttachmentsForThread]);
 
   const handleUpgradeStandardMemory = useCallback(() => {
     const agentId = normalizeText(activeTarget?.agentId);
@@ -1156,25 +1261,21 @@ export function useAgentConversationModeHost(
 
   const settingsContent = useMemo(() => (
     <div className="space-y-4">
-      {presentation.settingsContent}
       {activeTarget ? (
         <ChatAgentHistoryPanel
           targetTitle={activeTarget.displayName}
-          activeThreadId={activeThreadId}
           disabled={Boolean(submittingThreadId)}
           memoryStatus={canonicalMemoryStatus}
           memoryLoading={canonicalMemoryLoading}
           onUpgradeStandardMemory={handleUpgradeStandardMemory}
-          onClearAgentHistory={handleDeleteCurrentThread}
         />
       ) : null}
+      {presentation.settingsContent}
     </div>
   ), [
     activeTarget,
-    activeThreadId,
     canonicalMemoryLoading,
     canonicalMemoryStatus,
-    handleDeleteCurrentThread,
     handleUpgradeStandardMemory,
     presentation.settingsContent,
     submittingThreadId,
