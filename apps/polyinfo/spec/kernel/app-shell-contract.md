@@ -9,7 +9,7 @@ The sector workspace is the primary home surface of Polyinfo.
 - analysts arrive in a sector workspace rather than a dashboard
 - `/` should restore the most recently active sector when possible
 - if no prior sector exists, the shell should fall back to the first available official sector
-- the user must be able to start work immediately after entry
+- if no sector can be resolved, the shell falls back to `/runtime`
 
 ## PI-SHELL-002: Standalone App Boundary
 
@@ -23,16 +23,16 @@ Polyinfo is a standalone app rather than a desktop subpage or runtime mod.
 
 Bootstrap must complete in this order:
 
-1. initialize app shell and persisted app-local settings
+1. hydrate persisted app-local state for taxonomy overlays, sector chats, snapshots, custom sectors, imported events, and last active sector
 2. read runtime defaults and shared auth session
 3. initialize platform client and runtime-backed sector-analyst capability
 4. hydrate the app-level runtime chat config used by Polyinfo analyst chat
-5. load sector catalog source and sector-local overlay objects
-6. load the active sector's narratives, core variables, and recent discussion history
-7. start initial market discovery snapshot for the active sector
-8. attach realtime market subscriptions for currently tracked markets
+5. lazily load the official sector catalog when a route needs it
+6. when a sector opens, ensure that sector has local taxonomy state and a sector chat state
+7. when a custom sector opens, refresh imported-event validity against upstream
+8. only after the user explicitly requests price analysis, fetch historical price windows and attach realtime subscriptions for the current market set
 
-Realtime subscription attachment must remain delayed until a concrete active market set exists.
+Realtime subscription attachment remains delayed until a concrete active market set exists and the user has requested price-backed analysis.
 
 ## PI-SHELL-004: Route Ownership
 
@@ -53,18 +53,19 @@ The main working surface is a chat-first analytical layout:
 
 - top bar: primary category selection for official sector roots, plus secondary utility navigation
 - left rail: second-level sectors for the selected primary category, or custom sectors when the custom workspace group is selected
-- information column: narratives, core issues, and event evidence
-- main column: sector analyst chat, proposal review, and current read
+- primary canvas: sector-local narratives, core issues, and market evidence
+- right sidebar: sector analyst chat, proposal review, and runtime notices
 
-On narrow viewports, the information column and chat column may collapse into tabs, but chat must remain the default visible surface.
+The current app keeps market evidence and taxonomy editing in the primary canvas while the analyst chat stays visible in a dedicated sidebar.
 
 ## PI-SHELL-006: Sector Workspace Is Conversational
 
-Every sector workspace must support immediate conversation.
+Every sector workspace must support sector-bound conversation.
 
-- opening a sector must make it possible to start or resume a sector-bound analyst chat without additional setup
-- the default sector chat context must already include that sector's current narratives and core variables
-- market movement views and chat must be peers in the same workspace, not separate product modes
+- opening a sector restores or initializes a sector-bound analyst chat without extra setup
+- the analyst panel is visible immediately, but price-backed analysis remains gated behind explicit `Load Prices`
+- the chat prompt is sector-bound and price analysis, when requested, uses the sector's current narratives and core variables
+- market movement views and chat remain peers in the same workspace rather than separate routes
 
 ## PI-SHELL-007: App-Local Persistence
 
@@ -75,21 +76,22 @@ Polyinfo must persist the following app-local objects:
 - sector-local core variable definitions
 - imported event records for custom sectors
 - last active sector selection
-- discussion threads
-- user-selected time window and weighting preferences
+- sector chat state
+- lightweight analysis snapshots
+- app-level runtime route selection for analyst chat
 
 Upstream market data itself remains a cacheable external projection rather than app authority.
 
 ## PI-SHELL-008: Sector Workspace Selection
 
-The user must be able to switch sectors without losing app-local taxonomy or discussion history for the previously active sector.
+The user must be able to switch sectors without losing app-local taxonomy or sector chat state for the previously active sector.
 
 Sector switch behavior must:
 
 - preserve stored narratives and core variables for each sector
-- preserve or resumably restore the latest sector analyst thread for each sector
+- preserve or resumably restore the latest sector analyst chat state for each sector
 - restore the last active sector on the next app entry when possible
-- tear down stale realtime subscriptions
+- tear down stale realtime subscriptions when the workspace unmounts or the tracked market set changes
 - load the next sector's tracked market set before reattaching realtime subscriptions
 - refresh imported-event validity when opening a custom sector
 
@@ -99,7 +101,7 @@ The shell must allow narrative and core-variable maintenance from inside the ana
 
 - the user may ask to create, edit, or retire narratives inside chat
 - the user may ask to create, edit, or retire core variables inside chat
-- proposed changes must remain reviewable before confirmation
+- analyst-originated changes are rendered as reviewable proposals before confirmation
 
 Direct panel editing may also exist, but chat-originated editing is a first-class workflow rather than a fallback.
 
@@ -117,16 +119,17 @@ Polyinfo only admits the AI analyst subset of the desktop chat shell pattern.
 
 - Polyinfo does not expose desktop human, group, or generic agent chat modes
 - the sector analyst shell may reuse desktop-style chat structure, but remains bound to sector analysis semantics
-- sector context, proposal review, taxonomy mutation, and signal snapshots remain Polyinfo-owned product behavior
+- sector context, proposal review, taxonomy mutation, and lightweight signal snapshots remain Polyinfo-owned product behavior
 
 ## PI-SHELL-010: Explanation Trace Visibility
 
-Every visible signal summary must expose an inspection path to its supporting market set.
+Every visible analysis surface must keep the live supporting market set in the same workspace.
 
-The shell must make it possible to move from:
+The current app exposes supporting context through:
 
-- sector conclusion
-- to current narratives and core issues
-- to underlying events, markets, and window comparisons
+- the selected time window control
+- the visible event list and market outcome cards
+- displayed probability deltas and activity figures
+- the sector-local narratives and core issues shown beside the market board
 
-Polyinfo must not present opaque one-line conclusions without traceable market support.
+The current app does not yet persist a separate explanation-trace inspector inside snapshot history.

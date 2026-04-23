@@ -1,5 +1,5 @@
 # Polyinfo — Signal Model
-# Authoritative source for admitted windows, weighting factors, and output types.
+# Authoritative source for admitted windows, weighting factors, and conclusion phrasing.
 
 signal_model:
   windows:
@@ -11,12 +11,17 @@ signal_model:
       label: 7 days
 
   weighting_factors:
-    - volume
+    - volume_rank_tier
     - volume24hr
     - liquidity
-    - market_recency_health
+    - spread
 
-  output_types:
+  weight_tiers:
+    - lead
+    - support
+    - watch
+
+  conclusion_tones:
     - strengthening
     - weakening
     - mixed
@@ -28,8 +33,8 @@ signal_model:
     - core_variable
 
   invariants:
-    - weighting is soft and strong rather than binary
+    - current app weighting is soft and coarse rather than a persisted deterministic scoring formula
     - low-activity markets stay visible but should not dominate major markets
-    - output types are typed records even when paired with richer natural-language explanation
+    - conclusion tones guide analyst wording but are not persisted as a separate snapshot enum
     - final analytical conclusion is produced by the sector analyst from the structured evidence package
     - analyst output must stay inside the admitted evidence boundary

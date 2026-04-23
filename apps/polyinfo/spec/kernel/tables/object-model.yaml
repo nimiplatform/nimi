@@ -3,62 +3,65 @@
 
 object_model:
   current_active_objects:
-    - Sector
-    - Narrative
-    - CoreVariable
-    - ImportedEvent
-    - SignalSnapshot
-    - DiscussionThread
+    - OfficialSectorTag
+    - CustomSectorRecord
+    - NarrativeRecord
+    - CoreVariableRecord
+    - ImportedEventRecord
+    - AnalysisSnapshot
+    - SectorChatState
 
-  sector:
-    upstream_source: official_or_custom_v1
+  official_sector_tag:
+    required_fields:
+      - id
+      - label
+      - slug
+    optional_fields:
+      - description
+      - parentSlug
+      - displayedCount
+    invariants:
+      - official sectors originate from Polymarket front-end taxonomy
+      - child sectors carry a parentSlug that points to a root sector
+
+  custom_sector_record:
     required_fields:
       - id
       - title
-      - sourceType
       - createdAt
       - updatedAt
-    optional_fields:
-      - sourceTagId
-      - description
-      - aliasGroup
-      - overlayMetadata
+    optional_fields: []
     invariants:
-      - sourceType must be one of the admitted source_types
-      - official sectors must carry a stable sourceTagId
-      - custom sectors must not require a sourceTagId
+      - custom sectors are app-local records
+      - custom sector ids remain stable once created
 
-  narrative:
+  narrative_record:
     required_fields:
       - id
-      - sectorId
       - title
       - definition
       - confirmationState
-      - createdAt
-      - updatedAt
     optional_fields:
-      - provenance
+      - keywords
     invariants:
-      - narrative belongs to exactly one sector
+      - narrative records belong to exactly one sector through the containing taxonomy overlay
+      - confirmationState must be one of the admitted confirmation_states
       - confirmed narratives require a non-empty definition
 
-  core_variable:
+  core_variable_record:
     required_fields:
       - id
-      - sectorId
       - title
       - definition
       - confirmationState
-      - createdAt
-      - updatedAt
     optional_fields:
-      - provenance
+      - keywords
     invariants:
-      - core variable belongs to exactly one sector
+      - core-variable records belong to exactly one sector through the containing taxonomy overlay
+      - confirmationState must be one of the admitted confirmation_states
       - confirmed core variables require a non-empty definition
 
-  imported_event:
+  imported_event_record:
     required_fields:
       - id
       - sectorId
@@ -77,52 +80,45 @@ object_model:
       - sourceEventId must remain stable once admitted
       - cachedEventPayload is a local cache, not a replacement for upstream truth
 
-  signal_snapshot:
+  analysis_snapshot:
     required_fields:
       - id
-      - sectorId
+      - sectorSlug
+      - sectorLabel
       - window
-      - outputType
-      - evaluatedAt
-      - taxonomyVersion
-      - includedMarketIds
-      - analystConclusion
-      - analystProfileVersion
-    optional_fields:
-      - includedEventIds
-      - narrativeIds
-      - coreVariableIds
-      - explanationTrace
+      - createdAt
+      - headline
+      - summary
+      - messageId
+    optional_fields: []
     invariants:
       - window must be one of the admitted signal windows
-      - outputType must be one of the admitted signal outputs
+      - analysis snapshots are lightweight bookmarks to assistant answers rather than full trace records
 
-  discussion_thread:
+  sector_chat_state:
     required_fields:
-      - id
-      - sectorId
-      - contextType
+      - threadId
+      - title
+      - draftText
       - createdAt
       - updatedAt
+      - messages
+      - isStreaming
+      - error
     optional_fields:
-      - narrativeId
-      - coreVariableId
-      - signalSnapshotId
-      - analystProfileVersion
+      - draftProposal
     invariants:
-      - every thread belongs to exactly one sector
-      - thread contextType must match its bound optional references
+      - one chat state is stored per sector
+      - sector chat state is sector-bound only in the current app
 
   confirmation_states:
     - proposed
     - confirmed
-    - retired
 
-  discussion_context_types:
-    - sector
-    - narrative
-    - core_variable
-    - signal_snapshot
+  proposal_actions:
+    - create
+    - update
+    - deactivate
 
   source_types:
     - polymarket_tag

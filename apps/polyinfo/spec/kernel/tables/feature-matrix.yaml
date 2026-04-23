@@ -9,16 +9,16 @@ features:
     backend-dependency: none
     external-dependency: none
     migration-source: standalone app shell pattern
-    description: Tauri app shell, routing, layout, and app store
+    description: Tauri app shell, routing, layout, persisted app store, and sector-first entry
 
   - feature: sector-catalog
     phase: 1
     priority: P0
     contract: PI-TAX-001, PI-DATA-002
     backend-dependency: none
-    external-dependency: Polymarket Gamma API
+    external-dependency: Polymarket front-end taxonomy + Gamma API
     migration-source: new
-    description: Import and cache upstream sectors and event-linked market discovery
+    description: Import and cache official sector roots and child sectors from current Polymarket navigation
 
   - feature: taxonomy-management
     phase: 1
@@ -27,7 +27,7 @@ features:
     backend-dependency: none
     external-dependency: none
     migration-source: new
-    description: Create, edit, confirm, and version narratives and core issues
+    description: Create, edit, confirm, and remove sector-local narratives and core issues without embedded version history
 
   - feature: custom-sector-import
     phase: 1
@@ -43,9 +43,9 @@ features:
     priority: P0
     contract: PI-DATA-004
     backend-dependency: none
-    external-dependency: Polymarket price history APIs
+    external-dependency: Polymarket batch price history APIs
     migration-source: new
-    description: Reconstruct canonical 24h, 48h, and 7d windows for tracked markets
+    description: Reconstruct canonical 24h, 48h, and 7d windows for tracked markets after explicit user-triggered price loading
 
   - feature: workspace-market-state
     phase: 2
@@ -54,7 +54,7 @@ features:
     backend-dependency: none
     external-dependency: Polymarket market WebSocket
     migration-source: new
-    description: Maintain live event and market movement views for the active sector workspace
+    description: Maintain live event and market movement views for the active sector workspace after price loading is enabled
 
   - feature: analysis-input-package
     phase: 2
@@ -72,16 +72,16 @@ features:
     backend-dependency: none
     external-dependency: Runtime SDK
     migration-source: new
-    description: Run the sector analyst over structured evidence to produce typed conclusions
+    description: Run the sector analyst over structured evidence and save lightweight message-linked snapshots rather than full typed signal records
 
   - feature: explanation-trace
     phase: 2
-    priority: P0
+    priority: P1
     contract: PI-SHELL-010, PI-SIGNAL-007
     backend-dependency: none
     external-dependency: none
     migration-source: new
-    description: Inspect included events, markets, window deltas, and weight impact
+    description: Keep visible events, deltas, and taxonomy beside the analyst chat; no dedicated persisted trace inspector in the current app
 
   - feature: sector-analyst-session
     phase: 3
@@ -90,7 +90,7 @@ features:
     backend-dependency: none
     external-dependency: Runtime SDK
     migration-source: nimi kit runtime chat shell
-    description: Sector-bound analyst chat that starts with sector taxonomy and current market context loaded
+    description: Sector-bound analyst chat that restores sector conversation state immediately and uses current market context after explicit price loading
 
   - feature: proposal-confirmation
     phase: 3
@@ -99,7 +99,7 @@ features:
     backend-dependency: none
     external-dependency: none
     migration-source: new
-    description: Turn agent suggestions into user-confirmed taxonomy updates
+    description: Turn agent suggestions into reviewable proposals that the user can apply or dismiss
 
   - feature: chat-initiated-structure-editing
     phase: 3
@@ -110,20 +110,29 @@ features:
     migration-source: new
     description: Create, revise, and retire narratives or core variables from inside chat
 
-  - feature: discussion-history
+  - feature: signal-history-lite
     phase: 3
     priority: P1
-    contract: PI-DISCUSS-009
+    contract: PI-SIGNAL-007..008
     backend-dependency: none
     external-dependency: none
     migration-source: new
-    description: Persist sector-bound discussion threads and proposal history
+    description: Persist recent lightweight analysis snapshots as sector-linked assistant-message bookmarks
 
-  - feature: connection-health
-    phase: 4
+  - feature: runtime-routing
+    phase: 3
+    priority: P0
+    contract: PI-SHELL-011, PI-DISCUSS-001
+    backend-dependency: Runtime SDK
+    external-dependency: none
+    migration-source: desktop runtime config subset
+    description: Configure app-level analyst routing across local models and cloud connectors
+
+  - feature: account-and-settings-summary
+    phase: 3
     priority: P1
-    contract: PI-DATA-007
+    contract: PI-SHELL-007
     backend-dependency: none
-    external-dependency: Polymarket APIs
+    external-dependency: none
     migration-source: new
-    description: Surface cache age, subscription health, reconnect state, and stale warnings
+    description: Show account session state, runtime summary, and counts for local chats and snapshots

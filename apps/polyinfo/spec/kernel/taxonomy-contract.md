@@ -4,7 +4,7 @@
 
 ## PI-TAX-001: Sector Types in V1
 
-In v1, `Sector` admits two source types:
+In the current app, `Sector` admits two source types:
 
 - official sectors sourced from Polymarket's front-end category structure
 - custom sectors created locally inside Polyinfo
@@ -41,7 +41,7 @@ Narratives and core variables may originate from:
 - agent proposal during discussion
 - imported template suggestions in future versions
 
-No proposal becomes canonical app-local taxonomy until a user confirms it.
+Agent proposals do not become canonical app-local taxonomy until a user confirms them. Direct form-based creation inside the workspace is treated as already user-confirmed input.
 
 ## PI-TAX-005: Definition Requirement
 
@@ -49,7 +49,6 @@ Every narrative and core variable must have:
 
 - a stable title
 - a one-sentence definition
-- a creation timestamp
 - a confirmation state
 
 Unnamed or undefined taxonomy objects must not be admitted into canonical app-local use.
@@ -69,21 +68,20 @@ Imported events provide evidence for analysis, but Polyinfo must not persist eve
 
 ## PI-TAX-007: Change History
 
-Narrative and core variable changes must retain edit history.
+The current app does not retain embedded edit-history versions on narrative or core-variable records.
 
-At minimum, Polyinfo must preserve:
+Current behavior is:
 
-- prior title
-- prior definition
-- changed timestamp
-- changed by user or agent-proposal-confirmation flow
+- updates overwrite the current record in place
+- deactivation removes the current record from the active overlay
+- historical context survives only indirectly through saved chat messages and lightweight snapshots
 
-Signals and discussions must remain attributable to the taxonomy version they were constructed against.
+Polyinfo therefore preserves current taxonomy state, but not full version history, in the present app.
 
 ## PI-TAX-008: Sector-Local Ownership
 
 Narratives and core variables belong to a single sector.
 
-They must not be global cross-sector objects in v1.
+They must not be global cross-sector objects in the current app.
 
 Copying or adapting taxonomy across sectors may be added later, but the current spec keeps sector-local authority explicit.

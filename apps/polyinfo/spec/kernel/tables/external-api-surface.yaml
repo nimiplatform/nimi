@@ -14,53 +14,23 @@ surfaces:
     endpoint: GET https://polymarket.com/api/tags/filteredBySlug
     purpose: Read left-rail front-end child categories for a selected root taxonomy slug
 
-  - name: gamma-tags
-    kind: rest
-    provider: polymarket
-    endpoint: GET /tags
-    purpose: Read raw upstream tag facts for secondary inspection only in v1
-
-  - name: gamma-events-by-tag
-    kind: rest
-    provider: polymarket
-    endpoint: GET /events
-    purpose: Event-first sector discovery scoped by upstream tag
-
   - name: gamma-events-keyset-by-tag-slug
     kind: rest
     provider: polymarket
     endpoint: GET /events/keyset
     purpose: Reconstruct the full front-end category event set through keyset pagination
 
-  - name: gamma-event-tags
+  - name: gamma-event-by-slug
     kind: rest
     provider: polymarket
-    endpoint: GET /events/{id}/tags
-    purpose: Confirm event-to-tag linkage
-
-  - name: gamma-market-detail
-    kind: rest
-    provider: polymarket
-    endpoint: GET /markets/{id}
-    purpose: Read market metadata, display fields, and upstream activity facts
-
-  - name: price-history
-    kind: rest
-    provider: polymarket
-    endpoint: GET /prices-history
-    purpose: Reconstruct canonical historical windows for one market
+    endpoint: GET /events/slug/{slug}
+    purpose: Resolve and cache one imported custom-sector event by its Polymarket slug
 
   - name: batch-price-history
     kind: rest
     provider: polymarket
     endpoint: POST /batch-prices-history
     purpose: Reconstruct canonical historical windows for multiple related markets
-
-  - name: event-live-volume
-    kind: rest
-    provider: polymarket
-    endpoint: GET /live-volume?id={eventId}
-    purpose: Read realtime event-local activity distribution when available
 
   - name: market-websocket
     kind: websocket

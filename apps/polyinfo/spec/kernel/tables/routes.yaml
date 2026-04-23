@@ -6,7 +6,7 @@ routes:
     feature: workspace-entry
     component: IndexRedirect
     lazy: false
-    description: Restore the last active sector workspace or fall back to the first official sector
+    description: Restore the last active sector workspace or fall back to the first official sector, then `/runtime` if nothing is available
 
   - path: /sectors
     feature: legacy-sector-entry
@@ -18,7 +18,7 @@ routes:
     feature: sector-workspace
     component: SectorWorkspacePage
     lazy: true
-    description: Chat-first sector workspace with narratives, core issues, event evidence, and sector analyst chat
+    description: Sector workspace with taxonomy editing, market board, explicit price loading, and sector analyst chat
 
   - path: /sectors/:rootSlug/:sectorId
     feature: legacy-nested-sector-entry
@@ -30,16 +30,16 @@ routes:
     feature: signal-history
     component: SignalHistoryPage
     lazy: true
-    description: Search and filter saved signal snapshots across sectors and windows
+    description: Review recent lightweight analysis snapshots saved from sector analyst answers
 
   - path: /runtime
     feature: runtime
     component: RuntimePage
     lazy: true
-    description: Configure analyst routing and model source for Polyinfo chat
+    description: Configure analyst routing, local / cloud execution source, and runtime health controls
 
   - path: /settings
     feature: settings
     component: SettingsPage
     lazy: true
-    description: Upstream connection health, refresh controls, weighting preferences, and app-local persistence settings
+    description: Account session management, current runtime summary, and app-local storage summary
