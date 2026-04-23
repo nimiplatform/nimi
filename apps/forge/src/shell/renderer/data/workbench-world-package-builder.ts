@@ -3,6 +3,12 @@ import {
   type CanonicalPublishableWorldPackage,
 } from '../../../../../../../packages/nimi-forge/src/contracts/index.js';
 import type { ForgeWorkspaceSnapshot } from '@renderer/features/workbench/types.js';
+import {
+  type WorkbenchCanonicalPublishContext,
+  resolveWorkbenchAgentPublishAssets,
+  resolveWorkbenchWorldPublishAssets,
+  type WorkbenchWorldPublishAssets,
+} from '@renderer/pages/workbench/workbench-asset-publish.js';
 
 function requireString(value: unknown, code: string): string {
   const normalized = String(value || '').trim();
@@ -65,12 +71,18 @@ function buildVoiceResources(input: {
   userId: string;
   snapshot: ForgeWorkspaceSnapshot;
   agentIdMap: Record<string, string>;
+  publishContext: WorkbenchCanonicalPublishContext;
 }) {
   const resources: CanonicalPublishableWorldPackage['resources'] = [];
   const bindings: CanonicalPublishableWorldPackage['bindings'] = [];
 
   Object.values(input.snapshot.agentDrafts).forEach((agentDraft) => {
-    if (!agentDraft.voiceDemoResourceId || !agentDraft.voiceDemoUrl) {
+    const publishAssets = resolveWorkbenchAgentPublishAssets({
+      userId: input.userId,
+      agentDraft,
+      context: input.publishContext,
+    });
+    if (!publishAssets.voiceDemoResourceId || !publishAssets.voiceDemoUrl) {
       return;
     }
     const agentId = input.agentIdMap[agentDraft.draftAgentId];
@@ -78,9 +90,9 @@ function buildVoiceResources(input: {
       return;
     }
     resources.push({
-      id: agentDraft.voiceDemoResourceId,
+      id: publishAssets.voiceDemoResourceId,
       provider: 'forge-runtime-upload',
-      storageRef: agentDraft.voiceDemoUrl,
+      storageRef: publishAssets.voiceDemoUrl,
       resourceType: 'AUDIO',
       mimeType: 'audio/mpeg',
       sizeBytes: null,
@@ -88,17 +100,17 @@ function buildVoiceResources(input: {
       height: null,
       durationSec: null,
       hashSha256: null,
-      provenance: 'forge-enrichment',
-      sourceRef: agentDraft.voiceDemoUrl,
+      provenance: 'forge-asset-ops',
+      sourceRef: publishAssets.voiceDemoUrl,
       uploaderAccountId: input.userId,
       worldId: input.worldId,
       label: `${agentDraft.displayName} voice demo`,
-      tags: ['forge-enrichment', 'voice-demo'],
+      tags: ['forge-asset-ops', 'voice-demo'],
     });
     bindings.push({
       id: deterministicId('binding', `${input.worldId}-${agentId}-voice-sample`),
       objectType: 'RESOURCE',
-      objectId: agentDraft.voiceDemoResourceId,
+      objectId: publishAssets.voiceDemoResourceId,
       hostType: 'AGENT',
       hostId: agentId,
       bindingKind: 'PRESENTATION',
@@ -107,7 +119,83 @@ function buildVoiceResources(input: {
       conditions: null,
       conditionHash: deterministicHash(`${input.worldId}-${agentId}-voice-sample`),
       intentPrompt: null,
-      tags: ['forge-enrichment', 'voice-demo'],
+      tags: ['forge-asset-ops', 'voice-demo'],
+      scopeWorldId: input.worldId,
+      createdBy: input.userId,
+      versionPin: null,
+    });
+  });
+
+  return { resources, bindings };
+}
+
+function buildWorldPresentationResources(input: {
+  worldId: string;
+  userId: string;
+  worldAssets: WorkbenchWorldPublishAssets;
+}) {
+  const coverUrl = requireString(
+    input.worldAssets.coverUrl,
+    'FORGE_WORKBENCH_PACKAGE_WORLD_COVER_REQUIRED',
+  );
+  const iconUrl = requireString(
+    input.worldAssets.iconUrl,
+    'FORGE_WORKBENCH_PACKAGE_WORLD_ICON_REQUIRED',
+  );
+  const resources: CanonicalPublishableWorldPackage['resources'] = [];
+  const bindings: CanonicalPublishableWorldPackage['bindings'] = [];
+  const resourceSpecs = [
+    {
+      resourceId: input.worldAssets.coverResourceId,
+      storageRef: coverUrl,
+      label: 'world cover',
+      bindingPoint: 'WORLD_BANNER' as const,
+      tag: 'world-cover',
+    },
+    {
+      resourceId: input.worldAssets.iconResourceId,
+      storageRef: iconUrl,
+      label: 'world icon',
+      bindingPoint: 'WORLD_ICON' as const,
+      tag: 'world-icon',
+    },
+  ];
+
+  resourceSpecs.forEach((spec) => {
+    if (!spec.resourceId || !spec.storageRef) {
+      return;
+    }
+    resources.push({
+      id: spec.resourceId,
+      provider: 'forge-runtime-upload',
+      storageRef: spec.storageRef,
+      resourceType: 'IMAGE',
+      mimeType: null,
+      sizeBytes: null,
+      width: null,
+      height: null,
+      durationSec: null,
+      hashSha256: null,
+      provenance: 'forge-asset-ops',
+      sourceRef: spec.storageRef,
+      uploaderAccountId: input.userId,
+      worldId: input.worldId,
+      label: `${input.worldId} ${spec.label}`,
+      tags: ['forge-asset-ops', spec.tag],
+    });
+    bindings.push({
+      id: deterministicId('binding', `${input.worldId}-${spec.bindingPoint.toLowerCase()}`),
+      objectType: 'RESOURCE',
+      objectId: spec.resourceId,
+      hostType: 'WORLD',
+      hostId: input.worldId,
+      bindingKind: 'PRESENTATION',
+      bindingPoint: spec.bindingPoint,
+      priority: 0,
+      conditions: null,
+      conditionHash: deterministicHash(`${input.worldId}-${spec.bindingPoint.toLowerCase()}`),
+      intentPrompt: null,
+      tags: ['forge-asset-ops', spec.tag],
       scopeWorldId: input.worldId,
       createdBy: input.userId,
       versionPin: null,
@@ -121,6 +209,7 @@ export function buildWorkbenchWorldPackage(input: {
   workspaceId: string;
   userId: string;
   snapshot: ForgeWorkspaceSnapshot;
+  publishContext: WorkbenchCanonicalPublishContext;
 }): CanonicalPublishableWorldPackage {
   const worldName = requireString(input.snapshot.worldDraft.name, 'FORGE_WORKBENCH_PACKAGE_WORLD_NAME_REQUIRED');
   const worldId = String(
@@ -137,6 +226,10 @@ export function buildWorkbenchWorldPackage(input: {
 
   const worldOwnedDrafts = Object.values(input.snapshot.agentDrafts)
     .filter((draft) => draft.ownershipType === 'WORLD_OWNED');
+  const worldAssets = resolveWorkbenchWorldPublishAssets({
+    worldDraft: input.snapshot.worldDraft,
+    context: input.publishContext,
+  });
 
   const agentIdMap = Object.fromEntries(
     worldOwnedDrafts.map((draft) => [
@@ -145,53 +238,68 @@ export function buildWorkbenchWorldPackage(input: {
     ]),
   );
 
-  const agentBlueprints = worldOwnedDrafts.map((draft) => ({
-    id: agentIdMap[draft.draftAgentId]!,
-    creatorId: input.userId,
-    worldId,
-    name: requireString(draft.displayName, 'FORGE_WORKBENCH_PACKAGE_AGENT_NAME_REQUIRED'),
-    description: requireString(draft.description, `FORGE_WORKBENCH_PACKAGE_AGENT_DESCRIPTION_REQUIRED_${draft.draftAgentId}`),
-    dna: {
-      identity: {
-        name: draft.displayName,
-        handle: draft.handle,
+  const agentBlueprints = worldOwnedDrafts.map((draft) => {
+    const publishAssets = resolveWorkbenchAgentPublishAssets({
+      userId: input.userId,
+      agentDraft: draft,
+      context: input.publishContext,
+    });
+    return {
+      id: agentIdMap[draft.draftAgentId]!,
+      creatorId: input.userId,
+      worldId,
+      name: requireString(draft.displayName, 'FORGE_WORKBENCH_PACKAGE_AGENT_NAME_REQUIRED'),
+      description: requireString(draft.description, `FORGE_WORKBENCH_PACKAGE_AGENT_DESCRIPTION_REQUIRED_${draft.draftAgentId}`),
+      dna: {
+        identity: {
+          name: draft.displayName,
+          handle: draft.handle,
+        },
+        authored: {
+          concept: draft.concept,
+        },
+        enrichment: {
+          scenario: draft.scenario,
+          greeting: publishAssets.greeting,
+        },
       },
-      authored: {
-        concept: draft.concept,
-      },
-      enrichment: {
-        scenario: draft.scenario,
-        greeting: draft.greeting,
-      },
-    },
-    dnaPrimary: requireString(draft.concept || draft.description, `FORGE_WORKBENCH_PACKAGE_AGENT_DNA_PRIMARY_REQUIRED_${draft.draftAgentId}`),
-    dnaSecondary: [draft.handle].filter(Boolean),
-    state: 'ACTIVE',
-    wakeStrategy: 'PASSIVE',
-    isAutonomous: false,
-    ownershipType: 'WORLD_OWNED',
-    ownerWorldId: worldId,
-    activeWorldId: worldId,
-    importance: 'PRIMARY',
-    accountVisibility: 'PUBLIC',
-    profileVisibility: 'PUBLIC',
-    defaultPostVisibility: 'PUBLIC',
-    dmVisibility: 'FOLLOWERS',
-    nsfwEnabled: false,
-    origin: draft.source,
-    referenceImageUrl: draft.avatarUrl,
-    visualCandidates: draft.avatarUrl ? [draft.avatarUrl] : [],
-    scenario: requireString(draft.scenario, `FORGE_WORKBENCH_PACKAGE_AGENT_SCENARIO_REQUIRED_${draft.draftAgentId}`),
-    greeting: requireString(draft.greeting, `FORGE_WORKBENCH_PACKAGE_AGENT_GREETING_REQUIRED_${draft.draftAgentId}`),
-    rules: buildAgentRulesPayload(input.snapshot, draft.draftAgentId),
-    tier: 'TIER_2' as const,
-  }));
+      dnaPrimary: requireString(draft.concept || draft.description, `FORGE_WORKBENCH_PACKAGE_AGENT_DNA_PRIMARY_REQUIRED_${draft.draftAgentId}`),
+      dnaSecondary: [draft.handle].filter(Boolean),
+      state: 'ACTIVE',
+      wakeStrategy: 'PASSIVE',
+      isAutonomous: false,
+      ownershipType: 'WORLD_OWNED',
+      ownerWorldId: worldId,
+      activeWorldId: worldId,
+      importance: 'PRIMARY',
+      accountVisibility: 'PUBLIC',
+      profileVisibility: 'PUBLIC',
+      defaultPostVisibility: 'PUBLIC',
+      dmVisibility: 'FOLLOWERS',
+      nsfwEnabled: false,
+      origin: draft.source,
+      referenceImageUrl: requireString(
+        publishAssets.avatarUrl,
+        `FORGE_WORKBENCH_PACKAGE_AGENT_AVATAR_REQUIRED_${draft.draftAgentId}`,
+      ),
+      visualCandidates: publishAssets.avatarUrl ? [publishAssets.avatarUrl] : [],
+      scenario: requireString(draft.scenario, `FORGE_WORKBENCH_PACKAGE_AGENT_SCENARIO_REQUIRED_${draft.draftAgentId}`),
+      greeting: requireString(publishAssets.greeting, `FORGE_WORKBENCH_PACKAGE_AGENT_GREETING_REQUIRED_${draft.draftAgentId}`),
+      rules: buildAgentRulesPayload(input.snapshot, draft.draftAgentId),
+      tier: 'TIER_2' as const,
+    };
+  });
 
   worldOwnedDrafts.forEach((draft) => {
-    if (!draft.voiceDemoUrl) {
+    const publishAssets = resolveWorkbenchAgentPublishAssets({
+      userId: input.userId,
+      agentDraft: draft,
+      context: input.publishContext,
+    });
+    if (!publishAssets.voiceDemoUrl) {
       throw new Error(`FORGE_WORKBENCH_PACKAGE_AGENT_VOICE_DEMO_REQUIRED_${draft.draftAgentId}`);
     }
-    if (!draft.voiceDemoResourceId) {
+    if (!publishAssets.voiceDemoResourceId) {
       throw new Error(`FORGE_WORKBENCH_PACKAGE_AGENT_VOICE_RESOURCE_REQUIRED_${draft.draftAgentId}`);
     }
   });
@@ -201,6 +309,12 @@ export function buildWorkbenchWorldPackage(input: {
     userId: input.userId,
     snapshot: input.snapshot,
     agentIdMap,
+    publishContext: input.publishContext,
+  });
+  const worldPresentationArtifacts = buildWorldPresentationResources({
+    worldId,
+    userId: input.userId,
+    worldAssets,
   });
 
   const worldRecord = {
@@ -227,8 +341,8 @@ export function buildWorkbenchWorldPackage(input: {
     scoreA: 0,
     scoreE: 0,
     scoreEwma: 0,
-    iconUrl: input.snapshot.worldDraft.iconUrl,
-    bannerUrl: input.snapshot.worldDraft.bannerUrl,
+    iconUrl: requireString(worldAssets.iconUrl, 'FORGE_WORKBENCH_PACKAGE_WORLD_ICON_REQUIRED'),
+    bannerUrl: requireString(worldAssets.coverUrl, 'FORGE_WORKBENCH_PACKAGE_WORLD_COVER_REQUIRED'),
     reviewedAt,
     reviewedBy: input.userId,
   };
@@ -321,8 +435,8 @@ export function buildWorkbenchWorldPackage(input: {
       worldLorebooks: [],
       agentLorebooks: [],
     },
-    resources: voiceArtifacts.resources,
-    bindings: voiceArtifacts.bindings,
+    resources: [...worldPresentationArtifacts.resources, ...voiceArtifacts.resources],
+    bindings: [...worldPresentationArtifacts.bindings, ...voiceArtifacts.bindings],
     worldDrafts: [{
       id: String(input.snapshot.worldDraft.draftId || deterministicId('forge-draft', `${worldId}-${input.workspaceId}`)).trim(),
       ownerUserId: input.userId,

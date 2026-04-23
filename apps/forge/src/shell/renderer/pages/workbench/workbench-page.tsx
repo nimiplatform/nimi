@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
-import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
+import {
+  useAgentListQuery,
+  useWorldOwnedAgentRosterQuery,
+} from '@renderer/hooks/use-agent-queries.js';
 import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
+import { useWorldResourceQueries } from '@renderer/hooks/use-world-queries.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 import { WorldCreatePageView } from '@renderer/pages/worlds/world-create-page.js';
 import { WorldMaintainPageView } from '@renderer/pages/worlds/world-maintain-page.js';
@@ -53,6 +57,15 @@ export default function WorkbenchPage() {
   const [publishError, setPublishError] = useState<string | null>(null);
   const imageGen = useImageGeneration();
   const [visualPrompt, setVisualPrompt] = useState('');
+  const worldId = snapshot?.worldDraft.worldId ?? '';
+
+  const worldResourceQueries = useWorldResourceQueries({
+    enabled: Boolean(snapshot) && Boolean(worldId),
+    worldId,
+    enableCollections: false,
+    enableGovernance: false,
+  });
+  const worldOwnedAgentRosterQuery = useWorldOwnedAgentRosterQuery(worldId, Boolean(snapshot) && Boolean(worldId));
 
   if (!snapshot) {
     return (
@@ -81,7 +94,26 @@ export default function WorkbenchPage() {
   };
 
   const reviewReady = useMemo(() => isWorkbenchReviewReady(snapshot), [snapshot]);
-  const completenessIssues = useMemo(() => buildWorkbenchCompletenessIssues(snapshot), [snapshot]);
+  const publishContext = useMemo(() => ({
+    worldDeliverables: worldResourceQueries.worldDeliverables,
+    agentRoster: worldOwnedAgentRosterQuery.data ?? null,
+  }), [worldOwnedAgentRosterQuery.data, worldResourceQueries.worldDeliverables]);
+  const completenessIssues = useMemo(() => buildWorkbenchCompletenessIssues({
+    snapshot,
+    userId,
+    publishContext,
+    worldAssetsLoading: worldResourceQueries.resourceBindingsQuery.isPending,
+    worldAssetsFailed: worldResourceQueries.resourceBindingsQuery.isError,
+    agentRosterLoading: worldOwnedAgentRosterQuery.isPending,
+    agentRosterFailed: worldOwnedAgentRosterQuery.isError,
+  }), [
+    publishContext,
+    snapshot,
+    worldOwnedAgentRosterQuery.isError,
+    worldOwnedAgentRosterQuery.isPending,
+    worldResourceQueries.resourceBindingsQuery.isError,
+    worldResourceQueries.resourceBindingsQuery.isPending,
+  ]);
 
   const publishReady = reviewReady && completenessIssues.length === 0 && Boolean(userId);
 
@@ -123,10 +155,21 @@ export default function WorkbenchPage() {
     let batchItemId: string | null = null;
     try {
       buildPublishPlan(workspaceId);
+      const qualityGate = completenessIssues.length === 0
+        ? {
+            status: 'PASS' as const,
+            findingCount: 0,
+          }
+        : {
+            status: 'FAIL' as const,
+            findingCount: completenessIssues.length,
+            findings: completenessIssues,
+          };
       const pkg = buildWorkbenchWorldPackage({
         workspaceId,
         userId,
         snapshot,
+        publishContext,
       });
       const packageWorld = pkg.truth.world.record;
       const batchRun = await commitActions.createBatchRunMutation.mutateAsync({
@@ -141,10 +184,7 @@ export default function WorkbenchPage() {
           canonicalTitle: packageWorld.name,
           sourceMode: pkg.meta.sourceMode,
           worldId: snapshot.worldDraft.worldId ?? undefined,
-          qualityGate: {
-            status: 'PASS',
-            findingCount: 0,
-          },
+          qualityGate,
         }],
       });
       const batchItem = batchRun.items[0];
@@ -170,10 +210,7 @@ export default function WorkbenchPage() {
         operations: {
           batchRunId: batchRun.id,
           batchItemId: batchItem.id,
-          qualityGate: {
-            status: 'PASS',
-            findingCount: 0,
-          },
+          qualityGate,
           titleLineageReason: 'Forge workbench package publish',
         },
       });

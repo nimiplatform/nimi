@@ -82,13 +82,23 @@ describe('ai-config-store (AIConfig)', () => {
     expect(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['audio.generate']).toBeUndefined();
   });
 
-  it('setSelection stores tts.synthesize in AIConfig', () => {
+  it('setSelection stores audio.synthesize in AIConfig', () => {
     useAiConfigStore.getState().setSelection('tts', {
       source: 'cloud', connectorId: 'c-tts', model: 'tts-v1',
     });
 
-    const binding = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['tts.synthesize'];
+    const binding = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['audio.synthesize'];
     expect(binding).toEqual({ source: 'cloud', connectorId: 'c-tts', model: 'tts-v1' });
+    expect(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['tts.synthesize']).toBeUndefined();
+  });
+
+  it('setSelection stores voice_workflow.tts_t2v in AIConfig', () => {
+    useAiConfigStore.getState().setSelection('voiceDesign', {
+      source: 'cloud', connectorId: 'c-voice', model: 'voice-designer-v1',
+    });
+
+    const binding = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['voice_workflow.tts_t2v'];
+    expect(binding).toEqual({ source: 'cloud', connectorId: 'c-voice', model: 'voice-designer-v1' });
   });
 
   it('persists to localStorage on setSelection', () => {
@@ -117,6 +127,57 @@ describe('ai-config-store (AIConfig)', () => {
 
   it('getBinding returns undefined for unset capability', () => {
     expect(useAiConfigStore.getState().getBinding('text.generate')).toBeUndefined();
+  });
+
+  it('getBinding reads legacy tts.synthesize as alias for audio.synthesize', () => {
+    useAiConfigStore.setState((state) => ({
+      ...state,
+      aiConfig: {
+        ...state.aiConfig,
+        capabilities: {
+          ...state.aiConfig.capabilities,
+          selectedBindings: {
+            ...state.aiConfig.capabilities.selectedBindings,
+            'tts.synthesize': { source: 'cloud', connectorId: 'legacy-tts', model: 'legacy-voice' },
+          },
+        },
+      },
+    }));
+
+    expect(useAiConfigStore.getState().getBinding('audio.synthesize')).toEqual({
+      source: 'cloud',
+      connectorId: 'legacy-tts',
+      model: 'legacy-voice',
+    });
+  });
+
+  it('canonical speech writes scrub legacy tts.synthesize drift', () => {
+    useAiConfigStore.setState((state) => ({
+      ...state,
+      aiConfig: {
+        ...state.aiConfig,
+        capabilities: {
+          ...state.aiConfig.capabilities,
+          selectedBindings: {
+            ...state.aiConfig.capabilities.selectedBindings,
+            'tts.synthesize': { source: 'cloud', connectorId: 'legacy-tts', model: 'legacy-voice' },
+          },
+        },
+      },
+    }));
+
+    useAiConfigStore.getState().setSelection('tts', {
+      source: 'local',
+      connectorId: '',
+      model: 'speech-v2',
+    });
+
+    expect(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['audio.synthesize']).toEqual({
+      source: 'local',
+      connectorId: '',
+      model: 'speech-v2',
+    });
+    expect(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['tts.synthesize']).toBeUndefined();
   });
 
   it('migrates legacy localStorage format (nimi:forge:ai-config)', () => {

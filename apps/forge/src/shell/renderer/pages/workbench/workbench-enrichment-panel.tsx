@@ -1,196 +1,93 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import {
-  ForgeEmptyState,
-  ForgeErrorBanner,
-} from '@renderer/components/page-layout.js';
+import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { ForgeEmptyState } from '@renderer/components/page-layout.js';
 import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
 import { formatDate } from '@renderer/components/format-utils.js';
-import {
-  generateAgentCopyCompletion,
-  synthesizeAndBindAgentVoiceSample,
-  synthesizeVoiceDemo,
-} from '@renderer/data/enrichment-client.js';
-import {
-  generateEntityImage,
-  uploadAndBindAgentAvatar,
-  uploadAndBindWorldBanner,
-  uploadAndBindWorldIcon,
-  uploadImageToCloudflare,
-} from '@renderer/data/image-gen-client.js';
+import { useWorldOwnedAgentRosterQuery } from '@renderer/hooks/use-agent-queries.js';
+import { useWorldResourceQueries } from '@renderer/hooks/use-world-queries.js';
+import { useAssetOpsBatchQueue } from '@renderer/hooks/use-asset-ops-batch-queue.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
-
-function computeAgentMissing(agent: {
-  description: string;
-  scenario: string;
-  greeting: string;
-  avatarUrl: string | null;
-  voiceDemoUrl: string | null;
-}): string[] {
-  const missing: string[] = [];
-  if (!agent.description.trim()) missing.push('description');
-  if (!agent.scenario.trim()) missing.push('scenario');
-  if (!agent.greeting.trim()) missing.push('greeting');
-  if (!agent.avatarUrl) missing.push('avatar');
-  if (!agent.voiceDemoUrl) missing.push('voice demo');
-  return missing;
-}
+import {
+  resolveWorkbenchAgentPublishAssets,
+  resolveWorkbenchWorldPublishAssets,
+} from './workbench-asset-publish.js';
 
 export function WorkbenchEnrichmentPanel({ workspaceId }: { workspaceId: string }) {
   const navigate = useNavigate();
+  const userId = useAppStore((state) => state.auth?.user?.id ?? '');
   const snapshot = useForgeWorkspaceStore((state) => state.workspaces[workspaceId]);
-  const patchWorldDraft = useForgeWorkspaceStore((state) => state.patchWorldDraft);
-  const updateAgentDraft = useForgeWorkspaceStore((state) => state.updateAgentDraft);
-  const [busy, setBusy] = useState(false);
-  const [statusText, setStatusText] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const agentDrafts = useMemo(
-    () => snapshot ? Object.values(snapshot.agentDrafts) : [],
-    [snapshot],
-  );
+  const batchQueue = useAssetOpsBatchQueue(workspaceId);
+  const [batchNotice, setBatchNotice] = useState<string | null>(null);
+  const worldId = snapshot?.worldDraft.worldId ?? '';
+  const worldResourceQueries = useWorldResourceQueries({
+    enabled: Boolean(worldId),
+    worldId,
+    enableCollections: false,
+    enableGovernance: false,
+  });
+  const worldOwnedAgentRosterQuery = useWorldOwnedAgentRosterQuery(worldId, Boolean(worldId));
 
   if (!snapshot) {
     return <ForgeEmptyState message="Workspace not found." />;
   }
 
-  function getLatestSnapshot() {
-    return useForgeWorkspaceStore.getState().workspaces[workspaceId];
-  }
+  const publishContext = useMemo(() => ({
+    worldDeliverables: worldResourceQueries.worldDeliverables,
+    agentRoster: worldOwnedAgentRosterQuery.data ?? null,
+  }), [worldOwnedAgentRosterQuery.data, worldResourceQueries.worldDeliverables]);
 
-  async function generateWorldVisual(target: 'world-banner' | 'world-icon') {
-    const current = getLatestSnapshot();
-    if (!current) {
-      throw new Error('FORGE_ENRICHMENT_WORKSPACE_MISSING');
-    }
-    const result = await generateEntityImage({
-      target,
-      worldName: current.worldDraft.name || current.workspace.title,
-      worldDescription: current.worldDraft.description,
+  const worldAssets = useMemo(() => resolveWorkbenchWorldPublishAssets({
+    worldDraft: snapshot.worldDraft,
+    context: publishContext,
+  }), [publishContext, snapshot.worldDraft]);
+
+  const worldOwnedAgentDrafts = useMemo(
+    () => Object.values(snapshot.agentDrafts).filter((draft) => draft.ownershipType === 'WORLD_OWNED'),
+    [snapshot.agentDrafts],
+  );
+  const activeBatchRuns = batchQueue.runs.filter((run) => run.worldId === worldId || (!run.worldId && !worldId));
+
+  const handleQueueWorldBatch = async () => {
+    const result = batchQueue.queueMissingWorldDeliverables({
+      workspaceId,
+      worldDraft: snapshot.worldDraft,
+      worldDeliverables: worldResourceQueries.worldDeliverables,
     });
-    const candidate = result.candidates[0];
-    if (!candidate) {
-      throw new Error(`FORGE_ENRICHMENT_${target.toUpperCase().replace('-', '_')}_CANDIDATE_REQUIRED`);
-    }
-    if (current.worldDraft.worldId) {
-      return target === 'world-banner'
-        ? uploadAndBindWorldBanner(current.worldDraft.worldId, candidate.url)
-        : uploadAndBindWorldIcon(current.worldDraft.worldId, candidate.url);
-    }
-    return uploadImageToCloudflare(candidate.url);
-  }
-
-  async function enrichWorldDraft() {
-    const current = getLatestSnapshot();
-    if (!current) {
-      throw new Error('FORGE_ENRICHMENT_WORKSPACE_MISSING');
-    }
-    if (!current.worldDraft.bannerUrl) {
-      setStatusText('Generating world banner...');
-      const uploaded = await generateWorldVisual('world-banner');
-      patchWorldDraft(workspaceId, { bannerUrl: uploaded.url });
-    }
-    if (!current.worldDraft.iconUrl) {
-      setStatusText('Generating world icon...');
-      const uploaded = await generateWorldVisual('world-icon');
-      patchWorldDraft(workspaceId, { iconUrl: uploaded.url });
-    }
-  }
-
-  async function enrichAgentDraft(draftAgentId: string) {
-    let current = getLatestSnapshot()?.agentDrafts[draftAgentId];
-    const latestWorkspace = getLatestSnapshot();
-    if (!current || !latestWorkspace) {
-      throw new Error('FORGE_ENRICHMENT_AGENT_DRAFT_MISSING');
-    }
-
-    const missing = computeAgentMissing(current);
-    if (missing.length === 0) {
+    if (!result.run) {
+      setBatchNotice('No missing world families to queue.');
       return;
     }
+    setBatchNotice(
+      `Queued ${result.counts.pendingCount} world batch item${result.counts.pendingCount === 1 ? '' : 's'}${result.counts.skippedCount ? ` · ${result.counts.skippedCount} skipped` : ''}.`,
+    );
+  };
 
-    if (!current.description.trim() || !current.scenario.trim() || !current.greeting.trim()) {
-      setStatusText(`Completing copy for ${current.displayName}...`);
-      const generatedCopy = await generateAgentCopyCompletion({
-        worldName: latestWorkspace.worldDraft.name || latestWorkspace.workspace.title,
-        worldDescription: latestWorkspace.worldDraft.description,
-        displayName: current.displayName,
-        concept: current.concept,
-        description: current.description,
-        scenario: current.scenario,
-        greeting: current.greeting,
-      });
-      const copyPatch = {
-        description: current.description.trim() || generatedCopy.description,
-        scenario: current.scenario.trim() || generatedCopy.scenario,
-        greeting: current.greeting.trim() || generatedCopy.greeting,
-      };
-      updateAgentDraft(workspaceId, draftAgentId, copyPatch);
-      current = { ...current, ...copyPatch };
+  const handleQueueAgentBatch = async () => {
+    const result = batchQueue.queueMissingAgentDeliverables({
+      workspaceId,
+      worldDraft: snapshot.worldDraft,
+      agentDrafts: snapshot.agentDrafts,
+      roster: worldOwnedAgentRosterQuery.data ?? null,
+    });
+    if (!result.run) {
+      setBatchNotice('No missing agent deliverables to queue.');
+      return;
     }
-
-    if (!current.avatarUrl) {
-      setStatusText(`Generating avatar for ${current.displayName}...`);
-      const imageResult = await generateEntityImage({
-        target: 'agent-avatar',
-        agentName: current.displayName,
-        agentConcept: current.concept,
-        worldName: latestWorkspace.worldDraft.name || latestWorkspace.workspace.title,
-        worldDescription: latestWorkspace.worldDraft.description,
-      });
-      const candidate = imageResult.candidates[0];
-      if (!candidate) {
-        throw new Error('FORGE_ENRICHMENT_AGENT_AVATAR_CANDIDATE_REQUIRED');
-      }
-      const uploaded = current.sourceAgentId
-        ? await uploadAndBindAgentAvatar(current.sourceAgentId, candidate.url)
-        : await uploadImageToCloudflare(candidate.url);
-      updateAgentDraft(workspaceId, draftAgentId, { avatarUrl: uploaded.url });
-      current = { ...current, avatarUrl: uploaded.url };
-    }
-
-    if (!current.voiceDemoUrl) {
-      const greetingText = current.greeting.trim();
-      if (!greetingText) {
-        throw new Error('FORGE_ENRICHMENT_AGENT_GREETING_REQUIRED');
-      }
-      setStatusText(`Synthesizing voice demo for ${current.displayName}...`);
-      const uploaded = current.sourceAgentId && current.worldId
-        ? await synthesizeAndBindAgentVoiceSample({
-          worldId: current.worldId,
-          agentId: current.sourceAgentId,
-          text: greetingText,
-        })
-        : await synthesizeVoiceDemo({ text: greetingText });
-      updateAgentDraft(workspaceId, draftAgentId, {
-        voiceDemoUrl: uploaded.url,
-        voiceDemoResourceId: uploaded.resourceId,
-      });
-    }
-  }
-
-  async function runTask(task: () => Promise<void>) {
-    setBusy(true);
-    setError(null);
-    try {
-      await task();
-      setStatusText('Enrichment complete.');
-    } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : String(nextError));
-    } finally {
-      setBusy(false);
-    }
-  }
+    setBatchNotice(
+      `Queued ${result.counts.pendingCount} agent batch item${result.counts.pendingCount === 1 ? '' : 's'}${result.counts.skippedCount ? ` · ${result.counts.skippedCount} skipped` : ''}.`,
+    );
+  };
 
   return (
     <section className="mx-auto max-w-6xl space-y-6 p-8">
       <Surface tone="card" material="glass-regular" padding="md">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">One-Click Enrichment</h2>
+            <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Canonical Review Handoff</h2>
             <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">
-              Complete missing world visuals plus agent copy, avatar, and voice demo from the current workspace draft.
+              Workbench enrichment no longer batch-generates final publish truth. Use the dedicated world and agent asset ops surfaces to review, confirm, and bind publish-facing assets.
             </p>
             <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">
               Updated {formatDate(snapshot.updatedAt)}
@@ -200,34 +97,118 @@ export function WorkbenchEnrichmentPanel({ workspaceId }: { workspaceId: string 
             <Button
               tone="secondary"
               size="sm"
-              onClick={() => void runTask(enrichWorldDraft)}
-              disabled={busy}
+              onClick={() => navigate(`/workbench/${workspaceId}?panel=WORLD_TRUTH`)}
             >
-              {busy ? 'Working...' : 'Generate Missing World Assets'}
+              Open World Editor
+            </Button>
+            {worldId ? (
+              <Button
+                tone="primary"
+                size="sm"
+                onClick={() => navigate(`/worlds/${worldId}/assets`)}
+              >
+                Open World Asset Hub
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </Surface>
+
+      <Surface tone="card" material="glass-thin" padding="md">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">
+              Batch Handoff Queue
+            </h3>
+            <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">
+              Batch generation now queues explicit asset-ops tasks. It generates candidates into canonical review flows only; it does not auto-approve, auto-confirm, or auto-bind.
+            </p>
+            {batchNotice ? (
+              <p className="mt-3 text-sm text-[var(--nimi-text-secondary)]">{batchNotice}</p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              tone="secondary"
+              size="sm"
+              onClick={() => void handleQueueWorldBatch()}
+              disabled={!worldId || worldResourceQueries.resourceBindingsQuery.isPending}
+            >
+              Queue Missing World Families
             </Button>
             <Button
               tone="primary"
               size="sm"
-              onClick={() => void runTask(async () => {
-                await enrichWorldDraft();
-                for (const agent of Object.values(getLatestSnapshot()?.agentDrafts || {})) {
-                  await enrichAgentDraft(agent.draftAgentId);
-                }
-              })}
-              disabled={busy || agentDrafts.length === 0}
+              onClick={() => void handleQueueAgentBatch()}
+              disabled={!worldId || worldOwnedAgentRosterQuery.isPending}
             >
-              {busy ? 'Working...' : 'Complete Missing World + Agents'}
+              Queue Missing Agent Deliverables
             </Button>
           </div>
         </div>
 
-        {statusText ? (
-          <p className="mt-4 rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-3 py-2 text-sm text-[var(--nimi-text-secondary)]">
-            {statusText}
-          </p>
-        ) : null}
+        {activeBatchRuns.length > 0 ? (
+          <div className="mt-5 space-y-3">
+            {activeBatchRuns.map((run) => (
+              <Surface key={run.id} tone="panel" padding="sm">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{run.label}</p>
+                    <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                      {run.status} · pending {run.items.filter((item) => item.status === 'PENDING').length}
+                      {' '}· running {run.items.filter((item) => item.status === 'RUNNING').length}
+                      {' '}· succeeded {run.items.filter((item) => item.status === 'SUCCEEDED').length}
+                      {' '}· failed {run.items.filter((item) => item.status === 'FAILED').length}
+                      {' '}· skipped {run.items.filter((item) => item.status === 'SKIPPED').length}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {run.status === 'PENDING' ? (
+                      <Button tone="secondary" size="sm" onClick={() => void batchQueue.resumeRun(run.id)}>
+                        Resume Queue
+                      </Button>
+                    ) : null}
+                    {run.items.some((item) => item.status === 'FAILED') ? (
+                      <Button tone="secondary" size="sm" onClick={() => void batchQueue.retryRun(run.id)}>
+                        Retry Failed
+                      </Button>
+                    ) : null}
+                    {run.status === 'SUCCEEDED' || run.status === 'FAILED' ? (
+                      <Button tone="ghost" size="sm" onClick={() => batchQueue.clearRun(run.id)}>
+                        Clear Run
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
 
-        {error ? <ForgeErrorBanner message={error} className="mt-4" /> : null}
+                <div className="mt-4 grid gap-2 md:grid-cols-2">
+                  {run.items.slice(0, 8).map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] px-3 py-2"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{item.label}</p>
+                        <span className="rounded-full bg-[var(--nimi-surface-panel)] px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--nimi-text-secondary)]">
+                          {item.status}
+                        </span>
+                      </div>
+                      {item.lastError ? (
+                        <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{item.lastError}</p>
+                      ) : item.resultSummary ? (
+                        <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">{item.resultSummary}</p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </Surface>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5">
+            <ForgeEmptyState message="No asset-ops batch runs for this workspace yet." />
+          </div>
+        )}
       </Surface>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
@@ -235,79 +216,108 @@ export function WorkbenchEnrichmentPanel({ workspaceId }: { workspaceId: string 
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">
-                World Completeness
+                World Asset Review
               </h3>
               <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">
-                Banner and icon are treated as first-class world deliverables.
+                Cover and icon publish readiness now come from the canonical world asset ops flow.
               </p>
             </div>
-            <Button
-              tone="ghost"
-              size="sm"
-              onClick={() => navigate(`/workbench/${workspaceId}?panel=WORLD_TRUTH`)}
-            >
-              Open World Editor
-            </Button>
+            {worldId ? (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/content/images?target=world-banner&worldId=${worldId}&worldName=${encodeURIComponent(snapshot.worldDraft.name || snapshot.workspace.title)}`)}
+                >
+                  Create Cover Candidate
+                </Button>
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/content/images?target=world-icon&worldId=${worldId}&worldName=${encodeURIComponent(snapshot.worldDraft.name || snapshot.workspace.title)}`)}
+                >
+                  Create Icon Candidate
+                </Button>
+              </div>
+            ) : null}
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <Surface tone="panel" padding="sm">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-[var(--nimi-text-primary)]">Banner</p>
-                <span className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">
-                  {snapshot.worldDraft.bannerUrl ? 'Ready' : 'Missing'}
-                </span>
-              </div>
-              <div className="mt-3 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)]">
-                {snapshot.worldDraft.bannerUrl ? (
-                  <img src={snapshot.worldDraft.bannerUrl} alt="" className="aspect-video w-full object-cover" />
-                ) : (
-                  <div className="flex aspect-video items-center justify-center text-sm text-[var(--nimi-text-muted)]">
-                    No banner yet
-                  </div>
-                )}
-              </div>
-            </Surface>
+          {!worldId ? (
+            <ForgeEmptyState message="Save or create the world first, then review cover and icon from the canonical world asset hub." />
+          ) : null}
 
-            <Surface tone="panel" padding="sm">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-[var(--nimi-text-primary)]">Icon</p>
-                <span className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">
-                  {snapshot.worldDraft.iconUrl ? 'Ready' : 'Missing'}
-                </span>
-              </div>
-              <div className="mt-3 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)]">
-                {snapshot.worldDraft.iconUrl ? (
-                  <img src={snapshot.worldDraft.iconUrl} alt="" className="aspect-square w-full object-cover" />
-                ) : (
-                  <div className="flex aspect-square items-center justify-center text-sm text-[var(--nimi-text-muted)]">
-                    No icon yet
-                  </div>
-                )}
-              </div>
-            </Surface>
-          </div>
+          {worldId ? (
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <AssetCard
+                label="Cover"
+                status={
+                  worldResourceQueries.resourceBindingsQuery.isPending
+                    ? 'Checking...'
+                    : worldAssets.coverUrl && worldAssets.coverResourceId
+                      ? 'Bound'
+                      : 'Needs Review'
+                }
+                previewUrl={worldAssets.coverUrl || snapshot.worldDraft.bannerUrl}
+                emptyLabel="No canonical cover bound yet"
+                issues={worldAssets.issues.filter((issue) => issue.toLowerCase().includes('cover'))}
+              />
+              <AssetCard
+                label="Icon"
+                status={
+                  worldResourceQueries.resourceBindingsQuery.isPending
+                    ? 'Checking...'
+                    : worldAssets.iconUrl && worldAssets.iconResourceId
+                      ? 'Bound'
+                      : 'Needs Review'
+                }
+                previewUrl={worldAssets.iconUrl || snapshot.worldDraft.iconUrl}
+                emptyLabel="No canonical icon bound yet"
+                issues={worldAssets.issues.filter((issue) => issue.toLowerCase().includes('icon'))}
+              />
+            </div>
+          ) : null}
         </Surface>
 
         <Surface tone="card" material="glass-thin" padding="md">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">
-            Agent Completeness
-          </h3>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">
+                Agent Asset Review
+              </h3>
+              <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">
+                Avatar, greeting, and voice demo must route through the canonical agent asset ops surfaces before publish.
+              </p>
+            </div>
+          </div>
+
           <div className="mt-5 space-y-4">
-            {agentDrafts.length === 0 ? (
+            {worldOwnedAgentDrafts.length === 0 ? (
               <ForgeEmptyState message="No world-owned draft agents yet." />
-            ) : agentDrafts.map((agentDraft) => {
-              const missing = computeAgentMissing(agentDraft);
+            ) : worldOwnedAgentDrafts.map((agentDraft) => {
+              const publishAssets = resolveWorkbenchAgentPublishAssets({
+                userId,
+                agentDraft,
+                context: publishContext,
+              });
+              const avatarBlocked = publishAssets.issues.some((issue) => issue.toLowerCase().includes('avatar'));
+              const greetingBlocked = publishAssets.issues.some((issue) => issue.toLowerCase().includes('greeting'));
+              const voiceDemoBlocked = publishAssets.issues.some((issue) => issue.toLowerCase().includes('voice demo'));
+              const agentId = agentDraft.sourceAgentId ?? '';
+              const studioQuery = agentId
+                ? `/content/images?target=agent-avatar&agentId=${agentId}&agentName=${encodeURIComponent(agentDraft.displayName)}&worldId=${encodeURIComponent(worldId)}&worldName=${encodeURIComponent(snapshot.worldDraft.name || snapshot.workspace.title)}`
+                : '';
               return (
                 <Surface key={agentDraft.draftAgentId} tone="panel" padding="sm">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <ForgeEntityAvatar src={agentDraft.avatarUrl} name={agentDraft.displayName} size="sm" />
+                      <ForgeEntityAvatar src={publishAssets.avatarUrl || agentDraft.avatarUrl} name={agentDraft.displayName} size="sm" />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">
                           {agentDraft.displayName}
                         </p>
-                        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">@{agentDraft.handle}</p>
+                        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                          @{agentDraft.handle}
+                        </p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -318,60 +328,70 @@ export function WorkbenchEnrichmentPanel({ workspaceId }: { workspaceId: string 
                       >
                         Open Agent
                       </Button>
-                      <Button
-                        tone="primary"
-                        size="sm"
-                        onClick={() => void runTask(() => enrichAgentDraft(agentDraft.draftAgentId))}
-                        disabled={busy || missing.length === 0}
-                      >
-                        {missing.length === 0 ? 'Complete' : 'Complete Missing'}
-                      </Button>
+                      {agentId ? (
+                        <Button
+                          tone="primary"
+                          size="sm"
+                          onClick={() => navigate(`/agents/${agentId}/assets`)}
+                        >
+                          Open Asset Hub
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {missing.length === 0 ? (
-                      <span className="rounded-full bg-[var(--nimi-status-success)]/12 px-2 py-1 text-xs text-[var(--nimi-status-success)]">
-                        Ready
-                      </span>
-                    ) : missing.map((item) => (
-                      <span
-                        key={item}
-                        className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]"
-                      >
-                        Missing {item}
-                      </span>
-                    ))}
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <StatusBlock
+                      label="Avatar"
+                      value={publishAssets.avatarUrl && !avatarBlocked ? 'Ready' : 'Needs Review'}
+                      detail={publishAssets.avatarUrl && !avatarBlocked ? 'Canonical agent profile has an explicit bound avatar winner.' : 'Route avatar review through the agent asset hub.'}
+                    />
+                    <StatusBlock
+                      label="Greeting"
+                      value={publishAssets.greeting && !greetingBlocked ? 'Ready' : 'Needs Review'}
+                      detail={publishAssets.greeting && !greetingBlocked ? publishAssets.greeting : 'Confirm a canonical greeting before publish.'}
+                    />
+                    <StatusBlock
+                      label="Voice Demo"
+                      value={publishAssets.voiceDemoUrl && publishAssets.voiceDemoResourceId && !voiceDemoBlocked ? 'Bound' : 'Needs Review'}
+                      detail={
+                        publishAssets.voiceDemoUrl && publishAssets.voiceDemoResourceId && !voiceDemoBlocked
+                          ? publishAssets.voiceDemoResourceId
+                          : 'Canonical voice-demo bind is required before publish.'
+                      }
+                    />
                   </div>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">Description</p>
-                      <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">
-                        {agentDraft.description || 'Missing'}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">Scenario</p>
-                      <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">
-                        {agentDraft.scenario || 'Missing'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
-                    <p className="text-xs uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">Greeting</p>
-                    <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">
-                      {agentDraft.greeting || 'Missing'}
-                    </p>
-                  </div>
-
-                  {agentDraft.voiceDemoUrl ? (
-                    <div className="mt-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">Voice Demo</p>
-                      <audio controls src={agentDraft.voiceDemoUrl} className="mt-2 w-full" />
+                  {publishAssets.issues.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {publishAssets.issues.map((issue) => (
+                        <span
+                          key={issue}
+                          className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]"
+                        >
+                          {issue}
+                        </span>
+                      ))}
                     </div>
                   ) : null}
+
+                  {agentId ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button tone="ghost" size="sm" onClick={() => navigate(studioQuery)}>
+                        Create Avatar Candidate
+                      </Button>
+                      <Button tone="ghost" size="sm" onClick={() => navigate(`/agents/${agentId}/assets/agent-greeting-primary`)}>
+                        Open Greeting Review
+                      </Button>
+                      <Button tone="ghost" size="sm" onClick={() => navigate(`/agents/${agentId}/assets/agent-voice-demo`)}>
+                        Open Voice Demo Review
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm text-[var(--nimi-text-muted)]">
+                      Create or link the world-owned agent record first. Asset review surfaces open only after the canonical agent id exists.
+                    </p>
+                  )}
                 </Surface>
               );
             })}
@@ -379,5 +399,63 @@ export function WorkbenchEnrichmentPanel({ workspaceId }: { workspaceId: string 
         </Surface>
       </div>
     </section>
+  );
+}
+
+function AssetCard(input: {
+  label: string;
+  status: string;
+  previewUrl: string | null;
+  emptyLabel: string;
+  issues: string[];
+}) {
+  return (
+    <Surface tone="panel" padding="sm">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{input.label}</p>
+        <span className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">
+          {input.status}
+        </span>
+      </div>
+      <div className="mt-3 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)]">
+        {input.previewUrl ? (
+          <img
+            src={input.previewUrl}
+            alt=""
+            className={`${input.label === 'Cover' ? 'aspect-video' : 'aspect-square'} w-full object-cover`}
+          />
+        ) : (
+          <div className={`${input.label === 'Cover' ? 'aspect-video' : 'aspect-square'} flex items-center justify-center text-sm text-[var(--nimi-text-muted)]`}>
+            {input.emptyLabel}
+          </div>
+        )}
+      </div>
+      {input.issues.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {input.issues.map((issue) => (
+            <span
+              key={issue}
+              className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]"
+            >
+              {issue}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </Surface>
+  );
+}
+
+function StatusBlock(input: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
+      <p className="text-xs uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">{input.label}</p>
+      <p className="mt-2 text-sm font-medium text-[var(--nimi-text-primary)]">{input.value}</p>
+      <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{input.detail}</p>
+    </div>
   );
 }

@@ -20,14 +20,19 @@ import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 // ---------------------------------------------------------------------------
 
 /** Forge UI capability keys. */
-export type ForgeAiCapability = 'text' | 'image' | 'music' | 'tts';
+export type ForgeAiCapability = 'text' | 'image' | 'music' | 'tts' | 'voiceDesign';
 
 /** Mapping from Forge UI keys to canonical runtime capability tokens. */
 const CAPABILITY_MAP: Record<ForgeAiCapability, string> = {
   text: 'text.generate',
   image: 'image.generate',
   music: 'music.generate',
-  tts: 'tts.synthesize',
+  tts: 'audio.synthesize',
+  voiceDesign: 'voice_workflow.tts_t2v',
+};
+
+const CAPABILITY_ALIASES: Partial<Record<string, readonly string[]>> = {
+  'audio.synthesize': ['tts.synthesize'],
 };
 
 /** Forge AIScopeRef per FG-ROUTE-004. */
@@ -48,6 +53,39 @@ function createDefaultAIConfigForForge(): AIConfig {
   return createEmptyAIConfig(FORGE_SCOPE_REF);
 }
 
+function getCapabilityAliasList(capability: string): readonly string[] {
+  return CAPABILITY_ALIASES[capability] ?? [];
+}
+
+function resolveStoredBinding(
+  selectedBindings: AIConfig['capabilities']['selectedBindings'],
+  capability: string,
+): RuntimeRouteBinding | null | undefined {
+  const directBinding = selectedBindings[capability];
+  if (directBinding !== undefined) return directBinding;
+
+  for (const alias of getCapabilityAliasList(capability)) {
+    const aliasBinding = selectedBindings[alias];
+    if (aliasBinding !== undefined) return aliasBinding;
+  }
+
+  return undefined;
+}
+
+function canonicalizeSelectedBindings(
+  selectedBindings: AIConfig['capabilities']['selectedBindings'],
+): AIConfig['capabilities']['selectedBindings'] {
+  const nextBindings = { ...selectedBindings };
+  const legacySpeechBinding = nextBindings['tts.synthesize'];
+  if (nextBindings['audio.synthesize'] === undefined && legacySpeechBinding !== undefined) {
+    nextBindings['audio.synthesize'] = legacySpeechBinding;
+  }
+  if ('tts.synthesize' in nextBindings) {
+    delete nextBindings['tts.synthesize'];
+  }
+  return nextBindings;
+}
+
 function migrateLegacySelections(): AIConfig | null {
   try {
     const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
@@ -60,6 +98,7 @@ function migrateLegacySelections(): AIConfig | null {
       ['text', 'text.generate'],
       ['image', 'image.generate'],
       ['music', 'music.generate'],
+      ['tts', 'audio.synthesize'],
     ] as const) {
       const old = parsed[forgeKey];
       if (old && old.model && old.model !== 'auto') {
@@ -89,7 +128,21 @@ function migrateV1DeferredSelections(stored: any): AIConfig | null {
     if (!deferred || !deferred.model) return null;
 
     const aiConfig: AIConfig = stored.aiConfig && typeof stored.aiConfig === 'object'
-      ? { ...createDefaultAIConfigForForge(), ...stored.aiConfig }
+      ? {
+          ...createDefaultAIConfigForForge(),
+          ...stored.aiConfig,
+          capabilities: {
+            ...createDefaultAIConfigForForge().capabilities,
+            ...(stored.aiConfig.capabilities && typeof stored.aiConfig.capabilities === 'object'
+              ? stored.aiConfig.capabilities
+              : {}),
+            selectedBindings: canonicalizeSelectedBindings(
+              stored.aiConfig.capabilities?.selectedBindings && typeof stored.aiConfig.capabilities.selectedBindings === 'object'
+                ? stored.aiConfig.capabilities.selectedBindings
+                : {},
+            ),
+          },
+        }
       : createDefaultAIConfigForForge();
 
     // Move deferred audio.generate selection to canonical music.generate in AIConfig
@@ -119,7 +172,21 @@ function loadPersistedAIConfig(): AIConfig {
         if (migrated) return migrated;
         // Fall through to extract aiConfig from wrapper
         if (parsed.aiConfig && typeof parsed.aiConfig === 'object') {
-          const clean = { ...createDefaultAIConfigForForge(), ...parsed.aiConfig };
+          const clean = {
+            ...createDefaultAIConfigForForge(),
+            ...parsed.aiConfig,
+            capabilities: {
+              ...createDefaultAIConfigForForge().capabilities,
+              ...(parsed.aiConfig.capabilities && typeof parsed.aiConfig.capabilities === 'object'
+                ? parsed.aiConfig.capabilities
+                : {}),
+              selectedBindings: canonicalizeSelectedBindings(
+                parsed.aiConfig.capabilities?.selectedBindings && typeof parsed.aiConfig.capabilities.selectedBindings === 'object'
+                  ? parsed.aiConfig.capabilities.selectedBindings
+                  : {},
+              ),
+            },
+          };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
           return clean;
         }
@@ -127,7 +194,21 @@ function loadPersistedAIConfig(): AIConfig {
 
       // Clean v2 format — AIConfig stored directly
       if (parsed && typeof parsed === 'object' && 'scopeRef' in parsed) {
-        return { ...createDefaultAIConfigForForge(), ...parsed };
+        const normalized = {
+          ...createDefaultAIConfigForForge(),
+          ...parsed,
+          capabilities: {
+            ...createDefaultAIConfigForForge().capabilities,
+            ...(parsed.capabilities && typeof parsed.capabilities === 'object' ? parsed.capabilities : {}),
+            selectedBindings: canonicalizeSelectedBindings(
+              parsed.capabilities?.selectedBindings && typeof parsed.capabilities.selectedBindings === 'object'
+                ? parsed.capabilities.selectedBindings
+                : {},
+            ),
+          },
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+        return normalized;
       }
     }
   } catch {
@@ -143,7 +224,13 @@ function loadPersistedAIConfig(): AIConfig {
 
 function persistAIConfig(config: AIConfig): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ...config,
+      capabilities: {
+        ...config.capabilities,
+        selectedBindings: canonicalizeSelectedBindings(config.capabilities.selectedBindings),
+      },
+    }));
   } catch {
     // ignore
   }
@@ -192,14 +279,18 @@ export const useAiConfigStore = create<AiConfigStore>((set, get) => {
 
     setCapabilityBinding(capability, binding) {
       const current = get();
+      const nextSelectedBindings = {
+        ...current.aiConfig.capabilities.selectedBindings,
+        [capability]: binding,
+      };
+      for (const alias of getCapabilityAliasList(capability)) {
+        delete nextSelectedBindings[alias];
+      }
       const aiConfig: AIConfig = {
         ...current.aiConfig,
         capabilities: {
           ...current.aiConfig.capabilities,
-          selectedBindings: {
-            ...current.aiConfig.capabilities.selectedBindings,
-            [capability]: binding,
-          },
+          selectedBindings: nextSelectedBindings,
         },
       };
       set({ aiConfig });
@@ -218,7 +309,7 @@ export const useAiConfigStore = create<AiConfigStore>((set, get) => {
     },
 
     getBinding(capability) {
-      return get().aiConfig.capabilities.selectedBindings[capability];
+      return resolveStoredBinding(get().aiConfig.capabilities.selectedBindings, capability);
     },
 
     async checkRuntimeStatus() {
@@ -240,4 +331,4 @@ export const useAiConfigStore = create<AiConfigStore>((set, get) => {
 });
 
 // Re-export for convenience
-export { CAPABILITY_MAP, FORGE_SCOPE_REF };
+export { CAPABILITY_MAP, FORGE_SCOPE_REF, resolveStoredBinding };

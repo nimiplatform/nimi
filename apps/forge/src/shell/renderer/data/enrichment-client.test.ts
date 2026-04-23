@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockTextGenerate = vi.fn();
-const mockTtsSynthesize = vi.fn();
+const mockExecuteScenario = vi.fn();
 const mockCreateAudioDirectUpload = vi.fn();
 const mockFinalizeResource = vi.fn();
-const mockBatchUpsertWorldResourceBindings = vi.fn();
 const fetchMock = vi.fn();
 
 vi.stubGlobal('fetch', fetchMock);
@@ -12,15 +11,12 @@ vi.stubGlobal('fetch', fetchMock);
 vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     runtime: {
+      appId: 'forge-app',
       ai: {
         text: {
           generate: mockTextGenerate,
         },
-      },
-      media: {
-        tts: {
-          synthesize: mockTtsSynthesize,
-        },
+        executeScenario: mockExecuteScenario,
       },
     },
   }),
@@ -45,10 +41,6 @@ vi.mock('@renderer/hooks/use-ai-config.js', () => ({
 vi.mock('./content-data-client.js', () => ({
   createAudioDirectUpload: mockCreateAudioDirectUpload,
   finalizeResource: mockFinalizeResource,
-}));
-
-vi.mock('./world-data-client.js', () => ({
-  batchUpsertWorldResourceBindings: mockBatchUpsertWorldResourceBindings,
 }));
 
 const enrichmentClient = await import('./enrichment-client.js');
@@ -99,13 +91,20 @@ describe('enrichment-client', () => {
     })).rejects.toThrow('FORGE_AGENT_ENRICHMENT_JSON_REQUIRED');
   });
 
-  it('synthesizes, uploads, and binds an agent voice sample', async () => {
-    mockTtsSynthesize.mockResolvedValue({
-      artifacts: [{
-        artifactId: 'voice-artifact-1',
-        uri: 'https://artifact.example.com/voice.mp3',
-        mimeType: 'audio/mpeg',
-      }],
+  it('synthesizes and uploads an agent voice sample without direct bind side effects', async () => {
+    mockExecuteScenario.mockResolvedValue({
+      output: {
+        output: {
+          oneofKind: 'speechSynthesize',
+          speechSynthesize: {
+            artifacts: [{
+              artifactId: 'voice-artifact-1',
+              uri: 'https://artifact.example.com/voice.mp3',
+              mimeType: 'audio/mpeg',
+            }],
+          },
+        },
+      },
     });
     mockCreateAudioDirectUpload.mockResolvedValue({
       uploadUrl: 'https://upload.example.com/audio',
@@ -127,30 +126,26 @@ describe('enrichment-client', () => {
       throw new Error(`Unexpected fetch: ${String(input)}`);
     });
 
-    const result = await enrichmentClient.synthesizeAndBindAgentVoiceSample({
-      worldId: 'world-1',
-      agentId: 'agent-1',
+    const result = await enrichmentClient.synthesizeAgentVoiceSample({
       text: 'State your purpose at the gate.',
     });
 
-    expect(mockTtsSynthesize).toHaveBeenCalledWith(expect.objectContaining({
-      model: 'tts-model',
-      connectorId: 'connector-tts',
-      route: 'local',
-      text: 'State your purpose at the gate.',
-      audioFormat: 'mp3',
+    expect(mockExecuteScenario).toHaveBeenCalledWith(expect.objectContaining({
+      head: expect.objectContaining({
+        modelId: 'tts-model',
+        connectorId: 'connector-tts',
+      }),
+      scenarioType: expect.anything(),
+      spec: expect.objectContaining({
+        spec: expect.objectContaining({
+          oneofKind: 'speechSynthesize',
+          speechSynthesize: expect.objectContaining({
+            text: 'State your purpose at the gate.',
+            audioFormat: 'mp3',
+          }),
+        }),
+      }),
     }));
-    expect(mockBatchUpsertWorldResourceBindings).toHaveBeenCalledWith('world-1', {
-      bindingUpserts: [{
-        objectType: 'RESOURCE',
-        objectId: 'resource-a1',
-        hostType: 'AGENT',
-        hostId: 'agent-1',
-        bindingKind: 'PRESENTATION',
-        bindingPoint: 'AGENT_VOICE_SAMPLE',
-        priority: 0,
-      }],
-    });
     expect(result).toEqual({
       resourceId: 'resource-a1',
       url: 'https://cdn.example.com/audio.mp3',

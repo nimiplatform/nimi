@@ -2,10 +2,15 @@
  * AI Config Resolution
  *
  * Resolves the user's AI selection into parameters suitable for runtime AI calls.
- * All capabilities read from AIConfig.capabilities.selectedBindings.
+ * Speech reads use audio.synthesize canonically and accept legacy tts.synthesize as an alias.
  */
 
-import { useAiConfigStore, CAPABILITY_MAP, type ForgeAiCapability } from '@renderer/state/ai-config-store.js';
+import {
+  useAiConfigStore,
+  CAPABILITY_MAP,
+  resolveStoredBinding,
+  type ForgeAiCapability,
+} from '@renderer/state/ai-config-store.js';
 
 export type ResolvedAiParams = {
   model: string;
@@ -19,7 +24,7 @@ export type ResolvedAiParams = {
 export function getResolvedAiParams(capability: ForgeAiCapability): ResolvedAiParams {
   const store = useAiConfigStore.getState();
   const canonicalCap = CAPABILITY_MAP[capability];
-  const binding = store.aiConfig.capabilities.selectedBindings[canonicalCap];
+  const binding = resolveStoredBinding(store.aiConfig.capabilities.selectedBindings, canonicalCap);
 
   if (!binding || typeof binding !== 'object') {
     return { model: '', connectorId: '', source: undefined, route: undefined };
@@ -36,7 +41,7 @@ export function getResolvedAiParams(capability: ForgeAiCapability): ResolvedAiPa
 export function useResolvedAiParams(capability: ForgeAiCapability): ResolvedAiParams {
   const canonicalCap = CAPABILITY_MAP[capability];
   const binding = useAiConfigStore((s) =>
-    s.aiConfig.capabilities.selectedBindings[canonicalCap],
+    resolveStoredBinding(s.aiConfig.capabilities.selectedBindings, canonicalCap),
   );
 
   if (!binding || typeof binding !== 'object') {

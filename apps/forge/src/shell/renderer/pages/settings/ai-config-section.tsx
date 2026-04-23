@@ -1,7 +1,7 @@
 /**
  * AI Configuration Section for Settings Page
  *
- * All capabilities (text.generate, image.generate, music.generate, tts.synthesize) use the
+ * All capabilities (text.generate, image.generate, music.generate, audio.synthesize) use the
  * snapshot-driven provider backed by runtime.route.listOptions (FG-ROUTE-001/005).
  */
 
@@ -18,6 +18,7 @@ import { RouteModelPickerPanel } from '@nimiplatform/nimi-kit/features/model-pic
 import { Button, SettingsCard, SettingsSectionTitle, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
   useAiConfigStore,
+  resolveStoredBinding,
   type ForgeAiCapability,
 } from '@renderer/state/ai-config-store.js';
 
@@ -38,7 +39,8 @@ const CAPABILITIES: CapabilityEntry[] = [
   { key: 'text', labelKey: 'settings.aiText', fallback: 'Chat Model', runtimeCapability: 'text.generate' },
   { key: 'image', labelKey: 'settings.aiImage', fallback: 'Image Model', runtimeCapability: 'image.generate' },
   { key: 'music', labelKey: 'settings.aiMusic', fallback: 'Music Model', runtimeCapability: 'music.generate' },
-  { key: 'tts', labelKey: 'settings.aiTts', fallback: 'TTS Model', runtimeCapability: 'tts.synthesize' },
+  { key: 'tts', labelKey: 'settings.aiTts', fallback: 'Speech Model', runtimeCapability: 'audio.synthesize' },
+  { key: 'voiceDesign', labelKey: 'settings.aiVoiceDesign', fallback: 'Voice Design Model', runtimeCapability: 'voice_workflow.tts_t2v' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -160,7 +162,7 @@ function ForgeCapabilityModelPanel({
   const setSelection = useAiConfigStore((s) => s.setSelection);
 
   const binding = useAiConfigStore((s) =>
-    s.aiConfig.capabilities.selectedBindings[runtimeCapability],
+    resolveStoredBinding(s.aiConfig.capabilities.selectedBindings, runtimeCapability),
   );
 
   const providerRef = useRef<RouteModelPickerDataProvider | null>(null);
