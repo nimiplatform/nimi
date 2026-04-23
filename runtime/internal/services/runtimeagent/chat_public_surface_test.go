@@ -436,6 +436,7 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"agent_id":               "agent-alpha",
 			"conversation_anchor_id": anchorID,
+			"request_id":             "desktop-turn-request-1",
 			"thread_id":              "thread-1",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -466,6 +467,10 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 	}
 	if _, ok := acceptedPayload["stream_id"].(string); !ok {
 		t.Fatalf("expected accepted envelope stream_id, got=%v", acceptedPayload)
+	}
+	acceptedDetail := publicChatTurnDetail(t, accepted)
+	if got := acceptedDetail["request_id"]; got != "desktop-turn-request-1" {
+		t.Fatalf("expected accepted.detail.request_id to echo request payload correlation id, got=%v", acceptedDetail)
 	}
 	// session/transcript/execution truth must NOT live on turn events per yaml.
 	for _, banned := range []string{"session_status", "transcript_message_count", "execution_binding", "model_resolved", "trace_id", "stream_sequence", "thread_id", "turn_origin"} {
@@ -547,6 +552,98 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 	}
 	if got := memoryResp.GetMemories()[0].GetRecord().GetPayload().(*runtimev1.MemoryRecord_Observational).Observational.GetObservation(); got != "hello from runtime" {
 		t.Fatalf("unexpected dyadic memory observation: %q", got)
+	}
+}
+
+func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(ctx context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			select {
+			case <-time.After(25 * time.Millisecond):
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+			envelope := publicChatStructuredEnvelopeJSON("message-detached", "detached execution survived ingress cancellation")
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				TraceId:   "trace-detached-public-chat",
+				Payload: &runtimev1.StreamScenarioEvent_Started{
+					Started: &runtimev1.ScenarioStreamStarted{
+						ModelResolved: "qwen3-chat",
+						RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				TraceId:   "trace-detached-public-chat",
+				Payload: &runtimev1.StreamScenarioEvent_Delta{
+					Delta: &runtimev1.ScenarioStreamDelta{
+						Delta: &runtimev1.ScenarioStreamDelta_Text{
+							Text: &runtimev1.TextStreamDelta{Text: envelope},
+						},
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			return emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+				TraceId:   "trace-detached-public-chat",
+				Payload: &runtimev1.StreamScenarioEvent_Completed{
+					Completed: &runtimev1.ScenarioStreamCompleted{
+						FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+					},
+				},
+			})
+		},
+	})
+
+	parent, cancel := context.WithCancel(context.Background())
+	err := svc.ConsumePublicChatAppMessage(parent, &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"agent_id":               "agent-alpha",
+			"conversation_anchor_id": anchorID,
+			"thread_id":              "thread-detached-context",
+			"messages": []any{
+				map[string]any{"role": "user", "content": "hello"},
+			},
+			"execution_binding": map[string]any{
+				"route":    "local",
+				"model_id": "local/default",
+			},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
+	}
+	cancel()
+
+	capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	capture.waitForMessageType(t, publicChatTurnStartedType)
+	capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+	capture.waitForMessageType(t, publicChatTurnCompletedType)
+
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-detached-context")
+	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
+	if got := lastTurn["status"]; got != publicChatTurnStatusCompleted {
+		t.Fatalf("expected completed last_turn after ingress context cancellation, got=%v", lastTurn)
+	}
+	if got := lastTurn["text"]; got != "detached execution survived ingress cancellation" {
+		t.Fatalf("unexpected completed text after ingress context cancellation, got=%v", lastTurn)
 	}
 }
 
@@ -828,6 +925,18 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	if got := terminalSnap["transcript_message_count"]; got != float64(2) {
 		t.Fatalf("expected transcript count 2, got=%v", terminalSnap)
 	}
+	transcript, ok := terminalSnap["transcript"].([]any)
+	if !ok || len(transcript) != 2 {
+		t.Fatalf("expected transcript payload with 2 messages, got=%v", terminalSnap["transcript"])
+	}
+	firstMessage, ok := transcript[0].(map[string]any)
+	if !ok || firstMessage["role"] != "user" || firstMessage["content"] != "hello" {
+		t.Fatalf("expected first transcript message to preserve user hello, got=%v", transcript[0])
+	}
+	secondMessage, ok := transcript[1].(map[string]any)
+	if !ok || secondMessage["role"] != "assistant" || secondMessage["content"] != "snapshot complete" {
+		t.Fatalf("expected second transcript message to preserve assistant completion, got=%v", transcript[1])
+	}
 }
 
 func TestPublicChatTurnRequestAllowsRouteOmissionWhenRuntimeResolvesBinding(t *testing.T) {
@@ -840,6 +949,9 @@ func TestPublicChatTurnRequestAllowsRouteOmissionWhenRuntimeResolvesBinding(t *t
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, req *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			if req.AppID != "desktop.app" {
+				t.Fatalf("expected public chat execution request to preserve caller app id, got=%q", req.AppID)
+			}
 			if req.Binding.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 				t.Fatalf("expected runtime-resolved local route, got=%v", req.Binding.RoutePolicy)
 			}
@@ -1020,6 +1132,20 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 	failedDetail := publicChatTurnDetail(t, failed)
 	if got := failedDetail["reason_code"]; got != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
 		t.Fatalf("expected AI_OUTPUT_INVALID failed.detail.reason_code, got=%v", failedDetail)
+	}
+	if got := strings.TrimSpace(fmt.Sprint(failedDetail["message"])); got == "" {
+		t.Fatalf("expected failed.detail.message to carry structured parse detail, got=%v", failedDetail)
+	}
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-invalid-structured")
+	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
+	if got := lastTurn["status"]; got != publicChatTurnStatusFailed {
+		t.Fatalf("expected failed last_turn after structured parse error, got=%v", lastTurn)
+	}
+	if got := lastTurn["reason_code"]; got != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
+		t.Fatalf("expected snapshot last_turn.reason_code=AI_OUTPUT_INVALID, got=%v", lastTurn)
+	}
+	if got := strings.TrimSpace(fmt.Sprint(lastTurn["message"])); got == "" {
+		t.Fatalf("expected snapshot last_turn.message to preserve parse detail, got=%v", lastTurn)
 	}
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }

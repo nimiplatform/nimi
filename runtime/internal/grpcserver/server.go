@@ -310,7 +310,12 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	appSvc := appservice.New(logger, appservice.WithSessionValidator(authSvc))
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
-	agentSvc.SetPublicChatAppEmitter(appSvc.SendAppMessage)
+	agentSvc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
+		if req == nil {
+			return appSvc.SendAppMessage(ctx, req)
+		}
+		return appSvc.SendAppMessage(appservice.WithTrustedInternalCaller(ctx, req.GetFromAppId()), req)
+	})
 	runtimev1.RegisterRuntimeAppServiceServer(g, appSvc) // Phase 2 Draft
 
 	s := &Server{

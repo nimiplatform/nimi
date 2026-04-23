@@ -263,6 +263,114 @@ func TestRuntimeAgentSetAutonomyConfigDoesNotImplicitlyEnable(t *testing.T) {
 	}
 }
 
+func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-presentation-profile",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	resp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		AgentId: "agent-presentation-profile",
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
+			Profile: &runtimev1.AgentPresentationProfile{
+				BackendKind:           runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_LIVE2D,
+				AvatarAssetRef:        "  avatar://airi/live2d/main  ",
+				ExpressionProfileRef:  " expressions://airi/default ",
+				IdlePreset:            " idle.soft ",
+				InteractionPolicyRef:  " interaction://airi/v1 ",
+				DefaultVoiceReference: " voice://airi/default ",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SetAgentPresentationProfile(set): %v", err)
+	}
+	if got := resp.GetProfile().GetAvatarAssetRef(); got != "avatar://airi/live2d/main" {
+		t.Fatalf("unexpected normalized avatar_asset_ref: %q", got)
+	}
+
+	agentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{AgentId: "agent-presentation-profile"})
+	if err != nil {
+		t.Fatalf("GetAgent: %v", err)
+	}
+	presentation := agentResp.GetAgent().GetMetadata().GetFields()["presentationProfile"].GetStructValue().GetFields()
+	if got := presentation["backendKind"].GetStringValue(); got != "live2d" {
+		t.Fatalf("unexpected backendKind metadata: %q", got)
+	}
+	if got := presentation["avatarAssetRef"].GetStringValue(); got != "avatar://airi/live2d/main" {
+		t.Fatalf("unexpected avatarAssetRef metadata: %q", got)
+	}
+	if got := presentation["defaultVoiceReference"].GetStringValue(); got != "voice://airi/default" {
+		t.Fatalf("unexpected defaultVoiceReference metadata: %q", got)
+	}
+
+	clearResp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		AgentId: "agent-presentation-profile",
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Clear{
+			Clear: &runtimev1.ClearAgentPresentationProfile{},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SetAgentPresentationProfile(clear): %v", err)
+	}
+	if clearResp.GetProfile() != nil {
+		t.Fatalf("expected cleared profile response, got %#v", clearResp.GetProfile())
+	}
+
+	clearedAgentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{AgentId: "agent-presentation-profile"})
+	if err != nil {
+		t.Fatalf("GetAgent after clear: %v", err)
+	}
+	if metadata := clearedAgentResp.GetAgent().GetMetadata(); metadata != nil {
+		if _, ok := metadata.GetFields()["presentationProfile"]; ok {
+			t.Fatalf("expected presentationProfile metadata removed, got %#v", metadata)
+		}
+	}
+}
+
+func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-presentation-profile-invalid",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	_, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		AgentId: "agent-presentation-profile-invalid",
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
+			Profile: &runtimev1.AgentPresentationProfile{
+				BackendKind:    runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED,
+				AvatarAssetRef: "avatar://invalid",
+			},
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid backend to fail with InvalidArgument, got %v", err)
+	}
+
+	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		AgentId: "agent-presentation-profile-invalid",
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
+			Profile: &runtimev1.AgentPresentationProfile{
+				BackendKind:    runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
+				AvatarAssetRef: "   ",
+			},
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected empty avatar_asset_ref to fail with InvalidArgument, got %v", err)
+	}
+}
+
 func TestRuntimeAgentEnableAutonomyNoopWhenModeOff(t *testing.T) {
 	t.Parallel()
 
@@ -4356,6 +4464,9 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 	if len(fakeAI.requests) != 1 {
 		t.Fatalf("expected one AI request, got %d", len(fakeAI.requests))
 	}
+	if got := fakeAI.requests[0].GetHead().GetAppId(); got != chatTrackSidecarExecutorAppID {
+		t.Fatalf("expected direct chat sidecar execution to use internal app id, got=%q", got)
+	}
 
 	posture, err := svc.GetBehavioralPosture(ctx, "agent-chat-exec")
 	if err != nil {
@@ -4396,6 +4507,57 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 	}
 	if len(queryResp.GetMemories()) == 0 {
 		t.Fatalf("expected chat sidecar memory write, got %#v", queryResp.GetMemories())
+	}
+}
+
+func TestRuntimeAgentConsumeChatTrackSidecarAppMessagePreservesCallerAppIDForAIExecution(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-chat-sidecar-caller-app",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	fakeAI := &fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{
+						Text: `{"behavioral_posture":null,"cancel_pending_hook_ids":[],"next_hook_intent":null,"canonical_memory_candidates":[]}`,
+					},
+				},
+			},
+		},
+	}
+	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(fakeAI))
+
+	err := svc.ConsumeChatTrackSidecarAppMessage(ctx, &runtimev1.AppMessageEvent{
+		FromAppId:   "desktop.app",
+		ToAppId:     "runtime.agent.internal.chat_track_sidecar",
+		MessageType: "agent.chat_track.sidecar_input.v1",
+		Payload: &structpb.Struct{Fields: map[string]*structpb.Value{
+			"agent_id":        structpb.NewStringValue("agent-chat-sidecar-caller-app"),
+			"source_event_id": structpb.NewStringValue("turn-sidecar-caller-app"),
+			"thread_id":       structpb.NewStringValue("thread-caller-app"),
+			"messages": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{
+				structpb.NewStructValue(&structpb.Struct{Fields: map[string]*structpb.Value{
+					"role":    structpb.NewStringValue("user"),
+					"content": structpb.NewStringValue("please stay engaged"),
+				}}),
+			}}),
+		}},
+	})
+	if err != nil {
+		t.Fatalf("ConsumeChatTrackSidecarAppMessage: %v", err)
+	}
+	if len(fakeAI.requests) != 1 {
+		t.Fatalf("expected one AI request, got %d", len(fakeAI.requests))
+	}
+	if got := fakeAI.requests[0].GetHead().GetAppId(); got != "desktop.app" {
+		t.Fatalf("expected sidecar ingress AI execution to preserve caller app id, got=%q", got)
 	}
 }
 

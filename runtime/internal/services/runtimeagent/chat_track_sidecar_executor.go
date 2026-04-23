@@ -23,12 +23,14 @@ const (
 )
 
 type ChatTrackSidecarExecutionRequest struct {
+	CallerAppID   string
 	AgentID       string
 	SourceEventID string
 	Messages      []*runtimev1.ChatMessage
 }
 
 type ChatTrackSidecarExecutorRequest struct {
+	CallerAppID   string
 	Agent         *runtimev1.AgentRecord
 	State         *runtimev1.AgentStateProjection
 	SourceEventID string
@@ -114,7 +116,7 @@ func buildChatTrackSidecarScenarioRequest(req *ChatTrackSidecarExecutorRequest) 
 	}
 	return &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         chatTrackSidecarExecutorAppID,
+			AppId:         firstNonEmpty(strings.TrimSpace(req.CallerAppID), chatTrackSidecarExecutorAppID),
 			SubjectUserId: subjectUserID,
 			ModelId:       chatTrackSidecarExecutorModelID,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,

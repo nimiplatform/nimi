@@ -628,6 +628,25 @@ func (s *blockingAppMessageStream) Context() context.Context     { return s.ctx 
 func (s *blockingAppMessageStream) SendMsg(any) error            { return nil }
 func (s *blockingAppMessageStream) RecvMsg(any) error            { return nil }
 
+type headerTrackingAppMessageStream struct {
+	ctx        context.Context
+	headerSent chan struct{}
+}
+
+func (s *headerTrackingAppMessageStream) Send(*runtimev1.AppMessageEvent) error { return nil }
+func (s *headerTrackingAppMessageStream) SetHeader(metadata.MD) error            { return nil }
+func (s *headerTrackingAppMessageStream) SendHeader(metadata.MD) error {
+	select {
+	case s.headerSent <- struct{}{}:
+	default:
+	}
+	return nil
+}
+func (s *headerTrackingAppMessageStream) SetTrailer(metadata.MD) {}
+func (s *headerTrackingAppMessageStream) Context() context.Context { return s.ctx }
+func (s *headerTrackingAppMessageStream) SendMsg(any) error { return nil }
+func (s *headerTrackingAppMessageStream) RecvMsg(any) error { return nil }
+
 func waitForAppEvents(stream *appMessageStreamCollector, target int, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
@@ -642,4 +661,74 @@ func waitForAppEvents(stream *appMessageStreamCollector, target int, timeout tim
 	stream.mu.Lock()
 	defer stream.mu.Unlock()
 	return len(stream.events) >= target
+}
+
+func TestSubscribeAppMessagesSendsHeadersBeforeFirstEvent(t *testing.T) {
+	svc := newTestService()
+	ctx, cancel := context.WithCancel(appContext("app-a"))
+	defer cancel()
+
+	stream := &headerTrackingAppMessageStream{
+		ctx:        ctx,
+		headerSent: make(chan struct{}, 1),
+	}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{AppId: "app-a"}, stream)
+	}()
+
+	select {
+	case <-stream.headerSent:
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("expected subscribe app messages to send headers before first event")
+	}
+
+	cancel()
+
+	select {
+	case err := <-done:
+		if err != nil && !errors.Is(err, context.Canceled) {
+			t.Fatalf("SubscribeAppMessages returned unexpected error after cancel: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("SubscribeAppMessages did not stop after context cancellation")
+	}
+}
+
+func TestSendAppMessageTrustedInternalCallerBypassesSessionValidation(t *testing.T) {
+	authSvc := authservice.New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(WithSessionValidator(authSvc))
+
+	ctx := WithTrustedInternalCaller(context.Background(), "runtime.agent")
+	resp, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
+		FromAppId:     "runtime.agent",
+		ToAppId:       "nimi.desktop",
+		SubjectUserId: "user-1",
+		MessageType:   "runtime.agent.turn.accepted",
+	})
+	if err != nil {
+		t.Fatalf("SendAppMessage trusted internal caller: %v", err)
+	}
+	if !resp.GetAccepted() {
+		t.Fatalf("expected accepted response, got %#v", resp)
+	}
+}
+
+func TestSendAppMessageTrustedInternalCallerRequiresMatchingAppID(t *testing.T) {
+	authSvc := authservice.New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(WithSessionValidator(authSvc))
+
+	ctx := WithTrustedInternalCaller(context.Background(), "runtime.agent")
+	_, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
+		FromAppId:     "runtime.agent.other",
+		ToAppId:       "nimi.desktop",
+		SubjectUserId: "user-1",
+		MessageType:   "runtime.agent.turn.accepted",
+	})
+	if status.Code(err) != codes.Unauthenticated {
+		t.Fatalf("expected unauthenticated for mismatched trusted caller, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_NOT_REGISTERED.String() {
+		t.Fatalf("unexpected reason for mismatched trusted caller: %s", status.Convert(err).Message())
+	}
 }

@@ -95,7 +95,10 @@ func (r publicChatRuntime) handleTurnRequest(
 	); err != nil {
 		return err
 	}
-	requestID := strings.TrimSpace(event.GetMessageId())
+	requestID := strings.TrimSpace(req.RequestID)
+	if requestID == "" {
+		requestID = strings.TrimSpace(event.GetMessageId())
+	}
 	r.svc.setPublicChatTurnRequestID(turn.TurnID, requestID)
 	turn.RequestID = requestID
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnAcceptedType, publicChatAcceptedDetail(requestID)); err != nil {
@@ -157,6 +160,7 @@ func (r publicChatRuntime) handleSessionSnapshotRequest(
 		"subject_user_id":          session.SubjectUserID,
 		"session_status":           publicChatSessionStatus(activeTurn, pendingFollowUp),
 		"transcript_message_count": len(session.Transcript),
+		"transcript":               publicChatMessageEnvelopePayloads(session.Transcript),
 		"execution_binding":        publicChatExecutionBindingProjectionPayload(session.Binding),
 	}
 	if trimmed := strings.TrimSpace(req.RequestID); trimmed != "" {
@@ -216,7 +220,7 @@ func (r publicChatRuntime) runTurn(
 	traceID := ""
 
 	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
-		AppID:         publicChatRuntimeAppID,
+		AppID:         session.CallerAppID,
 		SubjectUserID: session.SubjectUserID,
 		Messages:      toProtoPublicChatMessages(req.Messages),
 		SystemPrompt:  strings.TrimSpace(req.SystemPrompt),
@@ -381,6 +385,16 @@ func (r publicChatRuntime) runTurn(
 	}
 	structured, parseErr := parsePublicChatStructuredEnvelope(accumulatedText.String())
 	if parseErr != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("public chat structured parse failed",
+				"agent_id", session.AgentID,
+				"turn_id", turn.TurnID,
+				"trace_id", traceID,
+				"model_resolved", modelResolved,
+				"route_decision", routeDecision.String(),
+				"error", parseErr,
+			)
+		}
 		r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 			projection.Status = publicChatTurnStatusFailed
 			projection.TraceID = traceID
@@ -560,9 +574,12 @@ func (r publicChatRuntime) reserveTurn(
 		session.Transcript = transcript
 	}
 
-	if parent == nil {
-		parent = context.Background()
-	}
+	// Public chat turn execution is asynchronous relative to the ingress
+	// app-message handler. The runtime-owned turn context must therefore not
+	// inherit the handler/request lifetime; otherwise the handler returning can
+	// cancel the turn before AI execution even starts and surface false
+	// AI_PROVIDER_UNAVAILABLE failures from downstream scheduler/provider paths.
+	parent = context.Background()
 	turnID := "agent_turn_" + ulid.Make().String()
 	streamID := "agent_stream_" + ulid.Make().String()
 	turnCtx, cancel := context.WithCancel(parent)

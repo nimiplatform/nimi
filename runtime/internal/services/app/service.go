@@ -21,6 +21,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+type trustedInternalCallerContextKey struct{}
+
+type trustedInternalCaller struct {
+	appID string
+}
+
 type sessionValidator interface {
 	ValidateAppSession(appID string, sessionID string, sessionToken string) (runtimev1.ReasonCode, bool)
 }
@@ -84,6 +90,17 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 	return svc
 }
 
+func WithTrustedInternalCaller(ctx context.Context, appID string) context.Context {
+	trimmed := strings.TrimSpace(appID)
+	if trimmed == "" {
+		return ctx
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, trustedInternalCallerContextKey{}, trustedInternalCaller{appID: trimmed})
+}
+
 func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
 	fromAppID := strings.TrimSpace(req.GetFromAppId())
 	toAppID := strings.TrimSpace(req.GetToAppId())
@@ -96,7 +113,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 
-	if s.sessionValidator != nil {
+	if s.sessionValidator != nil && !isTrustedInternalCaller(ctx, fromAppID) {
 		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(ctx)
 		if reasonCode, ok := s.sessionValidator.ValidateAppSession(fromAppID, sessionID, sessionToken); !ok {
 			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
@@ -151,7 +168,14 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		})
 	}
 
-	s.logger.Info("app message sent", "message_id", messageID, "from_app_id", fromAppID, "to_app_id", toAppID, "subject_user_id", subjectUserID)
+	s.logger.Info(
+		"app message sent",
+		"message_id", messageID,
+		"from_app_id", fromAppID,
+		"to_app_id", toAppID,
+		"subject_user_id", subjectUserID,
+		"message_type", messageType,
+	)
 	return &runtimev1.SendAppMessageResponse{
 		MessageId:  messageID,
 		Accepted:   true,
@@ -181,11 +205,14 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	if contextAppID := appIDFromContext(stream.Context()); contextAppID != "" && contextAppID != strings.TrimSpace(req.GetAppId()) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
-	if s.sessionValidator != nil {
+	if s.sessionValidator != nil && !isTrustedInternalCaller(stream.Context(), strings.TrimSpace(req.GetAppId())) {
 		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(stream.Context())
 		if reasonCode, ok := s.sessionValidator.ValidateAppSession(strings.TrimSpace(req.GetAppId()), sessionID, sessionToken); !ok {
 			return grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
 		}
+	}
+	if err := stream.SendHeader(metadata.MD{}); err != nil {
+		return err
 	}
 	sub := s.addSubscriber(req)
 	defer s.removeSubscriber(sub.id)
@@ -209,6 +236,17 @@ func appIDFromContext(ctx context.Context) string {
 		return ""
 	}
 	return strings.TrimSpace(values[0])
+}
+
+func isTrustedInternalCaller(ctx context.Context, appID string) bool {
+	if ctx == nil {
+		return false
+	}
+	caller, ok := ctx.Value(trustedInternalCallerContextKey{}).(trustedInternalCaller)
+	if !ok {
+		return false
+	}
+	return strings.TrimSpace(caller.appID) != "" && strings.TrimSpace(caller.appID) == strings.TrimSpace(appID)
 }
 
 func (s *Service) addSubscriber(req *runtimev1.SubscribeAppMessagesRequest) subscriber {

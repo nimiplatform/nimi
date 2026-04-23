@@ -47,6 +47,7 @@ func (c chatTrackRuntime) consumeSidecarAppMessage(ctx context.Context, event *r
 	if err != nil {
 		return err
 	}
+	req.CallerAppID = strings.TrimSpace(event.GetFromAppId())
 	return c.executeSidecar(ctx, req)
 }
 
@@ -61,6 +62,7 @@ func (c chatTrackRuntime) runSidecarExecution(ctx context.Context, req ChatTrack
 		return nil, err
 	}
 	result, err := c.currentSidecarExecutor().ExecuteChatTrackSidecar(ctx, &ChatTrackSidecarExecutorRequest{
+		CallerAppID:   strings.TrimSpace(req.CallerAppID),
 		Agent:         cloneAgentRecord(entry.Agent),
 		State:         cloneAgentState(entry.State),
 		SourceEventID: strings.TrimSpace(req.SourceEventID),
