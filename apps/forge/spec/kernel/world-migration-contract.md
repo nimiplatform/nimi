@@ -181,6 +181,89 @@ All required backend APIs already exist. No new backend work needed for World ma
 | World Rules | `GET/POST /api/world/by-id/:worldId/rules`, `PATCH /api/world/by-id/:worldId/rules/:ruleId`, `POST /api/world/by-id/:worldId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/rules/:ruleId/archive` | `world-rules.controller.ts` |
 | Agent Rules | `GET/POST /api/world/by-id/:worldId/agents/:agentId/rules`, `PATCH /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/archive` | `agent-rules.controller.ts` |
 | Resource Bindings | `GET/POST /api/worlds/:worldId/resource-bindings`, `DELETE /api/worlds/:worldId/resource-bindings/:bindingId` | `world-control.controller.ts` |
+
+## FG-WORLD-006A: World Catalog Surfaces
+
+Forge owns the world detail catalog surface as the stable creator inspection
+surface for a published or draft-backed world. This surface is not a redirect
+veneer for the workbench.
+
+The world detail surface must provide:
+
+- world identity, status, and high-level maintenance summary
+- current active world-family selections for admitted families from
+  `FG-CONTENT-001`
+- world-owned agent count plus agent completeness summary
+- explicit links to:
+  - workbench truth editing
+  - the world-owned agent roster surface
+  - the world asset-ops surface
+
+Authority boundary:
+
+- catalog inspection consumes existing world, history, and resource-binding
+  reads only
+- catalog inspection does not own deep truth editing, publish planning, or
+  local draft reconstruction
+- world detail completeness must be derived from admitted family
+  `confirmed`/`bound` semantics, not from resource presence alone
+
+## FG-WORLD-006B: World-Owned Agent Roster
+
+Forge owns the world-owned agent roster surface as the canonical roster for
+agents that belong to a world from a creator inspection and asset-ops point of
+view.
+
+The roster must expose per agent:
+
+- identity and ownership posture
+- active avatar/cover/greeting/voice-demo status using the family grammar from
+  `FG-CONTENT-001`
+- completeness state that distinguishes missing, confirmed, and bound
+  deliverables
+- links to:
+  - world-scoped truth editing when the agent is `WORLD_OWNED`
+  - the agent asset-ops surface for asset-family operations
+
+Topology rule:
+
+- world-owned and master-owned agents may continue to differ in truth-edit
+  routing
+- both must share one admitted asset-family grammar for inspection and ops
+
+## FG-WORLD-006C: World Asset Operations
+
+Forge owns the world asset-ops hub and family-focus surfaces as the canonical
+world asset-ops surfaces.
+
+World asset ops now admit the following families:
+
+- `world-icon`
+- `world-cover`
+- `world-background`
+- `world-scene`
+
+These surfaces own:
+
+- candidate generation entry
+- review queue visibility
+- approve / reject decisions
+- family confirmation
+- binding through the existing world resource-binding write surface
+
+Explicit boundary rules:
+
+- workbench `ENRICHMENT` is a bounded producer helper; it may generate or save
+  candidate resources, but it does not remain an independent authority for
+  active world asset truth
+- runtime/provider outputs remain consumption-only inputs; they do not imply
+  approval or binding
+- this pack admits no new world asset backend API beyond the existing resource
+  and resource-binding surfaces listed in `FG-WORLD-006`
+- if a candidate cannot be bound through the admitted existing write surface,
+  Forge must fail closed rather than invent a world-local or provider-local
+  bind path
+
 ## FG-WORLD-007: Quality Gate Integration
 
 Inherits WS-QG-001 through WS-QG-005. Quality gate logic lives in `@world-engine/engine/quality-gate.ts` and is invoked unchanged. Threshold policies from `world-studio/spec/kernel/tables/quality-gate-policies.yaml` apply.
@@ -194,6 +277,17 @@ Inherits WS-QG-001 through WS-QG-005. Quality gate logic lives in `@world-engine
 5. Quality gate blocks Phase 2 when critical issues exist (per WS-QG-003)
 6. All data operations use SDK realm client (no hookClient.data.query calls)
 7. World-Studio engine/services/generation code runs unchanged via `@world-engine` alias
+8. Creator can inspect a world in the world detail catalog surface without
+   being redirected into the workbench.
+9. Creator can inspect world-owned agents in the world roster surface with
+   per-agent asset/demo completeness status.
+10. World asset ops treat `world-icon`, `world-cover`, `world-background`, and
+    `world-scene` as explicit families with candidate/review/confirm/bind
+    semantics.
+11. Workbench `ENRICHMENT` remains producer-only and is not treated as
+    independent world asset authority once world asset ops are admitted.
+12. World completeness and active-selection visibility distinguish
+    `confirmed`/`bound` state from simple resource presence.
 
 `resource-bindings` remain explicit world-display APIs:
 - they bind existing resources, or create resources inline for world display during world workflows

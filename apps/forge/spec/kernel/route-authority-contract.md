@@ -1,6 +1,7 @@
 # Route Authority Contract — FG-ROUTE-*
 
-> Forge route option authority, route selection persistence, and capability-first route resolution.
+> Forge route option authority, route selection persistence, capability-first
+> route resolution, and speech/voice workflow alignment.
 
 ## FG-ROUTE-001: Route Authority Source
 
@@ -26,8 +27,19 @@ Forge exposes route selection for the following capabilities:
 | Chat Model | `text.generate` | `runtime.route.listOptions({ capability: 'text.generate' })` | Stable |
 | Image Model | `image.generate` | `runtime.route.listOptions({ capability: 'image.generate' })` | Stable |
 | Music Model | `music.generate` | `runtime.route.listOptions({ capability: 'music.generate' })` | Stable |
+| Speech Model | `audio.synthesize` | `runtime.route.listOptions({ capability: 'audio.synthesize' })` | Stable |
+| Voice Design Model | `voice_workflow.tts_t2v` | `runtime.route.listOptions({ capability: 'voice_workflow.tts_t2v' })` | Optional when admitted by Forge asset ops |
 
-All three capabilities are members of `RuntimeCanonicalCapability` (defined in `sdk/src/mod/runtime-route.ts`). They pass through the full route authority chain: `listOptions` returns a capability-scoped `RuntimeRouteOptionsSnapshot`, the shared picker consumes it via `createSnapshotRouteDataProvider`.
+All admitted capability tokens in this table use canonical runtime capability
+strings and pass through the full route authority chain:
+`listOptions` returns a capability-scoped `RuntimeRouteOptionsSnapshot`, and
+the shared picker consumes it via `createSnapshotRouteDataProvider`.
+
+Route-authority admission is consumption-only:
+
+- it admits capability selection, not provider/model truth
+- it does not by itself admit a product surface
+- it does not permit hardcoded provider or model assumptions in Forge
 
 ## FG-ROUTE-003: Mod SDK Host Registration
 
@@ -61,6 +73,15 @@ Forge's mod SDK host is a **strict subset** of Desktop's. Required namespaces:
 
 Namespaces marked "No" may be stubbed or omitted depending on SDK host interface validation behavior.
 
+Speech alignment boundary:
+
+- this contract does not create a separate Forge-owned route authority line for
+  speech or voice workflows
+- `audio.synthesize` and `voice_workflow.tts_t2v` continue to resolve through
+  `runtime.route.listOptions(...)`
+- any later execution-layer use must consume the admitted runtime host surface
+  for that capability rather than inventing app-local provider truth
+
 ### Reuse boundary
 
 The host registration mechanism (`setModSdkHost` from `@nimiplatform/sdk/mod`) is shared. The host capabilities builder must be Forge-specific because Desktop's `buildRuntimeHostCapabilities` includes mod lifecycle, UI slots, shell hooks, and conversation-specific execution that Forge does not need.
@@ -86,6 +107,15 @@ Legacy `ForgeAiSelection` (`{ connectorId, model, route }`) has been migrated to
 - `null` value = explicitly disabled by user (no fallback)
 - Object value = typed `RuntimeRouteBinding` with capability matching
 - These semantics match Desktop's `D-LLM-016` selection store semantics
+
+Speech storage constraints:
+
+- `AIConfig.capabilities.selectedBindings['audio.synthesize']` is the only
+  admitted plain-speech selection key
+- `AIConfig.capabilities.selectedBindings['voice_workflow.tts_t2v']` is the
+  optional custom-voice design selection key when that lane is admitted
+- `tts.synthesize` may be read only as a migration alias and must not be
+  written back as canonical selection truth
 
 ## FG-ROUTE-005: Route Picker Provider
 
@@ -121,6 +151,29 @@ Existing localStorage data is migrated on first load:
 - Intermediate `deferredSelections['audio.generate']` → `AIConfig.selectedBindings['music.generate']`
 
 The `audio.generate` token is retained only in kit `CAPABILITY_ALIASES` for backward UI-side alias matching. It is not a canonical token and must not be used as a stored or route authority token.
+
+## FG-ROUTE-006A: Speech Capability Alignment
+
+Forge route authority distinguishes plain speech demo synthesis from optional
+custom voice design.
+
+| Product label | Canonical capability | Route-authority role |
+|---------------|----------------------|----------------------|
+| Speech Model | `audio.synthesize` | Required route selection lane for admitted speech-demo generation |
+| Voice Design Model | `voice_workflow.tts_t2v` | Optional route selection lane for admitted custom voice design |
+
+Rules:
+
+- `audio.synthesize` is the canonical plain-speech capability for Forge
+- `voice_workflow.tts_t2v` is a sibling workflow capability, not an alias of
+  plain speech synthesis
+- availability of `voice_workflow.tts_t2v` does not by itself unlock a product
+  surface; Forge must also admit that lane in the relevant asset-ops contract
+- if `voice_workflow.tts_t2v` is unavailable, Forge must fail closed on custom
+  voice design while keeping plain speech demo generation available through
+  `audio.synthesize`
+- `tts.synthesize` must not remain a stored, displayed, or route-authority
+  canonical token
 
 ## FG-ROUTE-007: No Projection System Required
 

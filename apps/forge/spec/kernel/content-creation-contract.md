@@ -1,10 +1,98 @@
 # Content Creation Contract — FG-CONTENT-*
 
-> AI image generation, video upload, music generation, unified content library, and app-level publishing workflows.
+> World and agent asset-family operations, producer helpers, unified content library, and app-level publishing workflows.
 
-## FG-CONTENT-001: Image Studio
+## FG-CONTENT-001: World And Agent Asset Family Authority
 
-Image Studio provides AI-powered image generation for world assets (covers, character portraits, scene illustrations).
+Forge owns the creator-facing consume/ops grammar for multimodal world and
+agent deliverables. Runtime/provider layers remain generation and workflow
+truth only. They do not decide candidate review, operator confirmation, active
+selection, or family completeness inside Forge.
+
+### Admitted world families
+
+| Family | Candidate kind | Canonical bind target | Completeness role |
+|--------|----------------|-----------------------|-------------------|
+| `world-icon` | `resource` | Existing world display binding for the world icon slot | Required |
+| `world-cover` | `resource` | Existing world display binding for the world cover/banner slot | Required |
+| `world-background` | `resource` | Existing world display binding for the world background presentation slot | Optional first-class family |
+| `world-scene` | `resource` | Existing world display binding for the world scene presentation slot | Optional first-class family |
+
+### Admitted agent families
+
+| Family | Candidate kind | Canonical bind target | Completeness role |
+|--------|----------------|-----------------------|-------------------|
+| `agent-avatar` | `resource` | Admitted active avatar presentation slot for the agent owner type | Required |
+| `agent-cover` | `resource` | Admitted active cover/card presentation slot for the agent owner type | Optional first-class family |
+| `agent-greeting-primary` | `text` | Admitted primary greeting truth for the agent owner type | Required |
+| `agent-voice-demo` | `resource` or `workflow-output` that resolves to a `resource` | Admitted active voice-demo presentation slot for the agent owner type | Required |
+
+Family expansion beyond this set requires a new Forge spec admission. This
+contract does not implicitly admit alternate greeting, secondary scene, teaser
+card, or other future family rows.
+
+### Family primitives
+
+- `family`
+  - product-owned deliverable category such as `world-cover` or
+    `agent-voice-demo`
+- `candidate`
+  - one generated, uploaded, written, or workflow-derived option within a
+    family
+- `approval`
+  - operator judgement that a candidate is acceptable quality/content for the
+    family
+- `confirmation`
+  - operator selection of the single active winner for the family
+- `binding`
+  - write of the confirmed winner into admitted canonical presentation or truth
+    state
+
+### Candidate kinds
+
+| Candidate kind | Meaning |
+|----------------|---------|
+| `resource` | Image or audio artifact referenced by `resourceId` |
+| `text` | Greeting or opening-copy candidate referenced through an admitted app/agent candidate id |
+| `workflow-output` | Runtime workflow handle or preview output that may later materialize into a `resource` or reusable voice identity |
+
+### Lifecycle semantics
+
+| State | Meaning |
+|-------|---------|
+| `generated` | Output exists but has not yet entered explicit operator review |
+| `candidate` | Visible in the canonical review queue for the family |
+| `approved` | Accepted as valid, but not selected as the active family winner |
+| `rejected` | Explicitly not selected for activation |
+| `confirmed` | Selected winner for the family from the operator point of view |
+| `bound` | Confirmed winner has been written into admitted canonical presentation or truth state |
+| `superseded` | Previously confirmed/bound winner that has been replaced by a later bound winner |
+
+Additional lifecycle rules:
+
+- `approved` does not activate a candidate.
+- `confirmed` chooses the winner; it does not imply the write succeeded.
+- `bound` is the only state that proves canonical presentation truth changed.
+- if a family lacks an admitted bind path for the current owner type, the flow
+  must fail closed at `confirmed`; Forge must not synthesize fake bind success
+  or invent a backend write domain.
+
+### Authority boundary
+
+- runtime route resolution, generation, and workflow execution are
+  consumption-only inputs to Forge asset ops
+- resource presence, content-library visibility, or workbench
+  `ENRICHMENT` output never implies `approved`, `confirmed`, or `bound`
+- review records must point to `resourceId`, text candidate ids, or workflow
+  handles rather than duplicating semantic payload as a second truth object
+- Wave 0 admits no new backend API for review state; Forge asset ops must
+  consume existing resource, resource-binding, agent detail, and runtime
+  capability surfaces already contracted elsewhere
+
+## FG-CONTENT-001A: Image Studio Producer Lane
+
+Image Studio is a producer surface for candidate generation. It is not the
+canonical owner of world/agent family review, confirmation, or binding truth.
 
 ### Generation Pipeline
 
@@ -41,7 +129,8 @@ const result = await runtime.media.image.generate({
 ### Gallery
 
 - Grid view of generated images (current session)
-- Actions per image: save to library, set as world cover, set as agent portrait, download, delete
+- Actions per image: save to library, hand off to the relevant world/agent
+  asset family for review, download, delete
 - Zoom/lightbox preview
 - Image metadata display (prompt, model, dimensions, timestamp)
 
@@ -49,7 +138,8 @@ const result = await runtime.media.image.generate({
 
 - Save generates a `POST /api/resources/images/direct-upload` session
 - Forge uploads the artifact, then finalizes the returned `resourceId` through `POST /api/resources/{resourceId}/finalize`
-- Optional: attach to world/agent via resource bindings API
+- Optional: present the saved resource as a family candidate for later
+  confirmation and binding through the admitted world/agent asset ops surface
 
 ## FG-CONTENT-002: Video Studio
 
@@ -86,6 +176,7 @@ File Select → Upload (direct-upload API) → Process → Preview
 ## FG-CONTENT-003: Content Library
 
 Unified browser for all creator-owned image, video, audio, and text resources.
+It is inventory truth, not family approval/bind truth.
 
 ### Asset Types
 
@@ -125,13 +216,21 @@ Content library reads from `Resource` records and resource detail/list endpoints
 - world display uses `resource-bindings`
 - `resource-bindings` are not a prerequisite for post publishing
 
+Content Library authority limits:
+
+- it can prove that a `resource` exists and who controls it
+- it cannot prove that a world/agent family candidate was approved, confirmed,
+  or bound
+- content-library visibility must not be used as a substitute for family
+  completeness or active-selection truth
+
 Control and delivery are explicit resource semantics:
 - `uploaderAccountId` records who executed the upload/generation action
 - `controllerKind + controllerId` records which controller governs the resource (`ACCOUNT` or `WORLD`)
 - `deliveryAccess` records how the underlying file is served (`PUBLIC` vs `SIGNED`)
 - post/feed visibility remains independent from `deliveryAccess`
 
-## FG-CONTENT-004: Backend API Dependencies (Baseline)
+## FG-CONTENT-004: Backend API Dependencies (Wave 0 Baseline)
 
 | API | Endpoint | Method | Purpose |
 |-----|----------|--------|---------|
@@ -145,16 +244,34 @@ Control and delivery are explicit resource semantics:
 | Resource Bindings | `/api/worlds/:worldId/resource-bindings` | GET, POST | World display resource mapping and write sync |
 | Resource Bindings | `/api/worlds/:worldId/resource-bindings/{bindingId}` | DELETE | Delete world display resource binding |
 
+Wave 0 boundary:
+
+- these existing APIs are the only admitted backend surfaces for world/agent
+  asset-family operations in this pack
+- this contract does not admit a dedicated review-state API, asset-ops backend
+  domain, or voice-design persistence API
+
 ## FG-CONTENT-005: Acceptance Criteria
 
-1. Image Studio generates images via runtime.media.image.generate with prompt builder
-2. Generated images can be saved to library via direct-upload API
-3. Generated images can be set as world cover or agent portrait
-4. Video upload works with progress indication and cancel support
-5. Video preview resolves through `Resource` detail instead of a raw playback-token API
-6. Content library displays all assets with search, filter, sort
-7. Bulk tag management works across multiple selected assets
-8. Asset association view correctly shows world/agent linkage
+1. Forge contracts admit `world-icon` and `world-cover` as the required world
+   asset families for creator-facing consume/ops surfaces, and admit
+   `world-background` plus `world-scene` as optional first-class world
+   families.
+2. Forge contracts admit `agent-avatar`, `agent-cover`,
+   `agent-greeting-primary`, and `agent-voice-demo` as the agent asset/demo
+   families.
+3. Candidate lifecycle semantics distinguish `approved`, `confirmed`, and
+   `bound`; approval alone never changes active presentation truth.
+4. Resource presence or content-library visibility is not treated as proof of
+   family completeness or active selection.
+5. Image Studio generates image candidates via `runtime.media.image.generate`
+   and saves them through existing resource APIs without becoming the review or
+   bind authority.
+6. Video upload works with progress indication and cancel support.
+7. Content Library displays all assets with search, filter, sort, and
+   association visibility while remaining inventory-only truth.
+8. World/agent asset ops consume only the admitted existing backend/resource
+   surfaces in this pack; no dedicated speculative review backend is required.
 
 ## FG-CONTENT-006: Music Studio
 

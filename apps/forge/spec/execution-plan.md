@@ -5,14 +5,16 @@
 
 ## Completion Boundary
 
-The current hard-cut completion target is the world/agent platform:
+The current hard-cut completion target is the creator-facing world/agent platform:
 - world-centric workbench
+- stable creator catalog and detail surfaces for worlds and agents
+- canonical world and agent multimodal deliverable ops surfaces
 - embedded world create/maintain
 - master/world agent management
 - workspace-scoped Character Card and novel import
 - unified review state and ordered publish safety
 
-`Content` and `Publish` remain secondary utilities. Revenue, Advisors, Copyright,
+Generic `Content` and `Publish` utilities remain supporting workflows. Revenue, Advisors, Copyright,
 Templates, and Analytics are outside the current completion bar.
 
 ## Phase Overview
@@ -22,12 +24,13 @@ Templates, and Analytics are outside the current completion bar.
 | 1 | App Shell + Auth + Workbench Shell | 7 | None | — |
 | 2 | World Management Migration + Workspace Outer State | 6 | None | Phase 1 |
 | 3 | Agent Management + Workbench Agent Drafts | 6 | Conditional: agent detail/update/delete extension if absent | Phase 1 |
-| 4 | Secondary Content Creation + Publishing | 6 | Media audio upload only | Phase 1 |
+| 4 | Creator Catalog + Multimodal Ops + Secondary Content | 10 | None | Phase 1 |
 | 5 | Non-Core Revenue | 3 | None | Phase 1 |
 | 6 | Advisors + Deferred Extensions | 6 | None in current scope | Phase 2, 3, 5 |
 
-Phases 1 through 3 define current Forge closure as a world/agent platform.
-Phases 4 through 6 remain secondary or deferred and do not block the hard-cut decision.
+Phases 1 through 4 define current Forge closure as a world/agent platform.
+Within Phase 4, world and agent catalog and deliverable ops surfaces are on the primary authority line, while generic content creation and publishing remain supporting workflows.
+Phases 5 through 6 remain secondary or deferred and do not block the hard-cut decision.
 
 ---
 
@@ -160,56 +163,75 @@ Phases 4 through 6 remain secondary or deferred and do not block the hard-cut de
 
 ---
 
-## Phase 4: Secondary Content Creation + Publishing
+## Phase 4: Creator Catalog + Multimodal Ops + Secondary Content Creation
 
-**Goal**: Keep content creation and publishing available as secondary creator utilities without redefining Forge's primary product boundary.
+**Goal**: Land stable creator catalog and multimodal ops surfaces while keeping generic content creation and publishing as supporting workflows.
 
 **Prerequisite**: Phase 1 (app shell)
 
 ### Tasks
 
-#### 4.1 Image Studio
+#### 4.1 World Detail
+- Land `/worlds/:worldId` as a stable creator inspection surface
+- Show current deliverable completeness and active multimodal selections without treating workbench as the only inspection path
+- Keep workbench as the authoring route rather than the default detail redirect
+
+#### 4.2 World Agents Roster
+- Land `/worlds/:worldId/agents` as the world-context agent consume surface
+- Make world-owned agent status explicit in the owning-world context
+- Keep roster authority separate from workbench-local draft editing
+
+#### 4.3 World Asset Ops
+- Land `/worlds/:worldId/assets` and `/worlds/:worldId/assets/:family`
+- Make world deliverable family entrypoints canonical for creator review, confirmation, and binding
+- Keep shared studios and content library subordinate to these world ops surfaces
+
+#### 4.4 Agent Asset Ops
+- Land `/agents/:agentId/assets` and `/agents/:agentId/assets/:family`
+- Give agent deliverables one admitted ops grammar across master and world-context use
+- Keep greeting and voice-demo work on explicit ops surfaces rather than hidden helper flows
+
+#### 4.5 Image Studio
 - Prompt builder with templates and style presets
 - Generation via `runtime.media.image.generate`
 - Staging gallery for generated images
 - Save to library via `POST /api/resources/images/direct-upload`
 - Per FG-CONTENT-001
 
-#### 4.2 Video Studio
+#### 4.6 Video Studio
 - Upload zone with drag-and-drop
 - Upload via `POST /api/resources/videos/direct-upload`
 - Finalize resource via `POST /api/resources/{resourceId}/finalize`
 - Preview player resolves via `GET /api/resources/{resourceId}`
 - Per FG-CONTENT-002
 
-#### 4.3 Music Studio
+#### 4.7 Music Studio
 - Prompt + lyrics builder
 - Generation via `runtime.media.music.generate`
 - Audition queue with waveform preview
 - Save via `POST /api/resources/audio/direct-upload`
 - Per FG-CONTENT-006
 
-#### 4.4 Content Library
+#### 4.8 Content Library
 - Unified asset browser (images + videos + audio)
 - Search, filter, sort
 - Bulk operations (delete, tag)
 - Asset-entity association view
 - Per FG-CONTENT-003
 
-#### 4.5 Audio Upload Backend (NEW)
-- Extend `resources.controller.ts` with `POST /api/resources/audio/direct-upload`
-- Expose `Resource` list/detail/finalize/update/delete endpoints
-- Keep upload semantics aligned with the unified resource session contract
-- Run `pnpm --dir nimi-backend openapi:dump` after controller creation
+#### 4.9 Audio Resource Save
+- Persist generated audio through existing resource upload and finalize surfaces
+- Keep audio resource handling aligned with the unified resource session contract
+- Do not introduce a Forge-specific media backend domain
 
-#### 4.6 Publishing Frontend
+#### 4.10 Publishing Frontend
 - Publish workspace: local drafts, identity selection, publish history
 - Use existing post capabilities for creator-authored publishing
 - Treat internal destinations as app-level semantics, not backend-managed channels
 - Leave scheduled publishing out of the current backend contract
 - Per FG-CONTENT-007
 
-### Milestone: Secondary content utilities remain available without affecting world/agent acceptance
+### Milestone: Creator can inspect worlds and agents outside workbench, operate canonical multimodal deliverable surfaces, and keep shared content tools in a supporting role
 
 ---
 

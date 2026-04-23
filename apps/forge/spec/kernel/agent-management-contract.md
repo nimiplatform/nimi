@@ -1,6 +1,7 @@
 # Agent Management Contract — FG-AGENT-*
 
-> Agent CRUD, ownership-aware management, DNA editing, personality preview, and API key management.
+> Agent CRUD, ownership-aware management, asset/demo ops, DNA editing,
+> personality preview, and API key management.
 
 ## FG-AGENT-001: Agent CRUD
 
@@ -66,6 +67,10 @@ This route is now the **master agent detail** surface. World-owned agent draft e
 - Edits local draft truth first, not canonical backend truth directly
 - Uses local runtime preview based on draft concept + agent rules
 - Participates in the workspace publish plan instead of publishing independently
+
+Agent detail routes may inspect current active multimodal deliverables, but
+generation, review, confirmation, and binding authority for admitted asset
+families belongs to the agent asset-ops hub and family-focus surfaces.
 
 ## FG-AGENT-002: Agent DNA Editor
 
@@ -156,6 +161,88 @@ Creators can manage API keys for programmatic agent access.
 - Delete confirmation with key name display
 - Copy-to-clipboard for newly created keys (shown once only)
 
+## FG-AGENT-005A: Agent Asset Operations
+
+Forge owns the agent asset-ops hub and family-focus surfaces as the canonical
+asset/demo ops surfaces for agents.
+
+Wave 0 admits the following families for agent ops:
+
+- `agent-avatar`
+- `agent-cover`
+- `agent-greeting-primary`
+- `agent-voice-demo`
+
+These surfaces own:
+
+- candidate generation or upload entry
+- review queue visibility
+- approve / reject decisions
+- family confirmation
+- binding through an already admitted canonical write surface for the
+  applicable agent owner type
+
+Boundary rules:
+
+- `MASTER_OWNED` and `WORLD_OWNED` agents share one asset-family grammar even
+  when truth-edit routing differs
+- agent detail may summarize active deliverables, but it does not replace the
+  asset-ops route as the owner of review semantics
+- if a family/owner combination lacks an admitted bind path, Forge must stop at
+  `confirmed`; it must not invent a new backend write domain
+
+## FG-AGENT-005B: Greeting Candidate And Confirmation Flow
+
+`agent-greeting-primary` is the canonical primary-opening family for agent
+consume and ops surfaces.
+
+Greeting lifecycle rules:
+
+- greeting candidates are `text` candidates under `FG-CONTENT-001`
+- generation may come from operator-authored text, AI-assisted rewrite, or
+  draft-derived suggestions, but all of them enter one shared review queue
+- `approved` means the line is acceptable content
+- `confirmed` means the operator selected the active primary greeting
+- `bound` is claimed only when the confirmed greeting is written through an
+  already admitted canonical agent truth surface for the applicable owner type
+
+Completeness rule:
+
+- `agent-greeting-primary` counts as complete at `confirmed`
+- if a bind seam is admitted for the current owner type, `bound` becomes the
+  stronger proof of canonical active greeting truth
+
+## FG-AGENT-005C: Voice Demo Operations And Speech Posture
+
+`agent-voice-demo` is the admitted playable speech-demo family for agents.
+
+Forge distinguishes two speech lanes:
+
+1. Plain speech demo synthesis
+   - canonical capability: `audio.synthesize`
+   - purpose: synthesize playable demo audio from a confirmed greeting or other
+     admitted prompt text
+2. Optional custom voice design
+   - canonical capability: `voice_workflow.tts_t2v`
+   - purpose: derive or preview a custom voice identity before a later speech
+     demo synthesis step
+
+Posture rules:
+
+- `audio.synthesize` is the only admitted canonical plain-speech route token
+  for Forge speech demo generation
+- `voice_workflow.tts_t2v` is optional and constrained; it may create
+  `workflow-output` candidates or reusable voice handles, but it does not
+  replace plain speech demo synthesis
+- `tts.synthesize` must not be stored or reasoned over as a canonical Forge
+  capability token
+- runtime workflow handles and provider/model behavior remain runtime-owned
+  truth; Forge only consumes those outputs as candidates inside the family
+  review flow
+- voice-demo `bind` is valid only when the confirmed playable demo can be
+  written through an admitted existing owner surface; otherwise the flow must
+  fail closed at `confirmed`
+
 ## FG-AGENT-005: Acceptance Criteria
 
 1. `/agents/library` displays both `WORLD_OWNED` and `MASTER_OWNED` agents with search/filter/sort
@@ -167,3 +254,14 @@ Creators can manage API keys for programmatic agent access.
 7. API key CRUD works: create shows key once, list shows truncated, delete confirms
 8. Agent detail tabs switch cleanly with state preservation
 9. Detail, update, and delete flows use explicit `/api/creator/agents/:agentId` endpoints
+10. The agent asset-ops hub and family-focus surfaces are the canonical
+    asset/demo ops surfaces for admitted agent families.
+11. Avatar, cover, greeting-primary, and voice-demo candidates share one
+    approve / reject / confirm / bind grammar.
+12. Greeting completeness distinguishes `confirmed` from `bound` and does not
+    require Forge to invent a new backend write domain.
+13. Voice demo generation uses `audio.synthesize` as the canonical plain speech
+    lane and treats `voice_workflow.tts_t2v` as a separate optional custom
+    voice-design lane.
+14. `MASTER_OWNED` and `WORLD_OWNED` agents share the same asset-ops grammar
+    even when their truth-edit or bind seams differ.

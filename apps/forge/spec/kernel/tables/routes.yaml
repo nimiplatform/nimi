@@ -46,62 +46,98 @@ routes:
     lazy: true
     description: World-owned agent draft detail and preview within a workspace
 
-  # ── World Management (FG-WORLD-*) ─────────────────────
+  # ── World Catalog + Ops (FG-WORLD-* + FG-CONTENT-*) ──
   - path: /worlds/library
     feature: world-list
     component: WorldListPage
     lazy: true
-    description: World library — opens published worlds and drafts into the workbench
+    description: World catalog entry for creator-owned worlds, stable detail surfaces, and workbench authoring handoff
 
-  # ── Agent Management (FG-AGENT-*) ─────────────────────
+  - path: /worlds/:worldId
+    feature: world-detail
+    component: WorldDetailPage
+    lazy: true
+    description: Stable creator world detail for deliverable completeness and current multimodal selections
+
+  - path: /worlds/:worldId/agents
+    feature: world-agents-roster
+    component: WorldAgentsPage
+    lazy: true
+    description: World-owned agent roster with world-context inspection and multimodal deliverable status
+
+  - path: /worlds/:worldId/assets
+    feature: world-asset-ops
+    component: WorldAssetsPage
+    lazy: true
+    description: World multimodal deliverable ops hub for family-scoped review, confirmation, and binding
+
+  - path: /worlds/:worldId/assets/:family
+    feature: world-asset-ops
+    component: WorldAssetFamilyPage
+    lazy: true
+    description: Focused world deliverable family surface for candidate comparison and active selection review
+
+  # ── Agent Catalog + Ops (FG-AGENT-* + FG-CONTENT-*) ──
   - path: /agents/library
     feature: agent-list
     component: AgentListPage
     lazy: true
-    description: Master agent library plus world-owned agent entrypoints into the workbench
+    description: Master agent catalog plus world-context entrypoints across workbench and world surfaces
 
   - path: /agents/:agentId
     feature: agent-detail
     component: AgentDetailPage
     lazy: true
-    description: Master agent detail — profile, DNA editor, preview, keys
+    description: Stable master agent detail for profile, DNA, preview, keys, and current deliverable inspection
 
-  # ── Secondary Content Creation (FG-CONTENT-*) ─────────
+  - path: /agents/:agentId/assets
+    feature: agent-asset-ops
+    component: AgentAssetsPage
+    lazy: true
+    description: Agent multimodal deliverable ops hub for visuals, greeting, and voice demo review
+
+  - path: /agents/:agentId/assets/:family
+    feature: agent-asset-ops
+    component: AgentAssetFamilyPage
+    lazy: true
+    description: Focused agent deliverable family surface for candidate comparison and active selection review
+
+  # ── Shared Creator Utilities (FG-CONTENT-*) ───────────
   - path: /content/images
     feature: image-studio
     component: ImageStudioPage
     lazy: true
-    description: AI image generation studio
+    description: Shared AI image generation studio feeding world and agent deliverable ops
 
   - path: /content/videos
     feature: video-studio
     component: VideoStudioPage
     lazy: true
-    description: Video upload and management
+    description: Shared video upload and management utility for creator resources
 
   - path: /content/music
     feature: music-studio
     component: MusicStudioPage
     lazy: true
-    description: AI music generation studio
+    description: Shared AI song generation studio for creator resources and publish flows
 
   - path: /content/library
     feature: content-library
     component: ContentLibraryPage
     lazy: true
-    description: Unified asset browser
+    description: Shared unified asset browser supporting world and agent ops plus creator media flows
 
   - path: /publish/releases
     feature: publish-releases
     component: PublishReleasesPage
     lazy: true
-    description: Secondary publish workspace for local drafts, publish history, and post composition
+    description: Supporting publish workspace for local drafts, publish history, and post composition
 
   - path: /publish/channels
     feature: publish-channels
     component: PublishChannelsPage
     lazy: true
-    description: Secondary publish identity and internal destination settings
+    description: Supporting publish identity and internal destination settings
 
   # ── Copyright Management (FG-IP-*) ────────────────────
   - path: /copyright
