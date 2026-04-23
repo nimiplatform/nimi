@@ -1,15 +1,15 @@
 # Taxonomy Contract — PI-TAX-*
 
-> Sector, narrative, core variable, and market-mapping semantics.
+> Sector, narrative, core variable, and custom-sector import semantics.
 
-## PI-TAX-001: Sector Source in V1
+## PI-TAX-001: Sector Types in V1
 
-In v1, `Sector` uses Polymarket's upstream classification source.
+In v1, `Sector` admits two source types:
 
-- v1 sector source is authoritative in `tables/object-model.yaml`
-- Polyinfo may keep an app-local overlay above the upstream source
-- the app-local overlay may add display metadata or grouping aliases
-- the upstream source remains the default import path for sector discovery
+- official sectors sourced from Polymarket's front-end category structure
+- custom sectors created locally inside Polyinfo
+
+Official sectors remain the default discovery path, but custom sectors are first-class workspaces rather than temporary views.
 
 ## PI-TAX-002: Narrative Definition
 
@@ -54,17 +54,18 @@ Every narrative and core variable must have:
 
 Unnamed or undefined taxonomy objects must not be admitted into canonical app-local use.
 
-## PI-TAX-006: Market Mapping Ownership
+## PI-TAX-006: Custom-Sector Imported Event Ownership
 
-`TrackedMarket` mappings are app-local analytical decisions.
+Imported events inside a custom sector are app-local cache records rather than new canonical upstream truth.
 
 Polyinfo must support:
 
-- market to narrative mapping
-- market to core variable relevance mapping
-- user override of agent-suggested mappings
+- Polymarket URL import into a custom sector
+- local caching of the imported event's title, options, and source metadata
+- refresh of upstream validity when the custom sector is opened
+- stale visibility and manual deletion when the upstream event is closed, missing, or invalid
 
-Mappings may be many-to-many, but each market must expose one primary narrative binding when admitted into active signal construction.
+Imported events provide evidence for analysis, but Polyinfo must not persist event-to-narrative or event-to-core-variable mappings as canonical taxonomy.
 
 ## PI-TAX-007: Change History
 

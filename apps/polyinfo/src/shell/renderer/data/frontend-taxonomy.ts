@@ -321,19 +321,7 @@ export async function fetchFrontendSectorCatalog(): Promise<SectorTag[]> {
         }
       }
 
-      return [...sectors.values()].sort((left, right) => {
-        const leftParent = left.parentSlug ?? left.slug;
-        const rightParent = right.parentSlug ?? right.slug;
-        if (leftParent !== rightParent) {
-          return leftParent.localeCompare(rightParent);
-        }
-        const leftKind = left.parentSlug ? 1 : 0;
-        const rightKind = right.parentSlug ? 1 : 0;
-        if (leftKind !== rightKind) {
-          return leftKind - rightKind;
-        }
-        return left.label.localeCompare(right.label);
-      });
+      return [...sectors.values()];
     })();
   }
   return sectorCatalogCache;

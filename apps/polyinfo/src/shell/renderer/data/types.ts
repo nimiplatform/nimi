@@ -41,15 +41,41 @@ export type CoreVariableRecord = {
   confirmationState: 'confirmed' | 'proposed';
 };
 
-export type MarketMappingOverride = {
-  narrativeId?: string;
-  coreVariableIds?: string[];
+export type CustomSectorRecord = {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type ImportedEventStaleState = 'active' | 'closed' | 'missing' | 'error';
+
+export type ImportedEventCachedPayload = {
+  sourceEventId: string;
+  slug: string;
+  title: string;
+  description?: string;
+  endDate?: string;
+  markets: PreparedMarket[];
+};
+
+export type ImportedEventRecord = {
+  id: string;
+  sectorId: string;
+  sourceUrl: string;
+  sourceEventId: string;
+  title: string;
+  cachedEventPayload: ImportedEventCachedPayload;
+  lastValidatedAt: number | null;
+  staleState: ImportedEventStaleState;
+  staleReason?: string;
+  createdAt: number;
+  updatedAt: number;
 };
 
 export type TaxonomyOverlay = {
   narratives: NarrativeRecord[];
   coreVariables: CoreVariableRecord[];
-  marketMappingOverrides: Record<string, MarketMappingOverride>;
 };
 
 export type PreparedMarket = {
@@ -57,7 +83,11 @@ export type PreparedMarket = {
   eventId: string;
   eventTitle: string;
   question: string;
+  groupItemTitle?: string;
   slug: string;
+  active?: boolean;
+  acceptingOrders?: boolean;
+  closed?: boolean;
   endDate?: string;
   description?: string;
   image?: string;
@@ -162,15 +192,12 @@ export type AnalystMessage = {
 
 export type DraftProposal = {
   id: string;
-  entityType: 'narrative' | 'core-variable' | 'market-mapping';
-  action: 'create' | 'update' | 'deactivate' | 'remap-market';
+  entityType: 'narrative' | 'core-variable';
+  action: 'create' | 'update' | 'deactivate';
   title: string;
   definition?: string;
   keywords?: string[];
   recordId?: string;
-  marketId?: string;
-  narrativeId?: string;
-  coreVariableIds?: string[];
   note?: string;
 };
 

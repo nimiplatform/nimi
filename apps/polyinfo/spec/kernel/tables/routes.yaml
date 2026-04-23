@@ -3,28 +3,40 @@
 
 routes:
   - path: /
-    feature: dashboard
-    component: DashboardPage
-    lazy: true
-    description: Default home with active sector dashboard, narrative clusters, and signal summaries
+    feature: workspace-entry
+    component: IndexRedirect
+    lazy: false
+    description: Restore the last active sector workspace or fall back to the first official sector
 
   - path: /sectors
-    feature: sector-directory
-    component: SectorDirectoryPage
-    lazy: true
-    description: Search and browse available sectors imported from the upstream source
+    feature: legacy-sector-entry
+    component: LegacySectorRedirect
+    lazy: false
+    description: Compatibility redirect into the current workspace-first flow
 
   - path: /sectors/:sectorId
     feature: sector-workspace
     component: SectorWorkspacePage
     lazy: true
-    description: Sector-local workspace with narratives, core variables, tracked markets, live analysis, and sector analyst chat
+    description: Chat-first sector workspace with narratives, core issues, event evidence, and sector analyst chat
+
+  - path: /sectors/:rootSlug/:sectorId
+    feature: legacy-nested-sector-entry
+    component: NestedSectorRedirect
+    lazy: false
+    description: Compatibility redirect from the older nested sector URL shape
 
   - path: /signals
     feature: signal-history
     component: SignalHistoryPage
     lazy: true
     description: Search and filter saved signal snapshots across sectors and windows
+
+  - path: /runtime
+    feature: runtime
+    component: RuntimePage
+    lazy: true
+    description: Configure analyst routing and model source for Polyinfo chat
 
   - path: /settings
     feature: settings

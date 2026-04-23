@@ -2,7 +2,13 @@ import type {
   AnalysisSnapshot,
   AnalystMessage,
   AnalystRuntimeSettings,
+  CoreVariableRecord,
+  CustomSectorRecord,
   DraftProposal,
+  ImportedEventCachedPayload,
+  ImportedEventRecord,
+  ImportedEventStaleState,
+  NarrativeRecord,
   SectorChatState,
   TaxonomyOverlay,
 } from './types.js';
@@ -10,6 +16,9 @@ import type {
 const TAXONOMY_STORAGE_KEY = 'nimi:polyinfo:taxonomy:v1';
 const CHAT_STORAGE_KEY = 'nimi:polyinfo:chat:v1';
 const SNAPSHOT_STORAGE_KEY = 'nimi:polyinfo:snapshots:v1';
+const CUSTOM_SECTORS_STORAGE_KEY = 'nimi:polyinfo:custom-sectors:v1';
+const IMPORTED_EVENTS_STORAGE_KEY = 'nimi:polyinfo:imported-events:v1';
+const LAST_ACTIVE_SECTOR_STORAGE_KEY = 'nimi:polyinfo:last-active-sector:v1';
 export const LEGACY_ANALYST_RUNTIME_STORAGE_KEY = 'nimi:polyinfo:analyst-runtime:v1';
 
 export const seededTaxonomyBySector: Record<string, TaxonomyOverlay> = {
@@ -53,97 +62,276 @@ export const seededTaxonomyBySector: Record<string, TaxonomyOverlay> = {
         confirmationState: 'confirmed',
       },
     ],
-    marketMappingOverrides: {},
   },
 };
 
-export function loadSavedTaxonomy(): Record<string, TaxonomyOverlay> {
+function loadJsonRecord<T>(storageKey: string, fallback: T): T {
   if (typeof window === 'undefined') {
-    return {};
+    return fallback;
   }
   try {
-    const raw = window.localStorage.getItem(TAXONOMY_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, TaxonomyOverlay>;
-    return parsed ?? {};
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) {
+      return fallback;
+    }
+    return (JSON.parse(raw) as T) ?? fallback;
   } catch {
-    return {};
+    return fallback;
   }
+}
+
+function saveJsonRecord(storageKey: string, value: unknown): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  window.localStorage.setItem(storageKey, JSON.stringify(value));
+}
+
+function normalizeNarrativeRecord(value: unknown): NarrativeRecord | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const id = String(record.id || '').trim();
+  const title = String(record.title || '').trim();
+  const definition = String(record.definition || '').trim();
+  if (!id || !title || !definition) {
+    return null;
+  }
+  return {
+    id,
+    title,
+    definition,
+    keywords: Array.isArray(record.keywords)
+      ? record.keywords.map((item) => String(item || '').trim()).filter(Boolean)
+      : undefined,
+    confirmationState: record.confirmationState === 'proposed' ? 'proposed' : 'confirmed',
+  };
+}
+
+function normalizeCoreVariableRecord(value: unknown): CoreVariableRecord | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const id = String(record.id || '').trim();
+  const title = String(record.title || '').trim();
+  const definition = String(record.definition || '').trim();
+  if (!id || !title || !definition) {
+    return null;
+  }
+  return {
+    id,
+    title,
+    definition,
+    keywords: Array.isArray(record.keywords)
+      ? record.keywords.map((item) => String(item || '').trim()).filter(Boolean)
+      : undefined,
+    confirmationState: record.confirmationState === 'proposed' ? 'proposed' : 'confirmed',
+  };
+}
+
+function normalizeTaxonomyOverlay(value: unknown): TaxonomyOverlay | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const narratives = Array.isArray(record.narratives)
+    ? record.narratives.map((item) => normalizeNarrativeRecord(item)).filter((item): item is NarrativeRecord => item !== null)
+    : [];
+  const coreVariables = Array.isArray(record.coreVariables)
+    ? record.coreVariables.map((item) => normalizeCoreVariableRecord(item)).filter((item): item is CoreVariableRecord => item !== null)
+    : [];
+  return {
+    narratives,
+    coreVariables,
+  };
+}
+
+export function loadSavedTaxonomy(): Record<string, TaxonomyOverlay> {
+  const raw = loadJsonRecord<Record<string, unknown>>(TAXONOMY_STORAGE_KEY, {});
+  return Object.fromEntries(
+    Object.entries(raw).map(([sectorId, value]) => {
+      const overlay = normalizeTaxonomyOverlay(value) ?? { narratives: [], coreVariables: [] };
+      return [sectorId, overlay];
+    }),
+  );
 }
 
 export function saveTaxonomy(value: Record<string, TaxonomyOverlay>): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  window.localStorage.setItem(TAXONOMY_STORAGE_KEY, JSON.stringify(value));
+  saveJsonRecord(TAXONOMY_STORAGE_KEY, value);
 }
 
 export function loadSavedChats(): Record<string, SectorChatState> {
-  if (typeof window === 'undefined') {
-    return {};
-  }
-  try {
-    const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
-    if (!raw) return {};
-    return migrateSavedChats(JSON.parse(raw) as Record<string, unknown>);
-  } catch {
-    return {};
-  }
+  const raw = loadJsonRecord<Record<string, unknown>>(CHAT_STORAGE_KEY, {});
+  return migrateSavedChats(raw);
 }
 
 export function saveChats(value: Record<string, unknown>): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(value));
+  saveJsonRecord(CHAT_STORAGE_KEY, value);
 }
 
 export function loadSavedSnapshots(): Record<string, AnalysisSnapshot[]> {
-  if (typeof window === 'undefined') {
-    return {};
-  }
-  try {
-    const raw = window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    return Object.fromEntries(Object.entries(parsed).map(([sectorSlug, value]) => {
-      const snapshots = Array.isArray(value)
-        ? value
-          .map((item) => {
-            if (!item || typeof item !== 'object' || Array.isArray(item)) {
-              return null;
-            }
-            const record = item as Record<string, unknown>;
-            const id = String(record.id || '').trim();
-            const sector = String(record.sectorSlug || sectorSlug).trim();
-            if (!id || !sector) {
-              return null;
-            }
-            return {
-              id,
-              sectorSlug: sector,
-              sectorLabel: String(record.sectorLabel || sector),
-              window: record.window === '24h' || record.window === '7d' ? record.window : '48h',
-              createdAt: Number(record.createdAt) || Date.now(),
-              headline: String(record.headline || ''),
-              summary: String(record.summary || ''),
-              messageId: String(record.messageId || id),
-            } satisfies AnalysisSnapshot;
-          })
-          .filter((item): item is AnalysisSnapshot => item !== null)
-        : [];
-      return [sectorSlug, snapshots];
-    }));
-  } catch {
-    return {};
-  }
+  const parsed = loadJsonRecord<Record<string, unknown>>(SNAPSHOT_STORAGE_KEY, {});
+  return Object.fromEntries(Object.entries(parsed).map(([sectorSlug, value]) => {
+    const snapshots = Array.isArray(value)
+      ? value
+        .map((item) => {
+          if (!item || typeof item !== 'object' || Array.isArray(item)) {
+            return null;
+          }
+          const record = item as Record<string, unknown>;
+          const id = String(record.id || '').trim();
+          const sector = String(record.sectorSlug || sectorSlug).trim();
+          if (!id || !sector) {
+            return null;
+          }
+          return {
+            id,
+            sectorSlug: sector,
+            sectorLabel: String(record.sectorLabel || sector),
+            window: record.window === '24h' || record.window === '7d' ? record.window : '48h',
+            createdAt: Number(record.createdAt) || Date.now(),
+            headline: String(record.headline || ''),
+            summary: String(record.summary || ''),
+            messageId: String(record.messageId || id),
+          } satisfies AnalysisSnapshot;
+        })
+        .filter((item): item is AnalysisSnapshot => item !== null)
+      : [];
+    return [sectorSlug, snapshots];
+  }));
 }
 
 export function saveSnapshots(value: Record<string, unknown>): void {
+  saveJsonRecord(SNAPSHOT_STORAGE_KEY, value);
+}
+
+function normalizeCustomSectorRecord(value: unknown): CustomSectorRecord | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const id = String(record.id || '').trim();
+  const title = String(record.title || '').trim();
+  if (!id || !title) {
+    return null;
+  }
+  const createdAt = Number(record.createdAt) || Date.now();
+  const updatedAt = Number(record.updatedAt) || createdAt;
+  return {
+    id,
+    title,
+    createdAt,
+    updatedAt,
+  };
+}
+
+export function loadSavedCustomSectors(): Record<string, CustomSectorRecord> {
+  const raw = loadJsonRecord<Record<string, unknown>>(CUSTOM_SECTORS_STORAGE_KEY, {});
+  return Object.fromEntries(
+    Object.entries(raw)
+      .map(([sectorId, value]) => [sectorId, normalizeCustomSectorRecord(value)] as const)
+      .filter((entry): entry is [string, CustomSectorRecord] => entry[1] !== null),
+  );
+}
+
+export function saveCustomSectors(value: Record<string, CustomSectorRecord>): void {
+  saveJsonRecord(CUSTOM_SECTORS_STORAGE_KEY, value);
+}
+
+function normalizeImportedEventCachedPayload(value: unknown): ImportedEventCachedPayload | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const sourceEventId = String(record.sourceEventId || '').trim();
+  const slug = String(record.slug || '').trim();
+  const title = String(record.title || '').trim();
+  const markets = Array.isArray(record.markets) ? record.markets : [];
+  if (!sourceEventId || !slug || !title || markets.length === 0) {
+    return null;
+  }
+  return {
+    sourceEventId,
+    slug,
+    title,
+    description: record.description ? String(record.description) : undefined,
+    endDate: record.endDate ? String(record.endDate) : undefined,
+    markets: markets as ImportedEventCachedPayload['markets'],
+  };
+}
+
+function normalizeImportedEventStaleState(value: unknown): ImportedEventStaleState {
+  return value === 'closed' || value === 'missing' || value === 'error' ? value : 'active';
+}
+
+function normalizeImportedEventRecord(value: unknown): ImportedEventRecord | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const id = String(record.id || '').trim();
+  const sectorId = String(record.sectorId || '').trim();
+  const sourceUrl = String(record.sourceUrl || '').trim();
+  const sourceEventId = String(record.sourceEventId || '').trim();
+  const title = String(record.title || '').trim();
+  const cachedEventPayload = normalizeImportedEventCachedPayload(record.cachedEventPayload);
+  if (!id || !sectorId || !sourceUrl || !sourceEventId || !title || !cachedEventPayload) {
+    return null;
+  }
+  const createdAt = Number(record.createdAt) || Date.now();
+  const updatedAt = Number(record.updatedAt) || createdAt;
+  const lastValidatedAt = Number(record.lastValidatedAt);
+  return {
+    id,
+    sectorId,
+    sourceUrl,
+    sourceEventId,
+    title,
+    cachedEventPayload,
+    lastValidatedAt: Number.isFinite(lastValidatedAt) && lastValidatedAt > 0 ? lastValidatedAt : null,
+    staleState: normalizeImportedEventStaleState(record.staleState),
+    staleReason: record.staleReason ? String(record.staleReason) : undefined,
+    createdAt,
+    updatedAt,
+  };
+}
+
+export function loadSavedImportedEvents(): Record<string, ImportedEventRecord[]> {
+  const raw = loadJsonRecord<Record<string, unknown>>(IMPORTED_EVENTS_STORAGE_KEY, {});
+  return Object.fromEntries(
+    Object.entries(raw).map(([sectorId, value]) => {
+      const events = Array.isArray(value)
+        ? value.map((item) => normalizeImportedEventRecord(item)).filter((item): item is ImportedEventRecord => item !== null)
+        : [];
+      return [sectorId, events];
+    }),
+  );
+}
+
+export function saveImportedEvents(value: Record<string, ImportedEventRecord[]>): void {
+  saveJsonRecord(IMPORTED_EVENTS_STORAGE_KEY, value);
+}
+
+export function loadLastActiveSectorId(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const raw = window.localStorage.getItem(LAST_ACTIVE_SECTOR_STORAGE_KEY);
+  const sectorId = String(raw || '').trim();
+  return sectorId || null;
+}
+
+export function saveLastActiveSectorId(value: string | null): void {
   if (typeof window === 'undefined') {
     return;
   }
-  window.localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(value));
+  if (!value) {
+    window.localStorage.removeItem(LAST_ACTIVE_SECTOR_STORAGE_KEY);
+    return;
+  }
+  window.localStorage.setItem(LAST_ACTIVE_SECTOR_STORAGE_KEY, value);
 }
 
 export function loadSavedAnalystRuntimeSettings(): AnalystRuntimeSettings | null {
@@ -231,14 +419,12 @@ function normalizeDraftProposal(value: unknown): DraftProposal | null {
     return null;
   }
   const entityType = record.entityType === 'core-variable'
-    || record.entityType === 'market-mapping'
     || record.entityType === 'narrative'
     ? record.entityType
     : null;
   const action = record.action === 'create'
     || record.action === 'update'
     || record.action === 'deactivate'
-    || record.action === 'remap-market'
     ? record.action
     : null;
   if (!entityType || !action) {
@@ -254,11 +440,6 @@ function normalizeDraftProposal(value: unknown): DraftProposal | null {
       ? record.keywords.map((item) => String(item || '').trim()).filter(Boolean)
       : undefined,
     recordId: record.recordId ? String(record.recordId) : undefined,
-    marketId: record.marketId ? String(record.marketId) : undefined,
-    narrativeId: record.narrativeId ? String(record.narrativeId) : undefined,
-    coreVariableIds: Array.isArray(record.coreVariableIds)
-      ? record.coreVariableIds.map((item) => String(item || '').trim()).filter(Boolean)
-      : undefined,
     note: record.note ? String(record.note) : undefined,
   };
 }
@@ -288,21 +469,6 @@ function migrateSavedChats(value: Record<string, unknown>): Record<string, Secto
 }
 
 export function applyProposal(overlay: TaxonomyOverlay, proposal: DraftProposal): TaxonomyOverlay {
-  if (proposal.entityType === 'market-mapping' && proposal.action === 'remap-market' && proposal.marketId) {
-    const nextMappingOverrides = {
-      ...overlay.marketMappingOverrides,
-      [proposal.marketId]: {
-        narrativeId: proposal.narrativeId,
-        coreVariableIds: proposal.coreVariableIds ?? [],
-      },
-    };
-
-    return {
-      ...overlay,
-      marketMappingOverrides: nextMappingOverrides,
-    };
-  }
-
   if (proposal.entityType === 'narrative' && proposal.action === 'create') {
     return {
       ...overlay,
@@ -336,17 +502,9 @@ export function applyProposal(overlay: TaxonomyOverlay, proposal: DraftProposal)
   }
 
   if (proposal.entityType === 'narrative' && proposal.action === 'deactivate' && proposal.recordId) {
-    const narratives = overlay.narratives.filter((record) => record.id !== proposal.recordId);
-    const marketMappingOverrides = Object.fromEntries(
-      Object.entries(overlay.marketMappingOverrides).map(([marketId, mapping]) => [
-        marketId,
-        mapping.narrativeId === proposal.recordId ? { ...mapping, narrativeId: undefined } : mapping,
-      ]),
-    );
     return {
       ...overlay,
-      narratives,
-      marketMappingOverrides,
+      narratives: overlay.narratives.filter((record) => record.id !== proposal.recordId),
     };
   }
 
@@ -367,20 +525,9 @@ export function applyProposal(overlay: TaxonomyOverlay, proposal: DraftProposal)
   }
 
   if (proposal.entityType === 'core-variable' && proposal.action === 'deactivate' && proposal.recordId) {
-    const coreVariables = overlay.coreVariables.filter((record) => record.id !== proposal.recordId);
-    const marketMappingOverrides = Object.fromEntries(
-      Object.entries(overlay.marketMappingOverrides).map(([marketId, mapping]) => [
-        marketId,
-        {
-          ...mapping,
-          coreVariableIds: (mapping.coreVariableIds ?? []).filter((id) => id !== proposal.recordId),
-        },
-      ]),
-    );
     return {
       ...overlay,
-      coreVariables,
-      marketMappingOverrides,
+      coreVariables: overlay.coreVariables.filter((record) => record.id !== proposal.recordId),
     };
   }
 

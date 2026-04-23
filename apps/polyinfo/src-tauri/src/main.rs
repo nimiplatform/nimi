@@ -31,6 +31,21 @@ fn get_storage_dirs() -> Result<PolyinfoStorageDirs, String> {
     })
 }
 
+#[tauri::command]
+fn start_window_drag(window: tauri::WebviewWindow) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    if window.is_fullscreen().unwrap_or(false) {
+        return Ok(());
+    }
+
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        window.start_dragging().map_err(|error| error.to_string())
+    })) {
+        Ok(result) => result,
+        Err(_) => Err("window drag unavailable".to_string()),
+    }
+}
+
 async fn fetch_json(url: String, method: &str, body: Option<Value>) -> Result<Value, String> {
     let client = reqwest::Client::new();
     let response = if method == "POST" {
@@ -123,6 +138,13 @@ async fn polymarket_events_by_tag_slug(
 }
 
 #[tauri::command]
+async fn polymarket_event_by_slug(slug: String) -> Result<Value, String> {
+    let url = Url::parse(&format!("{GAMMA_API_BASE}/events/slug/{slug}"))
+        .map_err(|error| format!("invalid url: {error}"))?;
+    fetch_json(url.to_string(), "GET", None).await
+}
+
+#[tauri::command]
 async fn polymarket_batch_prices_history(
     markets: Vec<String>,
     interval: Option<String>,
@@ -154,9 +176,11 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
+            start_window_drag,
             polymarket_frontend_homepage_html,
             polymarket_frontend_filtered_tags_by_slug,
             polymarket_events_by_tag_slug,
+            polymarket_event_by_slug,
             polymarket_batch_prices_history,
             defaults::runtime_defaults,
             auth_session_commands::auth_session_load,

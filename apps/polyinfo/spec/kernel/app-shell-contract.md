@@ -2,14 +2,14 @@
 
 > Shell, bootstrap, routing, layout, and app-local persistence.
 
-## PI-SHELL-001: Dashboard Is Primary
+## PI-SHELL-001: Sector Workspace Is Primary
 
-Dashboard is the primary home surface of Polyinfo.
+The sector workspace is the primary home surface of Polyinfo.
 
-- analysts arrive here first
-- dashboard is signal-first, not settings-first
-- the current sector focus must be visible immediately on entry
-- dashboard must provide direct entry into a live sector analyst session
+- analysts arrive in a sector workspace rather than a dashboard
+- `/` should restore the most recently active sector when possible
+- if no prior sector exists, the shell should fall back to the first available official sector
+- the user must be able to start work immediately after entry
 
 ## PI-SHELL-002: Standalone App Boundary
 
@@ -40,21 +40,23 @@ Routes are authoritative in `tables/routes.yaml`.
 
 The shell must provide direct navigation for:
 
-- sector overview
 - sector detail
 - signal history
 - runtime
 - settings
 
+Legacy compatibility redirects may exist, but no active route may reintroduce dashboard-first or mapping-first product flow.
+
 ## PI-SHELL-005: Main Layout
 
-The main working surface is a three-pane analytical layout:
+The main working surface is a chat-first analytical layout:
 
-- left pane: sector and taxonomy navigation
-- center pane: signal board and market movement views
-- right pane: sector analyst chat and action panel
+- top bar: primary category selection for official sector roots, plus secondary utility navigation
+- left rail: second-level sectors for the selected primary category, or custom sectors when the custom workspace group is selected
+- information column: narratives, core issues, and event evidence
+- main column: sector analyst chat, proposal review, and current read
 
-On narrow viewports, the right pane may collapse into a tab, but discussion must remain first-class rather than hidden behind settings-only navigation.
+On narrow viewports, the information column and chat column may collapse into tabs, but chat must remain the default visible surface.
 
 ## PI-SHELL-006: Sector Workspace Is Conversational
 
@@ -68,10 +70,11 @@ Every sector workspace must support immediate conversation.
 
 Polyinfo must persist the following app-local objects:
 
+- custom sector records
 - sector-local narrative definitions
 - sector-local core variable definitions
-- manual market-to-narrative mappings
-- manual market-to-core-variable relevance overrides
+- imported event records for custom sectors
+- last active sector selection
 - discussion threads
 - user-selected time window and weighting preferences
 
@@ -85,18 +88,20 @@ Sector switch behavior must:
 
 - preserve stored narratives and core variables for each sector
 - preserve or resumably restore the latest sector analyst thread for each sector
+- restore the last active sector on the next app entry when possible
 - tear down stale realtime subscriptions
 - load the next sector's tracked market set before reattaching realtime subscriptions
+- refresh imported-event validity when opening a custom sector
 
 ## PI-SHELL-009: Chat-Initiated Structure Editing
 
 The shell must allow narrative and core-variable maintenance from inside the analyst chat flow.
 
-- the user may ask to create, edit, retire, or remap narratives inside chat
-- the user may ask to create, edit, retire, or remap core variables inside chat
+- the user may ask to create, edit, or retire narratives inside chat
+- the user may ask to create, edit, or retire core variables inside chat
 - proposed changes must remain reviewable before confirmation
 
-Separate management screens may exist, but chat-originated editing is a first-class workflow rather than a fallback.
+Direct panel editing may also exist, but chat-originated editing is a first-class workflow rather than a fallback.
 
 ## PI-SHELL-011: Runtime Config Ownership
 
@@ -120,9 +125,8 @@ Every visible signal summary must expose an inspection path to its supporting ma
 
 The shell must make it possible to move from:
 
-- sector signal summary
-- to narrative cluster
-- to core variable view
-- to underlying markets and window comparisons
+- sector conclusion
+- to current narratives and core issues
+- to underlying events, markets, and window comparisons
 
 Polyinfo must not present opaque one-line conclusions without traceable market support.

@@ -18,7 +18,6 @@ Polyinfo supports user-agent discussion about:
 - sector interpretation
 - narrative proposals
 - core variable proposals
-- market mapping proposals
 - signal interpretation
 
 Discussion is app-local and does not redefine Realm chat authority.
@@ -46,8 +45,9 @@ The agent may propose:
 
 - new narratives
 - new core variables
-- revised market mappings
-- revised relevance strength between markets and core variables
+- revised narrative definitions
+- revised core-variable definitions
+- retirement of narratives or core variables
 
 These remain proposals until user confirmation.
 
@@ -63,7 +63,6 @@ The user may ask the agent to:
 - create a new core variable
 - revise a core-variable definition
 - retire a core variable
-- remap a market
 
 The product may render these changes as reviewable structured actions before confirmation.
 
@@ -86,8 +85,9 @@ User confirmation is the only authority that admits:
 
 - new narratives
 - new core variables
-- changed primary narrative bindings
-- changed core-variable relevance overrides
+- revised narrative definitions
+- revised core-variable definitions
+- retired narrative or core-variable state
 
 Agent confidence language must not masquerade as confirmation.
 

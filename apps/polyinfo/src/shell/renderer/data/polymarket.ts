@@ -1,4 +1,14 @@
-import type { AnalysisPackage, HistoryPoint, PreparedMarket, SectorTag, TaxonomyOverlay, WindowKey } from './types.js';
+import type {
+  AnalysisPackage,
+  HistoryPoint,
+  ImportedEventCachedPayload,
+  ImportedEventRecord,
+  ImportedEventStaleState,
+  PreparedMarket,
+  SectorTag,
+  TaxonomyOverlay,
+  WindowKey,
+} from './types.js';
 import { hasTauriInvoke, invokeChecked } from '@renderer/bridge';
 import { fetchFrontendSectorCatalog } from './frontend-taxonomy.js';
 
@@ -14,6 +24,7 @@ type GammaTagResponse = {
 type GammaEventResponse = {
   id: string;
   title: string;
+  description?: string;
   slug: string;
   markets?: GammaMarketResponse[];
   tags?: GammaTagResponse[];
@@ -27,6 +38,7 @@ type GammaEventsKeysetResponse = {
 type GammaMarketResponse = {
   id: string;
   question?: string;
+  groupItemTitle?: string;
   conditionId?: string;
   slug?: string;
   description?: string;
@@ -132,6 +144,121 @@ function pickYesTokenId(market: GammaMarketResponse): { yesTokenId?: string; noT
   };
 }
 
+function convertGammaEventToImportedPayload(event: GammaEventResponse): ImportedEventCachedPayload {
+  const markets: PreparedMarket[] = [];
+  for (const market of event.markets ?? []) {
+    if (!market.active || market.closed || !market.acceptingOrders) {
+      continue;
+    }
+    const tokens = pickYesTokenId(market);
+    if (!tokens.yesTokenId) {
+      continue;
+    }
+    markets.push({
+      id: String(market.id),
+      eventId: String(event.id),
+      eventTitle: event.title,
+      question: String(market.question || ''),
+      groupItemTitle: market.groupItemTitle ? String(market.groupItemTitle).trim() : undefined,
+      slug: String(market.slug || market.id),
+      active: market.active,
+      acceptingOrders: market.acceptingOrders,
+      closed: market.closed,
+      description: market.description,
+      image: market.image,
+      endDate: market.endDate,
+      volumeNum: Number(market.volumeNum || 0),
+      volume24hr: Number(market.volume24hr || 0),
+      liquidityNum: Number(market.liquidityNum || 0),
+      spread: Number(market.spread || 0),
+      bestBid: market.bestBid,
+      bestAsk: market.bestAsk,
+      lastTradePrice: market.lastTradePrice,
+      rawOutcomePrice: parseOutcomePrice(market.outcomePrices),
+      yesTokenId: tokens.yesTokenId,
+      noTokenId: tokens.noTokenId,
+      tags: (event.tags ?? []).map((eventTag) => ({
+        id: eventTag.id,
+        label: eventTag.label,
+        slug: eventTag.slug,
+      })),
+    });
+  }
+
+  return {
+    sourceEventId: String(event.id),
+    slug: String(event.slug),
+    title: event.title,
+    description: event.description,
+    endDate: event.markets?.find((market) => market.endDate)?.endDate,
+    markets,
+  };
+}
+
+export function parsePolymarketEventSlugFromUrl(input: string): string | null {
+  const normalized = String(input || '').trim();
+  if (!normalized) {
+    return null;
+  }
+  try {
+    const url = new URL(normalized);
+    if (!/polymarket\.com$/i.test(url.hostname)) {
+      return null;
+    }
+    const segments = url.pathname.split('/').filter(Boolean);
+    const eventIndex = segments.findIndex((segment) => segment === 'event');
+    const slug = eventIndex === -1 ? segments[segments.length - 1] : segments[eventIndex + 1];
+    return slug ? slug.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchEventBySlug(slug: string): Promise<ImportedEventCachedPayload> {
+  const normalizedSlug = String(slug || '').trim();
+  if (!normalizedSlug) {
+    throw new Error('缺少 event slug');
+  }
+  const event = hasTauriInvoke()
+    ? await invokeChecked(
+      'polymarket_event_by_slug',
+      { slug: normalizedSlug },
+      parseUnknown<GammaEventResponse>,
+    )
+    : await fetchJson<GammaEventResponse>(`${GAMMA_API_BASE}/events/slug/${encodeURIComponent(normalizedSlug)}`);
+  const payload = convertGammaEventToImportedPayload(event);
+  if (payload.markets.length === 0) {
+    throw new Error('这个 event 当前没有可用市场');
+  }
+  return payload;
+}
+
+export async function validateImportedEventRecord(record: ImportedEventRecord): Promise<ImportedEventRecord> {
+  try {
+    const payload = await fetchEventBySlug(record.cachedEventPayload.slug);
+    const staleState: ImportedEventStaleState = payload.markets.length === 0 ? 'closed' : 'active';
+    return {
+      ...record,
+      title: payload.title,
+      cachedEventPayload: payload,
+      staleState,
+      staleReason: staleState === 'active' ? undefined : '上游 event 当前没有可用市场',
+      lastValidatedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const staleState: ImportedEventStaleState = message.includes('slug not found') ? 'missing' : 'error';
+    return {
+      ...record,
+      staleState,
+      staleReason: staleState === 'missing' ? '上游 event 已不存在或 slug 无效' : message,
+      lastValidatedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  }
+}
+
 export function computeDisplayPrice(market: PreparedMarket, live?: MarketLiveState): number {
   const bestBid = live?.bestBid ?? market.bestBid;
   const bestAsk = live?.bestAsk ?? market.bestAsk;
@@ -204,7 +331,11 @@ export async function fetchSectorMarkets(tag: SectorTag): Promise<PreparedMarket
         eventId: String(event.id),
         eventTitle: event.title,
         question: String(market.question || ''),
+        groupItemTitle: market.groupItemTitle ? String(market.groupItemTitle).trim() : undefined,
         slug: String(market.slug || market.id),
+        active: market.active,
+        acceptingOrders: market.acceptingOrders,
+        closed: market.closed,
         description: market.description,
         image: market.image,
         endDate: market.endDate,
@@ -340,18 +471,10 @@ export async function fetchSectorHistory(
   );
 }
 
-function inferMarketMapping(
+function inferMarketContext(
   market: PreparedMarket,
   overlay: TaxonomyOverlay,
 ): { narrativeId?: string; coreVariableIds: string[] } {
-  const existing = overlay.marketMappingOverrides[market.id];
-  if (existing) {
-    return {
-      narrativeId: existing.narrativeId,
-      coreVariableIds: existing.coreVariableIds ?? [],
-    };
-  }
-
   const question = `${market.question} ${market.eventTitle}`;
   const scoredNarratives = overlay.narratives
     .map((record) => ({
@@ -397,10 +520,9 @@ export function buildAnalysisPackage(input: {
     narratives: input.overlay.narratives,
     coreVariables: input.overlay.coreVariables,
     markets: ordered.map((market) => {
-      const mapping = input.overlay.marketMappingOverrides[market.id];
-      const inferredMapping = inferMarketMapping(market, input.overlay);
-      const narrativeId = mapping?.narrativeId ?? inferredMapping.narrativeId;
-      const coreVariableIds = mapping?.coreVariableIds ?? inferredMapping.coreVariableIds;
+      const inferredContext = inferMarketContext(market, input.overlay);
+      const narrativeId = inferredContext.narrativeId;
+      const coreVariableIds = inferredContext.coreVariableIds;
       const narrative = input.overlay.narratives.find((item) => item.id === narrativeId);
       const relatedCoreVariables = input.overlay.coreVariables.filter((item) =>
         coreVariableIds?.includes(item.id),
@@ -444,7 +566,9 @@ export function createMarketWebSocket(
   let socket: WebSocket | null = null;
   let pingTimer: number | null = null;
   let reconnectTimer: number | null = null;
+  let flushTimer: number | null = null;
   let closedManually = false;
+  let hasPendingUpdate = false;
 
   const clearTimers = () => {
     if (pingTimer !== null) {
@@ -455,6 +579,26 @@ export function createMarketWebSocket(
       window.clearTimeout(reconnectTimer);
       reconnectTimer = null;
     }
+    if (flushTimer !== null) {
+      window.clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+  };
+
+  const flushUpdates = () => {
+    flushTimer = null;
+    if (!hasPendingUpdate) {
+      return;
+    }
+    hasPendingUpdate = false;
+    onUpdate({ ...liveByTokenId });
+  };
+
+  const scheduleFlush = () => {
+    if (flushTimer !== null) {
+      return;
+    }
+    flushTimer = window.setTimeout(flushUpdates, 120);
   };
 
   const bindSocket = (status: MarketConnectionState) => {
@@ -501,7 +645,8 @@ export function createMarketWebSocket(
       if (Number.isFinite(lastTradePrice) && lastTradePrice >= 0) next.lastTradePrice = lastTradePrice;
 
       liveByTokenId[assetId] = next;
-      onUpdate({ ...liveByTokenId });
+      hasPendingUpdate = true;
+      scheduleFlush();
     });
 
     socket.addEventListener('error', () => {

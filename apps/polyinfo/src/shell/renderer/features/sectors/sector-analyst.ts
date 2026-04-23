@@ -63,9 +63,9 @@ export function buildAnalystSystemPrompt(input: {
     '4. 可以反驳用户，但仍然只能引用盘口事实。',
     '5. 默认使用中文回答。',
     '',
-    '如果用户明确要求新增、修改、停用 narrative 或 core variable，或者要求重绑某个盘口，请在正常回答最后追加一个唯一的 proposal 代码块，格式必须完全如下：',
+    '如果用户明确要求新增、修改、停用 narrative 或 core issue，请在正常回答最后追加一个唯一的 proposal 代码块，格式必须完全如下：',
     '```polyinfo-proposal',
-    '{"entityType":"narrative|core-variable|market-mapping","action":"create|update|deactivate|remap-market","title":"显示给用户的标题","definition":"一句定义","recordId":"已有对象 id，可选","marketId":"盘口 id，可选","narrativeId":"narrative id，可选","coreVariableIds":["cv-id-1"],"keywords":["keyword"],"note":"一句操作说明"}',
+    '{"entityType":"narrative|core-variable","action":"create|update|deactivate","title":"显示给用户的标题","definition":"一句定义","recordId":"已有对象 id，可选","keywords":["keyword"],"note":"一句操作说明"}',
     '```',
     '如果本轮不需要结构修改，不要输出 proposal 代码块。',
     '',
@@ -103,10 +103,10 @@ export function extractDraftProposal(text: string): { content: string; proposal:
   const entityType = String(proposalRecord.entityType || '').trim();
   const action = String(proposalRecord.action || '').trim();
 
-  if (!['narrative', 'core-variable', 'market-mapping'].includes(entityType)) {
+  if (!['narrative', 'core-variable'].includes(entityType)) {
     return { content: cleanedContent, proposal: null };
   }
-  if (!['create', 'update', 'deactivate', 'remap-market'].includes(action)) {
+  if (!['create', 'update', 'deactivate'].includes(action)) {
     return { content: cleanedContent, proposal: null };
   }
 
@@ -120,9 +120,6 @@ export function extractDraftProposal(text: string): { content: string; proposal:
       definition: proposalRecord.definition ? String(proposalRecord.definition) : undefined,
       keywords: normalizeStringArray(proposalRecord.keywords),
       recordId: proposalRecord.recordId ? String(proposalRecord.recordId) : undefined,
-      marketId: proposalRecord.marketId ? String(proposalRecord.marketId) : undefined,
-      narrativeId: proposalRecord.narrativeId ? String(proposalRecord.narrativeId) : undefined,
-      coreVariableIds: normalizeStringArray(proposalRecord.coreVariableIds),
       note: proposalRecord.note ? String(proposalRecord.note) : undefined,
     },
   };

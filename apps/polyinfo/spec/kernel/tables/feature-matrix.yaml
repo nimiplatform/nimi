@@ -27,16 +27,16 @@ features:
     backend-dependency: none
     external-dependency: none
     migration-source: new
-    description: Create, edit, confirm, and version narratives and core variables
+    description: Create, edit, confirm, and version narratives and core issues
 
-  - feature: tracked-market-mapping
+  - feature: custom-sector-import
     phase: 1
     priority: P0
     contract: PI-TAX-006
     backend-dependency: none
     external-dependency: Polymarket Gamma API
     migration-source: new
-    description: Bind discovered markets to narratives and core variables with manual override
+    description: Import Polymarket events into custom sectors, cache them locally, and track stale state
 
   - feature: price-history-windows
     phase: 2
@@ -47,14 +47,14 @@ features:
     migration-source: new
     description: Reconstruct canonical 24h, 48h, and 7d windows for tracked markets
 
-  - feature: realtime-dashboard
+  - feature: workspace-market-state
     phase: 2
     priority: P0
     contract: PI-DATA-005
     backend-dependency: none
     external-dependency: Polymarket market WebSocket
     migration-source: new
-    description: Maintain live market movement views for the active sector workspace
+    description: Maintain live event and market movement views for the active sector workspace
 
   - feature: analysis-input-package
     phase: 2
@@ -81,7 +81,7 @@ features:
     backend-dependency: none
     external-dependency: none
     migration-source: new
-    description: Inspect included markets, window deltas, mappings, and weight impact
+    description: Inspect included events, markets, window deltas, and weight impact
 
   - feature: sector-analyst-session
     phase: 3
@@ -108,7 +108,7 @@ features:
     backend-dependency: none
     external-dependency: none
     migration-source: new
-    description: Create, revise, retire, and remap narratives or core variables from inside chat
+    description: Create, revise, and retire narratives or core variables from inside chat
 
   - feature: discussion-history
     phase: 3

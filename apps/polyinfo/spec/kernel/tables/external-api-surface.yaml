@@ -30,7 +30,7 @@ surfaces:
     kind: rest
     provider: polymarket
     endpoint: GET /events/keyset
-    purpose: Reconstruct the full front-end category to event mapping through keyset pagination
+    purpose: Reconstruct the full front-end category event set through keyset pagination
 
   - name: gamma-event-tags
     kind: rest

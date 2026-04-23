@@ -8,10 +8,10 @@ Every analysis run must be built from a structured input package.
 
 Canonical inputs are limited to:
 
-- tracked market probabilities over a chosen window
+- event and market probabilities over a chosen window
 - upstream liquidity and volume facts
-- sector-local narrative mappings
-- sector-local core variable mappings
+- sector-local narratives
+- sector-local core variables
 - active sector context
 - optional prior sector discussion history when the current run is chat-continuous
 
@@ -34,7 +34,7 @@ Arbitrary future windows may be admitted later, but the above set is the minimum
 Analysis runs must preserve this order:
 
 1. market movement within a chosen window
-2. narrative-level interpretation of grouped markets
+2. narrative-level interpretation of grouped events and markets
 3. core-variable-level interpretation across relevant narratives
 
 Polyinfo must not jump directly from a raw market list to a top-level core-variable claim without preserving the intermediate narrative layer inside the analysis input package.
@@ -55,7 +55,7 @@ Polyinfo's analytical conclusion is produced by the sector analyst LLM, not by a
 
 - the system prepares the structured evidence package
 - prompt constraints define the required reasoning frame and forbidden evidence classes
-- the LLM evaluates how the included markets affect narratives and core variables
+- the LLM evaluates how the included events and markets affect narratives and core variables during the current run
 - the LLM outputs the current analytical conclusion within the app's typed output surface
 
 Rule-based preprocessing may derive deltas, ranking, and weights, but the final conclusion remains an LLM-run result.
@@ -77,7 +77,7 @@ The app may expose richer wording, but canonical output types remain typed rathe
 
 Every signal snapshot must preserve enough structure to explain:
 
-- which markets were included
+- which events and markets were included
 - which narratives were involved
 - which core variables were evaluated
 - which window was used
@@ -95,7 +95,7 @@ They must record:
 - window
 - evaluation timestamp
 - active taxonomy version
-- included market set
+- included event and market set
 - typed output
 - analyst-run conclusion
 - analyst prompt/profile version

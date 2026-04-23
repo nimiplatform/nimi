@@ -6,26 +6,27 @@ object_model:
     - Sector
     - Narrative
     - CoreVariable
-    - TrackedMarket
+    - ImportedEvent
     - SignalSnapshot
     - DiscussionThread
 
   sector:
-    upstream_source: polymarket_tag_v1
+    upstream_source: official_or_custom_v1
     required_fields:
       - id
-      - sourceTagId
       - title
       - sourceType
       - createdAt
       - updatedAt
     optional_fields:
+      - sourceTagId
       - description
       - aliasGroup
       - overlayMetadata
     invariants:
-      - sourceType must be polymarket_tag in v1
-      - sourceTagId must remain stable once admitted
+      - sourceType must be one of the admitted source_types
+      - official sectors must carry a stable sourceTagId
+      - custom sectors must not require a sourceTagId
 
   narrative:
     required_fields:
@@ -57,26 +58,24 @@ object_model:
       - core variable belongs to exactly one sector
       - confirmed core variables require a non-empty definition
 
-  tracked_market:
+  imported_event:
     required_fields:
       - id
       - sectorId
-      - sourceMarketId
       - sourceEventId
-      - sourceConditionId
-      - primaryNarrativeId
-      - displayTitle
-      - activeState
+      - sourceUrl
+      - title
+      - cachedEventPayload
+      - staleState
       - createdAt
       - updatedAt
     optional_fields:
-      - sourceAssetIds
-      - relatedCoreVariableIds
-      - mappingOverrides
+      - lastValidatedAt
+      - staleReason
     invariants:
-      - tracked market belongs to exactly one sector
-      - tracked market must expose exactly one primaryNarrativeId when active in signal construction
-      - tracked market may bind to multiple core variables
+      - imported event belongs to exactly one custom sector
+      - sourceEventId must remain stable once admitted
+      - cachedEventPayload is a local cache, not a replacement for upstream truth
 
   signal_snapshot:
     required_fields:
@@ -90,6 +89,7 @@ object_model:
       - analystConclusion
       - analystProfileVersion
     optional_fields:
+      - includedEventIds
       - narrativeIds
       - coreVariableIds
       - explanationTrace
@@ -126,3 +126,4 @@ object_model:
 
   source_types:
     - polymarket_tag
+    - custom

@@ -42,6 +42,23 @@ export default defineConfig(() => {
         input: {
           main: path.resolve(__dirname, 'src/shell/renderer/index.html'),
         },
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules') && !id.includes('/sdk/src/') && !id.includes('/kit/')) {
+              return undefined;
+            }
+            if (id.includes('/react/') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@tanstack/react-query') || id.includes('zustand')) {
+              return 'state-vendor';
+            }
+            if (id.includes('/sdk/src/') || id.includes('/kit/')) {
+              return 'nimi-platform';
+            }
+            return 'vendor';
+          },
+        },
       },
     },
   };

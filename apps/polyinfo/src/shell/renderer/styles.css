@@ -38,3 +38,16 @@ body {
 [data-tauri-drag-region]:active {
   cursor: grabbing;
 }
+
+.polyinfo-no-drag {
+  cursor: default;
+}
+
+.polyinfo-scrollbar-hidden {
+  scrollbar-width: none;
+}
+
+.polyinfo-scrollbar-hidden::-webkit-scrollbar {
+  height: 0;
+  width: 0;
+}

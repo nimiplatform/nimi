@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  loadLastActiveSectorId,
   buildDefaultSectorChatState,
+  loadSavedCustomSectors,
+  loadSavedImportedEvents,
   loadSavedChats,
   loadSavedSnapshots,
 } from './taxonomy.js';
@@ -115,5 +118,71 @@ describe('taxonomy storage migration', () => {
         },
       ],
     });
+  });
+
+  it('loads custom sectors, imported events, and last active sector from storage', () => {
+    window.localStorage.setItem('nimi:polyinfo:custom-sectors:v1', JSON.stringify({
+      'custom-1': {
+        id: 'custom-1',
+        title: 'My Workspace',
+        createdAt: 100,
+        updatedAt: 200,
+      },
+    }));
+    window.localStorage.setItem('nimi:polyinfo:imported-events:v1', JSON.stringify({
+      'custom-1': [
+        {
+          id: 'imported-1',
+          sectorId: 'custom-1',
+          sourceUrl: 'https://polymarket.com/event/test-event',
+          sourceEventId: 'evt-1',
+          title: 'Imported Event',
+          cachedEventPayload: {
+            sourceEventId: 'evt-1',
+            slug: 'test-event',
+            title: 'Imported Event',
+            markets: [{
+              id: 'm1',
+              eventId: 'evt-1',
+              eventTitle: 'Imported Event',
+              question: 'Will this pass?',
+              slug: 'will-this-pass',
+              volumeNum: 1000,
+              volume24hr: 200,
+              liquidityNum: 500,
+              spread: 0.01,
+              yesTokenId: 'tok-1',
+              tags: [],
+            }],
+          },
+          lastValidatedAt: 300,
+          staleState: 'active',
+          createdAt: 100,
+          updatedAt: 300,
+        },
+      ],
+    }));
+    window.localStorage.setItem('nimi:polyinfo:last-active-sector:v1', 'custom-1');
+
+    expect(loadSavedCustomSectors()).toEqual({
+      'custom-1': {
+        id: 'custom-1',
+        title: 'My Workspace',
+        createdAt: 100,
+        updatedAt: 200,
+      },
+    });
+    expect(loadSavedImportedEvents()).toMatchObject({
+      'custom-1': [
+        {
+          id: 'imported-1',
+          sectorId: 'custom-1',
+          sourceEventId: 'evt-1',
+          title: 'Imported Event',
+          staleState: 'active',
+        },
+      ],
+    });
+    expect(loadLastActiveSectorId()).toBe('custom-1');
   });
 });

@@ -3,7 +3,11 @@ import type {
   AnalysisSnapshot,
   AnalystMessage,
   AuthUser,
+  CoreVariableRecord,
+  CustomSectorRecord,
   DraftProposal,
+  ImportedEventRecord,
+  NarrativeRecord,
   SectorChatState,
   TaxonomyOverlay,
   WindowKey,
@@ -27,6 +31,9 @@ export type AppStoreState = {
   taxonomyBySector: Record<string, TaxonomyOverlay>;
   chatsBySector: Record<string, SectorChatState>;
   snapshotsBySector: Record<string, AnalysisSnapshot[]>;
+  customSectors: Record<string, CustomSectorRecord>;
+  importedEventsBySector: Record<string, ImportedEventRecord[]>;
+  lastActiveSectorId: string | null;
   setAuthBootstrapping: () => void;
   setAuthSession: (user: AuthUser, token: string, refreshToken?: string) => void;
   clearAuthSession: () => void;
@@ -35,8 +42,18 @@ export type AppStoreState = {
   setRuntimeDefaults: (defaults: RuntimeDefaults) => void;
   setAIConfig: (config: AIConfig) => void;
   setActiveWindow: (window: WindowKey) => void;
+  setLastActiveSectorId: (sectorId: string | null) => void;
   ensureSectorTaxonomy: (sectorSlug: string) => void;
   ensureSectorThread: (sectorSlug: string, title?: string) => void;
+  addCustomSector: (title: string) => string;
+  renameCustomSector: (sectorId: string, title: string) => void;
+  deleteCustomSector: (sectorId: string) => void;
+  addNarrativeRecord: (sectorId: string, input: Pick<NarrativeRecord, 'title' | 'definition'>) => void;
+  removeNarrativeRecord: (sectorId: string, recordId: string) => void;
+  addCoreVariableRecord: (sectorId: string, input: Pick<CoreVariableRecord, 'title' | 'definition'>) => void;
+  removeCoreVariableRecord: (sectorId: string, recordId: string) => void;
+  upsertImportedEvent: (sectorId: string, eventRecord: ImportedEventRecord) => void;
+  removeImportedEvent: (sectorId: string, eventId: string) => void;
   setSectorDraftText: (sectorSlug: string, value: string) => void;
   upsertSectorMessage: (sectorSlug: string, message: AnalystMessage) => void;
   replaceSectorMessages: (sectorSlug: string, messages: AnalystMessage[]) => void;

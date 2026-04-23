@@ -10,7 +10,7 @@ spec/
 ├── polyinfo.md                            # App-level product overview
 ├── kernel/
 │   ├── app-shell-contract.md              # PI-SHELL-*: shell, bootstrap, routing, layout
-│   ├── taxonomy-contract.md               # PI-TAX-*: sector, narrative, core variable, mapping workflow
+│   ├── taxonomy-contract.md               # PI-TAX-*: sector, narrative, core variable, custom-sector import workflow
 │   ├── market-data-contract.md            # PI-DATA-*: Polymarket discovery, history, realtime ingest
 │   ├── signal-contract.md                 # PI-SIGNAL-*: analysis input, weighting, LLM-run output
 │   ├── discussion-contract.md             # PI-DISCUSS-*: sector analyst session and manual confirmation
@@ -29,7 +29,7 @@ All rules use prefix `PI-<DOMAIN>-NNN`.
 | Domain | Prefix | Contract |
 |--------|--------|----------|
 | Shell / Bootstrap / Routing / Layout | PI-SHELL | `app-shell-contract.md` |
-| Sector / Narrative / Core Variable / Mapping | PI-TAX | `taxonomy-contract.md` |
+| Sector / Narrative / Core Variable / Custom Import | PI-TAX | `taxonomy-contract.md` |
 | Market Discovery / History / Realtime / Price Semantics | PI-DATA | `market-data-contract.md` |
 | Analysis Input / Weighting / Output | PI-SIGNAL | `signal-contract.md` |
 | Sector Analyst Session / Agent Proposal / Confirmation | PI-DISCUSS | `discussion-contract.md` |
@@ -54,5 +54,5 @@ YAML tables in `kernel/tables/` are the authoritative fact sources. Prose in con
 4. **Tables are the single source for enumerations.** Do not inline route lists, object enums, window enums, or source endpoint lists in prose.
 5. **Polymarket is an upstream market data source, not app authority.** Polyinfo may inherit sector source and market facts from Polymarket, but it owns its own narrative, core-variable, and signal semantics.
 6. **No news truth promotion.** News, social posts, and manual commentary must not become canonical signal inputs in this spec tree.
-7. **Manual confirmation remains authoritative.** Agent proposals for narratives, core variables, or market mappings remain drafts until a user confirms them.
+7. **Manual confirmation remains authoritative.** Agent proposals for narratives or core variables remain drafts until a user confirms them.
 8. **Realm truth boundary is inherited, not redefined.** Polyinfo may use runtime chat or app-local discussion surfaces, but it must not redefine Realm chat or agent authority.
