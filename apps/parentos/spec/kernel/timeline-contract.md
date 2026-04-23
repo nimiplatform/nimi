@@ -156,6 +156,20 @@ The timeline layer must fail closed when:
 - a persisted reminder row contains agenda metadata that cannot be interpreted deterministically
 - a report trigger path attempts to persist malformed report payloads
 
+## PO-TIME-009 Orthodontic Protocol Reminder Invariants
+
+Active orthodontic protocol reminders emitted from `orthodontic-protocols.yaml`
+have stronger delivery guarantees than generic dental reminders:
+
+- `nurtureMode` visibility for every admitted `PO-ORTHO-*` rule must default to `push` across all three modes (`relaxed | balanced | advanced`). Per-mode downgrade is a contract violation.
+- When the owning `orthodontic_appliances` row flips to `paused` or `completed`, or when the `orthodontic_cases.stage` leaves `active` / `retention`, the app must dismiss the associated `reminder_states` rows (fail-close on silent leakage).
+- Protocol reminders are NOT age-gated through `triggerAge`. They are gated by live case/appliance state. The compiled rule representation may use a full `triggerAge` window of `{ startMonths: 0, endMonths: 216 }` with state-driven dismissal.
+- Protocol reminders MUST use admitted ruleIds from `orthodontic-protocols.yaml#rules`. Any synthesized or prefixed ruleId (e.g. `dental-auto-*`, `ortho-dyn-*`) is a PO-TIME-007 fail-close violation.
+
+`reminder-rules.yaml` remains the authority home for rigid/stage age-based
+dental reminders. Follow-up reminders previously produced by the dental form
+at runtime (`dental-auto-*`) now live in `orthodontic-protocols.yaml#dentalFollowUpRules` under admitted static ruleIds (`PO-DEN-FOLLOWUP-*`).
+
 ## PO-TIME-008 Timeline vs Profile Boundary
 
 The timeline and profile surfaces serve complementary mandates. The authoritative boundary definition lives in `profile-contract.md#PO-PROF-021`. Timeline-side invariants:

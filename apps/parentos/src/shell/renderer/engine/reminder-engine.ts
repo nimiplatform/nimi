@@ -9,6 +9,23 @@ import type { FreqOverrideMap } from './reminder-freq-overrides.js';
 export type { ReminderPriority, ReminderVisibility };
 export type { GenReminderRule as ReminderRule };
 
+/**
+ * Thrown when a persisted reminder_state references a ruleId that is not
+ * present in the compiled catalog. Required by PO-TIME-007 fail-close
+ * invariant: the agenda must not silently hide a row it cannot interpret.
+ */
+export class UnknownReminderRuleError extends Error {
+  readonly ruleIds: readonly string[];
+  constructor(ruleIds: readonly string[]) {
+    super(
+      `Persisted reminder_states reference unknown ruleId(s): ${ruleIds.join(', ')}. ` +
+        `All ruleIds must map to reminder-rules.yaml (PO-TIME-007).`,
+    );
+    this.name = 'UnknownReminderRuleError';
+    this.ruleIds = ruleIds;
+  }
+}
+
 export type ReminderStatus = 'pending' | 'active' | 'completed' | 'dismissed' | 'overdue';
 export type ReminderKind = 'task' | 'guidance';
 export type ReminderLifecycle =
@@ -425,6 +442,46 @@ export function computeEligibleReminders(
     });
   }
 
+  // State-driven pathway for `category: personalized` rules (PO-ORTHO-007 delivery):
+  // orthodontic protocol rules and dental follow-up rules carry `personalized` so the
+  // age-based generator above skips them. They surface here only when a persisted
+  // active/pending state exists, with `nextTriggerAt` as the schedule anchor. This is
+  // how PO-ORTHO-* and PO-DEN-FOLLOWUP-* reminders land in todayFocus/upcoming.
+  for (const rule of rules) {
+    if (rule.category !== 'personalized') continue;
+    const effectiveMode = context.domainOverrides?.[rule.domain] ?? context.nurtureMode;
+    const visibility = rule.nurtureMode[effectiveMode];
+    if (visibility === 'hidden') continue;
+    const kind = toReminderKind(rule);
+    for (const state of existingStates) {
+      if (state.ruleId !== rule.ruleId) continue;
+      if (state.status !== 'active' && state.status !== 'pending') continue;
+      if (state.completedAt || state.notApplicable === 1) continue;
+      const dedupKey = reminderKey(state.ruleId, state.repeatIndex);
+      if (reminders.some((r) => reminderKey(r.rule.ruleId, r.repeatIndex) === dedupKey)) continue;
+      const anchor = (state.nextTriggerAt ?? context.localToday).slice(0, 10);
+      const baseReminder = {
+        rule,
+        visibility,
+        repeatIndex: state.repeatIndex,
+        effectiveAgeMonths: context.ageMonths,
+        effectiveStartDate: anchor,
+        effectiveEndDate: anchor,
+        kind,
+        status: state.status,
+        overdueDays: Math.max(0, diffDays(context.localToday, anchor)),
+        daysUntilStart: diffDays(anchor, context.localToday),
+        daysUntilEnd: diffDays(anchor, context.localToday),
+        deliveryDisposition: 'normal' as const,
+        state,
+      } satisfies Omit<ActiveReminder, 'lifecycle'>;
+      reminders.push({
+        ...baseReminder,
+        lifecycle: toLifecycle(baseReminder, context.localToday),
+      });
+    }
+  }
+
   // Deduplicate repeating rules: keep only the latest uncompleted instance per ruleId.
   // Completed / not_applicable instances are preserved for history.
   const deduped: ActiveReminder[] = [];
@@ -518,6 +575,14 @@ export function buildReminderAgenda(
   states: ReminderState[],
   freqOverrides?: FreqOverrideMap,
 ): ReminderAgenda {
+  const ruleIdSet = new Set(rules.map((rule) => rule.ruleId));
+  const unknownRuleIds = Array.from(
+    new Set(states.map((state) => state.ruleId).filter((ruleId) => !ruleIdSet.has(ruleId))),
+  );
+  if (unknownRuleIds.length > 0) {
+    throw new UnknownReminderRuleError(unknownRuleIds);
+  }
+
   const eligible = computeEligibleReminders(rules, context, states, freqOverrides);
   const normalEligible = eligible.filter((reminder) => reminder.deliveryDisposition === 'normal');
   const onboardingCatchupItems = eligible
@@ -597,7 +662,11 @@ export function buildReminderAgenda(
   const history: ReminderHistoryItem[] = [];
   for (const state of states) {
     const rule = rules.find((candidate) => candidate.ruleId === state.ruleId);
-    if (!rule) continue;
+    if (!rule) {
+      // Unreachable: buildReminderAgenda already rejected unknown ruleIds above.
+      // Keep the throw so any future caller using this code path stays fail-close per PO-TIME-007.
+      throw new UnknownReminderRuleError([state.ruleId]);
+    }
     const visibility = rule.nurtureMode[context.domainOverrides?.[rule.domain] ?? context.nurtureMode];
     if (visibility === 'hidden') continue;
     const kind = toReminderKind(rule);

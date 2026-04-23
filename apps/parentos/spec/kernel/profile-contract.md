@@ -161,12 +161,18 @@ Dental tracking must store and read:
 
 - `recordId`
 - `childId`
-- `eventType` — one of `eruption | loss | caries | cleaning | ortho-assessment`
+- `eventType` — one of `eruption | loss | caries | filling | cleaning | fluoride | sealant | checkup | ortho-assessment | ortho-review | ortho-adjustment | ortho-issue | ortho-end | ortho-start`
 - `eventDate`
 - `ageMonths`
 - optional `toothId` (FDI notation), `toothSet`, `severity`, `hospital`, `notes`, `photoPath`
 
-`toothId` uses FDI two-digit notation (e.g. `51` = upper-right primary central incisor). Whole-mouth events (cleaning, ortho-assessment) may omit `toothId`.
+`toothId` uses FDI two-digit notation (e.g. `51` = upper-right primary central incisor). Whole-mouth events (`cleaning`, `checkup`, `ortho-assessment`, `ortho-review`, `ortho-adjustment`, `ortho-issue`, `ortho-end`, `ortho-start`) may omit `toothId`.
+
+Orthodontic-lifecycle clinical events (`ortho-review`, `ortho-adjustment`, `ortho-issue`, `ortho-end`) are the admitted cross-writes from the orthodontic surface into the dental timeline; daily compliance checkins do NOT write here and live in `orthodontic_checkins` instead. See `orthodontic-contract.md#PO-ORTHO-001`.
+
+`ortho-start` is READ-ONLY historical. The dental command layer rejects new `ortho-start` writes; existing rows remain readable and render in the dental timeline. New orthodontic treatments must be modeled through `orthodontic_cases` and `orthodontic_appliances`. Migration v9 may stitch pre-contract `ortho-start` rows to an `unknown-legacy` case only when such rows exist (`orthodontic-contract.md#PO-ORTHO-006`).
+
+The generic dental event picker likewise only exposes the writable subset: `eruption | loss | caries | filling | cleaning | fluoride | sealant | ortho-assessment | checkup`. Orthodontic lifecycle events (`ortho-review | ortho-adjustment | ortho-issue | ortho-end`) are written exclusively via the orthodontic workflow's clinical-event writer (`insert_ortho_clinical_dental_record`), not from the generic form.
 
 ## PO-PROF-009 Allergy Record Shape
 

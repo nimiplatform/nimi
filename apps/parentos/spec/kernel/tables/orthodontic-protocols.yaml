@@ -1,0 +1,280 @@
+apiVersion: nimi.spec/v1
+kind: OrthodonticProtocolCatalog
+description: >
+  Authoritative catalogue of admitted orthodontic dynamic reminder rules and
+  daily-compliance checkin types. This is the SOLE spec home for orthodontic
+  protocol ruleIds. Runtime code must NOT synthesize new ruleIds outside this
+  file (PO-ORTHO-001 fail-close invariant).
+
+schema:
+  caseType:
+    type: enum
+    required: true
+    values: [early-intervention, fixed-braces, clear-aligners, unknown-legacy]
+    notes: >
+      `unknown-legacy` is a MIGRATION-ONLY transitional value. It is produced
+      by migration v9 for children whose pre-contract dental_records contained
+      `ortho-start` rows. Runtime (insert_orthodontic_case / update_orthodontic_case)
+      MUST reject `unknown-legacy` on write so only the migration can author it;
+      the UI must expose these as "待确认历史疗程" and require the parent to
+      re-classify them to one of the three primary types. Protocol reminder
+      seeding MUST NOT run for `unknown-legacy` cases until re-classified.
+  stage:       { type: enum, required: true, values: [assessment, planning, active, retention, completed] }
+  applianceType:
+    type: enum
+    required: true
+    values:
+      - twin-block
+      - expander
+      - activator
+      - metal-braces
+      - ceramic-braces
+      - clear-aligner
+      - retainer-fixed
+      - retainer-removable
+  applianceStatus: { type: enum, required: true, values: [active, paused, completed] }
+
+  # v1 compliance is a TASK-COMPLETION approximation. It is NOT a clinical
+  # wear-hours reconstruction. Dashboards MUST label it as such.
+  complianceThresholds:
+    done:    { predicate: "actualWearHours >= prescribedHours * 0.80" }
+    partial: { predicate: "actualWearHours >= prescribedHours * 0.50 AND actualWearHours < prescribedHours * 0.80" }
+    missed:  { predicate: "actualWearHours <  prescribedHours * 0.50" }
+    note: >
+      These thresholds are a task-compliance approximation and must not be
+      presented as clinically precise wear-time reconstruction. The profile
+      surface wording must say "任务达成率近似" or equivalent, not "实际佩戴".
+
+  pauseSemantics:
+    level: appliance            # pause is an appliance-level status, never a case-level status
+    cascade: rules-only         # when an appliance pauses its protocol reminders dismiss; the case stays active
+
+  nextReviewDateDerivation:
+    source: "min(active appliances.nextReviewDate)"
+    persistence: "orthodontic_cases.nextReviewDate is a cached projection only; appliances remain the source of truth"
+
+# Minimum child age in months for each appliance type (early intervention gate).
+# Reminder surfaces must not propose or activate an appliance under its minAge.
+applianceMinAge:
+  twin-block:          48
+  expander:            48
+  activator:           48
+  metal-braces:        84
+  ceramic-braces:      84
+  clear-aligner:       84
+  retainer-fixed:      84
+  retainer-removable:  84
+
+# Admitted dynamic reminder rules emitted by the protocol catalog compiler.
+# ruleId stability contract: these IDs persist into reminder_states, so
+# renaming or removing an admitted id is a breaking change and requires a
+# data migration.
+#
+# Binding: every admitted ruleId below must also appear in the compiled
+# REMINDER_RULES catalog consumed by the reminder engine (PO-TIME-007
+# unknown-ruleId fail-close). The knowledge-base compile step unions
+# reminder-rules.yaml and orthodontic-protocols.yaml#rules into one catalog.
+rules:
+  # ── Active protocol rules (case.stage=active) ──────────────────────────
+
+  - ruleId: PO-ORTHO-WEAR-DAILY
+    applianceTypes: [clear-aligner, twin-block, activator]
+    domain: dental
+    title: "每日佩戴打卡"
+    description: "记录今天的实际佩戴时长。用于任务达成率近似统计。"
+    priority: P1
+    actionType: record_data
+    cadence: daily
+    checkinType: wear-daily
+    prescribedHoursPerDay:
+      clear-aligner: 22
+      twin-block:    14
+      activator:     14
+    nurtureMode: { relaxed: push, balanced: push, advanced: push }
+    source: "AAO-2023 clear-aligner compliance"
+    # Note: retainer-removable uses PO-ORTHO-RETENTION-WEAR (retention-phase
+    # daily rule), not this active-treatment rule. Keeping them split prevents
+    # ambiguity between active and retention compliance semantics.
+
+  - ruleId: PO-ORTHO-ALIGNER-CHANGE
+    applianceTypes: [clear-aligner]
+    domain: dental
+    title: "更换下一副牙套"
+    description: "按医嘱更换下一副隐形牙套。"
+    priority: P1
+    actionType: record_data
+    cadence: per-stage
+    checkinType: aligner-change
+    defaultIntervalDays: 14
+    nurtureMode: { relaxed: push, balanced: push, advanced: push }
+    source: "AAO-2023 aligner-change protocol"
+
+  - ruleId: PO-ORTHO-EXPANDER-ACTIVATION
+    applianceTypes: [expander]
+    domain: dental
+    title: "扩弓器加力"
+    description: "按医嘱对扩弓器加力。达到设定总激活次数后自动停止提醒。"
+    priority: P1
+    actionType: record_data
+    cadence: interval
+    checkinType: expander-activation
+    defaultIntervalDays: 1
+    stopWhen: "completedActivations >= prescribedActivations"
+    nurtureMode: { relaxed: push, balanced: push, advanced: push }
+    source: "AAO-2023 expander protocol"
+
+  - ruleId: PO-ORTHO-REVIEW-FIXED
+    applianceTypes: [metal-braces, ceramic-braces]
+    domain: dental
+    title: "固定矫治器复诊"
+    description: "按医嘱前往正畸机构复诊、调整弓丝或更换结扎。"
+    priority: P1
+    actionType: go_hospital
+    cadence: interval
+    defaultIntervalDays: 28
+    writesToDentalRecord: ortho-adjustment
+    nurtureMode: { relaxed: push, balanced: push, advanced: push }
+    source: "AAO-2023 fixed-appliance adjustment cadence"
+
+  - ruleId: PO-ORTHO-REVIEW-ALIGNER
+    applianceTypes: [clear-aligner]
+    domain: dental
+    title: "隐形牙套复诊"
+    description: "按医嘱前往正畸机构复诊、领取下一阶段牙套。"
+    priority: P1
+    actionType: go_hospital
+    cadence: interval
+    defaultIntervalDays: 56
+    writesToDentalRecord: ortho-review
+    nurtureMode: { relaxed: push, balanced: push, advanced: push }
+    source: "AAO-2023 aligner review cadence"
+
+  - ruleId: PO-ORTHO-REVIEW-INTERCEPTIVE
+    applianceTypes: [twin-block, expander, activator]
+    domain: dental
+    title: "早期矫治复诊"
+    description: "按医嘱前往正畸机构复查，评估下一阶段装置方案。"
+    priority: P1
+    actionType: go_hospital
+    cadence: interval
+    defaultIntervalDays: 42
+    writesToDentalRecord: ortho-review
+    nurtureMode: { relaxed: push, balanced: push, advanced: push }
+    source: "AAO-2023 interceptive-orthodontics cadence"
+
+  # ── Retention protocol rules (case.stage=retention) ────────────────────
+
+  - ruleId: PO-ORTHO-RETENTION-WEAR
+    applianceTypes: [retainer-removable]
+    domain: dental
+    title: "保持器佩戴打卡"
+    description: "记录保持器今日实际佩戴时长。"
+    priority: P1
+    actionType: record_data
+    cadence: daily
+    checkinType: retention-wear
+    prescribedHoursPerDay:
+      retainer-removable: 16
+    nurtureMode: { relaxed: push, balanced: push, advanced: push }
+    source: "AAO-2023 retention protocol"
+
+  - ruleId: PO-ORTHO-RETENTION-REVIEW
+    applianceTypes: [retainer-fixed, retainer-removable]
+    domain: dental
+    title: "保持期复查"
+    description: "按医嘱前往正畸机构复查保持效果与咬合稳定性。"
+    priority: P2
+    actionType: go_hospital
+    cadence: interval
+    defaultIntervalDays: 180
+    writesToDentalRecord: ortho-review
+    nurtureMode: { relaxed: push, balanced: push, advanced: push }
+    source: "AAO-2023 retention follow-up"
+
+# Dental follow-up protocols (non-orthodontic). These replace the old
+# synthetic "dental-auto-*" ruleIds produced by the dental form. They are
+# spec-backed, static-id rules emitted into the same compiled catalog.
+dentalFollowUpRules:
+  - ruleId: PO-DEN-FOLLOWUP-CLEANING
+    domain: dental
+    title: "定期洁牙复诊"
+    description: "按临床建议每 6 个月进行一次口腔洁治与检查。"
+    intervalMonths: 6
+    priority: P2
+    actionType: go_hospital
+    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
+    triggeredBy: { dentalEventType: cleaning }
+    source: "NHC-stomatology-2023"
+
+  - ruleId: PO-DEN-FOLLOWUP-FLUORIDE
+    domain: dental
+    title: "涂氟复查"
+    description: "按临床建议每 6 个月进行一次涂氟，直到恒牙列完成。"
+    intervalMonths: 6
+    priority: P2
+    actionType: go_hospital
+    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
+    triggeredBy: { dentalEventType: fluoride }
+    source: "AAPD-2023"
+
+  - ruleId: PO-DEN-FOLLOWUP-SEALANT
+    domain: dental
+    title: "窝沟封闭复查"
+    description: "封闭后约 12 个月复查封闭剂完整性。"
+    intervalMonths: 12
+    priority: P2
+    actionType: go_hospital
+    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
+    triggeredBy: { dentalEventType: sealant }
+    source: "AAPD-2023"
+
+  - ruleId: PO-DEN-FOLLOWUP-FILLING
+    domain: dental
+    title: "补牙后复查"
+    description: "龋齿充填后约 6 个月复查补料边缘与继发龋。"
+    intervalMonths: 6
+    priority: P2
+    actionType: go_hospital
+    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
+    triggeredBy: { dentalEventType: filling }
+    source: "AAPD-2023"
+
+  - ruleId: PO-DEN-FOLLOWUP-CHECKUP
+    domain: dental
+    title: "口腔常规检查"
+    description: "按临床建议每 6 个月进行一次口腔检查。"
+    intervalMonths: 6
+    priority: P2
+    actionType: go_hospital
+    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
+    triggeredBy: { dentalEventType: checkup }
+    source: "NHC-stomatology-2023"
+
+# Checkin discriminator: only these four values are admitted in
+# orthodontic_checkins.checkinType. All other orthodontic-lifecycle events
+# (review, adjustment, issue, end) write to dental_records instead.
+admittedCheckinTypes:
+  - wear-daily
+  - aligner-change
+  - expander-activation
+  - retention-wear
+
+# AI boundary for orthodontic summaries.
+aiBoundary:
+  allowed:
+    - fact-restatement of recorded cases, appliances, and checkin counts
+    - descriptive trend wording ("observed", "recorded", "this week vs last")
+    - compliance-bucket wording that matches complianceThresholds verbatim
+  forbidden:
+    - treatment recommendation of any kind
+    - efficacy inference ("treatment is working", "bite is improving")
+    - wear-time prescriptions ("should increase wear", "please wear more")
+    - comparative ranking against other children
+    - diagnosis language
+
+constraints:
+  - "Every ruleId in rules[] and dentalFollowUpRules[] must round-trip into the compiled REMINDER_RULES catalog."
+  - "Runtime code must not synthesize ruleIds outside this file; PO-TIME-007 fail-close enforces this."
+  - "applianceMinAge keys must match the applianceType enum exactly."
+  - "admittedCheckinTypes must match orthodontic_checkins.checkinType SQLite column semantics exactly."
+  - "pauseSemantics.level must remain 'appliance'; any attempt to introduce case-level pause is a contract violation."

@@ -12,6 +12,8 @@ Normative surfaces:
 - `profile-contract.md` for child profile and health-record surfaces
 - `journal-contract.md` for journaling, voice capture, and closed-set tag suggestion
 - `advisor-contract.md` for advisor chat, report generation, and AI boundary rules
+- `orthodontic-contract.md` for orthodontic cases, appliances, compliance checkins, and the orthodontic AI summary surface
+- `tables/orthodontic-protocols.yaml` for admitted orthodontic dynamic reminder rules and dental follow-up protocols
 
 Guide-only documents:
 

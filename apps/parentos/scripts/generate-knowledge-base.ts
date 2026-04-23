@@ -33,30 +33,143 @@ function writeGen(filename: string, content: string) {
 
 // ── reminder-rules ──────────────────────────────────────────
 
-function generateReminderRules() {
-  const data = readYaml('reminder-rules.yaml') as {
-    rules: Array<{
+interface BaseReminderRule {
+  ruleId: string;
+  domain: string;
+  category: string;
+  title: string;
+  description: string;
+  triggerAge: { startMonths: number; endMonths: number };
+  triggerCondition?: { dataField: string; operator: string; value: unknown };
+  priority: string;
+  nurtureMode: { relaxed: string; balanced: string; advanced: string };
+  actionType: string;
+  repeatRule?: { intervalMonths: number; maxRepeats: number };
+  expiryMonths?: number;
+  source: string;
+  tags?: string[];
+}
+
+/**
+ * Lift orthodontic-protocols.yaml#rules and #dentalFollowUpRules into the
+ * shared ReminderRule shape. These rules are state-gated (per
+ * timeline-contract.md#PO-TIME-009) rather than age-gated, so we mark them
+ * `category: personalized` with a synthetic `triggerCondition`: that keeps
+ * `computeEligibleReminders` from auto-surfacing them in the age-based engine
+ * while still admitting their ruleIds into the compiled catalog so
+ * reminder_states referencing `PO-ORTHO-*` / `PO-DEN-FOLLOWUP-*` do not trip
+ * the PO-TIME-007 unknown-ruleId fail-close.
+ *
+ * Runtime surfaces that care (the orthodontic tab) read these ruleIds
+ * directly from the protocol catalog + reminder_states rows.
+ */
+function liftOrthodonticRules(): BaseReminderRule[] {
+  const spec = readYaml('orthodontic-protocols.yaml') as {
+    rules?: Array<{
       ruleId: string;
       domain: string;
-      category: string;
       title: string;
       description: string;
-      triggerAge: { startMonths: number; endMonths: number };
-      triggerCondition?: { dataField: string; operator: string; value: unknown };
       priority: string;
-      nurtureMode: { relaxed: string; balanced: string; advanced: string };
       actionType: string;
-      repeatRule?: { intervalMonths: number; maxRepeats: number };
-      expiryMonths?: number;
+      cadence: string;
+      defaultIntervalDays?: number;
+      nurtureMode: { relaxed: string; balanced: string; advanced: string };
       source: string;
-      tags?: string[];
+      applianceTypes?: string[];
+    }>;
+    dentalFollowUpRules?: Array<{
+      ruleId: string;
+      domain: string;
+      title: string;
+      description: string;
+      intervalMonths: number;
+      priority: string;
+      actionType: string;
+      nurtureMode: { relaxed: string; balanced: string; advanced: string };
+      triggeredBy: { dentalEventType: string };
+      source: string;
     }>;
   };
 
-  const domains = [...new Set(data.rules.map((r) => r.domain))].sort();
-  const categories = [...new Set(data.rules.map((r) => r.category))].sort();
-  const priorities = [...new Set(data.rules.map((r) => r.priority))].sort();
-  const actionTypes = [...new Set(data.rules.map((r) => r.actionType))].sort();
+  const out: BaseReminderRule[] = [];
+  for (const rule of spec.rules ?? []) {
+    out.push({
+      ruleId: rule.ruleId,
+      domain: rule.domain,
+      category: 'personalized',
+      title: rule.title,
+      description: rule.description,
+      triggerAge: { startMonths: 0, endMonths: 216 },
+      triggerCondition: {
+        dataField: 'orthodontic_appliance.status',
+        operator: '=',
+        value: 'active',
+      },
+      priority: rule.priority,
+      nurtureMode: rule.nurtureMode,
+      actionType: rule.actionType,
+      source: rule.source,
+      tags: ['orthodontic-protocol', ...(rule.applianceTypes ?? []).map((t) => `appliance:${t}`)],
+    });
+  }
+  for (const rule of spec.dentalFollowUpRules ?? []) {
+    out.push({
+      ruleId: rule.ruleId,
+      domain: rule.domain,
+      category: 'personalized',
+      title: rule.title,
+      description: rule.description,
+      triggerAge: { startMonths: 0, endMonths: 216 },
+      triggerCondition: {
+        dataField: 'dental_records.eventType',
+        operator: '=',
+        value: rule.triggeredBy.dentalEventType,
+      },
+      priority: rule.priority,
+      nurtureMode: rule.nurtureMode,
+      actionType: rule.actionType,
+      repeatRule: { intervalMonths: rule.intervalMonths, maxRepeats: -1 },
+      source: rule.source,
+      tags: ['dental-followup', `trigger:${rule.triggeredBy.dentalEventType}`],
+    });
+  }
+  return out;
+}
+
+function generateReminderRules() {
+  const data = readYaml('reminder-rules.yaml') as { rules: BaseReminderRule[] };
+  const orthoRules = liftOrthodonticRules();
+  const merged: BaseReminderRule[] = [...data.rules, ...orthoRules];
+
+  // Enforce unique ruleIds across the union.
+  const seen = new Set<string>();
+  for (const rule of merged) {
+    if (seen.has(rule.ruleId)) {
+      throw new Error(
+        `generate-knowledge-base: duplicate ruleId "${rule.ruleId}" detected while unioning reminder-rules.yaml with orthodontic-protocols.yaml`,
+      );
+    }
+    seen.add(rule.ruleId);
+  }
+
+  // Enforce PO-TIME-009: orthodontic protocol rules must be push in all modes.
+  for (const rule of orthoRules) {
+    if (rule.ruleId.startsWith('PO-ORTHO-')) {
+      for (const mode of ['relaxed', 'balanced', 'advanced'] as const) {
+        if (rule.nurtureMode[mode] !== 'push') {
+          throw new Error(
+            `generate-knowledge-base: orthodontic rule "${rule.ruleId}" must be push in all nurture modes (PO-TIME-009); got ${mode}=${rule.nurtureMode[mode]}`,
+          );
+        }
+      }
+    }
+  }
+
+  const domains = [...new Set(merged.map((r) => r.domain))].sort();
+  const categories = [...new Set(merged.map((r) => r.category))].sort();
+  const priorities = [...new Set(merged.map((r) => r.priority))].sort();
+  const actionTypes = [...new Set(merged.map((r) => r.actionType))].sort();
 
   const ts = `
 export type ReminderDomain = ${domains.map((d) => `'${d}'`).join(' | ')};
@@ -82,7 +195,7 @@ export interface ReminderRule {
   tags?: string[];
 }
 
-export const REMINDER_RULES: readonly ReminderRule[] = ${JSON.stringify(data.rules, null, 2)};
+export const REMINDER_RULES: readonly ReminderRule[] = ${JSON.stringify(merged, null, 2)};
 
 export const REMINDER_DOMAINS = ${JSON.stringify(domains)} ;
 `;

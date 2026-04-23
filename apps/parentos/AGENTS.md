@@ -39,7 +39,8 @@ Before making any change:
 
 | Table | Governs |
 |-------|---------|
-| `reminder-rules.yaml` | All reminder rules (vaccines, checkups, vision, dental, bone age, growth, sensitivity, interests, etc.) |
+| `reminder-rules.yaml` | All age-based reminder rules (vaccines, checkups, vision, dental, bone age, growth, sensitivity, interests, etc.) |
+| `orthodontic-protocols.yaml` | Dynamic orthodontic protocol rules + dental follow-up rules; the only authority home for `PO-ORTHO-*` and `PO-DEN-FOLLOWUP-*` ruleIds |
 | `milestone-catalog.yaml` | Developmental milestones by domain and age |
 | `sensitive-periods.yaml` | Montessori sensitive period definitions |
 | `observation-framework.yaml` | 21 observation dimensions from 8 theories + relationship quality |

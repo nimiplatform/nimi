@@ -2458,6 +2458,396 @@ export const REMINDER_RULES: readonly ReminderRule[] = [
       "self-assessment",
       "gender:male"
     ]
+  },
+  {
+    "ruleId": "PO-ORTHO-WEAR-DAILY",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "每日佩戴打卡",
+    "description": "记录今天的实际佩戴时长。用于任务达成率近似统计。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "orthodontic_appliance.status",
+      "operator": "=",
+      "value": "active"
+    },
+    "priority": "P1",
+    "nurtureMode": {
+      "relaxed": "push",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "record_data",
+    "source": "AAO-2023 clear-aligner compliance",
+    "tags": [
+      "orthodontic-protocol",
+      "appliance:clear-aligner",
+      "appliance:twin-block",
+      "appliance:activator"
+    ]
+  },
+  {
+    "ruleId": "PO-ORTHO-ALIGNER-CHANGE",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "更换下一副牙套",
+    "description": "按医嘱更换下一副隐形牙套。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "orthodontic_appliance.status",
+      "operator": "=",
+      "value": "active"
+    },
+    "priority": "P1",
+    "nurtureMode": {
+      "relaxed": "push",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "record_data",
+    "source": "AAO-2023 aligner-change protocol",
+    "tags": [
+      "orthodontic-protocol",
+      "appliance:clear-aligner"
+    ]
+  },
+  {
+    "ruleId": "PO-ORTHO-EXPANDER-ACTIVATION",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "扩弓器加力",
+    "description": "按医嘱对扩弓器加力。达到设定总激活次数后自动停止提醒。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "orthodontic_appliance.status",
+      "operator": "=",
+      "value": "active"
+    },
+    "priority": "P1",
+    "nurtureMode": {
+      "relaxed": "push",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "record_data",
+    "source": "AAO-2023 expander protocol",
+    "tags": [
+      "orthodontic-protocol",
+      "appliance:expander"
+    ]
+  },
+  {
+    "ruleId": "PO-ORTHO-REVIEW-FIXED",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "固定矫治器复诊",
+    "description": "按医嘱前往正畸机构复诊、调整弓丝或更换结扎。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "orthodontic_appliance.status",
+      "operator": "=",
+      "value": "active"
+    },
+    "priority": "P1",
+    "nurtureMode": {
+      "relaxed": "push",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "source": "AAO-2023 fixed-appliance adjustment cadence",
+    "tags": [
+      "orthodontic-protocol",
+      "appliance:metal-braces",
+      "appliance:ceramic-braces"
+    ]
+  },
+  {
+    "ruleId": "PO-ORTHO-REVIEW-ALIGNER",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "隐形牙套复诊",
+    "description": "按医嘱前往正畸机构复诊、领取下一阶段牙套。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "orthodontic_appliance.status",
+      "operator": "=",
+      "value": "active"
+    },
+    "priority": "P1",
+    "nurtureMode": {
+      "relaxed": "push",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "source": "AAO-2023 aligner review cadence",
+    "tags": [
+      "orthodontic-protocol",
+      "appliance:clear-aligner"
+    ]
+  },
+  {
+    "ruleId": "PO-ORTHO-REVIEW-INTERCEPTIVE",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "早期矫治复诊",
+    "description": "按医嘱前往正畸机构复查，评估下一阶段装置方案。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "orthodontic_appliance.status",
+      "operator": "=",
+      "value": "active"
+    },
+    "priority": "P1",
+    "nurtureMode": {
+      "relaxed": "push",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "source": "AAO-2023 interceptive-orthodontics cadence",
+    "tags": [
+      "orthodontic-protocol",
+      "appliance:twin-block",
+      "appliance:expander",
+      "appliance:activator"
+    ]
+  },
+  {
+    "ruleId": "PO-ORTHO-RETENTION-WEAR",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "保持器佩戴打卡",
+    "description": "记录保持器今日实际佩戴时长。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "orthodontic_appliance.status",
+      "operator": "=",
+      "value": "active"
+    },
+    "priority": "P1",
+    "nurtureMode": {
+      "relaxed": "push",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "record_data",
+    "source": "AAO-2023 retention protocol",
+    "tags": [
+      "orthodontic-protocol",
+      "appliance:retainer-removable"
+    ]
+  },
+  {
+    "ruleId": "PO-ORTHO-RETENTION-REVIEW",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "保持期复查",
+    "description": "按医嘱前往正畸机构复查保持效果与咬合稳定性。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "orthodontic_appliance.status",
+      "operator": "=",
+      "value": "active"
+    },
+    "priority": "P2",
+    "nurtureMode": {
+      "relaxed": "push",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "source": "AAO-2023 retention follow-up",
+    "tags": [
+      "orthodontic-protocol",
+      "appliance:retainer-fixed",
+      "appliance:retainer-removable"
+    ]
+  },
+  {
+    "ruleId": "PO-DEN-FOLLOWUP-CLEANING",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "定期洁牙复诊",
+    "description": "按临床建议每 6 个月进行一次口腔洁治与检查。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "dental_records.eventType",
+      "operator": "=",
+      "value": "cleaning"
+    },
+    "priority": "P2",
+    "nurtureMode": {
+      "relaxed": "silent",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "repeatRule": {
+      "intervalMonths": 6,
+      "maxRepeats": -1
+    },
+    "source": "NHC-stomatology-2023",
+    "tags": [
+      "dental-followup",
+      "trigger:cleaning"
+    ]
+  },
+  {
+    "ruleId": "PO-DEN-FOLLOWUP-FLUORIDE",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "涂氟复查",
+    "description": "按临床建议每 6 个月进行一次涂氟，直到恒牙列完成。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "dental_records.eventType",
+      "operator": "=",
+      "value": "fluoride"
+    },
+    "priority": "P2",
+    "nurtureMode": {
+      "relaxed": "silent",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "repeatRule": {
+      "intervalMonths": 6,
+      "maxRepeats": -1
+    },
+    "source": "AAPD-2023",
+    "tags": [
+      "dental-followup",
+      "trigger:fluoride"
+    ]
+  },
+  {
+    "ruleId": "PO-DEN-FOLLOWUP-SEALANT",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "窝沟封闭复查",
+    "description": "封闭后约 12 个月复查封闭剂完整性。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "dental_records.eventType",
+      "operator": "=",
+      "value": "sealant"
+    },
+    "priority": "P2",
+    "nurtureMode": {
+      "relaxed": "silent",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "repeatRule": {
+      "intervalMonths": 12,
+      "maxRepeats": -1
+    },
+    "source": "AAPD-2023",
+    "tags": [
+      "dental-followup",
+      "trigger:sealant"
+    ]
+  },
+  {
+    "ruleId": "PO-DEN-FOLLOWUP-FILLING",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "补牙后复查",
+    "description": "龋齿充填后约 6 个月复查补料边缘与继发龋。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "dental_records.eventType",
+      "operator": "=",
+      "value": "filling"
+    },
+    "priority": "P2",
+    "nurtureMode": {
+      "relaxed": "silent",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "repeatRule": {
+      "intervalMonths": 6,
+      "maxRepeats": -1
+    },
+    "source": "AAPD-2023",
+    "tags": [
+      "dental-followup",
+      "trigger:filling"
+    ]
+  },
+  {
+    "ruleId": "PO-DEN-FOLLOWUP-CHECKUP",
+    "domain": "dental",
+    "category": "personalized",
+    "title": "口腔常规检查",
+    "description": "按临床建议每 6 个月进行一次口腔检查。",
+    "triggerAge": {
+      "startMonths": 0,
+      "endMonths": 216
+    },
+    "triggerCondition": {
+      "dataField": "dental_records.eventType",
+      "operator": "=",
+      "value": "checkup"
+    },
+    "priority": "P2",
+    "nurtureMode": {
+      "relaxed": "silent",
+      "balanced": "push",
+      "advanced": "push"
+    },
+    "actionType": "go_hospital",
+    "repeatRule": {
+      "intervalMonths": 6,
+      "maxRepeats": -1
+    },
+    "source": "NHC-stomatology-2023",
+    "tags": [
+      "dental-followup",
+      "trigger:checkup"
+    ]
   }
 ];
 
