@@ -113,6 +113,23 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
         style={cellStyle}
       >
         <span style={{ opacity: entry.status === 'unerupted' ? 0.55 : 1 }}>{entry.displayId}</span>
+        {isPrimary && (
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: 2,
+              left: 3,
+              fontSize: 7,
+              lineHeight: 1,
+              fontWeight: 600,
+              color: entry.status === 'unerupted' ? '#cbd5e1' : '#38bdf8',
+              letterSpacing: 0,
+            }}
+          >
+            乳
+          </span>
+        )}
         {isPrimary && entry.status !== 'unerupted' && (
           <span
             style={{
@@ -173,6 +190,47 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
             </svg>
           </div>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: S.text }}>牙齿状态总览</h3>
+          <div className="group relative" style={{ display: 'inline-block' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                width: 16,
+                height: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#94a3b8',
+                cursor: 'help',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4M12 8h.01" />
+              </svg>
+            </span>
+            <div
+              className="pointer-events-none absolute left-0 top-6 z-50 rounded-xl opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+              style={{
+                width: 280,
+                padding: 14,
+                fontSize: 11,
+                lineHeight: 1.6,
+                background: '#1e293b',
+                color: '#e2e8f0',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              }}
+            >
+              <p style={{ margin: 0, marginBottom: 6, fontWeight: 600, color: '#ffffff', fontSize: 12 }}>FDI 牙位编号</p>
+              <p style={{ margin: 0, color: '#cbd5e1' }}>
+                <span style={{ color: '#6366f1', fontWeight: 500 }}>恒牙 11–48</span>：四象限各 8 颗恒牙（1/2/3/4 系）。
+              </p>
+              <p style={{ margin: '4px 0 0', color: '#cbd5e1' }}>
+                <span style={{ color: '#38bdf8', fontWeight: 500 }}>乳牙 51–85</span>：四象限各 5 颗乳牙（5/6/7/8 系）。
+              </p>
+              <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: 10 }}>
+                同一牙位：乳牙脱落后该格会切换为对应恒牙编号（例如 53 → 13）。
+              </p>
+            </div>
+          </div>
         </div>
         <div style={{ fontSize: 11, color: '#64748b', fontFamily: MONO }}>
           共 32 位 · 20 乳牙 + 12 恒牙

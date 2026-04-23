@@ -1,5 +1,20 @@
 import type { AttachmentRow, DentalRecordRow } from '../../bridge/sqlite-bridge.js';
 
+/**
+ * Event types admitted by the generic dental event picker for NEW writes.
+ *
+ * `ortho-start` is intentionally absent: per PO-PROF-008 and the
+ * orthodontic-contract, new orthodontic treatment state must be modeled
+ * through `orthodontic_cases` + `orthodontic_appliances`. Historical
+ * `ortho-start` rows remain read-only — the dental timeline still renders
+ * them (see DENTAL_HISTORY_TONE_TABLE in dental-history-record-list.tsx and
+ * DENTAL_READ_ONLY_EVENT_LABELS below), but the Rust command layer rejects
+ * new writes (see src-tauri/src/sqlite/queries/health_records.rs).
+ *
+ * The ortho-review / ortho-adjustment / ortho-issue / ortho-end events are
+ * likewise NOT user-pickable here — they are written exclusively by the
+ * orthodontic workflow's clinical-event shortcut, not via this generic picker.
+ */
 export const EVENT_TYPES = [
   { key: 'eruption', label: '萌出', emoji: '🌱', desc: '新牙冒出', minAge: 0 },
   { key: 'loss', label: '脱落', emoji: '🦷', desc: '乳牙脱落', minAge: 60 },
@@ -9,9 +24,17 @@ export const EVENT_TYPES = [
   { key: 'fluoride', label: '涂氟', emoji: '💧', desc: '氟化物防龋', minAge: 6 },
   { key: 'sealant', label: '窝沟封闭', emoji: '🛡️', desc: '防龋保护', minAge: 36 },
   { key: 'ortho-assessment', label: '正畸评估', emoji: '📐', desc: '咬合检查', minAge: 84 },
-  { key: 'ortho-start', label: '开始正畸', emoji: '🦷', desc: '佩戴矫治器', minAge: 84 },
   { key: 'checkup', label: '口腔检查', emoji: '🔍', desc: '常规检查', minAge: 0 },
 ] as const;
+
+/** Labels for dental eventTypes that are DISPLAY-ONLY (no new write path from the UI). */
+export const DENTAL_READ_ONLY_EVENT_LABELS: Record<string, { label: string; emoji: string }> = {
+  'ortho-start':      { label: '开始正畸（历史）', emoji: '🦷' },
+  'ortho-review':     { label: '正畸复诊',       emoji: '📋' },
+  'ortho-adjustment': { label: '正畸调整',       emoji: '🔧' },
+  'ortho-issue':      { label: '正畸异常',       emoji: '⚠️' },
+  'ortho-end':        { label: '结束正畸',       emoji: '✅' },
+};
 
 export const SEVERITY_LABELS: Record<string, string> = {
   mild: '轻度',
@@ -21,14 +44,6 @@ export const SEVERITY_LABELS: Record<string, string> = {
 
 export const NEEDS_SEVERITY = new Set(['caries']);
 export const NEEDS_TOOTH = new Set(['eruption', 'loss', 'caries', 'filling', 'sealant']);
-
-export const DENTAL_REMINDER_INTERVALS: Record<string, { months: number; title: string }> = {
-  fluoride: { months: 6, title: '涂氟复查' },
-  cleaning: { months: 6, title: '定期洁牙' },
-  sealant: { months: 12, title: '窝沟封闭复查' },
-  checkup: { months: 6, title: '口腔常规检查' },
-  filling: { months: 6, title: '补牙后复查' },
-};
 
 export const PRIMARY_UPPER_R = ['55', '54', '53', '52', '51'];
 export const PRIMARY_UPPER_L = ['61', '62', '63', '64', '65'];

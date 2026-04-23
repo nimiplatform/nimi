@@ -115,7 +115,19 @@ export function DentalKPIStrip({ eruptedCount, eruptedTotal, permanentCount, car
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
             <div style={{ fontSize: 11, color: '#64748b', letterSpacing: '0.02em' }}>{k.label}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: S.text, letterSpacing: '-0.02em' }}>{k.value}</div>
+              <div
+                style={{
+                  fontSize: '22px',
+                  lineHeight: 1.1,
+                  fontWeight: 700,
+                  color: S.text,
+                  letterSpacing: '-0.025em',
+                  fontFamily: 'var(--nimi-font-display, "Inter", "Noto Sans SC", "PingFang SC", system-ui, sans-serif)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {k.value}
+              </div>
               <div style={{ fontSize: 11, color: '#64748b', fontFamily: MONO }}>{k.unit}</div>
             </div>
           </div>
