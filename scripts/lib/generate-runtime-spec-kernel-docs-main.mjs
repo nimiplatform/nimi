@@ -43,6 +43,11 @@ const specs = [
     render: renderKeySourceTruthTable,
   },
   {
+    input: 'connector-auth-profiles.yaml',
+    output: 'connector-auth-profiles.md',
+    render: renderConnectorAuthProfiles,
+  },
+  {
     input: 'provider-catalog.yaml',
     output: 'provider-catalog.md',
     render: renderProviderCatalog,
@@ -345,6 +350,28 @@ function renderKeySourceTruthTable(doc, sourceName) {
     const reasonCode = String(item?.reason_code || '').trim() || '—';
     const source = String(item?.source_rule || '').trim() || '—';
     out += `| \`${id}\` | \`${keySource}\` | \`${connectorId}\` | \`${providerType}\` | \`${providerEndpoint}\` | \`${providerApiKey}\` | \`${valid}\` | \`${reasonCode}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderConnectorAuthProfiles(doc, sourceName) {
+  const profiles = Array.isArray(doc?.profiles) ? doc.profiles : [];
+  let out = header('Generated Connector Auth Profiles', sourceName);
+
+  out += '| Profile | Auth Kind | Allowed Providers | Header Behavior | Source |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of profiles) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const authKind = String(item?.auth_kind || '').trim() || '—';
+    const allowedProviders = Array.isArray(item?.allowed_providers)
+      ? item.allowed_providers.map((provider) => `\`${String(provider).trim()}\``).join(', ')
+      : '—';
+    const headerBehavior = String(item?.header_behavior || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${id}\` | \`${authKind}\` | ${allowedProviders || '—'} | \`${headerBehavior}\` | \`${source}\` |\n`;
   }
   out += '\n';
 

@@ -33,6 +33,7 @@
 | `mubert` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `music.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `nimillm` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | — | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `openai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `openai_codex` | `remote` | `nimillm` | `true` | `false` | `default_or_explicit` | `image.generate`, `text.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `openai_compatible` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | — | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `openrouter` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `perplexity` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
@@ -47,6 +48,6 @@
 | `stepfun` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `image.generate`, `text.generate`, `text.generate.vision`, `voice_workflow.tts_v2v` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `together` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.embed`, `text.generate`, `text.generate.vision`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `volcengine` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `image.generate`, `text.embed`, `text.generate`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `volcengine_openspeech` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | — | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `volcengine_openspeech` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `worldlabs` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `world.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `xai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `audio.transcribe`, `image.generate`, `text.generate`, `text.generate.vision`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |

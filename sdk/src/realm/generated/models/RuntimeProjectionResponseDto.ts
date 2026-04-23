@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type CommitAgentMemoryDto = components['schemas']['CommitAgentMemoryDto'];
+export type RuntimeProjectionResponseDto = components['schemas']['RuntimeProjectionResponseDto'];

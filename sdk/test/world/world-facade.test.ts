@@ -7,6 +7,7 @@ import {
   createInspectWorldSession,
   createWorldFacade,
   normalizeWorldFixturePackage,
+  projectWorldRuntimePayload,
   normalizeWorldTruthListItem,
   normalizeWorldTruthDetail,
 } from '../../src/world/index.js';
@@ -205,6 +206,110 @@ test('world facade binds truth and generate helpers to a platform client', async
   assert.equal(calls[3]?.[0], 'getWorldDetailWithAgents');
   assert.equal(calls[4]?.[0], 'getWorldview');
   assert.equal(calls[5]?.[0], 'generate');
+});
+
+test('world projection facade binds runtime projection requests to the realm service', async () => {
+  const calls: Array<[string, unknown]> = [];
+  const client = {
+    realm: {
+      services: {
+        RuntimeProjectionsService: {
+          projectRuntimePayload: async (input: unknown) => {
+            calls.push(['projectRuntimePayload', input]);
+            return {
+              worldId: 'world-1',
+              agentId: 'agent-1',
+              consumerSurface: 'RUNTIME_PAYLOAD',
+              releaseAnchor: 'release-1',
+              checksum: 'checksum-1',
+              selectedInputs: [
+                {
+                  id: 'input-1',
+                  sourceType: 'WORLD_RULE',
+                  sourceId: 'rule-1',
+                  lineageId: 'lineage-1',
+                  worldId: 'world-1',
+                  ruleKey: 'harbor.layout',
+                  title: 'Harbor Layout',
+                  statement: 'Keep the layered harbor readable.',
+                  hardness: 'HARD',
+                  priority: 10,
+                  scope: 'WORLD',
+                  provenance: 'world.truth',
+                },
+              ],
+              trace: {
+                selectedInputIds: ['input-1'],
+                suppressedInputs: [],
+                resolutionOutcomes: [
+                  {
+                    inputId: 'input-1',
+                    sourceType: 'WORLD_RULE',
+                    decision: 'SELECTED',
+                    reasons: ['scope-match'],
+                  },
+                ],
+              },
+              payload: {
+                worldRules: [
+                  {
+                    id: 'input-1',
+                    sourceType: 'WORLD_RULE',
+                    sourceId: 'rule-1',
+                    lineageId: 'lineage-1',
+                    worldId: 'world-1',
+                    ruleKey: 'harbor.layout',
+                    title: 'Harbor Layout',
+                    statement: 'Keep the layered harbor readable.',
+                    hardness: 'HARD',
+                    priority: 10,
+                    scope: 'WORLD',
+                    provenance: 'world.truth',
+                  },
+                ],
+                agentRules: [],
+              },
+            };
+          },
+        },
+      },
+    },
+  } as any;
+
+  const result = await projectWorldRuntimePayload(client, {
+    worldId: 'world-1',
+    agentId: 'agent-1',
+    releaseAnchor: 'release-1',
+    contextEnvelope: {
+      sceneId: 'scene-1',
+      focusKeywords: ['harbor'],
+      allowedAgentLayers: ['BEHAVIORAL'],
+    },
+  });
+
+  assert.deepEqual(calls, [[
+    'projectRuntimePayload',
+    {
+      worldId: 'world-1',
+      agentId: 'agent-1',
+      releaseAnchor: 'release-1',
+      contextEnvelope: {
+        sceneId: 'scene-1',
+        focusKeywords: ['harbor'],
+        allowedAgentLayers: ['BEHAVIORAL'],
+      },
+    },
+  ]]);
+  assert.equal(result.checksum, 'checksum-1');
+  assert.equal(result.trace.resolutionOutcomes[0]?.decision, 'SELECTED');
+  assert.equal(result.payload.worldRules[0]?.ruleKey, 'harbor.layout');
+
+  const facade = createWorldFacade(client);
+  const facadeResult = await facade.projection.projectRuntimePayload({
+    worldId: 'world-1',
+  });
+  assert.equal(facadeResult.consumerSurface, 'RUNTIME_PAYLOAD');
+  assert.equal(calls.length, 2);
 });
 
 test('world truth detail normalizes a bounded composed detail shape', () => {

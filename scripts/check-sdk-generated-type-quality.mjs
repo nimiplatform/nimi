@@ -208,6 +208,60 @@ expectRegex(
 
 expectRegex(
   schema,
+  /CreateGroupInputDto:\s*{[\s\S]*?participantIds: string\[];[\s\S]*?title: string;/,
+  'CreateGroupInputDto must keep typed participantIds/title fields for group chat creation',
+);
+
+expectRegex(
+  schema,
+  /GroupChatViewDto:\s*{[\s\S]*?lastMessage: components\["schemas"\]\["GroupMessageViewDto"\] \| null;[\s\S]*?participants: components\["schemas"\]\["GroupParticipantDto"\]\[];[\s\S]*?type: "GROUP";/,
+  'GroupChatViewDto must keep typed lastMessage/participants fields for the restored group chat surface',
+);
+
+expectRegex(
+  schema,
+  /GroupMessageViewDto:\s*{[\s\S]*?author: components\["schemas"\]\["GroupMessageAuthorDto"\];[\s\S]*?payload: \([\s\S]*?AttachmentEnvelopeDto[\s\S]*?\) \| null;[\s\S]*?type: components\["schemas"\]\["MessageType"\];/,
+  'GroupMessageViewDto must keep typed author/payload/type fields for the restored group message surface',
+);
+
+expectRegex(
+  schema,
+  /GroupParticipantDto:\s*{[\s\S]*?role: "admin" \| "member";[\s\S]*?type: "human" \| "agent";/,
+  'GroupParticipantDto must keep typed role/type unions for participant admission',
+);
+
+expectRegex(
+  schema,
+  /ListGroupChatsResultDto:\s*{[\s\S]*?items: components\["schemas"\]\["GroupChatViewDto"\]\[];[\s\S]*?nextCursor: string \| null;/,
+  'ListGroupChatsResultDto must stay a named typed group chat list response model',
+);
+
+expectRegex(
+  schema,
+  /ListGroupMessagesResultDto:\s*{[\s\S]*?items: components\["schemas"\]\["GroupMessageViewDto"\]\[];[\s\S]*?nextAfter: string \| null;[\s\S]*?nextBefore: string \| null;/,
+  'ListGroupMessagesResultDto must stay a named typed group message list response model',
+);
+
+expectRegex(
+  schema,
+  /UpdateParticipantRoleInputDto:\s*{[\s\S]*?role: "admin" \| "member";/,
+  'UpdateParticipantRoleInputDto must keep the stable admin/member role union',
+);
+
+expectRegex(
+  schema,
+  /listGroupMessages:\s*{[\s\S]*?query\?: \{[\s\S]*?limit\?: number;[\s\S]*?around\?: string;[\s\S]*?after\?: string;[\s\S]*?before\?: string;[\s\S]*?\};[\s\S]*?path: \{[\s\S]*?chatId: string;[\s\S]*?\};/,
+  'listGroupMessages must keep the admitted paginated query contract for limit/around/after/before',
+);
+
+expectRegex(
+  schema,
+  /syncGroupEvents:\s*{[\s\S]*?query\?: \{[\s\S]*?limit\?: number;[\s\S]*?afterSeq\?: number;[\s\S]*?\};[\s\S]*?path: \{[\s\S]*?chatId: string;[\s\S]*?\};/,
+  'syncGroupEvents must keep the admitted paginated query contract for limit/afterSeq',
+);
+
+expectRegex(
+  schema,
   /BatchCreateAgentsResponseDto:\s*{[\s\S]*?created: components\["schemas"\]\["BatchCreateAgentCreatedDto"\]\[];[\s\S]*?failed: components\["schemas"\]\["BatchCreateAgentFailedDto"\]\[];\s*};/,
   'BatchCreateAgentsResponseDto must remain a named creator batch response model',
 );
@@ -226,38 +280,8 @@ expectRegex(
 
 expectRegex(
   schema,
-  /AgentMemoryRecordDto:\s*{[\s\S]*?actorRefs: components\["schemas"\]\["MutationActorRefDto"\]\[];[\s\S]*?appId: string;[\s\S]*?commitId: string;[\s\S]*?content: string;[\s\S]*?createdBy: string;[\s\S]*?effectClass: "MEMORY_ONLY";[\s\S]*?importance: number;[\s\S]*?reason: string;[\s\S]*?schemaId: string;[\s\S]*?schemaVersion: string;[\s\S]*?sessionId: string;[\s\S]*?type: "PUBLIC_SHARED" \| "WORLD_SHARED" \| "DYADIC";[\s\S]*?userId: string \| null;[\s\S]*?worldId: string \| null;/,
-  'AgentMemoryRecordDto must expose persisted provenance alongside the hard-cut shared\/dyadic memory contract',
-);
-
-expectRegex(
-  schema,
-  /CommitAgentMemoryDto:\s*{[\s\S]*?commit: components\["schemas"\]\["AgentMemoryCommitEnvelopeDto"\];[\s\S]*?content: string;[\s\S]*?metadata\?: \{\s*\[key: string\]: unknown;\s*\};[\s\S]*?type: "PUBLIC_SHARED" \| "WORLD_SHARED" \| "DYADIC";/,
-  'CommitAgentMemoryDto must require a commit envelope and preserve typed memory fields',
-);
-
-expectRegex(
-  schema,
   /CreatorModControlGrantIssueResponseDto:\s*{[\s\S]*?capabilities: string\[];[\s\S]*?expiresAt: string;[\s\S]*?grantId: string;[\s\S]*?token: string;/,
   'CreatorModControlGrantIssueResponseDto must be generated for creator grant issue',
-);
-
-expectRegex(
-  operationMap,
-  /"AgentsService\.agentControllerListCoreMemories":[\s\S]*?"name": "limit"[\s\S]*?"valueType": "number"[\s\S]*?"hasSuccessBody": true/,
-  'agentControllerListCoreMemories must keep typed limit query + success body',
-);
-
-expectRegex(
-  operationMap,
-  /"AgentsService\.agentControllerListDyadicMemories":[\s\S]*?"name": "userId"[\s\S]*?"name": "limit"[\s\S]*?"valueType": "number"[\s\S]*?"hasSuccessBody": true/,
-  'agentControllerListDyadicMemories must keep typed params + success body',
-);
-
-expectRegex(
-  operationMap,
-  /"AgentsService\.agentControllerCommitMemory":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
-  'agentControllerCommitMemory must keep typed request and success bodies',
 );
 
 expectRegex(
@@ -300,6 +324,108 @@ expectRegex(
   operationMap,
   /"HumanNsfwConsentService\.humanNsfwConsentControllerUpdateUserConsent":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
   'humanNsfwConsentControllerUpdateUserConsent must keep typed request and response bodies',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.createGroup":[\s\S]*?"path": "\/api\/human\/group-chats"[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.createGroup must keep the admitted group creation route with typed request and success bodies',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.getGroup":[\s\S]*?"path": "\/api\/human\/group-chats\/\{chatId\}"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.getGroup must keep the admitted group detail route with typed success body',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.listGroups":[\s\S]*?"path": "\/api\/human\/group-chats"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.listGroups must keep the admitted group chat list route with typed success body',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.updateGroup":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.updateGroup must keep typed request and success bodies',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.listGroupMessages":[\s\S]*?"path": "\/api\/human\/group-chats\/\{chatId\}\/messages"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.listGroupMessages must keep the admitted group message list route with typed success body',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.sendGroupAgentMessage":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.sendGroupAgentMessage must keep typed request and success bodies',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.sendGroupMessage":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.sendGroupMessage must keep typed request and success bodies',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.editGroupMessage":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.editGroupMessage must keep typed request and success bodies',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.recallGroupMessage":[\s\S]*?"path": "\/api\/human\/group-chats\/\{chatId\}\/messages\/\{messageId\}\/recall"[\s\S]*?"hasSuccessBody": false/,
+  'GroupChatsService.recallGroupMessage must keep the admitted no-body recall route',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.addGroupAgent":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.addGroupAgent must keep typed request and success bodies',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.removeGroupAgent":[\s\S]*?"path": "\/api\/human\/group-chats\/\{chatId\}\/agents\/\{agentAccountId\}"[\s\S]*?"hasSuccessBody": false/,
+  'GroupChatsService.removeGroupAgent must keep the admitted no-body remove-agent route',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.addGroupParticipant":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.addGroupParticipant must keep typed request and success bodies',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.removeGroupParticipant":[\s\S]*?"path": "\/api\/human\/group-chats\/\{chatId\}\/participants\/\{accountId\}"[\s\S]*?"hasSuccessBody": false/,
+  'GroupChatsService.removeGroupParticipant must keep the admitted no-body remove-participant route',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.updateGroupParticipantRole":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.updateGroupParticipantRole must keep typed request and success bodies',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.markGroupRead":[\s\S]*?"path": "\/api\/human\/group-chats\/\{chatId\}\/read"[\s\S]*?"hasSuccessBody": false/,
+  'GroupChatsService.markGroupRead must keep the admitted no-body mark-read route',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService\.syncGroupEvents":[\s\S]*?"path": "\/api\/human\/group-chats\/\{chatId\}\/sync"[\s\S]*?"hasSuccessBody": true/,
+  'GroupChatsService.syncGroupEvents must keep the admitted sync route with typed success body',
+);
+
+expectRegex(
+  operationMap,
+  /"GroupChatsService": \{[\s\S]*?"createGroup": "GroupChatsService\.createGroup"[\s\S]*?"updateGroupParticipantRole": "GroupChatsService\.updateGroupParticipantRole"[\s\S]*?\}/,
+  'GroupChatsService must keep the full admitted method surface in the generated service registry',
 );
 
 const actualDynamicEnvelopePaths = collectSchemaUnknownMapPaths(schema);

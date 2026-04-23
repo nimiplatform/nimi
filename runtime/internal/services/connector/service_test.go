@@ -2,6 +2,8 @@ package connector
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +20,19 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
+
+func codexProbeJWTForTest(t *testing.T, accountID string) string {
+	t.Helper()
+	raw, err := json.Marshal(map[string]any{
+		"https://api.openai.com/auth": map[string]any{
+			"chatgpt_account_id": accountID,
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshal codex probe jwt: %v", err)
+	}
+	return "hdr." + base64.RawURLEncoding.EncodeToString(raw) + ".sig"
+}
 
 func TestCreateConnector(t *testing.T) {
 	svc := newTestService(t)
@@ -56,6 +71,65 @@ func TestCreateConnectorMissingAPIKey(t *testing.T) {
 	st, _ := status.FromError(err)
 	if st.Code() != codes.InvalidArgument {
 		t.Errorf("expected InvalidArgument, got %v", st.Code())
+	}
+}
+
+func TestCreateConnectorRejectsUnknownOAuthProfile(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider:            "openai_compatible",
+		Endpoint:            "https://example.com/v1",
+		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
+		ProviderAuthProfile: "unknown_oauth",
+		CredentialJson:      `{"access_token":"token-1"}`,
+	})
+	if err == nil {
+		t.Fatal("expected invalid connector error for unknown oauth profile")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+}
+
+func TestCreateConnectorRejectsIncompatibleOAuthProfile(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider:            "openai_compatible",
+		Endpoint:            "https://example.com/v1",
+		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
+		ProviderAuthProfile: "openai_codex",
+		CredentialJson:      `{"access_token":"token-1"}`,
+	})
+	if err == nil {
+		t.Fatal("expected invalid connector error for incompatible oauth profile")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+}
+
+func TestCreateConnectorAnonymousOAuthManagedRequiresAuth(t *testing.T) {
+	svc := newTestService(t)
+
+	_, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
+		Provider:            "openai_codex",
+		Endpoint:            "https://chatgpt.com/backend-api/codex",
+		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
+		ProviderAuthProfile: "openai_codex",
+		CredentialJson:      `{"access_token":"token-1"}`,
+	})
+	if err == nil {
+		t.Fatal("expected unauthenticated error for anonymous oauth-managed connector create")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.Unauthenticated {
+		t.Fatalf("expected Unauthenticated, got %v", st.Code())
 	}
 }
 
@@ -202,7 +276,7 @@ func TestListConnectorsAnonymousOnlySeesLocal(t *testing.T) {
 }
 
 func TestConnectorOwnerTypeMapping(t *testing.T) {
-	// K-AUTH-003: authenticated REMOTE_MANAGED maps to REALM_USER, anonymous machine-global and LOCAL_MODEL map to SYSTEM.
+	// K-AUTH-003: authenticated REMOTE_MANAGED maps to REALM_USER, anonymous machine-global API-key connectors and LOCAL_MODEL map to SYSTEM.
 	svc := newTestService(t)
 
 	created, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
@@ -323,7 +397,7 @@ func TestUpdateConnector(t *testing.T) {
 }
 
 func TestConnectorManagementRequiresAuth(t *testing.T) {
-	// K-AUTH-004: user-owned connectors still require auth; machine-global connectors remain manageable without JWT.
+	// K-AUTH-004: user-owned connectors still require auth; machine-global API-key connectors remain manageable without JWT.
 	svc := newTestService(t)
 
 	createdAnonymous, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
@@ -380,6 +454,77 @@ func TestConnectorManagementRequiresAuth(t *testing.T) {
 	}
 	if st, _ := status.FromError(err); st.Code() != codes.Unauthenticated {
 		t.Fatalf("expected delete unauthenticated, got %v", st.Code())
+	}
+}
+
+func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
+	svc := newTestService(t)
+	payload := `{"access_token":"token-1"}`
+	if _, err := svc.store.Create(ConnectorRecord{
+		ConnectorID:         "machine-codex",
+		Kind:                runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:           runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:             "machine",
+		Provider:            "openai_codex",
+		ProviderAuthProfile: "openai_codex",
+		Endpoint:            "https://chatgpt.com/backend-api/codex",
+		Status:              runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
+	}, payload); err != nil {
+		t.Fatalf("create invalid oauth-managed connector: %v", err)
+	}
+
+	if _, err := svc.GetConnector(context.Background(), &runtimev1.GetConnectorRequest{
+		ConnectorId: "machine-codex",
+	}); err == nil {
+		t.Fatal("expected invalid oauth-managed connector to be hidden from GetConnector")
+	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
+		t.Fatalf("expected GetConnector NotFound, got %v", st.Code())
+	}
+
+	listResp, err := svc.ListConnectors(context.Background(), &runtimev1.ListConnectorsRequest{})
+	if err != nil {
+		t.Fatalf("ListConnectors: %v", err)
+	}
+	for _, item := range listResp.GetConnectors() {
+		if item.GetConnectorId() == "machine-codex" {
+			t.Fatal("expected invalid oauth-managed connector to be hidden from ListConnectors")
+		}
+	}
+
+	testResp, err := svc.TestConnector(context.Background(), &runtimev1.TestConnectorRequest{
+		ConnectorId: "machine-codex",
+	})
+	if err != nil {
+		t.Fatalf("TestConnector: %v", err)
+	}
+	if testResp.GetAck().GetOk() || testResp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND {
+		t.Fatalf("expected TestConnector fail-closed not found, got %+v", testResp.GetAck())
+	}
+
+	if _, err := svc.ListConnectorModels(context.Background(), &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: "machine-codex",
+	}); err == nil {
+		t.Fatal("expected ListConnectorModels to hide invalid oauth-managed connector")
+	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
+		t.Fatalf("expected ListConnectorModels NotFound, got %v", st.Code())
+	}
+
+	if _, err := svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
+		ConnectorId: "machine-codex",
+		Label:       proto.String("renamed"),
+	}); err == nil {
+		t.Fatal("expected UpdateConnector to hide invalid oauth-managed connector")
+	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
+		t.Fatalf("expected UpdateConnector NotFound, got %v", st.Code())
+	}
+
+	if _, err := svc.DeleteConnector(context.Background(), &runtimev1.DeleteConnectorRequest{
+		ConnectorId: "machine-codex",
+	}); err == nil {
+		t.Fatal("expected DeleteConnector to hide invalid oauth-managed connector")
+	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
+		t.Fatalf("expected DeleteConnector NotFound, got %v", st.Code())
 	}
 }
 
@@ -1120,6 +1265,112 @@ func TestTestConnectorRemotePropagatesProviderAuthFailure(t *testing.T) {
 	}
 	if resp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
 		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", resp.GetAck().GetReasonCode())
+	}
+}
+
+func TestTestConnectorOpenAICodexUsesOAuthHeaders(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	var capturedOriginator string
+	var capturedAccountID string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/backend-api/codex/models" && r.URL.Path != "/backend-api/codex/v1/models" {
+			http.NotFound(w, r)
+			return
+		}
+		capturedOriginator = r.Header.Get("originator")
+		capturedAccountID = r.Header.Get("ChatGPT-Account-ID")
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+
+	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers: map[string]nimillm.ProviderCredentials{
+			"openai_codex": {BaseURL: server.URL + "/backend-api/codex", APIKey: "cloud-key"},
+		},
+		HTTPTimeout: 5 * time.Second,
+	}, nil, nil))
+
+	credentialPayload, err := json.Marshal(map[string]any{
+		"access_token": codexProbeJWTForTest(t, "acct_probe_123"),
+	})
+	if err != nil {
+		t.Fatalf("marshal credential payload: %v", err)
+	}
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider:            "openai_codex",
+		Endpoint:            server.URL + "/backend-api/codex",
+		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
+		ProviderAuthProfile: "openai_codex",
+		CredentialJson:      string(credentialPayload),
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+
+	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
+		ConnectorId: created.GetConnector().GetConnectorId(),
+	})
+	if err != nil {
+		t.Fatalf("TestConnector: %v", err)
+	}
+	if !resp.GetAck().GetOk() {
+		t.Fatalf("expected probe success, got reason=%v", resp.GetAck().GetReasonCode())
+	}
+	if capturedOriginator != "codex_cli_rs" {
+		t.Fatalf("expected codex originator header, got %q", capturedOriginator)
+	}
+	if capturedAccountID != "acct_probe_123" {
+		t.Fatalf("expected codex account header, got %q", capturedAccountID)
+	}
+}
+
+func TestTestConnectorQwenOAuthUsesBearerTokenThroughOpenAICompatibleProvider(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	var capturedAuthorization string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/models" {
+			http.NotFound(w, r)
+			return
+		}
+		capturedAuthorization = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"object":"list","data":[{"id":"qwen-max","object":"model"}]}`)
+	}))
+	t.Cleanup(server.Close)
+
+	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers: map[string]nimillm.ProviderCredentials{
+			"openai_compatible": {BaseURL: server.URL + "/v1", APIKey: "cloud-key"},
+		},
+		HTTPTimeout: 5 * time.Second,
+	}, nil, nil))
+
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider:            "openai_compatible",
+		Endpoint:            server.URL + "/v1",
+		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
+		ProviderAuthProfile: "qwen_oauth",
+		CredentialJson:      `{"access_token":"qwen-oauth-token"}`,
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+
+	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
+		ConnectorId: created.GetConnector().GetConnectorId(),
+	})
+	if err != nil {
+		t.Fatalf("TestConnector: %v", err)
+	}
+	if !resp.GetAck().GetOk() {
+		t.Fatalf("expected probe success, got reason=%v", resp.GetAck().GetReasonCode())
+	}
+	if capturedAuthorization != "Bearer qwen-oauth-token" {
+		t.Fatalf("expected bearer oauth token, got %q", capturedAuthorization)
 	}
 }
 

@@ -73,81 +73,6 @@ export type paths = {
         patch: operations["AgentController_updateDna"];
         trace?: never;
     };
-    "/api/agent/accounts/{id}/memory/commits": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Commit continuity memory explicitly */
-        post: operations["AgentController_commitMemory"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/memory/core": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List shared continuity memories */
-        get: operations["AgentController_listCoreMemories"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/memory/dyadic/{userId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List DYADIC memories for one user */
-        get: operations["AgentController_listDyadicMemories"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete all DYADIC memories for a user
-         * @description Private deletion does not affect shared memory classes.
-         */
-        delete: operations["AgentController_deleteAllDyadicMemories"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/memory/dyadic/{userId}/{memoryId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete one DYADIC memory
-         * @description Private deletion applies only to DYADIC continuity memory for the requesting user.
-         */
-        delete: operations["AgentController_deleteDyadicMemory"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/agent/accounts/{id}/public": {
         parameters: {
             query?: never;
@@ -2736,6 +2661,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/runtime/projections/project": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Project runtime payload from canonical world/agent truth */
+        post: operations["projectRuntimePayload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/runtime/realm-grants/issue": {
         parameters: {
             query?: never;
@@ -3722,45 +3664,6 @@ export type components = {
         };
         /** @enum {string} */
         AgentImportance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
-        AgentMemoryCommitEnvelopeDto: {
-            actorRefs: components["schemas"]["MutationActorRefDto"][];
-            appId: string;
-            /** @enum {string} */
-            effectClass: "MEMORY_ONLY";
-            evidenceRefs?: components["schemas"]["MutationEvidenceRefDto"][];
-            reason: string;
-            schemaId: string;
-            schemaVersion: string;
-            /** @enum {string} */
-            scope: "WORLD";
-            sessionId: string;
-            worldId: string;
-        };
-        AgentMemoryRecordDto: {
-            actorRefs: components["schemas"]["MutationActorRefDto"][];
-            appId: string;
-            commitId: string;
-            content: string;
-            /** Format: date-time */
-            createdAt: string;
-            createdBy: string;
-            /** @enum {string} */
-            effectClass: "MEMORY_ONLY";
-            evidenceRefs?: components["schemas"]["MutationEvidenceRefDto"][] | null;
-            id: string;
-            importance: number;
-            metadata?: {
-                [key: string]: unknown;
-            } | null;
-            reason: string;
-            schemaId: string;
-            schemaVersion: string;
-            sessionId: string;
-            /** @enum {string} */
-            type: "PUBLIC_SHARED" | "WORLD_SHARED" | "DYADIC";
-            userId: string | null;
-            worldId: string | null;
-        };
         AgentMetadataDto: {
             /** @description Agent current active worldId */
             activeWorldId?: string;
@@ -4404,18 +4307,6 @@ export type components = {
             transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
             usePolicy?: components["schemas"]["UsePolicyDto"] | null;
         };
-        CommitAgentMemoryDto: {
-            commit: components["schemas"]["AgentMemoryCommitEnvelopeDto"];
-            content: string;
-            importance?: number;
-            metadata?: {
-                [key: string]: unknown;
-            };
-            /** @enum {string} */
-            type: "PUBLIC_SHARED" | "WORLD_SHARED" | "DYADIC";
-            userId?: string;
-            worldId?: string;
-        };
         CommitWorldStateDto: {
             commit: components["schemas"]["MutationCommitEnvelopeDto"];
             ifSnapshotVersion?: string;
@@ -4855,17 +4746,6 @@ export type components = {
         DeleteAgentOperationResponseDto: {
             success: boolean;
         };
-        DeleteAllDyadicMemoriesResponseDto: {
-            agentId: string;
-            deletedCount: number;
-            userId: string;
-        };
-        DeleteDyadicMemoryResponseDto: {
-            agentId: string;
-            deletedAt: string;
-            memoryId: string;
-            userId: string;
-        };
         DeleteRelationshipResponseDto: {
             deleted: boolean;
         };
@@ -5107,7 +4987,7 @@ export type components = {
             createdAt: string;
             creatorId: string;
             id: string;
-            lastMessage: components["schemas"]["MessageViewDto"] | null;
+            lastMessage: components["schemas"]["GroupMessageViewDto"] | null;
             /** Format: date-time */
             lastMessageAt: string | null;
             participants: components["schemas"]["GroupParticipantDto"][];
@@ -5309,7 +5189,7 @@ export type components = {
             actorRefs: components["schemas"]["MutationActorRefDto"][];
             appId: string;
             /** @enum {string} */
-            effectClass: "NONE" | "MEMORY_ONLY" | "STATE_ONLY" | "STATE_AND_HISTORY";
+            effectClass: "NONE" | "STATE_ONLY" | "STATE_AND_HISTORY";
             evidenceRefs?: components["schemas"]["MutationEvidenceRefDto"][];
             reason: string;
             schemaId: string;
@@ -5863,6 +5743,85 @@ export type components = {
             violations: string[];
             /** @description List of warnings */
             warnings: string[];
+        };
+        RuntimeProjectionContextEnvelopeDto: {
+            allowedAgentLayers?: ("DNA" | "BEHAVIORAL" | "RELATIONAL" | "CONTEXTUAL")[];
+            allowedAgentScopes?: ("SELF" | "DYAD" | "GROUP" | "WORLD")[];
+            allowedWorldScopes?: ("WORLD" | "REGION" | "FACTION" | "INDIVIDUAL" | "SCENE")[];
+            focusKeywords?: string[];
+            includeInheritedAgentRules?: boolean;
+            requestedAgentRuleKeys?: string[];
+            requestedWorldRuleKeys?: string[];
+            sceneId?: string;
+            stateVisibilityKeys?: string[];
+            temporalPosition?: string;
+            turnId?: string;
+        };
+        RuntimeProjectionInputDto: {
+            agentId?: string;
+            /** @enum {string} */
+            hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
+            id: string;
+            /** @enum {string} */
+            layer?: "DNA" | "BEHAVIORAL" | "RELATIONAL" | "CONTEXTUAL";
+            lineageId: string;
+            priority: number;
+            provenance: string;
+            reasoning?: string | null;
+            ruleKey: string;
+            scope: string;
+            sourceId: string;
+            sourceRef?: string | null;
+            /** @enum {string} */
+            sourceType: "WORLD_RULE" | "AGENT_RULE";
+            statement: string;
+            structured?: {
+                [key: string]: unknown;
+            } | null;
+            title: string;
+            validFrom?: string | null;
+            validUntil?: string | null;
+            worldId: string;
+            worldRuleRef?: string | null;
+        };
+        RuntimeProjectionPayloadDto: {
+            agentRules: components["schemas"]["RuntimeProjectionInputDto"][];
+            worldRules: components["schemas"]["RuntimeProjectionInputDto"][];
+        };
+        RuntimeProjectionRequestDto: {
+            agentId?: string;
+            contextEnvelope?: components["schemas"]["RuntimeProjectionContextEnvelopeDto"];
+            releaseAnchor?: string | null;
+            worldId: string;
+        };
+        RuntimeProjectionResolutionOutcomeDto: {
+            /** @enum {string} */
+            decision: "SELECTED" | "SUPPRESSED";
+            inputId: string;
+            reasons: string[];
+            /** @enum {string} */
+            sourceType: "WORLD_RULE" | "AGENT_RULE";
+        };
+        RuntimeProjectionResponseDto: {
+            agentId?: string;
+            checksum: string;
+            /** @enum {string} */
+            consumerSurface: "RUNTIME_PAYLOAD";
+            payload: components["schemas"]["RuntimeProjectionPayloadDto"];
+            releaseAnchor?: string | null;
+            selectedInputs: components["schemas"]["RuntimeProjectionInputDto"][];
+            trace: components["schemas"]["RuntimeProjectionTraceDto"];
+            worldId: string;
+        };
+        RuntimeProjectionSuppressedInputDto: {
+            input: components["schemas"]["RuntimeProjectionInputDto"];
+            /** @enum {string} */
+            reason: "RULE_KEY_FILTER" | "SCOPE_FILTER" | "LAYER_FILTER" | "PROVENANCE_FILTER" | "FOCUS_MISS" | "SURFACE_POLICY";
+        };
+        RuntimeProjectionTraceDto: {
+            resolutionOutcomes: components["schemas"]["RuntimeProjectionResolutionOutcomeDto"][];
+            selectedInputIds: string[];
+            suppressedInputs: components["schemas"]["RuntimeProjectionSuppressedInputDto"][];
         };
         RuntimeRealmGrantIssueRequestDto: {
             appId: string;
@@ -7443,137 +7402,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeleteAgentOperationResponseDto"];
-                };
-            };
-        };
-    };
-    AgentController_commitMemory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommitAgentMemoryDto"];
-            };
-        };
-        responses: {
-            /** @description Memory commit created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentMemoryRecordDto"];
-                };
-            };
-        };
-    };
-    AgentController_listCoreMemories: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of Core memories */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentMemoryRecordDto"][];
-                };
-            };
-        };
-    };
-    AgentController_listDyadicMemories: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description User ID */
-                userId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of DYADIC memories for this user */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentMemoryRecordDto"][];
-                };
-            };
-        };
-    };
-    AgentController_deleteAllDyadicMemories: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description User ID requesting deletion */
-                userId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description All DYADIC memories for this user deleted */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeleteAllDyadicMemoriesResponseDto"];
-                };
-            };
-        };
-    };
-    AgentController_deleteDyadicMemory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Memory ID to delete */
-                memoryId: string;
-                /** @description User ID (must match the dyadic memory owner) */
-                userId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description DYADIC memory deleted */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeleteDyadicMemoryResponseDto"];
                 };
             };
         };
@@ -11622,6 +11450,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResourceDetailDto"];
+                };
+            };
+        };
+    };
+    projectRuntimePayload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuntimeProjectionRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Deterministic runtime payload projected from canonical truth */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimeProjectionResponseDto"];
                 };
             };
         };

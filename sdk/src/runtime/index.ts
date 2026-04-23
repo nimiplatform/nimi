@@ -14,7 +14,18 @@ export {
   ScenarioJobEventType,
 } from './generated/runtime/v1/ai.js';
 export { ModelStatus } from './generated/runtime/v1/model.js';
-export { ModelCatalogProviderSource, CatalogModelSource } from './generated/runtime/v1/connector.js';
+export {
+  ModelCatalogProviderSource,
+  CatalogModelSource,
+  ConnectorAuthKind,
+  ConnectorKind,
+  ConnectorOwnerType,
+  ConnectorStatus,
+} from './generated/runtime/v1/connector.js';
+export {
+  CONNECTOR_AUTH_PROFILES,
+  type ConnectorAuthProfileSpec,
+} from './connector-auth-profiles.generated.js';
 export type {
   CatalogModelDetail,
   CatalogModelInput,

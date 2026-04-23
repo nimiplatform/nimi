@@ -193,9 +193,6 @@ func (b *Backend) Transcribe(
 		return "", nil, err
 	}
 	request.Header.Set("Content-Type", writer.FormDataContentType())
-	if b.apiKey != "" {
-		request.Header.Set("Authorization", "Bearer "+b.apiKey)
-	}
 
 	response, err := b.do(request)
 	if err != nil {
@@ -267,6 +264,9 @@ func normalizeImageResponseFormat(raw string) (string, error) {
 func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
 	if b.isMediaBackend() {
 		return b.generateImageMedia(ctx, modelID, spec, scenarioExtensions)
+	}
+	if b.supportsCodexResponses() {
+		return b.generateImageCodexResponses(ctx, modelID, spec)
 	}
 	if spec == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)

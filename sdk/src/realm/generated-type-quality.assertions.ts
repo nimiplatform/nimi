@@ -6,19 +6,15 @@ type IsEqual<A, B> = (
   (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
 );
 
-type _ListCoreMemoriesArgs = Parameters<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListCoreMemories']>;
-type _ListDyadicMemoriesArgs = Parameters<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListDyadicMemories']>;
-type _CommitMemoryArgs = Parameters<RealmGeneratedServiceRegistry['AgentsService']['agentControllerCommitMemory']>;
 type _IssueGrantArgs = Parameters<RealmGeneratedServiceRegistry['CreatorModsControlPlaneService']['creatorModsControllerIssueGrant']>;
+type _ProjectRuntimePayloadArgs = Parameters<RealmGeneratedServiceRegistry['RuntimeProjectionsService']['projectRuntimePayload']>;
 type _IssueRuntimeRealmGrantArgs = Parameters<RealmGeneratedServiceRegistry['RuntimeRealmGrantsService']['issueRuntimeRealmGrant']>;
 type _ListFriendsWithDetailsResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['MeService']['listMyFriendsWithDetails']>>;
 type _GetCreatorAgentResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['CreatorService']['creatorControllerGetAgent']>>;
 type _UpdateCreatorAgentResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['CreatorService']['creatorControllerUpdateAgent']>>;
 
-type _ListCoreMemoriesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListCoreMemories']>>;
-type _ListDyadicMemoriesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListDyadicMemories']>>;
-type _CommitMemoryResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerCommitMemory']>>;
 type _IssueGrantResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['CreatorModsControlPlaneService']['creatorModsControllerIssueGrant']>>;
+type _ProjectRuntimePayloadResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['RuntimeProjectionsService']['projectRuntimePayload']>>;
 type _IssueRuntimeRealmGrantResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['RuntimeRealmGrantsService']['issueRuntimeRealmGrant']>>;
 type _RequestDataExportArgs = Parameters<RealmGeneratedServiceRegistry['MeaccountdataService']['requestDataExport']>;
 type _RequestAccountDeletionArgs = Parameters<RealmGeneratedServiceRegistry['MeaccountdataService']['requestAccountDeletion']>;
@@ -230,62 +226,6 @@ type _GuardUpdateUserSettingsNotificationSettings = Assert<IsEqual<
   components['schemas']['UpdateUserNotificationSettingsDto'] | undefined
 >>;
 
-type _GuardListCoreFirstArg = Assert<_ListCoreMemoriesArgs[0] extends string ? true : false>;
-type _GuardListCoreSecondArg = Assert<_ListCoreMemoriesArgs[1] extends number | undefined ? true : false>;
-type _GuardListCoreResult = Assert<IsEqual<
-  _ListCoreMemoriesResult,
-  components['schemas']['AgentMemoryRecordDto'][]
->>;
-
-type _GuardListDyadicFirstArg = Assert<_ListDyadicMemoriesArgs[0] extends string ? true : false>;
-type _GuardListDyadicSecondArg = Assert<_ListDyadicMemoriesArgs[1] extends string ? true : false>;
-type _GuardListDyadicThirdArg = Assert<_ListDyadicMemoriesArgs[2] extends number | undefined ? true : false>;
-type _GuardListDyadicResult = Assert<IsEqual<
-  _ListDyadicMemoriesResult,
-  components['schemas']['AgentMemoryRecordDto'][]
->>;
-
-type _GuardCommitMemoryFirstArg = Assert<_CommitMemoryArgs[0] extends string ? true : false>;
-type _GuardCommitMemoryBody = Assert<IsEqual<
-  _CommitMemoryArgs[1],
-  components['schemas']['CommitAgentMemoryDto']
->>;
-type _GuardCommitMemoryResult = Assert<IsEqual<
-  _CommitMemoryResult,
-  components['schemas']['AgentMemoryRecordDto']
->>;
-type _GuardAgentMemoryRecordCommitId = Assert<IsEqual<
-  components['schemas']['AgentMemoryRecordDto']['commitId'],
-  string
->>;
-type _GuardAgentMemoryRecordAppId = Assert<IsEqual<
-  components['schemas']['AgentMemoryRecordDto']['appId'],
-  string
->>;
-type _GuardAgentMemoryRecordSessionId = Assert<IsEqual<
-  components['schemas']['AgentMemoryRecordDto']['sessionId'],
-  string
->>;
-type _GuardAgentMemoryRecordEffectClass = Assert<IsEqual<
-  components['schemas']['AgentMemoryRecordDto']['effectClass'],
-  'MEMORY_ONLY'
->>;
-type _GuardAgentMemoryRecordSchemaId = Assert<IsEqual<
-  components['schemas']['AgentMemoryRecordDto']['schemaId'],
-  string
->>;
-type _GuardAgentMemoryRecordSchemaVersion = Assert<IsEqual<
-  components['schemas']['AgentMemoryRecordDto']['schemaVersion'],
-  string
->>;
-type _GuardAgentMemoryRecordReason = Assert<IsEqual<
-  components['schemas']['AgentMemoryRecordDto']['reason'],
-  string
->>;
-type _GuardAgentMemoryRecordCreatedBy = Assert<IsEqual<
-  components['schemas']['AgentMemoryRecordDto']['createdBy'],
-  string
->>;
 type _GuardIssueGrantBody = Assert<IsEqual<
   _IssueGrantArgs[0],
   components['schemas']['CreatorModControlGrantIssueRequestDto']
@@ -293,6 +233,51 @@ type _GuardIssueGrantBody = Assert<IsEqual<
 type _GuardIssueGrantResult = Assert<IsEqual<
   _IssueGrantResult,
   components['schemas']['CreatorModControlGrantIssueResponseDto']
+>>;
+
+type _GuardProjectRuntimePayloadBody = Assert<IsEqual<
+  _ProjectRuntimePayloadArgs[0],
+  components['schemas']['RuntimeProjectionRequestDto']
+>>;
+type _GuardProjectRuntimePayloadResult = Assert<IsEqual<
+  _ProjectRuntimePayloadResult,
+  components['schemas']['RuntimeProjectionResponseDto']
+>>;
+type _GuardRuntimeProjectionRequestContextEnvelope = Assert<IsEqual<
+  components['schemas']['RuntimeProjectionRequestDto']['contextEnvelope'],
+  components['schemas']['RuntimeProjectionContextEnvelopeDto'] | undefined
+>>;
+type _GuardRuntimeProjectionResponsePayload = Assert<IsEqual<
+  components['schemas']['RuntimeProjectionResponseDto']['payload'],
+  components['schemas']['RuntimeProjectionPayloadDto']
+>>;
+type _GuardRuntimeProjectionResponseTrace = Assert<IsEqual<
+  components['schemas']['RuntimeProjectionResponseDto']['trace'],
+  components['schemas']['RuntimeProjectionTraceDto']
+>>;
+type _GuardRuntimeProjectionSelectedInputs = Assert<IsEqual<
+  components['schemas']['RuntimeProjectionResponseDto']['selectedInputs'],
+  components['schemas']['RuntimeProjectionInputDto'][]
+>>;
+type _GuardRuntimeProjectionPayloadWorldRules = Assert<IsEqual<
+  components['schemas']['RuntimeProjectionPayloadDto']['worldRules'],
+  components['schemas']['RuntimeProjectionInputDto'][]
+>>;
+type _GuardRuntimeProjectionPayloadAgentRules = Assert<IsEqual<
+  components['schemas']['RuntimeProjectionPayloadDto']['agentRules'],
+  components['schemas']['RuntimeProjectionInputDto'][]
+>>;
+type _GuardRuntimeProjectionTraceSuppressedInputs = Assert<IsEqual<
+  components['schemas']['RuntimeProjectionTraceDto']['suppressedInputs'],
+  components['schemas']['RuntimeProjectionSuppressedInputDto'][]
+>>;
+type _GuardRuntimeProjectionTraceResolutionOutcomes = Assert<IsEqual<
+  components['schemas']['RuntimeProjectionTraceDto']['resolutionOutcomes'],
+  components['schemas']['RuntimeProjectionResolutionOutcomeDto'][]
+>>;
+type _GuardRuntimeProjectionSuppressedInput = Assert<IsEqual<
+  components['schemas']['RuntimeProjectionSuppressedInputDto']['input'],
+  components['schemas']['RuntimeProjectionInputDto']
 >>;
 
 type _GuardIssueRuntimeRealmGrantBody = Assert<IsEqual<

@@ -123,7 +123,7 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — runtime-owned live agent lifecycle and app-facing control-plane boundary
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime-owned transient presentation / turn seam and current emotion projection
 - `.nimi/spec/runtime/kernel/voice-contract.md` — runtime-owned `VoiceReference` and voice asset truth
-- `.nimi/local/report/ongoing/2026-04-15-agent-live-avatar-airi-audit/design.md` — topic-local authority blueprint and landing rationale
-- `.nimi/local/report/ongoing/2026-04-15-agent-live-avatar-airi-audit/preflight.md` — admitted high-risk scope and non-owner framing
-- `.nimi/local/report/ongoing/2026-04-17-desktop-agent-local-avatar-resource-binding/design.md` — desktop-local avatar binding non-owner rationale
-- `.nimi/local/report/proposal/2026-04-17-desktop-agent-live2d-render-integration/design.md` — desktop-local Live2D viewport non-owner rationale
+- `.nimi/topics/ongoing/2026-04-15-agent-live-avatar-airi-audit/design.md` — topic-local authority blueprint and landing rationale
+- `.nimi/topics/ongoing/2026-04-15-agent-live-avatar-airi-audit/preflight.md` — admitted high-risk scope and non-owner framing
+- `.nimi/topics/ongoing/2026-04-17-desktop-agent-local-avatar-resource-binding/design.md` — desktop-local avatar binding non-owner rationale
+- `.nimi/topics/proposal/2026-04-17-desktop-agent-live2d-render-integration/design.md` — desktop-local Live2D viewport non-owner rationale

@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type DeleteAllDyadicMemoriesResponseDto = components['schemas']['DeleteAllDyadicMemoriesResponseDto'];
+export type RuntimeProjectionTraceDto = components['schemas']['RuntimeProjectionTraceDto'];

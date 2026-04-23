@@ -488,7 +488,11 @@ async function* mergeAsyncIterables<T>(iterables: AsyncIterable<T>[]): AsyncIter
         active -= 1;
         continue;
       }
-      pulls[index] = iterators[index].next().then((nextResult) => ({ index, result: nextResult }));
+      const iterator = iterators[index];
+      if (!iterator) {
+        throw new Error(`mergeAsyncIterables missing iterator for index ${index}`);
+      }
+      pulls[index] = iterator.next().then((nextResult) => ({ index, result: nextResult }));
       yield result.value;
     }
   } finally {

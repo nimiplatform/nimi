@@ -2,6 +2,8 @@ package ai
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -11,6 +13,19 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+func codexJWTForTest(t *testing.T, accountID string) string {
+	t.Helper()
+	raw, err := json.Marshal(map[string]any{
+		"https://api.openai.com/auth": map[string]any{
+			"chatgpt_account_id": accountID,
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshal jwt payload: %v", err)
+	}
+	return "hdr." + base64.RawURLEncoding.EncodeToString(raw) + ".sig"
+}
 
 func userCtx(userID string) context.Context {
 	return authn.WithIdentity(context.Background(), &authn.Identity{SubjectUserID: userID})
@@ -191,6 +206,87 @@ func TestResolveKeySourceManaged(t *testing.T) {
 	}
 }
 
+func TestResolveKeySourceManagedOpenAICodexIncludesHeaders(t *testing.T) {
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	rec := connector.ConnectorRecord{
+		ConnectorID:         "conn-codex",
+		Kind:                runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:           runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:             "user-1",
+		Provider:            "openai_codex",
+		ProviderAuthProfile: "openai_codex",
+		Endpoint:            "https://chatgpt.com/backend-api/codex",
+		Status:              runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}
+	payload := map[string]any{
+		"access_token": codexJWTForTest(t, "acct_test_123"),
+	}
+	rawPayload, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	if _, err := store.Create(rec, string(rawPayload)); err != nil {
+		t.Fatal(err)
+	}
+
+	target, err := resolveKeySourceToTarget(userCtx("user-1"), ParsedKeySource{
+		KeySource:   "managed",
+		ConnectorID: "conn-codex",
+	}, store, false)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if target == nil {
+		t.Fatal("expected non-nil target")
+	}
+	if target.APIKey == "" {
+		t.Fatal("expected resolved api key")
+	}
+	if got := target.Headers["originator"]; got != "codex_cli_rs" {
+		t.Fatalf("expected codex originator header, got=%q", got)
+	}
+	if got := target.Headers["ChatGPT-Account-ID"]; got != "acct_test_123" {
+		t.Fatalf("expected ChatGPT account header, got=%q", got)
+	}
+}
+
+func TestResolveKeySourceManagedQwenOAuthUsesAccessToken(t *testing.T) {
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	rec := connector.ConnectorRecord{
+		ConnectorID:         "conn-qwen",
+		Kind:                runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:           runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:             "user-1",
+		Provider:            "openai_compatible",
+		ProviderAuthProfile: "qwen_oauth",
+		Endpoint:            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+		Status:              runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}
+	if _, err := store.Create(rec, `{"access_token":"qwen-access-token"}`); err != nil {
+		t.Fatal(err)
+	}
+
+	target, err := resolveKeySourceToTarget(userCtx("user-1"), ParsedKeySource{
+		KeySource:   "managed",
+		ConnectorID: "conn-qwen",
+	}, store, false)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if target == nil {
+		t.Fatal("expected non-nil target")
+	}
+	if target.ProviderType != "openai_compatible" {
+		t.Fatalf("expected openai_compatible provider, got %s", target.ProviderType)
+	}
+	if target.APIKey != "qwen-access-token" {
+		t.Fatalf("expected qwen oauth access token, got %q", target.APIKey)
+	}
+	if len(target.Headers) != 0 {
+		t.Fatalf("expected no special headers for qwen oauth, got %+v", target.Headers)
+	}
+}
+
 func TestResolveKeySourceInline(t *testing.T) {
 	parsed := ParsedKeySource{
 		KeySource:    "inline",
@@ -316,6 +412,36 @@ func TestResolveKeySourceManagedOwnerMismatchNotFound(t *testing.T) {
 	}, store, false)
 	if err == nil {
 		t.Fatal("expected owner mismatch to be hidden as not found")
+	}
+	st, _ := status.FromError(err)
+	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND) {
+		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got %s", st.Message())
+	}
+}
+
+func TestResolveKeySourceManagedRejectsNonUserOwnedOAuthManagedConnector(t *testing.T) {
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	rec := connector.ConnectorRecord{
+		ConnectorID:         "conn-machine-codex",
+		Kind:                runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:           runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:             "machine",
+		Provider:            "openai_codex",
+		ProviderAuthProfile: "openai_codex",
+		Endpoint:            "https://chatgpt.com/backend-api/codex",
+		Status:              runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED,
+	}
+	if _, err := store.Create(rec, `{"access_token":"token-1"}`); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := resolveKeySourceToTarget(userCtx("user-1"), ParsedKeySource{
+		KeySource:   "managed",
+		ConnectorID: "conn-machine-codex",
+	}, store, false)
+	if err == nil {
+		t.Fatal("expected invalid non-user-owned oauth-managed connector to be hidden as not found")
 	}
 	st, _ := status.FromError(err)
 	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND) {

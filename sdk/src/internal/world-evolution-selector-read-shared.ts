@@ -25,7 +25,6 @@ const EXECUTION_STAGES = new Set<WorldEvolutionExecutionStage>([
 
 const EFFECT_CLASSES = new Set<WorldEvolutionEffectClass>([
   'NONE',
-  'MEMORY_ONLY',
   'STATE_ONLY',
   'STATE_AND_HISTORY',
 ]);

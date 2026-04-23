@@ -29,6 +29,7 @@ export const REMOTE_PROVIDER_IDS = [
   "mubert",
   "nimillm",
   "openai",
+  "openai_codex",
   "openai_compatible",
   "openrouter",
   "perplexity",

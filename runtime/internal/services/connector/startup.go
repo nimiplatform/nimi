@@ -76,7 +76,17 @@ func EnsureCloudConnectorsFromConfig(store *ConnectorStore, defs []CloudConnecto
 			currentKey, _ := store.LoadCredential(connectorID)
 			if currentKey != def.APIKey {
 				apiKey := def.APIKey
-				mutations.APIKey = &apiKey
+				mutations.SecretPayload = &apiKey
+				hasChange = true
+			}
+			authKind := runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY
+			if normalizeAuthKind(rec.AuthKind) != authKind {
+				mutations.AuthKind = &authKind
+				hasChange = true
+			}
+			if rec.ProviderAuthProfile != "" {
+				emptyProfile := ""
+				mutations.ProviderAuthProfile = &emptyProfile
 				hasChange = true
 			}
 
@@ -98,6 +108,7 @@ func EnsureCloudConnectorsFromConfig(store *ConnectorStore, defs []CloudConnecto
 			Endpoint:    endpoint,
 			Label:       label,
 			Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+			AuthKind:    runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY,
 		}
 		if _, err := store.Create(rec, def.APIKey); err != nil {
 			return fmt.Errorf("create cloud connector %s: %w", connectorID, err)

@@ -108,6 +108,59 @@ func TestBackendGenerateImageRejectsNilSpec(t *testing.T) {
 	}
 }
 
+func TestBackendGenerateImageUsesCodexResponsesTool(t *testing.T) {
+	var captured map[string]any
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/backend-api/codex/responses" {
+			http.NotFound(w, r)
+			return
+		}
+		captured = decodeJSONBodyForBackendMediaTest(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"output": []map[string]any{
+				{
+					"type":   "image_generation_call",
+					"result": base64.StdEncoding.EncodeToString([]byte("image-codex")),
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	backend := NewBackendWithHeaders("cloud-openai_codex", server.URL+"/backend-api/codex", "token-123", map[string]string{
+		"originator": "codex_cli_rs",
+	}, time.Second)
+	payload, _, err := backend.GenerateImage(context.Background(), "gpt-image-2", &runtimev1.ImageGenerateScenarioSpec{
+		Prompt:  "make a skyline",
+		Quality: "high",
+	}, nil)
+	if err != nil {
+		t.Fatalf("GenerateImage failed: %v", err)
+	}
+	if string(payload) != "image-codex" {
+		t.Fatalf("unexpected payload: %q", string(payload))
+	}
+	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gpt-5.4" {
+		t.Fatalf("expected codex host model, got=%q", got)
+	}
+	tools, ok := captured["tools"].([]any)
+	if !ok || len(tools) != 1 {
+		t.Fatalf("expected image tool payload, got=%T", captured["tools"])
+	}
+	tool, _ := tools[0].(map[string]any)
+	if got := strings.TrimSpace(ValueAsString(tool["type"])); got != "image_generation" {
+		t.Fatalf("expected image_generation tool, got=%q", got)
+	}
+	if got := strings.TrimSpace(ValueAsString(tool["model"])); got != "gpt-image-2" {
+		t.Fatalf("expected gpt-image-2 tool model, got=%q", got)
+	}
+	if got := strings.TrimSpace(ValueAsString(tool["quality"])); got != "high" {
+		t.Fatalf("expected forwarded image quality, got=%q", got)
+	}
+}
+
 func TestBackendGenerateVideoForwardsScenarioExtensions(t *testing.T) {
 	var captured map[string]any
 

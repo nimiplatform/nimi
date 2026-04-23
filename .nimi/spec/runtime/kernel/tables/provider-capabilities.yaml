@@ -427,6 +427,20 @@ providers:
       - K-MCAT-027
       - K-CONN-008
       - K-KEYSRC-001
+  - provider: openai_codex
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: false
+    endpoint_requirement: default_or_explicit
+    inventory_mode: static_source
+    capabilities:
+      - image.generate
+      - text.generate
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
   - provider: openai_compatible
     runtime_plane: remote
     execution_module: nimillm
@@ -645,7 +659,9 @@ providers:
     inline_supported: true
     endpoint_requirement: default_or_explicit
     inventory_mode: static_source
-    capabilities: []
+    capabilities:
+      - audio.synthesize
+      - audio.transcribe
     sources:
       - K-MCAT-027
       - K-CONN-008

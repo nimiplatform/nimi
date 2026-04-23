@@ -46,7 +46,15 @@ func requireSubjectUserID(ctx context.Context) (string, error) {
 	return subject, nil
 }
 
+func connectorViolatesOAuthManagedUserBoundary(rec ConnectorRecord) bool {
+	return normalizeAuthKind(rec.AuthKind) == runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED &&
+		rec.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER
+}
+
 func connectorVisibleToCaller(rec ConnectorRecord, ownerID string, hasOwner bool) bool {
+	if connectorViolatesOAuthManagedUserBoundary(rec) {
+		return false
+	}
 	if rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
 		return true
 	}
@@ -69,18 +77,20 @@ func defaultManagedConnectorLabel(provider string) string {
 
 func recordToProto(r ConnectorRecord) *runtimev1.Connector {
 	return &runtimev1.Connector{
-		ConnectorId:   r.ConnectorID,
-		Kind:          r.Kind,
-		OwnerType:     r.OwnerType,
-		OwnerId:       r.OwnerID,
-		Provider:      r.Provider,
-		Endpoint:      r.Endpoint,
-		Label:         r.Label,
-		Status:        r.Status,
-		LocalCategory: r.LocalCategory,
-		HasCredential: r.HasCredential,
-		CreatedAt:     timestamppb.New(time.UnixMilli(r.CreatedAt)),
-		UpdatedAt:     timestamppb.New(time.UnixMilli(r.UpdatedAt)),
+		ConnectorId:         r.ConnectorID,
+		Kind:                r.Kind,
+		OwnerType:           r.OwnerType,
+		OwnerId:             r.OwnerID,
+		Provider:            r.Provider,
+		Endpoint:            r.Endpoint,
+		Label:               r.Label,
+		Status:              r.Status,
+		LocalCategory:       r.LocalCategory,
+		HasCredential:       r.HasCredential,
+		AuthKind:            normalizeAuthKind(r.AuthKind),
+		ProviderAuthProfile: r.ProviderAuthProfile,
+		CreatedAt:           timestamppb.New(time.UnixMilli(r.CreatedAt)),
+		UpdatedAt:           timestamppb.New(time.UnixMilli(r.UpdatedAt)),
 	}
 }
 

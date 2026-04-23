@@ -165,11 +165,12 @@ func (s *Service) listDynamicConnectorModels(ctx context.Context, connectorID st
 			return cached, nil
 		}
 	}
-	apiKey, err := s.store.LoadCredential(connectorID)
+	secretPayload, err := s.store.LoadSecretPayload(connectorID)
 	if err != nil {
 		return nil, s.internalProviderError("list_connector_models.load_credential", err)
 	}
-	if apiKey == "" {
+	resolvedCredential := ResolveCredential(rec, secretPayload)
+	if resolvedCredential.APIKey == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
 	cloud := s.cloudProvider()
@@ -178,7 +179,7 @@ func (s *Service) listDynamicConnectorModels(ctx context.Context, connectorID st
 			ActionHint: "check_runtime_cloud_provider",
 		})
 	}
-	backend, _, err := cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, apiKey)
+	backend, _, err := cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, resolvedCredential.APIKey, resolvedCredential.Headers)
 	if err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			ActionHint: "check_connector_endpoint_or_provider_support",
@@ -249,11 +250,12 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 		}, nil
 	}
 
-	apiKey, err := s.store.LoadCredential(connectorID)
+	secretPayload, err := s.store.LoadSecretPayload(connectorID)
 	if err != nil {
 		return nil, s.internalProviderError("test_connector.load_credential", err)
 	}
-	if apiKey == "" {
+	resolvedCredential := ResolveCredential(rec, secretPayload)
+	if resolvedCredential.APIKey == "" {
 		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING, auditPayload)
 		return &runtimev1.TestConnectorResponse{
 			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING},
@@ -261,7 +263,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 	}
 
 	if cloud := s.cloudProvider(); cloud != nil {
-		backend, _, probeErr := cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, apiKey)
+		backend, _, probeErr := cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, resolvedCredential.APIKey, resolvedCredential.Headers)
 		if probeErr != nil {
 			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, auditPayload)
 			return &runtimev1.TestConnectorResponse{

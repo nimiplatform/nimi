@@ -14,15 +14,15 @@ type failingSecretStore struct {
 	err error
 }
 
-func (f failingSecretStore) Write(string, string) error {
+func (f failingSecretStore) WriteSecret(string, string) error {
 	return f.err
 }
 
-func (f failingSecretStore) Read(string) (string, bool, error) {
+func (f failingSecretStore) ReadSecret(string) (string, bool, error) {
 	return "", false, f.err
 }
 
-func (f failingSecretStore) Delete(string) error {
+func (f failingSecretStore) DeleteSecret(string) error {
 	return f.err
 }
 
@@ -93,8 +93,8 @@ func TestConnectorStoreCRUD(t *testing.T) {
 	newLabel := "Updated OpenAI"
 	newKey := "sk-new-key"
 	updated, err := store.Update(connID, ConnectorMutations{
-		Label:  &newLabel,
-		APIKey: &newKey,
+		Label:         &newLabel,
+		SecretPayload: &newKey,
 	})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
@@ -188,7 +188,7 @@ func TestConnectorStoreUpdateClearCredential(t *testing.T) {
 	connID := records[0].ConnectorID
 
 	emptyKey := ""
-	updated, err := store.Update(connID, ConnectorMutations{APIKey: &emptyKey})
+	updated, err := store.Update(connID, ConnectorMutations{SecretPayload: &emptyKey})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}

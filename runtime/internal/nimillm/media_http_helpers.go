@@ -62,6 +62,20 @@ func applyProviderRequestHeaders(request *http.Request, headers map[string]strin
 	}
 }
 
+func applyTrustedProviderHeaders(request *http.Request, headers map[string]string) {
+	for key, value := range headers {
+		headerName := strings.TrimSpace(key)
+		if headerName == "" {
+			continue
+		}
+		headerValue := strings.TrimSpace(value)
+		if headerValue == "" {
+			continue
+		}
+		request.Header.Set(headerName, headerValue)
+	}
+}
+
 // DoJSONOrBinaryRequest performs an HTTP request with a JSON body and returns
 // the response parsed as either JSON (extracting text/audio fields) or raw
 // binary bytes.

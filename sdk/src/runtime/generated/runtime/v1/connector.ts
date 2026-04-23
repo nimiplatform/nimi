@@ -68,6 +68,14 @@ export interface Connector {
      * @generated from protobuf field: google.protobuf.Timestamp updated_at = 12
      */
     updatedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorAuthKind auth_kind = 13
+     */
+    authKind: ConnectorAuthKind;
+    /**
+     * @generated from protobuf field: string provider_auth_profile = 14
+     */
+    providerAuthProfile: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CreateConnectorRequest
@@ -89,6 +97,18 @@ export interface CreateConnectorRequest {
      * @generated from protobuf field: string api_key = 4
      */
     apiKey: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorAuthKind auth_kind = 6
+     */
+    authKind: ConnectorAuthKind;
+    /**
+     * @generated from protobuf field: string provider_auth_profile = 7
+     */
+    providerAuthProfile: string;
+    /**
+     * @generated from protobuf field: string credential_json = 8
+     */
+    credentialJson: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CreateConnectorResponse
@@ -183,6 +203,18 @@ export interface UpdateConnectorRequest {
      * @generated from protobuf field: google.protobuf.FieldMask update_mask = 7
      */
     updateMask?: FieldMask;
+    /**
+     * @generated from protobuf field: optional nimi.runtime.v1.ConnectorAuthKind auth_kind = 8
+     */
+    authKind?: ConnectorAuthKind;
+    /**
+     * @generated from protobuf field: optional string provider_auth_profile = 9
+     */
+    providerAuthProfile?: string;
+    /**
+     * @generated from protobuf field: optional string credential_json = 10
+     */
+    credentialJson?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.UpdateConnectorResponse
@@ -1022,6 +1054,23 @@ export enum ConnectorStatus {
     DISABLED = 2
 }
 /**
+ * @generated from protobuf enum nimi.runtime.v1.ConnectorAuthKind
+ */
+export enum ConnectorAuthKind {
+    /**
+     * @generated from protobuf enum value: CONNECTOR_AUTH_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: CONNECTOR_AUTH_KIND_API_KEY = 1;
+     */
+    API_KEY = 1,
+    /**
+     * @generated from protobuf enum value: CONNECTOR_AUTH_KIND_OAUTH_MANAGED = 2;
+     */
+    OAUTH_MANAGED = 2
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.LocalConnectorCategory
  */
 export enum LocalConnectorCategory {
@@ -1115,7 +1164,9 @@ class Connector$Type extends MessageType<Connector> {
             { no: 9, name: "local_category", kind: "enum", T: () => ["nimi.runtime.v1.LocalConnectorCategory", LocalConnectorCategory, "LOCAL_CONNECTOR_CATEGORY_"] },
             { no: 10, name: "has_credential", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 12, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 13, name: "auth_kind", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorAuthKind", ConnectorAuthKind, "CONNECTOR_AUTH_KIND_"] },
+            { no: 14, name: "provider_auth_profile", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<Connector>): Connector {
@@ -1130,6 +1181,8 @@ class Connector$Type extends MessageType<Connector> {
         message.status = 0;
         message.localCategory = 0;
         message.hasCredential = false;
+        message.authKind = 0;
+        message.providerAuthProfile = "";
         if (value !== undefined)
             reflectionMergePartial<Connector>(this, message, value);
         return message;
@@ -1174,6 +1227,12 @@ class Connector$Type extends MessageType<Connector> {
                     break;
                 case /* google.protobuf.Timestamp updated_at */ 12:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* nimi.runtime.v1.ConnectorAuthKind auth_kind */ 13:
+                    message.authKind = reader.int32();
+                    break;
+                case /* string provider_auth_profile */ 14:
+                    message.providerAuthProfile = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1223,6 +1282,12 @@ class Connector$Type extends MessageType<Connector> {
         /* google.protobuf.Timestamp updated_at = 12; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ConnectorAuthKind auth_kind = 13; */
+        if (message.authKind !== 0)
+            writer.tag(13, WireType.Varint).int32(message.authKind);
+        /* string provider_auth_profile = 14; */
+        if (message.providerAuthProfile !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.providerAuthProfile);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1240,7 +1305,10 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
             { no: 1, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "api_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "api_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "auth_kind", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorAuthKind", ConnectorAuthKind, "CONNECTOR_AUTH_KIND_"] },
+            { no: 7, name: "provider_auth_profile", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "credential_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CreateConnectorRequest>): CreateConnectorRequest {
@@ -1249,6 +1317,9 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
         message.endpoint = "";
         message.label = "";
         message.apiKey = "";
+        message.authKind = 0;
+        message.providerAuthProfile = "";
+        message.credentialJson = "";
         if (value !== undefined)
             reflectionMergePartial<CreateConnectorRequest>(this, message, value);
         return message;
@@ -1269,6 +1340,15 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
                     break;
                 case /* string api_key */ 4:
                     message.apiKey = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ConnectorAuthKind auth_kind */ 6:
+                    message.authKind = reader.int32();
+                    break;
+                case /* string provider_auth_profile */ 7:
+                    message.providerAuthProfile = reader.string();
+                    break;
+                case /* string credential_json */ 8:
+                    message.credentialJson = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1294,6 +1374,15 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
         /* string api_key = 4; */
         if (message.apiKey !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.apiKey);
+        /* nimi.runtime.v1.ConnectorAuthKind auth_kind = 6; */
+        if (message.authKind !== 0)
+            writer.tag(6, WireType.Varint).int32(message.authKind);
+        /* string provider_auth_profile = 7; */
+        if (message.providerAuthProfile !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.providerAuthProfile);
+        /* string credential_json = 8; */
+        if (message.credentialJson !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.credentialJson);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1586,7 +1675,10 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
             { no: 4, name: "endpoint", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "api_key", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorStatus", ConnectorStatus, "CONNECTOR_STATUS_"] },
-            { no: 7, name: "update_mask", kind: "message", T: () => FieldMask }
+            { no: 7, name: "update_mask", kind: "message", T: () => FieldMask },
+            { no: 8, name: "auth_kind", kind: "enum", opt: true, T: () => ["nimi.runtime.v1.ConnectorAuthKind", ConnectorAuthKind, "CONNECTOR_AUTH_KIND_"] },
+            { no: 9, name: "provider_auth_profile", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "credential_json", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<UpdateConnectorRequest>): UpdateConnectorRequest {
@@ -1620,6 +1712,15 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
                 case /* google.protobuf.FieldMask update_mask */ 7:
                     message.updateMask = FieldMask.internalBinaryRead(reader, reader.uint32(), options, message.updateMask);
                     break;
+                case /* optional nimi.runtime.v1.ConnectorAuthKind auth_kind */ 8:
+                    message.authKind = reader.int32();
+                    break;
+                case /* optional string provider_auth_profile */ 9:
+                    message.providerAuthProfile = reader.string();
+                    break;
+                case /* optional string credential_json */ 10:
+                    message.credentialJson = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1650,6 +1751,15 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
         /* google.protobuf.FieldMask update_mask = 7; */
         if (message.updateMask)
             FieldMask.internalBinaryWrite(message.updateMask, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* optional nimi.runtime.v1.ConnectorAuthKind auth_kind = 8; */
+        if (message.authKind !== undefined)
+            writer.tag(8, WireType.Varint).int32(message.authKind);
+        /* optional string provider_auth_profile = 9; */
+        if (message.providerAuthProfile !== undefined)
+            writer.tag(9, WireType.LengthDelimited).string(message.providerAuthProfile);
+        /* optional string credential_json = 10; */
+        if (message.credentialJson !== undefined)
+            writer.tag(10, WireType.LengthDelimited).string(message.credentialJson);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

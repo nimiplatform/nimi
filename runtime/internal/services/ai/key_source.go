@@ -96,6 +96,9 @@ func validateKeySource(parsed ParsedKeySource, requestAppID string) error {
 		if parsed.ProviderType == "" {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING)
 		}
+		if capability, ok := connector.ProviderCapabilities[parsed.ProviderType]; !ok || !capability.InlineSupported {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID)
+		}
 		if parsed.APIKey == "" {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING)
 		}
@@ -156,6 +159,9 @@ func resolveManagedTarget(ctx context.Context, connectorID string, connStore *co
 	if !found {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
+	if connectorViolatesOAuthManagedBoundary(rec) {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+	}
 
 	// Local connectors are category facades for discovery/probe only.
 	// AI consume accepts connector_id only for remote managed connectors.
@@ -180,13 +186,14 @@ func resolveManagedTarget(ctx context.Context, connectorID string, connStore *co
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 	}
 
-	apiKey, err := connStore.LoadCredential(connectorID)
+	secretPayload, err := connStore.LoadSecretPayload(connectorID)
 	if err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
 			ActionHint: "retry_or_check_runtime_logs",
 		})
 	}
-	if apiKey == "" {
+	resolvedCredential := connector.ResolveCredential(rec, secretPayload)
+	if resolvedCredential.APIKey == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
 
@@ -204,9 +211,16 @@ func resolveManagedTarget(ctx context.Context, connectorID string, connStore *co
 	return &nimillm.RemoteTarget{
 		ProviderType:  rec.Provider,
 		Endpoint:      endpoint,
-		APIKey:        apiKey,
+		APIKey:        resolvedCredential.APIKey,
+		Headers:       resolvedCredential.Headers,
 		AllowLoopback: allowLoopbackTarget,
 	}, nil
+}
+
+func connectorViolatesOAuthManagedBoundary(rec connector.ConnectorRecord) bool {
+	return rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED &&
+		rec.AuthKind == runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED &&
+		rec.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER
 }
 
 func resolveInlineTarget(parsed ParsedKeySource, allowLoopback bool) (*nimillm.RemoteTarget, error) {

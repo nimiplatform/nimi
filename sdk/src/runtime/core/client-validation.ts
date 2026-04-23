@@ -10,10 +10,12 @@ import {
   type AuthorizeExternalPrincipalRequest,
 } from '../generated/runtime/v1/grant.js';
 import {
+  ConnectorAuthKind,
   ConnectorStatus,
   type CreateConnectorRequest,
   type UpdateConnectorRequest,
 } from '../generated/runtime/v1/connector.js';
+import { CONNECTOR_AUTH_PROFILES } from '../connector-auth-profiles.generated.js';
 import { ExternalPrincipalType } from '../generated/runtime/v1/common.js';
 import { normalizeText } from '../../internal/utils.js';
 import type {
@@ -252,12 +254,56 @@ function validateAuthorizeExternalPrincipalRequest(
 function validateCreateConnectorRequest(
   request: CreateConnectorRequest,
 ): CreateConnectorRequest {
-  requireNonEmptyField(
-    request.apiKey,
-    'apiKey',
-    ReasonCode.SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED,
-    'set_connector_api_key',
-  );
+  const authKind = request.authKind ?? ConnectorAuthKind.UNSPECIFIED;
+  const provider = normalizeText(request.provider);
+  const apiKey = normalizeText(request.apiKey);
+  const providerAuthProfile = normalizeText(request.providerAuthProfile);
+  const credentialJson = normalizeText(request.credentialJson);
+
+  if (apiKey && credentialJson) {
+    throwValidationError(
+      ReasonCode.SDK_RUNTIME_CONNECTOR_UPDATE_EMPTY,
+      'createConnector does not allow apiKey and credentialJson together',
+      'set_single_connector_credential_shape',
+    );
+  }
+
+  if (authKind === ConnectorAuthKind.OAUTH_MANAGED || credentialJson) {
+    requireNonEmptyField(
+      providerAuthProfile,
+      'providerAuthProfile',
+      ReasonCode.SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED,
+      'set_provider_auth_profile',
+    );
+    requireNonEmptyField(
+      credentialJson,
+      'credentialJson',
+      ReasonCode.SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED,
+      'set_connector_credential_json',
+    );
+    const profileSpec = CONNECTOR_AUTH_PROFILES[providerAuthProfile];
+    if (!profileSpec) {
+      throwValidationError(
+        ReasonCode.SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED,
+        `providerAuthProfile "${providerAuthProfile}" is not admitted`,
+        'set_supported_provider_auth_profile',
+      );
+    }
+    if (!profileSpec.allowedProviders.includes(provider)) {
+      throwValidationError(
+        ReasonCode.SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED,
+        `providerAuthProfile "${providerAuthProfile}" is incompatible with provider "${provider}"`,
+        'align_provider_and_auth_profile',
+      );
+    }
+  } else {
+    requireNonEmptyField(
+      apiKey,
+      'apiKey',
+      ReasonCode.SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED,
+      'set_connector_api_key',
+    );
+  }
   return request;
 }
 
@@ -267,7 +313,10 @@ function validateUpdateConnectorRequest(
   const hasMutableField = request.status !== ConnectorStatus.UNSPECIFIED
     || hasOwnField(request, 'label')
     || hasOwnField(request, 'endpoint')
-    || hasOwnField(request, 'apiKey');
+    || hasOwnField(request, 'apiKey')
+    || hasOwnField(request, 'authKind')
+    || hasOwnField(request, 'providerAuthProfile')
+    || hasOwnField(request, 'credentialJson');
 
   if (!hasMutableField) {
     throwValidationError(
@@ -275,6 +324,18 @@ function validateUpdateConnectorRequest(
       'updateConnector requires at least one mutable field',
       'set_connector_update_fields',
     );
+  }
+
+  const nextAuthKind = request.authKind;
+  const nextProviderAuthProfile = normalizeText(request.providerAuthProfile);
+  if (nextAuthKind === ConnectorAuthKind.OAUTH_MANAGED && nextProviderAuthProfile) {
+    if (!CONNECTOR_AUTH_PROFILES[nextProviderAuthProfile]) {
+      throwValidationError(
+        ReasonCode.SDK_RUNTIME_CONNECTOR_UPDATE_EMPTY,
+        `providerAuthProfile "${nextProviderAuthProfile}" is not admitted`,
+        'set_supported_provider_auth_profile',
+      );
+    }
   }
 
   return request;

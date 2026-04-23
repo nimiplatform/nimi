@@ -27,32 +27,6 @@ export const AgentCommunicationSentiment = {
 
 export type AgentCommunicationSentiment = (typeof AgentCommunicationSentiment)[keyof typeof AgentCommunicationSentiment];
 
-export const AgentMemoryCommitEnvelopeEffectClass = {
-  MEMORY_ONLY: "MEMORY_ONLY",
-} as const satisfies Record<string, components['schemas']['AgentMemoryCommitEnvelopeDto']['effectClass']>;
-
-export type AgentMemoryCommitEnvelopeEffectClass = (typeof AgentMemoryCommitEnvelopeEffectClass)[keyof typeof AgentMemoryCommitEnvelopeEffectClass];
-
-export const AgentMemoryCommitEnvelopeScope = {
-  WORLD: "WORLD",
-} as const satisfies Record<string, components['schemas']['AgentMemoryCommitEnvelopeDto']['scope']>;
-
-export type AgentMemoryCommitEnvelopeScope = (typeof AgentMemoryCommitEnvelopeScope)[keyof typeof AgentMemoryCommitEnvelopeScope];
-
-export const AgentMemoryRecordEffectClass = {
-  MEMORY_ONLY: "MEMORY_ONLY",
-} as const satisfies Record<string, components['schemas']['AgentMemoryRecordDto']['effectClass']>;
-
-export type AgentMemoryRecordEffectClass = (typeof AgentMemoryRecordEffectClass)[keyof typeof AgentMemoryRecordEffectClass];
-
-export const AgentMemoryRecordType = {
-  PUBLIC_SHARED: "PUBLIC_SHARED",
-  WORLD_SHARED: "WORLD_SHARED",
-  DYADIC: "DYADIC",
-} as const satisfies Record<string, components['schemas']['AgentMemoryRecordDto']['type']>;
-
-export type AgentMemoryRecordType = (typeof AgentMemoryRecordType)[keyof typeof AgentMemoryRecordType];
-
 export const AgentRuleCategory = {
   CONSTRAINT: "CONSTRAINT",
   MECHANISM: "MECHANISM",
@@ -334,14 +308,6 @@ export const CloneAssetTransferPolicy = {
 } as const satisfies Record<string, components['schemas']['CloneAssetDto']['transferPolicy']>;
 
 export type CloneAssetTransferPolicy = (typeof CloneAssetTransferPolicy)[keyof typeof CloneAssetTransferPolicy];
-
-export const CommitAgentMemoryType = {
-  PUBLIC_SHARED: "PUBLIC_SHARED",
-  WORLD_SHARED: "WORLD_SHARED",
-  DYADIC: "DYADIC",
-} as const satisfies Record<string, components['schemas']['CommitAgentMemoryDto']['type']>;
-
-export type CommitAgentMemoryType = (typeof CommitAgentMemoryType)[keyof typeof CommitAgentMemoryType];
 
 export const CreateAgentRuleCategory = {
   CONSTRAINT: "CONSTRAINT",
@@ -679,7 +645,6 @@ export type ImportPolicyAllowedHostTypesItem = (typeof ImportPolicyAllowedHostTy
 
 export const MutationCommitEnvelopeEffectClass = {
   NONE: "NONE",
-  MEMORY_ONLY: "MEMORY_ONLY",
   STATE_ONLY: "STATE_ONLY",
   STATE_AND_HISTORY: "STATE_AND_HISTORY",
 } as const satisfies Record<string, components['schemas']['MutationCommitEnvelopeDto']['effectClass']>;
@@ -875,6 +840,90 @@ export const ResourceDirectUploadSessionStatus = {
 } as const satisfies Record<string, components['schemas']['ResourceDirectUploadSessionDto']['status']>;
 
 export type ResourceDirectUploadSessionStatus = (typeof ResourceDirectUploadSessionStatus)[keyof typeof ResourceDirectUploadSessionStatus];
+
+export const RuntimeProjectionConsumerSurface = {
+  RUNTIME_PAYLOAD: "RUNTIME_PAYLOAD",
+} as const satisfies Record<string, components['schemas']['RuntimeProjectionResponseDto']['consumerSurface']>;
+
+export type RuntimeProjectionConsumerSurface = (typeof RuntimeProjectionConsumerSurface)[keyof typeof RuntimeProjectionConsumerSurface];
+
+export const RuntimeProjectionContextEnvelopeAllowedAgentLayersItem = {
+  DNA: "DNA",
+  BEHAVIORAL: "BEHAVIORAL",
+  RELATIONAL: "RELATIONAL",
+  CONTEXTUAL: "CONTEXTUAL",
+} as const satisfies Record<string, (NonNullable<components['schemas']['RuntimeProjectionContextEnvelopeDto']['allowedAgentLayers']> extends ReadonlyArray<infer Item> ? Item : never)>;
+
+export type RuntimeProjectionContextEnvelopeAllowedAgentLayersItem = (typeof RuntimeProjectionContextEnvelopeAllowedAgentLayersItem)[keyof typeof RuntimeProjectionContextEnvelopeAllowedAgentLayersItem];
+
+export const RuntimeProjectionContextEnvelopeAllowedAgentScopesItem = {
+  SELF: "SELF",
+  DYAD: "DYAD",
+  GROUP: "GROUP",
+  WORLD: "WORLD",
+} as const satisfies Record<string, (NonNullable<components['schemas']['RuntimeProjectionContextEnvelopeDto']['allowedAgentScopes']> extends ReadonlyArray<infer Item> ? Item : never)>;
+
+export type RuntimeProjectionContextEnvelopeAllowedAgentScopesItem = (typeof RuntimeProjectionContextEnvelopeAllowedAgentScopesItem)[keyof typeof RuntimeProjectionContextEnvelopeAllowedAgentScopesItem];
+
+export const RuntimeProjectionContextEnvelopeAllowedWorldScopesItem = {
+  WORLD: "WORLD",
+  REGION: "REGION",
+  FACTION: "FACTION",
+  INDIVIDUAL: "INDIVIDUAL",
+  SCENE: "SCENE",
+} as const satisfies Record<string, (NonNullable<components['schemas']['RuntimeProjectionContextEnvelopeDto']['allowedWorldScopes']> extends ReadonlyArray<infer Item> ? Item : never)>;
+
+export type RuntimeProjectionContextEnvelopeAllowedWorldScopesItem = (typeof RuntimeProjectionContextEnvelopeAllowedWorldScopesItem)[keyof typeof RuntimeProjectionContextEnvelopeAllowedWorldScopesItem];
+
+export const RuntimeProjectionHardness = {
+  HARD: "HARD",
+  FIRM: "FIRM",
+  SOFT: "SOFT",
+  AESTHETIC: "AESTHETIC",
+} as const satisfies Record<string, components['schemas']['RuntimeProjectionInputDto']['hardness']>;
+
+export type RuntimeProjectionHardness = (typeof RuntimeProjectionHardness)[keyof typeof RuntimeProjectionHardness];
+
+export const RuntimeProjectionLayer = {
+  DNA: "DNA",
+  BEHAVIORAL: "BEHAVIORAL",
+  RELATIONAL: "RELATIONAL",
+  CONTEXTUAL: "CONTEXTUAL",
+} as const satisfies Record<string, components['schemas']['RuntimeProjectionInputDto']['layer']>;
+
+export type RuntimeProjectionLayer = (typeof RuntimeProjectionLayer)[keyof typeof RuntimeProjectionLayer];
+
+export const RuntimeProjectionResolutionOutcomeDecision = {
+  SELECTED: "SELECTED",
+  SUPPRESSED: "SUPPRESSED",
+} as const satisfies Record<string, components['schemas']['RuntimeProjectionResolutionOutcomeDto']['decision']>;
+
+export type RuntimeProjectionResolutionOutcomeDecision = (typeof RuntimeProjectionResolutionOutcomeDecision)[keyof typeof RuntimeProjectionResolutionOutcomeDecision];
+
+export const RuntimeProjectionResolutionOutcomeSourceType = {
+  WORLD_RULE: "WORLD_RULE",
+  AGENT_RULE: "AGENT_RULE",
+} as const satisfies Record<string, components['schemas']['RuntimeProjectionResolutionOutcomeDto']['sourceType']>;
+
+export type RuntimeProjectionResolutionOutcomeSourceType = (typeof RuntimeProjectionResolutionOutcomeSourceType)[keyof typeof RuntimeProjectionResolutionOutcomeSourceType];
+
+export const RuntimeProjectionSourceType = {
+  WORLD_RULE: "WORLD_RULE",
+  AGENT_RULE: "AGENT_RULE",
+} as const satisfies Record<string, components['schemas']['RuntimeProjectionInputDto']['sourceType']>;
+
+export type RuntimeProjectionSourceType = (typeof RuntimeProjectionSourceType)[keyof typeof RuntimeProjectionSourceType];
+
+export const RuntimeProjectionSuppressedReason = {
+  RULE_KEY_FILTER: "RULE_KEY_FILTER",
+  SCOPE_FILTER: "SCOPE_FILTER",
+  LAYER_FILTER: "LAYER_FILTER",
+  PROVENANCE_FILTER: "PROVENANCE_FILTER",
+  FOCUS_MISS: "FOCUS_MISS",
+  SURFACE_POLICY: "SURFACE_POLICY",
+} as const satisfies Record<string, components['schemas']['RuntimeProjectionSuppressedInputDto']['reason']>;
+
+export type RuntimeProjectionSuppressedReason = (typeof RuntimeProjectionSuppressedReason)[keyof typeof RuntimeProjectionSuppressedReason];
 
 export const SceneDefinitionTier = {
   TIER0_SANCTUARY: "TIER0_SANCTUARY",

@@ -82,7 +82,7 @@ entries:
     voice_discovery_mode: static_catalog
     activation_state: active
     source_rule: K-MCAT-023
-  - provider_id: volcengine
+  - provider_id: volcengine_openspeech
     runtime_plane: remote
     supports_tts_synthesize: true
     supports_tts_v2v: false

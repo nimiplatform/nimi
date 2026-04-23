@@ -35,7 +35,7 @@ func normalizeProbeProviderToken(raw string) string {
 }
 
 // ResolveProbeBackend resolves a cloud backend for token provider probing.
-func (p *CloudProvider) ResolveProbeBackend(providerID string, endpoint string, apiKey string) (*Backend, string, error) {
+func (p *CloudProvider) ResolveProbeBackend(providerID string, endpoint string, apiKey string, headers map[string]string) (*Backend, string, error) {
 	canonicalProviderID, err := NormalizeTokenProviderID(providerID)
 	if err != nil {
 		return nil, "", err
@@ -43,7 +43,7 @@ func (p *CloudProvider) ResolveProbeBackend(providerID string, endpoint string, 
 
 	template := p.backends[canonicalProviderID]
 	backendName := "cloud-" + canonicalProviderID
-	backend := probeBackendFromTemplate(backendName, template, endpoint, apiKey, p.probeTimeout(), p.enforceEndpointSecurity, p.allowLoopbackEndpoint)
+	backend := probeBackendFromTemplate(backendName, template, endpoint, apiKey, headers, p.probeTimeout(), p.enforceEndpointSecurity, p.allowLoopbackEndpoint)
 	if backend == nil {
 		return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
@@ -59,20 +59,20 @@ func (p *CloudProvider) probeTimeout() time.Duration {
 	return defaultHTTPTimeout
 }
 
-func probeBackendFromTemplate(name string, template *Backend, endpoint string, apiKey string, timeout time.Duration, enforceEndpointSecurity bool, allowLoopback bool) *Backend {
+func probeBackendFromTemplate(name string, template *Backend, endpoint string, apiKey string, headers map[string]string, timeout time.Duration, enforceEndpointSecurity bool, allowLoopback bool) *Backend {
 	normalizedEndpoint := strings.TrimSpace(endpoint)
 	normalizedAPIKey := strings.TrimSpace(apiKey)
 	if template != nil {
-		if normalizedEndpoint == "" && normalizedAPIKey == "" {
+		if normalizedEndpoint == "" && normalizedAPIKey == "" && headers == nil {
 			return template
 		}
-		return template.WithRequestOverridesWithPolicy(normalizedEndpoint, normalizedAPIKey, allowLoopback)
+		return template.WithRequestOverridesAndHeadersWithPolicy(normalizedEndpoint, normalizedAPIKey, headers, allowLoopback)
 	}
 	if normalizedEndpoint == "" {
 		return nil
 	}
 	if enforceEndpointSecurity {
-		return NewSecuredBackend(name, normalizedEndpoint, normalizedAPIKey, timeout, allowLoopback)
+		return NewSecuredBackendWithHeaders(name, normalizedEndpoint, normalizedAPIKey, headers, timeout, allowLoopback)
 	}
-	return NewBackend(name, normalizedEndpoint, normalizedAPIKey, timeout)
+	return NewBackendWithHeaders(name, normalizedEndpoint, normalizedAPIKey, headers, timeout)
 }

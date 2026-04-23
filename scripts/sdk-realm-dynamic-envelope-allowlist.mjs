@@ -1,5 +1,4 @@
 export const realmDynamicEnvelopeAllowlist = [
-  { path: 'AgentMemoryRecordDto.metadata?', category: 'agent-memory-metadata' },
   { path: 'AgentRuleDto.structured?', category: 'rule-structured-extension' },
   { path: 'AssetDetailDto.structuredPayload?', category: 'asset-structured-payload' },
   { path: 'ChatEventEnvelopeDto.payload', category: 'chat-event-envelope' },
@@ -10,7 +9,6 @@ export const realmDynamicEnvelopeAllowlist = [
   { path: 'CreateAssetDto.structuredPayload?', category: 'asset-structured-payload' },
   { path: 'CreateAudioDirectUploadDto.metadata?', category: 'resource-metadata' },
   { path: 'CreateTextResourceDto.metadata?', category: 'resource-metadata' },
-  { path: 'CommitAgentMemoryDto.metadata?', category: 'agent-memory-metadata' },
   { path: 'CreateWorldRuleDto.structured?', category: 'rule-structured-extension' },
   { path: 'CreatorModControlAuditRecordDto.payload?', category: 'creator-mod-audit-payload' },
   { path: 'CreatorModControlManifestVerifyRequestDto.manifest', category: 'mod-manifest-envelope' },
@@ -18,6 +16,7 @@ export const realmDynamicEnvelopeAllowlist = [
   { path: 'ResourceDetailDto.metadata?', category: 'resource-metadata' },
   { path: 'NotificationDto.data', category: 'notification-envelope' },
   { path: 'PublicWorldHistoryEventDto.payload?', category: 'world-history-payload' },
+  { path: 'RuntimeProjectionInputDto.structured?', category: 'runtime-projection-structured' },
   { path: 'SceneDefinitionDto.properties?', category: 'scene-definition-properties' },
   { path: 'TransitContextDto.handoffRefs?', category: 'transit-context-envelope' },
   { path: 'UpdateAgentRuleDto.structured?', category: 'rule-structured-extension' },
@@ -43,6 +42,7 @@ export const realmDynamicEnvelopeAllowlist = [
   { path: 'WorldStateWriteDto.metadata?', category: 'world-state-metadata' },
   { path: 'WorldStateWriteDto.payload', category: 'world-state-payload' },
   { path: 'WorldviewTruthRuleSummaryDto.structured?', category: 'rule-structured-extension' },
+  { path: 'SendGroupAgentMessageInputDto.payload?', category: 'group-chat-agent-message-payload' },
 ];
 
 export const realmDynamicEnvelopeAllowlistPaths = new Set(

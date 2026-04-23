@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type AgentMemoryRecordDto = components['schemas']['AgentMemoryRecordDto'];
+export type RuntimeProjectionRequestDto = components['schemas']['RuntimeProjectionRequestDto'];

@@ -53,6 +53,12 @@ export function createCatalogChecks(context) {
   function aggregateProviderCapabilities(parsed) {
     const capabilitySet = new Set();
     const defaults = normalizeStringArray(parsed?.defaults?.capabilities).map((item) => item.toLowerCase());
+    const dynamicInventoryCapabilities = normalizeStringArray(
+      parsed?.runtime?.dynamic_inventory?.allowed_capabilities,
+    ).map((item) => item.toLowerCase());
+    for (const capability of dynamicInventoryCapabilities) {
+      capabilitySet.add(capability);
+    }
     const models = Array.isArray(parsed?.models) ? parsed.models : [];
     for (const model of models) {
       const declared = normalizeStringArray(model?.capabilities).map((item) => item.toLowerCase());
@@ -315,8 +321,16 @@ export function createCatalogChecks(context) {
 
       const models = Array.isArray(parsed?.models) ? parsed.models : [];
       const voices = Array.isArray(parsed?.voices) ? parsed.voices : [];
-      if (models.length === 0) {
+      const inventoryMode = String(parsed?.inventory_mode || '').trim();
+      const dynamicInventoryCapabilities = normalizeStringArray(
+        parsed?.dynamic_inventory?.allowed_capabilities,
+      );
+      if (models.length === 0 && inventoryMode !== 'dynamic_endpoint') {
         fail(`${path.relative(cwd, absPath)} must include at least one model`);
+        continue;
+      }
+      if (models.length === 0 && inventoryMode === 'dynamic_endpoint' && dynamicInventoryCapabilities.length === 0) {
+        fail(`${path.relative(cwd, absPath)} dynamic_endpoint providers with empty models must include dynamic_inventory.allowed_capabilities`);
         continue;
       }
 

@@ -1,0 +1,73 @@
+version: 1
+provider: openai_codex
+catalog_version: 2026-04-23-openai-codex-subscription-wave1
+inventory_mode: static_source
+default_text_model: gpt-5.4
+models:
+  - model_id: gpt-5.4
+    provider: openai_codex
+    model_type: chat
+    updated_at: 2026-04-23
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: subscription_or_unknown
+      output: subscription_or_unknown
+      currency: USD
+      as_of: 2026-04-23
+      notes: Subscription-backed Codex route; standard API pricing does not apply directly.
+    source_ref:
+      url: https://developers.openai.com/codex/auth
+      retrieved_at: 2026-04-23
+      note: OpenAI Codex authentication guide covering ChatGPT subscription and API-key access.
+  - model_id: gpt-5.3-codex
+    provider: openai_codex
+    model_type: chat
+    updated_at: 2026-04-23
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: subscription_or_unknown
+      output: subscription_or_unknown
+      currency: USD
+      as_of: 2026-04-23
+      notes: Codex-oriented text route retained for compatibility with existing Codex consumers.
+    source_ref:
+      url: https://developers.openai.com/codex/auth
+      retrieved_at: 2026-04-23
+      note: OpenAI Codex authentication guide covering ChatGPT subscription and API-key access.
+  - model_id: gpt-image-2
+    provider: openai_codex
+    model_type: image
+    updated_at: 2026-04-23
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: subscription_or_unknown
+      output: subscription_or_unknown
+      currency: USD
+      as_of: 2026-04-23
+      notes: Image generation pricing for Codex subscription-backed consumption is not published as API request pricing.
+    source_ref:
+      url: https://developers.openai.com/codex/cli/features
+      retrieved_at: 2026-04-23
+      note: Codex CLI features page documenting direct image generation/edit support.
+voices: []
+selection_profiles:
+  - provider: openai_codex
+    profile_id: text.general
+    capability: text.generate
+    model_id: gpt-5.4
+    reviewed_at: 2026-04-23
+    freshness_sla_days: 14
+    rationale: Codex-backed default text route for general subscription-backed consume.
+  - provider: openai_codex
+    profile_id: image.general
+    capability: image.generate
+    model_id: gpt-image-2
+    reviewed_at: 2026-04-23
+    freshness_sla_days: 14
+    rationale: Current Codex-backed image generation route.

@@ -1,0 +1,20 @@
+version: 1
+profiles:
+  - id: openai_codex
+    auth_kind: oauth_managed
+    allowed_providers:
+      - openai_codex
+    header_behavior: codex_oauth
+    source_rule: K-CONN-002
+  - id: anthropic
+    auth_kind: oauth_managed
+    allowed_providers:
+      - anthropic
+    header_behavior: anthropic
+    source_rule: K-CONN-002
+  - id: qwen_oauth
+    auth_kind: oauth_managed
+    allowed_providers:
+      - openai_compatible
+    header_behavior: none
+    source_rule: K-CONN-002

@@ -168,3 +168,26 @@ test('commitRequests.read rejects incomplete schema selector pairs', async () =>
     },
   );
 });
+
+test('executionEvents.read rejects retired MEMORY_ONLY effectClass selectors', async () => {
+  clearPlatformClient();
+  const client = await createPlatformClient({
+    appId: 'nimi.sdk.wee.validation.effect-class',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+  setRuntimeWorldEvolutionSelectorReadProvider(client.runtime, createProvider());
+
+  await assert.rejects(
+    () => client.worldEvolution.executionEvents.read({
+      worldId: 'world-1',
+      effectClass: 'MEMORY_ONLY',
+    } as never),
+    (error: unknown) => {
+      assert.equal((error as { details?: { rejectionCategory?: string } }).details?.rejectionCategory, 'INVALID_SELECTOR');
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
+      return true;
+    },
+  );
+});

@@ -115,9 +115,9 @@ func NewCloudProvider(cfg CloudConfig, registry *modelregistry.Registry, health 
 		backendName := "cloud-" + canonical
 		var b *Backend
 		if cfg.EnforceEndpointSecurity {
-			b = NewSecuredBackend(backendName, creds.BaseURL, creds.APIKey, cfg.HTTPTimeout, cfg.AllowLoopbackEndpoint)
+			b = NewSecuredBackendWithHeaders(backendName, creds.BaseURL, creds.APIKey, creds.Headers, cfg.HTTPTimeout, cfg.AllowLoopbackEndpoint)
 		} else {
-			b = NewBackend(backendName, creds.BaseURL, creds.APIKey, cfg.HTTPTimeout)
+			b = NewBackendWithHeaders(backendName, creds.BaseURL, creds.APIKey, creds.Headers, cfg.HTTPTimeout)
 		}
 		if b != nil {
 			backends[canonical] = b
@@ -477,7 +477,7 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 	// Try to find an existing backend and override it
 	if canonical := ResolveProviderAlias(target.ProviderType); canonical != "" {
 		if b := p.backends[canonical]; b != nil {
-			return b.WithRequestOverridesWithPolicy(target.Endpoint, target.APIKey, allowLoopback)
+			return b.WithRequestOverridesAndHeadersWithPolicy(target.Endpoint, target.APIKey, target.Headers, allowLoopback)
 		}
 	}
 	// No existing backend, create a temporary one
@@ -486,7 +486,7 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 	}
 	timeout := p.probeTimeout()
 	if p.enforceEndpointSecurity {
-		return NewSecuredBackend("cloud-"+target.ProviderType, target.Endpoint, target.APIKey, timeout, allowLoopback)
+		return NewSecuredBackendWithHeaders("cloud-"+target.ProviderType, target.Endpoint, target.APIKey, target.Headers, timeout, allowLoopback)
 	}
-	return NewBackend("cloud-"+target.ProviderType, target.Endpoint, target.APIKey, timeout)
+	return NewBackendWithHeaders("cloud-"+target.ProviderType, target.Endpoint, target.APIKey, target.Headers, timeout)
 }

@@ -192,6 +192,18 @@ export function renderKeySourceTruthTable(doc) {
   return `${out}\n`;
 }
 
+export function renderConnectorAuthProfiles(doc) {
+  const profiles = doc?.profiles || [];
+  let out = '| Profile | Auth Kind | Allowed Providers | Header Behavior |\n|---|---|---|---|\n';
+  for (const profile of profiles) {
+    const allowedProviders = Array.isArray(profile.allowed_providers)
+      ? profile.allowed_providers.join(', ')
+      : '—';
+    out += `| ${profile.id} | ${profile.auth_kind} | ${allowedProviders || '—'} | ${profile.header_behavior || '—'} |\n`;
+  }
+  return `${out}\n`;
+}
+
 export function renderLocalEngineCatalog(doc) {
   const engines = doc?.engines || [];
   let out = '| 引擎 | 默认 Endpoint | 运行模式 | 协议 |\n|---|---|---|---|\n';

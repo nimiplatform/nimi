@@ -13,4 +13,4 @@
 | `local` | `local` | `true` | `true` | `true` | `false` | `mixed` | `active` | `K-MCAT-023` |
 | `openai` | `remote` | `true` | `false` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
 | `stepfun` | `remote` | `true` | `true` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
-| `volcengine` | `remote` | `true` | `false` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
+| `volcengine_openspeech` | `remote` | `true` | `false` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |

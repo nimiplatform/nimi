@@ -3,10 +3,41 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import YAML from 'yaml';
 
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const specPath = path.join(repoRoot, '.cache', 'realm-openapi', 'api-nimi.yaml');
 const generatedDir = path.join(repoRoot, 'sdk', 'src', 'realm', 'generated');
+
+const EXPECTED_GROUP_PATHS = new Map([
+  ['/api/human/group-chats', ['get', 'post']],
+  ['/api/human/group-chats/{chatId}', ['get', 'patch']],
+  ['/api/human/group-chats/{chatId}/agent-messages', ['post']],
+  ['/api/human/group-chats/{chatId}/agents', ['post']],
+  ['/api/human/group-chats/{chatId}/agents/{agentAccountId}', ['delete']],
+  ['/api/human/group-chats/{chatId}/messages', ['get', 'post']],
+  ['/api/human/group-chats/{chatId}/messages/{messageId}', ['patch']],
+  ['/api/human/group-chats/{chatId}/messages/{messageId}/recall', ['post']],
+  ['/api/human/group-chats/{chatId}/participants', ['post']],
+  ['/api/human/group-chats/{chatId}/participants/{accountId}', ['delete', 'patch']],
+  ['/api/human/group-chats/{chatId}/read', ['post']],
+  ['/api/human/group-chats/{chatId}/sync', ['get']],
+]);
+
+const EXPECTED_GROUP_SCHEMAS = [
+  'AddGroupAgentInputDto',
+  'AddGroupParticipantInputDto',
+  'ChatSyncResultDto',
+  'CreateGroupInputDto',
+  'GroupChatViewDto',
+  'GroupMessageAuthorDto',
+  'GroupMessageViewDto',
+  'GroupParticipantDto',
+  'ListGroupChatsResultDto',
+  'ListGroupMessagesResultDto',
+  'SendGroupAgentMessageInputDto',
+  'UpdateParticipantRoleInputDto',
+];
 
 function assert(condition, message) {
   if (!condition) {
@@ -94,6 +125,30 @@ function assertGeneratedArtifacts() {
   );
 }
 
+function assertOpenApiGroupSurface() {
+  const spec = YAML.parse(readFileSync(specPath, 'utf8')) || {};
+  const paths = spec.paths || {};
+  const schemas = spec.components?.schemas || {};
+
+  for (const [route, methods] of EXPECTED_GROUP_PATHS.entries()) {
+    const routeNode = paths[route];
+    assert(routeNode && typeof routeNode === 'object', `missing group chat route in api-nimi.yaml: ${route}`);
+    for (const method of methods) {
+      assert(
+        routeNode[method],
+        `missing group chat method in api-nimi.yaml: ${method.toUpperCase()} ${route}`,
+      );
+    }
+  }
+
+  for (const schemaName of EXPECTED_GROUP_SCHEMAS) {
+    assert(
+      schemaName in schemas,
+      `missing group chat schema in api-nimi.yaml: ${schemaName}`,
+    );
+  }
+}
+
 function assertSplitModules() {
   const modules = [
     path.join(repoRoot, 'scripts', 'realm-sdk', 'constants.mjs'),
@@ -145,6 +200,7 @@ function assertSplitModules() {
 
 function main() {
   assert(existsSync(specPath), `realm OpenAPI spec not found: ${specPath}`);
+  assertOpenApiGroupSurface();
 
   runGenerate();
   const secondRunOutput = runGenerate();

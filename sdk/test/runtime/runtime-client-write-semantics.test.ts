@@ -23,7 +23,10 @@ import {
   InstallVerifiedAssetResponse,
   ListLocalAssetsResponse,
 } from '../../src/runtime/generated/runtime/v1/local_runtime';
-import { ConnectorStatus } from '../../src/runtime/generated/runtime/v1/connector';
+import {
+  ConnectorAuthKind,
+  ConnectorStatus,
+} from '../../src/runtime/generated/runtime/v1/connector';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids';
 import {
   APP_ID,
@@ -326,6 +329,42 @@ test('createRuntimeClient validates connector writes before sending rpc', async 
     assert.equal(
       asNimiError(emptyUpdate, { source: 'sdk' }).reasonCode,
       'SDK_RUNTIME_CONNECTOR_UPDATE_EMPTY',
+    );
+
+    let unsupportedOauthProfile: unknown = null;
+    try {
+      await client.connector.createConnector({
+        provider: 'openai_compatible',
+        endpoint: 'https://example.com/v1',
+        authKind: ConnectorAuthKind.OAUTH_MANAGED,
+        providerAuthProfile: 'unknown_oauth',
+        credentialJson: '{"access_token":"token-1"}',
+      });
+    } catch (error) {
+      unsupportedOauthProfile = error;
+    }
+    assert.ok(unsupportedOauthProfile);
+    assert.equal(
+      asNimiError(unsupportedOauthProfile, { source: 'sdk' }).reasonCode,
+      'SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED',
+    );
+
+    let incompatibleOauthProfile: unknown = null;
+    try {
+      await client.connector.createConnector({
+        provider: 'openai_compatible',
+        endpoint: 'https://example.com/v1',
+        authKind: ConnectorAuthKind.OAUTH_MANAGED,
+        providerAuthProfile: 'openai_codex',
+        credentialJson: '{"access_token":"token-1"}',
+      });
+    } catch (error) {
+      incompatibleOauthProfile = error;
+    }
+    assert.ok(incompatibleOauthProfile);
+    assert.equal(
+      asNimiError(incompatibleOauthProfile, { source: 'sdk' }).reasonCode,
+      'SDK_RUNTIME_CONNECTOR_API_KEY_REQUIRED',
     );
 
     assert.equal(invokeCount, 0);

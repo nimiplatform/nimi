@@ -1,7 +1,7 @@
 version: 1
 defaults:
   timeout_ms: 15000
-  report_output: .nimi/local/report/ongoing/2026-04-16-provider-upgrade-discovery/provider-model-discovery-latest.md
+  report_output: .nimi/topics/closed/2026-04-16-provider-upgrade-discovery/provider-model-discovery-latest.md
 providers:
   openai:
     adapter: openai_compat_models

@@ -171,6 +171,55 @@ func (ConnectorStatus) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{2}
 }
 
+type ConnectorAuthKind int32
+
+const (
+	ConnectorAuthKind_CONNECTOR_AUTH_KIND_UNSPECIFIED   ConnectorAuthKind = 0
+	ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY       ConnectorAuthKind = 1
+	ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED ConnectorAuthKind = 2
+)
+
+// Enum value maps for ConnectorAuthKind.
+var (
+	ConnectorAuthKind_name = map[int32]string{
+		0: "CONNECTOR_AUTH_KIND_UNSPECIFIED",
+		1: "CONNECTOR_AUTH_KIND_API_KEY",
+		2: "CONNECTOR_AUTH_KIND_OAUTH_MANAGED",
+	}
+	ConnectorAuthKind_value = map[string]int32{
+		"CONNECTOR_AUTH_KIND_UNSPECIFIED":   0,
+		"CONNECTOR_AUTH_KIND_API_KEY":       1,
+		"CONNECTOR_AUTH_KIND_OAUTH_MANAGED": 2,
+	}
+)
+
+func (x ConnectorAuthKind) Enum() *ConnectorAuthKind {
+	p := new(ConnectorAuthKind)
+	*p = x
+	return p
+}
+
+func (x ConnectorAuthKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ConnectorAuthKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_connector_proto_enumTypes[3].Descriptor()
+}
+
+func (ConnectorAuthKind) Type() protoreflect.EnumType {
+	return &file_runtime_v1_connector_proto_enumTypes[3]
+}
+
+func (x ConnectorAuthKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ConnectorAuthKind.Descriptor instead.
+func (ConnectorAuthKind) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{3}
+}
+
 type LocalConnectorCategory int32
 
 const (
@@ -216,11 +265,11 @@ func (x LocalConnectorCategory) String() string {
 }
 
 func (LocalConnectorCategory) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_connector_proto_enumTypes[3].Descriptor()
+	return file_runtime_v1_connector_proto_enumTypes[4].Descriptor()
 }
 
 func (LocalConnectorCategory) Type() protoreflect.EnumType {
-	return &file_runtime_v1_connector_proto_enumTypes[3]
+	return &file_runtime_v1_connector_proto_enumTypes[4]
 }
 
 func (x LocalConnectorCategory) Number() protoreflect.EnumNumber {
@@ -229,7 +278,7 @@ func (x LocalConnectorCategory) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LocalConnectorCategory.Descriptor instead.
 func (LocalConnectorCategory) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{4}
 }
 
 type ModelCatalogProviderSource int32
@@ -271,11 +320,11 @@ func (x ModelCatalogProviderSource) String() string {
 }
 
 func (ModelCatalogProviderSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_connector_proto_enumTypes[4].Descriptor()
+	return file_runtime_v1_connector_proto_enumTypes[5].Descriptor()
 }
 
 func (ModelCatalogProviderSource) Type() protoreflect.EnumType {
-	return &file_runtime_v1_connector_proto_enumTypes[4]
+	return &file_runtime_v1_connector_proto_enumTypes[5]
 }
 
 func (x ModelCatalogProviderSource) Number() protoreflect.EnumNumber {
@@ -284,7 +333,7 @@ func (x ModelCatalogProviderSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ModelCatalogProviderSource.Descriptor instead.
 func (ModelCatalogProviderSource) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{5}
 }
 
 type CatalogModelSource int32
@@ -323,11 +372,11 @@ func (x CatalogModelSource) String() string {
 }
 
 func (CatalogModelSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_connector_proto_enumTypes[5].Descriptor()
+	return file_runtime_v1_connector_proto_enumTypes[6].Descriptor()
 }
 
 func (CatalogModelSource) Type() protoreflect.EnumType {
-	return &file_runtime_v1_connector_proto_enumTypes[5]
+	return &file_runtime_v1_connector_proto_enumTypes[6]
 }
 
 func (x CatalogModelSource) Number() protoreflect.EnumNumber {
@@ -336,25 +385,27 @@ func (x CatalogModelSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CatalogModelSource.Descriptor instead.
 func (CatalogModelSource) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_connector_proto_rawDescGZIP(), []int{6}
 }
 
 type Connector struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConnectorId   string                 `protobuf:"bytes,1,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
-	Kind          ConnectorKind          `protobuf:"varint,2,opt,name=kind,proto3,enum=nimi.runtime.v1.ConnectorKind" json:"kind,omitempty"`
-	OwnerType     ConnectorOwnerType     `protobuf:"varint,3,opt,name=owner_type,json=ownerType,proto3,enum=nimi.runtime.v1.ConnectorOwnerType" json:"owner_type,omitempty"`
-	OwnerId       string                 `protobuf:"bytes,4,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
-	Provider      string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
-	Endpoint      string                 `protobuf:"bytes,6,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Label         string                 `protobuf:"bytes,7,opt,name=label,proto3" json:"label,omitempty"`
-	Status        ConnectorStatus        `protobuf:"varint,8,opt,name=status,proto3,enum=nimi.runtime.v1.ConnectorStatus" json:"status,omitempty"`
-	LocalCategory LocalConnectorCategory `protobuf:"varint,9,opt,name=local_category,json=localCategory,proto3,enum=nimi.runtime.v1.LocalConnectorCategory" json:"local_category,omitempty"`
-	HasCredential bool                   `protobuf:"varint,10,opt,name=has_credential,json=hasCredential,proto3" json:"has_credential,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ConnectorId         string                 `protobuf:"bytes,1,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
+	Kind                ConnectorKind          `protobuf:"varint,2,opt,name=kind,proto3,enum=nimi.runtime.v1.ConnectorKind" json:"kind,omitempty"`
+	OwnerType           ConnectorOwnerType     `protobuf:"varint,3,opt,name=owner_type,json=ownerType,proto3,enum=nimi.runtime.v1.ConnectorOwnerType" json:"owner_type,omitempty"`
+	OwnerId             string                 `protobuf:"bytes,4,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	Provider            string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
+	Endpoint            string                 `protobuf:"bytes,6,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Label               string                 `protobuf:"bytes,7,opt,name=label,proto3" json:"label,omitempty"`
+	Status              ConnectorStatus        `protobuf:"varint,8,opt,name=status,proto3,enum=nimi.runtime.v1.ConnectorStatus" json:"status,omitempty"`
+	LocalCategory       LocalConnectorCategory `protobuf:"varint,9,opt,name=local_category,json=localCategory,proto3,enum=nimi.runtime.v1.LocalConnectorCategory" json:"local_category,omitempty"`
+	HasCredential       bool                   `protobuf:"varint,10,opt,name=has_credential,json=hasCredential,proto3" json:"has_credential,omitempty"`
+	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	AuthKind            ConnectorAuthKind      `protobuf:"varint,13,opt,name=auth_kind,json=authKind,proto3,enum=nimi.runtime.v1.ConnectorAuthKind" json:"auth_kind,omitempty"`
+	ProviderAuthProfile string                 `protobuf:"bytes,14,opt,name=provider_auth_profile,json=providerAuthProfile,proto3" json:"provider_auth_profile,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Connector) Reset() {
@@ -471,14 +522,31 @@ func (x *Connector) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Connector) GetAuthKind() ConnectorAuthKind {
+	if x != nil {
+		return x.AuthKind
+	}
+	return ConnectorAuthKind_CONNECTOR_AUTH_KIND_UNSPECIFIED
+}
+
+func (x *Connector) GetProviderAuthProfile() string {
+	if x != nil {
+		return x.ProviderAuthProfile
+	}
+	return ""
+}
+
 type CreateConnectorRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	Endpoint      string                 `protobuf:"bytes,2,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Label         string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
-	ApiKey        string                 `protobuf:"bytes,4,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Provider            string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	Endpoint            string                 `protobuf:"bytes,2,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Label               string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	ApiKey              string                 `protobuf:"bytes,4,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	AuthKind            ConnectorAuthKind      `protobuf:"varint,6,opt,name=auth_kind,json=authKind,proto3,enum=nimi.runtime.v1.ConnectorAuthKind" json:"auth_kind,omitempty"`
+	ProviderAuthProfile string                 `protobuf:"bytes,7,opt,name=provider_auth_profile,json=providerAuthProfile,proto3" json:"provider_auth_profile,omitempty"`
+	CredentialJson      string                 `protobuf:"bytes,8,opt,name=credential_json,json=credentialJson,proto3" json:"credential_json,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *CreateConnectorRequest) Reset() {
@@ -535,6 +603,27 @@ func (x *CreateConnectorRequest) GetLabel() string {
 func (x *CreateConnectorRequest) GetApiKey() string {
 	if x != nil {
 		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *CreateConnectorRequest) GetAuthKind() ConnectorAuthKind {
+	if x != nil {
+		return x.AuthKind
+	}
+	return ConnectorAuthKind_CONNECTOR_AUTH_KIND_UNSPECIFIED
+}
+
+func (x *CreateConnectorRequest) GetProviderAuthProfile() string {
+	if x != nil {
+		return x.ProviderAuthProfile
+	}
+	return ""
+}
+
+func (x *CreateConnectorRequest) GetCredentialJson() string {
+	if x != nil {
+		return x.CredentialJson
 	}
 	return ""
 }
@@ -800,15 +889,18 @@ func (x *ListConnectorsResponse) GetNextPageToken() string {
 }
 
 type UpdateConnectorRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConnectorId   string                 `protobuf:"bytes,1,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
-	Label         *string                `protobuf:"bytes,3,opt,name=label,proto3,oneof" json:"label,omitempty"`
-	Endpoint      *string                `protobuf:"bytes,4,opt,name=endpoint,proto3,oneof" json:"endpoint,omitempty"`
-	ApiKey        *string                `protobuf:"bytes,5,opt,name=api_key,json=apiKey,proto3,oneof" json:"api_key,omitempty"`
-	Status        ConnectorStatus        `protobuf:"varint,6,opt,name=status,proto3,enum=nimi.runtime.v1.ConnectorStatus" json:"status,omitempty"`
-	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,7,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ConnectorId         string                 `protobuf:"bytes,1,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
+	Label               *string                `protobuf:"bytes,3,opt,name=label,proto3,oneof" json:"label,omitempty"`
+	Endpoint            *string                `protobuf:"bytes,4,opt,name=endpoint,proto3,oneof" json:"endpoint,omitempty"`
+	ApiKey              *string                `protobuf:"bytes,5,opt,name=api_key,json=apiKey,proto3,oneof" json:"api_key,omitempty"`
+	Status              ConnectorStatus        `protobuf:"varint,6,opt,name=status,proto3,enum=nimi.runtime.v1.ConnectorStatus" json:"status,omitempty"`
+	UpdateMask          *fieldmaskpb.FieldMask `protobuf:"bytes,7,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	AuthKind            *ConnectorAuthKind     `protobuf:"varint,8,opt,name=auth_kind,json=authKind,proto3,enum=nimi.runtime.v1.ConnectorAuthKind,oneof" json:"auth_kind,omitempty"`
+	ProviderAuthProfile *string                `protobuf:"bytes,9,opt,name=provider_auth_profile,json=providerAuthProfile,proto3,oneof" json:"provider_auth_profile,omitempty"`
+	CredentialJson      *string                `protobuf:"bytes,10,opt,name=credential_json,json=credentialJson,proto3,oneof" json:"credential_json,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *UpdateConnectorRequest) Reset() {
@@ -881,6 +973,27 @@ func (x *UpdateConnectorRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
 		return x.UpdateMask
 	}
 	return nil
+}
+
+func (x *UpdateConnectorRequest) GetAuthKind() ConnectorAuthKind {
+	if x != nil && x.AuthKind != nil {
+		return *x.AuthKind
+	}
+	return ConnectorAuthKind_CONNECTOR_AUTH_KIND_UNSPECIFIED
+}
+
+func (x *UpdateConnectorRequest) GetProviderAuthProfile() string {
+	if x != nil && x.ProviderAuthProfile != nil {
+		return *x.ProviderAuthProfile
+	}
+	return ""
+}
+
+func (x *UpdateConnectorRequest) GetCredentialJson() string {
+	if x != nil && x.CredentialJson != nil {
+		return *x.CredentialJson
+	}
+	return ""
 }
 
 type UpdateConnectorResponse struct {
@@ -3447,7 +3560,7 @@ var File_runtime_v1_connector_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\n" +
-	"\x1aruntime/v1/connector.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb6\x04\n" +
+	"\x1aruntime/v1/connector.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xab\x05\n" +
 	"\tConnector\x12!\n" +
 	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x122\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x1e.nimi.runtime.v1.ConnectorKindR\x04kind\x12B\n" +
@@ -3464,12 +3577,17 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x8f\x01\n" +
+	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12?\n" +
+	"\tauth_kind\x18\r \x01(\x0e2\".nimi.runtime.v1.ConnectorAuthKindR\bauthKind\x122\n" +
+	"\x15provider_auth_profile\x18\x0e \x01(\tR\x13providerAuthProfile\"\xad\x02\n" +
 	"\x16CreateConnectorRequest\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x1a\n" +
 	"\bendpoint\x18\x02 \x01(\tR\bendpoint\x12\x14\n" +
 	"\x05label\x18\x03 \x01(\tR\x05label\x12\x17\n" +
-	"\aapi_key\x18\x04 \x01(\tR\x06apiKeyJ\x04\b\x05\x10\x06R\bowner_id\"S\n" +
+	"\aapi_key\x18\x04 \x01(\tR\x06apiKey\x12?\n" +
+	"\tauth_kind\x18\x06 \x01(\x0e2\".nimi.runtime.v1.ConnectorAuthKindR\bauthKind\x122\n" +
+	"\x15provider_auth_profile\x18\a \x01(\tR\x13providerAuthProfile\x12'\n" +
+	"\x0fcredential_json\x18\b \x01(\tR\x0ecredentialJsonJ\x04\b\x05\x10\x06R\bowner_id\"S\n" +
 	"\x17CreateConnectorResponse\x128\n" +
 	"\tconnector\x18\x01 \x01(\v2\x1a.nimi.runtime.v1.ConnectorR\tconnector\"H\n" +
 	"\x13GetConnectorRequest\x12!\n" +
@@ -3488,7 +3606,7 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\n" +
 	"connectors\x18\x01 \x03(\v2\x1a.nimi.runtime.v1.ConnectorR\n" +
 	"connectors\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xbf\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa8\x04\n" +
 	"\x16UpdateConnectorRequest\x12!\n" +
 	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x12\x19\n" +
 	"\x05label\x18\x03 \x01(\tH\x00R\x05label\x88\x01\x01\x12\x1f\n" +
@@ -3496,11 +3614,19 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\aapi_key\x18\x05 \x01(\tH\x02R\x06apiKey\x88\x01\x01\x128\n" +
 	"\x06status\x18\x06 \x01(\x0e2 .nimi.runtime.v1.ConnectorStatusR\x06status\x12;\n" +
 	"\vupdate_mask\x18\a \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
-	"updateMaskB\b\n" +
+	"updateMask\x12D\n" +
+	"\tauth_kind\x18\b \x01(\x0e2\".nimi.runtime.v1.ConnectorAuthKindH\x03R\bauthKind\x88\x01\x01\x127\n" +
+	"\x15provider_auth_profile\x18\t \x01(\tH\x04R\x13providerAuthProfile\x88\x01\x01\x12,\n" +
+	"\x0fcredential_json\x18\n" +
+	" \x01(\tH\x05R\x0ecredentialJson\x88\x01\x01B\b\n" +
 	"\x06_labelB\v\n" +
 	"\t_endpointB\n" +
 	"\n" +
-	"\b_api_keyJ\x04\b\x02\x10\x03R\bowner_id\"S\n" +
+	"\b_api_keyB\f\n" +
+	"\n" +
+	"_auth_kindB\x18\n" +
+	"\x16_provider_auth_profileB\x12\n" +
+	"\x10_credential_jsonJ\x04\b\x02\x10\x03R\bowner_id\"S\n" +
 	"\x17UpdateConnectorResponse\x128\n" +
 	"\tconnector\x18\x01 \x01(\v2\x1a.nimi.runtime.v1.ConnectorR\tconnector\"K\n" +
 	"\x16DeleteConnectorRequest\x12!\n" +
@@ -3726,7 +3852,11 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\x0fConnectorStatus\x12 \n" +
 	"\x1cCONNECTOR_STATUS_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17CONNECTOR_STATUS_ACTIVE\x10\x01\x12\x1d\n" +
-	"\x19CONNECTOR_STATUS_DISABLED\x10\x02*\x96\x02\n" +
+	"\x19CONNECTOR_STATUS_DISABLED\x10\x02*\x80\x01\n" +
+	"\x11ConnectorAuthKind\x12#\n" +
+	"\x1fCONNECTOR_AUTH_KIND_UNSPECIFIED\x10\x00\x12\x1f\n" +
+	"\x1bCONNECTOR_AUTH_KIND_API_KEY\x10\x01\x12%\n" +
+	"!CONNECTOR_AUTH_KIND_OAUTH_MANAGED\x10\x02*\x96\x02\n" +
 	"\x16LocalConnectorCategory\x12(\n" +
 	"$LOCAL_CONNECTOR_CATEGORY_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cLOCAL_CONNECTOR_CATEGORY_LLM\x10\x01\x12#\n" +
@@ -3775,157 +3905,161 @@ func file_runtime_v1_connector_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_connector_proto_rawDescData
 }
 
-var file_runtime_v1_connector_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_runtime_v1_connector_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
 var file_runtime_v1_connector_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_runtime_v1_connector_proto_goTypes = []any{
 	(ConnectorKind)(0),                         // 0: nimi.runtime.v1.ConnectorKind
 	(ConnectorOwnerType)(0),                    // 1: nimi.runtime.v1.ConnectorOwnerType
 	(ConnectorStatus)(0),                       // 2: nimi.runtime.v1.ConnectorStatus
-	(LocalConnectorCategory)(0),                // 3: nimi.runtime.v1.LocalConnectorCategory
-	(ModelCatalogProviderSource)(0),            // 4: nimi.runtime.v1.ModelCatalogProviderSource
-	(CatalogModelSource)(0),                    // 5: nimi.runtime.v1.CatalogModelSource
-	(*Connector)(nil),                          // 6: nimi.runtime.v1.Connector
-	(*CreateConnectorRequest)(nil),             // 7: nimi.runtime.v1.CreateConnectorRequest
-	(*CreateConnectorResponse)(nil),            // 8: nimi.runtime.v1.CreateConnectorResponse
-	(*GetConnectorRequest)(nil),                // 9: nimi.runtime.v1.GetConnectorRequest
-	(*GetConnectorResponse)(nil),               // 10: nimi.runtime.v1.GetConnectorResponse
-	(*ListConnectorsRequest)(nil),              // 11: nimi.runtime.v1.ListConnectorsRequest
-	(*ListConnectorsResponse)(nil),             // 12: nimi.runtime.v1.ListConnectorsResponse
-	(*UpdateConnectorRequest)(nil),             // 13: nimi.runtime.v1.UpdateConnectorRequest
-	(*UpdateConnectorResponse)(nil),            // 14: nimi.runtime.v1.UpdateConnectorResponse
-	(*DeleteConnectorRequest)(nil),             // 15: nimi.runtime.v1.DeleteConnectorRequest
-	(*DeleteConnectorResponse)(nil),            // 16: nimi.runtime.v1.DeleteConnectorResponse
-	(*TestConnectorRequest)(nil),               // 17: nimi.runtime.v1.TestConnectorRequest
-	(*TestConnectorResponse)(nil),              // 18: nimi.runtime.v1.TestConnectorResponse
-	(*ConnectorModelDescriptor)(nil),           // 19: nimi.runtime.v1.ConnectorModelDescriptor
-	(*ListConnectorModelsRequest)(nil),         // 20: nimi.runtime.v1.ListConnectorModelsRequest
-	(*ListConnectorModelsResponse)(nil),        // 21: nimi.runtime.v1.ListConnectorModelsResponse
-	(*ProviderCatalogEntry)(nil),               // 22: nimi.runtime.v1.ProviderCatalogEntry
-	(*ListProviderCatalogRequest)(nil),         // 23: nimi.runtime.v1.ListProviderCatalogRequest
-	(*ListProviderCatalogResponse)(nil),        // 24: nimi.runtime.v1.ListProviderCatalogResponse
-	(*ModelCatalogProviderEntry)(nil),          // 25: nimi.runtime.v1.ModelCatalogProviderEntry
-	(*ListModelCatalogProvidersRequest)(nil),   // 26: nimi.runtime.v1.ListModelCatalogProvidersRequest
-	(*ListModelCatalogProvidersResponse)(nil),  // 27: nimi.runtime.v1.ListModelCatalogProvidersResponse
-	(*UpsertModelCatalogProviderRequest)(nil),  // 28: nimi.runtime.v1.UpsertModelCatalogProviderRequest
-	(*UpsertModelCatalogProviderResponse)(nil), // 29: nimi.runtime.v1.UpsertModelCatalogProviderResponse
-	(*DeleteModelCatalogProviderRequest)(nil),  // 30: nimi.runtime.v1.DeleteModelCatalogProviderRequest
-	(*DeleteModelCatalogProviderResponse)(nil), // 31: nimi.runtime.v1.DeleteModelCatalogProviderResponse
-	(*CatalogOverlayWarning)(nil),              // 32: nimi.runtime.v1.CatalogOverlayWarning
-	(*CatalogPricing)(nil),                     // 33: nimi.runtime.v1.CatalogPricing
-	(*CatalogSourceRef)(nil),                   // 34: nimi.runtime.v1.CatalogSourceRef
-	(*CatalogStringListEntry)(nil),             // 35: nimi.runtime.v1.CatalogStringListEntry
-	(*CatalogVideoGenerationOutputs)(nil),      // 36: nimi.runtime.v1.CatalogVideoGenerationOutputs
-	(*CatalogVideoGenerationCapability)(nil),   // 37: nimi.runtime.v1.CatalogVideoGenerationCapability
-	(*CatalogVoiceEntry)(nil),                  // 38: nimi.runtime.v1.CatalogVoiceEntry
-	(*CatalogWorkflowModel)(nil),               // 39: nimi.runtime.v1.CatalogWorkflowModel
-	(*CatalogModelWorkflowBinding)(nil),        // 40: nimi.runtime.v1.CatalogModelWorkflowBinding
-	(*CatalogModelSummary)(nil),                // 41: nimi.runtime.v1.CatalogModelSummary
-	(*CatalogModelDetail)(nil),                 // 42: nimi.runtime.v1.CatalogModelDetail
-	(*CatalogModelInput)(nil),                  // 43: nimi.runtime.v1.CatalogModelInput
-	(*ListCatalogProviderModelsRequest)(nil),   // 44: nimi.runtime.v1.ListCatalogProviderModelsRequest
-	(*ListCatalogProviderModelsResponse)(nil),  // 45: nimi.runtime.v1.ListCatalogProviderModelsResponse
-	(*GetCatalogModelDetailRequest)(nil),       // 46: nimi.runtime.v1.GetCatalogModelDetailRequest
-	(*GetCatalogModelDetailResponse)(nil),      // 47: nimi.runtime.v1.GetCatalogModelDetailResponse
-	(*UpsertCatalogModelOverlayRequest)(nil),   // 48: nimi.runtime.v1.UpsertCatalogModelOverlayRequest
-	(*UpsertCatalogModelOverlayResponse)(nil),  // 49: nimi.runtime.v1.UpsertCatalogModelOverlayResponse
-	(*DeleteCatalogModelOverlayRequest)(nil),   // 50: nimi.runtime.v1.DeleteCatalogModelOverlayRequest
-	(*DeleteCatalogModelOverlayResponse)(nil),  // 51: nimi.runtime.v1.DeleteCatalogModelOverlayResponse
-	(*timestamppb.Timestamp)(nil),              // 52: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),              // 53: google.protobuf.FieldMask
-	(*Ack)(nil),                                // 54: nimi.runtime.v1.Ack
-	(*structpb.Struct)(nil),                    // 55: google.protobuf.Struct
+	(ConnectorAuthKind)(0),                     // 3: nimi.runtime.v1.ConnectorAuthKind
+	(LocalConnectorCategory)(0),                // 4: nimi.runtime.v1.LocalConnectorCategory
+	(ModelCatalogProviderSource)(0),            // 5: nimi.runtime.v1.ModelCatalogProviderSource
+	(CatalogModelSource)(0),                    // 6: nimi.runtime.v1.CatalogModelSource
+	(*Connector)(nil),                          // 7: nimi.runtime.v1.Connector
+	(*CreateConnectorRequest)(nil),             // 8: nimi.runtime.v1.CreateConnectorRequest
+	(*CreateConnectorResponse)(nil),            // 9: nimi.runtime.v1.CreateConnectorResponse
+	(*GetConnectorRequest)(nil),                // 10: nimi.runtime.v1.GetConnectorRequest
+	(*GetConnectorResponse)(nil),               // 11: nimi.runtime.v1.GetConnectorResponse
+	(*ListConnectorsRequest)(nil),              // 12: nimi.runtime.v1.ListConnectorsRequest
+	(*ListConnectorsResponse)(nil),             // 13: nimi.runtime.v1.ListConnectorsResponse
+	(*UpdateConnectorRequest)(nil),             // 14: nimi.runtime.v1.UpdateConnectorRequest
+	(*UpdateConnectorResponse)(nil),            // 15: nimi.runtime.v1.UpdateConnectorResponse
+	(*DeleteConnectorRequest)(nil),             // 16: nimi.runtime.v1.DeleteConnectorRequest
+	(*DeleteConnectorResponse)(nil),            // 17: nimi.runtime.v1.DeleteConnectorResponse
+	(*TestConnectorRequest)(nil),               // 18: nimi.runtime.v1.TestConnectorRequest
+	(*TestConnectorResponse)(nil),              // 19: nimi.runtime.v1.TestConnectorResponse
+	(*ConnectorModelDescriptor)(nil),           // 20: nimi.runtime.v1.ConnectorModelDescriptor
+	(*ListConnectorModelsRequest)(nil),         // 21: nimi.runtime.v1.ListConnectorModelsRequest
+	(*ListConnectorModelsResponse)(nil),        // 22: nimi.runtime.v1.ListConnectorModelsResponse
+	(*ProviderCatalogEntry)(nil),               // 23: nimi.runtime.v1.ProviderCatalogEntry
+	(*ListProviderCatalogRequest)(nil),         // 24: nimi.runtime.v1.ListProviderCatalogRequest
+	(*ListProviderCatalogResponse)(nil),        // 25: nimi.runtime.v1.ListProviderCatalogResponse
+	(*ModelCatalogProviderEntry)(nil),          // 26: nimi.runtime.v1.ModelCatalogProviderEntry
+	(*ListModelCatalogProvidersRequest)(nil),   // 27: nimi.runtime.v1.ListModelCatalogProvidersRequest
+	(*ListModelCatalogProvidersResponse)(nil),  // 28: nimi.runtime.v1.ListModelCatalogProvidersResponse
+	(*UpsertModelCatalogProviderRequest)(nil),  // 29: nimi.runtime.v1.UpsertModelCatalogProviderRequest
+	(*UpsertModelCatalogProviderResponse)(nil), // 30: nimi.runtime.v1.UpsertModelCatalogProviderResponse
+	(*DeleteModelCatalogProviderRequest)(nil),  // 31: nimi.runtime.v1.DeleteModelCatalogProviderRequest
+	(*DeleteModelCatalogProviderResponse)(nil), // 32: nimi.runtime.v1.DeleteModelCatalogProviderResponse
+	(*CatalogOverlayWarning)(nil),              // 33: nimi.runtime.v1.CatalogOverlayWarning
+	(*CatalogPricing)(nil),                     // 34: nimi.runtime.v1.CatalogPricing
+	(*CatalogSourceRef)(nil),                   // 35: nimi.runtime.v1.CatalogSourceRef
+	(*CatalogStringListEntry)(nil),             // 36: nimi.runtime.v1.CatalogStringListEntry
+	(*CatalogVideoGenerationOutputs)(nil),      // 37: nimi.runtime.v1.CatalogVideoGenerationOutputs
+	(*CatalogVideoGenerationCapability)(nil),   // 38: nimi.runtime.v1.CatalogVideoGenerationCapability
+	(*CatalogVoiceEntry)(nil),                  // 39: nimi.runtime.v1.CatalogVoiceEntry
+	(*CatalogWorkflowModel)(nil),               // 40: nimi.runtime.v1.CatalogWorkflowModel
+	(*CatalogModelWorkflowBinding)(nil),        // 41: nimi.runtime.v1.CatalogModelWorkflowBinding
+	(*CatalogModelSummary)(nil),                // 42: nimi.runtime.v1.CatalogModelSummary
+	(*CatalogModelDetail)(nil),                 // 43: nimi.runtime.v1.CatalogModelDetail
+	(*CatalogModelInput)(nil),                  // 44: nimi.runtime.v1.CatalogModelInput
+	(*ListCatalogProviderModelsRequest)(nil),   // 45: nimi.runtime.v1.ListCatalogProviderModelsRequest
+	(*ListCatalogProviderModelsResponse)(nil),  // 46: nimi.runtime.v1.ListCatalogProviderModelsResponse
+	(*GetCatalogModelDetailRequest)(nil),       // 47: nimi.runtime.v1.GetCatalogModelDetailRequest
+	(*GetCatalogModelDetailResponse)(nil),      // 48: nimi.runtime.v1.GetCatalogModelDetailResponse
+	(*UpsertCatalogModelOverlayRequest)(nil),   // 49: nimi.runtime.v1.UpsertCatalogModelOverlayRequest
+	(*UpsertCatalogModelOverlayResponse)(nil),  // 50: nimi.runtime.v1.UpsertCatalogModelOverlayResponse
+	(*DeleteCatalogModelOverlayRequest)(nil),   // 51: nimi.runtime.v1.DeleteCatalogModelOverlayRequest
+	(*DeleteCatalogModelOverlayResponse)(nil),  // 52: nimi.runtime.v1.DeleteCatalogModelOverlayResponse
+	(*timestamppb.Timestamp)(nil),              // 53: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),              // 54: google.protobuf.FieldMask
+	(*Ack)(nil),                                // 55: nimi.runtime.v1.Ack
+	(*structpb.Struct)(nil),                    // 56: google.protobuf.Struct
 }
 var file_runtime_v1_connector_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.Connector.kind:type_name -> nimi.runtime.v1.ConnectorKind
 	1,  // 1: nimi.runtime.v1.Connector.owner_type:type_name -> nimi.runtime.v1.ConnectorOwnerType
 	2,  // 2: nimi.runtime.v1.Connector.status:type_name -> nimi.runtime.v1.ConnectorStatus
-	3,  // 3: nimi.runtime.v1.Connector.local_category:type_name -> nimi.runtime.v1.LocalConnectorCategory
-	52, // 4: nimi.runtime.v1.Connector.created_at:type_name -> google.protobuf.Timestamp
-	52, // 5: nimi.runtime.v1.Connector.updated_at:type_name -> google.protobuf.Timestamp
-	6,  // 6: nimi.runtime.v1.CreateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
-	6,  // 7: nimi.runtime.v1.GetConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
-	0,  // 8: nimi.runtime.v1.ListConnectorsRequest.kind_filter:type_name -> nimi.runtime.v1.ConnectorKind
-	2,  // 9: nimi.runtime.v1.ListConnectorsRequest.status_filter:type_name -> nimi.runtime.v1.ConnectorStatus
-	6,  // 10: nimi.runtime.v1.ListConnectorsResponse.connectors:type_name -> nimi.runtime.v1.Connector
-	2,  // 11: nimi.runtime.v1.UpdateConnectorRequest.status:type_name -> nimi.runtime.v1.ConnectorStatus
-	53, // 12: nimi.runtime.v1.UpdateConnectorRequest.update_mask:type_name -> google.protobuf.FieldMask
-	6,  // 13: nimi.runtime.v1.UpdateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
-	54, // 14: nimi.runtime.v1.DeleteConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
-	54, // 15: nimi.runtime.v1.TestConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
-	19, // 16: nimi.runtime.v1.ListConnectorModelsResponse.models:type_name -> nimi.runtime.v1.ConnectorModelDescriptor
-	22, // 17: nimi.runtime.v1.ListProviderCatalogResponse.providers:type_name -> nimi.runtime.v1.ProviderCatalogEntry
-	4,  // 18: nimi.runtime.v1.ModelCatalogProviderEntry.source:type_name -> nimi.runtime.v1.ModelCatalogProviderSource
-	25, // 19: nimi.runtime.v1.ListModelCatalogProvidersResponse.providers:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	25, // 20: nimi.runtime.v1.UpsertModelCatalogProviderResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	54, // 21: nimi.runtime.v1.DeleteModelCatalogProviderResponse.ack:type_name -> nimi.runtime.v1.Ack
-	35, // 22: nimi.runtime.v1.CatalogVideoGenerationCapability.input_roles:type_name -> nimi.runtime.v1.CatalogStringListEntry
-	55, // 23: nimi.runtime.v1.CatalogVideoGenerationCapability.limits:type_name -> google.protobuf.Struct
-	55, // 24: nimi.runtime.v1.CatalogVideoGenerationCapability.option_constraints:type_name -> google.protobuf.Struct
-	36, // 25: nimi.runtime.v1.CatalogVideoGenerationCapability.outputs:type_name -> nimi.runtime.v1.CatalogVideoGenerationOutputs
-	34, // 26: nimi.runtime.v1.CatalogVoiceEntry.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
-	34, // 27: nimi.runtime.v1.CatalogWorkflowModel.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
-	5,  // 28: nimi.runtime.v1.CatalogModelSummary.source:type_name -> nimi.runtime.v1.CatalogModelSource
-	33, // 29: nimi.runtime.v1.CatalogModelDetail.pricing:type_name -> nimi.runtime.v1.CatalogPricing
-	37, // 30: nimi.runtime.v1.CatalogModelDetail.video_generation:type_name -> nimi.runtime.v1.CatalogVideoGenerationCapability
-	34, // 31: nimi.runtime.v1.CatalogModelDetail.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
-	5,  // 32: nimi.runtime.v1.CatalogModelDetail.source:type_name -> nimi.runtime.v1.CatalogModelSource
-	32, // 33: nimi.runtime.v1.CatalogModelDetail.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
-	38, // 34: nimi.runtime.v1.CatalogModelDetail.voices:type_name -> nimi.runtime.v1.CatalogVoiceEntry
-	39, // 35: nimi.runtime.v1.CatalogModelDetail.voice_workflow_models:type_name -> nimi.runtime.v1.CatalogWorkflowModel
-	40, // 36: nimi.runtime.v1.CatalogModelDetail.model_workflow_binding:type_name -> nimi.runtime.v1.CatalogModelWorkflowBinding
-	33, // 37: nimi.runtime.v1.CatalogModelInput.pricing:type_name -> nimi.runtime.v1.CatalogPricing
-	37, // 38: nimi.runtime.v1.CatalogModelInput.video_generation:type_name -> nimi.runtime.v1.CatalogVideoGenerationCapability
-	34, // 39: nimi.runtime.v1.CatalogModelInput.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
-	25, // 40: nimi.runtime.v1.ListCatalogProviderModelsResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	41, // 41: nimi.runtime.v1.ListCatalogProviderModelsResponse.models:type_name -> nimi.runtime.v1.CatalogModelSummary
-	32, // 42: nimi.runtime.v1.ListCatalogProviderModelsResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
-	25, // 43: nimi.runtime.v1.GetCatalogModelDetailResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	42, // 44: nimi.runtime.v1.GetCatalogModelDetailResponse.model:type_name -> nimi.runtime.v1.CatalogModelDetail
-	32, // 45: nimi.runtime.v1.GetCatalogModelDetailResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
-	43, // 46: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.model:type_name -> nimi.runtime.v1.CatalogModelInput
-	38, // 47: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.voices:type_name -> nimi.runtime.v1.CatalogVoiceEntry
-	39, // 48: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.voice_workflow_models:type_name -> nimi.runtime.v1.CatalogWorkflowModel
-	40, // 49: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.model_workflow_binding:type_name -> nimi.runtime.v1.CatalogModelWorkflowBinding
-	25, // 50: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	42, // 51: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.model:type_name -> nimi.runtime.v1.CatalogModelDetail
-	32, // 52: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
-	54, // 53: nimi.runtime.v1.DeleteCatalogModelOverlayResponse.ack:type_name -> nimi.runtime.v1.Ack
-	25, // 54: nimi.runtime.v1.DeleteCatalogModelOverlayResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
-	7,  // 55: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:input_type -> nimi.runtime.v1.CreateConnectorRequest
-	9,  // 56: nimi.runtime.v1.RuntimeConnectorService.GetConnector:input_type -> nimi.runtime.v1.GetConnectorRequest
-	11, // 57: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:input_type -> nimi.runtime.v1.ListConnectorsRequest
-	13, // 58: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:input_type -> nimi.runtime.v1.UpdateConnectorRequest
-	15, // 59: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:input_type -> nimi.runtime.v1.DeleteConnectorRequest
-	17, // 60: nimi.runtime.v1.RuntimeConnectorService.TestConnector:input_type -> nimi.runtime.v1.TestConnectorRequest
-	20, // 61: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:input_type -> nimi.runtime.v1.ListConnectorModelsRequest
-	23, // 62: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:input_type -> nimi.runtime.v1.ListProviderCatalogRequest
-	26, // 63: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:input_type -> nimi.runtime.v1.ListModelCatalogProvidersRequest
-	28, // 64: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:input_type -> nimi.runtime.v1.UpsertModelCatalogProviderRequest
-	30, // 65: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:input_type -> nimi.runtime.v1.DeleteModelCatalogProviderRequest
-	44, // 66: nimi.runtime.v1.RuntimeConnectorService.ListCatalogProviderModels:input_type -> nimi.runtime.v1.ListCatalogProviderModelsRequest
-	46, // 67: nimi.runtime.v1.RuntimeConnectorService.GetCatalogModelDetail:input_type -> nimi.runtime.v1.GetCatalogModelDetailRequest
-	48, // 68: nimi.runtime.v1.RuntimeConnectorService.UpsertCatalogModelOverlay:input_type -> nimi.runtime.v1.UpsertCatalogModelOverlayRequest
-	50, // 69: nimi.runtime.v1.RuntimeConnectorService.DeleteCatalogModelOverlay:input_type -> nimi.runtime.v1.DeleteCatalogModelOverlayRequest
-	8,  // 70: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:output_type -> nimi.runtime.v1.CreateConnectorResponse
-	10, // 71: nimi.runtime.v1.RuntimeConnectorService.GetConnector:output_type -> nimi.runtime.v1.GetConnectorResponse
-	12, // 72: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:output_type -> nimi.runtime.v1.ListConnectorsResponse
-	14, // 73: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:output_type -> nimi.runtime.v1.UpdateConnectorResponse
-	16, // 74: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:output_type -> nimi.runtime.v1.DeleteConnectorResponse
-	18, // 75: nimi.runtime.v1.RuntimeConnectorService.TestConnector:output_type -> nimi.runtime.v1.TestConnectorResponse
-	21, // 76: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:output_type -> nimi.runtime.v1.ListConnectorModelsResponse
-	24, // 77: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:output_type -> nimi.runtime.v1.ListProviderCatalogResponse
-	27, // 78: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:output_type -> nimi.runtime.v1.ListModelCatalogProvidersResponse
-	29, // 79: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:output_type -> nimi.runtime.v1.UpsertModelCatalogProviderResponse
-	31, // 80: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:output_type -> nimi.runtime.v1.DeleteModelCatalogProviderResponse
-	45, // 81: nimi.runtime.v1.RuntimeConnectorService.ListCatalogProviderModels:output_type -> nimi.runtime.v1.ListCatalogProviderModelsResponse
-	47, // 82: nimi.runtime.v1.RuntimeConnectorService.GetCatalogModelDetail:output_type -> nimi.runtime.v1.GetCatalogModelDetailResponse
-	49, // 83: nimi.runtime.v1.RuntimeConnectorService.UpsertCatalogModelOverlay:output_type -> nimi.runtime.v1.UpsertCatalogModelOverlayResponse
-	51, // 84: nimi.runtime.v1.RuntimeConnectorService.DeleteCatalogModelOverlay:output_type -> nimi.runtime.v1.DeleteCatalogModelOverlayResponse
-	70, // [70:85] is the sub-list for method output_type
-	55, // [55:70] is the sub-list for method input_type
-	55, // [55:55] is the sub-list for extension type_name
-	55, // [55:55] is the sub-list for extension extendee
-	0,  // [0:55] is the sub-list for field type_name
+	4,  // 3: nimi.runtime.v1.Connector.local_category:type_name -> nimi.runtime.v1.LocalConnectorCategory
+	53, // 4: nimi.runtime.v1.Connector.created_at:type_name -> google.protobuf.Timestamp
+	53, // 5: nimi.runtime.v1.Connector.updated_at:type_name -> google.protobuf.Timestamp
+	3,  // 6: nimi.runtime.v1.Connector.auth_kind:type_name -> nimi.runtime.v1.ConnectorAuthKind
+	3,  // 7: nimi.runtime.v1.CreateConnectorRequest.auth_kind:type_name -> nimi.runtime.v1.ConnectorAuthKind
+	7,  // 8: nimi.runtime.v1.CreateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
+	7,  // 9: nimi.runtime.v1.GetConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
+	0,  // 10: nimi.runtime.v1.ListConnectorsRequest.kind_filter:type_name -> nimi.runtime.v1.ConnectorKind
+	2,  // 11: nimi.runtime.v1.ListConnectorsRequest.status_filter:type_name -> nimi.runtime.v1.ConnectorStatus
+	7,  // 12: nimi.runtime.v1.ListConnectorsResponse.connectors:type_name -> nimi.runtime.v1.Connector
+	2,  // 13: nimi.runtime.v1.UpdateConnectorRequest.status:type_name -> nimi.runtime.v1.ConnectorStatus
+	54, // 14: nimi.runtime.v1.UpdateConnectorRequest.update_mask:type_name -> google.protobuf.FieldMask
+	3,  // 15: nimi.runtime.v1.UpdateConnectorRequest.auth_kind:type_name -> nimi.runtime.v1.ConnectorAuthKind
+	7,  // 16: nimi.runtime.v1.UpdateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
+	55, // 17: nimi.runtime.v1.DeleteConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
+	55, // 18: nimi.runtime.v1.TestConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
+	20, // 19: nimi.runtime.v1.ListConnectorModelsResponse.models:type_name -> nimi.runtime.v1.ConnectorModelDescriptor
+	23, // 20: nimi.runtime.v1.ListProviderCatalogResponse.providers:type_name -> nimi.runtime.v1.ProviderCatalogEntry
+	5,  // 21: nimi.runtime.v1.ModelCatalogProviderEntry.source:type_name -> nimi.runtime.v1.ModelCatalogProviderSource
+	26, // 22: nimi.runtime.v1.ListModelCatalogProvidersResponse.providers:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	26, // 23: nimi.runtime.v1.UpsertModelCatalogProviderResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	55, // 24: nimi.runtime.v1.DeleteModelCatalogProviderResponse.ack:type_name -> nimi.runtime.v1.Ack
+	36, // 25: nimi.runtime.v1.CatalogVideoGenerationCapability.input_roles:type_name -> nimi.runtime.v1.CatalogStringListEntry
+	56, // 26: nimi.runtime.v1.CatalogVideoGenerationCapability.limits:type_name -> google.protobuf.Struct
+	56, // 27: nimi.runtime.v1.CatalogVideoGenerationCapability.option_constraints:type_name -> google.protobuf.Struct
+	37, // 28: nimi.runtime.v1.CatalogVideoGenerationCapability.outputs:type_name -> nimi.runtime.v1.CatalogVideoGenerationOutputs
+	35, // 29: nimi.runtime.v1.CatalogVoiceEntry.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	35, // 30: nimi.runtime.v1.CatalogWorkflowModel.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	6,  // 31: nimi.runtime.v1.CatalogModelSummary.source:type_name -> nimi.runtime.v1.CatalogModelSource
+	34, // 32: nimi.runtime.v1.CatalogModelDetail.pricing:type_name -> nimi.runtime.v1.CatalogPricing
+	38, // 33: nimi.runtime.v1.CatalogModelDetail.video_generation:type_name -> nimi.runtime.v1.CatalogVideoGenerationCapability
+	35, // 34: nimi.runtime.v1.CatalogModelDetail.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	6,  // 35: nimi.runtime.v1.CatalogModelDetail.source:type_name -> nimi.runtime.v1.CatalogModelSource
+	33, // 36: nimi.runtime.v1.CatalogModelDetail.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	39, // 37: nimi.runtime.v1.CatalogModelDetail.voices:type_name -> nimi.runtime.v1.CatalogVoiceEntry
+	40, // 38: nimi.runtime.v1.CatalogModelDetail.voice_workflow_models:type_name -> nimi.runtime.v1.CatalogWorkflowModel
+	41, // 39: nimi.runtime.v1.CatalogModelDetail.model_workflow_binding:type_name -> nimi.runtime.v1.CatalogModelWorkflowBinding
+	34, // 40: nimi.runtime.v1.CatalogModelInput.pricing:type_name -> nimi.runtime.v1.CatalogPricing
+	38, // 41: nimi.runtime.v1.CatalogModelInput.video_generation:type_name -> nimi.runtime.v1.CatalogVideoGenerationCapability
+	35, // 42: nimi.runtime.v1.CatalogModelInput.source_ref:type_name -> nimi.runtime.v1.CatalogSourceRef
+	26, // 43: nimi.runtime.v1.ListCatalogProviderModelsResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	42, // 44: nimi.runtime.v1.ListCatalogProviderModelsResponse.models:type_name -> nimi.runtime.v1.CatalogModelSummary
+	33, // 45: nimi.runtime.v1.ListCatalogProviderModelsResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	26, // 46: nimi.runtime.v1.GetCatalogModelDetailResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	43, // 47: nimi.runtime.v1.GetCatalogModelDetailResponse.model:type_name -> nimi.runtime.v1.CatalogModelDetail
+	33, // 48: nimi.runtime.v1.GetCatalogModelDetailResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	44, // 49: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.model:type_name -> nimi.runtime.v1.CatalogModelInput
+	39, // 50: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.voices:type_name -> nimi.runtime.v1.CatalogVoiceEntry
+	40, // 51: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.voice_workflow_models:type_name -> nimi.runtime.v1.CatalogWorkflowModel
+	41, // 52: nimi.runtime.v1.UpsertCatalogModelOverlayRequest.model_workflow_binding:type_name -> nimi.runtime.v1.CatalogModelWorkflowBinding
+	26, // 53: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	43, // 54: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.model:type_name -> nimi.runtime.v1.CatalogModelDetail
+	33, // 55: nimi.runtime.v1.UpsertCatalogModelOverlayResponse.warnings:type_name -> nimi.runtime.v1.CatalogOverlayWarning
+	55, // 56: nimi.runtime.v1.DeleteCatalogModelOverlayResponse.ack:type_name -> nimi.runtime.v1.Ack
+	26, // 57: nimi.runtime.v1.DeleteCatalogModelOverlayResponse.provider:type_name -> nimi.runtime.v1.ModelCatalogProviderEntry
+	8,  // 58: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:input_type -> nimi.runtime.v1.CreateConnectorRequest
+	10, // 59: nimi.runtime.v1.RuntimeConnectorService.GetConnector:input_type -> nimi.runtime.v1.GetConnectorRequest
+	12, // 60: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:input_type -> nimi.runtime.v1.ListConnectorsRequest
+	14, // 61: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:input_type -> nimi.runtime.v1.UpdateConnectorRequest
+	16, // 62: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:input_type -> nimi.runtime.v1.DeleteConnectorRequest
+	18, // 63: nimi.runtime.v1.RuntimeConnectorService.TestConnector:input_type -> nimi.runtime.v1.TestConnectorRequest
+	21, // 64: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:input_type -> nimi.runtime.v1.ListConnectorModelsRequest
+	24, // 65: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:input_type -> nimi.runtime.v1.ListProviderCatalogRequest
+	27, // 66: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:input_type -> nimi.runtime.v1.ListModelCatalogProvidersRequest
+	29, // 67: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:input_type -> nimi.runtime.v1.UpsertModelCatalogProviderRequest
+	31, // 68: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:input_type -> nimi.runtime.v1.DeleteModelCatalogProviderRequest
+	45, // 69: nimi.runtime.v1.RuntimeConnectorService.ListCatalogProviderModels:input_type -> nimi.runtime.v1.ListCatalogProviderModelsRequest
+	47, // 70: nimi.runtime.v1.RuntimeConnectorService.GetCatalogModelDetail:input_type -> nimi.runtime.v1.GetCatalogModelDetailRequest
+	49, // 71: nimi.runtime.v1.RuntimeConnectorService.UpsertCatalogModelOverlay:input_type -> nimi.runtime.v1.UpsertCatalogModelOverlayRequest
+	51, // 72: nimi.runtime.v1.RuntimeConnectorService.DeleteCatalogModelOverlay:input_type -> nimi.runtime.v1.DeleteCatalogModelOverlayRequest
+	9,  // 73: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:output_type -> nimi.runtime.v1.CreateConnectorResponse
+	11, // 74: nimi.runtime.v1.RuntimeConnectorService.GetConnector:output_type -> nimi.runtime.v1.GetConnectorResponse
+	13, // 75: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:output_type -> nimi.runtime.v1.ListConnectorsResponse
+	15, // 76: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:output_type -> nimi.runtime.v1.UpdateConnectorResponse
+	17, // 77: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:output_type -> nimi.runtime.v1.DeleteConnectorResponse
+	19, // 78: nimi.runtime.v1.RuntimeConnectorService.TestConnector:output_type -> nimi.runtime.v1.TestConnectorResponse
+	22, // 79: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:output_type -> nimi.runtime.v1.ListConnectorModelsResponse
+	25, // 80: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:output_type -> nimi.runtime.v1.ListProviderCatalogResponse
+	28, // 81: nimi.runtime.v1.RuntimeConnectorService.ListModelCatalogProviders:output_type -> nimi.runtime.v1.ListModelCatalogProvidersResponse
+	30, // 82: nimi.runtime.v1.RuntimeConnectorService.UpsertModelCatalogProvider:output_type -> nimi.runtime.v1.UpsertModelCatalogProviderResponse
+	32, // 83: nimi.runtime.v1.RuntimeConnectorService.DeleteModelCatalogProvider:output_type -> nimi.runtime.v1.DeleteModelCatalogProviderResponse
+	46, // 84: nimi.runtime.v1.RuntimeConnectorService.ListCatalogProviderModels:output_type -> nimi.runtime.v1.ListCatalogProviderModelsResponse
+	48, // 85: nimi.runtime.v1.RuntimeConnectorService.GetCatalogModelDetail:output_type -> nimi.runtime.v1.GetCatalogModelDetailResponse
+	50, // 86: nimi.runtime.v1.RuntimeConnectorService.UpsertCatalogModelOverlay:output_type -> nimi.runtime.v1.UpsertCatalogModelOverlayResponse
+	52, // 87: nimi.runtime.v1.RuntimeConnectorService.DeleteCatalogModelOverlay:output_type -> nimi.runtime.v1.DeleteCatalogModelOverlayResponse
+	73, // [73:88] is the sub-list for method output_type
+	58, // [58:73] is the sub-list for method input_type
+	58, // [58:58] is the sub-list for extension type_name
+	58, // [58:58] is the sub-list for extension extendee
+	0,  // [0:58] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_connector_proto_init() }
@@ -3940,7 +4074,7 @@ func file_runtime_v1_connector_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_connector_proto_rawDesc), len(file_runtime_v1_connector_proto_rawDesc)),
-			NumEnums:      6,
+			NumEnums:      7,
 			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   1,

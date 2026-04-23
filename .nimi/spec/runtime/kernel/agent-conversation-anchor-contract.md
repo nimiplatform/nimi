@@ -82,4 +82,4 @@ Fixed rules:
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
 - `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
-- `.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/dual-entry-session.md`
+- `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/dual-entry-session.md`

@@ -20,8 +20,6 @@ export type RealmGeneratedModelMap = {
   AgentHandleAvailabilityResponseDto: components['schemas']['AgentHandleAvailabilityResponseDto'];
   AgentIdentityDto: components['schemas']['AgentIdentityDto'];
   AgentImportance: components['schemas']['AgentImportance'];
-  AgentMemoryCommitEnvelopeDto: components['schemas']['AgentMemoryCommitEnvelopeDto'];
-  AgentMemoryRecordDto: components['schemas']['AgentMemoryRecordDto'];
   AgentMetadataDto: components['schemas']['AgentMetadataDto'];
   AgentOrigin: components['schemas']['AgentOrigin'];
   AgentOriginDto: components['schemas']['AgentOriginDto'];
@@ -95,7 +93,6 @@ export type RealmGeneratedModelMap = {
   CheckEmailResponseDto: components['schemas']['CheckEmailResponseDto'];
   ClassDefinitionDto: components['schemas']['ClassDefinitionDto'];
   CloneAssetDto: components['schemas']['CloneAssetDto'];
-  CommitAgentMemoryDto: components['schemas']['CommitAgentMemoryDto'];
   CommitWorldStateDto: components['schemas']['CommitWorldStateDto'];
   ConnectDashboardLinkDto: components['schemas']['ConnectDashboardLinkDto'];
   ConnectOnboardingResponseDto: components['schemas']['ConnectOnboardingResponseDto'];
@@ -138,8 +135,6 @@ export type RealmGeneratedModelMap = {
   CurrencyTransactionHistoryDto: components['schemas']['CurrencyTransactionHistoryDto'];
   CursorPageMetaDto: components['schemas']['CursorPageMetaDto'];
   DeleteAgentOperationResponseDto: components['schemas']['DeleteAgentOperationResponseDto'];
-  DeleteAllDyadicMemoriesResponseDto: components['schemas']['DeleteAllDyadicMemoriesResponseDto'];
-  DeleteDyadicMemoryResponseDto: components['schemas']['DeleteDyadicMemoryResponseDto'];
   DeleteRelationshipResponseDto: components['schemas']['DeleteRelationshipResponseDto'];
   DnaPrimaryType: components['schemas']['DnaPrimaryType'];
   DnaSecondaryTrait: components['schemas']['DnaSecondaryTrait'];
@@ -252,6 +247,14 @@ export type RealmGeneratedModelMap = {
   ReviewRating: components['schemas']['ReviewRating'];
   ReviewStatsDto: components['schemas']['ReviewStatsDto'];
   RuleValidationResponseDto: components['schemas']['RuleValidationResponseDto'];
+  RuntimeProjectionContextEnvelopeDto: components['schemas']['RuntimeProjectionContextEnvelopeDto'];
+  RuntimeProjectionInputDto: components['schemas']['RuntimeProjectionInputDto'];
+  RuntimeProjectionPayloadDto: components['schemas']['RuntimeProjectionPayloadDto'];
+  RuntimeProjectionRequestDto: components['schemas']['RuntimeProjectionRequestDto'];
+  RuntimeProjectionResolutionOutcomeDto: components['schemas']['RuntimeProjectionResolutionOutcomeDto'];
+  RuntimeProjectionResponseDto: components['schemas']['RuntimeProjectionResponseDto'];
+  RuntimeProjectionSuppressedInputDto: components['schemas']['RuntimeProjectionSuppressedInputDto'];
+  RuntimeProjectionTraceDto: components['schemas']['RuntimeProjectionTraceDto'];
   RuntimeRealmGrantIssueRequestDto: components['schemas']['RuntimeRealmGrantIssueRequestDto'];
   RuntimeRealmGrantIssueResponseDto: components['schemas']['RuntimeRealmGrantIssueResponseDto'];
   SceneConnectionDto: components['schemas']['SceneConnectionDto'];

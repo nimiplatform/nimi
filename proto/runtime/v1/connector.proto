@@ -27,6 +27,12 @@ enum ConnectorStatus {
   CONNECTOR_STATUS_DISABLED = 2;
 }
 
+enum ConnectorAuthKind {
+  CONNECTOR_AUTH_KIND_UNSPECIFIED = 0;
+  CONNECTOR_AUTH_KIND_API_KEY = 1;
+  CONNECTOR_AUTH_KIND_OAUTH_MANAGED = 2;
+}
+
 enum LocalConnectorCategory {
   LOCAL_CONNECTOR_CATEGORY_UNSPECIFIED = 0;
   LOCAL_CONNECTOR_CATEGORY_LLM = 1;
@@ -50,6 +56,8 @@ message Connector {
   bool has_credential = 10;
   google.protobuf.Timestamp created_at = 11;
   google.protobuf.Timestamp updated_at = 12;
+  ConnectorAuthKind auth_kind = 13;
+  string provider_auth_profile = 14;
 }
 
 message CreateConnectorRequest {
@@ -59,6 +67,9 @@ message CreateConnectorRequest {
   string api_key = 4;
   reserved 5;
   reserved "owner_id";
+  ConnectorAuthKind auth_kind = 6;
+  string provider_auth_profile = 7;
+  string credential_json = 8;
 }
 
 message CreateConnectorResponse {
@@ -99,6 +110,9 @@ message UpdateConnectorRequest {
   optional string api_key = 5;
   ConnectorStatus status = 6;
   google.protobuf.FieldMask update_mask = 7;
+  optional ConnectorAuthKind auth_kind = 8;
+  optional string provider_auth_profile = 9;
+  optional string credential_json = 10;
 }
 
 message UpdateConnectorResponse {

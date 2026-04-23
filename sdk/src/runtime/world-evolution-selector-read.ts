@@ -1,6 +1,5 @@
 export type WorldEvolutionEffectClass =
   | 'NONE'
-  | 'MEMORY_ONLY'
   | 'STATE_ONLY'
   | 'STATE_AND_HISTORY';
 

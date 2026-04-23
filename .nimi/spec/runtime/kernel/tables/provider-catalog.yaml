@@ -168,6 +168,12 @@ providers:
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027
+  - provider: openai_codex
+    default_endpoint: https://chatgpt.com/backend-api/codex
+    default_text_model: gpt-5.4
+    requires_explicit_endpoint: false
+    inventory_mode: static_source
+    source_rule: K-MCAT-027
   - provider: openai_compatible
     default_endpoint: null
     default_text_model: null

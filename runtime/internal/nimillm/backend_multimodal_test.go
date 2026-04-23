@@ -514,7 +514,7 @@ func TestGenerateTextOpenAIProviderNativeAudioRequest(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := newBackend("cloud-openai", server.URL, "", 0, server.Client().Transport, false, true)
+	backend := newBackend("cloud-openai", server.URL, "", nil, 0, server.Client().Transport, false, true)
 	if backend == nil {
 		t.Fatal("expected backend")
 	}
@@ -585,7 +585,7 @@ func TestGenerateTextGenericOpenAICompatibleRejectsAudioPart(t *testing.T) {
 }
 
 func TestBuildOpenAIProviderNativeMessagesAcceptsDataURLImage(t *testing.T) {
-	backend := newBackend("cloud-openai", "https://example.com", "", 0, nil, false, true)
+	backend := newBackend("cloud-openai", "https://example.com", "", nil, 0, nil, false, true)
 	if backend == nil {
 		t.Fatal("expected backend")
 	}

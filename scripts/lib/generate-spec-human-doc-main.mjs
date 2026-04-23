@@ -14,6 +14,7 @@ import {
   renderBootstrapPhases,
   renderBuildChunks,
   renderCompletionGates,
+  renderConnectorAuthProfiles,
   renderDataSyncFlows,
   renderDesktopErrorCodes,
   renderErrorMappingMatrix,
@@ -1067,7 +1068,7 @@ Future Capabilities 系统用三个互锁的注册表解决这个问题：能力
 追溯链
 ─────────────────────────────────────────────────
 Research Topic Doc     Backlog Item           Spec Document
-(.nimi/local/report/{proposal|ongoing|pending|closed}/<topic-id>/*.md) (backlog-items.yaml)   (.nimi/spec/**/*.md)
+(.nimi/topics/{proposal|ongoing|pending|closed}/<topic-id>/*.md) (backlog-items.yaml)   (.nimi/spec/**/*.md)
        │                      │                      │
    source_id ─────→ source_ids[]              target_spec_path
                               │                      │
@@ -1261,27 +1262,31 @@ Source ID 格式为 \`RESEARCH-<ABBREV>-NNN\`，其中 ABBREV 是 2-6 字符的�
 `);
   await d.yamlTable(rtTables('key-source-truth-table.yaml'), renderKeySourceTruthTable);
 
-  d.text(`### 13.16 Runtime — 状态机
+  d.text(`### 13.16 Runtime — Connector Auth Profiles
+`);
+  await d.yamlTable(rtTables('connector-auth-profiles.yaml'), renderConnectorAuthProfiles);
+
+  d.text(`### 13.17 Runtime — 状态机
 `);
   await d.yamlTable(rtTables('state-transitions.yaml'), renderStateTransitions);
 
-  d.text(`### 13.17 Runtime — 本地引擎目录
+  d.text(`### 13.18 Runtime — 本地引擎目录
 `);
   await d.yamlTable(rtTables('local-engine-catalog.yaml'), renderLocalEngineCatalog);
 
-  d.text(`### 13.18 Runtime — 本地适配器路由
+  d.text(`### 13.19 Runtime — 本地适配器路由
 `);
   await d.yamlTable(rtTables('local-adapter-routing.yaml'), renderLocalAdapterRouting);
 
-  d.text(`### 13.19 SDK — 错误码
+  d.text(`### 13.20 SDK — 错误码
 `);
   await d.yamlTable(sdkTables('sdk-error-codes.yaml'), renderSdkErrorCodes);
 
-  d.text(`### 13.20 SDK — 导入边界
+  d.text(`### 13.21 SDK — 导入边界
 `);
   await d.yamlTable(sdkTables('import-boundaries.yaml'), renderImportBoundaries);
 
-  d.text(`### 13.21 SDK — Runtime 方法投影分组
+  d.text(`### 13.22 SDK — Runtime 方法投影分组
 `);
   await d.yamlTable(sdkTables('runtime-method-groups.yaml'), renderMethodGroups);
 

@@ -52,6 +52,7 @@ const kernelFiles = [
   '.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml',
   '.nimi/spec/runtime/kernel/tables/metadata-keys.yaml',
   '.nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml',
+  '.nimi/spec/runtime/kernel/tables/connector-auth-profiles.yaml',
   '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
   '.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml',
   '.nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml',

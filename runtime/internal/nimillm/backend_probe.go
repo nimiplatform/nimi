@@ -39,6 +39,14 @@ type openAIModelsResponse struct {
 	Data []openAIModelRecord `json:"data"`
 }
 
+type anthropicModelsResponse struct {
+	Data []struct {
+		ID          string `json:"id"`
+		DisplayName string `json:"display_name"`
+		Type        string `json:"type"`
+	} `json:"data"`
+}
+
 type fireworksModelRecord struct {
 	Name               string `json:"name"`
 	DisplayName        string `json:"displayName"`
@@ -71,6 +79,9 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 		}
 		endpoint := strings.TrimSuffix(modelsBaseURL, "/") + "/v1/accounts/fireworks/models"
 		return b.probeGETAbsolute(ctx, endpoint)
+	}
+	if b.supportsAnthropicMessages() {
+		return b.probeGET(ctx, "/v1/models")
 	}
 
 	paths := []string{"/v1/models", "/models"}
@@ -105,6 +116,13 @@ func (b *Backend) ListModels(ctx context.Context) ([]ProbeModel, error) {
 		if !shouldRetryModelListPath(err) {
 			return nil, err
 		}
+	}
+	if b.supportsAnthropicMessages() {
+		var payload anthropicModelsResponse
+		if err := b.getJSON(ctx, "/v1/models", &payload); err != nil {
+			return nil, err
+		}
+		return mapAnthropicProbeModels(payload), nil
 	}
 
 	paths := []string{"/v1/models", "/models"}
@@ -228,6 +246,32 @@ func mapFireworksProbeModels(payload fireworksModelsResponse) []ProbeModel {
 			ModelLabel:   label,
 			Available:    fireworksModelAvailable(item),
 			Capabilities: inferFireworksProbeCapabilities(item),
+		})
+	}
+	return out
+}
+
+func mapAnthropicProbeModels(payload anthropicModelsResponse) []ProbeModel {
+	out := make([]ProbeModel, 0, len(payload.Data))
+	seen := make(map[string]struct{}, len(payload.Data))
+	for _, item := range payload.Data {
+		modelID := strings.TrimSpace(item.ID)
+		if modelID == "" {
+			continue
+		}
+		if _, exists := seen[modelID]; exists {
+			continue
+		}
+		seen[modelID] = struct{}{}
+		label := strings.TrimSpace(item.DisplayName)
+		if label == "" {
+			label = modelID
+		}
+		out = append(out, ProbeModel{
+			ModelID:      modelID,
+			ModelLabel:   label,
+			Available:    true,
+			Capabilities: []string{"text.generate"},
 		})
 	}
 	return out

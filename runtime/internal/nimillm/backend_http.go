@@ -25,9 +25,6 @@ func (b *Backend) postJSON(ctx context.Context, path string, requestBody any, re
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	if b.apiKey != "" {
-		request.Header.Set("Authorization", "Bearer "+b.apiKey)
-	}
 
 	response, err := b.do(request)
 	if err != nil {
@@ -53,9 +50,6 @@ func (b *Backend) probeGETAbsolute(ctx context.Context, endpoint string) error {
 	if err != nil {
 		return err
 	}
-	if b.apiKey != "" {
-		request.Header.Set("Authorization", "Bearer "+b.apiKey)
-	}
 
 	response, err := b.do(request)
 	if err != nil {
@@ -77,9 +71,6 @@ func (b *Backend) getJSONAbsolute(ctx context.Context, endpoint string, response
 	request, err := b.newRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return err
-	}
-	if b.apiKey != "" {
-		request.Header.Set("Authorization", "Bearer "+b.apiKey)
 	}
 
 	response, err := b.do(request)
@@ -103,9 +94,6 @@ func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]
 		return nil, err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	if b.apiKey != "" {
-		request.Header.Set("Authorization", "Bearer "+b.apiKey)
-	}
 
 	response, err := b.do(request)
 	if err != nil {

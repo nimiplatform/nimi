@@ -30,6 +30,10 @@ import {
   createInspectWorldRenderPlan,
 } from './render.js';
 import {
+  projection,
+  projectWorldRuntimePayload,
+} from './projection.js';
+import {
   session,
   createInspectWorldSession,
 } from './session.js';
@@ -59,6 +63,8 @@ export {
   resolveWorldFixtureTitle,
   render,
   createInspectWorldRenderPlan,
+  projection,
+  projectWorldRuntimePayload,
   session,
   createInspectWorldSession,
 };
@@ -82,6 +88,10 @@ export function createWorldFacade(
       toRuntimeInput: generate.toRuntimeInput,
       submit: (input: Parameters<typeof submitWorldGenerate>[1]) =>
         submitWorldGenerate(client, input),
+    },
+    projection: {
+      projectRuntimePayload: (input: Parameters<typeof projectWorldRuntimePayload>[1]) =>
+        projectWorldRuntimePayload(client, input),
     },
     fixture,
     render,

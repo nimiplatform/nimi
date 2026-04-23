@@ -5,7 +5,7 @@
 ## K-AUTH-001 身份模型
 
 - 有效 Realm JWT：可访问 `LOCAL_MODEL` 与 owner=`sub` 的 `REMOTE_MANAGED`。
-- 无 JWT：可访问 `LOCAL_MODEL`、system-owned remote connector，以及 inline 路径；其中 anonymous 创建的 machine-global connector 以 `owner_type=SYSTEM`、`owner_id="machine"` 持久化。
+- 无 JWT：可访问 `LOCAL_MODEL`、system-owned remote connector，以及 inline 路径；其中 anonymous 创建的 machine-global connector 仅限 `auth_kind=API_KEY`，并以 `owner_type=SYSTEM`、`owner_id="machine"` 持久化。
 - 携带 `Authorization` 但 JWT 无效：必须 `UNAUTHENTICATED`，不降级匿名。
 
 `JWT` 的有效性判定由 `K-AUTHN-002`（必校验 claims）、`K-AUTHN-003`（算法约束）、`K-AUTHN-004`（JWKS）与 `K-AUTHN-005`（时钟偏差）定义。
@@ -21,14 +21,15 @@
 ## K-AUTH-003 Connector owner 固定映射
 
 - authenticated `REMOTE_MANAGED -> CONNECTOR_OWNER_TYPE_REALM_USER`
-- anonymous machine-global `REMOTE_MANAGED -> CONNECTOR_OWNER_TYPE_SYSTEM` 且 `owner_id="machine"`
+- anonymous machine-global `REMOTE_MANAGED -> CONNECTOR_OWNER_TYPE_SYSTEM` 且 `owner_id="machine"`，但仅适用于 `auth_kind=API_KEY`
+- `auth_kind=OAUTH_MANAGED` 的 `REMOTE_MANAGED` 必须固定为 `CONNECTOR_OWNER_TYPE_REALM_USER`
 - `LOCAL_MODEL -> CONNECTOR_OWNER_TYPE_SYSTEM`
 
 ## K-AUTH-004 管理 RPC 身份门禁
 
-- `Create`：有效 JWT 时创建 user-owned remote connector；JWT 缺失时允许创建 machine-global remote connector。
-- `Update/Delete`：user-owned remote connector 仍必须有效 JWT；`owner_id="machine"` 的 machine-global remote connector 允许 anonymous 与 authenticated 调用方管理。
-- `Get/List/Test/ListConnectorModels`：JWT 可缺失；缺失时 user-owned remote 语义按信息隐藏处理，system-owned remote connector 继续可见。
+- `Create`：有效 JWT 时可创建 user-owned remote connector；JWT 缺失时只允许创建 `auth_kind=API_KEY` 的 machine-global remote connector。
+- `Update/Delete`：user-owned remote connector 仍必须有效 JWT；`owner_id="machine"` 的 machine-global remote connector 仅限 `auth_kind=API_KEY`，并允许 anonymous 与 authenticated 调用方管理。
+- `Get/List/Test/ListConnectorModels`：JWT 可缺失；缺失时 user-owned remote 语义按信息隐藏处理，system-owned remote connector 继续可见；若发现 non-user-owned `OAUTH_MANAGED` 记录，必须按 `NOT_FOUND` fail-close。
 
 ## K-AUTH-005 AI consume 资源校验顺序
 

@@ -91,6 +91,18 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 
 ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/rpc-migration-map.yaml` 中 `mapping_status=aligned`）。
 
+ConnectorService 在 `CreateConnector` / `UpdateConnector` 上的 credential request shape 固定为：
+
+- `api_key`：`auth_kind=API_KEY` 的 legacy-compatible field
+- `auth_kind`：managed connector credential family discriminator
+- `provider_auth_profile`：OAuth-managed connector 的 provider profile token；唯一事实源是 `tables/connector-auth-profiles.yaml`，并且必须与 provider 兼容
+- `credential_json`：OAuth-managed connector 的 provider-defined sealed payload
+- `credential_json` 在当前 admitted scope 只承诺被 runtime 当作 sealed
+  payload 托管；RPC 面不承诺统一 refresh schema，也不承诺 runtime 拥有 OAuth
+  login/refresh orchestration
+
+这些字段只定义 connector custody 与 patch 语义，不等同于 app-facing inline credential metadata contract。
+
 ## K-RPC-004 RuntimeLocalService 方法集合
 
 `RuntimeLocalService` 是本地模型控制面的唯一稳定 RPC 面。local model / artifact 的清单、状态、health、audit、import/install/download、orphan adopt/scaffold 与 transfer/progress 必须全部由该服务持有；desktop 不得再拥有并回写第二套本地模型真源。
@@ -315,7 +327,10 @@ matrix 固定为：
 `CreateConnector` 必须满足：
 
 - 请求体不暴露 `kind`；`CreateConnector` 成功创建的结果 `Connector.kind` 固定为 `REMOTE_MANAGED`
-- `api_key` 必填且非空
+- credential shape 必须满足二选一：
+  - `auth_kind=API_KEY`（或省略并走 legacy path）时，`api_key` 必填且非空
+  - `auth_kind=OAUTH_MANAGED` 时，`provider_auth_profile + credential_json` 必填
+- `api_key` 与 `credential_json` 不得同时出现
 - `endpoint` 为空时按 provider 默认值注入
 - `label` 为空时使用默认 label
 - 成功写入时 `status=ACTIVE`，`created_at=updated_at=now`
@@ -324,9 +339,10 @@ matrix 固定为：
 
 `UpdateConnector` 必须满足：
 
-- 至少一个可变字段（`endpoint/label/api_key/status`）
+- 至少一个可变字段（`endpoint/label/api_key/status/auth_kind/provider_auth_profile/credential_json`）
 - `status=UNSPECIFIED` 非法
-- `api_key` 与 `label` 显式空串非法
+- `api_key`、`credential_json` 与 `label` 显式空串非法
+- 切换 auth kind 时必须提供目标 auth shape 所需字段；服务端不得做隐式 credential family 转换
 - 合法请求一律刷新 `updated_at`
 
 ## K-RPC-009 DeleteConnector 补偿契约

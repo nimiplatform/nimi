@@ -172,6 +172,123 @@ export type WorldGenerateSubmitInput = WorldProjectionInput & WorldGenerateRunti
 
 export type WorldGenerateRuntimeRequest = WorldGenerateInput;
 
+export type WorldRuntimeProjectionAgentLayer =
+  | 'DNA'
+  | 'BEHAVIORAL'
+  | 'RELATIONAL'
+  | 'CONTEXTUAL';
+
+export type WorldRuntimeProjectionAgentScope =
+  | 'SELF'
+  | 'DYAD'
+  | 'GROUP'
+  | 'WORLD';
+
+export type WorldRuntimeProjectionWorldScope =
+  | 'WORLD'
+  | 'REGION'
+  | 'FACTION'
+  | 'INDIVIDUAL'
+  | 'SCENE';
+
+export type WorldRuntimeProjectionRuleHardness =
+  | 'HARD'
+  | 'FIRM'
+  | 'SOFT'
+  | 'AESTHETIC';
+
+export type WorldRuntimeProjectionSourceType = 'WORLD_RULE' | 'AGENT_RULE';
+
+export type WorldRuntimeProjectionSuppressedReason =
+  | 'RULE_KEY_FILTER'
+  | 'SCOPE_FILTER'
+  | 'LAYER_FILTER'
+  | 'PROVENANCE_FILTER'
+  | 'FOCUS_MISS'
+  | 'SURFACE_POLICY';
+
+export type WorldRuntimeProjectionDecision = 'SELECTED' | 'SUPPRESSED';
+
+export type WorldRuntimeProjectionConsumerSurface = 'RUNTIME_PAYLOAD';
+
+export type WorldRuntimeProjectionContextEnvelope = {
+  sceneId?: string;
+  turnId?: string;
+  focusKeywords?: string[];
+  requestedWorldRuleKeys?: string[];
+  requestedAgentRuleKeys?: string[];
+  allowedWorldScopes?: WorldRuntimeProjectionWorldScope[];
+  allowedAgentLayers?: WorldRuntimeProjectionAgentLayer[];
+  allowedAgentScopes?: WorldRuntimeProjectionAgentScope[];
+  includeInheritedAgentRules?: boolean;
+  temporalPosition?: string;
+  stateVisibilityKeys?: string[];
+};
+
+export type WorldRuntimeProjectionRequest = {
+  worldId: string;
+  agentId?: string;
+  releaseAnchor?: string | null;
+  contextEnvelope?: WorldRuntimeProjectionContextEnvelope;
+};
+
+export type WorldRuntimeProjectionInput = {
+  id: string;
+  sourceType: WorldRuntimeProjectionSourceType;
+  sourceId: string;
+  lineageId: string;
+  worldId: string;
+  agentId?: string;
+  ruleKey: string;
+  title: string;
+  statement: string;
+  hardness: WorldRuntimeProjectionRuleHardness;
+  priority: number;
+  scope: string;
+  provenance: string;
+  layer?: WorldRuntimeProjectionAgentLayer;
+  worldRuleRef?: string | null;
+  structured?: Record<string, unknown> | null;
+  sourceRef?: string | null;
+  reasoning?: string | null;
+  validFrom?: string | null;
+  validUntil?: string | null;
+};
+
+export type WorldRuntimeProjectionSuppressedInput = {
+  input: WorldRuntimeProjectionInput;
+  reason: WorldRuntimeProjectionSuppressedReason;
+};
+
+export type WorldRuntimeProjectionResolutionOutcome = {
+  inputId: string;
+  sourceType: WorldRuntimeProjectionSourceType;
+  decision: WorldRuntimeProjectionDecision;
+  reasons: string[];
+};
+
+export type WorldRuntimeProjectionTrace = {
+  selectedInputIds: string[];
+  suppressedInputs: WorldRuntimeProjectionSuppressedInput[];
+  resolutionOutcomes: WorldRuntimeProjectionResolutionOutcome[];
+};
+
+export type WorldRuntimeProjectionPayload = {
+  worldRules: WorldRuntimeProjectionInput[];
+  agentRules: WorldRuntimeProjectionInput[];
+};
+
+export type WorldRuntimeProjectionResult = {
+  worldId: string;
+  agentId?: string;
+  consumerSurface: WorldRuntimeProjectionConsumerSurface;
+  releaseAnchor?: string | null;
+  checksum: string;
+  selectedInputs: WorldRuntimeProjectionInput[];
+  trace: WorldRuntimeProjectionTrace;
+  payload: WorldRuntimeProjectionPayload;
+};
+
 export type WorldInspectVector = {
   x: number;
   y: number;

@@ -411,7 +411,7 @@ func validateConnectorTTSModelSupport(
 		return nil
 	}
 
-	probeBackend, _, err := cloudProvider.ResolveProbeBackend(remoteTarget.ProviderType, remoteTarget.Endpoint, remoteTarget.APIKey)
+	probeBackend, _, err := cloudProvider.ResolveProbeBackend(remoteTarget.ProviderType, remoteTarget.Endpoint, remoteTarget.APIKey, remoteTarget.Headers)
 	if err != nil {
 		return err
 	}

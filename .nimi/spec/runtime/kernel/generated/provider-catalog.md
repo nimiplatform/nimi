@@ -32,6 +32,7 @@
 | `mubert` | `https://music-api.mubert.com/api/v3` | `false` | `K-MCAT-027` |
 | `nimillm` | — | `true` | `K-MCAT-027` |
 | `openai` | `https://api.openai.com/v1` | `false` | `K-MCAT-027` |
+| `openai_codex` | `https://chatgpt.com/backend-api/codex` | `false` | `K-MCAT-027` |
 | `openai_compatible` | — | `true` | `K-MCAT-027` |
 | `openrouter` | `https://openrouter.ai/api/v1` | `false` | `K-MCAT-027` |
 | `perplexity` | — | `true` | `K-MCAT-027` |

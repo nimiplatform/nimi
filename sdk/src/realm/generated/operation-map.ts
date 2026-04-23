@@ -269,32 +269,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "AgentsService.agentControllerCommitMemory": {
-    "operationId": "AgentController_commitMemory",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/memory/commits",
-    "service": "AgentsService",
-    "methodName": "agentControllerCommitMemory",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "AgentsService.agentControllerCreate": {
     "operationId": "AgentController_create",
     "method": "POST",
@@ -324,74 +298,6 @@ export const REALM_OPERATION_MAP = {
     "parameters": [
       {
         "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerDeleteAllDyadicMemories": {
-    "operationId": "AgentController_deleteAllDyadicMemories",
-    "method": "DELETE",
-    "path": "/api/agent/accounts/{id}/memory/dyadic/{userId}",
-    "service": "AgentsService",
-    "methodName": "agentControllerDeleteAllDyadicMemories",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "userId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerDeleteDyadicMemory": {
-    "operationId": "AgentController_deleteDyadicMemory",
-    "method": "DELETE",
-    "path": "/api/agent/accounts/{id}/memory/dyadic/{userId}/{memoryId}",
-    "service": "AgentsService",
-    "methodName": "agentControllerDeleteDyadicMemory",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "userId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "memoryId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -445,74 +351,6 @@ export const REALM_OPERATION_MAP = {
         "in": "path",
         "required": true,
         "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerListCoreMemories": {
-    "operationId": "AgentController_listCoreMemories",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/memory/core",
-    "service": "AgentsService",
-    "methodName": "agentControllerListCoreMemories",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "limit",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerListDyadicMemories": {
-    "operationId": "AgentController_listDyadicMemories",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/memory/dyadic/{userId}",
-    "service": "AgentsService",
-    "methodName": "agentControllerListDyadicMemories",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "userId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "limit",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
       }
     ],
     "hasBody": false,
@@ -4410,6 +4248,25 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "RuntimeProjectionsService.projectRuntimePayload": {
+    "operationId": "projectRuntimePayload",
+    "method": "POST",
+    "path": "/api/runtime/projections/project",
+    "service": "RuntimeProjectionsService",
+    "methodName": "projectRuntimePayload",
+    "tag": "Runtime Projections",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "RuntimeRealmGrantsService.issueRuntimeRealmGrant": {
     "operationId": "issueRuntimeRealmGrant",
     "method": "POST",
@@ -6292,15 +6149,10 @@ export const REALM_SERVICE_METHODS = {
   },
   "AgentsService": {
     "agentControllerCheckHandle": "AgentsService.agentControllerCheckHandle",
-    "agentControllerCommitMemory": "AgentsService.agentControllerCommitMemory",
     "agentControllerCreate": "AgentsService.agentControllerCreate",
     "agentControllerDelete": "AgentsService.agentControllerDelete",
-    "agentControllerDeleteAllDyadicMemories": "AgentsService.agentControllerDeleteAllDyadicMemories",
-    "agentControllerDeleteDyadicMemory": "AgentsService.agentControllerDeleteDyadicMemory",
     "agentControllerGetRelationships": "AgentsService.agentControllerGetRelationships",
     "agentControllerGetVisibility": "AgentsService.agentControllerGetVisibility",
-    "agentControllerListCoreMemories": "AgentsService.agentControllerListCoreMemories",
-    "agentControllerListDyadicMemories": "AgentsService.agentControllerListDyadicMemories",
     "agentControllerMakePublic": "AgentsService.agentControllerMakePublic",
     "agentControllerRemoveRelationship": "AgentsService.agentControllerRemoveRelationship",
     "agentControllerSelectAvatar": "AgentsService.agentControllerSelectAvatar",
@@ -6513,6 +6365,9 @@ export const REALM_SERVICE_METHODS = {
   "ReviewsEconomyTrustService": {
     "reviewControllerCreateReview": "ReviewsEconomyTrustService.reviewControllerCreateReview",
     "reviewControllerGetReviews": "ReviewsEconomyTrustService.reviewControllerGetReviews"
+  },
+  "RuntimeProjectionsService": {
+    "projectRuntimePayload": "RuntimeProjectionsService.projectRuntimePayload"
   },
   "RuntimeRealmGrantsService": {
     "issueRuntimeRealmGrant": "RuntimeRealmGrantsService.issueRuntimeRealmGrant"

@@ -35,27 +35,31 @@ func countsTowardManagedConnectorLimit(record ConnectorRecord) bool {
 
 // ConnectorRecord is the persistent representation of a connector.
 type ConnectorRecord struct {
-	ConnectorID   string                           `json:"connector_id"`
-	Kind          runtimev1.ConnectorKind          `json:"kind"`
-	OwnerType     runtimev1.ConnectorOwnerType     `json:"owner_type"`
-	OwnerID       string                           `json:"owner_id"`
-	Provider      string                           `json:"provider"`
-	Endpoint      string                           `json:"endpoint"`
-	Label         string                           `json:"label"`
-	Status        runtimev1.ConnectorStatus        `json:"status"`
-	LocalCategory runtimev1.LocalConnectorCategory `json:"local_category"`
-	HasCredential bool                             `json:"has_credential"`
-	CreatedAt     int64                            `json:"created_at"`
-	UpdatedAt     int64                            `json:"updated_at"`
-	DeletePending bool                             `json:"delete_pending,omitempty"`
+	ConnectorID         string                           `json:"connector_id"`
+	Kind                runtimev1.ConnectorKind          `json:"kind"`
+	OwnerType           runtimev1.ConnectorOwnerType     `json:"owner_type"`
+	OwnerID             string                           `json:"owner_id"`
+	Provider            string                           `json:"provider"`
+	Endpoint            string                           `json:"endpoint"`
+	Label               string                           `json:"label"`
+	Status              runtimev1.ConnectorStatus        `json:"status"`
+	LocalCategory       runtimev1.LocalConnectorCategory `json:"local_category"`
+	HasCredential       bool                             `json:"has_credential"`
+	AuthKind            runtimev1.ConnectorAuthKind      `json:"auth_kind,omitempty"`
+	ProviderAuthProfile string                           `json:"provider_auth_profile,omitempty"`
+	CreatedAt           int64                            `json:"created_at"`
+	UpdatedAt           int64                            `json:"updated_at"`
+	DeletePending       bool                             `json:"delete_pending,omitempty"`
 }
 
 // ConnectorMutations describes mutable fields for Update.
 type ConnectorMutations struct {
-	Label    *string
-	Endpoint *string
-	APIKey   *string
-	Status   *runtimev1.ConnectorStatus
+	Label               *string
+	Endpoint            *string
+	SecretPayload       *string
+	Status              *runtimev1.ConnectorStatus
+	AuthKind            *runtimev1.ConnectorAuthKind
+	ProviderAuthProfile *string
 }
 
 // ConnectorStore manages connector records and credentials on disk.
@@ -124,21 +128,28 @@ func (s *ConnectorStore) Get(connectorID string) (ConnectorRecord, bool, error) 
 	return ConnectorRecord{}, false, nil
 }
 
-// Create persists a new connector record and its credential secret.
-func (s *ConnectorStore) Create(record ConnectorRecord, apiKey string) (ConnectorRecord, error) {
+// Create persists a new connector record and its credential secret payload.
+func (s *ConnectorStore) Create(record ConnectorRecord, secretPayload string) (ConnectorRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.createLocked(record, apiKey, 0)
+	return s.createLocked(record, secretPayload, 0)
 }
 
 // CreateWithOwnerLimit persists a new connector while enforcing a per-owner managed-connector limit.
-func (s *ConnectorStore) CreateWithOwnerLimit(record ConnectorRecord, apiKey string, maxManagedPerOwner int) (ConnectorRecord, error) {
+func (s *ConnectorStore) CreateWithOwnerLimit(record ConnectorRecord, secretPayload string, maxManagedPerOwner int) (ConnectorRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.createLocked(record, apiKey, maxManagedPerOwner)
+	return s.createLocked(record, secretPayload, maxManagedPerOwner)
 }
 
-func (s *ConnectorStore) createLocked(record ConnectorRecord, apiKey string, maxManagedPerOwner int) (ConnectorRecord, error) {
+func normalizeAuthKind(kind runtimev1.ConnectorAuthKind) runtimev1.ConnectorAuthKind {
+	if kind == runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_UNSPECIFIED {
+		return runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY
+	}
+	return kind
+}
+
+func (s *ConnectorStore) createLocked(record ConnectorRecord, secretPayload string, maxManagedPerOwner int) (ConnectorRecord, error) {
 	if record.ConnectorID == "" {
 		record.ConnectorID = ulid.Make().String()
 	} else if _, err := sanitizeConnectorID(record.ConnectorID); err != nil {
@@ -151,6 +162,7 @@ func (s *ConnectorStore) createLocked(record ConnectorRecord, apiKey string, max
 	if record.UpdatedAt == 0 {
 		record.UpdatedAt = now
 	}
+	record.AuthKind = normalizeAuthKind(record.AuthKind)
 
 	records, err := s.loadRegistryLocked()
 	if err != nil {
@@ -177,8 +189,8 @@ func (s *ConnectorStore) createLocked(record ConnectorRecord, apiKey string, max
 		}
 	}
 
-	if apiKey != "" {
-		if err := s.writeCredentialLocked(record.ConnectorID, apiKey); err != nil {
+	if secretPayload != "" {
+		if err := s.writeSecretPayloadLocked(record.ConnectorID, secretPayload); err != nil {
 			return ConnectorRecord{}, fmt.Errorf("write credential: %w", err)
 		}
 		record.HasCredential = true
@@ -223,15 +235,21 @@ func (s *ConnectorStore) Update(connectorID string, mutations ConnectorMutations
 	if mutations.Status != nil {
 		rec.Status = *mutations.Status
 	}
-	if mutations.APIKey != nil {
-		key := *mutations.APIKey
-		if key != "" {
-			if err := s.writeCredentialLocked(connectorID, key); err != nil {
+	if mutations.AuthKind != nil {
+		rec.AuthKind = normalizeAuthKind(*mutations.AuthKind)
+	}
+	if mutations.ProviderAuthProfile != nil {
+		rec.ProviderAuthProfile = strings.TrimSpace(*mutations.ProviderAuthProfile)
+	}
+	if mutations.SecretPayload != nil {
+		payload := *mutations.SecretPayload
+		if payload != "" {
+			if err := s.writeSecretPayloadLocked(connectorID, payload); err != nil {
 				return ConnectorRecord{}, fmt.Errorf("write credential: %w", err)
 			}
 			rec.HasCredential = true
 		} else {
-			_ = s.deleteCredentialLocked(connectorID)
+			_ = s.deleteSecretPayloadLocked(connectorID)
 			rec.HasCredential = false
 		}
 	}
@@ -272,7 +290,7 @@ func (s *ConnectorStore) Delete(connectorID string) error {
 	}
 
 	// Step 2: delete credential secret (missing = ok)
-	_ = s.deleteCredentialLocked(connectorID)
+	_ = s.deleteSecretPayloadLocked(connectorID)
 
 	// Step 3: remove from registry and persist
 	records = append(records[:idx], records[idx+1:]...)
@@ -286,7 +304,18 @@ func (s *ConnectorStore) Delete(connectorID string) error {
 func (s *ConnectorStore) LoadCredential(connectorID string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.readCredentialLocked(connectorID)
+	payload, err := s.readSecretPayloadLocked(connectorID)
+	if err != nil {
+		return "", err
+	}
+	return extractAPIKeyFromSecretPayload(payload), nil
+}
+
+// LoadSecretPayload reads the raw credential payload for a connector.
+func (s *ConnectorStore) LoadSecretPayload(connectorID string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.readSecretPayloadLocked(connectorID)
 }
 
 // ReconcileStartup performs startup reconciliation:
@@ -308,9 +337,13 @@ func (s *ConnectorStore) ReconcileStartup() error {
 	filtered := make([]ConnectorRecord, 0, len(records))
 	for _, r := range records {
 		if r.DeletePending {
-			_ = s.deleteCredentialLocked(r.ConnectorID)
+			_ = s.deleteSecretPayloadLocked(r.ConnectorID)
 			dirty = true
 			continue
+		}
+		if normalized := normalizeAuthKind(r.AuthKind); r.AuthKind != normalized {
+			r.AuthKind = normalized
+			dirty = true
 		}
 		filtered = append(filtered, r)
 	}
@@ -329,7 +362,7 @@ func (s *ConnectorStore) ReconcileStartup() error {
 		legacyExists := statErr == nil
 		hasCred := false
 		if r.HasCredential || legacyExists {
-			secret, readErr := s.readCredentialLocked(r.ConnectorID)
+			secret, readErr := s.readSecretPayloadLocked(r.ConnectorID)
 			if readErr != nil {
 				return fmt.Errorf("load credential %q: %w", r.ConnectorID, readErr)
 			}
@@ -392,12 +425,12 @@ func (s *ConnectorStore) credentialPath(connectorID string) (string, error) {
 	return filepath.Join(s.legacyCredDir, sanitized+".key"), nil
 }
 
-func (s *ConnectorStore) writeCredentialLocked(connectorID string, apiKey string) error {
+func (s *ConnectorStore) writeSecretPayloadLocked(connectorID string, payload string) error {
 	sanitized, err := sanitizeConnectorID(connectorID)
 	if err != nil {
 		return fmt.Errorf("resolve credential key: %w", err)
 	}
-	if err := s.secretStore.Write(sanitized, apiKey); err != nil {
+	if err := s.secretStore.WriteSecret(sanitized, payload); err != nil {
 		return err
 	}
 	legacyPath, err := s.credentialPath(sanitized)
@@ -410,13 +443,13 @@ func (s *ConnectorStore) writeCredentialLocked(connectorID string, apiKey string
 	return nil
 }
 
-func (s *ConnectorStore) readCredentialLocked(connectorID string) (string, error) {
+func (s *ConnectorStore) readSecretPayloadLocked(connectorID string) (string, error) {
 	sanitized, err := sanitizeConnectorID(connectorID)
 	if err != nil {
 		return "", fmt.Errorf("resolve credential key: %w", err)
 	}
 
-	if secret, ok, err := s.secretStore.Read(sanitized); err != nil {
+	if secret, ok, err := s.secretStore.ReadSecret(sanitized); err != nil {
 		return "", err
 	} else if ok {
 		return secret, nil
@@ -434,7 +467,7 @@ func (s *ConnectorStore) readCredentialLocked(connectorID string) (string, error
 		return "", fmt.Errorf("read credential: %w", err)
 	}
 	secret := string(data)
-	if err := s.secretStore.Write(sanitized, secret); err != nil {
+	if err := s.secretStore.WriteSecret(sanitized, secret); err != nil {
 		return "", fmt.Errorf("migrate legacy credential: %w", err)
 	}
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
@@ -443,12 +476,12 @@ func (s *ConnectorStore) readCredentialLocked(connectorID string) (string, error
 	return secret, nil
 }
 
-func (s *ConnectorStore) deleteCredentialLocked(connectorID string) error {
+func (s *ConnectorStore) deleteSecretPayloadLocked(connectorID string) error {
 	sanitized, err := sanitizeConnectorID(connectorID)
 	if err != nil {
 		return fmt.Errorf("resolve credential key: %w", err)
 	}
-	if err := s.secretStore.Delete(sanitized); err != nil {
+	if err := s.secretStore.DeleteSecret(sanitized); err != nil {
 		return err
 	}
 	path, err := s.credentialPath(sanitized)

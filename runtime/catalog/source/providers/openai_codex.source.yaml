@@ -1,0 +1,106 @@
+schema_version: 3
+provider: openai_codex
+catalog_version: 2026-04-23-openai-codex-subscription-wave1
+generated_target: runtime/catalog/providers/openai_codex.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: false
+  default_endpoint: https://chatgpt.com/backend-api/codex
+  requires_explicit_endpoint: false
+defaults:
+  provider: openai_codex
+  default_text_model: gpt-5.4
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: request
+    input: subscription_or_unknown
+    output: subscription_or_unknown
+    currency: USD
+    as_of: 2026-04-23
+    notes: Codex subscription-backed pricing is not published as standard API token pricing.
+
+sources:
+  - source_id: openai_codex_auth_doc
+    url: https://developers.openai.com/codex/auth
+    retrieved_at: 2026-04-23
+    note: OpenAI Codex authentication guide covering ChatGPT subscription and API-key access.
+  - source_id: openai_codex_cli_doc
+    url: https://developers.openai.com/codex/cli
+    retrieved_at: 2026-04-23
+    note: Codex CLI overview for local agent and direct product usage.
+  - source_id: openai_codex_cli_features_doc
+    url: https://developers.openai.com/codex/cli/features
+    retrieved_at: 2026-04-23
+    note: Codex CLI features page documenting direct image generation/edit support.
+  - source_id: openai_gpt_image_2_doc
+    url: https://developers.openai.com/api/docs/models/gpt-image-2
+    retrieved_at: 2026-04-23
+    note: Official GPT Image 2 model page.
+  - source_id: openai_gpt_5_4_doc
+    url: https://developers.openai.com/api/docs/models/gpt-5.4
+    retrieved_at: 2026-04-23
+    note: Official GPT-5.4 model page.
+  - source_id: openai_gpt_5_3_codex_doc
+    url: https://developers.openai.com/api/docs/models/gpt-5.3-codex
+    retrieved_at: 2026-04-23
+    note: Official GPT-5.3 Codex model page.
+  - source_id: openai_gpt_image_2_changelog
+    url: https://developers.openai.com/api/docs/changelog
+    retrieved_at: 2026-04-23
+    note: OpenAI changelog entry announcing gpt-image-2 in API and Codex.
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: gpt-5.4
+    reviewed_at: 2026-04-23
+    freshness_sla_days: 14
+    rationale: Codex-backed default text route for general subscription-backed consume.
+  - profile_id: image.general
+    capability: image.generate
+    model_id: gpt-image-2
+    reviewed_at: 2026-04-23
+    freshness_sla_days: 14
+    rationale: Current Codex-backed image generation route.
+
+models:
+  - model_id: gpt-5.4
+    model_type: chat
+    updated_at: 2026-04-23
+    capabilities: [text.generate]
+    pricing:
+      unit: request
+      input: subscription_or_unknown
+      output: subscription_or_unknown
+      currency: USD
+      as_of: 2026-04-23
+      notes: Subscription-backed Codex route; standard API pricing does not apply directly.
+    source_ids: [openai_codex_auth_doc, openai_codex_cli_doc, openai_gpt_5_4_doc]
+
+  - model_id: gpt-5.3-codex
+    model_type: chat
+    updated_at: 2026-04-23
+    capabilities: [text.generate]
+    pricing:
+      unit: request
+      input: subscription_or_unknown
+      output: subscription_or_unknown
+      currency: USD
+      as_of: 2026-04-23
+      notes: Codex-oriented text route retained for compatibility with existing Codex consumers.
+    source_ids: [openai_codex_auth_doc, openai_codex_cli_doc, openai_gpt_5_3_codex_doc]
+
+  - model_id: gpt-image-2
+    model_type: image
+    updated_at: 2026-04-23
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: subscription_or_unknown
+      output: subscription_or_unknown
+      currency: USD
+      as_of: 2026-04-23
+      notes: Image generation pricing for Codex subscription-backed consumption is not published as API request pricing.
+    source_ids: [openai_codex_cli_features_doc, openai_gpt_image_2_doc, openai_gpt_image_2_changelog]

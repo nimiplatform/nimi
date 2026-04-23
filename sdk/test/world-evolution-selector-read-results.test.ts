@@ -128,3 +128,36 @@ test('selector-read results reject unsupported projection widening', async () =>
     },
   );
 });
+
+test('selector-read results reject retired MEMORY_ONLY effectClass projections', async () => {
+  const facade = createWorldEvolutionSelectorReadFacade(() => ({
+    executionEvents: {
+      read: async () => [{
+        eventId: 'evt-memory-only-1',
+        worldId: 'world-memory-only-1',
+        appId: 'app-memory-only-1',
+        sessionId: 'session-memory-only-1',
+        traceId: 'trace-memory-only-1',
+        tick: 1,
+        timestamp: '2026-04-08T00:00:00.000Z',
+        eventKind: 'EXECUTION_EVENT',
+        stage: 'EFFECT',
+        actorRefs: [{ actorId: 'actor-1', actorType: 'AGENT' }],
+        causation: null,
+        correlation: null,
+        effectClass: 'MEMORY_ONLY',
+        reason: 'memory-only-projection',
+        evidenceRefs: [{ kind: 'event', refId: 'evt-memory-only-1' }],
+      }],
+    },
+    replays: { read: async () => [] },
+    checkpoints: { read: async () => [] },
+    supervision: { read: async () => [] },
+    commitRequests: { read: async () => [] },
+  }));
+
+  await assert.rejects(
+    () => facade.executionEvents.read({ eventId: 'evt-memory-only-1' }),
+    /unsupported effectClass/i,
+  );
+});

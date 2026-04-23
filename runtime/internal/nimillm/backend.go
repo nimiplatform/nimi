@@ -26,6 +26,7 @@ type Backend struct {
 	Name    string
 	baseURL string
 	apiKey  string
+	headers map[string]string
 	client  *http.Client
 
 	// Security controls for outbound endpoint validation.
@@ -65,19 +66,29 @@ func buildOpenAIMessages(systemPrompt string, input []*runtimev1.ChatMessage) []
 // NewBackend creates a new OpenAI-compatible backend.
 // Returns nil if baseURL is empty.
 func NewBackend(name string, baseURL string, apiKey string, timeout time.Duration) *Backend {
-	return newBackend(name, baseURL, apiKey, timeout, nil, false, false)
+	return newBackend(name, baseURL, apiKey, nil, timeout, nil, false, false)
+}
+
+// NewBackendWithHeaders creates a backend with provider-native request headers.
+func NewBackendWithHeaders(name string, baseURL string, apiKey string, headers map[string]string, timeout time.Duration) *Backend {
+	return newBackend(name, baseURL, apiKey, headers, timeout, nil, false, false)
 }
 
 // NewBackendWithTransport creates a backend with an optional custom transport.
 // When transport is non-nil it is used for all HTTP requests (e.g. a pinned
 // transport from endpointsec). Returns nil if baseURL is empty.
 func NewBackendWithTransport(name string, baseURL string, apiKey string, timeout time.Duration, transport http.RoundTripper) *Backend {
-	return newBackend(name, baseURL, apiKey, timeout, transport, false, false)
+	return newBackend(name, baseURL, apiKey, nil, timeout, transport, false, false)
 }
 
 // NewSecuredBackend creates a backend that validates the endpoint before each
 // outbound request and uses a DNS-pinned transport (K-SEC-003/K-SEC-004).
 func NewSecuredBackend(name string, baseURL string, apiKey string, timeout time.Duration, allowLoopback bool) *Backend {
+	return NewSecuredBackendWithHeaders(name, baseURL, apiKey, nil, timeout, allowLoopback)
+}
+
+// NewSecuredBackendWithHeaders creates a secured backend with provider-native request headers.
+func NewSecuredBackendWithHeaders(name string, baseURL string, apiKey string, headers map[string]string, timeout time.Duration, allowLoopback bool) *Backend {
 	normalized := normalizeBackendBaseURL(baseURL)
 	if normalized == "" {
 		return nil
@@ -86,10 +97,10 @@ func NewSecuredBackend(name string, baseURL string, apiKey string, timeout time.
 	if err != nil {
 		return nil
 	}
-	return newBackend(name, normalized, apiKey, timeout, transport, true, allowLoopback)
+	return newBackend(name, normalized, apiKey, headers, timeout, transport, true, allowLoopback)
 }
 
-func newBackend(name string, baseURL string, apiKey string, timeout time.Duration, transport http.RoundTripper, secure bool, allowLoopback bool) *Backend {
+func newBackend(name string, baseURL string, apiKey string, headers map[string]string, timeout time.Duration, transport http.RoundTripper, secure bool, allowLoopback bool) *Backend {
 	normalized := normalizeBackendBaseURL(baseURL)
 	if normalized == "" {
 		return nil
@@ -105,6 +116,7 @@ func newBackend(name string, baseURL string, apiKey string, timeout time.Duratio
 		Name:                    name,
 		baseURL:                 normalized,
 		apiKey:                  strings.TrimSpace(apiKey),
+		headers:                 cloneProviderHeaders(headers),
 		client:                  client,
 		enforceEndpointSecurity: secure,
 		allowLoopbackEndpoint:   allowLoopback,
@@ -136,14 +148,43 @@ func resolveOpenAICompatiblePath(baseURL string, resource string) string {
 	return "/v1" + normalizedResource
 }
 
+func cloneProviderHeaders(headers map[string]string) map[string]string {
+	if len(headers) == 0 {
+		return nil
+	}
+	cloned := make(map[string]string, len(headers))
+	for key, value := range headers {
+		cloned[key] = value
+	}
+	return cloned
+}
+
+func providerHeadersEqual(left map[string]string, right map[string]string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for key, leftValue := range left {
+		if rightValue, ok := right[key]; !ok || rightValue != leftValue {
+			return false
+		}
+	}
+	return true
+}
+
 // WithRequestOverrides returns a shallow clone with overridden endpoint and API key.
 func (b *Backend) WithRequestOverrides(endpoint string, apiKey string) *Backend {
-	return b.WithRequestOverridesWithPolicy(endpoint, apiKey, b.allowLoopbackEndpoint)
+	return b.WithRequestOverridesAndHeadersWithPolicy(endpoint, apiKey, nil, b.allowLoopbackEndpoint)
 }
 
 // WithRequestOverridesWithPolicy returns a clone with overridden request
 // endpoint/API key and an explicit loopback policy.
 func (b *Backend) WithRequestOverridesWithPolicy(endpoint string, apiKey string, allowLoopback bool) *Backend {
+	return b.WithRequestOverridesAndHeadersWithPolicy(endpoint, apiKey, nil, allowLoopback)
+}
+
+// WithRequestOverridesAndHeadersWithPolicy returns a clone with overridden
+// request endpoint/API key, provider-native headers, and an explicit loopback policy.
+func (b *Backend) WithRequestOverridesAndHeadersWithPolicy(endpoint string, apiKey string, headers map[string]string, allowLoopback bool) *Backend {
 	if b == nil {
 		return nil
 	}
@@ -152,15 +193,23 @@ func (b *Backend) WithRequestOverridesWithPolicy(endpoint string, apiKey string,
 		normalizedEndpoint = b.baseURL
 	}
 	normalizedAPIKey := strings.TrimSpace(apiKey)
-	if normalizedEndpoint == b.baseURL && normalizedAPIKey == b.apiKey && allowLoopback == b.allowLoopbackEndpoint {
+	resolvedHeaders := cloneProviderHeaders(headers)
+	if headers == nil {
+		resolvedHeaders = cloneProviderHeaders(b.headers)
+	}
+	if normalizedEndpoint == b.baseURL &&
+		normalizedAPIKey == b.apiKey &&
+		allowLoopback == b.allowLoopbackEndpoint &&
+		providerHeadersEqual(resolvedHeaders, b.headers) {
 		return b
 	}
 	if b.enforceEndpointSecurity {
-		return NewSecuredBackend(b.Name, normalizedEndpoint, normalizedAPIKey, b.timeout(), allowLoopback)
+		return NewSecuredBackendWithHeaders(b.Name, normalizedEndpoint, normalizedAPIKey, resolvedHeaders, b.timeout(), allowLoopback)
 	}
 	clone := *b
 	clone.baseURL = normalizedEndpoint
 	clone.apiKey = normalizedAPIKey
+	clone.headers = resolvedHeaders
 	clone.allowLoopbackEndpoint = allowLoopback
 	return &clone
 }
@@ -211,11 +260,38 @@ func (b *Backend) newRequest(ctx context.Context, method string, endpoint string
 	if err != nil {
 		return nil, MapProviderRequestError(err)
 	}
+	applyTrustedProviderHeaders(request, b.headers)
+	b.applyAuthenticationHeaders(request)
 	return request, nil
+}
+
+func (b *Backend) applyAuthenticationHeaders(request *http.Request) {
+	if b == nil || request == nil {
+		return
+	}
+	apiKey := strings.TrimSpace(b.apiKey)
+	if apiKey == "" {
+		return
+	}
+	if b.supportsAnthropicMessages() {
+		if isAnthropicOAuthToken(apiKey) {
+			request.Header.Set("Authorization", "Bearer "+apiKey)
+			return
+		}
+		request.Header.Set("x-api-key", apiKey)
+		return
+	}
+	request.Header.Set("Authorization", "Bearer "+apiKey)
 }
 
 // GenerateText sends a non-streaming chat completion request.
 func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if b.supportsAnthropicMessages() {
+		return b.generateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens)
+	}
+	if b.supportsCodexResponses() {
+		return b.generateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens)
+	}
 	type chatRequest struct {
 		Model       string   `json:"model"`
 		Messages    any      `json:"messages"`
@@ -296,6 +372,12 @@ func extractChatCompletionFinishReason(payload map[string]any) string {
 
 // StreamGenerateText sends a streaming chat completion request.
 func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if b.supportsAnthropicMessages() {
+		return b.streamGenerateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
+	}
+	if b.supportsCodexResponses() {
+		return b.streamGenerateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
+	}
 	type streamOptions struct {
 		IncludeUsage bool `json:"include_usage"`
 	}
