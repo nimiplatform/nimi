@@ -69,14 +69,14 @@ tables:
       - { columns: [childId, achievedAt] }
 
   - name: reminder_states
-    description: "Per-child reminder action state and daily agenda stability metadata."
+    description: "Per-child reminder action state, per-kind progression timestamps, and daily agenda stability metadata. Progression column write rules are governed by reminder-interaction-contract.md#PO-REMI-004."
     columns:
       - { name: stateId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
       - { name: ruleId, type: TEXT, nullable: false, description: "References reminder-rules.yaml" }
       - { name: status, type: TEXT, nullable: false, description: "Legacy compatibility field: pending | active | completed | dismissed | overdue" }
       - { name: activatedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
-      - { name: completedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
+      - { name: completedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime; task-kind terminal signal only (PO-REMI-004). Non-task kinds must not write this column." }
       - { name: dismissedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
       - { name: dismissReason, type: TEXT, nullable: true }
       - { name: repeatIndex, type: INTEGER, nullable: false, default: 0 }
@@ -89,6 +89,14 @@ tables:
       - { name: lastSurfacedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime when surfaced in today focus" }
       - { name: surfaceCount, type: INTEGER, nullable: false, default: 0, description: "How many times this reminder has entered today focus" }
       - { name: notes, type: TEXT, nullable: true }
+      - { name: acknowledgedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime; guide-kind terminal signal (PO-REMI-003.guide). Non-guide kinds must not write this column." }
+      - { name: reflectedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime; guide-kind optional reflection marker. Requires acknowledgedAt non-null (PO-REMI-004)." }
+      - { name: practiceStartedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime; practice-kind entry signal. Non-practice kinds must not write this column." }
+      - { name: practiceLastAt, type: TEXT, nullable: true, description: "ISO 8601 datetime; practice-kind most recent log_practice event." }
+      - { name: practiceCount, type: INTEGER, nullable: false, default: 0, description: "Monotonic practice-kind engagement count. Only decremented by admin restore." }
+      - { name: practiceHabituatedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime; practice-kind terminal habituation marker. Requires practiceStartedAt non-null (PO-REMI-004)." }
+      - { name: consultedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime; consult-kind terminal signal. Written by advisor module on AI first assistant reply (PO-REMI-007). Panels must not write this column directly." }
+      - { name: consultationConversationId, type: TEXT, nullable: true, fk: "ai_conversations.conversationId", description: "FK to the anchored advisor conversation. Must be paired atomically with consultedAt (PO-REMI-004)." }
       - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
       - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
     indexes:
@@ -98,6 +106,7 @@ tables:
       - { columns: [childId, plannedForDate, surfaceRank] }
       - { columns: [childId, snoozedUntil] }
       - { columns: [childId, scheduledDate] }
+      - { columns: [childId, consultationConversationId] }
 
   - name: vaccine_records
     description: "Structured vaccine administration records."

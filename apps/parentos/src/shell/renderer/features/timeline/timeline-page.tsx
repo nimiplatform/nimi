@@ -8,7 +8,7 @@ import {
   getActiveSeasonalAlerts,
   type EnhancedReminder,
 } from '../../engine/smart-alerts.js';
-import { applyReminderAction, persistAgendaPlan } from '../../engine/reminder-actions.js';
+import { applyReminderAction, persistAgendaPlan, type ReminderActionType } from '../../engine/reminder-actions.js';
 import { buildReminderAgenda, getLocalToday, UnknownReminderRuleError, type ActiveReminder } from '../../engine/reminder-engine.js';
 import { useDash, buildTimelineHomeViewModel, C } from './timeline-data.js';
 import {
@@ -142,7 +142,7 @@ export default function TimelinePage() {
 
   const handleAction = useCallback(async (
     reminder: EnhancedReminder,
-    action: 'complete' | 'acknowledge' | 'schedule' | 'snooze' | 'mark_not_applicable' | 'dismiss_today',
+    action: ReminderActionType,
     extra?: string | null,
   ) => {
     if (!child) return;

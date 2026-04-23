@@ -11,7 +11,10 @@ import { parse as parseYaml } from 'yaml';
 import {
   validateKnowledgeSource,
   validateMilestoneThreshold,
+  validateReminderExplain,
+  validateReminderKind,
   validateReminderRule,
+  validateReminderSourceRetired,
   validateSensitivePeriod,
 } from './parentos-knowledge-base-validation.js';
 
@@ -92,13 +95,26 @@ const reminderData = parseYaml(
   rules?: Array<{
     ruleId: string;
     category: string;
+    kind?: string;
+    actionType?: string;
     triggerAge: { startMonths: number; endMonths: number };
     triggerCondition?: unknown;
+    explain?: unknown;
+    source?: unknown;
   }>;
 };
 
 for (const rule of reminderData.rules ?? []) {
   for (const issue of validateReminderRule(rule)) {
+    fail(issue);
+  }
+  for (const issue of validateReminderKind(rule)) {
+    fail(issue);
+  }
+  for (const issue of validateReminderExplain(rule)) {
+    fail(issue);
+  }
+  for (const issue of validateReminderSourceRetired(rule)) {
     fail(issue);
   }
 }

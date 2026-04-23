@@ -10,6 +10,7 @@ import {
   getAiMessages,
   getConversations,
   insertAiMessage,
+  upsertReminderConsultation,
 } from '../../bridge/sqlite-bridge.js';
 import type { AiMessageRow, ConversationRow } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
@@ -273,9 +274,32 @@ export default function AdvisorPage() {
   const snapshotConvRef = useRef<string | null>(null);
   const suggestionConvRef = useRef<string | null>(null);
 
+  // PO-REMI-007 consultation writeback. Tracks which conversations have already
+  // recorded a consulted reminder so subsequent assistant replies on the same
+  // conversation remain no-ops (first write wins). The Rust layer also enforces
+  // idempotency; this ref just avoids unnecessary bridge calls.
+  const consultationWrittenRef = useRef<Set<string>>(new Set());
+
   const saveAssistantMsg = async (convId: string, content: string, contextSnapshot: string | null) => {
     await insertAiMessage({ messageId: ulid(), conversationId: convId, role: 'assistant', content, contextSnapshot, now: isoNow() });
     setMessages(await getAiMessages(convId));
+
+    // Reminder-anchored consult: if the advisor was opened with reminderRuleId
+    // in the URL and this is the first assistant reply we persist for that
+    // conversation, call the bridge to flip the paired reminder_states row to
+    // consulted lifecycle. Per reminder-interaction-contract.md#PO-REMI-007.
+    if (consultationWrittenRef.current.has(convId) || !child) return;
+    const reminderRuleId = searchParams.get('reminderRuleId');
+    if (!reminderRuleId) return;
+    const repeatIndex = Number(searchParams.get('repeatIndex') ?? '0') || 0;
+    consultationWrittenRef.current.add(convId);
+    await upsertReminderConsultation({
+      childId: child.childId,
+      ruleId: reminderRuleId,
+      repeatIndex,
+      conversationId: convId,
+      now: isoNow(),
+    }).catch(catchLog('advisor', 'action:upsert-reminder-consultation-failed', 'warn'));
   };
 
   const startConversationWithOpening = async (params: {

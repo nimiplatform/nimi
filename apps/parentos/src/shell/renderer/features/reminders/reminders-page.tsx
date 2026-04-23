@@ -21,6 +21,7 @@ import {
 } from '../../engine/reminder-engine.js';
 import { REMINDER_RULES } from '../../knowledge-base/index.js';
 import { FrequencyModal } from './frequency-modal.js';
+import { ReminderExplainDrawer } from './reminder-explain-drawer.js';
 import {
   applyReminderAction,
   canMarkNotApplicable,
@@ -67,7 +68,14 @@ function useCustomTodos(childId: string | null) {
 }
 
 function primaryAction(reminder: ActiveReminder) {
-  if (reminder.kind === 'guidance') return { label: '打开笔记', to: `/journal?reminderRuleId=${encodeURIComponent(reminder.rule.ruleId)}&repeatIndex=${reminder.repeatIndex}` };
+  // W5 will replace these Link primaries with drawer-driven actions per PO-REMI-011.
+  // For W4a we only normalize the kind dispatch to the new 4-kind taxonomy.
+  if (reminder.kind === 'guide' || reminder.kind === 'practice') {
+    return { label: '打开笔记', to: `/journal?reminderRuleId=${encodeURIComponent(reminder.rule.ruleId)}&repeatIndex=${reminder.repeatIndex}` };
+  }
+  if (reminder.kind === 'consult') {
+    return { label: '问问 AI 顾问', to: `/advisor?reminderRuleId=${encodeURIComponent(reminder.rule.ruleId)}&repeatIndex=${reminder.repeatIndex}` };
+  }
   if (reminder.rule.domain === 'vaccine') return { label: '记录疫苗', to: `/profile/vaccines?ruleId=${encodeURIComponent(reminder.rule.ruleId)}` };
   if (reminder.rule.domain === 'growth' || reminder.rule.actionType === 'record_data') return { label: '记录数据', to: '/profile/growth' };
   return { label: reminder.rule.actionType === 'go_hospital' ? '查看详情' : '查看档案', to: '/profile' };
@@ -176,13 +184,24 @@ function TodayHero({ reminder, onComplete }: { reminder: ActiveReminder | null; 
 
 /* ── Reminder row ── */
 
-function ReminderRow({ reminder, onComplete, onSnooze, onSchedule, onNotApplicable, onAdjustFrequency }: {
-  reminder: ActiveReminder; onComplete: (r: ActiveReminder) => void; onSnooze: (r: ActiveReminder) => void;
-  onSchedule: (r: ActiveReminder) => void; onNotApplicable: (r: ActiveReminder) => void; onAdjustFrequency: (r: ActiveReminder) => void;
+function ReminderRow({ reminder, onOpenDetail, onComplete, onSnooze, onSchedule, onNotApplicable, onAdjustFrequency }: {
+  reminder: ActiveReminder;
+  onOpenDetail: (r: ActiveReminder) => void;
+  onComplete: (r: ActiveReminder) => void;
+  onSnooze: (r: ActiveReminder) => void;
+  onSchedule: (r: ActiveReminder) => void;
+  onNotApplicable: (r: ActiveReminder) => void;
+  onAdjustFrequency: (r: ActiveReminder) => void;
 }) {
   const primary = primaryAction(reminder);
   const domain = DOMAIN_LABELS[reminder.rule.domain] ?? reminder.rule.domain;
   const isOverdue = reminder.lifecycle === 'overdue';
+  // For non-task kinds, trim the inline description; the drawer owns the full
+  // explain rendering (whyNow / howTo / doneWhen / sources) per PO-REMI-011.
+  const shortDescription = reminder.kind === 'task'
+    ? reminder.rule.description
+    : reminder.rule.explain?.whyNow ?? reminder.rule.description;
+  const completeLabel = reminder.kind === 'task' ? '完成' : '我已了解';
 
   return (
     <div className="rounded-[16px] p-5 transition-colors hover:bg-white" style={glassInner}>
@@ -194,14 +213,22 @@ function ReminderRow({ reminder, onComplete, onSnooze, onSchedule, onNotApplicab
             <span className="text-[10px]" style={{ color: textMuted }}>{statusLabel(reminder)}</span>
           </div>
           <p className="text-[14px] font-semibold" style={{ color: textMain }}>{reminder.rule.title}</p>
-          <p className="text-[12px] mt-2 leading-relaxed" style={{ color: textMuted }}>{reminder.rule.description}</p>
+          <p className="text-[12px] mt-2 leading-relaxed" style={{ color: textMuted }}>{shortDescription}</p>
         </div>
       </div>
       <div className="flex flex-wrap gap-2 mt-4">
-        <Link to={primary.to} className="px-3.5 py-1.5 rounded-full text-[11px] font-medium text-white hover:-translate-y-0.5"
-          style={{ background: textMain, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>{primary.label}</Link>
+        <button
+          type="button"
+          onClick={() => onOpenDetail(reminder)}
+          className="px-3.5 py-1.5 rounded-full text-[11px] font-medium text-white hover:-translate-y-0.5"
+          style={{ background: textMain, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+        >
+          查看详情
+        </button>
+        <Link to={primary.to} className="px-3.5 py-1.5 rounded-full text-[11px] font-medium transition-colors"
+          style={{ background: '#fff', color: textMain, border: '1px solid #e2e8f0' }}>{primary.label}</Link>
         <button type="button" onClick={() => onComplete(reminder)} className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors hover:bg-white/60"
-          style={{ background: 'rgba(78,204,163,0.06)', color: textMain }}>完成</button>
+          style={{ background: 'rgba(78,204,163,0.06)', color: textMain }}>{completeLabel}</button>
         <button type="button" onClick={() => onSnooze(reminder)} className="px-3 py-1.5 rounded-full text-[11px] transition-colors hover:bg-white/60"
           style={{ color: textMuted }}>推迟</button>
         {reminder.kind === 'task' && (
@@ -230,6 +257,7 @@ export default function RemindersPage() {
   const { todos: customTodos, loading: customTodosLoading, reload: reloadCustomTodos } = useCustomTodos(activeChildId);
   const [freqOverrides, setFreqOverrides] = useState<FreqOverrideMap>(new Map());
   const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
+  const [activeReminder, setActiveReminder] = useState<ActiveReminder | null>(null);
   const ageMonths = child ? computeAgeMonths(child.birthDate) : 0;
   const localToday = getLocalToday();
   const repeatableRuleIds = useMemo(() => REMINDER_RULES.filter((r) => r.repeatRule).map((r) => r.ruleId), []);
@@ -342,7 +370,7 @@ export default function RemindersPage() {
           <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-5 items-stretch">
             <TodayHero
               reminder={agenda.todayFocus[0] ?? null}
-              onComplete={(item) => void handleAction(item, item.kind === 'guidance' ? 'acknowledge' : 'complete')}
+              onComplete={(item) => void handleAction(item, item.kind === 'task' ? 'complete' : 'acknowledge')}
             />
             <div className="grid grid-cols-1 gap-4">
               {agenda.p0Overflow.count > 0 && <SummaryTile label="更多重要" value={String(agenda.p0Overflow.count)} hint="超出首屏的高优先级提醒。" tone={{ bg: 'rgba(251,191,36,0.08)', fg: '#b7791f' }} />}
@@ -360,7 +388,8 @@ export default function RemindersPage() {
             {agenda.todayFocus.length === 0 ? <p className="text-[12px]" style={{ color: textMuted }}>今天没有需要立即处理的事项。</p>
             : agenda.todayFocus.map((r) => (
               <ReminderRow key={`${r.rule.ruleId}-${r.repeatIndex}`} reminder={r}
-                onComplete={(i) => void handleAction(i, i.kind === 'guidance' ? 'acknowledge' : 'complete')}
+                onOpenDetail={setActiveReminder}
+                onComplete={(i) => void handleAction(i, i.kind === 'task' ? 'complete' : 'acknowledge')}
                 onSnooze={(i) => void handleAction(i, 'snooze', defaultSnoozeUntil(i.kind, localToday))}
                 onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} />
             ))}
@@ -372,7 +401,8 @@ export default function RemindersPage() {
             <div className="space-y-4">
               {agenda.p0Overflow.items.map((r) => (
                 <ReminderRow key={`p0-${r.rule.ruleId}-${r.repeatIndex}`} reminder={r}
-                  onComplete={(i) => void handleAction(i, i.kind === 'guidance' ? 'acknowledge' : 'complete')}
+                  onOpenDetail={setActiveReminder}
+                  onComplete={(i) => void handleAction(i, i.kind === 'task' ? 'complete' : 'acknowledge')}
                   onSnooze={(i) => void handleAction(i, 'snooze', defaultSnoozeUntil(i.kind, localToday))}
                   onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} />
               ))}
@@ -385,7 +415,8 @@ export default function RemindersPage() {
             <div className="space-y-4">
               {agenda.onboardingCatchup.items.map((r) => (
                 <ReminderRow key={`cold-${r.rule.ruleId}-${r.repeatIndex}`} reminder={r}
-                  onComplete={(i) => void handleAction(i, i.kind === 'guidance' ? 'acknowledge' : 'complete')}
+                  onOpenDetail={setActiveReminder}
+                  onComplete={(i) => void handleAction(i, i.kind === 'task' ? 'complete' : 'acknowledge')}
                   onSnooze={(i) => void handleAction(i, 'snooze', defaultSnoozeUntil(i.kind, localToday))}
                   onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} />
               ))}
@@ -399,7 +430,8 @@ export default function RemindersPage() {
             {agenda.upcoming.length === 0 ? <p className="text-[12px]" style={{ color: textMuted }}>近期没有新的事项需要安排。</p>
             : agenda.upcoming.map((r) => (
               <ReminderRow key={`${r.rule.ruleId}-${r.repeatIndex}`} reminder={r}
-                onComplete={(i) => void handleAction(i, i.kind === 'guidance' ? 'acknowledge' : 'complete')}
+                onOpenDetail={setActiveReminder}
+                onComplete={(i) => void handleAction(i, i.kind === 'task' ? 'complete' : 'acknowledge')}
                 onSnooze={(i) => void handleAction(i, 'snooze', defaultSnoozeUntil(i.kind, localToday))}
                 onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} />
             ))}
@@ -465,6 +497,14 @@ export default function RemindersPage() {
           currentIntervalMonths={freqModalReminder.rule.repeatRule.intervalMonths} existingOverride={null}
           onSaved={() => { void reload(); void reloadFreqOverrides(); }} onClose={() => setFreqModalReminder(null)} />
       )}
+
+      <ReminderExplainDrawer
+        reminder={activeReminder}
+        onClose={() => setActiveReminder(null)}
+        onAction={(reminder, action, extra) => {
+          void handleAction(reminder, action, extra);
+        }}
+      />
     </div>
   );
 }

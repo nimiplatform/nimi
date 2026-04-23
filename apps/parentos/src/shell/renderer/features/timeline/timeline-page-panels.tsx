@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { S } from '../../app-shell/page-style.js';
-import { canMarkNotApplicable, defaultSnoozeUntil } from '../../engine/reminder-actions.js';
+import { canMarkNotApplicable, defaultSnoozeUntil, type ReminderActionType } from '../../engine/reminder-actions.js';
 import { getLocalToday, type ActiveReminder } from '../../engine/reminder-engine.js';
+import { ReminderExplainDrawer } from '../reminders/reminder-explain-drawer.js';
+import { TimelineReminderRow } from './timeline-reminder-row.js';
 import {
   completeCustomTodo,
   deleteCustomTodo,
@@ -21,9 +23,25 @@ const ACTION_PILL_CLASS = 'inline-flex h-7 min-h-7 shrink-0 items-center justify
 const ACTION_LABEL_CLASS = 'block text-[11px] leading-none font-medium tracking-[0.01em]';
 
 function reminderPrimaryLink(reminder: ActiveReminder) {
-  if (reminder.kind === 'guidance') {
+  // W5b will replace this Link-based primary with the ReminderExplainDrawer trigger.
+  // For W4a we only normalize the kind dispatch to the 4-kind taxonomy.
+  if (reminder.kind === 'consult') {
     return {
-      label: reminder.rule.actionType === 'observe' ? '打开笔记' : '开始',
+      label: '问问 AI 顾问',
+      to: `/advisor?reminderRuleId=${encodeURIComponent(reminder.rule.ruleId)}&repeatIndex=${reminder.repeatIndex}`,
+    };
+  }
+
+  if (reminder.kind === 'practice') {
+    return {
+      label: '打开笔记',
+      to: `/journal?reminderRuleId=${encodeURIComponent(reminder.rule.ruleId)}&repeatIndex=${reminder.repeatIndex}`,
+    };
+  }
+
+  if (reminder.kind === 'guide') {
+    return {
+      label: '查看指南',
       to: `/journal?reminderRuleId=${encodeURIComponent(reminder.rule.ruleId)}&repeatIndex=${reminder.repeatIndex}`,
     };
   }
@@ -71,7 +89,7 @@ function OverdueGroup({
   totalCount: number;
   onAction: (
     reminder: ActiveReminder,
-    action: 'complete' | 'acknowledge' | 'schedule' | 'snooze' | 'mark_not_applicable' | 'dismiss_today',
+    action: ReminderActionType,
     extra?: string | null,
   ) => void;
 }) {
@@ -107,7 +125,7 @@ function OverdueGroup({
             <button
               type="button"
               title="标记完成"
-              onClick={() => onAction(reminder, reminder.kind === 'guidance' ? 'acknowledge' : 'complete')}
+              onClick={() => onAction(reminder, reminder.kind === 'task' ? 'complete' : 'acknowledge')}
               className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all hover:bg-[#f59e0b]/15"
               style={{ borderColor: '#f59e0b' }}
             >
@@ -157,7 +175,7 @@ function AgendaOverflowGroup({
   tone: { bg: string; fg: string; text: string };
   onAction: (
     reminder: ActiveReminder,
-    action: 'complete' | 'acknowledge' | 'schedule' | 'snooze' | 'mark_not_applicable' | 'dismiss_today',
+    action: ReminderActionType,
     extra?: string | null,
   ) => void;
 }) {
@@ -193,7 +211,7 @@ function AgendaOverflowGroup({
             <button
               type="button"
               title="标记完成"
-              onClick={() => onAction(reminder, reminder.kind === 'guidance' ? 'acknowledge' : 'complete')}
+              onClick={() => onAction(reminder, reminder.kind === 'task' ? 'complete' : 'acknowledge')}
               className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all hover:bg-white"
               style={{ borderColor: tone.text }}
             >
@@ -567,6 +585,11 @@ function ObservationNudgeSection({ nudges }: { nudges: ObservationNudge[] }) {
   );
 }
 
+// `ReminderRow` extracted to `timeline-reminder-row.tsx` for AI-context file-
+// size hygiene. It handles kind-scoped row rendering including the task-only
+// check circle quick-complete, kind glyphs for non-task kinds, and progression
+// notes (已了解 / 实践中 · 已 N 次 / 已咨询).
+
 export function ReminderPanel({
   todayFocus,
   upcoming,
@@ -596,7 +619,7 @@ export function ReminderPanel({
   childId: string;
   onAction: (
     reminder: EnhancedReminder,
-    action: 'complete' | 'acknowledge' | 'schedule' | 'snooze' | 'mark_not_applicable' | 'dismiss_today',
+    action: ReminderActionType,
     extra?: string | null,
   ) => void;
   onCustomTodoChanged: () => void;
@@ -606,6 +629,7 @@ export function ReminderPanel({
   const [tab, setTab] = useState<'today' | 'upcoming'>(defaultTab);
   const [optimisticTodo, setOptimisticTodo] = useState<CustomTodoRow | null>(null);
   const [animatedTodoId, setAnimatedTodoId] = useState<string | null>(null);
+  const [activeReminder, setActiveReminder] = useState<ActiveReminder | null>(null);
 
   useEffect(() => { setTab(todayFocus.length > 0 ? 'today' : 'upcoming'); }, [todayFocus.length]);
   const showTabs = todayFocus.length > 0 || upcoming.length > 0;
@@ -668,46 +692,15 @@ export function ReminderPanel({
           <p className="py-10 text-center text-[12px]" style={{ color: '#64748b' }}>暂无事项</p>
         ) : (
           <>
-            {items.map((reminder) => {
-              const primary = reminderPrimaryLink(reminder);
-              return (
-                <div
-                  key={`${reminder.rule.ruleId}-${reminder.repeatIndex}`}
-                  className="group flex items-start gap-3 rounded-[12px] px-3 py-3.5 transition-colors hover:bg-white"
-                >
-                  <button
-                    type="button"
-                    title="标记完成"
-                    onClick={() => onAction(reminder, reminder.kind === 'guidance' ? 'acknowledge' : 'complete')}
-                    className="mt-[2px] flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full border transition-all hover:border-[#4ECCA3]"
-                    style={{ borderColor: '#D0D3D8' }}
-                  >
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 transition-opacity group-hover:opacity-100">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-[12px] font-medium leading-snug" style={{ color: '#1e293b' }}>{reminder.rule.title}</p>
-                      <span className="shrink-0 text-[10px]" style={{ color: '#64748b' }}>{reminderStatus(reminder)}</span>
-                    </div>
-                    <div className="mt-2 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                      <Link to={primary.to} className={ACTION_PILL_CLASS} style={{ background: '#1e293b', color: '#fff' }}>
-                        <span className={ACTION_LABEL_CLASS}>{primary.label}</span>
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => onAction(reminder, 'snooze', defaultSnoozeUntil(reminder.kind, getLocalToday()))}
-                        className={ACTION_PILL_CLASS}
-                        style={{ background: 'transparent', color: '#475569' }}
-                      >
-                        <span className={ACTION_LABEL_CLASS}>推迟</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {items.map((reminder) => (
+              <TimelineReminderRow
+                key={`${reminder.rule.ruleId}-${reminder.repeatIndex}`}
+                reminder={reminder}
+                onOpen={() => setActiveReminder(reminder)}
+                onAction={onAction}
+                statusLabel={reminderStatus(reminder)}
+              />
+            ))}
           </>
         )}
 
@@ -751,6 +744,14 @@ export function ReminderPanel({
           <ObservationNudgeSection nudges={observationNudges} />
         )}
       </div>
+
+      <ReminderExplainDrawer
+        reminder={activeReminder}
+        onClose={() => setActiveReminder(null)}
+        onAction={(reminder, action, extra) => {
+          onAction(reminder, action, extra);
+        }}
+      />
     </div>
   );
 }

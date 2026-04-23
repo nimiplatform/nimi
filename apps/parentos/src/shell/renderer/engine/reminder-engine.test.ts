@@ -4,21 +4,24 @@ import {
   UnknownReminderRuleError,
   buildReminderAgenda,
   computeEligibleReminders,
-  toReminderKind,
   type ReminderState,
 } from './reminder-engine.js';
+import { defaultSnoozeUntil } from './reminder-actions.js';
 
+// Default baseRule is task-kind because the majority of tests exercise task-bucket
+// behavior (P0 today focus, overdue summary). Tests covering guide/practice/consult
+// behavior override both `kind` and `actionType` per PO-REMI-002.
 const baseRule: ReminderRule = {
   ruleId: 'PO-REM-TEST-001',
-  domain: 'sleep',
+  domain: 'checkup',
   category: 'rigid',
+  kind: 'task',
   title: 'Test rule',
   description: 'Test description',
   triggerAge: { startMonths: 12, endMonths: 12 },
   priority: 'P1',
   nurtureMode: { relaxed: 'push', balanced: 'push', advanced: 'push' },
-  actionType: 'observe',
-  source: 'test',
+  actionType: 'go_hospital',
 };
 
 function makeState(overrides: Partial<ReminderState>): ReminderState {
@@ -41,6 +44,14 @@ function makeState(overrides: Partial<ReminderState>): ReminderState {
     lastSurfacedAt: overrides.lastSurfacedAt ?? null,
     surfaceCount: overrides.surfaceCount ?? 0,
     notes: overrides.notes ?? null,
+    acknowledgedAt: overrides.acknowledgedAt ?? null,
+    reflectedAt: overrides.reflectedAt ?? null,
+    practiceStartedAt: overrides.practiceStartedAt ?? null,
+    practiceLastAt: overrides.practiceLastAt ?? null,
+    practiceCount: overrides.practiceCount ?? 0,
+    practiceHabituatedAt: overrides.practiceHabituatedAt ?? null,
+    consultedAt: overrides.consultedAt ?? null,
+    consultationConversationId: overrides.consultationConversationId ?? null,
     createdAt: overrides.createdAt ?? null,
     updatedAt: overrides.updatedAt ?? null,
   };
@@ -159,9 +170,83 @@ describe('reminder engine eligibility', () => {
     expect(reminders[0]?.lifecycle).toBe('due');
   });
 
-  it('derives reminder kind only from actionType', () => {
-    expect(toReminderKind({ actionType: 'read_guide' })).toBe('guidance');
-    expect(toReminderKind({ actionType: 'go_hospital' })).toBe('task');
+  it('reads reminder kind directly from rule.kind (PO-REMI-001)', () => {
+    // No runtime inference: the engine must read rule.kind as authored in the
+    // compiled catalog. actionType ↔ kind validation is enforced at generator time.
+    const guideRule: ReminderRule = { ...baseRule, actionType: 'read_guide', kind: 'guide' };
+    const taskRule: ReminderRule = { ...baseRule, actionType: 'go_hospital', kind: 'task' };
+    expect(guideRule.kind).toBe('guide');
+    expect(taskRule.kind).toBe('task');
+  });
+
+  it('projects kind-scoped terminal lifecycle from progression timestamps (PO-REMI-003)', () => {
+    const guideRule: ReminderRule = { ...baseRule, ruleId: 'PO-REM-TEST-GUIDE', kind: 'guide', actionType: 'read_guide', domain: 'relationship' };
+    const practiceRule: ReminderRule = { ...baseRule, ruleId: 'PO-REM-TEST-PRAC', kind: 'practice', actionType: 'observe', domain: 'relationship' };
+    const consultRule: ReminderRule = { ...baseRule, ruleId: 'PO-REM-TEST-CNSL', kind: 'consult', actionType: 'ai_consult', domain: 'interest' };
+
+    const guideState = makeState({ ruleId: 'PO-REM-TEST-GUIDE', status: 'completed', acknowledgedAt: '2026-04-07T10:00:00Z' });
+    const practiceStartedState = makeState({ ruleId: 'PO-REM-TEST-PRAC', stateId: 'state-prac', status: 'active', practiceStartedAt: '2026-04-01T10:00:00Z', practiceLastAt: '2026-04-05T10:00:00Z', practiceCount: 2 });
+    const practiceHabituatedState = makeState({ ruleId: 'PO-REM-TEST-PRAC', stateId: 'state-prac2', status: 'completed', practiceStartedAt: '2026-04-01T10:00:00Z', practiceHabituatedAt: '2026-04-07T10:00:00Z' });
+    const consultedState = makeState({ ruleId: 'PO-REM-TEST-CNSL', status: 'completed', consultedAt: '2026-04-07T10:00:00Z', consultationConversationId: 'conv-1' });
+
+    const guideAgenda = buildReminderAgenda([guideRule], makeContext(), [guideState]);
+    expect(guideAgenda.history.find((item) => item.rule.ruleId === 'PO-REM-TEST-GUIDE')?.lifecycle).toBe('acknowledged');
+
+    const practicingAgenda = buildReminderAgenda([practiceRule], makeContext(), [practiceStartedState]);
+    expect(practicingAgenda.upcoming.find((item) => item.rule.ruleId === 'PO-REM-TEST-PRAC')?.lifecycle).toBe('practicing');
+
+    const habituatedAgenda = buildReminderAgenda([practiceRule], makeContext(), [practiceHabituatedState]);
+    expect(habituatedAgenda.history.find((item) => item.rule.ruleId === 'PO-REM-TEST-PRAC')?.lifecycle).toBe('completed');
+
+    const consultedAgenda = buildReminderAgenda([consultRule], makeContext(), [consultedState]);
+    expect(consultedAgenda.history.find((item) => item.rule.ruleId === 'PO-REM-TEST-CNSL')?.lifecycle).toBe('consulted');
+  });
+
+  it('tolerates v9-era rows where every progression column is NULL (PO-REMI-011 NULL-safety)', () => {
+    // Simulates a reminder_states row persisted before schema v10 migrated: all
+    // per-kind progression fields are NULL / 0. The engine must project lifecycle
+    // coherently (due / overdue / upcoming) rather than crashing or synthesizing
+    // a terminal state. Using a wide-window trigger so the agenda bucket reliably
+    // contains the rule regardless of how localToday intersects the trigger range.
+    const wideWindow = { startMonths: 0, endMonths: 24 };
+    const guideRule: ReminderRule = { ...baseRule, ruleId: 'PO-REM-TEST-V9G', kind: 'guide', actionType: 'read_guide', domain: 'relationship', triggerAge: wideWindow };
+    const practiceRule: ReminderRule = { ...baseRule, ruleId: 'PO-REM-TEST-V9P', kind: 'practice', actionType: 'observe', domain: 'relationship', triggerAge: wideWindow };
+    const consultRule: ReminderRule = { ...baseRule, ruleId: 'PO-REM-TEST-V9C', kind: 'consult', actionType: 'ai_consult', domain: 'interest', triggerAge: wideWindow };
+
+    const pristineGuide = makeState({ ruleId: 'PO-REM-TEST-V9G', stateId: 'state-v9g', status: 'active' });
+    const pristinePractice = makeState({ ruleId: 'PO-REM-TEST-V9P', stateId: 'state-v9p', status: 'active' });
+    const pristineConsult = makeState({ ruleId: 'PO-REM-TEST-V9C', stateId: 'state-v9c', status: 'active' });
+
+    const agenda = buildReminderAgenda(
+      [guideRule, practiceRule, consultRule],
+      makeContext(),
+      [pristineGuide, pristinePractice, pristineConsult],
+    );
+
+    // The v9-era row must not crash and must not synthesize a terminal state.
+    // All three kinds should appear in upcoming with a non-terminal lifecycle.
+    const ruleIds = agenda.upcoming.map((item) => item.rule.ruleId);
+    expect(ruleIds).toContain('PO-REM-TEST-V9G');
+    expect(ruleIds).toContain('PO-REM-TEST-V9P');
+    expect(ruleIds).toContain('PO-REM-TEST-V9C');
+    const terminalLifecycles: ReadonlyArray<string> = ['completed', 'acknowledged', 'consulted', 'not_applicable'];
+    for (const ruleId of ['PO-REM-TEST-V9G', 'PO-REM-TEST-V9P', 'PO-REM-TEST-V9C']) {
+      const entry = agenda.upcoming.find((item) => item.rule.ruleId === ruleId);
+      expect(entry?.lifecycle).toBeDefined();
+      expect(terminalLifecycles).not.toContain(entry?.lifecycle ?? '');
+    }
+    // History must not contain these rules since no terminal signal was persisted.
+    expect(agenda.history.find((item) => item.rule.ruleId === 'PO-REM-TEST-V9G')).toBeUndefined();
+    expect(agenda.history.find((item) => item.rule.ruleId === 'PO-REM-TEST-V9P')).toBeUndefined();
+    expect(agenda.history.find((item) => item.rule.ruleId === 'PO-REM-TEST-V9C')).toBeUndefined();
+  });
+
+  it('snooze durations diverge per kind (PO-REMI-005)', () => {
+    const localToday = '2026-04-08';
+    expect(defaultSnoozeUntil('task', localToday)).toBe('2026-04-11');
+    expect(defaultSnoozeUntil('guide', localToday)).toBe('2026-04-15');
+    expect(defaultSnoozeUntil('practice', localToday)).toBe('2026-04-22');
+    expect(defaultSnoozeUntil('consult', localToday)).toBe('2026-04-15');
   });
 });
 
@@ -231,15 +316,15 @@ describe('reminder engine orchestration', () => {
     expect(agenda.overdueSummary.count).toBeGreaterThanOrEqual(1);
   });
 
-  it('includes guidance reminders in upcoming bucket', () => {
+  it('includes practice-kind reminders in upcoming bucket', () => {
     const rules: ReminderRule[] = [
-      { ...baseRule, ruleId: 'PO-REM-TEST-605', domain: 'relationship', actionType: 'observe', title: 'Guidance item' },
+      { ...baseRule, ruleId: 'PO-REM-TEST-605', domain: 'relationship', actionType: 'observe', kind: 'practice', title: 'Practice item' },
     ];
 
     const agenda = buildReminderAgenda(rules, makeContext(), []);
 
     expect(agenda.upcoming.map((item) => item.rule.ruleId)).toContain('PO-REM-TEST-605');
-    expect(agenda.upcoming[0]?.kind).toBe('guidance');
+    expect(agenda.upcoming[0]?.kind).toBe('practice');
   });
 
   it('applies frequency overrides to agenda generation', () => {

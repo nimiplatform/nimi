@@ -1,8 +1,18 @@
 // Knowledge base — re-exports all generated modules
 // Run `pnpm generate:knowledge-base` to regenerate from YAML sources.
 
-export { REMINDER_RULES, REMINDER_DOMAINS } from './gen/reminder-rules.gen.js';
-export type { ReminderRule, ReminderDomain, ReminderCategory, ReminderPriority, ReminderVisibility, ActionType } from './gen/reminder-rules.gen.js';
+export { REMINDER_RULES, REMINDER_DOMAINS, REMINDER_KINDS } from './gen/reminder-rules.gen.js';
+export type {
+  ReminderRule,
+  ReminderDomain,
+  ReminderCategory,
+  ReminderPriority,
+  ReminderVisibility,
+  ReminderKind,
+  ReminderExplain,
+  ReminderExplainSource,
+  ActionType,
+} from './gen/reminder-rules.gen.js';
 
 export { MILESTONE_CATALOG, MILESTONE_DOMAINS } from './gen/milestone-catalog.gen.js';
 export type { Milestone, MilestoneDomain } from './gen/milestone-catalog.gen.js';

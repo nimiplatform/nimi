@@ -53,10 +53,11 @@ vi.mock('../../knowledge-base/index.js', () => ({
     {
       ruleId: 'PO-REM-GUIDE-001',
       title: 'Observe response to others',
-      description: 'Test guidance rule for journal linking.',
+      description: 'Test practice rule for journal linking.',
       domain: 'language',
       priority: 'P2',
-      category: 'guidance',
+      category: 'stage',
+      kind: 'practice',
       actionType: 'observe',
       triggerAge: { startMonths: 0, endMonths: 3 },
       delivery: {
@@ -403,7 +404,7 @@ describe('JournalPage', () => {
         childId: 'child-1',
         ruleId: 'PO-REM-GUIDE-001',
         repeatIndex: 2,
-        kind: 'guidance',
+        kind: 'practice',
       });
     });
   });

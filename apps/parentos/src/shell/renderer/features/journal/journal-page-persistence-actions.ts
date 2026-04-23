@@ -27,6 +27,7 @@ import {
   type VoiceDraft,
 } from './journal-page-helpers.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
+import { REMINDER_RULES } from '../../knowledge-base/index.js';
 import { completeReminderByRule } from '../../engine/reminder-actions.js';
 import { getExperimentSuggestion, type ExperimentTemplate } from './journal-experiment-templates.js';
 import { clearJournalLocalDraft, type JournalLocalDraftRecord } from './journal-page-local-draft.js';
@@ -344,11 +345,19 @@ export function createJournalPersistenceActions(input: {
       await input.reloadEntries();
       const reminderRuleId = input.searchParams.get('reminderRuleId');
       if (reminderRuleId) {
+        // Journal completions historically marked the paired reminder as handled.
+        // The journal flow is opened by both guide-kind and practice-kind reminders
+        // (see timeline-page-panels.tsx#reminderPrimaryLink); W4b will refine this
+        // into the correct per-kind action (acknowledge vs start_practicing) once
+        // the progression state machine ships. For W4a we pass the practice kind as
+        // a conservative default — it matches the legacy `acknowledge` semantics
+        // in reminder-actions.ts without regressing existing behavior.
+        const rule = REMINDER_RULES.find((candidate) => candidate.ruleId === reminderRuleId);
         await completeReminderByRule({
           childId: input.childId,
           ruleId: reminderRuleId,
           repeatIndex: Number(input.searchParams.get('repeatIndex') ?? '0') || 0,
-          kind: 'guidance',
+          kind: rule?.kind ?? 'practice',
         }).catch(catchLog('journal', 'action:complete-reminder-after-journal-failed', 'warn'));
         input.clearReminderSearchParams();
       }

@@ -33,10 +33,36 @@ function writeGen(filename: string, content: string) {
 
 // ── reminder-rules ──────────────────────────────────────────
 
+type ReminderKindLiteral = 'task' | 'guide' | 'practice' | 'consult';
+
+const ACTION_TYPE_TO_KIND: Record<string, ReminderKindLiteral> = {
+  go_hospital: 'task',
+  record_data: 'task',
+  start_training: 'task',
+  read_guide: 'guide',
+  observe: 'practice',
+  ai_consult: 'consult',
+};
+
+interface ReminderExplainSource {
+  citation: string;
+  url?: string;
+}
+
+interface ReminderExplainShape {
+  whyNow: string;
+  howTo: string[];
+  doneWhen: string;
+  ifNotNow?: string;
+  pitfalls?: string[];
+  sources: ReminderExplainSource[];
+}
+
 interface BaseReminderRule {
   ruleId: string;
   domain: string;
   category: string;
+  kind: ReminderKindLiteral;
   title: string;
   description: string;
   triggerAge: { startMonths: number; endMonths: number };
@@ -45,8 +71,8 @@ interface BaseReminderRule {
   nurtureMode: { relaxed: string; balanced: string; advanced: string };
   actionType: string;
   repeatRule?: { intervalMonths: number; maxRepeats: number };
+  explain?: ReminderExplainShape;
   expiryMonths?: number;
-  source: string;
   tags?: string[];
 }
 
@@ -94,10 +120,17 @@ function liftOrthodonticRules(): BaseReminderRule[] {
 
   const out: BaseReminderRule[] = [];
   for (const rule of spec.rules ?? []) {
+    const kind = ACTION_TYPE_TO_KIND[rule.actionType];
+    if (kind !== 'task') {
+      throw new Error(
+        `liftOrthodonticRules: rule "${rule.ruleId}" actionType '${rule.actionType}' maps to kind '${kind}', but orthodontic protocol rules are admitted only as kind='task' (PO-REMI-002)`,
+      );
+    }
     out.push({
       ruleId: rule.ruleId,
       domain: rule.domain,
       category: 'personalized',
+      kind: 'task',
       title: rule.title,
       description: rule.description,
       triggerAge: { startMonths: 0, endMonths: 216 },
@@ -109,15 +142,21 @@ function liftOrthodonticRules(): BaseReminderRule[] {
       priority: rule.priority,
       nurtureMode: rule.nurtureMode,
       actionType: rule.actionType,
-      source: rule.source,
       tags: ['orthodontic-protocol', ...(rule.applianceTypes ?? []).map((t) => `appliance:${t}`)],
     });
   }
   for (const rule of spec.dentalFollowUpRules ?? []) {
+    const kind = ACTION_TYPE_TO_KIND[rule.actionType];
+    if (kind !== 'task') {
+      throw new Error(
+        `liftOrthodonticRules: dental follow-up rule "${rule.ruleId}" actionType '${rule.actionType}' maps to kind '${kind}', but dental follow-up rules are admitted only as kind='task' (PO-REMI-002)`,
+      );
+    }
     out.push({
       ruleId: rule.ruleId,
       domain: rule.domain,
       category: 'personalized',
+      kind: 'task',
       title: rule.title,
       description: rule.description,
       triggerAge: { startMonths: 0, endMonths: 216 },
@@ -130,7 +169,6 @@ function liftOrthodonticRules(): BaseReminderRule[] {
       nurtureMode: rule.nurtureMode,
       actionType: rule.actionType,
       repeatRule: { intervalMonths: rule.intervalMonths, maxRepeats: -1 },
-      source: rule.source,
       tags: ['dental-followup', `trigger:${rule.triggeredBy.dentalEventType}`],
     });
   }
@@ -166,10 +204,26 @@ function generateReminderRules() {
     }
   }
 
+  // PO-REMI-002: enforce actionType ↔ kind mapping for every merged rule.
+  for (const rule of merged) {
+    const expected = ACTION_TYPE_TO_KIND[rule.actionType];
+    if (!expected) {
+      throw new Error(
+        `generate-knowledge-base: rule "${rule.ruleId}" has unknown actionType '${rule.actionType}'`,
+      );
+    }
+    if (rule.kind !== expected) {
+      throw new Error(
+        `generate-knowledge-base: rule "${rule.ruleId}" kind '${rule.kind}' does not match PO-REMI-002 mapping for actionType '${rule.actionType}' (expected '${expected}')`,
+      );
+    }
+  }
+
   const domains = [...new Set(merged.map((r) => r.domain))].sort();
   const categories = [...new Set(merged.map((r) => r.category))].sort();
   const priorities = [...new Set(merged.map((r) => r.priority))].sort();
   const actionTypes = [...new Set(merged.map((r) => r.actionType))].sort();
+  const kinds = [...new Set(merged.map((r) => r.kind))].sort();
 
   const ts = `
 export type ReminderDomain = ${domains.map((d) => `'${d}'`).join(' | ')};
@@ -177,11 +231,27 @@ export type ReminderCategory = ${categories.map((c) => `'${c}'`).join(' | ')};
 export type ReminderPriority = ${priorities.map((p) => `'${p}'`).join(' | ')};
 export type ReminderVisibility = 'push' | 'silent' | 'hidden';
 export type ActionType = ${actionTypes.map((a) => `'${a}'`).join(' | ')};
+export type ReminderKind = ${kinds.map((k) => `'${k}'`).join(' | ')};
+
+export interface ReminderExplainSource {
+  citation: string;
+  url?: string;
+}
+
+export interface ReminderExplain {
+  whyNow: string;
+  howTo: readonly string[];
+  doneWhen: string;
+  ifNotNow?: string;
+  pitfalls?: readonly string[];
+  sources: readonly ReminderExplainSource[];
+}
 
 export interface ReminderRule {
   ruleId: string;
   domain: ReminderDomain;
   category: ReminderCategory;
+  kind: ReminderKind;
   title: string;
   description: string;
   triggerAge: { startMonths: number; endMonths: number };
@@ -190,14 +260,15 @@ export interface ReminderRule {
   nurtureMode: { relaxed: ReminderVisibility; balanced: ReminderVisibility; advanced: ReminderVisibility };
   actionType: ActionType;
   repeatRule?: { intervalMonths: number; maxRepeats: number };
+  explain?: ReminderExplain;
   expiryMonths?: number;
-  source: string;
-  tags?: string[];
+  tags?: readonly string[];
 }
 
 export const REMINDER_RULES: readonly ReminderRule[] = ${JSON.stringify(merged, null, 2)};
 
 export const REMINDER_DOMAINS = ${JSON.stringify(domains)} ;
+export const REMINDER_KINDS = ${JSON.stringify(kinds)} ;
 `;
 
   writeGen('reminder-rules.gen.ts', ts);

@@ -4,6 +4,7 @@ use rusqlite::{params, Connection};
 mod migration_repairs;
 mod round_trip;
 mod round_trip_orthodontic;
+mod round_trip_reminder_state;
 
 fn seed_family_and_child(conn: &Connection) {
     conn.execute(

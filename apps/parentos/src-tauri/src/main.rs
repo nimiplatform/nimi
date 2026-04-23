@@ -209,6 +209,8 @@ fn main() {
             sqlite::queries::upsert_reminder_state,
             sqlite::queries::get_reminder_states,
             sqlite::queries::get_active_reminders,
+            sqlite::queries::upsert_reminder_consultation,
+            sqlite::queries::clear_reminder_consultation,
             // Custom Todos
             sqlite::queries::insert_custom_todo,
             sqlite::queries::update_custom_todo,

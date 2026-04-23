@@ -7,6 +7,7 @@ import type {
   VaccineRecordRow,
 } from '../../bridge/sqlite-bridge.js';
 import { GROWTH_STANDARDS, MILESTONE_CATALOG, REMINDER_RULES } from '../../knowledge-base/index.js';
+import { mapReminderStateRow, summarizeReminderProgression } from '../../engine/reminder-engine.js';
 import { buildStructuredTrendSignals, type StructuredTrendSignal } from './trend-analysis.js';
 
 export type GrowthReportType = 'monthly' | 'quarterly' | 'quarterly-letter' | 'custom';
@@ -295,12 +296,39 @@ function buildOverview(
   const milestoneCount = milestones.filter((item) => inPeriod(item.achievedAt, periodStart, periodEnd)).length;
   const vaccineCount = vaccines.filter((item) => inPeriod(item.vaccinatedAt, periodStart, periodEnd)).length;
   const journalCount = journalEntries.filter((item) => inPeriod(item.recordedAt, periodStart, periodEnd)).length;
-  const openReminderCount = reminderStates.filter((item) => ['pending', 'active', 'overdue'].includes(item.status)).length;
+  // PO-REMI-009 progression evidence: cite kind-aware parent engagement, not
+  // a flat "pending / active / overdue" count.
+  const evidence = summarizeReminderProgression(reminderStates.map(mapReminderStateRow), REMINDER_RULES);
+
+  const engagementParts: string[] = [];
+  if (evidence.tasksCompleted > 0) engagementParts.push(`completed ${evidence.tasksCompleted} tasks`);
+  if (evidence.guidesAcknowledged > 0) {
+    engagementParts.push(
+      evidence.guidesReflected > 0
+        ? `acknowledged ${evidence.guidesAcknowledged} guides (${evidence.guidesReflected} with reflection)`
+        : `acknowledged ${evidence.guidesAcknowledged} guides`,
+    );
+  }
+  if (evidence.practicesInProgress > 0 || evidence.practicesHabituated > 0) {
+    const base = evidence.practicesInProgress > 0
+      ? `practicing ${evidence.practicesInProgress} behavior guides (${evidence.practiceTotalEvents} engagements logged)`
+      : '';
+    const hab = evidence.practicesHabituated > 0
+      ? `${evidence.practicesHabituated} practice${evidence.practicesHabituated === 1 ? '' : 's'} marked habituated`
+      : '';
+    if (base) engagementParts.push(base);
+    if (hab) engagementParts.push(hab);
+  }
+  if (evidence.consultsCompleted > 0) engagementParts.push(`consulted the AI advisor on ${evidence.consultsCompleted} topics`);
+
+  const engagementLine = engagementParts.length > 0
+    ? `Parent engagement this window: ${engagementParts.join('; ')}.`
+    : `No reminder engagement recorded this window.`;
 
   return [
     `${child.displayName}'s ${reportType.replace('-', ' ')} report covers ${formatDate(periodStart)} to ${formatDate(periodEnd)}.`,
     `This window includes ${measurementCount} growth measurements, ${journalCount} journal entries, ${milestoneCount} milestone updates, and ${vaccineCount} vaccine records.`,
-    `There are ${openReminderCount} reminder items currently pending, active, or overdue on the timeline.`,
+    `${engagementLine} ${evidence.unfinished} reminder items are still open on the timeline.`,
   ];
 }
 

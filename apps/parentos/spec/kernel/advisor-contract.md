@@ -30,6 +30,10 @@ Governing fact sources:
 - `tables/routes.yaml#/advisor`
 - `tables/routes.yaml#/reports`
 
+Cross-contract authority:
+
+- `reminder-interaction-contract.md#PO-REMI-007` — the consult-kind reminder → advisor conversation anchor and writeback sequence
+
 ## PO-ADVS-001 Snapshot Inputs
 
 Advisor and reports requests may consume only the current child's structured local snapshot.
@@ -123,6 +127,18 @@ Stored messages must preserve:
 - `createdAt`
 
 The persistence layer must not omit `contextSnapshot` for user turns that depend on child data.
+
+### PO-ADVS-006a Reminder-Anchored Consultation Writeback
+
+When a conversation is created from a `consult`-kind reminder (see `reminder-interaction-contract.md#PO-REMI-007`), the advisor module carries two additional responsibilities:
+
+- The `ai_conversations` row must record the originating `reminderRuleId` and `repeatIndex` (via a typed metadata mechanism that must not mutate existing `ai_conversations` columns; the exact storage shape is admitted in Wave 5c). A conversation started outside a reminder context must not carry this anchor.
+- When the runtime produces the first successfully-persisted `assistant` message for the anchored conversation, the advisor module must invoke the shared bridge call `upsertReminderConsultation(childId, ruleId, repeatIndex, conversationId, now)`. This writes `consultedAt` and `consultationConversationId` onto the matching `reminder_states` row.
+- The writeback must be idempotent per `(childId, ruleId, repeatIndex)`. The first successful writeback wins; subsequent assistant messages on the same conversation do not re-emit the writeback.
+- If `ai_conversations` creation fails, or the first assistant message cannot be persisted, or the runtime output is filtered by `PO-ADVS-004`, no writeback may occur. The reminder remains in its pre-consult progression state. The advisor surface must fall back to `PO-ADVS-003` structured wording.
+- Deletion of the anchored `ai_conversations` row (including child-scope cascade per `local-storage.yaml` child deletion list) must clear `consultedAt` and `consultationConversationId` on the associated `reminder_states` row. Advisor retains the mandate to perform this paired clear; the reminder engine must not synthesize it.
+
+This writeback is the only admitted path for `consultedAt` / `consultationConversationId`. Reminder panels and `/reminders` surfaces must not write these columns directly.
 
 ## PO-ADVS-007 Reports Surface Boundary
 

@@ -6,12 +6,15 @@
 
 This contract governs the reminder agenda engine, timeline home projection, sensitive-period guidance, and timeline-driven monthly report trigger.
 
+Reminder **interaction semantics** — the per-kind progression state machine, action enumeration, explain authoring contract, and advisor consultation writeback path — are delegated to `reminder-interaction-contract.md` (`PO-REMI-*`). This contract (`PO-TIME-*`) owns eligibility, scheduling, visibility, and agenda bucketing; `PO-REMI-*` owns what happens after a reminder has surfaced.
+
 Covered features from `feature-matrix.yaml`:
 
 - `PO-FEAT-002` reminder engine
 - `PO-FEAT-003` growth timeline
 - `PO-FEAT-011` sensitive period guide
 - `PO-FEAT-046` automatic monthly report generation
+- `PO-FEAT-053` reminder progression surface (interaction semantics delegated to `reminder-interaction-contract.md`)
 
 Governing fact sources:
 
@@ -61,6 +64,8 @@ Required persisted fields include:
 - `surfaceRank`
 - `lastSurfacedAt`
 - `surfaceCount`
+
+The per-kind progression timestamp columns (`acknowledgedAt`, `reflectedAt`, `practiceStartedAt`, `practiceLastAt`, `practiceCount`, `practiceHabituatedAt`, `consultedAt`, `consultationConversationId`) are governed by `reminder-interaction-contract.md#PO-REMI-004`. This contract only guarantees that the timeline engine reads these columns as kind-scoped progression signals when computing lifecycle; write rules for those columns belong to `PO-REMI-*`.
 
 Legacy storage status values remain admitted:
 

@@ -342,6 +342,14 @@ features:
     description: "30-day task-completion approximation projection for active orthodontic appliances. Dashboard wording must label the metric as approximation, not clinical wear reconstruction."
     tables: [local-storage.yaml#orthodontic_checkins, orthodontic-protocols.yaml]
 
+  - featureId: PO-FEAT-053
+    name: "Reminder progression surface"
+    phase: 1
+    priority: P1
+    contract: reminder-interaction-contract
+    description: "Kind-aware reminder interaction: task | guide | practice | consult taxonomy, per-kind progression state machines persisted in reminder_states, structured explain content rendered in ReminderExplainDrawer, and advisor-written consultedAt/consultationConversationId on AI first reply for consult-kind reminders. Eligibility and bucketing remain in timeline-contract (PO-TIME-*); interaction semantics live in reminder-interaction-contract (PO-REMI-*)."
+    tables: [reminder-rules.yaml, local-storage.yaml#reminder_states, local-storage.yaml#ai_conversations]
+
 constraints:
   - "The current baseline preserves the reminder -> record -> review core loop."
   - "Implemented AI features must stay within typed runtime contracts and the current knowledge-source-readiness gates."

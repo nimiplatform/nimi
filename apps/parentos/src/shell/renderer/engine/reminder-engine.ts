@@ -1,5 +1,6 @@
 import type { NurtureMode } from '../app-shell/app-store.js';
 import type {
+  ReminderKind as GenReminderKind,
   ReminderPriority,
   ReminderRule as GenReminderRule,
   ReminderVisibility,
@@ -27,7 +28,20 @@ export class UnknownReminderRuleError extends Error {
 }
 
 export type ReminderStatus = 'pending' | 'active' | 'completed' | 'dismissed' | 'overdue';
-export type ReminderKind = 'task' | 'guidance';
+
+/**
+ * Imported from the generated catalog: 'task' | 'guide' | 'practice' | 'consult'.
+ * Per reminder-interaction-contract.md#PO-REMI-001 this is a closed enum and the
+ * engine must read `rule.kind` directly rather than infer from actionType.
+ */
+export type ReminderKind = GenReminderKind;
+
+/**
+ * Lifecycle projection per PO-REMI-003. The five non-terminal values (upcoming,
+ * due, scheduled, snoozed, overdue) mirror PO-TIME-004; the four kind-scoped
+ * terminal values (acknowledged, practicing, consulted, completed) reflect the
+ * progression state machine. `not_applicable` is the universal dismissal outcome.
+ */
 export type ReminderLifecycle =
   | 'upcoming'
   | 'due'
@@ -35,6 +49,9 @@ export type ReminderLifecycle =
   | 'snoozed'
   | 'overdue'
   | 'completed'
+  | 'acknowledged'
+  | 'practicing'
+  | 'consulted'
   | 'not_applicable';
 
 export interface ReminderState {
@@ -56,6 +73,17 @@ export interface ReminderState {
   lastSurfacedAt: string | null;
   surfaceCount: number;
   notes: string | null;
+  // v10 per-kind progression (reminder-interaction-contract.md#PO-REMI-004).
+  // NULL on rows persisted before v10 migrated into a given schema — kind-aware
+  // lifecycle mapping (W4a) must tolerate the NULL-default state.
+  acknowledgedAt: string | null;
+  reflectedAt: string | null;
+  practiceStartedAt: string | null;
+  practiceLastAt: string | null;
+  practiceCount: number;
+  practiceHabituatedAt: string | null;
+  consultedAt: string | null;
+  consultationConversationId: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -129,55 +157,21 @@ export function getLocalToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function toReminderKind(rule: Pick<GenReminderRule, 'actionType'>): ReminderKind {
-  return ['go_hospital', 'record_data', 'start_training'].includes(rule.actionType) ? 'task' : 'guidance';
-}
+// `toReminderKind` removed: per PO-REMI-001 the engine reads `rule.kind` directly.
+// The actionType → kind mapping is authoritative at generator time (scripts/generate-knowledge-base.ts)
+// and validated by scripts/parentos-knowledge-base-validation.ts#validateReminderKind.
 
-export function mapReminderStateRow(row: {
-  stateId: string;
-  childId: string;
-  ruleId: string;
-  status: string;
-  activatedAt: string | null;
-  completedAt: string | null;
-  dismissedAt: string | null;
-  dismissReason: string | null;
-  repeatIndex: number;
-  nextTriggerAt: string | null;
-  snoozedUntil: string | null;
-  scheduledDate: string | null;
-  notApplicable: number;
-  plannedForDate: string | null;
-  surfaceRank: number | null;
-  lastSurfacedAt: string | null;
-  surfaceCount: number;
-  notes: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-}): ReminderState {
-  return {
-    stateId: row.stateId,
-    childId: row.childId,
-    ruleId: row.ruleId,
-    status: row.status as ReminderStatus,
-    activatedAt: row.activatedAt,
-    completedAt: row.completedAt,
-    dismissedAt: row.dismissedAt,
-    dismissReason: row.dismissReason,
-    repeatIndex: row.repeatIndex,
-    nextTriggerAt: row.nextTriggerAt,
-    snoozedUntil: row.snoozedUntil,
-    scheduledDate: row.scheduledDate,
-    notApplicable: row.notApplicable,
-    plannedForDate: row.plannedForDate,
-    surfaceRank: row.surfaceRank,
-    lastSurfacedAt: row.lastSurfacedAt,
-    surfaceCount: row.surfaceCount,
-    notes: row.notes,
-    createdAt: row.createdAt ?? null,
-    updatedAt: row.updatedAt ?? null,
-  };
-}
+// Kind-aware progression evidence extraction (PO-REMI-009) lives in
+// `reminder-progression-evidence.ts` to keep this engine module focused on
+// eligibility + agenda bucketing.
+export {
+  summarizeReminderProgression,
+  type ReminderProgressionEvidence,
+} from './reminder-progression-evidence.js';
+
+// `mapReminderStateRow` extracted to `reminder-state-mapper.ts` so this engine
+// module stays focused on eligibility + agenda bucketing logic.
+export { mapReminderStateRow } from './reminder-state-mapper.js';
 
 function parseDateKey(value: string) {
   const [year, month, day] = value.slice(0, 10).split('-').map(Number);
@@ -316,7 +310,20 @@ function isColdStartReminder(
 function toLifecycle(reminder: Omit<ActiveReminder, 'lifecycle'>, localToday: string): ReminderLifecycle {
   const state = reminder.state;
   if (state?.notApplicable === 1) return 'not_applicable';
-  if (state?.completedAt) return 'completed';
+
+  // Kind-scoped terminal projection per reminder-interaction-contract.md#PO-REMI-003.
+  // Null tolerance: rows persisted before v10 have NULL in every progression column,
+  // which falls through to the non-terminal branches below exactly like a fresh row.
+  if (reminder.kind === 'task' && state?.completedAt) return 'completed';
+  if (reminder.kind === 'guide' && state?.acknowledgedAt) return 'acknowledged';
+  if (reminder.kind === 'practice') {
+    if (state?.practiceHabituatedAt) return 'completed';
+    if (state?.practiceStartedAt) return 'practicing';
+  }
+  if (reminder.kind === 'consult' && state?.consultedAt && state?.consultationConversationId) {
+    return 'consulted';
+  }
+
   // Dismissed today → treat as snoozed (hidden from today's agenda, reappears tomorrow)
   if (state?.dismissedAt === localToday) return 'snoozed';
   if (state?.snoozedUntil && state.snoozedUntil > localToday) return 'snoozed';
@@ -357,7 +364,7 @@ export function computeEligibleReminders(
     const visibility = rule.nurtureMode[effectiveMode];
     if (visibility === 'hidden') continue;
 
-    const kind = toReminderKind(rule);
+    const kind = rule.kind;
 
     if (rule.repeatRule) {
       const intervalMonths = override?.intervalMonths ?? rule.repeatRule.intervalMonths;
@@ -452,7 +459,7 @@ export function computeEligibleReminders(
     const effectiveMode = context.domainOverrides?.[rule.domain] ?? context.nurtureMode;
     const visibility = rule.nurtureMode[effectiveMode];
     if (visibility === 'hidden') continue;
-    const kind = toReminderKind(rule);
+    const kind = rule.kind;
     for (const state of existingStates) {
       if (state.ruleId !== rule.ruleId) continue;
       if (state.status !== 'active' && state.status !== 'pending') continue;
@@ -560,9 +567,13 @@ function isTaskTodayCandidate(reminder: ActiveReminder, localToday: string) {
 
 function isUpcomingCandidate(reminder: ActiveReminder) {
   if (reminder.lifecycle === 'completed' || reminder.lifecycle === 'not_applicable' || reminder.lifecycle === 'snoozed') return false;
+  if (reminder.lifecycle === 'acknowledged' || reminder.lifecycle === 'consulted') return false;
   // Severely overdue items (>30 days) belong in the overdue summary, not here
   if (reminder.lifecycle === 'overdue' && reminder.overdueDays > 30) return false;
-  if (reminder.kind === 'guidance') return true;
+  // Non-task kinds (guide/practice/consult) always show in upcoming while not terminal.
+  // Practice items in the 'practicing' lifecycle remain visible so the parent can log
+  // recurring engagements per PO-REMI-008.
+  if (reminder.kind !== 'task') return true;
   // Tasks: scheduled, recently overdue, or starting within 30 days
   if (reminder.lifecycle === 'scheduled') return true;
   if (reminder.lifecycle === 'overdue') return true;
@@ -669,7 +680,7 @@ export function buildReminderAgenda(
     }
     const visibility = rule.nurtureMode[context.domainOverrides?.[rule.domain] ?? context.nurtureMode];
     if (visibility === 'hidden') continue;
-    const kind = toReminderKind(rule);
+    const kind = rule.kind;
     const intervalMonths = freqOverrides?.get(rule.ruleId)?.intervalMonths ?? rule.repeatRule?.intervalMonths ?? null;
     const effectiveAgeMonths = rule.repeatRule
       ? rule.triggerAge.startMonths + state.repeatIndex * (intervalMonths ?? rule.repeatRule.intervalMonths)
@@ -680,7 +691,14 @@ export function buildReminderAgenda(
       rule.triggerAge.endMonths === -1 ? 216 : rule.triggerAge.endMonths,
     );
     let historyType: ReminderHistoryItem['historyType'] | null = null;
+    // Kind-scoped terminal signals per PO-REMI-003 surface in history equivalently
+    // to legacy completedAt: a guide that has been acknowledged, a practice that
+    // has been habituated, and a consult that has completed its AI exchange must
+    // all enter history so the UI can render the parent's engagement evidence.
     if (state.completedAt) historyType = 'completed';
+    else if (rule.kind === 'guide' && state.acknowledgedAt) historyType = 'completed';
+    else if (rule.kind === 'practice' && state.practiceHabituatedAt) historyType = 'completed';
+    else if (rule.kind === 'consult' && state.consultedAt && state.consultationConversationId) historyType = 'completed';
     else if (state.notApplicable === 1) historyType = 'not_applicable';
     else if (state.scheduledDate && state.scheduledDate >= context.localToday) historyType = 'scheduled';
     else if (state.snoozedUntil && state.snoozedUntil > context.localToday) historyType = 'snoozed';
