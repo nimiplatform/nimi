@@ -100,11 +100,13 @@ test('home and notification surfaces import shared design primitives from nimi-k
   assert.match(notificationRejectDialogSource, /@nimiplatform\/nimi-kit\/ui/);
 });
 
-test('design governance tables register secondary profile and overlay consumers explicitly', () => {
+test('design governance tables register secondary profile and overlay consumers explicitly, including the admitted contacts detail hero/shell split', () => {
   assert.match(designSurfacesTable, /id: profile\.panel\.root/);
   assert.match(designSurfacesTable, /module: features\/profile\/profile-panel\.tsx/);
-  assert.match(designSurfacesTable, /id: contacts\.profile_detail\.surface/);
+  assert.match(designSurfacesTable, /id: contacts\.profile_detail\.hero_exception/);
   assert.match(designSurfacesTable, /module: features\/contacts\/contact-detail-view-content\.tsx/);
+  assert.match(designSurfacesTable, /id: contacts\.profile_detail\.shell_exception/);
+  assert.match(designSurfacesTable, /module: features\/contacts\/contact-detail-view-content-shell\.tsx/);
   assert.match(designSurfacesTable, /id: economy\.send_gift\.dialog_surface/);
   assert.match(designSurfacesTable, /module: features\/economy\/send-gift-modal\.tsx/);
   assert.match(designOverlaysTable, /id: notification\.reject_gift/);

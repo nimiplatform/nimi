@@ -12,6 +12,8 @@ import {
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
+  defaultConnectorAuthOptionForProvider,
+  listConnectorAuthOptionsForProvider,
   sdkCreateConnector,
   sdkDeleteConnector,
   sdkUpdateConnector,
@@ -35,6 +37,7 @@ import { RuntimePageShell } from './runtime-config-page-shell';
 import { SectionTitle as SharedSectionTitle } from '@renderer/features/settings/settings-layout-components';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
+import { acquireCodexManagedCredential, type CodexOAuthPendingState } from './runtime-config-codex-oauth';
 
 // Icons
 function CloudIcon({ className = '' }: { className?: string }) {
@@ -229,6 +232,8 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const [savingToken, setSavingToken] = useState(false);
   const [tokenSaveError, setTokenSaveError] = useState('');
   const [tokenSavedConnectorId, setTokenSavedConnectorId] = useState('');
+  const [codexOAuthPending, setCodexOAuthPending] = useState<CodexOAuthPendingState | null>(null);
+  const [codexOAuthBusy, setCodexOAuthBusy] = useState(false);
 
   const selectedConnectorId = selectedConnector?.id || '';
   const connectorScope = selectedConnector?.scope || 'user';
@@ -237,6 +242,28 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const isSystemOwned = isRuntimeSystem;
   const isDraft = selectedConnector?.isDraft || false;
   const canEditVendor = !isRuntimeSystem && isDraft;
+  const authOptions = useMemo(
+    () => listConnectorAuthOptionsForProvider(selectedConnector?.provider || ''),
+    [selectedConnector?.provider],
+  );
+  const selectedAuthOptionValue = useMemo(() => {
+    if (!selectedConnector) {
+      return 'api_key';
+    }
+    if (selectedConnector.authMode === 'oauth_managed' && selectedConnector.providerAuthProfile) {
+      return `oauth:${selectedConnector.providerAuthProfile}`;
+    }
+    return 'api_key';
+  }, [selectedConnector]);
+  const canEditCredentialMode = !isRuntimeSystem && isDraft && authOptions.length > 1;
+  const oauthManagedRequiresAuth = selectedConnector?.authMode === 'oauth_managed';
+  const isCodexManagedConnector = selectedConnector?.authMode === 'oauth_managed'
+    && selectedConnector?.providerAuthProfile === 'openai_codex';
+  const canStartCodexOAuth = Boolean(selectedConnectorId)
+    && isCodexManagedConnector
+    && authStatus === 'authenticated'
+    && !savingToken
+    && !codexOAuthBusy;
 
   useEffect(() => {
     pageFeedbackRef.current = model.pageFeedback;
@@ -245,11 +272,19 @@ export function CloudPage({ model, state }: CloudPageProps) {
   useEffect(() => {
     setTokenDraft('');
     setTokenSaveError('');
+    setCodexOAuthPending(null);
+    setCodexOAuthBusy(false);
   }, [selectedConnectorId]);
 
   const canSaveToken = useMemo(
-    () => Boolean(selectedConnectorId) && tokenDraft.trim().length > 0 && !savingToken,
-    [savingToken, tokenDraft, selectedConnectorId],
+    () => (
+      Boolean(selectedConnectorId)
+      && tokenDraft.trim().length > 0
+      && !savingToken
+      && !codexOAuthBusy
+      && (!oauthManagedRequiresAuth || authStatus === 'authenticated')
+    ),
+    [authStatus, codexOAuthBusy, oauthManagedRequiresAuth, savingToken, tokenDraft, selectedConnectorId],
   );
   const selectedProviderCatalogEntry = useMemo(
     () => providerCatalog.find((entry) => entry.provider === selectedConnector?.provider) || null,
@@ -342,6 +377,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const onAddConnector = useCallback(async () => {
     const vendor: ApiVendor = 'openrouter';
     const provider = vendorToProvider(vendor);
+    const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider);
     const runtimeCatalog = await sdkListProviderCatalog();
     const endpoint = resolveProviderEndpoint(provider, runtimeCatalog)
       || DEFAULT_OPENAI_ENDPOINT_V11;
@@ -350,6 +386,8 @@ export function CloudPage({ model, state }: CloudPageProps) {
       label: `API Connector ${state.connectors.length + 1}`,
       vendor,
       provider,
+      authMode: defaultAuthOption.authMode,
+      providerAuthProfile: defaultAuthOption.providerAuthProfile,
       endpoint,
       scope: authStatus === 'authenticated' ? 'user' as const : 'machine-global' as const,
       hasCredential: false,
@@ -400,11 +438,15 @@ export function CloudPage({ model, state }: CloudPageProps) {
       const currentVendor = prev.connectors.find((c) => c.id === selectedConnectorId)?.vendor;
       const inferredVendor = inferVendorFromEndpoint(endpoint);
       if (inferredVendor && inferredVendor !== currentVendor) {
+        const inferredProvider = vendorToProvider(inferredVendor);
+        const defaultAuthOption = defaultConnectorAuthOptionForProvider(inferredProvider);
         return updateConnectorField(prev, selectedConnectorId, {
           vendor: inferredVendor,
           endpoint,
           models: [],
-          provider: vendorToProvider(inferredVendor),
+          provider: inferredProvider,
+          authMode: defaultAuthOption.authMode,
+          providerAuthProfile: defaultAuthOption.providerAuthProfile,
         });
       }
       return updateConnectorField(prev, selectedConnectorId, { endpoint });
@@ -425,17 +467,27 @@ export function CloudPage({ model, state }: CloudPageProps) {
     }
   }, [isRuntimeSystem, selectedConnector, selectedConnectorId, updateState, reportError]);
 
-  const onChangeConnectorToken = useCallback(async (secret: string) => {
-    if (!selectedConnectorId || !selectedConnector) return;
-    const normalizedSecret = String(secret || '').trim();
-    if (!normalizedSecret) return;
+  const onSaveConnectorCredential = useCallback(async (input: {
+    credentialValue?: string;
+    credentialJson?: string;
+  }) => {
+    if (!selectedConnectorId || !selectedConnector) return '';
+    const normalizedSecret = String(input.credentialValue || '').trim();
+    const normalizedCredentialJson = String(input.credentialJson || '').trim();
+    if (!normalizedSecret && !normalizedCredentialJson) return '';
+    if (selectedConnector.authMode === 'oauth_managed' && authStatus !== 'authenticated') {
+      throw new Error('Managed OAuth connectors require an authenticated desktop session.');
+    }
 
     if (selectedConnector.isDraft) {
       const created = await sdkCreateConnector({
         provider: selectedConnector.provider,
         endpoint: selectedConnector.endpoint,
         label: selectedConnector.label,
-        apiKey: normalizedSecret,
+        credentialValue: normalizedSecret,
+        credentialJson: normalizedCredentialJson,
+        authMode: selectedConnector.authMode,
+        providerAuthProfile: selectedConnector.providerAuthProfile,
       });
       if (!created) throw new Error('create connector returned empty payload');
       updateState((prev) => {
@@ -443,23 +495,63 @@ export function CloudPage({ model, state }: CloudPageProps) {
         return { ...prev, connectors: [...withoutDraft, created], selectedConnectorId: created.id };
       });
       model.onVaultChanged();
-      return;
+      return created.id;
     }
 
-    await sdkUpdateConnector({ connectorId: selectedConnectorId, apiKey: normalizedSecret });
+    await sdkUpdateConnector({
+      connectorId: selectedConnectorId,
+      credentialValue: normalizedSecret,
+      credentialJson: normalizedCredentialJson,
+      authMode: selectedConnector.authMode,
+      providerAuthProfile: selectedConnector.providerAuthProfile,
+    });
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, { hasCredential: true }));
     model.onVaultChanged();
-  }, [selectedConnectorId, selectedConnector, updateState, model]);
+    return selectedConnectorId;
+  }, [authStatus, selectedConnectorId, selectedConnector, updateState, model]);
+
+  const onAcquireCodexOAuth = useCallback(async () => {
+    if (!selectedConnector || !selectedConnectorId || !isCodexManagedConnector) {
+      return;
+    }
+    setCodexOAuthBusy(true);
+    setTokenSaveError('');
+    setTokenSavedConnectorId('');
+    try {
+      const acquired = await acquireCodexManagedCredential({
+        onPending: (pending) => {
+          setCodexOAuthPending(pending);
+        },
+      });
+      const persistedConnectorId = await onSaveConnectorCredential({
+        credentialValue: acquired.accessToken,
+        credentialJson: acquired.credentialJson,
+      });
+      setTokenDraft('');
+      setCodexOAuthPending(null);
+      setTokenSavedConnectorId(persistedConnectorId || selectedConnectorId);
+    } catch (error) {
+      setTokenSaveError(error instanceof Error ? error.message : String(error || 'Codex sign-in failed'));
+    } finally {
+      setCodexOAuthBusy(false);
+    }
+  }, [isCodexManagedConnector, onSaveConnectorCredential, selectedConnector, selectedConnectorId]);
 
   const onChangeConnectorVendor = useCallback(async (vendor: string) => {
     if (!selectedConnector || !canEditVendor) return;
     const previousConnector = selectedConnector;
     const normalizedVendor = vendor as typeof selectedConnector.vendor;
     const provider = vendorToProvider(normalizedVendor);
+    const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider);
     const runtimeCatalog = await sdkListProviderCatalog();
     const endpoint = resolveProviderEndpoint(provider, runtimeCatalog) || DEFAULT_OPENAI_ENDPOINT_V11;
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, {
-      vendor: normalizedVendor, endpoint, models: [], provider,
+      vendor: normalizedVendor,
+      endpoint,
+      models: [],
+      provider,
+      authMode: defaultAuthOption.authMode,
+      providerAuthProfile: defaultAuthOption.providerAuthProfile,
     }));
     if (selectedConnectorId && !selectedConnector.isDraft) {
       try { await sdkUpdateConnector({ connectorId: selectedConnectorId, endpoint }); }
@@ -469,11 +561,27 @@ export function CloudPage({ model, state }: CloudPageProps) {
           endpoint: previousConnector.endpoint,
           models: previousConnector.models,
           provider: previousConnector.provider,
+          authMode: previousConnector.authMode,
+          providerAuthProfile: previousConnector.providerAuthProfile,
         }));
         throw error;
       }
     }
   }, [canEditVendor, selectedConnector, selectedConnectorId, updateState]);
+
+  const onChangeConnectorAuthOption = useCallback((nextValue: string) => {
+    if (!selectedConnector || isRuntimeSystem || !isDraft) return;
+    const nextOption = authOptions.find((option) => option.value === nextValue) || null;
+    if (!nextOption) return;
+    updateState((prev) => updateConnectorField(prev, selectedConnectorId, {
+      authMode: nextOption.authMode,
+      providerAuthProfile: nextOption.providerAuthProfile,
+      hasCredential: false,
+    }));
+    setTokenDraft('');
+    setTokenSaveError('');
+    setTokenSavedConnectorId('');
+  }, [authOptions, isDraft, isRuntimeSystem, selectedConnector, selectedConnectorId, updateState]);
 
   const saveTokenToVault = async () => {
     if (!selectedConnectorId) return;
@@ -482,9 +590,9 @@ export function CloudPage({ model, state }: CloudPageProps) {
     setSavingToken(true);
     setTokenSaveError('');
     try {
-      await onChangeConnectorToken(secret);
+      const persistedConnectorId = await onSaveConnectorCredential({ credentialValue: secret });
       setTokenDraft('');
-      setTokenSavedConnectorId(selectedConnectorId);
+      setTokenSavedConnectorId(persistedConnectorId || selectedConnectorId);
     } catch (error) {
       setTokenSaveError(error instanceof Error ? error.message : String(error || 'Save failed'));
     } finally {
@@ -629,7 +737,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 </div>
               </div>
 
-              {/* Endpoint and API Key */}
+              {/* Endpoint and Credential */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
                   label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
@@ -653,17 +761,44 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   </div>
                 ) : (
                   <Input
-                    label={isDraft
-                      ? t('runtimeConfig.cloud.apiKeyRequired', { defaultValue: 'API Key (required)' })
-                      : t('runtimeConfig.cloud.sessionApiKey', { defaultValue: 'Session API Key' })}
+                    label={selectedConnector.authMode === 'oauth_managed'
+                      ? t('runtimeConfig.cloud.oauthTokenRequired', { defaultValue: 'Managed OAuth Token (required)' })
+                      : isDraft
+                        ? t('runtimeConfig.cloud.apiKeyRequired', { defaultValue: 'API Key (required)' })
+                        : t('runtimeConfig.cloud.sessionApiKey', { defaultValue: 'Session API Key' })}
                     value={tokenDraft}
                     onChange={setTokenDraft}
                     type={model.showCloudApiKey ? 'text' : 'password'}
-                    placeholder="sk-..."
+                    placeholder={selectedConnector.authMode === 'oauth_managed' ? 'access token' : 'sk-...'}
                     icon={<KeyIcon />}
                   />
                 )}
               </div>
+              {!isRuntimeSystem ? (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                    {t('runtimeConfig.cloud.credentialType', { defaultValue: 'Credential Type' })}
+                  </label>
+                  <RuntimeSelect
+                    value={selectedAuthOptionValue}
+                    onChange={onChangeConnectorAuthOption}
+                    disabled={!canEditCredentialMode}
+                    className="w-full"
+                    options={authOptions}
+                  />
+                  {!canEditCredentialMode ? (
+                    <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                      {isDraft
+                        ? t('runtimeConfig.cloud.credentialTypeFixedForProvider', {
+                          defaultValue: 'This provider exposes a single admitted credential shape in the current runtime profile.',
+                        })
+                        : t('runtimeConfig.cloud.credentialTypeImmutableAfterCreate', {
+                          defaultValue: 'Credential type is fixed after connector creation. Create a new connector to switch auth shape.',
+                        })}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               {selectedProviderCatalogEntry?.inventoryMode === 'dynamic_endpoint' ? (
                 <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-4 py-3">
                   <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
@@ -691,9 +826,23 @@ export function CloudPage({ model, state }: CloudPageProps) {
                       ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
                       : isDraft
                         ? t('runtimeConfig.cloud.createConnector', { defaultValue: 'Create Connector' })
-                        : t('runtimeConfig.cloud.saveApiKey', { defaultValue: 'Save API Key' })}
+                        : selectedConnector.authMode === 'oauth_managed'
+                          ? t('runtimeConfig.cloud.saveManagedToken', { defaultValue: 'Save Token' })
+                          : t('runtimeConfig.cloud.saveApiKey', { defaultValue: 'Save API Key' })}
                   </Button>
                 )}
+                {isCodexManagedConnector ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!canStartCodexOAuth}
+                    onClick={() => { void onAcquireCodexOAuth(); }}
+                  >
+                    {codexOAuthBusy
+                      ? t('runtimeConfig.cloud.codexOauthSigningIn', { defaultValue: 'Waiting for Codex...' })
+                      : t('runtimeConfig.cloud.codexOauthStart', { defaultValue: 'Sign in with Codex' })}
+                  </Button>
+                ) : null}
                 <Button
                   variant="secondary"
                   size="sm"
@@ -732,10 +881,44 @@ export function CloudPage({ model, state }: CloudPageProps) {
                     {t('runtimeConfig.cloud.credentialConfigured', { defaultValue: 'Credential configured' })}
                   </p>
                 )}
+                {selectedConnector.authMode === 'oauth_managed' && authStatus !== 'authenticated' ? (
+                  <p className="text-xs text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] rounded-lg px-3 py-2">
+                    {t('runtimeConfig.cloud.oauthRequiresAuth', {
+                      defaultValue: 'Managed OAuth connectors require an authenticated desktop session before they can be created.',
+                    })}
+                  </p>
+                ) : null}
+                {isCodexManagedConnector && codexOAuthPending ? (
+                  <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-3 py-2 text-xs text-[var(--nimi-text-secondary)]">
+                    <p className="font-medium text-[var(--nimi-text-primary)]">
+                      {t('runtimeConfig.cloud.codexOauthPendingTitle', { defaultValue: 'Complete Codex sign-in' })}
+                    </p>
+                    <p className="mt-1">
+                      {t('runtimeConfig.cloud.codexOauthPendingBody', {
+                        defaultValue: 'The browser was opened for Codex sign-in. Enter the code below if prompted, then return here.',
+                      })}
+                    </p>
+                    <p className="mt-2 font-mono text-sm tracking-[0.2em] text-[var(--nimi-action-primary-bg)]">
+                      {codexOAuthPending.userCode}
+                    </p>
+                    <p className="mt-2 break-all">
+                      <a
+                        href={codexOAuthPending.verificationUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[var(--nimi-action-primary-bg)] underline"
+                      >
+                        {codexOAuthPending.verificationUrl}
+                      </a>
+                    </p>
+                  </div>
+                ) : null}
                 {tokenSavedConnectorId === selectedConnector.id && (
                   <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">
                     <CheckIcon className="h-3.5 w-3.5" />
-                    {t('runtimeConfig.cloud.apiKeySaved', { defaultValue: 'API Key saved successfully' })}
+                    {selectedConnector.authMode === 'oauth_managed'
+                      ? t('runtimeConfig.cloud.managedCredentialSaved', { defaultValue: 'Managed credential saved successfully' })
+                      : t('runtimeConfig.cloud.apiKeySaved', { defaultValue: 'API Key saved successfully' })}
                   </p>
                 )}
                 {tokenSaveError && (

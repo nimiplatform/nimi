@@ -25,16 +25,18 @@ test('W3 chat surface follow-on: canonical conversation shell is governed as a s
   assert.match(humanCanonicalSource, /return \(\s*<CanonicalTranscriptView \{\.\.\.transcriptProps\} \/>\s*\)/);
   assert.match(humanCanonicalSource, /return <CanonicalStagePanel \{\.\.\.stagePanelProps\} \/>;/);
   assert.match(desktopUiShellSpec, /## D-SHELL-031 — Chat Canonical Ownership And Avatar Viewport Exception Admission/);
-  assert.match(desktopSurfacesSpec, /id: chat\.canonical\.conversation_shell_adapter[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-031/);
+  assert.match(desktopUiShellSpec, /## D-SHELL-037 — Desktop Chat Obstacle-Flow Kit Exception Consumer Boundary/);
+  assert.match(desktopSurfacesSpec, /id: chat\.canonical\.conversation_shell_adapter[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-037/);
 });
 
-test('W3 chat surface follow-on: avatar viewport chrome is admitted narrowly as a controlled exception', () => {
+test('W3 chat surface follow-on: avatar viewport chrome remains implementation-local while current desktop shell authority keeps the old exceptions retired', () => {
   assert.match(live2dViewportSource, /chrome = 'default'/);
   assert.match(live2dViewportSource, /chrome === 'minimal'/);
   assert.match(vrmViewportSource, /chrome = 'default'/);
   assert.match(vrmViewportSource, /chrome === 'minimal'/);
-  assert.match(desktopSurfacesSpec, /id: chat\.avatar\.live2d\.viewport_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-031/);
-  assert.match(desktopSurfacesSpec, /id: chat\.avatar\.vrm\.viewport_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-031/);
+  assert.match(desktopUiShellSpec, /retired desktop avatar viewport exceptions remain history only and do not\s+constitute current shell authority/);
+  assert.doesNotMatch(desktopSurfacesSpec, /id: chat\.avatar\.live2d\.viewport_exception/);
+  assert.doesNotMatch(desktopSurfacesSpec, /id: chat\.avatar\.vrm\.viewport_exception/);
   assert.match(platformDesignPatternSpec, /desktop chat avatar viewport chrome \(Live2D \/ VRM\)/);
   assert.match(platformUiAdoptionSpec, /id: desktop\.chat\.avatar\.live2d\.exception[\s\S]*exception_policy: controlled_exception/);
   assert.match(platformUiAdoptionSpec, /id: desktop\.chat\.avatar\.vrm\.exception[\s\S]*exception_policy: controlled_exception/);

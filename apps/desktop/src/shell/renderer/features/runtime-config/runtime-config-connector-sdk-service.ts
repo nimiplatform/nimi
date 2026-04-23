@@ -1,9 +1,17 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { createNimiError, RuntimeReasonCode, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiError,
+  RuntimeReasonCode,
+  ConnectorAuthKind,
+  type ProviderCatalogEntry,
+  CONNECTOR_AUTH_PROFILES,
+  type ConnectorAuthProfileSpec,
+} from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   getVendorLabelV11,
   type ApiConnector,
+  type ApiConnectorAuthModeV11,
   type ApiConnectorScopeV11,
   type ApiVendor,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -32,10 +40,19 @@ type RuntimeConnectorLike = {
   endpoint: string;
   label: string;
   hasCredential: boolean;
+  authKind?: number;
+  providerAuthProfile?: string;
   ownerType: number;
   ownerId?: string;
   kind: number;
   status: number;
+};
+
+export type ApiConnectorAuthOption = {
+  value: string;
+  label: string;
+  authMode: ApiConnectorAuthModeV11;
+  providerAuthProfile?: string;
 };
 
 type RuntimeConnectorModelLike = {
@@ -92,9 +109,11 @@ export function providerToVendor(provider: string): ApiVendor {
   if (normalized === 'gemini') return 'gemini';
   if (normalized === 'kimi') return 'kimi';
   if (normalized === 'openai') return 'gpt';
+  if (normalized === 'openai_codex') return 'openai_codex';
+  if (normalized === 'openai_compatible') return 'openai_compatible';
   if (normalized === 'anthropic') return 'claude';
   if (normalized === 'openrouter') return 'openrouter';
-  return normalized || 'custom';
+  return 'custom';
 }
 
 export function vendorToProvider(vendor: ApiVendor): string {
@@ -104,9 +123,83 @@ export function vendorToProvider(vendor: ApiVendor): string {
   if (vendor === 'kimi') return 'kimi';
   if (vendor === 'deepseek') return 'deepseek';
   if (vendor === 'gpt') return 'openai';
+  if (vendor === 'openai_codex') return 'openai_codex';
+  if (vendor === 'openai_compatible') return 'openai_compatible';
   if (vendor === 'claude') return 'anthropic';
   if (vendor === 'openrouter') return 'openrouter';
   return String(vendor || '').trim().toLowerCase() || 'custom';
+}
+
+function normalizeProviderAuthProfile(value: string): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+function authOptionLabelForProfile(profile: ConnectorAuthProfileSpec): string {
+  if (profile.id === 'openai_codex') return 'Managed OAuth Token (Codex)';
+  if (profile.id === 'anthropic') return 'Managed OAuth Token (Anthropic)';
+  if (profile.id === 'qwen_oauth') return 'Managed OAuth Token (Qwen)';
+  return `Managed OAuth Token (${profile.id})`;
+}
+
+export function listProviderAuthProfiles(provider: string): ConnectorAuthProfileSpec[] {
+  const normalizedProvider = String(provider || '').trim().toLowerCase();
+  if (!normalizedProvider) {
+    return [];
+  }
+  return Object.values(CONNECTOR_AUTH_PROFILES)
+    .filter((profile) => (
+      profile.allowedProviders.map((item) => String(item || '').trim().toLowerCase()).includes(normalizedProvider)
+    ))
+    .sort((left, right) => left.id.localeCompare(right.id));
+}
+
+export function listConnectorAuthOptionsForProvider(provider: string): ApiConnectorAuthOption[] {
+  const normalizedProvider = String(provider || '').trim().toLowerCase();
+  const profileOptions = listProviderAuthProfiles(normalizedProvider).map((profile) => ({
+    value: `oauth:${profile.id}`,
+    label: authOptionLabelForProfile(profile),
+    authMode: 'oauth_managed' as const,
+    providerAuthProfile: profile.id,
+  }));
+  if (normalizedProvider === 'openai_codex') {
+    return profileOptions;
+  }
+  return [
+    {
+      value: 'api_key',
+      label: 'API Key',
+      authMode: 'api_key',
+    },
+    ...profileOptions,
+  ];
+}
+
+export function defaultConnectorAuthOptionForProvider(provider: string): ApiConnectorAuthOption {
+  const options = listConnectorAuthOptionsForProvider(provider);
+  return options[0] || {
+    value: 'api_key',
+    label: 'API Key',
+    authMode: 'api_key',
+  };
+}
+
+function authModeFromRuntimeAuthKind(value: unknown): ApiConnectorAuthModeV11 {
+  return Number(value) === Number(ConnectorAuthKind.OAUTH_MANAGED) ? 'oauth_managed' : 'api_key';
+}
+
+function buildCredentialJsonFromSecret(secret: string): string {
+  return JSON.stringify({ access_token: String(secret || '').trim() });
+}
+
+function resolveCredentialJsonInput(input: {
+  credentialValue?: string;
+  credentialJson?: string;
+}): string {
+  const explicitCredentialJson = String(input.credentialJson || '').trim();
+  if (explicitCredentialJson) {
+    return explicitCredentialJson;
+  }
+  return buildCredentialJsonFromSecret(String(input.credentialValue || '').trim());
 }
 
 export function sdkConnectorToApiConnector(
@@ -116,6 +209,8 @@ export function sdkConnectorToApiConnector(
     endpoint: string;
     label: string;
     hasCredential: boolean;
+    authKind?: number;
+    providerAuthProfile?: string;
     ownerType: number;
     ownerId?: string;
     kind: number;
@@ -135,6 +230,8 @@ export function sdkConnectorToApiConnector(
     label: connector.label || `${getVendorLabelV11(vendor)} Connector`,
     vendor,
     provider: connector.provider,
+    authMode: authModeFromRuntimeAuthKind(connector.authKind),
+    providerAuthProfile: normalizeProviderAuthProfile(connector.providerAuthProfile || '') || undefined,
     endpoint: connector.endpoint || defaultEndpoint,
     scope,
     hasCredential: connector.hasCredential,
@@ -165,13 +262,30 @@ export async function sdkCreateConnector(input: {
   provider: string;
   endpoint: string;
   label: string;
-  apiKey: string;
+  apiKey?: string;
+  credentialValue?: string;
+  credentialJson?: string;
+  authMode?: ApiConnectorAuthModeV11;
+  providerAuthProfile?: string;
 }): Promise<ApiConnector | null> {
+  const authMode = input.authMode === 'oauth_managed' ? 'oauth_managed' : 'api_key';
+  const providerAuthProfile = normalizeProviderAuthProfile(input.providerAuthProfile || '');
+  const credentialValue = String(input.credentialValue ?? input.apiKey ?? '').trim();
   const response = await runtimeAdmin().createConnector({
     provider: input.provider,
     endpoint: input.endpoint,
     label: input.label,
-    apiKey: input.apiKey,
+    apiKey: authMode === 'api_key' ? credentialValue : '',
+    authKind: authMode === 'oauth_managed'
+      ? ConnectorAuthKind.OAUTH_MANAGED
+      : ConnectorAuthKind.API_KEY,
+    providerAuthProfile: authMode === 'oauth_managed' ? providerAuthProfile : '',
+    credentialJson: authMode === 'oauth_managed'
+      ? resolveCredentialJsonInput({
+        credentialValue,
+        credentialJson: input.credentialJson,
+      })
+      : '',
   }, CONNECTOR_CALL_OPTIONS);
   if (!response.connector) return null;
   const providerCatalog = await sdkListProviderCatalog();
@@ -183,13 +297,32 @@ export async function sdkUpdateConnector(input: {
   label?: string;
   endpoint?: string;
   apiKey?: string;
+  credentialValue?: string;
+  credentialJson?: string;
+  authMode?: ApiConnectorAuthModeV11;
+  providerAuthProfile?: string;
 }): Promise<ApiConnector | null> {
+  const authMode = input.authMode;
+  const credentialValue = String(input.credentialValue ?? input.apiKey ?? '').trim();
+  const providerAuthProfile = normalizeProviderAuthProfile(input.providerAuthProfile || '');
   const response = await runtimeAdmin().updateConnector({
     connectorId: input.connectorId,
     label: input.label || '',
     endpoint: input.endpoint || '',
-    apiKey: input.apiKey || '',
+    apiKey: authMode === 'api_key' ? credentialValue : (input.apiKey || ''),
     status: 0,
+    authKind: authMode
+      ? (authMode === 'oauth_managed'
+        ? ConnectorAuthKind.OAUTH_MANAGED
+        : ConnectorAuthKind.API_KEY)
+      : undefined,
+    providerAuthProfile: authMode === 'oauth_managed' ? providerAuthProfile : undefined,
+    credentialJson: authMode === 'oauth_managed'
+      ? resolveCredentialJsonInput({
+        credentialValue,
+        credentialJson: input.credentialJson,
+      })
+      : undefined,
   }, CONNECTOR_CALL_OPTIONS);
   if (!response.connector) return null;
   const providerCatalog = await sdkListProviderCatalog();

@@ -53,6 +53,24 @@ test('parseCommitWorldStateInput rejects invalid write scope without defaulting 
   );
 });
 
+test('parseCommitWorldStateInput rejects retired MEMORY_ONLY effectClass', () => {
+  assert.throws(
+    () => parseCommitWorldStateInput({
+      commit: {
+        ...buildCommitEnvelope(),
+        effectClass: 'MEMORY_ONLY',
+      },
+      writes: [{
+        scope: 'WORLD',
+        scopeKey: 'world-1',
+        payload: { name: 'Realm' },
+      }],
+      reason: 'sync',
+    }, 'WORLD_STATE_COMMIT_INPUT_REQUIRED'),
+    /WORLD_STATE_COMMIT_INPUT_REQUIRED/,
+  );
+});
+
 test('parseAppendWorldHistoryInput rejects invalid visibility', () => {
   assert.throws(
     () => parseAppendWorldHistoryInput({

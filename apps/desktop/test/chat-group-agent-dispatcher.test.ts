@@ -467,6 +467,19 @@ describe('D-LLM-026b isolation', () => {
     }
   });
 
+  it('chat-group-adapter derives selection from the store rather than local state', () => {
+    const adapterPath = resolve(
+      __dirname,
+      '../src/shell/renderer/features/chat/chat-group-adapter.tsx',
+    );
+    const source = readFileSync(adapterPath, 'utf-8');
+
+    assert.match(source, /const storeSelectedTargetId = useAppStore\(\(state\) => state\.selectedTargetBySource\.group \?\? null\);/);
+    assert.match(source, /const selectedGroupId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID[\s\S]*?storeSelectedTargetId;/);
+    assert.doesNotMatch(source, /useState<string \| null>\(null\).*selectedGroupId/s);
+    assert.doesNotMatch(source, /setSelectedGroupId/);
+  });
+
   it('chat-group-adapter includes the newly sent trigger message in the execution transcript', () => {
     const adapterPath = resolve(
       __dirname,
@@ -476,5 +489,44 @@ describe('D-LLM-026b isolation', () => {
 
     assert.match(source, /const nextTranscript = \[\.\.\.messagesRef\.current, msg\];/);
     assert.match(source, /dispatchGroupAgentTriggersForMessage\(\s*msg, msgId, participantsRef\.current, nextTranscript,/);
+  });
+
+  it('chat-group-adapter scans background groups by lastMessage and loads transcript before dispatch', () => {
+    const adapterPath = resolve(
+      __dirname,
+      '../src/shell/renderer/features/chat/chat-group-adapter.tsx',
+    );
+    const source = readFileSync(adapterPath, 'utf-8');
+
+    assert.match(source, /const backgroundGroups = allGroups\.filter\(\(group\) => String\(group\.id \|\| ''\) !== selectedGroupId\);/);
+    assert.match(source, /try \{\s*await maybeDispatchGroupAgentTriggersForChat\(\{\s*message: lastMessage,[\s\S]*?participants: group\.participants \|\| \[\],[\s\S]*?groupChatId,[\s\S]*?qc: queryClient,[\s\S]*?\}\);\s*\} catch \(error\) \{/s);
+    assert.match(source, /message: 'background_group_scan_failed'/);
+    assert.match(source, /\(\(await dataSync\.loadGroupMessages\(groupChatId\)\) as \{ items\?: GroupMessageViewDto\[] \} \| undefined\)\?\.items \|\| \[\]/);
+  });
+
+  it('chat-group-adapter binds post-send invalidation to the mutation chatId instead of current selection', () => {
+    const adapterPath = resolve(
+      __dirname,
+      '../src/shell/renderer/features/chat/chat-group-adapter.tsx',
+    );
+    const source = readFileSync(adapterPath, 'utf-8');
+
+    assert.match(source, /onSuccess:\s*\(sentMessage,\s*variables\)\s*=>\s*\{/);
+    assert.match(source, /const sentChatId = String\(variables\.chatId \|\| ''\);/);
+    assert.match(source, /void queryClient\.invalidateQueries\(\{ queryKey: \['group-messages', sentChatId\] \}\);/);
+    assert.match(source, /if \(selectedGroupId === sentChatId\)/);
+    assert.match(source, /void maybeDispatchGroupAgentTriggersForChat\(\{\s*message: msg,[\s\S]*?groupChatId: sentChatId,[\s\S]*?transcriptOverride: \[msg\],[\s\S]*?allowCurrentUserMessage: true,/s);
+  });
+
+  it('chat-group-adapter routes createGroup initialMessage through the same trigger path', () => {
+    const adapterPath = resolve(
+      __dirname,
+      '../src/shell/renderer/features/chat/chat-group-adapter.tsx',
+    );
+    const source = readFileSync(adapterPath, 'utf-8');
+
+    assert.match(source, /const handleCreateGroup = useCallback\(async \(title: string, participantIds: string\[]\) => \{/);
+    assert.match(source, /'lastMessage' in result/);
+    assert.match(source, /void maybeDispatchGroupAgentTriggersForChat\(\{\s*message: result\.lastMessage as GroupMessageViewDto,[\s\S]*?groupChatId: String\(\(result as \{ id: string \}\)\.id\),[\s\S]*?allowCurrentUserMessage: true,/s);
   });
 });

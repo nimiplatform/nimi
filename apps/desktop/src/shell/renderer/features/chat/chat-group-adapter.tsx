@@ -7,6 +7,10 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
+import { GROUP_CREATE_INTENT_TARGET_ID } from './chat-group-flow-constants';
+import { ChatGroupParticipantPanel } from './chat-group-participant-panel';
+import { ChatGroupComposer } from './chat-group-composer';
+import { ChatGroupCreateModal } from './chat-group-create-modal';
 import {
   compareGroupChatsByRecency,
   getGroupChatTitle,
@@ -33,9 +37,6 @@ const dispatchedMessageIds = new Set<string>();
 export function clearDispatchedMessageIds(): void {
   dispatchedMessageIds.clear();
 }
-import { ChatGroupParticipantPanel } from './chat-group-participant-panel';
-import { ChatGroupComposer } from './chat-group-composer';
-import { ChatGroupCreateModal } from './chat-group-create-modal';
 
 const GROUP_CHATS_QUERY_KEY = ['group-chats'] as const;
 
@@ -133,6 +134,67 @@ function dispatchGroupAgentTriggersForMessage(
   }
 }
 
+function mergeGroupTranscriptWithMessage(
+  transcript: readonly GroupMessageViewDto[],
+  message: GroupMessageViewDto,
+): GroupMessageViewDto[] {
+  const messageId = String(message.id || '');
+  if (!messageId) {
+    return [...transcript];
+  }
+  const exists = transcript.some((item) => String(item.id || '') === messageId);
+  const nextTranscript = exists ? [...transcript] : [...transcript, message];
+  nextTranscript.sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime());
+  return nextTranscript;
+}
+
+async function maybeDispatchGroupAgentTriggersForChat(input: {
+  message: GroupMessageViewDto;
+  participants: readonly GroupParticipantDto[];
+  currentUserId: string;
+  groupChatId: string;
+  qc: ReturnType<typeof useQueryClient>;
+  transcriptOverride?: readonly GroupMessageViewDto[];
+  allowCurrentUserMessage?: boolean;
+}): Promise<void> {
+  const {
+    message,
+    participants,
+    currentUserId,
+    groupChatId,
+    qc,
+    transcriptOverride,
+    allowCurrentUserMessage = false,
+  } = input;
+  const msgId = String(message.id || '');
+  if (!msgId || dispatchedMessageIds.has(msgId)) {
+    return;
+  }
+
+  const senderId = String(message.senderId || message.author?.accountId || '');
+  const authorType = String(message.author?.type || '');
+  const authorOwnerId = String(message.author?.agentOwnerId || '');
+  if ((!allowCurrentUserMessage && senderId === currentUserId) || (authorType === 'agent' && authorOwnerId === currentUserId)) {
+    dispatchedMessageIds.add(msgId);
+    return;
+  }
+
+  const transcriptItems = transcriptOverride
+    ? [...transcriptOverride]
+    : ((await dataSync.loadGroupMessages(groupChatId)) as { items?: GroupMessageViewDto[] } | undefined)?.items || [];
+
+  const mergedTranscript = mergeGroupTranscriptWithMessage(transcriptItems, message);
+  dispatchGroupAgentTriggersForMessage(
+    message,
+    msgId,
+    participants,
+    mergedTranscript,
+    currentUserId,
+    groupChatId,
+    qc,
+  );
+}
+
 type UseGroupConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
   currentUserId: string | null;
@@ -144,8 +206,13 @@ export function useGroupConversationModeHost(
   const { authStatus, currentUserId } = input;
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const setLastSelectedThreadForMode = useAppStore((state) => state.setLastSelectedThreadForMode);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.group ?? null);
+  const selectedGroupId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID
+    ? null
+    : storeSelectedTargetId;
 
   const groupChatsQuery = useQuery({
     queryKey: [...GROUP_CHATS_QUERY_KEY, authStatus],
@@ -228,35 +295,106 @@ export function useGroupConversationModeHost(
     }
   }, [messagesQuery.data, currentUserId, selectedGroupId, queryClient]);
 
+  useEffect(() => {
+    if (!currentUserId || authStatus !== 'authenticated') {
+      return;
+    }
+
+    const backgroundGroups = allGroups.filter((group) => String(group.id || '') !== selectedGroupId);
+    if (backgroundGroups.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      for (const group of backgroundGroups) {
+        if (cancelled) {
+          return;
+        }
+        const groupChatId = String(group.id || '');
+        const lastMessage = group.lastMessage;
+        if (!groupChatId || !lastMessage) {
+          continue;
+        }
+        try {
+          await maybeDispatchGroupAgentTriggersForChat({
+            message: lastMessage,
+            participants: group.participants || [],
+            currentUserId,
+            groupChatId,
+            qc: queryClient,
+          });
+        } catch (error) {
+          logRendererEvent({
+            level: 'warn',
+            area: 'group-agent-dispatch',
+            message: 'background_group_scan_failed',
+            details: {
+              groupChatId,
+              error: error instanceof Error ? error.message : String(error || 'unknown error'),
+            },
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [allGroups, authStatus, currentUserId, queryClient, selectedGroupId]);
+
   const sendMutation = useMutation({
     mutationFn: async ({ chatId, content }: { chatId: string; content: string }) => {
       return dataSync.sendGroupMessage(chatId, content);
     },
-    onSuccess: (sentMessage) => {
-      if (selectedGroupId) {
-        void queryClient.invalidateQueries({ queryKey: ['group-messages', selectedGroupId] });
-        void queryClient.invalidateQueries({ queryKey: GROUP_CHATS_QUERY_KEY });
+    onSuccess: (sentMessage, variables) => {
+      const sentChatId = String(variables.chatId || '');
+      if (sentChatId) {
+        void queryClient.invalidateQueries({ queryKey: ['group-messages', sentChatId] });
       }
+      void queryClient.invalidateQueries({ queryKey: GROUP_CHATS_QUERY_KEY });
 
       // Dispatch agent execution for @mentions / reply-to-agent (D-LLM-026b group-safe path)
       if (sentMessage && currentUserId) {
         const msg = sentMessage as GroupMessageViewDto;
-        const msgId = String(msg.id || '');
-        const nextTranscript = [...messagesRef.current, msg];
-        dispatchGroupAgentTriggersForMessage(
-          msg, msgId, participantsRef.current, nextTranscript,
-          currentUserId, selectedGroupId!, queryClient,
-        );
+        if (selectedGroupId === sentChatId) {
+          const msgId = String(msg.id || '');
+          const nextTranscript = [...messagesRef.current, msg];
+          dispatchGroupAgentTriggersForMessage(
+            msg, msgId, participantsRef.current, nextTranscript,
+            currentUserId, sentChatId, queryClient,
+          );
+        } else {
+          void maybeDispatchGroupAgentTriggersForChat({
+            message: msg,
+            participants: groupById.get(sentChatId)?.participants || [],
+            currentUserId,
+            groupChatId: sentChatId,
+            qc: queryClient,
+            transcriptOverride: [msg],
+            allowCurrentUserMessage: true,
+          });
+        }
       }
     },
   });
 
-  // Clear selection if group disappeared
   useEffect(() => {
-    if (!selectedGroupId) return;
-    const exists = allGroups.some((g) => String(g.id || '') === selectedGroupId);
-    if (!exists) setSelectedGroupId(null);
-  }, [allGroups, selectedGroupId]);
+    if (!selectedGroupId) {
+      return;
+    }
+    setLastSelectedThreadForMode('group', selectedGroupId);
+  }, [selectedGroupId, setLastSelectedThreadForMode]);
+
+  useEffect(() => {
+    if (!selectedGroupId) {
+      return;
+    }
+    const exists = allGroups.some((group) => String(group.id || '') === selectedGroupId);
+    if (!exists) {
+      setSelectedTargetForSource('group', null);
+    }
+  }, [allGroups, selectedGroupId, setSelectedTargetForSource]);
 
   const setupState = useMemo(() => {
     if (authStatus === 'authenticated') {
@@ -287,8 +425,8 @@ export function useGroupConversationModeHost(
   }), [setupState, t, threads]);
 
   const handleSelectTarget = useCallback((targetId: string | null) => {
-    setSelectedGroupId(targetId);
-  }, []);
+    setSelectedTargetForSource('group', targetId);
+  }, [setSelectedTargetForSource]);
 
   const handleSendMessage = useCallback(async (content: string) => {
     if (!selectedGroupId || !content.trim()) return;
@@ -299,10 +437,28 @@ export function useGroupConversationModeHost(
     const result = await dataSync.createGroup(title, participantIds);
     void queryClient.invalidateQueries({ queryKey: GROUP_CHATS_QUERY_KEY });
     setCreateModalOpen(false);
-    if (result && typeof result === 'object' && 'id' in result) {
-      setSelectedGroupId(String((result as { id: string }).id));
+    if (
+      result
+      && currentUserId
+      && typeof result === 'object'
+      && 'id' in result
+      && 'lastMessage' in result
+      && result.lastMessage
+    ) {
+      void maybeDispatchGroupAgentTriggersForChat({
+        message: result.lastMessage as GroupMessageViewDto,
+        participants: ((result as { participants?: GroupParticipantDto[] }).participants) || [],
+        currentUserId,
+        groupChatId: String((result as { id: string }).id),
+        qc: queryClient,
+        transcriptOverride: [result.lastMessage as GroupMessageViewDto],
+        allowCurrentUserMessage: true,
+      });
     }
-  }, [queryClient]);
+    if (result && typeof result === 'object' && 'id' in result) {
+      setSelectedTargetForSource('group', String((result as { id: string }).id));
+    }
+  }, [currentUserId, queryClient, setSelectedTargetForSource]);
 
   const selectedGroupTitle = selectedGroup
     ? getGroupChatTitle(selectedGroup)
@@ -325,7 +481,7 @@ export function useGroupConversationModeHost(
     selectedTargetId: selectedGroupId,
     messages: canonicalMessages,
     onSelectTarget: handleSelectTarget,
-    onSelectThread: (threadId: string) => setSelectedGroupId(threadId),
+    onSelectThread: (threadId: string) => setSelectedTargetForSource('group', threadId),
     characterData: {
       name: selectedGroupTitle,
       avatarFallback: selectedGroupTitle.charAt(0).toUpperCase() || 'G',

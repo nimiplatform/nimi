@@ -93,7 +93,7 @@ test('conversation submit readiness: AI submit surfaces selection-missing after 
         }),
       },
     }),
-    /Select an AI route before sending a message\./,
+    /Select a Nimi route before sending a message\./,
   );
 });
 

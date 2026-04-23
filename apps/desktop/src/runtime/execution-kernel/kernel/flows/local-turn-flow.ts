@@ -71,7 +71,7 @@ export async function runLocalTurnFlow({
       traceId: result.traceId,
       eventKind: 'LOCAL_TURN_EXECUTED',
       stage: 'TERMINAL',
-      effectClass: 'MEMORY_ONLY',
+      effectClass: 'NONE',
       reason: 'local turn executed',
       evidenceRefs: [
         { kind: 'promptTrace', refId: result.promptTraceId },

@@ -102,7 +102,7 @@ async function launchAgentInteractionFromDisplay(
     targetId: agentId,
   });
   input.setRuntimeFields({
-    targetType: 'AGENT',
+    targetType: '',
     targetAccountId: agentId,
     agentId,
     targetId: agentId,

@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-const catalogCardPath = path.resolve(
+const installedSectionPath = path.resolve(
   process.cwd(),
-  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-catalog-card.tsx',
+  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-installed-section.tsx',
 );
 const controllerPath = path.resolve(
   process.cwd(),
@@ -60,7 +60,7 @@ const tauriLocalRuntimeModPath = path.resolve(
   'src-tauri/src/local_runtime/mod.rs',
 );
 
-const catalogCardSource = readFileSync(catalogCardPath, 'utf-8');
+const installedSectionSource = readFileSync(installedSectionPath, 'utf-8');
 const controllerSource = readFileSync(controllerPath, 'utf-8');
 const localPageSource = readFileSync(localPagePath, 'utf-8');
 const localModelCenterStateSource = readFileSync(localModelCenterStatePath, 'utf-8');
@@ -76,14 +76,14 @@ const tauriModelIndexSource = readFileSync(tauriModelIndexPath, 'utf-8');
 const tauriLocalRuntimeModSource = readFileSync(tauriLocalRuntimeModPath, 'utf-8');
 
 test('local model center installed list is status-only and no longer renders a lifecycle toggle', () => {
-  assert.doesNotMatch(catalogCardSource, /<Toggle/);
-  assert.doesNotMatch(catalogCardSource, /onStartModel:/);
-  assert.doesNotMatch(catalogCardSource, /onStopModel:/);
-  assert.doesNotMatch(catalogCardSource, /localModelLifecycleById:/);
-  assert.doesNotMatch(catalogCardSource, /filteredInstalledModels/);
-  assert.match(catalogCardSource, /filteredInstalledRunnableAssets/);
-  assert.match(catalogCardSource, /asset\.status === 'installed'/);
-  assert.match(catalogCardSource, /runtimeConfig\.localModelCenter\.installed/);
+  assert.doesNotMatch(installedSectionSource, /<Toggle/);
+  assert.doesNotMatch(installedSectionSource, /onStartModel:/);
+  assert.doesNotMatch(installedSectionSource, /onStopModel:/);
+  assert.doesNotMatch(installedSectionSource, /localModelLifecycleById:/);
+  assert.doesNotMatch(installedSectionSource, /filteredInstalledModels/);
+  assert.match(installedSectionSource, /filteredInstalledRunnableAssets/);
+  assert.match(installedSectionSource, /asset\.status === 'installed'/);
+  assert.match(installedSectionSource, /runtimeConfig\.localModelCenter\.installed/);
 });
 
 test('desktop local page no longer wires start\\/stop\\/restart product actions into local model center', () => {
@@ -223,17 +223,17 @@ test('scaffolded unregistered asset imports refresh installed asset sections imm
 });
 
 test('installed attached-loopback assets expose a repair flow instead of forcing remove and reimport', () => {
-  assert.match(catalogCardSource, /function assetNeedsAttachedEndpointRepair\(/);
-  assert.match(catalogCardSource, /runtimeConfig\.localModelCenter\.repair/);
-  assert.match(catalogCardSource, /props\.onRepairAsset\(asset\.localAssetId, repairEndpoint\)/);
+  assert.match(installedSectionSource, /function assetNeedsAttachedEndpointRepair\(/);
+  assert.match(installedSectionSource, /runtimeConfig\.localModelCenter\.repair/);
+  assert.match(installedSectionSource, /props\.onRepairAsset\(asset\.localAssetId, repairEndpoint\)/);
   assert.match(localModelCenterStateSource, /const repairInstalledAsset = useCallback/);
   assert.match(localModelCenterStateSource, /Runtime manifest unavailable for asset repair/);
 });
 
 test('installed unhealthy assets surface runtime health detail in the model list', () => {
-  assert.match(catalogCardSource, /asset\.status === 'unhealthy' && String\(asset\.healthDetail \|\| ''\)\.trim\(\)/);
-  assert.match(catalogCardSource, /asset\.status === 'unhealthy' && String\(asset\.reasonCode \|\| ''\)\.trim\(\)/);
-  assert.match(catalogCardSource, /text-\[var\(--nimi-status-danger\)\]/);
+  assert.match(installedSectionSource, /asset\.status === 'unhealthy' && String\(asset\.healthDetail \|\| ''\)\.trim\(\)/);
+  assert.match(installedSectionSource, /asset\.status === 'unhealthy' && String\(asset\.reasonCode \|\| ''\)\.trim\(\)/);
+  assert.match(installedSectionSource, /text-\[var\(--nimi-status-danger\)\]/);
 });
 
 test('runtime local lifecycle controller remains available only as non-product maintenance surface', () => {

@@ -29,7 +29,7 @@ test('W3 route redesign: contacts, notification, and profile consume glass route
   assert.doesNotMatch(contactsViewSource, /data-testid=\{E2E_IDS\.panel\('contacts'\)\} className="flex h-full bg-white/u);
 
   assert.match(notificationPanelSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*NotificationPanel\.title/);
-  assert.match(notificationPanelSource, /<Surface[\s\S]*key=\{item\.id\}[\s\S]*tone="card"[\s\S]*material="glass-regular"/);
+  assert.match(notificationPanelSource, /<DesktopCardSurface[\s\S]*key=\{item\.id\}[\s\S]*kind="promoted-glass"/);
   assert.doesNotMatch(notificationPanelSource, /className="flex min-h-0 flex-1 flex-col bg-white"/u);
 
   assert.match(profilePanelSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*<ContactDetailView/);

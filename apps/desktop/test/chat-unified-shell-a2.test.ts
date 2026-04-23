@@ -93,6 +93,9 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   }
   assert.match(chatAiModeContentSource, /threadAdapter\.listThreads/);
   assert.match(chatHumanModeContentSource, /setSelectedTargetForSource\('human', host\.selectedTargetId\)/);
+  assert.match(chatGroupModeContentSource, /const normalizedStoreSelectedTargetId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID/);
+  assert.match(chatGroupModeContentSource, /const lastSelectedGroupThread = useAppStore\(\(state\) => state\.lastSelectedThreadByMode\.group \?\? null\)/);
+  assert.match(chatGroupModeContentSource, /setSelectedTargetForSource\('group', lastSelectedGroupThread\)/);
   assert.match(chatAgentModeContentSource, /setSelectedTargetForSource\('agent', host\.selectedTargetId\)/);
   assert.match(chatAgentModeContentSource, /ChatAgentSceneBackground/);
   assert.match(chatAgentModeContentSource, /sceneBackground=\{sceneBackground\}/);

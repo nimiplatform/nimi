@@ -136,7 +136,6 @@ function requireMutationCommitEnvelope(input: unknown, code: string): MutationCo
     || !reason
     || (
       effectClass !== 'NONE'
-      && effectClass !== 'MEMORY_ONLY'
       && effectClass !== 'STATE_ONLY'
       && effectClass !== 'STATE_AND_HISTORY'
     )

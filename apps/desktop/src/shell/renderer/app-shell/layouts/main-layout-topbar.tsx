@@ -5,6 +5,7 @@ import { ModWorkspaceTabs } from '@renderer/features/mod-workspace/mod-workspace
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   SHELL_CHROME_ACTION_CELL_CLASS,
+  SHELL_CHROME_METRIC_CELL_CLASS,
 } from './shell-chrome-classes';
 
 type MainLayoutTopBarProps = {
@@ -54,7 +55,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
       className={`absolute inset-x-0 top-0 z-[11000] flex h-14 items-center nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-3 backdrop-blur-[var(--nimi-backdrop-blur-regular)] ${props.titlebarLeftInsetClass}`}
       onMouseDown={props.onMouseDown}
     >
-      <div className="flex h-full w-full items-center border-b border-transparent px-1">
+      <div className="flex h-full w-full items-center border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_78%,white)] px-1">
         {props.enableModWorkspaceTabs ? (
           <div data-mod-tab-interactive="true" className="h-full w-fit max-w-[52vw]">
             <ModWorkspaceTabs placement="titlebar" />
@@ -115,13 +116,13 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
             </div>
           ) : (
             <>
-              <div className="flex h-9 items-center gap-1 rounded-full bg-white/40 px-1">
+              <div className="flex items-center gap-2">
                 <Tooltip content="Spark" className="h-9">
                   <button
                     type="button"
                     data-mod-tab-interactive="true"
                     onClick={props.onOpenWallet}
-                    className="flex h-7 items-center justify-center gap-1.5 rounded-full bg-transparent px-2.5 text-xs font-semibold text-[var(--nimi-text-primary)] transition hover:bg-white/40"
+                    className={SHELL_CHROME_METRIC_CELL_CLASS}
                     aria-label={t('Common.openWalletSpark')}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="url(#sparkGradient)" className="drop-shadow-sm">
@@ -142,7 +143,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                     type="button"
                     data-mod-tab-interactive="true"
                     onClick={props.onOpenWallet}
-                    className="flex h-7 items-center justify-center gap-1.5 rounded-full bg-transparent px-2.5 text-xs font-semibold text-[var(--nimi-text-primary)] transition hover:bg-white/40"
+                    className={SHELL_CHROME_METRIC_CELL_CLASS}
                     aria-label={t('Common.openWalletGem')}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="url(#gemGradient)" className="drop-shadow-sm">
@@ -164,7 +165,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                   type="button"
                   data-mod-tab-interactive="true"
                   onClick={props.onOpenNotifications}
-                  className="relative flex h-9 w-9 items-center justify-center rounded-full bg-transparent text-[var(--nimi-text-primary)] transition hover:bg-white/40"
+                  className={SHELL_CHROME_ACTION_CELL_CLASS}
                   aria-label={t('Common.openNotifications')}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

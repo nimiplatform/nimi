@@ -75,6 +75,13 @@ export type {
 const MAX_PENDING_HOOK_PREVIEW = 3;
 const MAX_RECENT_TERMINAL_HOOKS = 6;
 const MAX_RECENT_CANONICAL_MEMORIES = 6;
+const PROTO_HOOK_TRIGGER_FAMILY_UNSPECIFIED = 0;
+const PROTO_HOOK_ADMISSION_STATE_UNSPECIFIED = 0;
+const PROTO_HOOK_ADMISSION_STATE_REJECTED = 3;
+const PROTO_HOOK_ADMISSION_STATE_COMPLETED = 5;
+const PROTO_HOOK_ADMISSION_STATE_FAILED = 6;
+const PROTO_HOOK_ADMISSION_STATE_CANCELED = 7;
+const PROTO_HOOK_ADMISSION_STATE_RESCHEDULED = 8;
 
 type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];
 const PROTO_AGENT_AUTONOMY_MODE = {
@@ -150,15 +157,15 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
       appId: runtime.appId,
       subjectUserId,
     };
-    const listHooksByStatus = async (statusFilter: number): Promise<RuntimeAgentPendingHookInspect[]> => {
+    const listHooksByStatus = async (admissionStateFilter: number): Promise<RuntimeAgentPendingHookInspect[]> => {
       let pageToken = '';
       const collected: RuntimeAgentPendingHookInspect[] = [];
       do {
         const response = await protectedScopes.withScopes(['runtime.agent.read'], (options) => runtime.agent.listPendingHooks({
           context,
           agentId: normalizedAgentId,
-          triggerFilter: 0,
-          statusFilter,
+          triggerFamilyFilter: PROTO_HOOK_TRIGGER_FAMILY_UNSPECIFIED,
+          admissionStateFilter,
           pageSize: 200,
           pageToken,
         }, options));
@@ -187,12 +194,12 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
           context,
           agentId: normalizedAgentId,
         }, options)),
-        listHooksByStatus(0),
-        listHooksByStatus(3),
-        listHooksByStatus(4),
-        listHooksByStatus(5),
-        listHooksByStatus(6),
-        listHooksByStatus(7),
+        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_UNSPECIFIED),
+        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_COMPLETED),
+        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_FAILED),
+        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_CANCELED),
+        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_RESCHEDULED),
+        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_REJECTED),
       ]);
       const activeWorldId = normalizeText(stateResponse.state?.activeWorldId);
       const recentCanonicalMemoriesResponse = await protectedScopes.withScopes(['runtime.agent.read'], (options) => runtime.agent.queryMemory({
@@ -470,13 +477,13 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         runtime.agent.cancelHook({
           context,
           agentId: normalizedAgentId,
-          hookId: normalizedHookId,
+          intentId: normalizedHookId,
           reason: normalizeText(input.reason),
         }, options)
       ));
       return {
-        hookId: normalizeText(response.outcome?.hookId) || normalizedHookId,
-        status: formatHookStatus(response.outcome?.status),
+        hookId: normalizeText(response.outcome?.intent?.intentId) || normalizedHookId,
+        status: formatHookStatus(response.outcome?.intent?.admissionState),
       };
     } catch (error) {
       throw normalizeRuntimeError(error, 'cancel_runtime_agent_hook');
@@ -568,8 +575,8 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
           timestamp: timestampToIso(event.timestamp),
           summaryText: event.detail?.oneofKind === 'hook'
             ? [
-              normalizeText(event.detail.hook?.outcome?.hookId) || 'hook',
-              formatHookStatus(event.detail.hook?.outcome?.status) || 'unknown',
+              normalizeText(event.detail.hook?.intent?.intentId) || 'hook',
+              formatHookStatus(event.detail.hook?.family) || 'unknown',
             ].join(' · ')
             : event.detail?.oneofKind === 'lifecycle'
               ? `current=${formatLifecycleStatus(event.detail.lifecycle?.currentStatus) || 'unknown'}`
@@ -592,10 +599,10 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
                   ].join(' · ')
                     : null,
           hookId: event.detail?.oneofKind === 'hook'
-            ? normalizeText(event.detail.hook?.outcome?.hookId) || null
+            ? normalizeText(event.detail.hook?.intent?.intentId) || null
             : null,
           hookStatus: event.detail?.oneofKind === 'hook'
-            ? formatHookStatus(event.detail.hook?.outcome?.status)
+            ? formatHookStatus(event.detail.hook?.family)
             : null,
           lifecycleStatus: event.detail?.oneofKind === 'lifecycle'
             ? formatLifecycleStatus(event.detail.lifecycle?.currentStatus)

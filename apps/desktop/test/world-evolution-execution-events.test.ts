@@ -182,7 +182,7 @@ test('desktop app and mod executionEvents.read return the same real matches', as
     traceId: 'trace-recorded',
     eventKind: 'LOCAL_TURN_EXECUTED',
     stage: 'TERMINAL',
-    effectClass: 'MEMORY_ONLY',
+    effectClass: 'NONE',
     reason: 'local turn executed',
     evidenceRefs: [{ kind: 'promptTrace', refId: 'prompt-recorded' }],
     detail: {

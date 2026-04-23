@@ -23,9 +23,9 @@ test('W2 chat surface follow-on: shared Desktop actions freeze compact, toggle, 
   assert.match(actionSource, /export function DesktopFieldTrigger/);
 });
 
-test('W2 chat surface follow-on: page and rail controls consume the shared icon toggle action path', () => {
-  assert.match(chatPageSource, /import \{ DesktopIconToggleAction \} from '@renderer\/components\/action';/);
-  assert.match(chatPageSource, /<DesktopIconToggleAction[\s\S]*className="h-9 w-9"/);
+test('W2 chat surface follow-on: page composition keeps toggle ownership in the sidebar shell while rail controls consume the shared icon toggle action path', () => {
+  assert.match(chatPageSource, /import \{ ChatContactsSidebar \} from '\.\/chat-contacts-sidebar';/);
+  assert.match(chatPageSource, /<ChatContactsSidebar[\s\S]*onToggleSettings=\{toggleChatSettings\}[\s\S]*onToggleNimiThreadList=\{toggleNimiThreadList\}/);
   assert.doesNotMatch(chatPageSource, /emerald-/u);
   assert.match(chatRightPanelSettingsSource, /import \{ DesktopIconToggleAction \} from '@renderer\/components\/action';/);
   assert.match(chatRightPanelSettingsSource, /<DesktopIconToggleAction[\s\S]*data-chat-settings-toggle="true"/);

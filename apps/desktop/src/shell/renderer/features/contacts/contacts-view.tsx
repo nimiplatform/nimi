@@ -1,11 +1,19 @@
 import React, { useState, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { IconButton, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
+import {
+  IconButton,
+  ScrollArea,
+  SidebarHeader,
+  SidebarResizeHandle,
+  SidebarSearch,
+  SidebarSection,
+  SidebarShell,
+  Surface,
+  Tooltip,
+} from '@nimiplatform/nimi-kit/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { SidebarResizeHandle, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
-import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
@@ -123,17 +131,8 @@ export function ContactsView(props: ContactsViewProps) {
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<ContactRequestRecord | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<TabFilter | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (searchOpen) {
-      searchInputRef.current?.focus();
-    }
-  }, [searchOpen]);
 
   const closeSearch = () => {
-    setSearchOpen(false);
     props.onSearchTextChange('');
     setSelectedContact(null);
     setSelectedRequest(null);
@@ -414,32 +413,20 @@ export function ContactsView(props: ContactsViewProps) {
       {/* 左侧联系人列表 */}
       <SidebarShell
         width={sidebarWidth}
-        className="border border-white/60 border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        className="rounded-[2rem] border border-white/60 border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         data-testid={E2E_IDS.panel('contacts')}
       >
-        <div className="relative flex shrink-0 items-center min-h-[var(--nimi-sidebar-header-height)] px-4 gap-2 overflow-hidden">
-          <h1
-            className={`nimi-type-page-title text-[color:var(--nimi-text-primary)] transition-opacity duration-200 ${searchOpen ? 'opacity-0' : 'opacity-100'}`}
-          >
-            {t('Contacts.title')}
-          </h1>
-          <div
-            className={`ml-auto flex items-center gap-1 transition-opacity duration-200 ${searchOpen ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
-          >
-            <Tooltip content={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })} placement="bottom">
-              <IconButton
-                onClick={() => setSearchOpen(true)}
-                tone="ghost"
-                icon={(
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
-                )}
-                className="h-9 w-9 shrink-0 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]"
-                aria-label={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
-              />
-            </Tooltip>
+        <SidebarHeader
+          title={<h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{t('Contacts.title')}</h1>}
+          className="px-4"
+        />
+        <SidebarSearch
+          value={props.searchText}
+          onChange={props.onSearchTextChange}
+          onClear={closeSearch}
+          placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
+          clearLabel={t('Home.clear', { defaultValue: 'Clear' })}
+          primaryAction={(
             <Tooltip content={t('Contacts.addContact', { defaultValue: 'Add Friend' })} placement="bottom">
               <IconButton
                 onClick={props.onOpenAddContact}
@@ -454,47 +441,8 @@ export function ContactsView(props: ContactsViewProps) {
                 aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
               />
             </Tooltip>
-          </div>
-          <div
-            className={`absolute inset-y-0 right-0 flex items-center gap-2 pl-3 pr-4 bg-[var(--nimi-sidebar-canvas)] transition-transform duration-200 ease-out ${searchOpen ? 'w-full translate-x-0' : 'w-full translate-x-full pointer-events-none'}`}
-          >
-            <div className="flex min-w-0 flex-1 items-center rounded-full bg-[var(--nimi-action-ghost-hover)] px-3 py-1.5">
-              <span className="shrink-0 text-[var(--nimi-text-muted)]">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-              </span>
-              <input
-                ref={searchInputRef}
-                className="ml-2 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--nimi-field-placeholder)]"
-                value={props.searchText}
-                onChange={(event) => props.onSearchTextChange(event.target.value)}
-                placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
-                aria-label={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') {
-                    closeSearch();
-                  }
-                }}
-              />
-            </div>
-            <Tooltip content={t('Home.clear', { defaultValue: 'Clear' })} placement="bottom">
-              <IconButton
-                onClick={closeSearch}
-                tone="ghost"
-                icon={(
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                )}
-                className="h-9 w-9 shrink-0 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]"
-                aria-label={t('Home.clear', { defaultValue: 'Clear' })}
-              />
-            </Tooltip>
-          </div>
-        </div>
+          )}
+        />
 
         <ScrollArea
           className="flex-1"
@@ -551,7 +499,7 @@ export function ContactsView(props: ContactsViewProps) {
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
       >
         {props.feedback ? (
           <div className="px-6 pt-4">

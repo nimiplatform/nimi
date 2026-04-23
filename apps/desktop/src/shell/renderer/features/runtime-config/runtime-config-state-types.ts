@@ -12,6 +12,7 @@ export type UiModeV11 = 'simple' | 'advanced';
 export type ProviderStatusV11 = 'idle' | 'healthy' | 'unreachable' | 'unsupported' | 'degraded';
 export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
 export type ApiVendor = string;
+export type ApiConnectorAuthModeV11 = 'api_key' | 'oauth_managed';
 
 export type LocalModelOptionV11 = {
   localModelId: string;
@@ -76,6 +77,8 @@ export type ApiConnector = {
   label: string;
   vendor: ApiVendor;
   provider: string;
+  authMode?: ApiConnectorAuthModeV11;
+  providerAuthProfile?: string;
   endpoint: string;
   scope: ApiConnectorScopeV11;
   hasCredential: boolean;
@@ -128,6 +131,8 @@ function defaultEndpointForEngine(engine: LocalModelOptionV11['engine']): string
 
 export const VENDOR_LABELS_V11: Record<string, string> = {
   gpt: 'OpenAI',
+  openai_codex: 'OpenAI Codex',
+  openai_compatible: 'OpenAI-Compatible',
   claude: 'Anthropic Claude',
   gemini: 'Google Gemini',
   kimi: 'Moonshot Kimi',
@@ -141,6 +146,8 @@ export const VENDOR_LABELS_V11: Record<string, string> = {
 export const VENDOR_ORDER_V11: ApiVendor[] = [
   'openrouter',
   'gpt',
+  'openai_codex',
+  'openai_compatible',
   'claude',
   'gemini',
   'deepseek',
@@ -249,6 +256,8 @@ export function createConnectorV11(vendor: ApiVendor = 'openrouter', label?: str
     label: label || `${getVendorLabelV11(vendor)} Connector`,
     vendor,
     provider: '',
+    authMode: 'api_key',
+    providerAuthProfile: undefined,
     endpoint: defaultEndpoint,
     scope: 'user',
     hasCredential: false,
@@ -274,6 +283,8 @@ export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector 
     label: String(raw.label || `${getVendorLabelV11(vendor)} Connector`),
     vendor,
     provider: String(raw.provider || ''),
+    authMode: raw.authMode === 'oauth_managed' ? 'oauth_managed' : 'api_key',
+    providerAuthProfile: String(raw.providerAuthProfile || '').trim() || undefined,
     endpoint: normalizeEndpointV11(String(raw.endpoint || defaultEndpoint), defaultEndpoint),
     scope,
     hasCredential: Boolean(raw.hasCredential),

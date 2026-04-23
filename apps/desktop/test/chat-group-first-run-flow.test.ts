@@ -10,6 +10,7 @@ function readWorkspaceFile(relativePath: string): string {
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
 const chatContactsSidebarSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');
 const chatGroupFlowConstantsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-flow-constants.ts');
+const chatGroupAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-adapter.tsx');
 const chatGroupModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatGroupCreateModalSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-create-modal.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
@@ -24,6 +25,8 @@ test('group first-run flow: contact rail exposes a persistent create-group actio
 test('group first-run flow: chat page routes create-group into group mode intent', () => {
   assert.match(chatGroupFlowConstantsSource, /GROUP_CREATE_INTENT_TARGET_ID = 'group:create'/);
   assert.match(chatPageSource, /if \(chatMode === 'group' && storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID\)/);
+  assert.match(chatPageSource, /if \(chatMode === 'group' \|\| groupSelectedTargetId !== GROUP_CREATE_INTENT_TARGET_ID\)/);
+  assert.match(chatPageSource, /setSelectedTargetForSource\('group', null\)/);
   assert.match(chatPageSource, /setChatMode\('group'\)/);
   assert.match(chatPageSource, /setSelectedTargetForSource\('group', GROUP_CREATE_INTENT_TARGET_ID\)/);
   assert.match(chatPageSource, /onCreateGroup=\{handleCreateGroup\}/);
@@ -33,7 +36,10 @@ test('group first-run flow: group mode consumes create intent and opens create m
   assert.match(chatGroupModeContentSource, /GROUP_CREATE_INTENT_TARGET_ID/);
   assert.match(chatGroupModeContentSource, /storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID/);
   assert.match(chatGroupModeContentSource, /setSelectedTargetForSource\('group', null\)/);
-  assert.match(chatGroupModeContentSource, /void hostOnCreateThread\?\.\(\)/);
+  assert.match(chatGroupModeContentSource, /void host\.onCreateThread\?\.\(\)/);
+  assert.match(chatGroupModeContentSource, /const selectedTargetId = normalizedStoreSelectedTargetId;/);
+  assert.doesNotMatch(chatGroupModeContentSource, /hostSelectedTargetExists/);
+  assert.doesNotMatch(chatGroupModeContentSource, /setSelectedTargetForSource\('group', host\.selectedTargetId\)/);
 });
 
 test('group first-run flow: create modal fails closed on empty title before POST', () => {
@@ -44,8 +50,19 @@ test('group first-run flow: create modal fails closed on empty title before POST
   assert.match(chatGroupCreateModalSource, /disabled=\{createDisabled\}/);
 });
 
-test('group first-run flow: host selection only syncs to store after sidebar target exists', () => {
-  assert.match(chatGroupModeContentSource, /const hostSelectedTargetExists = useMemo\(/);
-  assert.match(chatGroupModeContentSource, /allTargets\.some\(\(target\) => target\.id === host\.selectedTargetId\)/);
-  assert.match(chatGroupModeContentSource, /if \(!host\.selectedTargetId \|\| storeSelectedTargetId \|\| !hostSelectedTargetExists\) return;/);
+test('group first-run flow: group selection restores from last real thread only outside create intent', () => {
+  assert.match(chatGroupModeContentSource, /const normalizedStoreSelectedTargetId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID/);
+  assert.match(chatGroupModeContentSource, /const selectedTargetId = normalizedStoreSelectedTargetId;/);
+  assert.match(chatGroupModeContentSource, /const lastSelectedGroupThread = useAppStore\(\(state\) => state\.lastSelectedThreadByMode\.group \?\? null\)/);
+  assert.match(chatGroupModeContentSource, /const restoreAttemptedRef = useRef\(false\);/);
+  assert.match(chatGroupModeContentSource, /if \(restoreAttemptedRef\.current \|\| allTargets\.length === 0\)/);
+  assert.match(chatGroupModeContentSource, /storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID/);
+  assert.match(chatGroupModeContentSource, /setSelectedTargetForSource\('group', lastSelectedGroupThread\)/);
+  assert.match(chatGroupModeContentSource, /target\.id === lastSelectedGroupThread && target\.source === 'group'/);
+});
+
+test('group first-run flow: adapter persists last selected real group as the restore source of truth', () => {
+  assert.match(chatGroupAdapterSource, /const setLastSelectedThreadForMode = useAppStore\(\(state\) => state\.setLastSelectedThreadForMode\)/);
+  assert.match(chatGroupAdapterSource, /const selectedGroupId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID/);
+  assert.match(chatGroupAdapterSource, /if \(!selectedGroupId\) \{\s*return;\s*\}\s*setLastSelectedThreadForMode\('group', selectedGroupId\);/s);
 });

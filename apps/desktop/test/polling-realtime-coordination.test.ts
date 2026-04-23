@@ -10,6 +10,10 @@ const SOURCE_PATH = resolve(
 const source = readFileSync(SOURCE_PATH, 'utf-8');
 
 describe('D-NET-007: polling/realtime coordination', () => {
+  test('D-NET-007: shared group invalidation helper refreshes group chat list and message queries', () => {
+    assert.match(source, /function invalidateGroupChatQueries\(chatId: string\): void \{\s*void queryClient\.invalidateQueries\(\{ queryKey: \['group-chats'\] \}\);\s*void queryClient\.invalidateQueries\(\{ queryKey: \['group-messages', chatId\] \}\);\s*\}/s);
+  });
+
   test('D-NET-007: controller wiring invalidates chat list queries', () => {
     assert.match(source, /invalidateChats:\s*\(\)\s*=>\s*queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\)/);
   });
@@ -34,6 +38,12 @@ describe('D-NET-007: polling/realtime coordination', () => {
   test('D-NET-007: chat events and sync snapshots are delegated to the shared controller', () => {
     assert.match(source, /applyChatEvent:\s*\(\{ event,\s*selectedChatId: activeChatId,\s*currentUserId: activeUserId \}\)\s*=>/);
     assert.match(source, /applySyncSnapshot:\s*\(chatId,\s*snapshot\)\s*=>/);
+  });
+
+  test('D-NET-007: group fallback invalidation covers created, updated, and read events', () => {
+    assert.match(source, /if \(!chatMerge\.found\) \{\s*void queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\);\s*[\s\S]*?invalidateGroupChatQueries\(input\.event\.chatId\);[\s\S]*?\}/s);
+    assert.match(source, /if \(!found\) \{\s*void queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\);\s*invalidateGroupChatQueries\(input\.event\.chatId\);\s*\}/s);
+    assert.match(source, /if \(input\.event\.kind === 'chat\.read'\) \{\s*void queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\);\s*invalidateGroupChatQueries\(input\.event\.chatId\);\s*\}/s);
   });
 });
 

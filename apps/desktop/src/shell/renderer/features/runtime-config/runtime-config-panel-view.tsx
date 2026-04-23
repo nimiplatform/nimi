@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
-import { SidebarAffordanceChevron, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
+import {
+  ScrollArea,
+  SidebarAffordanceChevron,
+  SidebarHeader,
+  SidebarItem,
+  SidebarResizeHandle,
+  SidebarSection,
+  SidebarShell,
+  Surface,
+} from '@nimiplatform/nimi-kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';

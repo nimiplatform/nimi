@@ -210,40 +210,46 @@ export function formatAutonomyMode(value: unknown): RuntimeAgentAutonomyMode | n
 export function formatHookStatus(value: unknown): string | null {
   switch (Number(value)) {
     case 1:
-      return 'pending';
+      return 'proposed';
     case 2:
-      return 'running';
+      return 'pending';
     case 3:
-      return 'completed';
-    case 4:
-      return 'failed';
-    case 5:
-      return 'canceled';
-    case 6:
-      return 'rescheduled';
-    case 7:
       return 'rejected';
+    case 4:
+      return 'running';
+    case 5:
+      return 'completed';
+    case 6:
+      return 'failed';
+    case 7:
+      return 'canceled';
+    case 8:
+      return 'rescheduled';
     default:
       return null;
   }
 }
 
-function formatHookTriggerKind(value: unknown): string | null {
-  switch (Number(value)) {
+function formatHookTriggerKind(input?: {
+  triggerFamily?: unknown;
+  triggerDetail?: {
+    detail?: {
+      oneofKind?: string;
+    };
+  } | null;
+} | null): string | null {
+  switch (Number(input?.triggerFamily)) {
     case 1:
-      return 'turn-completed';
-    case 2:
       return 'scheduled-time';
-    case 3:
-      return 'user-idle';
-    case 4:
-      return 'chat-ended';
-    case 5:
-      return 'state-condition';
-    case 6:
-      return 'world-event';
-    case 7:
-      return 'compound';
+    case 2:
+      switch (input?.triggerDetail?.detail?.oneofKind) {
+        case 'eventUserIdle':
+          return 'user-idle';
+        case 'eventChatEnded':
+          return 'chat-ended';
+        default:
+          return null;
+      }
     default:
       return null;
   }
@@ -308,16 +314,23 @@ export function formatMemoryReplicationOutcome(value: unknown): string | null {
 }
 
 export function projectPendingHookInspect(hook: {
-  hookId?: unknown;
-  status?: unknown;
-  trigger?: { triggerKind?: unknown } | null;
+  intent?: {
+    intentId?: unknown;
+    admissionState?: unknown;
+    triggerFamily?: unknown;
+    triggerDetail?: {
+      detail?: {
+        oneofKind?: string;
+      };
+    } | null;
+  } | null;
   scheduledFor?: { seconds: string; nanos: number } | undefined;
   admittedAt?: { seconds: string; nanos: number } | undefined;
 }): RuntimeAgentPendingHookInspect {
   return {
-    hookId: normalizeText(hook.hookId),
-    status: formatHookStatus(hook.status),
-    triggerKind: formatHookTriggerKind(hook.trigger?.triggerKind),
+    hookId: normalizeText(hook.intent?.intentId),
+    status: formatHookStatus(hook.intent?.admissionState),
+    triggerKind: formatHookTriggerKind(hook.intent),
     scheduledFor: timestampToIso(hook.scheduledFor),
     admittedAt: timestampToIso(hook.admittedAt),
   };

@@ -168,6 +168,11 @@ function applySyncSnapshotToCache(chatId: string, snapshot: RealmChatSyncResultD
   }
 }
 
+function invalidateGroupChatQueries(chatId: string): void {
+  void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
+  void queryClient.invalidateQueries({ queryKey: ['group-messages', chatId] });
+}
+
 function applyChatEventToCache(input: ApplyChatEventInput): void {
   const message = extractRealmMessageFromEvent(input.event);
   if (message && input.event.kind === 'message.created') {
@@ -186,8 +191,7 @@ function applyChatEventToCache(input: ApplyChatEventInput): void {
       // Wave 5: If this event wasn't found in DIRECT cache, it may be a GROUP
       // chat event. Invalidate GROUP queries so the group adapter can detect
       // incoming messages and trigger agent dispatch for cross-user mentions.
-      void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
-      void queryClient.invalidateQueries({ queryKey: ['group-messages', input.event.chatId] });
+      invalidateGroupChatQueries(input.event.chatId);
     }
     if (chatMerge.shouldMarkRead) {
       void dataSync.markChatRead(message.chatId);
@@ -213,12 +217,14 @@ function applyChatEventToCache(input: ApplyChatEventInput): void {
     });
     if (!found) {
       void queryClient.invalidateQueries({ queryKey: ['chats'] });
+      invalidateGroupChatQueries(input.event.chatId);
     }
     return;
   }
 
   if (input.event.kind === 'chat.read') {
     void queryClient.invalidateQueries({ queryKey: ['chats'] });
+    invalidateGroupChatQueries(input.event.chatId);
   }
 }
 

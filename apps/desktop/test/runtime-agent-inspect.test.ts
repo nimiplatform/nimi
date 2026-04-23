@@ -11,6 +11,70 @@ const PROTO_AGENT_AUTONOMY_MODE = {
   HIGH: 4,
 } as const;
 
+const PROTO_HOOK_TRIGGER_FAMILY = {
+  UNSPECIFIED: 0,
+  TIME: 1,
+  EVENT: 2,
+} as const;
+
+const PROTO_HOOK_ADMISSION_STATE = {
+  UNSPECIFIED: 0,
+  PROPOSED: 1,
+  PENDING: 2,
+  REJECTED: 3,
+  RUNNING: 4,
+  COMPLETED: 5,
+  FAILED: 6,
+  CANCELED: 7,
+  RESCHEDULED: 8,
+} as const;
+
+function buildPendingHook(input: {
+  intentId: string;
+  admissionState: number;
+  triggerKind: 'time' | 'user-idle' | 'chat-ended' | 'none';
+  scheduledFor: string;
+  admittedAt?: string;
+}) {
+  const triggerDetail = input.triggerKind === 'time'
+    ? {
+      detail: {
+        oneofKind: 'time',
+        time: {},
+      },
+    }
+    : input.triggerKind === 'user-idle'
+      ? {
+        detail: {
+          oneofKind: 'eventUserIdle',
+          eventUserIdle: {},
+        },
+      }
+      : input.triggerKind === 'chat-ended'
+        ? {
+          detail: {
+            oneofKind: 'eventChatEnded',
+            eventChatEnded: {},
+          },
+        }
+        : undefined;
+
+  return {
+    intent: {
+      intentId: input.intentId,
+      admissionState: input.admissionState,
+      triggerFamily: input.triggerKind === 'time'
+        ? PROTO_HOOK_TRIGGER_FAMILY.TIME
+        : input.triggerKind === 'none'
+          ? PROTO_HOOK_TRIGGER_FAMILY.UNSPECIFIED
+          : PROTO_HOOK_TRIGGER_FAMILY.EVENT,
+      ...(triggerDetail ? { triggerDetail } : {}),
+    },
+    scheduledFor: { seconds: input.scheduledFor, nanos: 0 },
+    ...(input.admittedAt ? { admittedAt: { seconds: input.admittedAt, nanos: 0 } } : {}),
+  };
+}
+
 function createRuntimeMock() {
   const calls = {
     registerApp: [] as Array<Record<string, unknown>>,
@@ -149,71 +213,71 @@ function createRuntimeMock() {
       listPendingHooks: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
         calls.listPendingHooks.push({ ...input, __options: options });
         const pendingHooks = [
-          {
-            hookId: 'hook-1',
-            status: 1,
-            trigger: { triggerKind: 2 },
-            scheduledFor: { seconds: '1776135600', nanos: 0 },
-          },
-          {
-            hookId: 'hook-2',
-            status: 2,
-            trigger: { triggerKind: 1 },
-            scheduledFor: { seconds: '1776135900', nanos: 0 },
-          },
-          {
-            hookId: 'hook-3',
-            status: 1,
-            trigger: { triggerKind: 4 },
-            scheduledFor: { seconds: '1776136200', nanos: 0 },
-          },
-          {
-            hookId: 'hook-4',
-            status: 2,
-            trigger: { triggerKind: 5 },
-            scheduledFor: { seconds: '1776136500', nanos: 0 },
-          },
+          buildPendingHook({
+            intentId: 'hook-1',
+            admissionState: PROTO_HOOK_ADMISSION_STATE.PENDING,
+            triggerKind: 'time',
+            scheduledFor: '1776135600',
+          }),
+          buildPendingHook({
+            intentId: 'hook-2',
+            admissionState: PROTO_HOOK_ADMISSION_STATE.RUNNING,
+            triggerKind: 'user-idle',
+            scheduledFor: '1776135900',
+          }),
+          buildPendingHook({
+            intentId: 'hook-3',
+            admissionState: PROTO_HOOK_ADMISSION_STATE.PENDING,
+            triggerKind: 'chat-ended',
+            scheduledFor: '1776136200',
+          }),
+          buildPendingHook({
+            intentId: 'hook-4',
+            admissionState: PROTO_HOOK_ADMISSION_STATE.RUNNING,
+            triggerKind: 'time',
+            scheduledFor: '1776136500',
+          }),
         ];
-        const completedHooks = Array.from({ length: 205 }, (_value, index) => ({
-          hookId: `hook-completed-${String(index + 1).padStart(3, '0')}`,
-          status: 3,
-          trigger: { triggerKind: 1 },
-          scheduledFor: { seconds: String(1776135600 + index), nanos: 0 },
-          admittedAt: { seconds: String(1776136600 + index), nanos: 0 },
+        const completedHooks = Array.from({ length: 205 }, (_value, index) => buildPendingHook({
+          intentId: `hook-completed-${String(index + 1).padStart(3, '0')}`,
+          admissionState: PROTO_HOOK_ADMISSION_STATE.COMPLETED,
+          triggerKind: 'time',
+          scheduledFor: String(1776135600 + index),
+          admittedAt: String(1776136600 + index),
         }));
         const hooksByStatus: Record<string, Array<Record<string, unknown>>> = {
           '0': pendingHooks,
-          '3': completedHooks,
-          '4': [{
-            hookId: 'hook-failed-1',
-            status: 4,
-            trigger: { triggerKind: 6 },
-            scheduledFor: { seconds: '1776131000', nanos: 0 },
-            admittedAt: { seconds: '1776137001', nanos: 0 },
-          }],
-          '5': [{
-            hookId: 'hook-canceled-1',
-            status: 5,
-            trigger: { triggerKind: 2 },
-            scheduledFor: { seconds: '1776131100', nanos: 0 },
-            admittedAt: { seconds: '1776137002', nanos: 0 },
-          }],
-          '6': [{
-            hookId: 'hook-rescheduled-1',
-            status: 6,
-            trigger: { triggerKind: 3 },
-            scheduledFor: { seconds: '1776131200', nanos: 0 },
-            admittedAt: { seconds: '1776137003', nanos: 0 },
-          }],
-          '7': [{
-            hookId: 'hook-rejected-1',
-            status: 7,
-            trigger: { triggerKind: 7 },
-            scheduledFor: { seconds: '1776131300', nanos: 0 },
-            admittedAt: { seconds: '1776137004', nanos: 0 },
-          }],
+          '5': completedHooks,
+          '6': [buildPendingHook({
+            intentId: 'hook-failed-1',
+            admissionState: PROTO_HOOK_ADMISSION_STATE.FAILED,
+            triggerKind: 'user-idle',
+            scheduledFor: '1776131000',
+            admittedAt: '1776137001',
+          })],
+          '7': [buildPendingHook({
+            intentId: 'hook-canceled-1',
+            admissionState: PROTO_HOOK_ADMISSION_STATE.CANCELED,
+            triggerKind: 'time',
+            scheduledFor: '1776131100',
+            admittedAt: '1776137002',
+          })],
+          '8': [buildPendingHook({
+            intentId: 'hook-rescheduled-1',
+            admissionState: PROTO_HOOK_ADMISSION_STATE.RESCHEDULED,
+            triggerKind: 'chat-ended',
+            scheduledFor: '1776131200',
+            admittedAt: '1776137003',
+          })],
+          '3': [buildPendingHook({
+            intentId: 'hook-rejected-1',
+            admissionState: PROTO_HOOK_ADMISSION_STATE.REJECTED,
+            triggerKind: 'none',
+            scheduledFor: '1776131300',
+            admittedAt: '1776137004',
+          })],
         };
-        const hooks = hooksByStatus[String(input.statusFilter || 0)] || [];
+        const hooks = hooksByStatus[String(input.admissionStateFilter || 0)] || [];
         const pageSize = Number(input.pageSize || 0) || 50;
         const start = Number(input.pageToken || 0) || 0;
         const end = Math.min(start + pageSize, hooks.length);
@@ -366,8 +430,10 @@ function createRuntimeMock() {
         calls.cancelHook.push({ ...input, __options: options });
         return {
           outcome: {
-            hookId: String(input.hookId || ''),
-            status: 5,
+            intent: {
+              intentId: String(input.intentId || ''),
+              admissionState: PROTO_HOOK_ADMISSION_STATE.CANCELED,
+            },
           },
         };
       },
@@ -382,9 +448,10 @@ function createRuntimeMock() {
             detail: {
               oneofKind: 'hook',
               hook: {
-                outcome: {
-                  hookId: 'hook-1',
-                  status: 1,
+                family: PROTO_HOOK_ADMISSION_STATE.PENDING,
+                intent: {
+                  intentId: 'hook-1',
+                  admissionState: PROTO_HOOK_ADMISSION_STATE.PENDING,
                 },
               },
             },
@@ -492,7 +559,7 @@ test('runtime agent inspect adapter projects public state and pending hook summa
   assert.equal(snapshot.pendingHooks[0]?.status, 'pending');
   assert.equal(snapshot.pendingHooks[0]?.triggerKind, 'scheduled-time');
   assert.equal(snapshot.pendingHooks[1]?.status, 'running');
-  assert.equal(snapshot.pendingHooks[1]?.triggerKind, 'turn-completed');
+  assert.equal(snapshot.pendingHooks[1]?.triggerKind, 'user-idle');
   assert.equal(snapshot.pendingHooks[2]?.hookId, 'hook-3');
   assert.equal(snapshot.nextScheduledFor, '2026-04-14T03:00:00.000Z');
   assert.equal(snapshot.recentTerminalHooks.length, 6);
@@ -659,6 +726,7 @@ test('runtime agent inspect adapter cancels hooks through admitted runtime write
   assert.equal(outcome.hookId, 'hook-1');
   assert.equal(outcome.status, 'canceled');
   assert.equal(calls.cancelHook.length, 1);
+  assert.equal(calls.cancelHook[0]?.intentId, 'hook-1');
   assert.equal(calls.cancelHook[0]?.reason, 'desktop_test_cancel');
   const options = (calls.cancelHook[0]?.__options as Record<string, unknown>) || {};
   assert.deepEqual(options.protectedAccessToken, {

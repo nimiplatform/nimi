@@ -49,6 +49,6 @@ export async function loadOfficialCubismRuntimeModules(): Promise<OfficialCubism
       CubismDefaultParameterId: defaultParameterModule.CubismDefaultParameterId,
     };
   } catch (error: unknown) {
-    throw new Error(describeLive2dRuntimeError(error));
+    throw new Error(describeLive2dRuntimeError(error), { cause: error });
   }
 }

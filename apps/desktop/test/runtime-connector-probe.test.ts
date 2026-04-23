@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import {
+  listConnectorAuthOptionsForProvider,
   sdkConnectorToApiConnector,
   sdkCreateConnector,
   providerToVendor,
@@ -141,6 +142,7 @@ test('sdkConnectorToApiConnector maps SDK connector shape to ApiConnector', () =
   assert.equal(result.label, 'My OpenRouter');
   assert.equal(result.vendor, 'openrouter');
   assert.equal(result.provider, 'openrouter');
+  assert.equal(result.authMode, 'api_key');
   assert.equal(result.endpoint, 'https://openrouter.ai/api/v1');
   assert.equal(result.scope, 'user');
   assert.equal(result.hasCredential, true);
@@ -244,6 +246,8 @@ test('providerToVendor maps known providers correctly', () => {
   assert.equal(providerToVendor('gemini'), 'gemini');
   assert.equal(providerToVendor('kimi'), 'kimi');
   assert.equal(providerToVendor('openai'), 'gpt');
+  assert.equal(providerToVendor('openai_codex'), 'openai_codex');
+  assert.equal(providerToVendor('openai_compatible'), 'openai_compatible');
   assert.equal(providerToVendor('anthropic'), 'claude');
   assert.equal(providerToVendor('openrouter'), 'openrouter');
   assert.equal(providerToVendor('unknown-provider'), 'custom');
@@ -257,6 +261,8 @@ test('vendorToProvider maps known vendors correctly', () => {
   assert.equal(vendorToProvider('kimi'), 'kimi');
   assert.equal(vendorToProvider('deepseek'), 'deepseek');
   assert.equal(vendorToProvider('gpt'), 'openai');
+  assert.equal(vendorToProvider('openai_codex'), 'openai_codex');
+  assert.equal(vendorToProvider('openai_compatible'), 'openai_compatible');
   assert.equal(vendorToProvider('claude'), 'anthropic');
   assert.equal(vendorToProvider('openrouter'), 'openrouter');
   assert.equal(vendorToProvider('custom'), 'custom');
@@ -270,6 +276,8 @@ test('providerToVendor and vendorToProvider are bidirectional for all standard m
     ['gemini', 'gemini'],
     ['kimi', 'kimi'],
     ['openai', 'gpt'],
+    ['openai_codex', 'openai_codex'],
+    ['openai_compatible', 'openai_compatible'],
     ['anthropic', 'claude'],
     ['openrouter', 'openrouter'],
   ];
@@ -284,6 +292,23 @@ test('providerToVendor is case-insensitive', () => {
   assert.equal(providerToVendor('DEEPSEEK'), 'deepseek');
   assert.equal(providerToVendor('Gemini'), 'gemini');
   assert.equal(providerToVendor('OpenAI'), 'gpt');
+  assert.equal(providerToVendor('OPENAI_CODEX'), 'openai_codex');
+  assert.equal(providerToVendor('OpenAI_Compatible'), 'openai_compatible');
+});
+
+test('listConnectorAuthOptionsForProvider exposes admitted oauth-managed options without rebuilding truth', () => {
+  assert.deepEqual(
+    listConnectorAuthOptionsForProvider('openai_codex').map((item) => item.value),
+    ['oauth:openai_codex'],
+  );
+  assert.deepEqual(
+    listConnectorAuthOptionsForProvider('anthropic').map((item) => item.value),
+    ['api_key', 'oauth:anthropic'],
+  );
+  assert.deepEqual(
+    listConnectorAuthOptionsForProvider('openai_compatible').map((item) => item.value),
+    ['api_key', 'oauth:qwen_oauth'],
+  );
 });
 
 test('sdkCreateConnector runtime calls include auto authorization and pick refreshed token', async () => {
@@ -317,6 +342,77 @@ test('sdkCreateConnector runtime calls include auto authorization and pick refre
     const secondCall = unaryCalls[unaryCalls.length - 1];
     assert.equal(firstCall?.payload.authorization, 'Bearer connector-token-1');
     assert.equal(secondCall?.payload.authorization, 'Bearer connector-token-2');
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('sdkCreateConnector emits oauth-managed payload when selected auth shape requires it', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await createPlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => 'connector-token-oauth',
+    });
+
+    await sdkCreateConnector({
+      provider: 'openai_codex',
+      endpoint: 'https://chatgpt.com/backend-api/codex',
+      label: 'Codex Connector',
+      credentialValue: 'codex-access-token',
+      authMode: 'oauth_managed',
+      providerAuthProfile: 'openai_codex',
+    });
+
+    const unaryCalls = calls.filter((call) => call.command === 'runtime_bridge_unary');
+    const createCall = unaryCalls[unaryCalls.length - 1];
+    assert.ok(createCall, 'expected runtime createConnector call');
+    assert.equal(createCall?.payload.methodId, '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector');
+    const requestBytesBase64 = String(createCall?.payload.requestBytesBase64 || '').trim();
+    assert.ok(requestBytesBase64.length > 0);
+    const requestText = Buffer.from(requestBytesBase64, 'base64').toString('utf8');
+    assert.equal(requestText.includes('openai_codex'), true);
+    assert.equal(requestText.includes('https://chatgpt.com/backend-api/codex'), true);
+    assert.equal(requestText.includes(JSON.stringify({ access_token: 'codex-access-token' })), true);
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('sdkCreateConnector preserves explicit credentialJson for oauth-managed providers', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await createPlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => 'connector-token-oauth',
+    });
+
+    await sdkCreateConnector({
+      provider: 'openai_codex',
+      endpoint: 'https://chatgpt.com/backend-api/codex',
+      label: 'Codex Connector',
+      credentialValue: 'stale-access-token',
+      credentialJson: JSON.stringify({
+        access_token: 'fresh-access-token',
+        refresh_token: 'refresh-token',
+        auth_mode: 'chatgpt',
+        source: 'device-code',
+      }),
+      authMode: 'oauth_managed',
+      providerAuthProfile: 'openai_codex',
+    });
+
+    const unaryCalls = calls.filter((call) => call.command === 'runtime_bridge_unary');
+    const createCall = unaryCalls[unaryCalls.length - 1];
+    assert.ok(createCall, 'expected runtime createConnector call');
+    const requestBytesBase64 = String(createCall?.payload.requestBytesBase64 || '').trim();
+    assert.ok(requestBytesBase64.length > 0);
+    const requestText = Buffer.from(requestBytesBase64, 'base64').toString('utf8');
+    assert.equal(requestText.includes('fresh-access-token'), true);
+    assert.equal(requestText.includes('refresh-token'), true);
+    assert.equal(requestText.includes('stale-access-token'), false);
   } finally {
     restoreTauri();
   }

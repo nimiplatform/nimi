@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
+import {
+  ScrollArea,
+  SidebarAffordanceChevron,
+  SidebarHeader,
+  SidebarItem,
+  SidebarResizeHandle,
+  SidebarSection,
+  SidebarShell,
+  Surface,
+} from '@nimiplatform/nimi-kit/ui';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
-import { SidebarAffordanceChevron, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
 import { getSettingsMenuSections } from './settings-assets.js';
 import { renderSettingsPage } from './settings-pages.js';
 import {

@@ -35,17 +35,18 @@ export function ChatGroupModeContent({
   });
   const setChatSetupState = useAppStore((state) => state.setChatSetupState);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const lastSelectedGroupThread = useAppStore((state) => state.lastSelectedThreadByMode.group ?? null);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.group ?? null);
   const setChatViewMode = useAppStore((state) => state.setChatViewMode);
+  const normalizedStoreSelectedTargetId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID
+    ? null
+    : storeSelectedTargetId;
 
   const host = useGroupConversationModeHost({
     authStatus,
     currentUserId,
   });
-  const hostOnCreateThread = host.onCreateThread;
-  const hostOnSelectTarget = host.onSelectTarget;
 
-  // Bridge sidebar target selection to host
   const prevTargetIdRef = useRef<string | null>(null);
   useEffect(() => {
     const previousTargetId = prevTargetIdRef.current;
@@ -55,41 +56,51 @@ export function ChatGroupModeContent({
       && previousTargetId !== GROUP_CREATE_INTENT_TARGET_ID
     ) {
       setSelectedTargetForSource('group', null);
-      void hostOnCreateThread?.();
-    } else if (
-      storeSelectedTargetId
-      && storeSelectedTargetId !== previousTargetId
-    ) {
-      hostOnSelectTarget?.(storeSelectedTargetId);
+      void host.onCreateThread?.();
     }
 
     prevTargetIdRef.current = storeSelectedTargetId;
-  }, [hostOnCreateThread, hostOnSelectTarget, setSelectedTargetForSource, storeSelectedTargetId]);
+  }, [host.onCreateThread, setSelectedTargetForSource, storeSelectedTargetId]);
+
+  const restoreAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (restoreAttemptedRef.current || allTargets.length === 0) {
+      return;
+    }
+    if (
+      storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID
+      || normalizedStoreSelectedTargetId
+      || !lastSelectedGroupThread
+    ) {
+      restoreAttemptedRef.current = true;
+      return;
+    }
+    const targetExists = allTargets.some((target) => target.id === lastSelectedGroupThread && target.source === 'group');
+    restoreAttemptedRef.current = true;
+    if (!targetExists) {
+      return;
+    }
+    setSelectedTargetForSource('group', lastSelectedGroupThread);
+  }, [
+    allTargets,
+    lastSelectedGroupThread,
+    normalizedStoreSelectedTargetId,
+    setSelectedTargetForSource,
+    storeSelectedTargetId,
+  ]);
 
   // Sync setupState to store
   useEffect(() => {
     setChatSetupState('group', host.adapter.setupState);
   }, [host.adapter.setupState, setChatSetupState]);
 
-  const selectedTargetId = storeSelectedTargetId || host.selectedTargetId || null;
+  const selectedTargetId = normalizedStoreSelectedTargetId;
   const selectedTarget = useMemo(
     () => selectedTargetId
       ? allTargets.find((target) => target.id === selectedTargetId) || null
       : null,
     [allTargets, selectedTargetId],
   );
-  const hostSelectedTargetExists = useMemo(
-    () => host.selectedTargetId
-      ? allTargets.some((target) => target.id === host.selectedTargetId)
-      : false,
-    [allTargets, host.selectedTargetId],
-  );
-
-  // Sync host selectedTargetId to store only after the sidebar target exists.
-  useEffect(() => {
-    if (!host.selectedTargetId || storeSelectedTargetId || !hostSelectedTargetExists) return;
-    setSelectedTargetForSource('group', host.selectedTargetId);
-  }, [host.selectedTargetId, hostSelectedTargetExists, setSelectedTargetForSource, storeSelectedTargetId]);
 
   const currentViewModeKey = selectedTarget
     ? `${selectedTarget.source}:${selectedTarget.id}`

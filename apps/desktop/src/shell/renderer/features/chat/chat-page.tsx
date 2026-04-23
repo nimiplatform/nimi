@@ -71,6 +71,7 @@ export function ChatPage() {
   const authStatus = useAppStore((state) => state.auth.status);
   const chatMode = useAppStore((state) => state.chatMode);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource[state.chatMode] ?? null);
+  const groupSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.group ?? null);
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -122,6 +123,13 @@ export function ChatPage() {
       setSelectedTargetForSource(chatMode, null);
     }
   }, [allTargets, authStatus, chatMode, setChatMode, setSelectedTargetForSource, storeSelectedTargetId]);
+
+  useEffect(() => {
+    if (chatMode === 'group' || groupSelectedTargetId !== GROUP_CREATE_INTENT_TARGET_ID) {
+      return;
+    }
+    setSelectedTargetForSource('group', null);
+  }, [chatMode, groupSelectedTargetId, setSelectedTargetForSource]);
 
   useEffect(() => {
     setChatSettingsOpen(false);

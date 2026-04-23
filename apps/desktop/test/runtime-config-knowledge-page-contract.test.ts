@@ -20,6 +20,11 @@ const knowledgePageSource = readFileSync(
   'utf8',
 );
 
+const knowledgeDiscoveryActionsSource = readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-knowledge-discovery-actions.ts'),
+  'utf8',
+);
+
 const knowledgeServiceSource = readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-knowledge-sdk-service.ts'),
   'utf8',
@@ -59,15 +64,17 @@ test('knowledge page composes bank list, page editor, ingest, search, and graph 
   assert.match(knowledgePageSource, /putRuntimeKnowledgePage/);
   assert.match(knowledgePageSource, /ingestRuntimeKnowledgeDocument/);
   assert.match(knowledgePageSource, /getRuntimeKnowledgeIngestTask/);
-  assert.match(knowledgePageSource, /searchRuntimeKnowledgeKeyword/);
-  assert.match(knowledgePageSource, /searchRuntimeKnowledgeHybrid/);
-  assert.match(knowledgePageSource, /addRuntimeKnowledgeLink/);
-  assert.match(knowledgePageSource, /listRuntimeKnowledgeLinks/);
-  assert.match(knowledgePageSource, /listRuntimeKnowledgeBacklinks/);
-  assert.match(knowledgePageSource, /traverseRuntimeKnowledgeGraph/);
+  assert.match(knowledgePageSource, /createKnowledgeDiscoveryActions/);
   assert.match(knowledgePageSource, /loadMoreSearchHits/);
   assert.match(knowledgePageSource, /loadMoreBanks/);
   assert.match(knowledgePageSource, /loadMorePages/);
+  assert.match(knowledgeDiscoveryActionsSource, /searchRuntimeKnowledgeKeyword/);
+  assert.match(knowledgeDiscoveryActionsSource, /searchRuntimeKnowledgeHybrid/);
+  assert.match(knowledgeDiscoveryActionsSource, /addRuntimeKnowledgeLink/);
+  assert.match(knowledgeDiscoveryActionsSource, /listRuntimeKnowledgeLinks/);
+  assert.match(knowledgeDiscoveryActionsSource, /listRuntimeKnowledgeBacklinks/);
+  assert.match(knowledgeDiscoveryActionsSource, /traverseRuntimeKnowledgeGraph/);
+  assert.match(knowledgeDiscoveryActionsSource, /loadMoreSearchHits/);
 });
 
 test('knowledge sdk service stays on admitted runtime knowledge methods', () => {

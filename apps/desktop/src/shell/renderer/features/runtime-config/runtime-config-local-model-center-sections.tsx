@@ -422,6 +422,11 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                 defaultValue: 'Unregistered Assets',
               })}
             </h3>
+            <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+              {i18n.t('runtimeConfig.localModelCenter.unregisteredAssetsAutoImportHint', {
+                defaultValue: 'Typed folders import automatically when confidence is high; others stay in Review needed.',
+              })}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">

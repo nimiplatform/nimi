@@ -10,6 +10,7 @@ export function inferVendorFromEndpoint(endpoint: string): ApiVendor | null {
   const hostPatterns: Array<[string, ApiVendor]> = [
     ['api.deepseek.com', 'deepseek'],
     ['api.openai.com', 'gpt'],
+    ['chatgpt.com/backend-api/codex', 'openai_codex'],
     ['api.anthropic.com', 'claude'],
     ['generativelanguage.googleapis.com', 'gemini'],
     ['api.moonshot.cn', 'kimi'],

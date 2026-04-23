@@ -42,10 +42,9 @@ test('desktop non-text execution audit: renderer media execution surface is limi
   assert.deepEqual(mediaExecutionCallsites, [
     'src/shell/renderer/features/chat/chat-agent-runtime-image.ts',
     'src/shell/renderer/features/chat/chat-agent-runtime-voice.ts',
-    'src/shell/renderer/features/tester/panels/panel-audio-synthesize.tsx',
-    'src/shell/renderer/features/tester/panels/panel-audio-transcribe.tsx',
     'src/shell/renderer/features/tester/panels/panel-image-generate.tsx',
     'src/shell/renderer/features/tester/panels/panel-video-generate.tsx',
+    'src/shell/renderer/features/tester/tester-speech-actions.ts',
   ]);
 });
 

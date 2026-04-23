@@ -21,6 +21,7 @@ import { SidebarTooltipButton } from './main-layout-sidebar-tooltip-button';
 import { OfflineShellStrip } from './offline-shell-strip';
 import { ScenarioJobStatusHost } from '@renderer/features/turns/scenario-job-status-host';
 import {
+  SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
   SHELL_CHROME_MENU_ITEM_BASE_CLASS,
   SHELL_CHROME_OVERLAY_CLASS,
 } from './shell-chrome-classes';
@@ -458,7 +459,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               <SidebarTooltipButton
                 label={t('Navigation.home', { defaultValue: 'Home' })}
                 dataTestId={E2E_IDS.navTab('home')}
-                className="flex h-11 w-11 items-center justify-center transition-transform duration-150 hover:-translate-y-0.5"
+                className={`flex h-11 w-11 items-center justify-center transition-transform duration-150 hover:-translate-y-0.5 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`}
                 onClick={() => {
                   setSettingsMenuOpen(false);
                   props.onNav('home');

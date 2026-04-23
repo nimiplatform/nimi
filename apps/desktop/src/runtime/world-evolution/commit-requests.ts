@@ -11,7 +11,6 @@ import { createSecureIdSuffix } from '../id.js';
 const MAX_COMMIT_REQUESTS = 1000;
 const EFFECT_CLASSES = new Set<WorldEvolutionEffectClass>([
   'NONE',
-  'MEMORY_ONLY',
   'STATE_ONLY',
   'STATE_AND_HISTORY',
 ]);
