@@ -5,9 +5,9 @@
 
 Contract: `TRUTH-CONTRACT-001`
 Domain: `truth`
-Version: `2026-04-09`
+Version: `2026-04-22`
 
-Rules: 14
+Rules: 21
 
 | Rule ID | Level | Title | Statement |
 | --- | --- | --- | --- |
@@ -25,8 +25,15 @@ Rules: 14
 | R-TRUTH-012 | must | official-publish-governance-provenance-required | Official package publish requires explicit governance provenance including official owner, editorial operator, reviewer, publisher, source provenance, and review verdict; missing required governance identity or verdict must fail-close. |
 | R-TRUTH-013 | must | official-publish-atomic-world-agent-release | Official package publish must atomically write world truth, agent truth, projection inputs, and WorldRelease; world-published/agent-pending or release-less success states are invalid. |
 | R-TRUTH-014 | must | release-governance-and-rollback-anchor | WorldRelease is the sole official truth release governance anchor; each official publish must bind package version, publish provenance, checksum/diff metadata, and rollback lineage to an explicit release identity. |
+| R-TRUTH-015 | must | canonical-truth-package-is-formal-ingress | CanonicalTruthPackage is the formal upstream truth-ingress object for official content publish; it must separate canonical truth units, derivation or inheritance inputs, projection inputs, and governance or release metadata, and must not center lorebook text, prompt payloads, or card views. |
+| R-TRUTH-016 | must | inheritance-link-is-formal-world-agent-edge | InheritanceLink is the formal world-truth-to-agent-truth edge; WORLD_INHERITED and worldRuleRef may materialize it, but they do not replace the full inheritance semantics. |
+| R-TRUTH-017 | must | all-agent-entry-paths-share-derivation-line | Official package publish, creator create-agent, and future import surfaces must pass through the same truth derivation line and fail-close if they cannot produce governed truth writes, inheritance materialization or derivation basis, and projection inputs. |
+| R-TRUTH-018 | must | observation-markup-protocol-is-sole-formal-authoring-wire-contract | Formal Forge extract-observations and refine-observations must converge on one ObservationMarkupProtocol mainline; strict single-object JSON payloads and provider- or stage-specific parallel wire contracts are not formal authority. |
+| R-TRUTH-019 | must | observation-commit-ledger-admits-validated-closed-units-only | ObservationCommitLedger may admit only closed and validated observation units; truncated envelopes, unclosed units, or provider-returned but unvalidated content are not committed authoring truth evidence. |
+| R-TRUTH-020 | must | continuation-plan-is-runtime-owned | ObservationContinuationPlan semantics are owned by the runtime or authoring kernel, not by the model; models may declare remaining categories or stop reason but may not define opaque cursor semantics or override frozen sequence discipline. |
+| R-TRUTH-021 | must | raw-attempt-committed-units-and-final-batch-must-stay-distinct | Official publish, workspace continuation, and governed Forge commit surfaces must distinguish raw attempt artifacts, committed observation units, and the final consolidated extraction batch; raw provider output, partial attempt residue, or incomplete continuation state cannot be treated as canonical truth ingress or successful publish evidence. |
 
-Entities: 4
+Entities: 9
 
 | Entity | Prisma Model | Required Fields | JSON Fields |
 | --- | --- | --- | --- |
@@ -34,6 +41,11 @@ Entities: 4
 | WorldRule | WorldRule | id, worldId, ruleKey, title, statement, domain, hardness, scope, status, version | structured, dependsOn, conflictsWith |
 | AgentRule | AgentRule | id, agentId, ruleKey, title, statement, layer, hardness, scope, status, version | structured, dependsOn, conflictsWith |
 | WorldRelease | WorldRelease | id, worldId, versionTag, worldRuleChecksum, agentRuleChecksum | metadata |
+| CanonicalTruthPackage |  | packageId, packageVersion, truthUnits, derivationInputs, projectionInputs, governanceMetadata |  |
+| InheritanceLink |  | worldTruthRef, agentTruthScopeRef, linkMode, materializationPolicy, derivationBasis |  |
+| ObservationMarkupEnvelope |  | protocol, chunkId, mode, sequence, final |  |
+| ObservationCommitLedger |  | chunkId, sequence, commitIndex, unitKind, unitChecksum |  |
+| ObservationContinuationPlan |  | chunkId, nextSequence, remainingCategories, reason |  |
 
 Required operations: 16
 - GET /api/world/oasis
@@ -53,7 +65,9 @@ Required operations: 16
 - GET /api/world/by-id/{id}/worldview
 - GET /api/world/by-id/{id}/lorebooks
 
-Secondary operations: 3
+Secondary operations: 5
 - GET /api/world
+- POST /api/agent
+- POST /api/creator/agents
 - GET /api/world/by-id/{id}/bindings
 - GET /api/world/by-id/{id}/scenes

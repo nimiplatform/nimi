@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-TRUTH-001
 title: Realm Truth Kernel Contract
 status: active
 owner: "@team"
-updated: 2026-04-09
+updated: 2026-04-22
 ---
 
 # Truth Contract
@@ -14,6 +14,11 @@ updated: 2026-04-09
 ## Scope
 
 This contract defines the canonical truth layer for `nimi-realm`.
+
+Truth owns the canonical publish ingress for world and agent truth, the formal
+world-to-agent derivation edge, and the governed boundary that upstream official
+packages and creator entry paths must satisfy before any projection or runtime
+consumer may act on them.
 
 ## R-TRUTH-001
 
@@ -70,3 +75,43 @@ Public read surfaces (e.g. `GET /api/world/by-id/{id}/detail-with-agents`) may e
 ## R-TRUTH-014
 
 `WorldRelease` 是官方 truth release governance 的唯一锚点。每次官方 publish 必须落一个显式 release identity，并绑定 package version、publish provenance、checksum / diff metadata 与 rollback lineage；rollback / supersede 必须通过 release 语义进行，不能通过 ad hoc truth rewrite 伪装完成。
+
+## R-TRUTH-015
+
+`CanonicalTruthPackage` 是官方内容 publish 的正式上游 truth-ingress object。它必须显式区分 canonical truth units、derivation / inheritance inputs、projection inputs，以及 governance / release metadata。lorebook 文本、prompt payload、card view 等 consumer-shaped 文本不得成为 package 的 canonical semantic center。
+
+## R-TRUTH-016
+
+`InheritanceLink` 是 world truth 到 agent truth 的正式 derivation edge。它定义哪些 world truth 约束某个 agent truth scope、该 edge 如何在 host 层 materialize，以及哪些约束只保留为 derivation basis 而不是复制成 agent 文本。`WORLD_INHERITED` 与 `worldRuleRef` 可以作为这一 edge 的 materialization，但不能替代其完整语义。
+
+## R-TRUTH-017
+
+所有受治理的 agent entry path，包括官方 package publish、creator create-agent，以及 future import surface，都必须通过同一条 truth derivation line。若某入口无法产出受 truth governance 约束的 truth write、inheritance materialization 或 derivation basis，以及 projection inputs，则必须 fail-close，而不是生成旁路语义系统。
+
+## R-TRUTH-018
+
+Forge formal `extract-observations` 与 `refine-observations` 的 LLM wire contract
+必须收敛为单一 `ObservationMarkupProtocol` 主线。受治理的 authoring artifacts
+不得继续把 strict single-object JSON payload 视为正式 wire authority，也不得在
+不同 provider 或不同 stage 之间分叉出并列 mainline。
+
+## R-TRUTH-019
+
+`ObservationCommitLedger` 的唯一合法 commit scope 是已闭合且已验证的
+observation unit。截断 envelope、未闭合 unit、或仅通过 provider transport
+返回但未通过 unit validation 的内容，不得伪装为已提交 authoring truth evidence。
+
+## R-TRUTH-020
+
+`ObservationContinuationPlan` 的语义 owner 是 runtime/authoring kernel，而不是
+模型本身。模型可以声明 remaining categories 或 stop reason，但不得自定义 opaque
+cursor、跳过已冻结 sequence discipline，或自行决定 committed artifact 与 final
+consolidated batch 的边界。
+
+## R-TRUTH-021
+
+官方 publish、workspace continuation、以及任何受治理的 Forge commit surface，
+都必须显式区分 raw attempt artifacts、committed observation units、以及 final
+consolidated extraction batch。raw provider output、partial attempt residue、
+或未完成 continuation 的中间态，不得直接作为 canonical truth ingress 或 publish
+evidence 成功态。

@@ -5,7 +5,7 @@
 
 Generated at: 2026-04-09T00:00:00Z
 
-Total rules: 69
+Total rules: 84
 Blocked external rules: 0
 
 | Rule ID | Domain | Level | Source | Statement |
@@ -24,6 +24,21 @@ Blocked external rules: 0
 | R-TRUTH-012 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | Official package publish requires explicit governance provenance including official owner, editorial operator, reviewer, publisher, source provenance, and review verdict; missing required governance fields must fail-close. |
 | R-TRUTH-013 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | Official package publish must atomically write world truth, agent truth, projection inputs, and WorldRelease; partial success middle states are invalid. |
 | R-TRUTH-014 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | WorldRelease is the sole official release governance anchor; each official publish binds package version, provenance, diff metadata, and rollback lineage to an explicit release identity. |
+| R-TRUTH-015 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | CanonicalTruthPackage is the formal upstream truth-ingress object for official content publish; it must separate canonical truth units, derivation or inheritance inputs, projection inputs, and governance or release metadata, and must not center lorebook text, prompt payloads, or card views. |
+| R-TRUTH-016 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | InheritanceLink is the formal world-truth-to-agent-truth edge; WORLD_INHERITED and worldRuleRef may materialize it, but they do not replace the full inheritance semantics. |
+| R-TRUTH-017 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | Official package publish, creator create-agent, and future import surfaces must pass through the same truth derivation line and fail-close if they cannot produce governed truth writes, inheritance materialization or derivation basis, and projection inputs. |
+| R-TRUTH-018 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | Formal Forge extract-observations and refine-observations must converge on one ObservationMarkupProtocol mainline; strict single-object JSON payloads and provider- or stage-specific parallel wire contracts are not formal authority. |
+| R-TRUTH-019 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | ObservationCommitLedger may admit only closed and validated observation units; truncated envelopes, unclosed units, or provider-returned but unvalidated content are not committed authoring truth evidence. |
+| R-TRUTH-020 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | ObservationContinuationPlan semantics are owned by the runtime or authoring kernel, not by the model; models may declare remaining categories or stop reason but may not define opaque cursor semantics or override frozen sequence discipline. |
+| R-TRUTH-021 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | Official publish, workspace continuation, and governed Forge commit surfaces must distinguish raw attempt artifacts, committed observation units, and the final consolidated extraction batch; raw provider output, partial attempt residue, or incomplete continuation state cannot be treated as canonical truth ingress or successful publish evidence. |
+| R-PROJ-001 | projection | must | .nimi/spec/realm/kernel/projection-contract.md | Projection is derived from canonical truth and allowed state visibility; projection output is not truth by default and cannot masquerade as a truth write. |
+| R-PROJ-002 | projection | must | .nimi/spec/realm/kernel/projection-contract.md | Authoritative projection consumes explicit projection inputs anchored to truth, permitted state visibility, and governing release/truth anchors; consumers must not reconstruct canonical inputs from lorebook text, browse summaries, or app-local caches. |
+| R-PROJ-003 | projection | must | .nimi/spec/realm/kernel/projection-contract.md | Authoritative projection requests must explicitly identify world scope, agent scope, consumer surface, governing release/truth anchor, and constrained context envelope. |
+| R-PROJ-004 | projection | must | .nimi/spec/realm/kernel/projection-contract.md | For identical inputs, consumer surface, release/truth anchor, and constrained context envelope, authoritative projection must be deterministic and checksumable. |
+| R-PROJ-005 | projection | must | .nimi/spec/realm/kernel/projection-contract.md | Runtime and app consumers must not bypass authoritative projection by directly assembling truth text into prompt payloads; PromptTrace may consume projection output but does not replace the projection contract. |
+| R-PROJ-006 | projection | must | .nimi/spec/realm/kernel/projection-contract.md | Worldview, lorebooks, public browse aggregates, and future card-shaped exports are projection surfaces only and must not become the canonical semantic source. |
+| R-PROJ-007 | projection | must | .nimi/spec/realm/kernel/projection-contract.md | Authoritative projection must produce traceable results that identify selected inputs, suppressed inputs, governing release/truth anchor, and resolution outcomes. |
+| R-PROJ-008 | projection | must | .nimi/spec/realm/kernel/projection-contract.md | Until a dedicated runtime-mounted projection spec is admitted, Realm projection authority owns the semantic contract for ProjectionInput, ProjectionRequest, ProjectionResult, and ProjectionTraceRequirement; downstream runtime or app implementations must not fork or narrow these semantics ad hoc. |
 | R-WSTATE-001 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | World State expresses durable shared present only and excludes story runtime. |
 | R-WSTATE-002 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | State mutation uses an explicit commit envelope with fixed provenance fields. |
 | R-WSTATE-003 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | World State scope is limited to durable shared scopes WORLD, ENTITY, or RELATION. |

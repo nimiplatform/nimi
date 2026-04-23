@@ -9,7 +9,7 @@ const REALM_ROOT = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm');
 const KERNEL_ROOT = path.join(REALM_ROOT, 'kernel');
 const TABLES_DIR = path.join(KERNEL_ROOT, 'tables');
 
-const RULE_FAMILIES = ['TRUTH', 'WSTATE', 'WHIST', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BIND', 'BNDL', 'TRANSIT'];
+const RULE_FAMILIES = ['TRUTH', 'PROJ', 'WSTATE', 'WHIST', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BIND', 'BNDL', 'TRANSIT'];
 const EXPECTED_ID_PATTERN = `^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`;
 const RULE_ID_PATTERN = new RegExp(`^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`);
 const BLOCKED_BIND_RULE_ID_PATTERN = /^R-BIND-[0-9]{3}$/;
@@ -140,7 +140,7 @@ function hasAnchor(content, anchor) {
 function collectMarkdownRuleIds(absPath) {
   const lines = fs.readFileSync(absPath, 'utf8').split(/\r?\n/);
   return lines
-    .map((line) => line.match(/^##\s+(R-(TRUTH|WSTATE|WHIST|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT)-[0-9]{3})\s*$/)?.[1] ?? '')
+    .map((line) => line.match(new RegExp(`^##\\s+(R-(${RULE_FAMILIES.join('|')})-[0-9]{3})\\s*$`))?.[1] ?? '')
     .filter(Boolean);
 }
 

@@ -30,6 +30,20 @@ profiles:
       - nimi-backend/libs/domains/world/src/agent-rule.service.spec.ts
       - nimi-backend/libs/domains/world/src/world-release.service.spec.ts
       - tests/arch/world.spec.ts
+  projection:
+    openapi:
+      - POST /api/runtime/projections/project
+      - GET /api/world/by-id/{id}/worldview
+      - GET /api/world/by-id/{id}/lorebooks
+      - GET /api/world/by-id/{id}/detail-with-agents
+    prisma_models: [World, WorldRule, AgentRule, WorldRelease, Worldview, WorldLorebook]
+    service_files:
+      - nimi-backend/libs/domains/world/src/projection/projection.service.ts
+      - nimi-backend/libs/domains/world/src/worldview.service.ts
+      - nimi-backend/libs/domains/world/src/world-release.service.ts
+      - sdk/src/world/projection.ts
+    test_files:
+      - sdk/test/world/world-facade.test.ts
   world_state:
     openapi:
       - GET /api/worlds/{worldId}/state
@@ -239,6 +253,21 @@ rules:
   R-TRUTH-012: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-012, profile_refs: [truth] }
   R-TRUTH-013: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-013, profile_refs: [truth] }
   R-TRUTH-014: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-014, profile_refs: [truth] }
+  R-TRUTH-015: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-015, profile_refs: [truth] }
+  R-TRUTH-016: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-016, profile_refs: [truth] }
+  R-TRUTH-017: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-017, profile_refs: [truth] }
+  R-TRUTH-018: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-018, profile_refs: [truth] }
+  R-TRUTH-019: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-019, profile_refs: [truth] }
+  R-TRUTH-020: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-020, profile_refs: [truth] }
+  R-TRUTH-021: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-021, profile_refs: [truth] }
+  R-PROJ-001: { domain: projection, spec_anchor: .nimi/spec/realm/kernel/projection-contract.md#R-PROJ-001, profile_refs: [projection] }
+  R-PROJ-002: { domain: projection, spec_anchor: .nimi/spec/realm/kernel/projection-contract.md#R-PROJ-002, profile_refs: [projection] }
+  R-PROJ-003: { domain: projection, spec_anchor: .nimi/spec/realm/kernel/projection-contract.md#R-PROJ-003, profile_refs: [projection] }
+  R-PROJ-004: { domain: projection, spec_anchor: .nimi/spec/realm/kernel/projection-contract.md#R-PROJ-004, profile_refs: [projection] }
+  R-PROJ-005: { domain: projection, spec_anchor: .nimi/spec/realm/kernel/projection-contract.md#R-PROJ-005, profile_refs: [projection] }
+  R-PROJ-006: { domain: projection, spec_anchor: .nimi/spec/realm/kernel/projection-contract.md#R-PROJ-006, profile_refs: [projection] }
+  R-PROJ-007: { domain: projection, spec_anchor: .nimi/spec/realm/kernel/projection-contract.md#R-PROJ-007, profile_refs: [projection] }
+  R-PROJ-008: { domain: projection, spec_anchor: .nimi/spec/realm/kernel/projection-contract.md#R-PROJ-008, profile_refs: [projection] }
   R-WSTATE-001: { domain: world-state, spec_anchor: .nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-001, profile_refs: [world_state] }
   R-WSTATE-002: { domain: world-state, spec_anchor: .nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-002, profile_refs: [world_state] }
   R-WSTATE-003: { domain: world-state, spec_anchor: .nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-003, profile_refs: [world_state] }

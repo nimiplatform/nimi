@@ -15,6 +15,7 @@ Generated files:
 - `.nimi/spec/realm/kernel/generated/domain-state-machines.md`
 - `.nimi/spec/realm/kernel/generated/economy-contract.md`
 - `.nimi/spec/realm/kernel/generated/open-spec-alignment-map.md`
+- `.nimi/spec/realm/kernel/generated/projection-contract.md`
 - `.nimi/spec/realm/kernel/generated/resource-contract.md`
 - `.nimi/spec/realm/kernel/generated/rule-catalog.md`
 - `.nimi/spec/realm/kernel/generated/rule-evidence.md`

@@ -1,0 +1,65 @@
+contract_id: PROJECTION-CONTRACT-001
+domain: projection
+status: ACTIVE
+version: 2026-04-21
+owner: '@team'
+sources:
+  human_spec: ../projection-contract.md
+  prisma: nimi-backend/prisma/schema.prisma
+  services:
+    - nimi-backend/libs/domains/world/src/projection/projection.service.ts
+    - nimi-backend/libs/domains/world/src/world-release.service.ts
+    - nimi-backend/libs/domains/world/src/worldview.service.ts
+rule_id_prefix: R-PROJ-
+rules:
+  - rule_id: R-PROJ-001
+    level: must
+    title: projection-derived-not-truth
+    statement: "Projection is derived from canonical truth and explicit allowed state visibility; projection output is not truth by default and cannot masquerade as a truth write."
+  - rule_id: R-PROJ-002
+    level: must
+    title: projection-consumes-explicit-inputs
+    statement: "Authoritative projection consumes explicit projection inputs anchored to truth, permitted state visibility, and governing release/truth anchors; consumers must not reconstruct canonical inputs from lorebook text, browse summaries, or app-local caches."
+  - rule_id: R-PROJ-003
+    level: must
+    title: projection-request-explicit-and-replayable
+    statement: "Authoritative projection requests must explicitly identify world scope, agent scope, consumer surface, governing release/truth anchor, and constrained context envelope."
+  - rule_id: R-PROJ-004
+    level: must
+    title: projection-deterministic-for-identical-inputs
+    statement: "For identical inputs, consumer surface, release/truth anchor, and constrained context envelope, authoritative projection must be deterministic and checksumable."
+  - rule_id: R-PROJ-005
+    level: must
+    title: consumers-must-not-bypass-projection
+    statement: "Runtime and app consumers must not bypass authoritative projection by directly assembling truth text into prompt payloads; PromptTrace may consume projection output but does not replace the projection contract."
+  - rule_id: R-PROJ-006
+    level: must
+    title: compat-surfaces-are-projection-only
+    statement: "Worldview, lorebooks, public browse aggregates, and future card-shaped exports are projection surfaces only and must not become the canonical semantic source."
+  - rule_id: R-PROJ-007
+    level: must
+    title: projection-results-require-trace
+    statement: "Authoritative projection must produce traceable results that identify selected inputs, suppressed inputs, governing release/truth anchor, and resolution outcomes."
+  - rule_id: R-PROJ-008
+    level: must
+    title: realm-projection-contract-owns-seam-until-runtime-mounted
+    statement: "Until a dedicated runtime-mounted projection spec is admitted, Realm projection authority owns the semantic contract for ProjectionInput, ProjectionRequest, ProjectionResult, and ProjectionTraceRequirement; downstream runtime or app implementations must not fork or narrow these semantics ad hoc."
+entities:
+  - name: ProjectionInput
+    prisma_model: null
+    required_fields: [sourceType, sourceRef, governingTruthRef, surfaceEligibility]
+  - name: ProjectionRequest
+    prisma_model: null
+    required_fields: [worldId, agentId, consumerSurface, releaseAnchor, contextEnvelope]
+  - name: ProjectionResult
+    prisma_model: null
+    required_fields: [consumerSurface, checksum, selectedInputRefs, suppressedInputRefs, resolutionSummary]
+  - name: ProjectionTraceRequirement
+    prisma_model: null
+    required_fields: [selectedInputRefs, suppressedInputRefs, governingAnchor, resolutionOutcomes, checksum]
+api_surface:
+  required_operations: []
+  secondary_operations:
+    - GET /api/world/by-id/{id}/worldview
+    - GET /api/world/by-id/{id}/lorebooks
+    - GET /api/world/by-id/{id}/detail-with-agents

@@ -6,8 +6,8 @@
 Version: `2026-04-09`
 Owner: `@team`
 
-Profiles: 13
-Rules mapped: 69
+Profiles: 14
+Rules mapped: 84
 
 | Rule ID | Domain | OpenAPI | Prisma | Services | Tests |
 | --- | --- | --- | --- | --- | --- |
@@ -25,6 +25,21 @@ Rules mapped: 69
 | R-TRUTH-012 | truth | 10 | 7 | 6 | 7 |
 | R-TRUTH-013 | truth | 10 | 7 | 6 | 7 |
 | R-TRUTH-014 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-015 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-016 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-017 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-018 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-019 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-020 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-021 | truth | 10 | 7 | 6 | 7 |
+| R-PROJ-001 | projection | 4 | 6 | 4 | 1 |
+| R-PROJ-002 | projection | 4 | 6 | 4 | 1 |
+| R-PROJ-003 | projection | 4 | 6 | 4 | 1 |
+| R-PROJ-004 | projection | 4 | 6 | 4 | 1 |
+| R-PROJ-005 | projection | 4 | 6 | 4 | 1 |
+| R-PROJ-006 | projection | 4 | 6 | 4 | 1 |
+| R-PROJ-007 | projection | 4 | 6 | 4 | 1 |
+| R-PROJ-008 | projection | 4 | 6 | 4 | 1 |
 | R-WSTATE-001 | world-state | 2 | 1 | 3 | 3 |
 | R-WSTATE-002 | world-state | 2 | 1 | 3 | 3 |
 | R-WSTATE-003 | world-state | 2 | 1 | 3 | 3 |
