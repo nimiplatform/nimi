@@ -5,6 +5,20 @@ import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import { getProfileSectionSummaries } from '../../bridge/sqlite-bridge.js';
 import type { SectionSummary } from '../../bridge/sqlite-bridge.js';
+import growthIcon from './assets/archive-icons/growth.png';
+import visionIcon from './assets/archive-icons/vision.png';
+import fitnessIcon from './assets/archive-icons/fitness.png';
+import dentalIcon from './assets/archive-icons/dental.png';
+import heightIcon from './assets/archive-icons/height.png';
+import milestonesIcon from './assets/archive-icons/milestones.png';
+import vaccinesIcon from './assets/archive-icons/vaccines.png';
+import allergiesIcon from './assets/archive-icons/allergies.png';
+import sleepIcon from './assets/archive-icons/sleep.png';
+import medicalIcon from './assets/archive-icons/medical.png';
+import postureIcon from './assets/archive-icons/posture.png';
+import outdoorIcon from './assets/archive-icons/outdoor.png';
+import keepsakeIcon from './assets/archive-icons/keepsake.png';
+import smartScanIcon from './assets/archive-icons/smart-scan.png';
 
 /* ── design tokens ──────────────────────────────────────── */
 
@@ -19,7 +33,7 @@ const C = {
 interface ArchiveSection {
   sectionId: string;
   to: string;
-  emoji: string;
+  iconSrc: string;
   label: string;
   desc: string;
   color: string;
@@ -30,35 +44,35 @@ interface ArchiveSection {
 }
 
 const ARCHIVE_SECTIONS: ArchiveSection[] = [
-  { sectionId: 'growth', to: '/profile/growth', emoji: '📈', label: '生长曲线', desc: '身高、体重、头围的 WHO 百分位曲线', color: '#ede7fb' },
+  { sectionId: 'growth', to: '/profile/growth', iconSrc: growthIcon, label: '生长曲线', desc: '身高、体重、头围的 WHO 百分位曲线', color: '#ede7fb' },
   {
-    sectionId: 'milestones', to: '/profile/milestones', emoji: '🎯', label: '发育里程碑', desc: '追踪大运动、精细动作、语言等里程碑', color: '#fbe8d4',
+    sectionId: 'milestones', to: '/profile/milestones', iconSrc: milestonesIcon, label: '发育里程碑', desc: '追踪大运动、精细动作、语言等里程碑', color: '#fbe8d4',
     altLabel: (age) => age > 72 ? { label: '早期发育记录', desc: '查看 0-6 岁发育里程碑的历史记录' } : null,
   },
-  { sectionId: 'vaccines', to: '/profile/vaccines', emoji: '💉', label: '疫苗记录', desc: '疫苗接种记录和接种计划', color: '#ddedfb' },
-  { sectionId: 'vision', to: '/profile/vision', emoji: '👁️', label: '视力档案', desc: '验光单、眼轴单和视力变化趋势追踪', color: '#dde4f5' },
-  { sectionId: 'dental', to: '/profile/dental', emoji: '🦷', label: '口腔发育', desc: '乳牙萌出、换牙和口腔检查记录', color: '#e2f0dc' },
-  { sectionId: 'allergies', to: '/profile/allergies', emoji: '🤧', label: '过敏记录', desc: '食物、药物和环境过敏原记录', color: '#f5dce8' },
-  { sectionId: 'sleep', to: '/profile/sleep', emoji: '😴', label: '睡眠记录', desc: '睡眠时长、作息规律和睡眠质量追踪', color: '#dde4f5' },
-  { sectionId: 'medical-events', to: '/profile/medical-events', emoji: '🏥', label: '就医记录', desc: '门诊、住院、用药和检验报告', color: '#e5dcf5' },
-  { sectionId: 'posture', to: '/profile/posture', emoji: '🧍', label: '体态档案', desc: '脊柱侧弯、足弓和身体姿态评估', color: '#e5f0dc' },
-  { sectionId: 'tanner', to: '/profile/tanner', emoji: '🌱', label: '青春期发育', desc: 'Tanner 分期、骨龄和青春期发育追踪', color: '#e2f0dc', ageGate: (age) => age >= 84 },
-  { sectionId: 'fitness', to: '/profile/fitness', emoji: '🏃', label: '体能测评', desc: '体能测试成绩和运动能力评估', color: '#fbe8d4' },
-  { sectionId: 'outdoor', to: '/profile/outdoor', emoji: '🌳', label: '每周户外目标', desc: '户外活动记录、每周进度和趋势追踪', color: '#dcf0e5' },
+  { sectionId: 'vaccines', to: '/profile/vaccines', iconSrc: vaccinesIcon, label: '疫苗记录', desc: '疫苗接种记录和接种计划', color: '#ddedfb' },
+  { sectionId: 'vision', to: '/profile/vision', iconSrc: visionIcon, label: '视力档案', desc: '验光单、眼轴单和视力变化趋势追踪', color: '#dde4f5' },
+  { sectionId: 'dental', to: '/profile/dental', iconSrc: dentalIcon, label: '口腔发育', desc: '乳牙萌出、换牙和口腔检查记录', color: '#e2f0dc' },
+  { sectionId: 'allergies', to: '/profile/allergies', iconSrc: allergiesIcon, label: '过敏记录', desc: '食物、药物和环境过敏原记录', color: '#f5dce8' },
+  { sectionId: 'sleep', to: '/profile/sleep', iconSrc: sleepIcon, label: '睡眠记录', desc: '睡眠时长、作息规律和睡眠质量追踪', color: '#dde4f5' },
+  { sectionId: 'medical-events', to: '/profile/medical-events', iconSrc: medicalIcon, label: '就医记录', desc: '门诊、住院、用药和检验报告', color: '#e5dcf5' },
+  { sectionId: 'posture', to: '/profile/posture', iconSrc: postureIcon, label: '体态档案', desc: '脊柱侧弯、足弓和身体姿态评估', color: '#e5f0dc' },
+  { sectionId: 'tanner', to: '/profile/tanner', iconSrc: heightIcon, label: '青春期发育', desc: 'Tanner 分期、骨龄和青春期发育追踪', color: '#e2f0dc', ageGate: (age) => age >= 84 },
+  { sectionId: 'fitness', to: '/profile/fitness', iconSrc: fitnessIcon, label: '体能测评', desc: '体能测试成绩和运动能力评估', color: '#fbe8d4' },
+  { sectionId: 'outdoor', to: '/profile/outdoor', iconSrc: outdoorIcon, label: '每周户外目标', desc: '户外活动记录、每周进度和趋势追踪', color: '#dcf0e5' },
 ];
 
 /* ── tool routes (non-archive) ──────────────────────────── */
 
-interface ToolEntry { to: string; emoji: string; label: string; desc: string }
+interface ToolEntry { to: string; iconSrc: string; label: string; desc: string }
 
 const TOOL_ENTRIES: ToolEntry[] = [
-  { to: '/profile/report-upload', emoji: '🔍', label: '智能识别', desc: '上传体检单，自动识别数据' },
+  { to: '/profile/report-upload', iconSrc: smartScanIcon, label: '智能识别', desc: '上传体检单，自动识别数据' },
 ];
 
 /* ── cross-link routes (non-archive, non-tool) ──────────── */
 
 const CROSS_LINKS: ToolEntry[] = [
-  { to: '/journal?filter=keepsake', emoji: '⭐', label: '高光时刻', desc: '珍藏的成长瞬间和重要里程碑' },
+  { to: '/journal?filter=keepsake', iconSrc: keepsakeIcon, label: '高光时刻', desc: '珍藏的成长瞬间和重要里程碑' },
 ];
 
 /* ── age-adaptive ordering (PO-PROF-024) ────────────────── */
@@ -221,9 +235,7 @@ export default function ProfilePage() {
             return (
               <Surface key={s.to} as={Link} to={s.to} material="glass-regular" padding="none" tone="card"
                 className="flex items-start gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
-                <div className="w-[42px] h-[42px] rounded-[12px] flex items-center justify-center text-[20px] shrink-0" style={{ background: s.color }}>
-                  {s.emoji}
-                </div>
+                <ArchiveCardIcon src={s.iconSrc} />
                 <div className="min-w-0 flex-1">
                   <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{label}</h3>
                   {/* Section summary line */}
@@ -243,7 +255,7 @@ export default function ProfilePage() {
           {CROSS_LINKS.map((t) => (
             <Surface key={t.to} as={Link} to={t.to} material="glass-regular" padding="none" tone="card"
               className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
-              <span className="text-[20px]">{t.emoji}</span>
+              <ArchiveCardIcon src={t.iconSrc} />
               <div className="min-w-0 flex-1">
                 <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
                 <p className="text-[11px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
@@ -264,7 +276,7 @@ export default function ProfilePage() {
                 <Surface key={t.to} as={Link} to={t.to} material="glass-regular" padding="none" tone="card"
                   className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]"
                   style={{ borderLeft: `3px solid ${C.accent}` }}>
-                  <span className="text-[20px]">{t.emoji}</span>
+                  <ArchiveCardIcon src={t.iconSrc} />
                   <div className="min-w-0 flex-1">
                     <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
                     <p className="text-[11px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
@@ -281,6 +293,14 @@ export default function ProfilePage() {
 }
 
 /* ── Section status line component ──────────────────────── */
+
+function ArchiveCardIcon({ src }: { src: string }) {
+  return (
+    <div className="w-[42px] h-[42px] rounded-[12px] overflow-hidden shrink-0 border border-white/40 bg-white/50 p-[2px] shadow-[0_4px_12px_rgba(148,163,184,0.12)]">
+      <img src={src} alt="" aria-hidden="true" className="w-full h-full object-contain" />
+    </div>
+  );
+}
 
 function SectionStatusLine({ summary }: { summary: SectionSummary }) {
   if (summary.state === 'error') {
