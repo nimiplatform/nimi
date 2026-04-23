@@ -60,6 +60,7 @@ import {
   rollbackOptimisticUserProjection,
   toFallbackThreadRecord,
 } from './chat-agent-shell-host-actions-submit-helpers';
+import type { RuntimeLogMessage } from '@runtime/telemetry/logger';
 import type {
   ActiveSubmitRegistryRef,
   AgentConversationSubmitPayload,
@@ -69,7 +70,7 @@ import type {
 } from './chat-agent-shell-host-actions-types';
 
 function safeLogAgentSubmit(details: {
-  message: string;
+  message: RuntimeLogMessage;
   level?: 'info' | 'warn' | 'error';
   details?: Record<string, unknown>;
 }): void {

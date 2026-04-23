@@ -24,7 +24,6 @@ import {
   resolveAvatarInstanceLaunchFeedback,
 } from './chat-agent-avatar-instance-action-feedback';
 import {
-  DEFAULT_AGENT_AVATAR_LAUNCH_POLICY,
   loadStoredAgentAvatarLaunchPolicy,
   persistStoredAgentAvatarLaunchPolicy,
   type AgentAvatarLaunchPolicy,
@@ -41,7 +40,7 @@ type ChatAgentAvatarSettingsPanelProps = {
   activeThreadId: string | null;
   activeConversationAnchorId: string | null;
   presentationProfile: AvatarPresentationProfile | null;
-  onRefreshInspect?: () => void | Promise<void>;
+  onRefreshInspect?: () => unknown;
 };
 
 type AvatarProfileDraft = {
@@ -97,20 +96,23 @@ function updateDraftField<K extends keyof AvatarProfileDraft>(
   };
 }
 
-function formatBackendLabel(value: AvatarPresentationProfile['backendKind'] | null | undefined): string {
+function formatBackendLabel(
+  value: AvatarPresentationProfile['backendKind'] | null | undefined,
+  t: ReturnType<typeof useTranslation>['t'],
+): string {
   switch (value) {
     case 'vrm':
-      return 'VRM';
+      return t('Chat.avatarBackendVrmLabel', { defaultValue: 'VRM' });
     case 'live2d':
-      return 'Live2D';
+      return t('Chat.avatarBackendLive2dLabel', { defaultValue: 'Live2D' });
     case 'sprite2d':
-      return 'Sprite 2D';
+      return t('Chat.avatarBackendSprite2dLabel', { defaultValue: 'Sprite 2D' });
     case 'canvas2d':
-      return 'Canvas 2D';
+      return t('Chat.avatarBackendCanvas2dLabel', { defaultValue: 'Canvas 2D' });
     case 'video':
-      return 'Video';
+      return t('Chat.avatarBackendVideoLabel', { defaultValue: 'Video' });
     default:
-      return 'Unbound';
+      return t('Chat.avatarBackendUnboundLabel', { defaultValue: 'Unbound' });
   }
 }
 
@@ -458,7 +460,7 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
                 </p>
               </div>
               <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-action-primary-bg)] ring-1 ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)]">
-                {formatBackendLabel(props.presentationProfile?.backendKind)}
+                {formatBackendLabel(props.presentationProfile?.backendKind, t)}
               </span>
             </div>
             <div className="space-y-2">
@@ -496,11 +498,11 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
                   }}
                   className="w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-white px-3 py-2 text-sm text-[var(--nimi-text-primary)] outline-none transition focus:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,var(--nimi-border-subtle))]"
                 >
-                  <option value="vrm">VRM</option>
-                  <option value="live2d">Live2D</option>
-                  <option value="sprite2d">Sprite 2D</option>
-                  <option value="canvas2d">Canvas 2D</option>
-                  <option value="video">Video</option>
+                  <option value="vrm">{t('Chat.avatarBackendVrmLabel', { defaultValue: 'VRM' })}</option>
+                  <option value="live2d">{t('Chat.avatarBackendLive2dLabel', { defaultValue: 'Live2D' })}</option>
+                  <option value="sprite2d">{t('Chat.avatarBackendSprite2dLabel', { defaultValue: 'Sprite 2D' })}</option>
+                  <option value="canvas2d">{t('Chat.avatarBackendCanvas2dLabel', { defaultValue: 'Canvas 2D' })}</option>
+                  <option value="video">{t('Chat.avatarBackendVideoLabel', { defaultValue: 'Video' })}</option>
                 </select>
               </label>
               {[

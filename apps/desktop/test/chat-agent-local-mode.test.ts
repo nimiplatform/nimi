@@ -112,7 +112,7 @@ function createCloudTextProjection() {
       metadataKind: 'text.generate' as const,
       metadata: {
         supportsThinking: true,
-        traceModeSupport: 'full' as const,
+        traceModeSupport: 'separate' as const,
         supportsImageInput: true,
         supportsAudioInput: false,
         supportsVideoInput: false,
@@ -649,9 +649,25 @@ test('agent runtime turn stream binds to the current request_id and ignores back
       },
       signal: new AbortController().signal,
     });
-    const parts: Array<{ type: string; [key: string]: unknown }> = [];
+    const parts: Array<{
+      type: string;
+      textDelta?: string;
+      outputText?: string;
+      error?: {
+        code?: string;
+        message?: string;
+      };
+    }> = [];
     for await (const part of result.stream) {
-      parts.push(part as { type: string; [key: string]: unknown });
+      parts.push(part as {
+        type: string;
+        textDelta?: string;
+        outputText?: string;
+        error?: {
+          code?: string;
+          message?: string;
+        };
+      });
     }
 
     assert.equal(requestCalls.length, 1);
@@ -798,7 +814,8 @@ test('agent runtime turn warms local model before requesting runtime.agent turn 
       },
       signal: new AbortController().signal,
     });
-    for await (const _part of result.stream) {
+    for await (const ignoredPart of result.stream) {
+      void ignoredPart;
       // Drain terminal events.
     }
 
@@ -942,7 +959,8 @@ test('agent runtime turn request uses resolved cloud route/model binding', async
       },
       signal: new AbortController().signal,
     });
-    for await (const _part of result.stream) {
+    for await (const ignoredPart of result.stream) {
+      void ignoredPart;
       // Drain terminal events.
     }
 
@@ -1100,9 +1118,25 @@ test('agent runtime turn falls back when legacy runtime rejects request_id in tu
       },
       signal: new AbortController().signal,
     });
-    const parts: Array<{ type: string; [key: string]: unknown }> = [];
+    const parts: Array<{
+      type: string;
+      textDelta?: string;
+      outputText?: string;
+      error?: {
+        code?: string;
+        message?: string;
+      };
+    }> = [];
     for await (const part of result.stream) {
-      parts.push(part as { type: string; [key: string]: unknown });
+      parts.push(part as {
+        type: string;
+        textDelta?: string;
+        outputText?: string;
+        error?: {
+          code?: string;
+          message?: string;
+        };
+      });
     }
 
     assert.equal(requestCalls.length, 2);
@@ -1231,9 +1265,25 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
       },
       signal: new AbortController().signal,
     });
-    const parts: Array<{ type: string; [key: string]: unknown }> = [];
+    const parts: Array<{
+      type: string;
+      textDelta?: string;
+      outputText?: string;
+      error?: {
+        code?: string;
+        message?: string;
+      };
+    }> = [];
     for await (const part of result.stream) {
-      parts.push(part as { type: string; [key: string]: unknown });
+      parts.push(part as {
+        type: string;
+        textDelta?: string;
+        outputText?: string;
+        error?: {
+          code?: string;
+          message?: string;
+        };
+      });
     }
 
     assert.equal(requestCalls.length, 1);
