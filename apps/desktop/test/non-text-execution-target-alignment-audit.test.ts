@@ -49,7 +49,7 @@ test('desktop non-text execution audit: renderer media execution surface is limi
 });
 
 test('desktop non-text execution audit: chat execution snapshots use target-scoped scheduling for every executed capability', () => {
-  const aiAdapterSource = readSource('src/shell/renderer/features/chat/chat-ai-shell-runtime-adapter.ts');
+  const aiAdapterSource = readSource('src/shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.ts');
   const agentHostActionsSubmitSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit.ts');
   const agentHostActionsHelperSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit-helpers.ts');
 

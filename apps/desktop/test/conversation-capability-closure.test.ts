@@ -38,16 +38,16 @@ test('agent effective capability resolution checks textProjection + resolvedBind
 });
 
 test('chat ai runtime no longer retains authoritative-health fallback helper', () => {
-  const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-runtime.ts');
+  const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-runtime.ts');
 
   assert.equal(
     /resolvePreferredChatLocalModel/.test(source),
     false,
-    'chat-ai-runtime.ts must not retain resolvePreferredChatLocalModel',
+    'chat-nimi-runtime.ts must not retain resolvePreferredChatLocalModel',
   );
   assert.equal(
     /Fall back to runtime-config state when authoritative health is unavailable/.test(source),
     false,
-    'chat-ai-runtime.ts must not retain runtime-config fallback commentary or logic',
+    'chat-nimi-runtime.ts must not retain runtime-config fallback commentary or logic',
   );
 });

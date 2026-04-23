@@ -25,7 +25,7 @@ import type {
   SelectedTargetBySource,
   ViewModeBySourceTarget,
 } from '@renderer/features/chat/chat-shell-types';
-import type { ChatThinkingPreference } from '@renderer/features/chat/chat-thinking';
+import type { ChatThinkingPreference } from '@renderer/features/chat/chat-shared-thinking';
 import type {
   AgentEffectiveCapabilityResolution,
   ConversationCapability,

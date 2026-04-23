@@ -10,7 +10,7 @@ function readWorkspaceFile(relativePath: string): string {
 const actionSource = readWorkspaceFile('src/shell/renderer/components/action.tsx');
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
 const chatRightPanelSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-right-panel-settings.tsx');
-const chatSessionListSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-session-list-panel.tsx');
+const chatSessionListSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-session-list-panel.tsx');
 const chatHistorySource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-history-panel.tsx');
 const chatRuntimeInspectSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-runtime-inspect-content.tsx');
 const chatDiagnosticsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-diagnostics.tsx');

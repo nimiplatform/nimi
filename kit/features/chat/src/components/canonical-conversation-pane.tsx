@@ -87,10 +87,10 @@ export function CanonicalConversationPane(props: CanonicalConversationPaneProps)
         ) : null}
         <div key={props.viewMode} className="flex min-h-0 flex-1 flex-col animate-[conv-fade-in_280ms_ease-out]">
           {props.viewMode === 'stage' ? props.stagePanel : (
-            <div className="relative min-h-0 flex-1" data-canonical-conversation-scene="true">
+            <div className="relative flex min-h-0 flex-1 flex-col" data-canonical-conversation-scene="true">
               <div
                 className={cn(
-                  'relative z-[1] min-h-0 flex-1',
+                  'relative z-[1] flex min-h-0 flex-1 flex-col',
                   anchoredSurfaceVisible ? props.anchoredSurface?.reserveSpaceClassName : null,
                 )}
               >

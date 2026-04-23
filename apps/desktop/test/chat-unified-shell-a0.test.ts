@@ -12,7 +12,7 @@ import {
   buildAiConversationRouteOptions,
   buildAiConversationRouteSummary,
   resolveAiConversationSetupStateFromProjection,
-} from '../src/shell/renderer/features/chat/chat-ai-route-view';
+} from '../src/shell/renderer/features/chat/chat-nimi-route-view';
 import type { ConversationCapabilityProjection } from '../src/shell/renderer/features/chat/conversation-capability';
 import type { RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/mod';
 

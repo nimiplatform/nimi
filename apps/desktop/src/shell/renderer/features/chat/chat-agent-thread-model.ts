@@ -227,6 +227,10 @@ export function resolveAgentConversationActiveThreadId(input: {
   if (normalizedSelectionThreadId && input.threads.some((thread) => thread.id === normalizedSelectionThreadId)) {
     return normalizedSelectionThreadId;
   }
+  const selectedAgentThread = findAgentConversationThreadByAgentId(input.threads, input.selectionAgentId);
+  if (selectedAgentThread) {
+    return selectedAgentThread.id;
+  }
   const normalizedLastSelectedThreadId = normalizeText(input.lastSelectedThreadId);
   if (normalizedLastSelectedThreadId && input.threads.some((thread) => thread.id === normalizedLastSelectedThreadId)) {
     return normalizedLastSelectedThreadId;

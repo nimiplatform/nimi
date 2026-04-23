@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
+import { ConversationComposerShell } from '@nimiplatform/nimi-kit/features/chat';
 import { useTranslation } from 'react-i18next';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 
@@ -112,12 +113,12 @@ export function ChatGroupComposer(props: {
 
   return (
     <div
-      className="relative border-t border-slate-200/60 bg-white/90 px-4 py-3"
+      className="relative shrink-0 px-5 pb-5 pt-2"
       data-chat-composer-layout="stacked"
       data-chat-group-composer-layout="stacked"
     >
       {mentionOpen && agentOptions.length > 0 && (
-        <div className="absolute bottom-full left-4 right-4 mb-1 rounded-lg border border-violet-200/80 bg-white shadow-lg">
+        <div className="absolute bottom-full left-5 right-5 mb-1 rounded-lg border border-violet-200/80 bg-white shadow-lg">
           <div className="px-2 py-1.5 text-[11px] font-medium text-slate-400">
             {t('Chat.groupMentionAgent', { defaultValue: 'Mention an agent' })}
           </div>
@@ -136,7 +137,8 @@ export function ChatGroupComposer(props: {
           ))}
         </div>
       )}
-      <div className="flex flex-col gap-2.5">
+      <ConversationComposerShell className="rounded-[24px] shadow-[0_18px_42px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-col gap-3">
         <div data-chat-composer-textarea-row="true">
           <textarea
             ref={textareaRef}
@@ -180,6 +182,7 @@ export function ChatGroupComposer(props: {
           </div>
         </div>
       </div>
+      </ConversationComposerShell>
     </div>
   );
 }

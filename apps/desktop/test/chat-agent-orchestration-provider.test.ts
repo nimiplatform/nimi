@@ -25,7 +25,7 @@ import {
   assessAiChatExecutionEngineReuseReadiness,
   buildAgentLocalChatExecutionTextRequest,
   inspectAgentLocalChatPromptDiagnostics,
-} from '../src/shell/renderer/features/chat/chat-ai-execution-engine.js';
+} from '../src/shell/renderer/features/chat/chat-nimi-execution-engine.js';
 import { AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
 import { resolveAgentChatBehavior } from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
 import {

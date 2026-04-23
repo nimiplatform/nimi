@@ -419,7 +419,7 @@ export function CanonicalTranscriptView({
   widthPositionClassName = 'mx-auto',
   scrollViewportWidthClassName = 'w-full',
   scrollViewportPositionClassName = '',
-  contentPaddingBottomClassName = 'pb-10',
+  contentPaddingBottomClassName = 'pb-6',
   onNearBottomChange,
   onSeedFirstTurn,
   footerContent,

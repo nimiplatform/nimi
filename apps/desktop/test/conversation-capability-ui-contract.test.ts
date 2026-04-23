@@ -35,7 +35,7 @@ function findFilesContaining(pattern: RegExp): string[] {
 }
 
 test('conversation capability UI contract: multimodal settings own the production selection writes via surface', () => {
-  const settingsSource = readSource('src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx');
+  const settingsSource = readSource('src/shell/renderer/features/chat/chat-shared-conversation-capability-settings.tsx');
   // Phase 3: writes go through surface.aiConfig.update(), not store actions
   assert.match(settingsSource, /surface\.aiConfig\.update\(|capabilitySurface\.aiConfig\.update\(/);
   assert.match(settingsSource, /capability:\s*'audio\.synthesize'/);
@@ -47,7 +47,7 @@ test('conversation capability UI contract: multimodal settings own the productio
 });
 
 test('conversation capability UI contract: image profile selector card was removed (D-AIPC-008)', () => {
-  const settingsSource = readSource('src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx');
+  const settingsSource = readSource('src/shell/renderer/features/chat/chat-shared-conversation-capability-settings.tsx');
   // ImageProfileSelectorCard and localProfileRefs access removed
   assert.doesNotMatch(settingsSource, /ImageProfileSelectorCard/);
   assert.doesNotMatch(settingsSource, /aiConfig\.capabilities\.localProfileRefs/);
@@ -65,7 +65,7 @@ test('conversation capability UI contract: runtimeFields projection still only r
 });
 
 test('conversation capability UI contract: Phase 4 — image profile selector variables removed with card (D-AIPC-008)', () => {
-  const settingsSource = readSource('src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx');
+  const settingsSource = readSource('src/shell/renderer/features/chat/chat-shared-conversation-capability-settings.tsx');
   // Both imageProfileRef and imageCapabilityLocalRef removed with ImageProfileSelectorCard
   assert.doesNotMatch(settingsSource, /const imageProfileRef\b/);
   assert.doesNotMatch(settingsSource, /imageCapabilityLocalRef/);
@@ -82,9 +82,9 @@ test('conversation capability UI contract: conversationExecution stays confined 
 });
 
 test('conversation capability UI contract: AI bootstrap only refreshes text.generate and submit owns route gating', () => {
-  const aiEffectsSource = readSource('src/shell/renderer/features/chat/chat-ai-shell-capability-effects.ts');
-  const aiAdapterSource = readSource('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
-  const aiHostActionsSource = readSource('src/shell/renderer/features/chat/chat-ai-shell-host-actions.ts');
+  const aiEffectsSource = readSource('src/shell/renderer/features/chat/chat-nimi-shell-capability-effects.ts');
+  const aiAdapterSource = readSource('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
+  const aiHostActionsSource = readSource('src/shell/renderer/features/chat/chat-nimi-shell-host-actions.ts');
   assert.match(aiEffectsSource, /const AI_CONVERSATION_BOOTSTRAP_CAPABILITIES:[\s\S]*'text\.generate'/);
   assert.doesNotMatch(aiEffectsSource, /CONVERSATION_CAPABILITIES/);
   assert.match(aiAdapterSource, /\(\) => createReadyConversationSetupState\('ai'\)/);

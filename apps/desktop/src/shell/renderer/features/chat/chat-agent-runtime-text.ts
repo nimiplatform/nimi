@@ -16,7 +16,7 @@ import {
 import {
   resolveChatThinkingConfig,
   resolveTextExecutionSnapshotThinkingSupport,
-} from './chat-thinking';
+} from './chat-shared-thinking';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message';
 import type {
   ChatAgentRuntimeInvokeDeps,

@@ -339,10 +339,26 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
   }
 
   if (event.type === 'keepalive') {
+    const now = Date.now();
+    const updated: StreamState = {
+      ...current,
+      firstPacketAt: current.firstPacketAt ?? now,
+      lastActivityAt: now,
+      idleDeadlineAt: now + STREAM_IDLE_TIMEOUT_MS,
+    };
+    setStreamState(chatId, updated);
+    if (current.phase === 'waiting') {
+      const fpt = firstPacketTimers.get(chatId);
+      if (fpt) {
+        clearTimeout(fpt);
+        firstPacketTimers.delete(chatId);
+      }
+    }
     const abortController = abortControllers.get(chatId);
     if (abortController) {
       resetIdleTimeout(chatId, abortController);
     }
+    notify(updated);
     return;
   }
 

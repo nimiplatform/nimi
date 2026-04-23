@@ -11,7 +11,7 @@ import {
 import {
   getActiveScope,
   onActiveScopeChange,
-} from './chat-active-ai-config-scope';
+} from './chat-shared-active-ai-config-scope';
 
 export async function refreshConversationCapabilityProjections(
   capabilities?: readonly import('./conversation-capability').ConversationCapability[],

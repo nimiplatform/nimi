@@ -9,15 +9,13 @@ function readWorkspaceFile(relativePath: string): string {
 
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
 const chatContactsSidebarSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');
-const chatNimiSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-session-list-panel.tsx');
+const chatNimiSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-session-list-panel.tsx');
 const chatHumanModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
-const chatNimiModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-mode-content.tsx');
-const chatAgentAnchoredStageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-anchored-avatar-stage.tsx');
+const chatNimiModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
 const chatAgentSceneBackgroundSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-scene-background.tsx');
-const chatAgentStageLayoutSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-avatar-stage-layout.ts');
 const chatAgentModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatGroupModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
-const chatSideSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-side-sheet.tsx');
+const chatSideSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-side-sheet.tsx');
 
 test('chat page split layout keeps contacts on the far-right transparent rail', () => {
   assert.match(chatPageSource, /data-chat-page-layout="split"/);
@@ -30,7 +28,7 @@ test('chat page split layout keeps contacts on the far-right transparent rail', 
 test('chat page uses transient side sheets; agent mode keeps the scene background but no longer mounts a desktop-local avatar overlay carrier path', () => {
   assert.match(chatPageSource, /chatSettingsOpen/);
   assert.match(chatPageSource, /nimiThreadListOpen/);
-  assert.match(chatSideSheetSource, /data-chat-side-sheet=/);
+  assert.match(chatSideSheetSource, /data-chat-shared-side-sheet=/);
   assert.match(chatNimiSheetSource, /ChatSideSheet/);
   assert.doesNotMatch(chatNimiSheetSource, /Assistant status/u);
   assert.match(chatHumanModeSource, /ChatSideSheet/);
@@ -49,19 +47,6 @@ test('chat page uses transient side sheets; agent mode keeps the scene backgroun
   assert.match(chatAgentSceneBackgroundSource, /data-chat-agent-scene-layer="glass"/);
   assert.match(chatAgentSceneBackgroundSource, /data-chat-agent-scene-layer="mask"/);
   assert.doesNotMatch(chatAgentSceneBackgroundSource, /data-chat-agent-scene-actor/u);
-  assert.doesNotMatch(chatAgentSceneBackgroundSource, /ChatAgentAnchoredAvatarStage/u);
-
-  // Stage layout contract: no placement-driven transcript width carve-out; the
-  // chat domain occupies the full middle area with uniform mx-auto centering.
-  assert.match(chatAgentStageLayoutSource, /scenePlacementClassName:/);
-  assert.doesNotMatch(chatAgentStageLayoutSource, /sceneVeilClassName:/);
-  assert.doesNotMatch(chatAgentStageLayoutSource, /actorUnderlayClassName:/);
-  assert.match(chatAgentStageLayoutSource, /UNIFORM_CENTER_POSITION/);
-  assert.match(chatAgentStageLayoutSource, /transcriptContentBottomReserveClassName: CHAT_AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS/);
-
-  // The old anchored stage implementation still exists as dead residue code, but
-  // the active chat mode no longer imports it as a carrier path.
-  assert.match(chatAgentAnchoredStageSource, /data-chat-agent-anchored-stage="true"/);
   assert.doesNotMatch(chatAgentModeSource, /chat-agent-avatar-overlay/);
 });
 
@@ -80,4 +65,8 @@ test('chat page startup keeps agent mode lazy-loaded while removing the desktop-
 test('agent shell presentation disables stage panel props so desktop chat cannot present a co-equal local avatar carrier route', () => {
   const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
   assert.match(source, /stagePanelProps:\s*undefined/);
+  assert.match(source, /topContent:\s*schedulingFeedbackNode/);
+  assert.equal((source.match(/ChatAgentAvatarAppLauncher/g) || []).length, 2);
+  assert.doesNotMatch(source, /avatarStagePlacement/u);
+  assert.doesNotMatch(source, /useAgentAvatarPlacement/u);
 });

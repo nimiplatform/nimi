@@ -22,7 +22,7 @@ import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-
 import { useDesktopModelConfigProfileController } from '../runtime-config/desktop-model-config-profile-controller';
 import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
 import { useLocalAssets } from '../chat/capability-settings-shared';
-import { SettingsSummaryCard } from '../chat/chat-settings-summary-card';
+import { SettingsSummaryCard } from '../chat/chat-shared-settings-summary-card';
 import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig } from './tester-ai-config';
 import { CAPABILITIES, type CapabilityId } from './tester-types.js';
 

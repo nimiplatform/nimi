@@ -16,10 +16,10 @@ import {
   toAgentFriendTargetsFromSocialSnapshot,
   toConversationMessageViewModel,
 } from './chat-agent-thread-model';
-import { findRuntimeRouteModelProfile } from './chat-ai-route-view';
+import { findRuntimeRouteModelProfile } from './chat-nimi-route-view';
 import type { AgentConversationSelection } from './chat-shell-types';
 import { useAgentVisibleProjection } from './chat-agent-visible-projection-store';
-import { useConversationStreamState } from './chat-runtime-stream-ui';
+import { useConversationStreamState } from './chat-shared-runtime-stream-ui';
 import { getAgentConversationAnchorBinding } from './chat-agent-anchor-binding-storage';
 import {
   bundleQueryKey,

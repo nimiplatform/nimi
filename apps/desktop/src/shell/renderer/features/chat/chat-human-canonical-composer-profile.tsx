@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } f
 import { useQuery } from '@tanstack/react-query';
 import { MessageType } from '@nimiplatform/sdk/realm';
 import { CanonicalComposer } from '@nimiplatform/nimi-kit/features/chat';
+import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import { createRealmChatComposerAdapter } from '@nimiplatform/nimi-kit/features/chat/realm';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
@@ -16,7 +17,7 @@ import { createCanonicalChatAttachmentPayload, extractChatAttachmentTargetId } f
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
 import { formatPendingAttachmentSize, appendPendingAttachment, clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
 import type { HumanChatViewDto } from './chat-human-thread-model';
-import { ChatComposerLeadingAvatar } from './chat-composer-leading-avatar';
+import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
 
 function HumanAttachmentStrip(props: {
   attachments: readonly PendingAttachment[];
@@ -303,6 +304,8 @@ export function HumanCanonicalComposer(props: {
         attachLabel={t('TurnInput.uploadFile')}
         runtimeHint={offlineTier === 'L2' ? t('TurnInput.runtimeUnavailableReadOnly') : null}
         layout="stacked"
+        widthClassName={CHAT_CONTENT_WIDTH_CLASS}
+        widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
         leadingSlot={props.leadingAvatar ? (
           <ChatComposerLeadingAvatar
             kind="human"

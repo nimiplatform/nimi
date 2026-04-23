@@ -8,6 +8,7 @@ import {
   executeLocalKernelTurn,
 } from '@runtime/llm-adapter';
 import {
+  clearPlatformClient,
   createPlatformClient,
   unstable_attachPlatformWorldEvolutionSelectorReadProvider,
   withRealmContextLock,
@@ -208,6 +209,7 @@ async function teardownBootstrapState(): Promise<void> {
   stopExternalAgentActionBridge();
   resetRuntimeHostState();
   clearInternalModSdkHost();
+  clearPlatformClient();
 }
 
 export function bootstrapRuntime(): Promise<void> {
@@ -390,6 +392,7 @@ export function bootstrapRuntime(): Promise<void> {
     void pingDesktopMacosSmoke('bootstrap-platform-client-start', {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
+    clearPlatformClient();
     const platformClient = await createPlatformClient({
       appId: 'nimi.desktop',
       realmBaseUrl: defaults.realm.realmBaseUrl,

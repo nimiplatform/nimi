@@ -12,16 +12,6 @@ import {
   type DiagnosticsTranslate,
 } from './chat-agent-diagnostics-view-model';
 import {
-  applyChatAgentAvatarDebugOverride,
-  CHAT_AGENT_AVATAR_DEBUG_DEFAULTS,
-  CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS,
-  CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS,
-  CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT,
-  clearChatAgentAvatarDebugOverride,
-  readChatAgentAvatarDebugOverride,
-  resolveChatAgentAvatarDebugFormState,
-} from './chat-agent-avatar-debug-override';
-import {
   RuntimeInspectCard,
   RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
@@ -104,10 +94,6 @@ export function AgentDiagnosticsPanel(props: {
   const [statusText, setStatusText] = useState('');
   const [worldId, setWorldId] = useState('');
   const [userId, setUserId] = useState('');
-  const [avatarOverridePhase, setAvatarOverridePhase] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.phase);
-  const [avatarOverrideEmotion, setAvatarOverrideEmotion] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.emotion);
-  const [avatarOverrideLabel, setAvatarOverrideLabel] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.label);
-  const [avatarOverrideAmplitude, setAvatarOverrideAmplitude] = useState(CHAT_AGENT_AVATAR_DEBUG_DEFAULTS.amplitude);
   useEffect(() => {
     setAutonomyMode(props.runtimeInspect?.autonomyMode || 'off');
     setDailyTokenBudget(
@@ -132,23 +118,6 @@ export function AgentDiagnosticsPanel(props: {
     setWorldId(props.runtimeInspect?.activeWorldId || '');
     setUserId(props.runtimeInspect?.activeUserId || '');
   }, [props.runtimeInspect?.statusText, props.runtimeInspect?.activeWorldId, props.runtimeInspect?.activeUserId]);
-  useEffect(() => {
-    const syncFromOverride = () => {
-      const formState = resolveChatAgentAvatarDebugFormState(readChatAgentAvatarDebugOverride());
-      setAvatarOverridePhase(formState.phase);
-      setAvatarOverrideEmotion(formState.emotion);
-      setAvatarOverrideLabel(formState.label);
-      setAvatarOverrideAmplitude(formState.amplitude);
-    };
-    syncFromOverride();
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-    window.addEventListener(CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT, syncFromOverride);
-    return () => {
-      window.removeEventListener(CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT, syncFromOverride);
-    };
-  }, []);
   const hasRuntimeInspect = Boolean(props.activeTarget && props.runtimeInspect);
   const autonomyStatusValue = props.runtimeInspect?.autonomyEnabled === true
     ? t('Chat.agentDiagnosticsAutonomyOn', { defaultValue: 'Runtime autonomy is on' })
@@ -358,91 +327,6 @@ export function AgentDiagnosticsPanel(props: {
             ) : null}
           </DiagnosticsSectionCard>
 
-          {/* Avatar Override (debug) */}
-          <DiagnosticsSectionCard
-            title={t('Chat.agentDiagnosticsAvatarOverrideTitle', { defaultValue: 'Avatar Override' })}
-            hint={t('Chat.agentDiagnosticsAvatarOverrideDetail', {
-              defaultValue: 'Debug-only override for avatar phase and mood. Does not mutate RuntimeAgent status.',
-            })}
-          >
-            <div className="grid grid-cols-2 gap-2">
-              <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsAvatarOverridePhaseLabel', { defaultValue: 'Phase' })}>
-                <select
-                  value={avatarOverridePhase}
-                  onChange={(event) => setAvatarOverridePhase(
-                    event.target.value as (typeof CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS)[number]['value'],
-                  )}
-                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
-                >
-                  {CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </DiagnosticsFieldLabel>
-              <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsAvatarOverrideEmotionLabel', { defaultValue: 'Mood' })}>
-                <select
-                  value={avatarOverrideEmotion}
-                  onChange={(event) => setAvatarOverrideEmotion(
-                    event.target.value as (typeof CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS)[number]['value'],
-                  )}
-                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
-                >
-                  {CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </DiagnosticsFieldLabel>
-              <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsAvatarOverrideAmplitudeLabel', { defaultValue: 'Amplitude' })}>
-                <input
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={avatarOverrideAmplitude}
-                  onChange={(event) => setAvatarOverrideAmplitude(event.target.value)}
-                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
-                />
-              </DiagnosticsFieldLabel>
-              <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsAvatarOverrideLabelLabel', { defaultValue: 'Label' })}>
-                <input
-                  type="text"
-                  value={avatarOverrideLabel}
-                  onChange={(event) => setAvatarOverrideLabel(event.target.value)}
-                  placeholder={t('Chat.agentDiagnosticsAvatarOverrideLabelPlaceholder', { defaultValue: 'Joy test' })}
-                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
-                />
-              </DiagnosticsFieldLabel>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <RuntimeInspectActionButton
-                tone="primary"
-                label={t('Chat.agentDiagnosticsApplyAvatarOverride', { defaultValue: 'Apply avatar override' })}
-                onClick={() => {
-                  applyChatAgentAvatarDebugOverride({
-                    phase: avatarOverridePhase as (typeof CHAT_AGENT_AVATAR_DEBUG_PHASE_OPTIONS)[number]['value'],
-                    emotion: avatarOverrideEmotion as (typeof CHAT_AGENT_AVATAR_DEBUG_EMOTION_OPTIONS)[number]['value'],
-                    label: avatarOverrideLabel,
-                    amplitude: Number(avatarOverrideAmplitude),
-                  });
-                }}
-              />
-              <RuntimeInspectActionButton
-                tone="danger"
-                label={t('Chat.agentDiagnosticsClearAvatarOverride', { defaultValue: 'Clear avatar override' })}
-                onClick={() => {
-                  clearChatAgentAvatarDebugOverride();
-                  setAvatarOverridePhase('idle');
-                  setAvatarOverrideEmotion('joy');
-                  setAvatarOverrideLabel('');
-                  setAvatarOverrideAmplitude('0.34');
-                }}
-              />
-            </div>
-          </DiagnosticsSectionCard>
         </>
       ) : null}
 

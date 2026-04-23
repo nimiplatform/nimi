@@ -7,7 +7,7 @@ import {
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
 import { ChatAgentSceneBackground } from './chat-agent-scene-background';
-import { ChatSideSheet } from './chat-side-sheet';
+import { ChatSideSheet } from './chat-shared-side-sheet';
 
 export type ChatAgentModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];

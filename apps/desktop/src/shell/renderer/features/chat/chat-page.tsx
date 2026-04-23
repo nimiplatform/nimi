@@ -8,7 +8,7 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatContactsSidebar } from './chat-contacts-sidebar';
 import { useChatTargetsForSidebar } from './chat-sidebar-targets';
 import { ChatHumanModeContent } from './chat-human-mode-content';
-import { ChatNimiModeContent } from './chat-ai-mode-content';
+import { ChatNimiModeContent } from './chat-nimi-mode-content';
 import { ChatGroupModeContent } from './chat-group-mode-content';
 import { GROUP_CREATE_INTENT_TARGET_ID } from './chat-group-flow-constants';
 

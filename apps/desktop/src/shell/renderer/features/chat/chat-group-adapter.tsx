@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import type { DesktopConversationModeHost } from './chat-mode-host-types';
+import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { GROUP_CREATE_INTENT_TARGET_ID } from './chat-group-flow-constants';
 import { ChatGroupParticipantPanel } from './chat-group-participant-panel';
 import { ChatGroupComposer } from './chat-group-composer';

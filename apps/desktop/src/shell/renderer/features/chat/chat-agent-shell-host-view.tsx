@@ -4,7 +4,7 @@ import type {
   CanonicalMessageContentSlot,
   ConversationTargetSummary,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
-import type { DesktopConversationModeHost } from './chat-mode-host-types';
+import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import type { AgentFooterViewState } from './chat-agent-shell-footer-state';
 
 export type AgentConversationHostView = Pick<
@@ -56,7 +56,7 @@ export function resolveAgentConversationHostView(input: {
       widthPositionClassName: input.transcriptWidthPositionClassName || 'mx-auto',
       scrollViewportWidthClassName: input.transcriptScrollViewportWidthClassName || 'w-full',
       scrollViewportPositionClassName: input.transcriptScrollViewportPositionClassName || '',
-      contentPaddingBottomClassName: input.transcriptContentPaddingBottomClassName || 'pb-10',
+      contentPaddingBottomClassName: input.transcriptContentPaddingBottomClassName || 'pb-6',
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
       renderMessageAccessory: input.renderMessageAccessory,

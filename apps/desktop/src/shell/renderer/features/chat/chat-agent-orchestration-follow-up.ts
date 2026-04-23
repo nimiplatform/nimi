@@ -10,7 +10,7 @@ import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-st
 import {
   buildAgentLocalChatExecutionTextRequest,
   type AgentLocalChatExecutionTextRequest,
-} from './chat-ai-execution-engine';
+} from './chat-nimi-execution-engine';
 import {
   buildAgentResolvedOutputText,
   resolveAgentModelOutputEnvelope,

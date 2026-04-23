@@ -11,7 +11,7 @@ import {
   useGroupCanonicalStagePanelProps,
   useGroupCanonicalTranscriptProps,
 } from './chat-group-canonical-components';
-import { ChatSideSheet } from './chat-side-sheet';
+import { ChatSideSheet } from './chat-shared-side-sheet';
 
 export type ChatGroupModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];

@@ -12,7 +12,7 @@ function readRepo(relativePath: string): string {
 }
 
 const chatPageSource = readWorkspace('src/shell/renderer/features/chat/chat-page.tsx');
-const chatAiModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-ai-mode-content.tsx');
+const chatAiModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
 const chatAgentModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatHumanModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
 const chatContactsSidebarSource = readWorkspace('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');

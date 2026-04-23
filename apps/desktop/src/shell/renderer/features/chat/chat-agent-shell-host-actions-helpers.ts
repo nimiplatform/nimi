@@ -1,5 +1,11 @@
 import { dataSync } from '@runtime/data-sync';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import {
+  asNimiError,
+  createRuntimeProtectedScopeHelper,
+} from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadRecord,
@@ -18,15 +24,18 @@ import {
   upsertThreadSummary,
 } from './chat-agent-shell-core';
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle';
-import { probeExecutionSchedulingGuard } from './chat-execution-scheduling-guard';
+import { probeExecutionSchedulingGuard } from './chat-shared-execution-scheduling-guard';
 import {
+  clearAgentConversationAnchorBinding,
   getAgentConversationAnchorBinding,
   persistAgentConversationAnchorBinding,
   type AgentConversationAnchorBinding,
 } from './chat-agent-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
-import type { AgentChatUserAttachment } from './chat-ai-execution-engine';
+import type { AgentChatUserAttachment } from './chat-nimi-execution-engine';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
+
+let runtimeProtectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
 export function isAbortLikeSubmitError(error: unknown): boolean {
   const message = String((error instanceof Error ? error.message : error) || '').toLowerCase();
@@ -34,6 +43,86 @@ export function isAbortLikeSubmitError(error: unknown): boolean {
     || message.includes('cancelled')
     || message.includes('canceled')
     || message.includes('generation stopped');
+}
+
+function requireRuntimeSubjectUserId(): string {
+  const subjectUserId = normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
+  if (!subjectUserId) {
+    throw new Error('desktop agent chat requires authenticated subject user id for runtime.agent');
+  }
+  return subjectUserId;
+}
+
+function normalizeRuntimeError(error: unknown, actionHint: string) {
+  return asNimiError(error, {
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    actionHint,
+    source: 'runtime',
+  });
+}
+
+function isRecoverableRuntimeAnchorError(error: unknown): boolean {
+  const normalized = normalizeRuntimeError(error, 'check_runtime_agent_anchor');
+  const reasonCode = normalizeText(normalized.reasonCode);
+  const message = normalizeText(normalized.message).toLowerCase();
+  return reasonCode === 'RUNTIME_GRPC_NOT_FOUND'
+    || reasonCode === 'RUNTIME_GRPC_FAILED_PRECONDITION'
+    || message.includes('conversation anchor not found')
+    || message.includes('conversation anchor is closed')
+    || message.includes('conversation anchor agent_id mismatch');
+}
+
+function getRuntimeProtectedAccess() {
+  if (runtimeProtectedAccess) {
+    return runtimeProtectedAccess;
+  }
+  const runtime = getPlatformClient().runtime;
+  runtimeProtectedAccess = createRuntimeProtectedScopeHelper({
+    runtime,
+    getSubjectUserId: async () => requireRuntimeSubjectUserId(),
+  });
+  return runtimeProtectedAccess;
+}
+
+async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promise<void> {
+  const runtime = getPlatformClient().runtime;
+  const protectedAccess = getRuntimeProtectedAccess();
+  const subjectUserId = requireRuntimeSubjectUserId();
+  const context = {
+    appId: runtime.appId,
+    subjectUserId,
+  };
+
+  try {
+    const response = await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.getAgent({
+      context,
+      agentId: target.agentId,
+    }, options));
+    if (Number(response.agent?.lifecycleStatus) === 2) {
+      return;
+    }
+  } catch (error) {
+    const normalized = normalizeRuntimeError(error, 'check_runtime_agent');
+    if (normalized.reasonCode !== 'RUNTIME_GRPC_NOT_FOUND') {
+      throw normalized;
+    }
+  }
+
+  try {
+    await protectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
+      context,
+      agentId: target.agentId,
+      displayName: target.displayName || target.agentId,
+      autonomyConfig: undefined,
+      worldId: normalizeText(target.worldId),
+      metadata: undefined,
+    }, options));
+  } catch (error) {
+    const normalized = normalizeRuntimeError(error, 'initialize_runtime_agent');
+    if (normalized.reasonCode !== 'RUNTIME_GRPC_ALREADY_EXISTS') {
+      throw normalized;
+    }
+  }
 }
 
 export async function assertAgentSubmitSchedulingAllowed(input: {
@@ -85,20 +174,70 @@ export async function persistDraftForThread(
 async function openConversationAnchorForTarget(
   target: AgentLocalTargetSnapshot,
 ): Promise<string> {
-  const snapshot = await getPlatformClient().runtime.agent.anchors.open({
-    agentId: target.agentId,
-    metadata: {
-      surface: 'desktop-agent-chat',
-    },
+  const runtime = getPlatformClient().runtime;
+  const protectedAccess = getRuntimeProtectedAccess();
+  await ensureRuntimeAgentExists(target);
+  const snapshot = await protectedAccess.withScopes(
+    ['runtime.agent.chat.write'],
+    (options) => runtime.agent.anchors.open({
+      agentId: target.agentId,
+      metadata: {
+        surface: 'desktop-agent-chat',
+      },
+    }, options),
+  ).catch((error) => {
+    const normalized = normalizeRuntimeError(error, 'open_runtime_agent_anchor');
+    const reasonCode = normalizeText(normalized.reasonCode) || 'RUNTIME_CALL_FAILED';
+    throw new Error(
+      `open runtime agent anchor failed: ${normalized.message} [${reasonCode}]`,
+      { cause: error },
+    );
   });
   const record = snapshot as unknown as Record<string, unknown>;
+  const anchorRecord = record.anchor && typeof record.anchor === 'object'
+    ? record.anchor as Record<string, unknown>
+    : null;
   const conversationAnchorId = normalizeText(
-    record.conversationAnchorId ?? record.conversation_anchor_id,
+    anchorRecord?.conversationAnchorId
+      ?? anchorRecord?.conversation_anchor_id
+      ?? record.conversationAnchorId
+      ?? record.conversation_anchor_id,
   );
   if (!conversationAnchorId) {
     throw new Error('runtime.agent anchor open did not return conversationAnchorId');
   }
   return conversationAnchorId;
+}
+
+async function ensureConversationAnchorBindingUpstream(input: {
+  threadId: string;
+  target: AgentLocalTargetSnapshot;
+  binding: AgentConversationAnchorBinding;
+}): Promise<AgentConversationAnchorBinding | null> {
+  const runtime = getPlatformClient().runtime;
+  const protectedAccess = getRuntimeProtectedAccess();
+  await ensureRuntimeAgentExists(input.target);
+  try {
+    await protectedAccess.withScopes(
+      ['runtime.agent.chat.read'],
+      (options) => runtime.agent.anchors.getSnapshot({
+        agentId: input.target.agentId,
+        conversationAnchorId: input.binding.conversationAnchorId,
+      }, options),
+    );
+    return input.binding;
+  } catch (error) {
+    if (!isRecoverableRuntimeAnchorError(error)) {
+      const normalized = normalizeRuntimeError(error, 'get_runtime_agent_anchor_snapshot');
+      const reasonCode = normalizeText(normalized.reasonCode) || 'RUNTIME_CALL_FAILED';
+      throw new Error(
+        `get runtime agent anchor snapshot failed: ${normalized.message} [${reasonCode}]`,
+        { cause: error },
+      );
+    }
+    clearAgentConversationAnchorBinding(input.threadId);
+    return null;
+  }
 }
 
 export async function createThreadForTarget(
@@ -138,10 +277,17 @@ export async function ensureThreadAnchorBindingForTarget(input: {
     if (existingBinding.agentId !== input.target.agentId) {
       throw new Error('agent thread anchor binding does not match selected agent');
     }
-    return {
-      thread: ensuredThread,
-      anchorBinding: existingBinding,
-    };
+    const runtimeBinding = await ensureConversationAnchorBindingUpstream({
+      threadId: ensuredThread.id,
+      target: input.target,
+      binding: existingBinding,
+    });
+    if (runtimeBinding) {
+      return {
+        thread: ensuredThread,
+        anchorBinding: runtimeBinding,
+      };
+    }
   }
   const conversationAnchorId = await openConversationAnchorForTarget(input.target);
   const anchorBinding = persistAgentConversationAnchorBinding({

@@ -27,7 +27,7 @@ function readSource(relativePath: string): string {
 const storageSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts');
 const serviceSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-service.ts');
 const runtimeSliceSource = readSource('src/shell/renderer/app-shell/providers/runtime-slice.ts');
-const activeScopeSource = readSource('src/shell/renderer/features/chat/chat-active-ai-config-scope.ts');
+const activeScopeSource = readSource('src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.ts');
 
 test('multi-scope: persistence layer uses scope-keyed storage keys', () => {
   // Scope index key
@@ -196,7 +196,7 @@ test('Phase 6: active scope helper switches current scope and notifies listeners
     getActiveScope,
     setActiveScope,
     onActiveScopeChange,
-  } = await import('../src/shell/renderer/features/chat/chat-active-ai-config-scope.js');
+  } = await import('../src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.js');
 
   const originalScope = getActiveScope();
   const nextScope: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'alt-chat' };

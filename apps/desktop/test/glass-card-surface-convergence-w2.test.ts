@@ -8,7 +8,7 @@ function readWorkspaceFile(relativePath: string): string {
 }
 
 const sharedSurfaceSource = readWorkspaceFile('src/shell/renderer/components/surface.tsx');
-const chatRightColumnSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-right-column-primitives.tsx');
+const chatRightColumnSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-right-column-primitives.tsx');
 const settingsLayoutSource = readWorkspaceFile('src/shell/renderer/features/settings/settings-layout-components.tsx');
 const runtimePrimitivesSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-primitives.tsx');
 const runtimeLocalDebugSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-local-debug-section.tsx');

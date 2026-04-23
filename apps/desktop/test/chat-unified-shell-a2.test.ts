@@ -15,24 +15,24 @@ const conversationCapabilitySource = readWorkspaceFile('src/shell/renderer/featu
 const runtimeSliceSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/runtime-slice.ts');
 const storeTypesSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/store-types.ts');
 const capabilityStorageSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts');
-const capabilitySettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx');
+const capabilitySettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-conversation-capability-settings.tsx');
 
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
 const chatModeRegistrySource = readWorkspaceFile('src/shell/renderer/features/chat/chat-mode-registry.ts');
-const chatModeHostTypesSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-mode-host-types.ts');
-const chatAiAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
-const chatAiPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-presentation.tsx');
+const chatModeHostTypesSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-mode-host-types.ts');
+const chatAiAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
+const chatAiPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx');
 const chatAgentAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
 const chatAgentCanonicalComposerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx');
 const chatAgentPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
 const chatHumanAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-adapter.tsx');
 const canonicalHumanComposerProfileSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-canonical-composer-profile.tsx');
-const chatAiModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-mode-content.tsx');
+const chatAiModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
 const chatAgentModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatHumanModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
 const chatGroupModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatSidebarTargetsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-sidebar-targets.ts');
-const chatSettingsPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+const chatSettingsPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
 const canonicalConversationShellSource = readRepoFile('kit/features/chat/src/components/canonical-conversation-shell.tsx');
 const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
 
@@ -175,9 +175,14 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /CanonicalComposer/);
   assert.match(chatAgentCanonicalComposerSource, /layout="stacked"/);
   assert.match(chatAgentPresentationSource, /resolveAgentConversationHostSnapshot/);
-  assert.match(chatAgentPresentationSource, /D-LLM-065 — per-target cosmetic preference; default 'right-center'\./);
-  assert.match(chatAgentPresentationSource, /const \[avatarStagePlacement\] = useAgentAvatarPlacement\(/);
-  assert.match(chatAgentPresentationSource, /widthPositionClassName=\{avatarStageLayout\.composerWidthPositionClassName\}/);
+  assert.match(chatAgentPresentationSource, /desktopAgentBackdropBindingQueryKey/);
+  assert.match(chatAgentPresentationSource, /const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-\[clamp\(140px,16vh,200px\)\]'/);
+  assert.doesNotMatch(chatAgentPresentationSource, /avatarStagePlacement/);
+  assert.doesNotMatch(chatAgentPresentationSource, /useAgentAvatarPlacement/);
+  assert.match(chatAgentPresentationSource, /const AGENT_TRANSCRIPT_WIDTH_CLASS = 'max-w-\[min\(680px,calc\(100vw-680px\)\)\]'/);
+  assert.match(chatAgentPresentationSource, /widthPositionClassName=\{AGENT_TRANSCRIPT_POSITION_CLASS\}/);
+  assert.match(chatAgentPresentationSource, /topContent: schedulingFeedbackNode/);
+  assert.match(chatAgentPresentationSource, /<ChatAgentAvatarAppLauncher/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);
   assert.match(chatAgentPresentationSource, /diagnosticsContent=/);
   assert.match(chatAgentPresentationSource, /composerContent:/);

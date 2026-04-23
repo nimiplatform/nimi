@@ -9,7 +9,7 @@ async function loadRuntimeImageMessageContent() {
     value: React,
     configurable: true,
   });
-  const module = await import('../src/shell/renderer/features/chat/chat-runtime-stream-ui.js');
+  const module = await import('../src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.js');
   return module.RuntimeImageMessageContent;
 }
 
@@ -18,7 +18,7 @@ async function loadRuntimeStreamFooter() {
     value: React,
     configurable: true,
   });
-  const module = await import('../src/shell/renderer/features/chat/chat-runtime-stream-ui.js');
+  const module = await import('../src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.js');
   return module.RuntimeStreamFooter;
 }
 
@@ -27,7 +27,7 @@ async function loadRuntimeAgentDebugMessageAccessory() {
     value: React,
     configurable: true,
   });
-  const module = await import('../src/shell/renderer/features/chat/chat-runtime-stream-ui.js');
+  const module = await import('../src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.js');
   return module.RuntimeAgentDebugMessageAccessory;
 }
 
@@ -36,7 +36,7 @@ async function loadResolveRuntimeVoicePlaybackFrameCue() {
     value: React,
     configurable: true,
   });
-  const module = await import('../src/shell/renderer/features/chat/chat-runtime-stream-ui.js');
+  const module = await import('../src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.js');
   return module.resolveRuntimeVoicePlaybackFrameCue;
 }
 

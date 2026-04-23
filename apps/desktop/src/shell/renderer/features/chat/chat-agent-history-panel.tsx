@@ -9,38 +9,14 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 type ChatAgentHistoryPanelProps = {
   targetTitle: string;
-  activeThreadId: string | null;
   disabled?: boolean;
   memoryStatus?: CanonicalMemoryBankStatus | null;
   memoryLoading?: boolean;
   onUpgradeStandardMemory?: () => unknown;
-  onClearAgentHistory: (threadId: string) => unknown;
 };
 
 export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
   const { t } = useTranslation();
-
-  const handleClearAgentHistory = useCallback(() => {
-    void (async () => {
-      if (!props.activeThreadId) {
-        return;
-      }
-      const confirmation = await confirmDialog({
-        title: t('Chat.clearAgentChatHistoryTitle', { defaultValue: 'Clear agent chat history' }),
-        description: t('Chat.clearAgentChatHistoryConfirm', {
-          defaultValue: 'Clear all local chat history with {{name}}? This cannot be undone.',
-          name: props.targetTitle,
-        }),
-        level: 'warning',
-      });
-      if (!confirmation.confirmed) {
-        return;
-      }
-      await props.onClearAgentHistory(props.activeThreadId);
-    })().catch(() => {
-      // Host action error handling lives upstream; swallow confirm failures here to avoid unhandled rejections.
-    });
-  }, [props, t]);
 
   const handleUpgradeStandardMemory = useCallback(() => {
     void (async () => {
@@ -90,76 +66,57 @@ export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
       ? t('Chat.memoryModeUnavailableHint', {
         defaultValue: 'Standard memory is unavailable until a valid local or cloud memory embedding source is configured.',
       })
-      : t('Chat.memoryModeBaselineHint', {
-        defaultValue: 'Canonical memory stays in Baseline until you explicitly bind the configured memory embedding profile.',
-      });
+    : t('Chat.memoryModeBaselineHint', {
+      defaultValue: 'Canonical memory stays in Baseline until you explicitly bind the configured memory embedding profile.',
+    });
+  const showMemoryCard = props.memoryLoading || props.memoryStatus?.mode === 'baseline' || props.memoryStatus?.mode === 'standard';
 
   return (
     <div className="flex shrink-0 flex-col gap-4">
-      <DesktopCardSurface
-        kind="operational-solid"
-        as="section"
-        data-testid={E2E_IDS.chatMemoryModeCard}
-        className="flex flex-col px-5 py-5 text-left"
-      >
-        <div className="flex flex-1 flex-col">
-          <div className="flex items-center gap-2">
-            <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-slate-950">
-              {t('Chat.memoryModeTitle', { defaultValue: 'Memory mode' })}
-            </p>
-            <span
-              data-testid={E2E_IDS.chatMemoryModeStatus}
-              data-memory-mode={memoryModeValue}
-              className={cn(
-                'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.05em]',
-                props.memoryStatus?.mode === 'standard'
-                  ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] text-[var(--nimi-action-primary-bg)]'
-                  : props.memoryStatus?.mode === 'unavailable'
-                    ? 'bg-amber-50 text-amber-700'
+      {showMemoryCard ? (
+        <DesktopCardSurface
+          kind="operational-solid"
+          as="section"
+          data-testid={E2E_IDS.chatMemoryModeCard}
+          className="flex flex-col px-5 py-5 text-left"
+        >
+          <div className="flex flex-1 flex-col">
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-slate-950">
+                {t('Chat.memoryModeTitle', { defaultValue: 'Memory mode' })}
+              </p>
+              <span
+                data-testid={E2E_IDS.chatMemoryModeStatus}
+                data-memory-mode={memoryModeValue}
+                className={cn(
+                  'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.05em]',
+                  props.memoryStatus?.mode === 'standard'
+                    ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] text-[var(--nimi-action-primary-bg)]'
                     : 'bg-slate-100 text-slate-500',
-              )}
-            >
-              {memoryModeLabel}
-            </span>
+                )}
+              >
+                {memoryModeLabel}
+              </span>
+            </div>
+            <p className="mt-4 text-[13px] leading-7 text-slate-500">
+              {memoryModeHint}
+            </p>
           </div>
-          <p className="mt-4 text-[13px] leading-7 text-slate-500">
-            {memoryModeHint}
-          </p>
-        </div>
-        {props.memoryStatus?.mode === 'baseline' ? (
-          <div className="mt-5 flex flex-col gap-2">
-            <DesktopCompactAction
-              data-testid={E2E_IDS.chatMemoryModeUpgradeButton}
-              disabled={props.disabled || props.memoryLoading || !props.onUpgradeStandardMemory}
-              onClick={handleUpgradeStandardMemory}
-              tone="primary"
-              fullWidth
-            >
-              {t('Chat.memoryModeUpgradeAction', { defaultValue: 'Upgrade to Standard memory' })}
-            </DesktopCompactAction>
-          </div>
-        ) : null}
-      </DesktopCardSurface>
-      <DesktopCardSurface kind="operational-solid" as="section" className="flex flex-col px-5 py-5 text-left">
-        <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-slate-950">
-          {t('Chat.clearAgentChatHistoryTitle', { defaultValue: 'Clear agent chat history' })}
-        </p>
-        <p className="mt-4 flex-1 text-[13px] leading-7 text-slate-500">
-          {t('Chat.clearAgentChatHistoryHint', {
-            defaultValue: 'Delete every local chat record with this agent on this device.',
-          })}
-        </p>
-        <div className="mt-5 flex flex-col gap-2">
-          <DesktopCompactAction
-            disabled={props.disabled || !props.activeThreadId}
-            onClick={handleClearAgentHistory}
-            tone="danger"
-            fullWidth
-          >
-            {t('Chat.clearAgentChatHistoryAction', { defaultValue: 'Clear agent chat history' })}
-          </DesktopCompactAction>
-        </div>
-      </DesktopCardSurface>
+          {props.memoryStatus?.mode === 'baseline' ? (
+            <div className="mt-5 flex flex-col gap-2">
+              <DesktopCompactAction
+                data-testid={E2E_IDS.chatMemoryModeUpgradeButton}
+                disabled={props.disabled || props.memoryLoading || !props.onUpgradeStandardMemory}
+                onClick={handleUpgradeStandardMemory}
+                tone="primary"
+                fullWidth
+              >
+                {t('Chat.memoryModeUpgradeAction', { defaultValue: 'Upgrade to Standard memory' })}
+              </DesktopCompactAction>
+            </div>
+          ) : null}
+        </DesktopCardSurface>
+      ) : null}
     </div>
   );
 }

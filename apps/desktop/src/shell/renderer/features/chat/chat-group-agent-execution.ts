@@ -20,7 +20,7 @@ import type { AISnapshot } from '@nimiplatform/sdk/mod';
 import type { ConversationRuntimeTextMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { ChatThinkingPreference } from './chat-thinking';
+import type { ChatThinkingPreference } from './chat-shared-thinking';
 import type { AgentEffectiveCapabilityResolution } from './conversation-capability';
 import type { GroupAgentTrigger } from './chat-group-agent-dispatcher';
 import { createAgentLocalChatConversationRuntimeAdapter } from './chat-agent-orchestration-runtime';

@@ -10,7 +10,7 @@ import {
   bindDesktopAIConfigAppStore,
   getDesktopAIConfigService,
 } from './desktop-ai-config-service';
-import { getActiveScope } from '@renderer/features/chat/chat-active-ai-config-scope';
+import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import { bindProjectionRefreshToSurface } from '@renderer/features/chat/conversation-capability-projection';
 import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';

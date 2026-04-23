@@ -13,7 +13,7 @@ import {
 import {
   buildAgentLocalChatExecutionTextRequest,
   type AgentChatUserAttachment,
-} from './chat-ai-execution-engine';
+} from './chat-nimi-execution-engine';
 import type {
   AgentResolvedMessageActionEnvelope,
 } from './chat-agent-behavior';
@@ -41,6 +41,7 @@ import { createAgentLocalChatConversationRuntimeAdapter } from './chat-agent-orc
 import { runResolvedEnvelopeActions } from './chat-agent-orchestration-actions';
 import { runScheduledFollowUpTurn } from './chat-agent-orchestration-follow-up';
 import { runDesktopAgentAssistantTurnRuntimeFollowUp } from './chat-agent-runtime-memory';
+import { feedStreamEvent } from '../turns/stream-controller';
 import {
   AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES,
   type AgentLocalChatProviderMetadata,
@@ -49,7 +50,7 @@ import {
   type AgentLocalChatRuntimeRequest,
 } from './chat-agent-orchestration-types';
 
-export { buildAgentLocalChatPrompt } from './chat-ai-execution-engine';
+export { buildAgentLocalChatPrompt } from './chat-nimi-execution-engine';
 export { createAgentLocalChatContinuityAdapter } from './chat-agent-continuity';
 export { createAgentTailAbortSignal } from './chat-agent-orchestration-shared';
 export { createAgentLocalChatConversationRuntimeAdapter } from './chat-agent-orchestration-runtime';
@@ -67,6 +68,7 @@ export type {
 } from './chat-agent-orchestration-types';
 
 const MAX_AGENT_FOLLOW_UP_TURNS = 8;
+const RUNTIME_AGENT_WAIT_KEEPALIVE_MS = 10_000;
 
 async function* runRuntimeAgentTurn(input: {
   baseInput: ConversationTurnInput;
@@ -110,131 +112,167 @@ async function* runRuntimeAgentTurn(input: {
     throw new Error('agent-local-chat-v1 runtime.agent stream adapter unavailable');
   }
 
-  for await (const part of runtimeResult.stream) {
-    switch (part.type) {
-      case 'reasoning-delta': {
-        reasoningText += part.textDelta;
-        const reasoningEvent: ConversationTurnEvent = {
-          type: 'reasoning-delta',
-          turnId: input.baseInput.turnId,
-          textDelta: part.textDelta,
-        };
-        input.emittedEvents.push(reasoningEvent);
-        yield reasoningEvent;
-        break;
-      }
-      case 'text-delta': {
-        const textDelta = typeof part.textDelta === 'string' ? part.textDelta : '';
-        if (!textDelta) {
+  const keepaliveIntervalId = setInterval(() => {
+    feedStreamEvent(input.baseInput.threadId, { type: 'keepalive' });
+  }, RUNTIME_AGENT_WAIT_KEEPALIVE_MS);
+
+  try {
+    for await (const part of runtimeResult.stream) {
+      switch (part.type) {
+        case 'reasoning-delta': {
+          reasoningText += part.textDelta;
+          const reasoningEvent: ConversationTurnEvent = {
+            type: 'reasoning-delta',
+            turnId: input.baseInput.turnId,
+            textDelta: part.textDelta,
+          };
+          input.emittedEvents.push(reasoningEvent);
+          yield reasoningEvent;
           break;
         }
-        outputText += textDelta;
-        const textDeltaEvent: ConversationTurnEvent = {
-          type: 'text-delta',
-          turnId: input.baseInput.turnId,
-          textDelta,
-        };
-        input.emittedEvents.push(textDeltaEvent);
-        yield textDeltaEvent;
-        break;
-      }
-      case 'message-sealed': {
-        textMessageState = resolveCompletedTextMessageStateFromEnvelope({
-          turnId: input.baseInput.turnId,
-          envelope: part.envelope,
-          metadataJson: part.metadataJson ?? {
-            debugType: 'agent-text-turn',
-            prompt: input.executionRequest.prompt,
-            systemPrompt: input.executionRequest.systemPrompt,
-            rawModelOutput: null,
-            normalizedModelOutput: null,
-            statusCue: part.envelope.statusCue || null,
-            followUpInstruction: null,
-            followUpTurn: false,
-            chainId: null,
-            followUpDepth: null,
-            maxFollowUpTurns: null,
-            followUpCanceledByUser: false,
-            followUpSourceActionId: null,
-            followUpDelayMs: null,
-            runtimeAgentTurns: {
-              transport: 'runtime.agent.turns',
-              conversationAnchorId: String(part.diagnostics?.conversationAnchorId || ''),
-              runtimeTurnId: String(part.diagnostics?.runtimeTurnId || ''),
-              runtimeStreamId: String(part.diagnostics?.runtimeStreamId || ''),
-              traceId: String(part.trace?.traceId || ''),
-              modelResolved: String(part.trace?.modelResolved || ''),
-              routeDecision: String(part.trace?.routeDecision || ''),
-            },
-          },
-        });
-        outputText = buildAgentResolvedOutputText(part.envelope);
-        const sealedEvent: ConversationTurnEvent = {
-          type: 'message-sealed',
-          turnId: input.baseInput.turnId,
-          messageId: textMessageState.messageId,
-          beatId: `${input.baseInput.turnId}:beat:0`,
-          text: outputText,
-        };
-        input.emittedEvents.push(sealedEvent);
-        yield sealedEvent;
-        const actionEvents: ConversationTurnEvent[] = [];
-        actionResult = await runResolvedEnvelopeActions({
-          threadId: input.baseInput.threadId,
-          turnId: input.baseInput.turnId,
-          signal: input.baseInput.signal,
-          metadata: input.metadata,
-          runtimeAdapter: input.runtimeAdapter,
-          envelope: part.envelope,
-          outputDiagnostics: null,
-          onEvent: (event) => {
-            input.emittedEvents.push(event);
-            actionEvents.push(event);
-          },
-        });
-        outputDiagnostics = {
-          ...(part.diagnostics || {}),
-          ...(actionResult.outputDiagnostics || {}),
-        };
-        for (const actionEvent of actionEvents) {
-          yield actionEvent;
-        }
-        break;
-      }
-      case 'turn-completed': {
-        outputText = part.outputText || outputText;
-        outputDiagnostics = {
-          ...(outputDiagnostics || {}),
-          ...(part.diagnostics || {}),
-        };
-        if (!textMessageState) {
-          const terminalEvent: ConversationTurnEvent = {
-            type: 'turn-failed',
+        case 'text-delta': {
+          const textDelta = typeof part.textDelta === 'string' ? part.textDelta : '';
+          if (!textDelta) {
+            break;
+          }
+          outputText += textDelta;
+          const textDeltaEvent: ConversationTurnEvent = {
+            type: 'text-delta',
             turnId: input.baseInput.turnId,
-            error: {
-              code: 'RUNTIME_AGENT_CHAT_INVALID',
-              message: 'runtime.agent completed without structured message-sealed event',
+            textDelta,
+          };
+          input.emittedEvents.push(textDeltaEvent);
+          yield textDeltaEvent;
+          break;
+        }
+        case 'message-sealed': {
+          textMessageState = resolveCompletedTextMessageStateFromEnvelope({
+            turnId: input.baseInput.turnId,
+            envelope: part.envelope,
+            metadataJson: part.metadataJson ?? {
+              debugType: 'agent-text-turn',
+              prompt: input.executionRequest.prompt,
+              systemPrompt: input.executionRequest.systemPrompt,
+              rawModelOutput: null,
+              normalizedModelOutput: null,
+              statusCue: part.envelope.statusCue || null,
+              followUpInstruction: null,
+              followUpTurn: false,
+              chainId: null,
+              followUpDepth: null,
+              maxFollowUpTurns: null,
+              followUpCanceledByUser: false,
+              followUpSourceActionId: null,
+              followUpDelayMs: null,
+              runtimeAgentTurns: {
+                transport: 'runtime.agent.turns',
+                conversationAnchorId: String(part.diagnostics?.conversationAnchorId || ''),
+                runtimeTurnId: String(part.diagnostics?.runtimeTurnId || ''),
+                runtimeStreamId: String(part.diagnostics?.runtimeStreamId || ''),
+                traceId: String(part.trace?.traceId || ''),
+                modelResolved: String(part.trace?.modelResolved || ''),
+                routeDecision: String(part.trace?.routeDecision || ''),
+              },
             },
-            outputText: outputText || undefined,
+          });
+          outputText = buildAgentResolvedOutputText(part.envelope);
+          const sealedEvent: ConversationTurnEvent = {
+            type: 'message-sealed',
+            turnId: input.baseInput.turnId,
+            messageId: textMessageState.messageId,
+            beatId: `${input.baseInput.turnId}:beat:0`,
+            text: outputText,
+          };
+          input.emittedEvents.push(sealedEvent);
+          yield sealedEvent;
+          const actionEvents: ConversationTurnEvent[] = [];
+          actionResult = await runResolvedEnvelopeActions({
+            threadId: input.baseInput.threadId,
+            turnId: input.baseInput.turnId,
+            signal: input.baseInput.signal,
+            metadata: input.metadata,
+            runtimeAdapter: input.runtimeAdapter,
+            envelope: part.envelope,
+            outputDiagnostics: null,
+            onEvent: (event) => {
+              input.emittedEvents.push(event);
+              actionEvents.push(event);
+            },
+          });
+          outputDiagnostics = {
+            ...(part.diagnostics || {}),
+            ...(actionResult.outputDiagnostics || {}),
+          };
+          for (const actionEvent of actionEvents) {
+            yield actionEvent;
+          }
+          break;
+        }
+        case 'turn-completed': {
+          outputText = part.outputText || outputText;
+          outputDiagnostics = {
+            ...(outputDiagnostics || {}),
+            ...(part.diagnostics || {}),
+          };
+          if (!textMessageState) {
+            const terminalEvent: ConversationTurnEvent = {
+              type: 'turn-failed',
+              turnId: input.baseInput.turnId,
+              error: {
+                code: 'RUNTIME_AGENT_CHAT_INVALID',
+                message: 'runtime.agent completed without structured message-sealed event',
+              },
+              outputText: outputText || undefined,
+              reasoningText: reasoningText || undefined,
+              finishReason: part.finishReason,
+              usage: part.usage,
+              trace: part.trace,
+              diagnostics: {
+                ...(outputDiagnostics || {}),
+                missingStructuredProjection: true,
+              },
+            };
+            const commitResult = await commitProviderOutcome({
+              continuityAdapter: input.continuityAdapter,
+              baseInput: input.baseInput,
+              emittedEvents: input.emittedEvents,
+              terminalEvent,
+              outcome: 'failed',
+              outputText,
+              reasoningText,
+              error: terminalEvent.error,
+              textMessageState: undefined,
+            });
+            yield {
+              type: 'projection-rebuilt',
+              threadId: input.baseInput.threadId,
+              projectionVersion: commitResult.projectionVersion,
+              bundle: commitResult.bundle,
+            };
+            yield terminalEvent;
+            return;
+          }
+          const terminalEvent: ConversationTurnEvent = {
+            type: 'turn-completed',
+            turnId: input.baseInput.turnId,
+            outputText,
             reasoningText: reasoningText || undefined,
             finishReason: part.finishReason,
             usage: part.usage,
             trace: part.trace,
-            diagnostics: {
-              ...(outputDiagnostics || {}),
-              missingStructuredProjection: true,
-            },
+            diagnostics: outputDiagnostics || undefined,
           };
           const commitResult = await commitProviderOutcome({
             continuityAdapter: input.continuityAdapter,
             baseInput: input.baseInput,
             emittedEvents: input.emittedEvents,
             terminalEvent,
-            outcome: 'failed',
+            outcome: 'completed',
             outputText,
             reasoningText,
-            error: terminalEvent.error,
-            textMessageState: undefined,
+            imageState: actionResult?.imageState,
+            voiceState: actionResult?.voiceState,
+            textMessageState: textMessageState || undefined,
           });
           yield {
             type: 'projection-rebuilt',
@@ -245,115 +283,87 @@ async function* runRuntimeAgentTurn(input: {
           yield terminalEvent;
           return;
         }
-        const terminalEvent: ConversationTurnEvent = {
-          type: 'turn-completed',
-          turnId: input.baseInput.turnId,
-          outputText,
-          reasoningText: reasoningText || undefined,
-          finishReason: part.finishReason,
-          usage: part.usage,
-          trace: part.trace,
-          diagnostics: outputDiagnostics || undefined,
-        };
-        const commitResult = await commitProviderOutcome({
-          continuityAdapter: input.continuityAdapter,
-          baseInput: input.baseInput,
-          emittedEvents: input.emittedEvents,
-          terminalEvent,
-          outcome: 'completed',
-          outputText,
-          reasoningText,
-          imageState: actionResult?.imageState,
-          voiceState: actionResult?.voiceState,
-          textMessageState: textMessageState || undefined,
-        });
-        yield {
-          type: 'projection-rebuilt',
-          threadId: input.baseInput.threadId,
-          projectionVersion: commitResult.projectionVersion,
-          bundle: commitResult.bundle,
-        };
-        yield terminalEvent;
-        return;
+        case 'turn-failed': {
+          outputText = part.outputText || outputText;
+          outputDiagnostics = {
+            ...(outputDiagnostics || {}),
+            ...(part.diagnostics || {}),
+          };
+          const terminalEvent: ConversationTurnEvent = {
+            type: 'turn-failed',
+            turnId: input.baseInput.turnId,
+            error: part.error,
+            outputText: outputText || undefined,
+            reasoningText: part.reasoningText || reasoningText || undefined,
+            finishReason: part.finishReason,
+            usage: part.usage,
+            trace: part.trace,
+            diagnostics: outputDiagnostics || undefined,
+          };
+          const commitResult = await commitProviderOutcome({
+            continuityAdapter: input.continuityAdapter,
+            baseInput: input.baseInput,
+            emittedEvents: input.emittedEvents,
+            terminalEvent,
+            outcome: 'failed',
+            outputText,
+            reasoningText,
+            error: part.error,
+            textMessageState: textMessageState || undefined,
+          });
+          yield {
+            type: 'projection-rebuilt',
+            threadId: input.baseInput.threadId,
+            projectionVersion: commitResult.projectionVersion,
+            bundle: commitResult.bundle,
+          };
+          yield terminalEvent;
+          return;
+        }
+        case 'turn-canceled': {
+          outputText = part.outputText || outputText;
+          outputDiagnostics = {
+            ...(outputDiagnostics || {}),
+            ...(part.diagnostics || {}),
+          };
+          const terminalEvent: ConversationTurnEvent = {
+            type: 'turn-canceled',
+            turnId: input.baseInput.turnId,
+            scope: part.scope,
+            outputText: outputText || undefined,
+            reasoningText: part.reasoningText || reasoningText || undefined,
+            trace: part.trace,
+            diagnostics: outputDiagnostics || undefined,
+          };
+          const commitResult = await commitProviderOutcome({
+            continuityAdapter: input.continuityAdapter,
+            baseInput: input.baseInput,
+            emittedEvents: input.emittedEvents,
+            terminalEvent,
+            outcome: 'canceled',
+            outputText,
+            reasoningText,
+            error: {
+              code: 'OPERATION_ABORTED',
+              message: 'Generation stopped.',
+            },
+            textMessageState: textMessageState || undefined,
+          });
+          yield {
+            type: 'projection-rebuilt',
+            threadId: input.baseInput.threadId,
+            projectionVersion: commitResult.projectionVersion,
+            bundle: commitResult.bundle,
+          };
+          yield terminalEvent;
+          return;
+        }
+        default:
+          throw new Error(`Unsupported agent-local-chat-v1 runtime.agent part: ${JSON.stringify(part)}`);
       }
-      case 'turn-failed': {
-        outputText = part.outputText || outputText;
-        outputDiagnostics = {
-          ...(outputDiagnostics || {}),
-          ...(part.diagnostics || {}),
-        };
-        const terminalEvent: ConversationTurnEvent = {
-          type: 'turn-failed',
-          turnId: input.baseInput.turnId,
-          error: part.error,
-          outputText: outputText || undefined,
-          reasoningText: part.reasoningText || reasoningText || undefined,
-          finishReason: part.finishReason,
-          usage: part.usage,
-          trace: part.trace,
-          diagnostics: outputDiagnostics || undefined,
-        };
-        const commitResult = await commitProviderOutcome({
-          continuityAdapter: input.continuityAdapter,
-          baseInput: input.baseInput,
-          emittedEvents: input.emittedEvents,
-          terminalEvent,
-          outcome: 'failed',
-          outputText,
-          reasoningText,
-          error: part.error,
-          textMessageState: textMessageState || undefined,
-        });
-        yield {
-          type: 'projection-rebuilt',
-          threadId: input.baseInput.threadId,
-          projectionVersion: commitResult.projectionVersion,
-          bundle: commitResult.bundle,
-        };
-        yield terminalEvent;
-        return;
-      }
-      case 'turn-canceled': {
-        outputText = part.outputText || outputText;
-        outputDiagnostics = {
-          ...(outputDiagnostics || {}),
-          ...(part.diagnostics || {}),
-        };
-        const terminalEvent: ConversationTurnEvent = {
-          type: 'turn-canceled',
-          turnId: input.baseInput.turnId,
-          scope: part.scope,
-          outputText: outputText || undefined,
-          reasoningText: part.reasoningText || reasoningText || undefined,
-          trace: part.trace,
-          diagnostics: outputDiagnostics || undefined,
-        };
-        const commitResult = await commitProviderOutcome({
-          continuityAdapter: input.continuityAdapter,
-          baseInput: input.baseInput,
-          emittedEvents: input.emittedEvents,
-          terminalEvent,
-          outcome: 'canceled',
-          outputText,
-          reasoningText,
-          error: {
-            code: 'OPERATION_ABORTED',
-            message: 'Generation stopped.',
-          },
-          textMessageState: textMessageState || undefined,
-        });
-        yield {
-          type: 'projection-rebuilt',
-          threadId: input.baseInput.threadId,
-          projectionVersion: commitResult.projectionVersion,
-          bundle: commitResult.bundle,
-        };
-        yield terminalEvent;
-        return;
-      }
-      default:
-        throw new Error(`Unsupported agent-local-chat-v1 runtime.agent part: ${JSON.stringify(part)}`);
     }
+  } finally {
+    clearInterval(keepaliveIntervalId);
   }
   throw new Error('agent-local-chat-v1 runtime.agent stream ended without a terminal event');
 }

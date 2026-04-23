@@ -12,7 +12,7 @@ import type {
   AgentLocalTargetSnapshot,
 } from '@renderer/bridge/runtime-bridge/types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { ChatThinkingPreference } from './chat-thinking';
+import type { ChatThinkingPreference } from './chat-shared-thinking';
 import type {
   AgentResolvedBehavior,
   AgentResolvedMessageActionEnvelope,

@@ -18,7 +18,7 @@ import type {
 } from './conversation-capability';
 import type {
   ChatThinkingPreference,
-} from './chat-thinking';
+} from './chat-shared-thinking';
 import type { AgentVoicePlaybackCueEnvelope } from './chat-agent-voice-playback-envelope';
 
 export type ChatAgentRuntimeInvokeInput = {

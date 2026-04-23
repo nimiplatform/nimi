@@ -20,7 +20,7 @@ import type {
   AISnapshot,
 } from './conversation-capability';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
-import type { AgentChatUserAttachment } from './chat-ai-execution-engine';
+import type { AgentChatUserAttachment } from './chat-nimi-execution-engine';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 
 export type AgentRunTurn = (input: {

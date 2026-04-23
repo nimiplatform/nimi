@@ -416,7 +416,7 @@ test('resolveAgentModelOutputEnvelope records rejected statusCue diagnostics whi
 });
 
 test('desktop AI host does NOT inject the message-action output contract into simple-ai systemPrompt', () => {
-  const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
+  const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
 
   // The simple-ai provider streams raw text-deltas directly and does not parse
   // message-action envelopes. Injecting the output contract would cause the model

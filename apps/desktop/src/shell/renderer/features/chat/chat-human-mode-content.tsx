@@ -6,7 +6,7 @@ import {
 } from '@nimiplatform/nimi-kit/features/chat';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useHumanConversationModeHost } from './chat-human-adapter';
-import { ChatSideSheet } from './chat-side-sheet';
+import { ChatSideSheet } from './chat-shared-side-sheet';
 
 export type ChatHumanModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];

@@ -15,7 +15,7 @@ import test from 'node:test';
  */
 
 const desktopDir = path.resolve(import.meta.dirname, '..');
-const guardModulePath = 'src/shell/renderer/features/chat/chat-execution-scheduling-guard.ts';
+const guardModulePath = 'src/shell/renderer/features/chat/chat-shared-execution-scheduling-guard.ts';
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(desktopDir, relativePath), 'utf8');
@@ -33,41 +33,41 @@ function readLocale(locale: string): Record<string, unknown> {
 // Source contract: SchedulingWarningBanner
 // ---------------------------------------------------------------------------
 
-test('SchedulingWarningBanner: exported from chat-settings-panel', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+test('SchedulingWarningBanner: exported from chat-shared-settings-panel', () => {
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /export function SchedulingWarningBanner/);
 });
 
 test('SchedulingWarningBanner: receives judgement prop typed as AISchedulingJudgement', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /judgement:\s*AISchedulingJudgement/);
 });
 
 test('SchedulingWarningBanner: returns null for runnable state', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   // Must check for runnable and return null — no banner for healthy state
   assert.match(source, /state\s*===\s*'runnable'.*return null/s);
 });
 
 test('SchedulingWarningBanner: renders data-scheduling-state attribute for testability', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /data-scheduling-state=\{state\}/);
 });
 
 test('SchedulingWarningBanner: renders data-testid for test selection', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /data-testid="scheduling-warning-banner"/);
 });
 
 test('SchedulingWarningBanner: consumes detail from judgement, not hardcoded', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   // detail must be passed to the i18n function, not fabricated
   assert.match(source, /detail:\s*detail/);
   assert.match(source, /schedulingDetailKeyForJudgement/);
 });
 
 test('SchedulingWarningBanner: consumes occupancy when present', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /occupancy\s*\?/);
   assert.match(source, /occupancy\.globalUsed/);
   assert.match(source, /occupancy\.globalCap/);
@@ -76,7 +76,7 @@ test('SchedulingWarningBanner: consumes occupancy when present', () => {
 });
 
 test('SchedulingWarningBanner: consumes resourceWarnings array', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /resourceWarnings\.length\s*>\s*0/);
   assert.match(source, /resourceWarnings\.map/);
 });
@@ -88,7 +88,7 @@ test('SchedulingWarningBanner: consumes resourceWarnings array', () => {
 const EXPECTED_STATES = ['denied', 'queue_required', 'preemption_risk', 'slowdown_risk', 'unknown'] as const;
 
 test('SchedulingWarningBanner: distinct styling defined for all non-runnable states', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   for (const state of EXPECTED_STATES) {
     assert.match(
       source,
@@ -99,17 +99,17 @@ test('SchedulingWarningBanner: distinct styling defined for all non-runnable sta
 });
 
 test('SchedulingWarningBanner: denied uses error-level styling (red)', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /denied.*red/s);
 });
 
 test('SchedulingWarningBanner: queue_required uses info-level styling (blue)', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /queue_required.*blue/s);
 });
 
 test('SchedulingWarningBanner: preemption_risk and slowdown_risk use warning-level styling (amber)', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /preemption_risk.*amber/s);
   assert.match(source, /slowdown_risk.*amber/s);
 });
@@ -149,9 +149,9 @@ test('useSchedulingFeasibility: query key includes surfaceId for full scope iden
 });
 
 test('ChatSettingsPanel: consumes the shared scheduling feasibility hook', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /useSchedulingFeasibility/);
-  assert.match(source, /chat-execution-scheduling-guard/);
+  assert.match(source, /chat-shared-execution-scheduling-guard/);
 });
 
 // ---------------------------------------------------------------------------
@@ -159,12 +159,12 @@ test('ChatSettingsPanel: consumes the shared scheduling feasibility hook', () =>
 // ---------------------------------------------------------------------------
 
 test('ChatSettingsPanel: renders SchedulingWarningSection', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /<SchedulingWarningSection\s*\/>/);
 });
 
 test('SchedulingWarningSection: renders nothing for runnable or null judgement', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   // The section component should check for null and runnable
   assert.match(source, /judgement\.state\s*===\s*'runnable'/);
   assert.match(source, /!judgement/);
@@ -212,7 +212,7 @@ for (const locale of ['en', 'zh'] as const) {
 // ---------------------------------------------------------------------------
 
 test('no parallel scheduling truth: settings panel does not import scheduler peek directly', () => {
-  const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
+  const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   // Must not bypass the surface and call scheduler.peek or peekSchedulingJudgement directly
   assert.doesNotMatch(source, /peekSchedulingJudgement/);
   assert.doesNotMatch(source, /scheduler\.peek/);

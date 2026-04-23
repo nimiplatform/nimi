@@ -19,14 +19,14 @@ import {
   HumanCanonicalProfileDrawer,
   useHumanCanonicalConversationSurface,
 } from './chat-human-canonical-components';
-import type { DesktopConversationModeHost } from './chat-mode-host-types';
+import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 
 import {
   ChatRuntimeInspectContent,
   RuntimeInspectCard,
   RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
-import { ChatSettingsPanel } from './chat-settings-panel';
+import { ChatSettingsPanel } from './chat-shared-settings-panel';
 
 type UseHumanConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';

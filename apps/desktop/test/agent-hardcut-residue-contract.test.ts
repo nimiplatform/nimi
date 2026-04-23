@@ -60,15 +60,15 @@ test('desktop source no longer contains the deleted product chat route stack', (
 });
 
 test('phase 3: AI runtime resolveInvokeInput reads from text.generate projection, not routeSnapshot', () => {
-  // chat-ai-runtime.ts must not import or call toRuntimeRouteBindingFromAiRouteSnapshot
+  // chat-nimi-runtime.ts must not import or call toRuntimeRouteBindingFromAiRouteSnapshot
   const aiRuntimeSource = fs.readFileSync(
-    path.join(srcDir, 'shell/renderer/features/chat/chat-ai-runtime.ts'),
+    path.join(srcDir, 'shell/renderer/features/chat/chat-nimi-runtime.ts'),
     'utf8',
   );
   assert.equal(
     /toRuntimeRouteBindingFromAiRouteSnapshot/.test(aiRuntimeSource),
     false,
-    'chat-ai-runtime.ts must not use toRuntimeRouteBindingFromAiRouteSnapshot',
+    'chat-nimi-runtime.ts must not use toRuntimeRouteBindingFromAiRouteSnapshot',
   );
   // ChatAiRuntimeInvokeInput must not contain routeSnapshot field
   assert.equal(
@@ -80,13 +80,13 @@ test('phase 3: AI runtime resolveInvokeInput reads from text.generate projection
 
 test('phase 5: resolveAiChatThinkingSupport provider-name heuristic must not exist', () => {
   const thinkingSource = fs.readFileSync(
-    path.join(srcDir, 'shell/renderer/features/chat/chat-thinking.ts'),
+    path.join(srcDir, 'shell/renderer/features/chat/chat-shared-thinking.ts'),
     'utf8',
   );
   assert.equal(
     /\bresolveAiChatThinkingSupport\b/.test(thinkingSource),
     false,
-    'resolveAiChatThinkingSupport must not exist in chat-thinking.ts — it was a provider-name heuristic deleted in Phase 5',
+    'resolveAiChatThinkingSupport must not exist in chat-shared-thinking.ts — it was a provider-name heuristic deleted in Phase 5',
   );
   // Ensure no source file imports the deleted function
   assert.deepEqual(
@@ -98,7 +98,7 @@ test('phase 5: resolveAiChatThinkingSupport provider-name heuristic must not exi
 
 test('phase 3: AI thinking support does not fall back to routeSnapshot heuristic', () => {
   const thinkingSource = fs.readFileSync(
-    path.join(srcDir, 'shell/renderer/features/chat/chat-thinking.ts'),
+    path.join(srcDir, 'shell/renderer/features/chat/chat-shared-thinking.ts'),
     'utf8',
   );
   // resolveAiThinkingSupportFromProjection must not accept routeSnapshot parameter
@@ -137,13 +137,13 @@ test('phase 3: agent setup uses AgentEffectiveCapabilityResolution, not old rout
 
 test('phase 3: AI runtime adapter does not pass routeSnapshot to streamChatAiRuntime', () => {
   const adapterSource = fs.readFileSync(
-    path.join(srcDir, 'shell/renderer/features/chat/chat-ai-shell-runtime-adapter.ts'),
+    path.join(srcDir, 'shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.ts'),
     'utf8',
   );
   assert.equal(
     /routeSnapshot/.test(adapterSource),
     false,
-    'chat-ai-shell-runtime-adapter.ts must not reference routeSnapshot',
+    'chat-nimi-shell-runtime-adapter.ts must not reference routeSnapshot',
   );
 });
 
@@ -178,7 +178,7 @@ test('phase 3: agent adapter passes resolution to host actions, not separate rea
 
 test('phase 3: AI adapter does not sync routeSnapshot to setConversationCapabilityBinding', () => {
   const adapterSource = fs.readFileSync(
-    path.join(srcDir, 'shell/renderer/features/chat/chat-ai-shell-adapter.tsx'),
+    path.join(srcDir, 'shell/renderer/features/chat/chat-nimi-shell-adapter.tsx'),
     'utf8',
   );
   // Must not import the deleted bridge function
@@ -202,7 +202,7 @@ test('phase 3: AI adapter does not sync routeSnapshot to setConversationCapabili
 
 test('phase 3: AI host actions do not call toConversationCapabilityBindingSelectionFromAiRouteSnapshot', () => {
   const hostActionsSource = fs.readFileSync(
-    path.join(srcDir, 'shell/renderer/features/chat/chat-ai-shell-host-actions.ts'),
+    path.join(srcDir, 'shell/renderer/features/chat/chat-nimi-shell-host-actions.ts'),
     'utf8',
   );
   assert.equal(
@@ -273,13 +273,13 @@ test('phase 5: routeSnapshot field must not exist in AI chat production source',
 
 test('phase 5: currentRouteSnapshot is fully removed from AI adapter', () => {
   const adapterSource = fs.readFileSync(
-    path.join(srcDir, 'shell/renderer/features/chat/chat-ai-shell-adapter.tsx'),
+    path.join(srcDir, 'shell/renderer/features/chat/chat-nimi-shell-adapter.tsx'),
     'utf8',
   );
   assert.equal(
     /currentRouteSnapshot/.test(adapterSource),
     false,
-    'currentRouteSnapshot must not exist in chat-ai-shell-adapter.tsx — fully deleted in Phase 5',
+    'currentRouteSnapshot must not exist in chat-nimi-shell-adapter.tsx — fully deleted in Phase 5',
   );
 });
 

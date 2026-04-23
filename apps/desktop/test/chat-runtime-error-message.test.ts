@@ -5,7 +5,7 @@ import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import { toChatAgentRuntimeError } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
-import { toChatAiRuntimeError } from '../src/shell/renderer/features/chat/chat-ai-runtime.js';
+import { toChatAiRuntimeError } from '../src/shell/renderer/features/chat/chat-nimi-runtime.js';
 
 test('chat runtime error message prefers reason-code copy over raw action hints', () => {
   const timeoutError = createNimiError({
