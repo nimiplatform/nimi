@@ -59,6 +59,8 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 世界数据流方法：`loadWorlds`、`loadWorldDetailById`、`loadWorldAgents`、`loadWorldDetailWithAgents`、`loadWorldSemanticBundle`、`loadWorldEvents`、`loadWorldLorebooks`、`loadWorldResourceBindings`、`loadMainWorld`、`loadWorldLevelAudits`。
 
 - 使用基础设施：上下文锁、错误日志。
+- 本规则定义的是 Desktop 可消费的 world raw read surfaces，不直接宣称 page-level 最终展示 authority。
+- `world detail` 页面主展示 authority 必须由下游 bounded display seam 承接；Desktop page 不得把 `loadWorldDetailWithAgents`、`loadWorldSemanticBundle`、`loadWorldLorebooks`、`loadWorldLevelAudits` 等 raw read 重新当作多个并列主语义来源。
 - `loadWorldSemanticBundle` 返回的 `worldview.coreSystem.rules` 必须是 ordered rule item array（`key / title / value`），不得回退为 JSON object map。
 - creator audit 读取统一来自 `WorldStateDto.items` 与 `WorldHistoryListDto.items`；Desktop 不再定义独立 world mutation 读取面。
 
@@ -96,6 +98,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 探索发现方法：`loadExploreFeed`、`loadMoreExploreFeed`、`loadAgentDetails`。
 
 - 使用基础设施：上下文锁、错误日志。
+- `loadAgentDetails` 是公开 Agent 详情 raw read surface，可用于 Explore preview 与下游 consumer seam 构建；它本身不是 Agent Detail page 的最终展示 authority。
 
 ## D-DSYNC-009 — Notification 数据流
 
@@ -114,6 +117,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 
 Agent 方法：`loadMyAgents`。
 
+- Agent Detail page 的最终展示 authority 必须由下游 bounded display seam 承接，不得由 page 直接把 `loadAgentDetails` 的 mixed envelope 当作最终语义。
 - Agent LLM 相关的聊天路由与记忆读取不属于 Desktop core product DataSync contract。
 - mods 如需 Agent chat route / memory，必须通过 desktop host 注册的 data capability 获取，而不是通过 DataSync facade。
 - host memory capability 采用 cache-only 语义：只有本地已缓存并满足请求的 slice/stats 才允许返回 `local-index-only`；否则必须依赖远端成功结果。

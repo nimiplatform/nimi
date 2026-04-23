@@ -1,15 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dataSync } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
+import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
 import { prefetchWorldDetailAndHistory } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
-import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
-import { toAgentDetailData } from './agent-detail-model.js';
+import { dataSync } from '@runtime/data-sync';
+import {
+  agentDisplayDetailQueryKey,
+  fetchAgentDisplayDetail,
+} from './agent-detail-queries.js';
 import { AgentDetailView } from './agent-detail-view.js';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
@@ -18,6 +22,11 @@ export function AgentDetailPanel() {
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
@@ -25,19 +34,8 @@ export function AgentDetailPanel() {
   const agentIdentifier = String(selectedProfileId || '').trim();
 
   const profileQuery = useQuery({
-    queryKey: ['agent-profile', agentIdentifier],
-    queryFn: async () => {
-      if (!agentIdentifier) {
-        return null;
-      }
-      const result = await dataSync.loadAgentDetails(agentIdentifier);
-      // API may not return isFriend — check local contacts
-      const agentId = String(result.id || '').trim();
-      if (result.isFriend !== true && agentId && dataSync.isFriend(agentId)) {
-        return { ...result, isFriend: true };
-      }
-      return result;
-    },
+    queryKey: agentDisplayDetailQueryKey(agentIdentifier),
+    queryFn: async () => fetchAgentDisplayDetail(agentIdentifier),
     enabled: authStatus === 'authenticated' && !!agentIdentifier,
   });
   const agentLimitQuery = useQuery({
@@ -47,7 +45,7 @@ export function AgentDetailPanel() {
   });
 
   const resolvedAgentId = useMemo(() => {
-    const profileId = String(profileQuery.data?.id || '').trim();
+    const profileId = String(profileQuery.data?.agent.id || '').trim();
     if (profileId) {
       return profileId;
     }
@@ -56,32 +54,17 @@ export function AgentDetailPanel() {
 
   const agent = useMemo(() => {
     if (!profileQuery.data) return null;
-    return toAgentDetailData(profileQuery.data);
+    return profileQuery.data.agent;
   }, [profileQuery.data]);
 
-  // Extract stats from profile data (if available from API)
   const stats = useMemo(() => {
     if (!profileQuery.data) return null;
-    const statsData = parseOptionalJsonObject(profileQuery.data.stats) as (JsonObject & {
-      friendsCount?: number;
-      postsCount?: number;
-    }) | undefined;
-    return {
-      friendsCount: statsData?.friendsCount ?? 0,
-      postsCount: statsData?.postsCount ?? 0,
-      likesCount: 0, // Not available from current API, can be added later
-    };
+    return profileQuery.data.stats;
   }, [profileQuery.data]);
 
-  // World score from agent data (if available)
   const worldScore = useMemo(() => {
     if (!profileQuery.data) return 0;
-    const worldData = parseOptionalJsonObject(profileQuery.data.world) as (JsonObject & {
-      scoreEwma?: number;
-    }) | undefined;
-    return worldData?.scoreEwma ?? (
-      typeof profileQuery.data.worldScoreEwma === 'number' ? profileQuery.data.worldScoreEwma : 0
-    );
+    return profileQuery.data.worldScore;
   }, [profileQuery.data]);
 
   const handleAddFriendClick = () => {
@@ -100,6 +83,48 @@ export function AgentDetailPanel() {
     await dataSync.requestOrAcceptFriend(agentId);
     setFeedback(null);
     void agentLimitQuery.refetch();
+  };
+
+  const handleOpenChat = async () => {
+    if (!agent) {
+      return;
+    }
+    const target: AgentLocalTargetSnapshot = {
+      agentId: agent.id,
+      displayName: agent.displayName,
+      handle: agent.handle,
+      avatarUrl: agent.avatarUrl,
+      worldId: agent.worldId,
+      worldName: null,
+      bio: agent.bio,
+      ownershipType: agent.ownershipType === 'MASTER_OWNED' || agent.ownershipType === 'WORLD_OWNED'
+        ? agent.ownershipType
+        : null,
+    };
+    try {
+      const launch = await launchAgentConversationFromDisplay({
+        target,
+        setActiveTab,
+        setChatMode,
+        setSelectedTargetForSource,
+        setAgentConversationSelection,
+        setRuntimeFields,
+      });
+      setFeedback({
+        kind: 'info',
+        message: i18n.t('AgentDetail.chatOpensInConversation', {
+          defaultValue: 'Chat opens inside the agent conversation surface.',
+        }),
+      });
+      void launch;
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error
+          ? error.message
+          : i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' }),
+      });
+    }
   };
 
   if (!agentIdentifier) {
@@ -132,6 +157,7 @@ export function AgentDetailPanel() {
         loading={profileQuery.isPending}
         error={profileQuery.isError}
         onBack={navigateBack}
+        onChat={handleOpenChat}
         onOpenWorld={() => {
           if (!agent?.worldId) {
             return;

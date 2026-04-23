@@ -76,10 +76,35 @@ export function ChatAgentModeContent({
 
   const selectedTargetId = storeSelectedTargetId || host.selectedTargetId || null;
   const selectedTarget = useMemo(
-    () => selectedTargetId
-      ? allTargets.find((target) => target.id === selectedTargetId) || null
-      : null,
-    [allTargets, selectedTargetId],
+    () => {
+      if (!selectedTargetId) {
+        return null;
+      }
+      const sidebarTarget = allTargets.find((target) => target.id === selectedTargetId) || null;
+      if (sidebarTarget) {
+        return sidebarTarget;
+      }
+      if (!host.characterData) {
+        return null;
+      }
+      return {
+        id: selectedTargetId,
+        source: 'agent' as const,
+        canonicalSessionId: host.activeThreadId || selectedTargetId,
+        title: host.characterData.name || 'Agent',
+        handle: host.characterData.handle || null,
+        bio: null,
+        avatarUrl: host.characterData.avatarUrl || null,
+        avatarFallback: (host.characterData.name || 'A').charAt(0).toUpperCase(),
+        previewText: null,
+        updatedAt: null,
+        unreadCount: 0,
+        status: 'active' as const,
+        isOnline: null,
+        metadata: {},
+      };
+    },
+    [allTargets, host.activeThreadId, host.characterData, selectedTargetId],
   );
 
   const currentViewModeKey = selectedTarget

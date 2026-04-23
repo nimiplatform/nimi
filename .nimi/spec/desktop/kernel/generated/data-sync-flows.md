@@ -82,7 +82,7 @@ Source Rule: `D-DSYNC-004`
 
 ## world
 
-World listing, detail, semantic data
+World raw read surfaces for listing, detail, semantic and audit data; page-level display authority stays downstream in bounded consumer seams
 
 Source Rule: `D-DSYNC-005`
 
@@ -155,7 +155,7 @@ Source Rule: `D-DSYNC-007`
 
 ## explore
 
-Explore discovery feed and agent detail
+Explore discovery feed plus raw public agent detail read used by preview and downstream display seams
 
 Source Rule: `D-DSYNC-008`
 
@@ -194,7 +194,7 @@ Source Rule: `D-DSYNC-010`
 
 ## agent
 
-Agent listing only; Agent LLM route/memory stays in host data capabilities for mods
+Agent listing only; final agent-detail display authority stays downstream in bounded display seams, and Agent LLM route/memory stays in host data capabilities for mods
 
 Source Rule: `D-DSYNC-011`
 

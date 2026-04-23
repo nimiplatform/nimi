@@ -55,10 +55,12 @@ test('world detail prefetch is limited to first-screen queries', () => {
   const prefetchSection = worldDetailQueriesSource.slice(
     worldDetailQueriesSource.indexOf('export function prefetchWorldDetailAndHistory'),
   );
-  assert.match(prefetchSection, /worldDetailWithAgentsQueryKey/);
-  assert.match(prefetchSection, /worldHistoryQueryKey/);
-  assert.match(prefetchSection, /worldSemanticBundleQueryKey/);
+  assert.match(prefetchSection, /worldDisplayDetailQueryKey/);
+  assert.match(prefetchSection, /fetchWorldDisplayDetail/);
   assert.doesNotMatch(prefetchSection, /worldListQueryKey/);
+  assert.doesNotMatch(prefetchSection, /worldDetailWithAgentsQueryKey/);
+  assert.doesNotMatch(prefetchSection, /worldHistoryQueryKey/);
+  assert.doesNotMatch(prefetchSection, /worldSemanticBundleQueryKey/);
   assert.doesNotMatch(prefetchSection, /worldLevelAuditsQueryKey/);
   assert.doesNotMatch(prefetchSection, /worldPublicAssetsQueryKey/);
 });
@@ -73,16 +75,19 @@ test('world detail primary query adopts sdk world truth through a bounded adapte
 
 test('world detail panel can resolve the selected world from cache before world list finishes loading', () => {
   assert.match(worldDetailActivePanelSource, /queryClient\.getQueryData<ReturnType<typeof toWorldListItem>\[\]>/);
-  assert.match(worldDetailActivePanelSource, /queryClient\.getQueryData<WorldPrimaryDetailRecord>/);
+  assert.match(worldDetailActivePanelSource, /queryClient\.getQueryData<WorldDisplayDetail>/);
   assert.match(worldDetailActivePanelSource, /fetchWorldListItems\(\)/);
-  assert.match(worldDetailActivePanelSource, /worldDetailWithAgentsQueryKey\(selectedWorldId\)/);
+  assert.match(worldDetailActivePanelSource, /worldDisplayDetailQueryKey\(selectedWorldId\)/);
+  assert.match(worldDetailActivePanelSource, /toWorldListItem\(cachedWorldDetail\.primary\)/);
   assert.match(worldDetailActivePanelSource, /const selectedWorld = worldsQuery\.data\?\.find/);
   assert.match(worldDetailActivePanelSource, /if \(!selectedWorld && worldsQuery\.isPending\)/);
 });
 
 test('world detail only treats the primary query as a page-level error and defers non-critical sections', () => {
   assert.match(worldDetailSource, /const initialError = !initialLoading/);
-  assert.match(worldDetailSource, /enabled: isReady && worldCompositeQuery\.isSuccess/);
+  assert.match(worldDetailSource, /const supplementalError = display/);
+  assert.match(worldDetailSource, /Object\.values\(display\.sections\)\.some\(\(status\) => status === 'error'\)/);
+  assert.match(worldDetailSource, /const pageError = initialError \|\| supplementalError/);
   assert.match(worldDetailSource, /message: 'detail:primary-ready'/);
   assert.match(worldDetailSource, /message: 'detail:history-semantic-settled'/);
   assert.match(worldDetailSource, /message: 'detail:assets-audits-settled'/);

@@ -5,8 +5,8 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import { WorldDetail } from './world-detail';
 import {
   fetchWorldListItems,
-  type WorldPrimaryDetailRecord,
-  worldDetailWithAgentsQueryKey,
+  type WorldDisplayDetail,
+  worldDisplayDetailQueryKey,
   worldListQueryKey,
 } from './world-detail-queries';
 import { toWorldListItem, toWorldListItemFromTruth } from './world-list-model';
@@ -22,11 +22,11 @@ export function WorldDetailActivePanel() {
     ? cachedWorlds?.find((item) => item.id === selectedWorldId) ?? null
     : null;
   const cachedWorldDetail = selectedWorldId
-    ? queryClient.getQueryData<WorldPrimaryDetailRecord>(
-      worldDetailWithAgentsQueryKey(selectedWorldId),
+    ? queryClient.getQueryData<WorldDisplayDetail>(
+      worldDisplayDetailQueryKey(selectedWorldId),
     )
     : null;
-  const selectedWorldFromDetailCache = cachedWorldDetail ? toWorldListItem(cachedWorldDetail) : null;
+  const selectedWorldFromDetailCache = cachedWorldDetail ? toWorldListItem(cachedWorldDetail.primary) : null;
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),

@@ -44,7 +44,7 @@ test('world detail tab renders active world detail panel through route-state loa
 });
 
 test('world detail uses explicit initial loading state to avoid first-render flicker', () => {
-  assert.match(worldDetailSource, /const initialLoading = worldCompositeQuery\.isPending && !detail/);
+  assert.match(worldDetailSource, /const initialLoading = worldCompositeQuery\.isPending && !display/);
   assert.match(worldDetailSource, /loading=\{initialLoading\}/);
 });
 

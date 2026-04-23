@@ -71,7 +71,7 @@ flows:
       - loadWorldResourceBindings
       - loadMainWorld
       - loadWorldLevelAudits
-    description: World listing, detail, semantic data
+    description: World raw read surfaces for listing, detail, semantic and audit data; page-level display authority stays downstream in bounded consumer seams
     source_rule: D-DSYNC-005
 
   - flow: transit
@@ -122,7 +122,7 @@ flows:
       - loadExploreFeed
       - loadMoreExploreFeed
       - loadAgentDetails
-    description: Explore discovery feed and agent detail
+    description: Explore discovery feed plus raw public agent detail read used by preview and downstream display seams
     source_rule: D-DSYNC-008
 
   - flow: notification
@@ -147,5 +147,5 @@ flows:
   - flow: agent
     methods:
       - loadMyAgents
-    description: Agent listing only; Agent LLM route/memory stays in host data capabilities for mods
+    description: Agent listing only; final agent-detail display authority stays downstream in bounded display seams, and Agent LLM route/memory stays in host data capabilities for mods
     source_rule: D-DSYNC-011
