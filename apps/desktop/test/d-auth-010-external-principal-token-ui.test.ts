@@ -21,13 +21,15 @@ test('D-AUTH-010: external principal token runtime exports stay available', () =
 test('D-AUTH-010: external principal token UI flow preserves required structure', () => {
   assert.match(externalAgentUiSource, /const status = await getExternalAgentGatewayStatus\(\);/);
   assert.match(externalAgentUiSource, /const rows = await listExternalAgentTokens\(\);/);
+  assert.match(externalAgentUiSource, /setGatewayStatus\(\{/);
+  assert.match(externalAgentUiSource, /enabled: Boolean\(status\.enabled\)/);
   assert.match(externalAgentUiSource, /setIssuedToken\(issued\.token\);/);
   assert.match(externalAgentUiSource, /await revokeExternalAgentToken\(resolvedTokenId\);/);
   assert.match(externalAgentUiSource, /setIssuedToken\(''\);/);
-  assert.match(externalAgentUiSource, /const gatewayEnabled = !statusText\.includes/);
+  assert.match(externalAgentUiSource, /const canIssue = gatewayStatus\.enabled && !gatewayStatus\.loading;/);
   assert.match(externalAgentUiSource, /const ttlIsPositiveInteger =/);
   assert.match(externalAgentUiSource, /ttlValidationMessage/);
-  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !gatewayEnabled \|\| !ttlIsPositiveInteger\} onClick=\{handleIssueToken\}/);
-  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !gatewayEnabled \|\| !tokenId\.trim\(\)\}/);
-  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !gatewayEnabled\}/);
+  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !canIssue \|\| !ttlIsPositiveInteger\}/);
+  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !canIssue \|\| !tokenId\.trim\(\)\}/);
+  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !canIssue\}/);
 });

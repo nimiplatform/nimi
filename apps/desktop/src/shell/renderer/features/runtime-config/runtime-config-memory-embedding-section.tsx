@@ -4,10 +4,33 @@ import {
   createDefaultAIScopeRef,
   type MemoryEmbeddingConfig,
 } from '@nimiplatform/sdk/mod';
+import { Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-import { Card, RuntimeSelect } from './runtime-config-primitives';
+import { RuntimeSelect } from './runtime-config-primitives';
+
+const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
+const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
+const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
+const TOKEN_PANEL_CARD = 'rounded-2xl';
+
+type AvailabilityTone = 'success' | 'warning' | 'neutral';
+
+const AVAILABILITY_BADGE_CLASS: Record<AvailabilityTone, { pill: string; dot: string }> = {
+  success: {
+    pill: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]',
+    dot: 'bg-[var(--nimi-status-success)]',
+  },
+  warning: {
+    pill: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]',
+    dot: 'bg-[var(--nimi-status-warning)]',
+  },
+  neutral: {
+    pill: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)] text-[var(--nimi-text-secondary)]',
+    dot: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_65%,transparent)]',
+  },
+};
 
 type RuntimeConfigMemoryEmbeddingSectionProps = {
   state: RuntimeConfigStateV11;
@@ -107,10 +130,14 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
     }));
   }, [selectedCloudConnector]);
 
-  const availability = useMemo(() => {
+  const availability = useMemo<{
+    tone: AvailabilityTone;
+    label: string;
+    hint: string;
+  }>(() => {
     if (!config.sourceKind || !config.bindingRef) {
       return {
-        tone: 'text-[var(--nimi-text-muted)]',
+        tone: 'neutral',
         label: t('runtimeConfig.memory.notConfigured', { defaultValue: 'Not configured' }),
         hint: t('runtimeConfig.memory.notConfiguredHint', {
           defaultValue: 'Choose a cloud connector or an active local embedding model. Chat memory upgrades will use this source.',
@@ -124,7 +151,7 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
       const supportsEmbedding = hasEmbeddingCapability(connector?.modelCapabilities?.[cloudBinding.modelId]);
       if (healthy && supportsEmbedding) {
         return {
-          tone: 'text-[var(--nimi-status-success)]',
+          tone: 'success',
           label: t('runtimeConfig.memory.ready', { defaultValue: 'Ready' }),
           hint: t('runtimeConfig.memory.cloudReadyHint', {
             defaultValue: 'Cloud memory embedding is configured and the selected connector advertises text.embed support.',
@@ -132,7 +159,7 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
         };
       }
       return {
-        tone: 'text-[var(--nimi-status-warning)]',
+        tone: 'warning',
         label: t('runtimeConfig.memory.unavailable', { defaultValue: 'Unavailable' }),
         hint: t('runtimeConfig.memory.cloudUnavailableHint', {
           defaultValue: 'The saved cloud connector or model is no longer healthy, or it no longer exposes text.embed.',
@@ -148,14 +175,14 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
       ));
       return activeLocal
         ? {
-            tone: 'text-[var(--nimi-status-success)]',
+            tone: 'success',
             label: t('runtimeConfig.memory.ready', { defaultValue: 'Ready' }),
             hint: t('runtimeConfig.memory.localReadyHint', {
               defaultValue: 'A local embedding model is active and ready for future chat memory upgrades.',
             }),
           }
         : {
-            tone: 'text-[var(--nimi-status-warning)]',
+            tone: 'warning',
             label: t('runtimeConfig.memory.unavailable', { defaultValue: 'Unavailable' }),
             hint: t('runtimeConfig.memory.localUnavailableHint', {
               defaultValue: 'The saved local embedding target is no longer active. Start or install an embedding model first.',
@@ -163,7 +190,7 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
           };
     }
     return {
-      tone: 'text-[var(--nimi-text-muted)]',
+      tone: 'neutral',
       label: t('runtimeConfig.memory.notConfigured', { defaultValue: 'Not configured' }),
       hint: t('runtimeConfig.memory.notConfiguredHint', {
         defaultValue: 'Choose a cloud connector or an active local embedding model. Chat memory upgrades will use this source.',
@@ -263,19 +290,28 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
     });
   };
 
+  const badgeStyle = AVAILABILITY_BADGE_CLASS[availability.tone];
+
   return (
     <section>
-      <SectionTitle
-        description={t('runtimeConfig.memory.sectionDescription', {
-          defaultValue: 'Configure the embedding source used when chat upgrades an agent from Baseline to Standard memory.',
-        })}
-      >
+      <SectionTitle>
         {t('runtimeConfig.memory.sectionTitle', { defaultValue: 'Memory Embedding' })}
       </SectionTitle>
-      <Card className="mt-3 p-5">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,1fr)]">
+      <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-3 p-5')}>
+        {/* Header: title + availability badge */}
+        <div className="flex items-center justify-between gap-3">
+          <h3 className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>
+            {t('runtimeConfig.memory.sourceBindingTitle', { defaultValue: 'Embedding Source' })}
+          </h3>
+          <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium', badgeStyle.pill)}>
+            <span className={cn('h-1.5 w-1.5 rounded-full', badgeStyle.dot)} />
+            {availability.label}
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,1fr)]">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+            <label className={cn('mb-1.5 block text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
               {t('runtimeConfig.memory.sourceKind', { defaultValue: 'Source' })}
             </label>
             <RuntimeSelect
@@ -292,7 +328,7 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
           {config.sourceKind === 'cloud' ? (
             <>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                <label className={cn('mb-1.5 block text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
                   {t('runtimeConfig.memory.connector', { defaultValue: 'Connector' })}
                 </label>
                 <RuntimeSelect
@@ -306,7 +342,7 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                <label className={cn('mb-1.5 block text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
                   {t('runtimeConfig.memory.model', { defaultValue: 'Embedding model' })}
                 </label>
                 <RuntimeSelect
@@ -319,7 +355,7 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
             </>
           ) : config.sourceKind === 'local' ? (
             <div className="lg:col-span-2">
-              <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+              <label className={cn('mb-1.5 block text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
                 {t('runtimeConfig.memory.localTarget', { defaultValue: 'Local embedding model' })}
               </label>
               <RuntimeSelect
@@ -329,31 +365,25 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
                 placeholder={t('runtimeConfig.memory.noLocalModel', { defaultValue: 'No active local embedding model' })}
               />
             </div>
-          ) : (
-            <div className="lg:col-span-2 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3 text-sm text-[var(--nimi-text-muted)]">
-              {t('runtimeConfig.memory.sourceUnsetHint', {
-                defaultValue: 'Select a source to make chat memory upgrades explicit and predictable.',
-              })}
-            </div>
-          )}
+          ) : null}
         </div>
 
-        <div className="mt-4 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3">
+        {/* Current selection — inset panel matching Overview meta pattern */}
+        <div className="mt-5 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
+            <p className={cn('text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
               {t('runtimeConfig.memory.currentSelection', { defaultValue: 'Current selection' })}
             </p>
-            <span className={`text-sm font-semibold ${availability.tone}`}>{availability.label}</span>
+            <p className={cn('font-mono text-sm', TOKEN_TEXT_PRIMARY)}>{savedConfigLabel(config)}</p>
           </div>
-          <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{savedConfigLabel(config)}</p>
-          <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">{availability.hint}</p>
-          <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">
+          <p className={cn('mt-2 text-xs', TOKEN_TEXT_SECONDARY)}>{availability.hint}</p>
+          <p className={cn('mt-2 text-[11px]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.memory.scopeHint', {
               defaultValue: 'This is scope-level config for chat. Existing agents still move to Standard memory only when you explicitly trigger upgrade in chat.',
             })}
           </p>
         </div>
-      </Card>
+      </Surface>
     </section>
   );
 }
