@@ -6,6 +6,7 @@ import type {
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import {
   peekDesktopAISchedulingForEvidence,
   recordDesktopAISnapshot,
@@ -45,7 +46,6 @@ import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import { ensureAgentConversationSubmitRouteReady } from './conversation-submit-readiness';
 import { buildAgentUserProjectionCommit } from './chat-agent-user-projection';
 import {
-  runDesktopAgentAssistantTurnRuntimeFollowUp,
   writeDesktopAgentUserTurnMemory,
 } from './chat-agent-runtime-memory';
 import {
@@ -67,6 +67,22 @@ import type {
   UseAgentConversationHostActionsInput,
   ActiveAgentSubmit,
 } from './chat-agent-shell-host-actions-types';
+
+function safeLogAgentSubmit(details: {
+  message: string;
+  level?: 'info' | 'warn' | 'error';
+  details?: Record<string, unknown>;
+}): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  logRendererEvent({
+    level: details.level || 'info',
+    area: 'agent-chat-submit',
+    message: details.message,
+    details: details.details || {},
+  });
+}
 
 export async function submitAgentConversationTurn(input: {
   hostInput: UseAgentConversationHostActionsInput;
@@ -99,6 +115,15 @@ export async function submitAgentConversationTurn(input: {
     if (!submittedText && input.payload.attachments.length === 0) {
       return;
     }
+    safeLogAgentSubmit({
+      message: 'action:submit:start',
+      details: {
+        selectedAgentId: activeTarget.agentId,
+        activeThreadId: input.hostInput.activeThreadId,
+        submittedTextLength: submittedText.length,
+        attachmentCount: input.payload.attachments.length,
+      },
+    });
 
     let effectiveThreadRecord: AgentLocalThreadSummary | AgentLocalThreadRecord | null = input.hostInput.selectedThreadRecord;
     let effectiveThreadId = input.hostInput.activeThreadId;
@@ -110,6 +135,14 @@ export async function submitAgentConversationTurn(input: {
     effectiveThreadRecord = threadContext.thread;
     effectiveThreadId = threadContext.thread.id;
     const conversationAnchorId = threadContext.anchorBinding.conversationAnchorId;
+    safeLogAgentSubmit({
+      message: 'action:submit:thread-anchor-ready',
+      details: {
+        selectedAgentId: activeTarget.agentId,
+        threadId: effectiveThreadId,
+        conversationAnchorId,
+      },
+    });
     const fallbackThreadRecord = toFallbackThreadRecord(effectiveThreadRecord);
 
     const existingSubmit = input.activeSubmitsByThreadRef.current.get(effectiveThreadId) || null;
@@ -402,30 +435,28 @@ export async function submitAgentConversationTurn(input: {
       currentDraftText: () => input.hostInput.currentDraftTextRef.current,
       releaseSubmittingIfCurrent,
     });
+    safeLogAgentSubmit({
+      message: 'action:submit:runtime-turn-started',
+      details: {
+        selectedAgentId: activeTarget.agentId,
+        threadId: effectiveThreadId,
+        conversationAnchorId,
+        assistantTurnId,
+        userTurnId,
+      },
+    });
     activeSubmit.promise = submitRunPromise.then(() => undefined);
 
     try {
       submitSession = await submitRunPromise;
-      const committedBundle = await chatAgentStoreClient.getThreadBundle(effectiveThreadId);
-      if (!committedBundle) {
-        throw new Error('agent-local-chat-v1 assistant commit did not return a projection bundle');
-      }
-      const assistantMessage = committedBundle.messages.find((message) => message.id === assistantMessageId) || null;
-      await runDesktopAgentAssistantTurnRuntimeFollowUp({
-        agentId: activeTarget.agentId,
-        displayName: activeTarget.displayName,
-        worldId: activeTarget.worldId,
-        assistantText: normalizeText(assistantMessage?.contentText),
-        turnId: assistantTurnId,
-        threadId: effectiveThreadId,
-        history: [
-          ...history,
-          {
-            id: userProjection.firstMessageId,
-            role: 'user',
-            text: submittedText,
-          },
-        ],
+      safeLogAgentSubmit({
+        message: 'action:submit:runtime-turn-completed',
+        details: {
+          selectedAgentId: activeTarget.agentId,
+          threadId: effectiveThreadId,
+          conversationAnchorId,
+          assistantTurnId,
+        },
       });
     } catch (error) {
       const streamSnapshot = getStreamState(effectiveThreadId);
@@ -435,6 +466,18 @@ export async function submitAgentConversationTurn(input: {
           message: input.hostInput.t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }),
         }
         : toChatAgentRuntimeError(error);
+      safeLogAgentSubmit({
+        level: 'warn',
+        message: 'action:submit:runtime-turn-failed',
+        details: {
+          selectedAgentId: activeTarget.agentId,
+          threadId: effectiveThreadId,
+          conversationAnchorId,
+          assistantTurnId,
+          error: runtimeError.message,
+          reasonCode: runtimeError.code,
+        },
+      });
       if (activeSubmit.overrideRequested && runtimeError.code === 'OPERATION_ABORTED') {
         return;
       }
@@ -463,6 +506,15 @@ export async function submitAgentConversationTurn(input: {
       releaseSubmittingIfCurrent();
     }
   } catch (error) {
+    safeLogAgentSubmit({
+      level: 'error',
+      message: 'action:submit:failed-before-terminal',
+      details: {
+        error: error instanceof Error ? error.message : String(error || ''),
+        optimisticThreadId,
+        authoritativeUserCommitStored,
+      },
+    });
     if (!authoritativeUserCommitStored) {
       await rollbackOptimisticUserProjection({
         hostInput: input.hostInput,
