@@ -3,6 +3,7 @@ mod custom_todos;
 mod health_measurements;
 mod health_records;
 mod journal;
+mod orthodontic;
 mod outdoor;
 mod reminders;
 
@@ -11,6 +12,7 @@ pub use custom_todos::*;
 pub use health_measurements::*;
 pub use health_records::*;
 pub use journal::*;
+pub use orthodontic::*;
 pub use outdoor::*;
 pub use reminders::*;
 
@@ -85,10 +87,14 @@ fn parse_string_array_field(field_name: &str, raw: Option<&str>) -> Result<Vec<S
 }
 
 pub(crate) fn validate_observation_selection(
-    dimension_id: Option<&str>, selected_tags: Option<&str>, ai_tags: &[JournalTagInput],
+    dimension_id: Option<&str>,
+    selected_tags: Option<&str>,
+    ai_tags: &[JournalTagInput],
 ) -> Result<(), String> {
     let vocabulary = get_observation_vocabulary()?;
-    let normalized_dimension_id = dimension_id.map(str::trim).filter(|value| !value.is_empty());
+    let normalized_dimension_id = dimension_id
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
     let selected_tags = parse_string_array_field("selectedTags", selected_tags)?;
 
     if normalized_dimension_id.is_none() && (!selected_tags.is_empty() || !ai_tags.is_empty()) {
@@ -236,11 +242,21 @@ pub fn get_child(child_id: String) -> Result<Option<Child>, String> {
 
 #[tauri::command]
 pub fn create_child(
-    child_id: String, family_id: String, display_name: String, gender: String,
-    birth_date: String, birth_weight_kg: Option<f64>, birth_height_cm: Option<f64>,
-    birth_head_circ_cm: Option<f64>, avatar_path: Option<String>, nurture_mode: String,
-    nurture_mode_overrides: Option<String>, allergies: Option<String>,
-    medical_notes: Option<String>, recorder_profiles: Option<String>, now: String,
+    child_id: String,
+    family_id: String,
+    display_name: String,
+    gender: String,
+    birth_date: String,
+    birth_weight_kg: Option<f64>,
+    birth_height_cm: Option<f64>,
+    birth_head_circ_cm: Option<f64>,
+    avatar_path: Option<String>,
+    nurture_mode: String,
+    nurture_mode_overrides: Option<String>,
+    allergies: Option<String>,
+    medical_notes: Option<String>,
+    recorder_profiles: Option<String>,
+    now: String,
 ) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
@@ -289,10 +305,19 @@ pub fn get_children(family_id: String) -> Result<Vec<Child>, String> {
 
 #[tauri::command]
 pub fn update_child(
-    child_id: String, display_name: String, gender: String, birth_date: String,
-    birth_weight_kg: Option<f64>, birth_height_cm: Option<f64>, birth_head_circ_cm: Option<f64>,
-    avatar_path: Option<String>, nurture_mode: String, nurture_mode_overrides: Option<String>,
-    allergies: Option<String>, medical_notes: Option<String>, recorder_profiles: Option<String>,
+    child_id: String,
+    display_name: String,
+    gender: String,
+    birth_date: String,
+    birth_weight_kg: Option<f64>,
+    birth_height_cm: Option<f64>,
+    birth_head_circ_cm: Option<f64>,
+    avatar_path: Option<String>,
+    nurture_mode: String,
+    nurture_mode_overrides: Option<String>,
+    allergies: Option<String>,
+    medical_notes: Option<String>,
+    recorder_profiles: Option<String>,
     now: String,
 ) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
@@ -331,11 +356,13 @@ pub fn set_app_setting(key: String, value: String, now: String) -> Result<(), St
 #[tauri::command]
 pub fn get_app_setting(key: String) -> Result<Option<String>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    let result = conn.query_row(
-        "SELECT value FROM app_settings WHERE key = ?1",
-        params![key],
-        |row| row.get(0),
-    ).ok();
+    let result = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key = ?1",
+            params![key],
+            |row| row.get(0),
+        )
+        .ok();
     Ok(result)
 }
 

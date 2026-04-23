@@ -130,9 +130,17 @@ pub fn get_profile_section_summaries(child_id: String) -> Result<Vec<SectionSumm
 
 #[tauri::command]
 pub fn insert_vaccine_record(
-    record_id: String, child_id: String, rule_id: String, vaccine_name: String,
-    vaccinated_at: String, age_months: i32, batch_number: Option<String>,
-    hospital: Option<String>, adverse_reaction: Option<String>, photo_path: Option<String>, now: String,
+    record_id: String,
+    child_id: String,
+    rule_id: String,
+    vaccine_name: String,
+    vaccinated_at: String,
+    age_months: i32,
+    batch_number: Option<String>,
+    hospital: Option<String>,
+    adverse_reaction: Option<String>,
+    photo_path: Option<String>,
+    now: String,
 ) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
@@ -163,28 +171,61 @@ pub struct VaccineRecord {
 pub fn get_vaccine_records(child_id: String) -> Result<Vec<VaccineRecord>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare("SELECT recordId, childId, ruleId, vaccineName, vaccinatedAt, ageMonths, batchNumber, hospital, adverseReaction, photoPath, createdAt FROM vaccine_records WHERE childId = ?1 ORDER BY vaccinatedAt").map_err(|e| format!("get_vaccine_records: {e}"))?;
-    let rows = stmt.query_map(params![child_id], |row| {
-        Ok(VaccineRecord {
-            record_id: row.get(0)?,
-            child_id: row.get(1)?,
-            rule_id: row.get(2)?,
-            vaccine_name: row.get(3)?,
-            vaccinated_at: row.get(4)?,
-            age_months: row.get(5)?,
-            batch_number: row.get(6)?,
-            hospital: row.get(7)?,
-            adverse_reaction: row.get(8)?,
-            photo_path: row.get(9)?,
-            created_at: row.get(10)?,
+    let rows = stmt
+        .query_map(params![child_id], |row| {
+            Ok(VaccineRecord {
+                record_id: row.get(0)?,
+                child_id: row.get(1)?,
+                rule_id: row.get(2)?,
+                vaccine_name: row.get(3)?,
+                vaccinated_at: row.get(4)?,
+                age_months: row.get(5)?,
+                batch_number: row.get(6)?,
+                hospital: row.get(7)?,
+                adverse_reaction: row.get(8)?,
+                photo_path: row.get(9)?,
+                created_at: row.get(10)?,
+            })
         })
-    }).map_err(|e| format!("get_vaccine_records: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_vaccine_records collect: {e}"))
+        .map_err(|e| format!("get_vaccine_records: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_vaccine_records collect: {e}"))
 }
 
 // ── Dental Records ────────────────────────────────────────
 
-fn is_supported_dental_event_type(t: &str) -> bool {
-    matches!(t, "eruption" | "loss" | "caries" | "cleaning" | "ortho-assessment")
+/// Dental eventTypes admitted for NEW writes via the insert/update commands.
+/// Excludes `ortho-start` (historical/read-only per PO-PROF-008) and the
+/// ortho-lifecycle events (review/adjustment/issue/end) which are authored
+/// exclusively by the orthodontic workflow's clinical-event shortcut — those
+/// have their own writer path and are not admitted from the generic dental
+/// form to prevent orphan-style flows.
+const SUPPORTED_DENTAL_EVENT_TYPES_FOR_WRITE: &str =
+    "eruption | loss | caries | filling | cleaning | fluoride | sealant | ortho-assessment | checkup";
+
+fn is_writable_dental_event_type(t: &str) -> bool {
+    matches!(
+        t,
+        "eruption"
+            | "loss"
+            | "caries"
+            | "filling"
+            | "cleaning"
+            | "fluoride"
+            | "sealant"
+            | "ortho-assessment"
+            | "checkup"
+    )
+}
+
+/// Ortho-lifecycle eventTypes admitted ONLY from the orthodontic workflow's
+/// clinical-event writer (see insert_dental_record_for_ortho_lifecycle).
+/// The generic dental form's insert/update must reject these.
+fn is_ortho_lifecycle_event_type(t: &str) -> bool {
+    matches!(
+        t,
+        "ortho-review" | "ortho-adjustment" | "ortho-issue" | "ortho-end"
+    )
 }
 
 #[derive(Debug, Serialize)]
@@ -206,34 +247,72 @@ pub struct DentalRecord {
 
 #[tauri::command]
 pub fn insert_dental_record(
-    record_id: String, child_id: String, event_type: String,
-    tooth_id: Option<String>, tooth_set: Option<String>, event_date: String,
-    age_months: i32, severity: Option<String>, hospital: Option<String>,
-    notes: Option<String>, photo_path: Option<String>, now: String,
+    record_id: String,
+    child_id: String,
+    event_type: String,
+    tooth_id: Option<String>,
+    tooth_set: Option<String>,
+    event_date: String,
+    age_months: i32,
+    severity: Option<String>,
+    hospital: Option<String>,
+    notes: Option<String>,
+    photo_path: Option<String>,
+    now: String,
 ) -> Result<(), String> {
-    if !is_supported_dental_event_type(event_type.trim()) {
+    if !is_writable_dental_event_type(event_type.trim()) {
+        let reason = if event_type.trim() == "ortho-start" {
+            "ortho-start is historical/read-only (PO-PROF-008); new orthodontic treatments must be modeled through orthodontic_cases and orthodontic_appliances"
+        } else if is_ortho_lifecycle_event_type(event_type.trim()) {
+            "orthodontic lifecycle events (review/adjustment/issue/end) must be written via the orthodontic workflow's clinical-event writer, not the generic dental form"
+        } else {
+            "unsupported dental eventType"
+        };
         return Err(format!(
-            "unsupported dental eventType \"{event_type}\"; expected eruption | loss | caries | cleaning | ortho-assessment",
+            "{reason}: \"{event_type}\"; expected {SUPPORTED_DENTAL_EVENT_TYPES_FOR_WRITE}",
         ));
     }
-    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    conn.execute(
-        "INSERT INTO dental_records (recordId, childId, eventType, toothId, toothSet, eventDate, ageMonths, severity, hospital, notes, photoPath, createdAt) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
-        params![record_id, child_id, event_type, tooth_id, tooth_set, event_date, age_months, severity, hospital, notes, photo_path, now],
-    ).map_err(|e| format!("insert_dental_record: {e}"))?;
+    {
+        let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT INTO dental_records (recordId, childId, eventType, toothId, toothSet, eventDate, ageMonths, severity, hospital, notes, photoPath, createdAt) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+            params![record_id, child_id, event_type, tooth_id, tooth_set, event_date, age_months, severity, hospital, notes, photo_path, now],
+        ).map_err(|e| format!("insert_dental_record: {e}"))?;
+    }
+    // Seed admitted dental follow-up reminder_state for triggering eventTypes
+    // (PO-DEN-FOLLOWUP-*). No-op for non-triggering types.
+    super::orthodontic::ensure_dental_followup_reminder(
+        child_id.as_str(),
+        event_type.trim(),
+        event_date.as_str(),
+        now.as_str(),
+    )?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn update_dental_record(
-    record_id: String, event_type: String,
-    tooth_id: Option<String>, tooth_set: Option<String>, event_date: String,
-    age_months: i32, severity: Option<String>, hospital: Option<String>,
-    notes: Option<String>, photo_path: Option<String>,
+    record_id: String,
+    event_type: String,
+    tooth_id: Option<String>,
+    tooth_set: Option<String>,
+    event_date: String,
+    age_months: i32,
+    severity: Option<String>,
+    hospital: Option<String>,
+    notes: Option<String>,
+    photo_path: Option<String>,
 ) -> Result<(), String> {
-    if !is_supported_dental_event_type(event_type.trim()) {
+    if !is_writable_dental_event_type(event_type.trim()) {
+        let reason = if event_type.trim() == "ortho-start" {
+            "ortho-start is historical/read-only (PO-PROF-008); new orthodontic treatments must be modeled through orthodontic_cases and orthodontic_appliances"
+        } else if is_ortho_lifecycle_event_type(event_type.trim()) {
+            "orthodontic lifecycle events (review/adjustment/issue/end) must be written via the orthodontic workflow's clinical-event writer, not the generic dental form"
+        } else {
+            "unsupported dental eventType"
+        };
         return Err(format!(
-            "unsupported dental eventType \"{event_type}\"; expected eruption | loss | caries | cleaning | ortho-assessment",
+            "{reason}: \"{event_type}\"; expected {SUPPORTED_DENTAL_EVENT_TYPES_FOR_WRITE}",
         ));
     }
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
@@ -247,8 +326,43 @@ pub fn update_dental_record(
 #[tauri::command]
 pub fn delete_dental_record(record_id: String) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM dental_records WHERE recordId = ?1", params![record_id])
-        .map_err(|e| format!("delete_dental_record: {e}"))?;
+    conn.execute(
+        "DELETE FROM dental_records WHERE recordId = ?1",
+        params![record_id],
+    )
+    .map_err(|e| format!("delete_dental_record: {e}"))?;
+    Ok(())
+}
+
+/// Orthodontic workflow's clinical-event writer.
+///
+/// Admits the four ortho lifecycle eventTypes rejected by the generic dental
+/// writer. Called from the orthodontic UI shortcut (e.g. "记录一次复诊").
+/// The row is written into `dental_records` so it shows up in the dental
+/// clinical timeline (PO-ORTHO-001 cross-write rule).
+#[tauri::command]
+pub fn insert_ortho_clinical_dental_record(
+    record_id: String,
+    child_id: String,
+    event_type: String,
+    event_date: String,
+    age_months: i32,
+    hospital: Option<String>,
+    notes: Option<String>,
+    now: String,
+) -> Result<(), String> {
+    let et = event_type.trim();
+    if !is_ortho_lifecycle_event_type(et) {
+        return Err(format!(
+            "insert_ortho_clinical_dental_record rejects non-ortho eventType \"{event_type}\"; expected ortho-review | ortho-adjustment | ortho-issue | ortho-end",
+        ));
+    }
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO dental_records (recordId, childId, eventType, toothId, toothSet, eventDate, ageMonths, severity, hospital, notes, photoPath, createdAt) VALUES (?1,?2,?3,NULL,NULL,?4,?5,NULL,?6,?7,NULL,?8)",
+        params![record_id, child_id, event_type, event_date, age_months, hospital, notes, now],
+    )
+    .map_err(|e| format!("insert_ortho_clinical_dental_record: {e}"))?;
     Ok(())
 }
 
@@ -256,23 +370,26 @@ pub fn delete_dental_record(record_id: String) -> Result<(), String> {
 pub fn get_dental_records(child_id: String) -> Result<Vec<DentalRecord>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare("SELECT recordId, childId, eventType, toothId, toothSet, eventDate, ageMonths, severity, hospital, notes, photoPath, createdAt FROM dental_records WHERE childId = ?1 ORDER BY eventDate").map_err(|e| format!("get_dental_records: {e}"))?;
-    let rows = stmt.query_map(params![child_id], |row| {
-        Ok(DentalRecord {
-            record_id: row.get(0)?,
-            child_id: row.get(1)?,
-            event_type: row.get(2)?,
-            tooth_id: row.get(3)?,
-            tooth_set: row.get(4)?,
-            event_date: row.get(5)?,
-            age_months: row.get(6)?,
-            severity: row.get(7)?,
-            hospital: row.get(8)?,
-            notes: row.get(9)?,
-            photo_path: row.get(10)?,
-            created_at: row.get(11)?,
+    let rows = stmt
+        .query_map(params![child_id], |row| {
+            Ok(DentalRecord {
+                record_id: row.get(0)?,
+                child_id: row.get(1)?,
+                event_type: row.get(2)?,
+                tooth_id: row.get(3)?,
+                tooth_set: row.get(4)?,
+                event_date: row.get(5)?,
+                age_months: row.get(6)?,
+                severity: row.get(7)?,
+                hospital: row.get(8)?,
+                notes: row.get(9)?,
+                photo_path: row.get(10)?,
+                created_at: row.get(11)?,
+            })
         })
-    }).map_err(|e| format!("get_dental_records: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_dental_records collect: {e}"))
+        .map_err(|e| format!("get_dental_records: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_dental_records collect: {e}"))
 }
 
 // ── Allergy Records ───────────────────────────────────────
@@ -310,20 +427,32 @@ pub struct AllergyRecord {
 
 #[tauri::command]
 pub fn insert_allergy_record(
-    record_id: String, child_id: String, allergen: String, category: String,
-    reaction_type: Option<String>, severity: String,
-    diagnosed_at: Option<String>, age_months_at_diagnosis: Option<i32>,
-    status: String, status_changed_at: Option<String>, confirmed_by: Option<String>,
-    notes: Option<String>, now: String,
+    record_id: String,
+    child_id: String,
+    allergen: String,
+    category: String,
+    reaction_type: Option<String>,
+    severity: String,
+    diagnosed_at: Option<String>,
+    age_months_at_diagnosis: Option<i32>,
+    status: String,
+    status_changed_at: Option<String>,
+    confirmed_by: Option<String>,
+    notes: Option<String>,
+    now: String,
 ) -> Result<(), String> {
     if !is_supported_allergy_category(category.trim()) {
         return Err(format!("unsupported allergy category \"{category}\"; expected food | drug | environmental | contact | other"));
     }
     if !is_supported_allergy_severity(severity.trim()) {
-        return Err(format!("unsupported allergy severity \"{severity}\"; expected mild | moderate | severe"));
+        return Err(format!(
+            "unsupported allergy severity \"{severity}\"; expected mild | moderate | severe"
+        ));
     }
     if !is_supported_allergy_status(status.trim()) {
-        return Err(format!("unsupported allergy status \"{status}\"; expected active | outgrown | uncertain"));
+        return Err(format!(
+            "unsupported allergy status \"{status}\"; expected active | outgrown | uncertain"
+        ));
     }
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
@@ -335,10 +464,16 @@ pub fn insert_allergy_record(
 
 #[tauri::command]
 pub fn update_allergy_record(
-    record_id: String, allergen: String, category: String,
-    reaction_type: Option<String>, severity: String, status: String,
-    status_changed_at: Option<String>, confirmed_by: Option<String>,
-    notes: Option<String>, now: String,
+    record_id: String,
+    allergen: String,
+    category: String,
+    reaction_type: Option<String>,
+    severity: String,
+    status: String,
+    status_changed_at: Option<String>,
+    confirmed_by: Option<String>,
+    notes: Option<String>,
+    now: String,
 ) -> Result<(), String> {
     if !is_supported_allergy_category(category.trim()) {
         return Err(format!("unsupported allergy category \"{category}\""));
@@ -361,25 +496,28 @@ pub fn update_allergy_record(
 pub fn get_allergy_records(child_id: String) -> Result<Vec<AllergyRecord>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare("SELECT recordId, childId, allergen, category, reactionType, severity, diagnosedAt, ageMonthsAtDiagnosis, status, statusChangedAt, confirmedBy, notes, createdAt, updatedAt FROM allergy_records WHERE childId = ?1 ORDER BY createdAt DESC").map_err(|e| format!("get_allergy_records: {e}"))?;
-    let rows = stmt.query_map(params![child_id], |row| {
-        Ok(AllergyRecord {
-            record_id: row.get(0)?,
-            child_id: row.get(1)?,
-            allergen: row.get(2)?,
-            category: row.get(3)?,
-            reaction_type: row.get(4)?,
-            severity: row.get(5)?,
-            diagnosed_at: row.get(6)?,
-            age_months_at_diagnosis: row.get(7)?,
-            status: row.get(8)?,
-            status_changed_at: row.get(9)?,
-            confirmed_by: row.get(10)?,
-            notes: row.get(11)?,
-            created_at: row.get(12)?,
-            updated_at: row.get(13)?,
+    let rows = stmt
+        .query_map(params![child_id], |row| {
+            Ok(AllergyRecord {
+                record_id: row.get(0)?,
+                child_id: row.get(1)?,
+                allergen: row.get(2)?,
+                category: row.get(3)?,
+                reaction_type: row.get(4)?,
+                severity: row.get(5)?,
+                diagnosed_at: row.get(6)?,
+                age_months_at_diagnosis: row.get(7)?,
+                status: row.get(8)?,
+                status_changed_at: row.get(9)?,
+                confirmed_by: row.get(10)?,
+                notes: row.get(11)?,
+                created_at: row.get(12)?,
+                updated_at: row.get(13)?,
+            })
         })
-    }).map_err(|e| format!("get_allergy_records: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_allergy_records collect: {e}"))
+        .map_err(|e| format!("get_allergy_records: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_allergy_records collect: {e}"))
 }
 
 // ── Sleep Records ─────────────────────────────────────────
@@ -403,10 +541,18 @@ pub struct SleepRecord {
 
 #[tauri::command]
 pub fn upsert_sleep_record(
-    record_id: String, child_id: String, sleep_date: String,
-    bedtime: Option<String>, wake_time: Option<String>, duration_minutes: Option<i32>,
-    nap_count: Option<i32>, nap_minutes: Option<i32>, quality: Option<String>,
-    age_months: i32, notes: Option<String>, now: String,
+    record_id: String,
+    child_id: String,
+    sleep_date: String,
+    bedtime: Option<String>,
+    wake_time: Option<String>,
+    duration_minutes: Option<i32>,
+    nap_count: Option<i32>,
+    nap_minutes: Option<i32>,
+    quality: Option<String>,
+    age_months: i32,
+    notes: Option<String>,
+    now: String,
 ) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
@@ -419,8 +565,11 @@ pub fn upsert_sleep_record(
 #[tauri::command]
 pub fn delete_sleep_record(record_id: String) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM sleep_records WHERE recordId = ?1", params![record_id])
-        .map_err(|e| format!("delete_sleep_record: {e}"))?;
+    conn.execute(
+        "DELETE FROM sleep_records WHERE recordId = ?1",
+        params![record_id],
+    )
+    .map_err(|e| format!("delete_sleep_record: {e}"))?;
     Ok(())
 }
 
@@ -429,29 +578,35 @@ pub fn get_sleep_records(child_id: String, limit: Option<i32>) -> Result<Vec<Sle
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let lim = limit.unwrap_or(90);
     let mut stmt = conn.prepare("SELECT recordId, childId, sleepDate, bedtime, wakeTime, durationMinutes, napCount, napMinutes, quality, ageMonths, notes, createdAt FROM sleep_records WHERE childId = ?1 ORDER BY sleepDate DESC LIMIT ?2").map_err(|e| format!("get_sleep_records: {e}"))?;
-    let rows = stmt.query_map(params![child_id, lim], |row| {
-        Ok(SleepRecord {
-            record_id: row.get(0)?,
-            child_id: row.get(1)?,
-            sleep_date: row.get(2)?,
-            bedtime: row.get(3)?,
-            wake_time: row.get(4)?,
-            duration_minutes: row.get(5)?,
-            nap_count: row.get(6)?,
-            nap_minutes: row.get(7)?,
-            quality: row.get(8)?,
-            age_months: row.get(9)?,
-            notes: row.get(10)?,
-            created_at: row.get(11)?,
+    let rows = stmt
+        .query_map(params![child_id, lim], |row| {
+            Ok(SleepRecord {
+                record_id: row.get(0)?,
+                child_id: row.get(1)?,
+                sleep_date: row.get(2)?,
+                bedtime: row.get(3)?,
+                wake_time: row.get(4)?,
+                duration_minutes: row.get(5)?,
+                nap_count: row.get(6)?,
+                nap_minutes: row.get(7)?,
+                quality: row.get(8)?,
+                age_months: row.get(9)?,
+                notes: row.get(10)?,
+                created_at: row.get(11)?,
+            })
         })
-    }).map_err(|e| format!("get_sleep_records: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_sleep_records collect: {e}"))
+        .map_err(|e| format!("get_sleep_records: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_sleep_records collect: {e}"))
 }
 
 // ── Medical Events ────────────────────────────────────────
 
 fn is_supported_medical_event_type(t: &str) -> bool {
-    matches!(t, "visit" | "emergency" | "hospitalization" | "checkup" | "medication" | "other")
+    matches!(
+        t,
+        "visit" | "emergency" | "hospitalization" | "checkup" | "medication" | "other"
+    )
 }
 
 #[derive(Debug, Serialize)]
@@ -477,11 +632,21 @@ pub struct MedicalEvent {
 
 #[tauri::command]
 pub fn insert_medical_event(
-    event_id: String, child_id: String, event_type: String, title: String,
-    event_date: String, end_date: Option<String>, age_months: i32,
-    severity: Option<String>, result: Option<String>, hospital: Option<String>,
-    medication: Option<String>, dosage: Option<String>, notes: Option<String>,
-    photo_path: Option<String>, now: String,
+    event_id: String,
+    child_id: String,
+    event_type: String,
+    title: String,
+    event_date: String,
+    end_date: Option<String>,
+    age_months: i32,
+    severity: Option<String>,
+    result: Option<String>,
+    hospital: Option<String>,
+    medication: Option<String>,
+    dosage: Option<String>,
+    notes: Option<String>,
+    photo_path: Option<String>,
+    now: String,
 ) -> Result<(), String> {
     if !is_supported_medical_event_type(event_type.trim()) {
         return Err(format!(
@@ -498,10 +663,18 @@ pub fn insert_medical_event(
 
 #[tauri::command]
 pub fn update_medical_event(
-    event_id: String, title: String, event_date: String, end_date: Option<String>,
-    severity: Option<String>, result: Option<String>, hospital: Option<String>,
-    medication: Option<String>, dosage: Option<String>, notes: Option<String>,
-    photo_path: Option<String>, now: String,
+    event_id: String,
+    title: String,
+    event_date: String,
+    end_date: Option<String>,
+    severity: Option<String>,
+    result: Option<String>,
+    hospital: Option<String>,
+    medication: Option<String>,
+    dosage: Option<String>,
+    notes: Option<String>,
+    photo_path: Option<String>,
+    now: String,
 ) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
@@ -515,25 +688,28 @@ pub fn update_medical_event(
 pub fn get_medical_events(child_id: String) -> Result<Vec<MedicalEvent>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare("SELECT eventId, childId, eventType, title, eventDate, endDate, ageMonths, severity, result, hospital, medication, dosage, notes, photoPath, createdAt, updatedAt FROM medical_events WHERE childId = ?1 ORDER BY eventDate DESC").map_err(|e| format!("get_medical_events: {e}"))?;
-    let rows = stmt.query_map(params![child_id], |row| {
-        Ok(MedicalEvent {
-            event_id: row.get(0)?,
-            child_id: row.get(1)?,
-            event_type: row.get(2)?,
-            title: row.get(3)?,
-            event_date: row.get(4)?,
-            end_date: row.get(5)?,
-            age_months: row.get(6)?,
-            severity: row.get(7)?,
-            result: row.get(8)?,
-            hospital: row.get(9)?,
-            medication: row.get(10)?,
-            dosage: row.get(11)?,
-            notes: row.get(12)?,
-            photo_path: row.get(13)?,
-            created_at: row.get(14)?,
-            updated_at: row.get(15)?,
+    let rows = stmt
+        .query_map(params![child_id], |row| {
+            Ok(MedicalEvent {
+                event_id: row.get(0)?,
+                child_id: row.get(1)?,
+                event_type: row.get(2)?,
+                title: row.get(3)?,
+                event_date: row.get(4)?,
+                end_date: row.get(5)?,
+                age_months: row.get(6)?,
+                severity: row.get(7)?,
+                result: row.get(8)?,
+                hospital: row.get(9)?,
+                medication: row.get(10)?,
+                dosage: row.get(11)?,
+                notes: row.get(12)?,
+                photo_path: row.get(13)?,
+                created_at: row.get(14)?,
+                updated_at: row.get(15)?,
+            })
         })
-    }).map_err(|e| format!("get_medical_events: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_medical_events collect: {e}"))
+        .map_err(|e| format!("get_medical_events: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_medical_events collect: {e}"))
 }
