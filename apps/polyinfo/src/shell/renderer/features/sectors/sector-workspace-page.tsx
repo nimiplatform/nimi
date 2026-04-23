@@ -193,7 +193,7 @@ export function SectorWorkspacePage() {
   }
 
   return (
-    <div className="grid h-[calc(100vh-5.25rem)] min-h-0 gap-2 overflow-hidden xl:grid-cols-[minmax(0,1fr)_352px]">
+    <div className="grid h-full min-h-0 gap-2 overflow-hidden xl:grid-cols-[minmax(0,1fr)_352px]">
       <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
         <div className="flex items-center justify-between border-b border-white/8 px-6 py-4">
           <div className="flex min-w-0 items-center gap-3">

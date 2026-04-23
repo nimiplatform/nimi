@@ -62,6 +62,7 @@ export type AppStoreState = {
   setSectorDraftProposal: (sectorSlug: string, proposal: DraftProposal | null) => void;
   dismissSectorDraftProposal: (sectorSlug: string) => void;
   confirmSectorDraftProposal: (sectorSlug: string) => void;
+  resetSectorConversation: (sectorSlug: string) => void;
   recordAnalysisSnapshot: (sectorSlug: string, snapshot: AnalysisSnapshot) => void;
 };
 

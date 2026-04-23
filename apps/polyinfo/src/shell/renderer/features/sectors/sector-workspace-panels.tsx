@@ -17,6 +17,7 @@ import {
   fetchEventBySlug,
   fetchSectorHistory,
   fetchSectorMarkets,
+  mergeSectorMarketBatches,
   parsePolymarketEventSlugFromUrl,
   type MarketConnectionState,
 } from '@renderer/data/polymarket.js';
@@ -26,6 +27,7 @@ import type {
   AnalystMessage,
   ImportedEventRecord,
   PreparedMarket,
+  SectorMarketBatch,
   SectorTag,
   TaxonomyOverlay,
   WindowKey,
@@ -134,27 +136,6 @@ function ProposalCard({ sectorSlug }: { sectorSlug: string }) {
   );
 }
 
-function summarizeEventLogic(input: {
-  eventMarkets: PreparedMarket[];
-  analysisMarketsById: Map<string, AnalysisPackageMarket>;
-  overlay: { narratives: Array<{ title: string }>; coreVariables: Array<{ title: string }> };
-}): { narrativeTitle?: string; coreIssueTitle?: string } {
-  const { eventMarkets, analysisMarketsById, overlay } = input;
-  for (const market of eventMarkets) {
-    const analyzedMarket = analysisMarketsById.get(market.id);
-    if (analyzedMarket?.narrativeTitle || analyzedMarket?.coreVariableTitles[0]) {
-      return {
-        narrativeTitle: analyzedMarket.narrativeTitle,
-        coreIssueTitle: analyzedMarket.coreVariableTitles[0],
-      };
-    }
-  }
-  return {
-    narrativeTitle: overlay.narratives[0]?.title,
-    coreIssueTitle: overlay.coreVariables[0]?.title,
-  };
-}
-
 function groupOfficialEvents(markets: PreparedMarket[]) {
   const groups = new Map<string, { id: string; title: string; markets: PreparedMarket[]; staleState: 'active'; staleReason?: string }>();
   for (const market of markets) {
@@ -176,6 +157,7 @@ function groupOfficialEvents(markets: PreparedMarket[]) {
 
 const INITIAL_VISIBLE_EVENT_COUNT = 18;
 const VISIBLE_EVENT_INCREMENT = 18;
+const INITIAL_SECTOR_EVENT_PAGE_COUNT = 2;
 
 type MarketBoardPanelProps = {
   sectorId: string;
@@ -218,6 +200,8 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
   const [importUrl, setImportUrl] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [appendedOfficialBatches, setAppendedOfficialBatches] = useState<SectorMarketBatch[]>([]);
+  const [isLoadingMoreEvents, setIsLoadingMoreEvents] = useState(false);
   const lastAnalysisReadyRef = useRef(false);
 
   useEffect(() => {
@@ -227,11 +211,13 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     setIsImporting(false);
     setLiveByTokenId({});
     setConnectionStatus('closed');
+    setAppendedOfficialBatches([]);
+    setIsLoadingMoreEvents(false);
   }, [sectorId]);
 
   const marketsQuery = useQuery({
-    queryKey: ['polyinfo', 'official-sector-markets', sectorId],
-    queryFn: () => fetchSectorMarkets(activeOfficialSector!),
+    queryKey: ['polyinfo', 'official-sector-markets', sectorId, INITIAL_SECTOR_EVENT_PAGE_COUNT],
+    queryFn: () => fetchSectorMarkets(activeOfficialSector!, { pageCount: INITIAL_SECTOR_EVENT_PAGE_COUNT }),
     enabled: Boolean(activeOfficialSector),
     staleTime: 30 * 60 * 1000,
     gcTime: 6 * 60 * 60 * 1000,
@@ -239,8 +225,12 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     refetchOnMount: false,
     refetchOnReconnect: false,
   });
-
-  const marketInventory = activeOfficialSector ? (marketsQuery.data ?? []) : activeImportedMarkets;
+  const officialMarketBatch = useMemo(
+    () => mergeSectorMarketBatches([marketsQuery.data ?? { markets: [], hasMore: false }, ...appendedOfficialBatches]),
+    [appendedOfficialBatches, marketsQuery.data],
+  );
+  const marketInventory = activeOfficialSector ? officialMarketBatch.markets : activeImportedMarkets;
+  const hasMoreOfficialEvents = Boolean(activeOfficialSector && officialMarketBatch.hasMore);
   const marketInventoryKey = useMemo(
     () => marketInventory.map((market) => market.id).join(','),
     [marketInventory],
@@ -352,6 +342,8 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
             onClick={() => {
               onRequestMarketData();
               if (marketDataRequested && activeOfficialSector) {
+                setAppendedOfficialBatches([]);
+                setVisibleEventCount(INITIAL_VISIBLE_EVENT_COUNT);
                 void marketsQuery.refetch();
               }
               if (marketDataRequested) {
@@ -397,26 +389,20 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="hidden border-b border-white/8 px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-slate-500 xl:grid xl:grid-cols-[1.4fr_1.25fr_0.45fr_1fr] xl:gap-4">
+          <div className="hidden border-b border-white/8 px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-slate-500 xl:grid xl:grid-cols-[1.25fr_1.95fr_92px] xl:gap-5">
             <span>事件 (Event)</span>
             <span>选项概率 (Top 5)</span>
             <span>总成交量</span>
-            <span>映射逻辑 (Logic Node)</span>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {visibleEventCards.map((event) => {
               const eventMarkets = 'cachedEventPayload' in event ? event.cachedEventPayload.markets : event.markets;
               const eventVolume = eventMarkets.reduce((sum, market) => sum + market.volumeNum, 0);
-              const logic = summarizeEventLogic({
-                eventMarkets,
-                analysisMarketsById,
-                overlay,
-              });
               const outcomeDisplay = buildEventOutcomeDisplay(eventMarkets, analysisMarketsById);
 
               return (
                 <div key={event.id} className="border-b border-white/8 last:border-b-0">
-                  <div className="grid gap-4 px-5 py-5 xl:grid-cols-[1.4fr_1.25fr_0.45fr_1fr]">
+                  <div className="grid gap-5 px-5 py-5 xl:grid-cols-[1.25fr_1.95fr_92px]">
                     <div className="min-w-0">
                       <div className="flex items-start justify-between gap-3">
                         <h3
@@ -470,26 +456,45 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                       })}
                     </div>
 
-                    <div className="text-[13px] font-medium text-slate-300">
+                    <div className="text-right text-[13px] font-medium text-slate-300">
                       ${formatCompactMoney(eventVolume)}
-                    </div>
-
-                    <div className="border-l border-white/8 pl-4 text-[12px] text-slate-400">
-                      <p className="text-sky-200">N:: {logic.narrativeTitle ?? '待选择'}</p>
-                      <p className="mt-2 truncate">V:: {logic.coreIssueTitle ?? '待选择'}</p>
                     </div>
                   </div>
                 </div>
               );
             })}
-            {!isCustomSector && visibleEventCount < eventCards.length ? (
+            {!isCustomSector && (visibleEventCount < eventCards.length || hasMoreOfficialEvents) ? (
               <div className="border-t border-white/8 px-5 py-4">
                 <button
                   type="button"
-                  onClick={() => setVisibleEventCount((current) => current + VISIBLE_EVENT_INCREMENT)}
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-200 hover:bg-white/[0.06]"
+                  onClick={async () => {
+                    if (visibleEventCount < eventCards.length) {
+                      setVisibleEventCount((current) => current + VISIBLE_EVENT_INCREMENT);
+                      return;
+                    }
+                    if (!activeOfficialSector || !officialMarketBatch.nextCursor || isLoadingMoreEvents) {
+                      return;
+                    }
+                    setIsLoadingMoreEvents(true);
+                    try {
+                      const nextBatch = await fetchSectorMarkets(activeOfficialSector, {
+                        afterCursor: officialMarketBatch.nextCursor,
+                        pageCount: 1,
+                      });
+                      setAppendedOfficialBatches((current) => [...current, nextBatch]);
+                      setVisibleEventCount((current) => current + VISIBLE_EVENT_INCREMENT);
+                    } finally {
+                      setIsLoadingMoreEvents(false);
+                    }
+                  }}
+                  disabled={isLoadingMoreEvents}
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-200 hover:bg-white/[0.06] disabled:opacity-50"
                 >
-                  继续加载更多事件 ({Math.min(VISIBLE_EVENT_INCREMENT, eventCards.length - visibleEventCount)})
+                  {visibleEventCount < eventCards.length
+                    ? `继续展开已加载事件 (${Math.min(VISIBLE_EVENT_INCREMENT, eventCards.length - visibleEventCount)})`
+                    : isLoadingMoreEvents
+                      ? '正在读取更多事件…'
+                      : '继续从上游读取更多事件'}
                 </button>
               </div>
             ) : null}
@@ -580,6 +585,7 @@ export const AnalystSidebar = memo(function AnalystSidebar({
   const setSectorStreaming = useAppStore((state) => state.setSectorStreaming);
   const setSectorError = useAppStore((state) => state.setSectorError);
   const setSectorDraftProposal = useAppStore((state) => state.setSectorDraftProposal);
+  const resetSectorConversation = useAppStore((state) => state.resetSectorConversation);
   const recordAnalysisSnapshot = useAppStore((state) => state.recordAnalysisSnapshot);
 
   const [streamingAssistant, setStreamingAssistant] = useState<AnalystMessage | null>(null);
@@ -807,6 +813,18 @@ export const AnalystSidebar = memo(function AnalystSidebar({
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-slate-300">
               {connectionStatus}
             </span>
+            <button
+              type="button"
+              onClick={() => {
+                streamAbortRef.current?.abort();
+                streamAbortRef.current = null;
+                setStreamingAssistant(null);
+                resetSectorConversation(sectorId);
+              }}
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-slate-300 hover:bg-white/[0.08]"
+            >
+              Reset
+            </button>
           </div>
 
           <p className="text-[12px] leading-5 text-slate-400">

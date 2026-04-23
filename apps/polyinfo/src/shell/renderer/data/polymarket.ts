@@ -5,6 +5,7 @@ import type {
   ImportedEventRecord,
   ImportedEventStaleState,
   PreparedMarket,
+  SectorMarketBatch,
   SectorTag,
   TaxonomyOverlay,
   WindowKey,
@@ -295,10 +296,31 @@ export async function fetchSectorTags(limit?: number): Promise<SectorTag[]> {
   return typeof limit === 'number' ? sectors.slice(0, limit) : sectors;
 }
 
-export async function fetchSectorMarkets(tag: SectorTag): Promise<PreparedMarket[]> {
+function dedupePreparedMarkets(markets: PreparedMarket[]): PreparedMarket[] {
+  return markets.filter((market, index, items) => items.findIndex((item) => item.id === market.id) === index);
+}
+
+export function mergeSectorMarketBatches(batches: SectorMarketBatch[]): SectorMarketBatch {
+  const mergedMarkets = dedupePreparedMarkets(
+    batches.flatMap((batch) => batch.markets),
+  ).sort((left, right) => right.volumeNum - left.volumeNum);
+  const tailBatch = batches[batches.length - 1];
+  return {
+    markets: mergedMarkets,
+    nextCursor: tailBatch?.nextCursor,
+    hasMore: Boolean(tailBatch?.hasMore && tailBatch?.nextCursor),
+  };
+}
+
+export async function fetchSectorMarkets(
+  tag: SectorTag,
+  input?: { afterCursor?: string; pageCount?: number },
+): Promise<SectorMarketBatch> {
   const events: GammaEventResponse[] = [];
-  let afterCursor: string | undefined;
-  for (let pageIndex = 0; pageIndex < 50; pageIndex += 1) {
+  let afterCursor = input?.afterCursor;
+  let nextCursor: string | undefined;
+  const pageCount = Math.max(1, input?.pageCount ?? 1);
+  for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
     const page = hasTauriInvoke()
       ? await invokeChecked(
         'polymarket_events_by_tag_slug',
@@ -311,8 +333,10 @@ export async function fetchSectorMarkets(tag: SectorTag): Promise<PreparedMarket
     const pageEvents = page.events ?? [];
     events.push(...pageEvents);
     if (!page.next_cursor || pageEvents.length === 0) {
+      nextCursor = undefined;
       break;
     }
+    nextCursor = page.next_cursor;
     afterCursor = page.next_cursor;
   }
 
@@ -358,10 +382,13 @@ export async function fetchSectorMarkets(tag: SectorTag): Promise<PreparedMarket
     }
   }
 
-  return flattened
-    .sort((left, right) => right.volumeNum - left.volumeNum)
-    .filter((market, index, markets) => markets.findIndex((item) => item.id === market.id) === index)
-    .slice(0, 120);
+  return {
+    markets: dedupePreparedMarkets(flattened)
+      .sort((left, right) => right.volumeNum - left.volumeNum)
+      .slice(0, 120),
+    nextCursor,
+    hasMore: Boolean(nextCursor),
+  };
 }
 
 function getWindowStartTimestamp(windowKey: WindowKey, nowMs: number): number {

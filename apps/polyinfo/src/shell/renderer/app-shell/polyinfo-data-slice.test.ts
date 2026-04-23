@@ -75,4 +75,41 @@ describe('polyinfo data slice', () => {
       coreVariables: [],
     });
   });
+
+  it('resets a sector conversation but keeps the thread identity', () => {
+    const harness = createHarness();
+    harness.getState().ensureSectorThread('midterms', 'Midterms Analyst');
+    harness.getState().setSectorDraftText('midterms', 'draft');
+    harness.getState().upsertSectorMessage('midterms', {
+      id: 'message-1',
+      role: 'user',
+      content: 'hello',
+      createdAt: Date.now(),
+      status: 'complete',
+    });
+    harness.getState().setSectorError('midterms', 'boom');
+    harness.getState().setSectorDraftProposal('midterms', {
+      id: 'proposal-1',
+      entityType: 'narrative',
+      action: 'create',
+      title: 'Narrative',
+    });
+
+    const before = harness.getState().chatsBySector.midterms;
+    if (!before) {
+      throw new Error('chat should exist for midterms');
+    }
+
+    harness.getState().resetSectorConversation('midterms');
+
+    expect(harness.getState().chatsBySector.midterms).toEqual({
+      ...before,
+      draftText: '',
+      messages: [],
+      draftProposal: null,
+      isStreaming: false,
+      error: null,
+      updatedAt: Date.now(),
+    });
+  });
 });

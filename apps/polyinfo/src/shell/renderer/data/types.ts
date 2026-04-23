@@ -104,6 +104,12 @@ export type PreparedMarket = {
   tags: Array<{ id: string; label: string; slug: string }>;
 };
 
+export type SectorMarketBatch = {
+  markets: PreparedMarket[];
+  nextCursor?: string;
+  hasMore: boolean;
+};
+
 export type HistoryPoint = {
   timestamp: number;
   price: number;

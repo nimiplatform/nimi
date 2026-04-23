@@ -53,6 +53,7 @@ type PolyinfoDataSlice = Pick<AppStoreState,
   | 'setSectorDraftProposal'
   | 'dismissSectorDraftProposal'
   | 'confirmSectorDraftProposal'
+  | 'resetSectorConversation'
   | 'recordAnalysisSnapshot'
 >;
 
@@ -418,6 +419,22 @@ export function createPolyinfoDataSlice(set: AppStoreSet, get: () => AppStoreSta
         taxonomyBySector: nextTaxonomy,
         chatsBySector: nextChats,
       });
+    },
+    resetSectorConversation: (sectorSlug) => {
+      const current = get().chatsBySector[sectorSlug];
+      const base = buildDefaultSectorChatState(
+        sectorSlug,
+        current?.title || sectorSlug,
+      );
+      const nextChats = persistChats({
+        ...get().chatsBySector,
+        [sectorSlug]: {
+          ...base,
+          threadId: current?.threadId || base.threadId,
+          createdAt: current?.createdAt || base.createdAt,
+        },
+      });
+      set({ chatsBySector: nextChats });
     },
     recordAnalysisSnapshot: (sectorSlug, snapshot) => {
       const current = get().snapshotsBySector[sectorSlug] ?? [];

@@ -48,10 +48,6 @@ const HOMEPAGE_CATEGORY_BLACKLIST = new Set([
   'trending',
 ]);
 
-const FRONTEND_ROOT_CATEGORY_ALLOWLIST = new Set(
-  FRONTEND_ROOT_CATEGORY_FALLBACK.map((item) => item.slug),
-);
-
 type FrontendFilteredTagRecord = {
   id?: string | number;
   label?: string;
@@ -129,18 +125,26 @@ function parseCount(record: FrontendFilteredTagRecord): number | undefined {
 function parseHomepageRootCategories(html: string): FrontendCategoryGroup[] {
   const parser = new DOMParser();
   const document = parser.parseFromString(html, 'text/html');
+  const navAnchors = [...document.querySelectorAll<HTMLAnchorElement>('nav[aria-label="Main"] a[href]')];
+  let rootStartIndex = -1;
+  for (let index = navAnchors.length - 1; index >= 0; index -= 1) {
+    if ((navAnchors[index]?.getAttribute('href') ?? '') === '/new') {
+      rootStartIndex = index;
+      break;
+    }
+  }
   const candidates = new Map<string, FrontendCategoryGroup>();
 
-  document.querySelectorAll('a[href]').forEach((anchor) => {
+  navAnchors.slice(rootStartIndex >= 0 ? rootStartIndex + 1 : 0).forEach((anchor) => {
     const href = anchor.getAttribute('href') ?? '';
-    if (!/^\/[a-z0-9-]+$/i.test(href)) {
+    if (!/^\/[a-z0-9-]+$/i.test(href) && !/^\/(?:sports|esports)\/live$/i.test(href)) {
       return;
     }
-    const slug = href.slice(1).toLowerCase();
+    const slug = href
+      .replace(/^\/+/, '')
+      .replace(/\/live$/i, '')
+      .toLowerCase();
     if (HOMEPAGE_CATEGORY_BLACKLIST.has(slug)) {
-      return;
-    }
-    if (!FRONTEND_ROOT_CATEGORY_ALLOWLIST.has(slug)) {
       return;
     }
     const label = normalizeLabel(anchor.textContent ?? '');
@@ -161,25 +165,7 @@ function parseHomepageRootCategories(html: string): FrontendCategoryGroup[] {
   if (parsed.length === 0) {
     return FRONTEND_ROOT_CATEGORY_FALLBACK;
   }
-
-  const orderIndex = new Map<string, number>(
-    FRONTEND_ROOT_CATEGORY_FALLBACK.map((item, index) => [item.slug, index]),
-  );
-
-  return parsed.sort((left, right) => {
-    const leftKnown = orderIndex.get(left.slug);
-    const rightKnown = orderIndex.get(right.slug);
-    if (leftKnown !== undefined && rightKnown !== undefined) {
-      return leftKnown - rightKnown;
-    }
-    if (leftKnown !== undefined) {
-      return -1;
-    }
-    if (rightKnown !== undefined) {
-      return 1;
-    }
-    return left.label.localeCompare(right.label);
-  });
+  return parsed;
 }
 
 async function fetchHomepageHtml(): Promise<string> {
