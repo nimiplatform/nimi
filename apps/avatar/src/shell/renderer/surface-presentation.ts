@@ -72,37 +72,37 @@ function humanizeAuthFailure(reason: AvatarAuthFailureReason | null): {
     case 'shared_session_missing':
       return {
         title: 'Desktop session ended',
-        summary: 'The shared desktop session disappeared, so the avatar stopped its authenticated runtime path.',
-        recovery: 'Reopen the avatar from desktop after signing in again.',
-        accent: 'Session missing',
+        summary: 'This shell lost the trusted desktop session, so the live companion path closed immediately.',
+        recovery: 'Sign in again on desktop, then relaunch this companion surface.',
+        accent: 'Session lost',
       };
     case 'shared_session_invalid':
       return {
-        title: 'Session verification failed',
-        summary: 'The shared desktop session is no longer valid for a trusted runtime binding.',
-        recovery: 'Refresh your desktop session and relaunch this companion surface.',
+        title: 'Desktop session invalid',
+        summary: 'The shared desktop session no longer passes verification for a trusted live companion bind.',
+        recovery: 'Refresh the desktop session, then relaunch this companion surface.',
         accent: 'Session invalid',
       };
     case 'shared_session_realm_mismatch':
       return {
         title: 'Desktop realm changed',
-        summary: 'The current desktop session no longer matches the runtime realm used by this avatar surface.',
-        recovery: 'Return to desktop, confirm the active realm, then relaunch the avatar.',
+        summary: 'The active desktop realm no longer matches the realm this shell was launched against.',
+        recovery: 'Confirm the active desktop realm, then relaunch the avatar.',
         accent: 'Realm changed',
       };
     case 'shared_session_user_mismatch':
       return {
         title: 'Desktop user changed',
-        summary: 'The avatar stopped because the shared desktop session switched to a different user.',
-        recovery: 'Launch a fresh avatar instance for the active desktop user.',
+        summary: 'This shell closed its live path because the shared desktop session switched to a different user.',
+        recovery: 'Launch a fresh avatar surface for the active desktop user.',
         accent: 'User changed',
       };
     default:
       return {
         title: 'Companion paused',
-        summary: 'The companion surface is paused until desktop trust is restored.',
-        recovery: 'Return to desktop and relaunch when the session is healthy again.',
-        accent: 'Paused',
+        summary: 'This companion is waiting for desktop trust to recover before it can reopen the live path.',
+        recovery: 'Return to desktop and relaunch once the session is healthy again.',
+        accent: 'Trust paused',
       };
   }
 }
@@ -119,7 +119,7 @@ function classifyBootstrapError(error: string): {
     return {
       badge: 'Launch required',
       title: 'Launch from desktop',
-      summary: 'This avatar surface only opens from an explicit desktop handoff. No standalone agent fallback was used.',
+      summary: 'This companion only opens from an explicit desktop handoff. No standalone agent fallback was used.',
       recovery: 'Start the avatar again from the desktop orchestrator.',
       accent: 'Handoff required',
     };
@@ -128,7 +128,7 @@ function classifyBootstrapError(error: string): {
     return {
       badge: 'Session required',
       title: 'Desktop session required',
-      summary: 'The avatar could not establish a valid shared desktop session, so runtime consume stayed fail-closed.',
+      summary: 'A trusted shared desktop session was not available, so the live companion bind stayed fail-closed.',
       recovery: 'Sign in from desktop and relaunch the avatar.',
       accent: 'Auth blocked',
     };
@@ -137,7 +137,7 @@ function classifyBootstrapError(error: string): {
     return {
       badge: 'Runtime unavailable',
       title: 'Runtime connection blocked',
-      summary: 'The avatar did not switch to mock mode. The real runtime path was unavailable, so startup stopped.',
+      summary: 'The live runtime path was unavailable. This shell did not switch to mock mode, so startup stopped.',
       recovery: 'Restore the runtime daemon, then launch again from desktop.',
       accent: 'Runtime blocked',
     };
@@ -193,10 +193,10 @@ export function deriveSurfacePresentation(
           : 'Waiting for desktop handoff';
     return {
       tone: 'loading',
-      badge: 'Booting',
+      badge: 'Warming up',
       title: 'Preparing your desktop companion',
-      summary: 'The avatar shell is coming online with a trusted launch handoff and runtime binding.',
-      recovery: 'Keep this surface open while desktop finalizes the companion session.',
+      summary: 'Trusted launch, auth, and runtime bindings are settling into place for this companion shell.',
+      recovery: 'Keep this surface open while desktop finalizes the live companion bind.',
       accent: stageValue,
       stageLabel: 'Bring-up',
       stageValue,
@@ -213,7 +213,7 @@ export function deriveSurfacePresentation(
       tone: 'degraded',
       badge: 'Model blocked',
       title: 'Embodiment surface paused',
-      summary: normalizeMessage(input.model.error) || 'The embodiment surface failed after shell bootstrap completed.',
+      summary: normalizeMessage(input.model.error) || 'The embodiment layer failed after shell bootstrap completed.',
       recovery: 'Reload the avatar from desktop after the model package is healthy again.',
       accent: 'Model unavailable',
       stageLabel: 'Model state',
@@ -228,7 +228,7 @@ export function deriveSurfacePresentation(
       tone: 'ready',
       badge: 'Fixture mode',
       title: 'Fixture companion ready',
-      summary: statusText || 'This surface is running from an explicit fixture scenario, not a live desktop bind.',
+      summary: statusText || 'This shell is running from an explicit fixture scenario, not a live desktop bind.',
       recovery: 'Fixture mode stays isolated from launch, auth, and runtime truth.',
       accent: readyPresence,
       stageLabel: 'Fixture cue',
@@ -281,19 +281,19 @@ export function deriveSurfacePresentation(
   const agentValue = shortenId(input.consume.agentId || input.launchContext?.agentId);
   return {
     tone: 'ready',
-    badge: 'Live runtime',
+    badge: 'Live companion',
     title: 'Desktop companion ready',
     summary: statusText
-      || 'The avatar surface is pinned, transparent, and ready to stay present on the desktop.',
-    recovery: `Bound to agent ${agentValue} with a trusted desktop launch context.`,
+      || 'Present on the desktop and ready to continue on the current anchor.',
+    recovery: `Bound to agent ${agentValue} through the current desktop launch context.`,
     accent: readyAccent,
-    stageLabel: 'Presence cue',
+    stageLabel: 'Presence',
     stageValue: readyAccent,
     meta: [
       { label: 'Presence', value: executionState },
       { label: 'Posture', value: readyPosture },
       { label: 'Anchor', value: anchorId ? `Bound (${shortenId(anchorId)})` : 'Unavailable' },
-      { label: 'Carrier', value: 'Runtime bound' },
+      { label: 'Carrier', value: 'Trusted runtime' },
     ],
     contextCards: [
       { label: 'Current presence', value: readyPresence },

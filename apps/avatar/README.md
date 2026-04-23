@@ -131,11 +131,11 @@ apps/avatar/
 
 Platform-level spec consumed from topic proposal directory:
 
-- [APML wire format](../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md)
-- [Activity ontology](../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)
-- [Event contract](../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md)
-- [SDK Event API](../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/sdk-event-api.md)
-- [Presentation Timeline](../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/presentation-timeline.md)
+- [APML wire format](../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md)
+- [Activity ontology](../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)
+- [Event contract](../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md)
+- [SDK Event API](../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/sdk-event-api.md)
+- [Presentation Timeline](../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/presentation-timeline.md)
 
 ## Carrier Notes
 

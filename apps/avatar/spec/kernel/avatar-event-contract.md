@@ -4,8 +4,8 @@
 > **Authority**: App-local kernel contract
 > **Status**: Baseline updated 2026-04-21 (consumer-aligned to mounted runtime substrate)
 > **Upstream platform refs**:
-> - [Platform event contract + App convention](../../../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md)
-> - [Activity ontology](../../../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)
+> - [Platform event contract + App convention](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md)
+> - [Activity ontology](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)
 > - [Runtime transient presentation seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 > - [Conversation anchor contract](../../../../.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
 > **Sibling kernel contracts**:
@@ -217,7 +217,7 @@ Avatar app 订阅对方 app 的 events（通过 runtime 中转）：
 
 Avatar app 的 rendering backend 具体实现（Live2D Cubism SDK / VRM / 3D / Lottie / 极简 blob）不影响本 spec 的 event 定义 —— event 语义是 rendering-agnostic 的。
 
-Activity → motion/expression 的具体映射见 [activity-ontology §8](../../../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)。每个 rendering backend 按其 convention + metadata 解析。
+Activity → motion/expression 的具体映射见 [activity-ontology §8](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)。每个 rendering backend 按其 convention + metadata 解析。
 
 ---
 

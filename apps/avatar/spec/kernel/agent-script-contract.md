@@ -4,9 +4,9 @@
 > **Authority**: App-local kernel contract
 > **Status**: Baseline locked 2026-04-21 (migrated from topic proposal 议题 4b)
 > **Upstream platform refs**:
-> - [APML 1.0 wire format](../../../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md)
-> - [Activity ontology](../../../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)
-> - [Platform event contract](../../../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md)
+> - [APML 1.0 wire format](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md)
+> - [Activity ontology](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)
+> - [Platform event contract](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md)
 > - [Runtime transient presentation seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 > **Sibling kernel contracts**:
 > - [Avatar event contract](avatar-event-contract.md)

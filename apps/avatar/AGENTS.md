@@ -65,7 +65,7 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface*
 
 ### Migrated from Topic Proposal
 
-The following contracts migrated from `.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/`:
+The following contracts migrated from `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/`:
 
 - `spec/kernel/agent-script-contract.md` ← `nimi-agent-script.md` (议题 4b)
 - `spec/kernel/avatar-event-contract.md` ← `avatar-event-spec.md` (议题 3b)

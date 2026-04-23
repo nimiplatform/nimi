@@ -93,7 +93,7 @@ These are **not** redefined here. App consumes them:
 
 | Upstream | Location |
 |----------|----------|
-| APML wire format | `.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md` |
+| APML wire format | `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md` |
 | APML LLM compliance | `...apml-llm-compliance.md` |
 | Activity ontology | `...activity-ontology.md` |
 | Runtime conversation anchor | `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md` |

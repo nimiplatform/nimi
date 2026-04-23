@@ -32,7 +32,7 @@ Reading path:
 
 These are consumed as upstream contracts, located in the topic proposal directory. They are **not** redefined here:
 
-- APML wire format — `../../.nimi/local/report/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md`
+- APML wire format — `../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md`
 - APML LLM compliance — `apml-llm-compliance.md`
 - Activity ontology — `activity-ontology.md`
 - Event contract + app convention — `event-hook-contract.md`

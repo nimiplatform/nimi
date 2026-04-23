@@ -157,7 +157,7 @@ function seedReadyState(): void {
 function expectNonReadySurface(): void {
   expect(screen.queryByText('Bound operator')).toBeNull();
   expect(screen.queryByText('Current presence')).toBeNull();
-  expect(screen.queryByText('Runtime bound')).toBeNull();
+  expect(screen.queryByText('Trusted runtime')).toBeNull();
   expect(screen.queryByText(/Bound \(/)).toBeNull();
 }
 
@@ -189,8 +189,104 @@ describe('App surface foundation', () => {
     expect(await screen.findByText('Desktop companion ready')).toBeTruthy();
     expect(screen.getByText('First-party avatar surface')).toBeTruthy();
     expect(screen.getByText('Holding a calm desktop presence.')).toBeTruthy();
+    expect(screen.getByText('Live companion')).toBeTruthy();
+    expect(screen.getByText('Text or review this anchor')).toBeTruthy();
+    expect(screen.getByText('Foreground only, same anchor')).toBeTruthy();
     expect(screen.queryByText(/shell:/i)).toBeNull();
     expect(screen.queryByText(/driver:/i)).toBeNull();
+  });
+
+  it('adds embodied ready-stage feedback for hover, pointer contact, and keyboard focus', async () => {
+    seedReadyState();
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    expect(await screen.findByText('Desktop companion ready')).toBeTruthy();
+    const shell = screen.getByTestId('avatar-shell');
+    const stage = screen.getByTestId('avatar-stage');
+    const triggerRow = screen.getByTestId('avatar-trigger-row');
+    const chatTrigger = screen.getByRole('button', { name: 'Open avatar companion input' });
+
+    expect(shell.className).toContain('avatar-shell--ambient-ready');
+    expect(stage.className).toContain('avatar-stage--attention-ready');
+
+    fireEvent.pointerEnter(stage);
+    expect(stage.className).toContain('avatar-stage--body-hover');
+
+    fireEvent.pointerDown(stage, { button: 0 });
+    expect(stage.className).toContain('avatar-stage--pointer-contact');
+
+    fireEvent.pointerUp(stage, { button: 0 });
+    expect(stage.className).not.toContain('avatar-stage--pointer-contact');
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+    fireEvent.focus(chatTrigger);
+    expect(stage.className).toContain('avatar-stage--focus-visible');
+    expect(triggerRow.className).toContain('avatar-companion-trigger-row--focus-visible');
+  });
+
+  it('keeps native drag dispatch and stage/bubble choreography aligned when the companion opens', async () => {
+    tauriRuntime = true;
+    seedReadyState();
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    expect(await screen.findByText('Desktop companion ready')).toBeTruthy();
+    const stage = screen.getByTestId('avatar-stage');
+
+    fireEvent.pointerDown(stage, { button: 0 });
+    expect(startWindowDragMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open avatar companion input' }));
+
+    expect(screen.getByTestId('avatar-shell').className).toContain('avatar-shell--ambient-engaged');
+    expect(screen.getByTestId('avatar-stage').className).toContain('avatar-stage--attention-engaged');
+    expect(screen.getByTestId('avatar-trigger-row').className).toContain('avatar-companion-trigger-row--engaged');
+    expect(screen.getByTestId('avatar-companion-bubble').className).toContain('avatar-companion--engaged');
+  });
+
+  it('clears pointer-contact immediately on native drag handoff so pressed classes do not stick', async () => {
+    tauriRuntime = true;
+    seedReadyState();
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    expect(await screen.findByText('Desktop companion ready')).toBeTruthy();
+    const stage = screen.getByTestId('avatar-stage');
+    const triggerRow = screen.getByTestId('avatar-trigger-row');
+
+    fireEvent.pointerEnter(stage);
+    fireEvent.pointerDown(stage, { button: 0 });
+
+    expect(startWindowDragMock).toHaveBeenCalledTimes(1);
+    expect(stage.className).not.toContain('avatar-stage--pointer-contact');
+    expect(triggerRow.className).not.toContain('avatar-companion-trigger-row--pointer-contact');
+  });
+
+  it('clears stage focus-visible when pointer modality resumes while focus stays inside the stage', async () => {
+    seedReadyState();
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    expect(await screen.findByText('Desktop companion ready')).toBeTruthy();
+    const stage = screen.getByTestId('avatar-stage');
+    const triggerRow = screen.getByTestId('avatar-trigger-row');
+    const chatTrigger = screen.getByRole('button', { name: 'Open avatar companion input' });
+
+    fireEvent.keyDown(window, { key: 'Tab' });
+    fireEvent.focus(chatTrigger);
+
+    expect(stage.className).toContain('avatar-stage--focus-visible');
+    expect(triggerRow.className).toContain('avatar-companion-trigger-row--focus-visible');
+
+    fireEvent.pointerDown(window, { button: 0 });
+
+    expect(stage.className).not.toContain('avatar-stage--focus-visible');
+    expect(triggerRow.className).not.toContain('avatar-companion-trigger-row--focus-visible');
   });
 
   it('reveals the Wave 2 trigger and submits text on the current anchor only', async () => {
@@ -213,7 +309,9 @@ describe('App surface foundation', () => {
     expect(await screen.findByRole('button', { name: 'Open avatar companion input' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Open avatar companion input' }));
 
-    expect(screen.getByText('Latest anchor reply')).toBeTruthy();
+    expect(screen.getByText('Text note on current anchor')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Text note' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Foreground voice' })).toBeTruthy();
     expect(screen.getByText('Anchor reply is ready.')).toBeTruthy();
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Ping this anchor' } });
     fireEvent.submit(screen.getByRole('textbox').closest('form')!);
@@ -255,6 +353,31 @@ describe('App surface foundation', () => {
     expect(screen.getByText('Fresh committed reply')).toBeTruthy();
   });
 
+  it('keeps one companion grammar when switching from text draft to foreground voice and back', async () => {
+    seedReadyState();
+    const handle = createBootstrapHandle();
+    bootstrapAvatarMock.mockResolvedValue(handle);
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: 'Open avatar companion input' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Open avatar companion input' }));
+    expect(screen.getByText('Text note on current anchor')).toBeTruthy();
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Draft stays bounded' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Foreground voice' }));
+
+    expect(screen.getByText('Foreground voice companion')).toBeTruthy();
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Text note' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Text note' }));
+
+    const textbox = screen.getByRole('textbox') as HTMLTextAreaElement;
+    expect(screen.getByText('Text note on current anchor')).toBeTruthy();
+    expect(textbox.value).toBe('Draft stays bounded');
+  });
+
   it('persists bounded shell settings and can keep fresh replies unread instead of auto-opening the bubble', async () => {
     seedReadyState();
     const handle = createBootstrapHandle();
@@ -290,10 +413,54 @@ describe('App surface foundation', () => {
       });
     });
 
+    expect(screen.getByTestId('avatar-shell').className).toContain('avatar-shell--ambient-unread');
+    expect(screen.getByTestId('avatar-stage').className).toContain('avatar-stage--attention-unread');
+    expect(screen.getByTestId('avatar-trigger-row').className).toContain('avatar-companion-trigger-row--unread');
+    expect(screen.getByRole('button', { name: 'Open avatar companion input' }).className).toContain('avatar-companion-trigger--unread');
     expect(screen.queryByText('Latest anchor reply')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open avatar companion input' }));
     expect(await screen.findByText('Unread reply stays quiet.')).toBeTruthy();
+  });
+
+  it('surfaces shell controls as admitted local settings only', async () => {
+    seedReadyState();
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    expect(await screen.findByText('Shell controls')).toBeTruthy();
+    expect(screen.getByText('Four avatar-shell behaviors only. Launch, auth, and runtime stay upstream.')).toBeTruthy();
+    expect(screen.getByText('Window stack')).toBeTruthy();
+    expect(screen.getByText('Fresh replies')).toBeTruthy();
+    expect(screen.getByText('Quiet bubble')).toBeTruthy();
+    expect(screen.getByText('Foreground voice captions')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Shell settings' }));
+
+    expect(screen.getByText('Window behavior')).toBeTruthy();
+    expect(screen.getByText('Companion bubble')).toBeTruthy();
+    expect(screen.getByText('Foreground voice')).toBeTruthy();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(4);
+    expect(screen.queryByRole('checkbox', { name: /background voice/i })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: /transcript history/i })).toBeNull();
+  });
+
+  it('updates shell-control effect copy when admitted toggles change', async () => {
+    seedReadyState();
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    expect(await screen.findByText('Open immediately inside the companion')).toBeTruthy();
+    expect(screen.getByText('Visible during foreground turns')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Shell settings' }));
+    fireEvent.click(screen.getByLabelText('Auto-open new replies'));
+    fireEvent.click(screen.getByLabelText('Show voice captions'));
+
+    expect(screen.getByText('Hold as an unread cue until you open them')).toBeTruthy();
+    expect(screen.getByText('Hidden while continuity stays truthful')).toBeTruthy();
   });
 
   it('can hide bounded foreground voice captions without changing voice continuity truth', async () => {
@@ -350,7 +517,7 @@ describe('App surface foundation', () => {
     expect(screen.getByText('Anchor A reply')).toBeTruthy();
     expect(screen.getByText('You: Anchor A echo')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reply' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Text note' }));
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Draft for anchor A' } });
 
     await act(async () => {
@@ -402,6 +569,52 @@ describe('App surface foundation', () => {
     expect(screen.queryByRole('button', { name: 'Open avatar voice companion' })).toBeNull();
   });
 
+  it('keeps voice unavailable fail-closed inside the shared companion grammar', async () => {
+    seedReadyState();
+    const handle = createBootstrapHandle();
+    handle.getVoiceInputAvailability = vi.fn(async () => ({
+      available: false,
+      reason: 'Microphone use is blocked for this anchor.',
+    }));
+    bootstrapAvatarMock.mockResolvedValue(handle);
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: 'Open avatar voice companion' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Open avatar voice companion' }));
+
+    expect(await screen.findByText('Foreground voice unavailable')).toBeTruthy();
+    expect(screen.getByText('Microphone use is blocked for this anchor.')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Voice unavailable' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(handle.startVoiceCapture).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Text note' }));
+    expect(screen.getByText('Text note on current anchor')).toBeTruthy();
+    expect(screen.getByRole('textbox')).toBeTruthy();
+  });
+
+  it('damps embodied reaction classes when the shell is not ready', async () => {
+    seedReadyState();
+    useAvatarStore.getState().clearAuthSession('shared_session_missing');
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    expect(await screen.findByText('Desktop session ended')).toBeTruthy();
+    const shell = screen.getByTestId('avatar-shell');
+    const stage = screen.getByTestId('avatar-stage');
+
+    expect(shell.className).toContain('avatar-shell--ambient-damped');
+    expect(stage.className).toContain('avatar-stage--attention-muted');
+
+    fireEvent.pointerEnter(stage);
+    fireEvent.pointerDown(stage, { button: 0 });
+
+    expect(stage.className).not.toContain('avatar-stage--body-hover');
+    expect(stage.className).not.toContain('avatar-stage--pointer-contact');
+    expect(stage.className).not.toContain('avatar-stage--focus-visible');
+  });
+
   it('keeps foreground voice truthful: pending before authoritative reply activity, bounded captions, and gated interrupt', async () => {
     seedReadyState();
     const handle = createBootstrapHandle();
@@ -413,6 +626,8 @@ describe('App surface foundation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open avatar voice companion' }));
 
     expect(screen.getByText('Foreground voice companion')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Text note' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Foreground voice' })).toBeTruthy();
     expect(screen.getByText(/No wake-word, no background continuation/i)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Start listening' }));
@@ -485,6 +700,79 @@ describe('App surface foundation', () => {
 
     expect(screen.getByText('Current anchor reply interrupted')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Listen again' })).toBeTruthy();
+  });
+
+  it('keeps active-reply truth when closing voice mode back to summary grammar', async () => {
+    seedReadyState();
+    const handle = createBootstrapHandle();
+    bootstrapAvatarMock.mockResolvedValue(handle);
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: 'Open avatar voice companion' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Open avatar voice companion' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start listening' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Send voice' }));
+
+    await waitFor(() => {
+      expect(handle.submitVoiceCaptureTurn).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      useAvatarStore.getState().setBundle({
+        ...useAvatarStore.getState().bundle!,
+        custom: {
+          ...useAvatarStore.getState().bundle!.custom,
+          active_turn_id: 'turn-voice-active',
+          active_turn_stream_id: 'stream-voice-active',
+          active_turn_phase: 'streaming',
+          active_turn_text: 'Live active reply stays truthful.',
+          active_turn_updated_at: '2026-04-22T00:00:08.000Z',
+        },
+      });
+    });
+
+    expect(await screen.findByText('Reply active on current anchor')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close voice' }));
+
+    expect(screen.getByText('Reply active on current anchor')).toBeTruthy();
+    expect(screen.getByText('Live active reply stays truthful.')).toBeTruthy();
+    expect(screen.queryByText('Waiting on current anchor')).toBeNull();
+    expect(screen.queryByText('Reply pending on current anchor')).toBeNull();
+  });
+
+  it('keeps summary grammar honest when active turn evidence already exists', async () => {
+    seedReadyState();
+    const handle = createBootstrapHandle();
+    bootstrapAvatarMock.mockResolvedValue(handle);
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: 'Open avatar companion input' })).toBeTruthy();
+
+    await act(async () => {
+      useAvatarStore.getState().setBundle({
+        ...useAvatarStore.getState().bundle!,
+        custom: {
+          ...useAvatarStore.getState().bundle!.custom,
+          latest_committed_message_id: 'msg-active-summary',
+          latest_committed_turn_id: 'turn-active-summary',
+          latest_committed_message_text: 'Latest committed cue is visible.',
+          latest_committed_message_at: '2026-04-22T00:00:10.000Z',
+          active_turn_id: 'turn-active-summary',
+          active_turn_stream_id: 'stream-active-summary',
+          active_turn_phase: 'streaming',
+          active_turn_text: 'Summary still shows active reply truth.',
+          active_turn_updated_at: '2026-04-22T00:00:11.000Z',
+        },
+      });
+    });
+
+    expect(await screen.findByText('Reply active on current anchor')).toBeTruthy();
+    expect(screen.getByText('Summary still shows active reply truth.')).toBeTruthy();
+    expect(screen.queryByText('Waiting on current anchor')).toBeNull();
+    expect(screen.queryByText('Reply pending on current anchor')).toBeNull();
   });
 
   it('ignores stale capture resolution after the same agent rebinds to a different anchor', async () => {
@@ -622,7 +910,8 @@ describe('App surface foundation', () => {
 
     render(<App />);
 
-    expect(await screen.findByText('Old anchor reply must stay closed.')).toBeTruthy();
+    expect(await screen.findByText('Reply active on current anchor')).toBeTruthy();
+    expect(screen.getByText('Old live caption must stay closed.')).toBeTruthy();
 
     await act(async () => {
       useAvatarStore.getState().setRuntimeBinding({
@@ -693,6 +982,8 @@ describe('App surface foundation', () => {
     render(<App />);
 
     expect(await screen.findByText('Desktop companion ready')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Open avatar companion input' }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Draft before rebind' } });
 
     await act(async () => {
       launchContextUpdatedHandler?.({
@@ -707,12 +998,37 @@ describe('App surface foundation', () => {
 
     expect(screen.getAllByText('Desktop update received').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Runtime and auth truth stay fail-closed/i).length).toBeGreaterThan(0);
+    expect(screen.getByText('Reload shell now')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reload shell' })).toBeNull();
+    expect(screen.getByText(/Local draft, unread cue, and foreground voice capture or caption state clear/i)).toBeTruthy();
+    expect(screen.getByText(/Does not invent auth, session, or runtime fallback inside the avatar app/i)).toBeTruthy();
+    expect(screen.queryByDisplayValue('Draft before rebind')).toBeNull();
     expect(screen.queryByText('Desktop companion ready')).toBeNull();
-    expect(screen.queryByText('Runtime bound')).toBeNull();
+    expect(screen.queryByText('Trusted runtime')).toBeNull();
     expect(screen.queryByText(/Bound \(anchor-01\)/)).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reload now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reload shell now' }));
     expect(reloadAvatarShellMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps shell-local setting failures inside reload-only guidance', async () => {
+    tauriRuntime = true;
+    seedReadyState();
+    setAlwaysOnTopMock.mockRejectedValueOnce(new Error('native toggle failed'));
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    expect(await screen.findByText('Desktop companion ready')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Shell settings' }));
+    fireEvent.click(screen.getByLabelText('Always on top'));
+
+    expect(await screen.findByText(/Unable to update always-on-top right now: native toggle failed/i)).toBeTruthy();
+    expect(screen.getByText('Reload this shell to reopen a clean shell-local settings surface for the admitted controls only.')).toBeTruthy();
+    expect(screen.getByText('Reopens a clean surface for the four admitted avatar-shell-local controls.')).toBeTruthy();
+    expect(screen.getByText('Does not bypass desktop launch, shared auth, or runtime requirements.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reload shell' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Reload shell now' })).toBeTruthy();
   });
 
   it('renders a productized launch error without inventing fallback', async () => {
@@ -723,7 +1039,7 @@ describe('App surface foundation', () => {
     render(<App />);
 
     expect(await screen.findByText('Launch from desktop')).toBeTruthy();
-    expect(screen.getByText(/No standalone agent fallback was used/i)).toBeTruthy();
+    expect(screen.getAllByText(/No standalone agent fallback was used/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Start the avatar again from the desktop orchestrator.').length).toBeGreaterThan(0);
   });
 
@@ -736,8 +1052,8 @@ describe('App surface foundation', () => {
     render(<App />);
 
     expect(await screen.findByText('Desktop session ended')).toBeTruthy();
-    expect(screen.getByText(/shared desktop session disappeared/i)).toBeTruthy();
-    expect(screen.getAllByText('Reopen the avatar from desktop after signing in again.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/lost the trusted desktop session/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Sign in again on desktop, then relaunch this companion surface.').length).toBeGreaterThan(0);
     expect(screen.getByText('Binding closed')).toBeTruthy();
     expectNonReadySurface();
   });
@@ -748,6 +1064,7 @@ describe('App surface foundation', () => {
     render(<App />);
 
     expect(screen.getByText('Preparing your desktop companion')).toBeTruthy();
+    expect(screen.getAllByText('Warming up').length).toBeGreaterThan(0);
     expect(screen.getByText('Pending handoff')).toBeTruthy();
     expect(screen.getByText('Not bound')).toBeTruthy();
     expectNonReadySurface();
@@ -759,7 +1076,7 @@ describe('App surface foundation', () => {
     render(<App />);
 
     expect(await screen.findByText('Runtime connection blocked')).toBeTruthy();
-    expect(screen.getByText(/did not switch to mock mode/i)).toBeTruthy();
+    expect(screen.getAllByText(/did not switch to mock mode/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Runtime unavailable').length).toBeGreaterThan(0);
     expectNonReadySurface();
   });
@@ -853,6 +1170,6 @@ describe('App surface foundation', () => {
     expect(screen.getByText('Operator scope')).toBeTruthy();
     expect(screen.getAllByText('Not bound').length).toBeGreaterThan(0);
     expect(screen.queryByText('Bound operator')).toBeNull();
-    expect(screen.queryByText('Runtime bound')).toBeNull();
+    expect(screen.queryByText('Trusted runtime')).toBeNull();
   });
 });
