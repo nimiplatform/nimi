@@ -162,7 +162,7 @@ export function WorkbenchPageOverviewPanel({
                         <Button
                           tone="primary"
                           size="sm"
-                          onClick={() => void imageGen.useAsWorldBanner(snapshot.worldDraft.worldId!, candidate)}
+                          onClick={() => void imageGen.sendToWorldCoverReview(snapshot.worldDraft.worldId!, candidate)}
                           disabled={imageGen.busy}
                           className="flex-1"
                         >
@@ -171,7 +171,7 @@ export function WorkbenchPageOverviewPanel({
                         <Button
                           tone="secondary"
                           size="sm"
-                          onClick={() => void imageGen.useAsWorldIcon(snapshot.worldDraft.worldId!, candidate)}
+                          onClick={() => void imageGen.sendToWorldIconReview(snapshot.worldDraft.worldId!, candidate)}
                           disabled={imageGen.busy}
                           className="flex-1"
                         >

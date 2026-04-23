@@ -118,11 +118,11 @@ export function useImageGeneration() {
     }
   }, [userId]);
 
-  const useAsAgentAvatar = useCallback(async (agentId: string, candidate: ImageGenCandidate) => {
+  const sendToAgentAvatarReview = useCallback(async (agentId: string, candidate: ImageGenCandidate) => {
     return await enqueueAgentAsset(agentId, 'agent-avatar', candidate);
   }, [enqueueAgentAsset]);
 
-  const useAsAgentCover = useCallback(async (agentId: string, candidate: ImageGenCandidate) => {
+  const sendToAgentCoverReview = useCallback(async (agentId: string, candidate: ImageGenCandidate) => {
     return await enqueueAgentAsset(agentId, 'agent-cover', candidate);
   }, [enqueueAgentAsset]);
 
@@ -166,19 +166,19 @@ export function useImageGeneration() {
     }
   }, [userId]);
 
-  const useAsWorldBanner = useCallback(async (worldId: string, candidate: ImageGenCandidate) => {
+  const sendToWorldCoverReview = useCallback(async (worldId: string, candidate: ImageGenCandidate) => {
     return await enqueueWorldAsset(worldId, 'world-cover', candidate);
   }, [enqueueWorldAsset]);
 
-  const useAsWorldIcon = useCallback(async (worldId: string, candidate: ImageGenCandidate) => {
+  const sendToWorldIconReview = useCallback(async (worldId: string, candidate: ImageGenCandidate) => {
     return await enqueueWorldAsset(worldId, 'world-icon', candidate);
   }, [enqueueWorldAsset]);
 
-  const useAsWorldBackground = useCallback(async (worldId: string, candidate: ImageGenCandidate) => {
+  const sendToWorldBackgroundReview = useCallback(async (worldId: string, candidate: ImageGenCandidate) => {
     return await enqueueWorldAsset(worldId, 'world-background', candidate);
   }, [enqueueWorldAsset]);
 
-  const useAsWorldScene = useCallback(async (worldId: string, candidate: ImageGenCandidate) => {
+  const sendToWorldSceneReview = useCallback(async (worldId: string, candidate: ImageGenCandidate) => {
     return await enqueueWorldAsset(worldId, 'world-scene', candidate);
   }, [enqueueWorldAsset]);
 
@@ -223,12 +223,12 @@ export function useImageGeneration() {
     ...state,
     busy,
     generate,
-    useAsAgentAvatar,
-    useAsAgentCover,
-    useAsWorldBanner,
-    useAsWorldIcon,
-    useAsWorldBackground,
-    useAsWorldScene,
+    sendToAgentAvatarReview,
+    sendToAgentCoverReview,
+    sendToWorldCoverReview,
+    sendToWorldIconReview,
+    sendToWorldBackgroundReview,
+    sendToWorldSceneReview,
     saveToLibrary,
     removeCandidate,
     clearCandidates,

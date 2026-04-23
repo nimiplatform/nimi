@@ -193,12 +193,12 @@ export default function ImageStudioPage() {
     setSaveError(null);
     try {
       const result = family === 'world-cover'
-        ? await imageGen.useAsWorldBanner(urlWorldId, toCandidate(image))
+        ? await imageGen.sendToWorldCoverReview(urlWorldId, toCandidate(image))
         : family === 'world-icon'
-          ? await imageGen.useAsWorldIcon(urlWorldId, toCandidate(image))
+          ? await imageGen.sendToWorldIconReview(urlWorldId, toCandidate(image))
           : family === 'world-background'
-            ? await imageGen.useAsWorldBackground(urlWorldId, toCandidate(image))
-            : await imageGen.useAsWorldScene(urlWorldId, toCandidate(image));
+            ? await imageGen.sendToWorldBackgroundReview(urlWorldId, toCandidate(image))
+            : await imageGen.sendToWorldSceneReview(urlWorldId, toCandidate(image));
       navigate(`/worlds/${urlWorldId}/assets/${family}?candidateResourceId=${encodeURIComponent(result.resourceId)}`);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Review handoff failed');
@@ -211,7 +211,7 @@ export default function ImageStudioPage() {
     }
     setSaveError(null);
     try {
-      const result = await imageGen.useAsAgentAvatar(urlAgentId, toCandidate(image));
+      const result = await imageGen.sendToAgentAvatarReview(urlAgentId, toCandidate(image));
       navigate(`/agents/${urlAgentId}/assets/agent-avatar?candidateResourceId=${encodeURIComponent(result.resourceId)}`);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Review handoff failed');
@@ -224,7 +224,7 @@ export default function ImageStudioPage() {
     }
     setSaveError(null);
     try {
-      const result = await imageGen.useAsAgentCover(urlAgentId, toCandidate(image));
+      const result = await imageGen.sendToAgentCoverReview(urlAgentId, toCandidate(image));
       navigate(`/agents/${urlAgentId}/assets/agent-cover?candidateResourceId=${encodeURIComponent(result.resourceId)}`);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Review handoff failed');
