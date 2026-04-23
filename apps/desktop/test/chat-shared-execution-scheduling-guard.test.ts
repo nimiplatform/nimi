@@ -13,10 +13,10 @@ import {
   isBusySlowdownRisk,
   resolveExecutionSchedulingGuardDecision,
   schedulingDetailKeyForJudgement,
-} from '../src/shell/renderer/features/chat/chat-execution-scheduling-guard.js';
+} from '../src/shell/renderer/features/chat/chat-shared-execution-scheduling-guard.js';
 import {
   assertAiSubmitSchedulingAllowed,
-} from '../src/shell/renderer/features/chat/chat-ai-shell-host-actions.js';
+} from '../src/shell/renderer/features/chat/chat-nimi-shell-host-actions.js';
 import {
   assertAgentSubmitSchedulingAllowed,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-host-actions.js';

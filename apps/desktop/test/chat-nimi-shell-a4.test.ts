@@ -5,16 +5,16 @@ import test from 'node:test';
 
 import {
   invokeChatAiRuntime,
-} from '../src/shell/renderer/features/chat/chat-ai-runtime.js';
+} from '../src/shell/renderer/features/chat/chat-nimi-runtime.js';
 import {
   AI_NEW_CONVERSATION_TITLE,
   resolveAiConversationActiveThreadId,
   resolveThreadTitleAfterFirstSend,
-} from '../src/shell/renderer/features/chat/chat-ai-thread-model.js';
+} from '../src/shell/renderer/features/chat/chat-nimi-thread-model.js';
 import {
   resolveAiThinkingSupportFromProjection,
   resolveChatThinkingConfig,
-} from '../src/shell/renderer/features/chat/chat-thinking.js';
+} from '../src/shell/renderer/features/chat/chat-shared-thinking.js';
 import type { RuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types.js';
 import type { RuntimeFieldMap } from '../src/shell/renderer/app-shell/providers/store-types.js';
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
@@ -146,7 +146,7 @@ test('chat ai a4: active thread restore prefers explicit selection before last s
 });
 
 test('chat ai a4: adapter reads text.generate binding from AIConfig as primary route truth', () => {
-  const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
+  const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
   // Readiness derives from selectedBinding, not routeSnapshot
   assert.match(adapterSource, /selectedBinding:\s*selectedTextBinding/);
   assert.match(adapterSource, /aiConfig\.capabilities\.selectedBindings\['text\.generate'\]/);
@@ -170,9 +170,9 @@ test('chat ai a4: adapter reads text.generate binding from AIConfig as primary r
 });
 
 test('chat ai a4: composer submit is fire-and-forget and host actions project the user message before route gating', () => {
-  const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-presentation.tsx');
-  const hostActionsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-host-actions.ts');
-  const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
+  const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx');
+  const hostActionsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-host-actions.ts');
+  const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
 
   assert.match(presentationSource, /submit:\s*\(composerInput: ChatComposerSubmitInput<unknown>\)\s*=>\s*\{/);
   assert.match(presentationSource, /void input\.handleSubmit\(composerInput\.text\)\.catch\(\(\) => undefined\);/);
@@ -393,17 +393,17 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
 });
 
 test('chat ai a4: no stale local-model preference helper remains in runtime adapter', () => {
-  const runtimeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-runtime.ts');
+  const runtimeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-runtime.ts');
 
   assert.equal(
     /resolvePreferredChatLocalModel/.test(runtimeSource),
     false,
-    'chat-ai-runtime.ts must not keep stale local model preference fallback helpers',
+    'chat-nimi-runtime.ts must not keep stale local model preference fallback helpers',
   );
   assert.equal(
     /Fall back to runtime-config state when authoritative health is unavailable/.test(runtimeSource),
     false,
-    'chat-ai-runtime.ts must not retain runtime-config health fallback comments or logic',
+    'chat-nimi-runtime.ts must not retain runtime-config health fallback comments or logic',
   );
 });
 

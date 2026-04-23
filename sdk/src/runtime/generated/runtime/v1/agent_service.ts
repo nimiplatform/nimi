@@ -229,6 +229,44 @@ export interface AgentStateRemoveAttribute {
     key: string;
 }
 /**
+ * K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
+ * intentionally narrow and stable; renderer-local execution state must remain
+ * on transient app/runtime seams rather than being smuggled here.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AgentPresentationProfile
+ */
+export interface AgentPresentationProfile {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentPresentationBackendKind backend_kind = 1
+     */
+    backendKind: AgentPresentationBackendKind;
+    /**
+     * @generated from protobuf field: string avatar_asset_ref = 2
+     */
+    avatarAssetRef: string;
+    /**
+     * @generated from protobuf field: string expression_profile_ref = 3
+     */
+    expressionProfileRef: string;
+    /**
+     * @generated from protobuf field: string idle_preset = 4
+     */
+    idlePreset: string;
+    /**
+     * @generated from protobuf field: string interaction_policy_ref = 5
+     */
+    interactionPolicyRef: string;
+    /**
+     * @generated from protobuf field: string default_voice_reference = 6
+     */
+    defaultVoiceReference: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ClearAgentPresentationProfile
+ */
+export interface ClearAgentPresentationProfile {
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AgentStateMutation
  */
 export interface AgentStateMutation {
@@ -1143,6 +1181,46 @@ export interface SetAutonomyConfigResponse {
     autonomy?: AgentAutonomyState;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.SetAgentPresentationProfileRequest
+ */
+export interface SetAgentPresentationProfileRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf oneof: mutation
+     */
+    mutation: {
+        oneofKind: "profile";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AgentPresentationProfile profile = 3
+         */
+        profile: AgentPresentationProfile;
+    } | {
+        oneofKind: "clear";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ClearAgentPresentationProfile clear = 4
+         */
+        clear: ClearAgentPresentationProfile;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SetAgentPresentationProfileResponse
+ */
+export interface SetAgentPresentationProfileResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentPresentationProfile profile = 1
+     */
+    profile?: AgentPresentationProfile;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ListPendingHooksRequest
  */
 export interface ListPendingHooksRequest {
@@ -1718,6 +1796,35 @@ export enum AgentAutonomyMode {
      * @generated from protobuf enum value: AGENT_AUTONOMY_MODE_HIGH = 4;
      */
     HIGH = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentPresentationBackendKind
+ */
+export enum AgentPresentationBackendKind {
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_BACKEND_KIND_VRM = 1;
+     */
+    VRM = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_BACKEND_KIND_LIVE2D = 2;
+     */
+    LIVE2D = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D = 3;
+     */
+    SPRITE2D = 3,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D = 4;
+     */
+    CANVAS2D = 4,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_BACKEND_KIND_VIDEO = 5;
+     */
+    VIDEO = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ConversationAnchorStatus
@@ -2479,6 +2586,131 @@ class AgentStateRemoveAttribute$Type extends MessageType<AgentStateRemoveAttribu
  * @generated MessageType for protobuf message nimi.runtime.v1.AgentStateRemoveAttribute
  */
 export const AgentStateRemoveAttribute = new AgentStateRemoveAttribute$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile> {
+    constructor() {
+        super("nimi.runtime.v1.AgentPresentationProfile", [
+            { no: 1, name: "backend_kind", kind: "enum", T: () => ["nimi.runtime.v1.AgentPresentationBackendKind", AgentPresentationBackendKind, "AGENT_PRESENTATION_BACKEND_KIND_"] },
+            { no: 2, name: "avatar_asset_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expression_profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "idle_preset", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "interaction_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "default_voice_reference", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentPresentationProfile>): AgentPresentationProfile {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.backendKind = 0;
+        message.avatarAssetRef = "";
+        message.expressionProfileRef = "";
+        message.idlePreset = "";
+        message.interactionPolicyRef = "";
+        message.defaultVoiceReference = "";
+        if (value !== undefined)
+            reflectionMergePartial<AgentPresentationProfile>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentPresentationProfile): AgentPresentationProfile {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentPresentationBackendKind backend_kind */ 1:
+                    message.backendKind = reader.int32();
+                    break;
+                case /* string avatar_asset_ref */ 2:
+                    message.avatarAssetRef = reader.string();
+                    break;
+                case /* string expression_profile_ref */ 3:
+                    message.expressionProfileRef = reader.string();
+                    break;
+                case /* string idle_preset */ 4:
+                    message.idlePreset = reader.string();
+                    break;
+                case /* string interaction_policy_ref */ 5:
+                    message.interactionPolicyRef = reader.string();
+                    break;
+                case /* string default_voice_reference */ 6:
+                    message.defaultVoiceReference = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentPresentationProfile, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentPresentationBackendKind backend_kind = 1; */
+        if (message.backendKind !== 0)
+            writer.tag(1, WireType.Varint).int32(message.backendKind);
+        /* string avatar_asset_ref = 2; */
+        if (message.avatarAssetRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.avatarAssetRef);
+        /* string expression_profile_ref = 3; */
+        if (message.expressionProfileRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.expressionProfileRef);
+        /* string idle_preset = 4; */
+        if (message.idlePreset !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.idlePreset);
+        /* string interaction_policy_ref = 5; */
+        if (message.interactionPolicyRef !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.interactionPolicyRef);
+        /* string default_voice_reference = 6; */
+        if (message.defaultVoiceReference !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.defaultVoiceReference);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentPresentationProfile
+ */
+export const AgentPresentationProfile = new AgentPresentationProfile$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ClearAgentPresentationProfile$Type extends MessageType<ClearAgentPresentationProfile> {
+    constructor() {
+        super("nimi.runtime.v1.ClearAgentPresentationProfile", []);
+    }
+    create(value?: PartialMessage<ClearAgentPresentationProfile>): ClearAgentPresentationProfile {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ClearAgentPresentationProfile>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ClearAgentPresentationProfile): ClearAgentPresentationProfile {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ClearAgentPresentationProfile, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ClearAgentPresentationProfile
+ */
+export const ClearAgentPresentationProfile = new ClearAgentPresentationProfile$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentStateMutation$Type extends MessageType<AgentStateMutation> {
     constructor() {
@@ -5162,6 +5394,127 @@ class SetAutonomyConfigResponse$Type extends MessageType<SetAutonomyConfigRespon
  */
 export const SetAutonomyConfigResponse = new SetAutonomyConfigResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class SetAgentPresentationProfileRequest$Type extends MessageType<SetAgentPresentationProfileRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SetAgentPresentationProfileRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "profile", kind: "message", oneof: "mutation", T: () => AgentPresentationProfile },
+            { no: 4, name: "clear", kind: "message", oneof: "mutation", T: () => ClearAgentPresentationProfile }
+        ]);
+    }
+    create(value?: PartialMessage<SetAgentPresentationProfileRequest>): SetAgentPresentationProfileRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.mutation = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<SetAgentPresentationProfileRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SetAgentPresentationProfileRequest): SetAgentPresentationProfileRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AgentPresentationProfile profile */ 3:
+                    message.mutation = {
+                        oneofKind: "profile",
+                        profile: AgentPresentationProfile.internalBinaryRead(reader, reader.uint32(), options, (message.mutation as any).profile)
+                    };
+                    break;
+                case /* nimi.runtime.v1.ClearAgentPresentationProfile clear */ 4:
+                    message.mutation = {
+                        oneofKind: "clear",
+                        clear: ClearAgentPresentationProfile.internalBinaryRead(reader, reader.uint32(), options, (message.mutation as any).clear)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SetAgentPresentationProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* nimi.runtime.v1.AgentPresentationProfile profile = 3; */
+        if (message.mutation.oneofKind === "profile")
+            AgentPresentationProfile.internalBinaryWrite(message.mutation.profile, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ClearAgentPresentationProfile clear = 4; */
+        if (message.mutation.oneofKind === "clear")
+            ClearAgentPresentationProfile.internalBinaryWrite(message.mutation.clear, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SetAgentPresentationProfileRequest
+ */
+export const SetAgentPresentationProfileRequest = new SetAgentPresentationProfileRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SetAgentPresentationProfileResponse$Type extends MessageType<SetAgentPresentationProfileResponse> {
+    constructor() {
+        super("nimi.runtime.v1.SetAgentPresentationProfileResponse", [
+            { no: 1, name: "profile", kind: "message", T: () => AgentPresentationProfile }
+        ]);
+    }
+    create(value?: PartialMessage<SetAgentPresentationProfileResponse>): SetAgentPresentationProfileResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<SetAgentPresentationProfileResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SetAgentPresentationProfileResponse): SetAgentPresentationProfileResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentPresentationProfile profile */ 1:
+                    message.profile = AgentPresentationProfile.internalBinaryRead(reader, reader.uint32(), options, message.profile);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SetAgentPresentationProfileResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentPresentationProfile profile = 1; */
+        if (message.profile)
+            AgentPresentationProfile.internalBinaryWrite(message.profile, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SetAgentPresentationProfileResponse
+ */
+export const SetAgentPresentationProfileResponse = new SetAgentPresentationProfileResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ListPendingHooksRequest$Type extends MessageType<ListPendingHooksRequest> {
     constructor() {
         super("nimi.runtime.v1.ListPendingHooksRequest", [
@@ -6183,6 +6536,7 @@ export const RuntimeAgentService = new ServiceType("nimi.runtime.v1.RuntimeAgent
     { name: "GetConversationAnchorSnapshot", options: {}, I: GetConversationAnchorSnapshotRequest, O: GetConversationAnchorSnapshotResponse },
     { name: "GetAgentState", options: {}, I: GetAgentStateRequest, O: GetAgentStateResponse },
     { name: "UpdateAgentState", options: {}, I: UpdateAgentStateRequest, O: UpdateAgentStateResponse },
+    { name: "SetAgentPresentationProfile", options: {}, I: SetAgentPresentationProfileRequest, O: SetAgentPresentationProfileResponse },
     { name: "EnableAutonomy", options: {}, I: EnableAutonomyRequest, O: EnableAutonomyResponse },
     { name: "DisableAutonomy", options: {}, I: DisableAutonomyRequest, O: DisableAutonomyResponse },
     { name: "SetAutonomyConfig", options: {}, I: SetAutonomyConfigRequest, O: SetAutonomyConfigResponse },

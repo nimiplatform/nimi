@@ -16,6 +16,17 @@ export type DesktopAvatarLaunchHandoffResult = {
   handoffUri: string;
 };
 
+export type DesktopAvatarCloseHandoffInput = {
+  avatarInstanceId: string;
+  closedBy?: string;
+  sourceSurface?: string;
+};
+
+export type DesktopAvatarCloseHandoffResult = {
+  opened: boolean;
+  handoffUri: string;
+};
+
 export type DesktopAvatarLaunchHandoffPayload = {
   agentId: string;
   avatarInstanceId: string;
@@ -36,6 +47,17 @@ function normalizeRequiredString(value: string, field: string): string {
 export function parseDesktopAvatarLaunchHandoffResult(value: unknown): DesktopAvatarLaunchHandoffResult {
   if (!value || typeof value !== 'object') {
     throw new Error('desktop avatar handoff returned invalid payload');
+  }
+  const record = value as Record<string, unknown>;
+  return {
+    opened: Boolean(record.opened),
+    handoffUri: normalizeRequiredString(String(record.handoffUri || ''), 'handoffUri'),
+  };
+}
+
+export function parseDesktopAvatarCloseHandoffResult(value: unknown): DesktopAvatarCloseHandoffResult {
+  if (!value || typeof value !== 'object') {
+    throw new Error('desktop avatar close handoff returned invalid payload');
   }
   const record = value as Record<string, unknown>;
   return {
@@ -65,6 +87,18 @@ export async function launchDesktopAvatarHandoff(
   }, parseDesktopAvatarLaunchHandoffResult);
 }
 
+export async function closeDesktopAvatarHandoff(
+  input: DesktopAvatarCloseHandoffInput,
+): Promise<DesktopAvatarCloseHandoffResult> {
+  return invokeChecked('desktop_avatar_close_handoff', {
+    payload: {
+      avatarInstanceId: normalizeRequiredString(input.avatarInstanceId, 'avatarInstanceId'),
+      closedBy: input.closedBy || 'desktop',
+      sourceSurface: input.sourceSurface || 'desktop-agent-chat',
+    },
+  }, parseDesktopAvatarCloseHandoffResult);
+}
+
 function sanitizeInstanceSegment(value: string | null | undefined): string {
   const normalized = String(value || '').trim().toLowerCase();
   const collapsed = normalized.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -81,4 +115,17 @@ export function buildDesktopAvatarInstanceId(input: {
     input.threadId || input.conversationAnchorId || 'open-new-anchor',
   );
   return `desktop-avatar-${agentSegment}-${continuitySegment}`;
+}
+
+export function buildDesktopAvatarEphemeralInstanceId(input: {
+  agentId: string;
+  threadId?: string | null;
+  conversationAnchorId?: string | null;
+  nonce?: string | null;
+}): string {
+  const baseId = buildDesktopAvatarInstanceId(input);
+  const nonce = sanitizeInstanceSegment(
+    input.nonce || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+  );
+  return `${baseId}-${nonce}`;
 }

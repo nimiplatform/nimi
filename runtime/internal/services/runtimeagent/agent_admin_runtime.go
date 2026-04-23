@@ -125,6 +125,36 @@ func (r agentAdminRuntime) get(req *runtimev1.GetAgentRequest) (*runtimev1.GetAg
 	return &runtimev1.GetAgentResponse{Agent: cloneAgentRecord(entry.Agent)}, nil
 }
 
+func (r agentAdminRuntime) setPresentationProfile(req *runtimev1.SetAgentPresentationProfileRequest) (*runtimev1.SetAgentPresentationProfileResponse, error) {
+	entry, err := r.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
+	if err != nil {
+		return nil, err
+	}
+	var profile *runtimev1.AgentPresentationProfile
+	switch mutation := req.GetMutation().(type) {
+	case *runtimev1.SetAgentPresentationProfileRequest_Profile:
+		profile, err = normalizeAgentPresentationProfile(mutation.Profile)
+		if err != nil {
+			return nil, err
+		}
+	case *runtimev1.SetAgentPresentationProfileRequest_Clear:
+		profile = nil
+	default:
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	nextMetadata, err := mergeAgentPresentationProfileMetadata(entry.Agent.GetMetadata(), profile)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC()
+	entry.Agent.Metadata = nextMetadata
+	entry.Agent.UpdatedAt = timestamppb.New(now)
+	if err := r.svc.updateAgent(entry); err != nil {
+		return nil, err
+	}
+	return &runtimev1.SetAgentPresentationProfileResponse{Profile: profile}, nil
+}
+
 func (r agentAdminRuntime) list(req *runtimev1.ListAgentsRequest) (*runtimev1.ListAgentsResponse, error) {
 	r.svc.mu.RLock()
 	items := make([]*runtimev1.AgentRecord, 0, len(r.svc.agents))

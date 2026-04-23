@@ -1,4 +1,4 @@
-import { normalizeChatThinkingPreference, type ChatThinkingPreference } from './chat-thinking';
+import { normalizeChatThinkingPreference, type ChatThinkingPreference } from './chat-shared-thinking';
 
 export const CHAT_THINKING_PREFERENCE_STORAGE_KEY = 'nimi.chat.settings.thinking.v1';
 export const AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY = 'nimi.chat.settings.agent.behavior.v1';

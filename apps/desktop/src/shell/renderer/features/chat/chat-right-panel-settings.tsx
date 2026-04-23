@@ -1,8 +1,11 @@
+// Retained for spec surface `chat.settings.rail_controls`
+// (.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml, D-SHELL-030).
+// No runtime consumer today; chat modes use `chat-shared-side-sheet.tsx` + `chat-shared-settings-panel.tsx`.
 import type { ReactNode } from 'react';
 import { ScrollArea, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { DesktopIconToggleAction } from '@renderer/components/action';
-import { ChatRightColumnCard } from './chat-right-column-primitives';
+import { ChatRightColumnCard } from './chat-shared-right-column-primitives';
 
 // ---------------------------------------------------------------------------
 // Unified Settings panel — right panel content when settings is toggled

@@ -225,6 +225,7 @@ const AGENT_METHODS = [
   'getConversationAnchorSnapshot',
   'getAgentState',
   'updateAgentState',
+  'setPresentationProfile',
   'enableAutonomy',
   'disableAutonomy',
   'setAutonomyConfig',

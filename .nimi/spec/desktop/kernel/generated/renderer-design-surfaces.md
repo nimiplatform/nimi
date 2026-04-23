@@ -5,11 +5,11 @@
 | Surface ID | Module | Role | Profile | Exception Policy | Source Rule |
 |---|---|---|---|---|---|
 | `chat.page.root` | `features/chat/chat-page.tsx` | `chat_root` | `baseline` | `none` | `D-SHELL-019` |
-| `chat.secondary.cards` | `features/chat/chat-right-column-primitives.tsx` | `chat_secondary_cards` | `secondary` | `allowlisted_arbitrary` | `D-SHELL-029` |
+| `chat.secondary.cards` | `features/chat/chat-shared-right-column-primitives.tsx` | `chat_secondary_cards` | `secondary` | `allowlisted_arbitrary` | `D-SHELL-029` |
 | `chat.page.floating_controls` | `features/chat/chat-page.tsx` | `chat_page_floating_controls` | `secondary` | `none` | `D-SHELL-030` |
 | `chat.utility.rail_controls` | `features/chat/chat-right-panel-character-rail.tsx` | `chat_utility_rail_controls` | `secondary` | `none` | `D-SHELL-030` |
 | `chat.settings.rail_controls` | `features/chat/chat-right-panel-settings.tsx` | `chat_settings_rail_controls` | `secondary` | `none` | `D-SHELL-030` |
-| `chat.session_list.cards` | `features/chat/chat-ai-session-list-panel.tsx` | `chat_session_list_cards` | `secondary` | `none` | `D-SHELL-030` |
+| `chat.session_list.cards` | `features/chat/chat-nimi-session-list-panel.tsx` | `chat_session_list_cards` | `secondary` | `none` | `D-SHELL-030` |
 | `chat.agent_history.cards` | `features/chat/chat-agent-history-panel.tsx` | `chat_agent_history_cards` | `secondary` | `none` | `D-SHELL-030` |
 | `chat.target_selector.surface` | `features/chat/chat-target-selector.tsx` | `chat_target_selector_surface` | `secondary` | `none` | `D-SHELL-030` |
 | `chat.inspect.operational` | `features/chat/chat-runtime-inspect-content.tsx` | `chat_runtime_inspect_operational` | `secondary` | `none` | `D-SHELL-030` |

@@ -110,22 +110,13 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
     >
       <div className="space-y-1.5">
         <h3 className="text-[13px] font-semibold text-[var(--nimi-text-primary)]">
-          {t('Chat.avatarBindingSectionHeading', { defaultValue: 'Avatar App' })}
+          {t('Chat.agentBackdropAppearanceHeading', { defaultValue: 'Local Shell Appearance' })}
         </h3>
         <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
-          {t('Chat.avatarBindingDescription', {
-            defaultValue: 'Desktop no longer imports, binds, or renders local VRM/Live2D avatars. Launch Nimi Avatar for carrier execution; this panel only keeps shell-owned backdrop settings.',
+          {t('Chat.agentBackdropAppearanceDescription', {
+            defaultValue: 'Choose a local backdrop image for this chat on this device. This only changes the desktop shell atmosphere and never changes avatar binding truth.',
           })}
         </p>
-        <p className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs leading-5 text-amber-800">
-          {t('Chat.avatarBindingResidueNotice', {
-            defaultValue: 'Wave 4 Exec Pack 4 decommissioned the desktop-local avatar carrier path. Missing avatar launch or handoff must fail closed instead of falling back to local desktop rendering.',
-          })}
-        </p>
-        <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50/80 px-2.5 py-1 text-[11px] font-medium text-sky-700">
-          <span>{t('Chat.avatarCarrierOwnerLabel', { defaultValue: 'Carrier owner' })}</span>
-          <code>{t('Chat.avatarCarrierOwnerPath', { defaultValue: 'apps/avatar' })}</code>
-        </div>
       </div>
 
       {disabledReason ? (
@@ -148,12 +139,12 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
           </div>
           <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
             {t('Chat.agentBackdropDescription', {
-              defaultValue: 'Import one desktop-local image to sit under the chat glass surface for this agent. The transcript stays above it; the backdrop is scene atmosphere only.',
+              defaultValue: 'Import one local image to sit behind this chat. It only changes the scene atmosphere on this desktop shell.',
             })}
           </p>
           <p className="text-[11px] leading-5 text-[var(--nimi-text-muted)]">
             {t('Chat.agentBackdropScopeNotice', {
-              defaultValue: 'Backdrop settings remain desktop shell scope. They do not recreate an avatar carrier path or override avatar-app presentation truth.',
+              defaultValue: 'This backdrop stays on this device and does not change the runtime or Nimi Avatar presentation.',
             })}
           </p>
         </div>
@@ -179,8 +170,8 @@ export function ChatAgentAvatarBindingSettings(props: ChatAgentAvatarBindingSett
                 </p>
                 {props.agentName ? (
                   <p className="truncate text-[11px] text-[var(--nimi-text-muted)]">
-                    {t('Chat.avatarBindingCurrentLabel', {
-                      defaultValue: 'Bound locally to {{name}}',
+                    {t('Chat.agentBackdropCurrentLabel', {
+                      defaultValue: 'Used for {{name}} on this device',
                       name: props.agentName,
                     })}
                   </p>

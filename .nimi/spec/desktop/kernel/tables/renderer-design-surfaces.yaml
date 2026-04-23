@@ -8,7 +8,7 @@ surfaces:
     testid_required: true
     source_rule: D-SHELL-019
   - id: chat.secondary.cards
-    module: features/chat/chat-right-column-primitives.tsx
+    module: features/chat/chat-shared-right-column-primitives.tsx
     role: chat_secondary_cards
     surface_profile: secondary
     exception_policy: allowlisted_arbitrary
@@ -36,7 +36,7 @@ surfaces:
     testid_required: false
     source_rule: D-SHELL-030
   - id: chat.session_list.cards
-    module: features/chat/chat-ai-session-list-panel.tsx
+    module: features/chat/chat-nimi-session-list-panel.tsx
     role: chat_session_list_cards
     surface_profile: secondary
     exception_policy: none

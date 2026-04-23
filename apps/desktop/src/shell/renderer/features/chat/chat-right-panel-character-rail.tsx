@@ -1,16 +1,13 @@
+// Retained for spec surface `chat.utility.rail_controls`
+// (.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml, D-SHELL-030).
+// No runtime consumer today; chat modes use `chat-shared-side-sheet.tsx` instead.
 import type { ReactNode } from 'react';
-import { cn, Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { ConversationCharacterData, ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
-import {
-  AvatarStage,
-  createAvatarStageSnapshot,
-  resolveSpriteAvatarImageUrl,
-} from '@nimiplatform/nimi-kit/features/avatar';
 import { DesktopIconToggleAction } from '@renderer/components/action';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { resolveDesktopChatAvatarPresentationProfile } from './chat-agent-avatar-stage-model';
-import { ChatRightColumn, ChatRightColumnCard, ChatRightColumnCardTitle } from './chat-right-column-primitives';
+import { ChatRightColumn, ChatRightColumnCard, ChatRightColumnCardTitle } from './chat-shared-right-column-primitives';
 import { ChatRightPanelSettings } from './chat-right-panel-settings';
 
 const NO_BIO_FALLBACK = 'This Agent has no public bio.';
@@ -272,46 +269,9 @@ export function ChatRightPanelUtilityRail(props: ChatRightPanelUtilityRailProps)
 
 export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailProps) {
   const { t } = useTranslation();
-  const theme = props.characterData?.theme;
   const supportingCopy = String(props.characterData?.bio || props.selectedTarget.bio || '').trim() || NO_BIO_FALLBACK;
   const handsFreeActive = props.handsFreeState?.mode === 'hands-free';
   const handsFreeListening = handsFreeActive && props.handsFreeState?.status === 'listening';
-  const rippleColor = theme?.accentSoft || 'rgba(16,185,129,0.35)';
-  const avatarPresentationProfile = resolveDesktopChatAvatarPresentationProfile({
-    presentationProfile: props.characterData?.avatarPresentationProfile || null,
-    avatarUrl: props.characterData?.avatarUrl || props.selectedTarget.avatarUrl || null,
-  });
-  const avatarImageUrl = resolveSpriteAvatarImageUrl(
-    avatarPresentationProfile,
-    props.characterData?.avatarUrl || props.selectedTarget.avatarUrl || null,
-  );
-  const avatarSnapshot = createAvatarStageSnapshot(
-    avatarPresentationProfile,
-    {
-      phase: props.characterData?.interactionState?.phase === 'loading'
-        ? 'transitioning'
-        : props.characterData?.interactionState?.phase === 'thinking'
-          ? 'thinking'
-          : props.characterData?.interactionState?.phase === 'listening'
-            ? 'listening'
-            : props.characterData?.interactionState?.phase === 'speaking'
-              ? 'speaking'
-              : handsFreeListening
-                ? 'listening'
-                : 'idle',
-      emotion: props.characterData?.interactionState?.emotion || (handsFreeActive ? 'calm' : undefined),
-      actionCue: props.characterData?.interactionState?.label
-        || (handsFreeActive ? 'Hands-free ready' : 'Here with you'),
-      amplitude: typeof props.characterData?.interactionState?.amplitude === 'number'
-        ? props.characterData.interactionState.amplitude
-        : handsFreeListening
-          ? 0.6
-          : handsFreeActive
-            ? 0.18
-            : 0.08,
-      visemeId: props.characterData?.interactionState?.visemeId || undefined,
-    },
-  );
   const presenceLabel = props.characterData?.interactionState?.label
     || (handsFreeActive ? 'Hands-free ready' : 'Here with you');
   const phase = props.characterData?.interactionState?.phase;
@@ -320,75 +280,23 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
   return (
     <ChatRightColumn data-chat-mode-column="human">
       <ChatRightColumnCard cardKey="primary" className="flex min-h-0 flex-1 flex-col justify-center px-5 py-5">
-        <div className="space-y-5 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative">
-              <span
-                className="absolute inset-[-16px] rounded-full opacity-60 blur-3xl"
-                style={{ background: theme?.accentSoft || 'rgba(167, 243, 208, 0.55)' }}
-              />
-              {handsFreeActive ? (
-                <>
-                  <span
-                    className="hf-ripple-ring pointer-events-none absolute inset-[-8px] rounded-full border-2"
-                    style={{
-                      borderColor: rippleColor,
-                      animation: handsFreeListening
-                        ? 'hf-ripple 2.4s cubic-bezier(0.22,1,0.36,1) infinite'
-                        : 'hf-ripple-glow 3s ease-in-out infinite',
-                    }}
-                  />
-                  <span
-                    className="hf-ripple-ring pointer-events-none absolute inset-[-8px] rounded-full border-2"
-                    style={{
-                      borderColor: rippleColor,
-                      animation: handsFreeListening
-                        ? 'hf-ripple 2.4s cubic-bezier(0.22,1,0.36,1) 0.8s infinite'
-                        : 'hf-ripple-glow 3s ease-in-out 1s infinite',
-                    }}
-                  />
-                  <span
-                    className="hf-ripple-ring pointer-events-none absolute inset-[-8px] rounded-full border-2"
-                    style={{
-                      borderColor: rippleColor,
-                      animation: handsFreeListening
-                        ? 'hf-ripple 2.4s cubic-bezier(0.22,1,0.36,1) 1.6s infinite'
-                        : 'hf-ripple-glow 3s ease-in-out 2s infinite',
-                    }}
-                  />
-                  <span
-                    className="hf-ripple-glow pointer-events-none absolute inset-[-12px] rounded-full"
-                    style={{
-                      background: `radial-gradient(circle, ${rippleColor}, transparent 70%)`,
-                      animation: 'hf-ripple-glow 3s ease-in-out infinite',
-                    }}
-                  />
-                </>
-              ) : null}
-              <span
-                className="absolute inset-[-8px] rounded-full border border-white/75"
-                style={{ boxShadow: `0 16px 40px ${theme?.accentSoft || 'rgba(16,185,129,0.18)'}` }}
-              />
-              <AvatarStage
-                snapshot={avatarSnapshot}
-                label={props.characterData?.name || props.selectedTarget.title}
-                imageUrl={avatarImageUrl}
-                fallbackLabel={props.characterData?.avatarFallback || props.selectedTarget.avatarFallback || props.selectedTarget.title}
-                showStatusBadge={false}
-                size="lg"
-                className="relative"
-              />
-            </div>
-            <div className="space-y-2">
-              <p className="text-[1.8rem] font-black leading-tight tracking-tight text-slate-950">
-                {props.characterData?.name || props.selectedTarget.title}
-              </p>
-              {props.characterData?.handle || props.selectedTarget.handle ? (
-                <p className="text-xs font-medium text-slate-500">
-                  {props.characterData?.handle || props.selectedTarget.handle}
-                </p>
-              ) : null}
-            </div>
+        <div className="space-y-3 text-center">
+          <p className="text-[1.8rem] font-black leading-tight tracking-tight text-slate-950">
+            {props.characterData?.name || props.selectedTarget.title}
+          </p>
+          {props.characterData?.handle || props.selectedTarget.handle ? (
+            <p className="text-xs font-medium text-slate-500">
+              {props.characterData?.handle || props.selectedTarget.handle}
+            </p>
+          ) : null}
+          <p className="text-sm leading-7 text-slate-500">
+            {supportingCopy}
+          </p>
+          <div className="flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,white)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_94%,white)] px-3 py-1.5 text-[11px] font-semibold text-[var(--nimi-text-primary)] shadow-[0_8px_18px_rgba(15,23,42,0.06)]">
+              <span className={`inline-block h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg)] ${presenceBusy ? 'animate-pulse' : ''}`} />
+              <span>{presenceLabel}</span>
+            </span>
           </div>
         </div>
       </ChatRightColumnCard>
@@ -396,14 +304,10 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
       <ChatRightColumnCard cardKey="status" className="px-4 py-4">
         <ChatRightColumnCardTitle
           title={t('Chat.presenceCardTitle', { defaultValue: 'Presence' })}
-          subtitle={supportingCopy}
+          subtitle={t('Chat.agentPresenceCardSubtitle', {
+            defaultValue: 'Status and conversation controls for this agent on this device.',
+          })}
         />
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,white)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_94%,white)] px-3 py-1.5 text-[11px] font-semibold text-[var(--nimi-text-primary)] shadow-[0_8px_18px_rgba(15,23,42,0.06)]">
-            <span className={cn('inline-block h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg)]', presenceBusy ? 'animate-pulse' : '')} />
-            <span>{presenceLabel}</span>
-          </span>
-        </div>
         {props.children ? <div className="mt-4">{props.children}</div> : null}
       </ChatRightColumnCard>
 

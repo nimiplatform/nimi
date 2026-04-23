@@ -77,6 +77,16 @@ commands:
     description: Launch the avatar app handoff URI with explicit agent/avatar-instance/anchor context and no raw JWT payload
     source_rule: D-IPC-005
 
+  - command: desktop_avatar_close_handoff
+    module: ui
+    description: Request closure of a specific live avatar instance by avatar_instance_id through the avatar app handoff path without mutating runtime or desktop-local avatar truth
+    source_rule: D-IPC-005
+
+  - command: desktop_avatar_instance_registry_list
+    module: ui
+    description: Read the avatar-published live instance projection for desktop session-link inventory without inventing local carrier truth
+    source_rule: D-IPC-005
+
   - command: oauth_token_exchange
     module: oauth
     description: Exchange OAuth authorization code for tokens

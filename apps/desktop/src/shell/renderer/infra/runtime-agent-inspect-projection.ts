@@ -124,6 +124,7 @@ function parseAvatarBackendKind(value: unknown): AvatarPresentationProfile['back
   const normalized = normalizeText(value);
   if (
     normalized === 'vrm'
+    || normalized === 'live2d'
     || normalized === 'sprite2d'
     || normalized === 'canvas2d'
     || normalized === 'video'

@@ -111,6 +111,15 @@ enum AgentAutonomyMode {
   AGENT_AUTONOMY_MODE_HIGH = 4;
 }
 
+enum AgentPresentationBackendKind {
+  AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED = 0;
+  AGENT_PRESENTATION_BACKEND_KIND_VRM = 1;
+  AGENT_PRESENTATION_BACKEND_KIND_LIVE2D = 2;
+  AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D = 3;
+  AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D = 4;
+  AGENT_PRESENTATION_BACKEND_KIND_VIDEO = 5;
+}
+
 enum ConversationAnchorStatus {
   CONVERSATION_ANCHOR_STATUS_UNSPECIFIED = 0;
   CONVERSATION_ANCHOR_STATUS_ACTIVE = 1;
@@ -190,6 +199,20 @@ message AgentStatePutAttribute {
 message AgentStateRemoveAttribute {
   string key = 1;
 }
+
+// K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
+// intentionally narrow and stable; renderer-local execution state must remain
+// on transient app/runtime seams rather than being smuggled here.
+message AgentPresentationProfile {
+  AgentPresentationBackendKind backend_kind = 1;
+  string avatar_asset_ref = 2;
+  string expression_profile_ref = 3;
+  string idle_preset = 4;
+  string interaction_policy_ref = 5;
+  string default_voice_reference = 6;
+}
+
+message ClearAgentPresentationProfile {}
 
 message AgentStateMutation {
   oneof mutation {
@@ -524,6 +547,19 @@ message SetAutonomyConfigResponse {
   AgentAutonomyState autonomy = 1;
 }
 
+message SetAgentPresentationProfileRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  oneof mutation {
+    AgentPresentationProfile profile = 3;
+    ClearAgentPresentationProfile clear = 4;
+  }
+}
+
+message SetAgentPresentationProfileResponse {
+  AgentPresentationProfile profile = 1;
+}
+
 message ListPendingHooksRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
@@ -635,6 +671,7 @@ service RuntimeAgentService {
   rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
   rpc GetAgentState(GetAgentStateRequest) returns (GetAgentStateResponse);
   rpc UpdateAgentState(UpdateAgentStateRequest) returns (UpdateAgentStateResponse);
+  rpc SetAgentPresentationProfile(SetAgentPresentationProfileRequest) returns (SetAgentPresentationProfileResponse);
   rpc EnableAutonomy(EnableAutonomyRequest) returns (EnableAutonomyResponse);
   rpc DisableAutonomy(DisableAutonomyRequest) returns (DisableAutonomyResponse);
   rpc SetAutonomyConfig(SetAutonomyConfigRequest) returns (SetAutonomyConfigResponse);

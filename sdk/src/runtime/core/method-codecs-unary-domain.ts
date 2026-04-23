@@ -72,6 +72,8 @@ import {
   ListPendingHooksResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
+  SetAgentPresentationProfileRequest,
+  SetAgentPresentationProfileResponse,
   SetAutonomyConfigRequest,
   SetAutonomyConfigResponse,
   TerminateAgentRequest,
@@ -314,6 +316,10 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.updateAgentState]: {
     requestType: UpdateAgentStateRequest,
     responseType: UpdateAgentStateResponse,
+  },
+  [RuntimeMethodIds.agent.setPresentationProfile]: {
+    requestType: SetAgentPresentationProfileRequest,
+    responseType: SetAgentPresentationProfileResponse,
   },
   [RuntimeMethodIds.agent.enableAutonomy]: {
     requestType: EnableAutonomyRequest,

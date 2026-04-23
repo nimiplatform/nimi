@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { useCallback, useMemo, useState, type MouseEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   type ChatComposerSubmitInput,
@@ -16,10 +16,10 @@ import type {
   AgentLocalThreadBundle,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import type { DesktopConversationModeHost } from './chat-mode-host-types';
-import { ChatSettingsPanel } from './chat-settings-panel';
-import { RuntimeStreamFooter } from './chat-runtime-stream-ui';
-import { ChatAgentAvatarBindingSettings } from './chat-agent-avatar-binding-settings';
+import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
+import { ChatSettingsPanel } from './chat-shared-settings-panel';
+import { RuntimeStreamFooter } from './chat-shared-runtime-stream-ui';
+import { ChatAgentAvatarSettingsPanel } from './chat-agent-avatar-settings-panel';
 import {
   desktopAgentBackdropBindingQueryKey,
   getDesktopAgentBackdropBinding,
@@ -42,11 +42,11 @@ import {
 import { toConversationThreadSummary } from './chat-agent-thread-model';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
-import type { ChatThinkingPreference } from './chat-thinking';
+import type { ChatThinkingPreference } from './chat-shared-thinking';
 import type { StreamState } from '../turns/stream-controller';
 import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
-import { resolveExecutionSchedulingGuardDecision } from './chat-execution-scheduling-guard';
+import { resolveExecutionSchedulingGuardDecision } from './chat-shared-execution-scheduling-guard';
 import type { AgentChatExperienceSettings } from './chat-settings-storage';
 import type {
   RuntimeAgentInspectEventSummary,
@@ -59,11 +59,8 @@ import {
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
-import { ChatAgentAvatarAppLauncher } from './chat-agent-avatar-app-launcher';
-import { ChatComposerLeadingAvatar } from './chat-composer-leading-avatar';
-import { resolveChatAgentAvatarStageLayoutContract } from './chat-agent-avatar-stage-layout';
-import { useAgentAvatarPlacement } from '@renderer/app-shell/providers/chat-agent-avatar-placement-storage';
-import { resetChatAgentAvatarTransform } from './chat-agent-avatar-transform-store';
+import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
+import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -138,7 +135,14 @@ type UseAgentConversationPresentationInput = {
   thinkingSupported: boolean;
   thinkingUnsupportedReason: string | null;
   agentRouteReady: boolean;
+  clearChatsTargetName?: string | null;
+  clearChatsDisabled?: boolean;
+  onClearAgentHistory?: () => Promise<void> | void;
 };
+
+const AGENT_TRANSCRIPT_WIDTH_CLASS = CHAT_CONTENT_WIDTH_CLASS;
+const AGENT_TRANSCRIPT_POSITION_CLASS = CHAT_CONTENT_POSITION_CLASS;
+const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-[clamp(140px,16vh,200px)]';
 
 export function useAgentConversationPresentation(
   input: UseAgentConversationPresentationInput,
@@ -147,7 +151,6 @@ export function useAgentConversationPresentation(
   | 'adapter'
   | 'activeThreadId'
   | 'availability'
-  | 'avatarStagePlacement'
   | 'characterData'
   | 'composerContent'
   | 'messages'
@@ -301,24 +304,6 @@ export function useAgentConversationPresentation(
       cancelStream(input.activeThreadId);
     }
   }, [input.activeThreadId]);
-  // D-LLM-065 — per-target cosmetic preference; default 'right-center'.
-  const [avatarStagePlacement] = useAgentAvatarPlacement(
-    input.activeTarget?.agentId ?? selectedTargetId ?? null,
-  );
-  const avatarStageLayout = useMemo(
-    () => resolveChatAgentAvatarStageLayoutContract(avatarStagePlacement),
-    [avatarStagePlacement],
-  );
-  // D-LLM-057 / D-LLM-065 — avatar transform is transient surface-local state
-  // and must deterministic-reset on agent switch, thread switch, or surface close.
-  const transformResetAgentKey = input.activeTarget?.agentId ?? null;
-  const transformResetThreadKey = input.activeThreadId ?? null;
-  useEffect(() => {
-    resetChatAgentAvatarTransform();
-    return () => {
-      resetChatAgentAvatarTransform();
-    };
-  }, [transformResetAgentKey, transformResetThreadKey]);
   const hostView = useMemo(() => resolveAgentConversationHostView({
     threads: targetSummaries,
     selectedTargetId,
@@ -356,18 +341,16 @@ export function useAgentConversationPresentation(
       }),
       loadingLabel: input.t('Chat.agentTranscriptLoading', { defaultValue: 'Loading local agent conversation…' }),
     },
-      transcriptWidthClassName: avatarStageLayout.transcriptWidthClassName,
-      transcriptWidthPositionClassName: avatarStageLayout.transcriptWidthPositionClassName,
-      transcriptScrollViewportWidthClassName: avatarStageLayout.transcriptScrollViewportWidthClassName,
-      transcriptScrollViewportPositionClassName: avatarStageLayout.transcriptScrollViewportPositionClassName,
-      transcriptContentPaddingBottomClassName: avatarStageLayout.transcriptContentBottomReserveClassName,
-      renderMessageContent: input.renderMessageContent,
+    transcriptWidthClassName: AGENT_TRANSCRIPT_WIDTH_CLASS,
+    transcriptWidthPositionClassName: AGENT_TRANSCRIPT_POSITION_CLASS,
+    transcriptScrollViewportWidthClassName: AGENT_TRANSCRIPT_WIDTH_CLASS,
+    transcriptScrollViewportPositionClassName: AGENT_TRANSCRIPT_POSITION_CLASS,
+    transcriptContentPaddingBottomClassName: AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
+    renderMessageContent: input.renderMessageContent,
     renderMessageAccessory: input.renderMessageAccessory,
     onMessageContextMenu: input.onMessageContextMenu,
     onStopGenerating: handleStopGenerating,
   }), [
-    avatarStageLayout.transcriptWidthClassName,
-    avatarStageLayout.transcriptWidthPositionClassName,
     characterData.avatarUrl,
     characterData.name,
     input.activeThreadId,
@@ -471,46 +454,32 @@ export function useAgentConversationPresentation(
   return useMemo(() => ({
     ...hostSnapshot,
     adapter,
-    avatarStagePlacement,
     stagePanelProps: undefined,
-    topContent: input.activeTarget ? (
-      <div className="space-y-3">
-        <ChatAgentAvatarAppLauncher
-          selectedTarget={{
-            id: input.activeTarget.agentId,
-            title: input.activeTarget.displayName || resolvedAgentDisplayName,
-          }}
-          activeThreadId={input.activeThreadId}
-          activeConversationAnchorId={input.activeConversationAnchorId}
-        />
-        {schedulingFeedbackNode}
-      </div>
-    ) : schedulingFeedbackNode,
+    topContent: schedulingFeedbackNode,
     settingsContent: (
-      <div className="space-y-4">
-        {input.activeTarget ? (
-          <ChatAgentAvatarAppLauncher
-            selectedTarget={{
-              id: input.activeTarget.agentId,
-              title: input.activeTarget.displayName || resolvedAgentDisplayName,
-            }}
+      <ChatSettingsPanel
+        onDiagnosticsVisibilityChange={input.onDiagnosticsVisibilityChange}
+        onModelSelectionChange={input.onModelSelectionChange}
+        initialModelSelection={input.initialModelSelection}
+        diagnosticsContent={diagnosticsContent}
+        presenceContent={(
+          <ChatAgentAvatarSettingsPanel
+            selectedTarget={input.activeTarget
+              ? {
+                id: input.activeTarget.agentId,
+                title: input.activeTarget.displayName || resolvedAgentDisplayName,
+              }
+              : null}
             activeThreadId={input.activeThreadId}
             activeConversationAnchorId={input.activeConversationAnchorId}
+            presentationProfile={input.runtimeInspect?.presentationProfile || input.activeTarget?.presentationProfile || null}
+            onRefreshInspect={input.onRefreshInspect}
           />
-        ) : null}
-        <ChatSettingsPanel
-          onDiagnosticsVisibilityChange={input.onDiagnosticsVisibilityChange}
-          onModelSelectionChange={input.onModelSelectionChange}
-          initialModelSelection={input.initialModelSelection}
-          diagnosticsContent={diagnosticsContent}
-          presenceContent={(
-            <ChatAgentAvatarBindingSettings
-              agentId={selectedTargetId || input.activeTarget?.agentId || null}
-              agentName={characterData.name || input.activeTarget?.displayName || null}
-            />
-          )}
-        />
-      </div>
+        )}
+        clearChatsTargetName={input.clearChatsTargetName}
+        clearChatsDisabled={input.clearChatsDisabled}
+        onClearAgentHistory={input.onClearAgentHistory}
+      />
     ),
     composerContent: (
       adapter.composerAdapter ? (
@@ -556,8 +525,8 @@ export function useAgentConversationPresentation(
                 fallbackLabel={characterData.avatarFallback || resolvedAgentDisplayName}
               />
             )}
-            widthClassName={avatarStageLayout.composerWidthClassName}
-            widthPositionClassName={avatarStageLayout.composerWidthPositionClassName}
+            widthClassName={AGENT_TRANSCRIPT_WIDTH_CLASS}
+            widthPositionClassName={AGENT_TRANSCRIPT_POSITION_CLASS}
           />
         </div>
       ) : null
@@ -607,8 +576,8 @@ export function useAgentConversationPresentation(
     selectedTargetId,
     schedulingGuard.disabled,
     resolvedAgentDisplayName,
-    avatarStageLayout.composerWidthClassName,
-    avatarStageLayout.composerWidthPositionClassName,
-    avatarStagePlacement,
+    input.clearChatsTargetName,
+    input.clearChatsDisabled,
+    input.onClearAgentHistory,
   ]);
 }

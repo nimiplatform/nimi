@@ -212,6 +212,8 @@ Admitted retained scope:
 - surface-local placement preference for desktop shell chrome where separately
   admitted
 - explicit avatar-app launcher / handoff affordances owned by desktop shell
+- read-only desktop session-link inventory that consumes avatar-published live
+  instance projection without promoting desktop-local truth
 
 Fixed rules:
 
@@ -219,6 +221,9 @@ Fixed rules:
   Live2D / VRM carrier path
 - retained shell scope must not mutate runtime presentation truth or avatar-app
   carrier truth
+- desktop may request bounded live-instance operations such as explicit reveal,
+  retarget, or close only over admitted `avatar_instance_id` identity; avatar
+  app remains the execution owner and missing targets must fail closed
 - any future attempt to reintroduce desktop-local live-avatar execution requires
   a new admitted desktop kernel authority; it cannot reuse the retired Pack 4
   residue line

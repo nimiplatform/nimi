@@ -79,6 +79,8 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 embodiment projection la
 - 缺少 launch context 必须 fail closed；avatar app 不得默认 bootstrap 单个 agent
 - avatar identity bootstrap 来自 shared auth session / shared JWT source
 - launch handoff payload 不携带 raw JWT、refresh token、或 `subject_user_id`
+- bounded close handoff 只允许携带 `avatar_instance_id` 和 surface attribution；
+  avatar app 负责按 live instance identity 执行 close，缺少 target 时 fail closed
 
 当前 running-session posture 同时固定为：
 

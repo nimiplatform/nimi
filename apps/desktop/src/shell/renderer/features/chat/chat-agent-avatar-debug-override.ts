@@ -1,6 +1,6 @@
 import type { ConversationCharacterData } from '@nimiplatform/nimi-kit/features/chat/headless';
-import { CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT } from './chat-agent-avatar-stage-model';
-export { CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT } from './chat-agent-avatar-stage-model';
+
+export const CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT = 'nimi:chat-avatar-smoke-override-change';
 
 export type ChatAgentAvatarDebugOverride = {
   phase?: NonNullable<ConversationCharacterData['interactionState']>['phase'];

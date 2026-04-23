@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { shouldDismissFloatingMenu } from '../src/shell/renderer/features/chat/chat-floating-menu.js';
+import { shouldDismissFloatingMenu } from '../src/shell/renderer/features/chat/chat-shared-floating-menu.js';
 
 test('shouldDismissFloatingMenu keeps the menu open when the pointer lands inside the menu', () => {
   const insideTarget = { id: 'inside' };

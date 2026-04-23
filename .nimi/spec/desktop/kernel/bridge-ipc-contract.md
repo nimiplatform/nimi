@@ -339,8 +339,15 @@ Fixed rules:
 - desktop renderer code must fail closed if stale code paths still reference
   this retired command family; it must not recreate local carrier execution or
   silently proxy the behavior through another helper
-- `desktop_avatar_launch_handoff` is the only admitted desktop avatar command
-  on the canonical bridge path
+- `desktop_avatar_launch_handoff` remains the admitted write-side desktop avatar
+  command on the canonical bridge path
+- `desktop_avatar_close_handoff` is admitted as a bounded desktop write-side
+  avatar instance operation; it may only request closure of a specific live
+  `avatar_instance_id` and must fail closed when the target instance is absent
+  or stale
+- `desktop_avatar_instance_registry_list` is admitted as a read-only desktop
+  avatar inventory command; it may only read avatar-published live instance
+  projection state and must not mutate, persist, or fabricate inventory truth
 - retained desktop shell-owned cosmetic surfaces such as backdrop storage remain
   separate non-carrier authority and must not be conflated with avatar carrier
   import/binding truth

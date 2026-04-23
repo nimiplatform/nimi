@@ -236,6 +236,8 @@ import type {
   OpenConversationAnchorResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
+  SetAgentPresentationProfileRequest,
+  SetAgentPresentationProfileResponse,
   SetAutonomyConfigRequest,
   SetAutonomyConfigResponse,
   SubscribeAgentEventsRequest,
@@ -419,6 +421,10 @@ export type RuntimeAgentClient = {
   ): Promise<GetConversationAnchorSnapshotResponse>;
   getAgentState(request: GetAgentStateRequest, options?: RuntimeCallOptions): Promise<GetAgentStateResponse>;
   updateAgentState(request: UpdateAgentStateRequest, options?: RuntimeCallOptions): Promise<UpdateAgentStateResponse>;
+  setPresentationProfile(
+    request: SetAgentPresentationProfileRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<SetAgentPresentationProfileResponse>;
   enableAutonomy(request: EnableAutonomyRequest, options?: RuntimeCallOptions): Promise<EnableAutonomyResponse>;
   disableAutonomy(request: DisableAutonomyRequest, options?: RuntimeCallOptions): Promise<DisableAutonomyResponse>;
   setAutonomyConfig(request: SetAutonomyConfigRequest, options?: RuntimeCallOptions): Promise<SetAutonomyConfigResponse>;

@@ -2,7 +2,8 @@ use super::*;
 use std::process::Command;
 
 const AVATAR_HANDOFF_SCHEME: &str = "nimi-avatar";
-const AVATAR_HANDOFF_HOST: &str = "launch";
+const AVATAR_HANDOFF_LAUNCH_HOST: &str = "launch";
+const AVATAR_HANDOFF_CLOSE_HOST: &str = "close";
 
 fn structured_avatar_handoff_error(reason_code: &str, message: &str) -> String {
     json!({
@@ -75,7 +76,30 @@ fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Resu
         serializer.append_pair("conversation_anchor_id", conversation_anchor_id.as_str());
     }
     Ok(format!(
-        "{AVATAR_HANDOFF_SCHEME}://{AVATAR_HANDOFF_HOST}?{}",
+        "{AVATAR_HANDOFF_SCHEME}://{AVATAR_HANDOFF_LAUNCH_HOST}?{}",
+        serializer.finish()
+    ))
+}
+
+fn build_avatar_close_handoff_uri(
+    payload: &DesktopAvatarCloseHandoffPayload,
+) -> Result<String, String> {
+    let avatar_instance_id = normalize_required_handoff_value(
+        payload.avatar_instance_id.as_str(),
+        "avatar_instance_id",
+    )?;
+    let closed_by = normalize_optional_handoff_value(payload.closed_by.as_deref())
+        .unwrap_or_else(|| "desktop".to_string());
+    let source_surface = normalize_optional_handoff_value(payload.source_surface.as_deref())
+        .unwrap_or_else(|| "desktop-agent-chat".to_string());
+
+    let mut serializer = url::form_urlencoded::Serializer::new(String::new());
+    serializer.append_pair("avatar_instance_id", avatar_instance_id.as_str());
+    serializer.append_pair("closed_by", closed_by.as_str());
+    serializer.append_pair("source_surface", source_surface.as_str());
+
+    Ok(format!(
+        "{AVATAR_HANDOFF_SCHEME}://{AVATAR_HANDOFF_CLOSE_HOST}?{}",
         serializer.finish()
     ))
 }
@@ -296,11 +320,28 @@ pub(crate) fn desktop_avatar_launch_handoff(
     })
 }
 
+#[tauri::command]
+pub(crate) fn desktop_avatar_close_handoff(
+    payload: DesktopAvatarCloseHandoffPayload,
+) -> Result<DesktopAvatarCloseHandoffResult, String> {
+    let handoff_uri = build_avatar_close_handoff_uri(&payload)?;
+    open_avatar_handoff_uri(handoff_uri.as_str()).map_err(|error| {
+        structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_CLOSE_OPEN_FAILED",
+            &format!("failed to open avatar close handoff uri: {error}"),
+        )
+    })?;
+    Ok(DesktopAvatarCloseHandoffResult {
+        opened: true,
+        handoff_uri,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        build_avatar_handoff_uri, confirm_dialog, ConfirmDialogPayload,
-        DesktopAvatarLaunchHandoffPayload,
+        build_avatar_close_handoff_uri, build_avatar_handoff_uri, confirm_dialog,
+        ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload, DesktopAvatarLaunchHandoffPayload,
     };
     use crate::test_support::test_guard;
     use std::{fs, path::PathBuf};
@@ -396,6 +437,40 @@ mod tests {
             source_surface: Some("desktop-agent-chat".to_string()),
         })
         .expect_err("missing anchor should fail");
+
+        let payload: serde_json::Value =
+            serde_json::from_str(error.as_str()).expect("structured error json");
+        assert_eq!(
+            payload
+                .get("reasonCode")
+                .and_then(serde_json::Value::as_str),
+            Some("DESKTOP_AVATAR_HANDOFF_INVALID"),
+        );
+    }
+
+    #[test]
+    fn avatar_close_handoff_uri_includes_instance_context() {
+        let uri = build_avatar_close_handoff_uri(&DesktopAvatarCloseHandoffPayload {
+            avatar_instance_id: "instance-1".to_string(),
+            closed_by: Some("desktop".to_string()),
+            source_surface: Some("desktop-agent-chat".to_string()),
+        })
+        .expect("valid close uri");
+
+        assert!(uri.starts_with("nimi-avatar://close?"));
+        assert!(uri.contains("avatar_instance_id=instance-1"));
+        assert!(uri.contains("closed_by=desktop"));
+        assert!(uri.contains("source_surface=desktop-agent-chat"));
+    }
+
+    #[test]
+    fn avatar_close_handoff_uri_rejects_missing_instance_id() {
+        let error = build_avatar_close_handoff_uri(&DesktopAvatarCloseHandoffPayload {
+            avatar_instance_id: "   ".to_string(),
+            closed_by: None,
+            source_surface: None,
+        })
+        .expect_err("missing instance should fail");
 
         let payload: serde_json::Value =
             serde_json::from_str(error.as_str()).expect("structured error json");

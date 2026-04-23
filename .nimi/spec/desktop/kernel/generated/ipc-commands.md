@@ -18,6 +18,8 @@
 | `http_request` | `http` | Proxy HTTP request through Tauri backend (bypasses browser CORS) | `D-IPC-004` |
 | `open_external_url` | `ui` | Open external URL in system browser | `D-IPC-005` |
 | `desktop_avatar_launch_handoff` | `ui` | Launch the avatar app handoff URI with explicit agent/avatar-instance/anchor context and no raw JWT payload | `D-IPC-005` |
+| `desktop_avatar_close_handoff` | `ui` | Request closure of a specific live avatar instance by avatar_instance_id through the avatar app handoff path without mutating runtime or desktop-local avatar truth | `D-IPC-005` |
+| `desktop_avatar_instance_registry_list` | `ui` | Read the avatar-published live instance projection for desktop session-link inventory without inventing local carrier truth | `D-IPC-005` |
 | `oauth_token_exchange` | `oauth` | Exchange OAuth authorization code for tokens | `D-IPC-006` |
 | `oauth_listen_for_code` | `oauth` | Listen for OAuth callback code on redirect URI | `D-IPC-006` |
 | `confirm_private_sync` | `ui` | Confirm private data sync for agent/session | `D-IPC-005` |

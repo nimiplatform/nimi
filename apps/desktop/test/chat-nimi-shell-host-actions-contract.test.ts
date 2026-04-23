@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const hostActionsSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-ai-shell-host-actions.ts'),
+  resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-nimi-shell-host-actions.ts'),
   'utf8',
 );
 

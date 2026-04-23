@@ -45,6 +45,7 @@ tauri-plugin-deep-link = "2"
 llmfit-core = "0.7.4"
 keyring = "3"
 nimi-kit-shell-tauri = { path = "../../../kit/shell/tauri" }
+sysinfo = "0.34.2"
 
 [dev-dependencies]
 

@@ -128,6 +128,7 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.agent.listAgents]: RuntimeClientMethodContract<'agent', 'listAgents'>;
   [RuntimeMethodIds.agent.getAgentState]: RuntimeClientMethodContract<'agent', 'getAgentState'>;
   [RuntimeMethodIds.agent.updateAgentState]: RuntimeClientMethodContract<'agent', 'updateAgentState'>;
+  [RuntimeMethodIds.agent.setPresentationProfile]: RuntimeClientMethodContract<'agent', 'setPresentationProfile'>;
   [RuntimeMethodIds.agent.enableAutonomy]: RuntimeClientMethodContract<'agent', 'enableAutonomy'>;
   [RuntimeMethodIds.agent.disableAutonomy]: RuntimeClientMethodContract<'agent', 'disableAutonomy'>;
   [RuntimeMethodIds.agent.setAutonomyConfig]: RuntimeClientMethodContract<'agent', 'setAutonomyConfig'>;

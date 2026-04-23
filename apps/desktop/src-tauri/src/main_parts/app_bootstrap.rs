@@ -272,6 +272,8 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::http_request,
             super::defaults_and_commands::open_external_url,
             super::defaults_and_commands::window_and_logs::desktop_avatar_launch_handoff,
+            super::defaults_and_commands::window_and_logs::desktop_avatar_close_handoff,
+            crate::desktop_avatar_instance_registry::commands::desktop_avatar_instance_registry_list,
             super::defaults_and_commands::oauth_token_exchange,
             super::defaults_and_commands::oauth_listen_for_code,
             super::defaults_and_commands::runtime_agent_memory::agent_memory_bind_standard,

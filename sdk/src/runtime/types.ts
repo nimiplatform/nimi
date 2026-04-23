@@ -43,11 +43,17 @@ export type RuntimeProtectedAccessToken = {
   secret: string;
 };
 
+export type RuntimeAppSession = {
+  sessionId: string;
+  sessionToken: string;
+};
+
 export type RuntimeCallOptions = {
   metadata?: RuntimeMetadata;
   timeoutMs?: number;
   idempotencyKey?: string;
   protectedAccessToken?: RuntimeProtectedAccessToken;
+  appSession?: RuntimeAppSession;
 };
 
 export type RuntimeStreamCallOptions = RuntimeCallOptions & {
@@ -96,6 +102,7 @@ export type RuntimeUnaryCall<Request = RuntimeWireMessage> = {
   metadata: RuntimeMetadata;
   authorization?: string;
   protectedAccessToken?: RuntimeProtectedAccessToken;
+  appSession?: RuntimeAppSession;
   timeoutMs?: number;
   /** @internal Side-channel for unary response metadata extraction. */
   _responseMetadataObserver?: RuntimeResponseMetadataObserver;
@@ -107,6 +114,7 @@ export type RuntimeOpenStreamCall<Request = RuntimeWireMessage> = {
   metadata: RuntimeMetadata;
   authorization?: string;
   protectedAccessToken?: RuntimeProtectedAccessToken;
+  appSession?: RuntimeAppSession;
   timeoutMs?: number;
   signal?: AbortSignal;
 };
@@ -167,6 +175,9 @@ export type RuntimeAuthProvider = {
   protectedAccessToken?:
     | RuntimeProtectedAccessToken
     | (() => RuntimeProtectedAccessToken | Promise<RuntimeProtectedAccessToken>);
+  appSession?:
+    | RuntimeAppSession
+    | (() => RuntimeAppSession | undefined | Promise<RuntimeAppSession | undefined>);
 };
 
 export type RuntimeSubjectContextProvider = {

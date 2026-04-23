@@ -156,7 +156,7 @@ function parseAvatarBackendKind(
   errorPrefix: string,
 ): AvatarPresentationProfile['backendKind'] {
   const normalized = parseRequiredString(value, 'backendKind', errorPrefix);
-  if (normalized === 'vrm' || normalized === 'sprite2d' || normalized === 'canvas2d' || normalized === 'video') {
+  if (normalized === 'vrm' || normalized === 'live2d' || normalized === 'sprite2d' || normalized === 'canvas2d' || normalized === 'video') {
     return normalized;
   }
   throw new Error(`${errorPrefix}: backendKind is invalid`);

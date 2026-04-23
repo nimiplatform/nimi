@@ -330,7 +330,7 @@ export default defineConfig(({ mode }) => {
                 return 'chat-agent-diagnostics';
               }
               if (matchesAny(normalizedId, [
-                '/chat-runtime-stream-ui',
+                '/chat-shared-runtime-stream-ui',
                 '/chat-stream-',
               ])) {
                 return 'chat-stream-ui';
@@ -360,21 +360,21 @@ export default defineConfig(({ mode }) => {
               if (
                 normalizedId.includes('/conversation-capability')
                 || normalizedId.includes('/conversation-submit-readiness')
-                || normalizedId.includes('/chat-conversation-capability-settings')
+                || normalizedId.includes('/chat-shared-conversation-capability-settings')
                 || normalizedId.includes('/capability-settings-shared')
-                || normalizedId.includes('/chat-thinking')
-                || normalizedId.includes('/chat-execution-scheduling-guard')
+                || normalizedId.includes('/chat-shared-thinking')
+                || normalizedId.includes('/chat-shared-execution-scheduling-guard')
               ) {
                 return 'chat-capabilities';
               }
               if (matchesAny(normalizedId, [
                 '/chat-settings-',
-                '/chat-settings-panel',
+                '/chat-shared-settings-panel',
               ])) {
                 return 'chat-settings-ui';
               }
-              if (normalizedId.includes('/chat-ai-')) {
-                return 'chat-ai-core';
+              if (normalizedId.includes('/chat-nimi-')) {
+                return 'chat-nimi-core';
               }
               if (normalizedId.includes('/chat-agent-')) {
                 return 'chat-agent-shell';

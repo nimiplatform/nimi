@@ -21,7 +21,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
   return (
     <aside
       className={cn('mr-2 flex min-h-0 w-[340px] shrink-0', props.className)}
-      data-chat-side-sheet={props.sheetKey}
+      data-chat-shared-side-sheet={props.sheetKey}
     >
       <DesktopCardSurface
         kind="promoted-glass"
@@ -47,7 +47,12 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
             onClick={props.onClose}
           />
         </div>
-        <ScrollArea className={cn('min-h-0 flex-1', props.bodyClassName)}>
+        <ScrollArea
+          className={cn(
+            'min-h-0 flex-1 [&>[data-radix-scroll-area-viewport]>div]:!block',
+            props.bodyClassName,
+          )}
+        >
           {props.children}
         </ScrollArea>
         {props.footer ? (

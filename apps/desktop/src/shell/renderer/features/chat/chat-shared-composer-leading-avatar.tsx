@@ -11,7 +11,7 @@ export function ChatComposerLeadingAvatar(props: ChatComposerLeadingAvatarProps)
   const resolvedName = props.name.trim() || props.fallbackLabel?.trim() || '?';
   return (
     <div
-      data-chat-composer-leading-avatar="true"
+      data-chat-shared-composer-leading-avatar="true"
       className="flex h-9 w-9 shrink-0 items-center justify-center"
       aria-hidden="true"
     >

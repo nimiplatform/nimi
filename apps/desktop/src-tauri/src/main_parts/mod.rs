@@ -206,6 +206,21 @@ pub(crate) struct DesktopAvatarLaunchHandoffResult {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAvatarCloseHandoffPayload {
+    avatar_instance_id: String,
+    closed_by: Option<String>,
+    source_surface: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAvatarCloseHandoffResult {
+    opened: bool,
+    handoff_uri: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct OauthTokenExchangePayload {
     token_url: String,
     client_id: String,

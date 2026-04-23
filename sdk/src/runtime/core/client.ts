@@ -332,16 +332,17 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       terminateAgent: unary(RuntimeMethodIds.agent.terminateAgent),
       getAgent: unary(RuntimeMethodIds.agent.getAgent),
       listAgents: unary(RuntimeMethodIds.agent.listAgents),
-      openConversationAnchor: customUnary('/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor', {
+      openConversationAnchor: customUnary(RuntimeMethodIds.agent.openConversationAnchor, {
         requestType: OpenConversationAnchorRequest,
         responseType: OpenConversationAnchorResponse,
       }),
-      getConversationAnchorSnapshot: customUnary('/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot', {
+      getConversationAnchorSnapshot: customUnary(RuntimeMethodIds.agent.getConversationAnchorSnapshot, {
         requestType: GetConversationAnchorSnapshotRequest,
         responseType: GetConversationAnchorSnapshotResponse,
       }),
       getAgentState: unary(RuntimeMethodIds.agent.getAgentState),
       updateAgentState: unary(RuntimeMethodIds.agent.updateAgentState),
+      setPresentationProfile: unary(RuntimeMethodIds.agent.setPresentationProfile),
       enableAutonomy: unary(RuntimeMethodIds.agent.enableAutonomy),
       disableAutonomy: unary(RuntimeMethodIds.agent.disableAutonomy),
       setAutonomyConfig: unary(RuntimeMethodIds.agent.setAutonomyConfig),
