@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent, type ReactNode, type ComponentType } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Bell, LogOut, type LucideProps } from 'lucide-react';
 import { AmbientBackground, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths } from './app-store.js';
@@ -8,6 +8,7 @@ import { clearAuthSession as clearPersistedAuthSession } from '../bridge/index.j
 import { setAppSetting } from '../bridge/sqlite-bridge.js';
 import { syncParentOSLocalDataScope } from '../infra/parentos-bootstrap.js';
 import { isoNow } from '../bridge/ulid.js';
+import { ProfileTodoDrawer } from '../features/profile/profile-todo-drawer.js';
 
 const textMain = '#1e293b';
 const textMuted = '#475569';
@@ -199,6 +200,8 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
 
 export function ShellLayout({ children }: { children: ReactNode }) {
   const { children: childList, activeChildId, setActiveChildId } = useAppStore();
+  const location = useLocation();
+  const isProfileDetailPage = /^\/profile\/[^/]+/.test(location.pathname);
 
   useEffect(() => {
     const now = isoNow();
@@ -288,6 +291,7 @@ export function ShellLayout({ children }: { children: ReactNode }) {
           <div className="h-full">{children}</div>
         </main>
       </div>
+      {isProfileDetailPage ? <ProfileTodoDrawer /> : null}
     </AmbientBackground>
   );
 }

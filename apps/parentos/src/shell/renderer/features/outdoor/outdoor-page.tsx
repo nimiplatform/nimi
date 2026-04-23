@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { S } from '../../app-shell/page-style.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
@@ -153,12 +154,18 @@ export function OutdoorPage() {
     setModalOpen(true);
   }, []);
 
+  const backLink = (
+    <div className="flex items-center gap-2 mb-5">
+      <Link to="/profile" className="text-[13px] hover:underline" style={{ color: textMuted }}>← 返回档案</Link>
+    </div>
+  );
+
   if (!child) {
-    return <div className={S.container} style={{ paddingTop: S.topPad }}><p style={{ color: textMuted }}>请先选择一个孩子</p></div>;
+    return <div className={S.container} style={{ paddingTop: S.topPad }}>{backLink}<p style={{ color: textMuted }}>请先选择一个孩子</p></div>;
   }
 
   if (loading) {
-    return <div className={S.container} style={{ paddingTop: S.topPad }}><p style={{ color: textMuted }}>加载中…</p></div>;
+    return <div className={S.container} style={{ paddingTop: S.topPad }}>{backLink}<p style={{ color: textMuted }}>加载中…</p></div>;
   }
 
   // ── Goal not set: onboarding ──
@@ -166,6 +173,7 @@ export function OutdoorPage() {
   if (goalMinutes === null && !showGoalSetup) {
     return (
       <div className={S.container} style={{ paddingTop: S.topPad }}>
+        {backLink}
         <div className="mx-auto max-w-lg nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 32 }}>
           <h2 className="mb-4 text-[18px] font-semibold" style={{ color: textMain }}>每周户外目标</h2>
           <p className="mb-3 text-[13px] leading-relaxed" style={{ color: textMuted }}>
@@ -191,6 +199,7 @@ export function OutdoorPage() {
   if (showGoalSetup) {
     return (
       <div className={S.container} style={{ paddingTop: S.topPad }}>
+        {backLink}
         <div className="mx-auto max-w-lg nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]" style={{ padding: 32 }}>
           <h2 className="mb-4 text-[18px] font-semibold" style={{ color: textMain }}>设定每周户外目标</h2>
           <p className="mb-4 text-[13px]" style={{ color: textMuted }}>建议每周 630 分钟（约每天 90 分钟）</p>
@@ -235,6 +244,7 @@ export function OutdoorPage() {
 
   return (
     <div className={S.container} style={{ paddingTop: S.topPad }}>
+      {backLink}
       {/* Week navigator */}
       <div className="mb-6 flex items-center justify-between">
         <button

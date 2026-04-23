@@ -14,6 +14,13 @@ import {
   }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
+if (!window.HTMLElement.prototype.scrollIntoView) {
+  Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: () => undefined,
+  });
+}
+
 function flush() {
   return new Promise((resolve) => {
     setTimeout(resolve, 0);
@@ -144,11 +151,11 @@ describe('ModelConfigPanel', () => {
     expect(container?.textContent).not.toContain('should not appear');
 
     const buttons = Array.from(container?.querySelectorAll('button') || []);
-    const applyButton = buttons.find((button) => button.textContent?.includes('Apply profile'));
-    expect(applyButton).toBeTruthy();
+    const profileCard = buttons.find((button) => button.textContent?.includes('No profile applied'));
+    expect(profileCard).toBeTruthy();
 
     await act(async () => {
-      applyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      profileCard?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
     });
 
@@ -246,15 +253,17 @@ describe('ModelConfigPanel', () => {
       seedInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    const videoModeSelect = Array.from(container?.querySelectorAll('select') || [])
-      .find((select) => select.querySelector('option[value="t2v"]'));
-    if (videoModeSelect instanceof HTMLSelectElement) {
-      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value');
-      descriptor?.set?.call(videoModeSelect, 'i2v-reference');
-      videoModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    await act(async () => {
+      const selectTrigger = Array.from(document.querySelectorAll('button'))
+        .find((button) => button.textContent?.includes('Text to Video'));
+      selectTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
 
     await act(async () => {
+      const referenceOption = Array.from(document.querySelectorAll('[role="option"]'))
+        .find((option) => option.textContent?.includes('Image to Video (reference)'));
+      referenceOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await flush();
     });
 

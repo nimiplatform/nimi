@@ -8,6 +8,7 @@ export * from './sqlite-bridge-ai.js';
 export * from './sqlite-bridge-family.js';
 export * from './sqlite-bridge-growth.js';
 export * from './sqlite-bridge-journal.js';
+export * from './sqlite-bridge-orthodontic.js';
 export * from './sqlite-bridge-records.js';
 export * from './sqlite-bridge-reminders.js';
 export * from './sqlite-bridge-system.js';

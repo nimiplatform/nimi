@@ -146,6 +146,7 @@ export function AdvisorTranscript({
             message={msg}
             showTimestamp={false}
             showAvatar={false}
+            disableRpContent
           />
         ))}
 
@@ -155,6 +156,7 @@ export function AdvisorTranscript({
             message={toStreamingMessage(streamingContent)}
             showTimestamp={false}
             showAvatar={false}
+            disableRpContent
           />
         )}
 

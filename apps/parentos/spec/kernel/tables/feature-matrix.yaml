@@ -302,6 +302,46 @@ features:
     description: "Track weekly outdoor activity duration per child for myopia prevention habit management."
     tables: [local-storage.yaml#outdoor_records, local-storage.yaml#children]
 
+  - featureId: PO-FEAT-048
+    name: "Orthodontic case management"
+    phase: 1
+    priority: P1
+    contract: orthodontic-contract
+    description: "Create, stage, pause-via-appliances, and complete orthodontic treatment courses."
+    tables: [local-storage.yaml#orthodontic_cases, local-storage.yaml#dental_records]
+
+  - featureId: PO-FEAT-049
+    name: "Orthodontic appliance management"
+    phase: 1
+    priority: P1
+    contract: orthodontic-contract
+    description: "Track appliance instances attached to a case. Source of truth for wear prescription, review cadence, pause status, and expander activation counters."
+    tables: [local-storage.yaml#orthodontic_appliances, orthodontic-protocols.yaml]
+
+  - featureId: PO-FEAT-050
+    name: "Orthodontic daily compliance checkins"
+    phase: 1
+    priority: P1
+    contract: orthodontic-contract
+    description: "High-frequency parent-facing compliance checkins limited to wear-daily, aligner-change, expander-activation, retention-wear."
+    tables: [local-storage.yaml#orthodontic_checkins, orthodontic-protocols.yaml]
+
+  - featureId: PO-FEAT-051
+    name: "Orthodontic dynamic reminders"
+    phase: 1
+    priority: P1
+    contract: orthodontic-contract
+    description: "Admitted PO-ORTHO-* dynamic reminders compiled from orthodontic-protocols.yaml. Gated by live case/appliance state. Default push in all nurture modes."
+    tables: [orthodontic-protocols.yaml, local-storage.yaml#reminder_states]
+
+  - featureId: PO-FEAT-052
+    name: "Orthodontic compliance dashboard"
+    phase: 1
+    priority: P2
+    contract: orthodontic-contract
+    description: "30-day task-completion approximation projection for active orthodontic appliances. Dashboard wording must label the metric as approximation, not clinical wear reconstruction."
+    tables: [local-storage.yaml#orthodontic_checkins, orthodontic-protocols.yaml]
+
 constraints:
   - "The current baseline preserves the reminder -> record -> review core loop."
   - "Implemented AI features must stay within typed runtime contracts and the current knowledge-source-readiness gates."

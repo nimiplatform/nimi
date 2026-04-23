@@ -269,6 +269,11 @@ export function ExplorePanel() {
       name: world.name,
       bannerUrl: world.bannerUrl,
       type: world.type,
+      tagline: world.tagline ?? null,
+      eraLabel: world.computed?.time?.eraLabel ?? null,
+      currentLabel: world.computed?.time?.currentLabel ?? world.computed?.time?.currentWorldTime ?? null,
+      flowRatio: typeof world.computed?.time?.flowRatio === 'number' ? world.computed.time.flowRatio : null,
+      agentCount: typeof world.agentCount === 'number' ? world.agentCount : null,
     }));
   }, [worldsQuery.data]);
 

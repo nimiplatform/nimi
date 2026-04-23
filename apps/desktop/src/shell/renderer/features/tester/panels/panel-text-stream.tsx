@@ -277,7 +277,7 @@ export function TextStreamPanel(props: TextStreamPanelProps) {
 
       {outputText ? (
         <ScrollArea className="max-h-80 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
-          <pre className="whitespace-pre-wrap break-words p-3 text-xs text-[var(--nimi-text-primary)]">{outputText}</pre>
+          <pre className="whitespace-pre-wrap break-words p-3 font-sans text-xs leading-relaxed text-[var(--nimi-text-primary)]">{outputText}</pre>
         </ScrollArea>
       ) : null}
       {reasoningRef.current && !state.busy ? (

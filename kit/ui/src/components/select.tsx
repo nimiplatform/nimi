@@ -88,6 +88,9 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
   },
   ref,
 ) {
+  // Radix reserves the empty string for clearing selection and showing the placeholder.
+  const safeOptions = options.filter((option) => option.value !== '');
+
   const handleValueChange = (nextValue: string) => {
     onValueChange?.(nextValue);
     onChange?.(createChangeEvent(nextValue));
@@ -136,7 +139,7 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
           )}
         >
           <SelectPrimitive.Viewport className="max-h-[min(var(--radix-select-content-available-height),24rem)] overflow-y-auto overscroll-contain p-1">
-            {options.map((option) => (
+            {safeOptions.map((option) => (
               <SelectPrimitive.Item
                 key={option.value}
                 value={option.value}

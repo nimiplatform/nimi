@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { ReminderRule } from '../knowledge-base/index.js';
-import { buildReminderAgenda, computeEligibleReminders, toReminderKind, type ReminderState } from './reminder-engine.js';
+import { REMINDER_RULES, type ReminderRule } from '../knowledge-base/index.js';
+import {
+  UnknownReminderRuleError,
+  buildReminderAgenda,
+  computeEligibleReminders,
+  toReminderKind,
+  type ReminderState,
+} from './reminder-engine.js';
 
 const baseRule: ReminderRule = {
   ruleId: 'PO-REM-TEST-001',
@@ -461,5 +467,92 @@ describe('reminder engine presentation', () => {
       'scheduled',
       'snoozed',
     ]);
+  });
+});
+
+describe('reminder engine unknown-rule fail-close (PO-TIME-007)', () => {
+  it('throws UnknownReminderRuleError when a reminder_states row references a ruleId outside the catalog', () => {
+    const states = [makeState({ ruleId: 'dental-auto-fluoride-2026-03-15' })];
+    expect(() => buildReminderAgenda([baseRule], makeContext(), states))
+      .toThrowError(UnknownReminderRuleError);
+  });
+
+  it('admits compiled PO-ORTHO-* ruleIds from orthodontic-protocols.yaml', () => {
+    // Confirm the compiled catalog unions the admitted orthodontic rules in.
+    const orthoAdmitted = REMINDER_RULES.filter((r) => r.ruleId.startsWith('PO-ORTHO-'));
+    expect(orthoAdmitted.length).toBeGreaterThan(0);
+    const sample = orthoAdmitted[0]!;
+
+    const states = [makeState({ ruleId: sample.ruleId, status: 'active' })];
+    // Should not throw; the union catalog makes the ruleId known.
+    expect(() => buildReminderAgenda(REMINDER_RULES, makeContext(), states)).not.toThrow();
+  });
+
+  it('admits compiled PO-DEN-FOLLOWUP-* ruleIds from orthodontic-protocols.yaml', () => {
+    const followups = REMINDER_RULES.filter((r) => r.ruleId.startsWith('PO-DEN-FOLLOWUP-'));
+    expect(followups.length).toBeGreaterThan(0);
+    const sample = followups[0]!;
+    const states = [makeState({ ruleId: sample.ruleId, status: 'active' })];
+    expect(() => buildReminderAgenda(REMINDER_RULES, makeContext(), states)).not.toThrow();
+  });
+
+  it('surfaces PO-ORTHO-* states with active status in todayFocus via the state-driven pathway', () => {
+    // End-to-end delivery scenario: an appliance lifecycle writer has seeded a
+    // state; the engine must now surface it in the agenda even though the rule
+    // has category=personalized.
+    const wearRule = REMINDER_RULES.find((r) => r.ruleId === 'PO-ORTHO-WEAR-DAILY');
+    expect(wearRule).toBeDefined();
+    const states = [makeState({
+      ruleId: 'PO-ORTHO-WEAR-DAILY',
+      status: 'active',
+      nextTriggerAt: '2026-04-08T00:00:00.000Z', // matches makeContext.localToday
+      notes: '[ortho-protocol] applianceId=appl-1',
+    })];
+    const agenda = buildReminderAgenda(REMINDER_RULES, makeContext(), states);
+    const surfaced = [
+      ...agenda.todayFocus,
+      ...agenda.upcoming,
+      ...agenda.p0Overflow.items,
+    ].find((r) => r.rule.ruleId === 'PO-ORTHO-WEAR-DAILY');
+    expect(surfaced).toBeDefined();
+  });
+
+  it('surfaces PO-DEN-FOLLOWUP-* states produced by dental follow-up writer', () => {
+    // nextTriggerAt within 30 days so the state lands in the upcoming bucket.
+    // (Further-out follow-ups remain in reminder_states but the generic timeline
+    // agenda's `upcoming` cap excludes them; the ortho surface reads directly.)
+    const states = [makeState({
+      ruleId: 'PO-DEN-FOLLOWUP-FLUORIDE',
+      status: 'active',
+      nextTriggerAt: '2026-04-15T00:00:00.000Z', // 7 days after localToday
+      notes: '[dental-followup] triggeredBy=fluoride at=2025-10-15',
+    })];
+    const agenda = buildReminderAgenda(REMINDER_RULES, makeContext(), states);
+    const surfaced = [
+      ...agenda.todayFocus,
+      ...agenda.upcoming,
+      ...agenda.p0Overflow.items,
+    ].find((r) => r.rule.ruleId === 'PO-DEN-FOLLOWUP-FLUORIDE');
+    expect(surfaced).toBeDefined();
+  });
+
+  it('does not surface personalized rules that lack a persisted state', () => {
+    // Without any state, PO-ORTHO-* rules must NOT appear — state-driven delivery only.
+    const agenda = buildReminderAgenda(REMINDER_RULES, makeContext(), []);
+    const orthoAnywhere = [
+      ...agenda.todayFocus,
+      ...agenda.upcoming,
+      ...agenda.p0Overflow.items,
+    ].filter((r) => r.rule.ruleId.startsWith('PO-ORTHO-') || r.rule.ruleId.startsWith('PO-DEN-FOLLOWUP-'));
+    expect(orthoAnywhere).toHaveLength(0);
+  });
+
+  it('enforces orthodontic protocol rules are push in every nurture mode (PO-TIME-009)', () => {
+    const orthoAdmitted = REMINDER_RULES.filter((r) => r.ruleId.startsWith('PO-ORTHO-'));
+    for (const rule of orthoAdmitted) {
+      for (const mode of ['relaxed', 'balanced', 'advanced'] as const) {
+        expect(rule.nurtureMode[mode]).toBe('push');
+      }
+    }
   });
 });

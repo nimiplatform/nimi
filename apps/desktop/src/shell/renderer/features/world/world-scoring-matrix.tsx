@@ -105,7 +105,7 @@ const CrystalModel = ({ data, color = '#4ECCA3' }: { data: ScoringData; color?: 
           sprite
           style={{
             color: color,
-            fontFamily: 'var(--font-ui)',
+            fontFamily: 'var(--nimi-font-mono)',
             fontSize: '12px',
             textAlign: 'center',
             pointerEvents: 'none',

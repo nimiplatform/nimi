@@ -7,8 +7,19 @@ export type SettingsSummaryCardProps = {
   subtitle?: string | null;
   statusDot?: 'ready' | 'attention' | 'neutral';
   statusLabel?: string | null;
+  sourceBadge?: 'local' | 'cloud' | null;
   onClick: () => void;
   disabled?: boolean;
+};
+
+const SOURCE_BADGE_CLASS: Record<'local' | 'cloud', string> = {
+  local: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+  cloud: 'border border-indigo-200 bg-indigo-50 text-indigo-700',
+};
+
+const SOURCE_BADGE_LABEL: Record<'local' | 'cloud', string> = {
+  local: 'LOCAL',
+  cloud: 'CLOUD',
 };
 
 const STATUS_DOT_CLASS: Record<string, string> = {
@@ -34,6 +45,7 @@ export function SettingsSummaryCard({
   subtitle,
   statusDot,
   statusLabel,
+  sourceBadge,
   onClick,
   disabled,
 }: SettingsSummaryCardProps) {
@@ -54,6 +66,13 @@ export function SettingsSummaryCard({
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
+        {sourceBadge ? (
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${SOURCE_BADGE_CLASS[sourceBadge]}`}
+          >
+            {SOURCE_BADGE_LABEL[sourceBadge]}
+          </span>
+        ) : null}
         {statusLabel ? (
           <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 ${STATUS_BADGE_CLASS[statusDot ?? 'neutral'] ?? STATUS_BADGE_CLASS.neutral}`}>
             <div className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT_CLASS[statusDot ?? 'neutral'] ?? STATUS_DOT_CLASS.neutral}`} />

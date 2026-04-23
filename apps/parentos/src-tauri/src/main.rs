@@ -72,7 +72,10 @@ fn load_dotenv_files() {
                 eprintln!("[parentos] dotenv loaded path={}", root_env_path.display());
             }
             Err(error) => {
-                eprintln!("[parentos] dotenv load failed path={} error={error}", root_env_path.display());
+                eprintln!(
+                    "[parentos] dotenv load failed path={} error={error}",
+                    root_env_path.display()
+                );
             }
         }
     }
@@ -149,7 +152,12 @@ fn main() {
             let nimi_data_dir = desktop_paths::resolve_nimi_data_dir()?;
             app.state::<tauri::Scopes>()
                 .allow_directory(&nimi_data_dir, true)
-                .map_err(|error| format!("failed to allow nimi_data_dir in asset scope ({}): {error}", nimi_data_dir.display()))?;
+                .map_err(|error| {
+                    format!(
+                        "failed to allow nimi_data_dir in asset scope ({}): {error}",
+                        nimi_data_dir.display()
+                    )
+                })?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -179,6 +187,7 @@ fn main() {
             child_avatar::save_child_avatar,
             journal_photo::delete_journal_photo,
             dropped_file::read_dropped_image_as_base64,
+            dropped_file::pick_image_files,
             // Family & Children
             sqlite::queries::create_family,
             sqlite::queries::get_family,
@@ -236,6 +245,7 @@ fn main() {
             sqlite::queries::update_dental_record,
             sqlite::queries::delete_dental_record,
             sqlite::queries::get_dental_records,
+            sqlite::queries::insert_ortho_clinical_dental_record,
             // Attachments
             attachment_store::save_attachment,
             attachment_store::get_attachments,
@@ -270,6 +280,20 @@ fn main() {
             sqlite::queries::set_outdoor_goal,
             // Profile Section Summaries
             sqlite::queries::get_profile_section_summaries,
+            // Orthodontic (PO-ORTHO-*)
+            sqlite::queries::insert_orthodontic_case,
+            sqlite::queries::update_orthodontic_case,
+            sqlite::queries::delete_orthodontic_case,
+            sqlite::queries::get_orthodontic_cases,
+            sqlite::queries::insert_orthodontic_appliance,
+            sqlite::queries::update_orthodontic_appliance_status,
+            sqlite::queries::update_orthodontic_appliance_review,
+            sqlite::queries::delete_orthodontic_appliance,
+            sqlite::queries::get_orthodontic_appliances,
+            sqlite::queries::insert_orthodontic_checkin,
+            sqlite::queries::delete_orthodontic_checkin,
+            sqlite::queries::get_orthodontic_checkins,
+            sqlite::queries::get_orthodontic_dashboard,
             // DB init
             sqlite::db_init,
         ])

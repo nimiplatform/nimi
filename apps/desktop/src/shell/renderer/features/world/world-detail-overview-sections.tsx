@@ -167,7 +167,10 @@ export function WorldHeroSection({
                   {world.tagline}
                 </p>
               ) : null}
-              <h1 className="mb-2 text-[40px] font-serif leading-tight tracking-wide text-white" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+              <h1
+                className="mb-2 text-[40px] leading-tight tracking-wide text-white"
+                style={{ fontFamily: 'var(--nimi-font-display)', fontWeight: 700 }}
+              >
                 {displayValue(world.name)}
               </h1>
               {world.motto ? <p className="mb-3 text-sm italic text-white/78">{world.motto}</p> : null}

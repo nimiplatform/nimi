@@ -14,6 +14,7 @@ import {
   buildReminderAgenda,
   getLocalToday,
   mapReminderStateRow,
+  UnknownReminderRuleError,
   type ActiveReminder,
   type ReminderHistoryItem,
   type ReminderState,
@@ -241,10 +242,20 @@ export default function RemindersPage() {
 
   useEffect(() => { void reloadFreqOverrides().catch(catchLogThen('reminders', 'action:load-freq-overrides-failed', () => setFreqOverrides(new Map()))); }, [reloadFreqOverrides]);
 
-  const agenda = useMemo(() => {
-    if (!child) return null;
-    return buildReminderAgenda(REMINDER_RULES, { birthDate: child.birthDate, gender: child.gender, ageMonths, profileCreatedAt: child.createdAt, localToday, nurtureMode: child.nurtureMode, domainOverrides: child.nurtureModeOverrides }, states, freqOverrides);
+  const agendaResult = useMemo(() => {
+    if (!child) return { kind: 'idle' as const };
+    try {
+      const agenda = buildReminderAgenda(REMINDER_RULES, { birthDate: child.birthDate, gender: child.gender, ageMonths, profileCreatedAt: child.createdAt, localToday, nurtureMode: child.nurtureMode, domainOverrides: child.nurtureModeOverrides }, states, freqOverrides);
+      return { kind: 'ok' as const, agenda };
+    } catch (error) {
+      if (error instanceof UnknownReminderRuleError) {
+        return { kind: 'unknown-rule' as const, ruleIds: error.ruleIds };
+      }
+      throw error;
+    }
   }, [child, ageMonths, localToday, states, freqOverrides]);
+
+  const agenda = agendaResult.kind === 'ok' ? agendaResult.agenda : null;
 
   useEffect(() => {
     if (!child || !agenda) return;
@@ -284,6 +295,20 @@ export default function RemindersPage() {
       <div className="flex flex-col items-center justify-center h-full gap-3" style={{ color: textMuted }}>
         <p className="text-lg font-medium">尚未选择孩子</p>
         <Link to="/timeline" className="text-sm hover:underline" style={{ color: textMain }}>返回首页</Link>
+      </div>
+    );
+  }
+
+  if (agendaResult.kind === 'unknown-rule') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center" style={{ color: '#b91c1c' }}>
+        <p className="text-base font-medium">提醒目录不完整</p>
+        <p className="text-[12px]" style={{ color: textMuted }}>
+          发现数据库中存在未登记的 ruleId：{agendaResult.ruleIds.join('、')}
+        </p>
+        <p className="text-[12px]" style={{ color: textMuted }}>
+          为保护数据不被误读，提醒页面已按 PO-TIME-007 fail-close。请联系开发修复规则目录或清理脏数据。
+        </p>
       </div>
     );
   }

@@ -202,11 +202,11 @@ tables:
   # ── 口腔发育 ─────────────────────────────────────────────
 
   - name: dental_records
-    description: "Dental events: tooth eruption, loss, caries, cleanings, orthodontic assessments."
+    description: "Dental events: tooth eruption, loss, caries, fillings, cleanings, fluoride, sealants, checkups, orthodontic assessments, and historical ortho-start markers."
     columns:
       - { name: recordId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
-      - { name: eventType, type: TEXT, nullable: false, description: "eruption | loss | caries | cleaning | ortho-assessment" }
+      - { name: eventType, type: TEXT, nullable: false, description: "eruption | loss | caries | filling | cleaning | fluoride | sealant | checkup | ortho-assessment | ortho-start" }
       - { name: toothId, type: TEXT, nullable: true, description: "FDI tooth number (e.g. '51' for upper-right primary central incisor), null for whole-mouth events" }
       - { name: toothSet, type: TEXT, nullable: true, description: "primary | permanent" }
       - { name: eventDate, type: TEXT, nullable: false, description: "ISO 8601 date" }
@@ -220,6 +220,83 @@ tables:
       - { columns: [childId, eventDate] }
       - { columns: [childId, toothId] }
       - { columns: [childId, eventType] }
+
+  # ── 正畸疗程真相 (orthodontic cases) ────────────────────
+  # Governed by orthodontic-contract.md#PO-ORTHO-002.
+
+  - name: orthodontic_cases
+    description: "One row per orthodontic treatment course. Source of truth for caseType, stage, and review-date projection."
+    columns:
+      - { name: caseId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: caseType, type: TEXT, nullable: false, description: "early-intervention | fixed-braces | clear-aligners" }
+      - { name: stage, type: TEXT, nullable: false, description: "assessment | planning | active | retention | completed" }
+      - { name: startedAt, type: TEXT, nullable: false, description: "ISO 8601 date" }
+      - { name: plannedEndAt, type: TEXT, nullable: true, description: "ISO 8601 date" }
+      - { name: actualEndAt, type: TEXT, nullable: true, description: "ISO 8601 date; required when stage = completed" }
+      - { name: primaryIssues, type: TEXT, nullable: true, description: "JSON array of parent-entered clinical concerns; never AI-generated" }
+      - { name: providerName, type: TEXT, nullable: true }
+      - { name: providerInstitution, type: TEXT, nullable: true }
+      - { name: nextReviewDate, type: TEXT, nullable: true, description: "Cached projection of min(active appliances.nextReviewDate); never edited directly" }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, stage] }
+      - { columns: [childId, startedAt] }
+
+  # ── 正畸装置真相 (orthodontic appliances) ───────────────
+  # Governed by orthodontic-contract.md#PO-ORTHO-003.
+
+  - name: orthodontic_appliances
+    description: "One row per appliance instance. Source of truth for wear prescription, review cadence, and status (including pause)."
+    columns:
+      - { name: applianceId, type: TEXT, pk: true, description: "ULID" }
+      - { name: caseId, type: TEXT, nullable: false, fk: "orthodontic_cases.caseId" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: applianceType, type: TEXT, nullable: false, description: "twin-block | expander | activator | metal-braces | ceramic-braces | clear-aligner | retainer-fixed | retainer-removable" }
+      - { name: status, type: TEXT, nullable: false, description: "active | paused | completed" }
+      - { name: startedAt, type: TEXT, nullable: false, description: "ISO 8601 date" }
+      - { name: endedAt, type: TEXT, nullable: true, description: "ISO 8601 date" }
+      - { name: prescribedHoursPerDay, type: INTEGER, nullable: true, description: "Used by wear-daily / retention-wear protocols" }
+      - { name: prescribedActivations, type: INTEGER, nullable: true, description: "Expander total activation count target" }
+      - { name: completedActivations, type: INTEGER, nullable: false, description: "Expander running activation counter; default 0" }
+      - { name: reviewIntervalDays, type: INTEGER, nullable: true, description: "Review cadence; default comes from protocol rule" }
+      - { name: lastReviewAt, type: TEXT, nullable: true, description: "ISO 8601 date" }
+      - { name: nextReviewDate, type: TEXT, nullable: true, description: "ISO 8601 date" }
+      - { name: pauseReason, type: TEXT, nullable: true, description: "Required when status = paused" }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [caseId, status] }
+      - { columns: [childId, status] }
+      - { columns: [childId, nextReviewDate] }
+
+  # ── 正畸日级打卡 (orthodontic checkins) ────────────────
+  # Governed by orthodontic-contract.md#PO-ORTHO-005.
+
+  - name: orthodontic_checkins
+    description: "High-frequency compliance checkins. Only wear-daily, aligner-change, expander-activation, retention-wear are admitted. Checkins never appear in the dental clinical timeline."
+    columns:
+      - { name: checkinId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: caseId, type: TEXT, nullable: false, fk: "orthodontic_cases.caseId" }
+      - { name: applianceId, type: TEXT, nullable: false, fk: "orthodontic_appliances.applianceId" }
+      - { name: checkinType, type: TEXT, nullable: false, description: "wear-daily | aligner-change | expander-activation | retention-wear" }
+      - { name: checkinDate, type: TEXT, nullable: false, description: "ISO 8601 date" }
+      - { name: actualWearHours, type: REAL, nullable: true, description: "wear-daily / retention-wear only" }
+      - { name: prescribedHours, type: REAL, nullable: true, description: "Snapshot of appliance.prescribedHoursPerDay at checkin time" }
+      - { name: complianceBucket, type: TEXT, nullable: true, description: "done | partial | missed; computed at write per orthodontic-protocols#complianceThresholds; never stored for aligner-change / expander-activation" }
+      - { name: activationIndex, type: INTEGER, nullable: true, description: "expander-activation only" }
+      - { name: alignerIndex, type: INTEGER, nullable: true, description: "aligner-change only" }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, checkinDate] }
+      - { columns: [applianceId, checkinDate] }
+      - { columns: [applianceId, checkinType, checkinDate], description: "query perf; daily-type uniqueness is enforced at the Rust command layer because SQLite partial-unique needs a predicate (checkinType IN ('wear-daily','retention-wear'))" }
 
   # ── 过敏记录 ─────────────────────────────────────────────
 
@@ -357,7 +434,7 @@ tables:
     columns:
       - { name: attachmentId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
-      - { name: ownerTable, type: TEXT, nullable: false, description: "dental_records | growth_measurements | medical_events | vaccine_records | milestone_records" }
+      - { name: ownerTable, type: TEXT, nullable: false, description: "dental_records | growth_measurements | medical_events | vaccine_records | milestone_records | orthodontic_cases | orthodontic_appliances | orthodontic_checkins" }
       - { name: ownerId, type: TEXT, nullable: false, description: "PK of the owning record" }
       - { name: filePath, type: TEXT, nullable: false, description: "Absolute local file path" }
       - { name: fileName, type: TEXT, nullable: false, description: "Original file name" }
@@ -400,5 +477,6 @@ constraints:
   - "JSON payloads are stored as TEXT and must remain valid JSON on read/write."
   - "childId is the primary filter field for child-scoped tables."
   - "growth_reports.reportType is limited to monthly | quarterly | quarterly-letter | custom."
-  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, attachments, custom_todos."
+  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, attachments, custom_todos, orthodontic_cases, orthodontic_appliances, orthodontic_checkins."
+  - "orthodontic_cases deletion cascades to orthodontic_appliances and orthodontic_checkins. orthodontic_appliances deletion cascades to orthodontic_checkins."
   - "children.allergies JSON array remains as a quick-access summary; allergy_records is the structured source of truth."

@@ -59,12 +59,12 @@
   --nimi-space-stack: 16px;
   --nimi-font-sans: "Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
   --nimi-font-mono: "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
-  --nimi-type-page-title-size: 1.75rem;
-  --nimi-type-page-title-line-height: 1.15;
+  --nimi-type-page-title-size: 1.5rem;
+  --nimi-type-page-title-line-height: 2rem;
   --nimi-type-page-title-weight: 700;
   --nimi-type-page-title-letter-spacing: -0.02em;
-  --nimi-type-section-title-size: 1.125rem;
-  --nimi-type-section-title-line-height: 1.25;
+  --nimi-type-section-title-size: 1rem;
+  --nimi-type-section-title-line-height: 1.5rem;
   --nimi-type-section-title-weight: 600;
   --nimi-type-section-title-letter-spacing: -0.01em;
   --nimi-type-body-size: 0.875rem;

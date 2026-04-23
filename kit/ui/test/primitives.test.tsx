@@ -4,6 +4,7 @@ import {
   Button,
   NimiThemeProvider,
   SearchField,
+  SelectField,
   SettingsCard,
   SettingsPageShell,
   SettingsSectionTitle,
@@ -47,6 +48,19 @@ test('surface, button, field, and status primitives render', () => {
   expect(html).toMatch(/save/);
   expect(html).toMatch(/Search/);
   expect(html).toMatch(/ready/);
+});
+
+test('select field ignores empty option values reserved by Radix', () => {
+  expect(() => renderToStaticMarkup(
+    <SelectField
+      value=""
+      placeholder="Select a connector"
+      options={[
+        { value: '', label: 'Invalid empty option' },
+        { value: 'connector.openai', label: 'OpenAI' },
+      ]}
+    />,
+  )).not.toThrow();
 });
 
 test('theme provider renders children', () => {

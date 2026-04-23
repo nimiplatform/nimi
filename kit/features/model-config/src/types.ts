@@ -77,6 +77,7 @@ export type ModelConfigProfileCopy = {
   confirmLabel: string;
   applyingLabel: string;
   reloadLabel?: string;
+  importLabel?: string;
 };
 
 export type ModelConfigProfileController = {

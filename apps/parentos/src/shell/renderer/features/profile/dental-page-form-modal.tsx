@@ -1,4 +1,3 @@
-import type { RefObject } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import { S } from '../../app-shell/page-style.js';
@@ -31,7 +30,6 @@ type DentalRecordFormModalProps = {
   removedAttachmentIds: string[];
   formPhotoPreviews: string[];
   formPhotoFiles: PendingDentalPhoto[];
-  photoRef: RefObject<HTMLInputElement | null>;
   setFormEventDate: (value: string) => void;
   setFormHospital: (value: string) => void;
   setFormNotes: (value: string) => void;
@@ -43,6 +41,7 @@ type DentalRecordFormModalProps = {
   addEntry: () => void;
   resetForm: () => void;
   appendPhotoFiles: (files: FileList | File[]) => Promise<void>;
+  pickPhotoFiles: () => Promise<void>;
   removePhotoAt: (idx: number) => void;
   removeExistingPhoto: (attachmentId: string) => void;
   handleSubmit: () => Promise<void>;
@@ -260,12 +259,23 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
 
           <div>
             <p className="mb-1 text-[11px]" style={{ color: S.sub }}>备注</p>
-            <input
+            <textarea
               value={props.formNotes}
               onChange={(event) => props.setFormNotes(event.target.value)}
               placeholder="选填"
-              className={`w-full border-0 px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${S.radiusSm}`}
-              style={{ background: '#fafaf8', color: S.text }}
+              rows={1}
+              ref={(el) => {
+                if (!el) return;
+                el.style.height = 'auto';
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+              onInput={(event) => {
+                const el = event.currentTarget;
+                el.style.height = 'auto';
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+              className={`w-full resize-none border-0 px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${S.radiusSm}`}
+              style={{ background: '#fafaf8', color: S.text, overflow: 'hidden' }}
             />
           </div>
 
@@ -273,19 +283,6 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
             <p className="mb-1 text-[11px]" style={{ color: S.sub }}>
               照片 {props.formPhotoFiles.length > 0 ? `(${props.formPhotoFiles.length}/${PHOTO_MAX})` : ''}
             </p>
-            <input
-              ref={props.photoRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={async (event) => {
-                const files = event.target.files;
-                event.target.value = '';
-                if (!files || files.length === 0) return;
-                await props.appendPhotoFiles(files);
-              }}
-            />
             <div
               onDragOver={(event) => {
                 event.preventDefault();
@@ -332,7 +329,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
               {totalPhotoCount < PHOTO_MAX ? (
                 <button
                   type="button"
-                  onClick={() => props.photoRef.current?.click()}
+                  onClick={() => void props.pickPhotoFiles()}
                   onMouseEnter={() => props.setPhotoDropHover(true)}
                   onMouseLeave={() => props.setPhotoDropHover(false)}
                   className={`flex h-24 w-full flex-col items-center justify-center gap-1.5 ${S.radiusSm}`}

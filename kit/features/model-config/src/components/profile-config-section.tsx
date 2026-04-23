@@ -1,59 +1,86 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ModelConfigProfileController } from '../types.js';
 import { DisabledConfigNote } from './config-section.js';
 
 export function ProfileConfigSection(props: {
   controller: ModelConfigProfileController;
+  variant?: 'card' | 'import-button';
 }) {
   const [modalOpen, setModalOpen] = useState(false);
+  const applyInFlightRef = useRef(false);
   const { controller } = props;
+  const variant = props.variant ?? 'card';
+
+  useEffect(() => {
+    if (applyInFlightRef.current && !controller.applying) {
+      applyInFlightRef.current = false;
+      if (!controller.error) {
+        setModalOpen(false);
+      }
+    }
+  }, [controller.applying, controller.error]);
   const currentSummary = controller.currentOrigin
     ? (controller.currentOrigin.title || controller.currentOrigin.profileId)
     : controller.copy.emptySummaryLabel;
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setModalOpen(true)}
-        className="group relative w-full cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left transition-all duration-200 hover:border-mint-500 hover:shadow-md"
-      >
-        {/* Left accent line */}
-        <div className="absolute left-0 top-0 h-full w-1 bg-mint-500" />
+      {variant === 'import-button' ? (
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-2.5 text-sm font-medium text-slate-600 transition-all duration-200 hover:border-mint-400 hover:bg-mint-50/60 hover:text-mint-700"
+        >
+          <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+          </svg>
+          <span className="truncate">
+            {controller.copy.importLabel || controller.copy.summaryLabel}
+          </span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="group relative w-full cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left transition-all duration-200 hover:border-mint-500 hover:shadow-md"
+        >
+          {/* Left accent line */}
+          <div className="absolute left-0 top-0 h-full w-1 bg-mint-500" />
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {/* Avatar / icon */}
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-mint-100 bg-mint-50 shadow-sm">
-              <span className="text-2xl leading-none" role="img" aria-label="robot">🤖</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {/* Avatar / icon */}
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-mint-100 bg-mint-50 shadow-sm">
+                <span className="text-2xl leading-none" role="img" aria-label="robot">🤖</span>
+              </div>
+
+              {/* Identity text */}
+              <div className="min-w-0">
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  {controller.copy.summaryLabel}
+                </div>
+                <div className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                  <span className="truncate">{currentSummary}</span>
+                  {/* Breathing dot */}
+                  {controller.currentOrigin ? (
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-500 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-500" />
+                    </span>
+                  ) : null}
+                </div>
+              </div>
             </div>
 
-            {/* Identity text */}
-            <div className="min-w-0">
-              <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                {controller.copy.summaryLabel}
-              </div>
-              <div className="flex items-center gap-2 text-lg font-bold text-slate-900">
-                <span className="truncate">{currentSummary}</span>
-                {/* Breathing dot */}
-                {controller.currentOrigin ? (
-                  <span className="relative flex h-2 w-2 shrink-0">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-500 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-500" />
-                  </span>
-                ) : null}
-              </div>
+            {/* Chevron down */}
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors group-hover:bg-mint-50 group-hover:text-mint-500">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
           </div>
-
-          {/* Chevron down */}
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors group-hover:bg-mint-50 group-hover:text-mint-500">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-      </button>
+        </button>
+      )}
 
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -149,6 +176,7 @@ export function ProfileConfigSection(props: {
                     if (!controller.selectedProfileId) {
                       return;
                     }
+                    applyInFlightRef.current = true;
                     controller.onApply(controller.selectedProfileId);
                   }}
                 >

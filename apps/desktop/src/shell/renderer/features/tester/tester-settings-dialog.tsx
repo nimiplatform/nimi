@@ -1,22 +1,28 @@
-import { useMemo } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIConfig, RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import {
+  CapabilityModelCard,
   ImageParamsEditor,
-  ModelConfigPanel,
+  ProfileConfigSection,
+  VideoParamsEditor,
   parseImageParams,
   parseVideoParams,
-  VideoParamsEditor,
+  type ImageParamsEditorCopy,
+  type ModelConfigCapabilityItem,
   type ModelConfigProfileCopy,
-  type ModelConfigSection,
+  type VideoParamsEditorCopy,
 } from '@nimiplatform/nimi-kit/features/model-config';
 import { type RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, cn } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { DesktopIconToggleAction } from '@renderer/components/action';
+import { DesktopCardSurface } from '@renderer/components/surface';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
 import { useDesktopModelConfigProfileController } from '../runtime-config/desktop-model-config-profile-controller';
 import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
 import { useLocalAssets } from '../chat/capability-settings-shared';
+import { SettingsSummaryCard } from '../chat/chat-settings-summary-card';
 import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig } from './tester-ai-config';
 import { CAPABILITIES, type CapabilityId } from './tester-types.js';
 
@@ -27,6 +33,29 @@ export type TesterSettingsPanelProps = {
   onBindingChange: (capabilityId: CapabilityId, binding: RuntimeRouteBinding | null) => void;
   onParamsChange: (capabilityId: CapabilityId, params: Record<string, unknown>) => void;
 };
+
+type EditorKind = 'image' | 'video';
+
+type ModuleDescriptor = {
+  id: string;
+  capabilityId: CapabilityId;
+  routeCapability: string;
+  labelKey: string;
+  defaultLabel: string;
+  editorKind?: EditorKind;
+};
+
+const MODULE_DESCRIPTORS: ModuleDescriptor[] = [
+  { id: 'chat', capabilityId: 'text.generate', routeCapability: 'text.generate', labelKey: 'Tester.capability.chat', defaultLabel: 'Chat' },
+  { id: 'embed', capabilityId: 'text.embed', routeCapability: 'text.embed', labelKey: 'Tester.capability.embed', defaultLabel: 'Embed' },
+  { id: 'image', capabilityId: 'image.generate', routeCapability: 'image.generate', labelKey: 'Tester.capability.image', defaultLabel: 'Image', editorKind: 'image' },
+  { id: 'video', capabilityId: 'video.generate', routeCapability: 'video.generate', labelKey: 'Tester.capability.video', defaultLabel: 'Video', editorKind: 'video' },
+  { id: 'tts', capabilityId: 'audio.synthesize', routeCapability: 'audio.synthesize', labelKey: 'Tester.capability.tts', defaultLabel: 'TTS' },
+  { id: 'stt', capabilityId: 'audio.transcribe', routeCapability: 'audio.transcribe', labelKey: 'Tester.capability.stt', defaultLabel: 'STT' },
+  { id: 'voice-clone', capabilityId: 'voice.clone', routeCapability: 'voice_workflow.tts_v2v', labelKey: 'Tester.capability.voiceClone', defaultLabel: 'Voice Clone' },
+  { id: 'voice-design', capabilityId: 'voice.design', routeCapability: 'voice_workflow.tts_t2v', labelKey: 'Tester.capability.voiceDesign', defaultLabel: 'Voice Design' },
+  { id: 'world', capabilityId: 'world.generate', routeCapability: 'world.generate', labelKey: 'Tester.capability.worldTour', defaultLabel: 'World Tour' },
+];
 
 function createProfileCopy(t: ReturnType<typeof useTranslation>['t']): ModelConfigProfileCopy {
   return {
@@ -46,11 +75,12 @@ function createProfileCopy(t: ReturnType<typeof useTranslation>['t']): ModelConf
     cancelLabel: t('Chat.settingsAIProfileCancel', { defaultValue: 'Cancel' }),
     confirmLabel: t('Chat.settingsAIProfileConfirm', { defaultValue: 'Confirm & Apply' }),
     applyingLabel: t('Chat.settingsAIProfileApplying', { defaultValue: 'Applying...' }),
+    importLabel: t('Chat.settingsAIProfileImport', { defaultValue: 'Import AI Profile' }),
     reloadLabel: t('Tester.profile.reload', { defaultValue: 'Reload' }),
   };
 }
 
-function createImageEditorCopy(t: ReturnType<typeof useTranslation>['t']) {
+function createImageEditorCopy(t: ReturnType<typeof useTranslation>['t']): ImageParamsEditorCopy {
   return {
     companionModelsLabel: t('Chat.imageCompanionModels', { defaultValue: 'Companion Models' }),
     parametersLabel: t('Chat.imageParameters', { defaultValue: 'Parameters' }),
@@ -73,7 +103,7 @@ function createImageEditorCopy(t: ReturnType<typeof useTranslation>['t']) {
   };
 }
 
-function createVideoEditorCopy(t: ReturnType<typeof useTranslation>['t']) {
+function createVideoEditorCopy(t: ReturnType<typeof useTranslation>['t']): VideoParamsEditorCopy {
   return {
     parametersLabel: t('Chat.videoParameters', { defaultValue: 'Parameters' }),
     previewBadgeLabel: t('Chat.badgePreview', { defaultValue: 'Preview' }),
@@ -111,8 +141,26 @@ function useCapabilityProviders(): Record<string, RouteModelPickerDataProvider |
   }, []);
 }
 
+function DetailHeader(props: { title: string; onBack: () => void; backLabel: string }) {
+  return (
+    <div className="mb-5 flex items-center gap-2.5">
+      <button
+        type="button"
+        onClick={props.onBack}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-white text-[var(--nimi-text-muted)] transition-all hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] hover:text-[var(--nimi-action-primary-bg)]"
+        aria-label={props.backLabel}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+      <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{props.title}</h2>
+    </div>
+  );
+}
+
 export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
-  const { open, config, onBindingChange, onParamsChange } = props;
+  const { open, onClose, config, onBindingChange, onParamsChange } = props;
   const { t } = useTranslation();
   const providers = useCapabilityProviders();
   const assetsQuery = useLocalAssets();
@@ -120,6 +168,7 @@ export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const imageEditorCopy = useMemo(() => createImageEditorCopy(t), [t]);
   const videoEditorCopy = useMemo(() => createVideoEditorCopy(t), [t]);
+  const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
 
   const profile = useDesktopModelConfigProfileController({
     scopeRef: TESTER_AI_SCOPE_REF,
@@ -133,188 +182,149 @@ export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
     },
   });
 
-  const sections = useMemo<ModelConfigSection[]>(() => {
-    const imageParams = parseImageParams((config.capabilities.selectedParams['image.generate'] || {}) as Record<string, unknown>);
-    const imageCompanionSlots = (((config.capabilities.selectedParams['image.generate'] || {}) as Record<string, unknown>).companionSlots || {}) as Record<string, string>;
-    const videoParams = parseVideoParams((config.capabilities.selectedParams['video.generate'] || {}) as Record<string, unknown>);
+  const modules = useMemo(() => {
+    return MODULE_DESCRIPTORS.map((descriptor): {
+      descriptor: ModuleDescriptor;
+      label: string;
+      item: ModelConfigCapabilityItem;
+    } => {
+      const label = t(descriptor.labelKey, { defaultValue: descriptor.defaultLabel });
+      const binding = bindingFromTesterConfig(config, descriptor.capabilityId);
+      const storedParams = (config.capabilities.selectedParams[descriptor.capabilityId] || {}) as Record<string, unknown>;
 
-    return [
-      {
-        id: 'chat',
-        title: t('Chat.settingsChatSection', { defaultValue: 'Chat' }),
-        items: [
-          {
-            capabilityId: 'text.generate',
-            routeCapability: 'text.generate',
-            label: t('Tester.capability.chat', { defaultValue: 'Chat' }),
-            binding: bindingFromTesterConfig(config, 'text.generate'),
-            provider: providers['text.generate'] || null,
-            onBindingChange: (binding) => onBindingChange('text.generate', binding),
-            placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
-            runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-          },
-        ],
-      },
-      {
-        id: 'embed',
-        title: t('Tester.capability.embedSection', { defaultValue: 'Embed' }),
-        items: [
-          {
-            capabilityId: 'text.embed',
-            routeCapability: 'text.embed',
-            label: t('Tester.capability.embed', { defaultValue: 'Embed' }),
-            binding: bindingFromTesterConfig(config, 'text.embed'),
-            provider: providers['text.embed'] || null,
-            onBindingChange: (binding) => onBindingChange('text.embed', binding),
-            placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
-            runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-          },
-        ],
-      },
-      {
-        id: 'image',
-        title: t('Chat.settingsImageSection', { defaultValue: 'Image' }),
-        collapsible: true,
-        defaultExpanded: true,
-        items: [
-          {
-            capabilityId: 'image.generate',
-            routeCapability: 'image.generate',
-            label: t('Tester.capability.image', { defaultValue: 'Image' }),
-            binding: bindingFromTesterConfig(config, 'image.generate'),
-            provider: providers['image.generate'] || null,
-            onBindingChange: (binding) => onBindingChange('image.generate', binding),
-            placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
-            runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-            editor: (
-              <ImageParamsEditor
-                copy={imageEditorCopy}
-                params={imageParams}
-                companionSlots={imageCompanionSlots}
-                assets={assets}
-                assetsLoading={assetsQuery.isLoading}
-                onParamsChange={(next) => onParamsChange('image.generate', { ...next, companionSlots: imageCompanionSlots })}
-                onCompanionSlotsChange={(next) => onParamsChange('image.generate', { ...imageParams, companionSlots: next })}
-              />
-            ),
-            showEditorWhen: 'local',
-          },
-        ],
-      },
-      {
-        id: 'video',
-        title: t('Chat.settingsVideoSection', { defaultValue: 'Video' }),
-        collapsible: true,
-        items: [
-          {
-            capabilityId: 'video.generate',
-            routeCapability: 'video.generate',
-            label: t('Tester.capability.video', { defaultValue: 'Video' }),
-            binding: bindingFromTesterConfig(config, 'video.generate'),
-            provider: providers['video.generate'] || null,
-            onBindingChange: (binding) => onBindingChange('video.generate', binding),
-            placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
-            runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-            editor: (
-              <VideoParamsEditor
-                copy={videoEditorCopy}
-                params={videoParams}
-                onParamsChange={(next) => onParamsChange('video.generate', next as unknown as Record<string, unknown>)}
-              />
-            ),
-            showEditorWhen: 'local',
-          },
-        ],
-      },
-      {
-        id: 'audio',
-        title: t('Tester.capability.audioSection', { defaultValue: 'Audio' }),
-        collapsible: true,
-        items: [
-          {
-            capabilityId: 'audio.synthesize',
-            routeCapability: 'audio.synthesize',
-            label: t('Tester.capability.tts', { defaultValue: 'TTS' }),
-            binding: bindingFromTesterConfig(config, 'audio.synthesize'),
-            provider: providers['audio.synthesize'] || null,
-            onBindingChange: (binding) => onBindingChange('audio.synthesize', binding),
-            placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
-            runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-          },
-          {
-            capabilityId: 'audio.transcribe',
-            routeCapability: 'audio.transcribe',
-            label: t('Tester.capability.stt', { defaultValue: 'STT' }),
-            binding: bindingFromTesterConfig(config, 'audio.transcribe'),
-            provider: providers['audio.transcribe'] || null,
-            onBindingChange: (binding) => onBindingChange('audio.transcribe', binding),
-            placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
-            runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-          },
-          {
-            capabilityId: 'voice.clone',
-            routeCapability: 'voice_workflow.tts_v2v',
-            label: t('Tester.capability.voiceClone', { defaultValue: 'Voice Clone' }),
-            binding: bindingFromTesterConfig(config, 'voice.clone'),
-            provider: providers['voice_workflow.tts_v2v'] || null,
-            onBindingChange: (binding) => onBindingChange('voice.clone', binding),
-            placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
-            runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-          },
-          {
-            capabilityId: 'voice.design',
-            routeCapability: 'voice_workflow.tts_t2v',
-            label: t('Tester.capability.voiceDesign', { defaultValue: 'Voice Design' }),
-            binding: bindingFromTesterConfig(config, 'voice.design'),
-            provider: providers['voice_workflow.tts_t2v'] || null,
-            onBindingChange: (binding) => onBindingChange('voice.design', binding),
-            placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
-            runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-          },
-        ],
-      },
-      {
-        id: 'world',
-        title: t('Tester.capability.worldSection', { defaultValue: 'World' }),
-        collapsible: true,
-        defaultExpanded: true,
-        items: [
-          {
-            capabilityId: 'world.generate',
-            routeCapability: 'world.generate',
-            label: t('Tester.capability.worldTour', { defaultValue: 'World Tour' }),
-            binding: bindingFromTesterConfig(config, 'world.generate'),
-            provider: providers['world.generate'] || null,
-            onBindingChange: (binding) => onBindingChange('world.generate', binding),
-            placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
-            runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-          },
-        ],
-      },
-    ];
-  }, [assets, assetsQuery.isLoading, config, imageEditorCopy, onBindingChange, onParamsChange, profile, providers, t, videoEditorCopy]);
+      let editor: ReactNode | undefined;
+      if (descriptor.editorKind === 'image') {
+        const imageParams = parseImageParams(storedParams);
+        const companionSlots = (storedParams.companionSlots || {}) as Record<string, string>;
+        editor = (
+          <ImageParamsEditor
+            copy={imageEditorCopy}
+            params={imageParams}
+            companionSlots={companionSlots}
+            assets={assets}
+            assetsLoading={assetsQuery.isLoading}
+            onParamsChange={(next) => onParamsChange('image.generate', { ...next, companionSlots })}
+            onCompanionSlotsChange={(next) => onParamsChange('image.generate', { ...imageParams, companionSlots: next })}
+          />
+        );
+      } else if (descriptor.editorKind === 'video') {
+        const videoParams = parseVideoParams(storedParams);
+        editor = (
+          <VideoParamsEditor
+            copy={videoEditorCopy}
+            params={videoParams}
+            onParamsChange={(next) => onParamsChange('video.generate', next as unknown as Record<string, unknown>)}
+          />
+        );
+      }
+
+      const item: ModelConfigCapabilityItem = {
+        capabilityId: descriptor.capabilityId,
+        routeCapability: descriptor.routeCapability,
+        label,
+        binding,
+        provider: providers[descriptor.routeCapability] || null,
+        onBindingChange: (next) => onBindingChange(descriptor.capabilityId, next),
+        placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
+        runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
+        editor,
+        showEditorWhen: descriptor.editorKind ? 'local' : 'always',
+      };
+
+      return { descriptor, label, item };
+    });
+  }, [assets, assetsQuery.isLoading, config, imageEditorCopy, onBindingChange, onParamsChange, providers, t, videoEditorCopy]);
 
   if (!open) {
     return null;
   }
 
+  const activeModule = activeModuleId ? modules.find((m) => m.descriptor.id === activeModuleId) : null;
+  const backLabel = t('Chat.settingsBack', { defaultValue: 'Back' });
+
   return (
     <aside
-      className="relative flex min-h-0 w-[400px] shrink-0 flex-col overflow-hidden border-l border-slate-200/60 bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))]"
+      className="mr-2 flex min-h-0 w-[400px] shrink-0 flex-col"
       data-right-panel="tester-settings"
     >
-      <div className="shrink-0 px-4 pt-4 pb-3">
-        <h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">
-          {t('Tester.settings.title', { defaultValue: 'AI Tester Settings' })}
-        </h1>
-      </div>
+      <DesktopCardSurface
+        kind="promoted-glass"
+        as="section"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      >
+        {/* Header: title + subtitle + close button */}
+        <div className="flex items-start gap-3 border-b border-white/70 px-4 pb-3 pt-4">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+              {t('Tester.settings.title', { defaultValue: 'AI Tester Settings' })}
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-[var(--nimi-text-secondary)]">
+              {t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' })}
+            </p>
+          </div>
+          <DesktopIconToggleAction
+            icon={(
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            )}
+            aria-label={t('Chat.closePanel', { defaultValue: 'Close panel' })}
+            title={t('Chat.closePanel', { defaultValue: 'Close panel' })}
+            onClick={onClose}
+          />
+        </div>
 
-      <ScrollArea className="min-h-0 flex-1 px-3 pb-4">
-        <ModelConfigPanel
-          profile={profile}
-          sections={sections}
-        />
-      </ScrollArea>
+        <ScrollArea className={cn('min-h-0 flex-1')}>
+          <div className="px-3 py-3">
+            {activeModule ? (
+              <div className="space-y-5">
+                <div className="animate-in slide-in-from-right-4 duration-200">
+                  <DetailHeader
+                    title={activeModule.label}
+                    onBack={() => setActiveModuleId(null)}
+                    backLabel={backLabel}
+                  />
+                  <CapabilityModelCard item={activeModule.item} />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {/* AI Profile import button */}
+                {profile ? (
+                  <div key="profile">
+                    <ProfileConfigSection controller={profile} variant="import-button" />
+                  </div>
+                ) : null}
+
+                {/* Divider + Section Label */}
+                <div className="mb-3 border-t border-slate-100 px-6 pt-5">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                    {t('Chat.modelCapabilitiesLabel', { defaultValue: 'Model Capabilities' })}
+                  </h3>
+                </div>
+
+                {/* Capability Summary Cards */}
+                {modules.map(({ descriptor, label, item }) => {
+                  const subtitle = item.binding?.modelLabel || item.binding?.model || null;
+                  const sourceBadge = item.binding?.source ?? null;
+                  return (
+                    <SettingsSummaryCard
+                      key={descriptor.id}
+                      title={label}
+                      subtitle={subtitle}
+                      statusDot="neutral"
+                      statusLabel={null}
+                      sourceBadge={sourceBadge}
+                      onClick={() => setActiveModuleId(descriptor.id)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </DesktopCardSurface>
     </aside>
   );
 }

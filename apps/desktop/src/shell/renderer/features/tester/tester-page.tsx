@@ -32,6 +32,10 @@ import { TextStreamPanel } from './panels/panel-text-stream.js';
 import { VoiceClonePanel, VoiceDesignPanel } from './panels/panel-voice-stubs.js';
 import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig, createEmptyTesterAIConfig } from './tester-ai-config';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { CAP_META } from './tester-cap-meta.js';
+import { CapTile, SourceChip } from './tester-visuals.js';
+import { TesterHistoryPanel } from './tester-history-panel.js';
+import { useTesterHistory } from './tester-history.js';
 
 const SIDEBAR_GROUPS: Array<{ label: string; ids: CapabilityId[] }> = [
   { label: 'Text', ids: ['text.generate', 'text.stream', 'text.embed'] },
@@ -261,6 +265,16 @@ export function TesterPage() {
   );
   const activeLabels = CAPABILITY_LABELS[activeCapability];
   const currentVideoParams = useMemo(() => videoParamsFromConfig(testerConfig), [testerConfig]);
+  const { history, clearCapability, removeEntry } = useTesterHistory(states);
+  const activeHistory = history[activeCapability] ?? [];
+  const activeMeta = CAP_META[activeCapability];
+  const activeBinding = activeState.binding;
+  const activeSource = activeBinding?.source === 'local' || activeBinding?.source === 'cloud'
+    ? (activeBinding.source as 'local' | 'cloud')
+    : null;
+  const activeModelId = activeBinding?.model || activeBinding?.modelId || activeBinding?.connectorId || undefined;
+  const lastRun = activeHistory[0];
+  const activeLatency = lastRun?.elapsedMs ?? null;
 
   const renderPanel = () => {
     switch (activeCapability) {
@@ -395,19 +409,37 @@ export function TesterPage() {
         padding="none"
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
       >
-        <div className="flex h-14 shrink-0 items-center px-6">
-          <div className="flex w-full items-center justify-between">
-            <h2 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{activeLabels.label}</h2>
-            <IconButton
-              icon={SETTINGS_GEAR_ICON}
-              onClick={() => setSettingsOpen((prev) => !prev)}
-              aria-label={t('Tester.openSettings', { defaultValue: 'Settings' })}
-            />
-          </div>
-        </div>
         <ScrollArea className="flex-1" viewportClassName="bg-transparent">
           <RuntimePageShell maxWidth="5xl">
+            <div className="tester-page-hero">
+              {activeMeta ? <CapTile kind={activeMeta.icon} tone={activeMeta.tone} size={52} /> : null}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="tester-cap-title">{activeLabels.label}</div>
+                <div className="tester-cap-sub">{activeLabels.description}</div>
+                <div style={{ marginTop: 12 }}>
+                  <SourceChip
+                    source={activeSource}
+                    id={activeModelId}
+                    latencyMs={activeLatency}
+                    cost={null}
+                  />
+                </div>
+              </div>
+              <IconButton
+                icon={SETTINGS_GEAR_ICON}
+                onClick={() => setSettingsOpen((prev) => !prev)}
+                aria-label={t('Tester.openSettings', { defaultValue: 'Settings' })}
+              />
+            </div>
+
             {renderPanel()}
+
+            <TesterHistoryPanel
+              capabilityLabel={activeLabels.label}
+              entries={activeHistory}
+              onClear={() => clearCapability(activeCapability)}
+              onRemoveEntry={(entryId) => removeEntry(activeCapability, entryId)}
+            />
           </RuntimePageShell>
         </ScrollArea>
       </Surface>

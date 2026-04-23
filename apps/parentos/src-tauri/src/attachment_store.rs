@@ -72,6 +72,9 @@ fn is_supported_owner_table(t: &str) -> bool {
             | "medical_events"
             | "vaccine_records"
             | "milestone_records"
+            | "orthodontic_cases"
+            | "orthodontic_appliances"
+            | "orthodontic_checkins"
     )
 }
 
@@ -114,12 +117,8 @@ pub fn save_attachment(
     })?;
 
     let file_path = child_dir.join(format!("{safe_attachment_id}.{ext}"));
-    fs::write(&file_path, &image_bytes).map_err(|e| {
-        format!(
-            "failed to write attachment ({}): {e}",
-            file_path.display()
-        )
-    })?;
+    fs::write(&file_path, &image_bytes)
+        .map_err(|e| format!("failed to write attachment ({}): {e}", file_path.display()))?;
 
     let file_path_str = file_path.display().to_string();
 

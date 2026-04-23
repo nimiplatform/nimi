@@ -65,12 +65,12 @@ packs:
       spacing.stack: "16px"
       typography.font_sans: '"Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif'
       typography.font_mono: '"JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace'
-      typography.page_title.size: "1.75rem"
-      typography.page_title.line_height: "1.15"
+      typography.page_title.size: "1.5rem"
+      typography.page_title.line_height: "2rem"
       typography.page_title.weight: "700"
       typography.page_title.letter_spacing: "-0.02em"
-      typography.section_title.size: "1.125rem"
-      typography.section_title.line_height: "1.25"
+      typography.section_title.size: "1rem"
+      typography.section_title.line_height: "1.5rem"
       typography.section_title.weight: "600"
       typography.section_title.letter_spacing: "-0.01em"
       typography.body.size: "0.875rem"
@@ -234,12 +234,12 @@ packs:
       spacing.stack: "16px"
       typography.font_sans: '"Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif'
       typography.font_mono: '"JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace'
-      typography.page_title.size: "1.75rem"
-      typography.page_title.line_height: "1.15"
+      typography.page_title.size: "1.5rem"
+      typography.page_title.line_height: "2rem"
       typography.page_title.weight: "700"
       typography.page_title.letter_spacing: "-0.02em"
-      typography.section_title.size: "1.125rem"
-      typography.section_title.line_height: "1.25"
+      typography.section_title.size: "1rem"
+      typography.section_title.line_height: "1.5rem"
       typography.section_title.weight: "600"
       typography.section_title.letter_spacing: "-0.01em"
       typography.body.size: "0.875rem"

@@ -199,6 +199,12 @@ export type CanonicalMessageBubbleProps = {
   displayContext?: CanonicalBubbleDisplayContext;
   voicePlayingMessageId?: string | null;
   isVoiceTranscriptVisible?: boolean;
+  /**
+   * When true, skip the role-play `（...）` narration parser and always render
+   * text through the plain markdown renderer. Opt-in for non-roleplay surfaces
+   * (e.g. advisor chats) where full-width parentheses are ordinary punctuation.
+   */
+  disableRpContent?: boolean;
   onPlayVoiceMessage?: (message: ConversationCanonicalMessage) => void;
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => void;
   onMessageContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLDivElement>) => void;
@@ -215,6 +221,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   displayContext = 'transcript',
   voicePlayingMessageId = null,
   isVoiceTranscriptVisible = false,
+  disableRpContent = false,
   onPlayVoiceMessage,
   onVoiceContextMenu,
   onMessageContextMenu,
@@ -427,7 +434,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
           {message.text ? <ChatMarkdownRenderer content={message.text} appearance="canonical" /> : 'Streaming…'}
           <span className="inline-block animate-pulse text-emerald-600">|</span>
         </div>
-      ) : hasRpContent(message.text) ? (
+      ) : !disableRpContent && hasRpContent(message.text) ? (
         <RpContentRenderer content={message.text} appearance="canonical" />
       ) : (
         <ChatMarkdownRenderer content={message.text} appearance="canonical" />

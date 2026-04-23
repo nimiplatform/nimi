@@ -34,6 +34,7 @@ import { createDefaultAIScopeRef } from '@nimiplatform/sdk/mod';
 
 export const CONVERSATION_CAPABILITIES = [
   'text.generate',
+  'text.embed',
   'image.generate',
   'image.edit',
   'video.generate',

@@ -9,7 +9,7 @@ import {
   type EnhancedReminder,
 } from '../../engine/smart-alerts.js';
 import { applyReminderAction, persistAgendaPlan } from '../../engine/reminder-actions.js';
-import { buildReminderAgenda, getLocalToday, type ActiveReminder } from '../../engine/reminder-engine.js';
+import { buildReminderAgenda, getLocalToday, UnknownReminderRuleError, type ActiveReminder } from '../../engine/reminder-engine.js';
 import { useDash, buildTimelineHomeViewModel, C } from './timeline-data.js';
 import {
   ChildContextCard,
@@ -62,18 +62,28 @@ export default function TimelinePage() {
     void reloadFreqOverrides().catch(catchLogThen('timeline', 'action:load-freq-overrides-failed', () => setFreqOverrides(new Map())));
   }, [reloadFreqOverrides]);
 
-  const agenda = useMemo(
-    () => child ? buildReminderAgenda(REMINDER_RULES, {
-      birthDate: child.birthDate,
-      gender: child.gender,
-      ageMonths,
-      profileCreatedAt: child.createdAt,
-      localToday,
-      nurtureMode: child.nurtureMode,
-      domainOverrides: child.nurtureModeOverrides,
-    }, d.reminderStates, freqOverrides) : null,
-    [child, ageMonths, localToday, d.reminderStates, freqOverrides],
-  );
+  const agendaResult = useMemo(() => {
+    if (!child) return { kind: 'idle' as const };
+    try {
+      const agenda = buildReminderAgenda(REMINDER_RULES, {
+        birthDate: child.birthDate,
+        gender: child.gender,
+        ageMonths,
+        profileCreatedAt: child.createdAt,
+        localToday,
+        nurtureMode: child.nurtureMode,
+        domainOverrides: child.nurtureModeOverrides,
+      }, d.reminderStates, freqOverrides);
+      return { kind: 'ok' as const, agenda };
+    } catch (error) {
+      if (error instanceof UnknownReminderRuleError) {
+        return { kind: 'unknown-rule' as const, ruleIds: error.ruleIds };
+      }
+      throw error;
+    }
+  }, [child, ageMonths, localToday, d.reminderStates, freqOverrides]);
+
+  const agenda = agendaResult.kind === 'ok' ? agendaResult.agenda : null;
 
   const allergyProfile = useMemo(
     () => child ? buildAllergyProfile(child.allergies, d.allergyRecords) : null,
@@ -149,6 +159,20 @@ export default function TimelinePage() {
 
   if (!child) {
     return <WelcomePage />;
+  }
+
+  if (agendaResult.kind === 'unknown-rule') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center" style={{ color: '#b91c1c' }}>
+        <p className="text-base font-medium">提醒目录不完整</p>
+        <p className="text-[12px]" style={{ color: C.sub }}>
+          发现未登记的 ruleId：{agendaResult.ruleIds.join('、')}
+        </p>
+        <p className="text-[12px]" style={{ color: C.sub }}>
+          提醒流按 PO-TIME-007 fail-close。请修复 reminder-rules.yaml 或清理脏数据后重试。
+        </p>
+      </div>
+    );
   }
 
   if (loading || !agenda || !homeVm) {

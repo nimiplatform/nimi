@@ -57,6 +57,47 @@ export interface ActionItem {
   ruleId?: string;
 }
 
+/**
+ * Parent-authored note attached to a specific anchor inside the report.
+ * Stored inline in the report JSON so notes travel with the report.
+ */
+export interface UserNote {
+  id: string;
+  /**
+   * Where the note is anchored. Must match a known location key:
+   * - 'opening' | 'closingMessage' | 'milestoneReplay'
+   * - 'section:<narrativeSection.id>'
+   * - 'report' for whole-report notes
+   */
+  anchor: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * One section of the redacted professional (teacher/doctor) summary.
+ * `body` is the live text (user-edited overrides AI). `aiOriginal` is the
+ * pristine AI-generated version so we can offer a "restore" affordance.
+ * `enabled` is the user toggle — only enabled sections are included when
+ * the summary is exported/copied.
+ */
+export interface ProfessionalSummarySection {
+  id: string;
+  title: string;
+  body: string;
+  aiOriginal: string;
+  enabled: boolean;
+}
+
+export interface ProfessionalSummary {
+  generatedAt: string;
+  format: 'ai' | 'fallback';
+  childSummary: string;
+  sections: ProfessionalSummarySection[];
+  disclaimer: string;
+}
+
 export interface NarrativeReportContent {
   version: 2;
   format: 'narrative' | 'narrative-ai';
@@ -64,6 +105,10 @@ export interface NarrativeReportContent {
   title: string;
   subtitle: string;
   teaser: string;
+  /** 2–6 字的本月主题词，从数据中提炼（例："先行动"、"找到节奏"）。老报告可能没有此字段。 */
+  keyword?: string;
+  /** 关键词下方的一行副标（6–16 字），对关键词做展开。老报告可能没有此字段。 */
+  keywordSub?: string;
   generatedAt: string;
   opening?: string;
   narrativeSections: NarrativeSection[];
@@ -74,6 +119,10 @@ export interface NarrativeReportContent {
   actionItems: ActionItem[];
   trendSignals: StructuredTrendSignal[];
   metrics: StructuredGrowthReportMetric[];
+  /** Parent-authored notes attached to specific anchors inside this report. */
+  userNotes?: UserNote[];
+  /** Redacted professional summary for teachers/doctors. */
+  professionalSummary?: ProfessionalSummary;
   sources: string[];
   safetyNote: string;
 }
@@ -395,6 +444,8 @@ function parseNarrativeReportContent(parsed: Record<string, unknown>): Narrative
     title: parsed.title,
     subtitle: typeof parsed.subtitle === 'string' ? parsed.subtitle : '',
     teaser: typeof parsed.teaser === 'string' ? parsed.teaser : '',
+    keyword: typeof parsed.keyword === 'string' ? parsed.keyword : undefined,
+    keywordSub: typeof parsed.keywordSub === 'string' ? parsed.keywordSub : undefined,
     generatedAt: typeof parsed.generatedAt === 'string' ? parsed.generatedAt : '',
     opening: typeof parsed.opening === 'string' ? parsed.opening : undefined,
     milestoneReplay: typeof parsed.milestoneReplay === 'string' ? parsed.milestoneReplay : undefined,
@@ -423,8 +474,51 @@ function parseNarrativeReportContent(parsed: Record<string, unknown>): Narrative
         id: String(m.id ?? ''), label: String(m.label ?? ''), value: String(m.value ?? ''),
         detail: m.detail != null ? String(m.detail) : undefined,
       })) : [],
+    userNotes: parseUserNotes(parsed.userNotes),
+    professionalSummary: parseProfessionalSummary(parsed.professionalSummary),
     sources: (parsed.sources as string[]).map((s) => String(s)),
     safetyNote: parsed.safetyNote as string,
+  };
+}
+
+function parseUserNotes(raw: unknown): UserNote[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const notes: UserNote[] = [];
+  for (const entry of raw as Array<Record<string, unknown>>) {
+    if (typeof entry?.id !== 'string' || typeof entry?.anchor !== 'string' || typeof entry?.text !== 'string') continue;
+    notes.push({
+      id: entry.id,
+      anchor: entry.anchor,
+      text: entry.text,
+      createdAt: typeof entry.createdAt === 'string' ? entry.createdAt : '',
+      updatedAt: typeof entry.updatedAt === 'string' ? entry.updatedAt : '',
+    });
+  }
+  return notes.length > 0 ? notes : undefined;
+}
+
+function parseProfessionalSummary(raw: unknown): ProfessionalSummary | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const data = raw as Record<string, unknown>;
+  if (!Array.isArray(data.sections)) return undefined;
+  const sections: ProfessionalSummarySection[] = [];
+  for (const entry of data.sections as Array<Record<string, unknown>>) {
+    if (typeof entry?.id !== 'string' || typeof entry?.title !== 'string' || typeof entry?.body !== 'string') continue;
+    sections.push({
+      id: entry.id,
+      title: entry.title,
+      body: entry.body,
+      aiOriginal: typeof entry.aiOriginal === 'string' ? entry.aiOriginal : entry.body,
+      enabled: entry.enabled !== false,
+    });
+  }
+  if (sections.length === 0) return undefined;
+  return {
+    generatedAt: typeof data.generatedAt === 'string' ? data.generatedAt : '',
+    format: data.format === 'fallback' ? 'fallback' : 'ai',
+    childSummary: typeof data.childSummary === 'string' ? data.childSummary : '',
+    sections,
+    disclaimer: typeof data.disclaimer === 'string' ? data.disclaimer : '本概要由家长基于本地记录整理，仅供老师/医生参考，不含诊断意见。',
   };
 }
 

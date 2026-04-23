@@ -16,7 +16,7 @@ import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import { localSpeechReasonSummary } from './runtime-config-model-center-utils';
 import { RuntimeConfigMemoryEmbeddingSection } from './runtime-config-memory-embedding-section';
-import { Button, Card, StatusBadge } from './runtime-config-primitives';
+import { Button } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
 
 type RuntimeTabKey = 'overview' | 'health' | 'activity' | 'access';
@@ -150,7 +150,7 @@ type RuntimePageProps = {
 export function RuntimePage({ model, state }: RuntimePageProps) {
   const { t } = useTranslation();
   const auditData = useGlobalAuditData(true);
-  const [nodeMatrixExpanded, setNodeMatrixExpanded] = useState(false);
+  const [nodeMatrixExpanded, setNodeMatrixExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<RuntimeTabKey>('overview');
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
@@ -600,112 +600,136 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             onRefresh={() => void auditData.loadHealth()}
           />
 
-          {/* Provider Runtime Status */}
-          <section>
-            <SectionTitle>
-              {t('runtimeConfig.runtime.providerStatus', { defaultValue: 'Provider Runtime Status' })}
-            </SectionTitle>
-            <Card className="mt-3 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-sm text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.runtime.localRuntimeProviderStatus', { defaultValue: 'Local runtime provider status' })}
-                </div>
-                <StatusBadge status={state.local.status} />
-              </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <div className="rounded-xl bg-[var(--nimi-surface-panel)] p-3 ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]">
-                  <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.runtime.lastCheckLabel', { defaultValue: 'Last Check' })}</p>
-                  <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
-                    {state.local.lastCheckedAt ? formatLocaleDateTime(state.local.lastCheckedAt) : '-'}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-[var(--nimi-surface-panel)] p-3 ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)] md:col-span-2">
-                  <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.runtime.detail', { defaultValue: 'Detail' })}</p>
-                  <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{state.local.lastDetail || '-'}</p>
-                </div>
-              </div>
-            </Card>
-          </section>
-
-          {/* Node Matrix */}
-          <section>
-            <SectionTitle>
-              {t('runtimeConfig.runtime.nodeMatrix', { defaultValue: 'Node Capability Matrix' })}
-            </SectionTitle>
-            <Card className="mt-3 p-5">
-              <button
-                type="button"
-                className="flex w-full items-center justify-between text-left mb-3"
-                onClick={() => setNodeMatrixExpanded((prev) => !prev)}
-              >
-                <span className="text-sm font-medium text-[var(--nimi-text-primary)]">
-                  {t('runtimeConfig.runtime.nodeMatrixShort', { defaultValue: 'Node Matrix' })}
-                </span>
-                <span className="text-xs text-[var(--nimi-text-muted)]">
-                  {nodeMatrixExpanded
-                    ? t('runtimeConfig.runtime.collapse', { defaultValue: 'Collapse' })
-                    : t('runtimeConfig.runtime.expand', { defaultValue: 'Expand' })}
-                </span>
-              </button>
-              {providerStatusSummary.length > 0 ? (
-                <div className="mb-3 space-y-2 rounded-xl bg-[var(--nimi-surface-panel)] p-3 ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]">
-                  {providerStatusSummary.map((summary) => (
-                    <p key={`provider-summary-${summary.provider}`} className="text-[11px] text-[var(--nimi-text-secondary)]">
-                      provider={summary.provider}
-                      {' · '}available={summary.available}/{summary.total}
-                      {summary.reasonCodes.size > 0 ? ` · reasonCodes=${[...summary.reasonCodes].join(',')}` : ''}
-                      {summary.policyGates.size > 0 ? ` · policyGate=${[...summary.policyGates].join(',')}` : ''}
-                      {summary.npuStates.size > 0 ? ` · npuState=${[...summary.npuStates].join(',')}` : ''}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
-              {!nodeMatrixExpanded ? null : sortedNodeMatrix.length === 0 ? (
-                <p className="text-sm text-[var(--nimi-text-muted)]">
-                  {t('runtimeConfig.runtime.noNodeAvailabilityData', {
-                    defaultValue: 'No node availability data. Run Refresh to probe the local runtime.',
+          {/* Node Capability Matrix — advanced diagnostic, hidden when no data */}
+          {sortedNodeMatrix.length > 0 || providerStatusSummary.length > 0 ? (
+          <section className="mt-8">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <SectionTitle>
+                  {t('runtimeConfig.runtime.nodeMatrix', { defaultValue: 'Node Capability Matrix' })}
+                </SectionTitle>
+                <p className={cn('mt-1 text-[11px]', TOKEN_TEXT_MUTED)}>
+                  {t('runtimeConfig.runtime.nodeMatrixSubtitle', {
+                    defaultValue: 'Low-level node diagnostics · advanced troubleshooting',
                   })}
                 </p>
-              ) : (
-                <div className="space-y-2">
-                  {sortedNodeMatrix.map((row) => {
-                    const runtimeSupportClass = String(row.providerHints?.extra?.runtime_support_class || '').trim();
-                    const runtimeSupportDetail = String(row.providerHints?.extra?.runtime_support_detail || '').trim();
-                    const speechReasonSummary = localSpeechReasonSummary(row.reasonCode);
+              </div>
+              <button
+                type="button"
+                onClick={() => setNodeMatrixExpanded((prev) => !prev)}
+                className={cn('shrink-0 text-xs font-medium transition-colors hover:text-[var(--nimi-text-primary)]', TOKEN_TEXT_MUTED)}
+              >
+                {nodeMatrixExpanded
+                  ? t('runtimeConfig.runtime.collapse', { defaultValue: 'Collapse' })
+                  : t('runtimeConfig.runtime.expand', { defaultValue: 'Expand' })}
+              </button>
+            </div>
+            <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5')}>
+              {providerStatusSummary.length > 0 ? (
+                <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+                  {providerStatusSummary.map((summary) => {
+                    const allAvailable = summary.available === summary.total && summary.total > 0;
+                    const noneAvailable = summary.available === 0 && summary.total > 0;
+                    const tone: RuntimeTone = allAvailable ? 'success' : noneAvailable ? 'danger' : 'warning';
+                    const toneStyle = TONE_STYLES[tone];
                     return (
-                      <div key={`node-matrix-${row.nodeId}`} className="rounded-xl bg-[var(--nimi-surface-panel)] p-3 ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]">
-                        <p className="text-xs font-medium text-[var(--nimi-text-primary)]">
-                          {row.capability} · {row.nodeId}
-                        </p>
-                        <p className="text-xs text-[var(--nimi-text-secondary)]">
-                          {row.available ? 'available' : 'unavailable'} · provider={row.provider || 'llama'} · adapter={
-                            row.adapter
-                          }
-                          {row.backend ? ` · backend=${row.backend}` : ''}
-                          {runtimeSupportClass ? ` · runtimeSupport=${runtimeSupportClass}` : ''}
-                        </p>
-                        {runtimeSupportDetail ? (
-                          <p className="text-xs text-[var(--nimi-text-secondary)]">runtimeSupportDetail={runtimeSupportDetail}</p>
-                        ) : null}
-                        {row.policyGate ? <p className="text-xs text-[var(--nimi-text-secondary)]">policyGate={row.policyGate}</p> : null}
-                        {!row.available && speechReasonSummary ? (
-                          <p className="text-xs text-[var(--nimi-status-warning)]">{speechReasonSummary}</p>
-                        ) : null}
-                        {!row.available && row.reasonCode ? (
-                          <p className="text-xs text-[var(--nimi-status-warning)]">reason={row.reasonCode}</p>
-                        ) : null}
-                        {(runtimeSupportClass === 'attached_only' || runtimeSupportClass === 'unsupported') ? (
-                          <p className="text-xs text-[var(--nimi-status-warning)]">
-                            Managed local engine is unavailable on this host. Configure an attached endpoint to use this provider.
-                          </p>
+                      <div key={`provider-summary-${summary.provider}`} className="inline-flex items-center gap-2">
+                        <span className={cn('text-[11px] font-medium', TOKEN_TEXT_SECONDARY)}>
+                          {summary.provider}
+                        </span>
+                        <span className={cn('font-mono text-[11px]', toneStyle.subtleText)}>
+                          {summary.available}/{summary.total}
+                        </span>
+                        {summary.reasonCodes.size > 0 ? (
+                          <span
+                            className={cn('min-w-0 max-w-[180px] truncate font-mono text-[11px]', TOKEN_TEXT_MUTED)}
+                            title={[...summary.reasonCodes].join(', ')}
+                          >
+                            {[...summary.reasonCodes].join(', ')}
+                          </span>
                         ) : null}
                       </div>
                     );
                   })}
                 </div>
-              )}
-            </Card>
+              ) : null}
+
+              {nodeMatrixExpanded ? (
+                sortedNodeMatrix.length === 0 ? (
+                  <p className={cn('mt-3 text-sm', TOKEN_TEXT_MUTED)}>
+                    {t('runtimeConfig.runtime.noNodeAvailabilityData', {
+                      defaultValue: 'No node availability data. Run Refresh to probe the local runtime.',
+                    })}
+                  </p>
+                ) : (
+                  <div className={cn(providerStatusSummary.length > 0 ? 'mt-4 border-t border-[var(--nimi-border-subtle)]/60 pt-3' : '', 'divide-y divide-[var(--nimi-border-subtle)]/50')}>
+                    {sortedNodeMatrix.map((row) => {
+                      const runtimeSupportClass = String(row.providerHints?.extra?.runtime_support_class || '').trim();
+                      const runtimeSupportDetail = String(row.providerHints?.extra?.runtime_support_detail || '').trim();
+                      const speechReasonSummary = localSpeechReasonSummary(row.reasonCode);
+                      const tone: RuntimeTone = row.available ? 'success' : 'danger';
+                      const toneStyle = TONE_STYLES[tone];
+                      const metaBits = [
+                        `provider=${row.provider || 'llama'}`,
+                        `adapter=${row.adapter}`,
+                        row.backend ? `backend=${row.backend}` : null,
+                        runtimeSupportClass ? `runtimeSupport=${runtimeSupportClass}` : null,
+                      ].filter(Boolean).join(' · ');
+                      const hostLimitWarning = runtimeSupportClass === 'attached_only' || runtimeSupportClass === 'unsupported';
+                      return (
+                        <div key={`node-matrix-${row.nodeId}`} className="py-3 first:pt-0 last:pb-0">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', row.available ? 'bg-[var(--nimi-status-success)]' : 'bg-[var(--nimi-status-danger)]')} />
+                              <span className={cn('truncate text-xs font-medium', TOKEN_TEXT_PRIMARY)}>
+                                {row.capability}
+                              </span>
+                              <span className={cn('truncate font-mono text-[11px]', TOKEN_TEXT_MUTED)}>
+                                {row.nodeId}
+                              </span>
+                            </div>
+                            <span className={cn('shrink-0 text-[11px] font-medium', toneStyle.subtleText)}>
+                              {row.available ? 'available' : 'unavailable'}
+                            </span>
+                          </div>
+                          <p className={cn('mt-1 truncate font-mono text-[11px]', TOKEN_TEXT_MUTED)} title={metaBits}>
+                            {metaBits}
+                          </p>
+                          {runtimeSupportDetail ? (
+                            <p className={cn('truncate font-mono text-[11px]', TOKEN_TEXT_MUTED)} title={runtimeSupportDetail}>
+                              {runtimeSupportDetail}
+                            </p>
+                          ) : null}
+                          {row.policyGate ? (
+                            <p className={cn('font-mono text-[11px]', TOKEN_TEXT_MUTED)}>policyGate={row.policyGate}</p>
+                          ) : null}
+                          {!row.available && speechReasonSummary ? (
+                            <p className="mt-1 text-[11px] text-[var(--nimi-status-warning)]">{speechReasonSummary}</p>
+                          ) : null}
+                          {!row.available && row.reasonCode ? (
+                            <p
+                              className="mt-1 truncate font-mono text-[11px] text-[var(--nimi-status-warning)]"
+                              title={String(row.reasonCode)}
+                            >
+                              reason={row.reasonCode}
+                            </p>
+                          ) : null}
+                          {hostLimitWarning ? (
+                            <p className="mt-1 text-[11px] text-[var(--nimi-status-warning)]">
+                              {t('runtimeConfig.runtime.managedEngineUnavailable', {
+                                defaultValue: 'Managed local engine is unavailable on this host. Configure an attached endpoint to use this provider.',
+                              })}
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : null}
+            </Surface>
           </section>
+          ) : null}
         </>
       ) : null}
 

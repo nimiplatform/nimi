@@ -641,6 +641,21 @@
     "previousTopAgentsPage": "Previous top agents page",
     "score": "Score",
     "topAgents": "Top Agents",
+    "topAgentsKicker": "Directory · This week",
+    "worldsKicker": "Realms · Featured",
+    "pageKicker": "Nimi · Explore",
+    "originLabel": "Origin",
+    "featuredWorld": "Featured world",
+    "featuredWorldLive": "Featured world · Live",
+    "enterWorld": "Enter world",
+    "statChrono": "Chrono",
+    "statEra": "Era",
+    "goToBanner": "Go to banner {{idx}}",
+    "defaultRole": "Companion",
+    "chatsLabel": "Posts",
+    "friendshipAdd": "Add friend",
+    "friendshipRequested": "Requested",
+    "friendshipFriends": "Friends",
     "worldOwned": "World owned"
   },
   "Chat": {
@@ -979,6 +994,12 @@
     "settingsTtsSection": "TTS",
     "settingsImageSection": "Image",
     "settingsVideoSection": "Video",
+    "settingsSttSection": "STT",
+    "settingsSttTranscribeTitle": "Speech recognition",
+    "settingsSttTranscribeHint": "Controls the route used when the conversation transcribes voice input to text.",
+    "settingsEmbedSection": "Embedding",
+    "settingsEmbedTitle": "Text embedding",
+    "settingsEmbedHint": "Controls the route used to produce text embeddings for retrieval or memory features.",
     "imageAdvancedParams": "Advanced Parameters",
     "ttsVoiceWorkflows": "Voice Workflows",
     "schedulingTitle": "Scheduling",
@@ -1124,6 +1145,7 @@
     "settingsAIProfileCancel": "Cancel",
     "settingsAIProfileConfirm": "Confirm & Apply",
     "settingsAIProfileApplying": "Applying...",
+    "settingsAIProfileImport": "Import AI Profile",
     "settingsAIProfileApplyBtn": "Apply profile",
     "settingsAIProfileChange": "Change",
     "settingsImageProfileTitle": "Local image profile",
@@ -1276,6 +1298,55 @@
     "worldScoring": "World Scoring",
     "syncTicker": "World Sync",
     "chronoFlow": "Chrono Flow: {{value}}X",
+    "header": {
+      "kicker": "Space · your worlds",
+      "description": "Persistent simulations you can enter, shape, and share. Each world runs on its own clock and rules."
+    },
+    "toolbar": {
+      "heading": "Your worlds",
+      "filterPlaceholder": "Filter by name or tag…",
+      "gridView": "Grid view",
+      "listView": "List view",
+      "sort": {
+        "active": "Most active",
+        "recent": "Recently updated",
+        "alpha": "Name A–Z",
+        "inhabitants": "Inhabitants"
+      }
+    },
+    "sidebar": {
+      "create": "Create world",
+      "library": "Library",
+      "collections": "Collections",
+      "pulse": "Your pulse",
+      "activeWorlds": "Active worlds",
+      "activeWorldsSub": "of {{total}} total",
+      "inhabitants": "Total inhabitants",
+      "inhabitantsSub": "across all worlds",
+      "weeklyVisits": "Weekly visits",
+      "filters": {
+        "all": "All worlds",
+        "main": "Main world",
+        "sub": "Sub worlds",
+        "archived": "Archived"
+      },
+      "noCollections": "No collections yet"
+    },
+    "status": {
+      "active": "Active",
+      "idle": "Idle"
+    },
+    "stats": {
+      "inhabitants": "Inhabitants",
+      "online": "Online",
+      "day": "Day",
+      "flow": "Flow"
+    },
+    "card": {
+      "enter": "Enter world",
+      "featured": "Featured world",
+      "noMatch": "No worlds match that filter."
+    },
     "createAgent": {
       "title": "Create New Agent",
       "subtitle": "Bring a new character to life in {{worldName}}",
@@ -2872,6 +2943,7 @@
       "addApiKey": "Add API Key",
       "nodeMatrix": "Node Capability Matrix",
       "nodeMatrixShort": "Node Matrix",
+      "nodeMatrixSubtitle": "Low-level node diagnostics · advanced troubleshooting",
       "collapse": "Collapse",
       "expand": "Expand",
       "noNodeAvailabilityData": "No node availability data. Run Refresh to probe the local runtime.",
@@ -2957,6 +3029,24 @@
       "state": "State",
       "jobs": "Jobs",
       "queue": "Queue",
+      "avgCompute": "avg {{value}} / req",
+      "errorsCount": "{{count}} errors",
+      "errorsCount_one": "{{count}} error",
+      "errorsCount_other": "{{count}} errors",
+      "fromTime": "From",
+      "groupAuthorization": "Authorization",
+      "groupTracing": "Tracing",
+      "groupWhatHappened": "What happened",
+      "groupWho": "Who called",
+      "managedEngineUnavailable": "Managed local engine is unavailable on this host. Configure an attached endpoint to use this provider.",
+      "noAuditEventsHint": "Events appear here as mods and apps make authorized runtime calls.",
+      "noErrors": "no errors",
+      "noUsageHint": "Data appears once mods or connected apps start making runtime calls.",
+      "requestsBreakdown": "{{success}} ok · {{errors}} err",
+      "successRate": "Success Rate",
+      "showFullError": "Show full error",
+      "tokensBreakdown": "{{input}} in · {{output}} out",
+      "toTime": "To",
       "failures": "Failures",
       "lastChecked": "Last Checked",
       "streamError": "Stream error",
@@ -3631,6 +3721,24 @@
     },
     "settings": {
       "title": "AI Tester Settings"
+    },
+    "history": {
+      "title": "History",
+      "nothing": "Nothing",
+      "summary": "{{count}} runs · {{todayCount}} today",
+      "summary_one": "{{count}} run · {{todayCount}} today",
+      "summary_other": "{{count}} runs · {{todayCount}} today",
+      "clear": "Clear",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "failed": "Failed",
+      "passed": "Passed",
+      "copyOutput": "Copy output",
+      "removeFromHistory": "Remove from history",
+      "youPrefix": "You",
+      "unrouted": "Unrouted",
+      "lastLatency": "Last latency",
+      "free": "Free"
     },
     "worldTour": {
       "title": "World Tour Acceptance Lane",
