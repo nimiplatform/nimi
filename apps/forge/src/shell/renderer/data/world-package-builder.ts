@@ -222,11 +222,11 @@ function buildAgentBlueprints(input: {
   userId: string;
   snapshot: ForgeWorkspaceSnapshot;
 }): {
-  agentBlueprints: CanonicalPublishableWorldPackage['agentBlueprints'];
-  agentLorebooks: CanonicalPublishableWorldPackage['agentLorebooks'];
+  agentBlueprints: CanonicalPublishableWorldPackage['truth']['agents']['blueprints'];
+  agentLorebooks: CanonicalPublishableWorldPackage['compat']['agentLorebooks'];
 } {
   const characterNames = collectCharacterNames(input.snapshot);
-  const agentLorebooks: CanonicalPublishableWorldPackage['agentLorebooks'] = [];
+  const agentLorebooks: CanonicalPublishableWorldPackage['compat']['agentLorebooks'] = [];
 
   const agentBlueprints = characterNames.map((characterName, index) => {
     const draft = asRecord(input.snapshot.agentSync.draftsByCharacter[characterName] as ForgeAgentDraftRecord);
@@ -337,7 +337,7 @@ function buildAgentBlueprints(input: {
 function buildWorldLorebooks(
   worldId: string,
   rows: WorldLorebookDraftRow[],
-): CanonicalPublishableWorldPackage['worldLorebooks'] {
+): CanonicalPublishableWorldPackage['compat']['worldLorebooks'] {
   return rows.map((item, index) => {
     const row = asRecord(item);
     const name = String(row.name || row.key || `lorebook-${index + 1}`).trim();
@@ -419,6 +419,55 @@ export function buildForgeOfficialWorldPackage(input: {
   });
   const worldLorebooks = buildWorldLorebooks(worldId, input.snapshot.lorebooksDraft || []);
   const reviewedAt = new Date().toISOString();
+  const worldRules = input.snapshot.ruleTruthDraft.worldRules;
+
+  const worldRecord = {
+    id: worldId,
+    creatorId: input.userId,
+    name: worldName,
+    tagline: requireString(worldState.tagline, 'FORGE_PACKAGE_WORLD_TAGLINE_REQUIRED'),
+    motto: requireNullableString(worldState.motto, 'FORGE_PACKAGE_WORLD_MOTTO_REQUIRED'),
+    overview: requireNullableString(worldState.overview, 'FORGE_PACKAGE_WORLD_OVERVIEW_REQUIRED'),
+    description: requireString(worldState.description, 'FORGE_PACKAGE_WORLD_DESCRIPTION_REQUIRED'),
+    genre: requireString(worldState.genre, 'FORGE_PACKAGE_WORLD_GENRE_REQUIRED'),
+    themes: requireStringArray(worldState.themes, 'FORGE_PACKAGE_WORLD_THEMES_REQUIRED'),
+    era: requireNullableString(worldState.era, 'FORGE_PACKAGE_WORLD_ERA_REQUIRED'),
+    contentRating: worldState.contentRating
+      ? requireEnum(worldState.contentRating, WORLD_CONTENT_RATINGS, 'FORGE_PACKAGE_WORLD_CONTENT_RATING_REQUIRED')
+      : 'UNRATED',
+    type: requireString(worldState.type || 'CREATOR', 'FORGE_PACKAGE_WORLD_TYPE_REQUIRED'),
+    status: requireString(worldState.status || 'ACTIVE', 'FORGE_PACKAGE_WORLD_STATUS_REQUIRED'),
+    nativeCreationState: requireString(
+      worldState.nativeCreationState || 'OPEN',
+      'FORGE_PACKAGE_WORLD_NATIVE_CREATION_STATE_REQUIRED',
+    ),
+    nativeAgentLimit: agentBlueprints.length,
+    transitInLimit: numberOrDefault(worldState.transitInLimit, 16),
+    lorebookEntryLimit: worldLorebooks.length + agentLorebooks.length,
+    level: numberOrDefault(worldState.level, 1),
+    scoreQ: numberOrDefault(worldState.scoreQ, 0),
+    scoreC: numberOrDefault(worldState.scoreC, 0),
+    scoreA: numberOrDefault(worldState.scoreA, 0),
+    scoreE: numberOrDefault(worldState.scoreE, 0),
+    scoreEwma: numberOrDefault(worldState.scoreEwma, 0),
+    iconUrl: optionalNullableString(worldState.iconUrl),
+    bannerUrl: optionalNullableString(
+      input.snapshot.assets.worldCover.imageUrl || worldState.bannerUrl,
+    ),
+    reviewedAt,
+    reviewedBy: input.userId,
+  };
+
+  const worldviewMetadata = {
+    id: createDeterministicId('forge-worldview', worldId),
+    worldId,
+    version: 1,
+    lifecycle: input.snapshot.worldviewPatch.lifecycle
+      ? requireEnum(input.snapshot.worldviewPatch.lifecycle, WORLDVIEW_LIFECYCLES, 'FORGE_PACKAGE_WORLDVIEW_LIFECYCLE_REQUIRED')
+      : 'ACTIVE',
+    tone: typeof worldState.genre === 'string' ? worldState.genre : undefined,
+    targetAudience: 'forge-official',
+  };
 
   const pkg = {
     slug: slugify(worldName) || slugify(worldId),
@@ -439,58 +488,69 @@ export function buildForgeOfficialWorldPackage(input: {
       activeCharacters: collectCharacterNames(input.snapshot),
       notes: ['Forge official package hard-cut publish'],
     },
-    world: {
-      id: worldId,
-      creatorId: input.userId,
-      name: worldName,
-      tagline: requireString(worldState.tagline, 'FORGE_PACKAGE_WORLD_TAGLINE_REQUIRED'),
-      motto: requireNullableString(worldState.motto, 'FORGE_PACKAGE_WORLD_MOTTO_REQUIRED'),
-      overview: requireNullableString(worldState.overview, 'FORGE_PACKAGE_WORLD_OVERVIEW_REQUIRED'),
-      description: requireString(worldState.description, 'FORGE_PACKAGE_WORLD_DESCRIPTION_REQUIRED'),
-      genre: requireString(worldState.genre, 'FORGE_PACKAGE_WORLD_GENRE_REQUIRED'),
-      themes: requireStringArray(worldState.themes, 'FORGE_PACKAGE_WORLD_THEMES_REQUIRED'),
-      era: requireNullableString(worldState.era, 'FORGE_PACKAGE_WORLD_ERA_REQUIRED'),
-      contentRating: worldState.contentRating
-        ? requireEnum(worldState.contentRating, WORLD_CONTENT_RATINGS, 'FORGE_PACKAGE_WORLD_CONTENT_RATING_REQUIRED')
-        : 'UNRATED',
-      type: requireString(worldState.type || 'CREATOR', 'FORGE_PACKAGE_WORLD_TYPE_REQUIRED'),
-      status: requireString(worldState.status || 'ACTIVE', 'FORGE_PACKAGE_WORLD_STATUS_REQUIRED'),
-      nativeCreationState: requireString(
-        worldState.nativeCreationState || 'OPEN',
-        'FORGE_PACKAGE_WORLD_NATIVE_CREATION_STATE_REQUIRED',
-      ),
-      nativeAgentLimit: agentBlueprints.length,
-      transitInLimit: numberOrDefault(worldState.transitInLimit, 16),
-      lorebookEntryLimit: worldLorebooks.length + agentLorebooks.length,
-      level: numberOrDefault(worldState.level, 1),
-      scoreQ: numberOrDefault(worldState.scoreQ, 0),
-      scoreC: numberOrDefault(worldState.scoreC, 0),
-      scoreA: numberOrDefault(worldState.scoreA, 0),
-      scoreE: numberOrDefault(worldState.scoreE, 0),
-      scoreEwma: numberOrDefault(worldState.scoreEwma, 0),
-      iconUrl: optionalNullableString(worldState.iconUrl),
-      bannerUrl: optionalNullableString(
-        input.snapshot.assets.worldCover.imageUrl || worldState.bannerUrl,
-      ),
-      reviewedAt,
-      reviewedBy: input.userId,
+    truth: {
+      world: {
+        record: worldRecord,
+        worldviewMetadata,
+        rules: worldRules,
+        scenes: [],
+      },
+      agents: {
+        blueprints: agentBlueprints,
+        relationships: [],
+      },
     },
-    worldviewMetadata: {
-      id: createDeterministicId('forge-worldview', worldId),
-      worldId,
-      version: 1,
-      lifecycle: input.snapshot.worldviewPatch.lifecycle
-        ? requireEnum(input.snapshot.worldviewPatch.lifecycle, WORLDVIEW_LIFECYCLES, 'FORGE_PACKAGE_WORLDVIEW_LIFECYCLE_REQUIRED')
-        : 'ACTIVE',
-      tone: typeof worldState.genre === 'string' ? worldState.genre : undefined,
-      targetAudience: 'forge-official',
+    derivation: {
+      inheritanceCandidates: [],
+      entryLine: ['official-package-publish'] as const,
     },
-    worldRules: input.snapshot.ruleTruthDraft.worldRules,
-    agentBlueprints,
-    agentRelationships: [],
-    scenes: [],
-    worldLorebooks,
-    agentLorebooks,
+    projection: {
+      inputs: [
+        ...worldRules.map((rule) => ({
+          id: createDeterministicId('forge-projection', `${worldId}-${rule.ruleKey}`),
+          sourceType: 'WORLD_RULE' as const,
+          sourceRef: rule.ruleKey,
+          governingTruthRef: `world-rule:${rule.ruleKey}`,
+          surfaceEligibility: ['runtime', 'creator_inspection', 'public_read', 'compat'] as const,
+        })),
+        ...agentBlueprints.map((agent: (typeof agentBlueprints)[number]) => ({
+          id: createDeterministicId('forge-projection', `${worldId}-${agent.id}`),
+          sourceType: 'AGENT_RULE_BATCH' as const,
+          sourceRef: agent.id,
+          governingTruthRef: `agent:${agent.id}`,
+          surfaceEligibility: ['runtime', 'creator_inspection', 'public_read', 'compat'] as const,
+        })),
+      ],
+    },
+    evidence: {
+      sourceChunkIds: [String(input.snapshot.sourceRef || workspaceVersion)],
+      truthBindings: [],
+    },
+    governance: {
+      packageId: createDeterministicId('forge-package', `${worldId}-${workspaceVersion}`),
+      packageVersion: `forge-${workspaceVersion}`,
+      sourceTitle: worldName,
+      sourceMode: 'forge-official' as const,
+      generatedBy: 'world-agent-package-factory' as const,
+      reviewStatus: 'validated' as const,
+      buildScope: 'forge-authoring' as const,
+    },
+    compat: {
+      worldview: {
+        worldState,
+        worldviewPatch: input.snapshot.worldviewPatch,
+      },
+      agentProfiles: agentBlueprints.map((agent: (typeof agentBlueprints)[number]) => ({
+        id: agent.id,
+        name: agent.name,
+        description: agent.description,
+        dna: agent.dna,
+        scenario: agent.scenario ?? null,
+        greeting: agent.greeting ?? null,
+      })),
+      worldLorebooks,
+      agentLorebooks,
+    },
     resources: [],
     bindings: [],
     worldDrafts: [{

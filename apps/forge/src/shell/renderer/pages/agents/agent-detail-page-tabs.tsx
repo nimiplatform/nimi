@@ -85,7 +85,7 @@ function DnaSlider({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-[var(--nimi-surface-card)] accent-[var(--nimi-action-primary-bg)]"
+        className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] accent-[var(--nimi-action-primary-bg)]"
       />
       <span className="w-8 text-right text-xs tabular-nums text-[var(--nimi-text-muted)]">{value}</span>
     </div>
@@ -539,7 +539,7 @@ export function PreviewTab({ agent }: { agent: AgentDetail }) {
 
   return (
     <div className="space-y-4">
-      <Surface tone="card" padding="none">
+      <Surface tone="card" material="glass-regular" padding="none">
         <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-4 py-3">
           <div className="flex items-center gap-2">
             <ForgeEntityAvatar
@@ -570,7 +570,7 @@ export function PreviewTab({ agent }: { agent: AgentDetail }) {
         </div>
 
         {showSystemPrompt ? (
-          <div className="space-y-2 border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-base)] px-4 py-3">
+          <div className="space-y-2 border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_45%,transparent)] px-4 py-3">
             <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--nimi-text-muted)]">
               {t('agentDetail.systemPromptPreview', 'System Prompt Preview')}
             </p>
@@ -587,8 +587,8 @@ export function PreviewTab({ agent }: { agent: AgentDetail }) {
           session={session}
           className="rounded-none border-0 bg-transparent shadow-none"
           messagesClassName="h-80"
-          userMessageBubbleClassName="rounded-lg bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]"
-          assistantMessageBubbleClassName="rounded-lg bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)]"
+          userMessageBubbleClassName="rounded-lg border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_82%,white)] text-[var(--nimi-action-primary-text)]"
+          assistantMessageBubbleClassName="rounded-lg nimi-material-glass-thin text-[var(--nimi-text-primary)]"
           composerClassName="border-[var(--nimi-border-subtle)]"
           placeholder={t('agentDetail.chatPlaceholder', 'Type a message...')}
           sendLabel={t('agentDetail.send', 'Send')}
@@ -646,7 +646,7 @@ export function KeysTab({
       </div>
 
       {showForm ? (
-        <Surface tone="card" padding="md">
+        <Surface tone="card" material="glass-thin" padding="md">
           <div className="space-y-3">
             <LabeledTextField
               label={t('agentDetail.keyName', 'Key Name')}

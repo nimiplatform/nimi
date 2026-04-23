@@ -89,9 +89,9 @@ describe('workbench-world-package-builder', () => {
     });
 
     expect(result.meta.sourceMode).toBe('forge-official');
-    expect(result.world.bannerUrl).toBe('https://cdn.example.com/world-banner.png');
-    expect(result.agentBlueprints[0]?.scenario).toBe('Ari watches over the moon archive.');
-    expect(result.agentBlueprints[0]?.greeting).toBe('State your business.');
+    expect(result.truth.world.record.bannerUrl).toBe('https://cdn.example.com/world-banner.png');
+    expect(result.truth.agents.blueprints[0]?.scenario).toBe('Ari watches over the moon archive.');
+    expect(result.truth.agents.blueprints[0]?.greeting).toBe('State your business.');
     expect(result.resources[0]?.resourceType).toBe('AUDIO');
     expect(result.bindings[0]?.bindingPoint).toBe('AGENT_VOICE_SAMPLE');
   });

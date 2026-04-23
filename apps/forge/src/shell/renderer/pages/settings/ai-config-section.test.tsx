@@ -11,8 +11,8 @@ vi.stubGlobal('localStorage', {
   setItem: (key: string, value: string) => storage.set(key, value),
   removeItem: (key: string) => storage.delete(key),
 });
-
 const healthFn = vi.fn().mockResolvedValue({ status: 'healthy' });
+const listOptionsFn = vi.fn();
 
 vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
@@ -23,16 +23,7 @@ vi.mock('@nimiplatform/sdk', () => ({
 vi.mock('@nimiplatform/sdk/mod', () => ({
   createModRuntimeClient: () => ({
     route: {
-      listOptions: vi.fn().mockResolvedValue({
-        capability: 'text.generate',
-        selected: null,
-        local: {
-          models: [
-            { localModelId: 'qwen3-4b', model: 'Qwen3-4B-Q4', engine: 'llama', status: 'active', capabilities: ['text.generate'] },
-          ],
-        },
-        connectors: [],
-      }),
+      listOptions: listOptionsFn,
     },
   }),
   createEmptyAIConfig: (scopeRef?: { kind: string; ownerId: string; surfaceId?: string }) => ({
@@ -40,6 +31,22 @@ vi.mock('@nimiplatform/sdk/mod', () => ({
     capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
     profileOrigin: null,
   }),
+}));
+
+vi.mock('@nimiplatform/nimi-kit/features/model-picker/ui', () => ({
+  RouteModelPickerPanel: ({ sourceOptions, connectorOptions }: {
+    sourceOptions?: Array<{ value: string; label: string }>;
+    connectorOptions?: Array<{ value: string; label: string }>;
+  }) => (
+    <div>
+      {(sourceOptions || []).map((option) => (
+        <button key={option.value} type="button">{option.label}</button>
+      ))}
+      {(connectorOptions || []).map((option) => (
+        <div key={option.value}>{option.label}</div>
+      ))}
+    </div>
+  ),
 }));
 
 function renderSection() {
@@ -58,6 +65,18 @@ describe('AiConfigSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     storage.clear();
+    listOptionsFn.mockImplementation(async ({ capability }: { capability: string }) => ({
+      capability,
+      selected: null,
+      local: {
+        models: capability === 'text.generate'
+          ? [
+            { localModelId: 'qwen3-4b', model: 'Qwen3-4B-Q4', engine: 'llama', status: 'active', capabilities: ['text.generate'] },
+          ]
+          : [],
+      },
+      connectors: [],
+    }));
     useAiConfigStore.setState({
       aiConfig: {
         scopeRef: { kind: 'app', ownerId: 'forge', surfaceId: 'settings' },
@@ -109,6 +128,41 @@ describe('AiConfigSection', () => {
       const cloudButtons = screen.getAllByText('Cloud');
       expect(localButtons.length).toBeGreaterThanOrEqual(4);
       expect(cloudButtons.length).toBeGreaterThanOrEqual(4);
+    });
+  });
+
+  it('surfaces oauth-backed cloud connectors in the picker without collapsing provider identity', async () => {
+    listOptionsFn.mockImplementation(async ({ capability }: { capability: string }) => ({
+      capability,
+      selected: null,
+      local: { models: [] },
+      connectors: capability === 'text.generate'
+        ? [
+          {
+            id: 'conn-codex',
+            label: 'Codex Subscription',
+            provider: 'openai_codex',
+            models: ['gpt-5.4'],
+            modelCapabilities: { 'gpt-5.4': ['text.generate'] },
+          },
+          {
+            id: 'conn-qwen',
+            label: 'Qwen OAuth',
+            provider: 'openai_compatible',
+            models: ['qwen-max'],
+            modelCapabilities: { 'qwen-max': ['text.generate'] },
+          },
+        ]
+        : [],
+    }));
+
+    renderSection();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Codex Subscription/)).toBeTruthy();
+      expect(screen.getByText(/openai_codex/)).toBeTruthy();
+      expect(screen.getByText(/Qwen OAuth/)).toBeTruthy();
+      expect(screen.getByText(/openai_compatible/)).toBeTruthy();
     });
   });
 });

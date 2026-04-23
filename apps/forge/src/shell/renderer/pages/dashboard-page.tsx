@@ -1,6 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ForgePage, ForgePageHeader, ForgeStatCard } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeStatCard,
+} from '@renderer/components/page-layout.js';
 import { ForgeActionCard } from '@renderer/components/card-list.js';
 import { useWorldResourceQueries } from '@renderer/hooks/use-world-queries.js';
 import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
@@ -42,29 +48,41 @@ export function DashboardPage() {
         subtitle={t('dashboard.welcome')}
       />
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {stats.map((stat) => (
-          <ForgeStatCard
-            key={stat.label}
-            label={stat.label}
-            value={stat.value}
-          />
-        ))}
-      </div>
+      <ForgeSection className="space-y-4">
+        <ForgeSectionHeading
+          eyebrow={t('dashboard.title')}
+          title={t('dashboard.quickStats', 'Studio Snapshot')}
+          description={t('dashboard.quickStatsDesc', 'Current counts across worlds, agents, and available spark.')}
+        />
+        <div className="grid gap-4 md:grid-cols-3">
+          {stats.map((stat) => (
+            <ForgeStatCard
+              key={stat.label}
+              label={stat.label}
+              value={stat.value}
+            />
+          ))}
+        </div>
+      </ForgeSection>
 
-      {/* Navigation cards */}
-      <div className="grid grid-cols-2 gap-4">
-        {NAV_CARDS.map((card) => (
-          <ForgeActionCard
-            key={card.path}
-            icon={<span className="text-2xl">{card.icon}</span>}
-            title={t(card.label)}
-            description={t(card.description, card.description)}
-            onClick={() => navigate(card.path)}
-          />
-        ))}
-      </div>
+      <ForgeSection className="space-y-4" material="glass-regular">
+        <ForgeSectionHeading
+          eyebrow={t('dashboard.title')}
+          title={t('dashboard.jumpIn', 'Jump Back In')}
+          description={t('dashboard.jumpInDesc', 'Open the main creator surfaces without leaving the unified studio shell.')}
+        />
+        <div className="grid gap-4 md:grid-cols-2">
+          {NAV_CARDS.map((card) => (
+            <ForgeActionCard
+              key={card.path}
+              icon={<span className="text-2xl">{card.icon}</span>}
+              title={t(card.label)}
+              description={t(card.description, card.description)}
+              onClick={() => navigate(card.path)}
+            />
+          ))}
+        </div>
+      </ForgeSection>
     </ForgePage>
   );
 }

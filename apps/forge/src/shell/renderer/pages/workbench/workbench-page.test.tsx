@@ -375,18 +375,24 @@ describe('WorkbenchPage', () => {
     }));
     expect(publishPackageMutateAsync).toHaveBeenCalledWith(expect.objectContaining({
       package: expect.objectContaining({
-        world: expect.objectContaining({
-          bannerUrl: 'https://cdn.example.com/world-banner.png',
-          iconUrl: 'https://cdn.example.com/world-icon.png',
-        }),
-        agentBlueprints: expect.arrayContaining([
-          expect.objectContaining({
-            name: 'Ari',
-            scenario: 'Ari watches over the moon archive.',
-            greeting: 'State your business.',
-            referenceImageUrl: 'https://cdn.example.com/ari-avatar.png',
+        truth: expect.objectContaining({
+          world: expect.objectContaining({
+            record: expect.objectContaining({
+              bannerUrl: 'https://cdn.example.com/world-banner.png',
+              iconUrl: 'https://cdn.example.com/world-icon.png',
+            }),
           }),
-        ]),
+          agents: expect.objectContaining({
+            blueprints: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'Ari',
+                scenario: 'Ari watches over the moon archive.',
+                greeting: 'State your business.',
+                referenceImageUrl: 'https://cdn.example.com/ari-avatar.png',
+              }),
+            ]),
+          }),
+        }),
       }),
       governance: expect.objectContaining({
         officialOwnerId: 'user-1',

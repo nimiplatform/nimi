@@ -11,6 +11,8 @@ import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
   ForgePage,
   ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
   ForgeStatCard,
   ForgeLoadingSpinner,
   ForgeEmptyState,
@@ -188,20 +190,24 @@ export default function RevenueDashboardPage() {
       />
 
       {/* Time range selector */}
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-[var(--nimi-text-muted)]">{t('revenue.timeRange', 'Time Range')}:</span>
+      <ForgeSection className="space-y-4">
+        <ForgeSectionHeading
+          eyebrow={t('pages.revenueDashboard')}
+          title={t('revenue.timeRange', 'Time Range')}
+          description={t('revenue.timeRangeDesc', 'Filter the earnings history window without leaving the current dashboard context.')}
+        />
         <ForgeSegmentControl
           options={TIME_RANGE_OPTIONS}
           value={timeRange}
           onChange={setTimeRange}
         />
-      </div>
+      </ForgeSection>
 
-      {/* Earnings chart placeholder */}
-      <Surface tone="card" padding="md">
-        <h3 className="mb-3 text-sm font-semibold text-[var(--nimi-text-primary)]">
-          {t('revenue.earningsChart', 'Earnings Over Time')}
-        </h3>
+      <ForgeSection className="space-y-4">
+        <ForgeSectionHeading
+          eyebrow={t('pages.revenueDashboard')}
+          title={t('revenue.earningsChart', 'Earnings Over Time')}
+        />
         <div className="flex h-48 items-center justify-center">
           {filteredSpark.length === 0 ? (
             <p className="text-sm text-[var(--nimi-text-muted)]">
@@ -211,33 +217,35 @@ export default function RevenueDashboardPage() {
             <MiniChart data={filteredSpark} />
           )}
         </div>
-      </Surface>
+      </ForgeSection>
 
       {/* Revenue share config */}
       {revenueConfig.data && (
-        <Surface tone="card" padding="md">
-          <h3 className="mb-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {t('revenue.revenueShare', 'Revenue Share Configuration')}
-          </h3>
+        <ForgeSection className="space-y-3">
+          <ForgeSectionHeading
+            eyebrow={t('pages.revenueDashboard')}
+            title={t('revenue.revenueShare', 'Revenue Share Configuration')}
+          />
           <div className="flex gap-6 text-xs text-[var(--nimi-text-muted)]">
             <span>Creator: <strong className="text-[var(--nimi-text-primary)]">{String(revenueConfig.data.creatorPercent ?? '—')}%</strong></span>
             <span>Platform: <strong className="text-[var(--nimi-text-primary)]">{String(revenueConfig.data.platformPercent ?? '—')}%</strong></span>
           </div>
-        </Surface>
+        </ForgeSection>
       )}
 
       {/* Transaction table */}
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-[var(--nimi-text-primary)]">
-          {t('revenue.recentTransactions', 'Recent Transactions')}
-        </h3>
+      <ForgeSection className="space-y-4">
+        <ForgeSectionHeading
+          eyebrow={t('pages.revenueDashboard')}
+          title={t('revenue.recentTransactions', 'Recent Transactions')}
+        />
         {filteredSpark.length === 0 ? (
           <ForgeEmptyState message={t('revenue.noTransactions', 'No transactions found.')} />
         ) : (
-          <Surface tone="card" padding="none" className="overflow-hidden">
+          <Surface tone="card" material="glass-regular" padding="none" className="overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]">
+                <tr className="border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_55%,transparent)]">
                   <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Date</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Type</th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-[var(--nimi-text-muted)]">Amount</th>
@@ -246,7 +254,7 @@ export default function RevenueDashboardPage() {
               </thead>
               <tbody>
                 {filteredSpark.slice(0, 20).map((entry) => (
-                  <tr key={entry.id} className="border-b border-[var(--nimi-border-subtle)]/50 hover:bg-[var(--nimi-surface-panel)]/30">
+                  <tr key={entry.id} className="border-b border-[var(--nimi-border-subtle)]/50 hover:bg-[color-mix(in_srgb,var(--nimi-surface-panel)_40%,transparent)]">
                     <td className="px-4 py-2 text-[var(--nimi-text-muted)]">{formatDate(entry.createdAt)}</td>
                     <td className="px-4 py-2">
                       <ForgeStatusBadge domain="generic" status={entry.type} tone="neutral" />
@@ -261,7 +269,7 @@ export default function RevenueDashboardPage() {
             </table>
           </Surface>
         )}
-      </div>
+      </ForgeSection>
     </ForgePage>
   );
 }

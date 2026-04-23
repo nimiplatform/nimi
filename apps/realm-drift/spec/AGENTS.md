@@ -21,7 +21,7 @@ spec/
 ```
 
 Implementation plans and human-authored topic reports live outside the spec tree:
-- `.nimi/local/report/{proposal|ongoing|pending|closed}/<topic-id>/**` — local phased design, packet, and closeout material (non-normative)
+- `.nimi/topics/{proposal|ongoing|pending|closed}/<topic-id>/**` — local phased design, packet, and closeout material (non-normative)
 
 ## Rule ID Format
 

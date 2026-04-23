@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { type ReactNode } from 'react';
+import type { CanonicalPublishableWorldPackage } from '../../../../../../../packages/nimi-forge/src/contracts/index.js';
 
 const mockWorldDataClient = vi.hoisted(() => ({
   FORGE_WORLD_WORKSPACE_TARGET_PATH: 'forge.workspace.world',
@@ -71,6 +72,105 @@ function buildDraftPayload() {
     historyDraft: {
       events: { primary: [], secondary: [] },
     },
+  };
+}
+
+function buildCanonicalPackageFixture(): CanonicalPublishableWorldPackage {
+  return {
+    slug: 'realm',
+    meta: {
+      sourceTitle: 'Realm',
+      sourceMode: 'forge-official' as const,
+      generatedBy: 'world-agent-package-factory' as const,
+      version: 'forge-ws-1',
+    },
+    slicePolicy: {
+      timeSlice: 'start-1',
+      forbiddenTerms: [],
+    },
+    truth: {
+      world: {
+        record: {
+          id: 'world-1',
+          creatorId: 'user-1',
+          name: 'Realm',
+          tagline: 'Tag',
+          motto: null,
+          overview: null,
+          description: 'Desc',
+          genre: 'fantasy',
+          themes: ['fantasy'],
+          era: null,
+          contentRating: 'UNRATED' as const,
+          type: 'CREATOR',
+          status: 'ACTIVE',
+          nativeCreationState: 'OPEN',
+          nativeAgentLimit: 0,
+          transitInLimit: 16,
+          lorebookEntryLimit: 0,
+          level: 1,
+          scoreQ: 0,
+          scoreC: 0,
+          scoreA: 0,
+          scoreE: 0,
+          scoreEwma: 0,
+        },
+        worldviewMetadata: {
+          id: 'wv-1',
+          worldId: 'world-1',
+          version: 1,
+          lifecycle: 'ACTIVE' as const,
+        },
+        rules: [{
+          ruleKey: 'axiom:time:flow',
+          title: 'Time flows',
+          statement: 'Time moves forward.',
+          category: 'DEFINITION' as const,
+          domain: 'AXIOM' as const,
+          hardness: 'HARD' as const,
+          scope: 'WORLD' as const,
+        }],
+        scenes: [],
+      },
+      agents: {
+        blueprints: [],
+        relationships: [],
+      },
+    },
+  derivation: {
+    inheritanceCandidates: [],
+    entryLine: ['official-package-publish'],
+  },
+    projection: {
+      inputs: [{
+      id: 'projection-world-1',
+      sourceType: 'WORLD_RULE' as const,
+      sourceRef: 'axiom:time:flow',
+      governingTruthRef: 'world-rule:axiom:time:flow',
+      surfaceEligibility: ['runtime', 'creator_inspection', 'public_read', 'compat'],
+    }],
+  },
+    evidence: {
+      sourceChunkIds: ['chunk-1'],
+      truthBindings: [],
+    },
+    governance: {
+      packageId: 'pkg-world-1',
+      packageVersion: 'forge-ws-1',
+      sourceTitle: 'Realm',
+      sourceMode: 'forge-official' as const,
+      generatedBy: 'world-agent-package-factory' as const,
+      buildScope: 'forge-authoring' as const,
+    },
+    compat: {
+      worldview: {},
+      agentProfiles: [],
+      worldLorebooks: [],
+      agentLorebooks: [],
+    },
+    resources: [],
+    bindings: [],
+    worldDrafts: [],
   };
 }
 
@@ -192,67 +292,7 @@ describe('useWorldCommitActions', () => {
 
     await expect(
       result.current.publishPackageMutation.mutateAsync({
-        package: {
-          slug: 'realm',
-          meta: {
-            sourceTitle: 'Realm',
-            sourceMode: 'forge-official',
-            generatedBy: 'world-agent-package-factory',
-            version: 'forge-ws-1',
-          },
-          slicePolicy: {
-            timeSlice: 'start-1',
-            forbiddenTerms: [],
-          },
-          world: {
-            id: 'world-1',
-            creatorId: 'user-1',
-            name: 'Realm',
-            tagline: 'Tag',
-            motto: null,
-            overview: null,
-            description: 'Desc',
-            genre: 'fantasy',
-            themes: ['fantasy'],
-            era: null,
-            contentRating: 'UNRATED',
-            type: 'CREATOR',
-            status: 'ACTIVE',
-            nativeCreationState: 'OPEN',
-            nativeAgentLimit: 0,
-            transitInLimit: 16,
-            lorebookEntryLimit: 0,
-            level: 1,
-            scoreQ: 0,
-            scoreC: 0,
-            scoreA: 0,
-            scoreE: 0,
-            scoreEwma: 0,
-          },
-          worldviewMetadata: {
-            id: 'wv-1',
-            worldId: 'world-1',
-            version: 1,
-            lifecycle: 'ACTIVE',
-          },
-          worldRules: [{
-            ruleKey: 'axiom:time:flow',
-            title: 'Time flows',
-            statement: 'Time moves forward.',
-            category: 'DEFINITION',
-            domain: 'AXIOM',
-            hardness: 'HARD',
-            scope: 'WORLD',
-          }],
-          agentBlueprints: [],
-          agentRelationships: [],
-          scenes: [],
-          worldLorebooks: [],
-          agentLorebooks: [],
-          resources: [],
-          bindings: [],
-          worldDrafts: [],
-        },
+        package: buildCanonicalPackageFixture(),
         governance: {
           officialOwnerId: 'user-1',
           editorialOperatorId: 'user-1',

@@ -52,9 +52,9 @@ export function ImageUploadField({
         {label}
       </label>
 
-      <Surface tone="card" padding="none">
+      <Surface tone="card" material="glass-thin" padding="none">
         <div
-          className={`relative overflow-hidden rounded-lg ${ASPECT_CLASS[aspect]} w-full max-w-[200px] bg-[var(--nimi-surface-base)]`}
+          className={`relative w-full max-w-[200px] overflow-hidden rounded-lg ${ASPECT_CLASS[aspect]}`}
         >
           {currentUrl ? (
             <img
@@ -63,7 +63,7 @@ export function ImageUploadField({
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs text-[var(--nimi-text-muted)]">
+            <div className="flex h-full w-full items-center justify-center bg-[color-mix(in_srgb,var(--nimi-surface-panel)_55%,transparent)] text-xs text-[var(--nimi-text-muted)]">
               No image
             </div>
           )}

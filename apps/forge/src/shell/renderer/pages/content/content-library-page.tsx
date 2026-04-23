@@ -10,7 +10,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useResourceQuery, useResourcesQuery } from '@renderer/hooks/use-content-queries.js';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import { Button, Surface, SearchField } from '@nimiplatform/nimi-kit/ui';
-import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeEmptyState,
+  ForgeLoadingSpinner,
+} from '@renderer/components/page-layout.js';
 import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import { formatDate } from '@renderer/components/format-utils.js';
@@ -124,27 +131,33 @@ export default function ContentLibraryPage() {
         }
       />
 
-      {/* Filters */}
-      <div className="flex items-center gap-3">
-        <SearchField
-          placeholder={t('contentLibrary.searchPlaceholder', 'Search resources...')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1"
+      <ForgeSection className="space-y-4" material="glass-regular">
+        <ForgeSectionHeading
+          eyebrow={t('pages.contentLibrary')}
+          title={t('contentLibrary.filters', 'Browse and Filter')}
+          description={t('contentLibrary.filtersDesc', 'Search by title, tags, controller, and resource type without leaving the unified library view.')}
         />
-        <ForgeSegmentControl
-          options={TYPE_FILTER_OPTIONS}
-          value={typeFilter}
-          onChange={setTypeFilter}
-          size="md"
-        />
-        <ForgeSegmentControl
-          options={VIEW_MODE_OPTIONS}
-          value={viewMode}
-          onChange={setViewMode}
-          size="md"
-        />
-      </div>
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          <SearchField
+            placeholder={t('contentLibrary.searchPlaceholder', 'Search resources...')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1"
+          />
+          <ForgeSegmentControl
+            options={TYPE_FILTER_OPTIONS}
+            value={typeFilter}
+            onChange={setTypeFilter}
+            size="md"
+          />
+          <ForgeSegmentControl
+            options={VIEW_MODE_OPTIONS}
+            value={viewMode}
+            onChange={setViewMode}
+            size="md"
+          />
+        </div>
+      </ForgeSection>
 
       {/* Content */}
       {resourcesQuery.isLoading ? (
@@ -159,11 +172,12 @@ export default function ContentLibraryPage() {
         />
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
             {filtered.map((resource) => (
               <Surface
                 key={resource.id}
                 tone="card"
+                material="glass-thin"
                 padding="none"
                 interactive
                 active={selectedIds.has(resource.id)}
@@ -199,7 +213,7 @@ export default function ContentLibraryPage() {
               </Surface>
             ))}
           </div>
-          <Surface tone="card" padding="md" className="h-fit">
+          <Surface tone="card" material="glass-regular" padding="md" className="h-fit">
             {selectedResourceId ? (
               selectedResourceQuery.isLoading ? (
                 <div className="text-sm text-[var(--nimi-text-muted)]">{t('contentLibrary.loadingDetails', 'Loading resource details...')}</div>
@@ -254,6 +268,7 @@ export default function ContentLibraryPage() {
             <Surface
               key={resource.id}
               tone="card"
+              material="glass-thin"
               padding="sm"
               interactive
               active={selectedIds.has(resource.id)}

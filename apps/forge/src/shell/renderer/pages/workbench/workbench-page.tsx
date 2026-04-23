@@ -9,7 +9,7 @@ import { WorldMaintainPageView } from '@renderer/pages/worlds/world-maintain-pag
 import { WorkbenchEnrichmentPanel } from '@renderer/pages/workbench/workbench-enrichment-panel.js';
 import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';
 import { buildWorkbenchWorldPackage } from '@renderer/data/workbench-world-package-builder.js';
-import { ForgeEmptyState } from '@renderer/components/page-layout.js';
+import { ForgeFullscreenState } from '@renderer/components/page-layout.js';
 import { WorkbenchPageAgentsPanel } from './workbench-page-agents-panel.js';
 import { WorkbenchPageImportPanel } from './workbench-page-import-panel.js';
 import { WorkbenchPageOverviewPanel } from './workbench-page-overview-panel.js';
@@ -56,13 +56,12 @@ export default function WorkbenchPage() {
 
   if (!snapshot) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <ForgeEmptyState
-          message="Workspace not found."
-          action="Back to Workbench"
-          onAction={() => navigate('/workbench')}
-        />
-      </div>
+      <ForgeFullscreenState
+        title="Workspace not found"
+        message="The local Forge workspace snapshot is missing or was removed."
+        action="Back to Workbench"
+        onAction={() => navigate('/workbench')}
+      />
     );
   }
 
@@ -129,8 +128,9 @@ export default function WorkbenchPage() {
         userId,
         snapshot,
       });
+      const packageWorld = pkg.truth.world.record;
       const batchRun = await commitActions.createBatchRunMutation.mutateAsync({
-        name: `${pkg.world.name} publish`,
+        name: `${packageWorld.name} publish`,
         requestKey: `${workspaceId}:${pkg.meta.version}`,
         pipelineStages: ['workbench-completeness-gate', 'package-publish'],
         retryLimit: 1,
@@ -138,7 +138,7 @@ export default function WorkbenchPage() {
         items: [{
           slug: pkg.slug,
           sourceTitle: pkg.meta.sourceTitle,
-          canonicalTitle: pkg.world.name,
+          canonicalTitle: packageWorld.name,
           sourceMode: pkg.meta.sourceMode,
           worldId: snapshot.worldDraft.worldId ?? undefined,
           qualityGate: {
@@ -214,7 +214,7 @@ export default function WorkbenchPage() {
         onOpenPanel={openPanel}
       />
 
-      <main className="min-w-0 flex-1 overflow-auto bg-[var(--nimi-surface-canvas)]">
+      <main className="min-w-0 flex-1 overflow-auto">
         {panel === 'OVERVIEW' ? (
           <WorkbenchPageOverviewPanel
             snapshot={snapshot}

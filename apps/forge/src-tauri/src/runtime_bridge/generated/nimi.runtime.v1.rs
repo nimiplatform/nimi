@@ -182,6 +182,13 @@ pub enum ReasonCode {
     AppMessagePayloadTooLarge = 550,
     AppMessageRateLimited = 551,
     AppMessageLoopDetected = 552,
+    /// LOCAL_SPEECH family (560+)
+    AiLocalSpeechPreflightBlocked = 560,
+    AiLocalSpeechDownloadConfirmationRequired = 561,
+    AiLocalSpeechEnvInitFailed = 562,
+    AiLocalSpeechHostInitFailed = 563,
+    AiLocalSpeechCapabilityDownloadFailed = 564,
+    AiLocalSpeechBundleDegraded = 565,
     /// GRANT family (510+)
     GrantTokenChainRootNotFound = 510,
     GrantTokenChainRootRequired = 511,
@@ -327,6 +334,16 @@ impl ReasonCode {
             Self::AppMessagePayloadTooLarge => "APP_MESSAGE_PAYLOAD_TOO_LARGE",
             Self::AppMessageRateLimited => "APP_MESSAGE_RATE_LIMITED",
             Self::AppMessageLoopDetected => "APP_MESSAGE_LOOP_DETECTED",
+            Self::AiLocalSpeechPreflightBlocked => "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED",
+            Self::AiLocalSpeechDownloadConfirmationRequired => {
+                "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED"
+            }
+            Self::AiLocalSpeechEnvInitFailed => "AI_LOCAL_SPEECH_ENV_INIT_FAILED",
+            Self::AiLocalSpeechHostInitFailed => "AI_LOCAL_SPEECH_HOST_INIT_FAILED",
+            Self::AiLocalSpeechCapabilityDownloadFailed => {
+                "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED"
+            }
+            Self::AiLocalSpeechBundleDegraded => "AI_LOCAL_SPEECH_BUNDLE_DEGRADED",
             Self::GrantTokenChainRootNotFound => "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
             Self::GrantTokenChainRootRequired => "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
             Self::PageTokenInvalid => "PAGE_TOKEN_INVALID",
@@ -490,6 +507,18 @@ impl ReasonCode {
             "APP_MESSAGE_PAYLOAD_TOO_LARGE" => Some(Self::AppMessagePayloadTooLarge),
             "APP_MESSAGE_RATE_LIMITED" => Some(Self::AppMessageRateLimited),
             "APP_MESSAGE_LOOP_DETECTED" => Some(Self::AppMessageLoopDetected),
+            "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED" => {
+                Some(Self::AiLocalSpeechPreflightBlocked)
+            }
+            "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED" => {
+                Some(Self::AiLocalSpeechDownloadConfirmationRequired)
+            }
+            "AI_LOCAL_SPEECH_ENV_INIT_FAILED" => Some(Self::AiLocalSpeechEnvInitFailed),
+            "AI_LOCAL_SPEECH_HOST_INIT_FAILED" => Some(Self::AiLocalSpeechHostInitFailed),
+            "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED" => {
+                Some(Self::AiLocalSpeechCapabilityDownloadFailed)
+            }
+            "AI_LOCAL_SPEECH_BUNDLE_DEGRADED" => Some(Self::AiLocalSpeechBundleDegraded),
             "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GrantTokenChainRootNotFound),
             "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GrantTokenChainRootRequired),
             "PAGE_TOKEN_INVALID" => Some(Self::PageTokenInvalid),
@@ -1571,6 +1600,121 @@ pub mod runtime_grant_service_client {
         }
     }
 }
+/// K-SCHED-003: Occupancy snapshot at peek time.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingOccupancySnapshot {
+    #[prost(int32, tag = "1")]
+    pub global_used: i32,
+    #[prost(int32, tag = "2")]
+    pub global_cap: i32,
+    #[prost(int32, tag = "3")]
+    pub app_used: i32,
+    #[prost(int32, tag = "4")]
+    pub app_cap: i32,
+}
+/// K-SCHED-002: Scheduling preflight judgement result.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingJudgement {
+    #[prost(enumeration = "SchedulingState", tag = "1")]
+    pub state: i32,
+    #[prost(string, tag = "2")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub occupancy: ::core::option::Option<SchedulingOccupancySnapshot>,
+    #[prost(string, repeated, tag = "4")]
+    pub resource_warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// K-SCHED-007: Target-scoped scheduling evaluation input.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingResourceHint {
+    #[prost(int64, tag = "1")]
+    pub estimated_vram_bytes: i64,
+    #[prost(int64, tag = "2")]
+    pub estimated_ram_bytes: i64,
+    #[prost(int64, tag = "3")]
+    pub estimated_disk_bytes: i64,
+    #[prost(string, tag = "4")]
+    pub engine: ::prost::alloc::string::String,
+}
+/// K-SCHED-002: Atomic scheduling evaluation target.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingEvaluationTarget {
+    #[prost(string, tag = "1")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub profile_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub resource_hint: ::core::option::Option<SchedulingResourceHint>,
+}
+/// K-SCHED-002: Per-target scheduling judgement mapping.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingTargetJudgement {
+    #[prost(message, optional, tag = "1")]
+    pub target: ::core::option::Option<SchedulingEvaluationTarget>,
+    #[prost(message, optional, tag = "2")]
+    pub judgement: ::core::option::Option<SchedulingJudgement>,
+}
+/// K-SCHED-002: PeekScheduling preflight request.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PeekSchedulingRequest {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub targets: ::prost::alloc::vec::Vec<SchedulingEvaluationTarget>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PeekSchedulingResponse {
+    #[prost(message, optional, tag = "1")]
+    pub occupancy: ::core::option::Option<SchedulingOccupancySnapshot>,
+    #[prost(message, optional, tag = "2")]
+    pub aggregate_judgement: ::core::option::Option<SchedulingJudgement>,
+    #[prost(message, repeated, tag = "3")]
+    pub target_judgements: ::prost::alloc::vec::Vec<SchedulingTargetJudgement>,
+}
+/// K-SCHED-001: Six-value scheduling judgement state enum.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SchedulingState {
+    Unspecified = 0,
+    Runnable = 1,
+    QueueRequired = 2,
+    PreemptionRisk = 3,
+    SlowdownRisk = 4,
+    Denied = 5,
+    Unknown = 6,
+}
+impl SchedulingState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SCHEDULING_STATE_UNSPECIFIED",
+            Self::Runnable => "SCHEDULING_STATE_RUNNABLE",
+            Self::QueueRequired => "SCHEDULING_STATE_QUEUE_REQUIRED",
+            Self::PreemptionRisk => "SCHEDULING_STATE_PREEMPTION_RISK",
+            Self::SlowdownRisk => "SCHEDULING_STATE_SLOWDOWN_RISK",
+            Self::Denied => "SCHEDULING_STATE_DENIED",
+            Self::Unknown => "SCHEDULING_STATE_UNKNOWN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SCHEDULING_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SCHEDULING_STATE_RUNNABLE" => Some(Self::Runnable),
+            "SCHEDULING_STATE_QUEUE_REQUIRED" => Some(Self::QueueRequired),
+            "SCHEDULING_STATE_PREEMPTION_RISK" => Some(Self::PreemptionRisk),
+            "SCHEDULING_STATE_SLOWDOWN_RISK" => Some(Self::SlowdownRisk),
+            "SCHEDULING_STATE_DENIED" => Some(Self::Denied),
+            "SCHEDULING_STATE_UNKNOWN" => Some(Self::Unknown),
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VoiceReference {
     #[prost(enumeration = "VoiceReferenceKind", tag = "1")]
@@ -2098,9 +2242,71 @@ pub struct MusicGenerateScenarioSpec {
     #[prost(bool, tag = "7")]
     pub instrumental: bool,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldGenerateAssetSource {
+    #[prost(oneof = "world_generate_asset_source::Source", tags = "1, 2")]
+    pub source: ::core::option::Option<world_generate_asset_source::Source>,
+}
+/// Nested message and enum types in `WorldGenerateAssetSource`.
+pub mod world_generate_asset_source {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Source {
+        #[prost(string, tag = "1")]
+        Uri(::prost::alloc::string::String),
+        #[prost(string, tag = "2")]
+        MediaAssetId(::prost::alloc::string::String),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldGenerateImagePrompt {
+    #[prost(message, optional, tag = "1")]
+    pub content: ::core::option::Option<WorldGenerateAssetSource>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldGenerateMultiImageReference {
+    #[prost(int32, tag = "1")]
+    pub azimuth: i32,
+    #[prost(message, optional, tag = "2")]
+    pub content: ::core::option::Option<WorldGenerateAssetSource>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WorldGenerateMultiImagePrompt {
+    #[prost(message, repeated, tag = "1")]
+    pub images: ::prost::alloc::vec::Vec<WorldGenerateMultiImageReference>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldGenerateVideoPrompt {
+    #[prost(message, optional, tag = "1")]
+    pub content: ::core::option::Option<WorldGenerateAssetSource>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WorldGenerateScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub text_prompt: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(uint64, tag = "4")]
+    pub seed: u64,
+    #[prost(oneof = "world_generate_scenario_spec::Conditioning", tags = "5, 6, 7")]
+    pub conditioning: ::core::option::Option<world_generate_scenario_spec::Conditioning>,
+}
+/// Nested message and enum types in `WorldGenerateScenarioSpec`.
+pub mod world_generate_scenario_spec {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Conditioning {
+        #[prost(message, tag = "5")]
+        ImagePrompt(super::WorldGenerateImagePrompt),
+        #[prost(message, tag = "6")]
+        MultiImagePrompt(super::WorldGenerateMultiImagePrompt),
+        #[prost(message, tag = "7")]
+        VideoPrompt(super::WorldGenerateVideoPrompt),
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioSpec {
-    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9")]
+    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10")]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
 /// Nested message and enum types in `ScenarioSpec`.
@@ -2125,6 +2331,8 @@ pub mod scenario_spec {
         VoiceDesign(super::VoiceDesignScenarioSpec),
         #[prost(message, tag = "9")]
         MusicGenerate(super::MusicGenerateScenarioSpec),
+        #[prost(message, tag = "10")]
+        WorldGenerate(super::WorldGenerateScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -2182,9 +2390,44 @@ pub struct MusicGenerateResult {
     #[prost(message, repeated, tag = "1")]
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
 }
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct WorldGenerateSemanticsMetadata {
+    #[prost(double, tag = "1")]
+    pub ground_plane_offset: f64,
+    #[prost(double, tag = "2")]
+    pub metric_scale_factor: f64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WorldGenerateResult {
+    #[prost(string, tag = "1")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub world_marble_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub caption: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub thumbnail_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub pano_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub collider_mesh_url: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "8")]
+    pub spz_urls: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(message, optional, tag = "9")]
+    pub semantics_metadata: ::core::option::Option<WorldGenerateSemanticsMetadata>,
+    #[prost(string, tag = "10")]
+    pub model: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "11")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioOutput {
-    #[prost(oneof = "scenario_output::Output", tags = "1, 2, 3, 4, 5, 6, 7")]
+    #[prost(oneof = "scenario_output::Output", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
     pub output: ::core::option::Option<scenario_output::Output>,
 }
 /// Nested message and enum types in `ScenarioOutput`.
@@ -2205,6 +2448,8 @@ pub mod scenario_output {
         SpeechTranscribe(super::SpeechTranscribeResult),
         #[prost(message, tag = "7")]
         MusicGenerate(super::MusicGenerateResult),
+        #[prost(message, tag = "8")]
+        WorldGenerate(super::WorldGenerateResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -2837,79 +3082,6 @@ pub struct CloseRealtimeSessionResponse {
     #[prost(message, optional, tag = "1")]
     pub ack: ::core::option::Option<Ack>,
 }
-/// K-SCHED-003: Occupancy snapshot at peek time.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SchedulingOccupancySnapshot {
-    #[prost(int32, tag = "1")]
-    pub global_used: i32,
-    #[prost(int32, tag = "2")]
-    pub global_cap: i32,
-    #[prost(int32, tag = "3")]
-    pub app_used: i32,
-    #[prost(int32, tag = "4")]
-    pub app_cap: i32,
-}
-/// K-SCHED-002: Scheduling preflight judgement result.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SchedulingJudgement {
-    #[prost(enumeration = "SchedulingState", tag = "1")]
-    pub state: i32,
-    #[prost(string, tag = "2")]
-    pub detail: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub occupancy: ::core::option::Option<SchedulingOccupancySnapshot>,
-    #[prost(string, repeated, tag = "4")]
-    pub resource_warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-/// K-SCHED-007: Target-scoped scheduling evaluation input.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SchedulingResourceHint {
-    #[prost(int64, tag = "1")]
-    pub estimated_vram_bytes: i64,
-    #[prost(int64, tag = "2")]
-    pub estimated_ram_bytes: i64,
-    #[prost(int64, tag = "3")]
-    pub estimated_disk_bytes: i64,
-    #[prost(string, tag = "4")]
-    pub engine: ::prost::alloc::string::String,
-}
-/// K-SCHED-002: Atomic scheduling evaluation target.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SchedulingEvaluationTarget {
-    #[prost(string, tag = "1")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub profile_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub resource_hint: ::core::option::Option<SchedulingResourceHint>,
-}
-/// K-SCHED-002: Per-target scheduling judgement mapping.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SchedulingTargetJudgement {
-    #[prost(message, optional, tag = "1")]
-    pub target: ::core::option::Option<SchedulingEvaluationTarget>,
-    #[prost(message, optional, tag = "2")]
-    pub judgement: ::core::option::Option<SchedulingJudgement>,
-}
-/// K-SCHED-002: PeekScheduling preflight request.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PeekSchedulingRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "2")]
-    pub targets: ::prost::alloc::vec::Vec<SchedulingEvaluationTarget>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PeekSchedulingResponse {
-    #[prost(message, optional, tag = "1")]
-    pub occupancy: ::core::option::Option<SchedulingOccupancySnapshot>,
-    #[prost(message, optional, tag = "2")]
-    pub aggregate_judgement: ::core::option::Option<SchedulingJudgement>,
-    #[prost(message, repeated, tag = "3")]
-    pub target_judgements: ::prost::alloc::vec::Vec<SchedulingTargetJudgement>,
-}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum Modal {
@@ -2921,6 +3093,7 @@ pub enum Modal {
     Stt = 5,
     Embedding = 6,
     Music = 7,
+    World = 8,
 }
 impl Modal {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2937,6 +3110,7 @@ impl Modal {
             Self::Stt => "MODAL_STT",
             Self::Embedding => "MODAL_EMBEDDING",
             Self::Music => "MODAL_MUSIC",
+            Self::World => "MODAL_WORLD",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2950,6 +3124,7 @@ impl Modal {
             "MODAL_STT" => Some(Self::Stt),
             "MODAL_EMBEDDING" => Some(Self::Embedding),
             "MODAL_MUSIC" => Some(Self::Music),
+            "MODAL_WORLD" => Some(Self::World),
             _ => None,
         }
     }
@@ -2967,6 +3142,7 @@ pub enum ScenarioType {
     VoiceClone = 7,
     VoiceDesign = 8,
     MusicGenerate = 9,
+    WorldGenerate = 10,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2985,6 +3161,7 @@ impl ScenarioType {
             Self::VoiceClone => "SCENARIO_TYPE_VOICE_CLONE",
             Self::VoiceDesign => "SCENARIO_TYPE_VOICE_DESIGN",
             Self::MusicGenerate => "SCENARIO_TYPE_MUSIC_GENERATE",
+            Self::WorldGenerate => "SCENARIO_TYPE_WORLD_GENERATE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -3000,6 +3177,7 @@ impl ScenarioType {
             "SCENARIO_TYPE_VOICE_CLONE" => Some(Self::VoiceClone),
             "SCENARIO_TYPE_VOICE_DESIGN" => Some(Self::VoiceDesign),
             "SCENARIO_TYPE_MUSIC_GENERATE" => Some(Self::MusicGenerate),
+            "SCENARIO_TYPE_WORLD_GENERATE" => Some(Self::WorldGenerate),
             _ => None,
         }
     }
@@ -3604,48 +3782,6 @@ impl ScenarioJobEventType {
             "SCENARIO_JOB_EVENT_FAILED" => Some(Self::ScenarioJobEventFailed),
             "SCENARIO_JOB_EVENT_CANCELED" => Some(Self::ScenarioJobEventCanceled),
             "SCENARIO_JOB_EVENT_TIMEOUT" => Some(Self::ScenarioJobEventTimeout),
-            _ => None,
-        }
-    }
-}
-/// K-SCHED-001: Six-value scheduling judgement state enum.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum SchedulingState {
-    Unspecified = 0,
-    Runnable = 1,
-    QueueRequired = 2,
-    PreemptionRisk = 3,
-    SlowdownRisk = 4,
-    Denied = 5,
-    Unknown = 6,
-}
-impl SchedulingState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "SCHEDULING_STATE_UNSPECIFIED",
-            Self::Runnable => "SCHEDULING_STATE_RUNNABLE",
-            Self::QueueRequired => "SCHEDULING_STATE_QUEUE_REQUIRED",
-            Self::PreemptionRisk => "SCHEDULING_STATE_PREEMPTION_RISK",
-            Self::SlowdownRisk => "SCHEDULING_STATE_SLOWDOWN_RISK",
-            Self::Denied => "SCHEDULING_STATE_DENIED",
-            Self::Unknown => "SCHEDULING_STATE_UNKNOWN",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "SCHEDULING_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "SCHEDULING_STATE_RUNNABLE" => Some(Self::Runnable),
-            "SCHEDULING_STATE_QUEUE_REQUIRED" => Some(Self::QueueRequired),
-            "SCHEDULING_STATE_PREEMPTION_RISK" => Some(Self::PreemptionRisk),
-            "SCHEDULING_STATE_SLOWDOWN_RISK" => Some(Self::SlowdownRisk),
-            "SCHEDULING_STATE_DENIED" => Some(Self::Denied),
-            "SCHEDULING_STATE_UNKNOWN" => Some(Self::Unknown),
             _ => None,
         }
     }
@@ -5297,6 +5433,8 @@ pub struct LocalAssetRecord {
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
     #[prost(string, tag = "31")]
     pub endpoint: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "32")]
+    pub reason_code: i32,
     /// Passive-only fields
     #[prost(message, optional, tag = "40")]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
@@ -5311,6 +5449,8 @@ pub struct LocalAssetHealth {
     pub detail: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
     pub endpoint: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalVerifiedAssetDescriptor {
@@ -5763,6 +5903,8 @@ pub struct LocalServiceDescriptor {
     pub installed_at: ::prost::alloc::string::String,
     #[prost(string, tag = "11")]
     pub updated_at: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "12")]
+    pub reason_code: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalExecutionApplyResult {
@@ -7263,585 +7405,6 @@ impl KnowledgeIngestTaskStatus {
             "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED" => Some(Self::Completed),
             "KNOWLEDGE_INGEST_TASK_STATUS_FAILED" => Some(Self::Failed),
             _ => None,
-        }
-    }
-}
-/// Generated client implementations.
-pub mod runtime_knowledge_service_client {
-    #![allow(
-        unused_variables,
-        dead_code,
-        missing_docs,
-        clippy::wildcard_imports,
-        clippy::let_unit_value,
-    )]
-    use tonic::codegen::*;
-    use tonic::codegen::http::Uri;
-    #[derive(Debug, Clone)]
-    pub struct RuntimeKnowledgeServiceClient<T> {
-        inner: tonic::client::Grpc<T>,
-    }
-    impl RuntimeKnowledgeServiceClient<tonic::transport::Channel> {
-        /// Attempt to create a new client by connecting to a given endpoint.
-        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
-        where
-            D: TryInto<tonic::transport::Endpoint>,
-            D::Error: Into<StdError>,
-        {
-            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
-            Ok(Self::new(conn))
-        }
-    }
-    impl<T> RuntimeKnowledgeServiceClient<T>
-    where
-        T: tonic::client::GrpcService<tonic::body::Body>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
-    {
-        pub fn new(inner: T) -> Self {
-            let inner = tonic::client::Grpc::new(inner);
-            Self { inner }
-        }
-        pub fn with_origin(inner: T, origin: Uri) -> Self {
-            let inner = tonic::client::Grpc::with_origin(inner, origin);
-            Self { inner }
-        }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> RuntimeKnowledgeServiceClient<InterceptedService<T, F>>
-        where
-            F: tonic::service::Interceptor,
-            T::ResponseBody: Default,
-            T: tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
-                >,
-            >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
-            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
-        {
-            RuntimeKnowledgeServiceClient::new(
-                InterceptedService::new(inner, interceptor),
-            )
-        }
-        /// Compress requests with the given encoding.
-        ///
-        /// This requires the server to support it otherwise it might respond with an
-        /// error.
-        #[must_use]
-        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.send_compressed(encoding);
-            self
-        }
-        /// Enable decompressing responses.
-        #[must_use]
-        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.accept_compressed(encoding);
-            self
-        }
-        /// Limits the maximum size of a decoded message.
-        ///
-        /// Default: `4MB`
-        #[must_use]
-        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
-            self.inner = self.inner.max_decoding_message_size(limit);
-            self
-        }
-        /// Limits the maximum size of an encoded message.
-        ///
-        /// Default: `usize::MAX`
-        #[must_use]
-        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
-            self.inner = self.inner.max_encoding_message_size(limit);
-            self
-        }
-        pub async fn create_knowledge_bank(
-            &mut self,
-            request: impl tonic::IntoRequest<super::CreateKnowledgeBankRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::CreateKnowledgeBankResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/CreateKnowledgeBank",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "CreateKnowledgeBank",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_knowledge_bank(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetKnowledgeBankRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetKnowledgeBankResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/GetKnowledgeBank",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "GetKnowledgeBank",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_knowledge_banks(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListKnowledgeBanksRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListKnowledgeBanksResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/ListKnowledgeBanks",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "ListKnowledgeBanks",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn delete_knowledge_bank(
-            &mut self,
-            request: impl tonic::IntoRequest<super::DeleteKnowledgeBankRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::DeleteKnowledgeBankResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/DeleteKnowledgeBank",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "DeleteKnowledgeBank",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn put_page(
-            &mut self,
-            request: impl tonic::IntoRequest<super::PutPageRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::PutPageResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/PutPage",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeKnowledgeService", "PutPage"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_page(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetPageRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetPageResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/GetPage",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeKnowledgeService", "GetPage"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_pages(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListPagesRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListPagesResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/ListPages",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "ListPages",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn delete_page(
-            &mut self,
-            request: impl tonic::IntoRequest<super::DeletePageRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::DeletePageResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/DeletePage",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "DeletePage",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn search_keyword(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SearchKeywordRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::SearchKeywordResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/SearchKeyword",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "SearchKeyword",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn search_hybrid(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SearchHybridRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::SearchHybridResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/SearchHybrid",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "SearchHybrid",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn add_link(
-            &mut self,
-            request: impl tonic::IntoRequest<super::AddLinkRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::AddLinkResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/AddLink",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeKnowledgeService", "AddLink"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn remove_link(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RemoveLinkRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RemoveLinkResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/RemoveLink",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "RemoveLink",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_links(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListLinksRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListLinksResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/ListLinks",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "ListLinks",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_backlinks(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListBacklinksRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListBacklinksResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/ListBacklinks",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "ListBacklinks",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn traverse_graph(
-            &mut self,
-            request: impl tonic::IntoRequest<super::TraverseGraphRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::TraverseGraphResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/TraverseGraph",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "TraverseGraph",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn ingest_document(
-            &mut self,
-            request: impl tonic::IntoRequest<super::IngestDocumentRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::IngestDocumentResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/IngestDocument",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "IngestDocument",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_ingest_task(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetIngestTaskRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetIngestTaskResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/GetIngestTask",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "GetIngestTask",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
         }
     }
 }

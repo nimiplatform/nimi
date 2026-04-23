@@ -3,7 +3,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { Surface, Button, Avatar } from '@nimiplatform/nimi-kit/ui';
+import { Surface, Avatar, cn } from '@nimiplatform/nimi-kit/ui';
 
 /* ------------------------------------------------------------------ */
 /*  ForgeListCard — interactive list row with actions                   */
@@ -29,9 +29,11 @@ export function ForgeListCard({
   return (
     <Surface
       tone="card"
+      material="glass-thin"
       padding="none"
       interactive={!!onClick}
-      className={`flex items-center justify-between px-4 py-3 ${className ?? ''}`}
+      elevation="base"
+      className={cn('flex items-center justify-between px-4 py-3', className)}
       onClick={onClick}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -71,13 +73,17 @@ export function ForgeActionCard({
   return (
     <Surface
       tone="card"
+      material="glass-thin"
       padding="md"
       interactive
-      className={`flex items-start gap-3 ${className ?? ''}`}
+      elevation="raised"
+      className={cn('flex items-start gap-3', className)}
       onClick={onClick}
     >
       {icon && (
-        <span className="mt-0.5 shrink-0 text-[var(--nimi-text-muted)]">{icon}</span>
+        <span className="mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] bg-[color-mix(in_srgb,var(--nimi-accent-text)_10%,white)] text-[var(--nimi-accent-text)]">
+          {icon}
+        </span>
       )}
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{title}</p>

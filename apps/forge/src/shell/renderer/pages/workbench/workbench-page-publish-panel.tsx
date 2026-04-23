@@ -23,7 +23,7 @@ export function WorkbenchPagePublishPanel({
 }: WorkbenchPagePublishPanelProps) {
   return (
     <section className="mx-auto max-w-5xl p-8">
-      <Surface tone="card" padding="md">
+      <Surface tone="card" material="glass-regular" padding="md">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Publish Plan</h2>
@@ -54,7 +54,7 @@ export function WorkbenchPagePublishPanel({
           />
         </div>
 
-        <Surface tone="card" padding="sm" className="mt-6">
+        <Surface tone="card" material="glass-thin" padding="sm" className="mt-6">
           <p className="text-xs uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">Guards</p>
           <div className="mt-3 space-y-2 text-sm text-[var(--nimi-text-secondary)]">
             <p>{snapshot.reviewState.hasPendingConflicts ? 'Blocked: unresolved conflicts remain.' : 'Conflicts resolved.'}</p>
@@ -64,7 +64,7 @@ export function WorkbenchPagePublishPanel({
           </div>
         </Surface>
 
-        <Surface tone="card" padding="sm" className="mt-4">
+        <Surface tone="card" material="glass-thin" padding="sm" className="mt-4">
           <p className="text-xs uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">Completeness Gate</p>
           <div className="mt-3 space-y-2 text-sm text-[var(--nimi-text-secondary)]">
             {completenessIssues.length === 0 ? (

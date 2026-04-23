@@ -19,7 +19,14 @@ import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';
 import type { ImageGenTarget, ImageGenEntityContext } from '@renderer/data/image-gen-client.js';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeEmptyState,
+  ForgeErrorBanner,
+} from '@renderer/components/page-layout.js';
 import { LabeledTextareaField, LabeledSelectField, ToggleRow } from '@renderer/components/form-fields.js';
 import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 
@@ -209,9 +216,13 @@ export default function ImageStudioPage() {
         }
       />
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Left: Controls */}
-        <div className="col-span-1 space-y-5">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <ForgeSection className="space-y-5 xl:col-span-1" material="glass-regular">
+          <ForgeSectionHeading
+            eyebrow={t('pages.imageStudio')}
+            title={t('imageStudio.controls', 'Prompt Controls')}
+            description={t('imageStudio.controlsDesc', 'Compose a prompt, choose ratio and style, then generate into the current staging gallery.')}
+          />
           {/* AI Prompt Toggle */}
           <ToggleRow
             label={t('imageStudio.aiPrompt', 'AI-Assisted Prompt')}
@@ -297,27 +308,22 @@ export default function ImageStudioPage() {
 
           {/* Composed prompt preview (AI mode) */}
           {useAiPrompt && imageGen.composedPrompt ? (
-            <Surface tone="card" padding="sm">
+            <Surface tone="card" material="glass-thin" padding="sm">
               <p className="text-[10px] uppercase tracking-wider text-[var(--nimi-text-muted)] mb-1">Composed Prompt</p>
               <p className="text-xs text-[var(--nimi-text-secondary)] line-clamp-4">{imageGen.composedPrompt}</p>
             </Surface>
           ) : null}
+        </ForgeSection>
 
-        </div>
-
-        {/* Right: Gallery */}
-        <div className="col-span-2">
+        <ForgeSection className="space-y-4 xl:col-span-2">
+          <ForgeSectionHeading
+            eyebrow={t('pages.imageStudio')}
+            title={t('imageStudio.gallery', 'Gallery')}
+            description={t('imageStudio.galleryDesc', 'Generated images stay local in the staging gallery until you save them into the content library or bind them to an entity.')}
+          />
           {(saveError || imageGen.error) && (
             <ForgeErrorBanner message={saveError || imageGen.error || ''} className="mb-3" />
           )}
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)] mb-3">
-            {t('imageStudio.gallery', 'Gallery')}
-            {gallery.length > 0 && (
-              <span className="ml-2 text-xs font-normal text-[var(--nimi-text-muted)]">
-                ({gallery.length})
-              </span>
-            )}
-          </h3>
           {gallery.length === 0 ? (
             <ForgeEmptyState message={t('imageStudio.emptyGallery', 'Generated images will appear here')} />
           ) : (
@@ -326,6 +332,7 @@ export default function ImageStudioPage() {
                 <Surface
                   key={img.id}
                   tone="card"
+                  material="glass-thin"
                   padding="none"
                   className="group relative overflow-hidden"
                 >
@@ -400,7 +407,7 @@ export default function ImageStudioPage() {
               ))}
             </div>
           )}
-        </div>
+        </ForgeSection>
       </div>
     </ForgePage>
   );

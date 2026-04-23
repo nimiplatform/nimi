@@ -8,7 +8,14 @@ import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeEmptyState,
+  ForgeErrorBanner,
+} from '@renderer/components/page-layout.js';
 import { LabeledTextField, LabeledTextareaField, LabeledSelectField } from '@renderer/components/form-fields.js';
 import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
@@ -208,7 +215,7 @@ export default function ReleasesPage() {
 
       {error && <ForgeErrorBanner message={error} />}
       {notice && !error && (
-        <Surface tone="card" padding="sm" className="border-[var(--nimi-status-success)]">
+        <Surface tone="card" material="glass-thin" padding="sm" className="border-[var(--nimi-status-success)]">
           <p className="text-sm text-[var(--nimi-status-success)]">{notice}</p>
         </Surface>
       )}
@@ -258,7 +265,7 @@ export default function ReleasesPage() {
 
         {/* Editor panel */}
         <section className="space-y-6">
-          <Surface tone="card" padding="md">
+          <Surface tone="card" material="glass-regular" padding="md">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
@@ -346,7 +353,7 @@ export default function ReleasesPage() {
                 </div>
 
                 {identity === 'AGENT' && (
-                  <Surface tone="card" padding="sm" className="border-[var(--nimi-status-warning)]">
+                  <Surface tone="card" material="glass-thin" padding="sm" className="border-[var(--nimi-status-warning)]">
                     <p className="text-xs text-[var(--nimi-status-warning)]">
                       {t('releases.agentPublishNotice', 'Agent identity is selectable now, but publishing through the Forge realm client is not wired yet. Save the draft and switch back to Creator to publish today.')}
                     </p>
@@ -412,10 +419,11 @@ export default function ReleasesPage() {
             )}
           </Surface>
 
-          <Surface tone="card" padding="md">
-            <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-              {t('releases.historyTitle', 'Recent Published Posts')}
-            </h2>
+          <ForgeSection className="space-y-4">
+            <ForgeSectionHeading
+              eyebrow={t('pages.releases')}
+              title={t('releases.historyTitle', 'Recent Published Posts')}
+            />
             <div className="mt-4 space-y-3">
               {(postsQuery.data || []).slice(0, 6).map((post) => (
                 <ForgeListCard
@@ -435,7 +443,7 @@ export default function ReleasesPage() {
                 </p>
               )}
             </div>
-          </Surface>
+          </ForgeSection>
         </section>
       </div>
     </ForgePage>

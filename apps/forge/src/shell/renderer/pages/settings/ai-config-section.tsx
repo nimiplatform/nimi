@@ -82,7 +82,12 @@ export function AiConfigSection() {
       </div>
 
       {/* Runtime status */}
-      <Surface tone="card" elevation="base" className="flex items-center gap-2 px-4 py-2.5">
+      <Surface
+        tone="card"
+        material="glass-thin"
+        elevation="base"
+        className="flex items-center gap-2 px-4 py-2.5"
+      >
         <span
           className={`inline-block h-2 w-2 rounded-full ${
             runtimeStatus === 'connected'

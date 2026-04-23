@@ -4,6 +4,7 @@ import { useAppStore } from './app-store.js';
 import { runForgeBootstrap } from '@renderer/infra/bootstrap/forge-bootstrap.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { ForgeLoginPage } from '@renderer/features/auth/forge-login-page.js';
+import { ForgeFullscreenState } from '@renderer/components/page-layout.js';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
@@ -28,22 +29,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   if (bootstrapError) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
-        <div className="text-center space-y-4">
-          <p className="text-[var(--nimi-status-danger)] text-lg">{t('bootstrap.error', { message: bootstrapError })}</p>
-        </div>
-      </div>
+      <ForgeFullscreenState
+        title="Forge bootstrap failed"
+        message={t('bootstrap.error', { message: bootstrapError })}
+      />
     );
   }
 
   if (!bootstrapReady || authStatus === 'bootstrapping') {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-2 border-[var(--nimi-border-subtle)] border-t-[var(--nimi-text-primary)] rounded-full animate-spin mx-auto" />
-          <p className="text-[var(--nimi-text-muted)]">{t('bootstrap.loading')}</p>
-        </div>
-      </div>
+      <ForgeFullscreenState
+        title="Starting Forge"
+        message={t('bootstrap.loading')}
+        loading
+      />
     );
   }
 

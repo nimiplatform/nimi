@@ -104,7 +104,7 @@ export function WorldRuleTruthPanel({
               <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">World Rules</h3>
               <p className="text-xs text-[var(--nimi-text-muted)]">Canonical truth for worldview projection.</p>
             </div>
-            <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">{worldRules.length} active</span>
+            <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">{worldRules.length} active</span>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
@@ -237,21 +237,21 @@ export function WorldRuleTruthPanel({
 
           <div className="mt-4 space-y-3">
             {worldRulesLoading ? (
-              <Surface tone="card" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">Loading world rules...</Surface>
+              <Surface tone="card" material="glass-thin" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">Loading world rules...</Surface>
             ) : worldRules.length === 0 ? (
-              <Surface tone="card" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">No active world rules yet.</Surface>
+              <Surface tone="card" material="glass-thin" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">No active world rules yet.</Surface>
             ) : (
               worldRules.map((rule) => {
                 const editing = editingWorldRuleId === rule.id;
                 const form = editing ? toWorldRuleUpdateForm(rule) : null;
                 return (
-                  <Surface key={rule.id} tone="card" padding="sm">
+                  <Surface key={rule.id} tone="card" material="glass-thin" padding="sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{rule.title}</span>
-                          <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.domain}</span>
-                          <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.scope}</span>
+                          <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.domain}</span>
+                          <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.scope}</span>
                         </div>
                         <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">{rule.ruleKey} · priority {rule.priority} · updated {formatTimestamp(rule.updatedAt)}</div>
                         <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--nimi-text-secondary)]">{rule.statement}</p>
@@ -350,7 +350,7 @@ export function WorldRuleTruthPanel({
               <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Agent Rules</h3>
               <p className="text-xs text-[var(--nimi-text-muted)]">Direct truth for world-owned agent DNA, behavior, and display projection.</p>
             </div>
-            <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">{agentRules.length} active</span>
+            <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">{agentRules.length} active</span>
           </div>
 
           <LabeledSelectField
@@ -498,23 +498,23 @@ export function WorldRuleTruthPanel({
 
           <div className="mt-4 space-y-3">
             {agentRulesLoading ? (
-              <Surface tone="card" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">Loading agent rules...</Surface>
+              <Surface tone="card" material="glass-thin" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">Loading agent rules...</Surface>
             ) : !selectedAgentId ? (
-              <Surface tone="card" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">Select a world-owned agent to manage agent rules.</Surface>
+              <Surface tone="card" material="glass-thin" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">Select a world-owned agent to manage agent rules.</Surface>
             ) : agentRules.length === 0 ? (
-              <Surface tone="card" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">No active agent rules for this agent yet.</Surface>
+              <Surface tone="card" material="glass-thin" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">No active agent rules for this agent yet.</Surface>
             ) : (
               agentRules.map((rule) => {
                 const editing = editingAgentRuleId === rule.id;
                 const form = editing ? toAgentRuleUpdateForm(rule) : null;
                 return (
-                  <Surface key={rule.id} tone="card" padding="sm">
+                  <Surface key={rule.id} tone="card" material="glass-thin" padding="sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{rule.title}</span>
-                          <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.layer}</span>
-                          <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.scope}</span>
+                          <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.layer}</span>
+                          <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.scope}</span>
                         </div>
                         <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">{rule.ruleKey} · importance {rule.importance} · updated {formatTimestamp(rule.updatedAt)}</div>
                         <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--nimi-text-secondary)]">{rule.statement}</p>

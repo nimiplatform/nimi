@@ -21,7 +21,7 @@ function WorldRuleEditor(props: WorldRuleEditorProps) {
   const [form, setForm] = useState(props.initialForm);
 
   return (
-    <div className="mt-3 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3">
+    <div className="mt-3 rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] p-3">
       <div className="grid gap-3 md:grid-cols-2">
         <LabeledTextField
           label="Title"
@@ -108,7 +108,7 @@ function AgentRuleEditor(props: AgentRuleEditorProps) {
   const [form, setForm] = useState(props.initialForm);
 
   return (
-    <div className="mt-3 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3">
+    <div className="mt-3 rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] p-3">
       <div className="grid gap-3 md:grid-cols-2">
         <LabeledTextField
           label="Title"

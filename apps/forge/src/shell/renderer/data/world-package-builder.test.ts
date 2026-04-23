@@ -158,11 +158,11 @@ describe('world-package-builder', () => {
     });
 
     expect(result.meta.sourceMode).toBe('forge-official');
-    expect(result.world.id).toBe('forge-world-workspace-v1');
-    expect(result.world.reviewedBy).toBe('user-1');
-    expect(result.agentBlueprints[0]?.name).toBe('Ari');
+    expect(result.truth.world.record.id).toBe('forge-world-workspace-v1');
+    expect(result.truth.world.record.reviewedBy).toBe('user-1');
+    expect(result.truth.agents.blueprints[0]?.name).toBe('Ari');
     expect(result.worldDrafts[0]?.id).toBe('draft-1');
-    expect(result.worldLorebooks[0]?.name).toBe('Archive');
+    expect(result.compat.worldLorebooks[0]?.name).toBe('Archive');
   });
 
   it('fails close when authored prose required by the package is missing', () => {

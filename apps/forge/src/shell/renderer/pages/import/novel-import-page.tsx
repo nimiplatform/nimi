@@ -11,7 +11,16 @@ import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useNovelImport } from '@renderer/features/import/hooks/use-novel-import.js';
 import { accumulatorToImportResult } from '@renderer/features/import/state/novel-accumulator.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
-import { ForgePage, ForgePageHeader, ForgeStatCard, ForgeErrorBanner, ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeStatCard,
+  ForgeErrorBanner,
+  ForgeFullscreenState,
+  ForgeLoadingSpinner,
+} from '@renderer/components/page-layout.js';
 import { ForgeSegmentControl, type SegmentOption } from '@renderer/components/segment-control.js';
 import type { NovelImportMode } from '@renderer/features/import/types.js';
 
@@ -124,14 +133,12 @@ export default function NovelImportPage() {
 
   if (!workspaceId) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm text-[var(--nimi-text-secondary)]">Novel import requires an active workspace.</p>
-          <Button tone="primary" size="sm" onClick={() => navigate('/workbench')} className="mt-3">
-            Back to Workbench
-          </Button>
-        </div>
-      </div>
+      <ForgeFullscreenState
+        title="Novel Import"
+        message="Novel import requires an active workspace."
+        action="Back to Workbench"
+        onAction={() => navigate('/workbench')}
+      />
     );
   }
 
@@ -145,39 +152,42 @@ export default function NovelImportPage() {
       <ForgePage maxWidth="max-w-3xl">
         <ForgePageHeader title={t('import.novel')} actions={backAction} />
 
-        <Surface tone="card" padding="md">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--nimi-status-success)]">Workspace Import</p>
-          <h2 className="mt-3 text-lg font-semibold text-[var(--nimi-text-primary)]">Novel extraction accumulates inside one workspace.</h2>
-          <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">
-            Chapter chunks, extraction artifacts, conflict decisions, and final rule lineage stay local until the unified workspace review.
-          </p>
-        </Surface>
+        <ForgeSection className="space-y-3" material="glass-regular">
+          <ForgeSectionHeading
+            eyebrow="Workspace Import"
+            title="Novel extraction accumulates inside one workspace."
+            description="Chapter chunks, extraction artifacts, conflict decisions, and final rule lineage stay local until the unified workspace review."
+          />
+        </ForgeSection>
 
         {machineState === 'IDLE' ? (
-          <Surface
-            tone="card"
-            padding="lg"
-            className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--nimi-border-subtle)] text-center transition-colors hover:border-[var(--nimi-text-muted)]"
-            onDragOver={(event: React.DragEvent) => event.preventDefault()}
-            onDrop={handleDrop}
+          <ForgeSection
+            className="border-2 border-dashed border-[var(--nimi-border-subtle)] text-center transition-colors hover:border-[var(--nimi-text-muted)]"
+            material="glass-regular"
           >
-            <p className="text-sm text-[var(--nimi-text-secondary)]">{t('import.dropText')}</p>
-            <Button tone="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="mt-3">
-              {t('import.browseFiles')}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".txt,.md,.text"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          </Surface>
+            <div
+              className="flex flex-col items-center justify-center py-6"
+              onDragOver={(event: React.DragEvent) => event.preventDefault()}
+              onDrop={handleDrop}
+            >
+              <p className="text-sm text-[var(--nimi-text-secondary)]">{t('import.dropText')}</p>
+              <Button tone="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="mt-3">
+                {t('import.browseFiles')}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.md,.text"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </div>
+          </ForgeSection>
         ) : null}
 
         {machineState === 'FILE_LOADED' && sourceText ? (
           <div className="max-w-xl space-y-4">
-            <Surface tone="card" padding="md">
+            <Surface tone="card" material="glass-thin" padding="md">
               <p className="text-sm text-[var(--nimi-text-secondary)]">
                 {t('import.fileLoaded')}: <span className="text-[var(--nimi-text-primary)]">{sourceFilename}</span>
               </p>
@@ -211,18 +221,23 @@ export default function NovelImportPage() {
         <ForgePageHeader title={t('import.extracting')} actions={backAction} />
 
         <div className="max-w-xl space-y-4">
-          <div>
+          <ForgeSection className="space-y-4">
+            <ForgeSectionHeading
+              eyebrow={t('import.extracting')}
+              title={t('import.chapterProgress')}
+              description={t('import.progressDesc', 'Extraction artifacts continue accumulating inside the current workspace review draft.')}
+            />
             <div className="mb-1 flex justify-between text-sm text-[var(--nimi-text-secondary)]">
               <span>{t('import.chapterProgress')}</span>
               <span>{progress.current}/{progress.total}</span>
             </div>
-            <div className="h-2 rounded-full bg-[var(--nimi-surface-panel)]">
+            <div className="h-2 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)]">
               <div
                 className="h-full rounded-full bg-[var(--nimi-status-success)] transition-[width] duration-300"
                 style={{ width: progress.total > 0 ? `${(progress.current / progress.total) * 100}%` : '0%' }}
               />
             </div>
-          </div>
+          </ForgeSection>
 
           {accumulator ? (
             <div className="grid grid-cols-3 gap-3">
@@ -251,7 +266,7 @@ export default function NovelImportPage() {
         <ForgePageHeader title={t('import.chapterReview')} actions={backAction} />
 
         <div className="max-w-3xl space-y-4">
-          <Surface tone="card" padding="md">
+          <Surface tone="card" material="glass-thin" padding="md">
             <p className="text-sm text-[var(--nimi-text-secondary)]">{t('import.chapter')} {currentChapterResult.chapterIndex + 1}</p>
             <h2 className="mt-2 text-lg font-semibold text-[var(--nimi-text-primary)]">{currentChapterResult.chapterTitle}</h2>
           </Surface>
@@ -274,14 +289,19 @@ export default function NovelImportPage() {
       <ForgePage maxWidth="max-w-3xl">
         <ForgePageHeader title={t('import.paused')} actions={backAction} />
 
-        <Surface tone="card" padding="md">
+        <ForgeSection className="space-y-3">
+          <ForgeSectionHeading
+            eyebrow={t('import.paused')}
+            title={t('import.pause', 'Paused')}
+            description="Extraction is paused. Resume to continue accumulating into the current workspace draft."
+          />
           <p className="text-sm text-[var(--nimi-text-secondary)]">
             Extraction is paused. Resume to continue accumulating into the current workspace draft.
           </p>
           <Button tone="primary" size="md" onClick={resume} className="mt-4">
             {t('import.resume')}
           </Button>
-        </Surface>
+        </ForgeSection>
       </ForgePage>
     );
   }
@@ -293,7 +313,7 @@ export default function NovelImportPage() {
 
         <div className="space-y-4">
           {accumulator.conflicts.map((conflict, index) => (
-            <Surface key={`${conflict.ruleKey}:${index}`} tone="card" padding="md">
+            <Surface key={`${conflict.ruleKey}:${index}`} tone="card" material="glass-thin" padding="md">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <code className="text-xs text-[var(--nimi-text-muted)]">{conflict.ruleKey}</code>
@@ -328,12 +348,17 @@ export default function NovelImportPage() {
       <ForgePage maxWidth="max-w-3xl">
         <ForgePageHeader title={t('import.finalReview')} actions={backAction} />
 
-        <Surface tone="card" padding="md">
+        <ForgeSection className="space-y-3" material="glass-regular">
+          <ForgeSectionHeading
+            eyebrow={t('import.finalReview')}
+            title="Handoff to workspace review"
+            description="Final novel truth is being written into the current workspace review state. Publish remains available only from the workbench publish plan."
+          />
           <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Handoff to workspace review</h2>
           <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">
             Final novel truth is being written into the current workspace review state. Publish remains available only from the workbench publish plan.
           </p>
-        </Surface>
+        </ForgeSection>
       </ForgePage>
     );
   }

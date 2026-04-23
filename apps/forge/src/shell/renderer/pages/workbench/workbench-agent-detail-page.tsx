@@ -104,7 +104,7 @@ export default function WorkbenchAgentDetailPage() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         {/* Agent Truth */}
-        <Surface tone="card" padding="md">
+        <Surface tone="card" material="glass-regular" padding="md">
           <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">Agent Truth</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <LabeledTextField
@@ -157,7 +157,7 @@ export default function WorkbenchAgentDetailPage() {
 
           <div className="mt-6 space-y-3">
             {(bundle?.rules || []).map((rule, index) => (
-              <Surface key={rule.ruleKey} tone="card" padding="sm">
+              <Surface key={rule.ruleKey} tone="card" material="glass-thin" padding="sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <code className="text-xs text-[var(--nimi-text-muted)]">{rule.ruleKey}</code>
                   <ForgeStatusBadge domain="generic" status={rule.layer} tone="neutral" />
@@ -185,7 +185,7 @@ export default function WorkbenchAgentDetailPage() {
         </Surface>
 
         {/* Personality Preview */}
-        <Surface tone="card" padding="md">
+        <Surface tone="card" material="glass-thin" padding="md">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">Personality Preview</h2>
@@ -198,17 +198,17 @@ export default function WorkbenchAgentDetailPage() {
             </Button>
           </div>
 
-          <Surface tone="card" padding="sm" className="mt-5">
+          <Surface tone="card" material="glass-thin" padding="sm" className="mt-5">
             <p className="text-xs uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">System Prompt</p>
             <pre className="mt-3 whitespace-pre-wrap text-xs leading-6 text-[var(--nimi-text-secondary)]">{systemPrompt}</pre>
           </Surface>
 
           <RuntimeChatPanel
             session={session}
-            className="mt-5 rounded-[var(--nimi-radius-card)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] shadow-none"
+            className="mt-5 rounded-[var(--nimi-radius-card)] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_45%,transparent)] shadow-none"
             messagesClassName="h-80"
-            userMessageBubbleClassName="max-w-[85%] rounded-2xl bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]"
-            assistantMessageBubbleClassName="max-w-[85%] rounded-2xl bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-primary)]"
+            userMessageBubbleClassName="max-w-[85%] rounded-2xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_82%,white)] text-[var(--nimi-action-primary-text)]"
+            assistantMessageBubbleClassName="max-w-[85%] rounded-2xl nimi-material-glass-thin text-[var(--nimi-text-primary)]"
             composerClassName="border-[var(--nimi-border-subtle)]"
             placeholder={t('agentDetail.chatPlaceholder', 'Type a message...')}
             sendLabel={t('agentDetail.send', 'Send')}

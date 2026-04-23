@@ -7,16 +7,14 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Button,
   StatusBadge,
-  Surface,
-  SettingsPageShell,
   SettingsCard,
   SettingsSectionTitle,
   useNimiTheme,
 } from '@nimiplatform/nimi-kit/ui';
 import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 import { ToggleRow } from '@renderer/components/form-fields.js';
+import { ForgePage, ForgePageHeader } from '@renderer/components/page-layout.js';
 import { AiConfigSection } from './ai-config-section.js';
 
 type ThemeOption = 'light' | 'dark';
@@ -80,17 +78,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <SettingsPageShell
-      scrollClassName="!bg-[var(--nimi-surface-canvas)]"
-      viewportClassName="!bg-[var(--nimi-surface-canvas)]"
-    >
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--nimi-text-primary)]">{t('pages.settingsPage')}</h1>
-        <p className="mt-1 text-sm text-[var(--nimi-text-muted)]">
-          {t('settings.subtitle', 'Configure your Forge experience')}
-        </p>
-      </div>
+    <ForgePage maxWidth="max-w-4xl">
+      <ForgePageHeader
+        title={t('pages.settingsPage')}
+        subtitle={t('settings.subtitle', 'Configure your Forge experience')}
+      />
 
       {/* Appearance */}
       <section className="space-y-3">
@@ -169,7 +161,7 @@ export default function SettingsPage() {
           </div>
         </SettingsCard>
       </section>
-    </SettingsPageShell>
+    </ForgePage>
   );
 }
 

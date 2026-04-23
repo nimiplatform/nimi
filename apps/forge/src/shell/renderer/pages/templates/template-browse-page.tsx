@@ -54,7 +54,7 @@ export default function TemplateBrowsePage() {
       />
 
       {/* Scope notice */}
-      <Surface tone="card" padding="md" className="border-[var(--nimi-status-warning)]">
+      <Surface tone="card" material="glass-thin" padding="md" className="border-[var(--nimi-status-warning)]">
         <p className="text-sm font-medium text-[var(--nimi-status-warning)]">
           {t('templates.backendNotice', 'Template Marketplace Deferred')}
         </p>

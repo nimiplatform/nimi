@@ -12,6 +12,8 @@ import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
   ForgePage,
   ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
   ForgeStatCard,
   ForgeLoadingSpinner,
   ForgeEmptyState,
@@ -93,7 +95,7 @@ export default function WithdrawalsPage() {
         <>
           {/* Connect warning */}
           {!isConnected && (
-            <Surface tone="card" padding="sm" className="border-[var(--nimi-status-warning)]">
+            <Surface tone="card" material="glass-thin" padding="sm" className="border-[var(--nimi-status-warning)]">
               <p className="text-sm text-[var(--nimi-status-warning)]">
                 {t('withdrawals.connectRequired', 'Stripe Connect must be set up before you can withdraw.')}
               </p>
@@ -108,11 +110,11 @@ export default function WithdrawalsPage() {
             </Surface>
           )}
 
-          {/* Withdrawal calculator */}
-          <Surface tone="card" padding="md" className="space-y-4">
-            <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-              {t('withdrawals.calculator', 'Withdrawal Calculator')}
-            </h3>
+          <ForgeSection className="space-y-4" material="glass-regular">
+            <ForgeSectionHeading
+              eyebrow={t('pages.withdrawals')}
+              title={t('withdrawals.calculator', 'Withdrawal Calculator')}
+            />
 
             <div className="grid grid-cols-3 gap-4">
               <ForgeStatCard
@@ -154,20 +156,20 @@ export default function WithdrawalsPage() {
                   : t('withdrawals.withdraw', 'Withdraw')}
               </Button>
             </div>
-          </Surface>
+          </ForgeSection>
 
-          {/* History */}
-          <div>
-            <h3 className="mb-3 text-sm font-semibold text-[var(--nimi-text-primary)]">
-              {t('withdrawals.history', 'Withdrawal History')}
-            </h3>
+          <ForgeSection className="space-y-4">
+            <ForgeSectionHeading
+              eyebrow={t('pages.withdrawals')}
+              title={t('withdrawals.history', 'Withdrawal History')}
+            />
             {history.length === 0 ? (
               <ForgeEmptyState message={t('withdrawals.noHistory', 'No withdrawals yet.')} />
             ) : (
-              <Surface tone="card" padding="none" className="overflow-hidden">
+              <Surface tone="card" material="glass-regular" padding="none" className="overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]">
+                    <tr className="border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_55%,transparent)]">
                       <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Date</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-[var(--nimi-text-muted)]">Amount</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Status</th>
@@ -176,7 +178,7 @@ export default function WithdrawalsPage() {
                   </thead>
                   <tbody>
                     {history.map((entry) => (
-                      <tr key={entry.id} className="border-b border-[var(--nimi-border-subtle)]/50 hover:bg-[var(--nimi-surface-panel)]/30">
+                      <tr key={entry.id} className="border-b border-[var(--nimi-border-subtle)]/50 hover:bg-[color-mix(in_srgb,var(--nimi-surface-panel)_40%,transparent)]">
                         <td className="px-4 py-2 text-[var(--nimi-text-muted)]">{formatDate(entry.createdAt)}</td>
                         <td className="px-4 py-2 text-right font-medium text-[var(--nimi-text-primary)]">
                           {formatCurrency(entry.amount)}
@@ -197,7 +199,7 @@ export default function WithdrawalsPage() {
                 </table>
               </Surface>
             )}
-          </div>
+          </ForgeSection>
         </>
       )}
     </ForgePage>

@@ -8,7 +8,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Surface } from '@nimiplatform/nimi-kit/ui';
-import { ForgePage, ForgePageHeader, ForgeStatCard, ForgeEmptyState } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeStatCard,
+  ForgeEmptyState,
+} from '@renderer/components/page-layout.js';
 import { ForgeTabBar, type ForgeTab } from '@renderer/components/tab-bar.js';
 import { ForgeSegmentControl, type SegmentOption } from '@renderer/components/segment-control.js';
 
@@ -42,7 +49,7 @@ export default function AnalyticsDashboardPage() {
       />
 
       {/* Scope notice */}
-      <Surface tone="card" padding="md" className="border-[var(--nimi-status-warning)]">
+      <Surface tone="card" material="glass-thin" padding="md" className="border-[var(--nimi-status-warning)]">
         <p className="text-sm font-medium text-[var(--nimi-status-warning)]">
           {t('analytics.backendNotice', 'Analytics Deferred')}
         </p>
@@ -74,20 +81,21 @@ function OverviewTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {kpis.map((kpi) => (
           <ForgeStatCard key={kpi.label} label={kpi.label} value={kpi.value} />
         ))}
       </div>
 
-      <Surface tone="card" padding="md">
-        <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-          {t('analytics.trendChart', 'Trend')}
-        </h3>
+      <ForgeSection className="space-y-4">
+        <ForgeSectionHeading
+          eyebrow={t('pages.analyticsDashboard')}
+          title={t('analytics.trendChart', 'Trend')}
+        />
         <div className="mt-3 flex h-48 items-center justify-center text-sm text-[var(--nimi-text-muted)]">
           {t('analytics.noData', 'Analytics is deferred in the current Forge scope.')}
         </div>
-      </Surface>
+      </ForgeSection>
     </div>
   );
 }
@@ -110,12 +118,12 @@ function FunnelTab() {
         {stages.map((stage, i) => (
           <div key={stage.label} className="flex items-center gap-3">
             <div className="w-6 text-center text-xs font-medium text-[var(--nimi-text-muted)]">{i + 1}</div>
-            <Surface tone="card" padding="none" className="flex flex-1 items-center justify-between px-4 py-3">
+            <Surface tone="card" material="glass-thin" padding="none" className="flex flex-1 items-center justify-between px-4 py-3">
               <span className="text-sm text-[var(--nimi-text-primary)]">{stage.label}</span>
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium text-[var(--nimi-text-secondary)]">{stage.count}</span>
                 {stage.rate !== null && (
-                  <span className="rounded-[var(--nimi-radius-action)] bg-[var(--nimi-surface-panel)] px-2 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">
+                  <span className="rounded-[var(--nimi-radius-action)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-2 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">
                     {stage.rate}
                   </span>
                 )}
@@ -138,10 +146,10 @@ function RetentionTab() {
       <p className="text-xs text-[var(--nimi-text-muted)]">
         {t('analytics.retentionDesc', 'User return rates by weekly cohort.')}
       </p>
-      <Surface tone="card" padding="none" className="overflow-hidden">
+      <Surface tone="card" material="glass-regular" padding="none" className="overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]">
+            <tr className="border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_55%,transparent)]">
               <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Cohort</th>
               {periods.map((p) => (
                 <th key={p} className="px-4 py-2 text-center text-xs font-medium text-[var(--nimi-text-muted)]">{p}</th>
@@ -154,7 +162,7 @@ function RetentionTab() {
                 <td className="px-4 py-2 text-[var(--nimi-text-secondary)]">{cohort}</td>
                 {periods.map((p) => (
                   <td key={p} className="px-4 py-2 text-center">
-                    <span className="inline-block w-12 rounded-[var(--nimi-radius-action)] bg-[var(--nimi-surface-panel)] py-1 text-xs text-[var(--nimi-text-muted)]">{'\u2014'}</span>
+                    <span className="inline-block w-12 rounded-[var(--nimi-radius-action)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] py-1 text-xs text-[var(--nimi-text-muted)]">{'\u2014'}</span>
                   </td>
                 ))}
               </tr>
@@ -181,13 +189,13 @@ function HeatmapTab() {
           { label: t('analytics.topAgents', 'Top Agents') },
           { label: t('analytics.topLorebooks', 'Top Lorebooks') },
         ].map((section) => (
-          <Surface key={section.label} tone="card" padding="md">
+          <Surface key={section.label} tone="card" material="glass-thin" padding="md">
             <h4 className="mb-3 text-xs font-medium text-[var(--nimi-text-primary)]">{section.label}</h4>
             <div className="space-y-1">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center justify-between py-1">
                   <span className="text-xs text-[var(--nimi-text-muted)]">{'\u2014'}</span>
-                  <div className="h-2 w-16 rounded-[var(--nimi-radius-action)] bg-[var(--nimi-surface-panel)]" />
+                  <div className="h-2 w-16 rounded-[var(--nimi-radius-action)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)]" />
                 </div>
               ))}
             </div>

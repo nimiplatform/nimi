@@ -708,17 +708,18 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
 
   const publishDraft = useCallback(async () => {
     const prepared = await preparePublishContext();
+    const preparedWorld = prepared.pkg.truth.world.record;
     const batchRun = await input.commitActions.createBatchRunMutation.mutateAsync({
-      name: `Forge official publish · ${prepared.pkg.world.name}`,
+      name: `Forge official publish · ${preparedWorld.name}`,
       requestKey: prepared.pkg.meta.version,
       pipelineStages: [...PIPELINE_STAGES],
       retryLimit: 1,
       executionNotes: 'Forge create flow official package publish',
       items: [{
-        worldId: prepared.pkg.world.id,
+        worldId: preparedWorld.id,
         slug: prepared.pkg.slug,
         sourceTitle: prepared.pkg.meta.sourceTitle,
-        canonicalTitle: prepared.pkg.world.name,
+        canonicalTitle: preparedWorld.name,
         sourceMode: prepared.pkg.meta.sourceMode,
         qualityGate: prepared.qualityGate,
       }],

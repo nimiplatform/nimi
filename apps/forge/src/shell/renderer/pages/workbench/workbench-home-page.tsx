@@ -1,7 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { ForgePage } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgeSection,
+  ForgeSectionHeading,
+} from '@renderer/components/page-layout.js';
 import { ForgeActionCard, ForgeListCard } from '@renderer/components/card-list.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import { ForgeEmptyState } from '@renderer/components/page-layout.js';
@@ -24,7 +28,7 @@ export default function WorkbenchHomePage() {
 
   return (
     <ForgePage maxWidth="max-w-6xl">
-      <Surface tone="hero" padding="lg">
+      <Surface tone="hero" material="glass-regular" elevation="raised" padding="lg">
         <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--nimi-accent-text)]">
           Forge Workbench
         </p>
@@ -67,16 +71,20 @@ export default function WorkbenchHomePage() {
       </Surface>
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(320px,1fr)]">
-        <Surface tone="card" padding="md">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Recent Workspaces</h2>
-              <p className="mt-1 text-sm text-[var(--nimi-text-muted)]">
-                Reopen incomplete review, maintain a published world, or continue importing into the same workspace.
-              </p>
-            </div>
-            <ForgeStatusBadge domain="generic" status="count" label={String(recentWorkspaces.length)} tone="neutral" />
-          </div>
+        <ForgeSection>
+          <ForgeSectionHeading
+            eyebrow="Workspace Memory"
+            title="Recent Workspaces"
+            description="Reopen incomplete review, maintain a published world, or continue importing into the same workspace."
+            action={
+              <ForgeStatusBadge
+                domain="generic"
+                status="count"
+                label={String(recentWorkspaces.length)}
+                tone="neutral"
+              />
+            }
+          />
 
           {recentWorkspaces.length === 0 ? (
             <ForgeEmptyState message="No local workspaces yet." />
@@ -120,10 +128,14 @@ export default function WorkbenchHomePage() {
               ))}
             </div>
           )}
-        </Surface>
+        </ForgeSection>
 
-        <Surface tone="card" padding="md">
-          <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Primary Flow</h2>
+        <ForgeSection material="glass-regular">
+          <ForgeSectionHeading
+            eyebrow="Execution Path"
+            title="Primary Flow"
+            description="Keep creation, import, truth review, and publish inside one bounded world workspace."
+          />
           <div className="mt-5 space-y-3">
             {[
               'Create or open a world workspace',
@@ -132,14 +144,14 @@ export default function WorkbenchHomePage() {
               'Publish world, agents, world rules, and agent rules in one ordered plan',
             ].map((item, index) => (
               <div key={item} className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--nimi-surface-panel)] text-xs text-[var(--nimi-text-secondary)]">
+                <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-accent-text)_12%,white)] text-xs font-semibold text-[var(--nimi-accent-text)]">
                   {index + 1}
                 </div>
                 <p className="text-sm text-[var(--nimi-text-muted)]">{item}</p>
               </div>
             ))}
           </div>
-        </Surface>
+        </ForgeSection>
       </section>
     </ForgePage>
   );

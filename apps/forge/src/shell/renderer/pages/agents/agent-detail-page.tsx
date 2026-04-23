@@ -17,7 +17,15 @@ import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';
 import type { ImageGenEntityContext } from '@renderer/data/image-gen-client.js';
 import { uploadFileAsResource } from '@renderer/data/content-data-client.js';
 import { batchUpsertWorldResourceBindings } from '@renderer/data/world-data-client.js';
-import { ForgePage, ForgeLoadingSpinner, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeLoadingSpinner,
+  ForgeEmptyState,
+  ForgeErrorBanner,
+} from '@renderer/components/page-layout.js';
 import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
 import { ForgeTabBar, type ForgeTab } from '@renderer/components/tab-bar.js';
 import type { TabId } from './agent-detail-page-shared.js';
@@ -130,27 +138,35 @@ export default function AgentDetailPage() {
 
   return (
     <ForgePage>
-      <div className="flex items-center gap-3">
-        <Button tone="ghost" size="sm" onClick={() => navigate('/agents/library')}>
-          &larr; {t('agents.backToList', 'Back')}
-        </Button>
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <ForgeEntityAvatar src={agent.avatarUrl} name={agent.displayName || agent.handle} size="md" />
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold text-[var(--nimi-text-primary)]">
-              {agent.displayName || agent.handle}
-            </h1>
-            <p className="text-xs text-[var(--nimi-text-muted)]">@{agent.handle}</p>
-          </div>
-        </div>
-      </div>
+      <ForgePageHeader
+        title={agent.displayName || agent.handle}
+        subtitle={`@${agent.handle}`}
+        actions={(
+          <Button tone="ghost" size="sm" onClick={() => navigate('/agents/library')}>
+            &larr; {t('agents.backToList', 'Back')}
+          </Button>
+        )}
+      />
 
-      {/* Avatar Generation */}
-      <Surface tone="card" padding="md">
+      <ForgeSection className="flex items-center gap-3">
+        <ForgeEntityAvatar src={agent.avatarUrl} name={agent.displayName || agent.handle} size="md" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">
+            {agent.displayName || agent.handle}
+          </p>
+          <p className="text-xs text-[var(--nimi-text-muted)]">
+            {agent.worldId ? `${t('agentDetail.worldLabel', 'World:')} ${agent.worldId}` : t('agentDetail.ownerMaster', 'Master owned')}
+          </p>
+        </div>
+      </ForgeSection>
+
+      <ForgeSection className="space-y-4" material="glass-regular">
+        <ForgeSectionHeading
+          eyebrow={t('agentDetail.avatarGeneration', 'Avatar Generation')}
+          title={t('agentDetail.avatarAssets', 'Avatar and Portrait Assets')}
+          description={t('agentDetail.avatarAssetsHint', 'Generate or upload presentation assets for the current agent without leaving the detail view.')}
+        />
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {t('agentDetail.avatarGeneration', 'Avatar Generation')}
-          </h3>
           <div className="flex gap-2">
             <Button
               tone="primary"
@@ -230,7 +246,7 @@ export default function AgentDetailPage() {
             {imageGen.candidates.map((candidate) => (
               <div
                 key={candidate.id}
-                className="group relative overflow-hidden rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-base)]"
+                className="group relative overflow-hidden rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_45%,transparent)]"
               >
                 <img src={candidate.url} alt="" className="aspect-square w-full object-cover" />
                 <div className="absolute inset-0 flex items-end bg-black/60 p-2 opacity-0 transition-opacity group-hover:opacity-100">
@@ -265,7 +281,7 @@ export default function AgentDetailPage() {
             ))}
           </div>
         ) : null}
-      </Surface>
+      </ForgeSection>
 
       <ForgeTabBar tabs={tabs} value={activeTab} onChange={setActiveTab} />
 

@@ -7,7 +7,14 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useWorldResourceQueries, type WorldDraftSummary, type WorldSummary } from '@renderer/hooks/use-world-queries.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
-import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeEmptyState,
+  ForgeLoadingSpinner,
+  ForgeSection,
+  ForgeSectionHeading,
+} from '@renderer/components/page-layout.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import { ForgeListCard, ForgeEntityAvatar } from '@renderer/components/card-list.js';
 import { formatDate } from '@renderer/components/format-utils.js';
@@ -46,11 +53,13 @@ export default function WorldsPage() {
         <>
           {/* Drafts Section */}
           {drafts.length > 0 && (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
-                {t('worlds.drafts', 'Drafts')} ({drafts.length})
-              </h2>
-              <div className="space-y-2">
+            <ForgeSection>
+              <ForgeSectionHeading
+                eyebrow={t('worlds.drafts', 'Drafts')}
+                title={`${t('worlds.drafts', 'Drafts')} (${drafts.length})`}
+                description={t('worlds.draftsDesc', 'Unpublished world creation sessions ready for review or continuation.')}
+              />
+              <div className="mt-4 space-y-2">
                 {drafts.map((draft) => (
                   <DraftCard
                     key={draft.id}
@@ -66,20 +75,22 @@ export default function WorldsPage() {
                   />
                 ))}
               </div>
-            </section>
+            </ForgeSection>
           )}
 
           {/* Published Worlds Section */}
-          <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
-              {t('worlds.published', 'Published Worlds')} ({worlds.length})
-            </h2>
+          <ForgeSection>
+            <ForgeSectionHeading
+              eyebrow={t('worlds.published', 'Published Worlds')}
+              title={`${t('worlds.published', 'Published Worlds')} (${worlds.length})`}
+              description={t('worlds.publishedDesc', 'Maintain published worlds from the same workbench truth flow.')}
+            />
             {worlds.length === 0 ? (
               <ForgeEmptyState
                 message={t('worlds.noWorlds', 'No published worlds yet. Create your first world to get started.')}
               />
             ) : (
-              <div className="space-y-2">
+              <div className="mt-4 space-y-2">
                 {worlds.map((world) => (
                   <WorldCard
                     key={world.id}
@@ -96,7 +107,7 @@ export default function WorldsPage() {
                 ))}
               </div>
             )}
-          </section>
+          </ForgeSection>
         </>
       )}
     </ForgePage>

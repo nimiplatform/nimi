@@ -25,7 +25,7 @@ export function WorkbenchPageAgentsPanel({
   return (
     <section className="mx-auto max-w-6xl p-8">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <Surface tone="card" padding="md">
+        <Surface tone="card" material="glass-regular" padding="md">
           <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">World-Owned Draft Agents</h2>
           <div className="mt-5 space-y-3">
             {Object.values(snapshot.agentDrafts).length === 0 ? (
@@ -49,7 +49,7 @@ export function WorkbenchPageAgentsPanel({
           </div>
         </Surface>
 
-        <Surface tone="card" padding="md">
+        <Surface tone="card" material="glass-thin" padding="md">
           <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Master Agent Library</h2>
           <div className="mt-5 space-y-3">
             {masterAgents.map((agent) => (

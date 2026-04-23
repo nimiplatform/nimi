@@ -4,7 +4,7 @@
  * Replaces custom tab patterns in workbench panel nav, agent detail tabs, etc.
  */
 
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, cn } from '@nimiplatform/nimi-kit/ui';
 
 export type ForgeTab<T extends string = string> = {
   value: T;
@@ -24,32 +24,41 @@ export function ForgeTabBar<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={cn('flex gap-1 border-b border-[var(--nimi-border-subtle)]', className)}>
+    <Surface
+      tone="card"
+      material="glass-thin"
+      padding="none"
+      className={cn('flex gap-1 p-1', className)}
+    >
       {tabs.map((tab) => (
         <button
           key={tab.value}
           type="button"
           onClick={() => onChange(tab.value)}
           className={cn(
-            'relative px-4 py-2 text-sm font-medium transition-colors',
+            'relative rounded-[var(--nimi-radius-action)] px-4 py-2 text-sm font-medium transition-colors',
             value === tab.value
-              ? 'text-[var(--nimi-text-primary)]'
-              : 'text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]',
+              ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+              : 'text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)]',
           )}
         >
           <span className="flex items-center gap-1.5">
             {tab.label}
             {tab.badge != null && (
-              <span className="rounded-full bg-[var(--nimi-action-primary-bg)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[var(--nimi-action-primary-text)]">
+              <span
+                className={cn(
+                  'rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
+                  value === tab.value
+                    ? 'bg-white/18 text-white'
+                    : 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]',
+                )}
+              >
                 {tab.badge}
               </span>
             )}
           </span>
-          {value === tab.value && (
-            <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--nimi-action-primary-bg)]" />
-          )}
         </button>
       ))}
-    </div>
+    </Surface>
   );
 }

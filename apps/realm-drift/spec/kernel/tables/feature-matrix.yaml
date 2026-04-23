@@ -1,6 +1,6 @@
 # Realm Drift — Feature Matrix
 # Authoritative source for feature phasing, priority, and dependencies.
-# Referenced by: kernel contracts, local topic lifecycle reports such as .nimi/local/report/{proposal|ongoing|pending|closed}/<topic-id>/** (non-normative execution material)
+# Referenced by: kernel contracts, local topic lifecycle reports such as .nimi/topics/{proposal|ongoing|pending|closed}/<topic-id>/** (non-normative execution material)
 
 features:
   # ── Phase 1: App Shell ───────────────────────────────────

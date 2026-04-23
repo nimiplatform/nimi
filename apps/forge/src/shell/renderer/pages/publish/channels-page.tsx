@@ -8,7 +8,13 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { ForgePage, ForgePageHeader, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeErrorBanner,
+} from '@renderer/components/page-layout.js';
 import { LabeledSelectField } from '@renderer/components/form-fields.js';
 import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 import { ForgeListCard } from '@renderer/components/card-list.js';
@@ -78,18 +84,17 @@ export default function ChannelsPage() {
 
       {error && <ForgeErrorBanner message={error} />}
       {notice && !error && (
-        <Surface tone="card" padding="sm" className="border-[var(--nimi-status-success)]">
+        <Surface tone="card" material="glass-thin" padding="sm" className="border-[var(--nimi-status-success)]">
           <p className="text-sm text-[var(--nimi-status-success)]">{notice}</p>
         </Surface>
       )}
 
-      <Surface tone="card" padding="md">
-        <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-          {t('channels.defaultIdentity', 'Default Publish Identity')}
-        </h2>
-        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-          {t('channels.defaultIdentityHint', 'Choose the identity Forge preselects for new publish drafts.')}
-        </p>
+      <ForgeSection className="space-y-4" material="glass-regular">
+        <ForgeSectionHeading
+          eyebrow={t('pages.channels')}
+          title={t('channels.defaultIdentity', 'Default Publish Identity')}
+          description={t('channels.defaultIdentityHint', 'Choose the identity Forge preselects for new publish drafts.')}
+        />
         <div className="mt-4">
           <ForgeSegmentControl
             options={IDENTITY_OPTIONS.map((o) => ({
@@ -114,13 +119,13 @@ export default function ChannelsPage() {
         </div>
 
         {defaultIdentity === 'AGENT' && (
-          <Surface tone="card" padding="sm" className="mt-4 border-[var(--nimi-status-warning)]">
+          <Surface tone="card" material="glass-thin" padding="sm" className="mt-4 border-[var(--nimi-status-warning)]">
             <p className="text-xs text-[var(--nimi-status-warning)]">
               {t('channels.agentIdentityHint', 'Agent identity can be preselected now, but live agent publishing is still pending Forge-side wiring.')}
             </p>
           </Surface>
         )}
-      </Surface>
+      </ForgeSection>
 
       <section className="space-y-3">
         {channels.map((channel) => (

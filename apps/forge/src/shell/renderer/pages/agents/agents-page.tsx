@@ -10,7 +10,13 @@ import { Button, SearchField, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAgentListQuery, type AgentSummary } from '@renderer/hooks/use-agent-queries.js';
 import { useAgentMutations } from '@renderer/hooks/use-agent-mutations.js';
 import type { JsonObject } from '@renderer/bridge';
-import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeEmptyState,
+  ForgeLoadingSpinner,
+  ForgeSection,
+} from '@renderer/components/page-layout.js';
 import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 import { ForgeListCard, ForgeEntityAvatar } from '@renderer/components/card-list.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
@@ -63,8 +69,7 @@ export default function AgentsPage() {
         }
       />
 
-      {/* Filters */}
-      <div className="flex items-center gap-3">
+      <ForgeSection className="flex flex-col gap-3 md:flex-row md:items-center">
         <SearchField
           placeholder={t('agents.searchPlaceholder', 'Search agents...')}
           value={search}
@@ -80,7 +85,7 @@ export default function AgentsPage() {
           value={ownerFilter}
           onChange={setOwnerFilter}
         />
-      </div>
+      </ForgeSection>
 
       {/* Create form */}
       {showCreateForm && (
@@ -107,7 +112,7 @@ export default function AgentsPage() {
           }
         />
       ) : (
-        <div className="space-y-2">
+        <ForgeSection className="space-y-2">
           {filtered.map((agent) => (
             <AgentCard
               key={agent.id}
@@ -119,7 +124,7 @@ export default function AgentsPage() {
               }}
             />
           ))}
-        </div>
+        </ForgeSection>
       )}
     </ForgePage>
   );
@@ -198,7 +203,7 @@ function CreateAgentForm({
   const [ownershipType, setOwnershipType] = useState<'MASTER_OWNED' | 'WORLD_OWNED'>('MASTER_OWNED');
 
   return (
-    <Surface tone="card" padding="md">
+    <Surface tone="card" material="glass-regular" elevation="raised" padding="md">
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
           {t('agents.createNew', 'Create Agent')}

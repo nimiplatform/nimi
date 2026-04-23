@@ -10,7 +10,14 @@ import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import type { JsonObject } from '@renderer/bridge';
 import { finalizeResource } from '@renderer/data/content-data-client.js';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeEmptyState,
+  ForgeErrorBanner,
+} from '@renderer/components/page-layout.js';
 import { formatDate } from '@renderer/components/format-utils.js';
 
 type UploadedVideo = {
@@ -166,60 +173,64 @@ export default function VideoStudioPage() {
         subtitle={t('videoStudio.subtitle', 'Upload and manage video content')}
       />
 
-      {/* Upload zone */}
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        className={`rounded-[var(--nimi-radius-md)] border-2 border-dashed p-12 text-center transition-colors ${
+      <ForgeSection
+        className={`border-2 border-dashed text-center transition-colors ${
           dragOver
-            ? 'border-[var(--nimi-border-strong)] bg-[var(--nimi-surface-active)]'
-            : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] hover:border-[var(--nimi-border-strong)]'
+            ? 'border-[var(--nimi-border-strong)]'
+            : 'border-[var(--nimi-border-subtle)] hover:border-[var(--nimi-border-strong)]'
         }`}
+        material="glass-regular"
       >
-        {uploading ? (
-          <div className="space-y-3">
-            <div className="w-8 h-8 border-2 border-[var(--nimi-border-subtle)] border-t-[var(--nimi-text-primary)] rounded-full animate-spin mx-auto" />
-            <p className="text-sm text-[var(--nimi-text-primary)]">{t('videoStudio.uploading', { progress: uploadProgress })}</p>
-            <div className="w-64 mx-auto bg-[var(--nimi-surface-canvas)] rounded-full h-1.5">
-              <div
-                className="bg-[var(--nimi-action-primary-bg)] h-1.5 rounded-full transition-all"
-                style={{ width: `${uploadProgress}%` }}
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          className="p-6 md:p-12"
+        >
+          {uploading ? (
+            <div className="space-y-3">
+              <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[var(--nimi-border-subtle)] border-t-[var(--nimi-accent-text)]" />
+              <p className="text-sm text-[var(--nimi-text-primary)]">{t('videoStudio.uploading', { progress: uploadProgress })}</p>
+              <div className="mx-auto h-1.5 w-64 rounded-full bg-[var(--nimi-surface-canvas)]">
+                <div
+                  className="h-1.5 rounded-full bg-[var(--nimi-accent-text)] transition-all"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              <Button
+                tone="danger"
+                size="sm"
+                onClick={() => { xhrRef.current?.abort(); }}
+              >
+                {t('videoStudio.cancel', 'Cancel')}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-[var(--nimi-text-muted)]">
+                {t('videoStudio.dropzone', 'Drag and drop video files here, or click to browse')}
+              </p>
+              <p className="text-xs text-[var(--nimi-text-muted)]">
+                {t('videoStudio.formatHint', 'MP4, MOV, WebM')}
+              </p>
+              <Button
+                tone="primary"
+                size="md"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {t('videoStudio.browse', 'Browse Files')}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/mp4,video/quicktime,video/webm"
+                className="hidden"
+                onChange={(e) => void handleFiles(e.target.files)}
               />
             </div>
-            <Button
-              tone="danger"
-              size="sm"
-              onClick={() => { xhrRef.current?.abort(); }}
-            >
-              {t('videoStudio.cancel', 'Cancel')}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-[var(--nimi-text-muted)]">
-              {t('videoStudio.dropzone', 'Drag and drop video files here, or click to browse')}
-            </p>
-            <p className="text-xs text-[var(--nimi-text-muted)]">
-              {t('videoStudio.formatHint', 'MP4, MOV, WebM')}
-            </p>
-            <Button
-              tone="primary"
-              size="md"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {t('videoStudio.browse', 'Browse Files')}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="video/mp4,video/quicktime,video/webm"
-              className="hidden"
-              onChange={(e) => void handleFiles(e.target.files)}
-            />
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </ForgeSection>
 
       {/* Upload error */}
       {uploadError && (
@@ -227,13 +238,12 @@ export default function VideoStudioPage() {
       )}
 
       {/* Video list */}
-      <div>
-        <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)] mb-3">
-          {t('videoStudio.uploads', 'Uploaded Videos')}
-          {videos.length > 0 && (
-            <span className="ml-2 text-xs font-normal text-[var(--nimi-text-muted)]">({videos.length})</span>
-          )}
-        </h3>
+      <ForgeSection className="space-y-4">
+        <ForgeSectionHeading
+          eyebrow={t('pages.videoStudio')}
+          title={t('videoStudio.uploads', 'Uploaded Videos')}
+          description={t('videoStudio.uploadsDesc', 'Recent uploads stay visible here for preview and cleanup before you move on.')}
+        />
         {videos.length === 0 ? (
           <ForgeEmptyState message={t('videoStudio.noVideos', 'No videos uploaded yet.')} />
         ) : (
@@ -242,6 +252,7 @@ export default function VideoStudioPage() {
               <Surface
                 key={video.id}
                 tone="card"
+                material="glass-thin"
                 padding="sm"
                 className="flex items-center justify-between"
               >
@@ -278,7 +289,7 @@ export default function VideoStudioPage() {
             ))}
           </div>
         )}
-      </div>
+      </ForgeSection>
     </ForgePage>
   );
 }

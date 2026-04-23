@@ -13,7 +13,14 @@ import type { JsonObject } from '@renderer/bridge';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import { finalizeResource } from '@renderer/data/content-data-client.js';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeEmptyState,
+  ForgeErrorBanner,
+} from '@renderer/components/page-layout.js';
 import { LabeledTextField, LabeledTextareaField, LabeledSelectField, ToggleRow } from '@renderer/components/form-fields.js';
 import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 
@@ -226,9 +233,13 @@ export default function MusicStudioPage() {
         subtitle={t('musicStudio.subtitle', 'Generate AI music for your worlds and characters')}
       />
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Left: Composer */}
-        <div className="col-span-1 space-y-5">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <ForgeSection className="space-y-5 xl:col-span-1" material="glass-regular">
+          <ForgeSectionHeading
+            eyebrow={t('pages.musicStudio')}
+            title={t('musicStudio.composer', 'Composer')}
+            description={t('musicStudio.composerDesc', 'Set prompt, lyrics, style, and duration before generating a draft track.')}
+          />
           {/* Template */}
           <LabeledSelectField
             label={t('musicStudio.template', 'Template')}
@@ -316,18 +327,14 @@ export default function MusicStudioPage() {
           {error && (
             <ForgeErrorBanner message={error} />
           )}
-        </div>
+        </ForgeSection>
 
-        {/* Right: Audition Queue */}
-        <div className="col-span-2">
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)] mb-3">
-            {t('musicStudio.auditionQueue', 'Audition Queue')}
-            {tracks.length > 0 && (
-              <span className="ml-2 text-xs font-normal text-[var(--nimi-text-muted)]">
-                ({tracks.length})
-              </span>
-            )}
-          </h3>
+        <ForgeSection className="space-y-4 xl:col-span-2">
+          <ForgeSectionHeading
+            eyebrow={t('pages.musicStudio')}
+            title={t('musicStudio.auditionQueue', 'Audition Queue')}
+            description={t('musicStudio.queueDesc', 'Preview generated tracks, save the keepers, and discard the rest without leaving the studio shell.')}
+          />
           {tracks.length === 0 ? (
             <ForgeEmptyState message={t('musicStudio.emptyQueue', 'Generated tracks will appear here')} />
           ) : (
@@ -336,6 +343,7 @@ export default function MusicStudioPage() {
                 <Surface
                   key={track.id}
                   tone="card"
+                  material="glass-thin"
                   padding="sm"
                 >
                   <div className="flex items-center justify-between">
@@ -371,7 +379,7 @@ export default function MusicStudioPage() {
               ))}
             </div>
           )}
-        </div>
+        </ForgeSection>
       </div>
     </ForgePage>
   );

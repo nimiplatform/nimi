@@ -218,10 +218,10 @@ export default function AdvisorHubPage() {
 
         <RuntimeChatPanel
           session={session}
-          className="flex-1 min-h-0 rounded-[var(--nimi-radius-card)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] shadow-none"
+          className="flex-1 min-h-0 rounded-[var(--nimi-radius-card)] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_45%,transparent)] shadow-none"
           messagesClassName="h-full min-h-0"
-          userMessageBubbleClassName="rounded-[var(--nimi-radius-card)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]"
-          assistantMessageBubbleClassName="rounded-[var(--nimi-radius-card)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)]"
+          userMessageBubbleClassName="rounded-[var(--nimi-radius-card)] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_82%,white)] text-[var(--nimi-action-primary-text)]"
+          assistantMessageBubbleClassName="rounded-[var(--nimi-radius-card)] nimi-material-glass-thin text-[var(--nimi-text-primary)]"
           composerClassName="border-[var(--nimi-border-subtle)]"
           placeholder={t('advisors.inputPlaceholder', 'Ask the advisor...')}
           sendLabel={t('advisors.send', 'Send')}

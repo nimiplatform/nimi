@@ -5,7 +5,7 @@
  * button group pattern across Forge pages.
  */
 
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, cn } from '@nimiplatform/nimi-kit/ui';
 
 export type SegmentOption<T extends string = string> = {
   value: T;
@@ -28,7 +28,12 @@ export function ForgeSegmentControl<T extends string>({
   const paddingClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
   return (
-    <div className={cn('inline-flex overflow-hidden rounded-[var(--nimi-radius-action)] border border-[var(--nimi-border-subtle)]', className)}>
+    <Surface
+      tone="card"
+      material="glass-thin"
+      padding="none"
+      className={cn('inline-flex overflow-hidden', className)}
+    >
       {options.map((option) => (
         <button
           key={option.value}
@@ -39,12 +44,12 @@ export function ForgeSegmentControl<T extends string>({
             'font-medium transition-colors',
             value === option.value
               ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
-              : 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]',
+              : 'bg-transparent text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
           )}
         >
           {option.label}
         </button>
       ))}
-    </div>
+    </Surface>
   );
 }

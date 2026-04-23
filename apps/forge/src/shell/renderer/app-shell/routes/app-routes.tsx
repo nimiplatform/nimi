@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { StudioLayout } from '@renderer/app-shell/layouts/studio-layout.js';
+import { ForgeFullscreenState } from '@renderer/components/page-layout.js';
 
 // Lazy-loaded feature pages
 const WorkbenchHomePage = lazy(() => import('@renderer/pages/workbench/workbench-home-page.js'));
@@ -33,9 +34,11 @@ function PageSuspense({ children }: { children: React.ReactNode }) {
   return (
     <Suspense
       fallback={
-        <div className="flex h-full items-center justify-center">
-          <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-        </div>
+        <ForgeFullscreenState
+          title="Preparing Forge"
+          message="Loading the next workspace surface and syncing the shell."
+          loading
+        />
       }
     >
       {children}

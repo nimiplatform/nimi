@@ -90,7 +90,7 @@ export function WorldCreatePageView({
 
       {publishOperation.batchRun ? (
         <div className="border-b border-[var(--nimi-border-subtle)] px-4 py-3">
-          <Surface tone="card" padding="md" className="space-y-2">
+          <Surface tone="card" material="glass-thin" padding="md" className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -157,7 +157,7 @@ export function WorldCreatePageView({
                 {publishOperation.batchRun.items.slice(0, 3).map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-3"
+                    className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] p-3"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -223,7 +223,7 @@ export function WorldCreatePageView({
                     {publishOperation.batchRun.items.slice(0, 3).map((item) => (
                       <div
                         key={`${item.id}-details`}
-                        className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/40 p-3"
+                        className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_45%,transparent)] p-3"
                       >
                         <p className="text-xs text-[var(--nimi-text-muted)]">
                           slug {item.slug} · source {item.sourceMode}

@@ -18,7 +18,7 @@ describe('Sidebar', () => {
     }));
   });
 
-  it('highlights the workbench-first navigation and keeps non-core items out of the primary groups', () => {
+  it('renders the workbench-first navigation with creator and secondary groups', () => {
     render(
       <I18nextProvider i18n={i18n}>
         <MemoryRouter>
@@ -30,10 +30,13 @@ describe('Sidebar', () => {
     expect(screen.getByText('Workbench')).toBeTruthy();
     expect(screen.getByText('Worlds')).toBeTruthy();
     expect(screen.getByText('Agents')).toBeTruthy();
-    expect(screen.getByText('Settings')).toBeTruthy();
     expect(screen.getByText('Content')).toBeTruthy();
     expect(screen.getByText('Publish')).toBeTruthy();
+    expect(screen.getByText('Revenue')).toBeTruthy();
+    expect(screen.getByText('Templates')).toBeTruthy();
+    expect(screen.getByText('AI Advisors')).toBeTruthy();
+    expect(screen.getByText('Analytics')).toBeTruthy();
+    expect(screen.getByText('Settings')).toBeTruthy();
     expect(screen.queryByText('Import')).toBeNull();
-    expect(screen.queryByText('Revenue')).toBeNull();
   });
 });

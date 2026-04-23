@@ -63,7 +63,7 @@ function WorldMaintainReleasePanel({
   registerReleaseCard,
 }: WorldMaintainReleasePanelProps) {
   return (
-    <Surface tone="card" padding="md" className="space-y-3">
+    <Surface tone="card" material="glass-regular" padding="md" className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Official Releases</h2>
@@ -91,7 +91,7 @@ function WorldMaintainReleasePanel({
                 ref={(node) => {
                   registerReleaseCard(release.id, node);
                 }}
-                className={`rounded-xl border bg-[var(--nimi-surface-panel)]/60 p-3 ${
+                className={`rounded-xl border bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] p-3 ${
                   highlighted
                     ? 'border-[var(--nimi-accent-primary)] ring-1 ring-[var(--nimi-accent-primary)]/40'
                     : 'border-[var(--nimi-border-subtle)]'
@@ -191,7 +191,7 @@ function WorldMaintainTitleLineagePanel({
   onOpenLineageAnchor,
 }: WorldMaintainTitleLineagePanelProps) {
   return (
-    <Surface tone="card" padding="md" className="space-y-3">
+    <Surface tone="card" material="glass-regular" padding="md" className="space-y-3">
       <div>
         <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Title Lineage</h2>
         <p className="text-xs text-[var(--nimi-text-muted)]">
@@ -207,7 +207,7 @@ function WorldMaintainTitleLineagePanel({
           {titleLineageItems.slice(0, 5).map((entry) => (
             <div
               key={entry.id}
-              className={`rounded-xl border bg-[var(--nimi-surface-panel)]/60 p-3 ${
+              className={`rounded-xl border bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] p-3 ${
                 activeCompareAnchor?.lineageKey === entry.titleLineageKey
                   ? 'border-[var(--nimi-accent-primary)] ring-1 ring-[var(--nimi-accent-primary)]/40'
                   : 'border-[var(--nimi-border-subtle)]'
@@ -267,7 +267,7 @@ function WorldMaintainBatchRunsPanel({
   registerBatchRunCard,
 }: WorldMaintainBatchRunsPanelProps) {
   return (
-    <Surface tone="card" padding="md" className="space-y-3">
+    <Surface tone="card" material="glass-regular" padding="md" className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Factory Runs</h2>
@@ -293,7 +293,7 @@ function WorldMaintainBatchRunsPanel({
                 ref={(node) => {
                   registerBatchRunCard(run.id, node);
                 }}
-                className={`rounded-xl border bg-[var(--nimi-surface-panel)]/60 p-3 ${
+                className={`rounded-xl border bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] p-3 ${
                   highlighted
                     ? 'border-[var(--nimi-accent-primary)] ring-1 ring-[var(--nimi-accent-primary)]/40'
                     : 'border-[var(--nimi-border-subtle)]'
@@ -375,7 +375,7 @@ function WorldMaintainBatchRunsPanel({
                         {run.items.map((item) => (
                           <div
                             key={`${run.id}-${item.id}`}
-                            className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/40 p-3"
+                            className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_45%,transparent)] p-3"
                           >
                             <p className="text-xs text-[var(--nimi-text-muted)]">
                               {item.canonicalTitle} · slug {item.slug} · source {item.sourceMode}

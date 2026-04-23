@@ -24,7 +24,7 @@ export function WorkbenchPageReviewPanel({
 }: WorkbenchPageReviewPanelProps) {
   return (
     <section className="mx-auto max-w-6xl space-y-6 p-8">
-      <Surface tone="card" padding="md">
+      <Surface tone="card" material="glass-regular" padding="md">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Unified Review</h2>
@@ -54,11 +54,11 @@ export function WorkbenchPageReviewPanel({
       </Surface>
 
       {snapshot.reviewState.conflicts.length > 0 ? (
-        <Surface tone="card" padding="md" className="border-[var(--nimi-status-danger)]">
+        <Surface tone="card" material="glass-thin" padding="md" className="border-[var(--nimi-status-danger)]">
           <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-status-danger)]">Conflict Diff</h3>
           <div className="mt-4 space-y-3">
             {snapshot.reviewState.conflicts.map((conflict) => (
-              <Surface key={`${conflict.sessionId}:${conflict.ruleKey}`} tone="card" padding="sm">
+              <Surface key={`${conflict.sessionId}:${conflict.ruleKey}`} tone="card" material="glass-thin" padding="sm">
                 <div className="flex items-center gap-2">
                   <code className="text-xs text-[var(--nimi-text-muted)]">{conflict.ruleKey}</code>
                   <ForgeStatusBadge domain="generic" status={conflict.resolution} tone="neutral" />
@@ -85,13 +85,13 @@ export function WorkbenchPageReviewPanel({
         </Surface>
       ) : null}
 
-      <Surface tone="card" padding="md">
+      <Surface tone="card" material="glass-regular" padding="md">
         <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">World Rules</h3>
         <div className="mt-4 space-y-4">
           {snapshot.reviewState.worldRules.length === 0 ? (
             <ForgeEmptyState message="No workspace-scoped world rules yet." />
           ) : snapshot.reviewState.worldRules.map((rule, index) => (
-            <Surface key={rule.ruleKey} tone="card" padding="sm">
+            <Surface key={rule.ruleKey} tone="card" material="glass-thin" padding="sm">
               <div className="flex flex-wrap items-center gap-2">
                 <code className="text-xs text-[var(--nimi-text-muted)]">{rule.ruleKey}</code>
                 <ForgeStatusBadge domain="generic" status={rule.domain} tone="info" />
@@ -100,7 +100,7 @@ export function WorkbenchPageReviewPanel({
                   onChange={(event) => onUpdateWorldRule(index, {
                     hardness: event.target.value as typeof rule.hardness,
                   })}
-                  className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-2 py-1 text-xs text-[var(--nimi-text-primary)]"
+                  className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_55%,transparent)] px-2 py-1 text-xs text-[var(--nimi-text-primary)]"
                 >
                   <option value="AESTHETIC">AESTHETIC</option>
                   <option value="SOFT">SOFT</option>
@@ -126,13 +126,13 @@ export function WorkbenchPageReviewPanel({
         </div>
       </Surface>
 
-      <Surface tone="card" padding="md">
+      <Surface tone="card" material="glass-regular" padding="md">
         <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">Agent Truth</h3>
         <div className="mt-4 space-y-4">
           {snapshot.reviewState.agentBundles.map((bundle) => {
             const agentDraft = snapshot.agentDrafts[bundle.draftAgentId];
             return (
-              <Surface key={bundle.draftAgentId} tone="card" padding="sm">
+              <Surface key={bundle.draftAgentId} tone="card" material="glass-thin" padding="sm">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{agentDraft?.displayName || bundle.characterName}</p>

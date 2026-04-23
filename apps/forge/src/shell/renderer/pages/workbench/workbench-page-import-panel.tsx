@@ -18,7 +18,7 @@ export function WorkbenchPageImportPanel({
 }: WorkbenchPageImportPanelProps) {
   return (
     <section className="mx-auto max-w-5xl p-8">
-      <Surface tone="card" padding="md">
+      <Surface tone="card" material="glass-regular" padding="md">
         <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Import into Workspace</h2>
         <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">
           Import pipelines no longer publish directly. They write source fidelity and review drafts back into this workspace.

@@ -10,7 +10,15 @@ import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useWorldDetailQuery } from '@renderer/hooks/use-world-queries.js';
 import { uploadFileAsResource } from '@renderer/data/content-data-client.js';
 import { batchUpsertWorldResourceBindings } from '@renderer/data/world-data-client.js';
-import { ForgePage, ForgeLoadingSpinner, ForgeEmptyState, ForgeStatCard } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeLoadingSpinner,
+  ForgeEmptyState,
+  ForgeStatCard,
+} from '@renderer/components/page-layout.js';
 import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import { formatDate } from '@renderer/components/format-utils.js';
@@ -91,13 +99,22 @@ export default function WorldDetailPage() {
 
   return (
     <ForgePage>
-      {/* Back button */}
-      <Button tone="ghost" size="sm" onClick={() => navigate('/worlds/library')}>
-        &larr; {t('worlds.backToList', 'Back')}
-      </Button>
+      <ForgePageHeader
+        title={world.name}
+        subtitle={world.description || t('worldDetail.subtitle', 'Manage world presentation assets and inspect current world metadata.')}
+        actions={(
+          <Button tone="ghost" size="sm" onClick={() => navigate('/worlds/library')}>
+            &larr; {t('worlds.backToList', 'Back')}
+          </Button>
+        )}
+      />
 
-      {/* Banner section */}
-      <div className="relative">
+      <ForgeSection className="space-y-5" material="glass-regular">
+        <ForgeSectionHeading
+          eyebrow={t('worldDetail.presentation', 'Presentation')}
+          title={t('worldDetail.presentationAssets', 'World Presentation Assets')}
+          description={t('worldDetail.presentationAssetsHint', 'Update the banner and icon without leaving the world detail surface.')}
+        />
         <input
           ref={bannerInputRef}
           type="file"
@@ -110,7 +127,7 @@ export default function WorldDetailPage() {
           }}
         />
         {world.bannerUrl ? (
-          <div className="group relative overflow-hidden rounded-lg">
+          <Surface tone="card" material="glass-thin" padding="none" className="group relative overflow-hidden rounded-lg">
             <img
               src={world.bannerUrl}
               alt=""
@@ -128,23 +145,28 @@ export default function WorldDetailPage() {
                   : t('worldDetail.changeBanner', 'Change Banner')}
               </Button>
             </div>
-          </div>
+          </Surface>
         ) : (
-          <div
-            className="flex aspect-video w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-base)] transition-colors hover:border-[var(--nimi-text-muted)]"
+          <Surface
+            tone="card"
+            material="glass-thin"
+            padding="none"
+            interactive
             onClick={() => bannerInputRef.current?.click()}
+            className="border-2 border-dashed border-[var(--nimi-border-subtle)] transition-colors hover:border-[var(--nimi-text-muted)]"
           >
-            <span className="text-sm text-[var(--nimi-text-muted)]">
-              {uploadingBanner
-                ? t('worldDetail.uploading', 'Uploading...')
-                : t('worldDetail.uploadBanner', 'Upload Banner')}
-            </span>
-          </div>
+            <div className="flex aspect-video w-full items-center justify-center rounded-lg">
+              <span className="text-sm text-[var(--nimi-text-muted)]">
+                {uploadingBanner
+                  ? t('worldDetail.uploading', 'Uploading...')
+                  : t('worldDetail.uploadBanner', 'Upload Banner')}
+              </span>
+            </div>
+          </Surface>
         )}
-      </div>
+      </ForgeSection>
 
-      {/* Icon + name row */}
-      <div className="flex items-center gap-4">
+      <ForgeSection className="flex items-center gap-4">
         <div className="relative">
           <input
             ref={iconInputRef}
@@ -157,8 +179,12 @@ export default function WorldDetailPage() {
               e.target.value = '';
             }}
           />
-          <div
-            className="group relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-full bg-[var(--nimi-surface-card)]"
+          <Surface
+            tone="card"
+            material="glass-thin"
+            padding="none"
+            interactive
+            className="group relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-full"
             onClick={() => iconInputRef.current?.click()}
           >
             {world.iconUrl ? (
@@ -171,7 +197,7 @@ export default function WorldDetailPage() {
                 {uploadingIcon ? '...' : t('worldDetail.edit', 'Edit')}
               </span>
             </div>
-          </div>
+          </Surface>
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -184,7 +210,7 @@ export default function WorldDetailPage() {
             <p className="mt-1 text-sm text-[var(--nimi-text-muted)]">{world.description}</p>
           )}
         </div>
-      </div>
+      </ForgeSection>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -203,10 +229,11 @@ export default function WorldDetailPage() {
       </div>
 
       {/* World info section */}
-      <Surface tone="card" padding="md">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
-          {t('worldDetail.worldInfo', 'World Info')}
-        </h2>
+      <ForgeSection className="space-y-4">
+        <ForgeSectionHeading
+          eyebrow={t('worldDetail.worldInfo', 'World Info')}
+          title={t('worldDetail.metadata', 'Metadata')}
+        />
         <div className="space-y-4">
           {world.genre && (
             <InfoRow label={t('worldDetail.genre', 'Genre')} value={world.genre} />
@@ -226,7 +253,7 @@ export default function WorldDetailPage() {
             </p>
           )}
         </div>
-      </Surface>
+      </ForgeSection>
     </ForgePage>
   );
 }

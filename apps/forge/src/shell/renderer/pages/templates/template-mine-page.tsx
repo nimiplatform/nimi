@@ -45,7 +45,7 @@ export default function TemplateMinePage() {
       <ForgeSegmentControl options={STATUS_OPTIONS} value={statusFilter} onChange={setStatusFilter} />
 
       {/* Scope notice */}
-      <Surface tone="card" padding="md" className="border-[var(--nimi-status-warning)]">
+      <Surface tone="card" material="glass-thin" padding="md" className="border-[var(--nimi-status-warning)]">
         <p className="text-xs text-[var(--nimi-status-warning)]">
           {t('templates.backendNoticeDetail', 'Template workflows are deferred until they are redesigned against world-studio and world draft semantics.')}
         </p>

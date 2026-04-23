@@ -185,7 +185,7 @@ export function WorkbenchEnrichmentPanel({ workspaceId }: { workspaceId: string 
 
   return (
     <section className="mx-auto max-w-6xl space-y-6 p-8">
-      <Surface tone="card" padding="md">
+      <Surface tone="card" material="glass-regular" padding="md">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">One-Click Enrichment</h2>
@@ -222,7 +222,7 @@ export function WorkbenchEnrichmentPanel({ workspaceId }: { workspaceId: string 
         </div>
 
         {statusText ? (
-          <p className="mt-4 rounded-xl bg-[var(--nimi-surface-panel)] px-3 py-2 text-sm text-[var(--nimi-text-secondary)]">
+          <p className="mt-4 rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-3 py-2 text-sm text-[var(--nimi-text-secondary)]">
             {statusText}
           </p>
         ) : null}
@@ -231,7 +231,7 @@ export function WorkbenchEnrichmentPanel({ workspaceId }: { workspaceId: string 
       </Surface>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-        <Surface tone="card" padding="md">
+        <Surface tone="card" material="glass-regular" padding="md">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">
@@ -289,7 +289,7 @@ export function WorkbenchEnrichmentPanel({ workspaceId }: { workspaceId: string 
           </div>
         </Surface>
 
-        <Surface tone="card" padding="md">
+        <Surface tone="card" material="glass-thin" padding="md">
           <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">
             Agent Completeness
           </h3>

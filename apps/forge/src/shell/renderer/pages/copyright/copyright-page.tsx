@@ -7,8 +7,15 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeStatCard } from '@renderer/components/page-layout.js';
+import { Button, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeEmptyState,
+  ForgeStatCard,
+} from '@renderer/components/page-layout.js';
 import { ForgeTabBar, type ForgeTab } from '@renderer/components/tab-bar.js';
 
 type CopyrightTab = 'registrations' | 'licenses' | 'attributions' | 'infringements';
@@ -51,7 +58,7 @@ export default function CopyrightPage() {
       />
 
       {/* Scope notice */}
-      <Surface tone="card" padding="md" className="border-[var(--nimi-status-warning)]">
+      <Surface tone="card" material="glass-thin" padding="md" className="border-[var(--nimi-status-warning)]">
         <p className="text-sm font-medium text-[var(--nimi-status-warning)]">
           {t('copyright.backendNotice', 'Copyright Deferred')}
         </p>
@@ -86,14 +93,14 @@ function RegistrationsTab() {
       </div>
 
       {showForm && (
-        <Surface tone="card" padding="md" className="space-y-3">
+        <ForgeSection className="space-y-3">
           <div>
             <label className="mb-1.5 block text-xs text-[var(--nimi-text-secondary)]">Content Type</label>
             <div className="flex flex-wrap gap-1.5">
               {CONTENT_TYPES.map((ct) => (
                 <span
                   key={ct.value}
-                  className="rounded-[var(--nimi-radius-action)] bg-[var(--nimi-surface-panel)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)]"
+                  className="rounded-[var(--nimi-radius-action)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_60%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)]"
                 >
                   {ct.label}
                 </span>
@@ -102,14 +109,14 @@ function RegistrationsTab() {
           </div>
           <div>
             <label className="mb-1.5 block text-xs text-[var(--nimi-text-secondary)]">Title</label>
-            <input
-              type="text"
+            <TextField
               disabled
               placeholder="Registration title..."
-              className="w-full rounded-[var(--nimi-radius-action)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-1.5 text-sm text-[var(--nimi-text-primary)] placeholder-[var(--nimi-text-muted)] focus:outline-none disabled:opacity-50"
+              value=""
+              onChange={() => {}}
             />
           </div>
-        </Surface>
+        </ForgeSection>
       )}
 
       <ForgeEmptyState message={t('copyright.noRegistrations', 'No copyright registrations yet.')} />
@@ -128,7 +135,7 @@ function LicensesTab() {
 
       <div className="grid grid-cols-3 gap-2">
         {LICENSE_TYPES.map((lt) => (
-          <Surface key={lt.value} tone="card" padding="sm">
+          <Surface key={lt.value} tone="card" material="glass-thin" padding="sm">
             <p className="text-xs font-medium text-[var(--nimi-text-primary)]">{lt.short}</p>
             <p className="mt-0.5 text-[10px] text-[var(--nimi-text-muted)]">{lt.label}</p>
           </Surface>

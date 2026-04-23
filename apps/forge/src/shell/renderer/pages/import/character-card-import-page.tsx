@@ -10,7 +10,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useCharacterCardImport } from '@renderer/features/import/hooks/use-character-card-import.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
-import { ForgePage, ForgePageHeader, ForgeLoadingSpinner, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeSection,
+  ForgeSectionHeading,
+  ForgeFullscreenState,
+  ForgeLoadingSpinner,
+  ForgeErrorBanner,
+} from '@renderer/components/page-layout.js';
 
 export default function CharacterCardImportPage() {
   const { t } = useTranslation();
@@ -77,14 +85,12 @@ export default function CharacterCardImportPage() {
 
   if (!workspaceId) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm text-[var(--nimi-text-secondary)]">Character Card import requires an active workspace.</p>
-          <Button tone="primary" size="sm" onClick={() => navigate('/workbench')} className="mt-3">
-            Back to Workbench
-          </Button>
-        </div>
-      </div>
+      <ForgeFullscreenState
+        title="Character Card Import"
+        message="Character Card import requires an active workspace."
+        action="Back to Workbench"
+        onAction={() => navigate('/workbench')}
+      />
     );
   }
 
@@ -99,50 +105,52 @@ export default function CharacterCardImportPage() {
         }
       />
 
-      <Surface tone="card" padding="md">
-        <p className="text-xs uppercase tracking-[0.18em] text-[var(--nimi-status-info)]">Workspace Import</p>
-        <h2 className="mt-3 text-lg font-semibold text-[var(--nimi-text-primary)]">Character Card flows into workspace review.</h2>
-        <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">
-          Raw JSON, source fidelity evidence, weak world seeds, and agent truth drafts are written into the current workspace.
-          Review and publish happen in the workbench, not on this page.
-        </p>
-      </Surface>
+      <ForgeSection className="space-y-3" material="glass-regular">
+        <ForgeSectionHeading
+          eyebrow="Workspace Import"
+          title="Character Card flows into workspace review."
+          description="Raw JSON, source fidelity evidence, weak world seeds, and agent truth drafts are written into the current workspace. Review and publish happen in the workbench, not on this page."
+        />
+      </ForgeSection>
 
-      <Surface
-        tone="card"
-        padding="lg"
-        className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--nimi-border-subtle)] text-center transition-colors hover:border-[var(--nimi-text-muted)]"
-        onDragOver={(event: React.DragEvent) => event.preventDefault()}
-        onDrop={handleDrop}
+      <ForgeSection
+        className="border-2 border-dashed border-[var(--nimi-border-subtle)] text-center transition-colors hover:border-[var(--nimi-text-muted)]"
+        material="glass-regular"
       >
-        {loading ? (
-          <>
-            <ForgeLoadingSpinner />
-            <p className="mt-4 text-sm text-[var(--nimi-text-secondary)]">{handoffMessage || 'Preparing workspace review draft.'}</p>
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-[var(--nimi-text-secondary)]">{t('import.dropJson')}</p>
-            <Button tone="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="mt-3">
-              {t('import.browseFiles')}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          </>
-        )}
-      </Surface>
+        <div
+          className="flex flex-col items-center justify-center py-6"
+          onDragOver={(event: React.DragEvent) => event.preventDefault()}
+          onDrop={handleDrop}
+        >
+          {loading ? (
+            <>
+              <ForgeLoadingSpinner />
+              <p className="mt-4 text-sm text-[var(--nimi-text-secondary)]">{handoffMessage || 'Preparing workspace review draft.'}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-[var(--nimi-text-secondary)]">{t('import.dropJson')}</p>
+              <Button tone="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="mt-3">
+                {t('import.browseFiles')}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </>
+          )}
+        </div>
+      </ForgeSection>
 
       {validation && !validation.valid ? (
         <ForgeErrorBanner message={t('import.validationFailed')} />
       ) : null}
 
       {validation && !validation.valid ? (
-        <Surface tone="card" padding="sm" className="border-[var(--nimi-status-danger)]">
+        <Surface tone="card" material="glass-thin" padding="sm" className="border-[var(--nimi-status-danger)]">
           <ul className="space-y-1">
             {validation.errors.map((error, index) => (
               <li key={index} className="text-sm text-[var(--nimi-status-danger)]">- {error}</li>

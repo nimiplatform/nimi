@@ -32,7 +32,7 @@ export function WorkbenchPageOverviewPanel({
   return (
     <section className="mx-auto max-w-6xl p-8">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,1fr)]">
-        <Surface tone="card" padding="md">
+        <Surface tone="card" material="glass-regular" padding="md">
           <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Workspace Overview</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <LabeledTextField
@@ -94,7 +94,7 @@ export function WorkbenchPageOverviewPanel({
           </div>
         </Surface>
 
-        <Surface tone="card" padding="md">
+        <Surface tone="card" material="glass-thin" padding="md">
           <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Next Action</h2>
           <div className="mt-5 space-y-3">
             <ForgeActionCard title="Continue World Truth" onClick={() => onOpenPanel('WORLD_TRUTH')} />
@@ -106,7 +106,7 @@ export function WorkbenchPageOverviewPanel({
         </Surface>
       </div>
 
-      <Surface tone="card" padding="md" className="mt-6">
+      <Surface tone="card" material="glass-regular" padding="md" className="mt-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">World Visuals</h2>
           <div className="flex gap-2">
@@ -152,7 +152,7 @@ export function WorkbenchPageOverviewPanel({
             {imageGen.candidates.map((candidate) => (
               <div
                 key={candidate.id}
-                className="group relative overflow-hidden rounded-[var(--nimi-radius-card)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)]"
+                className="group relative overflow-hidden rounded-[var(--nimi-radius-card)] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_45%,transparent)]"
               >
                 <img src={candidate.url} alt="" className="aspect-video w-full object-cover" />
                 <div className="absolute inset-0 flex items-end bg-black/60 p-2 opacity-0 transition-opacity group-hover:opacity-100">
