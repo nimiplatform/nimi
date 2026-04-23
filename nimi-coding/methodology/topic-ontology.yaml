@@ -1,0 +1,38 @@
+version: 1
+topic_ontology:
+  primary_entities:
+    - topic
+    - wave
+    - packet
+    - result
+    - closeout
+  extended_entities:
+    - exec_pack
+    - remediation
+    - decision_review
+    - overflow_continuation
+    - true_close
+  root_artifacts:
+    - topic.yaml
+    - README.md
+    - design.md
+  governance_companions:
+    - preflight.md
+    - waves.md
+    - candidate-wave-plan.md
+    - implementation-doctrine.md
+    - admission-checklists.md
+    - manager-session-protocol.md
+    - manager-prompts.md
+  contract_refs:
+    topic: .nimi/contracts/topic.schema.yaml
+    wave: .nimi/contracts/wave.schema.yaml
+    packet: .nimi/contracts/packet.schema.yaml
+    result: .nimi/contracts/result.schema.yaml
+    closeout: .nimi/contracts/closeout.schema.yaml
+    admission_checklist: .nimi/contracts/admission-checklist.schema.yaml
+    remediation: .nimi/contracts/remediation.schema.yaml
+    decision_review: .nimi/contracts/decision-review.schema.yaml
+    overflow_continuation: .nimi/contracts/overflow-continuation.schema.yaml
+    true_close: .nimi/contracts/true-close.schema.yaml
+    forbidden_shortcuts_catalog: .nimi/contracts/forbidden-shortcuts.catalog.yaml

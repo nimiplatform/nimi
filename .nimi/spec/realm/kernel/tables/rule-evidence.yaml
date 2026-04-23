@@ -1,4 +1,4 @@
-version: 2026-04-09
+version: 2026-04-23
 owner: '@team'
 description: Hard-cut rule-to-evidence map for the refactored realm kernel. Executable backend/code provenance paths are workspace-root paths shared by the mirrored public/private realm spec roots; repo-aware checks may resolve them from the current repository root or its parent workspace root. Spec-local links such as `sources.human_spec` remain contract-local.
 profiles:
@@ -91,14 +91,36 @@ profiles:
       - PATCH /api/human/chats/{chatId}/messages/{messageId}
       - POST /api/human/chats/{chatId}/messages/{messageId}/recall
       - POST /api/human/chats/{chatId}/read
-    prisma_models: [Chat, Message]
+      - GET /api/human/group-chats
+      - POST /api/human/group-chats
+      - GET /api/human/group-chats/{chatId}
+      - PATCH /api/human/group-chats/{chatId}
+      - GET /api/human/group-chats/{chatId}/messages
+      - POST /api/human/group-chats/{chatId}/messages
+      - POST /api/human/group-chats/{chatId}/agent-messages
+      - PATCH /api/human/group-chats/{chatId}/messages/{messageId}
+      - POST /api/human/group-chats/{chatId}/messages/{messageId}/recall
+      - POST /api/human/group-chats/{chatId}/read
+      - GET /api/human/group-chats/{chatId}/sync
+      - POST /api/human/group-chats/{chatId}/participants
+      - DELETE /api/human/group-chats/{chatId}/participants/{accountId}
+      - PATCH /api/human/group-chats/{chatId}/participants/{accountId}
+      - POST /api/human/group-chats/{chatId}/agents
+      - DELETE /api/human/group-chats/{chatId}/agents/{agentAccountId}
+    prisma_models: [Chat, ChatParticipant, Message]
     service_files:
       - nimi-backend/libs/domains/chat/src/domains/chat.service.ts
       - nimi-backend/apps/api/src/modules/chat/chat.controller.ts
+      - nimi-backend/libs/domains/chat/src/domains/group-chat.service.ts
+      - nimi-backend/apps/api/src/modules/group-chat/group-chat.controller.ts
     test_files:
       - nimi-backend/apps/api/src/modules/chat/chat.controller.spec.ts
       - nimi-backend/libs/domains/chat/src/domains/chat.service.spec.ts
+      - nimi-backend/libs/domains/chat/src/domains/group-chat.service.spec.ts
       - tests/arch/social.spec.ts
+    notes:
+      - Group admission/admin authority is owned by Chat; Social only gates human admission preconditions.
+      - Agent-authored group posts require owner/slot validation to prevent spoofed authorship.
   attachment:
     openapi:
       - POST /api/world/posts
@@ -285,6 +307,8 @@ rules:
   R-CHAT-003: { domain: chat, spec_anchor: .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-003, profile_refs: [chat] }
   R-CHAT-004: { domain: chat, spec_anchor: .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-004, profile_refs: [chat] }
   R-CHAT-005: { domain: chat, spec_anchor: .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-005, profile_refs: [chat] }
+  R-CHAT-006: { domain: chat, spec_anchor: .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-006, profile_refs: [chat] }
+  R-CHAT-007: { domain: chat, spec_anchor: .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-007, profile_refs: [chat] }
   R-BIND-001: { domain: binding, spec_anchor: .nimi/spec/realm/kernel/binding-contract.md#R-BIND-001, profile_refs: [binding] }
   R-BIND-002: { domain: binding, spec_anchor: .nimi/spec/realm/kernel/binding-contract.md#R-BIND-002, profile_refs: [binding] }
   R-BIND-003: { domain: binding, spec_anchor: .nimi/spec/realm/kernel/binding-contract.md#R-BIND-003, profile_refs: [binding] }

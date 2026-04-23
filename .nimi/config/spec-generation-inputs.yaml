@@ -16,7 +16,7 @@ spec_generation_inputs:
   structure_roots:
     - .
   human_note_paths:
-    - .nimi/local/report/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md
+    - .nimi/topics/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md
   benchmark_blueprint_root: null
   benchmark_mode: none
   acceptance_mode: canonical_tree_validity_without_blueprint

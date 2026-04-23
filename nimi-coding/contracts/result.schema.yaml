@@ -1,0 +1,24 @@
+id: nimicoding.topic-result.v1
+kind: topic-result
+required:
+  - result_id
+  - topic_id
+  - wave_id
+  - result_kind
+  - verdict
+  - verified_at
+verified_at_format: iso8601_utc_timestamp
+verdict_enum:
+  - PASS
+  - NEEDS_REVISION
+  - FAIL
+  - OVERFLOW
+result_kind_enum:
+  - preflight
+  - implementation
+  - audit
+  - judgement
+rules:
+  - OVERFLOW is distinct from PASS and FAIL
+  - audit verdict must not be stronger than attached evidence
+  - result must not silently reopen a retired wave

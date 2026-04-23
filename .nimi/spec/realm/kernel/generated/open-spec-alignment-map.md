@@ -33,6 +33,8 @@ Updated: `2026-04-18`
 | R-CHAT-003 | kernel_rule | nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-003 | .nimi/spec/realm/chat.md#Scope | mapped |
 | R-CHAT-004 | kernel_rule | nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-004 | .nimi/spec/realm/chat.md#Scope | mapped |
 | R-CHAT-005 | kernel_rule | nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-005 | .nimi/spec/realm/chat.md#Scope | mapped |
+| R-CHAT-006 | kernel_rule | nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-006 | .nimi/spec/realm/chat.md#Scope | mapped |
+| R-CHAT-007 | kernel_rule | nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-007 | .nimi/spec/realm/chat.md#Scope | mapped |
 | R-SOC-001 | kernel_rule | nimi/.nimi/spec/realm/kernel/social-contract.md#R-SOC-001 | .nimi/spec/realm/social.md#Scope | mapped |
 | R-SOC-002 | kernel_rule | nimi/.nimi/spec/realm/kernel/social-contract.md#R-SOC-002 | .nimi/spec/realm/social.md#Scope | mapped |
 | R-SOC-003 | kernel_rule | nimi/.nimi/spec/realm/kernel/social-contract.md#R-SOC-003 | .nimi/spec/realm/social.md#Scope | mapped |

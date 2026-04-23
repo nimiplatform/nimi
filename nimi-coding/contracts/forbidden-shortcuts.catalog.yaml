@@ -1,0 +1,23 @@
+id: nimicoding.forbidden-shortcuts.v1
+kind: forbidden-shortcuts-catalog
+entries:
+  - key: mvp_subset_contract
+    meaning: do_not_cut_canonical_contract_truth_into_a_temporary_minimum_subset
+  - key: legacy_alias
+    meaning: do_not_keep_obsolete_semantics_alive_via_soft_aliases
+  - key: compat_shim
+    meaning: do_not_hide_owner_cut_gaps_behind_temporary_compatibility_code
+  - key: dual_read
+    meaning: do_not_keep_two_parallel_truth_read_paths_without_explicit_admission
+  - key: dual_write
+    meaning: do_not_keep_two_parallel_truth_write_paths_without_explicit_admission
+  - key: placeholder_success
+    meaning: do_not_fake_success_or_closure_when_required_truth_is_missing
+  - key: happy_path_only_closure
+    meaning: do_not_claim_closure_when_only_the_happy_path_is_closed
+  - key: time_phased_layering
+    meaning: do_not_replace_semantic_layering_with_time_sliced_core_contracts
+  - key: app_local_shadow_truth
+    meaning: do_not_let_app_local_convenience_state_become_hidden_canonical_truth
+  - key: silent_owner_cut_reopen
+    meaning: do_not_reopen_owner_domain_truth_inside_a_downstream_execution_wave

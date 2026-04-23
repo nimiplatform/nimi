@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import {
   loadBlueprintReference as loadBlueprintReferenceInternal,
   loadCommandGatingMatrix as loadCommandGatingMatrixInternal,
@@ -12,6 +14,8 @@ import {
   loadSpecReconstructionContract as loadSpecReconstructionContractInternal,
   loadSpecTreeModelContract as loadSpecTreeModelContractInternal,
 } from "./internal/contracts-loaders.mjs";
+import { readTextIfFile } from "./fs-helpers.mjs";
+import { parseYamlText } from "./yaml-helpers.mjs";
 import { matchCommandGatingRule } from "./internal/contracts-parse.mjs";
 import {
   validateDocSpecAuditSummary as validateDocSpecAuditSummaryInternal,
@@ -91,4 +95,67 @@ export function validateHighRiskAdmissionRecord(record, contract) {
 
 export function validateHighRiskAdmissionsSpec(spec, contract) {
   return validateHighRiskAdmissionsSpecInternal(spec, contract);
+}
+
+async function loadYamlWithFallback(projectRoot, primaryRef, fallbackRef) {
+  const primaryText = await readTextIfFile(path.join(projectRoot, primaryRef));
+  if (primaryText !== null) {
+    return {
+      path: primaryRef,
+      text: primaryText,
+      data: parseYamlText(primaryText),
+    };
+  }
+
+  const fallbackText = await readTextIfFile(path.join(projectRoot, fallbackRef));
+  return {
+    path: fallbackRef,
+    text: fallbackText,
+    data: parseYamlText(fallbackText),
+  };
+}
+
+export async function loadTopicRuntimeContracts(projectRoot) {
+  const [
+    topicSchema,
+    waveSchema,
+    packetSchema,
+    resultSchema,
+    closeoutSchema,
+    remediationSchema,
+    decisionReviewSchema,
+    pendingNoteSchema,
+    forbiddenShortcutsCatalog,
+    lifecycleReport,
+    fourClosurePolicy,
+    validationPolicy,
+  ] = await Promise.all([
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/topic.schema.yaml", "nimi-coding/contracts/topic.schema.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/wave.schema.yaml", "nimi-coding/contracts/wave.schema.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/packet.schema.yaml", "nimi-coding/contracts/packet.schema.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/result.schema.yaml", "nimi-coding/contracts/result.schema.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/closeout.schema.yaml", "nimi-coding/contracts/closeout.schema.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/remediation.schema.yaml", "nimi-coding/contracts/remediation.schema.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/decision-review.schema.yaml", "nimi-coding/contracts/decision-review.schema.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/pending-note.schema.yaml", "nimi-coding/contracts/pending-note.schema.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/forbidden-shortcuts.catalog.yaml", "nimi-coding/contracts/forbidden-shortcuts.catalog.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/methodology/topic-lifecycle-report.yaml", "nimi-coding/methodology/topic-lifecycle-report.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/methodology/four-closure-policy.yaml", "nimi-coding/methodology/four-closure-policy.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/methodology/topic-validation-policy.yaml", "nimi-coding/methodology/topic-validation-policy.yaml"),
+  ]);
+
+  return {
+    topicSchema,
+    waveSchema,
+    packetSchema,
+    resultSchema,
+    closeoutSchema,
+    remediationSchema,
+    decisionReviewSchema,
+    pendingNoteSchema,
+    forbiddenShortcutsCatalog,
+    lifecycleReport,
+    fourClosurePolicy,
+    validationPolicy,
+  };
 }

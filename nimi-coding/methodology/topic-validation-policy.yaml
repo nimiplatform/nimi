@@ -1,0 +1,9 @@
+version: 1
+topic_validation_policy:
+  ignored_topic_validate_semantics:
+    status: report_only
+    canonical_success: false
+  ignore_for_default_validate:
+    - topic_id: 2026-04-20-desktop-agent-live2d-companion-substrate
+      reason: historical_dense_topic_pre_machine_wave_registry
+      posture: report_only_until_hard_cut_migration

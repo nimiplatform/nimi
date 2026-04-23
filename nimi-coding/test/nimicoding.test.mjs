@@ -142,7 +142,7 @@ async function writeBlueprintReference(projectRoot, root = "spec") {
         root,
         canonical_target_root: ".nimi/spec",
         equivalence_contract_ref:
-          ".nimi/local/report/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md",
+          ".nimi/topics/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md",
       },
     }),
     "utf8",
@@ -745,6 +745,22 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
       path.join(projectRoot, ".nimi", "methodology", "core.yaml"),
       "utf8",
     );
+    const topicLifecycleReport = await readFile(
+      path.join(projectRoot, ".nimi", "methodology", "topic-lifecycle-report.yaml"),
+      "utf8",
+    );
+    const topicOntology = await readFile(
+      path.join(projectRoot, ".nimi", "methodology", "topic-ontology.yaml"),
+      "utf8",
+    );
+    const topicLifecycle = await readFile(
+      path.join(projectRoot, ".nimi", "methodology", "topic-lifecycle.yaml"),
+      "utf8",
+    );
+    const fourClosurePolicy = await readFile(
+      path.join(projectRoot, ".nimi", "methodology", "four-closure-policy.yaml"),
+      "utf8",
+    );
     const hostAdapter = await readFile(
       path.join(projectRoot, ".nimi", "config", "host-adapter.yaml"),
       "utf8",
@@ -809,6 +825,26 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
       path.join(projectRoot, ".nimi", "contracts", "execution-packet.schema.yaml"),
       "utf8",
     );
+    const topicSchema = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "topic.schema.yaml"),
+      "utf8",
+    );
+    const waveSchema = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "wave.schema.yaml"),
+      "utf8",
+    );
+    const closeoutSchema = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "closeout.schema.yaml"),
+      "utf8",
+    );
+    const pendingNoteSchema = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "pending-note.schema.yaml"),
+      "utf8",
+    );
+    const forbiddenShortcutsCatalog = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "forbidden-shortcuts.catalog.yaml"),
+      "utf8",
+    );
     const gitignore = await readFile(path.join(projectRoot, ".gitignore"), "utf8");
     const agents = await readFile(path.join(projectRoot, "AGENTS.md"), "utf8");
     const claude = await readFile(path.join(projectRoot, "CLAUDE.md"), "utf8");
@@ -822,6 +858,13 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(specGenerationInputs, /canonical_target_root: \.nimi\/spec/);
     assert.match(specGenerationInputs, /benchmark_mode: none/);
     assert.doesNotMatch(coreYaml, /cli_runtime/);
+    assert.match(topicLifecycleReport, /applicability_boundary:/);
+    assert.match(topicLifecycleReport, /small_low_risk_changes_need_topic: false/);
+    assert.match(topicOntology, /topic_ontology:/);
+    assert.match(topicOntology, /\.nimi\/contracts\/topic\.schema\.yaml/);
+    assert.match(topicLifecycle, /fine_grained_states:/);
+    assert.match(topicLifecycle, /true_closed/);
+    assert.match(fourClosurePolicy, /all_four_must_be_explicit_for_wave_closeout: true/);
     assert.match(hostAdapter, /selected_adapter_id: none/);
     assert.match(hostAdapter, /- oh_my_codex/);
     assert.match(hostAdapter, /artifact_contract_ref: \.nimi\/config\/external-execution-artifacts\.yaml/);
@@ -870,8 +913,15 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(hostCompatibilityContract, /consume_handoff_json_as_authoritative_contract/);
     assert.match(executionPacketSchema, /kind: execution-packet/);
     assert.match(executionPacketSchema, /phase_required:/);
+    assert.match(topicSchema, /nimicoding\.topic\.v1/);
+    assert.match(topicSchema, /entry_justification/);
+    assert.match(waveSchema, /overflowed/);
+    assert.match(closeoutSchema, /drift_resistance_closure/);
+    assert.match(pendingNoteSchema, /nimicoding\.pending-note\.v1/);
+    assert.match(forbiddenShortcutsCatalog, /placeholder_success/);
     assert.match(gitignore, /\.nimi\/local\//);
     assert.match(gitignore, /\.nimi\/cache\//);
+    assert.match(gitignore, /\.nimi\/topics\//);
   });
 });
 
@@ -1021,6 +1071,1632 @@ Custom guidance below.
   });
 });
 
+test("topic create scaffolds an enriched proposal topic and status/validate succeed", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "wave-one-demo",
+      "--title",
+      "Wave One Demo",
+      "--justification",
+      "authority-bearing redesign line",
+      "--applicability",
+      "authority-bearing",
+      "--json",
+    ]);
+
+    assert.equal(createResult.exitCode, 0);
+    const createPayload = JSON.parse(createResult.stdout);
+    assert.equal(createPayload.ok, true);
+    assert.equal(createPayload.command, "topic.create");
+    assert.match(createPayload.topicRef, /^\.nimi\/topics\/proposal\/\d{4}-\d{2}-\d{2}-wave-one-demo$/);
+
+    const topicDir = path.join(projectRoot, createPayload.topicRef);
+    const topicYaml = await readFile(path.join(topicDir, "topic.yaml"), "utf8");
+    assert.match(topicYaml, /title: Wave One Demo/);
+    assert.match(topicYaml, /mode: greenfield/);
+    assert.match(topicYaml, /posture: no_legacy_hard_cut/);
+    assert.match(topicYaml, /applicability: authority_bearing/);
+    assert.match(topicYaml, /execution_mode: manager_worker_auditor/);
+    await assert.doesNotReject(readFile(path.join(topicDir, "README.md"), "utf8"));
+    await assert.doesNotReject(readFile(path.join(topicDir, "design.md"), "utf8"));
+    await assert.doesNotReject(readFile(path.join(topicDir, "preflight.md"), "utf8"));
+    await assert.doesNotReject(readFile(path.join(topicDir, "waves.md"), "utf8"));
+
+    const statusResult = await captureRunCli([
+      "topic",
+      "status",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(statusResult.exitCode, 0);
+    const statusPayload = JSON.parse(statusResult.stdout);
+    assert.equal(statusPayload.ok, true);
+    assert.equal(statusPayload.command, "topic.status");
+    assert.equal(statusPayload.schemaMode, "enriched");
+    assert.equal(statusPayload.state, "proposal");
+    assert.equal(statusPayload.selectedNextTarget, "topic_design_baseline");
+    assert.equal(statusPayload.currentTrueCloseStatus, "not_started");
+
+    const validateResult = await captureRunCli([
+      "topic",
+      "validate",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(validateResult.exitCode, 0);
+    const validatePayload = JSON.parse(validateResult.stdout);
+    assert.equal(validatePayload.ok, true);
+    assert.equal(validatePayload.command, "topic.validate");
+    assert.equal(validatePayload.schemaMode, "enriched");
+    assert.deepEqual(validatePayload.warnings, []);
+
+    const previousCwd = process.cwd();
+    try {
+      process.chdir(topicDir);
+      const nestedStatusResult = await captureRunCli([
+        "topic",
+        "status",
+        "--json",
+      ]);
+      assert.equal(nestedStatusResult.exitCode, 0);
+      const nestedStatusPayload = JSON.parse(nestedStatusResult.stdout);
+      assert.equal(nestedStatusPayload.ok, true);
+      assert.equal(nestedStatusPayload.topicId, createPayload.topicId);
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+});
+
+test("topic status accepts a legacy minimal topic root and reports schema mode explicitly", async () => {
+  await withTempProject(async (projectRoot) => {
+    const topicDir = path.join(projectRoot, ".nimi", "topics", "proposal", "2026-04-23-legacy-minimal-topic");
+    await mkdir(topicDir, { recursive: true });
+    await writeFile(
+      path.join(topicDir, "topic.yaml"),
+      YAML.stringify({
+        topic_id: "2026-04-23-legacy-minimal-topic",
+        state: "proposal",
+        created_at: "2026-04-23",
+        last_transition_at: "2026-04-23",
+        last_transition_reason: "legacy_topic_root_seeded_for_status_test",
+      }),
+      "utf8",
+    );
+    await writeFile(path.join(topicDir, "README.md"), "# Legacy Minimal Topic\n", "utf8");
+    await writeFile(path.join(topicDir, "design.md"), "# Design\n", "utf8");
+
+    const statusResult = await captureRunCli([
+      "topic",
+      "status",
+      "2026-04-23-legacy-minimal-topic",
+      "--json",
+    ]);
+
+    assert.equal(statusResult.exitCode, 0);
+    const payload = JSON.parse(statusResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.schemaMode, "legacy_minimal");
+    assert.ok(payload.warnings.some((entry) => entry.includes("legacy minimal shape")));
+  });
+});
+
+test("topic validate audits the real golden fixture and reports representability without auto-migrating it", async () => {
+  const fixtureId = "2026-04-20-desktop-agent-live2d-companion-substrate";
+  const result = await runCliSubprocess([
+    "topic",
+    "validate",
+    fixtureId,
+    "--json",
+  ], { cwd: repoRoot });
+
+  assert.equal(result.exitCode, 0);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.schemaMode, "legacy_minimal");
+  assert.equal(payload.migrationPosture, "explicit_legacy_reconstruction_required");
+  assert.equal(payload.validationDisposition, "report_only");
+  assert.equal(payload.canonicalValidated, false);
+  assert.equal(payload.ignoredByPolicy, true);
+  assert.equal(payload.ignorePolicyReason, "historical_dense_topic_pre_machine_wave_registry");
+  assert.ok(payload.artifactSummary.files > 50);
+  assert.ok(payload.artifactSummary.packets > 10);
+  assert.ok(payload.artifactSummary.results > 10);
+  assert.equal(payload.featureFlags.decision_review_lineage, true);
+  assert.equal(payload.featureFlags.remediation_lineage, true);
+  assert.equal(payload.featureFlags.overflow_lineage, true);
+  assert.equal(payload.featureFlags.true_close_lineage, true);
+  assert.equal(payload.featureFlags.exec_pack_lineage, true);
+  assert.ok(payload.legacyWaveIds.includes("wave-1"));
+  assert.ok(payload.legacyWaveIds.includes("wave-6a"));
+  assert.ok(Array.isArray(payload.legacyObservedWaves));
+  const wave1 = payload.legacyObservedWaves.find((entry) => entry.wave_id === "wave-1");
+  assert.ok(wave1);
+  assert.equal(wave1.observed_lineage, "closed_lineage");
+  assert.ok(wave1.packets > 0);
+  assert.ok(wave1.closeouts > 0);
+  const wave6a = payload.legacyObservedWaves.find((entry) => entry.wave_id === "wave-6a");
+  assert.ok(wave6a);
+  assert.ok(wave6a.results > 0);
+});
+
+test("topic validate fails closed on ambiguous lifecycle naming, active-wave closeout conflict, and premature true-close", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "validator-rail-demo",
+      "--justification",
+      "validator rail demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const topicDir = path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId);
+    await writeFile(path.join(topicDir, "result-bad.md"), "# bad result\n", "utf8");
+    await writeFile(
+      path.join(topicDir, "closeout-wave-1-foundation.md"),
+      `---\n${YAML.stringify({
+        closeout_id: "wave-1-foundation",
+        topic_id: createPayload.topicId,
+        scope: "wave",
+        authority_closure: "closed",
+        semantic_closure: "closed",
+        consumer_closure: "closed",
+        drift_resistance_closure: "closed",
+        disposition: "complete",
+      }).trimEnd()}\n---\n\n# bad closeout\n`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(topicDir, "topic-true-close-audit.md"),
+      `---\n${YAML.stringify({
+        topic_id: createPayload.topicId,
+        status: "passed",
+      }).trimEnd()}\n---\n\n# premature true-close\n`,
+      "utf8",
+    );
+
+    const validateResult = await captureRunCli([
+      "topic",
+      "validate",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(validateResult.exitCode, 1);
+    const payload = JSON.parse(validateResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.ok(payload.checks.some((entry) => entry.id === "artifact_naming_unambiguous" && entry.ok === false));
+    assert.ok(payload.checks.some((entry) => entry.id === "no_active_wave_closeout_conflict" && entry.ok === false));
+    assert.ok(payload.checks.some((entry) => entry.id === "true_close_not_premature" && entry.ok === false));
+  });
+});
+
+test("topic validate fails closed when topic root state evidence is malformed", async () => {
+  await withTempProject(async (projectRoot) => {
+    const topicDir = path.join(projectRoot, ".nimi", "topics", "proposal", "2026-04-23-malformed-topic");
+    await mkdir(topicDir, { recursive: true });
+    await writeFile(
+      path.join(topicDir, "topic.yaml"),
+      YAML.stringify({
+        topic_id: "2026-04-23-malformed-topic",
+        state: "ongoing",
+        created_at: "2026-04-23",
+        last_transition_at: "2026-04-23",
+      }),
+      "utf8",
+    );
+
+    const validateResult = await captureRunCli([
+      "topic",
+      "validate",
+      "2026-04-23-malformed-topic",
+      "--json",
+    ]);
+
+    assert.equal(validateResult.exitCode, 1);
+    const payload = JSON.parse(validateResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.schemaMode, "legacy_minimal");
+    assert.ok(payload.checks.some((entry) => entry.id === "state_matches_root" && entry.ok === false));
+    assert.ok(payload.checks.some((entry) => entry.id === "minimal_state_evidence" && entry.ok === false));
+  });
+});
+
+test("topic wave add/select/admit and graph validation manage machine wave state", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "graph-demo",
+      "--justification",
+      "multi-wave authority-bearing line",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    const waveOneAdd = await captureRunCli([
+      "topic",
+      "wave",
+      "add",
+      createPayload.topicId,
+      "wave-1-foundation",
+      "foundation",
+      "--goal",
+      "close the foundation cut",
+      "--owner-domain",
+      "nimicoding/topic",
+      "--json",
+    ]);
+    assert.equal(waveOneAdd.exitCode, 0);
+
+    const waveTwoAdd = await captureRunCli([
+      "topic",
+      "wave",
+      "add",
+      createPayload.topicId,
+      "wave-2-follow-on",
+      "follow-on",
+      "--goal",
+      "close the dependent follow-on cut",
+      "--owner-domain",
+      "nimicoding/topic",
+      "--dep",
+      "wave-1-foundation",
+      "--json",
+    ]);
+    assert.equal(waveTwoAdd.exitCode, 0);
+
+    const selectResult = await captureRunCli([
+      "topic",
+      "wave",
+      "select",
+      createPayload.topicId,
+      "wave-1-foundation",
+      "--json",
+    ]);
+    assert.equal(selectResult.exitCode, 0);
+
+    const graphResult = await captureRunCli([
+      "topic",
+      "validate",
+      "graph",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(graphResult.exitCode, 0);
+    const graphPayload = JSON.parse(graphResult.stdout);
+    assert.equal(graphPayload.ok, true);
+    assert.equal(graphPayload.command, "topic.validate.graph");
+    assert.equal(graphPayload.waveCount, 2);
+
+    const admitResult = await captureRunCli([
+      "topic",
+      "wave",
+      "admit",
+      createPayload.topicId,
+      "wave-1-foundation",
+      "--json",
+    ]);
+    assert.equal(admitResult.exitCode, 0);
+    const admitPayload = JSON.parse(admitResult.stdout);
+    assert.equal(admitPayload.ok, true);
+    assert.equal(admitPayload.waveState, "preflight_admitted");
+    assert.equal(admitPayload.state, "ongoing");
+
+    const topicYamlPath = path.join(projectRoot, ".nimi", "topics", "proposal", createPayload.topicId, "topic.yaml");
+    const movedTopicYamlPath = path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId, "topic.yaml");
+    const activeTopicYamlPath = await readFile(movedTopicYamlPath, "utf8").then(() => movedTopicYamlPath).catch(() => topicYamlPath);
+    const topicYaml = YAML.parse(await readFile(activeTopicYamlPath, "utf8"));
+    const waveOne = topicYaml.waves.find((entry) => entry.wave_id === "wave-1-foundation");
+    assert.equal(waveOne.state, "preflight_admitted");
+    assert.equal(topicYaml.selected_next_target, "wave-1-foundation");
+  });
+});
+
+test("topic wave add fails closed on unresolved dependencies before mutating topic.yaml", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "graph-hardening-demo",
+      "--justification",
+      "graph hardening demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+    const topicYamlPath = path.join(projectRoot, ".nimi", "topics", "proposal", createPayload.topicId, "topic.yaml");
+
+    const addResult = await captureRunCli([
+      "topic",
+      "wave",
+      "add",
+      createPayload.topicId,
+      "wave-2-dependent",
+      "dependent",
+      "--goal",
+      "close a missing dependency",
+      "--owner-domain",
+      "nimicoding/topic",
+      "--dep",
+      "wave-1-missing",
+      "--json",
+    ]);
+    assert.equal(addResult.exitCode, 1);
+    assert.match(addResult.stderr, /missing dependency refs/);
+
+    const topicYaml = YAML.parse(await readFile(topicYamlPath, "utf8"));
+    assert.deepEqual(topicYaml.waves, []);
+  });
+});
+
+test("topic validate admission fails closed when upstream dependencies are not closed", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "admission-demo",
+      "--justification",
+      "multi-wave authority-bearing line",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+    const topicDir = path.join(projectRoot, ".nimi", "topics", "proposal", createPayload.topicId);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-2-dependent", "dependent",
+      "--goal", "close dependent", "--owner-domain", "nimicoding/topic", "--dep", "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-2-dependent", "--json",
+    ]);
+
+    const admissionResult = await captureRunCli([
+      "topic",
+      "validate",
+      "admission",
+      createPayload.topicId,
+      "wave-2-dependent",
+      "--json",
+    ]);
+    assert.equal(admissionResult.exitCode, 1);
+    const payload = JSON.parse(admissionResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.ok(payload.checks.some((entry) => entry.id === "upstream_dependencies_closed" && entry.ok === false));
+
+    const topicYaml = YAML.parse(await readFile(path.join(topicDir, "topic.yaml"), "utf8"));
+    topicYaml.waves = topicYaml.waves.map((entry) => (
+      entry.wave_id === "wave-1-foundation"
+        ? { ...entry, state: "closed" }
+        : entry
+    ));
+    await writeFile(path.join(topicDir, "topic.yaml"), YAML.stringify(topicYaml), "utf8");
+
+    const admissionPass = await captureRunCli([
+      "topic",
+      "validate",
+      "admission",
+      createPayload.topicId,
+      "wave-2-dependent",
+      "--json",
+    ]);
+    assert.equal(admissionPass.exitCode, 0);
+    const passPayload = JSON.parse(admissionPass.stdout);
+    assert.equal(passPayload.ok, true);
+  });
+});
+
+test("topic packet freeze validates required fields and writes a frozen packet artifact", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "packet-freeze-demo",
+      "--justification",
+      "packet discipline demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+
+    const draftPath = path.join(projectRoot, "draft-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-foundation-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["all required fields stay explicit"],
+        negative_tests: ["missing required field fails closed"],
+        reopen_conditions: ["owner-cut changes require new packet"],
+      }),
+      "utf8",
+    );
+
+    const freezeResult = await captureRunCli([
+      "topic",
+      "packet",
+      "freeze",
+      createPayload.topicId,
+      "--from",
+      draftPath,
+      "--json",
+    ]);
+    assert.equal(freezeResult.exitCode, 0);
+    const freezePayload = JSON.parse(freezeResult.stdout);
+    assert.equal(freezePayload.ok, true);
+    assert.equal(freezePayload.status, "candidate");
+    const packetText = await readFile(path.join(projectRoot, freezePayload.packetRef), "utf8");
+    assert.match(packetText, /^---\n/);
+    assert.match(packetText, /status: candidate/);
+
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "broken-packet",
+        topic_id: createPayload.topicId,
+      }),
+      "utf8",
+    );
+    const brokenFreeze = await captureRunCli([
+      "topic",
+      "packet",
+      "freeze",
+      createPayload.topicId,
+      "--from",
+      draftPath,
+      "--json",
+    ]);
+    assert.equal(brokenFreeze.exitCode, 1);
+    assert.match(brokenFreeze.stderr, /missing required fields/);
+  });
+});
+
+test("topic worker dispatch writes a prompt artifact and moves the selected wave into active implementation", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "dispatch-demo",
+      "--justification",
+      "dispatch discipline demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const draftPath = path.join(projectRoot, "dispatch-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-foundation-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["packet fields remain explicit"],
+        negative_tests: ["missing packet id fails"],
+        reopen_conditions: ["owner-cut change reopens packet"],
+      }),
+      "utf8",
+    );
+    await captureRunCli([
+      "topic",
+      "packet",
+      "freeze",
+      createPayload.topicId,
+      "--from",
+      draftPath,
+      "--json",
+    ]);
+
+    const dispatchResult = await captureRunCli([
+      "topic",
+      "worker",
+      "dispatch",
+      createPayload.topicId,
+      "--packet",
+      "wave-1-foundation-implementation",
+      "--json",
+    ]);
+    assert.equal(dispatchResult.exitCode, 0);
+    const dispatchPayload = JSON.parse(dispatchResult.stdout);
+    assert.equal(dispatchPayload.ok, true);
+    assert.equal(dispatchPayload.command, "topic.worker.dispatch");
+    assert.equal(dispatchPayload.waveState, "implementation_active");
+
+    const promptText = await readFile(path.join(projectRoot, dispatchPayload.promptRef), "utf8");
+    assert.match(promptText, /# Worker Dispatch/);
+    assert.match(promptText, /Packet: `wave-1-foundation-implementation`/);
+
+    const topicYaml = YAML.parse(await readFile(
+      path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId, "topic.yaml"),
+      "utf8",
+    ));
+    const wave = topicYaml.waves.find((entry) => entry.wave_id === "wave-1-foundation");
+    assert.equal(wave.state, "implementation_active");
+
+    const packetText = await readFile(
+      path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId, "packet-wave-1-foundation-implementation.md"),
+      "utf8",
+    );
+    assert.match(packetText, /status: dispatched/);
+  });
+});
+
+test("topic audit dispatch writes an audit prompt without mutating the wave back out of implementation flow", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "audit-dispatch-demo",
+      "--justification",
+      "audit dispatch coverage",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const draftPath = path.join(projectRoot, "audit-dispatch-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-foundation-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["audit prompt remains packet-bound"],
+        negative_tests: ["missing packet fails"],
+        reopen_conditions: ["owner-cut drift reopens packet"],
+      }),
+      "utf8",
+    );
+    await captureRunCli([
+      "topic",
+      "packet",
+      "freeze",
+      createPayload.topicId,
+      "--from",
+      draftPath,
+      "--json",
+    ]);
+
+    const auditDispatch = await captureRunCli([
+      "topic",
+      "audit",
+      "dispatch",
+      createPayload.topicId,
+      "--packet",
+      "wave-1-foundation-implementation",
+      "--json",
+    ]);
+    assert.equal(auditDispatch.exitCode, 0);
+    const auditPayload = JSON.parse(auditDispatch.stdout);
+    assert.equal(auditPayload.ok, true);
+    assert.equal(auditPayload.command, "topic.audit.dispatch");
+
+    const promptText = await readFile(path.join(projectRoot, auditPayload.promptRef), "utf8");
+    assert.match(promptText, /# Audit Dispatch/);
+    assert.match(promptText, /Role: `audit`/);
+  });
+});
+
+test("topic result record writes result artifacts and updates wave state by verdict", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "result-demo",
+      "--justification",
+      "result recording demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const draftPath = path.join(projectRoot, "result-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-foundation-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["result lineage remains wave-bound"],
+        negative_tests: ["missing packet lineage fails"],
+        reopen_conditions: ["owner-cut drift reopens packet"],
+      }),
+      "utf8",
+    );
+    await captureRunCli([
+      "topic",
+      "packet",
+      "freeze",
+      createPayload.topicId,
+      "--from",
+      draftPath,
+      "--json",
+    ]);
+
+    const sourcePath = path.join(projectRoot, "worker-result.md");
+    await writeFile(sourcePath, "# Worker Result\n\nImplementation closed.\n", "utf8");
+
+    const passResult = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "preflight",
+      "--verdict",
+      "PASS",
+      "--from",
+      sourcePath,
+      "--verified-at",
+      "2026-04-23T10:00:00Z",
+      "--json",
+    ]);
+    assert.equal(passResult.exitCode, 0);
+    const passPayload = JSON.parse(passResult.stdout);
+    assert.equal(passPayload.ok, true);
+    assert.equal(passPayload.waveState, "implementation_admitted");
+    assert.equal(passPayload.resultKind, "preflight");
+
+    const overflowResult = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "audit",
+      "--verdict",
+      "OVERFLOW",
+      "--from",
+      sourcePath,
+      "--verified-at",
+      "2026-04-23T11:00:00Z",
+      "--json",
+    ]);
+    assert.equal(overflowResult.exitCode, 0);
+    const overflowPayload = JSON.parse(overflowResult.stdout);
+    assert.equal(overflowPayload.ok, true);
+    assert.equal(overflowPayload.waveState, "overflowed");
+
+    const resultText = await readFile(path.join(projectRoot, overflowPayload.resultRef), "utf8");
+    assert.match(resultText, /result_kind: audit/);
+    assert.match(resultText, /verdict: OVERFLOW/);
+
+    const invalidTimestamp = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "audit",
+      "--verdict",
+      "PASS",
+      "--from",
+      sourcePath,
+      "--verified-at",
+      "2026-04-23 11:00:00",
+      "--json",
+    ]);
+    assert.equal(invalidTimestamp.exitCode, 1);
+    assert.match(invalidTimestamp.stderr, /ISO-8601 UTC timestamp/);
+  });
+});
+
+test("topic decision-review records owner-cut changes and can supersede the selected wave", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "decision-review-demo",
+      "--justification",
+      "owner-cut review demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+    const topicDir = path.join(projectRoot, ".nimi", "topics", "proposal", createPayload.topicId);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-2-follow-on", "follow-on",
+      "--goal", "close follow-on", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const reviewResult = await captureRunCli([
+      "topic",
+      "decision-review",
+      createPayload.topicId,
+      "re-cut-foundation",
+      "--decision",
+      "wave-1 is no longer the active owner cut",
+      "--replaced-scope",
+      "foundation packet line",
+      "--active-replacement-scope",
+      "wave-2-follow-on",
+      "--disposition",
+      "superseded",
+      "--target-wave",
+      "wave-1-foundation",
+      "--date",
+      "2026-04-23",
+      "--json",
+    ]);
+    assert.equal(reviewResult.exitCode, 0);
+    const reviewPayload = JSON.parse(reviewResult.stdout);
+    assert.equal(reviewPayload.ok, true);
+    assert.equal(reviewPayload.disposition, "superseded");
+    assert.equal(reviewPayload.targetWaveId, "wave-1-foundation");
+
+    const topicYaml = YAML.parse(await readFile(path.join(topicDir, "topic.yaml"), "utf8"));
+    const retiredWave = topicYaml.waves.find((entry) => entry.wave_id === "wave-1-foundation");
+    assert.equal(retiredWave.state, "superseded");
+    assert.equal(retiredWave.selected, false);
+    assert.equal(topicYaml.selected_next_target, "wave-2-follow-on");
+
+    const reviewText = await readFile(path.join(topicDir, "decision-review-re-cut-foundation.md"), "utf8");
+    assert.match(reviewText, /decision_review_id: re-cut-foundation/);
+    assert.match(reviewText, /disposition: superseded/);
+
+    const invalidReview = await captureRunCli([
+      "topic",
+      "decision-review",
+      createPayload.topicId,
+      "bad-re-cut",
+      "--decision",
+      "replacement scope is not machine identifiable",
+      "--replaced-scope",
+      "foundation packet line",
+      "--active-replacement-scope",
+      "freeform-note",
+      "--disposition",
+      "unchanged",
+      "--date",
+      "2026-04-23",
+      "--json",
+    ]);
+    assert.equal(invalidReview.exitCode, 1);
+    assert.match(invalidReview.stderr, /machine-identifiable/);
+  });
+});
+
+test("topic remediation open records explicit remediation lineage and moves the wave into needs_revision", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "remediation-demo",
+      "--justification",
+      "explicit remediation lineage demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const remediationResult = await captureRunCli([
+      "topic",
+      "remediation",
+      "open",
+      createPayload.topicId,
+      "--kind",
+      "a",
+      "--reason",
+      "split-owner-cut",
+      "--json",
+    ]);
+    assert.equal(remediationResult.exitCode, 0);
+    const remediationPayload = JSON.parse(remediationResult.stdout);
+    assert.equal(remediationPayload.ok, true);
+    assert.equal(remediationPayload.kind, "a");
+    assert.equal(remediationPayload.waveState, "needs_revision");
+
+    const topicYaml = YAML.parse(await readFile(
+      path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId, "topic.yaml"),
+      "utf8",
+    ));
+    const wave = topicYaml.waves.find((entry) => entry.wave_id === "wave-1-foundation");
+    assert.equal(wave.state, "needs_revision");
+
+    const remediationText = await readFile(path.join(projectRoot, remediationPayload.remediationRef), "utf8");
+    assert.match(remediationText, /remediation_id: wave-1-foundation-remediation-a-split-owner-cut/);
+    assert.match(remediationText, /kind: a/);
+  });
+});
+
+test("topic overflow continue records explicit continuation lineage and reopens dispatch through continuation_packet_open", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "overflow-demo",
+      "--justification",
+      "explicit overflow continuation demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const initialPacketDraft = path.join(projectRoot, "initial-overflow-packet.yaml");
+    await writeFile(
+      initialPacketDraft,
+      YAML.stringify({
+        packet_id: "wave-1-foundation-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["packet fields remain explicit"],
+        negative_tests: ["missing packet id fails"],
+        reopen_conditions: ["owner-cut change reopens packet"],
+      }),
+      "utf8",
+    );
+    await captureRunCli([
+      "topic", "packet", "freeze", createPayload.topicId, "--from", initialPacketDraft, "--json",
+    ]);
+    await captureRunCli([
+      "topic", "worker", "dispatch", createPayload.topicId, "--packet", "wave-1-foundation-implementation", "--json",
+    ]);
+
+    const overflowResultSource = path.join(projectRoot, "overflow-result.md");
+    await writeFile(overflowResultSource, "# Overflow\n\nPacket boundary was too thin.\n", "utf8");
+    const overflowResult = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "implementation",
+      "--verdict",
+      "OVERFLOW",
+      "--from",
+      overflowResultSource,
+      "--verified-at",
+      "2026-04-23T12:00:00Z",
+      "--json",
+    ]);
+    assert.equal(overflowResult.exitCode, 0);
+    const overflowPayload = JSON.parse(overflowResult.stdout);
+    assert.equal(overflowPayload.waveState, "overflowed");
+
+    const continuationPacketDraft = path.join(projectRoot, "continuation-packet.yaml");
+    await writeFile(
+      continuationPacketDraft,
+      YAML.stringify({
+        packet_id: "wave-1-foundation-continuation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["continuation stays inside owner domain"],
+        negative_tests: ["cross-domain continuation fails"],
+        reopen_conditions: ["owner-cut drift reopens packet"],
+      }),
+      "utf8",
+    );
+    await captureRunCli([
+      "topic", "packet", "freeze", createPayload.topicId, "--from", continuationPacketDraft, "--json",
+    ]);
+
+    const continueResult = await captureRunCli([
+      "topic",
+      "overflow",
+      "continue",
+      createPayload.topicId,
+      "--packet",
+      "wave-1-foundation-continuation",
+      "--overflowed-packet",
+      "wave-1-foundation-implementation",
+      "--manager-judgement",
+      "direction stayed correct and owner domain did not move",
+      "--same-owner-domain",
+      "--json",
+    ]);
+    assert.equal(continueResult.exitCode, 0);
+    const continuePayload = JSON.parse(continueResult.stdout);
+    assert.equal(continuePayload.ok, true);
+    assert.equal(continuePayload.waveState, "continuation_packet_open");
+
+    const continuationText = await readFile(path.join(projectRoot, continuePayload.continuationRef), "utf8");
+    assert.match(continuationText, /overflowed_packet_id: wave-1-foundation-implementation/);
+    assert.match(continuationText, /continuation_packet_id: wave-1-foundation-continuation/);
+    assert.match(continuationText, /same_owner_domain: true/);
+
+    const dispatchContinuation = await captureRunCli([
+      "topic",
+      "worker",
+      "dispatch",
+      createPayload.topicId,
+      "--packet",
+      "wave-1-foundation-continuation",
+      "--json",
+    ]);
+    assert.equal(dispatchContinuation.exitCode, 0);
+    const dispatchPayload = JSON.parse(dispatchContinuation.stdout);
+    assert.equal(dispatchPayload.waveState, "implementation_active");
+  });
+});
+
+test("topic closeout wave, validate closure, true-close-audit, and closeout topic enforce final closure gates", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "closeout-demo",
+      "--justification",
+      "full closure and true-close demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const draftPath = path.join(projectRoot, "closeout-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-foundation-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["closure evidence remains explicit"],
+        negative_tests: ["missing closeout evidence fails"],
+        reopen_conditions: ["owner-cut drift reopens wave"],
+      }),
+      "utf8",
+    );
+    await captureRunCli([
+      "topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json",
+    ]);
+    await captureRunCli([
+      "topic", "worker", "dispatch", createPayload.topicId, "--packet", "wave-1-foundation-implementation", "--json",
+    ]);
+    const resultSource = path.join(projectRoot, "closeout-result.md");
+    await writeFile(resultSource, "# Implementation Result\n\nWave evidence closed.\n", "utf8");
+    const resultRecord = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "implementation",
+      "--verdict",
+      "PASS",
+      "--from",
+      resultSource,
+      "--verified-at",
+      "2026-04-23T13:00:00Z",
+      "--json",
+    ]);
+    assert.equal(resultRecord.exitCode, 0);
+
+    const earlyAudit = await captureRunCli([
+      "topic",
+      "true-close-audit",
+      createPayload.topicId,
+      "--judgement",
+      "wave is still active so true close cannot pass",
+      "--json",
+    ]);
+    assert.equal(earlyAudit.exitCode, 1);
+    const earlyAuditPayload = JSON.parse(earlyAudit.stdout);
+    assert.equal(earlyAuditPayload.status, "pending");
+    assert.ok(earlyAuditPayload.checks.some((entry) => entry.id === "all_waves_terminal" && entry.ok === false));
+
+    const closeoutWave = await captureRunCli([
+      "topic",
+      "closeout",
+      "wave",
+      createPayload.topicId,
+      "wave-1-foundation",
+      "--authority",
+      "closed",
+      "--semantic",
+      "closed",
+      "--consumer",
+      "closed",
+      "--drift-resistance",
+      "closed",
+      "--disposition",
+      "complete",
+      "--json",
+    ]);
+    assert.equal(closeoutWave.exitCode, 0);
+    const closeoutWavePayload = JSON.parse(closeoutWave.stdout);
+    assert.equal(closeoutWavePayload.waveState, "closed");
+
+    const validateClosure = await captureRunCli([
+      "topic",
+      "validate",
+      "closure",
+      createPayload.topicId,
+      "wave-1-foundation",
+      "--json",
+    ]);
+    assert.equal(validateClosure.exitCode, 0);
+    const closurePayload = JSON.parse(validateClosure.stdout);
+    assert.equal(closurePayload.ok, true);
+
+    const passAudit = await captureRunCli([
+      "topic",
+      "true-close-audit",
+      createPayload.topicId,
+      "--judgement",
+      "all waves are terminal and no active target remains",
+      "--json",
+    ]);
+    assert.equal(passAudit.exitCode, 0);
+    const passAuditPayload = JSON.parse(passAudit.stdout);
+    assert.equal(passAuditPayload.status, "passed");
+
+    const closeoutTopic = await captureRunCli([
+      "topic",
+      "closeout",
+      "topic",
+      createPayload.topicId,
+      "--authority",
+      "closed",
+      "--semantic",
+      "closed",
+      "--consumer",
+      "closed",
+      "--drift-resistance",
+      "closed",
+      "--disposition",
+      "complete",
+      "--json",
+    ]);
+    assert.equal(closeoutTopic.exitCode, 0);
+    const closeoutTopicPayload = JSON.parse(closeoutTopic.stdout);
+    assert.equal(closeoutTopicPayload.state, "closed");
+    assert.equal(closeoutTopicPayload.currentTrueCloseStatus, "true_closed");
+
+    const closedTopicYaml = YAML.parse(await readFile(
+      path.join(projectRoot, ".nimi", "topics", "closed", createPayload.topicId, "topic.yaml"),
+      "utf8",
+    ));
+    assert.equal(closedTopicYaml.state, "closed");
+    assert.equal(closedTopicYaml.current_true_close_status, "true_closed");
+  });
+});
+
+test("topic hold and resume create pending-note lineage and move the topic between pending and ongoing", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "pending-resume-demo",
+      "--justification",
+      "pending hold and resume demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-2-follow-on", "follow-on",
+      "--goal", "close follow-on", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const draftPath = path.join(projectRoot, "pending-demo-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-foundation-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["pending only after prior wave is closed"],
+        negative_tests: ["active implementation hold fails"],
+        reopen_conditions: ["new owner-cut needs a fresh packet"],
+      }),
+      "utf8",
+    );
+    await captureRunCli([
+      "topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json",
+    ]);
+    await captureRunCli([
+      "topic", "worker", "dispatch", createPayload.topicId, "--packet", "wave-1-foundation-implementation", "--json",
+    ]);
+
+    const resultSource = path.join(projectRoot, "pending-demo-result.md");
+    await writeFile(resultSource, "# Result\n\nFoundation wave closed.\n", "utf8");
+    await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "implementation",
+      "--verdict",
+      "PASS",
+      "--from",
+      resultSource,
+      "--verified-at",
+      "2026-04-23T14:00:00Z",
+      "--json",
+    ]);
+    await captureRunCli([
+      "topic",
+      "closeout",
+      "wave",
+      createPayload.topicId,
+      "wave-1-foundation",
+      "--authority",
+      "closed",
+      "--semantic",
+      "closed",
+      "--consumer",
+      "closed",
+      "--drift-resistance",
+      "closed",
+      "--disposition",
+      "complete",
+      "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-2-follow-on", "--json",
+    ]);
+
+    const holdResult = await captureRunCli([
+      "topic",
+      "hold",
+      createPayload.topicId,
+      "--reason",
+      "external-dependency-wait",
+      "--summary",
+      "waiting on an external dependency before wave-2 can reopen",
+      "--reopen-criteria",
+      "dependency owner confirms the contract is stable",
+      "--json",
+    ]);
+    assert.equal(holdResult.exitCode, 0);
+    const holdPayload = JSON.parse(holdResult.stdout);
+    assert.equal(holdPayload.state, "pending");
+
+    const pendingTopicDir = path.join(projectRoot, ".nimi", "topics", "pending", createPayload.topicId);
+    const pendingNote = await readFile(path.join(pendingTopicDir, "pending-note.md"), "utf8");
+    assert.match(pendingNote, /reason: external-dependency-wait/);
+    assert.match(pendingNote, /status: active/);
+
+    const validatePending = await captureRunCli([
+      "topic",
+      "validate",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(validatePending.exitCode, 0);
+    const validatePendingPayload = JSON.parse(validatePending.stdout);
+    assert.equal(validatePendingPayload.state, "pending");
+    assert.equal(validatePendingPayload.pendingNoteStatus, "active");
+
+    const resumeResult = await captureRunCli([
+      "topic",
+      "resume",
+      createPayload.topicId,
+      "--criteria-met",
+      "dependency owner confirmed the contract is stable",
+      "--json",
+    ]);
+    assert.equal(resumeResult.exitCode, 0);
+    const resumePayload = JSON.parse(resumeResult.stdout);
+    assert.equal(resumePayload.state, "ongoing");
+
+    const resumedTopicDir = path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId);
+    const resumedPendingNote = await readFile(path.join(resumedTopicDir, "pending-note.md"), "utf8");
+    assert.match(resumedPendingNote, /status: resumed/);
+    assert.match(resumedPendingNote, /last_resume_reason: dependency owner confirmed the contract is stable/);
+  });
+});
+
+test("topic hold fails closed while active implementation tracking remains", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "pending-blocker-demo",
+      "--justification",
+      "pending blocker demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const draftPath = path.join(projectRoot, "pending-blocker-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-foundation-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["hold must refuse active implementation"],
+        negative_tests: ["implementation-active hold fails"],
+        reopen_conditions: ["new owner-cut needs a fresh packet"],
+      }),
+      "utf8",
+    );
+    await captureRunCli([
+      "topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json",
+    ]);
+    await captureRunCli([
+      "topic", "worker", "dispatch", createPayload.topicId, "--packet", "wave-1-foundation-implementation", "--json",
+    ]);
+
+    const holdResult = await captureRunCli([
+      "topic",
+      "hold",
+      createPayload.topicId,
+      "--reason",
+      "external-dependency-wait",
+      "--summary",
+      "cannot pause while implementation is still active",
+      "--reopen-criteria",
+      "not relevant",
+      "--json",
+    ]);
+    assert.equal(holdResult.exitCode, 1);
+    assert.match(holdResult.stderr, /no active implementation wave/);
+  });
+});
+
+test("topic closeout from pending requires a close trigger and records pending-note closure", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "pending-closeout-demo",
+      "--justification",
+      "close from pending demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const draftPath = path.join(projectRoot, "pending-closeout-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-foundation-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["pending closeout remains explicit"],
+        negative_tests: ["closeout from pending without close trigger fails"],
+        reopen_conditions: ["new owner-cut needs a fresh packet"],
+      }),
+      "utf8",
+    );
+    await captureRunCli([
+      "topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json",
+    ]);
+    await captureRunCli([
+      "topic", "worker", "dispatch", createPayload.topicId, "--packet", "wave-1-foundation-implementation", "--json",
+    ]);
+    const resultSource = path.join(projectRoot, "pending-closeout-result.md");
+    await writeFile(resultSource, "# Result\n\nTopic can close.\n", "utf8");
+    await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "implementation",
+      "--verdict",
+      "PASS",
+      "--from",
+      resultSource,
+      "--verified-at",
+      "2026-04-23T15:00:00Z",
+      "--json",
+    ]);
+    await captureRunCli([
+      "topic",
+      "closeout",
+      "wave",
+      createPayload.topicId,
+      "wave-1-foundation",
+      "--authority",
+      "closed",
+      "--semantic",
+      "closed",
+      "--consumer",
+      "closed",
+      "--drift-resistance",
+      "closed",
+      "--disposition",
+      "complete",
+      "--json",
+    ]);
+
+    const holdWithoutCloseTrigger = await captureRunCli([
+      "topic",
+      "hold",
+      createPayload.topicId,
+      "--reason",
+      "rollout-observation",
+      "--summary",
+      "waiting for a final closure signal",
+      "--reopen-criteria",
+      "sponsor asks for follow-on work",
+      "--json",
+    ]);
+    assert.equal(holdWithoutCloseTrigger.exitCode, 0);
+
+    const passAudit = await captureRunCli([
+      "topic",
+      "true-close-audit",
+      createPayload.topicId,
+      "--judgement",
+      "all waves are terminal and the topic may close if the close trigger exists",
+      "--json",
+    ]);
+    assert.equal(passAudit.exitCode, 0);
+
+    const closeoutWithoutTrigger = await captureRunCli([
+      "topic",
+      "closeout",
+      "topic",
+      createPayload.topicId,
+      "--authority",
+      "closed",
+      "--semantic",
+      "closed",
+      "--consumer",
+      "closed",
+      "--drift-resistance",
+      "closed",
+      "--disposition",
+      "complete",
+      "--json",
+    ]);
+    assert.equal(closeoutWithoutTrigger.exitCode, 1);
+    const closeoutWithoutTriggerPayload = JSON.parse(closeoutWithoutTrigger.stdout);
+    assert.match(closeoutWithoutTriggerPayload.error, /close trigger/);
+
+    const pendingTopicDir = path.join(projectRoot, ".nimi", "topics", "pending", createPayload.topicId);
+    const pendingNotePath = path.join(pendingTopicDir, "pending-note.md");
+    const existingPendingNote = await readFile(pendingNotePath, "utf8");
+    const closingPendingNote = YAML.parse(existingPendingNote.match(/^---\n([\s\S]*?)\n---\n/m)[1]);
+    closingPendingNote.close_trigger = "sponsor confirmed no follow-on work remains";
+    await writeFile(
+      pendingNotePath,
+      `---\n${YAML.stringify(closingPendingNote).trimEnd()}\n---\n\n# Pending Note\n`,
+      "utf8",
+    );
+
+    const closeoutTopic = await captureRunCli([
+      "topic",
+      "closeout",
+      "topic",
+      createPayload.topicId,
+      "--authority",
+      "closed",
+      "--semantic",
+      "closed",
+      "--consumer",
+      "closed",
+      "--drift-resistance",
+      "closed",
+      "--disposition",
+      "complete",
+      "--json",
+    ]);
+    assert.equal(closeoutTopic.exitCode, 0);
+    const closeoutPayload = JSON.parse(closeoutTopic.stdout);
+    assert.equal(closeoutPayload.state, "closed");
+
+    const closedPendingNote = await readFile(
+      path.join(projectRoot, ".nimi", "topics", "closed", createPayload.topicId, "pending-note.md"),
+      "utf8",
+    );
+    assert.match(closedPendingNote, /status: closed/);
+  });
+});
+
 test("version rejects unexpected trailing arguments", async () => {
   const result = await captureRunCli(["--version", "extra"]);
 
@@ -1125,7 +2801,7 @@ test("doctor emits machine-readable JSON", async () => {
     assert.ok(payload.hostCompatibility.forbiddenBehavior.includes("assume_packaged_run_kernel"));
     assert.equal(payload.hostCompatibility.genericExternalHostCompatible, true);
     assert.equal(payload.hostCompatibility.namedOverlaySupport.mode, "named_admitted_overlay_available");
-    assert.deepEqual(payload.hostCompatibility.namedOverlaySupport.admittedOverlayIds, ["oh_my_codex"]);
+    assert.deepEqual(payload.hostCompatibility.namedOverlaySupport.admittedOverlayIds, ["oh_my_codex", "claude"]);
     assert.equal(payload.hostCompatibility.namedOverlaySupport.selectedOverlayId, null);
     assert.deepEqual(payload.hostCompatibility.futureOnlyHostSurfaces, [
       {
@@ -1164,12 +2840,12 @@ test("doctor emits machine-readable JSON", async () => {
     assert.equal(payload.delegatedContracts.runtimeOwner, "external_ai_host");
     assert.equal(payload.delegatedContracts.executionMode, "delegated");
     assert.equal(payload.delegatedContracts.selectedAdapterId, "none");
-    assert.deepEqual(payload.delegatedContracts.admittedAdapterIds, ["oh_my_codex"]);
+    assert.deepEqual(payload.delegatedContracts.admittedAdapterIds, ["oh_my_codex", "claude"]);
     assert.equal(payload.delegatedContracts.adapterHandoffMode, "prompt_output_evidence_handoff");
     assert.equal(payload.delegatedContracts.semanticReviewOwner, "nimicoding_manager");
-    assert.equal(payload.adapterProfiles.admitted.length, 1);
+    assert.equal(payload.adapterProfiles.admitted.length, 2);
     assert.equal(payload.adapterProfiles.invalid.length, 0);
-    assert.equal(payload.adapterProfiles.admitted[0].id, "oh_my_codex");
+    assert.deepEqual(payload.adapterProfiles.admitted.map((entry) => entry.id), ["oh_my_codex", "claude"]);
     assert.equal(payload.adapterProfiles.admitted[0].profileRef, "adapters/oh-my-codex/profile.yaml");
     assert.equal(payload.adapterProfiles.admitted[0].hostClass, "external_execution_host");
     assert.equal(payload.adapterProfiles.admitted[0].promptHandoff.futureSurfaceStatus, "future_only_not_packaged");
@@ -1261,7 +2937,7 @@ test("blueprint-audit uses repo-local blueprint reference and can write a local 
           root: "spec",
           canonical_target_root: ".nimi/spec",
           equivalence_contract_ref:
-            ".nimi/local/report/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md",
+            ".nimi/topics/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md",
         },
       }),
       "utf8",
@@ -1302,7 +2978,7 @@ test("doctor rejects slug-date local report markdown paths in spec generation in
 
     await updateSpecGenerationInputs(projectRoot, (inputs) => {
       inputs.human_note_paths = [
-        ".nimi/local/report/nimicoding-canonical-spec-model-redesign-2026-04-11.md",
+        ".nimi/topics/nimicoding-canonical-spec-model-redesign-2026-04-11.md",
       ];
     });
 
@@ -1328,7 +3004,7 @@ test("doctor rejects slug-date equivalence report refs in blueprint reference me
           mode: "repo_spec_blueprint",
           root: "spec",
           canonical_target_root: ".nimi/spec",
-          equivalence_contract_ref: ".nimi/local/report/nimicoding-canonical-spec-model-redesign-2026-04-11.md",
+          equivalence_contract_ref: ".nimi/topics/nimicoding-canonical-spec-model-redesign-2026-04-11.md",
         },
       }),
       "utf8",
@@ -1363,7 +3039,7 @@ test("doctor accepts topic lifecycle equivalence report refs in blueprint refere
           root: "spec",
           canonical_target_root: ".nimi/spec",
           equivalence_contract_ref:
-            ".nimi/local/report/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md",
+            ".nimi/topics/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md",
         },
       }),
       "utf8",
@@ -1388,7 +3064,7 @@ test("doctor accepts topic lifecycle report paths in spec generation inputs", as
 
     await updateSpecGenerationInputs(projectRoot, (inputs) => {
       inputs.human_note_paths = [
-        ".nimi/local/report/proposal/2026-04-14-runtime-speech/design.md",
+        ".nimi/topics/proposal/2026-04-14-runtime-speech/design.md",
       ];
     });
 
@@ -1406,7 +3082,7 @@ test("doctor accepts pending topic lifecycle report paths in spec generation inp
 
     await updateSpecGenerationInputs(projectRoot, (inputs) => {
       inputs.human_note_paths = [
-        ".nimi/local/report/pending/2026-04-14-runtime-speech/design.md",
+        ".nimi/topics/pending/2026-04-14-runtime-speech/design.md",
       ];
     });
 
@@ -1443,7 +3119,7 @@ test("doctor rejects flat local report paths in spec generation inputs", async (
 
     await updateSpecGenerationInputs(projectRoot, (inputs) => {
       inputs.human_note_paths = [
-        ".nimi/local/report/2026-04-14-runtime-speech-design.md",
+        ".nimi/topics/2026-04-14-runtime-speech-design.md",
       ];
     });
 
@@ -2199,7 +3875,7 @@ test("handoff exports spec reconstruction payload during bootstrap-only mode", a
     assert.ok(payload.handoffSurface.forbiddenHostBehavior.includes("assume_packaged_run_kernel"));
     assert.equal(payload.handoffSurface.hostCompatibilitySummary.genericExternalHostCompatible, true);
     assert.equal(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.mode, "named_admitted_overlay_available");
-    assert.deepEqual(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.admittedOverlayIds, ["oh_my_codex"]);
+    assert.deepEqual(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.admittedOverlayIds, ["oh_my_codex", "claude"]);
     assert.deepEqual(payload.handoffSurface.hostCompatibilitySummary.futureOnlyHostSurfaces, [
       {
         adapterId: "oh_my_codex",
@@ -2208,7 +3884,7 @@ test("handoff exports spec reconstruction payload during bootstrap-only mode", a
       },
     ]);
     assert.equal(payload.adapter.selectedId, "none");
-    assert.deepEqual(payload.adapter.admittedIds, ["oh_my_codex"]);
+    assert.deepEqual(payload.adapter.admittedIds, ["oh_my_codex", "claude"]);
     assert.equal(payload.adapter.semanticReviewOwner, "nimicoding_manager");
     assert.equal(payload.contracts.hostAdapterRef, ".nimi/config/host-adapter.yaml");
     assert.equal(
@@ -3597,6 +5273,14 @@ test("package files publish canonical source dirs and start output matches sourc
     assert.ok(seedMap.has(".nimi/config/spec-generation-inputs.yaml"));
     assert.ok(seedMap.has(".nimi/contracts/spec-generation-inputs.schema.yaml"));
     assert.ok(seedMap.has(".nimi/contracts/spec-generation-audit.schema.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/topic.schema.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/wave.schema.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/closeout.schema.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/pending-note.schema.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/forbidden-shortcuts.catalog.yaml"));
+    assert.ok(seedMap.has(".nimi/methodology/topic-ontology.yaml"));
+    assert.ok(seedMap.has(".nimi/methodology/topic-lifecycle.yaml"));
+    assert.ok(seedMap.has(".nimi/methodology/four-closure-policy.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/spec-tree-model.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/command-gating-matrix.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/spec-authority-cutover-readiness.yaml"));
@@ -3613,8 +5297,10 @@ test("package files publish canonical source dirs and start output matches sourc
 
 test("package repo exposes package source dirs and is not treated as a host project unless initialized", async () => {
   await assert.doesNotReject(readFile(path.join(repoRoot, "methodology", "core.yaml"), "utf8"));
+  await assert.doesNotReject(readFile(path.join(repoRoot, "methodology", "topic-ontology.yaml"), "utf8"));
   await assert.doesNotReject(readFile(path.join(repoRoot, "config", "spec-generation-inputs.yaml"), "utf8"));
   await assert.doesNotReject(readFile(path.join(repoRoot, "contracts", "spec-generation-inputs.schema.yaml"), "utf8"));
+  await assert.doesNotReject(readFile(path.join(repoRoot, "contracts", "topic.schema.yaml"), "utf8"));
   await assert.doesNotReject(readFile(path.join(repoRoot, "contracts", "spec-generation-audit.schema.yaml"), "utf8"));
   await assert.doesNotReject(readFile(path.join(repoRoot, "spec", "product-scope.yaml"), "utf8"));
   await assert.doesNotReject(readFile(path.join(repoRoot, "spec", "_meta", "spec-tree-model.yaml"), "utf8"));

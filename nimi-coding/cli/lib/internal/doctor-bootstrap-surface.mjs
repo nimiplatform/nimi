@@ -110,7 +110,7 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
       "gitignore_local_state",
       missingGitignoreEntries.length === 0,
       missingGitignoreEntries.length === 0
-        ? "Local runtime state is ignored by .gitignore"
+        ? "Local nimicoding state is ignored by .gitignore"
         : `.gitignore is missing local-state entries: ${missingGitignoreEntries.join(", ")}`,
     ),
   );

@@ -1,0 +1,37 @@
+version: 1
+topic_lifecycle:
+  physical_roots:
+    - proposal
+    - ongoing
+    - pending
+    - closed
+  fine_grained_states:
+    - design_only
+    - implementation_ready
+    - implementation_active
+    - true_close_pending
+    - true_closed
+    - revoked
+    - superseded
+  transition_rules:
+    - proposal_to_ongoing
+    - ongoing_to_pending
+    - pending_to_ongoing
+    - ongoing_to_closed
+    - pending_to_closed
+    - closed_to_ongoing_requires_explicit_reopen
+  wave_states:
+    - candidate
+    - preflight_draft
+    - preflight_admitted
+    - implementation_admitted
+    - implementation_active
+    - needs_revision
+    - overflowed
+    - continuation_packet_open
+    - closed
+    - retired
+    - superseded
+  true_close_rules:
+    - passed_true_close_may_be_revoked_by_later_independent_audit
+    - revoked_true_close_requires_follow_up_lineage

@@ -1,13 +1,13 @@
 version: 2
 topic_lifecycle_report:
-  canonical_root: .nimi/local/report
+  canonical_root: .nimi/topics
   lifecycle_roots:
     - proposal
     - ongoing
     - pending
     - closed
   topic_id_pattern: YYYY-MM-DD-topic-slug
-  topic_folder_shape: .nimi/local/report/<state>/YYYY-MM-DD-topic-slug/
+  topic_folder_shape: .nimi/topics/<state>/YYYY-MM-DD-topic-slug/
   recommended_files:
     - README.md
     - design.md
@@ -25,9 +25,17 @@ topic_lifecycle_report:
       - last_transition_reason
   canonical_constraints:
     human_authored_topic_reports_must_use_canonical_root: true
-    flat_local_report_markdown_is_forbidden: true
+    flat_topic_root_markdown_is_forbidden: true
     legacy_local_report_root_allowed_for_human_topics: false
     legacy_local_execution_workspace_is_primary: false
+  applicability_boundary:
+    default_posture: authority_bearing_or_high_risk_only
+    small_low_risk_changes_need_topic: false
+    recommended_only_when:
+      - authority_bearing
+      - high_risk_refactor
+      - multi_wave_iteration
+      - complex_remediation
   movement_rules:
     allowed:
       - proposal_to_ongoing
@@ -49,6 +57,7 @@ topic_lifecycle_report:
         - scatter_one_iteration_line_across_parallel_sibling_topics
         - turn_each_small_request_into_a_new_topic_by_default
         - stay_in_indefinite_planning_without_wave_admission_or_pause
+        - normalize_topic_as_the_default_entrypoint_for_small_low_risk_work
     wave_role:
       primary_unit: bounded_execution_slice
       required_properties:

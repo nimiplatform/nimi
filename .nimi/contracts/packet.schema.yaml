@@ -1,0 +1,30 @@
+id: nimicoding.topic-packet.v1
+kind: topic-packet
+required:
+  - packet_id
+  - topic_id
+  - wave_id
+  - packet_kind
+  - status
+  - authority_owner
+  - canonical_seams
+  - forbidden_shortcuts
+  - acceptance_invariants
+  - negative_tests
+  - reopen_conditions
+status_enum:
+  - draft
+  - preflight
+  - candidate
+  - admitted
+  - dispatched
+  - closed
+  - superseded
+freeze_allowed_status_enum:
+  - draft
+  - preflight
+  - candidate
+rules:
+  - packet must not be admitted unless all six design fields are explicit
+  - packet must name only one primary wave owner domain
+  - packet must not encode scheduler/runtime transport ownership

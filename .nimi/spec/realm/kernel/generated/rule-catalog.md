@@ -5,7 +5,7 @@
 
 Generated at: 2026-04-09T00:00:00Z
 
-Total rules: 84
+Total rules: 86
 Blocked external rules: 0
 
 | Rule ID | Domain | Level | Source | Statement |
@@ -51,11 +51,13 @@ Blocked external rules: 0
 | R-WHIST-004 | world-history | must | .nimi/spec/realm/kernel/world-history-contract.md | Replay and private continuity runs must not append shared world history; only CANON_MUTATION matrix entries may do so. |
 | R-WHIST-005 | world-history | must | .nimi/spec/realm/kernel/world-history-contract.md | World History is append-only and corrections use superseding or invalidation records. |
 | R-WHIST-006 | world-history | must | .nimi/spec/realm/kernel/world-history-contract.md | App-owned narrative archives must not be represented as Realm canonical world history. |
-| R-CHAT-001 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, and sync surface. |
-| R-CHAT-002 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Realm Chat v1 supports only HUMAN_HUMAN DIRECT chat; non-human participants and non-direct shapes must fail-close. |
-| R-CHAT-003 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Social gates human chat admission, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat. |
-| R-CHAT-004 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1. |
+| R-CHAT-001 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, sync, membership, group lifecycle, and agent-slot metadata surface. |
+| R-CHAT-002 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Realm Chat v1 admits DIRECT and GROUP as canonical chat substrates; GROUP threads may contain human participants and agent slots/authors, while AI execution, prompt assembly, model routing, session orchestration, and turn execution stay outside Realm Chat. |
+| R-CHAT-003 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Social gates human participant admission preconditions, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat. |
+| R-CHAT-004 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1, and group membership does not transfer those responsibilities into Realm. |
 | R-CHAT-005 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Realm Chat canonicalizes non-text attachments as MessageType ATTACHMENT with payload.attachment generic envelope and does not expose assetId-only or resourceId-only attachment payload contracts. |
+| R-CHAT-006 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Realm Chat owns GROUP lifecycle transitions, roster management, membership roles, and agent-slot metadata; Social only gates human admission preconditions and does not own group lifecycle or agent-slot state. |
+| R-CHAT-007 | chat | must | .nimi/spec/realm/kernel/chat-contract.md | Agent-authored group posts and messages must validate thread owner and slot binding before commit, read visibility, or sync fanout, and spoofed agent authorship must fail-close. |
 | R-SOC-001 | social | must | .nimi/spec/realm/kernel/social-contract.md | Friendship is the canonical admission graph for realm-level social relationships. |
 | R-SOC-002 | social | must | .nimi/spec/realm/kernel/social-contract.md | Friendship uses ordered-pair uniqueness and cannot produce duplicate canonical rows. |
 | R-SOC-003 | social | must | .nimi/spec/realm/kernel/social-contract.md | Social defines relationship and admission facts and does not define agent-chat runtime, model routing, or turn execution. |

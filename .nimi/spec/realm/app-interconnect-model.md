@@ -3,7 +3,7 @@ id: SPEC-REALM-APP-INTERCONNECT-001
 title: Realm App Interconnect Model Bridge
 status: active
 owner: "@team"
-updated: 2026-04-18
+updated: 2026-04-23
 ---
 
 # Realm App Interconnect Model
@@ -13,7 +13,7 @@ updated: 2026-04-18
 - `kernel/truth-contract.md` (`R-TRUTH-001..008`)
 - `kernel/world-state-contract.md` (`R-WSTATE-001..006`)
 - `kernel/world-history-contract.md` (`R-WHIST-001..006`)
-- `kernel/chat-contract.md` (`R-CHAT-001..005`)
+- `kernel/chat-contract.md` (`R-CHAT-001..007`)
 - `kernel/social-contract.md` (`R-SOC-001..004`)
 - `kernel/economy-contract.md` (`R-ECON-001..004`)
 - `kernel/asset-contract.md` (`R-ASSET-101..105`)
@@ -22,7 +22,7 @@ updated: 2026-04-18
 
 ## Scope
 
-Bridge-only document. It mirrors the hard-cut realm interconnect semantics exposed by the local canonical contract set without introducing a second rule system in open `.nimi/spec`.
+Bridge-only document. It mirrors the hard-cut realm interconnect semantics exposed by the local canonical contract set, including the `direct + group` chat substrate, without introducing a second rule system in open `.nimi/spec`. External and local kernel imports are intentionally listed in parallel when they are shared 1:1 so readers can verify bridge traceability without cross-jumping between two separate mapping sections.
 
 ## Mapping Declaration
 
@@ -31,7 +31,7 @@ Bridge-only document. It mirrors the hard-cut realm interconnect semantics expos
 | `R-TRUTH-001..008` | `R-TRUTH-001..008` |
 | `R-WSTATE-001..006` | `R-WSTATE-001..006` |
 | `R-WHIST-001..006` | `R-WHIST-001..006` |
-| `R-CHAT-001..005` | `R-CHAT-001..005` |
+| `R-CHAT-001..007` | `R-CHAT-001..007` |
 | `R-SOC-001..004` | `R-SOC-001..004` |
 | `R-ECON-001..004` | `R-ECON-001..004` |
 | `R-RSRC-001..006` | `R-RSRC-001..006` |
@@ -57,4 +57,5 @@ Bridge-only document. It mirrors the hard-cut realm interconnect semantics expos
 
 - No new open-spec rule ID prefix.
 - No duplicate rule prose of kernel contracts.
+- No human-agent chat runtime, agent-agent chat runtime, model routing, or prompt/session orchestration state in this document.
 - No runtime execution evidence output in this document.

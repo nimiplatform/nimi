@@ -1,0 +1,65 @@
+id: nimicoding.topic.v1
+kind: topic
+required:
+  - topic_id
+  - state
+  - created_at
+  - last_transition_at
+  - last_transition_reason
+  - title
+  - mode
+  - posture
+  - design_policy
+  - parallel_truth
+  - layering
+  - risk
+  - applicability
+  - entry_justification
+  - execution_mode
+  - selected_next_target
+  - current_true_close_status
+  - forbidden_shortcuts
+state_enum:
+  - proposal
+  - ongoing
+  - pending
+  - closed
+mode_enum:
+  - greenfield
+  - landed
+  - superseding
+posture_enum:
+  - no_legacy_hard_cut
+  - backward_compat
+design_policy_enum:
+  - complete_contract_first
+  - mvp_incremental
+parallel_truth_enum:
+  - forbidden
+  - admitted
+layering_enum:
+  - ontology
+  - time_phased
+risk_enum:
+  - high
+  - low
+applicability_enum:
+  - authority_bearing
+  - high_risk_refactor
+  - multi_wave_iteration
+  - complex_remediation
+execution_mode_enum:
+  - inline_manager_worker
+  - manager_worker_auditor
+true_close_status_enum:
+  - not_started
+  - pending
+  - true_closed
+  - revoked
+  - superseded
+rules:
+  - topic_id must remain date-first and sortable
+  - state records coarse lifecycle root posture, not every fine-grained machine state
+  - low-risk topics are exceptional and require explicit entry_justification
+  - topic must not exist without a selected_next_target once active execution is admitted
+  - forbidden_shortcuts must use package-owned catalog keys or declared topic-local extensions

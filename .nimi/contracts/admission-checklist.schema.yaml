@@ -1,0 +1,15 @@
+id: nimicoding.admission-checklist.v1
+kind: admission-checklist
+required:
+  - checklist_id
+  - topic_id
+  - scope
+  - gate_items
+  - stop_phrases
+scope_enum:
+  - topic_entry
+  - wave_preflight
+  - implementation_admission
+rules:
+  - every gate item must be answerable as pass or fail
+  - stop phrases must remain explicit manager stop signals rather than hints

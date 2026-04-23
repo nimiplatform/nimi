@@ -1,0 +1,25 @@
+version: 1
+role_separation_policy:
+  roles:
+    manager:
+      owns:
+        - wave_graph
+        - packet_admission
+        - manager_judgement
+        - closeout_sync
+      must_not:
+        - silently_implement_production_scope_while_changing_semantics
+    worker:
+      owns:
+        - one_admitted_packet
+        - bounded_write_set_execution
+      must_not:
+        - widen_owner_domain
+        - weaken_fail_closed_rules
+    auditor:
+      owns:
+        - structural_review
+        - drift_detection
+        - closure_verification
+      must_not:
+        - silently_turn_missing_scope_into_future_follow_up

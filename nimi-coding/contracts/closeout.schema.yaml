@@ -1,0 +1,25 @@
+id: nimicoding.topic-closeout.v1
+kind: topic-closeout
+required:
+  - closeout_id
+  - topic_id
+  - scope
+  - authority_closure
+  - semantic_closure
+  - consumer_closure
+  - drift_resistance_closure
+  - disposition
+scope_enum:
+  - wave
+  - topic
+closure_enum:
+  - open
+  - closed
+  - blocked
+disposition_enum:
+  - complete
+  - partial
+  - deferred
+rules:
+  - wave closeout requires all four closure dimensions to be explicit
+  - topic closeout must not imply true close unless true-close posture is separately explicit

@@ -1,0 +1,16 @@
+id: nimicoding.remediation.v1
+kind: remediation
+required:
+  - remediation_id
+  - topic_id
+  - wave_id
+  - kind
+  - reason
+kind_enum:
+  - a
+  - b
+  - continuation
+  - execution_state_closure
+rules:
+  - remediation kind must use a package-owned enum
+  - continuation remediation must preserve packet lineage to the overflowed scope

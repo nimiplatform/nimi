@@ -1,0 +1,29 @@
+id: nimicoding.wave.v1
+kind: wave
+required:
+  - wave_id
+  - slug
+  - state
+  - primary_closure_goal
+  - deps
+  - owner_domain
+  - parallelizable_after
+  - selected
+state_enum:
+  - candidate
+  - preflight_draft
+  - preflight_admitted
+  - implementation_admitted
+  - implementation_active
+  - needs_revision
+  - overflowed
+  - continuation_packet_open
+  - closed
+  - retired
+  - superseded
+rules:
+  - deps must reference only existing wave ids inside the same topic
+  - selected true is allowed for at most one active wave in a topic
+  - retired or superseded waves must not remain dispatchable
+  - overflowed is a lifecycle state and must not be normalized to closed without explicit continuation or trim judgement
+  - continuation_packet_open means overflow continuation has been explicitly admitted and linked to a frozen continuation packet

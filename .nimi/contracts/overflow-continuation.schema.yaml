@@ -1,0 +1,12 @@
+id: nimicoding.overflow-continuation.v1
+kind: overflow-continuation
+required:
+  - topic_id
+  - wave_id
+  - overflowed_packet_id
+  - manager_judgement
+  - continuation_packet_id
+  - same_owner_domain
+rules:
+  - overflow continuation must not be used to hide a cross-domain scope expansion
+  - same_owner_domain must be explicit and true before continuation is admitted

@@ -1,0 +1,21 @@
+version: 1
+topic_naming_ontology:
+  topic_id_pattern: YYYY-MM-DD-topic-slug
+  wave_packet_patterns:
+    - packet-wave-<id>-<slug>-preflight.md
+    - packet-wave-<id>-<slug>-implementation.md
+    - packet-wave-<id>-exec-pack-<id>-<slug>.md
+  result_patterns:
+    - result-wave-<id>-<slug>-preflight.md
+    - result-wave-<id>-<slug>-implementation-admission.md
+    - result-wave-<id>-<slug>-implementation.md
+    - result-wave-<id>-<slug>-implementation-audit.md
+  special_patterns:
+    - decision-review-<slug>.md
+    - topic-true-close-audit.md
+    - closeout-topic-true-close.md
+  remediation_kind_enum:
+    - a
+    - b
+    - continuation
+    - execution_state_closure

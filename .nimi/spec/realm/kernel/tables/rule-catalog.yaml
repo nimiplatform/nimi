@@ -209,27 +209,37 @@ rules:
   - rule_id: R-CHAT-001
     domain: chat
     level: must
-    statement: Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, and sync surface.
+    statement: Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, sync, membership, group lifecycle, and agent-slot metadata surface.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-002
     domain: chat
     level: must
-    statement: Realm Chat v1 supports only HUMAN_HUMAN DIRECT chat; non-human participants and non-direct shapes must fail-close.
+    statement: Realm Chat v1 admits DIRECT and GROUP as canonical chat substrates; GROUP threads may contain human participants and agent slots/authors, while AI execution, prompt assembly, model routing, session orchestration, and turn execution stay outside Realm Chat.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-003
     domain: chat
     level: must
-    statement: Social gates human chat admission, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat.
+    statement: Social gates human participant admission preconditions, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-004
     domain: chat
     level: must
-    statement: Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1.
+    statement: Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1, and group membership does not transfer those responsibilities into Realm.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-005
     domain: chat
     level: must
     statement: Realm Chat canonicalizes non-text attachments as MessageType ATTACHMENT with payload.attachment generic envelope and does not expose assetId-only or resourceId-only attachment payload contracts.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-006
+    domain: chat
+    level: must
+    statement: Realm Chat owns GROUP lifecycle transitions, roster management, membership roles, and agent-slot metadata; Social only gates human admission preconditions and does not own group lifecycle or agent-slot state.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-007
+    domain: chat
+    level: must
+    statement: Agent-authored group posts and messages must validate thread owner and slot binding before commit, read visibility, or sync fanout, and spoofed agent authorship must fail-close.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-SOC-001
     domain: social

@@ -1,0 +1,14 @@
+version: 1
+wave_dag_policy:
+  principles:
+    - upstream_owner_cut_before_downstream_consumer_fan_out
+    - admitted_preflight_requires_real_dependency_readiness
+    - retired_or_superseded_waves_must_not_remain_dispatchable
+  parallelization:
+    allowed_only_when:
+      - owner_domain_is_already_stable
+      - write_sets_do_not_conflict
+      - manager_explicitly_allows_parallelism
+    forbidden_when:
+      - canonical_truth_is_still_being_defined
+      - downstream_wave_would_infer_upstream_shape

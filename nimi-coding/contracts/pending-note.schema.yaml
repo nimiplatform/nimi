@@ -1,0 +1,17 @@
+id: nimicoding.pending-note.v1
+kind: pending-note
+required:
+  - pending_note_id
+  - topic_id
+  - entered_from_state
+  - reason
+  - summary
+  - status
+status_enum:
+  - active
+  - resumed
+  - closed
+rules:
+  - pending note must exist before topic enters pending
+  - pending note must declare explicit reopen criteria or close trigger
+  - pending note must not coexist with active implementation tracking

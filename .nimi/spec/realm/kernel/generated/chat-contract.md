@@ -5,26 +5,31 @@
 
 Contract: `CHAT-CONTRACT-001`
 Domain: `chat`
-Version: `2026-03-25`
+Version: `2026-04-23`
 
-Rules: 5
+Rules: 7
 
 | Rule ID | Level | Title | Statement |
 | --- | --- | --- | --- |
-| R-CHAT-001 | must | chat-is-realm-domain | Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, and sync surface. |
-| R-CHAT-002 | must | human-human-direct-only-in-v1 | Realm Chat v1 supports only HUMAN_HUMAN DIRECT chat; non-human participants and non-direct shapes must fail-close. |
-| R-CHAT-003 | must | social-gates-chat-but-does-not-own-it | Social gates human chat admission, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat. |
-| R-CHAT-004 | must | agent-chat-runtime-stays-outside | Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1. |
+| R-CHAT-001 | must | chat-is-realm-domain | Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, sync, membership, group lifecycle, and agent-slot metadata surface. |
+| R-CHAT-002 | must | direct-and-group-substrate-in-v1 | Realm Chat v1 admits DIRECT and GROUP as canonical chat substrates; GROUP threads may contain human participants and agent slots/authors, while AI execution, prompt assembly, model routing, session orchestration, and turn execution stay outside Realm Chat. |
+| R-CHAT-003 | must | social-gates-chat-but-does-not-own-it | Social gates human participant admission preconditions, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat. |
+| R-CHAT-004 | must | agent-chat-runtime-stays-outside | Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1, and group membership does not transfer those responsibilities into Realm. |
 | R-CHAT-005 | must | canonical-chat-attachment-envelope | Realm Chat canonicalizes non-text attachments as MessageType ATTACHMENT with payload.attachment generic envelope and does not expose assetId-only or resourceId-only attachment payload contracts. |
+| R-CHAT-006 | must | chat-owns-group-lifecycle-and-admin-authority | Realm Chat owns GROUP lifecycle transitions, roster management, membership roles, and agent-slot metadata; Social only gates human admission preconditions and does not own group lifecycle or agent-slot state. |
+| R-CHAT-007 | must | group-agent-authorship-must-validate-slot-binding | Agent-authored group posts and messages must validate thread owner and slot binding before commit, read visibility, or sync fanout, and spoofed agent authorship must fail-close. |
 
-Entities: 2
+Entities: 5
 
 | Entity | Prisma Model | Required Fields | JSON Fields |
 | --- | --- | --- | --- |
 | ChatThread | Chat | id, type, accountIdL, accountIdH, createdAt, updatedAt |  |
 | ChatMessage | Message | id, chatId, senderId, type, createdAt | payload, interaction, diagnostics |
+| GroupChatThread | Chat | id, type, title, creatorId, createdAt, updatedAt |  |
+| GroupParticipant | ChatParticipant | chatId, accountId, role, type, joinedAt |  |
+| GroupMessage | Message | id, chatId, senderId, type, createdAt | payload, interaction, diagnostics |
 
-Required operations: 9
+Required operations: 25
 - GET /api/human/chats
 - POST /api/human/chats
 - GET /api/human/chats/{chatId}
@@ -34,5 +39,21 @@ Required operations: 9
 - PATCH /api/human/chats/{chatId}/messages/{messageId}
 - POST /api/human/chats/{chatId}/messages/{messageId}/recall
 - POST /api/human/chats/{chatId}/read
+- GET /api/human/group-chats
+- POST /api/human/group-chats
+- GET /api/human/group-chats/{chatId}
+- PATCH /api/human/group-chats/{chatId}
+- GET /api/human/group-chats/{chatId}/messages
+- POST /api/human/group-chats/{chatId}/messages
+- POST /api/human/group-chats/{chatId}/agent-messages
+- PATCH /api/human/group-chats/{chatId}/messages/{messageId}
+- POST /api/human/group-chats/{chatId}/messages/{messageId}/recall
+- POST /api/human/group-chats/{chatId}/read
+- GET /api/human/group-chats/{chatId}/sync
+- POST /api/human/group-chats/{chatId}/participants
+- DELETE /api/human/group-chats/{chatId}/participants/{accountId}
+- PATCH /api/human/group-chats/{chatId}/participants/{accountId}
+- POST /api/human/group-chats/{chatId}/agents
+- DELETE /api/human/group-chats/{chatId}/agents/{agentAccountId}
 
 Secondary operations: 0

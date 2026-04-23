@@ -41,7 +41,7 @@ export const STANDALONE_PROMOTED_PARITY_GAP_SUMMARY = [
   "scheduler_automation_notification",
 ];
 
-export const LOCAL_GITIGNORE_ENTRIES = [".nimi/local/", ".nimi/cache/"];
+export const LOCAL_GITIGNORE_ENTRIES = [".nimi/local/", ".nimi/cache/", ".nimi/topics/"];
 
 export const AGENTS_BEGIN = "<!-- nimicoding:managed:agents:start -->";
 export const AGENTS_END = "<!-- nimicoding:managed:agents:end -->";

@@ -1,0 +1,28 @@
+version: 1
+four_closure_policy:
+  closures:
+    - authority
+    - semantic
+    - consumer
+    - drift_resistance
+  rule:
+    all_four_must_be_explicit_for_wave_closeout: true
+  wave_closeout_evidence:
+    require_packet_lineage: true
+    require_result_lineage: true
+  true_close_audit_evidence:
+    require_wave_closeout_for_closed_waves: true
+    require_packet_lineage_for_closed_waves: true
+    require_result_lineage_for_closed_waves: true
+  authority_examples:
+    - canonical_owner_is_unique
+    - no_parallel_truth_remains
+  semantic_examples:
+    - required_fields_and_failure_modes_are_pinned
+    - complex_cases_are_not_deferred_as_assumptions
+  consumer_examples:
+    - normal_consumers_use_the_correct_seam
+    - shortcuts_cannot_silently_become_mainline_truth
+  drift_resistance_examples:
+    - forbidden_shortcuts_are_explicit
+    - future_implementers_cannot_easily_thin_the_design

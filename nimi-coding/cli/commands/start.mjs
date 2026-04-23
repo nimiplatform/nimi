@@ -259,8 +259,8 @@ function buildBootstrapStageLines(preview) {
 
   if (preview.missingGitignoreEntries.length > 0) {
     lines.push(styleMuted(localize(
-      "  - update `.gitignore` so local nimicoding state remains untracked",
-      "  - 更新 `.gitignore`，避免本地 nimicoding 状态被跟踪",
+      "  - update `.gitignore` so local nimicoding state and topic workspaces remain untracked by default",
+      "  - 更新 `.gitignore`，默认避免本地 nimicoding 状态和 topic 工作区被跟踪",
     )));
   }
 

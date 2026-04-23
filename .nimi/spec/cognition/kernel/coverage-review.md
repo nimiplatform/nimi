@@ -17,7 +17,7 @@ Compared sources:
 - cognition authority under `/.nimi/spec/cognition/kernel/**`
 - standalone implementation under `nimi-cognition/**`
 - baseline reports under
-  `/.nimi/local/report/closed/2026-04-15-agent-centered-cognition-kernels-and-local-models/**`
+  `/.nimi/topics/closed/2026-04-15-agent-centered-cognition-kernels-and-local-models/**`
 - runtime comparison contracts under `/.nimi/spec/runtime/kernel/**`
 
 This review does not declare repo-wide final completion. It records the current

@@ -1,0 +1,14 @@
+version: 1
+overflow_continuation_policy:
+  principles:
+    - overflow_is_not_pass
+    - overflow_is_not_automatic_rollback
+    - continuation_requires_same_owner_domain
+  allowed_when:
+    - direction_is_still_correct
+    - scope_has_not_crossed_into_a_new_owner_domain
+    - current_state_is_acceptable_but_packet_boundary_was_too_thin
+  reject_when:
+    - shadow_truth_was_introduced
+    - fallback_or_alias_was_needed
+    - packet_crossed_into_a_new_owner_domain

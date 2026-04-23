@@ -120,7 +120,7 @@ Current `nimicoding clear` behavior is intentionally narrow:
 
 Human-authored local report work now uses a topic lifecycle workspace rooted at:
 
-- `/.nimi/local/report/**`
+- `/.nimi/topics/**`
 
 Canonical topic lifecycle roots are:
 
@@ -131,7 +131,7 @@ Canonical topic lifecycle roots are:
 
 The primary organization unit is a topic folder:
 
-- `.nimi/local/report/<state>/YYYY-MM-DD-topic-slug/`
+- `.nimi/topics/<state>/YYYY-MM-DD-topic-slug/`
 
 Each topic folder should carry a lightweight `topic.yaml` state record and may
 include:
@@ -155,13 +155,22 @@ Topic folder rules:
 Canonical constraints:
 
 - human-authored topic lifecycle reports must use
-  `/.nimi/local/report/{proposal|ongoing|pending|closed}/<topic-id>/**`
-- flat markdown files directly under `/.nimi/local/report/` are outside the
+  `/.nimi/topics/{proposal|ongoing|pending|closed}/<topic-id>/**`
+- flat markdown files directly under `/.nimi/topics/` are outside the
   admitted methodology model
 - `.local/report/**` is not an accepted root for human-authored topic
   lifecycle reports; keep it only for execution evidence or machine outputs
 - `.local/work/**` is no longer the primary methodology workspace for
   human-authored topic execution materials
+
+Applicability boundary:
+
+- topic workflow is intentionally heavy and not the default entrypoint for all
+  engineering work
+- use a topic when the work is authority-bearing, high-risk, cross-module,
+  multi-wave, or likely to need remediation / re-audit discipline
+- small low-risk changes should stay on the ordinary non-topic path unless there
+  is an explicit reason they need topic-level governance
 
 Development rhythm:
 

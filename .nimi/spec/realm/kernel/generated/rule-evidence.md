@@ -3,11 +3,11 @@
 
 # Rule Evidence Map (Generated)
 
-Version: `2026-04-09`
+Version: `2026-04-23`
 Owner: `@team`
 
 Profiles: 14
-Rules mapped: 84
+Rules mapped: 86
 
 | Rule ID | Domain | OpenAPI | Prisma | Services | Tests |
 | --- | --- | --- | --- | --- | --- |
@@ -52,11 +52,13 @@ Rules mapped: 84
 | R-WHIST-004 | world-history | 2 | 1 | 2 | 2 |
 | R-WHIST-005 | world-history | 2 | 1 | 2 | 2 |
 | R-WHIST-006 | world-history | 2 | 1 | 2 | 2 |
-| R-CHAT-001 | chat | 9 | 2 | 2 | 3 |
-| R-CHAT-002 | chat | 9 | 2 | 2 | 3 |
-| R-CHAT-003 | chat | 9 | 2 | 2 | 3 |
-| R-CHAT-004 | chat | 9 | 2 | 2 | 3 |
-| R-CHAT-005 | chat | 9 | 2 | 2 | 3 |
+| R-CHAT-001 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-002 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-003 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-004 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-005 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-006 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-007 | chat | 25 | 3 | 4 | 4 |
 | R-BIND-001 | binding | 4 | 1 | 3 | 3 |
 | R-BIND-002 | binding | 4 | 1 | 3 | 3 |
 | R-BIND-003 | binding | 4 | 1 | 3 | 3 |

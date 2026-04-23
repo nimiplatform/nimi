@@ -127,6 +127,16 @@ mappings:
     external_path: nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-005
     local_anchor: .nimi/spec/realm/chat.md#Scope
     coverage_status: mapped
+  - external_id: R-CHAT-006
+    external_type: kernel_rule
+    external_path: nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-006
+    local_anchor: .nimi/spec/realm/chat.md#Scope
+    coverage_status: mapped
+  - external_id: R-CHAT-007
+    external_type: kernel_rule
+    external_path: nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-007
+    local_anchor: .nimi/spec/realm/chat.md#Scope
+    coverage_status: mapped
   - external_id: R-SOC-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/social-contract.md#R-SOC-001

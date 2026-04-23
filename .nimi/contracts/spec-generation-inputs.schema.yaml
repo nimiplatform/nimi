@@ -36,4 +36,4 @@ hard_constraints:
   - mixed_inputs_may_include_code_docs_structure_and_human_notes
   - kernel_markdown_and_kernel_tables_take_priority_over_generated_views_and_guides
   - local_report_markdown_paths_must_use_topic_lifecycle_shape
-  - human_authored_topic_reports_must_use_.nimi/local/report_as_canonical_root
+  - human_authored_topic_reports_must_use_.nimi/topics_as_canonical_root

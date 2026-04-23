@@ -12,7 +12,7 @@ const DOCTOR_DETAIL_TRANSLATIONS = new Map([
   [".nimi exists but is not a directory", ".nimi 已存在但不是目录"],
   [".nimi directory exists", ".nimi 目录存在"],
   ["Local state directories are present", "本地状态目录已存在"],
-  ["Local runtime state is ignored by .gitignore", ".gitignore 已忽略本地 runtime 状态"],
+  ["Local nimicoding state is ignored by .gitignore", ".gitignore 已忽略本地 nimicoding 状态"],
   ["bootstrap.yaml declares the package bootstrap identity", "bootstrap.yaml 已声明包的 bootstrap 身份"],
   ["bootstrap contract nimicoding.bootstrap version 1 is supported", "bootstrap contract nimicoding.bootstrap version 1 受支持"],
   ["bootstrap-state.yaml matches the bootstrap_only tree-state contract", "bootstrap-state.yaml 符合 bootstrap_only tree-state contract"],

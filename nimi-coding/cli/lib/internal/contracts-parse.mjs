@@ -50,7 +50,7 @@ const SPEC_GENERATION_ORDER_ENUM = [
   "generated_views",
   "thin_guides",
 ];
-const TOPIC_LIFECYCLE_LOCAL_REPORT_MARKDOWN = /^\.nimi\/local\/report\/(?:proposal|ongoing|pending|closed)\/\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$/;
+const TOPIC_LIFECYCLE_REPORT_MARKDOWN = /^\.nimi\/topics\/(?:proposal|ongoing|pending|closed)\/\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$/;
 
 function normalizeAuthorityModeValue(value) {
   return value === "external_blueprint_active" ? "external_authority_active" : value;
@@ -114,14 +114,14 @@ function pathStartsWithRoot(targetPath, root) {
   return targetPath === root || targetPath.startsWith(`${root}/`);
 }
 
-function isDatePrefixedLocalReportMarkdownPath(value) {
+function isDatePrefixedTopicLifecycleMarkdownPath(value) {
   if (typeof value !== "string") {
     return false;
   }
-  return TOPIC_LIFECYCLE_LOCAL_REPORT_MARKDOWN.test(value);
+  return TOPIC_LIFECYCLE_REPORT_MARKDOWN.test(value);
 }
 
-function localReportMarkdownPathsAreSortable(paths) {
+function topicLifecycleMarkdownPathsAreSortable(paths) {
   return paths.every((entry) => {
     if (typeof entry !== "string") {
       return true;
@@ -129,13 +129,13 @@ function localReportMarkdownPathsAreSortable(paths) {
     if (entry.startsWith(".local/report/")) {
       return false;
     }
-    if (!entry.startsWith(".nimi/local/report/")) {
+    if (!entry.startsWith(".nimi/topics/")) {
       return true;
     }
     if (!entry.endsWith(".md")) {
       return true;
     }
-    return isDatePrefixedLocalReportMarkdownPath(entry);
+    return isDatePrefixedTopicLifecycleMarkdownPath(entry);
   });
 }
 
@@ -226,7 +226,7 @@ export function parseSpecGenerationInputsContract(text) {
       && requiredFields.includes("benchmark_blueprint_root")
       && hardConstraints.includes("canonical_target_root_must_be_.nimi/spec")
       && hardConstraints.includes("local_report_markdown_paths_must_use_topic_lifecycle_shape")
-      && hardConstraints.includes("human_authored_topic_reports_must_use_.nimi/local/report_as_canonical_root"),
+      && hardConstraints.includes("human_authored_topic_reports_must_use_.nimi/topics_as_canonical_root"),
     requiredFields,
     generationOrderEnum,
     hardConstraints,
@@ -259,7 +259,7 @@ export function parseSpecGenerationInputsConfig(text) {
       && Array.isArray(docsRoots)
       && Array.isArray(structureRoots)
       && Array.isArray(humanNotePaths)
-      && localReportMarkdownPathsAreSortable(humanNotePaths)
+      && topicLifecycleMarkdownPathsAreSortable(humanNotePaths)
       && BLUEPRINT_MODE_ENUM.includes(benchmarkMode)
       && SPEC_GENERATION_ACCEPTANCE_MODE_ENUM.includes(acceptanceMode)
       && generationOrder.length > 0
@@ -351,7 +351,7 @@ export function parseSpecTreeModel(text) {
     && ["repo_spec_blueprint", "custom_blueprint"].includes(blueprintSource.mode)
     && typeof blueprintSource.root === "string"
     && typeof blueprintSource.equivalenceContractRef === "string"
-    && isDatePrefixedLocalReportMarkdownPath(blueprintSource.equivalenceContractRef)
+    && isDatePrefixedTopicLifecycleMarkdownPath(blueprintSource.equivalenceContractRef)
   );
 
   return {
@@ -428,7 +428,7 @@ export function parseBlueprintReference(text) {
       && typeof root === "string"
       && typeof canonicalTargetRoot === "string"
       && typeof equivalenceContractRef === "string"
-      && isDatePrefixedLocalReportMarkdownPath(equivalenceContractRef),
+      && isDatePrefixedTopicLifecycleMarkdownPath(equivalenceContractRef),
     present: true,
     mode,
     root,

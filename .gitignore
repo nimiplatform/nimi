@@ -63,6 +63,7 @@ apps/desktop/reports/
 .tmp/
 .nimi/local/
 .nimi/cache/
+.nimi/topics/
 
 # python
 __pycache__/

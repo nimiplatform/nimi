@@ -8,6 +8,7 @@ import { runHandoff } from "./commands/handoff.mjs";
 import { runIngestHighRiskExecution } from "./commands/ingest-high-risk-execution.mjs";
 import { runReviewHighRiskExecution } from "./commands/review-high-risk-execution.mjs";
 import { runStart } from "./commands/start.mjs";
+import { runTopic } from "./commands/topic.mjs";
 import { runValidateAcceptance } from "./commands/validate-acceptance.mjs";
 import { runGenerateSpecDerivedDocs } from "./commands/generate-spec-derived-docs.mjs";
 import { runValidateAiGovernance } from "./commands/validate-ai-governance.mjs";
@@ -24,6 +25,7 @@ import { VERSION } from "./constants.mjs";
 
 const COMMANDS = {
   start: runStart,
+  topic: runTopic,
   clear: runClear,
   doctor: runDoctor,
   "blueprint-audit": runBlueprintAudit,

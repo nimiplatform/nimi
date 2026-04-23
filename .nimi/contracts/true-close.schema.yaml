@@ -1,0 +1,15 @@
+id: nimicoding.true-close.v1
+kind: true-close
+required:
+  - topic_id
+  - status
+  - audit_ref
+  - judgement_ref
+status_enum:
+  - pending
+  - passed
+  - revoked
+  - superseded
+rules:
+  - passed true close may later become revoked
+  - revoked true close must point at the follow-up audit or remediation lineage

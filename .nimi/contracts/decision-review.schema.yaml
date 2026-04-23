@@ -1,0 +1,16 @@
+id: nimicoding.decision-review.v1
+kind: decision-review
+required:
+  - decision_review_id
+  - topic_id
+  - date
+  - decision
+  - replaced_scope
+  - active_replacement_scope
+disposition_enum:
+  - retired
+  - superseded
+  - unchanged
+rules:
+  - decision review must explicitly state whether prior scope is retired, superseded, or unchanged
+  - active replacement scope must be machine-identifiable
