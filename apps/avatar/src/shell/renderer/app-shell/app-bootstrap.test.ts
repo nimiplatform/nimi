@@ -19,6 +19,11 @@ const startDaemonMock = vi.fn();
 const onShellReadyMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
 const openConversationAnchorMock = vi.fn();
+const requestTurnMock = vi.fn();
+const interruptTurnMock = vi.fn();
+const routeListOptionsMock = vi.fn();
+const routeCheckHealthMock = vi.fn();
+const sttTranscribeMock = vi.fn();
 const driverStopMock = vi.fn();
 let watchedAuthSessionChange:
   | ((session: {
@@ -158,9 +163,15 @@ describe('bootstrapAvatar', () => {
     onShellReadyMock.mockReset();
     setAlwaysOnTopMock.mockReset();
     openConversationAnchorMock.mockReset();
+    requestTurnMock.mockReset();
+    interruptTurnMock.mockReset();
+    routeListOptionsMock.mockReset();
+    routeCheckHealthMock.mockReset();
+    sttTranscribeMock.mockReset();
     driverStopMock.mockReset();
     watchedAuthSessionChange = null;
     watchedAuthSessionError = null;
+    window.localStorage.clear();
     onShellReadyMock.mockResolvedValue(() => {});
     setAlwaysOnTopMock.mockResolvedValue(undefined);
     watchAuthSessionChangesMock.mockImplementation((input: {
@@ -215,23 +226,73 @@ describe('bootstrapAvatar', () => {
       },
       shouldClearPersistedSession: false,
     });
-    bootstrapAuthSessionMock.mockResolvedValue({
-      id: 'user-1',
-      displayName: 'Avatar User',
+    bootstrapAuthSessionMock.mockImplementation(async () => {
+      useAvatarStore.getState().setAuthSession(
+        {
+          id: 'user-1',
+          displayName: 'Avatar User',
+        },
+        'access-token',
+        'refresh-token',
+      );
+      return {
+        id: 'user-1',
+        displayName: 'Avatar User',
+      };
     });
     startDaemonMock.mockResolvedValue({ running: true });
     createPlatformClientMock.mockResolvedValue({
       runtime: {
         ready: async () => undefined,
+        route: {
+          listOptions: (...args: unknown[]) => routeListOptionsMock(...args),
+          checkHealth: (...args: unknown[]) => routeCheckHealthMock(...args),
+        },
+        media: {
+          stt: {
+            transcribe: (...args: unknown[]) => sttTranscribeMock(...args),
+          },
+        },
         agent: {
           anchors: {
             open: (...args: unknown[]) => openConversationAnchorMock(...args),
+          },
+          turns: {
+            request: (...args: unknown[]) => requestTurnMock(...args),
+            interrupt: (...args: unknown[]) => interruptTurnMock(...args),
           },
         },
       },
       realm: {},
     });
     openConversationAnchorMock.mockResolvedValue({ conversationAnchorId: 'anchor-opened' });
+    routeListOptionsMock.mockResolvedValue({
+      capability: 'audio.transcribe',
+      selected: {
+        source: 'cloud',
+        connectorId: 'connector-stt',
+        model: 'stt-model',
+        modelId: 'stt-model',
+      },
+      resolvedDefault: null,
+      local: {
+        models: [],
+      },
+      connectors: [],
+    });
+    routeCheckHealthMock.mockResolvedValue({
+      healthy: true,
+      status: 'healthy',
+      provider: 'speech',
+      actionHint: 'none',
+      reasonCode: 'RUNTIME_ROUTE_HEALTHY',
+    });
+    sttTranscribeMock.mockResolvedValue({
+      text: 'spoken anchor note',
+      artifacts: [],
+      trace: {},
+      job: {} as never,
+    });
   });
 
   it('boots through sdk as the normal path and does not require mock fixture input', async () => {
@@ -264,6 +325,22 @@ describe('bootstrapAvatar', () => {
     expect(openConversationAnchorMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().consume.authority).toBe('runtime');
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('instance-1');
+
+    await handle.shutdown();
+  });
+
+  it('hydrates the persisted always-on-top preference before shell bootstrap applies window posture', async () => {
+    window.localStorage.setItem('nimi.avatar.shell-settings.v1', JSON.stringify({
+      schemaVersion: 1,
+      alwaysOnTop: false,
+    }));
+    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+
+    expect(setAlwaysOnTopMock).toHaveBeenCalledWith(false);
+    expect(useAvatarStore.getState().shell.alwaysOnTop).toBe(false);
 
     await handle.shutdown();
   });
@@ -456,6 +533,220 @@ describe('bootstrapAvatar', () => {
     expect(useAvatarStore.getState().bundle).toBeNull();
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBeNull();
     expect(useAvatarStore.getState().driver.status).toBe('stopped');
+
+    await handle.shutdown();
+  });
+
+  it('submits Wave 2 text turns only to the current explicit agent and anchor binding', async () => {
+    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
+    requestTurnMock.mockResolvedValue({ accepted: true });
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+    useAvatarStore.getState().setBundle({
+      ...useAvatarStore.getState().bundle!,
+      custom: {
+        execution_binding: {
+          route: 'cloud',
+          modelId: 'gpt-5.4-mini',
+          connectorId: 'connector-text',
+        },
+      },
+    });
+
+    await handle.requestTextTurn({
+      agentId: 'agent-launch',
+      conversationAnchorId: 'anchor-launch',
+      text: 'hello from avatar',
+    });
+
+    expect(requestTurnMock).toHaveBeenCalledWith({
+      agentId: 'agent-launch',
+      conversationAnchorId: 'anchor-launch',
+      worldId: 'world-1',
+      messages: [{ role: 'user', content: 'hello from avatar' }],
+      executionBinding: {
+        route: 'cloud',
+        modelId: 'gpt-5.4-mini',
+        connectorId: 'connector-text',
+      },
+    });
+
+    await handle.shutdown();
+  });
+
+  it('rejects Wave 2 text turns when same-agent traffic points at a different anchor', async () => {
+    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+    await expect(handle.requestTextTurn({
+      agentId: 'agent-launch',
+      conversationAnchorId: 'anchor-other',
+      text: 'wrong anchor',
+    })).rejects.toThrow('avatar companion input requires the current explicit agent and anchor binding');
+    expect(requestTurnMock).not.toHaveBeenCalled();
+
+    await handle.shutdown();
+  });
+
+  it('submits Wave 3 voice captures only through the current explicit agent and anchor binding', async () => {
+    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
+    requestTurnMock.mockResolvedValue({ accepted: true });
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+    useAvatarStore.getState().setBundle({
+      ...useAvatarStore.getState().bundle!,
+      custom: {
+        execution_binding: {
+          route: 'cloud',
+          modelId: 'gpt-5.4-mini',
+          connectorId: 'connector-text',
+        },
+      },
+    });
+
+    const result = await handle.submitVoiceCaptureTurn({
+      agentId: 'agent-launch',
+      conversationAnchorId: 'anchor-launch',
+      audioBytes: new Uint8Array([9, 8, 7]),
+      mimeType: 'audio/webm',
+      language: 'en-US',
+    });
+
+    expect(routeListOptionsMock).toHaveBeenCalledWith({
+      capability: 'audio.transcribe',
+    });
+    expect(routeCheckHealthMock).toHaveBeenCalledWith({
+      capability: 'audio.transcribe',
+      binding: expect.objectContaining({
+        modelId: 'stt-model',
+        connectorId: 'connector-stt',
+      }),
+    });
+    expect(sttTranscribeMock).toHaveBeenCalledWith(expect.objectContaining({
+      model: 'stt-model',
+      route: 'cloud',
+      connectorId: 'connector-stt',
+      mimeType: 'audio/webm',
+      language: 'en-US',
+    }));
+    expect(requestTurnMock).toHaveBeenCalledWith({
+      agentId: 'agent-launch',
+      conversationAnchorId: 'anchor-launch',
+      worldId: 'world-1',
+      messages: [{ role: 'user', content: 'spoken anchor note' }],
+      executionBinding: {
+        route: 'cloud',
+        modelId: 'gpt-5.4-mini',
+        connectorId: 'connector-text',
+      },
+    });
+    expect(result).toEqual({
+      transcript: 'spoken anchor note',
+    });
+
+    await handle.shutdown();
+  });
+
+  it('rejects Wave 3 voice captures when same-agent traffic points at a different anchor', async () => {
+    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+
+    await expect(handle.submitVoiceCaptureTurn({
+      agentId: 'agent-launch',
+      conversationAnchorId: 'anchor-other',
+      audioBytes: new Uint8Array([1]),
+      mimeType: 'audio/webm',
+    })).rejects.toThrow('Foreground voice requires the current explicit agent and anchor binding');
+    expect(sttTranscribeMock).not.toHaveBeenCalled();
+    expect(requestTurnMock).not.toHaveBeenCalled();
+
+    await handle.shutdown();
+  });
+
+  it('does not submit a reply turn when the voice request is aborted after transcription resolves', async () => {
+    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
+    requestTurnMock.mockResolvedValue({ accepted: true });
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+    useAvatarStore.getState().setBundle({
+      ...useAvatarStore.getState().bundle!,
+      custom: {
+        execution_binding: {
+          route: 'cloud',
+          modelId: 'gpt-5.4-mini',
+          connectorId: 'connector-text',
+        },
+      },
+    });
+
+    const controller = new AbortController();
+    sttTranscribeMock.mockImplementationOnce(async () => {
+      controller.abort();
+      return {
+        text: 'spoken anchor note',
+        artifacts: [],
+        trace: {},
+        job: {} as never,
+      };
+    });
+
+    await expect(handle.submitVoiceCaptureTurn({
+      agentId: 'agent-launch',
+      conversationAnchorId: 'anchor-launch',
+      audioBytes: new Uint8Array([9, 8, 7]),
+      mimeType: 'audio/webm',
+      signal: controller.signal,
+    })).rejects.toThrow('Foreground voice request aborted before reply submission.');
+    expect(requestTurnMock).not.toHaveBeenCalled();
+
+    await handle.shutdown();
+  });
+
+  it('does not submit a reply turn when the current explicit anchor binding changes before request', async () => {
+    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
+    requestTurnMock.mockResolvedValue({ accepted: true });
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+    useAvatarStore.getState().setBundle({
+      ...useAvatarStore.getState().bundle!,
+      custom: {
+        execution_binding: {
+          route: 'cloud',
+          modelId: 'gpt-5.4-mini',
+          connectorId: 'connector-text',
+        },
+      },
+    });
+
+    sttTranscribeMock.mockImplementationOnce(async () => {
+      useAvatarStore.getState().setRuntimeBinding({
+        avatarInstanceId: 'instance-2',
+        conversationAnchorId: 'anchor-rebound',
+        agentId: 'agent-launch',
+        worldId: 'world-1',
+      });
+      return {
+        text: 'spoken anchor note',
+        artifacts: [],
+        trace: {},
+        job: {} as never,
+      };
+    });
+
+    await expect(handle.submitVoiceCaptureTurn({
+      agentId: 'agent-launch',
+      conversationAnchorId: 'anchor-launch',
+      audioBytes: new Uint8Array([9, 8, 7]),
+      mimeType: 'audio/webm',
+    })).rejects.toThrow('Foreground voice requires the current explicit agent and anchor binding');
+    expect(requestTurnMock).not.toHaveBeenCalled();
 
     await handle.shutdown();
   });

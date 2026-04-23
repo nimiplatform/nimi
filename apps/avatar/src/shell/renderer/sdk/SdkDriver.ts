@@ -109,6 +109,31 @@ function mergeHistory(
   };
 }
 
+function mergeCustomRecord(
+  current: AgentDataBundle['custom'],
+  next: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
+    ...(current || {}),
+    ...next,
+  };
+}
+
+function clearTurnCueRecord(
+  current: AgentDataBundle['custom'],
+  next?: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
+    ...(current || {}),
+    active_turn_id: null,
+    active_turn_stream_id: null,
+    active_turn_phase: null,
+    active_turn_text: null,
+    active_turn_updated_at: null,
+    ...(next || {}),
+  };
+}
+
 export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
@@ -272,18 +297,122 @@ export class SdkDriver implements AgentDataDriver {
     };
   }
 
+  private setActiveTurnCue(input: {
+    turnId: string;
+    streamId: string;
+    phase: 'accepted' | 'started' | 'streaming' | 'committed';
+    text?: string;
+    at: string;
+  }): void {
+    this.bundle = {
+      ...this.bundle,
+      custom: mergeCustomRecord(this.bundle.custom, {
+        active_turn_id: input.turnId,
+        active_turn_stream_id: input.streamId,
+        active_turn_phase: input.phase,
+        active_turn_text: input.text ?? null,
+        active_turn_updated_at: input.at,
+        last_turn_terminal_phase: null,
+        last_turn_terminal_id: null,
+        last_turn_terminal_at: null,
+        last_turn_terminal_reason: null,
+        last_interrupted_turn_id: null,
+      }),
+    };
+  }
+
+  private updateActiveTurnText(input: {
+    turnId: string;
+    streamId: string;
+    text: string;
+    at: string;
+  }): void {
+    const currentCustom = this.bundle.custom || {};
+    const previousText = String(currentCustom['active_turn_text'] || '');
+    this.bundle = {
+      ...this.bundle,
+      custom: mergeCustomRecord(this.bundle.custom, {
+        active_turn_id: input.turnId,
+        active_turn_stream_id: input.streamId,
+        active_turn_phase: 'streaming',
+        active_turn_text: previousText + input.text,
+        active_turn_updated_at: input.at,
+      }),
+    };
+  }
+
+  private clearActiveTurnCue(input: {
+    phase: 'completed' | 'failed' | 'interrupted' | 'interrupt_ack';
+    turnId: string;
+    at: string;
+    reason?: string | null;
+    interruptedTurnId?: string | null;
+  }): void {
+    this.bundle = {
+      ...this.bundle,
+      custom: clearTurnCueRecord(this.bundle.custom, {
+        last_turn_terminal_phase: input.phase,
+        last_turn_terminal_id: input.turnId,
+        last_turn_terminal_at: input.at,
+        last_turn_terminal_reason: input.reason ?? null,
+        last_interrupted_turn_id: input.interruptedTurnId ?? null,
+      }),
+    };
+  }
+
+  private setLatestCommittedMessage(input: {
+    messageId?: string;
+    turnId?: string;
+    text?: string;
+    at: string;
+  }): void {
+    if (!String(input.text || '').trim()) {
+      return;
+    }
+    this.bundle = {
+      ...this.bundle,
+      custom: mergeCustomRecord(this.bundle.custom, {
+        latest_committed_message_id: input.messageId ?? null,
+        latest_committed_turn_id: input.turnId ?? null,
+        latest_committed_message_text: input.text ?? '',
+        latest_committed_message_at: input.at,
+      }),
+    };
+  }
+
   private applySessionSnapshot(snapshot: RuntimeAgentSessionSnapshot): void {
+    const lastTurnUpdatedAt = snapshot.lastTurn?.updatedAt || new Date(this.now()).toISOString();
+    const activeTurnUpdatedAt = snapshot.activeTurn?.updatedAt || new Date(this.now()).toISOString();
     this.bundle = {
       ...this.bundle,
       status_text: String(snapshot.activeTurn?.text || snapshot.lastTurn?.text || this.bundle.status_text || ''),
       execution_state: mapExecutionState(snapshot.activeTurn ? 'chat_active' : undefined),
-      custom: {
-        ...(this.bundle.custom || {}),
+      custom: mergeCustomRecord(this.bundle.custom, {
         session_status: snapshot.sessionStatus || null,
         transcript_message_count: snapshot.transcriptMessageCount ?? null,
         execution_binding: snapshot.executionBinding ?? null,
-      },
+      }),
     };
+    if (snapshot.activeTurn?.turnId) {
+      this.setActiveTurnCue({
+        turnId: snapshot.activeTurn.turnId,
+        streamId: snapshot.activeTurn.turnId,
+        phase: 'started',
+        text: snapshot.activeTurn.text || '',
+        at: activeTurnUpdatedAt,
+      });
+    } else {
+      this.bundle = {
+        ...this.bundle,
+        custom: clearTurnCueRecord(this.bundle.custom),
+      };
+    }
+    this.setLatestCommittedMessage({
+      messageId: snapshot.lastTurn?.messageId,
+      turnId: snapshot.lastTurn?.turnId,
+      text: snapshot.lastTurn?.text,
+      at: lastTurnUpdatedAt,
+    });
     this.touchRuntimeNow();
     this.publishBundle();
   }
@@ -405,24 +534,86 @@ export class SdkDriver implements AgentDataDriver {
         };
         break;
       case 'runtime.agent.turn.message_committed':
+        this.setActiveTurnCue({
+          turnId: event.turnId,
+          streamId: event.streamId,
+          phase: 'committed',
+          text: event.detail.text || '',
+          at: new Date(this.now()).toISOString(),
+        });
+        this.setLatestCommittedMessage({
+          messageId: event.detail.messageId,
+          turnId: event.turnId,
+          text: event.detail.text,
+          at: new Date(this.now()).toISOString(),
+        });
         this.bundle = {
           ...this.bundle,
           status_text: event.detail.text || this.bundle.status_text,
-          custom: {
-            ...(this.bundle.custom || {}),
+          custom: mergeCustomRecord(this.bundle.custom, {
             last_committed_message_id: event.detail.messageId,
             last_committed_turn_id: event.turnId,
-          },
+          }),
         };
         break;
-      case 'runtime.agent.turn.started':
-      case 'runtime.agent.turn.completed':
-      case 'runtime.agent.turn.failed':
-      case 'runtime.agent.turn.interrupted':
-      case 'runtime.agent.turn.interrupt_ack':
       case 'runtime.agent.turn.accepted':
-      case 'runtime.agent.turn.reasoning_delta':
+        this.setActiveTurnCue({
+          turnId: event.turnId,
+          streamId: event.streamId,
+          phase: 'accepted',
+          at: new Date(this.now()).toISOString(),
+        });
+        break;
+      case 'runtime.agent.turn.started':
+        this.setActiveTurnCue({
+          turnId: event.turnId,
+          streamId: event.streamId,
+          phase: 'started',
+          at: new Date(this.now()).toISOString(),
+        });
+        break;
       case 'runtime.agent.turn.text_delta':
+        this.updateActiveTurnText({
+          turnId: event.turnId,
+          streamId: event.streamId,
+          text: event.detail.text || '',
+          at: new Date(this.now()).toISOString(),
+        });
+        break;
+      case 'runtime.agent.turn.completed':
+        this.clearActiveTurnCue({
+          phase: 'completed',
+          turnId: event.turnId,
+          at: new Date(this.now()).toISOString(),
+          reason: event.detail.terminalReason ?? null,
+        });
+        break;
+      case 'runtime.agent.turn.failed':
+        this.clearActiveTurnCue({
+          phase: 'failed',
+          turnId: event.turnId,
+          at: new Date(this.now()).toISOString(),
+          reason: event.detail.message ?? event.detail.reasonCode,
+        });
+        break;
+      case 'runtime.agent.turn.interrupted':
+        this.clearActiveTurnCue({
+          phase: 'interrupted',
+          turnId: event.turnId,
+          at: new Date(this.now()).toISOString(),
+          reason: event.detail.reason,
+          interruptedTurnId: event.turnId,
+        });
+        break;
+      case 'runtime.agent.turn.interrupt_ack':
+        this.clearActiveTurnCue({
+          phase: 'interrupt_ack',
+          turnId: event.turnId,
+          at: new Date(this.now()).toISOString(),
+          interruptedTurnId: event.detail.interruptedTurnId,
+        });
+        break;
+      case 'runtime.agent.turn.reasoning_delta':
       case 'runtime.agent.turn.structured':
       case 'runtime.agent.turn.post_turn':
       case 'runtime.agent.presentation.pose_requested':

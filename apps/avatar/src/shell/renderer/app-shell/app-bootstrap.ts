@@ -16,7 +16,9 @@ import {
   watchAuthSessionChanges,
 } from '@renderer/bridge';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
+import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
+import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
 import { bootstrapAuthSession } from './bootstrap-auth.js';
 import {
   useAvatarStore,
@@ -28,12 +30,88 @@ import { setAlwaysOnTop } from './tauri-commands.js';
 
 export type BootstrapHandle = {
   driver: AgentDataDriver;
+  getVoiceInputAvailability(input: {
+    agentId: string;
+    conversationAnchorId: string;
+  }): Promise<{
+    available: boolean;
+    reason: string | null;
+  }>;
+  startVoiceCapture(input: {
+    agentId: string;
+    conversationAnchorId: string;
+    onLevelChange?: (amplitude: number) => void;
+  }): Promise<AvatarVoiceCaptureSession>;
+  submitVoiceCaptureTurn(input: {
+    agentId: string;
+    conversationAnchorId: string;
+    audioBytes: Uint8Array;
+    mimeType: string;
+    language?: string;
+    signal?: AbortSignal;
+  }): Promise<{
+    transcript: string;
+  }>;
+  interruptTurn(input: {
+    agentId: string;
+    conversationAnchorId: string;
+    turnId?: string;
+    reason?: string;
+  }): Promise<void>;
+  requestTextTurn(input: {
+    agentId: string;
+    conversationAnchorId: string;
+    text: string;
+  }): Promise<void>;
   shutdown(): Promise<void>;
 };
 
 function readNormalizedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
+
+function createAbortError(message: string): Error {
+  const error = new Error(message);
+  error.name = 'AbortError';
+  return error;
+}
+
+type RuntimeExecutionBinding = {
+  route: 'local' | 'cloud';
+  modelId: string;
+  connectorId?: string;
+};
+
+type RuntimeWithRoute = PlatformClient['runtime'] & {
+  route: {
+    listOptions: (input: { capability: 'audio.transcribe' }) => Promise<{
+      selected: {
+        source: 'local' | 'cloud';
+        connectorId?: string;
+        model?: string;
+        modelId?: string;
+        localModelId?: string;
+      } | null;
+      resolvedDefault?: {
+        source: 'local' | 'cloud';
+        connectorId?: string;
+        model?: string;
+        modelId?: string;
+        localModelId?: string;
+      } | null;
+    }>;
+    checkHealth: (input: {
+      capability: 'audio.transcribe';
+      binding: {
+        source: 'local' | 'cloud';
+        connectorId?: string;
+        model?: string;
+        modelId?: string;
+        localModelId?: string;
+      };
+    }) => Promise<{ healthy: boolean }>;
+  };
+};
 
 function normalizeWatchedAuthUser(
   session: SharedDesktopAuthSession,
@@ -81,6 +159,66 @@ async function resolveConversationAnchorId(
   return conversationAnchorId;
 }
 
+function resolveExecutionBinding(input: {
+  runtimeDefaults: ReturnType<typeof useAvatarStore.getState>['runtime']['defaults'];
+  bundle: ReturnType<typeof useAvatarStore.getState>['bundle'];
+}): RuntimeExecutionBinding | null {
+  const executionBinding = input.bundle?.custom?.['execution_binding'];
+  if (executionBinding && typeof executionBinding === 'object') {
+    const record = executionBinding as Record<string, unknown>;
+    const route = readNormalizedString(record.route);
+    const modelId = readNormalizedString(record.modelId);
+    const connectorId = readNormalizedString(record.connectorId);
+    if ((route === 'local' || route === 'cloud') && modelId) {
+      return {
+        route,
+        modelId,
+        ...(connectorId ? { connectorId } : {}),
+      };
+    }
+  }
+
+  const runtimeFields = input.runtimeDefaults?.runtime;
+  const modelId = readNormalizedString(runtimeFields?.localProviderModel);
+  const connectorId = readNormalizedString(runtimeFields?.connectorId);
+  if (!modelId) {
+    return null;
+  }
+  return {
+    route: connectorId ? 'cloud' : 'local',
+    modelId,
+    ...(connectorId ? { connectorId } : {}),
+  };
+}
+
+async function resolveCapabilityBinding(
+  runtime: PlatformClient['runtime'],
+  capability: 'audio.transcribe',
+): Promise<RuntimeExecutionBinding> {
+  const runtimeWithRoute = runtime as RuntimeWithRoute;
+  const options = await runtimeWithRoute.route.listOptions({ capability });
+  const selected = options.selected ?? options.resolvedDefault ?? null;
+  if (!selected) {
+    throw new Error('Foreground voice requires an admitted transcribe route.');
+  }
+  const modelId = readNormalizedString(selected.modelId || selected.model || selected.localModelId);
+  if (!modelId) {
+    throw new Error('Foreground voice requires a resolved transcribe model.');
+  }
+  const health = await runtimeWithRoute.route.checkHealth({
+    capability,
+    binding: selected,
+  });
+  if (!health.healthy) {
+    throw new Error('Foreground voice is unavailable because the transcribe route is not ready.');
+  }
+  return {
+    route: selected.source,
+    modelId,
+    ...(readNormalizedString(selected.connectorId) ? { connectorId: readNormalizedString(selected.connectorId) } : {}),
+  };
+}
+
 export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   const store = useAvatarStore.getState();
 
@@ -91,6 +229,22 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let unsubscribeBundle = () => {};
   let shouldClearPlatformClient = false;
   let cleanedUp = false;
+  let getVoiceInputAvailability: BootstrapHandle['getVoiceInputAvailability'] = async () => ({
+    available: false,
+    reason: 'Foreground voice is unavailable outside runtime-bound mode.',
+  });
+  let startVoiceCapture: BootstrapHandle['startVoiceCapture'] = async () => {
+    throw new Error('Foreground voice is unavailable outside runtime-bound mode');
+  };
+  let submitVoiceCaptureTurn: BootstrapHandle['submitVoiceCaptureTurn'] = async () => {
+    throw new Error('Foreground voice is unavailable outside runtime-bound mode');
+  };
+  let interruptTurn: BootstrapHandle['interruptTurn'] = async () => {
+    throw new Error('Foreground voice is unavailable outside runtime-bound mode');
+  };
+  let requestTextTurn: BootstrapHandle['requestTextTurn'] = async () => {
+    throw new Error('avatar companion input is unavailable outside runtime-bound mode');
+  };
 
   const cleanup = async () => {
     if (cleanedUp) {
@@ -112,10 +266,12 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
   try {
     if (isTauriRuntime()) {
+      const shellSettings = readAvatarShellSettings();
+      useAvatarStore.getState().setAlwaysOnTop(shellSettings.alwaysOnTop);
       shellUnlisten = await onShellReady((payload) => {
         useAvatarStore.getState().markShellReady({ width: payload.width, height: payload.height });
       });
-      await setAlwaysOnTop(store.shell.alwaysOnTop);
+      await setAlwaysOnTop(shellSettings.alwaysOnTop);
     } else {
       // Browser dev mode (pnpm dev:renderer without Tauri shell) — mark shell ready immediately with current window size
       useAvatarStore.getState().markShellReady({
@@ -354,6 +510,173 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           },
         });
       }
+
+      requestTextTurn = async (input) => {
+        const normalizedText = readNormalizedString(input.text);
+        if (!normalizedText) {
+          throw new Error('avatar companion input requires non-empty text');
+        }
+        if (cleanedUp) {
+          throw new Error('avatar companion input is unavailable after shutdown');
+        }
+        const state = useAvatarStore.getState();
+        if (state.consume.authority !== 'runtime' || state.auth.status !== 'authenticated') {
+          throw new Error('avatar companion input requires active runtime auth');
+        }
+        if (input.agentId !== agentId || input.conversationAnchorId !== conversationAnchorId) {
+          throw new Error('avatar companion input requires the current explicit agent and anchor binding');
+        }
+        const executionBinding = resolveExecutionBinding({
+          runtimeDefaults,
+          bundle: state.bundle,
+        });
+        if (!executionBinding) {
+          throw new Error('avatar companion input requires an explicit execution binding');
+        }
+        await runtime.agent.turns.request({
+          agentId: input.agentId,
+          conversationAnchorId: input.conversationAnchorId,
+          worldId,
+          messages: [{ role: 'user', content: normalizedText }],
+          executionBinding,
+        });
+      };
+
+      getVoiceInputAvailability = async (input) => {
+        try {
+          if (cleanedUp) {
+            throw new Error('Foreground voice is unavailable after shutdown.');
+          }
+          const state = useAvatarStore.getState();
+          if (state.consume.authority !== 'runtime' || state.auth.status !== 'authenticated') {
+            throw new Error('Foreground voice requires active runtime auth.');
+          }
+          if (input.agentId !== agentId || input.conversationAnchorId !== conversationAnchorId) {
+            throw new Error('Foreground voice requires the current explicit agent and anchor binding.');
+          }
+          await resolveCapabilityBinding(runtime, 'audio.transcribe');
+          const executionBinding = resolveExecutionBinding({
+            runtimeDefaults,
+            bundle: state.bundle,
+          });
+          if (!executionBinding) {
+            throw new Error('Foreground voice requires an explicit execution binding for reply continuity.');
+          }
+          return {
+            available: true,
+            reason: null,
+          };
+        } catch (error) {
+          return {
+            available: false,
+            reason: error instanceof Error ? error.message : String(error),
+          };
+        }
+      };
+
+      startVoiceCapture = async (input) => {
+        if (cleanedUp) {
+          throw new Error('Foreground voice is unavailable after shutdown');
+        }
+        const state = useAvatarStore.getState();
+        if (state.consume.authority !== 'runtime' || state.auth.status !== 'authenticated') {
+          throw new Error('Foreground voice requires active runtime auth');
+        }
+        if (input.agentId !== agentId || input.conversationAnchorId !== conversationAnchorId) {
+          throw new Error('Foreground voice requires the current explicit agent and anchor binding');
+        }
+        const availability = await getVoiceInputAvailability(input);
+        if (!availability.available) {
+          throw new Error(availability.reason || 'Foreground voice is unavailable for the current anchor.');
+        }
+        return startAvatarVoiceCaptureSession({
+          onLevelChange: input.onLevelChange,
+        });
+      };
+
+      submitVoiceCaptureTurn = async (input) => {
+        if (!(input.audioBytes instanceof Uint8Array) || input.audioBytes.length === 0) {
+          throw new Error('Foreground voice requires recorded audio bytes.');
+        }
+        const mimeType = readNormalizedString(input.mimeType);
+        if (!mimeType) {
+          throw new Error('Foreground voice requires an audio mimeType.');
+        }
+        if (cleanedUp) {
+          throw new Error('Foreground voice is unavailable after shutdown');
+        }
+        const state = useAvatarStore.getState();
+        if (state.consume.authority !== 'runtime' || state.auth.status !== 'authenticated') {
+          throw new Error('Foreground voice requires active runtime auth');
+        }
+        if (input.agentId !== agentId || input.conversationAnchorId !== conversationAnchorId) {
+          throw new Error('Foreground voice requires the current explicit agent and anchor binding');
+        }
+        const transcribeBinding = await resolveCapabilityBinding(runtime, 'audio.transcribe');
+        const transcriptResult = await runtime.media.stt.transcribe({
+          model: transcribeBinding.modelId,
+          audio: {
+            kind: 'bytes',
+            bytes: input.audioBytes,
+          },
+          mimeType,
+          ...(readNormalizedString(input.language) ? { language: readNormalizedString(input.language) } : {}),
+          route: transcribeBinding.route,
+          ...(transcribeBinding.connectorId ? { connectorId: transcribeBinding.connectorId } : {}),
+          signal: input.signal,
+        });
+        const transcript = readNormalizedString(transcriptResult.text);
+        if (!transcript) {
+          throw new Error('Foreground voice transcription returned no transcript text.');
+        }
+        if (input.signal?.aborted) {
+          throw createAbortError('Foreground voice request aborted before reply submission.');
+        }
+        const currentState = useAvatarStore.getState();
+        if (currentState.consume.authority !== 'runtime' || currentState.auth.status !== 'authenticated') {
+          throw new Error('Foreground voice requires active runtime auth');
+        }
+        if (
+          currentState.consume.agentId !== input.agentId
+          || currentState.consume.conversationAnchorId !== input.conversationAnchorId
+        ) {
+          throw new Error('Foreground voice requires the current explicit agent and anchor binding');
+        }
+        const executionBinding = resolveExecutionBinding({
+          runtimeDefaults,
+          bundle: currentState.bundle,
+        });
+        if (!executionBinding) {
+          throw new Error('Foreground voice requires an explicit execution binding for reply continuity.');
+        }
+        await runtime.agent.turns.request({
+          agentId: input.agentId,
+          conversationAnchorId: input.conversationAnchorId,
+          worldId,
+          messages: [{ role: 'user', content: transcript }],
+          executionBinding,
+        });
+        return { transcript };
+      };
+
+      interruptTurn = async (input) => {
+        if (cleanedUp) {
+          throw new Error('Foreground voice is unavailable after shutdown');
+        }
+        const state = useAvatarStore.getState();
+        if (state.consume.authority !== 'runtime' || state.auth.status !== 'authenticated') {
+          throw new Error('Foreground voice requires active runtime auth');
+        }
+        if (input.agentId !== agentId || input.conversationAnchorId !== conversationAnchorId) {
+          throw new Error('Foreground voice requires the current explicit agent and anchor binding');
+        }
+        await runtime.agent.turns.interrupt({
+          agentId: input.agentId,
+          conversationAnchorId: input.conversationAnchorId,
+          ...(readNormalizedString(input.turnId) ? { turnId: readNormalizedString(input.turnId) } : {}),
+          ...(readNormalizedString(input.reason) ? { reason: readNormalizedString(input.reason) } : {}),
+        });
+      };
     }
 
     unsubscribeStatus = driver.onStatusChange((status) => {
@@ -368,6 +691,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
     return {
       driver,
+      getVoiceInputAvailability,
+      startVoiceCapture,
+      submitVoiceCaptureTurn,
+      interruptTurn,
+      requestTextTurn,
       async shutdown() {
         await cleanup();
       },

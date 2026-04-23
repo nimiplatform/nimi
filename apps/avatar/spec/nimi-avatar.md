@@ -25,8 +25,10 @@ Avatar **不是普通软件**：
 - **Window drag**：拖动 pet 到桌面任意位置
 - **Click on pet body**：触发对应 NAS event handler（如点 head 害羞）
 - **Small button trigger**：点击触发 chat bubble（Phase 2）
-- **Voice I/O via runtime**：STT 输入 / TTS 输出 + lipsync（Phase 2）
+- **Foreground voice via runtime**：foreground STT 输入 + same-anchor bounded assistant reply captions（Phase 2）
 - **Text chat via bubble**：最近一条消息 + 浮动输入框（Phase 2）
+- **Same-anchor text continuity**：bubble / input 显式绑定当前 `agent_id + conversation_anchor_id`，不做 same-agent conversation fallback
+- **Foreground voice continuity**：voice 入口、pending/reply-active cue、caption reveal、interrupt 都显式绑定当前 `agent_id + conversation_anchor_id`，不做 wake-word / background continuation
 
 ## Target Users
 
@@ -84,6 +86,12 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 embodiment projection la
 - same-user shared-session token rotation 只更新 avatar 本地 auth state，不重开 handoff，也不发明 per-app grant
 - desktop logout、shared-session clear、persisted session invalidation、realm mismatch、或 user switch 后，avatar 必须立即停止 authenticated runtime/SDK consume path 并 clear stale authenticated state
 
+Wave 4 recovery posture 额外固定为：
+
+- user-facing surface 可以给出 calm degraded copy、explicit reload/relaunch guidance、以及 desktop launch-context update notice
+- recovery affordance 只允许 reload / relaunch 当前 shell；不得在 avatar app 内新增 auth/session/runtime fallback
+- launch-context update、anchor rebind、或 relaunch 前，avatar-local transient bubble / draft / foreground voice UI 必须清空，避免 stale state 跨 continuity 泄漏
+
 ## Product Form 详细
 
 ### Window Behavior (`kernel/app-shell-contract.md`)
@@ -93,6 +101,7 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 embodiment projection la
 - Dynamic size 跟随 active embodiment surface bounds
 - Window drag：整个 pet 可拖到桌面任意位置
 - Click-through：pet 形状外的区域穿透鼠标事件到下层 app（避免挡住别的 app）
+- Wave 4 settings 只允许控制 avatar-shell 自有 companion behaviors（如 always-on-top、bubble reveal/collapse、bounded foreground voice caption visibility）；不得扩写成 workstation-style panel
 
 ### Live2D Rendering (`kernel/live2d-render-contract.md`)
 

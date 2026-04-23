@@ -119,11 +119,17 @@ Hold + move N pixels within drag_threshold_ms
 
 ### 4.2 User Override
 
-Settings UI（Phase 2+）提供开关：
+Wave 4 shipped settings 只允许 avatar-shell 自有行为：
 
-- `always_on_top: true`（default）
-- `always_on_top_when_chat_active: true`（chat 时强制置顶）
-- `always_on_top: false`（正常窗口堆叠顺序）
+- `always_on_top: true|false`（default `true`）
+- `bubble_auto_open: true|false`（default `true`；关闭后只保留 unread cue，不强开 bubble）
+- `bubble_auto_collapse: true|false`（default `true`）
+- `show_voice_captions: true|false`（default `true`；只影响 bounded foreground caption reveal，不影响 voice continuity truth）
+
+Settings UI 必须保持 product-light：
+
+- 不得暴露 transcript-heavy、desktop-parity、background voice、或 auth/runtime owner-crossing setting
+- 不得把 settings 当作 launch/auth/runtime fail-closed posture 的 bypass
 
 ### 4.3 Focus Event
 
@@ -162,10 +168,36 @@ Settings UI（Phase 2+）提供开关：
 - Button 位于 model bounds 右下角外侧（offset: x=+16, y=-16）
 - Click → open chat input floating box + chat bubble area
 - 默认隐藏 bubble；有新消息时显示
+- bubble 只承载**当前 launch-selected `agent_id + conversation_anchor_id`** 下的 latest-message cue；不得扩写成 full transcript panel
+- floating input 只允许向当前显式 anchor 提交一个 bounded text turn；不得因为 same-agent convenience 推断或切换 anchor
+- app-local bubble state 只可保留 latest assistant cue + bounded user echo 作为 presentation cache；不得提升为 canonical transcript truth
+- launch/auth/runtime 不可用时，button / bubble / input 必须一起 fail closed；不得留下 fake-send surface
 
 ### 6.3 Hotkey (Phase 2)
 
 - `Alt+Space`（可自定义）触发 chat，与 button click 等价
+
+### 6.4 Foreground Voice Companion UX (Wave 3)
+
+- voice 入口只能由 avatar shell 内的显式用户交互触发；不得因为 route readiness、
+  microphone availability、或 prior voice activity 自动进入 listening
+- foreground voice UI 必须显式绑定当前 launch-selected `agent_id +
+  conversation_anchor_id`
+- shell 必须可读地表达 `idle` / `listening` / `transcribing` / `pending reply` /
+  `reply active` / `interrupted`
+- user voice capture 只允许在 foreground companion surface 内发生；不得 admit
+  wake-word、background continuation、或 lock-screen continuation
+- voice interruption 必须作用于当前显式 anchor continuity；不得把 same-agent 其他
+  anchor 的 active turn 当作可打断目标
+- 在 admitted active-turn evidence 出现前，shell 只可表达 transcript submitted /
+  reply pending；不得本地假设 speaking、playback active、或开放 interrupt
+- app-local voice caption 只可保留：
+  - 当前一次 voice input 的 bounded user transcript cue
+  - 当前一次 anchor reply 的 bounded live / committed assistant caption cue
+- voice caption reveal 不得扩写成 full transcript history、inspection panel、
+  或 detached transcript owner truth
+- foreground voice 不可用时，voice affordance 必须 fail closed；不得留下 fake-active
+  listening / reply-active UI
 
 ---
 
@@ -195,6 +227,15 @@ Settings UI（Phase 2+）提供开关：
   - 停止 runtime/SDK consume driver
   - 丢弃 stale runtime bundle / binding
 - 该规则不允许 silent downgrade 到 mock fixture
+
+### 7.2.1 Recovery Posture (Wave 4)
+
+当 shell 处于 invalid-session、missing-runtime、launch handoff update、或其他 degraded posture 时：
+
+- renderer 可以显示 product-grade recovery copy 与显式 `reload shell` affordance
+- `reload shell` 只允许触发 app reload / relaunch 流程；不得发明 app-local auth/session/runtime fallback
+- desktop 更新 launch context 时，shell 可以先显示短暂 relaunch/rebind notice，再显式 reload
+- relaunch/rebind 前必须清空 avatar-local transient companion state（draft、bubble echo、foreground voice capture/caption 等），避免 stale state 泄漏到新 anchor / session
 
 ### 7.3 Shutdown 序列
 
