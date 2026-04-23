@@ -2,21 +2,18 @@
  * Agent Detail Page — tabbed view (FG-AGENT-001/002/003/004)
  */
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/nimi-kit/ui';
+import { ForgeActionCard } from '@renderer/components/card-list.js';
 import {
   useAgentDetailQuery,
   useAgentSoulPrimeQuery,
   useCreatorKeysQuery,
 } from '@renderer/hooks/use-agent-queries.js';
 import { useAgentMutations } from '@renderer/hooks/use-agent-mutations.js';
-import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';
-import type { ImageGenEntityContext } from '@renderer/data/image-gen-client.js';
-import { uploadFileAsResource } from '@renderer/data/content-data-client.js';
-import { batchUpsertWorldResourceBindings } from '@renderer/data/world-data-client.js';
 import {
   ForgePage,
   ForgePageHeader,
@@ -24,7 +21,6 @@ import {
   ForgeSectionHeading,
   ForgeLoadingSpinner,
   ForgeEmptyState,
-  ForgeErrorBanner,
 } from '@renderer/components/page-layout.js';
 import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
 import { ForgeTabBar, type ForgeTab } from '@renderer/components/tab-bar.js';
@@ -36,29 +32,17 @@ import {
   ProfileTab,
 } from './agent-detail-page-tabs.js';
 
-const PHASE_LABELS: Record<string, string> = {
-  composing_prompt: 'Composing prompt...',
-  generating: 'Generating...',
-  uploading: 'Uploading...',
-  binding: 'Setting avatar...',
-};
-
 export default function AgentDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { agentId } = useParams<{ agentId: string }>();
 
   const [activeTab, setActiveTab] = useState<TabId>('profile');
-  const [avatarPrompt, setAvatarPrompt] = useState('');
-  const [manualUploading, setManualUploading] = useState(false);
-  const avatarFileRef = useRef<HTMLInputElement>(null);
-  const portraitFileRef = useRef<HTMLInputElement>(null);
 
   const agentQuery = useAgentDetailQuery(agentId || '');
   const keysQuery = useCreatorKeysQuery();
   const mutations = useAgentMutations();
   const queryClient = useQueryClient();
-  const imageGen = useImageGeneration();
   const tabs: ForgeTab<TabId>[] = [
     { value: 'profile', label: t('agentDetail.tabProfile', 'Profile') },
     { value: 'dna', label: t('agentDetail.tabDna', 'DNA') },
@@ -85,66 +69,20 @@ export default function AgentDetailPage() {
     );
   }
 
-  function buildAgentImageContext(target: 'agent-avatar' | 'agent-portrait'): ImageGenEntityContext {
-    const soulPrime = soulPrimeQuery.data;
-    return {
-      target,
-      agentDna: agent!.dna,
-      agentSoulPrime: soulPrime ? {
-        backstory: String(soulPrime.structured?.backstory || ''),
-        coreValues: String(soulPrime.structured?.coreValues || ''),
-        personalityDescription: String(soulPrime.structured?.personalityDescription || ''),
-        guidelines: String(soulPrime.structured?.guidelines || ''),
-        catchphrase: String(soulPrime.structured?.catchphrase || ''),
-      } : null,
-      agentName: agent!.displayName || agent!.handle,
-      agentConcept: agent!.concept,
-      userPrompt: avatarPrompt.trim() || undefined,
-    };
-  }
-
-  async function handleManualAvatarUpload(file: File) {
-    setManualUploading(true);
-    try {
-      const { url } = await uploadFileAsResource(file);
-      await mutations.updateAgentMutation.mutateAsync({ agentId: agentId!, payload: { avatarUrl: url } });
-      await queryClient.invalidateQueries({ queryKey: ['forge', 'agents', 'detail', agentId] });
-    } finally {
-      setManualUploading(false);
-    }
-  }
-
-  async function handleManualPortraitUpload(file: File) {
-    if (!agent!.worldId) return;
-    setManualUploading(true);
-    try {
-      const { resourceId } = await uploadFileAsResource(file);
-      await batchUpsertWorldResourceBindings(agent!.worldId, {
-        bindingUpserts: [{
-          objectType: 'RESOURCE',
-          objectId: resourceId,
-          hostType: 'AGENT',
-          hostId: agentId!,
-          bindingKind: 'PRESENTATION',
-          bindingPoint: 'AGENT_PORTRAIT',
-          priority: 0,
-        }],
-      });
-      await queryClient.invalidateQueries({ queryKey: ['forge', 'agents', 'detail', agentId] });
-    } finally {
-      setManualUploading(false);
-    }
-  }
-
   return (
     <ForgePage>
       <ForgePageHeader
         title={agent.displayName || agent.handle}
         subtitle={`@${agent.handle}`}
         actions={(
-          <Button tone="ghost" size="sm" onClick={() => navigate('/agents/library')}>
-            &larr; {t('agents.backToList', 'Back')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button tone="ghost" size="sm" onClick={() => navigate('/agents/library')}>
+              &larr; {t('agents.backToList', 'Back')}
+            </Button>
+            <Button tone="secondary" size="sm" onClick={() => navigate(`/agents/${agentId}/assets`)}>
+              Open Asset Ops
+            </Button>
+          </div>
         )}
       />
 
@@ -162,125 +100,41 @@ export default function AgentDetailPage() {
 
       <ForgeSection className="space-y-4" material="glass-regular">
         <ForgeSectionHeading
-          eyebrow={t('agentDetail.avatarGeneration', 'Avatar Generation')}
-          title={t('agentDetail.avatarAssets', 'Avatar and Portrait Assets')}
-          description={t('agentDetail.avatarAssetsHint', 'Generate or upload presentation assets for the current agent without leaving the detail view.')}
+          eyebrow={t('agentDetail.avatarGeneration', 'Asset Ops')}
+          title={t('agentDetail.avatarAssets', 'Agent Asset Handoff')}
+          description={t('agentDetail.avatarAssetsHint', 'Route avatar, cover, greeting, and voice-demo review into the dedicated asset ops flow instead of owning those actions inside the detail page.')}
         />
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
-            <Button
-              tone="primary"
-              size="sm"
-              onClick={() => void imageGen.generate(buildAgentImageContext('agent-avatar'))}
-              disabled={imageGen.busy || manualUploading}
-            >
-              {imageGen.busy && imageGen.phase !== 'idle'
-                ? PHASE_LABELS[imageGen.phase] || imageGen.phase
-                : t('agentDetail.generateAvatar', 'Generate Avatar')}
-            </Button>
-            <Button
-              tone="secondary"
-              size="sm"
-              onClick={() => void imageGen.generate(buildAgentImageContext('agent-portrait'))}
-              disabled={imageGen.busy || manualUploading}
-            >
-              {t('agentDetail.generatePortrait', 'Generate Portrait')}
-            </Button>
-            <Button
-              tone="ghost"
-              size="sm"
-              onClick={() => avatarFileRef.current?.click()}
-              disabled={imageGen.busy || manualUploading}
-            >
-              {manualUploading ? t('agentDetail.uploading', 'Uploading...') : t('agentDetail.uploadAvatar', 'Upload Avatar')}
-            </Button>
-            {agent.worldId && (
-              <Button
-                tone="ghost"
-                size="sm"
-                onClick={() => portraitFileRef.current?.click()}
-                disabled={imageGen.busy || manualUploading}
-              >
-                {t('agentDetail.uploadPortrait', 'Upload Portrait')}
-              </Button>
-            )}
-            <input
-              ref={avatarFileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handleManualAvatarUpload(file);
-                e.target.value = '';
-              }}
-            />
-            <input
-              ref={portraitFileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handleManualPortraitUpload(file);
-                e.target.value = '';
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="mt-3">
-          <TextField
-            value={avatarPrompt}
-            onChange={(e) => setAvatarPrompt(e.target.value)}
-            placeholder={t('agentDetail.avatarPromptPlaceholder', 'Additional prompt instructions (optional)...')}
+        <div className="grid gap-3 md:grid-cols-2">
+          <ForgeActionCard
+            title={t('agentDetail.generateAvatar', 'Open Agent Asset Ops')}
+            description={t('agentDetail.avatarAssetsHint', 'Review avatar, cover, greeting, and voice-demo families from their canonical ops hub.')}
+            onClick={() => navigate(`/agents/${agentId}/assets`)}
+          />
+          <ForgeActionCard
+            title={t('agentDetail.generatePortrait', 'Open Image Studio')}
+            description={t('agentDetail.avatarPromptPlaceholder', 'Generate new image candidates in Image Studio, then save them into the library for review from the asset family pages.')}
+            onClick={() => {
+              const params = new URLSearchParams({
+                target: 'agent-avatar',
+                agentId,
+                agentName: agent.displayName || agent.handle,
+              });
+              if (agent.worldId) {
+                params.set('worldId', agent.worldId);
+              }
+              navigate(`/content/images?${params.toString()}`);
+            }}
           />
         </div>
-
-        {imageGen.error ? (
-          <ForgeErrorBanner message={imageGen.error} className="mt-3" />
-        ) : null}
-
-        {imageGen.candidates.length > 0 ? (
-          <div className="mt-3 grid grid-cols-4 gap-3">
-            {imageGen.candidates.map((candidate) => (
-              <div
-                key={candidate.id}
-                className="group relative overflow-hidden rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_45%,transparent)]"
-              >
-                <img src={candidate.url} alt="" className="aspect-square w-full object-cover" />
-                <div className="absolute inset-0 flex items-end bg-black/60 p-2 opacity-0 transition-opacity group-hover:opacity-100">
-                  <div className="flex w-full gap-1.5">
-                    <Button
-                      tone="primary"
-                      size="sm"
-                      onClick={() => void imageGen.useAsAgentAvatar(agentId!, candidate)}
-                      disabled={imageGen.busy}
-                      className="flex-1"
-                    >
-                      {t('agentDetail.useAsAvatar', 'Use as Avatar')}
-                    </Button>
-                    <Button
-                      tone="secondary"
-                      size="sm"
-                      onClick={() => void imageGen.saveToLibrary(candidate)}
-                      disabled={imageGen.busy}
-                    >
-                      {t('agentDetail.save', 'Save')}
-                    </Button>
-                    <Button
-                      tone="ghost"
-                      size="sm"
-                      onClick={() => imageGen.removeCandidate(candidate.id)}
-                    >
-                      &times;
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
+        {agent.worldId ? (
+          <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
+            World-owned truth editing still routes through the workbench, but asset review stays available from the standalone `/agents/:agentId/assets` surfaces.
+          </p>
+        ) : (
+          <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
+            Keep this page focused on profile, DNA, preview, and keys. Asset review now lives on the dedicated agent asset ops routes.
+          </p>
+        )}
       </ForgeSection>
 
       <ForgeTabBar tabs={tabs} value={activeTab} onChange={setActiveTab} />
@@ -295,13 +149,8 @@ export default function AgentDetailPage() {
             });
             await queryClient.invalidateQueries({ queryKey: ['forge', 'agents', 'detail', agentId] });
           }}
-          onAvatarChange={async (url) => {
-            await mutations.updateAgentMutation.mutateAsync({
-              agentId,
-              payload: { avatarUrl: url },
-            });
-            await queryClient.invalidateQueries({ queryKey: ['forge', 'agents', 'detail', agentId] });
-          }}
+          onOpenAvatarReview={() => navigate(`/agents/${agentId}/assets/agent-avatar`)}
+          onOpenGreetingReview={() => navigate(`/agents/${agentId}/assets/agent-greeting-primary`)}
           saving={mutations.updateAgentMutation.isPending}
         />
       ) : null}

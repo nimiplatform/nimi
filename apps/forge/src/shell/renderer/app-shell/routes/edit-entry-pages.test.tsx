@@ -84,10 +84,8 @@ describe('AgentEditEntryPage', () => {
     locationSearch = '';
   });
 
-  it('redirects world-owned agents into hydrated workbench draft editing', async () => {
+  it('keeps world-owned agents on the standalone detail surface', async () => {
     paramsValue = { agentId: 'agent-1' };
-    ensureWorkspaceForWorldMock.mockReturnValue('ws-1');
-    ensureWorldAgentDraftMock.mockReturnValue('draft-1');
     useAgentDetailQueryMock.mockReturnValue({
       data: {
         id: 'agent-1',
@@ -124,15 +122,11 @@ describe('AgentEditEntryPage', () => {
     render(<AgentEditEntryPage />);
 
     await waitFor(() => {
-      expect(ensureWorldAgentDraftMock).toHaveBeenCalledWith('ws-1', expect.objectContaining({
-        sourceAgentId: 'agent-1',
-        description: 'Ari description',
-        scenario: 'Ari scenario',
-        greeting: 'Ari greeting',
-        avatarUrl: 'https://cdn.example.com/ari.png',
-      }));
-      expect(navigateMock).toHaveBeenCalledWith('/workbench/ws-1/agents/draft-1', { replace: true });
+      expect(screen.getByText('master-agent-detail')).toBeTruthy();
     });
+    expect(ensureWorkspaceForWorldMock).not.toHaveBeenCalled();
+    expect(ensureWorldAgentDraftMock).not.toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it('keeps master-owned agents on the standalone master detail page', () => {

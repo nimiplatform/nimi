@@ -21,15 +21,65 @@ import {
   type ForgeOfficialWorldTitleLineage,
   type ForgeWorldRelease,
 } from '@renderer/data/world-data-client.js';
+import {
+  WORLD_DELIVERABLE_REGISTRY,
+  type WorldDeliverableBindingPoint,
+  type WorldDeliverableFamily,
+} from '@renderer/features/asset-ops/deliverable-registry.js';
 
 type WorldDraftListPayload = Awaited<ReturnType<typeof listWorldDrafts>>;
 type WorldListPayload = Awaited<ReturnType<typeof listMyWorlds>>;
 type WorldStatePayload = Awaited<ReturnType<typeof getWorldState>>;
 type WorldHistoryListPayload = Awaited<ReturnType<typeof listWorldHistory>>;
+type WorldResourceBindingsPayload = Awaited<ReturnType<typeof listWorldResourceBindings>>;
 type WorldHistoryListItem = WorldHistoryListPayload extends { items?: Array<infer Item> } ? Item : never;
 type WorldHistoryEvidenceRef = WorldHistoryListItem extends { evidenceRefs?: Array<infer Ref> } ? Ref : never;
 
+type BindingRecord = {
+  id: string | null;
+  hostId: string | null;
+  hostType: string | null;
+  bindingPoint: string | null;
+  bindingKind: string | null;
+  objectId: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  priority: number | null;
+};
+
+type DeliverableCurrentState = 'MISSING' | 'PRESENT' | 'BOUND';
+type DeliverableOpsState = 'MISSING' | 'BOUND';
+type CompletenessState = 'MISSING' | 'PARTIAL' | 'COMPLETE';
+
+export type WorldDeliverableStatus = {
+  family: WorldDeliverableFamily;
+  label: string;
+  required: boolean;
+  currentState: DeliverableCurrentState;
+  opsState: DeliverableOpsState;
+  bindingPoint: WorldDeliverableBindingPoint;
+  objectId: string | null;
+  value: string | null;
+};
+
+export type WorldDeliverableCompletenessSummary = {
+  requiredFamilyCount: number;
+  currentReadyCount: number;
+  opsReadyCount: number;
+  boundCount: number;
+  unverifiedCount: number;
+  missingCount: number;
+  currentState: CompletenessState;
+  opsState: CompletenessState;
+};
+
 function toStringOrNull(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return normalized ? normalized : null;
+}
+
+function toUnknownStringOrNull(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized ? normalized : null;
@@ -64,6 +114,127 @@ function requireEnumValue<const Values extends readonly string[]>(
     throw new Error(code);
   }
   return normalized as Values[number];
+}
+
+function toObjectRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function toBindingRecordList(payload: WorldResourceBindingsPayload | undefined): BindingRecord[] {
+  const root = toObjectRecord(payload);
+  const items = Array.isArray(root?.items) ? root.items : [];
+  return items
+    .map((entry) => {
+      const item = toObjectRecord(entry);
+      if (!item) {
+        return null;
+      }
+      const priority =
+        typeof item.priority === 'number'
+          ? item.priority
+          : Number.isFinite(Number(item.priority))
+            ? Number(item.priority)
+            : null;
+      return {
+        id: toUnknownStringOrNull(item.id),
+        hostId: toUnknownStringOrNull(item.hostId),
+        hostType: toUnknownStringOrNull(item.hostType),
+        bindingPoint: toUnknownStringOrNull(item.bindingPoint),
+        bindingKind: toUnknownStringOrNull(item.bindingKind),
+        objectId: toUnknownStringOrNull(item.objectId),
+        createdAt: toUnknownStringOrNull(item.createdAt),
+        updatedAt: toUnknownStringOrNull(item.updatedAt),
+        priority,
+      } satisfies BindingRecord;
+    })
+    .filter((item): item is BindingRecord => item !== null);
+}
+
+function compareBindingPriority(left: BindingRecord, right: BindingRecord): number {
+  const leftPriority = left.priority ?? Number.MAX_SAFE_INTEGER;
+  const rightPriority = right.priority ?? Number.MAX_SAFE_INTEGER;
+  return leftPriority - rightPriority
+    || (right.updatedAt || '').localeCompare(left.updatedAt || '')
+    || (right.createdAt || '').localeCompare(left.createdAt || '')
+    || (right.id || '').localeCompare(left.id || '');
+}
+
+function findWorldBinding(
+  bindings: BindingRecord[],
+  input: {
+    worldId: string;
+    bindingPoint: WorldDeliverableBindingPoint;
+  },
+): BindingRecord | null {
+  return bindings
+    .filter((item) =>
+      item.hostId === input.worldId
+      && item.hostType === 'WORLD'
+      && item.bindingPoint === input.bindingPoint
+      && item.bindingKind === 'PRESENTATION',
+    )
+    .sort(compareBindingPriority)[0] ?? null;
+}
+
+function toCompletenessState(readyCount: number, requiredFamilyCount: number): CompletenessState {
+  if (requiredFamilyCount <= 0 || readyCount <= 0) {
+    return 'MISSING';
+  }
+  if (readyCount >= requiredFamilyCount) {
+    return 'COMPLETE';
+  }
+  return 'PARTIAL';
+}
+
+function summarizeWorldDeliverables(deliverables: WorldDeliverableStatus[]): WorldDeliverableCompletenessSummary {
+  const requiredFamilies = deliverables.filter((item) => item.required);
+  const requiredFamilyCount = requiredFamilies.length;
+  const currentReadyCount = requiredFamilies.filter((item) => item.currentState !== 'MISSING').length;
+  const opsReadyCount = requiredFamilies.filter((item) => item.opsState !== 'MISSING').length;
+  const boundCount = requiredFamilies.filter((item) => item.currentState === 'BOUND').length;
+  const unverifiedCount = requiredFamilies.filter((item) => item.currentState !== 'MISSING' && item.opsState === 'MISSING').length;
+  const missingCount = requiredFamilies.filter((item) => item.currentState === 'MISSING').length;
+  return {
+    requiredFamilyCount,
+    currentReadyCount,
+    opsReadyCount,
+    boundCount,
+    unverifiedCount,
+    missingCount,
+    currentState: toCompletenessState(currentReadyCount, requiredFamilyCount),
+    opsState: toCompletenessState(opsReadyCount, requiredFamilyCount),
+  };
+}
+
+function buildWorldDeliverables(input: {
+  worldId: string;
+  bannerUrl: string | null;
+  iconUrl: string | null;
+  bindingsPayload: WorldResourceBindingsPayload | undefined;
+}): WorldDeliverableStatus[] {
+  const bindings = toBindingRecordList(input.bindingsPayload);
+  return WORLD_DELIVERABLE_REGISTRY.map((entry) => {
+    const binding = findWorldBinding(bindings, { worldId: input.worldId, bindingPoint: entry.bindingPoint });
+    const value =
+      entry.family === 'world-icon'
+        ? input.iconUrl
+        : entry.family === 'world-cover'
+          ? input.bannerUrl
+          : null;
+    return {
+      family: entry.family,
+      label: entry.label,
+      required: entry.requiredForPublish,
+      currentState: binding ? 'BOUND' : value ? 'PRESENT' : 'MISSING',
+      opsState: binding ? 'BOUND' : 'MISSING',
+      bindingPoint: entry.bindingPoint,
+      objectId: binding?.objectId ?? null,
+      value,
+    };
+  });
 }
 
 export type WorldDraftSummary = {
@@ -301,8 +472,14 @@ export function useWorldResourceQueries(input: {
   enabled: boolean;
   worldId: string;
   enableCollections?: boolean;
+  enableBindings?: boolean;
+  enableGovernance?: boolean;
+  enableDetailSnapshot?: boolean;
 }) {
   const enableCollections = input.enableCollections !== false;
+  const enableBindings = input.enableBindings !== false;
+  const enableGovernance = input.enableGovernance !== false;
+  const enableDetailSnapshot = input.enableDetailSnapshot !== false;
 
   const draftsQuery = useQuery({
     queryKey: ['forge', 'world', 'drafts'],
@@ -341,31 +518,50 @@ export function useWorldResourceQueries(input: {
 
   const resourceBindingsQuery = useQuery({
     queryKey: ['forge', 'world', 'resource-bindings', input.worldId],
-    enabled: input.enabled && Boolean(input.worldId),
+    enabled: input.enabled && enableBindings && Boolean(input.worldId),
     retry: false,
     queryFn: async () => await listWorldResourceBindings(input.worldId),
   });
 
   const releasesQuery = useQuery({
     queryKey: ['forge', 'world', 'releases', input.worldId],
-    enabled: input.enabled && Boolean(input.worldId),
+    enabled: input.enabled && enableGovernance && Boolean(input.worldId),
     retry: false,
     queryFn: async () => sortWorldReleases(await listWorldReleases(input.worldId)),
   });
 
   const titleLineageQuery = useQuery({
     queryKey: ['forge', 'world', 'title-lineage', input.worldId],
-    enabled: input.enabled && Boolean(input.worldId),
+    enabled: input.enabled && enableGovernance && Boolean(input.worldId),
     retry: false,
     queryFn: async () => sortWorldTitleLineage(await listWorldTitleLineage(input.worldId)),
   });
 
   const batchRunsQuery = useQuery({
     queryKey: ['forge', 'world', 'batch-runs', input.worldId],
-    enabled: input.enabled && Boolean(input.worldId),
+    enabled: input.enabled && enableGovernance && Boolean(input.worldId),
     retry: false,
     queryFn: async () => sortWorldBatchRuns(await listOfficialFactoryBatchRuns()),
   });
+
+  const worldDetailSnapshotQuery = useQuery({
+    queryKey: ['forge', 'world', 'detail-snapshot', input.worldId],
+    enabled: input.enabled && enableDetailSnapshot && Boolean(input.worldId),
+    retry: false,
+    queryFn: async () => await getWorldDetail(input.worldId),
+  });
+
+  const detailSnapshot = worldDetailSnapshotQuery.data && typeof worldDetailSnapshotQuery.data === 'object' && !Array.isArray(worldDetailSnapshotQuery.data)
+    ? worldDetailSnapshotQuery.data as Record<string, unknown>
+    : {};
+  const worldDeliverables = enableDetailSnapshot
+    ? buildWorldDeliverables({
+      worldId: input.worldId,
+      bannerUrl: toUnknownStringOrNull(detailSnapshot.bannerUrl),
+      iconUrl: toUnknownStringOrNull(detailSnapshot.iconUrl),
+      bindingsPayload: enableBindings ? resourceBindingsQuery.data : undefined,
+    })
+    : [];
 
   return {
     draftsQuery,
@@ -375,6 +571,8 @@ export function useWorldResourceQueries(input: {
     maintenanceTimeline: toMaintenanceTimeline(stateQuery.data, historyQuery.data),
     lorebooksQuery,
     resourceBindingsQuery,
+    worldDeliverables,
+    worldDeliverableCompleteness: summarizeWorldDeliverables(worldDeliverables),
     releasesQuery,
     titleLineageQuery,
     batchRunsQuery,

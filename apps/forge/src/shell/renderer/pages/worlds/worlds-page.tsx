@@ -22,7 +22,6 @@ import { formatDate } from '@renderer/components/format-utils.js';
 export default function WorldsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const ensureWorkspaceForWorld = useForgeWorkspaceStore((state) => state.ensureWorkspaceForWorld);
   const ensureWorkspaceForDraft = useForgeWorkspaceStore((state) => state.ensureWorkspaceForDraft);
 
   const { draftsQuery, worldsQuery } = useWorldResourceQueries({
@@ -39,7 +38,7 @@ export default function WorldsPage() {
     <ForgePage>
       <ForgePageHeader
         title={t('pages.worlds')}
-        subtitle={t('worlds.subtitle', 'Browse worlds and reopen them inside the Forge workbench')}
+        subtitle={t('worlds.subtitle', 'Browse draft sessions, inspect published worlds, and hand off into maintain when needed.')}
         actions={
           <Button tone="primary" onClick={() => navigate('/workbench/new')}>
             {t('worlds.createNew', 'New Workspace')}
@@ -95,14 +94,7 @@ export default function WorldsPage() {
                   <WorldCard
                     key={world.id}
                     world={world}
-                    onMaintain={() => {
-                      const workspaceId = ensureWorkspaceForWorld({
-                        worldId: world.id,
-                        title: world.name,
-                        description: world.description,
-                      });
-                      navigate(`/workbench/${workspaceId}?panel=WORLD_TRUTH`);
-                    }}
+                    onMaintain={() => navigate(`/worlds/${world.id}/maintain`)}
                   />
                 ))}
               </div>

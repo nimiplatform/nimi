@@ -23,7 +23,6 @@ import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
 import { ForgeListCard } from '@renderer/components/card-list.js';
 import { ForgeLoadingSpinner, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
 import { ForgeConfirmDialog, useConfirmDialog } from '@renderer/components/confirm-modals.js';
-import { ImageUploadField } from '@renderer/components/image-upload-field.js';
 
 function toJsonObject(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -99,12 +98,14 @@ function DnaSlider({
 export function ProfileTab({
   agent,
   onSave,
-  onAvatarChange,
+  onOpenAvatarReview,
+  onOpenGreetingReview,
   saving,
 }: {
   agent: AgentDetail;
   onSave: (updates: JsonObject) => Promise<void>;
-  onAvatarChange: (url: string) => void;
+  onOpenAvatarReview: () => void;
+  onOpenGreetingReview: () => void;
   saving: boolean;
 }) {
   const { t } = useTranslation();
@@ -112,7 +113,6 @@ export function ProfileTab({
   const [concept, setConcept] = useState(agent.concept);
   const [description, setDescription] = useState(agent.description || '');
   const [scenario, setScenario] = useState(agent.scenario || '');
-  const [greeting, setGreeting] = useState(agent.greeting || '');
   const [wakeStrategy, setWakeStrategy] = useState(agent.wakeStrategy);
 
   const dirty =
@@ -120,7 +120,6 @@ export function ProfileTab({
     concept !== agent.concept ||
     description !== (agent.description || '') ||
     scenario !== (agent.scenario || '') ||
-    greeting !== (agent.greeting || '') ||
     wakeStrategy !== agent.wakeStrategy;
 
   const wakeOptions: SegmentOption[] = [
@@ -158,12 +157,26 @@ export function ProfileTab({
       </div>
 
       <div className="space-y-4">
-        <ImageUploadField
-          label={t('agentDetail.avatar', 'Avatar')}
-          currentUrl={agent.avatarUrl}
-          aspect="1:1"
-          onUploaded={(result) => onAvatarChange(result.url)}
-        />
+        <Surface tone="card" material="glass-thin" padding="md" className="space-y-3">
+          <div className="flex items-center gap-3">
+            <ForgeEntityAvatar
+              src={agent.avatarUrl}
+              name={agent.displayName || agent.handle}
+              size="md"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+                {t('agentDetail.avatar', 'Avatar')}
+              </p>
+              <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">
+                Review and bind avatar candidates from the canonical agent asset ops surface.
+              </p>
+            </div>
+            <Button tone="secondary" size="sm" onClick={onOpenAvatarReview}>
+              Open Avatar Review
+            </Button>
+          </div>
+        </Surface>
 
         <LabeledTextField
           label={t('agentDetail.displayName', 'Display Name')}
@@ -190,13 +203,24 @@ export function ProfileTab({
           rows={3}
           placeholder={t('agentDetail.scenarioPlaceholder', 'The scenario or setting for this agent...')}
         />
-        <LabeledTextareaField
-          label={t('agentDetail.greeting', 'Greeting')}
-          value={greeting}
-          onChange={setGreeting}
-          rows={2}
-          placeholder={t('agentDetail.greetingPlaceholder', 'The first message the agent sends...')}
-        />
+        <Surface tone="card" material="glass-thin" padding="md" className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+                {t('agentDetail.greeting', 'Greeting')}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[var(--nimi-text-secondary)]">
+                {agent.greeting?.trim() || t('agentDetail.greetingPlaceholder', 'The first message the agent sends...')}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-[var(--nimi-text-muted)]">
+                Greeting edits now route through candidate review, confirmation, and bind in agent asset ops.
+              </p>
+            </div>
+            <Button tone="secondary" size="sm" onClick={onOpenGreetingReview}>
+              Open Greeting Review
+            </Button>
+          </div>
+        </Surface>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
             {t('agentDetail.wakeStrategy', 'Wake Strategy')}
@@ -214,7 +238,6 @@ export function ProfileTab({
               concept,
               description: description || undefined,
               scenario: scenario || undefined,
-              greeting: greeting || undefined,
               wakeStrategy,
             });
           }}

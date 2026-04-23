@@ -2,7 +2,7 @@
  * Entity Image Generation Client — Forge (FG-CONTENT-008)
  *
  * Two-stage prompt engine: truth data brief → AI prompt refinement → image generation.
- * Upload-bind pipeline: generate → upload to CF → finalize → bind to entity.
+ * Upload pipeline: generate → upload to CF → hand off into canonical asset review.
  */
 
 import { getPlatformClient } from '@nimiplatform/sdk';
@@ -12,8 +12,6 @@ import {
   createImageDirectUpload,
   finalizeResource,
 } from './content-data-client.js';
-import { updateAgent } from './agent-data-client.js';
-import { batchUpsertWorldResourceBindings } from './world-data-client.js';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -22,6 +20,8 @@ export type ImageGenTarget =
   | 'agent-portrait'
   | 'world-banner'
   | 'world-icon'
+  | 'world-background'
+  | 'world-scene'
   | 'custom';
 
 export type ImageGenEntityContext = {
@@ -254,6 +254,60 @@ export function assembleWorldIconBrief(ctx: ImageGenEntityContext): string {
   return parts.join('\n\n');
 }
 
+export function assembleWorldBackgroundBrief(ctx: ImageGenEntityContext): string {
+  const parts: string[] = [];
+  parts.push('Generate an atmospheric wide background image for a world shell (16:9 aspect ratio, ambient, low-character-focus).');
+
+  if (ctx.worldName) {
+    parts.push(section('World Name', ctx.worldName));
+  }
+  if (ctx.worldDescription) {
+    parts.push(section('World Description', ctx.worldDescription));
+  }
+  if (ctx.worldOverview) {
+    parts.push(section('World Overview', ctx.worldOverview));
+  }
+  if (ctx.worldVisualGuide) {
+    const guide = stringifyVisualGuide(ctx.worldVisualGuide);
+    if (guide) parts.push(section('Visual Guide', guide));
+  }
+  if (ctx.worldSetting) {
+    parts.push(section('World Setting', ctx.worldSetting));
+  }
+  if (ctx.userPrompt) {
+    parts.push(section('Additional Instructions', ctx.userPrompt));
+  }
+
+  return parts.join('\n\n');
+}
+
+export function assembleWorldSceneBrief(ctx: ImageGenEntityContext): string {
+  const parts: string[] = [];
+  parts.push('Generate a wide narrative key-art scene for a world (16:9 aspect ratio, cinematic composition, environmental storytelling).');
+
+  if (ctx.worldName) {
+    parts.push(section('World Name', ctx.worldName));
+  }
+  if (ctx.worldDescription) {
+    parts.push(section('World Description', ctx.worldDescription));
+  }
+  if (ctx.worldOverview) {
+    parts.push(section('World Overview', ctx.worldOverview));
+  }
+  if (ctx.worldVisualGuide) {
+    const guide = stringifyVisualGuide(ctx.worldVisualGuide);
+    if (guide) parts.push(section('Visual Guide', guide));
+  }
+  if (ctx.worldSetting) {
+    parts.push(section('World Setting', ctx.worldSetting));
+  }
+  if (ctx.userPrompt) {
+    parts.push(section('Additional Instructions', ctx.userPrompt));
+  }
+
+  return parts.join('\n\n');
+}
+
 function stringifyVisualGuide(guide: JsonObject): string {
   if (!guide || typeof guide !== 'object') return '';
   const entries = Object.entries(guide)
@@ -319,6 +373,10 @@ function assembleBrief(ctx: ImageGenEntityContext): string {
       return assembleWorldBannerBrief(ctx);
     case 'world-icon':
       return assembleWorldIconBrief(ctx);
+    case 'world-background':
+      return assembleWorldBackgroundBrief(ctx);
+    case 'world-scene':
+      return assembleWorldSceneBrief(ctx);
     case 'custom':
       return ctx.userPrompt || '';
   }
@@ -331,6 +389,8 @@ function resolveAspectRatio(ctx: ImageGenEntityContext): string {
     case 'world-icon':
       return '1:1';
     case 'world-banner':
+    case 'world-background':
+    case 'world-scene':
       return '16:9';
     case 'agent-portrait':
       return '9:16';
@@ -444,69 +504,4 @@ export async function uploadImageToCloudflare(imageUrl: string): Promise<UploadA
     resourceId,
     url: deliveredUrl || imageUrl,
   };
-}
-
-export async function uploadAndBindAgentAvatar(
-  agentId: string,
-  imageUrl: string,
-  onPhase?: (phase: ImageGenPhase) => void,
-): Promise<UploadAndBindResult> {
-  onPhase?.('uploading');
-  const uploaded = await uploadImageToCloudflare(imageUrl);
-
-  onPhase?.('binding');
-  await updateAgent(agentId, { avatarUrl: uploaded.url });
-
-  onPhase?.('done');
-  return uploaded;
-}
-
-export async function uploadAndBindWorldBanner(
-  worldId: string,
-  imageUrl: string,
-  onPhase?: (phase: ImageGenPhase) => void,
-): Promise<UploadAndBindResult> {
-  onPhase?.('uploading');
-  const uploaded = await uploadImageToCloudflare(imageUrl);
-
-  onPhase?.('binding');
-  await batchUpsertWorldResourceBindings(worldId, {
-    bindingUpserts: [{
-      objectType: 'RESOURCE',
-      objectId: uploaded.resourceId,
-      hostType: 'WORLD',
-      hostId: worldId,
-      bindingKind: 'PRESENTATION',
-      bindingPoint: 'WORLD_BANNER',
-      priority: 0,
-    }],
-  });
-
-  onPhase?.('done');
-  return uploaded;
-}
-
-export async function uploadAndBindWorldIcon(
-  worldId: string,
-  imageUrl: string,
-  onPhase?: (phase: ImageGenPhase) => void,
-): Promise<UploadAndBindResult> {
-  onPhase?.('uploading');
-  const uploaded = await uploadImageToCloudflare(imageUrl);
-
-  onPhase?.('binding');
-  await batchUpsertWorldResourceBindings(worldId, {
-    bindingUpserts: [{
-      objectType: 'RESOURCE',
-      objectId: uploaded.resourceId,
-      hostType: 'WORLD',
-      hostId: worldId,
-      bindingKind: 'PRESENTATION',
-      bindingPoint: 'WORLD_ICON',
-      priority: 0,
-    }],
-  });
-
-  onPhase?.('done');
-  return uploaded;
 }

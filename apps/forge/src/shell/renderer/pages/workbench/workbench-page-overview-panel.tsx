@@ -166,7 +166,7 @@ export function WorkbenchPageOverviewPanel({
                           disabled={imageGen.busy}
                           className="flex-1"
                         >
-                          Set as Banner
+                          Send to Cover Review
                         </Button>
                         <Button
                           tone="secondary"
@@ -175,7 +175,7 @@ export function WorkbenchPageOverviewPanel({
                           disabled={imageGen.busy}
                           className="flex-1"
                         >
-                          Set as Icon
+                          Send to Icon Review
                         </Button>
                       </>
                     ) : null}
@@ -203,7 +203,7 @@ export function WorkbenchPageOverviewPanel({
 
         {!snapshot.worldDraft.worldId && imageGen.candidates.length > 0 ? (
           <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">
-            Publish the world first to bind images as banner or icon.
+            Publish the world first to route images into canonical world cover or icon review.
           </p>
         ) : null}
       </Surface>

@@ -5,19 +5,17 @@
  * Supports entity context via URL search params for contextual generation.
  *
  * URL params:
- *   ?target=agent-avatar|agent-portrait|world-banner|world-icon
+ *   ?target=agent-avatar|agent-portrait|world-banner|world-icon|world-background|world-scene
  *   &agentId=...&agentName=...&worldId=...&worldName=...
  */
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
-import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
-import { type JsonObject } from '@renderer/bridge';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';
-import type { ImageGenTarget, ImageGenEntityContext } from '@renderer/data/image-gen-client.js';
+import type { ImageGenCandidate, ImageGenTarget, ImageGenEntityContext } from '@renderer/data/image-gen-client.js';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
   ForgePage,
@@ -34,8 +32,9 @@ const STYLE_PRESETS = ['anime', 'realistic', 'painterly', 'pixel-art'] as const;
 const ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3'] as const;
 const TEMPLATES = [
   { id: 'cover', label: 'World Cover', target: 'world-banner' as ImageGenTarget },
+  { id: 'background', label: 'World Background', target: 'world-background' as ImageGenTarget },
+  { id: 'scene', label: 'World Scene', target: 'world-scene' as ImageGenTarget },
   { id: 'portrait', label: 'Character Portrait', target: 'agent-avatar' as ImageGenTarget },
-  { id: 'scene', label: 'Scene Illustration', target: 'custom' as ImageGenTarget },
   { id: 'item', label: 'Item / Object', target: 'custom' as ImageGenTarget },
   { id: 'environment', label: 'Environment', target: 'custom' as ImageGenTarget },
 ] as const;
@@ -66,8 +65,8 @@ const PHASE_LABELS: Record<string, string> = {
 
 export default function ImageStudioPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const mutations = useContentMutations();
   const imageGen = useImageGeneration();
 
   // Entity context from URL params
@@ -82,7 +81,11 @@ export default function ImageStudioPage() {
   const [negativePrompt, setNegativePrompt] = useState('');
   const [style, setStyle] = useState<(typeof STYLE_PRESETS)[number]>('anime');
   const [ratio, setRatio] = useState<(typeof ASPECT_RATIOS)[number]>(
-    urlTarget === 'world-banner' ? '16:9' : urlTarget === 'agent-portrait' ? '9:16' : '1:1',
+    urlTarget === 'world-banner' || urlTarget === 'world-background' || urlTarget === 'world-scene'
+      ? '16:9'
+      : urlTarget === 'agent-portrait'
+        ? '9:16'
+        : '1:1',
   );
   const [template, setTemplate] = useState(urlTarget ? (TEMPLATES.find((t) => t.target === urlTarget)?.id || '') : '');
   const [gallery, setGallery] = useState<GeneratedImage[]>([]);
@@ -161,43 +164,70 @@ export default function ImageStudioPage() {
 
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  function toCandidate(image: GeneratedImage): ImageGenCandidate {
+    return {
+      id: image.id,
+      url: image.url,
+      prompt: image.prompt,
+      negativePrompt: '',
+      timestamp: image.timestamp,
+    };
+  }
+
   async function handleSaveToLibrary(image: GeneratedImage) {
     setSaveError(null);
     try {
-      const result = await mutations.imageUploadMutation.mutateAsync(undefined);
-      const record: JsonObject = result && typeof result === 'object' && !Array.isArray(result)
-        ? result as JsonObject
-        : {};
-      const uploadUrl = String(record.uploadUrl || '');
-
-      if (!uploadUrl) {
-        throw new Error('No upload URL returned from server');
-      }
-
-      // Fetch the image blob from the local object URL or data URL
-      const response = await fetch(image.url);
-      const blob = await response.blob();
-
-      // Upload to Cloudflare via FormData (fallback to PUT)
-      const formData = new FormData();
-      formData.append('file', blob, `${image.id}.png`);
-      let uploadResponse = await fetch(uploadUrl, { method: 'POST', body: formData });
-      if (!uploadResponse.ok) {
-        uploadResponse = await fetch(uploadUrl, {
-          method: 'PUT',
-          body: blob,
-          headers: { 'Content-Type': blob.type || 'image/png' },
-        });
-      }
-
-      if (!uploadResponse.ok) {
-        throw new Error(`Upload failed: ${uploadResponse.status}`);
-      }
-
-      // Remove from gallery after successful save
-      setGallery((g) => g.filter((i) => i.id !== image.id));
+      await imageGen.saveToLibrary(toCandidate(image));
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Save failed');
+    }
+  }
+
+  async function handleSendWorldCandidateToReview(
+    image: GeneratedImage,
+    family: 'world-icon' | 'world-cover' | 'world-background' | 'world-scene',
+  ) {
+    if (!urlWorldId) {
+      return;
+    }
+    setSaveError(null);
+    try {
+      const result = family === 'world-cover'
+        ? await imageGen.useAsWorldBanner(urlWorldId, toCandidate(image))
+        : family === 'world-icon'
+          ? await imageGen.useAsWorldIcon(urlWorldId, toCandidate(image))
+          : family === 'world-background'
+            ? await imageGen.useAsWorldBackground(urlWorldId, toCandidate(image))
+            : await imageGen.useAsWorldScene(urlWorldId, toCandidate(image));
+      navigate(`/worlds/${urlWorldId}/assets/${family}?candidateResourceId=${encodeURIComponent(result.resourceId)}`);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Review handoff failed');
+    }
+  }
+
+  async function handleSendAgentAvatarCandidateToReview(image: GeneratedImage) {
+    if (!urlAgentId) {
+      return;
+    }
+    setSaveError(null);
+    try {
+      const result = await imageGen.useAsAgentAvatar(urlAgentId, toCandidate(image));
+      navigate(`/agents/${urlAgentId}/assets/agent-avatar?candidateResourceId=${encodeURIComponent(result.resourceId)}`);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Review handoff failed');
+    }
+  }
+
+  async function handleSendAgentCoverCandidateToReview(image: GeneratedImage) {
+    if (!urlAgentId) {
+      return;
+    }
+    setSaveError(null);
+    try {
+      const result = await imageGen.useAsAgentCover(urlAgentId, toCandidate(image));
+      navigate(`/agents/${urlAgentId}/assets/agent-cover?candidateResourceId=${encodeURIComponent(result.resourceId)}`);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Review handoff failed');
     }
   }
 
@@ -319,7 +349,7 @@ export default function ImageStudioPage() {
           <ForgeSectionHeading
             eyebrow={t('pages.imageStudio')}
             title={t('imageStudio.gallery', 'Gallery')}
-            description={t('imageStudio.galleryDesc', 'Generated images stay local in the staging gallery until you save them into the content library or bind them to an entity.')}
+            description={t('imageStudio.galleryDesc', 'Generated images stay local in the staging gallery until you save them into the content library or hand them off into the relevant review flow.')}
           />
           {(saveError || imageGen.error) && (
             <ForgeErrorBanner message={saveError || imageGen.error || ''} className="mb-3" />
@@ -347,51 +377,71 @@ export default function ImageStudioPage() {
                         {t('imageStudio.save', 'Save')}
                       </Button>
                       {urlAgentId ? (
-                        <Button
-                          tone="secondary"
-                          size="sm"
-                          onClick={() => void imageGen.useAsAgentAvatar(urlAgentId, {
-                            id: img.id,
-                            url: img.url,
-                            prompt: img.prompt,
-                            negativePrompt: '',
-                            timestamp: img.timestamp,
-                          })}
-                          disabled={imageGen.busy}
-                        >
-                          {t('imageStudio.useAsAvatar', 'Use as Avatar')}
-                        </Button>
+                        <>
+                          {(urlTarget === 'agent-avatar' || !urlTarget) ? (
+                            <Button
+                              tone="secondary"
+                              size="sm"
+                              onClick={() => void handleSendAgentAvatarCandidateToReview(img)}
+                              disabled={imageGen.busy}
+                            >
+                              {t('imageStudio.sendToAvatarReview', 'Send to Avatar Review')}
+                            </Button>
+                          ) : null}
+                          {(urlTarget === 'agent-portrait' || !urlTarget) ? (
+                            <Button
+                              tone="secondary"
+                              size="sm"
+                              onClick={() => void handleSendAgentCoverCandidateToReview(img)}
+                              disabled={imageGen.busy}
+                            >
+                              {t('imageStudio.sendToCoverReviewAgent', 'Send to Cover Review')}
+                            </Button>
+                          ) : null}
+                        </>
                       ) : null}
                       {urlWorldId ? (
                         <>
-                          <Button
-                            tone="secondary"
-                            size="sm"
-                            onClick={() => void imageGen.useAsWorldBanner(urlWorldId, {
-                              id: img.id,
-                              url: img.url,
-                              prompt: img.prompt,
-                              negativePrompt: '',
-                              timestamp: img.timestamp,
-                            })}
-                            disabled={imageGen.busy}
-                          >
-                            {t('imageStudio.useAsBanner', 'Set as Banner')}
-                          </Button>
-                          <Button
-                            tone="secondary"
-                            size="sm"
-                            onClick={() => void imageGen.useAsWorldIcon(urlWorldId, {
-                              id: img.id,
-                              url: img.url,
-                              prompt: img.prompt,
-                              negativePrompt: '',
-                              timestamp: img.timestamp,
-                            })}
-                            disabled={imageGen.busy}
-                          >
-                            {t('imageStudio.useAsIcon', 'Set as Icon')}
-                          </Button>
+                          {(urlTarget === 'world-banner' || !urlTarget) ? (
+                            <Button
+                              tone="secondary"
+                              size="sm"
+                              onClick={() => void handleSendWorldCandidateToReview(img, 'world-cover')}
+                              disabled={imageGen.busy}
+                            >
+                              {t('imageStudio.sendToCoverReview', 'Send to Cover Review')}
+                            </Button>
+                          ) : null}
+                          {(urlTarget === 'world-icon' || !urlTarget) ? (
+                            <Button
+                              tone="secondary"
+                              size="sm"
+                              onClick={() => void handleSendWorldCandidateToReview(img, 'world-icon')}
+                              disabled={imageGen.busy}
+                            >
+                              {t('imageStudio.sendToIconReview', 'Send to Icon Review')}
+                            </Button>
+                          ) : null}
+                          {(urlTarget === 'world-background' || !urlTarget) ? (
+                            <Button
+                              tone="secondary"
+                              size="sm"
+                              onClick={() => void handleSendWorldCandidateToReview(img, 'world-background')}
+                              disabled={imageGen.busy}
+                            >
+                              Send to Background Review
+                            </Button>
+                          ) : null}
+                          {(urlTarget === 'world-scene' || !urlTarget) ? (
+                            <Button
+                              tone="secondary"
+                              size="sm"
+                              onClick={() => void handleSendWorldCandidateToReview(img, 'world-scene')}
+                              disabled={imageGen.busy}
+                            >
+                              Send to Scene Review
+                            </Button>
+                          ) : null}
                         </>
                       ) : null}
                       <Button
