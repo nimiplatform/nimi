@@ -2,6 +2,7 @@ import { asNimiError, createNimiError } from '../errors.js';
 import { asRecord, readString } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
 import type {
+  RuntimeAppSession,
   RuntimeNodeGrpcTransportConfig,
   RuntimeWireMessage,
   RuntimeOpenStreamCall,
@@ -80,6 +81,7 @@ function toGrpcMetadata(
   metadata: RuntimeUnaryCall<RuntimeWireMessage>['metadata'],
   authorization?: string,
   protectedAccessToken?: RuntimeProtectedAccessToken,
+  appSession?: RuntimeAppSession,
 ): Metadata {
   const reservedTypedKeys = new Set([
     'x-nimi-protocol-version',
@@ -133,6 +135,8 @@ function toGrpcMetadata(
   append('authorization', authorization);
   append('x-nimi-access-token-id', protectedAccessToken?.tokenId);
   append('x-nimi-access-token-secret', protectedAccessToken?.secret);
+  append('x-nimi-session-id', appSession?.sessionId);
+  append('x-nimi-session-token', appSession?.sessionToken);
 
   const extra = metadata.extra || {};
   for (const [key, extraValue] of Object.entries(extra)) {
@@ -380,6 +384,7 @@ export function createNodeGrpcTransportInternal(
           input.metadata,
           input.authorization,
           input.protectedAccessToken,
+          input.appSession,
         ),
         toCallOptions(input.timeoutMs),
         (error: ServiceError | null, response?: RuntimeWireMessage) => {
@@ -455,6 +460,7 @@ export function createNodeGrpcTransportInternal(
         input.metadata,
         input.authorization,
         input.protectedAccessToken,
+        input.appSession,
       ),
       toCallOptions(input.timeoutMs),
     );

@@ -1,4 +1,4 @@
-import { desktopBridge } from '@renderer/bridge';
+import { desktopBridge, logRendererEvent } from '@renderer/bridge';
 
 const CODEX_OAUTH_ISSUER = 'https://auth.openai.com';
 const CODEX_OAUTH_CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann';
@@ -52,6 +52,11 @@ type AcquireCodexManagedCredentialOptions = {
   now?: () => number;
 };
 
+type DevicePollErrorSummary = {
+  errorCode?: string;
+  errorDescription?: string;
+};
+
 function toTrimmedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -77,6 +82,59 @@ function parseJsonObject(body: string, errorLabel: string): Record<string, unkno
     const message = error instanceof Error ? error.message : String(error || 'unknown parse error');
     throw new Error(`${errorLabel} returned invalid JSON: ${message}`, { cause: error });
   }
+}
+
+function tryParseJsonObject(body: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(String(body || ''));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return null;
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function summarizePollError(body: string): DevicePollErrorSummary {
+  const parsed = tryParseJsonObject(body);
+  if (!parsed) {
+    return {};
+  }
+  return {
+    errorCode: toTrimmedString(parsed.error),
+    errorDescription:
+      toTrimmedString(parsed.error_description)
+      || toTrimmedString(parsed.message)
+      || toTrimmedString(parsed.detail),
+  };
+}
+
+function maskUserCode(userCode: string): string {
+  const normalized = String(userCode || '').trim();
+  if (!normalized) {
+    return '';
+  }
+  if (normalized.length <= 4) {
+    return normalized;
+  }
+  return `${normalized.slice(0, 2)}***${normalized.slice(-2)}`;
+}
+
+function logCodexOAuth(
+  level: 'debug' | 'info' | 'warn' | 'error',
+  message: string,
+  details: Record<string, unknown>,
+): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  logRendererEvent({
+    level,
+    area: 'runtime-config.codex-oauth',
+    message: `action:${message}`,
+    details,
+  });
 }
 
 async function postJson(
@@ -176,10 +234,15 @@ export async function acquireCodexManagedCredential(
   }));
   const now = options.now || (() => Date.now());
 
+  logCodexOAuth('info', 'codex-oauth:device-code-request:start', {});
+
   const deviceCodeResponse = await postJson(bridge, CODEX_DEVICE_AUTH_USERCODE_URL, {
     client_id: CODEX_OAUTH_CLIENT_ID,
   });
   if (!deviceCodeResponse.ok) {
+    logCodexOAuth('error', 'codex-oauth:device-code-request:failed', {
+      status: deviceCodeResponse.status,
+    });
     throw new Error(`Codex device code request failed with HTTP ${deviceCodeResponse.status}`);
   }
   const deviceData = parseJsonObject(deviceCodeResponse.body, 'Codex device code request') as DeviceCodeResponse;
@@ -196,6 +259,13 @@ export async function acquireCodexManagedCredential(
     throw new Error('Codex device code response is missing user_code or device_auth_id');
   }
 
+  logCodexOAuth('info', 'codex-oauth:device-code-request:success', {
+    pollIntervalSeconds,
+    expiresInSeconds,
+    userCode: maskUserCode(userCode),
+    hasVerificationUriComplete: Boolean(toTrimmedString(deviceData.verification_uri_complete)),
+  });
+
   options.onPending?.({
     userCode,
     verificationUrl,
@@ -203,31 +273,78 @@ export async function acquireCodexManagedCredential(
     pollIntervalSeconds,
   });
 
+  logCodexOAuth('info', 'codex-oauth:browser-open:start', {
+    verificationUrl,
+  });
   const launchResult = await bridge.openExternalUrl(verificationUrl);
   if (!launchResult.opened) {
+    logCodexOAuth('error', 'codex-oauth:browser-open:failed', {
+      verificationUrl,
+    });
     throw new Error('Unable to open the browser for Codex sign-in');
   }
+  logCodexOAuth('info', 'codex-oauth:browser-open:success', {
+    verificationUrl,
+  });
 
   const deadlineMs = now() + expiresInSeconds * 1000;
   let codeResponse: DevicePollResponse | null = null;
+  let pollAttempt = 0;
+  let lastPollStatus: number | null = null;
+  let lastPollError: DevicePollErrorSummary = {};
   while (now() < deadlineMs) {
     await sleep(pollIntervalSeconds * 1000);
+    pollAttempt += 1;
     const pollResponse = await postJson(bridge, CODEX_DEVICE_AUTH_TOKEN_URL, {
       device_auth_id: deviceAuthId,
       user_code: userCode,
     });
+    lastPollStatus = pollResponse.status;
+    lastPollError = summarizePollError(pollResponse.body);
     if (pollResponse.status === 200) {
+      logCodexOAuth('info', 'codex-oauth:poll:authorized', {
+        attempt: pollAttempt,
+        status: pollResponse.status,
+      });
       codeResponse = parseJsonObject(pollResponse.body, 'Codex device auth poll') as DevicePollResponse;
       break;
     }
     if (pollResponse.status === 403 || pollResponse.status === 404) {
+      logCodexOAuth('debug', 'codex-oauth:poll:pending', {
+        attempt: pollAttempt,
+        status: pollResponse.status,
+        errorCode: lastPollError.errorCode || null,
+        errorDescription: lastPollError.errorDescription || null,
+      });
       continue;
     }
+    logCodexOAuth('error', 'codex-oauth:poll:failed', {
+      attempt: pollAttempt,
+      status: pollResponse.status,
+      errorCode: lastPollError.errorCode || null,
+      errorDescription: lastPollError.errorDescription || null,
+    });
     throw new Error(`Codex device auth polling failed with HTTP ${pollResponse.status}`);
   }
 
   if (!codeResponse) {
-    throw new Error('Codex sign-in timed out before authorization completed');
+    logCodexOAuth('warn', 'codex-oauth:poll:timeout', {
+      attempts: pollAttempt,
+      lastStatus: lastPollStatus,
+      lastErrorCode: lastPollError.errorCode || null,
+      lastErrorDescription: lastPollError.errorDescription || null,
+    });
+    const timeoutDetails = [
+      `attempts=${pollAttempt}`,
+      `lastStatus=${lastPollStatus ?? 'none'}`,
+    ];
+    if (lastPollError.errorCode) {
+      timeoutDetails.push(`lastError=${lastPollError.errorCode}`);
+    }
+    if (lastPollError.errorDescription) {
+      timeoutDetails.push(`detail=${lastPollError.errorDescription}`);
+    }
+    throw new Error(`Codex sign-in timed out before authorization completed (${timeoutDetails.join(', ')})`);
   }
 
   const authorizationCode = toTrimmedString(codeResponse.authorization_code);
@@ -236,13 +353,26 @@ export async function acquireCodexManagedCredential(
     throw new Error('Codex device auth response is missing authorization_code or code_verifier');
   }
 
-  const exchange = await bridge.oauthTokenExchange({
-    tokenUrl: CODEX_OAUTH_TOKEN_URL,
-    clientId: CODEX_OAUTH_CLIENT_ID,
-    code: authorizationCode,
-    codeVerifier,
+  logCodexOAuth('info', 'codex-oauth:token-exchange:start', {
+    attemptCount: pollAttempt,
     redirectUri: CODEX_DEVICE_AUTH_REDIRECT_URI,
   });
+  let exchange;
+  try {
+    exchange = await bridge.oauthTokenExchange({
+      tokenUrl: CODEX_OAUTH_TOKEN_URL,
+      clientId: CODEX_OAUTH_CLIENT_ID,
+      code: authorizationCode,
+      codeVerifier,
+      redirectUri: CODEX_DEVICE_AUTH_REDIRECT_URI,
+    });
+  } catch (error) {
+    logCodexOAuth('error', 'codex-oauth:token-exchange:failed', {
+      attemptCount: pollAttempt,
+      error: error instanceof Error ? error.message : String(error || 'unknown error'),
+    });
+    throw error;
+  }
   const accessToken = toTrimmedString(exchange.accessToken);
   if (!accessToken) {
     throw new Error('Codex token exchange did not return an access token');
@@ -256,6 +386,13 @@ export async function acquireCodexManagedCredential(
     ? new Date(now() + expiresIn * 1000).toISOString()
     : undefined;
   const accountId = codexAccountIdFromAccessToken(accessToken) || undefined;
+
+  logCodexOAuth('info', 'codex-oauth:token-exchange:success', {
+    attemptCount: pollAttempt,
+    hasRefreshToken: Boolean(refreshToken),
+    expiresIn: expiresIn ?? null,
+    accountId: accountId || null,
+  });
 
   return {
     accessToken,

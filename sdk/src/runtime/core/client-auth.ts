@@ -5,6 +5,7 @@ import {
 } from '../method-ids.js';
 import { runtimeAiRequestRequiresSubject } from '../runtime-guards.js';
 import type {
+  RuntimeAppSession,
   RuntimeCallOptions,
   RuntimeClientConfig,
   RuntimeOpenStreamCall,
@@ -114,6 +115,50 @@ async function resolveProtectedAccessToken(
   return undefined;
 }
 
+function runtimeMethodRequiresAppSession(methodId: string): boolean {
+  return methodId === RuntimeMethodIds.app.sendAppMessage
+    || methodId === RuntimeMethodIds.app.subscribeAppMessages
+    || methodId === RuntimeMethodIds.agent.openConversationAnchor
+    || methodId === RuntimeMethodIds.agent.getConversationAnchorSnapshot;
+}
+
+async function resolveAppSession(
+  config: RuntimeClientConfig | RuntimeClientConfigInternal,
+  methodId: string,
+  options?: RuntimeCallOptions | RuntimeStreamCallOptions,
+): Promise<RuntimeAppSession | undefined> {
+  if (!runtimeMethodRequiresAppSession(methodId)) {
+    return undefined;
+  }
+
+  const optionSessionId = normalizeText(options?.appSession?.sessionId);
+  const optionSessionToken = normalizeText(options?.appSession?.sessionToken);
+  if (optionSessionId && optionSessionToken) {
+    return {
+      sessionId: optionSessionId,
+      sessionToken: optionSessionToken,
+    };
+  }
+
+  const authInput = config.auth?.appSession;
+  if (typeof authInput === 'function') {
+    const resolved = await authInput();
+    const sessionId = normalizeText(resolved?.sessionId);
+    const sessionToken = normalizeText(resolved?.sessionToken);
+    if (sessionId && sessionToken) {
+      return { sessionId, sessionToken };
+    }
+    return undefined;
+  }
+
+  const sessionId = normalizeText(authInput?.sessionId);
+  const sessionToken = normalizeText(authInput?.sessionToken);
+  if (sessionId && sessionToken) {
+    return { sessionId, sessionToken };
+  }
+  return undefined;
+}
+
 function withIdempotencyKey(
   methodId: string,
   options?:
@@ -153,6 +198,7 @@ export async function toUnaryCall(
     metadata: mergeRuntimeMetadata(config, resolvedOptions),
     authorization: await resolveAuthorization(config, methodId, normalizedRequest, resolvedOptions),
     protectedAccessToken: await resolveProtectedAccessToken(config, resolvedOptions),
+    appSession: await resolveAppSession(config, methodId, resolvedOptions),
     timeoutMs: resolvedOptions?.timeoutMs,
     _responseMetadataObserver: resolvedOptions?._responseMetadataObserver,
   };
@@ -172,6 +218,7 @@ export async function toStreamCall(
     metadata: mergeRuntimeMetadata(config, resolvedOptions),
     authorization: await resolveAuthorization(config, methodId, normalizedRequest, resolvedOptions),
     protectedAccessToken: await resolveProtectedAccessToken(config, resolvedOptions),
+    appSession: await resolveAppSession(config, methodId, resolvedOptions),
     timeoutMs: resolvedOptions?.timeoutMs,
     signal: resolvedOptions?.signal,
   };

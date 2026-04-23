@@ -253,6 +253,19 @@ func publicChatMessagePayloadsFromProto(input []*runtimev1.ChatMessage) []public
 	return out
 }
 
+func publicChatMessageEnvelopePayloads(input []*runtimev1.ChatMessage) []any {
+	payloads := publicChatMessagePayloadsFromProto(input)
+	out := make([]any, 0, len(payloads))
+	for _, item := range payloads {
+		out = append(out, map[string]any{
+			"role":    item.Role,
+			"content": item.Content,
+			"name":    item.Name,
+		})
+	}
+	return out
+}
+
 func (s *Service) appendPublicChatAssistantMessage(anchorID string, assistantText string) {
 	if strings.TrimSpace(anchorID) == "" || strings.TrimSpace(assistantText) == "" {
 		return

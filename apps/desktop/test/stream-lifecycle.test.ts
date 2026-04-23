@@ -235,6 +235,25 @@ test('D-STRM: late terminal completion recovers a first-packet timeout', () => {
   }
 });
 
+test('D-STRM: keepalive clears first-packet timeout while preserving waiting phase', () => {
+  const fakeTimers = installFakeTimers();
+  try {
+    startStream(TEST_CHAT);
+    const [firstPacketTimerId] = fakeTimers.getTimerIds();
+    assert.ok(firstPacketTimerId, 'expected first-packet timer to be registered');
+
+    feedStreamEvent(TEST_CHAT, { type: 'keepalive' });
+    fakeTimers.runTimer(firstPacketTimerId);
+
+    const state = getStreamState(TEST_CHAT);
+    assert.equal(state.phase, 'waiting');
+    assert.equal(state.errorMessage, null);
+    assert.equal(state.firstPacketAt !== null, true);
+  } finally {
+    fakeTimers.restore();
+  }
+});
+
 test('D-STRM: idle state for unknown chatId', () => {
   const state = getStreamState('unknown-chat');
   assert.equal(state.phase, 'idle');

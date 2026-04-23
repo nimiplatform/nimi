@@ -158,7 +158,11 @@ fn parse_oauth_callback_http_request(request: &str) -> Result<ParsedOauthCallbac
     let params = match method.as_str() {
         "GET" => HashMap::new(),
         "POST" => parse_form_urlencoded_pairs(body),
-        _ => return Err(format!("OAuth callback only supports GET or POST, got {method}")),
+        _ => {
+            return Err(format!(
+                "OAuth callback only supports GET or POST, got {method}"
+            ))
+        }
     };
     Ok(ParsedOauthCallbackRequest { target, params })
 }
@@ -188,9 +192,8 @@ fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
     let _ = stream.flush();
 }
 
-const DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE: &str = include_str!(
-    "../../../auth/src/logic/native-oauth-result-page.template.html"
-);
+const DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE: &str =
+    include_str!("../../../auth/src/logic/native-oauth-result-page.template.html");
 
 fn render_oauth_callback_page(success: bool) -> String {
     if success {
@@ -570,14 +573,22 @@ mod tests {
     #[test]
     fn normalize_oauth_callback_target_requires_exact_callback_path() {
         assert_eq!(
-            normalize_oauth_callback_target("/oauth/callback?code=abc&state=123", "/oauth/callback")
-                .unwrap(),
+            normalize_oauth_callback_target(
+                "/oauth/callback?code=abc&state=123",
+                "/oauth/callback"
+            )
+            .unwrap(),
             "/oauth/callback?code=abc&state=123"
         );
-        assert!(normalize_oauth_callback_target("/oauth/callback/extra?code=abc", "/oauth/callback")
-            .is_err());
-        assert!(normalize_oauth_callback_target("//oauth/callback?code=abc", "/oauth/callback")
-            .is_err());
+        assert!(normalize_oauth_callback_target(
+            "/oauth/callback/extra?code=abc",
+            "/oauth/callback"
+        )
+        .is_err());
+        assert!(
+            normalize_oauth_callback_target("//oauth/callback?code=abc", "/oauth/callback")
+                .is_err()
+        );
     }
 
     #[test]

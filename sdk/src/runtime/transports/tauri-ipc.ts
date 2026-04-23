@@ -335,6 +335,7 @@ export function createTauriIpcTransport(
           metadata: input.metadata,
           authorization: input.authorization,
           protectedAccessToken: input.protectedAccessToken,
+          appSession: input.appSession,
           timeoutMs: input.timeoutMs,
         });
         const response = asObject(result) as Partial<UnaryResponse>;
@@ -452,6 +453,7 @@ export function createTauriIpcTransport(
           metadata: input.metadata,
           authorization: input.authorization,
           protectedAccessToken: input.protectedAccessToken,
+          appSession: input.appSession,
           timeoutMs: input.timeoutMs,
           eventNamespace: internalConfig.eventNamespace,
         });

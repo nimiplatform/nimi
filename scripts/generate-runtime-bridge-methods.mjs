@@ -10,6 +10,10 @@ const outputFiles = [
   resolve(repoRoot, 'apps/desktop/src-tauri/src/runtime_bridge/generated/method_ids.rs'),
   resolve(repoRoot, 'apps/forge/src-tauri/src/runtime_bridge/generated/method_ids.rs'),
 ];
+const customAllowlistedMethods = [
+  '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor',
+  '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot',
+];
 
 function parseRuntimeMethodMap(source) {
   const lines = source.split('\n');
@@ -111,7 +115,10 @@ function main() {
   const checkMode = process.argv.includes('--check');
   const source = readFileSync(methodIdsFile, 'utf8');
   const methodMap = parseRuntimeMethodMap(source);
-  const allowlistedMethods = uniqueSorted(Array.from(methodMap.values()));
+  const allowlistedMethods = uniqueSorted([
+    ...Array.from(methodMap.values()),
+    ...customAllowlistedMethods,
+  ]);
 
   const streamReferences = parseStreamReferences(source);
   const streamMethods = uniqueSorted(streamReferences.map((reference) => {

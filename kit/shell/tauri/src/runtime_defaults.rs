@@ -188,7 +188,10 @@ mod tests {
             || {
                 let defaults = runtime_defaults();
                 assert_eq!(defaults.realm.realm_base_url, "http://localhost:3002");
-                assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
+                assert_eq!(
+                    defaults.realm.jwks_url,
+                    "http://localhost:3002/api/auth/jwks"
+                );
                 assert_eq!(
                     defaults.realm.revocation_url,
                     "http://localhost:3002/api/auth/revocation"
@@ -212,7 +215,10 @@ mod tests {
             || {
                 let defaults = runtime_defaults();
                 assert_eq!(defaults.realm.realm_base_url, "http://localhost:3002");
-                assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
+                assert_eq!(
+                    defaults.realm.jwks_url,
+                    "http://localhost:3002/api/auth/jwks"
+                );
                 assert_eq!(
                     defaults.realm.revocation_url,
                     "http://localhost:3002/api/auth/revocation"

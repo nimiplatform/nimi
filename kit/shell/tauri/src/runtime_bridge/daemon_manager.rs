@@ -409,12 +409,12 @@ fn run_runtime_cli(args: &[&str], stdin_payload: Option<&str>) -> Result<String,
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
+    use super::{config_get, config_set};
     use super::{
         grpc_addr, runtime_cli_command_spec, runtime_config_path, start, status, stop,
         DEFAULT_GRPC_ADDR,
     };
-    #[cfg(unix)]
-    use super::{config_get, config_set};
     use std::fs;
     use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};

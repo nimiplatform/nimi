@@ -191,12 +191,21 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 		}
 		if s.logger != nil {
-			s.logger.Warn("scenario stream failed",
+			logArgs := []any{
 				"scenario_type", req.GetScenarioType().String(),
 				"model_resolved", modelResolved,
 				"trace_id", traceID,
 				"error", cause,
-			)
+			}
+			if metadata, ok := grpcerr.ExtractReasonMetadata(cause); ok {
+				if providerMessage := strings.TrimSpace(metadata["provider_message"]); providerMessage != "" {
+					logArgs = append(logArgs, "provider_message", providerMessage)
+				}
+				if actionHint := strings.TrimSpace(metadata["action_hint"]); actionHint != "" {
+					logArgs = append(logArgs, "action_hint", actionHint)
+				}
+			}
+			s.logger.Warn("scenario stream failed", logArgs...)
 		}
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,

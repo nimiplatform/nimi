@@ -226,7 +226,7 @@ foreground `hands-free` 只在已经显式进入的当前 foreground voice sessi
   current stale "voice session mode stays on" wording evidence
 - `apps/desktop/src/shell/renderer/features/chat/chat-human-canonical-components.tsx`
   — current transcript reveal surface evidence
-- `apps/desktop/src/shell/renderer/features/chat/chat-mode-host-types.ts` —
+- `apps/desktop/src/shell/renderer/features/chat/chat-shared-mode-host-types.ts` —
   host transcript / stage shell evidence
 - `.local/**` — local preflight evidence for broader voice session
   admission and defer decisions (non-authoritative supporting material only)

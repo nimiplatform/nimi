@@ -134,6 +134,31 @@ pub(crate) fn get_thread_bundle(
     }))
 }
 
+fn get_thread_record_by_agent_id(
+    conn: &Connection,
+    agent_id: &str,
+) -> Result<Option<ChatAgentThreadRecord>, String> {
+    conn.query_row(
+        r#"
+        SELECT
+          id,
+          agent_id,
+          title,
+          created_at_ms,
+          updated_at_ms,
+          last_message_at_ms,
+          archived_at_ms,
+          target_snapshot_json
+        FROM agent_threads
+        WHERE agent_id = ?1
+        "#,
+        params![agent_id],
+        thread_record_from_row,
+    )
+    .optional()
+    .map_err(|error| format!("query chat_agent thread by agent failed: {error}"))
+}
+
 pub(crate) fn create_thread(
     conn: &Connection,
     input: &ChatAgentCreateThreadInput,
@@ -155,7 +180,9 @@ pub(crate) fn create_thread(
     if target_snapshot.agent_id != agent_id {
         return Err("targetSnapshot.agentId must match agentId".to_string());
     }
-    conn.execute(
+    let target_snapshot_json =
+        super::codec::serialize_json_value(&target_snapshot, "targetSnapshot")?;
+    match conn.execute(
         r#"
         INSERT INTO agent_threads (
           id,
@@ -176,13 +203,48 @@ pub(crate) fn create_thread(
             updated_at_ms,
             last_message_at_ms,
             archived_at_ms,
-            super::codec::serialize_json_value(&target_snapshot, "targetSnapshot")?,
+            target_snapshot_json,
         ],
-    )
-    .map_err(|error| map_sql_error("create chat_agent thread failed", error))?;
-    get_thread_bundle(conn, &input.id)?
-        .map(|bundle| bundle.thread)
-        .ok_or_else(|| "create chat_agent thread failed: missing thread after insert".to_string())
+    ) {
+        Ok(_) => get_thread_bundle(conn, &input.id)?
+            .map(|bundle| bundle.thread)
+            .ok_or_else(|| {
+                "create chat_agent thread failed: missing thread after insert".to_string()
+            }),
+        Err(error) => {
+            let is_duplicate_agent = matches!(
+                &error,
+                rusqlite::Error::SqliteFailure(code, _)
+                    if code.extended_code == rusqlite::ffi::SQLITE_CONSTRAINT_UNIQUE
+            );
+            if !is_duplicate_agent {
+                return Err(map_sql_error("create chat_agent thread failed", error));
+            }
+
+            let existing = get_thread_record_by_agent_id(conn, &agent_id)?.ok_or_else(|| {
+                "create chat_agent thread failed: duplicate agent without existing thread"
+                    .to_string()
+            })?;
+            conn.execute(
+                r#"
+                UPDATE agent_threads
+                SET
+                  title = ?2,
+                  target_snapshot_json = ?3
+                WHERE id = ?1
+                "#,
+                params![&existing.id, title, target_snapshot_json],
+            )
+            .map_err(|update_error| {
+                map_sql_error("create chat_agent thread failed", update_error)
+            })?;
+            get_thread_bundle(conn, &existing.id)?
+                .map(|bundle| bundle.thread)
+                .ok_or_else(|| {
+                    "create chat_agent thread failed: missing thread after reuse".to_string()
+                })
+        }
+    }
 }
 
 pub(crate) fn update_thread_metadata(

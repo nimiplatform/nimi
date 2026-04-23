@@ -1274,13 +1274,15 @@ func TestTestConnectorOpenAICodexUsesOAuthHeaders(t *testing.T) {
 
 	var capturedOriginator string
 	var capturedAccountID string
+	var capturedClientVersion string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/backend-api/codex/models" && r.URL.Path != "/backend-api/codex/v1/models" {
+		if r.URL.Path != "/backend-api/codex/models" {
 			http.NotFound(w, r)
 			return
 		}
 		capturedOriginator = r.Header.Get("originator")
 		capturedAccountID = r.Header.Get("ChatGPT-Account-ID")
+		capturedClientVersion = r.URL.Query().Get("client_version")
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(server.Close)
@@ -1323,6 +1325,9 @@ func TestTestConnectorOpenAICodexUsesOAuthHeaders(t *testing.T) {
 	}
 	if capturedAccountID != "acct_probe_123" {
 		t.Fatalf("expected codex account header, got %q", capturedAccountID)
+	}
+	if capturedClientVersion != "1.0.0" {
+		t.Fatalf("expected codex client_version query param, got %q", capturedClientVersion)
 	}
 }
 

@@ -617,6 +617,68 @@ test('runtime agent inspect adapter projects persistent presentation profile wit
   assert.equal(calls.queryMemory.length, 0);
 });
 
+test('runtime agent inspect adapter accepts live2d presentation profiles', async () => {
+  const runtime = {
+    appId: 'desktop-test',
+    auth: {
+      registerApp: async () => ({ accepted: true }),
+    },
+    appAuth: {
+      authorizeExternalPrincipal: async () => ({
+        tokenId: 'protected-token-id',
+        secret: 'protected-token-secret',
+      }),
+    },
+    agent: {
+      getAgent: async () => ({
+        agent: {
+          metadata: {
+            fields: {
+              presentationProfile: {
+                kind: {
+                  oneofKind: 'structValue',
+                  structValue: {
+                    fields: {
+                      backendKind: {
+                        kind: {
+                          oneofKind: 'stringValue',
+                          stringValue: 'live2d',
+                        },
+                      },
+                      avatarAssetRef: {
+                        kind: {
+                          oneofKind: 'stringValue',
+                          stringValue: 'asset://live2d/airi',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+    },
+  };
+
+  const adapter = createRuntimeAgentInspectAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+  });
+
+  const profile = await adapter.getPresentationProfile('agent-1');
+
+  assert.deepEqual(profile, {
+    backendKind: 'live2d',
+    avatarAssetRef: 'asset://live2d/airi',
+    expressionProfileRef: null,
+    idlePreset: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+  });
+});
+
 test('runtime agent inspect adapter enables and disables autonomy through admitted runtime writes', async () => {
   const { runtime, calls } = createRuntimeMock();
   const adapter = createRuntimeAgentInspectAdapter({

@@ -8,12 +8,12 @@
 // - oauth_commands: token exchange, listen for code, open external URL
 // - desktop_paths: nimi directory resolution
 
+pub mod auth_session_commands;
+pub mod desktop_paths;
+pub mod oauth_commands;
 pub mod runtime_bridge;
 pub mod runtime_defaults;
 pub mod session_logging;
-pub mod auth_session_commands;
-pub mod oauth_commands;
-pub mod desktop_paths;
 
 #[cfg(test)]
 mod test_support;

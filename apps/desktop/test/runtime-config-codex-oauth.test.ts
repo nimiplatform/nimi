@@ -138,3 +138,57 @@ test('acquireCodexManagedCredential completes device-code flow and returns manag
   assert.equal(parsed.refresh_token, 'refresh-token');
   assert.equal(parsed.expires_at, '2026-04-23T14:00:00.000Z');
 });
+
+test('acquireCodexManagedCredential surfaces poll timeout details when authorization never completes', async () => {
+  let currentNow = 0;
+  let pollAttempts = 0;
+
+  await assert.rejects(
+    () => acquireCodexManagedCredential({
+      bridge: {
+        proxyHttp: async (payload) => {
+          if (String(payload.url).includes('/deviceauth/usercode')) {
+            return {
+              status: 200,
+              ok: true,
+              headers: {},
+              body: JSON.stringify({
+                user_code: 'ZXCV-9876',
+                device_auth_id: 'device-auth-timeout',
+                interval: 1,
+                expires_in: 7,
+                verification_uri_complete: 'https://auth.openai.com/codex/device?user_code=ZXCV-9876',
+              }),
+            };
+          }
+          pollAttempts += 1;
+          return {
+            status: pollAttempts === 2 ? 403 : 404,
+            ok: false,
+            headers: {},
+            body: JSON.stringify({
+              error: pollAttempts === 2 ? 'slow_down' : 'authorization_pending',
+              error_description: pollAttempts === 2 ? 'authorization still pending' : 'pending approval',
+            }),
+          };
+        },
+        openExternalUrl: async () => ({ opened: true }),
+        oauthTokenExchange: async () => {
+          throw new Error('token exchange should not run');
+        },
+      },
+      sleep: async (ms) => {
+        currentNow += ms;
+      },
+      now: () => currentNow,
+    }),
+    (error: unknown) => {
+      assert.equal(error instanceof Error, true);
+      assert.match((error as Error).message, /timed out before authorization completed/);
+      assert.match((error as Error).message, /attempts=3/);
+      assert.match((error as Error).message, /lastStatus=404/);
+      assert.match((error as Error).message, /lastError=authorization_pending/);
+      return true;
+    },
+  );
+});

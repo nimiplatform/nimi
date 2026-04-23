@@ -37,12 +37,20 @@ pub struct RuntimeBridgeProtectedAccessToken {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RuntimeBridgeAppSession {
+    pub session_id: String,
+    pub session_token: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeBridgeUnaryPayload {
     pub method_id: String,
     pub request_bytes_base64: String,
     pub metadata: Option<RuntimeBridgeMetadata>,
     pub authorization: Option<String>,
     pub protected_access_token: Option<RuntimeBridgeProtectedAccessToken>,
+    pub app_session: Option<RuntimeBridgeAppSession>,
     pub timeout_ms: Option<u64>,
 }
 
@@ -54,6 +62,7 @@ pub struct RuntimeBridgeStreamOpenPayload {
     pub metadata: Option<RuntimeBridgeMetadata>,
     pub authorization: Option<String>,
     pub protected_access_token: Option<RuntimeBridgeProtectedAccessToken>,
+    pub app_session: Option<RuntimeBridgeAppSession>,
     pub timeout_ms: Option<u64>,
     pub event_namespace: Option<String>,
 }
@@ -245,6 +254,16 @@ mod tests {
         let stream_method = "/nimi.runtime.v1.RuntimeAiService/StreamScenario";
         assert!(is_stream_method(stream_method));
         assert!(is_allowlisted_method(stream_method));
+    }
+
+    #[test]
+    fn custom_agent_anchor_methods_are_allowlisted() {
+        let open_method = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor";
+        let get_method = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot";
+        assert!(!is_stream_method(open_method));
+        assert!(!is_stream_method(get_method));
+        assert!(is_allowlisted_method(open_method));
+        assert!(is_allowlisted_method(get_method));
     }
 
     #[test]

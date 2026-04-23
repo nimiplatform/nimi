@@ -393,8 +393,11 @@ fn chat_ai_store_rejects_missing_thread_duplicate_id_and_invalid_json() {
                 archived_at_ms: None,
             },
         )
-        .expect_err("duplicate thread");
-        assert!(duplicate.contains("duplicate primary key"));
+        .expect("duplicate thread should reuse existing record");
+        assert_eq!(duplicate.id, "thread-ai-dup");
+        assert_eq!(duplicate.title, "AI thread");
+        assert_eq!(duplicate.created_at_ms, 100);
+        assert_eq!(duplicate.updated_at_ms, 120);
 
         conn.execute(
             r#"

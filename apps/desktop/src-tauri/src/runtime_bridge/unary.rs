@@ -85,6 +85,7 @@ pub async fn invoke_unary(
         payload.metadata.as_ref(),
         payload.authorization.as_deref(),
         payload.protected_access_token.as_ref(),
+        payload.app_session.as_ref(),
         payload.method_id.as_str(),
     )?;
     if let Some(timeout_ms) = payload.timeout_ms {
@@ -122,6 +123,7 @@ mod tests {
             metadata: None,
             authorization: None,
             protected_access_token: None,
+            app_session: None,
             timeout_ms: None,
         }
     }

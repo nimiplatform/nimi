@@ -162,6 +162,7 @@ type publicChatReasoningPayload struct {
 type publicChatTurnRequestPayload struct {
 	AgentID              string                             `json:"agent_id"`
 	ConversationAnchorID string                             `json:"conversation_anchor_id"`
+	RequestID            string                             `json:"request_id,omitempty"`
 	ThreadID             string                             `json:"thread_id,omitempty"`
 	SystemPrompt         string                             `json:"system_prompt,omitempty"`
 	WorldID              string                             `json:"world_id,omitempty"`

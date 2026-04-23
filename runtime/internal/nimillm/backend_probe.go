@@ -70,6 +70,12 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 
+	if b.supportsCodexResponses() {
+		// chatgpt.com/backend-api/codex model discovery expects the client_version
+		// query parameter. Hermes uses the same probe shape.
+		return b.probeGETAbsolute(ctx, strings.TrimSuffix(b.baseURL, "/")+"/models?client_version=1.0.0")
+	}
+
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "fireworks" {
 		modelsBaseURL, err := fireworksModelsBaseURL(b.baseURL)
 		if err != nil {

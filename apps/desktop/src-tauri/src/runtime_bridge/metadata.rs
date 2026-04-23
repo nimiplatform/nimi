@@ -8,7 +8,7 @@ use tonic::metadata::MetadataValue;
 use tonic::Request;
 
 use super::error_map::bridge_error;
-use super::RuntimeBridgeProtectedAccessToken;
+use super::{RuntimeBridgeAppSession, RuntimeBridgeProtectedAccessToken};
 
 static IDEMPOTENCY_COUNTER: AtomicU64 = AtomicU64::new(1);
 const SUPPORTED_PROTOCOL_VERSION: &str = "1.0.0";
@@ -27,6 +27,8 @@ const RESERVED_METADATA_KEYS: &[&str] = &[
     "x-nimi-key-source",
     "x-nimi-provider-endpoint",
     "x-nimi-provider-api-key",
+    "x-nimi-session-id",
+    "x-nimi-session-token",
 ];
 
 #[derive(Clone, Default, Deserialize, Serialize)]
@@ -154,6 +156,7 @@ pub fn apply_metadata(
     metadata: Option<&RuntimeBridgeMetadata>,
     authorization: Option<&str>,
     protected_access_token: Option<&RuntimeBridgeProtectedAccessToken>,
+    app_session: Option<&RuntimeBridgeAppSession>,
     method_id: &str,
 ) -> Result<(), String> {
     let value = metadata.cloned().unwrap_or_default();
@@ -239,6 +242,16 @@ pub fn apply_metadata(
         "x-nimi-access-token-secret",
         normalize(protected_access_token.map(|value| value.secret.as_str())),
     )?;
+    insert_metadata_value(
+        request,
+        "x-nimi-session-id",
+        normalize(app_session.map(|value| value.session_id.as_str())),
+    )?;
+    insert_metadata_value(
+        request,
+        "x-nimi-session-token",
+        normalize(app_session.map(|value| value.session_token.as_str())),
+    )?;
 
     if let Some(extra) = value.extra {
         for (key, extra_value) in extra {
@@ -275,7 +288,10 @@ mod tests {
 
     use tonic::Request;
 
-    use super::{apply_metadata, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken};
+    use super::{
+        apply_metadata, RuntimeBridgeAppSession, RuntimeBridgeMetadata,
+        RuntimeBridgeProtectedAccessToken,
+    };
 
     fn read_metadata(request: &Request<Vec<u8>>, key: &str) -> Option<String> {
         request
@@ -290,6 +306,7 @@ mod tests {
         let mut request = Request::new(Vec::<u8>::new());
         apply_metadata(
             &mut request,
+            None,
             None,
             None,
             None,
@@ -347,6 +364,7 @@ mod tests {
             &mut request,
             Some(&metadata),
             Some("Bearer top-level-token"),
+            None,
             None,
             "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
@@ -427,6 +445,7 @@ mod tests {
             Some(&metadata),
             None,
             None,
+            None,
             "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect_err("unsupported protocol version should fail");
@@ -450,6 +469,7 @@ mod tests {
             Some(&metadata),
             None,
             None,
+            None,
             "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect_err("metadata with invalid header value should fail");
@@ -471,6 +491,7 @@ mod tests {
         let error = apply_metadata(
             &mut request,
             Some(&metadata),
+            None,
             None,
             None,
             "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
@@ -512,6 +533,7 @@ mod tests {
             None,
             None,
             Some(&protected_access_token),
+            None,
             "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect("apply metadata with protected access token");
@@ -523,6 +545,34 @@ mod tests {
         assert_eq!(
             read_metadata(&request, "x-nimi-access-token-secret").as_deref(),
             Some("protected-token-secret")
+        );
+    }
+
+    #[test]
+    fn apply_metadata_includes_runtime_app_session_headers() {
+        let mut request = Request::new(Vec::<u8>::new());
+        let app_session = RuntimeBridgeAppSession {
+            session_id: "runtime-session-id".to_string(),
+            session_token: "runtime-session-token".to_string(),
+        };
+
+        apply_metadata(
+            &mut request,
+            None,
+            None,
+            None,
+            Some(&app_session),
+            "//nimi.runtime.v1.RuntimeAppService/SendAppMessage",
+        )
+        .expect("apply metadata with runtime app session");
+
+        assert_eq!(
+            read_metadata(&request, "x-nimi-session-id").as_deref(),
+            Some("runtime-session-id")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-session-token").as_deref(),
+            Some("runtime-session-token")
         );
     }
 }

@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -244,11 +245,15 @@ func TestBackendGenerateTextUsesCodexResponses(t *testing.T) {
 	var capturedPath string
 	var capturedAuthorization string
 	var capturedOriginator string
+	var capturedRequestBody map[string]any
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedPath = r.URL.Path
 		capturedAuthorization = r.Header.Get("Authorization")
 		capturedOriginator = r.Header.Get("originator")
+		if err := json.NewDecoder(r.Body).Decode(&capturedRequestBody); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{
 			"status":"completed",
@@ -272,7 +277,7 @@ func TestBackendGenerateTextUsesCodexResponses(t *testing.T) {
 		"",
 		0,
 		0,
-		0,
+		4096,
 	)
 	if err != nil {
 		t.Fatalf("unexpected generate error: %v", err)
@@ -285,6 +290,26 @@ func TestBackendGenerateTextUsesCodexResponses(t *testing.T) {
 	}
 	if capturedOriginator != "codex_cli_rs" {
 		t.Fatalf("expected codex originator header, got %q", capturedOriginator)
+	}
+	if capturedRequestBody["instructions"] != codexDefaultInstructions {
+		t.Fatalf("expected default Codex instructions, got %+v", capturedRequestBody["instructions"])
+	}
+	if _, exists := capturedRequestBody["max_output_tokens"]; exists {
+		t.Fatalf("expected Codex request to omit max_output_tokens, got %+v", capturedRequestBody)
+	}
+	input, ok := capturedRequestBody["input"].([]any)
+	if !ok || len(input) != 1 {
+		t.Fatalf("expected a single Codex input item, got %+v", capturedRequestBody["input"])
+	}
+	firstItem, ok := input[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected Codex input item object, got %+v", input[0])
+	}
+	if _, exists := firstItem["type"]; exists {
+		t.Fatalf("expected Codex text input to omit message type, got %+v", firstItem)
+	}
+	if firstItem["content"] != "hello" {
+		t.Fatalf("expected Codex text input content string, got %+v", firstItem["content"])
 	}
 	if text != "hello from codex" {
 		t.Fatalf("unexpected text: %q", text)
@@ -299,8 +324,12 @@ func TestBackendGenerateTextUsesCodexResponses(t *testing.T) {
 
 func TestBackendStreamGenerateTextUsesCodexResponsesSSE(t *testing.T) {
 	var capturedPath string
+	var capturedRequestBody map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedPath = r.URL.Path
+		if err := json.NewDecoder(r.Body).Decode(&capturedRequestBody); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = w.Write([]byte("data: {\"type\":\"response.output_text.delta\",\"delta\":\"hello \"}\n\n"))
 		_, _ = w.Write([]byte("data: {\"type\":\"response.output_text.delta\",\"delta\":\"codex\"}\n\n"))
@@ -324,7 +353,7 @@ func TestBackendStreamGenerateTextUsesCodexResponsesSSE(t *testing.T) {
 		"",
 		0,
 		0,
-		0,
+		4096,
 		func(part string) error {
 			full.WriteString(part)
 			return nil
@@ -336,6 +365,26 @@ func TestBackendStreamGenerateTextUsesCodexResponsesSSE(t *testing.T) {
 	if capturedPath != "/backend-api/codex/responses" {
 		t.Fatalf("expected codex responses path, got %q", capturedPath)
 	}
+	if capturedRequestBody["instructions"] != codexDefaultInstructions {
+		t.Fatalf("expected default Codex instructions, got %+v", capturedRequestBody["instructions"])
+	}
+	if _, exists := capturedRequestBody["max_output_tokens"]; exists {
+		t.Fatalf("expected Codex stream request to omit max_output_tokens, got %+v", capturedRequestBody)
+	}
+	input, ok := capturedRequestBody["input"].([]any)
+	if !ok || len(input) != 1 {
+		t.Fatalf("expected a single Codex stream input item, got %+v", capturedRequestBody["input"])
+	}
+	firstItem, ok := input[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected Codex stream input item object, got %+v", input[0])
+	}
+	if _, exists := firstItem["type"]; exists {
+		t.Fatalf("expected Codex stream text input to omit message type, got %+v", firstItem)
+	}
+	if firstItem["content"] != "hello" {
+		t.Fatalf("expected Codex stream input content string, got %+v", firstItem["content"])
+	}
 	if full.String() != "hello codex" {
 		t.Fatalf("unexpected stream text: %q", full.String())
 	}
@@ -344,6 +393,85 @@ func TestBackendStreamGenerateTextUsesCodexResponsesSSE(t *testing.T) {
 	}
 	if finish != runtimev1.FinishReason_FINISH_REASON_STOP {
 		t.Fatalf("unexpected finish reason: %v", finish)
+	}
+}
+
+func TestBackendStreamGenerateTextUsesCodexResponsesSSEDespiteUnexpectedContentType(t *testing.T) {
+	var capturedPath string
+	var capturedRequestBody map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		if err := json.NewDecoder(r.Body).Decode(&capturedRequestBody); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte("data: {\"type\":\"response.output_text.delta\",\"delta\":\"hello \"}\n\n"))
+		_, _ = w.Write([]byte("data: {\"type\":\"response.output_text.delta\",\"delta\":\"codex\"}\n\n"))
+		_, _ = w.Write([]byte("data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":5,\"output_tokens\":2}}}\n\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
+	}))
+	defer server.Close()
+
+	backend := NewBackendWithHeaders("cloud-openai_codex", server.URL+"/backend-api/codex", "token-123", map[string]string{
+		"originator": "codex_cli_rs",
+	}, 5*time.Second)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+
+	var full strings.Builder
+	usage, finish, err := backend.StreamGenerateText(
+		context.Background(),
+		"gpt-5.4",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		4096,
+		func(part string) error {
+			full.WriteString(part)
+			return nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected stream error: %v", err)
+	}
+	if capturedPath != "/backend-api/codex/responses" {
+		t.Fatalf("expected codex responses path, got %q", capturedPath)
+	}
+	if capturedRequestBody["instructions"] != codexDefaultInstructions {
+		t.Fatalf("expected default Codex instructions, got %+v", capturedRequestBody["instructions"])
+	}
+	if full.String() != "hello codex" {
+		t.Fatalf("unexpected stream text: %q", full.String())
+	}
+	if usage == nil || usage.GetInputTokens() != 5 || usage.GetOutputTokens() != 2 {
+		t.Fatalf("unexpected usage: %+v", usage)
+	}
+	if finish != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("unexpected finish reason: %v", finish)
+	}
+}
+
+func TestBuildCodexResponsesInputUsesOutputTextForAssistantParts(t *testing.T) {
+	items, err := buildCodexResponsesInput([]*runtimev1.ChatMessage{
+		{
+			Role: "assistant",
+			Parts: []*runtimev1.ChatContentPart{textPart("hello from assistant")},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected build input error: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected one input item, got %d", len(items))
+	}
+	content, ok := items[0]["content"].([]map[string]any)
+	if !ok || len(content) != 1 {
+		t.Fatalf("expected assistant content parts, got %+v", items[0]["content"])
+	}
+	if content[0]["type"] != "output_text" {
+		t.Fatalf("expected assistant part type output_text, got %+v", content[0]["type"])
 	}
 }
 

@@ -9,6 +9,7 @@ import { Realm } from './realm/client.js';
 import type { RealmFetchImpl, RealmTokenRefreshResult } from './realm/client-types.js';
 import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
 import { createNimiError } from './runtime/errors.js';
+import { AppMode, WorldRelation } from './runtime/generated/runtime/v1/auth.js';
 import { Runtime } from './runtime/runtime.js';
 import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';
 import type { RuntimeCallOptions, RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/types.js';
@@ -185,6 +186,10 @@ export type PlatformClient = {
 // before switching tenants or auth sessions in the same process.
 let currentPlatformClient: PlatformClient | null = null;
 const DEFAULT_PLATFORM_APP_ID = 'nimi.app';
+const PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX = '.platform-runtime-session';
+const PLATFORM_RUNTIME_SESSION_DEVICE_ID = 'platform-runtime-session';
+const PLATFORM_RUNTIME_SESSION_TTL_SECONDS = 3600;
+const PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS = 30_000;
 
 function detectTauriTransport(): RuntimeTransportConfig | null {
   const globalRecord = globalThis as {
@@ -354,6 +359,20 @@ function discardExpiredRuntimeAccessToken(accessToken: string): string {
   return normalizedToken;
 }
 
+function timestampToMillis(
+  value: { seconds?: string | number | bigint; nanos?: number } | null | undefined,
+): number {
+  if (!value) {
+    return 0;
+  }
+  const seconds = Number(value.seconds || 0);
+  const nanos = Number(value.nanos || 0);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return 0;
+  }
+  return seconds * 1000 + Math.floor((Number.isFinite(nanos) ? nanos : 0) / 1_000_000);
+}
+
 function createDisabledRuntime(appId: string): Runtime {
   const target = { appId } as Runtime;
   return new Proxy(target, {
@@ -505,7 +524,111 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
     return decodeJwtSubject(await runtimeAccessTokenProvider());
   };
 
-  const runtime = input.runtimeTransport === null
+  let runtime!: Runtime;
+  let runtimeSessionRegisterPromise: Promise<void> | null = null;
+  let runtimeSessionCache:
+    | {
+      subjectUserId: string;
+      sessionId: string;
+      sessionToken: string;
+      expiresAtMs: number;
+    }
+    | null = null;
+  let runtimeSessionInflight: Promise<{ sessionId: string; sessionToken: string } | undefined> | null = null;
+
+  const ensureRuntimeSessionRegistered = async (): Promise<void> => {
+    if (runtimeSessionRegisterPromise) {
+      return runtimeSessionRegisterPromise;
+    }
+    runtimeSessionRegisterPromise = (async () => {
+      const response = await runtime.auth.registerApp({
+        appId,
+        appInstanceId: `${appId}${PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX}`,
+        deviceId: PLATFORM_RUNTIME_SESSION_DEVICE_ID,
+        appVersion: '1',
+        capabilities: [],
+        modeManifest: {
+          appMode: AppMode.FULL,
+          runtimeRequired: true,
+          realmRequired: true,
+          worldRelation: WorldRelation.NONE,
+        },
+      });
+      if (!response.accepted) {
+        throw createNimiError({
+          message: `platform runtime session registration rejected: ${String(response.reasonCode || 'unknown')}`,
+          reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+          actionHint: 'register_runtime_app_first',
+          source: 'runtime',
+        });
+      }
+    })();
+    try {
+      await runtimeSessionRegisterPromise;
+    } catch (error) {
+      runtimeSessionRegisterPromise = null;
+      throw error;
+    }
+  };
+
+  const runtimeAppSessionProvider = async () => {
+    const subjectUserId = normalizeText(await runtimeSubjectUserIdProvider());
+    if (!subjectUserId) {
+      runtimeSessionCache = null;
+      return undefined;
+    }
+    const nowMs = Date.now();
+    if (
+      runtimeSessionCache
+      && runtimeSessionCache.subjectUserId === subjectUserId
+      && runtimeSessionCache.expiresAtMs - nowMs > PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS
+    ) {
+      return {
+        sessionId: runtimeSessionCache.sessionId,
+        sessionToken: runtimeSessionCache.sessionToken,
+      };
+    }
+    if (runtimeSessionInflight) {
+      return runtimeSessionInflight;
+    }
+    runtimeSessionInflight = (async () => {
+      await ensureRuntimeSessionRegistered();
+      const response = await runtime.auth.openSession({
+        appId,
+        appInstanceId: `${appId}${PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX}`,
+        deviceId: PLATFORM_RUNTIME_SESSION_DEVICE_ID,
+        subjectUserId,
+        ttlSeconds: PLATFORM_RUNTIME_SESSION_TTL_SECONDS,
+      });
+      const sessionId = normalizeText(response.sessionId);
+      const sessionToken = normalizeText(response.sessionToken);
+      if (!sessionId || !sessionToken) {
+        throw createNimiError({
+          message: `platform runtime session open failed: ${String(response.reasonCode || 'unknown')}`,
+          reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+          actionHint: 'open_runtime_app_session',
+          source: 'runtime',
+        });
+      }
+      runtimeSessionCache = {
+        subjectUserId,
+        sessionId,
+        sessionToken,
+        expiresAtMs: timestampToMillis(response.expiresAt) || (Date.now() + PLATFORM_RUNTIME_SESSION_TTL_SECONDS * 1000),
+      };
+      return {
+        sessionId,
+        sessionToken,
+      };
+    })();
+    try {
+      return await runtimeSessionInflight;
+    } finally {
+      runtimeSessionInflight = null;
+    }
+  };
+
+  runtime = input.runtimeTransport === null
     ? createDisabledRuntime(appId)
     : new Runtime({
         ...input.runtimeOptions,
@@ -514,6 +637,7 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
         defaults: input.runtimeDefaults,
         auth: {
           accessToken: runtimeAccessTokenProvider,
+          appSession: runtimeAppSessionProvider,
         },
         subjectContext: {
           getSubjectUserId: runtimeSubjectUserIdProvider,

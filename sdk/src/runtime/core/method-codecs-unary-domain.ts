@@ -64,12 +64,16 @@ import {
   GetAgentResponse,
   GetAgentStateRequest,
   GetAgentStateResponse,
+  GetConversationAnchorSnapshotRequest,
+  GetConversationAnchorSnapshotResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
   ListAgentsRequest,
   ListAgentsResponse,
   ListPendingHooksRequest,
   ListPendingHooksResponse,
+  OpenConversationAnchorRequest,
+  OpenConversationAnchorResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   SetAgentPresentationProfileRequest,
@@ -308,6 +312,14 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.listAgents]: {
     requestType: ListAgentsRequest,
     responseType: ListAgentsResponse,
+  },
+  [RuntimeMethodIds.agent.openConversationAnchor]: {
+    requestType: OpenConversationAnchorRequest,
+    responseType: OpenConversationAnchorResponse,
+  },
+  [RuntimeMethodIds.agent.getConversationAnchorSnapshot]: {
+    requestType: GetConversationAnchorSnapshotRequest,
+    responseType: GetConversationAnchorSnapshotResponse,
   },
   [RuntimeMethodIds.agent.getAgentState]: {
     requestType: GetAgentStateRequest,

@@ -66,7 +66,14 @@ fn now_iso() -> String {
 
 fn app_run_session_id() -> &'static str {
     APP_RUN_SESSION_ID
-        .get_or_init(|| format!("{}-run-{}-{}", app_session_prefix(), now_ms(), std::process::id()))
+        .get_or_init(|| {
+            format!(
+                "{}-run-{}-{}",
+                app_session_prefix(),
+                now_ms(),
+                std::process::id()
+            )
+        })
         .as_str()
 }
 

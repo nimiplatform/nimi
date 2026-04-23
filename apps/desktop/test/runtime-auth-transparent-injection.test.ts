@@ -2,6 +2,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { getPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
+import { Timestamp } from '@nimiplatform/sdk/runtime/generated/google/protobuf/timestamp';
+import {
+  OpenSessionResponse,
+  RegisterAppResponse,
+} from '@nimiplatform/sdk/runtime/generated/runtime/v1/auth';
+import {
+  ConversationAnchor,
+  ConversationAnchorStatus,
+  GetConversationAnchorSnapshotResponse,
+  OpenConversationAnchorResponse,
+} from '@nimiplatform/sdk/runtime/generated/runtime/v1/agent_service';
 
 type TauriInvokeCall = {
   command: string;
@@ -63,10 +74,70 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
   const runtime: TauriRuntime = {
     core: {
       invoke: async (command: string, payload?: unknown) => {
+        const normalizedPayload = unwrapPayload(payload);
         calls.push({
           command,
-          payload: unwrapPayload(payload),
+          payload: normalizedPayload,
         });
+        if (command === 'runtime_bridge_unary') {
+          const methodId = String(normalizedPayload.methodId || '').trim();
+          if (methodId === '/nimi.runtime.v1.RuntimeAuthService/RegisterApp') {
+            return {
+              responseBytesBase64: Buffer.from(
+                RegisterAppResponse.toBinary(RegisterAppResponse.create({
+                  appInstanceId: 'nimi.desktop.platform-runtime-session',
+                  accepted: true,
+                  reasonCode: 1,
+                })),
+              ).toString('base64'),
+            };
+          }
+          if (methodId === '/nimi.runtime.v1.RuntimeAuthService/OpenSession') {
+            return {
+              responseBytesBase64: Buffer.from(
+                OpenSessionResponse.toBinary(OpenSessionResponse.create({
+                  sessionId: 'runtime-session-id',
+                  sessionToken: 'runtime-session-token',
+                  issuedAt: Timestamp.create({ seconds: '1700000000', nanos: 0 }),
+                  expiresAt: Timestamp.create({ seconds: '4700000000', nanos: 0 }),
+                  reasonCode: 1,
+                })),
+              ).toString('base64'),
+            };
+          }
+          if (methodId === '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor') {
+            return {
+              responseBytesBase64: Buffer.from(
+                OpenConversationAnchorResponse.toBinary(OpenConversationAnchorResponse.create({
+                  snapshot: {
+                    anchor: ConversationAnchor.create({
+                      conversationAnchorId: 'anchor-1',
+                      agentId: 'agent-1',
+                      subjectUserId: 'subject-user',
+                      status: ConversationAnchorStatus.ACTIVE,
+                    }),
+                  },
+                })),
+              ).toString('base64'),
+            };
+          }
+          if (methodId === '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot') {
+            return {
+              responseBytesBase64: Buffer.from(
+                GetConversationAnchorSnapshotResponse.toBinary(GetConversationAnchorSnapshotResponse.create({
+                  snapshot: {
+                    anchor: ConversationAnchor.create({
+                      conversationAnchorId: 'anchor-1',
+                      agentId: 'agent-1',
+                      subjectUserId: 'subject-user',
+                      status: ConversationAnchorStatus.ACTIVE,
+                    }),
+                  },
+                })),
+              ).toString('base64'),
+            };
+          }
+        }
         return { responseBytesBase64: '' };
       },
     },
@@ -358,6 +429,80 @@ test('platform cloud ai call still injects authorization', async () => {
     );
     assert.ok(unaryCall);
     assert.equal(unaryCall.payload.authorization, 'Bearer fresh-realm-token');
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('platform runtime app call injects runtime app session transparently', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await createPlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => createJwtWithSub('jwt-subject-user'),
+      subjectUserIdProvider: () => 'subject-user',
+    });
+
+    await getPlatformClient().runtime.app.sendMessage({
+      fromAppId: getPlatformClient().runtime.appId,
+      toAppId: 'runtime.agent',
+      subjectUserId: 'subject-user',
+      messageType: 'runtime.agent.turn.request',
+      payload: undefined,
+      requireAck: false,
+    });
+
+    const registerCall = findUnaryCallByMethodId(
+      calls,
+      '/nimi.runtime.v1.RuntimeAuthService/RegisterApp',
+    );
+    assert.ok(registerCall);
+
+    const openSessionCall = findUnaryCallByMethodId(
+      calls,
+      '/nimi.runtime.v1.RuntimeAuthService/OpenSession',
+    );
+    assert.ok(openSessionCall);
+
+    const sendCall = findUnaryCallByMethodId(
+      calls,
+      '/nimi.runtime.v1.RuntimeAppService/SendAppMessage',
+    );
+    assert.ok(sendCall);
+    assert.deepEqual(sendCall.payload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
+    });
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('platform runtime agent anchor call injects runtime app session transparently', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await createPlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => createJwtWithSub('jwt-subject-user'),
+      subjectUserIdProvider: () => 'subject-user',
+    });
+
+    await getPlatformClient().runtime.agent.anchors.getSnapshot({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+    });
+
+    const snapshotCall = findUnaryCallByMethodId(
+      calls,
+      '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot',
+    );
+    assert.ok(snapshotCall);
+    assert.deepEqual(snapshotCall.payload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
+    });
   } finally {
     restoreTauri();
   }

@@ -145,7 +145,7 @@ fn chat_agent_store_round_trip_thread_message_and_draft() {
 }
 
 #[test]
-fn chat_agent_store_rejects_missing_thread_duplicate_agent_and_invalid_json() {
+fn chat_agent_store_rejects_missing_thread_reuses_duplicate_agent_and_invalid_json() {
     let home = temp_home("errors");
     with_env(&[("HOME", home.to_str())], || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
@@ -180,7 +180,7 @@ fn chat_agent_store_rejects_missing_thread_duplicate_agent_and_invalid_json() {
         .expect_err("missing thread should fail");
         assert!(create_missing_thread_message.contains("missing referenced thread"));
 
-        create_thread(
+        let created = create_thread(
             &conn,
             &ChatAgentCreateThreadInput {
                 id: "thread-agent-dup".to_string(),
@@ -194,22 +194,31 @@ fn chat_agent_store_rejects_missing_thread_duplicate_agent_and_invalid_json() {
             },
         )
         .expect("create thread");
+        assert_eq!(created.id, "thread-agent-dup");
 
         let duplicate_agent = create_thread(
             &conn,
             &ChatAgentCreateThreadInput {
                 id: "thread-agent-dup-2".to_string(),
                 agent_id: "agent-dup".to_string(),
-                title: "Agent Dup 2".to_string(),
+                title: "Agent Dup Updated".to_string(),
                 created_at_ms: 101,
                 updated_at_ms: 121,
                 last_message_at_ms: None,
                 archived_at_ms: None,
-                target_snapshot: sample_target_snapshot("agent-dup"),
+                target_snapshot: ChatAgentTargetSnapshot {
+                    display_name: "Agent Dup Updated".to_string(),
+                    ..sample_target_snapshot("agent-dup")
+                },
             },
         )
-        .expect_err("duplicate agent");
-        assert!(duplicate_agent.contains("duplicate primary key"));
+        .expect("duplicate agent should reuse existing thread");
+        assert_eq!(duplicate_agent.id, "thread-agent-dup");
+        assert_eq!(duplicate_agent.title, "Agent Dup Updated");
+        assert_eq!(
+            duplicate_agent.target_snapshot.display_name,
+            "Agent Dup Updated"
+        );
 
         conn.execute(
             r#"

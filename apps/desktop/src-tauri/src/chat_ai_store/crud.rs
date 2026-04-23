@@ -125,6 +125,13 @@ pub(crate) fn get_thread_bundle(
     }))
 }
 
+fn get_thread_record_by_id(
+    conn: &Connection,
+    thread_id: &str,
+) -> Result<Option<ChatAiThreadRecord>, String> {
+    get_thread_bundle(conn, thread_id).map(|bundle| bundle.map(|value| value.thread))
+}
+
 pub(crate) fn create_thread(
     conn: &Connection,
     input: &ChatAiCreateThreadInput,
@@ -141,7 +148,7 @@ pub(crate) fn create_thread(
         .archived_at_ms
         .map(|value| require_non_negative_ms(value, "archivedAtMs"))
         .transpose()?;
-    conn.execute(
+    match conn.execute(
         r#"
         INSERT INTO ai_threads (
           id,
@@ -160,16 +167,31 @@ pub(crate) fn create_thread(
             last_message_at_ms,
             archived_at_ms
         ],
-    )
-    .map_err(|error| map_sql_error("create chat_ai thread failed", error))?;
-    Ok(ChatAiThreadRecord {
-        id,
-        title,
-        created_at_ms,
-        updated_at_ms,
-        last_message_at_ms,
-        archived_at_ms,
-    })
+    ) {
+        Ok(_) => Ok(ChatAiThreadRecord {
+            id,
+            title,
+            created_at_ms,
+            updated_at_ms,
+            last_message_at_ms,
+            archived_at_ms,
+        }),
+        Err(error) => {
+            let is_duplicate_thread = matches!(
+                &error,
+                rusqlite::Error::SqliteFailure(code, _)
+                    if code.extended_code == rusqlite::ffi::SQLITE_CONSTRAINT_PRIMARYKEY
+                        || code.extended_code == rusqlite::ffi::SQLITE_CONSTRAINT_UNIQUE
+            );
+            if !is_duplicate_thread {
+                return Err(map_sql_error("create chat_ai thread failed", error));
+            }
+            get_thread_record_by_id(conn, &id)?.ok_or_else(|| {
+                "create chat_ai thread failed: duplicate thread without existing record"
+                    .to_string()
+            })
+        }
+    }
 }
 
 pub(crate) fn update_thread_metadata(

@@ -18,6 +18,7 @@ const (
 	codexResponsesPath       = "/responses"
 	codexHostChatModel       = "gpt-5.4"
 	codexImageInstructions   = "You are an assistant that must fulfill image generation requests by using the image_generation tool when provided."
+	codexDefaultInstructions = "You are helpful, knowledgeable, and direct."
 	codexTextMaxStreamBuffer = 1024 * 1024
 )
 
@@ -104,20 +105,17 @@ func (b *Backend) streamGenerateTextCodexResponses(
 	}
 	defer response.Body.Close()
 
-	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
-	if !strings.HasPrefix(contentType, "text/event-stream") {
-		return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
-	}
-
 	scanner := bufio.NewScanner(response.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), codexTextMaxStreamBuffer)
 	var outputBuilder strings.Builder
 	var finalResponse map[string]any
+	seenEvent := false
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, ":") || !strings.HasPrefix(line, "data:") {
 			continue
 		}
+		seenEvent = true
 		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
 		if data == "" || data == "[DONE]" {
 			continue
@@ -145,6 +143,9 @@ func (b *Backend) streamGenerateTextCodexResponses(
 	if err := scanner.Err(); err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
 	}
+	if !seenEvent {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
+	}
 
 	outputText := outputBuilder.String()
 	if finalResponse != nil && strings.TrimSpace(outputText) == "" {
@@ -154,6 +155,9 @@ func (b *Backend) streamGenerateTextCodexResponses(
 				return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 			}
 		}
+	}
+	if strings.TrimSpace(outputText) == "" && finalResponse == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
 	}
 	usage := codexUsageFromResponse(finalResponse)
 	if usage == nil {
@@ -238,15 +242,13 @@ func (b *Backend) buildCodexTextRequest(
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	requestBody := map[string]any{
-		"model": strings.TrimSpace(modelID),
-		"store": false,
-		"input": items,
+		"model":        strings.TrimSpace(modelID),
+		"instructions": codexInstructions(systemPrompt),
+		"store":        false,
+		"input":        items,
 	}
 	if stream {
 		requestBody["stream"] = true
-	}
-	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
-		requestBody["instructions"] = prompt
 	}
 	if temperature > 0 {
 		requestBody["temperature"] = temperature
@@ -254,9 +256,9 @@ func (b *Backend) buildCodexTextRequest(
 	if topP > 0 {
 		requestBody["top_p"] = topP
 	}
-	if maxTokens > 0 {
-		requestBody["max_output_tokens"] = maxTokens
-	}
+	// chatgpt.com/backend-api/codex rejects max_output_tokens even though the
+	// public Responses API accepts it. Hermes omits this field for Codex
+	// backends for the same reason.
 	return requestBody, nil
 }
 
@@ -267,39 +269,42 @@ func buildCodexResponsesInput(input []*runtimev1.ChatMessage) ([]map[string]any,
 		if role == "" {
 			role = "user"
 		}
-		content, err := buildCodexResponsesContent(message)
+		content, err := buildCodexResponsesMessageContent(role, message)
 		if err != nil {
 			return nil, err
 		}
-		if len(content) == 0 {
+		if codexMessageContentEmpty(content) {
 			continue
 		}
-		items = append(items, map[string]any{
-			"type":    "message",
-			"role":    role,
-			"content": content,
-		})
+		items = append(items, map[string]any{"role": role, "content": content})
 	}
 	return items, nil
 }
 
-func buildCodexResponsesContent(message *runtimev1.ChatMessage) ([]map[string]any, error) {
+func buildCodexResponsesMessageContent(role string, message *runtimev1.ChatMessage) (any, error) {
+	if message == nil {
+		return nil, nil
+	}
 	parts := message.GetParts()
 	if len(parts) == 0 {
 		text := strings.TrimSpace(message.GetContent())
 		if text == "" {
 			return nil, nil
 		}
-		return []map[string]any{{"type": "input_text", "text": text}}, nil
+		return text, nil
 	}
 
 	content := make([]map[string]any, 0, len(parts))
+	textPartType := "input_text"
+	if strings.EqualFold(strings.TrimSpace(role), "assistant") {
+		textPartType = "output_text"
+	}
 	for _, part := range parts {
 		switch part.GetType() {
 		case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT:
 			text := strings.TrimSpace(part.GetText())
 			if text != "" {
-				content = append(content, map[string]any{"type": "input_text", "text": text})
+				content = append(content, map[string]any{"type": textPartType, "text": text})
 			}
 		case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
 			imageURL := part.GetImageUrl()
@@ -324,10 +329,30 @@ func buildCodexResponsesContent(message *runtimev1.ChatMessage) ([]map[string]an
 	}
 	if len(content) == 0 {
 		if text := strings.TrimSpace(message.GetContent()); text != "" {
-			content = append(content, map[string]any{"type": "input_text", "text": text})
+			return text, nil
 		}
 	}
 	return content, nil
+}
+
+func codexInstructions(systemPrompt string) string {
+	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
+		return prompt
+	}
+	return codexDefaultInstructions
+}
+
+func codexMessageContentEmpty(content any) bool {
+	switch value := content.(type) {
+	case nil:
+		return true
+	case string:
+		return strings.TrimSpace(value) == ""
+	case []map[string]any:
+		return len(value) == 0
+	default:
+		return false
+	}
 }
 
 func extractCodexResponseText(response map[string]any) string {

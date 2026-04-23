@@ -224,7 +224,7 @@ Fixed rules:
 - `.nimi/spec/realm/chat.md` — Realm Chat v1 excludes agent chat runtime semantics
 - `apps/desktop/src/shell/renderer/features/chat/chat-agent-orchestration.ts` — current desktop message/action execution evidence
 - `apps/desktop/src/shell/renderer/features/chat/chat-settings-storage.ts` — current desktop persisted behavior setting evidence
-- `apps/desktop/src/shell/renderer/features/chat/chat-thinking.ts` — current desktop reasoning preference semantics
+- `apps/desktop/src/shell/renderer/features/chat/chat-shared-thinking.ts` — current desktop reasoning preference semantics
 - `nimi-mods/runtime/local-chat/src/types.ts` — local-chat turn mode and beat vocabulary evidence
 - `nimi-mods/runtime/local-chat/src/default-settings-store.ts` — product-settings vs inspect-settings split evidence
 - `nimi-mods/runtime/local-chat/src/hooks/turn-send/resolved-experience-policy.ts` — resolved policy boundary evidence

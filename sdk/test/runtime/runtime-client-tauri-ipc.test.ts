@@ -14,6 +14,11 @@ import {
   StreamEventType,
   StreamScenarioEvent,
 } from '../../src/runtime/generated/runtime/v1/ai';
+import {
+  ConversationAnchor,
+  ConversationAnchorStatus,
+  OpenConversationAnchorResponse,
+} from '../../src/runtime/generated/runtime/v1/agent_service.js';
 import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
 import { RuntimeUnaryMethodCodecs } from '../../src/runtime/core/method-codecs';
 import {
@@ -187,6 +192,124 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
     assert.deepEqual(capturedPayload.protectedAccessToken, {
       tokenId: 'protected-token-id',
       secret: 'protected-token-secret',
+    });
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('tauri-ipc app unary request includes runtime app session', async () => {
+  let capturedPayload: Record<string, unknown> | null = null;
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        if (command === 'runtime_bridge_unary') {
+          capturedPayload = unwrapTauriInvokePayload(payload);
+          return {
+            responseBytesBase64: '',
+          };
+        }
+        throw new Error(`unexpected tauri command: ${command}`);
+      },
+    },
+    event: {
+      listen: () => () => {},
+    },
+  });
+
+  try {
+    const client = createRuntimeClient({
+      ...runtimeConfig,
+      transport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+      auth: {
+        appSession: () => ({
+          sessionId: 'runtime-session-id',
+          sessionToken: 'runtime-session-token',
+        }),
+      },
+    });
+
+    await client.app.sendAppMessage({
+      fromAppId: APP_ID,
+      toAppId: 'runtime.agent',
+      subjectUserId: 'user-1',
+      messageType: 'runtime.agent.turn.request',
+      requireAck: false,
+    });
+
+    assert.ok(capturedPayload);
+    assert.equal(capturedPayload.methodId, RuntimeMethodIds.app.sendAppMessage);
+    assert.deepEqual(capturedPayload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
+    });
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('tauri-ipc runtime agent anchor unary request includes runtime app session', async () => {
+  let capturedPayload: Record<string, unknown> | null = null;
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        if (command === 'runtime_bridge_unary') {
+          capturedPayload = unwrapTauriInvokePayload(payload);
+          return {
+            responseBytesBase64: Buffer.from(
+              OpenConversationAnchorResponse.toBinary(
+                OpenConversationAnchorResponse.create({
+                  snapshot: {
+                    anchor: ConversationAnchor.create({
+                      conversationAnchorId: 'anchor-1',
+                      agentId: 'agent-1',
+                      subjectUserId: 'user-1',
+                      status: ConversationAnchorStatus.ACTIVE,
+                    }),
+                  },
+                }),
+              ),
+            ).toString('base64'),
+          };
+        }
+        throw new Error(`unexpected tauri command: ${command}`);
+      },
+    },
+    event: {
+      listen: () => () => {},
+    },
+  });
+
+  try {
+    const client = createRuntimeClient({
+      ...runtimeConfig,
+      transport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+      auth: {
+        appSession: () => ({
+          sessionId: 'runtime-session-id',
+          sessionToken: 'runtime-session-token',
+        }),
+      },
+    });
+
+    await client.agent.openConversationAnchor({
+      agentId: 'agent-1',
+      subjectUserId: 'user-1',
+    });
+
+    assert.ok(capturedPayload);
+    assert.equal(capturedPayload.methodId, RuntimeMethodIds.agent.openConversationAnchor);
+    assert.deepEqual(capturedPayload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
     });
   } finally {
     restoreTauri();

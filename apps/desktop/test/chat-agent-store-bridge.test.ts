@@ -168,6 +168,27 @@ test('chat agent bridge parser rejects invalid target shape and timestamps', () 
   }, /scope is invalid/);
 });
 
+test('chat agent bridge parser accepts live2d presentation profiles in target snapshots', () => {
+  const summary = parseAgentLocalThreadSummary({
+    id: 'thread-1',
+    agentId: 'agent-1',
+    title: 'Companion',
+    updatedAtMs: 100,
+    lastMessageAtMs: 90,
+    archivedAtMs: null,
+    targetSnapshot: {
+      ...sampleTarget(),
+      presentationProfile: {
+        backendKind: 'live2d',
+        avatarAssetRef: 'asset://live2d/airi',
+      },
+    },
+  });
+
+  assert.equal(summary.targetSnapshot.presentationProfile?.backendKind, 'live2d');
+  assert.equal(summary.targetSnapshot.presentationProfile?.avatarAssetRef, 'asset://live2d/airi');
+});
+
 test('chat agent store bridge invokes fixed tauri commands and payload shapes', async () => {
   const calls: TauriInvokeCall[] = [];
   const restore = installTauriInvokeMock(async (command, payload) => {

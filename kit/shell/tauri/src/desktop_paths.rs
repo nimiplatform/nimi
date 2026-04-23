@@ -44,10 +44,18 @@ fn read_desktop_paths_config() -> Result<DesktopPathsConfigFile, String> {
     if !path.exists() {
         return Ok(DesktopPathsConfigFile::default());
     }
-    let raw = fs::read_to_string(&path)
-        .map_err(|error| format!("failed to read desktop paths config ({}): {error}", path.display()))?;
-    serde_json::from_str::<DesktopPathsConfigFile>(&raw)
-        .map_err(|error| format!("failed to parse desktop paths config ({}): {error}", path.display()))
+    let raw = fs::read_to_string(&path).map_err(|error| {
+        format!(
+            "failed to read desktop paths config ({}): {error}",
+            path.display()
+        )
+    })?;
+    serde_json::from_str::<DesktopPathsConfigFile>(&raw).map_err(|error| {
+        format!(
+            "failed to parse desktop paths config ({}): {error}",
+            path.display()
+        )
+    })
 }
 
 fn default_nimi_data_dir() -> Result<PathBuf, String> {
@@ -69,7 +77,11 @@ pub fn resolve_nimi_data_dir() -> Result<PathBuf, String> {
         }
         None => default_nimi_data_dir()?,
     };
-    fs::create_dir_all(&path)
-        .map_err(|error| format!("failed to create nimi_data_dir ({}): {error}", path.display()))?;
+    fs::create_dir_all(&path).map_err(|error| {
+        format!(
+            "failed to create nimi_data_dir ({}): {error}",
+            path.display()
+        )
+    })?;
     Ok(path)
 }

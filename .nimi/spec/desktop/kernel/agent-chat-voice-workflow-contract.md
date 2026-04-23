@@ -235,7 +235,7 @@ anchor continuity。
   current narrow voice executor wiring evidence only
 - `apps/desktop/src/shell/renderer/features/chat/chat-agent-continuity.ts` —
   current same-anchor projection evidence only
-- `apps/desktop/src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx`
+- `apps/desktop/src/shell/renderer/features/chat/chat-shared-conversation-capability-settings.tsx`
   — current workflow capability settings evidence only
 - `.local/**` — local preflight evidence for richer workflow /
   voice identity routing decisions (non-authoritative supporting material only)

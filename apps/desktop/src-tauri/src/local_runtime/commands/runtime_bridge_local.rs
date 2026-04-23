@@ -116,6 +116,7 @@ where
         metadata: None,
         authorization: None,
         protected_access_token: None,
+        app_session: None,
         timeout_ms: None,
     };
     let result = tauri::async_runtime::block_on(crate::runtime_bridge::runtime_bridge_unary(payload))?;
