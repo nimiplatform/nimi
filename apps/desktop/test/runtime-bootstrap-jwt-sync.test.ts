@@ -155,7 +155,11 @@ test('syncRuntimeJwtConfig throws for unmanaged running daemon when restart requ
         },
       },
     }),
-    /restart external runtime manually/i,
+    {
+      name: 'RuntimeConfigManualRestartRequiredError',
+      code: 'RUNTIME_CONFIG_MANUAL_RESTART_REQUIRED',
+      message: /restart external runtime manually/i,
+    },
   );
 
   assert.equal(restartCalls, 0);

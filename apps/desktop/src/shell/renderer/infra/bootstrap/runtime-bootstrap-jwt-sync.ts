@@ -4,6 +4,7 @@ import type {
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
 } from '@renderer/bridge';
+import { createRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 
 const CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
 
@@ -95,7 +96,7 @@ export async function syncRuntimeJwtConfig(input: {
 
   if (!daemonStatus.managed) {
     const hint = String(setResult.actionHint || '').trim();
-    throw new Error(
+    throw createRuntimeConfigManualRestartRequiredError(
       hint
       || 'Runtime JWT config updated and requires restart. Please restart external runtime manually.',
     );

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  createAIConfigEvidence,
   createCanonicalModAIScopeRef,
   createDefaultAIScopeRef,
   createEmptyAIConfig,
@@ -142,10 +143,7 @@ function createSnapshot(executionId: string, scopeRef: AIScopeRef): AISnapshot {
   return {
     executionId,
     scopeRef,
-    configEvidence: {
-      profileOrigin: null,
-      capabilityBindingKeys: [],
-    },
+    configEvidence: createAIConfigEvidence(createEmptyAIConfig(scopeRef)),
     conversationCapabilitySlice: {
       executionId,
       createdAt: new Date().toISOString(),

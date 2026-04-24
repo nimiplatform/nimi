@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   createCanonicalModAIScopeRef,
+  createAIConfigEvidence,
   createEmptyAIConfig,
   createModRuntimeClient,
 } from '../../src/mod/runtime/index.js';
@@ -86,10 +87,7 @@ test('mod runtime client aiConfig bridge forwards canonical scope CRUD and probe
   client.aiSnapshot.record(scopeRef, {
     executionId: 'exec-001',
     scopeRef,
-    configEvidence: {
-      profileOrigin: null,
-      capabilityBindingKeys: [],
-    },
+    configEvidence: createAIConfigEvidence(createEmptyAIConfig(scopeRef)),
     conversationCapabilitySlice: {
       executionId: 'exec-001',
       createdAt: '2026-04-08T00:00:00.000Z',
@@ -215,10 +213,7 @@ test('mod runtime client aiSnapshot getLatest requires canonical mod scopeRef', 
     () => client.aiSnapshot.record({ kind: 'app', ownerId: 'desktop', surfaceId: 'chat' }, {
       executionId: 'exec-invalid-001',
       scopeRef: { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' },
-      configEvidence: {
-        profileOrigin: null,
-        capabilityBindingKeys: [],
-      },
+      configEvidence: createAIConfigEvidence(createEmptyAIConfig({ kind: 'app', ownerId: 'desktop', surfaceId: 'chat' })),
       conversationCapabilitySlice: {
         executionId: 'exec-invalid-001',
         createdAt: '2026-04-08T00:00:00.000Z',

@@ -196,14 +196,19 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     );
   });
 
-  test('D-BOOT-013: runtime config sync degradation stays non-fatal and still completes bootstrap', () => {
+  test('D-BOOT-013: runtime config sync degradation excludes manual restart-required fail-close', () => {
     assert.ok(
       bootstrapSource.includes("message: 'phase:runtime-config-sync:degraded'"),
-      'bootstrap must log runtime config sync degradation instead of failing startup',
+      'bootstrap must still log optional runtime config sync degradation',
     );
     assert.ok(
       bootstrapSource.includes("useAppStore.getState().setStatusBanner({\n        kind: 'warning',"),
-      'bootstrap must surface runtime config sync degradation as a warning banner',
+      'bootstrap must still surface optional runtime config sync degradation as a warning banner',
+    );
+    assert.match(
+      bootstrapSource,
+      /if \(isRuntimeConfigManualRestartRequiredError\(error\)\) \{\s*throw error;\s*\}/,
+      'manual restart-required runtime config sync errors must escape the degraded catch',
     );
     const degradedIndex = bootstrapSource.indexOf("message: 'phase:runtime-config-sync:degraded'");
     const readyIndex = bootstrapSource.indexOf('useAppStore.getState().setBootstrapReady(true);');

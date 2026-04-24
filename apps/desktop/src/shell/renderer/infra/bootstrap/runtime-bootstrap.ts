@@ -51,6 +51,7 @@ import {
 } from './runtime-bootstrap-host-capabilities';
 import { syncRuntimeLocalModelsConfig } from './runtime-bootstrap-local-models-sync';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
+import { isRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import {
@@ -300,6 +301,9 @@ export function bootstrapRuntime(): Promise<void> {
           },
         });
       } catch (error) {
+        if (isRuntimeConfigManualRestartRequiredError(error)) {
+          throw error;
+        }
         bootstrapRuntimeConfigWarning = safeErrorMessage(error);
         logRendererEvent({
           level: 'warn',

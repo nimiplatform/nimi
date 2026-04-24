@@ -30,7 +30,7 @@ import type {
   AIScopeRef,
   AISnapshot,
 } from '@nimiplatform/sdk/mod';
-import { createDefaultAIScopeRef } from '@nimiplatform/sdk/mod';
+import { createAIConfigEvidence, createDefaultAIScopeRef } from '@nimiplatform/sdk/mod';
 
 export const CONVERSATION_CAPABILITIES = [
   'text.generate',
@@ -142,7 +142,6 @@ type BuildConversationCapabilityProjectionInput = {
   selectionStore: ConversationCapabilitySelectionStore;
   routeRuntime?: ConversationCapabilityRouteRuntime | null;
   hostAllowed?: boolean;
-  requiresDescribeMetadata?: boolean;
 };
 
 const CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION = 1;
@@ -326,39 +325,28 @@ export async function buildConversationCapabilityProjection(
     });
   }
 
-  if (input.requiresDescribeMetadata !== false) {
-    let metadata: RuntimeRouteDescribeResult;
-    try {
-      metadata = await routeRuntime.describe({
-        capability: input.capability,
-        resolvedBindingRef: resolvedBinding.resolvedBindingRef,
-      });
-    } catch (error) {
-      const mappedReasonCode = reasonCodeFromError(error);
-      return createProjection(input.capability, {
-        selectedBinding,
-        resolvedBinding,
-        health,
-        reasonCode: mappedReasonCode || 'metadata_missing',
-      });
-    }
-    const expectedMetadataCapability = toRuntimeCanonicalCapability(input.capability);
-    if (!metadata || metadata.capability !== expectedMetadataCapability || metadata.metadataKind !== expectedMetadataCapability) {
-      return createProjection(input.capability, {
-        selectedBinding,
-        resolvedBinding,
-        health,
-        reasonCode: 'metadata_missing',
-      });
-    }
-
+  const expectedMetadataCapability = toRuntimeCanonicalCapability(input.capability);
+  let metadata: RuntimeRouteDescribeResult;
+  try {
+    metadata = await routeRuntime.describe({
+      capability: expectedMetadataCapability as ConversationCapability,
+      resolvedBindingRef: resolvedBinding.resolvedBindingRef,
+    });
+  } catch (error) {
+    const mappedReasonCode = reasonCodeFromError(error);
     return createProjection(input.capability, {
       selectedBinding,
       resolvedBinding,
       health,
-      metadata,
-      supported: true,
-      reasonCode: null,
+      reasonCode: mappedReasonCode === 'host_denied' ? 'host_denied' : 'metadata_missing',
+    });
+  }
+  if (!metadata || metadata.capability !== expectedMetadataCapability || metadata.metadataKind !== expectedMetadataCapability) {
+    return createProjection(input.capability, {
+      selectedBinding,
+      resolvedBinding,
+      health,
+      reasonCode: 'metadata_missing',
     });
   }
 
@@ -366,17 +354,11 @@ export async function buildConversationCapabilityProjection(
     selectedBinding,
     resolvedBinding,
     health,
-    metadata: null,
+    metadata,
     supported: true,
     reasonCode: null,
   });
 }
-
-const CAPABILITIES_WITH_DESCRIBE_METADATA: ReadonlySet<ConversationCapability> = new Set([
-  'text.generate',
-  'voice_workflow.tts_v2v',
-  'voice_workflow.tts_t2v',
-]);
 
 export async function buildConversationCapabilityProjectionMap(input: {
   selectionStore: ConversationCapabilitySelectionStore;
@@ -391,7 +373,6 @@ export async function buildConversationCapabilityProjectionMap(input: {
       selectionStore: input.selectionStore,
       routeRuntime: input.routeRuntime,
       hostAllowed: input.hostAllowlist?.[capability] !== false,
-      requiresDescribeMetadata: CAPABILITIES_WITH_DESCRIBE_METADATA.has(capability),
     });
     return [capability, projection] as const;
   }));
@@ -583,10 +564,7 @@ export function createAISnapshot(input: {
   return {
     executionId: capabilitySlice.executionId,
     scopeRef: input.scopeRef || input.config.scopeRef,
-    configEvidence: {
-      profileOrigin: input.config.profileOrigin,
-      capabilityBindingKeys: Object.keys(input.config.capabilities.selectedBindings),
-    },
+    configEvidence: createAIConfigEvidence(input.config),
     conversationCapabilitySlice: slice,
     runtimeEvidence: input.runtimeEvidence || null,
     createdAt: capabilitySlice.createdAt,

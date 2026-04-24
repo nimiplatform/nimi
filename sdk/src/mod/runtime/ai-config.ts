@@ -77,6 +77,55 @@ export type AIConfig = {
   profileOrigin: AIProfileRef | null;
 };
 
+function canonicalizeAIConfigJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => canonicalizeAIConfigJsonValue(item));
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const canonical: Record<string, unknown> = {};
+    for (const key of Object.keys(record).sort()) {
+      const nextValue = record[key];
+      if (nextValue !== undefined) {
+        canonical[key] = canonicalizeAIConfigJsonValue(nextValue);
+      }
+    }
+    return canonical;
+  }
+  return value;
+}
+
+function hashCanonicalAIConfigJson(value: string): string {
+  let hashA = 0xdeadbeef ^ value.length;
+  let hashB = 0x41c6ce57 ^ value.length;
+  for (let index = 0; index < value.length; index += 1) {
+    const charCode = value.charCodeAt(index);
+    hashA = Math.imul(hashA ^ charCode, 2654435761);
+    hashB = Math.imul(hashB ^ charCode, 1597334677);
+  }
+  hashA = Math.imul(hashA ^ (hashA >>> 16), 2246822507)
+    ^ Math.imul(hashB ^ (hashB >>> 13), 3266489909);
+  hashB = Math.imul(hashB ^ (hashB >>> 16), 2246822507)
+    ^ Math.imul(hashA ^ (hashA >>> 13), 3266489909);
+  const combined = 4294967296 * (2097151 & hashB) + (hashA >>> 0);
+  return `ai-config-v1:${combined.toString(16).padStart(14, '0')}`;
+}
+
+export function snapshotAIConfig(config: AIConfig): AIConfig {
+  return canonicalizeAIConfigJsonValue(config) as AIConfig;
+}
+
+export function createAIConfigEvidence(config: AIConfig): AIConfigEvidence {
+  const configSnapshot = snapshotAIConfig(config);
+  const canonicalJson = JSON.stringify(configSnapshot);
+  return {
+    profileOrigin: configSnapshot.profileOrigin,
+    capabilityBindingKeys: Object.keys(configSnapshot.capabilities.selectedBindings).sort(),
+    configSnapshot,
+    configHash: hashCanonicalAIConfigJson(canonicalJson),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Memory embedding adjacent config / runtime projection
 // ---------------------------------------------------------------------------
@@ -178,6 +227,8 @@ export type MemoryEmbeddingCutoverResult = {
 export type AIConfigEvidence = {
   profileOrigin: AIProfileRef | null;
   capabilityBindingKeys: string[];
+  configSnapshot: AIConfig;
+  configHash: string;
 };
 
 /** Minimal conversation execution slice for AISnapshot embedding. */
@@ -540,10 +591,7 @@ export function createAISnapshotRecord(input: {
   return {
     executionId,
     scopeRef: input.scopeRef || input.config.scopeRef,
-    configEvidence: {
-      profileOrigin: input.config.profileOrigin,
-      capabilityBindingKeys: Object.keys(input.config.capabilities.selectedBindings),
-    },
+    configEvidence: createAIConfigEvidence(input.config),
     conversationCapabilitySlice: {
       executionId,
       createdAt,

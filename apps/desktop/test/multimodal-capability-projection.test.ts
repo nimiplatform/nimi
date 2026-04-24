@@ -81,6 +81,74 @@ function createTextDescribeResult(ref: string): RuntimeRouteDescribeResult {
   };
 }
 
+function createAudioSynthesizeDescribeResult(ref: string): RuntimeRouteDescribeResult {
+  return {
+    capability: 'audio.synthesize',
+    metadataVersion: 'v1',
+    resolvedBindingRef: ref,
+    metadataKind: 'audio.synthesize',
+    metadata: {
+      supportedAudioFormats: ['mp3'],
+      defaultAudioFormat: 'mp3',
+      supportedTimingModes: ['none'],
+      supportsLanguage: true,
+      supportsEmotion: false,
+    },
+  };
+}
+
+function createVoiceWorkflowV2vDescribeResult(ref: string): RuntimeRouteDescribeResult {
+  return {
+    capability: 'voice_workflow.tts_v2v',
+    metadataVersion: 'v1',
+    resolvedBindingRef: ref,
+    metadataKind: 'voice_workflow.tts_v2v',
+    metadata: {
+      workflowType: 'tts_v2v',
+      requiresTargetSynthesisBinding: true,
+      textPromptMode: 'unsupported',
+      supportsLanguageHints: true,
+      supportsPreferredName: true,
+      referenceAudioUriInput: true,
+      referenceAudioBytesInput: true,
+      allowedReferenceAudioMimeTypes: ['audio/wav'],
+    },
+  };
+}
+
+function createVoiceWorkflowT2vDescribeResult(ref: string): RuntimeRouteDescribeResult {
+  return {
+    capability: 'voice_workflow.tts_t2v',
+    metadataVersion: 'v1',
+    resolvedBindingRef: ref,
+    metadataKind: 'voice_workflow.tts_t2v',
+    metadata: {
+      workflowType: 'tts_t2v',
+      requiresTargetSynthesisBinding: true,
+      instructionTextMode: 'required',
+      previewTextMode: 'optional',
+      supportsLanguage: true,
+      supportsPreferredName: true,
+    },
+  };
+}
+
+function createDescribeResult(
+  capability: RuntimeCanonicalCapability,
+  ref: string,
+): RuntimeRouteDescribeResult {
+  if (capability === 'audio.synthesize') {
+    return createAudioSynthesizeDescribeResult(ref);
+  }
+  if (capability === 'voice_workflow.tts_v2v') {
+    return createVoiceWorkflowV2vDescribeResult(ref);
+  }
+  if (capability === 'voice_workflow.tts_t2v') {
+    return createVoiceWorkflowT2vDescribeResult(ref);
+  }
+  return createTextDescribeResult(ref);
+}
+
 function createMockRouteRuntime(overrides?: {
   resolveResult?: ModRuntimeResolvedBinding;
   healthResult?: RuntimeRouteHealthResult;
@@ -98,16 +166,16 @@ function createMockRouteRuntime(overrides?: {
       if (overrides?.healthError) throw overrides.healthError;
       return overrides?.healthResult || createHealthyResult();
     },
-    describe: async ({ resolvedBindingRef }) => {
+    describe: async ({ capability, resolvedBindingRef }) => {
       if (overrides?.describeError) throw overrides.describeError;
-      return overrides?.describeResult || createTextDescribeResult(resolvedBindingRef);
+      return overrides?.describeResult || createDescribeResult(capability as RuntimeCanonicalCapability, resolvedBindingRef);
     },
   };
 }
 
 // --- image.generate projection tests ---
 
-test('image.generate projection supported when selection + resolve + health pass (no describe required)', async () => {
+test('image.generate projection fails closed without typed describe metadata', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
@@ -121,10 +189,9 @@ test('image.generate projection supported when selection + resolve + health pass
     capability: 'image.generate',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
-  assert.equal(projection.supported, true);
-  assert.equal(projection.reasonCode, null);
+  assert.equal(projection.supported, false);
+  assert.equal(projection.reasonCode, 'metadata_missing');
   assert.equal(projection.metadata, null);
   assert.equal(projection.resolvedBinding?.model, 'sd-xl');
 });
@@ -136,7 +203,6 @@ test('image.generate projection fails closed when selection missing', async () =
     capability: 'image.generate',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
   assert.equal(projection.supported, false);
   assert.equal(projection.reasonCode, 'selection_missing');
@@ -153,7 +219,6 @@ test('image.generate projection fails closed when selection explicitly cleared',
     capability: 'image.generate',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
   assert.equal(projection.supported, false);
   assert.equal(projection.reasonCode, 'selection_cleared');
@@ -172,7 +237,6 @@ test('image.generate projection fails closed when resolve fails', async () => {
     capability: 'image.generate',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
   assert.equal(projection.supported, false);
   assert.equal(projection.reasonCode, 'capability_unsupported');
@@ -192,13 +256,12 @@ test('image.generate projection fails closed when health is unhealthy', async ()
     capability: 'image.generate',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
   assert.equal(projection.supported, false);
   assert.equal(projection.reasonCode, 'route_unhealthy');
 });
 
-test('image.generate projection no longer depends on retired image profile refs', async () => {
+test('image.generate projection still requires typed metadata without retired image profile refs', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
@@ -212,10 +275,9 @@ test('image.generate projection no longer depends on retired image profile refs'
     capability: 'image.generate',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
-  assert.equal(projection.supported, true);
-  assert.equal(projection.reasonCode, null);
+  assert.equal(projection.supported, false);
+  assert.equal(projection.reasonCode, 'metadata_missing');
 });
 
 // --- audio.synthesize projection tests ---
@@ -234,10 +296,10 @@ test('audio.synthesize projection supported when selection + resolve + health pa
     capability: 'audio.synthesize',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
   assert.equal(projection.supported, true);
   assert.equal(projection.reasonCode, null);
+  assert.equal(projection.metadata?.metadataKind, 'audio.synthesize');
 });
 
 test('audio.synthesize projection fails closed when selection missing', async () => {
@@ -246,7 +308,6 @@ test('audio.synthesize projection fails closed when selection missing', async ()
     capability: 'audio.synthesize',
     selectionStore: store,
     routeRuntime: createMockRouteRuntime(),
-    requiresDescribeMetadata: false,
   });
   assert.equal(projection.supported, false);
   assert.equal(projection.reasonCode, 'selection_missing');
@@ -269,7 +330,6 @@ test('voice_workflow.tts_v2v projection fails closed when describe metadata miss
     capability: 'voice_workflow.tts_v2v',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: true,
   });
   assert.equal(projection.supported, false);
   assert.equal(projection.reasonCode, 'metadata_missing');
@@ -290,13 +350,11 @@ test('voice_workflow.tts_t2v treated as independent capability, not audio.synthe
     capability: 'audio.synthesize',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
   const voiceProjection = await buildConversationCapabilityProjection({
     capability: 'voice_workflow.tts_t2v',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: true,
   });
   assert.equal(audioProjection.supported, true);
   assert.equal(voiceProjection.supported, false);
@@ -313,7 +371,9 @@ test('buildConversationCapabilityProjectionMap refreshes all capabilities includ
       return createLocalResolvedBinding(capability as RuntimeCanonicalCapability, 'model-1');
     },
     checkHealth: async () => createHealthyResult(),
-    describe: async ({ resolvedBindingRef }) => createTextDescribeResult(resolvedBindingRef),
+    describe: async ({ capability, resolvedBindingRef }) => (
+      createDescribeResult(capability as RuntimeCanonicalCapability, resolvedBindingRef)
+    ),
   };
   const store = updateConversationCapabilityBinding(
     updateConversationCapabilityBinding(
@@ -340,14 +400,15 @@ test('buildConversationCapabilityProjectionMap refreshes all capabilities includ
   assert.ok(projections['image.generate']);
   assert.ok(projections['audio.synthesize']);
   assert.ok(projections['voice_workflow.tts_v2v']);
-  assert.equal(projections['image.generate']!.supported, true);
+  assert.equal(projections['image.generate']!.supported, false);
+  assert.equal(projections['image.generate']!.reasonCode, 'metadata_missing');
   assert.equal(projections['audio.synthesize']!.supported, true);
   assert.ok(resolvedCapabilities.includes('image.generate'));
   assert.ok(resolvedCapabilities.includes('audio.synthesize'));
   assert.ok(resolvedCapabilities.includes('voice_workflow.tts_v2v'));
 });
 
-test('buildConversationCapabilityProjectionMap keeps image.generate route-ready without image profile refs', async () => {
+test('buildConversationCapabilityProjectionMap fails image.generate closed without typed metadata', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
@@ -362,8 +423,8 @@ test('buildConversationCapabilityProjectionMap keeps image.generate route-ready 
     routeRuntime,
     capabilities: ['image.generate'],
   });
-  assert.equal(projections['image.generate']!.supported, true);
-  assert.equal(projections['image.generate']!.reasonCode, null);
+  assert.equal(projections['image.generate']!.supported, false);
+  assert.equal(projections['image.generate']!.reasonCode, 'metadata_missing');
 });
 
 // --- host_denied fail-close ---
@@ -380,7 +441,6 @@ test('multimodal projection fails closed when host denies capability', async () 
     selectionStore: store,
     routeRuntime,
     hostAllowed: false,
-    requiresDescribeMetadata: false,
   });
   assert.equal(projection.supported, false);
   assert.equal(projection.reasonCode, 'host_denied');
@@ -403,7 +463,6 @@ test('text.generate projection fails closed without describe metadata', async ()
     capability: 'text.generate',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: true,
   });
   assert.equal(projection.supported, false);
   assert.equal(projection.reasonCode, 'metadata_missing');
@@ -422,7 +481,7 @@ test('image.edit maps to image.generate via toRuntimeCanonicalCapability', () =>
   assert.equal(toRuntimeCanonicalCapability('image.edit'), 'image.generate');
 });
 
-test('image.edit projection resolves and returns supported with correct capability label', async () => {
+test('image.edit projection resolves but fails closed without image.generate metadata', async () => {
   const routeRuntime = createMockRouteRuntime({
     resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
     healthResult: createHealthyResult(),
@@ -436,9 +495,9 @@ test('image.edit projection resolves and returns supported with correct capabili
     capability: 'image.edit',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
-  assert.equal(projection.supported, true);
+  assert.equal(projection.supported, false);
+  assert.equal(projection.reasonCode, 'metadata_missing');
   assert.equal(projection.capability, 'image.edit');
   assert.equal(projection.resolvedBinding?.model, 'sd-xl');
 });
@@ -456,13 +515,12 @@ test('image.edit projection fails closed when selection missing', async () => {
     capability: 'image.edit',
     selectionStore: store,
     routeRuntime: createMockRouteRuntime(),
-    requiresDescribeMetadata: false,
   });
   assert.equal(projection.supported, false);
   assert.equal(projection.reasonCode, 'selection_missing');
 });
 
-test('image.edit projection no longer depends on retired image profile refs', async () => {
+test('image.edit projection still requires typed metadata without retired image profile refs', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.edit',
@@ -475,10 +533,9 @@ test('image.edit projection no longer depends on retired image profile refs', as
       resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
       healthResult: createHealthyResult(),
     }),
-    requiresDescribeMetadata: false,
   });
-  assert.equal(projection.supported, true);
-  assert.equal(projection.reasonCode, null);
+  assert.equal(projection.supported, false);
+  assert.equal(projection.reasonCode, 'metadata_missing');
 });
 
 test('image.edit and image.generate have independent selection bindings', async () => {
@@ -499,15 +556,14 @@ test('image.edit and image.generate have independent selection bindings', async 
     capability: 'image.generate',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
   const editProjection = await buildConversationCapabilityProjection({
     capability: 'image.edit',
     selectionStore: store,
     routeRuntime,
-    requiresDescribeMetadata: false,
   });
-  assert.equal(genProjection.supported, true);
+  assert.equal(genProjection.supported, false);
+  assert.equal(genProjection.reasonCode, 'metadata_missing');
   assert.equal(editProjection.supported, false);
   assert.equal(editProjection.reasonCode, 'selection_cleared');
 });
@@ -529,7 +585,8 @@ test('buildConversationCapabilityProjectionMap includes image.edit in full refre
     routeRuntime,
   });
   assert.ok(projections['image.edit'], 'image.edit must appear in projection map');
-  assert.equal(projections['image.edit']!.supported, true);
+  assert.equal(projections['image.edit']!.supported, false);
+  assert.equal(projections['image.edit']!.reasonCode, 'metadata_missing');
 });
 
 // --- projection gate scoping: conversationExecution discriminator ---

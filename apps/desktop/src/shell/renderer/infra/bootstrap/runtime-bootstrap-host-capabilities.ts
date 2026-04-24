@@ -197,6 +197,8 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
         }
         if (
             payload.capability !== 'text.generate'
+            && payload.capability !== 'audio.synthesize'
+            && payload.capability !== 'audio.transcribe'
             && payload.capability !== 'voice_workflow.tts_v2v'
             && payload.capability !== 'voice_workflow.tts_t2v'
         ) {
