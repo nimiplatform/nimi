@@ -193,12 +193,68 @@ function validatePlanShape(plan, sweepId, checks) {
       && chunk.authority_refs.every((fileRef) => chunk.files.includes(fileRef))
       && Array.isArray(chunk.evidence_roots)
       && Array.isArray(chunk.evidence_inventory)
+      && (chunk.evidence_inventory.length > 0
+        || (chunk.evidence_inventory_status === "empty" && nonEmptyString(chunk.evidence_inventory_empty_reason)))
       && isPlainObject(chunk.coverage_contract)
       && chunk.coverage_contract.authority_refs_required === true
       && chunk.coverage_contract.evidence_inventory_required === true
       && chunk.coverage_contract.evidence_files_must_cover_inventory === true
+      && chunk.coverage_contract.empty_evidence_inventory_requires_reason === true
       && nonEmptyString(chunk.spec_surface));
-    check(checks, "plan_spec_authority_chunks_valid", specChunksOk, "spec-authority audit chunks declare authority refs, evidence roots, and coverage contract");
+    check(checks, "plan_spec_authority_chunks_valid", specChunksOk, "spec-authority audit chunks declare authority refs, evidence roots, empty-evidence posture, and coverage contract");
+    const appSliceAdmissions = Array.isArray(plan.app_slice_admissions) ? plan.app_slice_admissions : [];
+    const appAdmissionByRef = new Map(appSliceAdmissions
+      .filter((entry) => isPlainObject(entry) && nonEmptyString(entry.admission_ref))
+      .map((entry) => [entry.admission_ref, entry]));
+    const appAuthorityChunks = plan.chunks.filter((chunk) => (
+      chunk.authority_kind === "admitted_app_slice"
+      || (Array.isArray(chunk.authority_refs) && chunk.authority_refs.some((fileRef) => String(fileRef).startsWith("apps/")))
+    ));
+    const appAuthorityChunksOk = appAuthorityChunks.every((chunk) => {
+      const admission = appAdmissionByRef.get(chunk.admission_ref);
+      return chunk.authority_kind === "admitted_app_slice"
+        && nonEmptyString(chunk.app_id)
+        && nonEmptyString(chunk.admission_ref)
+        && nonEmptyString(chunk.authority_root)
+        && admission
+        && admission.app_id === chunk.app_id
+        && admission.authority_root === chunk.authority_root
+        && Array.isArray(admission.evidence_roots)
+        && sortedArrayEquals(chunk.evidence_roots, admission.evidence_roots)
+        && chunk.authority_refs.every((fileRef) => String(fileRef).startsWith(`${chunk.authority_root}/`));
+    });
+    check(checks, "plan_spec_app_slice_authority_admitted", appAuthorityChunksOk, "app-local authority chunks are admitted through .nimi/spec app-slice admissions");
+    const packageAuthorityAdmissions = Array.isArray(plan.package_authority_admissions) ? plan.package_authority_admissions : [];
+    const packageAdmissionByRef = new Map(packageAuthorityAdmissions
+      .filter((entry) => isPlainObject(entry) && nonEmptyString(entry.admission_ref))
+      .map((entry) => [entry.admission_ref, entry]));
+    const packageAuthorityChunks = plan.chunks.filter((chunk) => (
+      chunk.authority_kind === "admitted_package_authority"
+      || (Array.isArray(chunk.authority_refs) && chunk.authority_refs.some((fileRef) => String(fileRef).includes("/spec/") && !String(fileRef).startsWith(".nimi/spec/") && !String(fileRef).startsWith("apps/")))
+    ));
+    const packageAuthorityChunksOk = packageAuthorityChunks.every((chunk) => {
+      const admission = packageAdmissionByRef.get(chunk.admission_ref);
+      return chunk.authority_kind === "admitted_package_authority"
+        && nonEmptyString(chunk.package_authority_id)
+        && nonEmptyString(chunk.admission_ref)
+        && nonEmptyString(chunk.authority_root)
+        && admission
+        && admission.id === chunk.package_authority_id
+        && admission.authority_root === chunk.authority_root
+        && Array.isArray(admission.evidence_roots)
+        && sortedArrayEquals(chunk.evidence_roots, admission.evidence_roots)
+        && chunk.authority_refs.every((fileRef) => String(fileRef).startsWith(`${chunk.authority_root}/`));
+    });
+    check(checks, "plan_spec_package_authority_admitted", packageAuthorityChunksOk, "package-local authority chunks are admitted through .nimi/spec package authority admissions");
+    const evidenceRootAdmissionsOk = plan.chunks.every((chunk) => (
+      !Array.isArray(chunk.evidence_root_admission_refs)
+      || chunk.evidence_root_admission_refs.every((ref) => (
+        nonEmptyString(ref)
+        && ref.startsWith(".nimi/spec/")
+        && ref.includes("/kernel/tables/audit-evidence-roots.yaml#")
+      ))
+    ));
+    check(checks, "plan_spec_evidence_root_admissions_valid", evidenceRootAdmissionsOk, "authority-specific evidence roots are admitted through .nimi/spec audit evidence root tables");
     const evidenceInventoryFiles = Array.isArray(plan.evidence_inventory) ? plan.evidence_inventory.map((entry) => entry.file_ref) : [];
     const unmappedEvidenceFiles = Array.isArray(plan.unmapped_evidence_files) ? plan.unmapped_evidence_files : [];
     const mappedEvidenceFiles = plan.chunks.flatMap((chunk) => Array.isArray(chunk.evidence_inventory) ? chunk.evidence_inventory : []);
@@ -210,7 +266,9 @@ function validatePlanShape(plan, sweepId, checks) {
     check(checks, "plan_spec_unmapped_evidence_fail_closed", unmappedEvidenceFiles.length === 0, "spec-authority plans have no unmapped evidence files");
     check(checks, "plan_spec_coverage_counts_match", plan.coverage?.authority_files === includedFiles.length
       && plan.coverage?.evidence_files === evidenceInventoryFiles.length
-      && plan.coverage?.unmapped_evidence_files === unmappedEvidenceFiles.length, "spec-authority coverage counts split authority and evidence inventory");
+      && plan.coverage?.unmapped_evidence_files === unmappedEvidenceFiles.length
+      && plan.coverage?.authority_chunks_without_evidence_inventory === plan.chunks.filter((chunk) => (chunk.evidence_inventory ?? []).length === 0).length,
+    "spec-authority coverage counts split authority and evidence inventory");
   }
 }
 
@@ -250,12 +308,15 @@ function validateChunkShape(chunk, plan, checks) {
       && chunk.authority_refs.every((fileRef) => chunk.files.includes(fileRef))
       && Array.isArray(chunk.evidence_roots)
       && Array.isArray(chunk.evidence_inventory)
+      && (chunk.evidence_inventory.length > 0
+        || (chunk.evidence_inventory_status === "empty" && nonEmptyString(chunk.evidence_inventory_empty_reason)))
       && isPlainObject(chunk.coverage_contract)
       && chunk.coverage_contract.authority_refs_required === true
       && chunk.coverage_contract.evidence_inventory_required === true
       && chunk.coverage_contract.evidence_files_must_cover_inventory === true
+      && chunk.coverage_contract.empty_evidence_inventory_requires_reason === true
       && nonEmptyString(chunk.spec_surface);
-    check(checks, `chunk_${chunk.chunk_id}_spec_authority_fields`, specChunkOk, "spec-authority chunk declares authority refs, evidence inventory, and coverage contract");
+    check(checks, `chunk_${chunk.chunk_id}_spec_authority_fields`, specChunkOk, "spec-authority chunk declares authority refs, evidence inventory, empty-evidence posture, and coverage contract");
     check(checks, `chunk_${chunk.chunk_id}_evidence_inventory_matches_plan`, planChunk !== null
       && sortedArrayEquals(chunk.evidence_inventory, planChunk.evidence_inventory), "spec-authority chunk evidence inventory matches plan");
     const evidenceInventoryByFile = new Map((plan.evidence_inventory ?? []).map((entry) => [entry.file_ref, entry]));

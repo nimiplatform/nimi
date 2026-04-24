@@ -41,6 +41,9 @@ const designAdoptionTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-
 const designCompositionsTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml');
 const designAllowlistsTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml');
 const nimiKitRegistryTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml');
+const appSliceAdmissionsTable = readYaml('.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml');
+const auditEvidenceRootsTable = readYaml('.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml');
+const packageAuthorityAdmissionsTable = readYaml('.nimi/spec/platform/kernel/tables/package-authority-admissions.yaml');
 const ruleEvidenceTable = readYaml('.nimi/spec/platform/kernel/tables/rule-evidence.yaml');
 const structuralOnlyCoverageRuleIds = new Set(
   (Array.isArray(complianceTable?.layers) ? complianceTable.layers : [])
@@ -262,8 +265,14 @@ const requiredKernelFiles = [
   'ai-last-mile-contract.md',
   'design-pattern-contract.md',
   'kit-contract.md',
+  'app-slice-admission-contract.md',
+  'web-release-contract.md',
+  'package-authority-admission-contract.md',
   'governance-contract.md',
   'tables/nimi-kit-registry.yaml',
+  'tables/app-slice-admissions.yaml',
+  'tables/audit-evidence-roots.yaml',
+  'tables/package-authority-admissions.yaml',
   'tables/error-code-mapping.yaml',
   'tables/nimi-ui-tokens.yaml',
   'tables/nimi-ui-primitives.yaml',
@@ -291,6 +300,9 @@ const kernelContracts = [
   'ai-last-mile-contract.md',
   'design-pattern-contract.md',
   'kit-contract.md',
+  'app-slice-admission-contract.md',
+  'web-release-contract.md',
+  'package-authority-admission-contract.md',
   'governance-contract.md',
 ];
 
@@ -347,6 +359,9 @@ const yamlTables = [
   { name: 'nimi-ui-compositions.yaml', data: designCompositionsTable },
   { name: 'nimi-ui-allowlists.yaml', data: designAllowlistsTable },
   { name: 'nimi-kit-registry.yaml', data: nimiKitRegistryTable },
+  { name: 'app-slice-admissions.yaml', data: appSliceAdmissionsTable },
+  { name: 'audit-evidence-roots.yaml', data: auditEvidenceRootsTable },
+  { name: 'package-authority-admissions.yaml', data: packageAuthorityAdmissionsTable },
 ];
 
 for (const table of yamlTables) {
@@ -360,6 +375,9 @@ for (const table of yamlTables) {
 
 checkErrorCodeMapping(definedRuleIds);
 checkNimiDesignTables(definedRuleIds);
+checkAppSliceAdmissions(definedRuleIds);
+checkAuditEvidenceRoots(definedRuleIds);
+checkPackageAuthorityAdmissions(definedRuleIds);
 checkRuleEvidenceTraceability(definedRuleIds);
 
 // ========================================================
@@ -751,6 +769,159 @@ function checkNimiDesignTables(definedRuleIds) {
   const desktopTokenTableRaw = read(desktopTokenTableRel);
   if (desktopTokenTableRaw.includes('motion.base') || desktopTokenTableRaw.includes('--nimi-motion-base')) {
     fail(`${desktopTokenTableRel}: downstream desktop design tokens must align to motion.slow and must not retain motion.base aliases`);
+  }
+}
+
+function checkAppSliceAdmissions(definedRuleIds) {
+  const rel = '.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml';
+  const admissions = Array.isArray(appSliceAdmissionsTable?.admissions) ? appSliceAdmissionsTable.admissions : [];
+  if (admissions.length === 0) {
+    fail(`${rel} admissions must not be empty`);
+    return;
+  }
+  const seen = new Set();
+  const allowedStatus = new Set(['active', 'inactive']);
+  for (const row of admissions) {
+    const appId = String(row?.app_id || '').trim();
+    const ownerDomain = String(row?.owner_domain || '').trim();
+    const status = String(row?.status || '').trim();
+    const authorityRoot = String(row?.authority_root || '').trim();
+    const source = String(row?.source_rule || '').trim();
+    const evidenceRoots = Array.isArray(row?.evidence_roots) ? row.evidence_roots.map((item) => String(item || '').trim()).filter(Boolean) : [];
+    const mayNotOverride = Array.isArray(row?.may_not_override) ? row.may_not_override.map((item) => String(item || '').trim()).filter(Boolean) : [];
+    if (!appId || seen.has(appId)) {
+      fail(`${rel}: admissions require unique app_id`);
+      continue;
+    }
+    seen.add(appId);
+    if (!ownerDomain) fail(`${rel}: ${appId} missing owner_domain`);
+    if (!allowedStatus.has(status)) fail(`${rel}: ${appId} has invalid status ${status || '<empty>'}`);
+    if (authorityRoot !== `apps/${appId}/spec`) {
+      fail(`${rel}: ${appId} authority_root must be apps/${appId}/spec`);
+    } else if (!fs.existsSync(path.join(cwd, authorityRoot))) {
+      fail(`${rel}: ${appId} authority_root does not exist: ${authorityRoot}`);
+    }
+    if (evidenceRoots.length === 0) {
+      fail(`${rel}: ${appId} must declare evidence_roots`);
+    }
+    for (const rootRef of evidenceRoots) {
+      if (!rootRef.startsWith(`apps/${appId}`)) {
+        fail(`${rel}: ${appId} evidence root escapes app slice: ${rootRef}`);
+      }
+    }
+    if (mayNotOverride.length === 0) {
+      fail(`${rel}: ${appId} must declare may_not_override`);
+    }
+    if (!definedRuleIds.has(source)) {
+      fail(`${rel}: ${appId} references unknown source_rule ${source || '<empty>'}`);
+    }
+  }
+}
+
+function checkAuditEvidenceRoots(definedRuleIds) {
+  const rel = '.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml';
+  const roots = Array.isArray(auditEvidenceRootsTable?.roots) ? auditEvidenceRootsTable.roots : [];
+  if (roots.length === 0) {
+    fail(`${rel} roots must not be empty`);
+    return;
+  }
+  const seen = new Set();
+  for (const row of roots) {
+    const id = String(row?.id || '').trim();
+    const ownerDomain = String(row?.owner_domain || '').trim();
+    const authorityRefs = Array.isArray(row?.authority_refs) ? row.authority_refs.map((item) => String(item || '').trim()).filter(Boolean) : [];
+    const evidenceRoots = Array.isArray(row?.evidence_roots) ? row.evidence_roots.map((item) => String(item || '').trim()).filter(Boolean) : [];
+    const source = String(row?.source_rule || '').trim();
+    if (!id || seen.has(id)) {
+      fail(`${rel}: roots require unique id`);
+      continue;
+    }
+    seen.add(id);
+    if (!ownerDomain) fail(`${rel}: ${id} missing owner_domain`);
+    if (authorityRefs.length === 0) fail(`${rel}: ${id} must declare authority_refs`);
+    if (evidenceRoots.length === 0) fail(`${rel}: ${id} must declare evidence_roots`);
+    for (const authorityRef of authorityRefs) {
+      if (!authorityRef.startsWith('.nimi/spec/') || !fs.existsSync(path.join(cwd, authorityRef))) {
+        fail(`${rel}: ${id} invalid authority_ref ${authorityRef}`);
+      }
+    }
+    for (const evidenceRoot of evidenceRoots) {
+      if (evidenceRoot.startsWith('.nimi/spec/') || evidenceRoot.includes('..') || path.isAbsolute(evidenceRoot) || !fs.existsSync(path.join(cwd, evidenceRoot))) {
+        fail(`${rel}: ${id} invalid evidence_root ${evidenceRoot}`);
+      }
+    }
+    if (!definedRuleIds.has(source)) {
+      fail(`${rel}: ${id} references unknown source_rule ${source || '<empty>'}`);
+    }
+  }
+}
+
+function checkPackageAuthorityAdmissions(definedRuleIds) {
+  const rel = '.nimi/spec/platform/kernel/tables/package-authority-admissions.yaml';
+  const admissions = Array.isArray(packageAuthorityAdmissionsTable?.admissions) ? packageAuthorityAdmissionsTable.admissions : [];
+  if (admissions.length === 0) {
+    fail(`${rel} admissions must not be empty`);
+    return;
+  }
+  const seen = new Set();
+  const allowedStatus = new Set(['active', 'inactive']);
+  for (const row of admissions) {
+    const id = String(row?.id || '').trim();
+    const ownerDomain = String(row?.owner_domain || '').trim();
+    const status = String(row?.status || '').trim();
+    const authorityRoot = String(row?.authority_root || '').trim();
+    const source = String(row?.source_rule || '').trim();
+    const evidenceRoots = Array.isArray(row?.evidence_roots) ? row.evidence_roots.map((item) => String(item || '').trim()).filter(Boolean) : [];
+    const mayNotOverride = Array.isArray(row?.may_not_override) ? row.may_not_override.map((item) => String(item || '').trim()).filter(Boolean) : [];
+    const projectionBoundary = row?.projection_boundary && typeof row.projection_boundary === 'object' ? row.projection_boundary : null;
+    if (!id || seen.has(id)) {
+      fail(`${rel}: admissions require unique id`);
+      continue;
+    }
+    seen.add(id);
+    if (!ownerDomain) fail(`${rel}: ${id} missing owner_domain`);
+    if (!allowedStatus.has(status)) fail(`${rel}: ${id} has invalid status ${status || '<empty>'}`);
+    if (!authorityRoot || authorityRoot.startsWith('.nimi/spec/') || authorityRoot.includes('..') || path.isAbsolute(authorityRoot) || !authorityRoot.endsWith('/spec')) {
+      fail(`${rel}: ${id} invalid authority_root ${authorityRoot || '<empty>'}`);
+    } else if (!fs.existsSync(path.join(cwd, authorityRoot))) {
+      fail(`${rel}: ${id} authority_root does not exist: ${authorityRoot}`);
+    }
+    if (evidenceRoots.length === 0) {
+      fail(`${rel}: ${id} must declare evidence_roots`);
+    }
+    for (const evidenceRoot of evidenceRoots) {
+      if (evidenceRoot.startsWith('.nimi/spec/') || evidenceRoot.includes('..') || path.isAbsolute(evidenceRoot) || !fs.existsSync(path.join(cwd, evidenceRoot))) {
+        fail(`${rel}: ${id} invalid evidence_root ${evidenceRoot}`);
+      } else if (authorityRoot && !authorityRoot.startsWith(`${evidenceRoot.replace(/\/$/u, '')}/`)) {
+        fail(`${rel}: ${id} evidence root ${evidenceRoot} must contain authority_root ${authorityRoot}`);
+      }
+    }
+    if (mayNotOverride.length === 0) {
+      fail(`${rel}: ${id} must declare may_not_override`);
+    }
+    if (!projectionBoundary) {
+      fail(`${rel}: ${id} must declare projection_boundary`);
+    } else {
+      const ownerRef = String(projectionBoundary.host_project_admission_owner || '').trim();
+      const packageRoot = String(projectionBoundary.package_truth_root || '').trim();
+      const hostRoots = Array.isArray(projectionBoundary.host_local_projection_roots)
+        ? projectionBoundary.host_local_projection_roots.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+      if (!ownerRef.startsWith('.nimi/spec/') || !fs.existsSync(path.join(cwd, ownerRef))) {
+        fail(`${rel}: ${id} invalid projection_boundary.host_project_admission_owner ${ownerRef || '<empty>'}`);
+      }
+      if (packageRoot !== authorityRoot) {
+        fail(`${rel}: ${id} projection_boundary.package_truth_root must match authority_root`);
+      }
+      for (const hostRoot of hostRoots) {
+        if (!hostRoot.startsWith('.nimi/') || hostRoot.startsWith('.nimi/spec/') || !fs.existsSync(path.join(cwd, hostRoot))) {
+          fail(`${rel}: ${id} invalid host_local_projection_root ${hostRoot}`);
+        }
+      }
+    }
+    if (!definedRuleIds.has(source)) {
+      fail(`${rel}: ${id} references unknown source_rule ${source || '<empty>'}`);
+    }
   }
 }
 

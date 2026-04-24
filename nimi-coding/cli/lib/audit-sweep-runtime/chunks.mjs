@@ -33,6 +33,8 @@ function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt) {
     authority_refs: chunk.authority_refs ?? chunk.files,
     evidence_roots: chunk.evidence_roots ?? [],
     evidence_inventory: chunk.evidence_inventory ?? [],
+    evidence_inventory_status: chunk.evidence_inventory_status ?? null,
+    evidence_inventory_empty_reason: chunk.evidence_inventory_empty_reason ?? null,
     coverage_contract: chunk.coverage_contract ?? null,
     audit_instructions: specAuthority ? {
       posture: "spec_first_full_audit",
@@ -57,6 +59,7 @@ function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt) {
         "read every authority_ref first",
         "read every evidence_inventory file completely",
         "evaluate implementation evidence against the authority_refs",
+        "if evidence_inventory is empty, treat evidence_inventory_empty_reason as an auditable planning assertion rather than proof of correctness",
         "emit coverage.evidence_files exactly matching evidence_inventory",
         "emit one authority_outcome per authority_ref",
         "emit every finding that satisfies the audit-finding contract",
@@ -127,6 +130,8 @@ export async function dispatchAuditSweepChunk(projectRoot, options) {
       authority_refs: chunkResult.chunk.authority_refs ?? chunkResult.chunk.files,
       evidence_roots: chunkResult.chunk.evidence_roots ?? [],
       evidence_inventory: chunkResult.chunk.evidence_inventory ?? [],
+      evidence_inventory_status: chunkResult.chunk.evidence_inventory_status ?? null,
+      evidence_inventory_empty_reason: chunkResult.chunk.evidence_inventory_empty_reason ?? null,
     },
     updated_at: options.dispatchedAt,
   };

@@ -24,6 +24,24 @@ evidence_catalog:
     command: pnpm check:nimi-kit
     path: scripts/check-nimi-kit.mjs
     description: Nimi kit hard gate for registry parity, surface topology, integration taxonomy, and cross-layer boundary enforcement.
+  app_slice_admission_gate:
+    type: static_gate
+    evidence_type: structural
+    command: node scripts/check-platform-spec-kernel-consistency.mjs
+    path: scripts/check-platform-spec-kernel-consistency.mjs
+    description: Platform kernel gate validating app-slice admission rows, authority roots, evidence roots, and source rule linkage.
+  audit_evidence_root_gate:
+    type: static_gate
+    evidence_type: structural
+    command: node scripts/check-platform-spec-kernel-consistency.mjs
+    path: scripts/check-platform-spec-kernel-consistency.mjs
+    description: Platform kernel gate validating authority-specific audit evidence roots and source rule linkage.
+  package_authority_admission_gate:
+    type: static_gate
+    evidence_type: structural
+    command: node scripts/check-platform-spec-kernel-consistency.mjs
+    path: scripts/check-platform-spec-kernel-consistency.mjs
+    description: Platform kernel gate validating package authority admissions, package-vs-host projection boundaries, authority roots, evidence roots, and source rule linkage.
 
 rules:
   - rule_id: P-ALMI-001
@@ -277,6 +295,66 @@ rules:
   - rule_id: P-GOV-020
     status: covered
     evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-GOV-021
+    status: covered
+    evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
+  - rule_id: P-GOV-022
+    status: covered
+    evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
+  - rule_id: P-GOV-023
+    status: covered
+    evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
+  - rule_id: P-APP-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency, app_slice_admission_gate]
+  - rule_id: P-APP-002
+    status: covered
+    evidence_refs: [platform_kernel_consistency, app_slice_admission_gate]
+  - rule_id: P-APP-003
+    status: covered
+    evidence_refs: [platform_kernel_consistency, app_slice_admission_gate]
+  - rule_id: P-APP-004
+    status: covered
+    evidence_refs: [platform_kernel_consistency, app_slice_admission_gate]
+  - rule_id: P-APP-005
+    status: covered
+    evidence_refs: [platform_kernel_consistency, app_slice_admission_gate]
+  - rule_id: P-APP-006
+    status: covered
+    evidence_refs: [platform_kernel_consistency, app_slice_admission_gate]
+  - rule_id: P-WEB-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
+  - rule_id: P-WEB-002
+    status: covered
+    evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
+  - rule_id: P-WEB-003
+    status: covered
+    evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
+  - rule_id: P-WEB-004
+    status: covered
+    evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
+  - rule_id: P-WEB-005
+    status: covered
+    evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
+  - rule_id: P-PKG-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency, package_authority_admission_gate]
+  - rule_id: P-PKG-002
+    status: covered
+    evidence_refs: [platform_kernel_consistency, package_authority_admission_gate]
+  - rule_id: P-PKG-003
+    status: covered
+    evidence_refs: [platform_kernel_consistency, package_authority_admission_gate, audit_evidence_root_gate]
+  - rule_id: P-PKG-004
+    status: covered
+    evidence_refs: [platform_kernel_consistency, package_authority_admission_gate]
+  - rule_id: P-PKG-005
+    status: covered
+    evidence_refs: [platform_kernel_consistency, package_authority_admission_gate]
+  - rule_id: P-PKG-006
+    status: covered
+    evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
   - rule_id: P-PROTO-001
     status: covered
     evidence_refs: [platform_kernel_consistency]

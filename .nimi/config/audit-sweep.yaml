@@ -1,0 +1,6 @@
+version: 1
+audit_sweep:
+  exclude_patterns:
+    - "apps/*/src-tauri/gen/**"
+    - "apps/*/src-tauri/src/**/generated/**"
+    - "apps/*/src/shell/renderer/public/assets/js/live2d-cubism-core/**"

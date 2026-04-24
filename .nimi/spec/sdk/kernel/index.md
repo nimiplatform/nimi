@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`S-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`SURFACE` `TRANSPORT` `ERROR` `BOUNDARY` `RUNTIME` `WORLD` `REALM` `AIP` `SCOPE` `MOD` `GATE`
+- `DOMAIN` 固定枚举：`SURFACE` `TRANSPORT` `ERROR` `BOUNDARY` `RUNTIME` `WORLD` `REALM` `AIP` `SCOPE` `MOD` `GATE` `PKG`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -36,6 +36,7 @@
 | `scope-contract.md` | `S-SCOPE-*` | scope 子路径 catalog 与边界语义 |
 | `mod-contract.md` | `S-MOD-*` | mod 子路径 host 注入、inter-mod 边界、以及 World Evolution Engine host-injected facade / selector-read publication boundary |
 | `testing-gates-contract.md` | `S-GATE-*` | SDK 门禁层次、发布同级策略 |
+| `package-governance-contract.md` | `S-PKG-*` | SDK root package metadata (`S-PKG-001`), support docs (`S-PKG-002`), release gate alignment (`S-PKG-003`), and audit evidence admission (`S-PKG-004`) |
 
 ## 5. 结构化事实源
 

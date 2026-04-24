@@ -15,6 +15,12 @@ required_top_level_fields:
   - updated_at
 optional_top_level_fields:
   - planning_basis
+  - audit_sweep_config_ref
+  - app_slice_admission_ref
+  - app_slice_admissions
+  - audit_evidence_root_refs
+  - package_authority_admission_refs
+  - package_authority_admissions
   - evidence_inventory_hash
   - evidence_inventory
   - unmapped_evidence_files
@@ -38,9 +44,17 @@ chunk_optional_fields:
   - planning_basis
   - spec_surface
   - authority_refs
+  - authority_kind
+  - app_id
+  - package_authority_id
+  - admission_ref
+  - authority_root
+  - evidence_root_admission_refs
   - evidence_roots
   - evidence_inventory
   - coverage_contract
+  - evidence_inventory_status
+  - evidence_inventory_empty_reason
 state_enum:
   - planned
   - dispatched
@@ -67,6 +81,7 @@ hard_constraints:
   - spec_authority_chunk_files_are_authority_refs_and_evidence_roots_define_audit_evidence_scope
   - spec_authority_plans_must_materialize_full_evidence_inventory
   - spec_authority_chunks_must_assign_evidence_inventory_exactly_once
+  - spec_authority_chunks_with_empty_evidence_inventory_must_declare_explicit_empty_reason
   - spec_authority_unmapped_evidence_files_fail_closed_without_explicit_skip_reason
   - spec_authority_coverage_must_split_authority_files_from_evidence_files
   - spec_authority_audit_evidence_must_report_one_authority_outcome_per_authority_ref

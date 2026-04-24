@@ -78,6 +78,8 @@ function buildLedgerCoverage(plan, chunks) {
   const authorityTotal = plan.coverage?.authority_files ?? plan.coverage?.included_files ?? 0;
   const evidenceTotal = plan.coverage?.evidence_files ?? plan.evidence_inventory?.length ?? 0;
   const unmappedEvidenceFiles = plan.coverage?.unmapped_evidence_files ?? plan.unmapped_evidence_files?.length ?? 0;
+  const emptyEvidenceChunks = plan.coverage?.authority_chunks_without_evidence_inventory
+    ?? chunks.filter((chunk) => (chunk.evidence_inventory ?? []).length === 0).length;
   return {
     total_files: authorityTotal + evidenceTotal,
     included_files: authorityTotal + evidenceTotal,
@@ -85,6 +87,7 @@ function buildLedgerCoverage(plan, chunks) {
     authority_coverage: {
       total_files: authorityTotal,
       audited_files: auditedAuthorityFiles.size,
+      chunks_without_evidence_inventory: emptyEvidenceChunks,
     },
     evidence_coverage: {
       total_files: evidenceTotal,

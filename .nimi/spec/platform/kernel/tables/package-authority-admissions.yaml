@@ -1,0 +1,22 @@
+version: 1
+admissions:
+  - id: nimi-coding
+    status: active
+    owner_domain: nimi-coding
+    authority_root: nimi-coding/spec
+    evidence_roots:
+      - nimi-coding
+    may_not_override:
+      - .nimi/spec/runtime/**
+      - .nimi/spec/sdk/**
+      - .nimi/spec/realm/**
+      - .nimi/spec/platform/**
+      - .nimi/spec/desktop/**
+      - .nimi/spec/cognition/**
+    projection_boundary:
+      host_project_admission_owner: .nimi/spec/platform/kernel/package-authority-admission-contract.md
+      package_truth_root: nimi-coding/spec
+      host_local_projection_roots:
+        - .nimi/contracts
+        - .nimi/methodology
+    source_rule: P-PKG-001

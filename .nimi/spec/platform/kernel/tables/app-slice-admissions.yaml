@@ -1,0 +1,85 @@
+version: 1
+admissions:
+  - app_id: asset-market
+    status: active
+    owner_domain: app-asset-market
+    authority_root: apps/asset-market/spec
+    evidence_roots: [apps/asset-market]
+    may_not_override: &kernel_authority
+      - .nimi/spec/runtime/**
+      - .nimi/spec/sdk/**
+      - .nimi/spec/realm/**
+      - .nimi/spec/platform/**
+      - .nimi/spec/desktop/**
+      - .nimi/spec/cognition/**
+    source_rule: P-APP-001
+  - app_id: avatar
+    status: active
+    owner_domain: app-avatar
+    authority_root: apps/avatar/spec
+    evidence_roots: [apps/avatar]
+    may_not_override: *kernel_authority
+    source_rule: P-APP-001
+  - app_id: forge
+    status: active
+    owner_domain: app-forge
+    authority_root: apps/forge/spec
+    evidence_roots: [apps/forge]
+    may_not_override: *kernel_authority
+    source_rule: P-APP-001
+  - app_id: lookdev
+    status: active
+    owner_domain: app-lookdev
+    authority_root: apps/lookdev/spec
+    evidence_roots: [apps/lookdev]
+    may_not_override: *kernel_authority
+    source_rule: P-APP-001
+  - app_id: moment
+    status: active
+    owner_domain: app-moment
+    authority_root: apps/moment/spec
+    evidence_roots: [apps/moment]
+    may_not_override: *kernel_authority
+    source_rule: P-APP-001
+  - app_id: overtone
+    status: active
+    owner_domain: app-overtone
+    authority_root: apps/overtone/spec
+    evidence_roots: [apps/overtone]
+    may_not_override: *kernel_authority
+    source_rule: P-APP-001
+  - app_id: parentos
+    status: active
+    owner_domain: app-parentos
+    authority_root: apps/parentos/spec
+    evidence_roots: [apps/parentos]
+    may_not_override: *kernel_authority
+    source_rule: P-APP-001
+  - app_id: polyinfo
+    status: active
+    owner_domain: app-polyinfo
+    authority_root: apps/polyinfo/spec
+    evidence_roots: [apps/polyinfo]
+    may_not_override: *kernel_authority
+    source_rule: P-APP-001
+  - app_id: realm-drift
+    status: active
+    owner_domain: app-realm-drift
+    authority_root: apps/realm-drift/spec
+    evidence_roots: [apps/realm-drift]
+    may_not_override: *kernel_authority
+    source_rule: P-APP-001
+  - app_id: shiji
+    status: active
+    owner_domain: app-shiji
+    authority_root: apps/shiji/spec
+    evidence_roots: [apps/shiji]
+    may_not_override: *kernel_authority
+    source_rule: P-APP-001
+  - app_id: video-food-map
+    status: active
+    owner_domain: app-video-food-map
+    authority_root: apps/video-food-map/spec
+    evidence_roots: [apps/video-food-map]
+    may_not_override: *kernel_authority
+    source_rule: P-APP-001

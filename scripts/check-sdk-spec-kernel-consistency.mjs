@@ -22,6 +22,7 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/scope-contract.md',
   '.nimi/spec/sdk/kernel/mod-contract.md',
   '.nimi/spec/sdk/kernel/testing-gates-contract.md',
+  '.nimi/spec/sdk/kernel/package-governance-contract.md',
   '.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml',
   '.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml',
   '.nimi/spec/sdk/kernel/tables/import-boundaries.yaml',

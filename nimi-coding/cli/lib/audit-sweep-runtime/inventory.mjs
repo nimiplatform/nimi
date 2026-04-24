@@ -25,6 +25,16 @@ import {
   toPosix,
   writeYamlRef,
 } from "./common.mjs";
+import {
+  APP_SLICE_ADMISSION_REF,
+  AUDIT_SWEEP_PROJECT_CONFIG_REF,
+  loadAppSliceAdmissions,
+  loadAuditEvidenceRootAdmissions,
+  loadAuditSweepProjectConfig,
+  loadPackageAuthorityAdmissions,
+  specSurfaceForFile,
+} from "./admissions.mjs";
+import { assignEvidenceInventory } from "./evidence-assignment.mjs";
 import { pathExists } from "../fs-helpers.mjs";
 
 const execFile = promisify(execFileCallback);
@@ -47,6 +57,21 @@ function isExcluded(fileRef, excludePatterns) {
     const normalized = pattern.replace(/\\/g, "/");
     if (!normalized) {
       return false;
+    }
+    if (normalized.includes("*")) {
+      let patternText = "";
+      for (let index = 0; index < normalized.length; index += 1) {
+        const char = normalized[index];
+        if (char === "*" && normalized[index + 1] === "*") {
+          patternText += ".*";
+          index += 1;
+        } else if (char === "*") {
+          patternText += "[^/]*";
+        } else {
+          patternText += char.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+        }
+      }
+      return new RegExp(`^${patternText}$`).test(fileRef);
     }
     if (normalized.endsWith("/")) {
       return fileRef === normalized.slice(0, -1) || fileRef.startsWith(normalized);
@@ -127,9 +152,9 @@ function resolveChunkBasis(targetRootRef, requested, specRootPresent) {
   return { ok: true, basis: (targetRootRef === "." || isSpecAuthorityRoot(targetRootRef)) && specRootPresent ? "spec" : "files" };
 }
 
-async function buildInventoryEntry(projectRoot, fileRef, targetRootRef, excludePatterns) {
+async function buildInventoryEntry(projectRoot, fileRef, targetRootRef, excludePatterns, options = {}) {
   const extension = path.posix.extname(fileRef);
-  const excluded = isExcluded(fileRef, excludePatterns);
+  const excluded = !options.forceAuthority && !fileRef.startsWith(".nimi/spec/") && isExcluded(fileRef, excludePatterns);
   const auditable = AUDITABLE_EXTENSIONS.has(extension);
   const absolutePath = artifactPath(projectRoot, fileRef);
   const fileStat = await stat(absolutePath);
@@ -141,7 +166,7 @@ async function buildInventoryEntry(projectRoot, fileRef, targetRootRef, excludeP
     sha256: sha256Text(contents),
     bytes: fileStat.size,
     extension: extension || "none",
-    owner_domain: ownerDomainForFile(fileRef, targetRootRef),
+    owner_domain: options.ownerDomain ?? ownerDomainForFile(fileRef, targetRootRef),
     classification: classifyFile(fileRef),
     included,
     exclusion_reason: included
@@ -176,30 +201,6 @@ function buildFileChunks(includedInventory, options) {
   }
 
   return chunks;
-}
-
-function specSurfaceForFile(fileRef) {
-  const withoutRoot = fileRef.startsWith(".nimi/spec/")
-    ? fileRef.slice(".nimi/spec/".length)
-    : fileRef;
-  const parts = withoutRoot.split("/");
-  if (parts[0] === "_meta") {
-    return { ownerDomain: "spec-meta", surface: path.posix.basename(fileRef, path.posix.extname(fileRef)) };
-  }
-  if (parts.length === 1) {
-    return { ownerDomain: "spec-root", surface: path.posix.basename(fileRef, path.posix.extname(fileRef)) };
-  }
-  const domain = parts[0];
-  if (parts[1] === "kernel" && parts[2] === "tables") {
-    return { ownerDomain: domain, surface: "kernel-tables" };
-  }
-  if (parts[1] === "kernel" && parts[2] === "generated") {
-    return { ownerDomain: domain, surface: "kernel-generated" };
-  }
-  if (parts[1] === "kernel") {
-    return { ownerDomain: domain, surface: "kernel-contracts" };
-  }
-  return { ownerDomain: domain, surface: "domain-guides" };
 }
 
 function evidenceRootsForSpecOwner(ownerDomain, targetRootRef) {
@@ -245,7 +246,20 @@ function slugPart(value) {
 function buildSpecChunks(includedInventory, options) {
   const sortedEntries = [...includedInventory].sort((left, right) => left.file_ref.localeCompare(right.file_ref));
   return sortedEntries.map((entry, index) => {
-    const surface = specSurfaceForFile(entry.file_ref);
+    const surface = specSurfaceForFile(entry.file_ref, options.appSliceAdmissions, options.packageAuthorityAdmissions);
+    const appAdmission = surface.appAdmission;
+    const packageAdmission = surface.packageAdmission;
+    const rootAdmissions = (options.auditEvidenceRootAdmissions ?? [])
+      .filter((admission) => admission.owner_domain === surface.ownerDomain && admission.authority_refs.includes(entry.file_ref));
+    const admittedEvidenceRoots = rootAdmissions.flatMap((admission) => admission.evidence_roots);
+    const evidenceRoots = packageAdmission
+      ? packageAdmission.evidence_roots
+      : appAdmission
+      ? appAdmission.evidence_roots
+      : [...new Set([
+        ...evidenceRootsForSpecOwner(surface.ownerDomain, options.targetRootRef),
+        ...admittedEvidenceRoots,
+      ])].sort();
     const chunkId = [
       `chunk-${String(index + 1).padStart(3, "0")}`,
       slugPart(surface.ownerDomain),
@@ -261,11 +275,83 @@ function buildSpecChunks(includedInventory, options) {
       criteria: options.criteria,
       files: [entry.file_ref],
       authority_refs: [entry.file_ref],
-      evidence_roots: evidenceRootsForSpecOwner(surface.ownerDomain, options.targetRootRef),
+      authority_kind: packageAdmission ? "admitted_package_authority" : (appAdmission ? "admitted_app_slice" : "nimi_spec"),
+      ...(packageAdmission ? {
+        package_authority_id: packageAdmission.id,
+        admission_ref: packageAdmission.admission_ref,
+        authority_root: packageAdmission.authority_root,
+      } : {}),
+      ...(appAdmission ? {
+        app_id: appAdmission.app_id,
+        admission_ref: appAdmission.admission_ref,
+        authority_root: appAdmission.authority_root,
+      } : {}),
+      ...(rootAdmissions.length > 0 ? {
+        evidence_root_admission_refs: rootAdmissions.map((admission) => admission.admission_ref),
+      } : {}),
+      evidence_roots: evidenceRoots,
       file_count: 1,
       finding_count: 0,
     };
   });
+}
+
+async function listAdmittedPackageAuthorityEntries(projectRoot, packageAuthorityAdmissions, excludePatterns) {
+  const entries = [];
+  for (const admission of packageAuthorityAdmissions) {
+    const rootInfo = await pathExists(artifactPath(projectRoot, admission.authority_root));
+    if (!rootInfo?.isDirectory()) {
+      return {
+        ok: false,
+        error: `nimicoding audit-sweep refused: package authority admission ${admission.id} authority_root is missing: ${admission.authority_root}.\n`,
+      };
+    }
+    const gitFiles = await listGitFiles(projectRoot, admission.authority_root);
+    const allFileRefs = gitFiles.length > 0
+      ? gitFiles.map((entry) => toPosix(entry))
+      : await listFallbackFiles(projectRoot, admission.authority_root, excludePatterns);
+    for (const fileRef of allFileRefs) {
+      const normalizedRef = toPosix(fileRef);
+      const extension = path.posix.extname(normalizedRef);
+      if (!AUDITABLE_EXTENSIONS.has(extension)) {
+        continue;
+      }
+      entries.push(await buildInventoryEntry(projectRoot, normalizedRef, admission.authority_root, excludePatterns, {
+        forceAuthority: true,
+        ownerDomain: admission.owner_domain,
+      }));
+    }
+  }
+  return { ok: true, entries };
+}
+
+async function listAdmittedAppAuthorityEntries(projectRoot, appSliceAdmissions, excludePatterns) {
+  const entries = [];
+  for (const admission of appSliceAdmissions) {
+    const rootInfo = await pathExists(artifactPath(projectRoot, admission.authority_root));
+    if (!rootInfo?.isDirectory()) {
+      return {
+        ok: false,
+        error: `nimicoding audit-sweep refused: app-slice admission ${admission.app_id} authority_root is missing: ${admission.authority_root}.\n`,
+      };
+    }
+    const gitFiles = await listGitFiles(projectRoot, admission.authority_root);
+    const allFileRefs = gitFiles.length > 0
+      ? gitFiles.map((entry) => toPosix(entry))
+      : await listFallbackFiles(projectRoot, admission.authority_root, excludePatterns);
+    for (const fileRef of allFileRefs) {
+      const normalizedRef = toPosix(fileRef);
+      const extension = path.posix.extname(normalizedRef);
+      if (!AUDITABLE_EXTENSIONS.has(extension)) {
+        continue;
+      }
+      entries.push(await buildInventoryEntry(projectRoot, normalizedRef, admission.authority_root, excludePatterns, {
+        forceAuthority: true,
+        ownerDomain: admission.owner_domain,
+      }));
+    }
+  }
+  return { ok: true, entries };
 }
 
 async function listAuditableEntriesForRoot(projectRoot, rootRef, excludePatterns) {
@@ -292,181 +378,6 @@ async function listAuditableEntriesForRoot(projectRoot, rootRef, excludePatterns
   return entries.filter((entry) => entry.included);
 }
 
-function chunkMatchesEvidenceFile(chunk, fileRef) {
-  return Array.isArray(chunk.evidence_roots)
-    && chunk.evidence_roots.some((rootRef) => {
-      const normalizedRoot = rootRef.replace(/\\/g, "/").replace(/\/$/, "");
-      return fileRef === normalizedRoot || fileRef.startsWith(`${normalizedRoot}/`);
-    });
-}
-
-function findChunkBySurface(chunks, ownerDomain, specSurface) {
-  return chunks.find((chunk) => chunk.owner_domain === ownerDomain && chunk.spec_surface === specSurface) ?? null;
-}
-
-const GENERIC_EVIDENCE_MATCH_TOKENS = new Set([
-  "agent",
-  "app",
-  "apps",
-  "audit",
-  "contract",
-  "contracts",
-  "domain",
-  "generated",
-  "go",
-  "guides",
-  "index",
-  "internal",
-  "js",
-  "json",
-  "kernel",
-  "md",
-  "mjs",
-  "nimi",
-  "platform",
-  "root",
-  "schema",
-  "spec",
-  "src",
-  "table",
-  "tables",
-  "test",
-  "ts",
-  "tsx",
-  "yaml",
-  "yml",
-]);
-
-function matchTokens(value) {
-  return new Set(String(value)
-    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-    .split(/[^a-zA-Z0-9]+/g)
-    .map((token) => token.toLowerCase())
-    .filter((token) => token.length > 1 && !GENERIC_EVIDENCE_MATCH_TOKENS.has(token)));
-}
-
-function scoreEvidenceChunk(entry, chunk) {
-  const evidenceTokens = matchTokens(entry.file_ref);
-  const authorityTokens = matchTokens((chunk.authority_refs ?? chunk.files ?? []).join("/"));
-  let score = 0;
-  for (const token of evidenceTokens) {
-    if (authorityTokens.has(token)) {
-      score += 10;
-    }
-  }
-  if (chunk.spec_surface === "kernel-contracts") {
-    score += 3;
-  } else if (chunk.spec_surface === "domain-guides") {
-    score += 2;
-  }
-  return score;
-}
-
-function topLevelEvidenceDocForRoot(rootRef, fileRef) {
-  const normalizedRoot = rootRef.replace(/\\/g, "/").replace(/\/$/, "");
-  if (!normalizedRoot || !(fileRef === normalizedRoot || fileRef.startsWith(`${normalizedRoot}/`))) {
-    return false;
-  }
-  const relative = fileRef === normalizedRoot ? "" : fileRef.slice(normalizedRoot.length + 1);
-  return !relative.includes("/") && /^(README|AGENTS)(?:\.[^.]+)?$/i.test(relative);
-}
-
-function pickSpecificOwnerEvidenceChunk(entry, candidates, currentCounts, maxEvidenceFilesPerChunk) {
-  const ownerDomain = candidates[0]?.owner_domain;
-  if (!ownerDomain) {
-    return null;
-  }
-  if (entry.file_ref.startsWith(".nimi/spec/")) {
-    const surface = specSurfaceForFile(entry.file_ref);
-    return candidates.find((chunk) => (chunk.authority_refs ?? []).includes(entry.file_ref))
-      ?? findChunkBySurface(candidates, surface.ownerDomain, surface.surface);
-  }
-  if (candidates.some((chunk) => (
-    chunk.owner_domain === ownerDomain
-    && chunk.spec_surface === "domain-guides"
-    && (chunk.evidence_roots ?? []).some((rootRef) => topLevelEvidenceDocForRoot(rootRef, entry.file_ref))
-  ))) {
-    return findChunkBySurface(candidates, ownerDomain, "domain-guides");
-  }
-  const ranked = candidates
-    .map((chunk) => ({ chunk, score: scoreEvidenceChunk(entry, chunk) }))
-    .sort((left, right) => (
-      right.score - left.score
-      || (currentCounts.get(left.chunk.chunk_id) ?? 0) - (currentCounts.get(right.chunk.chunk_id) ?? 0)
-      || left.chunk.chunk_id.localeCompare(right.chunk.chunk_id)
-    ));
-  return ranked.find((entry) => (currentCounts.get(entry.chunk.chunk_id) ?? 0) < maxEvidenceFilesPerChunk)?.chunk
-    ?? ranked
-      .sort((left, right) => (
-        (currentCounts.get(left.chunk.chunk_id) ?? 0) - (currentCounts.get(right.chunk.chunk_id) ?? 0)
-        || right.score - left.score
-        || left.chunk.chunk_id.localeCompare(right.chunk.chunk_id)
-      ))[0]?.chunk
-    ?? candidates[0];
-}
-
-function pickBroadOwnerEvidenceChunk(entry, candidates, currentCounts, maxEvidenceFilesPerChunk) {
-  const ranked = candidates
-    .map((chunk) => ({ chunk, score: scoreEvidenceChunk(entry, chunk) }))
-    .filter((candidate) => candidate.score > 0)
-    .sort((left, right) => (
-      right.score - left.score
-      || (currentCounts.get(left.chunk.chunk_id) ?? 0) - (currentCounts.get(right.chunk.chunk_id) ?? 0)
-      || left.chunk.chunk_id.localeCompare(right.chunk.chunk_id)
-    ));
-  if (ranked.length === 0) {
-    return null;
-  }
-  return ranked.find((entry) => (currentCounts.get(entry.chunk.chunk_id) ?? 0) < maxEvidenceFilesPerChunk)?.chunk
-    ?? ranked[0].chunk;
-}
-
-function assignEvidenceInventory(evidenceEntries, chunks, options = {}) {
-  const maxEvidenceFilesPerChunk = Number.isInteger(options.maxEvidenceFilesPerChunk) && options.maxEvidenceFilesPerChunk > 0
-    ? options.maxEvidenceFilesPerChunk
-    : DEFAULT_MAX_FILES_PER_CHUNK;
-  const broadOwnerDomains = new Set(["spec-meta", "spec-root"]);
-  const chunksById = new Map(chunks.map((chunk) => [chunk.chunk_id, { ...chunk, evidence_inventory: [] }]));
-  const currentCounts = new Map(chunks.map((chunk) => [chunk.chunk_id, 0]));
-  const unmapped = [];
-
-  for (const entry of evidenceEntries.sort((left, right) => left.file_ref.localeCompare(right.file_ref))) {
-    const candidates = chunks.filter((chunk) => chunkMatchesEvidenceFile(chunk, entry.file_ref));
-    if (candidates.length === 0) {
-      unmapped.push(entry.file_ref);
-      continue;
-    }
-    const preferred = candidates.filter((chunk) => !broadOwnerDomains.has(chunk.owner_domain));
-    const pool = (preferred.length > 0 ? preferred : candidates)
-      .sort((left, right) => left.chunk_id.localeCompare(right.chunk_id));
-    const selected = preferred.length > 0
-      ? pickSpecificOwnerEvidenceChunk(entry, pool, currentCounts, maxEvidenceFilesPerChunk)
-      : pickBroadOwnerEvidenceChunk(entry, pool, currentCounts, maxEvidenceFilesPerChunk);
-    if (!selected) {
-      unmapped.push(entry.file_ref);
-      continue;
-    }
-    chunksById.get(selected.chunk_id).evidence_inventory.push(entry.file_ref);
-    currentCounts.set(selected.chunk_id, (currentCounts.get(selected.chunk_id) ?? 0) + 1);
-  }
-
-  return {
-    chunks: chunks.map((chunk) => {
-      const enriched = chunksById.get(chunk.chunk_id);
-      return {
-        ...chunk,
-        evidence_inventory: enriched.evidence_inventory.sort(),
-        coverage_contract: {
-          authority_refs_required: true,
-          evidence_inventory_required: true,
-          evidence_files_must_cover_inventory: true,
-        },
-      };
-    }),
-    unmappedEvidenceFiles: unmapped.sort(),
-  };
-}
-
 export async function createAuditSweepPlan(projectRoot, options) {
   const targetRoot = resolveInsideProject(projectRoot, options.root ?? ".", "--root");
   if (!targetRoot.ok) {
@@ -491,23 +402,81 @@ export async function createAuditSweepPlan(projectRoot, options) {
   }
   const inventoryRootRef = chunkBasis.basis === "spec" ? ".nimi/spec" : targetRootRef;
   const criteria = normalizeCsv(options.criteria, DEFAULT_CRITERIA);
-  const excludePatterns = [...DEFAULT_EXCLUDE_PATTERNS, ...normalizeCsv(options.exclude)];
+  const projectConfig = await loadAuditSweepProjectConfig(projectRoot);
+  if (!projectConfig.ok) {
+    return inputError(projectConfig.error);
+  }
+  const excludePatterns = [
+    ...DEFAULT_EXCLUDE_PATTERNS,
+    ...projectConfig.excludePatterns,
+    ...normalizeCsv(options.exclude),
+  ];
   const maxFilesPerChunk = Number.isInteger(options.maxFilesPerChunk) && options.maxFilesPerChunk > 0
     ? options.maxFilesPerChunk
     : DEFAULT_MAX_FILES_PER_CHUNK;
+  let appSliceAdmissions = [];
+  let auditEvidenceRootAdmissions = [];
+  let auditEvidenceRootAdmissionRefs = [];
+  let packageAuthorityAdmissions = [];
+  let packageAuthorityAdmissionRefs = [];
+  if (chunkBasis.basis === "spec") {
+    const loadedAdmissions = await loadAppSliceAdmissions(projectRoot);
+    if (!loadedAdmissions.ok) {
+      return inputError(loadedAdmissions.error);
+    }
+    appSliceAdmissions = loadedAdmissions.admissions;
+    const loadedEvidenceRootAdmissions = await loadAuditEvidenceRootAdmissions(projectRoot, listGitFiles, listFallbackFiles);
+    if (!loadedEvidenceRootAdmissions.ok) {
+      return inputError(loadedEvidenceRootAdmissions.error);
+    }
+    auditEvidenceRootAdmissions = loadedEvidenceRootAdmissions.admissions;
+    auditEvidenceRootAdmissionRefs = loadedEvidenceRootAdmissions.tableRefs;
+    const loadedPackageAuthorityAdmissions = await loadPackageAuthorityAdmissions(projectRoot, listGitFiles, listFallbackFiles);
+    if (!loadedPackageAuthorityAdmissions.ok) {
+      return inputError(loadedPackageAuthorityAdmissions.error);
+    }
+    packageAuthorityAdmissions = loadedPackageAuthorityAdmissions.admissions;
+    packageAuthorityAdmissionRefs = loadedPackageAuthorityAdmissions.tableRefs;
+  }
   const gitFiles = await listGitFiles(projectRoot, inventoryRootRef);
   const allFileRefs = gitFiles.length > 0
     ? gitFiles.map((entry) => toPosix(entry))
     : await listFallbackFiles(projectRoot, inventoryRootRef, excludePatterns);
   const inventory = [];
   for (const fileRef of allFileRefs) {
-    inventory.push(await buildInventoryEntry(projectRoot, fileRef, inventoryRootRef, excludePatterns));
+    inventory.push(await buildInventoryEntry(projectRoot, fileRef, inventoryRootRef, excludePatterns, { forceAuthority: true }));
+  }
+  if (chunkBasis.basis === "spec" && appSliceAdmissions.length > 0) {
+    const appAuthorityEntries = await listAdmittedAppAuthorityEntries(projectRoot, appSliceAdmissions, excludePatterns);
+    if (!appAuthorityEntries.ok) {
+      return inputError(appAuthorityEntries.error);
+    }
+    const seenAuthorityRefs = new Set(inventory.map((entry) => entry.file_ref));
+    for (const entry of appAuthorityEntries.entries) {
+      if (!seenAuthorityRefs.has(entry.file_ref)) {
+        inventory.push(entry);
+        seenAuthorityRefs.add(entry.file_ref);
+      }
+    }
+  }
+  if (chunkBasis.basis === "spec" && packageAuthorityAdmissions.length > 0) {
+    const packageAuthorityEntries = await listAdmittedPackageAuthorityEntries(projectRoot, packageAuthorityAdmissions, excludePatterns);
+    if (!packageAuthorityEntries.ok) {
+      return inputError(packageAuthorityEntries.error);
+    }
+    const seenAuthorityRefs = new Set(inventory.map((entry) => entry.file_ref));
+    for (const entry of packageAuthorityEntries.entries) {
+      if (!seenAuthorityRefs.has(entry.file_ref)) {
+        inventory.push(entry);
+        seenAuthorityRefs.add(entry.file_ref);
+      }
+    }
   }
 
   const includedInventory = inventory.filter((entry) => entry.included);
   const authorityFileRefs = new Set(includedInventory.map((entry) => entry.file_ref));
   let chunks = chunkBasis.basis === "spec"
-    ? buildSpecChunks(includedInventory, { criteria, targetRootRef })
+    ? buildSpecChunks(includedInventory, { criteria, targetRootRef, appSliceAdmissions, auditEvidenceRootAdmissions, packageAuthorityAdmissions })
     : buildFileChunks(includedInventory, { criteria, maxFilesPerChunk });
   let evidenceInventory = [];
   let unmappedEvidenceFiles = [];
@@ -557,6 +526,32 @@ export async function createAuditSweepPlan(projectRoot, options) {
     },
     criteria,
     max_files_per_chunk: maxFilesPerChunk,
+    audit_sweep_config_ref: projectConfig.found ? AUDIT_SWEEP_PROJECT_CONFIG_REF : null,
+    ...(chunkBasis.basis === "spec" && appSliceAdmissions.length > 0 ? {
+      app_slice_admission_ref: APP_SLICE_ADMISSION_REF,
+      app_slice_admissions: appSliceAdmissions.map((admission) => ({
+        app_id: admission.app_id,
+        owner_domain: admission.owner_domain,
+        status: admission.status,
+        authority_root: admission.authority_root,
+        evidence_roots: admission.evidence_roots,
+        admission_ref: admission.admission_ref,
+      })),
+    } : {}),
+    ...(chunkBasis.basis === "spec" && auditEvidenceRootAdmissionRefs.length > 0 ? {
+      audit_evidence_root_refs: auditEvidenceRootAdmissionRefs,
+    } : {}),
+    ...(chunkBasis.basis === "spec" && packageAuthorityAdmissions.length > 0 ? {
+      package_authority_admission_refs: packageAuthorityAdmissionRefs,
+      package_authority_admissions: packageAuthorityAdmissions.map((admission) => ({
+        id: admission.id,
+        owner_domain: admission.owner_domain,
+        status: admission.status,
+        authority_root: admission.authority_root,
+        evidence_roots: admission.evidence_roots,
+        admission_ref: admission.admission_ref,
+      })),
+    } : {}),
     exclude_patterns: excludePatterns,
     inventory_hash: inventoryHash,
     ...(evidenceInventoryHash ? { evidence_inventory_hash: evidenceInventoryHash } : {}),
@@ -583,6 +578,7 @@ export async function createAuditSweepPlan(projectRoot, options) {
         authority_files: includedInventory.length,
         evidence_files: evidenceInventory.length,
         unmapped_evidence_files: unmappedEvidenceFiles.length,
+        authority_chunks_without_evidence_inventory: chunks.filter((chunk) => (chunk.evidence_inventory ?? []).length === 0).length,
       } : {}),
       chunk_count: chunks.length,
     },
@@ -607,8 +603,16 @@ export async function createAuditSweepPlan(projectRoot, options) {
       ...(chunk.planning_basis ? { planning_basis: chunk.planning_basis } : {}),
       ...(chunk.spec_surface ? { spec_surface: chunk.spec_surface } : {}),
       ...(chunk.authority_refs ? { authority_refs: chunk.authority_refs } : {}),
+      ...(chunk.authority_kind ? { authority_kind: chunk.authority_kind } : {}),
+      ...(chunk.app_id ? { app_id: chunk.app_id } : {}),
+      ...(chunk.package_authority_id ? { package_authority_id: chunk.package_authority_id } : {}),
+      ...(chunk.admission_ref ? { admission_ref: chunk.admission_ref } : {}),
+      ...(chunk.authority_root ? { authority_root: chunk.authority_root } : {}),
+      ...(chunk.evidence_root_admission_refs ? { evidence_root_admission_refs: chunk.evidence_root_admission_refs } : {}),
       ...(chunk.evidence_roots ? { evidence_roots: chunk.evidence_roots } : {}),
       ...(chunk.evidence_inventory ? { evidence_inventory: chunk.evidence_inventory } : {}),
+      ...(chunk.evidence_inventory_status ? { evidence_inventory_status: chunk.evidence_inventory_status } : {}),
+      ...(chunk.evidence_inventory_empty_reason ? { evidence_inventory_empty_reason: chunk.evidence_inventory_empty_reason } : {}),
       ...(chunk.coverage_contract ? { coverage_contract: chunk.coverage_contract } : {}),
       file_count: chunk.files.length,
       file_hashes: Object.fromEntries(chunkInventory.map((entry) => [entry.file_ref, entry.sha256])),

@@ -19,8 +19,16 @@ optional_top_level_fields:
   - planning_basis
   - spec_surface
   - authority_refs
+  - authority_kind
+  - app_id
+  - package_authority_id
+  - admission_ref
+  - authority_root
+  - evidence_root_admission_refs
   - evidence_roots
   - evidence_inventory
+  - evidence_inventory_status
+  - evidence_inventory_empty_reason
   - coverage_contract
   - evidence_file_hashes
 state_enum:
@@ -43,6 +51,7 @@ hard_constraints:
   - chunk_files_must_match_plan_inventory
   - spec_authority_chunks_must_declare_authority_refs_and_evidence_roots
   - spec_authority_chunks_must_declare_evidence_inventory
+  - spec_authority_chunks_with_empty_evidence_inventory_must_declare_explicit_empty_reason
   - spec_authority_chunks_must_declare_coverage_contract
   - spec_authority_chunk_files_remain_authority_refs_only
   - spec_authority_ingest_requires_one_authority_outcome_per_authority_ref

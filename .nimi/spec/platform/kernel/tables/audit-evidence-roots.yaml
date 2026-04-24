@@ -1,0 +1,47 @@
+version: 1
+roots:
+  - id: platform-web-release
+    owner_domain: platform
+    authority_refs:
+      - .nimi/spec/platform/kernel/web-release-contract.md
+    evidence_roots:
+      - apps/web
+      - apps/install-gateway
+    source_rule: P-WEB-005
+  - id: platform-shared-tauri-kit
+    owner_domain: platform
+    authority_refs:
+      - .nimi/spec/platform/kernel/kit-contract.md
+      - .nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml
+    evidence_roots:
+      - apps/shared-tauri
+    source_rule: P-KIT-041
+  - id: platform-host-local-nimicoding-projection
+    owner_domain: platform
+    authority_refs:
+      - .nimi/spec/platform/kernel/package-authority-admission-contract.md
+    evidence_roots:
+      - .nimi/contracts
+      - .nimi/methodology
+    source_rule: P-PKG-006
+  - id: platform-repository-governance
+    owner_domain: platform
+    authority_refs:
+      - .nimi/spec/platform/kernel/governance-contract.md
+    evidence_roots:
+      - .github
+    source_rule: P-GOV-021
+  - id: runtime-proto-root-governance
+    owner_domain: runtime
+    authority_refs:
+      - .nimi/spec/runtime/kernel/proto-governance-contract.md
+    evidence_roots:
+      - proto
+    source_rule: P-GOV-022
+  - id: sdk-root-package-governance
+    owner_domain: sdk
+    authority_refs:
+      - .nimi/spec/sdk/kernel/package-governance-contract.md
+    evidence_roots:
+      - sdk
+    source_rule: P-GOV-022

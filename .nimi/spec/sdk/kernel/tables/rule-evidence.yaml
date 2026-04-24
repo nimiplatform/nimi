@@ -678,3 +678,21 @@ rules:
     status: covered
     evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
     test_files: [sdk/test/runtime/runtime-class.test.ts, sdk/test/ai-provider/provider.test.ts]
+
+  # --- Package Governance Contract (S-PKG) ---
+  - rule_id: S-PKG-001
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "SDK root package metadata is admitted as evidence through platform audit evidence root admission and governed structurally by SDK kernel consistency."
+  - rule_id: S-PKG-002
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Root SDK support documents remain projection/support evidence and must not override SDK kernel authority."
+  - rule_id: S-PKG-003
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Package release behavior remains aligned to S-GATE, S-SURFACE, and S-BOUNDARY authority."
+  - rule_id: S-PKG-004
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Spec-first audit evidence admission is validated by audit-sweep plan validation and platform audit evidence root gate."

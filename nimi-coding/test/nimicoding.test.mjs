@@ -4934,9 +4934,26 @@ test("audit-sweep plan creates deterministic local chunk artifacts", async () =>
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
+    await writeFile(
+      path.join(projectRoot, ".nimi", "config", "audit-sweep.yaml"),
+      YAML.stringify({
+        version: 1,
+        audit_sweep: {
+          exclude_patterns: [
+            "src/domain/gen/**",
+            "src/domain/generated/**",
+          ],
+        },
+      }),
+      "utf8",
+    );
     await mkdir(path.join(projectRoot, "src", "domain"), { recursive: true });
+    await mkdir(path.join(projectRoot, "src", "domain", "gen"), { recursive: true });
+    await mkdir(path.join(projectRoot, "src", "domain", "generated"), { recursive: true });
     await writeFile(path.join(projectRoot, "src", "domain", "alpha.ts"), "export const alpha = 1;\n", "utf8");
     await writeFile(path.join(projectRoot, "src", "domain", "beta.ts"), "export const beta = 2;\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "domain", "gen", "ignored.ts"), "export const ignored = 1;\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "domain", "generated", "ignored.ts"), "export const ignored = 2;\n", "utf8");
     await writeFile(path.join(projectRoot, "src", "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
 
     const planResult = await captureRunCli([
@@ -4966,6 +4983,7 @@ test("audit-sweep plan creates deterministic local chunk artifacts", async () =>
 
     const plan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-plan.yaml"), "utf8"));
     assert.equal(plan.kind, "audit-plan");
+    assert.equal(plan.audit_sweep_config_ref, ".nimi/config/audit-sweep.yaml");
     assert.deepEqual(plan.inventory.map((entry) => entry.file_ref), [
       "src/domain/alpha.ts",
       "src/domain/beta.ts",
@@ -5264,6 +5282,217 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       && check.ok === false
       && check.reason === "spec-authority evidence declares authority_refs"
     )));
+  });
+});
+
+test("audit-sweep plan expands app-local specs only through app-slice admissions", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "platform", "kernel", "tables"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "platform", "kernel", "tables", "app-slice-admissions.yaml"),
+      YAML.stringify({
+        version: 1,
+        admissions: [
+          {
+            app_id: "demo",
+            status: "active",
+            owner_domain: "app-demo",
+            authority_root: "apps/demo/spec",
+            evidence_roots: ["apps/demo"],
+            may_not_override: [".nimi/spec/runtime/**"],
+            source_rule: "P-APP-001",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    await mkdir(path.join(projectRoot, "apps", "demo", "spec", "kernel"), { recursive: true });
+    await mkdir(path.join(projectRoot, "apps", "demo", "src"), { recursive: true });
+    await writeFile(path.join(projectRoot, "apps", "demo", "spec", "kernel", "app-shell-contract.md"), "# Demo App Shell\n", "utf8");
+    await writeFile(path.join(projectRoot, "apps", "demo", "src", "app.ts"), "export const demo = true;\n", "utf8");
+    await writeFile(path.join(projectRoot, "apps", "demo", "package.json"), "{\"name\":\"demo\"}\n", "utf8");
+
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "apps/demo",
+      "--chunk-basis",
+      "spec",
+      "--sweep-id",
+      "audit-sweep-test-app-slice-admission",
+      "--json",
+    ]);
+
+    assert.equal(planResult.exitCode, 0, planResult.stderr);
+    const plan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-app-slice-admission.yaml"), "utf8"));
+    assert.equal(plan.app_slice_admission_ref, ".nimi/spec/platform/kernel/tables/app-slice-admissions.yaml");
+    assert.deepEqual(plan.app_slice_admissions.map((entry) => entry.app_id), ["demo"]);
+    const appChunk = plan.chunks.find((chunk) => chunk.app_id === "demo" && chunk.authority_refs.includes("apps/demo/spec/kernel/app-shell-contract.md"));
+    assert.ok(appChunk);
+    assert.equal(appChunk.authority_kind, "admitted_app_slice");
+    assert.equal(appChunk.admission_ref, ".nimi/spec/platform/kernel/tables/app-slice-admissions.yaml#demo");
+    assert.deepEqual(appChunk.evidence_roots, ["apps/demo"]);
+    assert.ok(appChunk.evidence_inventory.includes("apps/demo/src/app.ts"));
+    assert.ok(appChunk.evidence_inventory.includes("apps/demo/package.json"));
+    assert.equal(plan.unmapped_evidence_files.length, 0);
+
+    const validateResult = await captureRunCli([
+      "audit-sweep",
+      "validate",
+      "--sweep-id",
+      "audit-sweep-test-app-slice-admission",
+      "--scope",
+      "plan",
+      "--json",
+    ]);
+    assert.equal(validateResult.exitCode, 0, validateResult.stdout);
+  });
+});
+
+test("audit-sweep plan maps authority-specific evidence roots from spec tables", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "platform", "kernel", "tables"), { recursive: true });
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "platform", "kernel", "web-release-contract.md"), "# Web Release\n", "utf8");
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "platform", "kernel", "tables", "audit-evidence-roots.yaml"),
+      YAML.stringify({
+        version: 1,
+        roots: [
+          {
+            id: "platform-web-release",
+            owner_domain: "platform",
+            authority_refs: [".nimi/spec/platform/kernel/web-release-contract.md"],
+            evidence_roots: ["apps/web"],
+            source_rule: "P-WEB-005",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    await mkdir(path.join(projectRoot, "apps", "web", "src"), { recursive: true });
+    await writeFile(path.join(projectRoot, "apps", "web", "src", "app.ts"), "export const web = true;\n", "utf8");
+
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      ".",
+      "--chunk-basis",
+      "spec",
+      "--sweep-id",
+      "audit-sweep-test-evidence-root-admission",
+      "--json",
+    ]);
+
+    assert.equal(planResult.exitCode, 0, planResult.stderr);
+    const plan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-evidence-root-admission.yaml"), "utf8"));
+    assert.deepEqual(plan.audit_evidence_root_refs, [".nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml"]);
+    const webChunk = plan.chunks.find((chunk) => chunk.authority_refs.includes(".nimi/spec/platform/kernel/web-release-contract.md"));
+    assert.ok(webChunk);
+    assert.deepEqual(webChunk.evidence_root_admission_refs, [".nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml#platform-web-release"]);
+    assert.ok(webChunk.evidence_roots.includes("apps/web"));
+    assert.ok(webChunk.evidence_inventory.includes("apps/web/src/app.ts"));
+  });
+});
+
+test("audit-sweep plan expands admitted package authority and host-local projection evidence", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "platform", "kernel", "tables"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "platform", "kernel", "package-authority-admission-contract.md"),
+      "# Package Authority Admission\n",
+      "utf8",
+    );
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "platform", "kernel", "tables", "package-authority-admissions.yaml"),
+      YAML.stringify({
+        version: 1,
+        admissions: [
+          {
+            id: "tooling",
+            status: "active",
+            owner_domain: "tooling",
+            authority_root: "tools/tooling/spec",
+            evidence_roots: ["tools/tooling"],
+            may_not_override: [".nimi/spec/platform/**"],
+            projection_boundary: {
+              host_project_admission_owner: ".nimi/spec/platform/kernel/package-authority-admission-contract.md",
+              package_truth_root: "tools/tooling/spec",
+              host_local_projection_roots: [".nimi/contracts", ".nimi/methodology"],
+            },
+            source_rule: "P-PKG-001",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "platform", "kernel", "tables", "audit-evidence-roots.yaml"),
+      YAML.stringify({
+        version: 1,
+        roots: [
+          {
+            id: "host-local-tooling-projection",
+            owner_domain: "platform",
+            authority_refs: [".nimi/spec/platform/kernel/package-authority-admission-contract.md"],
+            evidence_roots: [".nimi/contracts", ".nimi/methodology"],
+            source_rule: "P-PKG-006",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    await mkdir(path.join(projectRoot, "tools", "tooling", "spec"), { recursive: true });
+    await mkdir(path.join(projectRoot, "tools", "tooling", "cli"), { recursive: true });
+    await mkdir(path.join(projectRoot, "tools", "tooling", "contracts"), { recursive: true });
+    await writeFile(path.join(projectRoot, "tools", "tooling", "spec", "product-scope.yaml"), "version: 1\nproduct: tooling\n", "utf8");
+    await writeFile(path.join(projectRoot, "tools", "tooling", "cli", "index.mjs"), "export const run = () => true;\n", "utf8");
+    await writeFile(path.join(projectRoot, "tools", "tooling", "contracts", "tool.schema.yaml"), "version: 1\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "contracts", "host-local-tool.schema.yaml"), "version: 1\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "methodology", "host-local-tool.yaml"), "version: 1\n", "utf8");
+
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      ".",
+      "--chunk-basis",
+      "spec",
+      "--sweep-id",
+      "audit-sweep-test-package-authority-admission",
+      "--json",
+    ]);
+
+    assert.equal(planResult.exitCode, 0, planResult.stderr);
+    const plan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-package-authority-admission.yaml"), "utf8"));
+    assert.deepEqual(plan.package_authority_admission_refs, [".nimi/spec/platform/kernel/tables/package-authority-admissions.yaml"]);
+    assert.deepEqual(plan.package_authority_admissions.map((entry) => entry.id), ["tooling"]);
+
+    const packageChunk = plan.chunks.find((chunk) => chunk.authority_refs.includes("tools/tooling/spec/product-scope.yaml"));
+    assert.ok(packageChunk);
+    assert.equal(packageChunk.authority_kind, "admitted_package_authority");
+    assert.equal(packageChunk.package_authority_id, "tooling");
+    assert.equal(packageChunk.admission_ref, ".nimi/spec/platform/kernel/tables/package-authority-admissions.yaml#tooling");
+    assert.deepEqual(packageChunk.evidence_roots, ["tools/tooling"]);
+    assert.ok(packageChunk.evidence_inventory.includes("tools/tooling/cli/index.mjs"));
+    assert.ok(packageChunk.evidence_inventory.includes("tools/tooling/contracts/tool.schema.yaml"));
+    assert.ok(!packageChunk.evidence_inventory.includes("tools/tooling/spec/product-scope.yaml"));
+
+    const hostProjectionChunk = plan.chunks.find((chunk) => chunk.authority_refs.includes(".nimi/spec/platform/kernel/package-authority-admission-contract.md"));
+    assert.ok(hostProjectionChunk);
+    assert.ok(hostProjectionChunk.evidence_root_admission_refs.includes(".nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml#host-local-tooling-projection"));
+    assert.ok(hostProjectionChunk.evidence_inventory.includes(".nimi/contracts/host-local-tool.schema.yaml"));
+    assert.ok(hostProjectionChunk.evidence_inventory.includes(".nimi/methodology/host-local-tool.yaml"));
   });
 });
 
