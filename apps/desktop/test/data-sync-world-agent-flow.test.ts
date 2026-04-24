@@ -12,6 +12,10 @@ const socialFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/runtime/data-sync/flows/social-flow.ts'),
   'utf8',
 );
+const agentFlowSource = readFileSync(
+  resolve(import.meta.dirname, '../src/runtime/data-sync/flows/agent-flow.ts'),
+  'utf8',
+);
 
 describe('D-DSYNC-005: world flow source scanning', () => {
   test('D-DSYNC-005: loadWorldDetailById exists in source', () => {
@@ -80,8 +84,8 @@ describe('D-DSYNC-005: world flow source scanning', () => {
 describe('D-DSYNC-011: agent ownership flow source scanning', () => {
   test('D-DSYNC-011: loadMyAgents exists in source', () => {
     assert.ok(
-      socialFlowSource.includes('export async function loadCreatorAgents'),
-      'loadCreatorAgents (backing loadMyAgents) must be exported from social-flow',
+      agentFlowSource.includes('export async function loadCreatorAgents'),
+      'loadCreatorAgents (backing loadMyAgents) must be exported from agent-flow',
     );
   });
 });

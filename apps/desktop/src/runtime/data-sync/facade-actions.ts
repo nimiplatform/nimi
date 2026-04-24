@@ -63,9 +63,10 @@ import {
   unblockUser,
   updateCurrentUserProfile,
 } from './flows/profile-flow';
-import { createMasterAgent, loadCreatorAgents, searchUserByIdentifier } from './flows/social-flow';
+import { searchUserByIdentifier } from './flows/social-flow';
+import { createMasterAgent, loadCreatorAgents } from './flows/agent-flow';
 import type { CreateMasterAgentInput } from './flows/social-flow';
-import { loadExploreFeedItems, loadMoreExploreFeedItems } from './flows/explore-flow';
+import { loadExploreAgents, loadExploreFeedItems, loadMoreExploreFeedItems, type LoadExploreAgentsInput } from './flows/explore-flow';
 import {
   loadAgentDetails,
 } from './flows/agent-runtime-flow';
@@ -103,17 +104,19 @@ import {
   loadReceivedGifts,
   loadSparkPackages,
   loadCurrencyBalances,
-  loadNotificationUnreadCount,
-  loadNotifications,
   loadSparkTransactionHistory,
   loadSubscriptionStatus,
   loadWithdrawalEligibility,
   loadWithdrawalHistory,
-  markNotificationsRead,
-  markNotificationRead,
   rejectGift,
   sendGift,
 } from './flows/economy-notification-flow';
+import {
+  loadNotificationUnreadCount,
+  loadNotifications,
+  markNotificationRead,
+  markNotificationsRead,
+} from './flows/notification-flow';
 import {
   createReport,
   createImageDirectUpload,
@@ -194,8 +197,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
         limit,
         markChatRead,
       ),
-    loadMoreMessages: async (chatId: string, cursor?: string) =>
-      loadMoreChatMessages(input.callApiTask, input.emitFacadeError, chatId, cursor),
+    loadMoreMessages: async (chatId: string, cursor?: string, pageSize = 20) =>
+      loadMoreChatMessages(input.callApiTask, input.emitFacadeError, chatId, cursor, pageSize),
     sendMessage: async (
       chatId: string,
       content: string,
@@ -307,6 +310,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
     createAgent: async (agentInput: CreateMasterAgentInput) =>
       createMasterAgent(input.callApiTask, agentInput),
     loadFriendRequests: async () => loadPendingFriendRequests(input.callApiTask, input.emitFacadeError),
+    loadExploreAgents: async (agentInput: LoadExploreAgentsInput = {}) =>
+      loadExploreAgents(input.callApiTask, input.emitFacadeError, agentInput),
     loadExploreFeed: async (tag: string | null = null, limit = 20) =>
       loadExploreFeedItems(input.callApiTask, input.emitFacadeError, tag, limit),
     loadMoreExploreFeed: async (limit = 20, cursor?: string, tag?: string | null) =>

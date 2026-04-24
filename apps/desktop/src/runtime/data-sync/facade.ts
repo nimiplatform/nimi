@@ -271,7 +271,7 @@ export class DataSync {
   loadMessages(chatId: string, limit = 50) {
     return this.actions.loadMessages(chatId, Math.min(limit, 100), (id) => this.markChatRead(id));
   }
-  loadMoreMessages(chatId: string, cursor?: string) { return this.actions.loadMoreMessages(chatId, cursor); }
+  loadMoreMessages(chatId: string, cursor?: string, limit = 20) { return this.actions.loadMoreMessages(chatId, cursor, Math.min(limit, 100)); }
   sendMessage(chatId: string, content: string, options: Partial<SendMessageInputDto> = {}) { return this.actions.sendMessage(chatId, content, options); }
   syncChatEvents(chatId: string, afterSeq: number, limit = 100): Promise<ChatSyncResultDto> { return this.actions.syncChatEvents(chatId, afterSeq, Math.min(limit, 100)); }
   async flushChatOutbox(chatId?: string): Promise<void> {
@@ -428,6 +428,9 @@ export class DataSync {
   loadMyAgents() { return this.actions.loadMyAgents(); }
   createAgent(input: CreateMasterAgentInput) { return this.actions.createAgent(input); }
   loadFriendRequests() { return this.actions.loadFriendRequests(); }
+  loadExploreAgents(input: { tag?: string | null; query?: string | null; limit?: number } = {}) {
+    return this.actions.loadExploreAgents({ ...input, limit: Math.min(input.limit ?? 20, 100) });
+  }
   loadExploreFeed(tag: string | null = null, limit = 20) { return this.actions.loadExploreFeed(tag, Math.min(limit, 100)); }
   loadMoreExploreFeed(limit = 20, cursor?: string, tag?: string | null) {
     return this.actions.loadMoreExploreFeed(Math.min(limit, 100), cursor, tag);

@@ -9,7 +9,8 @@ Agent 详情功能域 — Agent 详情页、Agent 列表、公开资料展示。
 ## Module Map
 
 - `features/agent-detail/` — Agent 详情面板
-- `runtime/data-sync/flows/agent-flow.ts` — Agent 数据流
+- `runtime/data-sync/flows/agent-runtime-flow.ts` — Agent 公开详情读取与 bounded display 输入
+- `runtime/data-sync/flows/agent-flow.ts` — 我的 Agent / Creator Agent 列表与创建数据流
 
 ## Kernel References
 

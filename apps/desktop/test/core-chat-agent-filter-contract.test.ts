@@ -15,7 +15,7 @@ test('core chat flow filters agent threads out of product chat data', () => {
   const source = readDesktopFile('src/runtime/data-sync/flows/chat-flow.ts');
   assert.match(source, /function isHumanChatThread/);
   assert.match(source, /isAgent\?: unknown/);
-  assert.match(source, /\.isAgent !== true/);
+  assert.match(source, /\.isAgent === false/);
   assert.match(source, /items:\s*filterHumanChatItems/);
 });
 

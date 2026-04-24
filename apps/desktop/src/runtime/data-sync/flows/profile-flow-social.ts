@@ -1,4 +1,3 @@
-import { loadCreatorAgents } from './social-flow';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { isJsonObject, type JsonObject } from '@runtime/net/json';
@@ -16,10 +15,6 @@ export type DataSyncErrorEmitter = (
   error: unknown,
   details?: JsonObject,
 ) => void;
-
-type LoadSocialSnapshotOptions = {
-  includeCreatorAgents?: boolean;
-};
 
 type PendingFriendRequestDto = {
   userId?: string;
@@ -295,16 +290,13 @@ async function fetchBlockedUsers(
 async function loadSocialSnapshotInternal(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
-  options: LoadSocialSnapshotOptions = {},
 ): Promise<SocialContactSnapshot> {
-  const includeCreatorAgents = options.includeCreatorAgents !== false;
-  const [friendsResult, pendingResult, creatorAgents, blockedUsers] = await Promise.all([
+  const [friendsResult, pendingResult, blockedUsers] = await Promise.all([
     callApi(
       (realm) => realm.services.MeService.listMyFriendsWithDetails(undefined, 100),
       '加载好友失败',
     ),
     fetchPendingFriendRequests(callApi, emitDataSyncError),
-    includeCreatorAgents ? loadCreatorAgents(callApi) : Promise.resolve([]),
     fetchBlockedUsers(callApi, emitDataSyncError),
   ]);
 
@@ -321,7 +313,7 @@ async function loadSocialSnapshotInternal(
 
   return {
     friends: Array.isArray(friendsResult.items) ? friendsResult.items : [],
-    agents: Array.isArray(creatorAgents) ? creatorAgents : [],
+    agents: [],
     groups: [],
     pendingReceived,
     pendingSent,
@@ -383,19 +375,12 @@ const inflightSnapshots = new Map<string, Promise<SocialContactSnapshot>>();
 export async function loadMergedSocialSnapshot(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
-  options: LoadSocialSnapshotOptions = {},
 ): Promise<SocialContactSnapshot> {
-  const key = options.includeCreatorAgents !== false ? 'full' : 'lite';
+  const key = 'social';
   const existing = inflightSnapshots.get(key);
   if (existing) return existing;
 
-  // If a 'full' snapshot is already inflight, a 'lite' caller can reuse it
-  if (key === 'lite') {
-    const full = inflightSnapshots.get('full');
-    if (full) return full;
-  }
-
-  const task = loadSocialSnapshotInternal(callApi, emitDataSyncError, options)
+  const task = loadSocialSnapshotInternal(callApi, emitDataSyncError)
     .then((snapshot) => {
       const merged = mergeWithLocalContacts(snapshot);
       cachedContacts = { ...merged };

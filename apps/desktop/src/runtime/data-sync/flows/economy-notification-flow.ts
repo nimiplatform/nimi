@@ -8,14 +8,11 @@ type CreateReviewDto = RealmModel<'CreateReviewDto'>;
 type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
 type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
 type GiftTransactionRichDto = RealmModel<'GiftTransactionRichDto'>;
-type NotificationDto = RealmModel<'NotificationDto'>;
-type NotificationListResultDto = RealmModel<'NotificationListResultDto'>;
 type RejectGiftDto = RealmModel<'RejectGiftDto'>;
 type ReceivedGiftsResponseDto = RealmModel<'ReceivedGiftsResponseDto'>;
 type SendGiftDto = RealmModel<'SendGiftDto'>;
 type SparkCheckoutSessionDto = RealmModel<'SparkCheckoutSessionDto'>;
 type SparkPackageDto = RealmModel<'SparkPackageDto'>;
-type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
 type GiftListFetcher = (realm: Realm, limit: number, cursor?: string) => Promise<ReceivedGiftsResponseDto>;
 
 type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
@@ -24,8 +21,6 @@ type DataSyncErrorEmitter = (
   error: unknown,
   details?: Record<string, unknown>,
 ) => void;
-
-type DataSyncNotificationType = NonNullable<NotificationDto['type']>;
 
 function requireRecord<T extends Record<string, unknown>>(value: unknown, errorCode: string): T {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -383,93 +378,6 @@ export async function createGiftReview(
       giftTransactionId: input?.giftTransactionId || null,
       rating: input?.rating || null,
     });
-    throw error;
-  }
-}
-
-export async function loadNotificationUnreadCount(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-): Promise<UnreadNotificationCountDto> {
-  try {
-    return await callApi(
-      (realm) => realm.services.NotificationsService.getUnreadCount(),
-      '加载通知未读数失败',
-    );
-  } catch (error) {
-    emitDataSyncError('load-notification-unread-count', error);
-    throw error;
-  }
-}
-
-export async function loadNotifications(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  options?: {
-    type?: DataSyncNotificationType;
-    unreadOnly?: boolean;
-    limit?: number;
-    cursor?: string;
-  },
-): Promise<NotificationListResultDto> {
-  try {
-    return await callApi(
-      (realm) => realm.services.NotificationsService.listNotifications(
-        options?.type,
-        options?.unreadOnly,
-        options?.limit,
-        options?.cursor,
-      ),
-      '加载通知列表失败',
-    );
-  } catch (error) {
-    emitDataSyncError('load-notifications', error, {
-      type: options?.type || null,
-      unreadOnly: options?.unreadOnly ?? null,
-      limit: options?.limit ?? null,
-      cursor: options?.cursor || null,
-    });
-    throw error;
-  }
-}
-
-export async function markNotificationsRead(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  input: MarkNotificationsReadInputDto,
-) {
-  try {
-    await callApi(
-      (realm) => realm.services.NotificationsService.markNotificationsRead(input),
-      '标记通知已读失败',
-    );
-    return { ok: true };
-  } catch (error) {
-    emitDataSyncError('mark-notifications-read', error, {
-      markAllBefore: input?.markAllBefore || null,
-      count: Array.isArray(input?.ids) ? input.ids.length : 0,
-    });
-    throw error;
-  }
-}
-
-export async function markNotificationRead(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  notificationId: string,
-) {
-  const normalizedId = String(notificationId || '').trim();
-  if (!normalizedId) {
-    throw new Error('通知 ID 不能为空');
-  }
-  try {
-    await callApi(
-      (realm) => realm.services.NotificationsService.markNotificationRead(normalizedId),
-      '标记通知已读失败',
-    );
-    return { id: normalizedId };
-  } catch (error) {
-    emitDataSyncError('mark-notification-read', error, { notificationId: normalizedId });
     throw error;
   }
 }

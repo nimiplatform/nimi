@@ -9,7 +9,7 @@
 ## Module Map
 
 - `features/economy/` — 经济系统 UI（礼物发送弹窗等）
-- `features/settings/panels/advanced-panel.tsx` — Wallet 页面（余额、充值、提现、流水）
+- `features/settings/settings-advanced-panel.tsx` — Wallet 页面（余额、充值、提现、流水）
 - `runtime/data-sync/flows/economy-notification-flow.ts` — 经济数据流
 
 ## Kernel References

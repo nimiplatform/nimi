@@ -109,20 +109,29 @@ flows:
   - flow: feed
     methods:
       - loadPostFeed
+      - loadPostById
+      - loadLikedPosts
       - createPost
       - createImageDirectUpload
       - createVideoDirectUpload
       - finalizeResource
-    description: Social feed posts and resource uploads; direct-upload sessions require
-      finalizeResource after S3 upload before createPost; createPost references resourceId only
+      - likePost
+      - unlikePost
+      - updatePostVisibility
+      - deletePost
+      - createReport
+    description: Social feed posts, post-local interactions, moderation entry
+      points, and resource uploads; direct-upload sessions require finalizeResource
+      after S3 upload before createPost; createPost references resourceId only
     source_rule: D-DSYNC-007
 
   - flow: explore
     methods:
+      - loadExploreAgents
       - loadExploreFeed
       - loadMoreExploreFeed
       - loadAgentDetails
-    description: Explore discovery feed plus raw public agent detail read used by preview and downstream display seams
+    description: Explore public agent recommendations/search, discovery feed pagination, plus raw public agent detail read used by preview and downstream display seams
     source_rule: D-DSYNC-008
 
   - flow: notification

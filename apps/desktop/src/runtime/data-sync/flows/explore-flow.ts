@@ -7,6 +7,47 @@ type DataSyncErrorEmitter = (
   details?: Record<string, unknown>,
 ) => void;
 
+export type LoadExploreAgentsInput = {
+  tag?: string | null;
+  query?: string | null;
+  limit?: number;
+};
+
+export async function loadExploreAgents(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  input: LoadExploreAgentsInput = {},
+) {
+  const tag = input.tag?.trim() || undefined;
+  const query = input.query?.trim() || undefined;
+  const limit = input.limit ?? 20;
+  try {
+    const result = await callApi(
+      (realm) => realm.services.SearchService.searchIndexedUsers(
+        limit,
+        undefined,
+        undefined,
+        undefined,
+        true,
+        undefined,
+        undefined,
+        undefined,
+        tag,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        query,
+      ),
+      '加载探索 Agent 失败',
+    );
+    return result;
+  } catch (error) {
+    emitDataSyncError('load-explore-agents', error, { tag, query, limit });
+    throw error;
+  }
+}
+
 export async function loadExploreFeedItems(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,

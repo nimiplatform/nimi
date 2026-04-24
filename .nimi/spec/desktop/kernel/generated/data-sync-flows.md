@@ -141,26 +141,34 @@ Source Rule: `D-DSYNC-006`
 
 ## feed
 
-Social feed posts and resource uploads; direct-upload sessions require finalizeResource after S3 upload before createPost; createPost references resourceId only
+Social feed posts, post-local interactions, moderation entry points, and resource uploads; direct-upload sessions require finalizeResource after S3 upload before createPost; createPost references resourceId only
 
 Source Rule: `D-DSYNC-007`
 
 | Method |
 |---|
 | `loadPostFeed` |
+| `loadPostById` |
+| `loadLikedPosts` |
 | `createPost` |
 | `createImageDirectUpload` |
 | `createVideoDirectUpload` |
 | `finalizeResource` |
+| `likePost` |
+| `unlikePost` |
+| `updatePostVisibility` |
+| `deletePost` |
+| `createReport` |
 
 ## explore
 
-Explore discovery feed plus raw public agent detail read used by preview and downstream display seams
+Explore public agent recommendations/search, discovery feed pagination, plus raw public agent detail read used by preview and downstream display seams
 
 Source Rule: `D-DSYNC-008`
 
 | Method |
 |---|
+| `loadExploreAgents` |
 | `loadExploreFeed` |
 | `loadMoreExploreFeed` |
 | `loadAgentDetails` |

@@ -29,9 +29,9 @@ function isHumanChatThread(chat: unknown): boolean {
   }
   const otherUser = (chat as { otherUser?: unknown }).otherUser;
   if (!otherUser || typeof otherUser !== 'object') {
-    return true;
+    return false;
   }
-  return (otherUser as { isAgent?: unknown }).isAgent !== true;
+  return (otherUser as { isAgent?: unknown }).isAgent === false;
 }
 
 function filterHumanChatItems<T>(items: T[] | undefined): T[] {
@@ -237,14 +237,16 @@ export async function loadMoreChatMessages(
   emitDataSyncError: DataSyncErrorEmitter,
   chatId: string,
   cursor?: string,
+  pageSize = 20,
 ) {
   if (!cursor) return undefined;
+  const resolvedPageSize = normalizeDataSyncPageSize(pageSize);
 
   try {
     const result = await callApi(
       (realm) => realm.services.HumanChatsService.listMessages(
         chatId,
-        50,
+        resolvedPageSize,
         undefined,
         undefined,
         cursor,
@@ -256,6 +258,13 @@ export async function loadMoreChatMessages(
     emitDataSyncError('load-more-messages', error, { chatId });
     throw error;
   }
+}
+
+function normalizeDataSyncPageSize(pageSize: number): number {
+  if (!Number.isFinite(pageSize) || pageSize <= 0) {
+    return 20;
+  }
+  return Math.min(Math.floor(pageSize), 100);
 }
 
 export async function sendChatMessage(

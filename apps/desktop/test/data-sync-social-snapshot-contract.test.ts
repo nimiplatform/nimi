@@ -43,7 +43,7 @@ test('loadContactList skips creator agents when warming the social graph', async
   assert.equal(errors.length, 0);
 });
 
-test('loadSocialSnapshot still includes creator agents for contacts surfaces', async () => {
+test('loadSocialSnapshot does not list creator agents through the contacts social flow', async () => {
   const errors: DataSyncError[] = [];
   let creatorAgentsCalls = 0;
 
@@ -66,7 +66,7 @@ test('loadSocialSnapshot still includes creator agents for contacts surfaces', a
     createEmitter(errors),
   );
 
-  assert.equal(creatorAgentsCalls, 1);
-  assert.equal(result.agents.length, 1);
+  assert.equal(creatorAgentsCalls, 0);
+  assert.deepEqual(result.agents, []);
   assert.equal(errors.length, 0);
 });

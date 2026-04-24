@@ -79,9 +79,19 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 
 ## D-DSYNC-007 — Feed 数据流
 
-社交 feed 方法：`loadPostFeed`、`createPost`、`createImageDirectUpload`、`createVideoDirectUpload`、`finalizeResource`。
+社交 feed 方法：`loadPostFeed`、`loadPostById`、`loadLikedPosts`、`createPost`、
+`createImageDirectUpload`、`createVideoDirectUpload`、`finalizeResource`、
+`likePost`、`unlikePost`、`updatePostVisibility`、`deletePost`、`createReport`。
 
 - 使用基础设施：上下文锁、错误日志。
+- `likePost` / `unlikePost` 是 post-local interaction；离线时可进入 social outbox，
+  但 owner 仍是 feed/post interaction surface，不得由 Home renderer card 直接
+  解释为 contacts-local state。
+- `createReport` 仅作为 feed card 针对 post 的治理入口；report contract 仍由
+  Realm GovernanceService 承担，Desktop 不得在 Home 层合成本地举报成功。
+- Home renderer `PostCard` 是 projection surface：它只能消费 D-DSYNC-007 action
+  adapter 与跨域 owner callback，不得直接 import DataSync facade、Contacts/Chat/
+  Economy/Profile modal 或把跨域 side effect 内联为 Home card state。
 - `createImageDirectUpload` / `createVideoDirectUpload` 返回 `ResourceDirectUploadSessionDto` 语义：
   - `resourceId` 可用于后续 `createPost` 写入 `attachments[].targetId`
   - `storageRef` 是 provider 传输层引用，仅供上传 transport 路径使用，不得作为新 post 的附件主键
@@ -95,9 +105,13 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 
 ## D-DSYNC-008 — Explore 数据流
 
-探索发现方法：`loadExploreFeed`、`loadMoreExploreFeed`、`loadAgentDetails`。
+探索发现方法：`loadExploreAgents`、`loadExploreFeed`、`loadMoreExploreFeed`、`loadAgentDetails`。
 
 - 使用基础设施：上下文锁、错误日志。
+- `loadExploreAgents` owns public agent recommendation/search service invocation
+  and argument ordering for Explore recommendation surfaces; renderer Explore
+  components must consume the DataSync facade method instead of calling
+  `SearchService` directly.
 - `loadAgentDetails` 是公开 Agent 详情 raw read surface，可用于 Explore preview 与下游 consumer seam 构建；它本身不是 Agent Detail page 的最终展示 authority。
 
 ## D-DSYNC-009 — Notification 数据流

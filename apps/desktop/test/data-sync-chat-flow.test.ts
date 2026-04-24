@@ -6,6 +6,8 @@ import { resolve } from 'node:path';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   flushPendingChatOutbox,
+  loadChatList,
+  loadMoreChatMessages,
   sameMessageIdentity,
   sendChatMessage,
   startChatWithTarget,
@@ -162,6 +164,77 @@ describe('D-DSYNC-003: chat-flow source scanning', () => {
     assert.equal((capturedBody as Record<string, unknown>).type, 'TEXT');
     assert.equal((capturedBody as Record<string, unknown>).text, 'hi there');
     assert.deepEqual((capturedBody as Record<string, unknown>).payload, { content: 'hi there' });
+  });
+});
+
+describe('D-DSYNC-003: human chat filtering', () => {
+  test('D-DSYNC-003: loadChatList fails closed for missing, malformed, or agent otherUser rows', async () => {
+    const result = await loadChatList(
+      async (task) => task({
+        services: {
+          HumanChatsService: {
+            listChats: async () => ({
+              items: [
+                { id: 'human-1', otherUser: { id: 'user-1', isAgent: false } },
+                { id: 'missing-other-user' },
+                { id: 'malformed-other-user', otherUser: 'user-2' },
+                { id: 'agent-1', otherUser: { id: 'agent-1', isAgent: true } },
+                { id: 'missing-discriminator', otherUser: { id: 'user-3' } },
+              ],
+            }),
+          },
+        },
+      } as never),
+      () => undefined,
+    );
+
+    assert.deepEqual(
+      (result.items as Array<{ id: string }>).map((item) => item.id),
+      ['human-1'],
+    );
+  });
+});
+
+describe('D-DSYNC-000: loadMoreMessages pagination', () => {
+  test('D-DSYNC-000: loadMoreChatMessages defaults to page size 20', async () => {
+    let capturedLimit: number | undefined;
+    await loadMoreChatMessages(
+      async (task) => task({
+        services: {
+          HumanChatsService: {
+            listMessages: async (_chatId: string, limit: number) => {
+              capturedLimit = limit;
+              return { items: [], hasMore: false };
+            },
+          },
+        },
+      } as never),
+      () => undefined,
+      'chat-1',
+      'cursor-1',
+    );
+
+    assert.equal(capturedLimit, 20);
+  });
+
+  test('D-DSYNC-000: loadMoreChatMessages allows override and caps at 100', async () => {
+    const capturedLimits: number[] = [];
+    const callApi = async <T>(task: (realm: never) => Promise<T>) => task({
+      services: {
+        HumanChatsService: {
+          listMessages: async (_chatId: string, limit: number) => {
+            capturedLimits.push(limit);
+            return { items: [], hasMore: false };
+          },
+        },
+      },
+    } as never);
+
+    await loadMoreChatMessages(callApi, () => undefined, 'chat-1', 'cursor-1', 35);
+    await loadMoreChatMessages(callApi, () => undefined, 'chat-1', 'cursor-2', 250);
+    await loadMoreChatMessages(callApi, () => undefined, 'chat-1', 'cursor-3', 0);
+
+    assert.deepEqual(capturedLimits, [35, 100, 20]);
   });
 });
 
