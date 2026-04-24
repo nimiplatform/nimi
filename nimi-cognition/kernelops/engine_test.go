@@ -233,6 +233,42 @@ func TestCommit_RejectsRemovedArtifactRefTarget(t *testing.T) {
 	}
 }
 
+func TestCommit_RejectsForbiddenKernelArtifactRefTarget(t *testing.T) {
+	engine, store := newTestEngine(t)
+	base := localRule("r1", "concise")
+	seedKernel(t, store, "a1", kernel.KernelTypeAgentModel, []kernel.Rule{base})
+
+	updated := localRule("r1", "more verbose")
+	updated.Version = 2
+	updated.ArtifactRefs = []artifactref.Ref{{
+		FromKind:  artifactref.KindKernelRule,
+		FromID:    "r1",
+		ToKind:    artifactref.KindKernelRule,
+		ToID:      "r2",
+		Strength:  artifactref.StrengthStrong,
+		Role:      "support",
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	}}
+	_, err := engine.Commit(ResolvedPatch{
+		ResolvedPatchID: "rp_forbidden_target",
+		TargetKernel:    kernel.KernelTypeAgentModel,
+		ScopeID:         "a1",
+		ResolvedBy:      "human",
+		ResolvedAt:      ts,
+		ResolvedChanges: []ResolvedChange{{
+			RuleID:         "r1",
+			BaseVersion:    1,
+			ChangeKind:     ChangeKindUpdate,
+			ResolutionKind: ResolutionKindManualMerge,
+			FinalRule:      &updated,
+		}},
+	})
+	if err == nil || !strings.Contains(err.Error(), "forbidden artifact target kind kernel_rule") {
+		t.Fatalf("expected forbidden kernel target rejection, got %v", err)
+	}
+}
+
 func TestCommit_RejectsRuleDeactivationWhenKnowledgeCitationExists(t *testing.T) {
 	engine, store := newTestEngine(t)
 	base := localRule("r1", "concise")

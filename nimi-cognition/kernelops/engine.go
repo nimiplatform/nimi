@@ -464,7 +464,7 @@ func validateArtifactRefTargets(backend kernelRepository, scopeID string, rules 
 			switch ref.ToKind {
 			case artifactref.KindMemoryRecord, artifactref.KindKnowledgePage, artifactref.KindSkillBundle:
 			default:
-				continue
+				return fmt.Errorf("rule %s references forbidden artifact target kind %s", rule.RuleID, ref.ToKind)
 			}
 			live, err := backend.IsArtifactRefTargetLive(scopeID, ref.ToKind, ref.ToID)
 			if err != nil {

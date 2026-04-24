@@ -31,8 +31,8 @@ const (
 )
 
 // Bundle is a procedural artifact for a recurring scenario or task
-// class. It contains advisory steps, optional selector metadata, and
-// references to supporting cognition artifacts.
+// class. It contains advisory steps, an optional selector, and references to
+// supporting cognition artifacts.
 type Bundle struct {
 	// Identity
 	BundleID BundleID     `json:"bundle_id"`
@@ -41,11 +41,10 @@ type Bundle struct {
 	Status   BundleStatus `json:"status"`
 
 	// Content
-	Name        string          `json:"name"`
-	Description string          `json:"description,omitempty"`
-	Steps       []Step          `json:"steps"`
-	Trigger     *Trigger        `json:"trigger,omitempty"`
-	Metadata    json.RawMessage `json:"metadata,omitempty"`
+	Name        string   `json:"name"`
+	Description string   `json:"description,omitempty"`
+	Steps       []Step   `json:"steps"`
+	Trigger     *Trigger `json:"trigger,omitempty"`
 
 	// References — may cite kernel rules and knowledge projections
 	SourceRefs []kernel.SourceRef `json:"source_refs,omitempty"`

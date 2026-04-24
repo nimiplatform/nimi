@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
+	"github.com/nimiplatform/nimi/nimi-cognition/internal/promptfmt"
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/refgraph"
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
 	"github.com/nimiplatform/nimi/nimi-cognition/kernel"
 	"github.com/nimiplatform/nimi/nimi-cognition/memory"
-	"github.com/nimiplatform/nimi/nimi-cognition/prompt"
 	"github.com/nimiplatform/nimi/nimi-cognition/skill"
 	"github.com/nimiplatform/nimi/nimi-cognition/working"
 )
@@ -226,7 +226,7 @@ func (s *PromptService) FormatCore(scopeID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return prompt.FormatCoreContext(rules), nil
+	return promptfmt.FormatCoreContext(rules), nil
 }
 
 func (s *PromptService) FormatAdvisory(scopeID string) (string, error) {
@@ -245,7 +245,7 @@ func (s *PromptService) FormatAdvisory(scopeID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return prompt.FormatAdvisoryContext(views, pages, bundles), nil
+	return promptfmt.FormatAdvisoryContext(views, pages, bundles), nil
 }
 
 func (s *PromptService) FormatAll(scopeID string) (string, error) {
@@ -265,7 +265,7 @@ func (s *PromptService) FormatAll(scopeID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return prompt.FormatAll(rules, views, pages, bundles), nil
+	return promptfmt.FormatAll(rules, views, pages, bundles), nil
 }
 
 func decorateMemoryViews(store *storage.SQLiteBackend, graph *refgraph.Service, scopeID string) ([]memory.View, error) {

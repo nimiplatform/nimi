@@ -1,4 +1,4 @@
-// Package prompt formats cognition artifacts into structured text
+// Package promptfmt formats cognition artifacts into structured text
 // suitable for injection into LLM system prompts or context windows.
 //
 // The formatting surface is intentionally split:
@@ -6,7 +6,7 @@
 //   - advisory context: memory / knowledge / skill artifacts, secondary aids
 //
 // This keeps kernel rules distinct from supporting context.
-package prompt
+package promptfmt
 
 import (
 	"fmt"

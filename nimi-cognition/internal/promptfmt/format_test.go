@@ -1,4 +1,4 @@
-package prompt
+package promptfmt
 
 import (
 	"encoding/json"

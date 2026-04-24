@@ -27,7 +27,7 @@ func buildSkillSearchText(bundle skill.Bundle) string {
 	for _, step := range bundle.Steps {
 		steps = append(steps, step.Instruction)
 	}
-	return compactSearch(bundle.Name, bundle.Description, strings.Join(steps, " "), string(bundle.Metadata))
+	return compactSearch(bundle.Name, bundle.Description, strings.Join(steps, " "))
 }
 
 func knowledgePageEmbeddingText(page knowledge.Page) string {
