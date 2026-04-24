@@ -214,6 +214,7 @@ function renderEditor(
     }
     case 'image': {
       const params: ImageParamsState = parseImageParams(storedParams);
+      const companionSlots = (storedParams.companionSlots || {}) as Record<string, string>;
       const imageAssets = surface.localAssetSource?.list() ?? [];
       return {
         showEditorWhen,
@@ -221,10 +222,15 @@ function renderEditor(
           <ImageParamsEditor
             copy={buildImageCopy(t)}
             params={params}
-            companionSlots={{}}
+            companionSlots={companionSlots}
             assets={[...imageAssets]}
-            onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, { params: { ...DEFAULT_IMAGE_PARAMS, ...next } })}
-            onCompanionSlotsChange={() => undefined}
+            assetsLoading={surface.localAssetSource?.loading}
+            onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, {
+              params: { ...DEFAULT_IMAGE_PARAMS, ...next, companionSlots },
+            })}
+            onCompanionSlotsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, {
+              params: { ...DEFAULT_IMAGE_PARAMS, ...params, companionSlots: next },
+            })}
           />
         ),
       };
