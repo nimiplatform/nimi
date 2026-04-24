@@ -138,12 +138,17 @@ describe('check-parentos-ai-boundary', () => {
   it('flags settings/privacy drift when cloud controls remain exposed', () => {
     const errors = findSettingsPrivacyErrors({
       settingsPageSource: '所有数据存储在本地，不上传至云端',
-      modelEditorsSource: "value: 'cloud'\nConnector ID\nroute、model 和 connector",
+      aiSettingsSurfaceSources: [
+        {
+          path: 'src/shell/renderer/features/settings/ai-settings-page.tsx',
+          content: "value: 'cloud'\nConnector ID\nroute、model 和 connector",
+        },
+      ],
       aiConfigSource: "surfaceId: 'advisor'",
     });
 
     expect(errors).toEqual(expect.arrayContaining([
-      "AI settings must stay local-only while privacy copy says no cloud upload (value: 'cloud')",
+      "AI settings must stay local-only while privacy copy says no cloud upload (value: 'cloud' in src/shell/renderer/features/settings/ai-settings-page.tsx)",
       'ParentOS AI config scope must be app-wide (surfaceId: parentos.ai)',
     ]));
   });

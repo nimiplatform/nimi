@@ -387,19 +387,24 @@ export function findAdvisorBoundaryErrors(input: {
 
 export function findSettingsPrivacyErrors(input: {
   settingsPageSource: string;
-  modelEditorsSource: string;
+  aiSettingsSurfaceSources: SourceFile[];
   aiConfigSource: string;
 }) {
   const errors: string[] = [];
 
   if (input.settingsPageSource.includes('不上传至云端')) {
-    for (const disallowedMarker of [
+    const disallowedMarkers = [
       "value: 'cloud'",
       'Connector ID',
       'route、model 和 connector',
-    ]) {
-      if (input.modelEditorsSource.includes(disallowedMarker)) {
-        errors.push(`AI settings must stay local-only while privacy copy says no cloud upload (${disallowedMarker})`);
+    ];
+    for (const file of input.aiSettingsSurfaceSources) {
+      for (const disallowedMarker of disallowedMarkers) {
+        if (file.content.includes(disallowedMarker)) {
+          errors.push(
+            `AI settings must stay local-only while privacy copy says no cloud upload (${disallowedMarker} in ${file.path})`,
+          );
+        }
       }
     }
   }
@@ -499,9 +504,19 @@ export function runAiBoundaryCheck() {
     rootPath: ROOT,
   });
 
+  const aiSettingsSurfacePaths = [
+    resolve(SRC, 'features/settings/ai-settings-page.tsx'),
+    resolve(SRC, 'features/settings/parentos-ai-config.ts'),
+    resolve(SRC, 'features/settings/parentos-route-model-picker-provider.ts'),
+  ];
+  const aiSettingsSurfaceSources: SourceFile[] = aiSettingsSurfacePaths.map((path) => ({
+    path: relativeToRoot(path, ROOT),
+    content: readFileSync(path, 'utf-8'),
+  }));
+
   const settingsErrors = findSettingsPrivacyErrors({
     settingsPageSource: readFileSync(resolve(SRC, 'features/settings/settings-page.tsx'), 'utf-8'),
-    modelEditorsSource: readFileSync(resolve(SRC, 'features/settings/parentos-model-config-editors.tsx'), 'utf-8'),
+    aiSettingsSurfaceSources,
     aiConfigSource: readFileSync(resolve(SRC, 'features/settings/parentos-ai-config.ts'), 'utf-8'),
   });
 
