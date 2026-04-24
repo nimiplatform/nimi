@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   AIConfig,
   AIProfile,
@@ -44,6 +44,10 @@ function toProfileOptions(profiles: readonly AIProfile[]): ModelConfigProfileOpt
   }));
 }
 
+function scopeDependencyKey(scopeRef: AIScopeRef): string {
+  return `${scopeRef.kind}\u0000${scopeRef.ownerId}\u0000${scopeRef.surfaceId ?? ''}`;
+}
+
 /**
  * Default kit hook that composes SharedAIConfigService + optional user profile
  * fallback into a ModelConfigProfileController, enforcing D-AIPC-005 atomic
@@ -75,14 +79,24 @@ export function useModelConfigProfileController(
   const [reloading, setReloading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const scopeKey = scopeDependencyKey(scopeRef);
+  const scopeRefRef = useRef(scopeRef);
+  const userProfilesSourceRef = useRef<UserProfilesSource | undefined>(userProfilesSource);
+
+  scopeRefRef.current = scopeRef;
+  userProfilesSourceRef.current = userProfilesSource;
+
+  const stableUserProfilesSource = useMemo<UserProfilesSource>(() => ({
+    list: () => userProfilesSourceRef.current?.list() ?? [],
+  }), []);
 
   const core = useMemo(
     () => createModelConfigProfileControllerCore({
-      scopeRef,
+      scopeRef: scopeRefRef.current,
       service: aiConfigService,
-      userProfilesSource,
+      userProfilesSource: stableUserProfilesSource,
     }),
-    [aiConfigService, scopeRef, userProfilesSource],
+    [aiConfigService, scopeKey, stableUserProfilesSource],
   );
 
   useEffect(() => {
@@ -96,7 +110,7 @@ export function useModelConfigProfileController(
     (async () => {
       try {
         const remote = await aiConfigService.aiProfile.list();
-        const userProfiles = userProfilesSource ? [...userProfilesSource.list()] : [];
+        const userProfiles = [...stableUserProfilesSource.list()];
         if (cancelled) return;
         setProfiles([...remote, ...userProfiles]);
         setLoadError(null);
@@ -112,7 +126,7 @@ export function useModelConfigProfileController(
     return () => {
       cancelled = true;
     };
-  }, [aiConfigService, reloadToken, scopeRef, userProfilesSource]);
+  }, [aiConfigService, reloadToken, scopeKey, stableUserProfilesSource]);
 
   const profileOptions = useMemo(() => toProfileOptions(profiles), [profiles]);
 
@@ -120,21 +134,22 @@ export function useModelConfigProfileController(
     if (!profileId) return;
     setApplying(true);
     setApplyError(null);
-    void aiConfigService.aiProfile.apply(scopeRef, profileId)
+    const currentScopeRef = scopeRefRef.current;
+    void aiConfigService.aiProfile.apply(currentScopeRef, profileId)
       .then((remoteResult: AIProfileApplyResult) => {
         const resolution = core.resolveRemoteApply({
           profileId,
           remoteResult,
-          currentConfig: aiConfigService.aiConfig.get(scopeRef),
+          currentConfig: aiConfigService.aiConfig.get(currentScopeRef),
           applyAIProfileToConfig,
           now: () => new Date().toISOString(),
         });
         if (resolution.kind === 'remote-success') {
-          aiConfigService.aiConfig.update(scopeRef, resolution.nextConfig);
+          aiConfigService.aiConfig.update(currentScopeRef, resolution.nextConfig);
           return;
         }
         if (resolution.kind === 'remote-fail-with-user-profile') {
-          aiConfigService.aiConfig.update(scopeRef, resolution.nextConfig);
+          aiConfigService.aiConfig.update(currentScopeRef, resolution.nextConfig);
           return;
         }
         setApplyError(resolution.failureReason);
@@ -146,7 +161,7 @@ export function useModelConfigProfileController(
       .finally(() => {
         setApplying(false);
       });
-  }, [aiConfigService, applyAIProfileToConfig, core, scopeRef]);
+  }, [aiConfigService, applyAIProfileToConfig, core]);
 
   return {
     currentOrigin,

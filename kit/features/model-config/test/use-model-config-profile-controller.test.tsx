@@ -139,7 +139,53 @@ function Harness(props: HarnessProps) {
   );
 }
 
+function InlineSourceHarness(props: { service: SharedAIConfigService; tick: number }) {
+  useModelConfigProfileController({
+    scopeRef,
+    aiConfigService: props.service,
+    copy,
+    currentOrigin: null,
+    applyAIProfileToConfig: applyAIProfileToConfigStub,
+    userProfilesSource: { list: () => [localUserProfile] },
+  });
+  return <div data-tick={props.tick} />;
+}
+
 describe('useModelConfigProfileController apply paths', () => {
+  it('does not reload profiles when caller passes an inline userProfilesSource on rerender', async () => {
+    let listCalls = 0;
+    const service: SharedAIConfigService = {
+      aiConfig: {
+        get: () => baseConfig,
+        update: () => undefined,
+        subscribe: () => () => undefined,
+      },
+      aiProfile: {
+        list: async () => {
+          listCalls += 1;
+          return [remoteProfile];
+        },
+        apply: async () => ({
+          success: true,
+          config: appliedConfig,
+          failureReason: null,
+          probeWarnings: [],
+        }) satisfies AIProfileApplyResult,
+      },
+    };
+
+    await render(<InlineSourceHarness service={service} tick={0} />);
+    expect(listCalls).toBe(1);
+
+    await act(async () => {
+      root?.render(<InlineSourceHarness service={service} tick={1} />);
+      await flush();
+      await flush();
+    });
+
+    expect(listCalls).toBe(1);
+  });
+
   it('path 1 — apply-success commits remote nextConfig through SharedAIConfigService', async () => {
     let currentConfig = baseConfig;
     const updates: AIConfig[] = [];

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIConfig } from '@nimiplatform/sdk/mod';
 import {
@@ -60,20 +60,27 @@ export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
     },
     i18n: { t },
   }), [aiConfigService, assetsQuery.data, assetsQuery.isLoading, t]);
+  const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
+  const userProfilesSource = useMemo(() => ({ list: () => loadUserProfiles() }), []);
+  const currentOrigin = useMemo(
+    () => (config.profileOrigin
+      ? { profileId: config.profileOrigin.profileId, title: config.profileOrigin.title }
+      : null),
+    [config.profileOrigin?.profileId, config.profileOrigin?.title],
+  );
+  const handleManageProfiles = useCallback(() => {
+    setActiveTab('runtime');
+    setTimeout(() => dispatchRuntimeConfigOpenPage('profiles'), 100);
+  }, [setActiveTab]);
 
   const profile = useModelConfigProfileController({
     scopeRef: TESTER_AI_SCOPE_REF,
     aiConfigService,
-    copy: defaultModelConfigProfileCopy(t),
+    copy: profileCopy,
     applyAIProfileToConfig,
-    userProfilesSource: { list: () => loadUserProfiles() },
-    currentOrigin: config.profileOrigin
-      ? { profileId: config.profileOrigin.profileId, title: config.profileOrigin.title }
-      : null,
-    onManage: () => {
-      setActiveTab('runtime');
-      setTimeout(() => dispatchRuntimeConfigOpenPage('profiles'), 100);
-    },
+    userProfilesSource,
+    currentOrigin,
+    onManage: handleManageProfiles,
   });
 
   if (!open) {

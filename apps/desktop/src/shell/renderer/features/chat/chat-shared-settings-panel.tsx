@@ -280,20 +280,27 @@ function AiModeSettings(props: {
     },
     i18n: { t },
   }), [aiConfig.scopeRef, aiConfigService, assetsQuery.data, assetsQuery.isLoading, projectionByCapability, t]);
+  const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
+  const userProfilesSource = useMemo(() => ({ list: () => loadUserProfiles() }), []);
+  const currentOrigin = useMemo(
+    () => (aiConfig.profileOrigin
+      ? { profileId: aiConfig.profileOrigin.profileId, title: aiConfig.profileOrigin.title }
+      : null),
+    [aiConfig.profileOrigin?.profileId, aiConfig.profileOrigin?.title],
+  );
+  const handleManageProfiles = useCallback(() => {
+    setActiveTab('runtime');
+    setTimeout(() => dispatchRuntimeConfigOpenPage('profiles'), 100);
+  }, [setActiveTab]);
 
   const profile = useModelConfigProfileController({
     scopeRef: aiConfig.scopeRef,
     aiConfigService,
-    copy: defaultModelConfigProfileCopy(t),
+    copy: profileCopy,
     applyAIProfileToConfig,
-    userProfilesSource: { list: () => loadUserProfiles() },
-    currentOrigin: aiConfig.profileOrigin
-      ? { profileId: aiConfig.profileOrigin.profileId, title: aiConfig.profileOrigin.title }
-      : null,
-    onManage: () => {
-      setActiveTab('runtime');
-      setTimeout(() => dispatchRuntimeConfigOpenPage('profiles'), 100);
-    },
+    userProfilesSource,
+    currentOrigin,
+    onManage: handleManageProfiles,
   });
 
   // Diagnostics is always considered visible in the AI panel now that it is a
