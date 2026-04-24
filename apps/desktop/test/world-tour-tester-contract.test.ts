@@ -60,6 +60,6 @@ test('app routes admit the dedicated world tour viewer route', () => {
 
 test('tester settings expose a world route picker', () => {
   const source = readRendererFile('features/tester/tester-settings-dialog.tsx');
-  assert.match(source, /routeCapability:\s*'world\.generate'/);
-  assert.match(source, /World Tour/);
+  assert.match(source, /'world\.generate'/);
+  assert.match(source, /ModelConfigAiModelHub/);
 });

@@ -278,7 +278,6 @@ export default defineConfig(({ mode }) => {
               if (
                 normalizedId.includes('/conversation-capability')
                 || normalizedId.includes('/conversation-submit-readiness')
-                || normalizedId.includes('/chat-shared-conversation-capability-settings')
                 || normalizedId.includes('/capability-settings-shared')
                 || normalizedId.includes('/chat-shared-settings-panel')
                 || normalizedId.includes('/chat-settings-storage')

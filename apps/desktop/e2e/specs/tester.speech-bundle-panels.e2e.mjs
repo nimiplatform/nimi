@@ -17,12 +17,12 @@ describe('tester.speech-bundle-panels', () => {
     await waitForTestId(E2E_IDS.testerPanel('audio.transcribe'));
     await waitForTestId(E2E_IDS.testerInput('audio-transcribe-file'));
 
-    await clickByTestId(E2E_IDS.testerCapabilityTab('voice.clone'));
-    await waitForTestId(E2E_IDS.testerPanel('voice.clone'));
+    await clickByTestId(E2E_IDS.testerCapabilityTab('voice_workflow.tts_v2v'));
+    await waitForTestId(E2E_IDS.testerPanel('voice_workflow.tts_v2v'));
     await waitForTestId(E2E_IDS.testerInput('voice-clone-file'));
 
-    await clickByTestId(E2E_IDS.testerCapabilityTab('voice.design'));
-    await waitForTestId(E2E_IDS.testerPanel('voice.design'));
+    await clickByTestId(E2E_IDS.testerCapabilityTab('voice_workflow.tts_t2v'));
+    await waitForTestId(E2E_IDS.testerPanel('voice_workflow.tts_t2v'));
     await waitForTestId(E2E_IDS.testerInput('voice-design-instruction'));
   });
 });

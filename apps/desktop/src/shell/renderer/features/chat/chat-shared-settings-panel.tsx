@@ -1,21 +1,28 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
+import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';
 import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
-import { useDesktopModelConfigProfileController } from '../runtime-config/desktop-model-config-profile-controller';
+import { loadUserProfiles } from '../runtime-config/runtime-config-profile-storage';
+import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
 import { useSchedulingFeasibility, schedulingDetailKeyForJudgement, schedulingTitleKey } from './chat-shared-execution-scheduling-guard';
+import type {
+  AppModelConfigSurface,
+  ModelConfigProjectionStatus,
+  ModelConfigSection,
+} from '@nimiplatform/nimi-kit/features/model-config';
 import {
-  ConversationModelConfigPanel,
-  useConversationCapabilityData,
-  useConversationModelConfigSections,
-} from './chat-shared-conversation-capability-settings';
-import type { ModelConfigProfileCopy, ModelConfigSection } from '@nimiplatform/nimi-kit/features/model-config';
-import { DisabledConfigNote } from '@nimiplatform/nimi-kit/features/model-config';
-import { ChatSettingsSummaryHome } from './chat-shared-settings-summary-home';
-import { ChatSettingsModuleDetail } from './chat-shared-settings-module-detail';
-import { ChatSettingsAiModelHome, AI_MODEL_MODULE_ORDER } from './chat-shared-settings-ai-model-home';
+  DisabledConfigNote,
+  ModelConfigAiModelHub,
+  ModelConfigPanel,
+  defaultModelConfigProfileCopy,
+  useModelConfigProfileController,
+} from '@nimiplatform/nimi-kit/features/model-config';
+import { useLocalAssets } from './capability-settings-shared';
+import type { ConversationCapabilityProjection } from './conversation-capability';
 
 type ChatSettingsPanelProps = {
   mode?: 'ai' | 'human';
@@ -99,31 +106,116 @@ export function SchedulingWarningSection() {
   return <SchedulingWarningBanner judgement={judgement} />;
 }
 
-function createProfileCopy(t: ReturnType<typeof useTranslation>['t']): ModelConfigProfileCopy {
-  return {
-    sectionTitle: 'Profile',
-    summaryLabel: t('Chat.settingsAIProfileTitle', { defaultValue: 'AI Profile' }),
-    emptySummaryLabel: t('Chat.settingsAIProfileNone', { defaultValue: 'No profile applied' }),
-    applyButtonLabel: t('Chat.settingsAIProfileApplyBtn', { defaultValue: 'Apply profile' }),
-    changeButtonLabel: t('Chat.settingsAIProfileChange', { defaultValue: 'Change' }),
-    manageButtonTitle: t('Chat.settingsAIProfileManage', { defaultValue: 'Manage profiles' }),
-    modalTitle: t('Chat.settingsAIProfileModalTitle', { defaultValue: 'Apply AI Profile' }),
-    modalHint: t('Chat.settingsAIProfileModalHint', {
-      defaultValue: 'Selecting a profile will overwrite all current capability bindings (Chat, TTS, Image, Video). This action cannot be undone.',
-    }),
-    loadingLabel: t('Chat.settingsLoading', { defaultValue: 'Loading profiles...' }),
-    emptyLabel: t('Chat.settingsAIProfileEmpty', { defaultValue: 'No profiles available.' }),
-    currentBadgeLabel: t('Chat.settingsAIProfileCurrent', { defaultValue: 'Current' }),
-    cancelLabel: t('Chat.settingsAIProfileCancel', { defaultValue: 'Cancel' }),
-    confirmLabel: t('Chat.settingsAIProfileConfirm', { defaultValue: 'Confirm & Apply' }),
-    applyingLabel: t('Chat.settingsAIProfileApplying', { defaultValue: 'Applying...' }),
-    importLabel: t('Chat.settingsAIProfileImport', { defaultValue: 'Import AI Profile' }),
-  };
-}
+// ---------------------------------------------------------------------------
+// AiModeSettings — delegates to canonical kit ModelConfigAiModelHub. Profile
+// import, capability summaries, and capability detail routing are all owned
+// by the hub; chat-shared scope contributes scheduling as a hub footer and
+// a renderer-local diagnostics entry.
+// ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// Non-AI mode: simple flat sections (unchanged from original)
-// ---------------------------------------------------------------------------
+// Canonical chat enabled capabilities (9 ids). Order mirrors the Wave 4
+// preflight acceptance invariant.
+const CHAT_ENABLED_CAPABILITIES = [
+  'text.generate',
+  'audio.synthesize',
+  'audio.transcribe',
+  'voice_workflow.tts_v2v',
+  'voice_workflow.tts_t2v',
+  'image.generate',
+  'image.edit',
+  'video.generate',
+  'text.embed',
+] as const;
+
+function toProjectionStatus(
+  t: ReturnType<typeof useTranslation>['t'],
+  projection: ConversationCapabilityProjection | null | undefined,
+): ModelConfigProjectionStatus | null {
+  if (!projection) {
+    return null;
+  }
+  const hasBinding = Boolean(projection.selectedBinding);
+  if (projection.supported && projection.resolvedBinding) {
+    return {
+      supported: true,
+      tone: 'ready',
+      badgeLabel: t('Chat.settingsCapabilityReady', { defaultValue: 'Ready' }),
+      title: t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' }),
+      detail: null,
+    };
+  }
+  switch (projection.reasonCode) {
+    case 'selection_missing':
+    case 'selection_cleared':
+      return {
+        supported: false,
+        tone: 'attention',
+        badgeLabel: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
+        title: t('Chat.settingsRouteUnavailable', { defaultValue: 'Route unavailable' }),
+        detail: null,
+      };
+    case 'binding_unresolved':
+      return {
+        supported: false,
+        tone: 'attention',
+        badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
+        title: t('Chat.settingsSelectedRouteUnavailable', { defaultValue: 'Selected route unavailable' }),
+        detail: t('Chat.settingsSelectedRouteUnavailableHint', {
+          defaultValue: 'The selected route can no longer be resolved.',
+        }),
+      };
+    case 'route_unhealthy':
+      return {
+        supported: false,
+        tone: 'attention',
+        badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
+        title: t('Chat.settingsRouteUnhealthy', { defaultValue: 'Route unhealthy' }),
+        detail: t('Chat.settingsRouteUnhealthyHint', {
+          defaultValue: 'The selected route failed the latest health check.',
+        }),
+      };
+    case 'metadata_missing':
+      return {
+        supported: false,
+        tone: 'attention',
+        badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
+        title: t('Chat.settingsRouteMetadataUnavailable', { defaultValue: 'Route metadata unavailable' }),
+        detail: t('Chat.settingsRouteMetadataUnavailableHint', {
+          defaultValue: 'This capability cannot execute until runtime describe metadata is available.',
+        }),
+      };
+    case 'capability_unsupported':
+      return {
+        supported: false,
+        tone: 'attention',
+        badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
+        title: t('Chat.settingsCapabilityUnsupported', { defaultValue: 'Capability unsupported' }),
+        detail: t('Chat.settingsCapabilityUnsupportedHint', {
+          defaultValue: 'The current runtime does not expose this capability.',
+        }),
+      };
+    case 'host_denied':
+      return {
+        supported: false,
+        tone: 'attention',
+        badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
+        title: t('Chat.settingsCapabilityDenied', { defaultValue: 'Capability denied' }),
+        detail: t('Chat.settingsCapabilityDeniedHint', {
+          defaultValue: 'The host denied this capability for the current conversation surface.',
+        }),
+      };
+    default:
+      return {
+        supported: false,
+        tone: 'neutral',
+        badgeLabel: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
+        title: hasBinding
+          ? t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
+          : t('Chat.settingsRouteUnavailable', { defaultValue: 'Route unavailable' }),
+        detail: null,
+      };
+  }
+}
 
 function HumanModeSettings(props: {
   modelPickerContent?: ReactNode;
@@ -152,19 +244,8 @@ function HumanModeSettings(props: {
       content: props.diagnosticsContent || <DisabledSettingsNote label={props.unavailableReason} />,
     },
   ];
-  return <ConversationModelConfigPanel sections={sections} />;
+  return <ModelConfigPanel sections={sections} />;
 }
-
-// ---------------------------------------------------------------------------
-// AI mode: summary home + module detail view swap
-// ---------------------------------------------------------------------------
-
-type AiModeSettingsPath =
-  | []
-  | ['avatar']
-  | ['ai-model']
-  | ['ai-model', string]
-  | ['diagnostics'];
 
 function AiModeSettings(props: {
   headerSlot?: ReactNode;
@@ -178,37 +259,51 @@ function AiModeSettings(props: {
 }) {
   const { t } = useTranslation();
   const aiConfig = useAppStore((state) => state.aiConfig);
+  const projectionByCapability = useAppStore((state) => state.conversationCapabilityProjectionByCapability);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const [path, setPath] = useState<AiModeSettingsPath>([]);
+  const aiConfigService = useMemo(() => getDesktopAIConfigService(), []);
+  const assetsQuery = useLocalAssets();
 
-  const sections = useConversationModelConfigSections();
-  const { items, imageContext, imageEditorCopy } = useConversationCapabilityData();
-
-  const profile = useDesktopModelConfigProfileController({
+  const surface: AppModelConfigSurface = useMemo(() => ({
     scopeRef: aiConfig.scopeRef,
+    aiConfigService,
+    enabledCapabilities: CHAT_ENABLED_CAPABILITIES,
+    providerResolver: (routeCapability: string) => getDesktopRouteModelPickerProvider(routeCapability),
+    projectionResolver: (capabilityId: string) => toProjectionStatus(
+      t,
+      projectionByCapability[capabilityId as keyof typeof projectionByCapability] || null,
+    ),
+    runtimeReady: true,
+    localAssetSource: {
+      list: () => assetsQuery.data || [],
+      loading: assetsQuery.isLoading,
+    },
+    i18n: { t },
+  }), [aiConfig.scopeRef, aiConfigService, assetsQuery.data, assetsQuery.isLoading, projectionByCapability, t]);
+
+  const profile = useModelConfigProfileController({
+    scopeRef: aiConfig.scopeRef,
+    aiConfigService,
+    copy: defaultModelConfigProfileCopy(t),
+    applyAIProfileToConfig,
+    userProfilesSource: { list: () => loadUserProfiles() },
     currentOrigin: aiConfig.profileOrigin
       ? { profileId: aiConfig.profileOrigin.profileId, title: aiConfig.profileOrigin.title }
       : null,
-    copy: createProfileCopy(t),
     onManage: () => {
       setActiveTab('runtime');
       setTimeout(() => dispatchRuntimeConfigOpenPage('profiles'), 100);
     },
   });
 
-  const schedulingContent = <SchedulingWarningSection />;
-
-  const diagnosticsNode = props.diagnosticsContent || (
-    <DisabledSettingsNote label={props.unavailableReason} />
-  );
-
-  const diagnosticsVisible = path[0] === 'diagnostics';
+  // Diagnostics is always considered visible in the AI panel now that it is a
+  // persistent footer entry rather than an on-demand path view.
   useEffect(() => {
-    props.onDiagnosticsVisibilityChange?.(diagnosticsVisible);
+    props.onDiagnosticsVisibilityChange?.(true);
     return () => {
       props.onDiagnosticsVisibilityChange?.(false);
     };
-  }, [diagnosticsVisible, props.onDiagnosticsVisibilityChange]);
+  }, [props.onDiagnosticsVisibilityChange]);
 
   const handleClearChats = useCallback(() => {
     const onClear = props.onClearAgentHistory;
@@ -229,138 +324,44 @@ function AiModeSettings(props: {
     });
   }, [props.onClearAgentHistory, props.clearChatsTargetName, t]);
 
-  const avatarSummary = props.presenceContent
-    ? {
-      title: t('Chat.avatarBindingTitle', { defaultValue: 'Avatar' }),
-      subtitle: t('Chat.avatarSummarySubtitle', {
-        defaultValue: 'Review avatar model status, open this chat in Nimi Avatar, and adjust local shell appearance here.',
-      }),
-      statusDot: 'neutral' as const,
-      statusLabel: null,
-    }
-    : null;
-
-  const backLabel = t('Chat.settingsBack', { defaultValue: 'Back' });
-
-  const renderBody = () => {
-    // Home
-    if (path.length === 0) {
-      return (
-        <ChatSettingsSummaryHome
-          sections={sections}
-          profile={profile}
-          onSelectModule={(moduleId) => {
-            if (moduleId === 'avatar' || moduleId === 'ai-model' || moduleId === 'diagnostics') {
-              setPath([moduleId] as AiModeSettingsPath);
-            }
-          }}
-          schedulingContent={schedulingContent}
-          diagnosticsContent={diagnosticsNode}
-          avatarSummary={avatarSummary}
-          onClearChats={props.onClearAgentHistory ? handleClearChats : undefined}
-          clearChatsDisabled={props.clearChatsDisabled}
-        />
-      );
-    }
-
-    // Avatar detail
-    if (path[0] === 'avatar') {
-      return (
-        <div data-chat-settings-module="avatar">
-          <div className="mb-5 flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setPath([])}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-white text-[var(--nimi-text-muted)] transition-all hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] hover:text-[var(--nimi-action-primary-bg)]"
-              aria-label={backLabel}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </button>
-            <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-              {t('Chat.avatarBindingTitle', { defaultValue: 'Avatar' })}
-            </h2>
+  const footer = (
+    <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-3">
+      <SchedulingWarningSection />
+      {props.diagnosticsContent ? (
+        <div data-chat-settings-module="diagnostics" className="space-y-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
+            {t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
           </div>
-          {props.presenceContent}
+          {props.diagnosticsContent}
         </div>
-      );
-    }
-
-    // AI Model sub-home → capability list
-    if (path[0] === 'ai-model' && path.length === 1) {
-      return (
-        <div data-chat-settings-module="ai-model">
-          <div className="mb-5 flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setPath([])}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-white text-[var(--nimi-text-muted)] transition-all hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] hover:text-[var(--nimi-action-primary-bg)]"
-              aria-label={backLabel}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </button>
-            <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-              {t('Chat.settingsAiModelEntryTitle', { defaultValue: 'AI Model' })}
-            </h2>
-          </div>
-          <ChatSettingsAiModelHome
-            sections={sections}
-            onSelectModule={(capabilityId) => {
-              if ((AI_MODEL_MODULE_ORDER as readonly string[]).includes(capabilityId)) {
-                setPath(['ai-model', capabilityId]);
-              }
-            }}
-          />
-        </div>
-      );
-    }
-
-    // AI Model → capability detail
-    if (path[0] === 'ai-model' && path.length === 2) {
-      return (
-        <ChatSettingsModuleDetail
-          moduleId={path[1] as string}
-          sections={sections}
-          items={items}
-          profile={profile}
-          onBack={() => setPath(['ai-model'])}
-          imageContext={imageContext}
-          imageEditorCopy={imageEditorCopy}
-          schedulingContent={schedulingContent}
-          diagnosticsContent={diagnosticsNode}
-        />
-      );
-    }
-
-    // Diagnostics detail
-    if (path[0] === 'diagnostics') {
-      return (
-        <ChatSettingsModuleDetail
-          moduleId="diagnostics"
-          sections={sections}
-          items={items}
-          profile={profile}
-          onBack={() => setPath([])}
-          imageContext={imageContext}
-          imageEditorCopy={imageEditorCopy}
-          schedulingContent={schedulingContent}
-          diagnosticsContent={diagnosticsNode}
-        />
-      );
-    }
-
-    return null;
-  };
+      ) : (
+        <DisabledSettingsNote label={props.unavailableReason} />
+      )}
+      {props.onClearAgentHistory ? (
+        <button
+          type="button"
+          onClick={handleClearChats}
+          disabled={props.clearChatsDisabled}
+          className="flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-xs text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] disabled:pointer-events-none disabled:opacity-50"
+        >
+          <span>{t('Chat.clearAgentChatHistoryTitle', { defaultValue: 'Clear agent chat history' })}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <path d="M3 6h18" />
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+          </svg>
+        </button>
+      ) : null}
+    </div>
+  );
 
   return (
     <div className="space-y-5">
       {props.headerSlot}
-      <div className={path.length > 0 ? 'animate-in slide-in-from-right-4 duration-200' : undefined}>
-        {renderBody()}
-      </div>
+      {props.presenceContent ? (
+        <div data-chat-settings-module="avatar">{props.presenceContent}</div>
+      ) : null}
+      <ModelConfigAiModelHub surface={surface} profile={profile} footer={footer} />
     </div>
   );
 }

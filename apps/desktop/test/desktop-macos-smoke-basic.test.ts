@@ -127,8 +127,8 @@ test('desktop macos smoke tester speech bundle scenario follows the expected ste
     E2E_IDS.navTab('tester'),
     E2E_IDS.testerCapabilityTab('audio.synthesize'),
     E2E_IDS.testerCapabilityTab('audio.transcribe'),
-    E2E_IDS.testerCapabilityTab('voice.clone'),
-    E2E_IDS.testerCapabilityTab('voice.design'),
+    E2E_IDS.testerCapabilityTab('voice_workflow.tts_v2v'),
+    E2E_IDS.testerCapabilityTab('voice_workflow.tts_t2v'),
   ]);
   assert.deepEqual(waited, [
     E2E_IDS.panel('tester'),
@@ -136,9 +136,9 @@ test('desktop macos smoke tester speech bundle scenario follows the expected ste
     E2E_IDS.testerInput('audio-synthesize-text'),
     E2E_IDS.testerPanel('audio.transcribe'),
     E2E_IDS.testerInput('audio-transcribe-file'),
-    E2E_IDS.testerPanel('voice.clone'),
+    E2E_IDS.testerPanel('voice_workflow.tts_v2v'),
     E2E_IDS.testerInput('voice-clone-file'),
-    E2E_IDS.testerPanel('voice.design'),
+    E2E_IDS.testerPanel('voice_workflow.tts_t2v'),
     E2E_IDS.testerInput('voice-design-instruction'),
   ]);
   assert.equal(writtenReports.length, 1);

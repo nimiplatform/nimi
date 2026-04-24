@@ -360,7 +360,6 @@ export default defineConfig(({ mode }) => {
               if (
                 normalizedId.includes('/conversation-capability')
                 || normalizedId.includes('/conversation-submit-readiness')
-                || normalizedId.includes('/chat-shared-conversation-capability-settings')
                 || normalizedId.includes('/capability-settings-shared')
                 || normalizedId.includes('/chat-shared-thinking')
                 || normalizedId.includes('/chat-shared-execution-scheduling-guard')
@@ -401,7 +400,6 @@ export default defineConfig(({ mode }) => {
                 '/runtime-config-page-local',
                 '/runtime-config-local-',
                 '/runtime-config-memory-embedding-',
-                '/desktop-model-config-profile-controller',
               ])) {
                 return 'runtime-config-local';
               }

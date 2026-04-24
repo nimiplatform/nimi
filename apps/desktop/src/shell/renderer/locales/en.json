@@ -1246,26 +1246,6 @@
     "settingsRouteUnhealthyHint": "The selected route failed the latest health check.",
     "settingsRouteMetadataUnavailable": "Route metadata unavailable",
     "settingsRouteMetadataUnavailableHint": "This capability cannot execute until runtime describe metadata is available.",
-    "settingsAIProfileTitle": "AI Profile",
-    "settingsAIProfileHint": "Apply a profile to configure all AI capabilities at once. This overwrites the current configuration.",
-    "settingsAIProfileSelect": "Profile",
-    "settingsAIProfileNone": "No profile applied",
-    "settingsAIProfileCurrent": "Current",
-    "settingsAIProfileOriginLabel": "Profile: {{profileId}}",
-    "settingsAIProfileOrigin": "Based on: {{profileId}}",
-    "settingsAIProfileLoadFailed": "Failed to load AI profiles.",
-    "settingsAIProfileApplyFailed": "Failed to apply profile.",
-    "settingsAIProfileEmpty": "No profiles available.",
-    "settingsAIProfileManage": "Manage profiles",
-    "settingsAIProfileManageLink": "Manage profiles in AI Runtime",
-    "settingsAIProfileModalTitle": "Apply AI Profile",
-    "settingsAIProfileModalHint": "Selecting a profile will overwrite all current capability bindings (Chat, TTS, Image, Video). This action cannot be undone.",
-    "settingsAIProfileCancel": "Cancel",
-    "settingsAIProfileConfirm": "Confirm & Apply",
-    "settingsAIProfileApplying": "Applying...",
-    "settingsAIProfileImport": "Import AI Profile",
-    "settingsAIProfileApplyBtn": "Apply profile",
-    "settingsAIProfileChange": "Change",
     "settingsImageProfileTitle": "Local image profile",
     "settingsImageProfileHint": "Selects the local asset bundle for image capabilities within the current AI configuration.",
     "settingsSelectedImageProfile": "Active profile",
@@ -3983,12 +3963,6 @@
       "voiceClone": "Voice Clone",
       "voiceDesign": "Voice Design"
     },
-    "profile": {
-      "label": "Profile:",
-      "none": "None (manual binding)",
-      "reload": "Reload",
-      "loading": "Loading..."
-    },
     "route": {
       "title": "Route Binding",
       "source": "Source",
@@ -4176,6 +4150,34 @@
       "run": "Design Voice",
       "error": "Voice design SDK method is not yet available.",
       "sdkMethodUnavailable": "SDK method unavailable"
+    }
+  },
+  "ModelConfig": {
+    "profile": {
+      "sectionTitle": "Profile",
+      "summaryLabel": "AI Profile",
+      "emptySummaryLabel": "No profile applied",
+      "applyButtonLabel": "Apply profile",
+      "changeButtonLabel": "Change",
+      "manageButtonTitle": "Manage profiles",
+      "modalTitle": "Apply AI Profile",
+      "modalHint": "Selecting a profile will overwrite all current capability bindings. This action cannot be undone.",
+      "loadingLabel": "Loading profiles...",
+      "emptyLabel": "No profiles available.",
+      "currentBadgeLabel": "Current",
+      "cancelLabel": "Cancel",
+      "confirmLabel": "Confirm & Apply",
+      "applyingLabel": "Applying...",
+      "reloadLabel": "Reload",
+      "importLabel": "Import AI Profile"
+    },
+    "hub": {
+      "title": "AI Models",
+      "backLabel": "Back",
+      "aggregateReady": "{{count}} ready",
+      "aggregateAttention": "{{count}} need attention",
+      "aggregateNeutral": "{{count}} unset",
+      "aggregateEmpty": "No capabilities configured"
     }
   }
 }

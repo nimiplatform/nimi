@@ -20,9 +20,7 @@ test('ChatSettingsPanel AI mode routes presenceContent into an avatar-app shell 
   const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   assert.match(source, /presenceContent\?: ReactNode/);
   assert.match(source, /{props\.presenceContent}/);
-  assert.match(source, /path\[0\] === 'avatar'/);
-  assert.match(source, /avatarSummary=\{avatarSummary\}/);
-  assert.match(source, /Review avatar model status, open this chat in Nimi Avatar, and adjust local shell appearance here\./);
+  assert.match(source, /data-chat-settings-module="avatar"/);
   assert.doesNotMatch(source, /Import VRM or Live2D and bind it locally/);
 });
 

@@ -7,19 +7,19 @@ function readDesktopSource(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', 'src', 'shell', 'renderer', 'features', 'tester', relativePath), 'utf8');
 }
 
-test('tester model config contract: tester settings uses dedicated AIConfig scope and shared panel', () => {
+test('tester model config contract: tester settings uses dedicated AIConfig scope and kit hub', () => {
   const scopeSource = readDesktopSource('tester-ai-config.ts');
   const pageSource = readDesktopSource('tester-page.tsx');
   const settingsSource = readDesktopSource('tester-settings-dialog.tsx');
 
   assert.match(scopeSource, /surfaceId:\s*'tester'/);
-  assert.match(settingsSource, /ModelConfigPanel/);
-  assert.match(settingsSource, /useDesktopModelConfigProfileController/);
-  assert.match(settingsSource, /parseImageParams/);
-  assert.match(settingsSource, /parseVideoParams/);
-  assert.match(pageSource, /aiConfigSurface\.aiConfig\.get\(TESTER_AI_SCOPE_REF\)/);
+  assert.match(settingsSource, /ModelConfigAiModelHub/);
+  assert.match(settingsSource, /useModelConfigProfileController/);
+  // Hub composition: tester no longer builds MODULE_DESCRIPTORS or local profile copy.
+  assert.doesNotMatch(settingsSource, /MODULE_DESCRIPTORS/);
+  assert.doesNotMatch(settingsSource, /createProfileCopy/);
+  assert.match(pageSource, /bootstrapTesterAIConfigScope\(aiConfigSurface\)/);
   assert.match(pageSource, /aiConfigSurface\.aiConfig\.subscribe\(TESTER_AI_SCOPE_REF/);
-  assert.match(pageSource, /aiConfigSurface\.aiConfig\.update\(TESTER_AI_SCOPE_REF/);
 });
 
 test('tester model config contract: tester execution reads canonical scope bindings and params', () => {

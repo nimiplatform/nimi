@@ -30,7 +30,7 @@ import { AudioSynthesizePanel } from './panels/panel-audio-synthesize.js';
 import { AudioTranscribePanel } from './panels/panel-audio-transcribe.js';
 import { TextStreamPanel } from './panels/panel-text-stream.js';
 import { VoiceClonePanel, VoiceDesignPanel } from './panels/panel-voice-stubs.js';
-import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig, createEmptyTesterAIConfig } from './tester-ai-config';
+import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig, bootstrapTesterAIConfigScope, createEmptyTesterAIConfig } from './tester-ai-config';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { CAP_META } from './tester-cap-meta.js';
 import { CapTile, SourceChip } from './tester-visuals.js';
@@ -41,7 +41,7 @@ const SIDEBAR_GROUPS: Array<{ label: string; ids: CapabilityId[] }> = [
   { label: 'Text', ids: ['text.generate', 'text.stream', 'text.embed'] },
   { label: 'Media', ids: ['image.generate', 'image.create-job', 'video.create-job'] },
   { label: 'World', ids: ['world.generate'] },
-  { label: 'Audio', ids: ['audio.synthesize', 'audio.transcribe', 'voice.clone', 'voice.design'] },
+  { label: 'Audio', ids: ['audio.synthesize', 'audio.transcribe', 'voice_workflow.tts_v2v', 'voice_workflow.tts_t2v'] },
 ];
 
 const SETTINGS_GEAR_ICON = (
@@ -157,14 +157,14 @@ export function TesterPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [testerConfig, setTesterConfig] = useState<AIConfig>(() => {
     try {
-      return aiConfigSurface.aiConfig.get(TESTER_AI_SCOPE_REF);
+      return bootstrapTesterAIConfigScope(aiConfigSurface);
     } catch {
       return createEmptyTesterAIConfig();
     }
   });
 
   useEffect(() => {
-    setTesterConfig(aiConfigSurface.aiConfig.get(TESTER_AI_SCOPE_REF));
+    setTesterConfig(bootstrapTesterAIConfigScope(aiConfigSurface));
     return aiConfigSurface.aiConfig.subscribe(TESTER_AI_SCOPE_REF, (config) => {
       setTesterConfig(config);
     });
@@ -210,22 +210,6 @@ export function TesterPage() {
     const next = updater(current);
     aiConfigSurface.aiConfig.update(TESTER_AI_SCOPE_REF, next);
   }, [aiConfigSurface]);
-
-  const handleSettingsBindingChange = useCallback((capabilityId: CapabilityId, binding: RuntimeRouteBinding | null) => {
-    const targetCapability = capabilityId === 'image.create-job' ? 'image.generate'
-      : capabilityId === 'video.create-job' ? 'video.generate'
-      : capabilityId;
-    persistTesterConfig((current) => ({
-      ...current,
-      capabilities: {
-        ...current.capabilities,
-        selectedBindings: {
-          ...current.capabilities.selectedBindings,
-          [targetCapability]: binding,
-        },
-      },
-    }));
-  }, [persistTesterConfig]);
 
   const handleSettingsParamsChange = useCallback((capabilityId: CapabilityId, params: Record<string, unknown>) => {
     persistTesterConfig((current) => ({
@@ -351,18 +335,18 @@ export function TesterPage() {
             onStateChange={(updater) => updateCapabilityState('audio.transcribe', updater)}
           />
         );
-      case 'voice.clone':
+      case 'voice_workflow.tts_v2v':
         return (
           <VoiceClonePanel
             state={activeState}
-            onStateChange={(updater) => updateCapabilityState('voice.clone', updater)}
+            onStateChange={(updater) => updateCapabilityState('voice_workflow.tts_v2v', updater)}
           />
         );
-      case 'voice.design':
+      case 'voice_workflow.tts_t2v':
         return (
           <VoiceDesignPanel
             state={activeState}
-            onStateChange={(updater) => updateCapabilityState('voice.design', updater)}
+            onStateChange={(updater) => updateCapabilityState('voice_workflow.tts_t2v', updater)}
           />
         );
     }
@@ -448,8 +432,6 @@ export function TesterPage() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         config={testerConfig}
-        onBindingChange={handleSettingsBindingChange}
-        onParamsChange={handleSettingsParamsChange}
       />
     </div>
   );

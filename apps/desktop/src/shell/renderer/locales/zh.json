@@ -1246,26 +1246,6 @@
     "settingsRouteUnhealthyHint": "当前选择的路由未通过最近一次健康检查。",
     "settingsRouteMetadataUnavailable": "路由元数据不可用",
     "settingsRouteMetadataUnavailableHint": "在 runtime describe 元数据可用之前，这个能力不能执行。",
-    "settingsAIProfileTitle": "AI Profile",
-    "settingsAIProfileHint": "应用配置文件以一次性配置所有 AI 能力。此操作将覆盖当前配置。",
-    "settingsAIProfileSelect": "Profile",
-    "settingsAIProfileNone": "未应用配置文件",
-    "settingsAIProfileCurrent": "当前",
-    "settingsAIProfileOriginLabel": "配置文件：{{profileId}}",
-    "settingsAIProfileOrigin": "基于：{{profileId}}",
-    "settingsAIProfileLoadFailed": "加载 AI 配置文件失败。",
-    "settingsAIProfileApplyFailed": "应用配置文件失败。",
-    "settingsAIProfileEmpty": "暂无可用配置文件。",
-    "settingsAIProfileManage": "管理配置文件",
-    "settingsAIProfileManageLink": "在 AI Runtime 中管理配置文件",
-    "settingsAIProfileModalTitle": "应用 AI 配置文件",
-    "settingsAIProfileModalHint": "选择配置文件将覆盖所有当前能力绑定（聊天、TTS、图片、视频）。此操作无法撤销。",
-    "settingsAIProfileCancel": "取消",
-    "settingsAIProfileConfirm": "确认并应用",
-    "settingsAIProfileApplying": "应用中...",
-    "settingsAIProfileImport": "导入 AI 配置文件",
-    "settingsAIProfileApplyBtn": "应用配置文件",
-    "settingsAIProfileChange": "更换",
     "settingsImageProfileTitle": "本地图片 Profile",
     "settingsImageProfileHint": "为当前 AI 配置选择图片能力使用的本地资产包。",
     "settingsSelectedImageProfile": "当前使用的 Profile",
@@ -3983,12 +3963,6 @@
       "voiceClone": "声音克隆",
       "voiceDesign": "声音设计"
     },
-    "profile": {
-      "label": "配置预设：",
-      "none": "无（手动绑定）",
-      "reload": "刷新",
-      "loading": "加载中..."
-    },
     "route": {
       "title": "路由绑定",
       "source": "来源",
@@ -4176,6 +4150,34 @@
       "run": "设计语音",
       "error": "语音设计 SDK 方法尚不可用。",
       "sdkMethodUnavailable": "SDK 方法不可用"
+    }
+  },
+  "ModelConfig": {
+    "profile": {
+      "sectionTitle": "配置预设",
+      "summaryLabel": "AI 预设",
+      "emptySummaryLabel": "未应用预设",
+      "applyButtonLabel": "应用预设",
+      "changeButtonLabel": "更改",
+      "manageButtonTitle": "管理预设",
+      "modalTitle": "应用 AI 预设",
+      "modalHint": "选择预设将覆盖当前所有能力绑定，此操作不可撤销。",
+      "loadingLabel": "正在加载预设...",
+      "emptyLabel": "暂无可用预设。",
+      "currentBadgeLabel": "当前",
+      "cancelLabel": "取消",
+      "confirmLabel": "确认应用",
+      "applyingLabel": "应用中...",
+      "reloadLabel": "刷新",
+      "importLabel": "导入 AI 预设"
+    },
+    "hub": {
+      "title": "AI 模型",
+      "backLabel": "返回",
+      "aggregateReady": "{{count}} 已就绪",
+      "aggregateAttention": "{{count}} 需要配置",
+      "aggregateNeutral": "{{count}} 未设置",
+      "aggregateEmpty": "未配置任何能力"
     }
   }
 }

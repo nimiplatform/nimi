@@ -33,8 +33,8 @@ export const CAP_META: Record<CapabilityId, CapMeta> = {
   'world.generate': { group: 'World', icon: 'world', tone: 'mint' },
   'audio.synthesize': { group: 'Audio', icon: 'tts', tone: 'blue' },
   'audio.transcribe': { group: 'Audio', icon: 'stt', tone: 'blue' },
-  'voice.clone': { group: 'Audio', icon: 'clone', tone: 'violet' },
-  'voice.design': { group: 'Audio', icon: 'design', tone: 'pink' },
+  'voice_workflow.tts_v2v': { group: 'Audio', icon: 'clone', tone: 'violet' },
+  'voice_workflow.tts_t2v': { group: 'Audio', icon: 'design', tone: 'pink' },
 };
 
 export type TonePalette = {

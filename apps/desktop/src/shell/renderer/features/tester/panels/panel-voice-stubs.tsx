@@ -95,7 +95,7 @@ export function VoiceClonePanel(props: VoiceClonePanelProps) {
   } | null;
 
   return (
-    <div data-testid={E2E_IDS.testerPanel('voice.clone')} className="flex flex-col gap-3">
+    <div data-testid={E2E_IDS.testerPanel('voice_workflow.tts_v2v')} className="flex flex-col gap-3">
       <div data-testid={E2E_IDS.testerInput('voice-clone-prompt')}>
         <TextareaField
           className="font-mono text-xs"
@@ -225,7 +225,7 @@ export function VoiceDesignPanel(props: VoiceDesignPanelProps) {
   } | null;
 
   return (
-    <div data-testid={E2E_IDS.testerPanel('voice.design')} className="flex flex-col gap-3">
+    <div data-testid={E2E_IDS.testerPanel('voice_workflow.tts_t2v')} className="flex flex-col gap-3">
       <div data-testid={E2E_IDS.testerInput('voice-design-instruction')}>
         <TextareaField
           className="font-mono text-xs"

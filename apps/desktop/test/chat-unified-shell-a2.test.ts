@@ -15,8 +15,6 @@ const conversationCapabilitySource = readWorkspaceFile('src/shell/renderer/featu
 const runtimeSliceSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/runtime-slice.ts');
 const storeTypesSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/store-types.ts');
 const capabilityStorageSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts');
-const capabilitySettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-conversation-capability-settings.tsx');
-
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
 const chatModeRegistrySource = readWorkspaceFile('src/shell/renderer/features/chat/chat-mode-registry.ts');
 const chatModeHostTypesSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-mode-host-types.ts');
@@ -195,9 +193,9 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.doesNotMatch(chatAgentAdapterSource, /renderComposer:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderTargetRail:/);
 
-  assert.match(chatSettingsPanelSource, /ConversationModelConfigPanel/);
-  assert.match(chatSettingsPanelSource, /useConversationModelConfigSections/);
-  assert.match(chatSettingsPanelSource, /useDesktopModelConfigProfileController/);
+  assert.match(chatSettingsPanelSource, /ModelConfigAiModelHub/);
+  assert.match(chatSettingsPanelSource, /ModelConfigPanel/);
+  assert.match(chatSettingsPanelSource, /useModelConfigProfileController/);
   assert.match(chatSettingsPanelSource, /diagnosticsContent\?:/);
   assert.match(chatSettingsPanelSource, /mode === 'ai'/);
   assert.doesNotMatch(chatSettingsPanelSource, /thinkingPreference\?:/);
@@ -254,10 +252,6 @@ test('chat unified shell a2: AIConfig is the umbrella authority over conversatio
   assert.doesNotMatch(capabilityStorageSource, /function persistAIConfig\(/);
   assert.doesNotMatch(capabilityStorageSource, /LEGACY_SINGLE_KEY/);
 
-  assert.doesNotMatch(capabilitySettingsSource, /setConversationCapabilityDefaultRefs/);
-  // ImageProfileSelectorCard was removed — no localProfileRefs access in settings
-  assert.doesNotMatch(capabilitySettingsSource, /ImageProfileSelectorCard/);
-  assert.doesNotMatch(capabilitySettingsSource, /aiConfig\.capabilities\.localProfileRefs/);
 });
 
 test('chat unified shell a2: Phase 4 — AI and Agent adapters write through AIConfig surface, not store action (D-AIPC-003)', () => {
@@ -277,8 +271,4 @@ test('chat unified shell a2: Phase 4 — conversation-capability module position
   // Module-level comment declares submodel status
   assert.match(conversationCapabilitySource, /submodel.*D-AIPC-010/i);
   assert.match(conversationCapabilitySource, /AIConfig.*live truth/);
-
-  // imageProfileRef and imageCapabilityLocalRef were removed with ImageProfileSelectorCard
-  assert.doesNotMatch(capabilitySettingsSource, /const imageProfileRef\b/);
-  assert.doesNotMatch(capabilitySettingsSource, /imageCapabilityLocalRef/);
 });

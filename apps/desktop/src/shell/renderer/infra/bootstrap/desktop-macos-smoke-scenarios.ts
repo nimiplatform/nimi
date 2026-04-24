@@ -99,14 +99,14 @@ export async function runDesktopMacosSmokeScenario(
         await deps.waitForTestId(E2E_IDS.testerPanel('audio.transcribe'));
         await deps.waitForTestId(E2E_IDS.testerInput('audio-transcribe-file'));
         record('open-voice-clone-panel');
-        await deps.clickByTestId(E2E_IDS.testerCapabilityTab('voice.clone'));
+        await deps.clickByTestId(E2E_IDS.testerCapabilityTab('voice_workflow.tts_v2v'));
         record('wait-voice-clone-input');
-        await deps.waitForTestId(E2E_IDS.testerPanel('voice.clone'));
+        await deps.waitForTestId(E2E_IDS.testerPanel('voice_workflow.tts_v2v'));
         await deps.waitForTestId(E2E_IDS.testerInput('voice-clone-file'));
         record('open-voice-design-panel');
-        await deps.clickByTestId(E2E_IDS.testerCapabilityTab('voice.design'));
+        await deps.clickByTestId(E2E_IDS.testerCapabilityTab('voice_workflow.tts_t2v'));
         record('wait-voice-design-input');
-        await deps.waitForTestId(E2E_IDS.testerPanel('voice.design'));
+        await deps.waitForTestId(E2E_IDS.testerPanel('voice_workflow.tts_t2v'));
         await deps.waitForTestId(E2E_IDS.testerInput('voice-design-instruction'));
         record('write-pass-report');
         await deps.writeReport({
