@@ -5029,7 +5029,11 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       "surfaces:\n  - runtime-audit-surface\n",
       "utf8",
     );
-    await writeFile(path.join(projectRoot, ".nimi", "spec", "runtime", "index.md"), "# Runtime Domain\n", "utf8");
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "runtime", "index.md"),
+      "# Runtime Domain\n\n## Module Map\n\n- `internal/` — runtime service implementation\n",
+      "utf8",
+    );
     await mkdir(path.join(projectRoot, "runtime", "internal"), { recursive: true });
     await writeFile(path.join(projectRoot, "runtime", "README.md"), "# Runtime\n", "utf8");
     await writeFile(path.join(projectRoot, "runtime", "internal", "service.go"), "package internal\n", "utf8");
@@ -5083,14 +5087,15 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     assert.ok(!runtimeGeneratedChunk.evidence_inventory.includes("runtime/internal/service.go"));
     const runtimeTablesChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "kernel-tables");
     assert.ok(runtimeTablesChunk);
-    assert.ok(!runtimeTablesChunk.evidence_inventory.includes("runtime/internal/service.go"));
+    assert.ok(runtimeTablesChunk.evidence_inventory.includes("runtime/internal/service.go"));
+    assert.ok(runtimeTablesChunk.evidence_inventory.includes("runtime/internal/service_test.go"));
     const runtimeDomainChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "domain-guides");
     assert.ok(runtimeDomainChunk);
     assert.ok(runtimeDomainChunk.evidence_inventory.includes("runtime/README.md"));
-    assert.ok(!runtimeDomainChunk.evidence_inventory.includes("runtime/internal/service.go"));
-    const serviceEvidenceChunk = plan.chunks.find((chunk) => chunk.evidence_inventory.includes("runtime/internal/service.go"));
+    assert.ok(runtimeDomainChunk.evidence_inventory.includes("runtime/internal/service.go"));
+    assert.ok(runtimeDomainChunk.evidence_inventory.includes("runtime/internal/service_test.go"));
+    const serviceEvidenceChunk = runtimeChunk;
     assert.ok(serviceEvidenceChunk);
-    assert.equal(serviceEvidenceChunk.chunk_id, runtimeChunk.chunk_id);
     const specRootChunk = plan.chunks.find((chunk) => chunk.owner_domain === "spec-root");
     assert.ok(specRootChunk);
     assert.ok(specRootChunk.evidence_roots.includes("apps"));

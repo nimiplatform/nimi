@@ -9,23 +9,45 @@ function chunkMatchesEvidenceFile(chunk, fileRef) {
     });
 }
 
+function normalizedRef(value) {
+  return String(value ?? "").replace(/\\/g, "/").replace(/\/$/, "");
+}
+
+function refInsideRoot(fileRef, rootRef) {
+  const normalizedRoot = normalizedRef(rootRef);
+  return Boolean(normalizedRoot) && (fileRef === normalizedRoot || fileRef.startsWith(`${normalizedRoot}/`));
+}
+
 function chunkHasExactAdmittedEvidenceRef(chunk, fileRef) {
   return Array.isArray(chunk.evidence_root_admission_refs)
     && Array.isArray(chunk.admitted_evidence_roots)
-    && chunk.admitted_evidence_roots.some((rootRef) => rootRef.replace(/\\/g, "/").replace(/\/$/, "") === fileRef);
+    && chunk.admitted_evidence_roots.some((rootRef) => normalizedRef(rootRef) === fileRef);
 }
 
 function topLevelEvidenceDocForRoot(rootRef, fileRef) {
-  const normalizedRoot = rootRef.replace(/\\/g, "/").replace(/\/$/, "");
-  if (!normalizedRoot || !(fileRef === normalizedRoot || fileRef.startsWith(`${normalizedRoot}/`))) {
+  const normalizedRoot = normalizedRef(rootRef);
+  if (!normalizedRoot || !refInsideRoot(fileRef, normalizedRoot)) {
     return false;
   }
   const relative = fileRef === normalizedRoot ? "" : fileRef.slice(normalizedRoot.length + 1);
   return !relative.includes("/") && /^(README|AGENTS)(?:\.[^.]+)?$/i.test(relative);
 }
 
+function chunkDeclaredEvidenceRoots(chunk) {
+  if (!Array.isArray(chunk.declared_evidence_targets)) {
+    return [];
+  }
+  return chunk.declared_evidence_targets
+    .flatMap((target) => Array.isArray(target.candidates) ? target.candidates : [])
+    .map((candidate) => normalizedRef(candidate))
+    .filter(Boolean);
+}
+
 function chunkAcceptsEvidenceFile(chunk, fileRef) {
   const surface = String(chunk.spec_surface ?? "");
+  if (chunkDeclaredEvidenceRoots(chunk).some((rootRef) => refInsideRoot(fileRef, rootRef))) {
+    return true;
+  }
   const roots = Array.isArray(chunk.admitted_evidence_roots) && chunk.admitted_evidence_roots.length > 0
     ? chunk.admitted_evidence_roots
     : chunk.evidence_roots;
@@ -33,13 +55,37 @@ function chunkAcceptsEvidenceFile(chunk, fileRef) {
   if (isTopLevelDoc) {
     return surface === "domain-guides" || surface === "app-domain-guides" || surface === "package-root" || surface === "INDEX";
   }
-  if (surface === "kernel-contracts" || surface === "app-kernel-contracts") {
+  if (
+    surface === "kernel-contracts"
+    || surface === "app-kernel-contracts"
+    || surface === "kernel-tables"
+    || surface === "app-kernel-tables"
+    || surface === "package-kernel-tables"
+  ) {
     return true;
   }
   if (surface === "spec-generation-audit" || surface === "high-risk-admissions" || surface === "package-meta" || surface === "package-root") {
     return true;
   }
   return false;
+}
+
+function unresolvedDeclaredEvidenceTargets(chunk, evidenceEntries) {
+  if (!Array.isArray(chunk.declared_evidence_targets)) {
+    return [];
+  }
+  return chunk.declared_evidence_targets
+    .map((target) => {
+      const candidates = Array.isArray(target.candidates)
+        ? target.candidates.map((candidate) => normalizedRef(candidate)).filter(Boolean)
+        : [];
+      const resolved = candidates.some((candidate) => evidenceEntries.some((entry) => refInsideRoot(entry.file_ref, candidate)));
+      return resolved ? null : {
+        source_path: target.source_path,
+        candidates,
+      };
+    })
+    .filter(Boolean);
 }
 
 function deriveEmptyEvidenceInventoryReason(chunk) {
@@ -82,10 +128,14 @@ export function assignEvidenceInventory(evidenceEntries, chunks, options = {}) {
       const enriched = chunksById.get(chunk.chunk_id);
       const evidenceInventory = enriched.evidence_inventory.sort();
       const evidenceInventoryEmpty = evidenceInventory.length === 0;
+      const declaredEvidenceUnresolved = unresolvedDeclaredEvidenceTargets(chunk, evidenceEntries);
       return {
         ...chunk,
         evidence_inventory: evidenceInventory,
         evidence_inventory_status: evidenceInventoryEmpty ? "empty" : "mapped",
+        ...(declaredEvidenceUnresolved.length > 0 ? {
+          declared_evidence_unresolved: declaredEvidenceUnresolved,
+        } : {}),
         ...(evidenceInventoryEmpty ? {
           evidence_inventory_empty_reason: deriveEmptyEvidenceInventoryReason(chunk),
         } : {}),

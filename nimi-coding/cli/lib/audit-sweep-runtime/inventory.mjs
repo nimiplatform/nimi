@@ -243,6 +243,58 @@ function slugPart(value) {
     .toLowerCase() || "spec";
 }
 
+function extractModuleMapRefs(markdownText) {
+  const lines = String(markdownText ?? "").split(/\r?\n/);
+  const refs = [];
+  let inModuleMap = false;
+  for (const line of lines) {
+    const heading = /^(#{1,6})\s+(.+?)\s*$/.exec(line);
+    if (heading) {
+      const headingText = heading[2].trim().toLowerCase();
+      if (headingText === "module map") {
+        inModuleMap = true;
+        continue;
+      }
+      if (inModuleMap && heading[1].length <= 2) {
+        break;
+      }
+    }
+    if (!inModuleMap) {
+      continue;
+    }
+    const match = /^\s*[-*]\s+`([^`]+)`/.exec(line);
+    if (match) {
+      refs.push(match[1].trim());
+    }
+  }
+  return [...new Set(refs)].sort();
+}
+
+function candidateEvidenceRefsForModuleMapPath(modulePath, evidenceRoots) {
+  const normalized = String(modulePath ?? "").replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/$/, "");
+  if (!normalized || normalized.startsWith("http:") || normalized.startsWith("https:")) {
+    return [];
+  }
+  const directRoot = /^(?:\.nimi|apps|config|kit|nimi-[^/]+|proto|runtime|scripts|sdk)\//.test(normalized);
+  const candidates = [];
+  if (directRoot) {
+    candidates.push(normalized);
+  }
+  for (const rootRef of evidenceRoots ?? []) {
+    const root = String(rootRef ?? "").replace(/\\/g, "/").replace(/\/$/, "");
+    if (!root || root.startsWith(".nimi/spec")) {
+      continue;
+    }
+    candidates.push(`${root}/${normalized}`);
+    if (root.startsWith("apps/")) {
+      candidates.push(`${root}/src/${normalized}`);
+      candidates.push(`${root}/src/shell/renderer/${normalized}`);
+      candidates.push(`${root}/src-tauri/src/${normalized}`);
+    }
+  }
+  return [...new Set(candidates)].sort();
+}
+
 function buildSpecChunks(includedInventory, options) {
   const sortedEntries = [...includedInventory].sort((left, right) => left.file_ref.localeCompare(right.file_ref));
   const includedRefs = new Set(sortedEntries.map((entry) => entry.file_ref));
@@ -291,6 +343,15 @@ function buildSpecChunks(includedInventory, options) {
         ...evidenceRootsForSpecOwner(surface.ownerDomain, options.targetRootRef),
         ...admittedEvidenceRoots,
       ])].sort();
+    const moduleMapRefs = surface.surface === "domain-guides" || surface.surface === "app-domain-guides"
+      ? extractModuleMapRefs(options.authorityTextByRef?.get(entry.file_ref) ?? "")
+      : [];
+    const declaredEvidenceTargets = moduleMapRefs
+      .map((moduleRef) => ({
+        source_path: moduleRef,
+        candidates: candidateEvidenceRefsForModuleMapPath(moduleRef, evidenceRoots),
+      }))
+      .filter((target) => target.candidates.length > 0);
     chunkIndex += 1;
     const chunkId = [
       `chunk-${String(chunkIndex).padStart(3, "0")}`,
@@ -324,6 +385,9 @@ function buildSpecChunks(includedInventory, options) {
       } : {}),
       ...(hostAuthorityProjectionRefs.length > 0 ? {
         host_authority_projection_refs: hostAuthorityProjectionRefs,
+      } : {}),
+      ...(declaredEvidenceTargets.length > 0 ? {
+        declared_evidence_targets: declaredEvidenceTargets,
       } : {}),
       evidence_roots: evidenceRoots,
       file_count: authorityRefs.length,
@@ -512,8 +576,16 @@ export async function createAuditSweepPlan(projectRoot, options) {
 
   const includedInventory = inventory.filter((entry) => entry.included);
   const authorityFileRefs = new Set(includedInventory.map((entry) => entry.file_ref));
+  const authorityTextByRef = new Map();
+  if (chunkBasis.basis === "spec") {
+    for (const entry of includedInventory) {
+      if ([".md", ".markdown"].includes(entry.extension)) {
+        authorityTextByRef.set(entry.file_ref, await readFile(artifactPath(projectRoot, entry.file_ref), "utf8"));
+      }
+    }
+  }
   let chunks = chunkBasis.basis === "spec"
-    ? buildSpecChunks(includedInventory, { criteria, targetRootRef, appSliceAdmissions, auditEvidenceRootAdmissions, packageAuthorityAdmissions })
+    ? buildSpecChunks(includedInventory, { criteria, targetRootRef, appSliceAdmissions, auditEvidenceRootAdmissions, packageAuthorityAdmissions, authorityTextByRef })
     : buildFileChunks(includedInventory, { criteria, maxFilesPerChunk });
   let evidenceInventory = [];
   let unmappedEvidenceFiles = [];
@@ -649,7 +721,9 @@ export async function createAuditSweepPlan(projectRoot, options) {
       ...(chunk.evidence_root_admission_refs ? { evidence_root_admission_refs: chunk.evidence_root_admission_refs } : {}),
       ...(chunk.admitted_evidence_roots ? { admitted_evidence_roots: chunk.admitted_evidence_roots } : {}),
       ...(chunk.host_authority_projection_refs ? { host_authority_projection_refs: chunk.host_authority_projection_refs } : {}),
+      ...(chunk.declared_evidence_targets ? { declared_evidence_targets: chunk.declared_evidence_targets } : {}),
       ...(chunk.evidence_roots ? { evidence_roots: chunk.evidence_roots } : {}),
+      ...(chunk.declared_evidence_unresolved ? { declared_evidence_unresolved: chunk.declared_evidence_unresolved } : {}),
       ...(chunk.evidence_inventory ? { evidence_inventory: chunk.evidence_inventory } : {}),
       ...(chunk.evidence_inventory_status ? { evidence_inventory_status: chunk.evidence_inventory_status } : {}),
       ...(chunk.evidence_inventory_empty_reason ? { evidence_inventory_empty_reason: chunk.evidence_inventory_empty_reason } : {}),

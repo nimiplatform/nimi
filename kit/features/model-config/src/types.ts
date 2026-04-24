@@ -98,6 +98,46 @@ export type ModelConfigProfileController = {
   onReload?: () => void;
 };
 
+export type TextGenerateParamsState = {
+  temperature: string;
+  topP: string;
+  topK: string;
+  maxTokens: string;
+  timeoutMs: string;
+  stopSequences: string[];
+  presencePenalty: string;
+  frequencyPenalty: string;
+};
+
+export type AudioSynthesizeParamsState = {
+  voiceId: string;
+  speakingRate: string;
+  volume: string;
+  pitchSemitones: string;
+  languageHint: string;
+  responseFormat: string;
+  timeoutMs: string;
+};
+
+export type AudioTranscribeParamsState = {
+  language: string;
+  responseFormat: string;
+  timeoutMs: string;
+  speakerCount: string;
+  prompt: string;
+  timestamps: boolean;
+  diarization: boolean;
+};
+
+export type VoiceWorkflowParamsState = {
+  referenceAssetId: string;
+  referenceText: string;
+  voiceDesignPrompt: string;
+  durationSec: string;
+  seed: string;
+  timeoutMs: string;
+};
+
 export type ImageParamsState = {
   size: string;
   responseFormat: string;
