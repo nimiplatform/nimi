@@ -63,7 +63,25 @@ function checkUniqueIds(file: string, key: string, idField: string, pattern: Reg
 
 // ── ID Uniqueness & Pattern ─────────────────────────────────
 
-checkUniqueIds('reminder-rules.yaml', 'rules', 'ruleId', /^PO-REM-[A-Z]{3,6}-[0-9]{3}$/);
+const reminderRuleShards = ['reminder-rules.yaml', 'reminder-rules-extended.yaml'];
+const reminderRuleIds = new Set<string>();
+for (const shard of reminderRuleShards) {
+  const shardData = parseYaml(readFileSync(resolve(TABLES, shard), 'utf-8')) as { rules?: Array<{ ruleId: string }> };
+  for (const rule of shardData.rules ?? []) {
+    if (!rule.ruleId) {
+      fail(`Missing ruleId in ${shard}`);
+      continue;
+    }
+    if (reminderRuleIds.has(rule.ruleId)) {
+      fail(`Duplicate ruleId: ${rule.ruleId}`);
+    }
+    reminderRuleIds.add(rule.ruleId);
+    if (!/^PO-REM-[A-Z]{3,6}-[0-9]{3}$/.test(rule.ruleId)) {
+      fail(`ruleId '${rule.ruleId}' does not match pattern /^PO-REM-[A-Z]{3,6}-[0-9]{3}$/`);
+    }
+  }
+}
+pass(`${reminderRuleIds.size} unique reminder ruleIds across reminder-rules shards`);
 checkUniqueIds('milestone-catalog.yaml', 'milestones', 'milestoneId', /^PO-MS-[A-Z]{3,5}-[0-9]{3}$/);
 checkUniqueIds('sensitive-periods.yaml', 'periods', 'periodId', /^PO-SP-[A-Z]{3,6}-[0-9]{3}$/);
 
@@ -103,8 +121,11 @@ const reminderData = parseYaml(
     source?: unknown;
   }>;
 };
+const reminderExtendedData = parseYaml(
+  readFileSync(resolve(TABLES, 'reminder-rules-extended.yaml'), 'utf-8'),
+) as typeof reminderData;
 
-for (const rule of reminderData.rules ?? []) {
+for (const rule of [...(reminderData.rules ?? []), ...(reminderExtendedData.rules ?? [])]) {
   for (const issue of validateReminderRule(rule)) {
     fail(issue);
   }
@@ -209,6 +230,7 @@ console.log('\n--- Generation Freshness ---');
 
 const genFiles = [
   { yaml: 'reminder-rules.yaml', gen: 'reminder-rules.gen.ts' },
+  { yaml: 'reminder-rules-extended.yaml', gen: 'reminder-rules.gen.ts' },
   { yaml: 'milestone-catalog.yaml', gen: 'milestone-catalog.gen.ts' },
   { yaml: 'sensitive-periods.yaml', gen: 'sensitive-periods.gen.ts' },
   { yaml: 'observation-framework.yaml', gen: 'observation-framework.gen.ts' },

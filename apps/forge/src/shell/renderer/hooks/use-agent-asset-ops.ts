@@ -27,7 +27,6 @@ import {
   type AgentAssetOpsFamily,
   type AgentAssetOpsLifecycle,
 } from '@renderer/state/agent-asset-ops-store.js';
-
 export type {
   AgentAssetOpsCandidateKind,
   AgentAssetOpsCandidateOrigin,
@@ -35,7 +34,6 @@ export type {
   AgentAssetOpsFamily,
   AgentAssetOpsLifecycle,
 } from '@renderer/state/agent-asset-ops-store.js';
-
 type AgentDetailPayload = Awaited<ReturnType<typeof getAgent>>;
 type WorldResourceBindingsPayload = Awaited<ReturnType<typeof listWorldResourceBindings>>;
 type AgentAssetBindingPoint = 'AGENT_PORTRAIT' | 'AGENT_VOICE_SAMPLE' | 'AGENT_AVATAR' | 'AGENT_GREETING_PRIMARY';
@@ -51,7 +49,6 @@ type BindingRecord = {
   updatedAt: string | null;
   priority: number | null;
 };
-
 export type AgentAssetOpsCandidateView = Omit<AgentAssetOpsCandidateRecord, 'lifecycle' | 'origin'> & {
   localLifecycle: AgentAssetOpsLifecycle | null;
   effectiveLifecycle: AgentAssetOpsLifecycle;
@@ -60,9 +57,7 @@ export type AgentAssetOpsCandidateView = Omit<AgentAssetOpsCandidateRecord, 'lif
   isBound: boolean;
   bindingPoint: AgentAssetBindingPoint;
 };
-
 export type AgentAssetOpsLifecycleCounts = Record<AgentAssetOpsLifecycle, number>;
-
 export type AgentAssetOpsFamilyState = {
   family: AgentAssetOpsFamily;
   label: string;
@@ -79,7 +74,6 @@ export type AgentAssetOpsFamilyState = {
     reason: string | null;
   };
 };
-
 export type AgentAssetOpsHubSummary = {
   agentId: string;
   familySummaries: AgentAssetOpsFamilyState[];
@@ -87,19 +81,15 @@ export type AgentAssetOpsHubSummary = {
   completeFamilyCount: number;
   boundFamilyCount: number;
 };
-
 type UseAgentAssetOpsOptions = {
   worldName?: string;
   worldDescription?: string;
 };
-
 type AgentCustomVoiceSupport = {
   supported: boolean;
   reason: string | null;
 };
-
 type DirectFieldAdoptableFamily = 'agent-avatar' | 'agent-greeting-primary';
-
 const FAMILY_CONFIG: Record<
   AgentAssetOpsFamily,
   {
@@ -129,7 +119,6 @@ const FAMILY_CONFIG: Record<
     bindingPoint: 'AGENT_VOICE_SAMPLE',
   },
 };
-
 const LIFECYCLE_SORT_ORDER: Record<AgentAssetOpsLifecycle, number> = {
   bound: 0,
   confirmed: 1,
@@ -139,7 +128,6 @@ const LIFECYCLE_SORT_ORDER: Record<AgentAssetOpsLifecycle, number> = {
   rejected: 5,
   superseded: 6,
 };
-
 const EMPTY_COUNTS: AgentAssetOpsLifecycleCounts = {
   generated: 0,
   candidate: 0,
@@ -149,7 +137,6 @@ const EMPTY_COUNTS: AgentAssetOpsLifecycleCounts = {
   bound: 0,
   superseded: 0,
 };
-
 function toStringOrNull(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null;
@@ -157,19 +144,16 @@ function toStringOrNull(value: unknown): string | null {
   const normalized = value.trim();
   return normalized ? normalized : null;
 }
-
 function toNumberOrNull(value: unknown): number | null {
   const normalized = Number(value);
   return Number.isFinite(normalized) ? normalized : null;
 }
-
 function toObjectRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
   }
   return value as Record<string, unknown>;
 }
-
 function toBindingRecordList(payload: WorldResourceBindingsPayload | undefined): BindingRecord[] {
   const root = toObjectRecord(payload);
   const items = Array.isArray(root?.items) ? root.items : [];
@@ -193,7 +177,6 @@ function toBindingRecordList(payload: WorldResourceBindingsPayload | undefined):
     })
     .filter((item): item is BindingRecord => item !== null);
 }
-
 function compareBindingPriority(left: BindingRecord, right: BindingRecord): number {
   const leftPriority = left.priority ?? Number.MAX_SAFE_INTEGER;
   const rightPriority = right.priority ?? Number.MAX_SAFE_INTEGER;
@@ -202,7 +185,6 @@ function compareBindingPriority(left: BindingRecord, right: BindingRecord): numb
     || (right.createdAt || '').localeCompare(left.createdAt || '')
     || (right.id || '').localeCompare(left.id || '');
 }
-
 function findBinding(
   bindings: BindingRecord[],
   input: {
@@ -219,7 +201,6 @@ function findBinding(
     )
     .sort(compareBindingPriority)[0] ?? null;
 }
-
 function resolveBindSupport(
   family: AgentAssetOpsFamily,
   agent: AgentDetailPayload | undefined,
@@ -245,7 +226,6 @@ function resolveBindSupport(
         : { supported: false, reason: 'Voice demo bind requires a world-owned agent.' };
   }
 }
-
 function toDirectFieldEffectiveLifecycle(
   localLifecycle: AgentAssetOpsLifecycle,
   currentValue: string | null,
@@ -259,7 +239,6 @@ function toDirectFieldEffectiveLifecycle(
   }
   return localLifecycle;
 }
-
 function toBindingEffectiveLifecycle(
   localLifecycle: AgentAssetOpsLifecycle,
   boundResourceId: string | null,
@@ -276,13 +255,11 @@ function toBindingEffectiveLifecycle(
   }
   return localLifecycle;
 }
-
 function compareCandidateViews(left: AgentAssetOpsCandidateView, right: AgentAssetOpsCandidateView): number {
   return LIFECYCLE_SORT_ORDER[left.effectiveLifecycle] - LIFECYCLE_SORT_ORDER[right.effectiveLifecycle]
     || (right.updatedAt || '').localeCompare(left.updatedAt || '')
     || right.id.localeCompare(left.id);
 }
-
 function buildFamilyState(
   family: AgentAssetOpsFamily,
   agent: AgentDetailPayload | undefined,
@@ -300,7 +277,6 @@ function buildFamilyState(
       })
     : null;
   const boundResourceId = currentBinding?.objectId ?? null;
-
   const familyCandidates: AgentAssetOpsCandidateView[] = localCandidates
     .filter((candidate) => candidate.family === family)
     .map((candidate) => ({
@@ -322,7 +298,6 @@ function buildFamilyState(
             : Boolean(boundResourceId && candidate.resourceId && boundResourceId === candidate.resourceId),
       bindingPoint: config.bindingPoint,
     }));
-
   if (family === 'agent-avatar' && currentAvatar && !familyCandidates.some((candidate) => candidate.previewUrl === currentAvatar)) {
     familyCandidates.unshift({
       id: `bound:${family}:${currentAvatar}`,
@@ -345,7 +320,6 @@ function buildFamilyState(
       bindingPoint: config.bindingPoint,
     });
   }
-
   if (family === 'agent-greeting-primary' && currentGreeting && !familyCandidates.some((candidate) => candidate.text === currentGreeting)) {
     familyCandidates.unshift({
       id: `bound:${family}:${currentGreeting}`,
@@ -368,7 +342,6 @@ function buildFamilyState(
       bindingPoint: config.bindingPoint,
     });
   }
-
   if ((family === 'agent-cover' || family === 'agent-voice-demo') && boundResourceId && !familyCandidates.some((candidate) => candidate.resourceId === boundResourceId)) {
     familyCandidates.unshift({
       id: `bound:${family}:${boundResourceId}`,
@@ -391,7 +364,6 @@ function buildFamilyState(
       bindingPoint: config.bindingPoint,
     });
   }
-
   const candidateList = [...familyCandidates].sort(compareCandidateViews);
   const counts = candidateList.reduce<AgentAssetOpsLifecycleCounts>((acc, candidate) => {
     acc[candidate.effectiveLifecycle] += 1;
@@ -404,7 +376,6 @@ function buildFamilyState(
     : confirmedItem
       ? 'CONFIRMED'
       : 'MISSING';
-
   return {
     family,
     label: config.label,
@@ -419,7 +390,6 @@ function buildFamilyState(
     bindSupport,
   };
 }
-
 export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptions = {}) {
   const queryClient = useQueryClient();
   const userId = useAppStore((state) => state.auth?.user?.id ?? '');
@@ -436,14 +406,12 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
   const reject = useAgentAssetOpsStore((state) => state.rejectCandidate);
   const confirm = useAgentAssetOpsStore((state) => state.confirmCandidate);
   const markBound = useAgentAssetOpsStore((state) => state.markBound);
-
   const agentQuery = useQuery({
     queryKey: ['forge', 'agents', 'detail', agentId],
     enabled: Boolean(agentId),
     retry: false,
     queryFn: async (): Promise<ForgeAgentDetailResponse> => await getAgent(agentId),
   });
-
   const worldId = agentQuery.data?.worldId ?? '';
   const bindingsQuery = useQuery({
     queryKey: ['forge', 'world', 'resource-bindings', worldId],
@@ -451,19 +419,16 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
     retry: false,
     queryFn: async () => await listWorldResourceBindings(worldId),
   });
-
   const localCandidates = useMemo(
     () => selectAgentAssetOpsCandidates(profiles, { userId, agentId }),
     [profiles, userId, agentId],
   );
-
   const familySummaries = useMemo(() => {
     const bindings = toBindingRecordList(bindingsQuery.data);
     return (Object.keys(FAMILY_CONFIG) as AgentAssetOpsFamily[]).map((family) =>
       buildFamilyState(family, agentQuery.data, localCandidates, bindings),
     );
   }, [agentQuery.data, bindingsQuery.data, localCandidates]);
-
   const familiesById = useMemo(
     () => familySummaries.reduce<Record<AgentAssetOpsFamily, AgentAssetOpsFamilyState>>((acc, family) => {
       acc[family.family] = family;
@@ -471,7 +436,6 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
     }, {} as Record<AgentAssetOpsFamily, AgentAssetOpsFamilyState>),
     [familySummaries],
   );
-
   const summary = useMemo<AgentAssetOpsHubSummary>(() => ({
     agentId,
     familySummaries,
@@ -479,7 +443,6 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
     completeFamilyCount: familySummaries.filter((family) => family.completenessState !== 'MISSING').length,
     boundFamilyCount: familySummaries.filter((family) => family.completenessState === 'BOUND').length,
   }), [agentId, familiesById, familySummaries]);
-
   const customVoiceSupport = useMemo<AgentCustomVoiceSupport>(() => {
     const customVoiceModel = String(customVoiceBinding?.model || '').trim();
     if (!customVoiceModel) {
@@ -500,7 +463,6 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
       reason: null,
     };
   }, [customVoiceBinding?.model, ttsBinding?.model]);
-
   const designedVoiceAssetsQuery = useQuery({
     queryKey: [
       'forge',
@@ -520,7 +482,6 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
         targetModelId: String(ttsBinding?.model || '').trim() || undefined,
       }),
   });
-
   const bindConfirmedMutation = useMutation({
     mutationFn: async (input: { family: AgentAssetOpsFamily; candidateId?: string }) => {
       const family = familiesById[input.family];
@@ -624,7 +585,6 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
       }
     },
   });
-
   const generateGreetingCandidateMutation = useMutation({
     mutationFn: async (input: { worldName?: string; worldDescription?: string } = {}) => {
       const agent = agentQuery.data;
@@ -655,7 +615,6 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
       };
     },
   });
-
   const generateVoiceDemoCandidateMutation = useMutation({
     mutationFn: async (input: { text?: string; voice?: string; language?: string; voiceAssetId?: string } = {}) => {
       const family = familiesById['agent-greeting-primary'];
@@ -693,7 +652,6 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
       };
     },
   });
-
   const designCustomVoiceMutation = useMutation({
     mutationFn: async (input: {
       instructionText: string;
@@ -718,7 +676,6 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
       });
     },
   });
-
   const addResourceCandidate = useCallback((input: {
     family: 'agent-avatar' | 'agent-cover' | 'agent-voice-demo';
     resourceId: string;
@@ -740,7 +697,6 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
     origin: input.origin ?? 'library',
     lifecycle: 'candidate',
   }), [addCandidate, userId, agentId]);
-
   const addTextCandidate = useCallback((input: {
     family: 'agent-greeting-primary';
     text: string;
@@ -755,27 +711,21 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
     origin: input.origin ?? 'manual',
     lifecycle: input.lifecycle ?? 'candidate',
   }), [addCandidate, userId, agentId]);
-
   const reviewGeneratedCandidate = useCallback((candidateId: string) => {
     return moveCandidateToReview({ userId, candidateId });
   }, [moveCandidateToReview, userId]);
-
   const approveCandidate = useCallback((candidateId: string) => {
     return approve({ userId, candidateId });
   }, [approve, userId]);
-
   const rejectCandidate = useCallback((candidateId: string) => {
     return reject({ userId, candidateId });
   }, [reject, userId]);
-
   const confirmCandidate = useCallback((candidateId: string) => {
     return confirm({ userId, candidateId });
   }, [confirm, userId]);
-
   const bindConfirmed = useCallback(async (input: { family: AgentAssetOpsFamily; candidateId?: string }) => {
     return await bindConfirmedMutation.mutateAsync(input);
   }, [bindConfirmedMutation]);
-
   const adoptCurrentFieldCandidate = useCallback((family: DirectFieldAdoptableFamily) => {
     const familyState = familiesById[family];
     const currentItem = familyState?.currentBoundItem;
@@ -813,9 +763,7 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
       lifecycle: 'confirmed',
     });
   }, [addCandidate, agentId, familiesById, userId]);
-
   const getFamilyState = useCallback((family: AgentAssetOpsFamily) => familiesById[family], [familiesById]);
-
   return {
     userId,
     agentId,

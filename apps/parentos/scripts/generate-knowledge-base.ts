@@ -177,8 +177,9 @@ function liftOrthodonticRules(): BaseReminderRule[] {
 
 function generateReminderRules() {
   const data = readYaml('reminder-rules.yaml') as { rules: BaseReminderRule[] };
+  const extendedData = readYaml('reminder-rules-extended.yaml') as { rules: BaseReminderRule[] };
   const orthoRules = liftOrthodonticRules();
-  const merged: BaseReminderRule[] = [...data.rules, ...orthoRules];
+  const merged: BaseReminderRule[] = [...data.rules, ...extendedData.rules, ...orthoRules];
 
   // Enforce unique ruleIds across the union.
   const seen = new Set<string>();

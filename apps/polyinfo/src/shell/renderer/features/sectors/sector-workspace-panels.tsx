@@ -23,7 +23,6 @@ import {
 } from '@renderer/data/polymarket.js';
 import type {
   AnalysisPackage,
-  AnalysisPackageMarket,
   AnalystMessage,
   ImportedEventRecord,
   PreparedMarket,
@@ -48,117 +47,21 @@ import {
   buildManualAnalysisGuardMessage,
 } from './sector-workspace-state.js';
 import { streamSectorAnalyst } from './sector-analyst-runtime.js';
-
-function formatProbability(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
-}
-
-function formatDelta(value: number): string {
-  const sign = value > 0 ? '+' : '';
-  return `${sign}${(value * 100).toFixed(1)}%`;
-}
-
-function getDeltaTone(value: number): string {
-  if (value > 0) return 'text-emerald-300';
-  if (value < 0) return 'text-rose-300';
-  return 'text-slate-400';
-}
-
-function formatCompactMoney(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}m`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
-  return value.toFixed(0);
-}
-
-function isStaleRuntimeBridgeError(message: string | null | undefined): boolean {
-  const normalized = String(message || '').trim().toLowerCase();
-  if (!normalized) {
-    return false;
-  }
-  return normalized.includes('tauri-ipc transport is unavailable')
-    || normalized.includes('missing window.__tauri__.event.listen')
-    || normalized.includes('command open_external_url not found');
-}
-
-function createMessage(role: AnalystMessage['role'], content: string, id?: string): AnalystMessage {
-  return {
-    id: id ?? `${role}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-    role,
-    content,
-    createdAt: Date.now(),
-    status: role === 'assistant' ? 'streaming' : 'complete',
-  };
-}
-
-function ProposalCard({ sectorSlug }: { sectorSlug: string }) {
-  const draftProposal = useAppStore((state) => state.chatsBySector[sectorSlug]?.draftProposal ?? null);
-  const confirmDraft = useAppStore((state) => state.confirmSectorDraftProposal);
-  const dismissDraft = useAppStore((state) => state.dismissSectorDraftProposal);
-
-  if (!draftProposal) {
-    return null;
-  }
-
-  return (
-    <div className="rounded-2xl border border-sky-300/25 bg-sky-300/10 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-sky-200">Pending Change</p>
-          <h3 className="mt-1 text-[13px] font-medium text-white">{draftProposal.title}</h3>
-        </div>
-        <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-200">
-          {draftProposal.action}
-        </span>
-      </div>
-      {draftProposal.definition ? (
-        <p className="mt-2 text-sm leading-6 text-slate-200">{draftProposal.definition}</p>
-      ) : null}
-      {draftProposal.note ? (
-        <p className="mt-2 text-xs leading-5 text-slate-300">{draftProposal.note}</p>
-      ) : null}
-      <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          onClick={() => confirmDraft(sectorSlug)}
-          className="rounded-full bg-sky-300 px-3 py-2 text-xs font-medium text-slate-950"
-        >
-          Apply
-        </button>
-        <button
-          type="button"
-          onClick={() => dismissDraft(sectorSlug)}
-          className="rounded-full bg-white/8 px-3 py-2 text-xs text-slate-300 hover:bg-white/12"
-        >
-          Dismiss
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function groupOfficialEvents(markets: PreparedMarket[]) {
-  const groups = new Map<string, { id: string; title: string; markets: PreparedMarket[]; staleState: 'active'; staleReason?: string }>();
-  for (const market of markets) {
-    const key = market.eventId || market.eventTitle;
-    const existing = groups.get(key);
-    if (existing) {
-      existing.markets.push(market);
-      continue;
-    }
-    groups.set(key, {
-      id: key,
-      title: market.eventTitle,
-      markets: [market],
-      staleState: 'active',
-    });
-  }
-  return [...groups.values()];
-}
+import {
+  ProposalCard,
+  createMessage,
+  formatCompactMoney,
+  formatDelta,
+  formatProbability,
+  getDeltaTone,
+  groupOfficialEvents,
+  isStaleRuntimeBridgeError,
+  summarizeEventLogic,
+} from './sector-workspace-panel-helpers.js';
 
 const INITIAL_VISIBLE_EVENT_COUNT = 18;
 const VISIBLE_EVENT_INCREMENT = 18;
 const INITIAL_SECTOR_EVENT_PAGE_COUNT = 2;
-
 type MarketBoardPanelProps = {
   sectorId: string;
   activeOfficialSector: SectorTag | null;
@@ -174,7 +77,6 @@ type MarketBoardPanelProps = {
   onConnectionStatusChange: (status: MarketConnectionState) => void;
   analysisPackageRef: { current: AnalysisPackage | null };
 };
-
 export const MarketBoardPanel = memo(function MarketBoardPanel({
   sectorId,
   activeOfficialSector,
@@ -193,7 +95,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
   const upsertImportedEvent = useAppStore((state) => state.upsertImportedEvent);
   const removeImportedEvent = useAppStore((state) => state.removeImportedEvent);
   const setActiveWindow = useAppStore((state) => state.setActiveWindow);
-
   const [liveByTokenId, setLiveByTokenId] = useState<Record<string, { bestBid?: number; bestAsk?: number; lastTradePrice?: number }>>({});
   const [connectionStatus, setConnectionStatus] = useState<MarketConnectionState>('closed');
   const [visibleEventCount, setVisibleEventCount] = useState(INITIAL_VISIBLE_EVENT_COUNT);
@@ -203,7 +104,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
   const [appendedOfficialBatches, setAppendedOfficialBatches] = useState<SectorMarketBatch[]>([]);
   const [isLoadingMoreEvents, setIsLoadingMoreEvents] = useState(false);
   const lastAnalysisReadyRef = useRef(false);
-
   useEffect(() => {
     setVisibleEventCount(INITIAL_VISIBLE_EVENT_COUNT);
     setImportUrl('');
@@ -214,7 +114,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     setAppendedOfficialBatches([]);
     setIsLoadingMoreEvents(false);
   }, [sectorId]);
-
   const marketsQuery = useQuery({
     queryKey: ['polyinfo', 'official-sector-markets', sectorId, INITIAL_SECTOR_EVENT_PAGE_COUNT],
     queryFn: () => fetchSectorMarkets(activeOfficialSector!, { pageCount: INITIAL_SECTOR_EVENT_PAGE_COUNT }),
@@ -235,7 +134,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     () => marketInventory.map((market) => market.id).join(','),
     [marketInventory],
   );
-
   const historiesQuery = useQuery({
     queryKey: ['polyinfo', 'histories', sectorId, marketInventoryKey],
     queryFn: () => fetchSectorHistory(marketInventory),
@@ -247,7 +145,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     refetchOnReconnect: false,
   });
   const historyWindowReady = marketDataRequested && historiesQuery.isSuccess;
-
   useEffect(() => {
     if (!marketDataRequested) {
       setConnectionStatus('closed');
@@ -269,11 +166,9 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     );
     return cleanup;
   }, [marketDataRequested, marketInventory]);
-
   useEffect(() => {
     onConnectionStatusChange(connectionStatus);
   }, [connectionStatus, onConnectionStatusChange]);
-
   const deferredLiveByTokenId = useDeferredValue(liveByTokenId);
   const analysisPackage = useMemo(() => {
     if (!activeSectorMeta || !historyWindowReady || marketInventory.length === 0) {
@@ -301,7 +196,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     overlay,
     sectorId,
   ]);
-
   useEffect(() => {
     analysisPackageRef.current = analysisPackage;
     const nextReady = Boolean(analysisPackage);
@@ -310,7 +204,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
       onAnalysisReadyChange(nextReady);
     }
   }, [analysisPackage, analysisPackageRef, onAnalysisReadyChange]);
-
   const analysisMarketsById = useMemo(
     () => new Map((analysisPackage?.markets ?? []).map((market) => [market.id, market])),
     [analysisPackage],
@@ -328,7 +221,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
         ? '历史价格已经就绪。现在切换 24h / 48h / 7d 只会在本地重算，不会重新请求。'
         : '历史价格还没准备完成。你可以稍等，或者手动再试一次。'
     : '当前先展示事件和实时快照。只有你点击 Load Prices 后，才会加载历史价格进入分析模式。';
-
   return (
     <section className="flex min-h-0 flex-1 flex-col rounded-[28px] border border-white/8 bg-slate-950/50">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-5 py-4">
@@ -374,7 +266,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
       <div className="border-b border-white/8 px-5 py-3 text-sm text-slate-400">
         {boardModeMessage}
       </div>
-
       {loadingBoard ? (
         <div className="px-5 py-6 text-sm text-slate-400">正在读取这个 sector 的 event 列表…</div>
       ) : hasBoardError ? (
@@ -389,20 +280,25 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="hidden border-b border-white/8 px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-slate-500 xl:grid xl:grid-cols-[1.25fr_1.95fr_92px] xl:gap-5">
+          <div className="hidden border-b border-white/8 px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-slate-500 xl:grid xl:grid-cols-[1.4fr_1.25fr_0.45fr_1fr] xl:gap-4">
             <span>事件 (Event)</span>
             <span>选项概率 (Top 5)</span>
             <span>总成交量</span>
+            <span>映射逻辑 (Logic Node)</span>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {visibleEventCards.map((event) => {
               const eventMarkets = 'cachedEventPayload' in event ? event.cachedEventPayload.markets : event.markets;
               const eventVolume = eventMarkets.reduce((sum, market) => sum + market.volumeNum, 0);
+              const logic = summarizeEventLogic({
+                eventMarkets,
+                analysisMarketsById,
+                overlay,
+              });
               const outcomeDisplay = buildEventOutcomeDisplay(eventMarkets, analysisMarketsById);
-
               return (
                 <div key={event.id} className="border-b border-white/8 last:border-b-0">
-                  <div className="grid gap-5 px-5 py-5 xl:grid-cols-[1.25fr_1.95fr_92px]">
+                  <div className="grid gap-4 px-5 py-5 xl:grid-cols-[1.4fr_1.25fr_0.45fr_1fr]">
                     <div className="min-w-0">
                       <div className="flex items-start justify-between gap-3">
                         <h3
@@ -428,7 +324,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                         <p className="mt-2 text-xs text-slate-500">{event.staleReason}</p>
                       ) : null}
                     </div>
-
                     <div className="space-y-2">
                       {outcomeDisplay.map((item) => {
                         return (
@@ -455,9 +350,12 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                         );
                       })}
                     </div>
-
-                    <div className="text-right text-[13px] font-medium text-slate-300">
+                    <div className="text-[13px] font-medium text-slate-300">
                       ${formatCompactMoney(eventVolume)}
+                    </div>
+                    <div className="border-l border-white/8 pl-4 text-[12px] text-slate-400">
+                      <p className="text-sky-200">N:: {logic.narrativeTitle ?? '待选择'}</p>
+                      <p className="mt-2 truncate">V:: {logic.coreIssueTitle ?? '待选择'}</p>
                     </div>
                   </div>
                 </div>
@@ -501,7 +399,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
           </div>
         </div>
       )}
-
       {isCustomSector ? (
         <div className="border-t border-white/8 px-5 py-4">
           <div className="flex gap-2">
@@ -555,7 +452,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     </section>
   );
 });
-
 type AnalystSidebarProps = {
   sectorId: string;
   sectorLabel: string;
@@ -565,7 +461,6 @@ type AnalystSidebarProps = {
   connectionStatus: MarketConnectionState;
   analysisPackageRef: { current: AnalysisPackage | null };
 };
-
 export const AnalystSidebar = memo(function AnalystSidebar({
   sectorId,
   sectorLabel,
@@ -587,32 +482,26 @@ export const AnalystSidebar = memo(function AnalystSidebar({
   const setSectorDraftProposal = useAppStore((state) => state.setSectorDraftProposal);
   const resetSectorConversation = useAppStore((state) => state.resetSectorConversation);
   const recordAnalysisSnapshot = useAppStore((state) => state.recordAnalysisSnapshot);
-
   const [streamingAssistant, setStreamingAssistant] = useState<AnalystMessage | null>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
-
   useEffect(() => {
     ensureSectorThread(sectorId, `${sectorLabel} Analyst`);
   }, [ensureSectorThread, sectorId, sectorLabel]);
-
   useEffect(() => {
     streamAbortRef.current?.abort();
     streamAbortRef.current = null;
     setStreamingAssistant(null);
   }, [sectorId]);
-
   const conversation = chatState?.messages ?? [];
   const isStreaming = chatState?.isStreaming ?? false;
   const chatError = chatState?.error ?? null;
   const draftText = chatState?.draftText ?? '';
-
   const routeOptionsQuery = useQuery({
     queryKey: ['polyinfo', 'sector-route-options', sectorId, JSON.stringify(aiConfig.capabilities.selectedBindings['text.generate'] || null)],
     queryFn: () => loadTextGenerateRouteOptions({ aiConfig, runtimeDefaults }),
     staleTime: 30_000,
     retry: false,
   });
-
   const routeStatus = resolveTextGenerateRouteStatus({
     aiConfig,
     runtimeDefaults,
@@ -631,14 +520,12 @@ export const AnalystSidebar = memo(function AnalystSidebar({
     : !routeStatus.ready
       ? routeStatus.detail
       : null;
-
   useEffect(() => {
     if (!routeStatus.ready || !isStaleRuntimeBridgeError(chatError)) {
       return;
     }
     setSectorError(sectorId, null);
   }, [chatError, routeStatus.ready, sectorId, setSectorError]);
-
   const visibleConversation = useMemo(
     () => (streamingAssistant ? [...conversation, streamingAssistant] : conversation),
     [conversation, streamingAssistant],
@@ -649,7 +536,6 @@ export const AnalystSidebar = memo(function AnalystSidebar({
     analysisReady,
     loadingMarketData: marketDataRequested && !analysisReady,
   });
-
   const sendPrompt = useCallback(async (prompt: string) => {
     const analysisPackage = analysisPackageRef.current;
     if (!analysisPackage) {
@@ -666,12 +552,10 @@ export const AnalystSidebar = memo(function AnalystSidebar({
       setSectorError(sectorId, blockedMessage);
       return;
     }
-
     const trimmed = prompt.trim();
     if (!trimmed) {
       return;
     }
-
     const userMessage = createMessage('user', trimmed);
     const streamingId = `assistant-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
     const streamingCreatedAt = Date.now();
@@ -687,12 +571,10 @@ export const AnalystSidebar = memo(function AnalystSidebar({
       createdAt: streamingCreatedAt,
       status: 'streaming',
     });
-
     const nextConversation = [...conversation, userMessage];
     let assistantText = '';
     const abortController = new AbortController();
     streamAbortRef.current = abortController;
-
     try {
       const result = await streamSectorAnalyst({
         binding: routeStatus.binding,
@@ -716,7 +598,6 @@ export const AnalystSidebar = memo(function AnalystSidebar({
           });
         },
       });
-
       assistantText = result.text || assistantText;
       const extracted = extractDraftProposal(assistantText);
       const completedAssistantMessage: AnalystMessage = {
@@ -791,7 +672,6 @@ export const AnalystSidebar = memo(function AnalystSidebar({
     setSectorStreaming,
     upsertSectorMessage,
   ]);
-
   return (
     <aside className="flex min-h-0 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
       <div className="flex items-center justify-between border-b border-white/8 px-4 py-4">
@@ -803,7 +683,6 @@ export const AnalystSidebar = memo(function AnalystSidebar({
           {sectorLabel}
         </span>
       </div>
-
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="space-y-4 p-4">
           <div className="flex flex-wrap gap-2 text-[11px]">
@@ -826,11 +705,9 @@ export const AnalystSidebar = memo(function AnalystSidebar({
               Reset
             </button>
           </div>
-
           <p className="text-[12px] leading-5 text-slate-400">
             根据当前盘口变化，判断 core issue 和 narrative 是否需要调整。
           </p>
-
           {routeNotice ? (
             <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
               {routeNotice}
@@ -841,16 +718,13 @@ export const AnalystSidebar = memo(function AnalystSidebar({
               </div>
             </div>
           ) : null}
-
           <ProposalCard sectorSlug={sectorId} />
-
           {chatError ? (
             <div className="rounded-xl border border-rose-400/25 bg-rose-400/10 p-4 text-sm text-rose-100">
               {chatError}
             </div>
           ) : null}
         </div>
-
         <div className="min-h-0 flex-1 border-t border-white/8 px-4 py-4">
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/8 bg-white/[0.02] p-3">
             {visibleConversation.length === 0 ? (
@@ -880,7 +754,6 @@ export const AnalystSidebar = memo(function AnalystSidebar({
             )}
           </div>
         </div>
-
         <div className="border-t border-white/8 p-4">
           <textarea
             value={draftText}

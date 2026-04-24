@@ -34,6 +34,10 @@ const data = parseYaml(
     nurtureMode: { relaxed: string; balanced: string; advanced: string };
   }>;
 };
+const extendedData = parseYaml(
+  readFileSync(resolve(TABLES, 'reminder-rules-extended.yaml'), 'utf-8'),
+) as typeof data;
+data.rules = [...data.rules, ...extendedData.rules];
 
 let p0Count = 0;
 

@@ -3,9 +3,7 @@
 # 这是提醒引擎的唯一权威数据源。
 # 每条规则描述"在什么时间点，应该提醒家长关注什么"。
 # ──────────────────────────────────────────────────────────────
-
 # ── Schema ──────────────────────────────────────────────────
-
 field_contract:
   rule:
     ruleId:          { type: string, required: true, pattern: "^PO-REM-[A-Z]{3,6}-[0-9]{3}$" }
@@ -88,7 +86,6 @@ field_contract:
               url:      { type: string, required: false, description: "可选外部链接；由系统浏览器打开，不得内嵌" }
     expiryMonths:    { type: integer, required: false }
     tags:            { type: array, items: string, required: false }
-
 constraints:
   - "ruleId must be unique across all rules"
   - "P0 rules must have nurtureMode.relaxed = push (底线标准不因模式降级)"
@@ -100,12 +97,9 @@ constraints:
   - "kind must match the required mapping for actionType (PO-REMI-002): go_hospital|record_data|start_training → task; read_guide → guide; observe → practice; ai_consult → consult"
   - "kind ∈ {guide, practice, consult} rules must carry a fully-populated explain object with whyNow, howTo (3-6 items), doneWhen, and non-empty sources (PO-REMI-006)"
   - "top-level source: string field is retired; every rule's citation metadata must live in explain.sources[].citation"
-
 # ── Rules ───────────────────────────────────────────────────
-
 # ── Vaccine (疫苗) ──────────────────────────────────────────
 # Source: 中国国家免疫规划 (NIP-2024)
-
 rules:
   # -- 一类疫苗（免费，必须接种）--
   - ruleId: PO-REM-VAC-001
@@ -128,7 +122,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [newborn, hepatitis-b]
-
   - ruleId: PO-REM-VAC-002
     domain: vaccine
     category: rigid
@@ -149,7 +142,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [newborn, bcg]
-
   - ruleId: PO-REM-VAC-003
     domain: vaccine
     category: rigid
@@ -170,7 +162,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [hepatitis-b]
-
   - ruleId: PO-REM-VAC-004
     domain: vaccine
     category: rigid
@@ -191,7 +182,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [polio, ipv]
-
   - ruleId: PO-REM-VAC-005
     domain: vaccine
     category: rigid
@@ -212,7 +202,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [dtap]
-
   - ruleId: PO-REM-VAC-006
     domain: vaccine
     category: rigid
@@ -233,7 +222,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [dtap]
-
   - ruleId: PO-REM-VAC-007
     domain: vaccine
     category: rigid
@@ -254,7 +242,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [dtap, polio]
-
   - ruleId: PO-REM-VAC-008
     domain: vaccine
     category: rigid
@@ -275,7 +262,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [hepatitis-b, meningococcal]
-
   - ruleId: PO-REM-VAC-009
     domain: vaccine
     category: rigid
@@ -296,7 +282,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [mmr]
-
   - ruleId: PO-REM-VAC-010
     domain: vaccine
     category: rigid
@@ -317,7 +302,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [japanese-encephalitis]
-
   - ruleId: PO-REM-VAC-011
     domain: vaccine
     category: rigid
@@ -338,7 +322,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [meningococcal, polio]
-
   - ruleId: PO-REM-VAC-012
     domain: vaccine
     category: rigid
@@ -359,7 +342,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [hepatitis-a]
-
   - ruleId: PO-REM-VAC-013
     domain: vaccine
     category: rigid
@@ -380,7 +362,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [mmr, dtap, booster]
-
   - ruleId: PO-REM-VAC-014
     domain: vaccine
     category: rigid
@@ -401,7 +382,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [japanese-encephalitis, booster]
-
   - ruleId: PO-REM-VAC-015
     domain: vaccine
     category: rigid
@@ -422,7 +402,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [meningococcal, booster]
-
   - ruleId: PO-REM-VAC-016
     domain: vaccine
     category: rigid
@@ -443,7 +422,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [polio, booster]
-
   - ruleId: PO-REM-VAC-017
     domain: vaccine
     category: rigid
@@ -464,7 +442,6 @@ rules:
       sources:
         - { citation: "NIP-2024" }
     tags: [dt, meningococcal, booster]
-
   # -- 二类疫苗（自费，推荐接种）--
   - ruleId: PO-REM-VAC-050
     domain: vaccine
@@ -487,7 +464,6 @@ rules:
       sources:
         - { citation: "WHO-2023-rotavirus" }
     tags: [rotavirus, optional]
-
   - ruleId: PO-REM-VAC-051
     domain: vaccine
     category: rigid
@@ -509,7 +485,6 @@ rules:
       sources:
         - { citation: "WHO-2023-varicella" }
     tags: [varicella, optional]
-
   - ruleId: PO-REM-VAC-052
     domain: vaccine
     category: rigid
@@ -533,7 +508,6 @@ rules:
       sources:
         - { citation: "CDC-influenza" }
     tags: [influenza, annual, optional]
-
   - ruleId: PO-REM-VAC-053
     domain: vaccine
     category: rigid
@@ -556,7 +530,6 @@ rules:
       sources:
         - { citation: "WHO-2023-hpv" }
     tags: [hpv, adolescent, optional]
-
   # ── Checkup (体检) ───────────────────────────────────────
   # Source: 国家基本公共卫生服务规范（2023）
   - ruleId: PO-REM-CHK-001
@@ -580,7 +553,6 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [newborn, home-visit]
-
   - ruleId: PO-REM-CHK-002
     domain: checkup
     category: rigid
@@ -602,7 +574,6 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [postpartum]
-
   - ruleId: PO-REM-CHK-003
     domain: checkup
     category: rigid
@@ -624,7 +595,6 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [infant]
-
   - ruleId: PO-REM-CHK-004
     domain: checkup
     category: rigid
@@ -646,7 +616,6 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [infant, blood-test]
-
   - ruleId: PO-REM-CHK-005
     domain: checkup
     category: rigid
@@ -668,7 +637,6 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [infant]
-
   - ruleId: PO-REM-CHK-006
     domain: checkup
     category: rigid
@@ -690,7 +658,6 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [annual]
-
   - ruleId: PO-REM-CHK-007
     domain: checkup
     category: rigid
@@ -712,7 +679,6 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [autism-screening]
-
   - ruleId: PO-REM-CHK-008
     domain: checkup
     category: rigid
@@ -734,7 +700,6 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [annual]
-
   - ruleId: PO-REM-CHK-009
     domain: checkup
     category: rigid
@@ -756,7 +721,6 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [toddler]
-
   - ruleId: PO-REM-CHK-010
     domain: checkup
     category: rigid
@@ -778,7 +742,6 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [annual, preschool]
-
   - ruleId: PO-REM-CHK-011
     domain: checkup
     category: rigid
@@ -800,10 +763,8 @@ rules:
       sources:
         - { citation: "NBPHS-2023" }
     tags: [school-entry]
-
   # ── Vision (视力) ────────────────────────────────────────
   # Source: 国家卫健委《0-6 岁儿童眼保健及视力检查服务规范》
-
   # Early screening (0-36 months)
   - ruleId: PO-REM-VIS-010
     domain: vision
@@ -825,7 +786,6 @@ rules:
       sources:
         - { citation: "NHC-eye-health-0-6-2023" }
     tags: [red-reflex, congenital-screening, early-vision]
-
   - ruleId: PO-REM-VIS-011
     domain: vision
     category: rigid
@@ -846,7 +806,6 @@ rules:
       sources:
         - { citation: "NHC-eye-health-0-6-2023" }
     tags: [strabismus-screening, photoscreener, early-vision]
-
   - ruleId: PO-REM-VIS-012
     domain: vision
     category: rigid
@@ -867,7 +826,6 @@ rules:
       sources:
         - { citation: "NHC-eye-health-0-6-2023" }
     tags: [fixation-tracking, early-vision]
-
   # Quantitative vision (36+ months)
   - ruleId: PO-REM-VIS-001
     domain: vision
@@ -890,7 +848,6 @@ rules:
       sources:
         - { citation: "NHC-vision-2023" }
     tags: [hyperopia-reserve, myopia-prevention]
-
   - ruleId: PO-REM-VIS-002
     domain: vision
     category: rigid
@@ -913,7 +870,6 @@ rules:
       sources:
         - { citation: "NHC-vision-2023" }
     tags: [myopia-prevention]
-
   - ruleId: PO-REM-VIS-003
     domain: vision
     category: rigid
@@ -936,10 +892,8 @@ rules:
       sources:
         - { citation: "NHC-vision-2023" }
     tags: [myopia-monitoring]
-
   # ── Outdoor (户外) ──────────────────────────────────────
   # Source: WHO-2019 myopia-prevention guidelines, NHC-vision-2023
-
   - ruleId: PO-REM-OUTD-001
     domain: outdoor
     category: stage
@@ -961,7 +915,6 @@ rules:
         - { citation: "WHO-2019" }
         - { citation: "NHC-vision-2023" }
     tags: [outdoor, myopia-prevention, habit]
-
   - ruleId: PO-REM-OUTD-002
     domain: outdoor
     category: stage
@@ -984,7 +937,6 @@ rules:
         - { citation: "WHO-2019" }
         - { citation: "NHC-vision-2023" }
     tags: [outdoor, myopia-prevention, weekly-tracking]
-
   # ── Dental (牙齿) ────────────────────────────────────────
   - ruleId: PO-REM-DEN-001
     domain: dental
@@ -1006,7 +958,6 @@ rules:
       sources:
         - { citation: "AAPD-2023" }
     tags: [first-tooth]
-
   - ruleId: PO-REM-DEN-002
     domain: dental
     category: rigid
@@ -1028,7 +979,6 @@ rules:
       sources:
         - { citation: "AAPD-2023" }
     tags: [sealant, molar]
-
   - ruleId: PO-REM-DEN-003
     domain: dental
     category: rigid
@@ -1049,7 +999,6 @@ rules:
       sources:
         - { citation: "AAPD-2023" }
     tags: [sealant, molar]
-
   - ruleId: PO-REM-DEN-004
     domain: dental
     category: stage
@@ -1073,7 +1022,6 @@ rules:
       sources:
         - { citation: "AAO-2023" }
     tags: [orthodontics]
-
   - ruleId: PO-REM-DEN-005
     domain: dental
     category: stage
@@ -1094,7 +1042,6 @@ rules:
       sources:
         - { citation: "AAO-2023" }
     tags: [orthodontics]
-
   # ── Bone Age (骨龄) ──────────────────────────────────────
   - ruleId: PO-REM-BON-001
     domain: bone-age
@@ -1117,7 +1064,6 @@ rules:
       sources:
         - { citation: "Pediatric-Endocrine-2023" }
     tags: [bone-age, baseline]
-
   - ruleId: PO-REM-BON-002
     domain: bone-age
     category: stage
@@ -1139,7 +1085,6 @@ rules:
       sources:
         - { citation: "Pediatric-Endocrine-2023" }
     tags: [bone-age, puberty-prediction]
-
   - ruleId: PO-REM-BON-003
     domain: bone-age
     category: stage
@@ -1162,7 +1107,6 @@ rules:
       sources:
         - { citation: "Pediatric-Endocrine-2023" }
     tags: [bone-age, growth-plate]
-
   # ── Growth (生长发育监测) ─────────────────────────────────
   - ruleId: PO-REM-GRO-001
     domain: growth
@@ -1185,7 +1129,6 @@ rules:
       sources:
         - { citation: "WHO-growth-standards-2006" }
     tags: [growth-curve, monthly]
-
   - ruleId: PO-REM-GRO-002
     domain: growth
     category: rigid
@@ -1207,7 +1150,6 @@ rules:
       sources:
         - { citation: "WHO-growth-standards-2006" }
     tags: [growth-curve, quarterly]
-
   - ruleId: PO-REM-GRO-003
     domain: growth
     category: rigid
@@ -1229,7 +1171,6 @@ rules:
       sources:
         - { citation: "WHO-growth-references-2007" }
     tags: [growth-curve, biannual]
-
   # ── Safety (安全) ────────────────────────────────────────
   - ruleId: PO-REM-SAF-001
     domain: safety
@@ -1255,7 +1196,6 @@ rules:
       sources:
         - { citation: "AAP-safety-2023" }
     tags: [home-safety, crawling]
-
   - ruleId: PO-REM-SAF-002
     domain: safety
     category: stage
@@ -1279,7 +1219,6 @@ rules:
       sources:
         - { citation: "AAP-safety-2023" }
     tags: [home-safety, walking]
-
   # ── Sensitivity (敏感期) ─────────────────────────────────
   # 完整定义见 sensitive-periods.yaml，这里只放提醒规则
   - ruleId: PO-REM-SEN-001
@@ -1304,7 +1243,6 @@ rules:
       sources:
         - { citation: "Montessori-sensitive-periods" }
     tags: [oral, exploration]
-
   - ruleId: PO-REM-SEN-002
     domain: sensitivity
     category: stage
@@ -1328,1134 +1266,3 @@ rules:
       sources:
         - { citation: "Montessori-sensitive-periods" }
     tags: [order, environment]
-
-  - ruleId: PO-REM-SEN-003
-    domain: sensitivity
-    category: stage
-    kind: guide
-    title: "语言敏感期高峰"
-    description: "1.5-3 岁：语言爆发期，大量与孩子对话、阅读绘本，对语言发展至关重要。"
-    triggerAge: { startMonths: 16, endMonths: 20 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "1.5-3 岁是语言输入量直接决定词汇量和句式丰富度的关键窗口。"
-      howTo:
-        - "每天固定亲子共读时间（不少于 15 分钟）。"
-        - "描述当下正在做的事，用完整句子而非单字指令。"
-        - "减少屏幕背景音，让真实对话占主导。"
-        - "避免过度纠正发音，优先保持表达意愿。"
-      doneWhen: "家庭日常已形成持续的语言输入习惯，孩子表达意愿明显增强。"
-      pitfalls:
-        - "用电视、动画片代替真人互动。"
-      sources:
-        - { citation: "Montessori-sensitive-periods" }
-    tags: [language, vocabulary-explosion]
-
-  - ruleId: PO-REM-SEN-004
-    domain: sensitivity
-    category: stage
-    kind: guide
-    title: "精细动作敏感期"
-    description: "1.5-3 岁：对抓、捏、拧等精细动作兴趣浓厚。提供合适的操作材料。"
-    triggerAge: { startMonths: 18, endMonths: 22 }
-    priority: P3
-    nurtureMode: { relaxed: hidden, balanced: silent, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "精细动作敏感期的材料训练能把神经发育转化为具体的手眼协调能力。"
-      howTo:
-        - "准备豆类转移、夹子、拧瓶盖、串珠等简单操作活动。"
-        - "每天安排 15-30 分钟不被打断的自主操作时间。"
-        - "孩子失败时先演示正确动作，再让他重试。"
-      doneWhen: "家中有固定的精细动作操作角，孩子愿意主动选择材料使用。"
-      sources:
-        - { citation: "Montessori-sensitive-periods" }
-    tags: [fine-motor]
-
-  - ruleId: PO-REM-SEN-005
-    domain: sensitivity
-    category: stage
-    kind: practice
-    title: "社交敏感期"
-    description: "2.5-5 岁：开始对同伴互动产生兴趣，从平行游戏过渡到合作游戏。"
-    triggerAge: { startMonths: 28, endMonths: 34 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: observe
-    explain:
-      whyNow: "2.5-5 岁是社交能力从平行游戏走向合作的关键窗口，需要家长观察并提供机会。"
-      howTo:
-        - "每周至少安排一次同伴游戏机会（游乐场、玩伴家庭）。"
-        - "观察孩子在冲突时的应对方式，事后和他一起复盘。"
-        - "不代替孩子解决冲突，除非有安全风险。"
-        - "在 ParentOS 日记中记录典型社交表现。"
-      doneWhen: "你能准确描述孩子的社交风格（主导、合作、回避等）并在日常给予适配机会。"
-      sources:
-        - { citation: "Montessori-sensitive-periods" }
-    tags: [social, peer-interaction]
-
-  # ── Interest (兴趣培养) ──────────────────────────────────
-  - ruleId: PO-REM-INT-001
-    domain: interest
-    category: stage
-    kind: practice
-    title: "音乐启蒙窗口"
-    description: "3-6 岁是音乐感知力发展的黄金期。日常播放不同类型音乐，观察孩子的反应偏好。"
-    triggerAge: { startMonths: 36, endMonths: 48 }
-    priority: P3
-    nurtureMode: { relaxed: hidden, balanced: silent, advanced: push }
-    actionType: observe
-    explain:
-      whyNow: "3-6 岁是音乐感知力发展最敏感的阶段，孩子的反应偏好是未来兴趣方向的线索。"
-      howTo:
-        - "日常播放古典、民谣、世界音乐、现代等不同类型。"
-        - "观察孩子对节奏、旋律、乐器的反应（跟唱、跳跃、安静聆听等）。"
-        - "每周在 ParentOS 日记中记录 1-2 条观察。"
-        - "不过早购买乐器，先看兴趣是否持续。"
-      doneWhen: "你能说出孩子对哪类音乐更敏感，并在日常生活中持续播放。"
-      sources:
-        - { citation: "Suzuki-method" }
-    tags: [music, window]
-
-  - ruleId: PO-REM-INT-002
-    domain: interest
-    category: stage
-    kind: guide
-    title: "运动能力发展窗口"
-    description: "3-6 岁是基本运动能力（跑跳投掷平衡）发展的关键期。保证每天户外活动时间。"
-    triggerAge: { startMonths: 36, endMonths: 48 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "3-6 岁基本运动模式（跑、跳、投、平衡）必须在大肌群发育窗口内反复练习才能形成神经通路。"
-      howTo:
-        - "保证每天至少 60 分钟户外活动，包含跑跳投掷等大肌群动作。"
-        - "避免以'静坐'课程替代运动，兴趣班选择时留出自由玩的时间。"
-        - "提供不同地形（草地、沙地、爬架）刺激平衡感。"
-      doneWhen: "每天至少 60 分钟户外活动成为家庭节奏的一部分。"
-      sources:
-        - { citation: "NASPE-2023" }
-    tags: [sports, fundamental-movement]
-
-  - ruleId: PO-REM-INT-003
-    domain: interest
-    category: stage
-    kind: consult
-    title: "兴趣从启蒙到系统学习的转折评估"
-    description: "6-8 岁：如果孩子在某个兴趣领域持续表现出热情，可考虑从泛启蒙转为系统学习。"
-    triggerAge: { startMonths: 72, endMonths: 96 }
-    priority: P3
-    nurtureMode: { relaxed: hidden, balanced: silent, advanced: push }
-    actionType: ai_consult
-    explain:
-      whyNow: "6-8 岁是兴趣从自由启蒙走向系统学习的自然转折点，需要判断是否正式投入资源。"
-      howTo:
-        - "打开 AI 顾问，描述孩子持续投入的兴趣领域和表现。"
-        - "让顾问帮你梳理'启蒙'与'系统学习'的区别和判断标准。"
-        - "讨论评估路径：试课、短期课程、是否签约长期老师。"
-        - "结合 ParentOS 的兴趣观察数据辅助判断。"
-      doneWhen: "和 AI 顾问的对话中明确了下一步是继续观察、试课、还是启动系统学习。"
-      sources:
-        - { citation: "ParentOS-methodology" }
-    tags: [interest-deepening]
-
-  # ── Digital (数字素养) ───────────────────────────────────
-  - ruleId: PO-REM-DIG-001
-    domain: digital
-    category: stage
-    kind: guide
-    title: "屏幕时间管理指南"
-    description: "2 岁以下避免屏幕；2-5 岁每天不超过 1 小时高质量内容。"
-    triggerAge: { startMonths: 18, endMonths: 24 }
-    priority: P2
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "屏幕使用习惯在 2-5 岁形成；这个阶段不立规则，学龄后很难倒回去。"
-      howTo:
-        - "与配偶/家人统一每天的屏幕时长上限。"
-        - "选择慢节奏、非交互广告的高质量内容。"
-        - "吃饭、睡前 1 小时、亲子互动时间一律无屏幕。"
-        - "家长自己在孩子面前减少刷手机，示范先于规则。"
-      doneWhen: "家庭有明确的屏幕时间规则且执行一致。"
-      pitfalls:
-        - "只限制孩子不限制家长，规则很难执行。"
-      sources:
-        - { citation: "WHO-screen-time-2019" }
-    tags: [screen-time]
-
-  - ruleId: PO-REM-DIG-002
-    domain: digital
-    category: stage
-    kind: guide
-    title: "网络安全教育启动"
-    description: "孩子开始独立使用数字设备时，进行基础网络安全教育。"
-    triggerAge: { startMonths: 84, endMonths: 108 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "学龄段孩子开始接触账号、社交、游戏，这是建立网络安全意识的最佳窗口。"
-      howTo:
-        - "和孩子约定使用设备的时间、场景、内容范围。"
-        - "解释不随意分享真实信息、不接受陌生请求、遇到不适立即告诉家长。"
-        - "一起设置隐私和家长控制。"
-        - "保留开放对话通道，遇到问题先讨论再处理。"
-      doneWhen: "孩子能复述网络安全基本规则，遇到陌生请求会主动告诉家长。"
-      sources:
-        - { citation: "AAP-digital-2023" }
-    tags: [internet-safety]
-
-  # ── Sexuality (性教育) ───────────────────────────────────
-  - ruleId: PO-REM-SEX-001
-    domain: sexuality
-    category: stage
-    kind: guide
-    title: "身体认知启蒙"
-    description: "3-4 岁：用正确的名称教孩子认识自己的身体，建立身体自主权意识。"
-    triggerAge: { startMonths: 36, endMonths: 48 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "3-4 岁是自然而然引入身体正确名称、建立身体自主权的最佳起点，避免后来难以开口。"
-      howTo:
-        - "洗澡、换衣时用正确的解剖名称教孩子认识身体。"
-        - "讲解'隐私部位'不让别人随便看或摸，任何不舒服都告诉家长。"
-        - "使用适龄绘本做补充（如《小威向前冲》《不要随便摸我》）。"
-        - "对孩子的提问用事实简短回答，不躲不笑。"
-      doneWhen: "孩子能说出身体主要部位的正确名称，理解隐私部位的边界。"
-      pitfalls:
-        - "用昵称代替正确名称，或回避提问。"
-      sources:
-        - { citation: "UNESCO-CSE-2018" }
-    tags: [body-awareness]
-
-  - ruleId: PO-REM-SEX-002
-    domain: sexuality
-    category: stage
-    kind: guide
-    title: "青春期生理变化预教育"
-    description: "8-10 岁：在青春期到来前，向孩子解释即将发生的身体变化。"
-    triggerAge: { startMonths: 96, endMonths: 120 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "在青春期到来前 1-2 年讨论即将发生的变化，让孩子心理上有准备，避免突发恐慌。"
-      howTo:
-        - "选择单独相处的场合（如一起散步或开车）开启话题。"
-        - "分性别解释月经/遗精、体毛、情绪波动等常见变化。"
-        - "提供适龄书籍或纪录片辅助。"
-        - "强调'这些都是正常的、你可以随时问我'。"
-      doneWhen: "你和孩子已有过至少一次关于青春期变化的专门对话，他愿意继续问。"
-      pitfalls:
-        - "等到变化已经发生再说，孩子会更尴尬且信任受损。"
-      sources:
-        - { citation: "UNESCO-CSE-2018" }
-    tags: [puberty-education]
-
-  # ── Emotional / Social (情绪/社交) ───────────────────────
-  - ruleId: PO-REM-EMO-001
-    domain: emotional
-    category: stage
-    kind: guide
-    title: "入园分离焦虑准备"
-    description: "入幼儿园前 2-3 个月开始准备：短时分离练习、正面描述幼儿园、建立告别仪式。"
-    triggerAge: { startMonths: 30, endMonths: 34 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "入园前 2-3 个月的准备能显著降低分离焦虑强度和持续时间。"
-      howTo:
-        - "提前带孩子去幼儿园周边熟悉环境。"
-        - "安排每天短时分离（30 分钟-半天）练习。"
-        - "用正面、具体的语言描述幼儿园的活动。"
-        - "约定一个简短稳定的告别仪式并坚持使用。"
-        - "避免'你再不听话就送你去幼儿园'这种负面暗示。"
-      doneWhen: "你和孩子都有稳定的告别仪式，且已完成若干次短时分离练习。"
-      pitfalls:
-        - "担心孩子哭就偷偷离开而不告别，会加剧不信任感。"
-      sources:
-        - { citation: "Bowlby-attachment" }
-    tags: [separation-anxiety, kindergarten-prep]
-
-  - ruleId: PO-REM-EMO-002
-    domain: emotional
-    category: stage
-    kind: guide
-    title: "亲子沟通方式转型提醒"
-    description: "10-12 岁：随着孩子自主意识增强，亲子沟通需从指令式逐步转为对话协商式。"
-    triggerAge: { startMonths: 120, endMonths: 144 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "10-12 岁孩子自主意识快速增长，如果还用指令式沟通，青春期对话通道会直接关闭。"
-      howTo:
-        - "把'你必须'换成'你觉得怎样会更好'。"
-        - "遇到冲突先听孩子的理由，再说自己的担忧。"
-        - "每周安排一次无教育目的的单独相处。"
-        - "允许孩子在家庭规则内自己做选择并承担结果。"
-      doneWhen: "最近一次意见不一致时，你能完整听完孩子的想法再回应。"
-      sources:
-        - { citation: "ParentOS-methodology" }
-    tags: [communication-shift, pre-adolescent]
-
-  # ── Nutrition (营养) ─────────────────────────────────────
-  - ruleId: PO-REM-NUT-001
-    domain: nutrition
-    category: rigid
-    kind: guide
-    title: "辅食添加启动"
-    description: "满 6 个月（不早于 4 个月）开始添加辅食。从富铁食物开始，每次只添加一种新食物。"
-    triggerAge: { startMonths: 5, endMonths: 7 }
-    priority: P0
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "满 6 月龄开始辅食既能补充铁，又抓住了咀嚼敏感期；过早/过晚都对发育不利。"
-      howTo:
-        - "从富铁食物开始（高铁米粉、肉泥、肝泥）。"
-        - "每次只添加一种新食物，观察 3 天再引入下一种。"
-        - "保持乳类仍为主要能量来源，辅食是补充。"
-        - "在 ParentOS 日记中记录孩子对新食物的反应。"
-      doneWhen: "辅食添加节奏已建立，过敏性食物试过并安全耐受。"
-      pitfalls:
-        - "一次添加多种新食物，无法识别过敏原。"
-      sources:
-        - { citation: "WHO-complementary-feeding-2023" }
-    tags: [solid-food, iron]
-
-  - ruleId: PO-REM-NUT-002
-    domain: nutrition
-    category: stage
-    kind: guide
-    title: "维生素 D 补充提醒"
-    description: "出生后 2 周开始每天补充维生素 D 400IU，至少持续到 2 岁。"
-    triggerAge: { startMonths: 0, endMonths: 1 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "母乳不能提供足够维 D；出生后 2 周开始每日补充可以预防佝偻病。"
-      howTo:
-        - "在社区儿保获取或购买维 D3 滴剂。"
-        - "每天固定时间补充 400IU（按医生指示调整）。"
-        - "设置每日提醒，避免忘记。"
-        - "体检时向医生确认是否继续或调整剂量。"
-      doneWhen: "家中有维 D 滴剂并已建立每日补充习惯。"
-      sources:
-        - { citation: "AAP-vitamin-D-2023" }
-    tags: [vitamin-d, daily]
-
-  # ── Sleep (睡眠) ─────────────────────────────────────────
-  - ruleId: PO-REM-SLP-001
-    domain: sleep
-    category: stage
-    kind: guide
-    title: "新生儿安全睡眠指南"
-    description: "仰卧位、硬床垫、无枕头被子，避免同床睡眠，降低 SIDS 风险。"
-    triggerAge: { startMonths: 0, endMonths: 1 }
-    priority: P0
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "婴儿猝死综合征（SIDS）高发在 0-6 月龄，安全睡眠习惯必须从出生第一天开始。"
-      howTo:
-        - "每次入睡都让孩子仰卧。"
-        - "使用硬床垫、合身床单，婴儿床内不放枕头、被子、毛绒玩具。"
-        - "避免与成人同床，可同房不同床。"
-        - "保持室温 20-22℃，穿合适的睡袋而不是盖被子。"
-      doneWhen: "婴儿床按安全睡眠标准布置，所有看护人都理解并遵守。"
-      pitfalls:
-        - "让孩子趴着睡可以睡更久，这是 SIDS 最大的风险因素。"
-      sources:
-        - { citation: "AAP-safe-sleep-2022" }
-    tags: [safe-sleep, sids-prevention]
-
-  - ruleId: PO-REM-SLP-002
-    domain: sleep
-    category: stage
-    kind: guide
-    title: "睡眠作息建立窗口"
-    description: "4-6 个月：建立稳定睡前仪式和作息规律的最佳时机。"
-    triggerAge: { startMonths: 3, endMonths: 5 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "4-6 月龄是建立昼夜节律、睡眠仪式的黄金窗口，错过后改习惯会越来越难。"
-      howTo:
-        - "固定每日起床和入睡时间，允许 ±30 分钟浮动。"
-        - "建立短而稳定的睡前仪式（洗澡→换衣→读一本书→关灯）。"
-        - "白天充分接触自然光，晚上保持暗光环境。"
-        - "避免靠奶或摇晃入睡成为唯一的入睡关联。"
-      doneWhen: "孩子有固定的入睡时间和可预期的睡前仪式。"
-      sources:
-        - { citation: "Ferber-sleep-2006" }
-    tags: [sleep-routine]
-
-  # ── Hygiene Training (如厕) ──────────────────────────────
-  - ruleId: PO-REM-HYG-001
-    domain: hygiene
-    category: stage
-    kind: practice
-    title: "如厕训练准备信号"
-    description: "18-24 个月：观察准备信号（能坐稳、对便盆好奇、尿布不适感、能理解简单指令）。不要强迫。"
-    triggerAge: { startMonths: 18, endMonths: 22 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: observe
-    explain:
-      whyNow: "如厕训练的关键不是年龄，而是孩子是否准备好。18-24 月龄开始观察信号，成熟后再启动。"
-      howTo:
-        - "观察并记录四类信号：能坐稳、对便盆好奇、尿布湿了会示意、能听懂简单指令。"
-        - "把便盆放在孩子日常能看到的位置，不强迫使用。"
-        - "每次观察到信号在 ParentOS 日记中标记。"
-        - "信号较为齐全后再正式启动训练，失败就暂停 2 周再试。"
-      doneWhen: "你对孩子的准备状态有清晰判断，且决定了启动或暂缓。"
-      pitfalls:
-        - "按年龄强行开始训练，导致抗拒和憋尿。"
-      sources:
-        - { citation: "AAP-toilet-training-2023" }
-    tags: [toilet-training, readiness]
-
-  # ── Independence (独立能力) ──────────────────────────────
-  - ruleId: PO-REM-IND-001
-    domain: independence
-    category: stage
-    kind: guide
-    title: "生活自理能力培养清单"
-    description: "5-7 岁：逐步培养自主穿衣、整理书包、简单家务参与。"
-    triggerAge: { startMonths: 60, endMonths: 72 }
-    priority: P3
-    nurtureMode: { relaxed: hidden, balanced: silent, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "5-7 岁是自理能力从'协助'走向'独立'的窗口，错过后家庭习惯很难倒回去。"
-      howTo:
-        - "列出孩子可独立完成的事项清单（穿衣、整理书包、倒水等）。"
-        - "每次孩子尝试时等待 30 秒再帮忙，避免过早接手。"
-        - "让孩子参与家务（摆碗筷、收拾玩具），而不是只做旁观者。"
-        - "允许失败和慢速，成绩是可选的，主权才是目标。"
-      doneWhen: "孩子能独立完成 3-5 项日常自理，且对'自己做'有成就感。"
-      pitfalls:
-        - "为效率全部代劳，到青春期再责怪孩子'什么都不会'。"
-      sources:
-        - { citation: "Montessori-practical-life" }
-    tags: [self-care, chores]
-
-  - ruleId: PO-REM-IND-002
-    domain: independence
-    category: stage
-    kind: guide
-    title: "零花钱与财商启蒙"
-    description: "7-9 岁：开始给予定额零花钱，引导认识存钱、花钱、分享。"
-    triggerAge: { startMonths: 84, endMonths: 108 }
-    priority: P3
-    nurtureMode: { relaxed: hidden, balanced: silent, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "7-9 岁孩子对金钱开始有具体概念，定额零花钱是最真实的财商训练工具。"
-      howTo:
-        - "设定固定频率（如每周一次）和合理金额。"
-        - "允许孩子决定怎么花，包括'花错'的后果。"
-        - "提供三个罐子（花、存、分享），但不强制比例。"
-        - "月末一起回顾账本，不批判只讨论。"
-      doneWhen: "孩子对零花钱有自主决策习惯，愿意谈论自己的选择。"
-      sources:
-        - { citation: "ParentOS-methodology" }
-    tags: [financial-literacy, allowance]
-
-  # ── Values (价值观建设) ──────────────────────────────────
-  - ruleId: PO-REM-VAL-001
-    domain: values
-    category: stage
-    kind: practice
-    title: "同理心培养窗口"
-    description: "4-6 岁：孩子开始理解他人感受，通过故事和日常事件引导同理心发展。"
-    triggerAge: { startMonths: 48, endMonths: 60 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: observe
-    explain:
-      whyNow: "4-6 岁是从'自我中心'走向'能理解他人感受'的关键阶段，家庭引导决定走多远。"
-      howTo:
-        - "日常事件后问'你觉得他现在是什么感受'，不评价对错。"
-        - "阅读绘本时停下来讨论角色感受。"
-        - "家里成员难过时示范共情语言（'我看到你有点失望'）。"
-        - "在 ParentOS 日记中记录孩子主动表现同理心的时刻。"
-      doneWhen: "你能举出孩子最近主动表现同理心的具体例子。"
-      pitfalls:
-        - "在孩子情绪里要求'你应该理解别人'，反而关闭共情通道。"
-      sources:
-        - { citation: "Kohlberg-moral-development" }
-    tags: [empathy, moral-development]
-
-  # ── Career (生涯探索) ───────────────────────────────────
-  - ruleId: PO-REM-CAR-001
-    domain: career
-    category: stage
-    kind: guide
-    title: "职业探索启发期"
-    description: "10-14 岁：通过日常体验、职业故事、兴趣关联，帮助孩子建立对不同职业的认知。"
-    triggerAge: { startMonths: 120, endMonths: 168 }
-    priority: P3
-    nurtureMode: { relaxed: hidden, balanced: silent, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "10-14 岁是把'兴趣'和'职业'初步连接起来的窗口，不至于到高中才开始想方向。"
-      howTo:
-        - "每月聊一次周围人在做什么工作、解决什么问题。"
-        - "结合孩子当前兴趣，指出三四个相关职业。"
-        - "争取 1-2 次真实的职业见习或访谈机会。"
-        - "不急着定方向，强调'很多职业十年后才会出现'。"
-      doneWhen: "孩子能描述出几个具体职业的日常内容和所需能力。"
-      sources:
-        - { citation: "Super-career-development" }
-    tags: [career-exploration]
-
-  # ── Relationship (亲子关系维护) ──────────────────────────
-  # Source: Bowlby Attachment, Gottman Relationship Research,
-  #         Gordon Parent Effectiveness Training, Ginott Parent-Child Communication
-  # 亲子关系是所有其他维度能否发挥作用的"底层协议"。
-  # 通道不通，观察再准、分析再好，信息也传不进去。
-  - ruleId: PO-REM-REL-001
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "安全依恋建立期：回应的一致性"
-    description: "0-18 个月是安全依恋建立的关键窗口。核心不是'做什么'，而是回应的速度和一致性。孩子每次呼唤都被接住，积累的是'世界是安全的'这个底层信念——这个信念会一直用到青春期。"
-    triggerAge: { startMonths: 0, endMonths: 6 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "0-18 月龄的回应一致性是'世界是安全的'这个底层信念的唯一材料，它会一直影响到青春期。"
-      howTo:
-        - "听到孩子哭闹先回应（眼神、声音、接触），不先分析'该不该理'。"
-        - "与配偶对齐基本回应规则，不要一人'秒到'一人'放着'。"
-        - "疲惫时请求替换，避免长时间冷处理。"
-        - "不担心'惯坏孩子'——1 岁前安全感永远优先于规矩。"
-      doneWhen: "你能在大多数情况下对孩子的求助做出稳定、温和的回应。"
-      pitfalls:
-        - "用'哭声免疫'训练 6 个月内的婴儿，长期会伤害依恋。"
-      sources:
-        - { citation: "Bowlby-attachment-1969" }
-        - { citation: "Ainsworth-strange-situation" }
-    tags: [secure-attachment, responsiveness, foundation]
-
-  - ruleId: PO-REM-REL-002
-    domain: relationship
-    category: stage
-    kind: practice
-    title: "安全基地功能：在场但不干预"
-    description: "6-18 个月孩子开始探索世界，需要你做'安全基地'——他回头看你，你在；他去探索，你不拦。这个'在场但不侵入'的姿态是关系质量的早期基石。"
-    triggerAge: { startMonths: 6, endMonths: 18 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: observe
-    explain:
-      whyNow: "6-18 月龄孩子开始独立探索，他需要确认你在、但不要你介入，这是安全基地的定义。"
-      howTo:
-        - "观察孩子回头看你的频率和时机，记录一两个典型场景。"
-        - "他回头时用眼神或简短回应表示'我在'，不起身干预。"
-        - "他主动接近再给予身体接触，不频繁打断他的探索。"
-        - "遇到真正的安全问题再介入，不因'我怕他摔'而提前出手。"
-      doneWhen: "你能描述孩子典型的'回头—继续探索'模式，且觉得自己处于稳定的在场状态。"
-      pitfalls:
-        - "用过度关注打断他的专注：'小心！别摔！'每 10 秒一次。"
-      sources:
-        - { citation: "Ainsworth-secure-base" }
-    tags: [secure-base, exploration, presence]
-
-  - ruleId: PO-REM-REL-003
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "从'管'到'陪'：自主意识萌发期"
-    description: "2-4 岁孩子开始说'不'和'我自己来'——这不是挑战你，是自我意识的健康信号。在安全范围内让他做选择，哪怕选错了。现在给他的每一份自主权，都是在未来关系账户里的存款。"
-    triggerAge: { startMonths: 24, endMonths: 36 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "2-4 岁的'不'和'我自己来'是自我意识的健康发育信号，压制它等于在未来关系账户里透支。"
-      howTo:
-        - "用二选一代替命令（'穿红色还是蓝色外套'）。"
-        - "安全范围内允许他体验选错的自然后果。"
-        - "遇到冲突时先区分是原则问题还是偏好问题，后者让位给他。"
-        - "在 ParentOS 中记录最近一次你成功让渡选择的场景。"
-      doneWhen: "你能每天至少给孩子一次真实的选择权。"
-      pitfalls:
-        - "用'假选择'（怎么选都被否决）消耗信任。"
-      sources:
-        - { citation: "Erikson-autonomy-vs-shame" }
-        - { citation: "Gordon-PET" }
-    tags: [autonomy, relationship-deposit, choice]
-
-  - ruleId: PO-REM-REL-004
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "犯错时的第一句话"
-    description: "3-6 岁孩子犯错时你的第一句话，决定了他以后会不会主动告诉你他犯了错。分离行为和人格：'这件事做得不对'而不是'你怎么这么笨'。孩子需要感受到的是'被爱的人做了不对的事'，而不是'不被爱'。"
-    triggerAge: { startMonths: 36, endMonths: 48 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "3-6 岁的'犯错第一句话'模式会决定孩子未来是否愿意向你汇报坏消息。"
-      howTo:
-        - "先描述事情而非评价人（'碗打碎了'，不是'你怎么这么笨'）。"
-        - "问清楚发生了什么，听完再说自己的想法。"
-        - "让孩子参与处理后果（扫玻璃、擦水），不是单纯接受惩罚。"
-        - "最后确认情感底色：'我爱你，这件事我们一起解决。'"
-      doneWhen: "最近一次孩子犯错时，你的第一句话是描述性的而不是评判性的。"
-      pitfalls:
-        - "把人格标签贴在行为上（'你就是个粗心的人'）。"
-      sources:
-        - { citation: "Ginott-parent-child-communication" }
-        - { citation: "Rogers-unconditional-positive-regard" }
-    tags: [unconditional-regard, error-handling, trust-building]
-
-  - ruleId: PO-REM-REL-005
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "关系修复比避免冲突更重要"
-    description: "3-6 岁：冲突是正常的，不用追求零冲突。关键是冲突后你主动修复——道歉、拥抱、解释'刚才妈妈/爸爸太急了'。孩子从你这里学到的不只是'怎么和好'，还有'关系出了问题是可以修好的'。"
-    triggerAge: { startMonths: 36, endMonths: 72 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "3-6 岁家庭冲突不可避免，但'修复'比'避免'更决定孩子未来处理亲密关系的方式。"
-      howTo:
-        - "冲突情绪退潮后主动走向孩子，不等他来找你。"
-        - "具体承认自己的不妥（'刚才我太急了'），不需要推翻原则。"
-        - "邀请他一起复盘：'刚才发生了什么？下次我们可以怎么办。'"
-        - "用身体接触或共享一件小事件收尾。"
-      doneWhen: "你已经做过至少一次'冲突后主动修复'，孩子接受且关系恢复。"
-      pitfalls:
-        - "等孩子先道歉才肯缓和，会让他学会用压抑换和平。"
-      sources:
-        - { citation: "Gottman-relationship-repair" }
-    tags: [conflict-repair, modeling, resilience]
-
-  - ruleId: PO-REM-REL-006
-    domain: relationship
-    category: stage
-    kind: practice
-    title: "倾听比纠正重要"
-    description: "6-9 岁入学后，家长最容易掉进所有对话都变成学业导向的陷阱。留意一下：这周你和孩子的对话中，有多少是关于作业和成绩的、有多少是关于他自己感兴趣的事的？"
-    triggerAge: { startMonths: 72, endMonths: 108 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: observe
-    explain:
-      whyNow: "入学后家庭对话极易全被作业挤占，现在不有意识留空间，亲子对话通道会慢慢关闭。"
-      howTo:
-        - "这周留意记录：和孩子的对话中，作业类 vs 他感兴趣的事各占多少。"
-        - "饭桌、回家路上留出纯粹分享的时间，不问作业。"
-        - "听完再回应，不打断、不急着纠正事实。"
-        - "在 ParentOS 里每周记录一次这种对话的主题和感受。"
-      doneWhen: "你连续两周能维持一半以上对话是他感兴趣的事。"
-      pitfalls:
-        - "用'听起来像抱怨'作为打断理由，忽略孩子真正想讲的内容。"
-      sources:
-        - { citation: "Gordon-PET" }
-        - { citation: "Gottman-emotion-coaching" }
-    tags: [listening, conversation-balance, academic-trap]
-
-  - ruleId: PO-REM-REL-007
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "尊重沉默和不说"
-    description: "6-9 岁孩子开始有'不想说'的东西。尊重他的沉默跟回应他的表达一样重要。如果现在逼他什么都说，青春期他会什么都不说。"
-    triggerAge: { startMonths: 72, endMonths: 108 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "6-9 岁孩子第一次有'不想说'的内容，现在被强迫交代，青春期就会彻底封口。"
-      howTo:
-        - "察觉到他不想说时，明确表达'你可以不说，我随时在'。"
-        - "区分安全类（必须问清）和偏好类（可以不问）。"
-        - "不用追问代替信任，用'我就在这儿'代替'你必须告诉我'。"
-      doneWhen: "最近一次孩子不想说的时候，你没有追问而是给空间。"
-      pitfalls:
-        - "以爱之名追问细节，把不信任包装成关心。"
-      sources:
-        - { citation: "Gordon-PET" }
-    tags: [respecting-silence, privacy, trust]
-
-  - ruleId: PO-REM-REL-008
-    domain: relationship
-    category: stage
-    kind: practice
-    title: "青春期前关键储备：无目的共处"
-    description: "9-12 岁是最后一个你还比较容易'够到'孩子的窗口。找到至少一个你们之间没有教育目的的共同活动——一起打球、看剧、做饭。这个纯粹的共处空间在青春期会变成关系的避风港。"
-    triggerAge: { startMonths: 108, endMonths: 132 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: observe
-    explain:
-      whyNow: "9-12 岁是最后一个'还能轻松够到孩子'的窗口；此时建立无教育目的的共同活动，青春期就有避风港。"
-      howTo:
-        - "选一个你和孩子都愿意重复参与的活动（运动、看剧、做饭、拼乐高等）。"
-        - "把它固定在每周某个时段，不谈学业、不借题说教。"
-        - "允许孩子选曲/选菜/定节奏，你配合不主导。"
-        - "在 ParentOS 日记中每月记录一次这项活动的进展和感受。"
-      doneWhen: "至少一个共同活动已稳定进行 4 周以上，双方都期待。"
-      pitfalls:
-        - "把共同活动变成隐形说教场（'你看打球都能教你坚持'）。"
-      sources:
-        - { citation: "Gottman-relationship-research" }
-    tags: [shared-activity, relationship-reserve, pre-adolescent]
-
-  - ruleId: PO-REM-REL-009
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "青春期前关键储备：练习'最后说话'"
-    description: "9-12 岁开始练习：孩子说完一件事后，忍住不马上评价，让他自己把话说完，你最后再回应。这个习惯现在不练，青春期根本来不及。"
-    triggerAge: { startMonths: 108, endMonths: 144 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "9-12 岁是练习'让孩子把话说完'的最后时机；不练，青春期他直接不跟你说。"
-      howTo:
-        - "孩子开口说事时，先把手机放下、身体转向他。"
-        - "心里默数三到五秒，不立即回应或评价。"
-        - "先用'嗯'、复述他的重点，让他确信你听到了。"
-        - "最后再给自己的想法，而且只给一次。"
-      doneWhen: "过去一周你至少有两次做到先听完再回应而不是打断。"
-      pitfalls:
-        - "'我就是忍不住想马上纠正他'——那正是关系通道关上的起点。"
-      sources:
-        - { citation: "Gordon-PET" }
-        - { citation: "Faber-Mazlish" }
-    tags: [active-listening, last-to-speak, communication-skill]
-
-  - ruleId: PO-REM-REL-010
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "批评方式转型"
-    description: "9-12 岁孩子的自尊体系在快速建构。批评方式需要从'你做错了'转向'你觉得怎样会更好'。前者关闭对话，后者打开对话。"
-    triggerAge: { startMonths: 108, endMonths: 144 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "9-12 岁自尊体系在快速建构；'你做错了'型批评会直接关闭对话通道，后续十年都打不开。"
-      howTo:
-        - "下次想说'你错了'时，先停 3 秒。"
-        - "换成'我注意到 X，你觉得怎样会更好'。"
-        - "让孩子先提出改进方案，你只在需要时补位。"
-        - "不在外人/兄弟姐妹面前使用评价语，就事论事且私下进行。"
-      doneWhen: "最近一周的几次批评情境中，你都改用了开放式提问。"
-      pitfalls:
-        - "只换了句式但语气仍是裁决式，孩子能立刻识别并关闭。"
-      sources:
-        - { citation: "Ginott-parent-child-communication" }
-        - { citation: "Dweck-praise-research" }
-    tags: [criticism-style, self-esteem, open-dialogue]
-
-  - ruleId: PO-REM-REL-011
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "关系保全：关上的门不是拒绝"
-    description: "12-15 岁青春期早期，他关上房门不是在拒绝你，是在建立心理边界，这是健康的。你想知道他在想什么，最差的方式是直接问，最好的方式是在旁边做自己的事，等他主动开口。"
-    triggerAge: { startMonths: 144, endMonths: 180 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "12-15 岁关上的门是心理边界在建立，而不是拒绝你；读错意思就会误判为冲突。"
-      howTo:
-        - "敲门并等待回应，不强行推门。"
-        - "在他的空间旁边做自己的事（阅读、做饭），保持物理在场。"
-        - "他主动开口时放下所有事，给完整注意力。"
-        - "不用'在干嘛'追问，用'我在这儿，你有事随时'代替。"
-      doneWhen: "你能面对'关着的门'保持平静，不把它解读成敌意。"
-      pitfalls:
-        - "把情绪化的'为什么不跟我说'强加给孩子，进一步推远他。"
-      sources:
-        - { citation: "Erikson-identity-vs-role-confusion" }
-        - { citation: "Steinberg-adolescent-autonomy" }
-    tags: [boundary-respect, patience, adolescent-privacy]
-
-  - ruleId: PO-REM-REL-012
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "不在外人面前评价"
-    description: "12-15 岁的孩子对公开评价极度敏感。在亲戚面前说'他考了第一名'和'他最近不听话'造成的伤害程度是一样的——都是把他的私人领域公开化了。表扬和批评都请私下进行。"
-    triggerAge: { startMonths: 144, endMonths: 180 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "12-15 岁对公开评价极度敏感；无论是夸还是批评，把私人领域公开化都会损伤信任。"
-      howTo:
-        - "亲戚聚会、家长群里不主动谈孩子的具体表现。"
-        - "被动问到时用中性回答（'还不错，他自己有安排'）。"
-        - "表扬和批评都转到私下场合进行。"
-        - "和配偶约定：不在孩子面前评价他的同学或朋友。"
-      doneWhen: "最近一次家庭聚会你没有公开评价孩子。"
-      sources:
-        - { citation: "Ginott-parent-child-communication" }
-    tags: [public-evaluation, privacy, adolescent-sensitivity]
-
-  - ruleId: PO-REM-REL-013
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "行动示范代替语言教导"
-    description: "12-15 岁：你说的每句话他都会用'你是不是在说教'这个滤镜过一遍。能用行动示范的就不要用语言教导。当他做了你不认同的决定，在不涉及安全的前提下让他体验后果，比你阻止他更能维护关系。"
-    triggerAge: { startMonths: 144, endMonths: 180 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "12-15 岁任何语言教导都被滤镜识别为说教；此时行动示范的带宽远高于语言。"
-      howTo:
-        - "把想说的话先问自己：能不能直接用行动示范。"
-        - "自己实际执行（阅读、运动、守时）比让他'你应该'更有效。"
-        - "非安全问题上允许自然后果发生，用事实代替训诫。"
-        - "复盘时只说'这次你学到了什么'，不加'我早就说过'。"
-      doneWhen: "最近一次你选择用行动代替说教，孩子未产生抗拒。"
-      sources:
-        - { citation: "Montessori-natural-consequences" }
-        - { citation: "Gordon-PET" }
-    tags: [modeling, natural-consequences, anti-lecturing]
-
-  - ruleId: PO-REM-REL-014
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "从管理者到顾问：角色转型"
-    description: "15-18 岁：你的角色正在从'管理者'变成'顾问'。顾问的特点是——被咨询时才发言。他需要的不是你的答案，是你相信他能找到自己的答案。"
-    triggerAge: { startMonths: 180, endMonths: 216 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "15-18 岁如果你还以'管理者'姿态介入决策，孩子要么反抗要么变成依赖型成人。"
-      howTo:
-        - "默认不主动给建议，等他咨询你。"
-        - "被咨询时先问'你已经想到哪些选项'。"
-        - "用'我的经验是……你怎么看'代替'你应该……'。"
-        - "决定权最终留给他，承担结果也包括好结果。"
-      doneWhen: "最近一次他做重大决定，你是顾问而不是决策者。"
-      sources:
-        - { citation: "Gordon-PET" }
-        - { citation: "Steinberg-adolescent-autonomy" }
-    tags: [role-transition, consultant-parent, trust]
-
-  - ruleId: PO-REM-REL-015
-    domain: relationship
-    category: stage
-    kind: guide
-    title: "对等感：分享你自己的不确定"
-    description: "15-18 岁：你们之间最有价值的对话不再是你教他什么，而是你分享你自己的困惑、失败和不确定。这种对等感是成年后关系的基础。"
-    triggerAge: { startMonths: 180, endMonths: 216 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: read_guide
-    explain:
-      whyNow: "15-18 岁高价值的对话不再是'教他'，而是'让他看见一个真实的成年人'；对等感是成年后关系的基础。"
-      howTo:
-        - "分享你正在面对的困惑或失败（工作、生活选择）。"
-        - "不要求他提供答案，只是让他看到你在思考。"
-        - "承认自己也会犹豫、也会错，拒绝全能父母形象。"
-        - "在他分享类似困惑时，先共情再给经验。"
-      doneWhen: "最近一次你和孩子之间出现了'平等大人对话'的时刻。"
-      sources:
-        - { citation: "Gottman-relationship-research" }
-    tags: [vulnerability, equality, adult-relationship]
-
-  - ruleId: PO-REM-REL-016
-    domain: relationship
-    category: stage
-    kind: practice
-    title: "珍惜主动开口的时刻"
-    description: "15-18 岁：如果他主动来找你聊一件事，放下手里所有东西。这个频率会越来越低，每一次都很珍贵。"
-    triggerAge: { startMonths: 180, endMonths: 216 }
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: observe
-    explain:
-      whyNow: "15-18 岁孩子主动找你聊事的频率会持续下降，每一次都是关系资产的复利机会。"
-      howTo:
-        - "他走过来时立刻放下手机/电脑，转身面对他。"
-        - "不管你在忙什么，先给 15 分钟完整注意力。"
-        - "听完再提意见，不边听边想下一步怎么办。"
-        - "在 ParentOS 日记里记录主动交流的时刻，以便观察趋势。"
-      doneWhen: "最近一次他主动开口，你做到了立即放下手里的事情。"
-      pitfalls:
-        - "'等我这个弄完'——这种延迟会被理解为'我不重要'。"
-      sources:
-        - { citation: "Gottman-relationship-research" }
-    tags: [presence, active-listening, cherish-moments]
-
-  # ════════════════════════════════════════════════════════════
-  # Personalized Rules (AI 分析触发)
-  # 这些规则需要 triggerCondition，由提醒引擎结合孩子档案数据评估。
-  # Phase 3 实现，spec 先定义数据结构和触发条件。
-  # ════════════════════════════════════════════════════════════
-  - ruleId: PO-REM-PGRW-001
-    domain: growth
-    category: personalized
-    kind: consult
-    title: "身高增速放缓提示"
-    description: "连续两次测量显示身高增长速度明显低于同期参考范围，建议关注营养和运动状况。如持续偏离，建议咨询儿科医生。"
-    triggerAge: { startMonths: 0, endMonths: -1 }
-    triggerCondition:
-      dataField: "growth_measurements.height.velocity"
-      operator: trend_declining
-      value: 2
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: ai_consult
-    explain:
-      whyNow: "连续两次测量身高增速偏低，先理解数据再考虑专业咨询。"
-      howTo:
-        - "打开 AI 顾问，让它基于孩子的生长曲线解读速率变化。"
-        - "对照最近的营养摄入、睡眠、运动情况寻找可能原因。"
-        - "决定是否需要预约儿科/内分泌科门诊。"
-        - "咨询结论落到 ParentOS 的生长档案备注。"
-      doneWhen: "你已经通过 AI 顾问理解数据，并决定了下一步行动。"
-      sources:
-        - { citation: "WHO-growth-velocity-2009" }
-    tags: [growth-velocity, personalized]
-
-  - ruleId: PO-REM-PGRW-002
-    domain: growth
-    category: personalized
-    kind: consult
-    title: "体重增长异常提示"
-    description: "体重百分位跨越两条主要百分位线（如从 P50 降至 P10），建议咨询医生排查原因。"
-    triggerAge: { startMonths: 0, endMonths: -1 }
-    triggerCondition:
-      dataField: "growth_measurements.weight.percentile_shift"
-      operator: gt
-      value: 2
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: ai_consult
-    explain:
-      whyNow: "体重百分位跨越两条主要线属于需要专业排查的信号，先理解数据再决定就诊路径。"
-      howTo:
-        - "打开 AI 顾问，让它基于当前测量描述体重变化的客观事实。"
-        - "回顾近期饮食、活动、疾病史是否与变化吻合。"
-        - "讨论是否需要预约儿科就诊排查原因。"
-        - "将咨询结论和后续行动记入档案。"
-      doneWhen: "已理解数据含义并决定了就诊或继续观察的具体行动。"
-      sources:
-        - { citation: "WHO-growth-standards-2006" }
-    tags: [weight-faltering, personalized]
-
-  - ruleId: PO-REM-PVIS-001
-    domain: vision
-    category: personalized
-    kind: consult
-    title: "远视储备消耗过快提示"
-    description: "近两次远视储备测量值下降速度高于同龄参考值，近视风险升高。建议增加户外活动时间，减少近距离用眼。"
-    triggerAge: { startMonths: 36, endMonths: 144 }
-    triggerCondition:
-      dataField: "growth_measurements.hyperopia-reserve.velocity"
-      operator: trend_declining
-      value: 2
-    priority: P1
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    actionType: ai_consult
-    explain:
-      whyNow: "近两次远视储备下降过快，需要理解趋势并立即调整用眼/户外节奏。"
-      howTo:
-        - "打开 AI 顾问，让它基于两次屈光数据描述变化斜率。"
-        - "核对最近户外时间、近距离用眼时长。"
-        - "讨论具体可行的户外增量和用眼规则。"
-        - "在 ParentOS 户外目标中相应上调每周分钟数。"
-      doneWhen: "你已调整了具体的户外/用眼计划，并与孩子达成共识。"
-      sources:
-        - { citation: "NHC-vision-2023" }
-    tags: [myopia-risk, hyperopia-reserve, personalized]
-
-  - ruleId: PO-REM-PMLS-001
-    domain: language
-    category: personalized
-    kind: consult
-    title: "语言发育里程碑未达成提示"
-    description: "孩子已超过该里程碑的典型达成月龄范围上限，且尚未记录达成。建议关注语言输入量，如持续未达成可咨询发育行为儿科医生。"
-    triggerAge: { startMonths: 9, endMonths: 36 }
-    triggerCondition:
-      dataField: "milestone_records.PO-MS-LANG-003.achievedAt"
-      operator: missing
-      value: null
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: ai_consult
-    explain:
-      whyNow: "已超过典型达成月龄上限且未记录达成，需要先理解情况再决定行动。"
-      howTo:
-        - "打开 AI 顾问，描述孩子目前的语言表现和家庭输入习惯。"
-        - "讨论可以立刻改善的家庭环境（共读、真实对话）。"
-        - "判断是否需要预约发育行为儿科门诊。"
-        - "将讨论结论记入档案。"
-      doneWhen: "已明确下一步是自行观察一段时间还是预约专业评估。"
-      sources:
-        - { citation: "CDC-milestones-2022" }
-    tags: [language-delay-watch, personalized]
-
-  - ruleId: PO-REM-PINT-001
-    domain: interest
-    category: personalized
-    kind: consult
-    title: "兴趣模式识别提示"
-    description: "AI 分析观察日记发现孩子在某个领域持续表现出浓厚兴趣（同一智能倾向标签连续出现 5 次以上），可以考虑为这个兴趣提供更多探索机会。"
-    triggerAge: { startMonths: 36, endMonths: -1 }
-    triggerCondition:
-      dataField: "journal_tags.domain=interest.tag_frequency"
-      operator: gt
-      value: 5
-    priority: P3
-    nurtureMode: { relaxed: hidden, balanced: silent, advanced: push }
-    actionType: ai_consult
-    explain:
-      whyNow: "AI 在日记中识别到一个持续兴趣信号，适合咨询讨论如何扩展或深化。"
-      howTo:
-        - "打开 AI 顾问查看识别出的兴趣标签及其出现上下文。"
-        - "讨论哪些资源、活动能延展这个兴趣而不过度主导。"
-        - "设定一个月内的小尝试（新书、新活动、新同伴）。"
-        - "在 ParentOS 日记里标记尝试结果。"
-      doneWhen: "你已经和 AI 顾问确定了一个具体、短期、可执行的延展尝试。"
-      sources:
-        - { citation: "ParentOS-methodology" }
-    tags: [interest-pattern, personalized]
-
-  # ── 体态档案 ────────────────────────────────────────────────
-  - ruleId: PO-REM-POS-001
-    domain: posture
-    category: stage
-    kind: task
-    title: "脊柱侧弯筛查"
-    description: "青春期身高猛长期脊柱侧弯风险增加，建议每年检查一次。"
-    triggerAge: { startMonths: 96, endMonths: 192 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: go_hospital
-    repeatRule: { intervalMonths: 12, maxRepeats: 8 }
-    explain:
-      whyNow: "青春期身高猛长期脊柱侧弯风险显著增加，每年筛查可以早期发现早期干预。"
-      howTo:
-        - "预约骨科或儿童保健科做脊柱前屈测试。"
-        - "记录 Cobb 角（如有）或医生结论。"
-        - "在 ParentOS 体态档案中录入当年结论。"
-      doneWhen: "当年脊柱筛查已完成，结论已录入档案。"
-      sources:
-        - { citation: "SOSORT-2016" }
-    tags: [scoliosis, posture, annual]
-
-  - ruleId: PO-REM-POS-002
-    domain: posture
-    category: stage
-    kind: task
-    title: "足弓发育评估"
-    description: "3-6 岁足弓发育关键期，建议每年评估一次足弓状态。"
-    triggerAge: { startMonths: 36, endMonths: 72 }
-    priority: P2
-    nurtureMode: { relaxed: hidden, balanced: silent, advanced: push }
-    actionType: go_hospital
-    repeatRule: { intervalMonths: 12, maxRepeats: 3 }
-    explain:
-      whyNow: "3-6 岁是足弓发育关键期，每年一次评估可以识别扁平足需要干预的情况。"
-      howTo:
-        - "预约儿童骨科或专业足科。"
-        - "做站立位足印/足弓高度测量。"
-        - "询问是否需要矫正鞋垫或训练。"
-        - "在 ParentOS 体态档案中录入当年结论。"
-      doneWhen: "当年足弓评估完成，结论已录入档案。"
-      sources:
-        - { citation: "AAP-pediatric-foot-2018" }
-    tags: [flat-foot, posture, annual]
-
-  # ── 体能评测 ────────────────────────────────────────────────
-  - ruleId: PO-REM-FIT-001
-    domain: fitness
-    category: stage
-    kind: task
-    title: "学年体能测试记录"
-    description: "每学年记录一次体能测试成绩，追踪体能发展趋势。"
-    triggerAge: { startMonths: 72, endMonths: 216 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: record_data
-    repeatRule: { intervalMonths: 12, maxRepeats: 12 }
-    explain:
-      whyNow: "学校每学年都有体能测试，及时把成绩沉淀到 ParentOS 能形成长期趋势。"
-      howTo:
-        - "拿到学校体能测试成绩单。"
-        - "在 ParentOS 体能档案中录入各项目成绩。"
-        - "对比去年数据，关注明显下降项。"
-      doneWhen: "本学年体能测试成绩已录入档案。"
-      sources:
-        - { citation: "national-student-fitness-standard-2014" }
-    tags: [fitness, school, annual]
-
-  # ── 青春期发育 Tanner ───────────────────────────────────────
-  - ruleId: PO-REM-TAN-001
-    domain: tanner
-    category: stage
-    kind: task
-    title: "青春期发育自评（女孩）"
-    description: "女孩 8 岁后建议每 6-12 个月进行一次 Tanner 分期自评，关注发育进程。"
-    triggerAge: { startMonths: 96, endMonths: 192 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: record_data
-    repeatRule: { intervalMonths: 6, maxRepeats: 16 }
-    explain:
-      whyNow: "女孩 8 岁后每 6-12 个月一次 Tanner 自评可以发现青春期启动过早/过晚的信号。"
-      howTo:
-        - "选择一个私密、不尴尬的时机和孩子一起完成自评。"
-        - "使用 ParentOS 提供的 Tanner 分期图示对照。"
-        - "将当期结果录入档案并关注进程速度。"
-        - "出现异常早/晚时结合骨龄评估和医生咨询。"
-      doneWhen: "本期 Tanner 自评已录入档案。"
-      sources:
-        - { citation: "Marshall-Tanner-1969" }
-    tags: [tanner, puberty, self-assessment, gender:female]
-
-  - ruleId: PO-REM-TAN-002
-    domain: tanner
-    category: stage
-    kind: task
-    title: "青春期发育自评（男孩）"
-    description: "男孩 9 岁后建议每 6-12 个月进行一次 Tanner 分期自评，关注发育进程。"
-    triggerAge: { startMonths: 108, endMonths: 192 }
-    priority: P2
-    nurtureMode: { relaxed: silent, balanced: push, advanced: push }
-    actionType: record_data
-    repeatRule: { intervalMonths: 6, maxRepeats: 14 }
-    explain:
-      whyNow: "男孩 9 岁后每 6-12 个月一次 Tanner 自评可以发现青春期启动过早/过晚的信号。"
-      howTo:
-        - "选择一个私密、不尴尬的时机和孩子一起完成自评。"
-        - "使用 ParentOS 提供的 Tanner 分期图示对照。"
-        - "将当期结果录入档案并关注进程速度。"
-        - "出现异常早/晚时结合骨龄评估和医生咨询。"
-      doneWhen: "本期 Tanner 自评已录入档案。"
-      sources:
-        - { citation: "Marshall-Tanner-1970" }
-    tags: [tanner, puberty, self-assessment, gender:male]

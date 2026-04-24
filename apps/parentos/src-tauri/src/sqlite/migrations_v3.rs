@@ -111,10 +111,15 @@ fn migrate_dismissed_reminder_states(conn: &Connection) -> Result<(), String> {
 }
 
 fn load_reminder_rule_priorities() -> Result<HashMap<String, String>, String> {
-    let catalog: ReminderRuleCatalog = serde_yaml::from_str(include_str!(
+    let mut catalog: ReminderRuleCatalog = serde_yaml::from_str(include_str!(
         "../../../spec/kernel/tables/reminder-rules.yaml",
     ))
     .map_err(|e| format!("migration v3 parse reminder-rules.yaml failed: {e}"))?;
+    let extended: ReminderRuleCatalog = serde_yaml::from_str(include_str!(
+        "../../../spec/kernel/tables/reminder-rules-extended.yaml",
+    ))
+    .map_err(|e| format!("migration v3 parse reminder-rules-extended.yaml failed: {e}"))?;
+    catalog.rules.extend(extended.rules);
 
     Ok(catalog
         .rules
