@@ -5,7 +5,7 @@
 | Metric | Value |
 |---|---|
 | `total_c_rules` | 58 |
-| `audit_date` | 2026-04-16 |
+| `audit_date` | 2026-04-24 |
 
 ## Evidence Catalog
 
@@ -45,14 +45,14 @@
 | `C-COG-020` | `covered` | `cognition_build_gate`, `cognition_test_gate` | — |
 | `C-COG-021` | `covered` | `cognition_spec_governance_gate`, `cognition_test_gate` | — |
 | `C-COG-022` | `covered` | `cognition_build_gate`, `cognition_test_gate` | — |
-| `C-COG-023` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Typed reference integrity now covers save-time validation, target liveness, memory delete/remove blockers for admitted knowledge citations, active-only kernel-rule citation validation, and kernel-rule deactivation blockers. |
+| `C-COG-023` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Typed reference integrity now covers save-time validation, admitted target-family fail-closed checks, target liveness, memory delete/remove blockers for admitted knowledge citations, active-only kernel-rule citation validation, and kernel-rule deactivation blockers. R20 finding-0002 is closed by rejecting kernel_rule-to-kernel_rule artifact refs before commit. |
 | `C-COG-024` | `covered` | `cognition_test_gate` | — |
 | `C-COG-025` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_vet_gate` | — |
 | `C-COG-026` | `covered` | `cognition_build_gate`, `cognition_test_gate` | — |
 | `C-COG-027` | `covered` | `cognition_build_gate`, `cognition_test_gate` | — |
 | `C-COG-028` | `covered` | `cognition_build_gate`, `cognition_test_gate` | — |
 | `C-COG-029` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Memory, knowledge, skill, and working services now expose the admitted owner-true surfaces, including explicit history and delete where owned. |
-| `C-COG-030` | `covered` | `cognition_test_gate`, `cognition_generated_docs_gate` | Prompt now consumes only service-owned memory views plus validated knowledge and skill artifacts, and malformed advisory inputs fail closed. |
+| `C-COG-030` | `covered` | `cognition_test_gate`, `cognition_generated_docs_gate` | Prompt now consumes only service-owned memory views plus validated knowledge and skill artifacts, and malformed advisory inputs fail closed. R20 finding-0003 is closed by moving raw prompt renderers behind an internal package consumed only by PromptService. |
 | `C-COG-031` | `covered` | `cognition_test_gate` | — |
 | `C-COG-032` | `covered` | `cognition_test_gate` | Digest worker path remains the authoritative routine entry; public-surface authority now matches the admitted worker return contract, and typed routine contract plus persisted digest evidence close the admitted path while digest-package run/analyze/apply tests remain internal helper evidence rather than the primary closeout proof. |
 | `C-COG-033` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | — |
@@ -72,7 +72,7 @@
 | `C-COG-047` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Reference matrix authority now matches the redesigned implementation: kernel outgoing refs to advisory artifacts are admitted, reverse refs into kernels remain forbidden, and knowledge graph truth is first-class relation-row based. |
 | `C-COG-048` | `covered` | `cognition_test_gate`, `cognition_generated_docs_gate` | Refgraph now explains cleanup through live-only support summaries, broken targets, outgoing dependency health, and remove blockers consumed by digest. |
 | `C-COG-049` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Missing-target handling now rejects invalid save paths and preserves explicit archive/remove blockers through refgraph-backed cleanup evaluation. |
-| `C-COG-050` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Prompt lane registry is now explicit and structurally validated. |
+| `C-COG-050` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Prompt lane registry is now explicit and structurally validated; public prompt rendering remains admitted only through PromptService.FormatCore, PromptService.FormatAdvisory, and PromptService.FormatAll. |
 | `C-COG-051` | `covered` | `cognition_test_gate`, `cognition_generated_docs_gate` | Prompt separation now rests on strict lane-local inputs, validated advisory artifacts, and service-owned memory views rather than formatting-only convention. |
 | `C-COG-052` | `covered` | `cognition_test_gate`, `cognition_generated_docs_gate` | Prompt rendering now fails close on malformed advisory projections and forbidden advisory derivation inputs. |
 | `C-COG-053` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate`, `cognition_semantic_completeness_gate` | Completion gates are now explicit and included in generated cognition views. |
@@ -80,4 +80,4 @@
 | `C-COG-055` | `covered` | `cognition_spec_governance_gate`, `cognition_build_gate`, `cognition_test_gate` | Runtime independence is supported by cognition authority plus standalone build/test/race evidence, but it remains only one input to top-level completion and does not by itself close C-COG-004. |
 | `C-COG-056` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Skill service operation registry is now explicit and aligned to validated save/load/list/search/delete/history/list_ids behavior. |
 | `C-COG-057` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Skill now owns strict step validation plus explicit archive/remove/delete lifecycle semantics with visible history and removed-state retrieval behavior. |
-| `C-COG-058` | `covered` | `cognition_spec_governance_gate`, `cognition_build_gate`, `cognition_test_gate` | Skill remains cognition-owned advisory retrieval/lifecycle only and does not absorb runtime execution-policy or scheduler ownership. |
+| `C-COG-058` | `covered` | `cognition_spec_governance_gate`, `cognition_build_gate`, `cognition_test_gate` | Skill remains cognition-owned advisory retrieval/lifecycle only and does not absorb runtime execution-policy or scheduler ownership. R20 finding-0004 is closed by removing untyped bundle metadata from the admitted Bundle shape and excluding unadmitted metadata from skill FTS. |
