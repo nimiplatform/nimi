@@ -12,7 +12,6 @@ const AUTH_SESSION_FILE_NAME: &str = "session.v1.json";
 const AUTH_SESSION_DEV_FILE_NAME: &str = "session.dev.v1.json";
 const AUTH_SESSION_KEY_SERVICE: &str = "nimi.desktop.auth-session";
 const AUTH_SESSION_KEY_ACCOUNT: &str = "master-key.v1";
-const AUTH_SESSION_DEV_USE_KEYCHAIN_ENV: &str = "NIMI_DESKTOP_DEV_USE_KEYCHAIN";
 const AES_KEY_LEN: usize = 32;
 const AES_NONCE_LEN: usize = 12;
 
@@ -98,30 +97,15 @@ fn auth_session_dev_path() -> Result<PathBuf, String> {
     auth_session_path_for_file(AUTH_SESSION_DEV_FILE_NAME)
 }
 
-fn env_flag_enabled(raw: Option<&str>) -> bool {
-    matches!(
-        raw.map(str::trim).map(str::to_ascii_lowercase).as_deref(),
-        Some("1" | "true" | "yes" | "on")
-    )
-}
-
 fn should_use_keyring_session_storage_from_env(
-    is_debug_build: bool,
-    env_value: Option<&str>,
+    _is_debug_build: bool,
+    _env_value: Option<&str>,
 ) -> bool {
-    if !is_debug_build {
-        return true;
-    }
-    env_flag_enabled(env_value)
+    true
 }
 
 fn should_use_keyring_session_storage() -> bool {
-    should_use_keyring_session_storage_from_env(
-        cfg!(debug_assertions),
-        std::env::var(AUTH_SESSION_DEV_USE_KEYCHAIN_ENV)
-            .ok()
-            .as_deref(),
-    )
+    should_use_keyring_session_storage_from_env(cfg!(debug_assertions), None)
 }
 
 fn read_or_create_master_key<FR, FW>(
@@ -337,54 +321,6 @@ fn save_auth_session_to_path(
     atomic_write_session_file(path, &file_payload)
 }
 
-fn save_plaintext_auth_session_to_path(
-    path: &Path,
-    payload: &AuthSessionSavePayload,
-) -> Result<(), String> {
-    let session = AuthSessionLoadResult {
-        realm_base_url: payload.realm_base_url.trim().to_string(),
-        access_token: payload.access_token.trim().to_string(),
-        refresh_token: payload
-            .refresh_token
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(ToOwned::to_owned),
-        user: payload.user.clone(),
-        updated_at: payload.updated_at.trim().to_string(),
-        expires_at: payload
-            .expires_at
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(ToOwned::to_owned),
-    };
-
-    if session.realm_base_url.is_empty() {
-        return Err("保存 auth session 失败: realmBaseUrl 不能为空".to_string());
-    }
-    if session.access_token.is_empty() {
-        return Err("保存 auth session 失败: accessToken 不能为空".to_string());
-    }
-    if session.updated_at.is_empty() {
-        return Err("保存 auth session 失败: updatedAt 不能为空".to_string());
-    }
-    if let Some(user) = session.user.as_ref() {
-        if user.id.trim().is_empty() {
-            return Err("保存 auth session 失败: user.id 不能为空".to_string());
-        }
-    }
-
-    let serialized = serde_json::to_vec_pretty(&session)
-        .map_err(|error| format!("序列化开发态 auth session 文件失败: {error}"))?;
-    let parent = path
-        .parent()
-        .ok_or_else(|| format!("auth session 路径缺少父目录: {}", path.display()))?;
-    fs::create_dir_all(parent)
-        .map_err(|error| format!("创建 auth session 目录失败 ({}): {error}", parent.display()))?;
-    write_restricted_file(path, &serialized)
-}
-
 fn load_auth_session_from_path(
     path: &Path,
     key: &[u8],
@@ -457,39 +393,6 @@ fn load_auth_session_from_path(
     }))
 }
 
-fn load_plaintext_auth_session_from_path(
-    path: &Path,
-) -> Result<Option<AuthSessionLoadResult>, String> {
-    let raw = match fs::read_to_string(path) {
-        Ok(value) => value,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => {
-            return Err(format!(
-                "读取开发态 auth session 文件失败 ({}): {error}",
-                path.display()
-            ))
-        }
-    };
-
-    let parsed = match serde_json::from_str::<AuthSessionLoadResult>(&raw) {
-        Ok(value) => value,
-        Err(error) => {
-            let _ = clear_session_file(path);
-            return Err(format!(
-                "解析开发态 auth session 文件失败并已清理 ({}): {error}",
-                path.display()
-            ));
-        }
-    };
-
-    if parsed.realm_base_url.trim().is_empty() || parsed.access_token.trim().is_empty() {
-        let _ = clear_session_file(path);
-        return Err("开发态 auth session 缺少必填字段并已清理".to_string());
-    }
-
-    Ok(Some(parsed))
-}
-
 fn coerce_cleared_session_load_result(
     result: Result<Option<AuthSessionLoadResult>, String>,
 ) -> Result<Option<AuthSessionLoadResult>, String> {
@@ -499,51 +402,44 @@ fn coerce_cleared_session_load_result(
     }
 }
 
+fn clear_legacy_plaintext_dev_session_file() -> Result<(), String> {
+    let path = auth_session_dev_path()?;
+    clear_session_file(path.as_path())
+}
+
 #[tauri::command]
 pub fn auth_session_load() -> Result<Option<AuthSessionLoadResult>, String> {
-    if should_use_keyring_session_storage() {
-        let path = auth_session_path()?;
-        let key = load_master_key()?;
-        return coerce_cleared_session_load_result(load_auth_session_from_path(
-            path.as_path(),
-            key.as_slice(),
-        ));
-    }
-
-    let path = auth_session_dev_path()?;
-    coerce_cleared_session_load_result(load_plaintext_auth_session_from_path(path.as_path()))
+    clear_legacy_plaintext_dev_session_file()?;
+    let path = auth_session_path()?;
+    let key = load_master_key()?;
+    coerce_cleared_session_load_result(load_auth_session_from_path(
+        path.as_path(),
+        key.as_slice(),
+    ))
 }
 
 #[tauri::command]
 pub fn auth_session_save(payload: AuthSessionSavePayload) -> Result<(), String> {
-    if should_use_keyring_session_storage() {
-        let path = auth_session_path()?;
-        let key = load_master_key()?;
-        return save_auth_session_to_path(path.as_path(), key.as_slice(), &payload);
-    }
-
-    let path = auth_session_dev_path()?;
-    save_plaintext_auth_session_to_path(path.as_path(), &payload)
+    let path = auth_session_path()?;
+    let key = load_master_key()?;
+    save_auth_session_to_path(path.as_path(), key.as_slice(), &payload)?;
+    clear_legacy_plaintext_dev_session_file()
 }
 
 #[tauri::command]
 pub fn auth_session_clear() -> Result<(), String> {
-    let path = if should_use_keyring_session_storage() {
-        auth_session_path()?
-    } else {
-        auth_session_dev_path()?
-    };
-    clear_session_file(path.as_path())
+    let path = auth_session_path()?;
+    clear_session_file(path.as_path())?;
+    clear_legacy_plaintext_dev_session_file()
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
         clear_session_file, coerce_cleared_session_load_result, load_auth_session_from_path,
-        load_plaintext_auth_session_from_path, normalize_master_key_read_result,
-        read_or_create_master_key, save_auth_session_to_path, save_plaintext_auth_session_to_path,
+        normalize_master_key_read_result, read_or_create_master_key, save_auth_session_to_path,
         should_use_keyring_session_storage_from_env, AuthSessionLoadResult, AuthSessionSavePayload,
-        AuthSessionUser, AES_KEY_LEN, AUTH_SESSION_DEV_USE_KEYCHAIN_ENV,
+        AuthSessionUser, AES_KEY_LEN,
     };
     use crate::test_support::with_env;
     use std::cell::RefCell;
@@ -563,10 +459,6 @@ mod tests {
 
     fn session_path(name: &str) -> PathBuf {
         temp_dir(name).join("session.v1.json")
-    }
-
-    fn dev_session_path(name: &str) -> PathBuf {
-        temp_dir(name).join("session.dev.v1.json")
     }
 
     fn fixed_key() -> Vec<u8> {
@@ -665,14 +557,14 @@ mod tests {
     }
 
     #[test]
-    fn debug_build_uses_plaintext_storage_by_default() {
+    fn debug_build_uses_keyring_storage_by_default() {
         let uses_keyring = should_use_keyring_session_storage_from_env(true, None);
-        assert!(!uses_keyring);
+        assert!(uses_keyring);
     }
 
     #[test]
-    fn debug_build_can_force_keyring_storage_via_env() {
-        let uses_keyring = should_use_keyring_session_storage_from_env(true, Some("1"));
+    fn debug_build_does_not_allow_env_to_disable_keyring_storage() {
+        let uses_keyring = should_use_keyring_session_storage_from_env(true, Some("0"));
         assert!(uses_keyring);
     }
 
@@ -683,42 +575,12 @@ mod tests {
     }
 
     #[test]
-    fn plaintext_session_round_trip() {
-        let path = dev_session_path("plaintext-round-trip");
-        let payload = AuthSessionSavePayload {
-            realm_base_url: "https://realm.nimi.test".to_string(),
-            access_token: "access-token".to_string(),
-            refresh_token: Some("refresh-token".to_string()),
-            user: Some(AuthSessionUser {
-                id: "user-1".to_string(),
-                display_name: "User One".to_string(),
-                email: Some("user@example.com".to_string()),
-                avatar_url: None,
-            }),
-            updated_at: "2026-04-05T10:00:00.000Z".to_string(),
-            expires_at: Some("2026-04-05T11:00:00.000Z".to_string()),
-        };
-
-        save_plaintext_auth_session_to_path(path.as_path(), &payload).expect("save plaintext");
-        let loaded = load_plaintext_auth_session_from_path(path.as_path())
-            .expect("load plaintext")
-            .expect("plaintext session exists");
-        assert_eq!(loaded.realm_base_url, payload.realm_base_url);
-        assert_eq!(loaded.access_token, payload.access_token);
-        assert_eq!(loaded.refresh_token, payload.refresh_token);
-        assert_eq!(loaded.updated_at, payload.updated_at);
-        assert_eq!(loaded.expires_at, payload.expires_at);
-        assert_eq!(loaded.user, payload.user);
-    }
-
-    #[test]
-    fn auth_session_dev_env_override_is_respected() {
-        with_env(&[(AUTH_SESSION_DEV_USE_KEYCHAIN_ENV, Some("1"))], || {
+    fn auth_session_dev_env_override_cannot_disable_secure_storage() {
+        with_env(&[("NIMI_DESKTOP_DEV_USE_KEYCHAIN", Some("1"))], || {
             assert!(super::should_use_keyring_session_storage());
         });
-        with_env(&[(AUTH_SESSION_DEV_USE_KEYCHAIN_ENV, None)], || {
-            #[cfg(debug_assertions)]
-            assert!(!super::should_use_keyring_session_storage());
+        with_env(&[("NIMI_DESKTOP_DEV_USE_KEYCHAIN", Some("0"))], || {
+            assert!(super::should_use_keyring_session_storage());
         });
     }
 

@@ -178,6 +178,35 @@ export function persistAccessToken(accessToken: string): void {
   persistAuthSession({ accessToken });
 }
 
+export function persistAuthSessionMetadata(input: {
+  user?: Record<string, unknown> | null;
+  expiresAt?: string | null;
+  updatedAt?: string | null;
+}): void {
+  if (!canPersistWebAuthSession()) {
+    return;
+  }
+
+  const previous = loadPersistedAuthSession();
+  const normalizedUserValue = input.user === undefined
+    ? (previous?.user ?? null)
+    : input.user;
+  const updatedAt = String(input.updatedAt || '').trim() || new Date().toISOString();
+  const expiresAt = String(input.expiresAt || '').trim();
+
+  const payload: PersistedWebAuthSession = {
+    ...(normalizedUserValue ? { user: normalizedUserValue } : {}),
+    updatedAt,
+    ...(expiresAt ? { expiresAt } : {}),
+  };
+
+  try {
+    writeSessionKeys(payload);
+  } catch {
+    // ignore storage failures
+  }
+}
+
 export function clearPersistedAccessToken(): void {
   clearStoredAuthSession();
 }

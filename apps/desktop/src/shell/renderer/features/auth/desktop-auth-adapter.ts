@@ -1,6 +1,7 @@
 import {
   clearPersistedAccessToken,
-  persistAuthSession,
+  persistAuthSessionMetadata,
+  resolveSessionExpiry,
   type AuthPlatformAdapter,
 } from '@nimiplatform/nimi-kit/auth';
 import type { TauriOAuthBridge } from '@nimiplatform/nimi-kit/core/oauth';
@@ -186,10 +187,11 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
     },
     persistSession: async ({ accessToken, refreshToken, user }) => {
       if (isWebShellMode()) {
-        persistAuthSession({
-          accessToken,
-          refreshToken,
+        const updatedAt = new Date().toISOString();
+        persistAuthSessionMetadata({
           user,
+          updatedAt,
+          expiresAt: resolveSessionExpiry(accessToken, updatedAt),
         });
         return;
       }

@@ -89,6 +89,7 @@ test('web auth session storage persists metadata only and never restores raw acc
     authSessionStorageSource,
     /export function loadPersistedAccessToken\(\): string \{\s*return '';\s*\}/s,
   );
+  assert.match(authSessionStorageSource, /export function persistAuthSessionMetadata\(/);
 
   const repoRoot = path.join(import.meta.dirname, '../../..');
   const authSessionStorageModuleUrl = pathToFileURL(
@@ -106,7 +107,10 @@ test('web auth session storage persists metadata only and never restores raw acc
     });
     globalThis.__NIMI_IMPORT_META_ENV__ = { VITE_NIMI_SHELL_MODE: 'web' };
     const mod = await import(${JSON.stringify(authSessionStorageModuleUrl)});
-    mod.persistAuthSession({ accessToken: 'access-123', user: { id: 'u1' } });
+    mod.persistAuthSessionMetadata({
+      user: { id: 'u1' },
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    });
     const session = mod.loadPersistedAuthSession();
     const token = mod.loadPersistedAccessToken();
     process.stdout.write(JSON.stringify({
@@ -194,7 +198,11 @@ test('web auth adapter stores browser metadata instead of calling shared desktop
   );
   assert.match(
     desktopAuthAdapterSource,
-    /if \(isWebShellMode\(\)\) \{\s*persistAuthSession\(\{\s*accessToken,\s*refreshToken,\s*user,\s*\}\);\s*return;\s*\}/s,
+    /if \(isWebShellMode\(\)\) \{\s*const updatedAt = new Date\(\)\.toISOString\(\);\s*persistAuthSessionMetadata\(\{\s*user,\s*updatedAt,\s*expiresAt: resolveSessionExpiry\(accessToken, updatedAt\),\s*\}\);\s*return;\s*\}/s,
+  );
+  assert.doesNotMatch(
+    desktopAuthAdapterSource,
+    /if \(isWebShellMode\(\)\) \{\s*persistAuthSession\(\{\s*accessToken,\s*refreshToken,\s*user,/s,
   );
   assert.match(
     desktopAuthAdapterSource,

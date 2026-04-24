@@ -49,6 +49,7 @@ export {
 export {
   loadPersistedAuthSession,
   persistAuthSession,
+  persistAuthSessionMetadata,
   persistAccessToken,
   loadPersistedAccessToken,
   clearPersistedAccessToken,

@@ -14,6 +14,7 @@ import {
   WEB_AUTH_SESSION_KEY,
   loadPersistedAuthSession,
   persistAuthSession,
+  persistAuthSessionMetadata,
 } from '../../../kit/auth/src/logic/auth-session-storage.js';
 import { submitDesktopCallbackResult } from '../../../kit/auth/src/logic/desktop-callback-helpers.js';
 import { handleWalletLogin } from '../../../kit/auth/src/logic/auth-menu-handlers-ext.js';
@@ -213,6 +214,33 @@ test('persistAuthSession stores session expiry metadata without raw access token
     };
     assert.equal(typeof stored.expiresAt, 'string');
     assert.equal('accessToken' in stored, false);
+    assert.equal(stored.user?.id, 'u1');
+  } finally {
+    restoreEnv();
+    restoreWindow();
+  }
+});
+
+test('persistAuthSessionMetadata stores web auth metadata without accepting raw tokens', () => {
+  const restoreWindow = installWindowForTest();
+  const restoreEnv = installImportMetaEnvForTest({
+    VITE_NIMI_SHELL_MODE: 'web',
+  });
+  try {
+    persistAuthSessionMetadata({
+      user: { id: 'u1' },
+      updatedAt: '2026-04-24T00:00:00.000Z',
+      expiresAt: '2026-04-24T01:00:00.000Z',
+    });
+    const stored = JSON.parse(String(globalThis.localStorage.getItem(WEB_AUTH_SESSION_KEY) || '{}')) as {
+      accessToken?: string;
+      refreshToken?: string;
+      expiresAt?: string;
+      user?: { id?: string };
+    };
+    assert.equal(stored.expiresAt, '2026-04-24T01:00:00.000Z');
+    assert.equal('accessToken' in stored, false);
+    assert.equal('refreshToken' in stored, false);
     assert.equal(stored.user?.id, 'u1');
   } finally {
     restoreEnv();
