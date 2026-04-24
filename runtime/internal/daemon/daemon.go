@@ -4,14 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
-	"net/http"
-	"runtime"
-	"sort"
-	"strings"
-	"sync"
-	"time"
-
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
@@ -20,34 +12,36 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/httpserver"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
+	"log/slog"
+	"net/http"
+	"runtime"
+	"strings"
+	"sync"
+	"time"
 )
 
 // Daemon wires runtime servers and health state lifecycle.
 type Daemon struct {
-	cfg        config.Config
-	logger     *slog.Logger
-	state      *health.State
-	grpc       *grpcserver.Server
-	http       *httpserver.Server
-	aiHealth   *providerhealth.Tracker
-	auditStore *auditlog.Store
-	engineMgr  *engine.Manager
-
+	cfg                       config.Config
+	logger                    *slog.Logger
+	state                     *health.State
+	grpc                      *grpcserver.Server
+	http                      *httpserver.Server
+	aiHealth                  *providerhealth.Tracker
+	auditStore                *auditlog.Store
+	engineMgr                 *engine.Manager
 	newEngineManager          func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
 	startEngineFn             func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
 	probeAIProviderFn         func(ctx context.Context, client *http.Client, target aiProviderTarget) error
 	detectMediaHostSupportFn  func() (engine.MediaHostSupport, string)
 	imageBootstrapSelectionFn func() (engine.ImageSupervisedMatrixSelection, bool)
 	listEmbeddingAssetsFn     func(context.Context) ([]*runtimev1.LocalAssetRecord, error)
-
-	providerFailureHintMu sync.RWMutex
-	providerFailureHints  map[string]string
-	startupStatusMu       sync.Mutex
-	startupDegradedReason string
-	stopSupervisedOnce    sync.Once
-	stopSupervisedFn      func()
-
+	providerFailureHintMu     sync.RWMutex
+	providerFailureHints      map[string]string
+	startupStatusMu           sync.Mutex
+	startupDegradedReason     string
+	stopSupervisedOnce        sync.Once
+	stopSupervisedFn          func()
 	// resolvedImageMatrix caches the v2 image supervised matrix selection
 	// from startup. Used for health attribution detail enrichment per K-PROV-002.
 	resolvedImageMatrix *engine.ImageSupervisedMatrixSelection
@@ -109,13 +103,11 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 	)
 	return d, nil
 }
-
 func (d *Daemon) Run(ctx context.Context) error {
 	d.aiHealth = d.grpc.AIHealthTracker()
 	d.auditStore = d.grpc.AuditStore()
 	d.state.SetStatus(health.StatusStarting, "booting")
 	d.grpc.SyncServingState()
-
 	backgroundCtx, cancelBackground := context.WithCancel(context.Background())
 	defer cancelBackground()
 	var backgroundWG sync.WaitGroup
@@ -124,7 +116,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 		defer backgroundWG.Done()
 		d.sampleRuntimeResource(backgroundCtx)
 	}()
-
 	errCh := make(chan error, 2)
 	go func() {
 		errCh <- d.grpc.Serve()
@@ -132,10 +123,8 @@ func (d *Daemon) Run(ctx context.Context) error {
 	go func() {
 		errCh <- d.http.Serve()
 	}()
-
 	// Start supervised engines if configured.
 	d.startSupervisedEngines(ctx)
-
 	if err := d.refreshManagedEmbeddingProfile(backgroundCtx); err != nil {
 		cancelBackground()
 		backgroundWG.Wait()
@@ -144,7 +133,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 		}
 		return fmt.Errorf("refresh managed embedding profile: %w", err)
 	}
-
 	if memorySvc := d.grpc.MemoryService(); memorySvc != nil && memorySvc.PersistenceBackend() != nil {
 		if _, err := memorySvc.PersistenceBackend().BackupNow(backgroundCtx); err != nil {
 			cancelBackground()
@@ -155,7 +143,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 			return fmt.Errorf("startup sqlite backup: %w", err)
 		}
 	}
-
 	startupDegradedReason := d.consumeStartupDegradedReason()
 	d.state.SetStatus(health.StatusReady, "ready")
 	d.grpc.SyncServingState()
@@ -174,7 +161,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 		d.transitionToDegraded(startupDegradedReason)
 		d.logger.Warn("runtime started in degraded state", "reason", startupDegradedReason)
 	}
-
 	go func() {
 		defer backgroundWG.Done()
 		d.sampleAIProviderHealth(backgroundCtx)
@@ -185,7 +171,6 @@ func (d *Daemon) Run(ctx context.Context) error {
 			aiSvc.RunVoiceAssetDeleteReconciliationLoop(backgroundCtx)
 		}
 	}()
-
 	var serveErr error
 	remainingServers := cap(errCh)
 waitForShutdown:
@@ -205,14 +190,12 @@ waitForShutdown:
 			break waitForShutdown
 		}
 	}
-
 	cancelBackground()
 	backgroundWG.Wait()
 	if agentSvc := d.grpc.AgentService(); agentSvc != nil {
 		agentSvc.StopLifeTrackLoop()
 	}
 	shutdownErr := d.shutdown()
-
 	if serveErr != nil {
 		if shutdownErr != nil {
 			return fmt.Errorf("serve error: %w (shutdown: %v)", serveErr, shutdownErr)
@@ -221,11 +204,9 @@ waitForShutdown:
 	}
 	return shutdownErr
 }
-
 func (d *Daemon) shutdown() error {
 	d.state.SetStatus(health.StatusStopping, "shutting down")
 	d.grpc.SyncServingState()
-
 	ctx, cancel := context.WithTimeout(context.Background(), d.cfg.ShutdownTimeout)
 	defer cancel()
 	activeAtStart := d.grpc.BeginShutdown()
@@ -233,14 +214,11 @@ func (d *Daemon) shutdown() error {
 		d.logger.Warn("canceling active runtime RPCs for shutdown", "count", len(activeAtStart))
 	}
 	waitForShutdownDrain(ctx, d.cfg.ShutdownTimeout)
-
 	d.stopSupervisedEngines("stopping supervised engines")
-
 	var backupErr error
 	if memorySvc := d.grpc.MemoryService(); memorySvc != nil && memorySvc.PersistenceBackend() != nil {
 		_, backupErr = memorySvc.PersistenceBackend().BackupNow(ctx)
 	}
-
 	httpErr := d.http.Shutdown(ctx)
 	grpcResult := d.grpc.Stop(ctx)
 	appendShutdownAudit(d.auditStore, grpcResult.Shutdown)
@@ -253,19 +231,15 @@ func (d *Daemon) shutdown() error {
 	if cognitionSvc := d.grpc.CognitionService(); cognitionSvc != nil {
 		cognitionCloseErr = cognitionSvc.Close()
 	}
-
 	d.state.SetStatus(health.StatusStopped, "stopped")
-
 	if joined := errors.Join(backupErr, httpErr, closeErr, cognitionCloseErr); joined != nil {
 		return fmt.Errorf("shutdown runtime: %w", joined)
 	}
 	return nil
 }
-
 func (d *Daemon) EmergencyStopSupervisedEngines() {
 	d.stopSupervisedEngines("forcing supervised engines to stop after repeated shutdown signal")
 }
-
 func (d *Daemon) stopSupervisedEngines(reason string) {
 	d.stopSupervisedOnce.Do(func() {
 		d.logger.Info(reason)
@@ -277,11 +251,9 @@ func (d *Daemon) stopSupervisedEngines(reason string) {
 		}
 	})
 }
-
 func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -293,7 +265,6 @@ func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 		}
 	}
 }
-
 func (d *Daemon) refreshManagedEmbeddingProfile(ctx context.Context) error {
 	memorySvc := d.grpc.MemoryService()
 	if memorySvc == nil {
@@ -310,218 +281,6 @@ func (d *Daemon) refreshManagedEmbeddingProfile(ctx context.Context) error {
 	memorySvc.SetManagedEmbeddingProfile(selectManagedEmbeddingProfile(assets))
 	return nil
 }
-
-func selectManagedEmbeddingProfile(assets []*runtimev1.LocalAssetRecord) *runtimev1.MemoryEmbeddingProfile {
-	if len(assets) == 0 {
-		return nil
-	}
-	filtered := make([]*runtimev1.LocalAssetRecord, 0, len(assets))
-	for _, asset := range assets {
-		if asset == nil || asset.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-			continue
-		}
-		filtered = append(filtered, asset)
-	}
-	if len(filtered) == 0 {
-		return nil
-	}
-	sort.Slice(filtered, func(i, j int) bool {
-		assetIDI := strings.TrimSpace(filtered[i].GetAssetId())
-		assetIDJ := strings.TrimSpace(filtered[j].GetAssetId())
-		if assetIDI != assetIDJ {
-			return assetIDI < assetIDJ
-		}
-		return strings.TrimSpace(filtered[i].GetLocalAssetId()) < strings.TrimSpace(filtered[j].GetLocalAssetId())
-	})
-	selected := filtered[0]
-	modelID := strings.TrimSpace(selected.GetAssetId())
-	if modelID == "" {
-		modelID = strings.TrimSpace(selected.GetLocalAssetId())
-	}
-	if modelID == "" {
-		return nil
-	}
-	version := modelID
-	timestamp := strings.TrimSpace(selected.GetUpdatedAt())
-	if timestamp == "" {
-		timestamp = strings.TrimSpace(selected.GetInstalledAt())
-	}
-	if timestamp != "" {
-		version = modelID + "@" + timestamp
-	}
-	return &runtimev1.MemoryEmbeddingProfile{
-		Provider:        "local",
-		ModelId:         modelID,
-		Dimension:       256,
-		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
-		Version:         version,
-		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
-	}
-}
-
-func (d *Daemon) bindCanonicalMemoryStandard(ctx context.Context, agentID string) (httpserver.CanonicalBindResult, error) {
-	memorySvc := d.grpc.MemoryService()
-	if memorySvc == nil {
-		return httpserver.CanonicalBindResult{}, fmt.Errorf("memory service is unavailable")
-	}
-	if err := d.refreshManagedEmbeddingProfile(ctx); err != nil {
-		return httpserver.CanonicalBindResult{}, err
-	}
-	locator := &runtimev1.MemoryBankLocator{
-		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: strings.TrimSpace(agentID)},
-		},
-	}
-	ensured, err := memorySvc.EnsureCanonicalBank(ctx, locator, "", nil)
-	if err != nil {
-		return httpserver.CanonicalBindResult{}, err
-	}
-	if ensured.GetEmbeddingProfile() != nil {
-		return httpserver.CanonicalBindResult{
-			AlreadyBound: true,
-			Bank:         ensured,
-		}, nil
-	}
-	bound, err := memorySvc.BindCanonicalBankEmbeddingProfile(ctx, locator)
-	if err != nil {
-		return httpserver.CanonicalBindResult{}, err
-	}
-	return httpserver.CanonicalBindResult{
-		AlreadyBound: false,
-		Bank:         bound,
-	}, nil
-}
-
-func memoryEmbeddingIntentSnapshotFromHTTP(input *httpserver.MemoryEmbeddingBindingIntentSnapshot) *memoryservice.MemoryEmbeddingBindingIntentSnapshot {
-	if input == nil {
-		return nil
-	}
-	return &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind: memoryservice.MemoryEmbeddingBindingSourceKind(strings.TrimSpace(input.SourceKind)),
-		CloudBinding: func() *memoryservice.MemoryEmbeddingCloudBindingRef {
-			if input.CloudBinding == nil {
-				return nil
-			}
-			return &memoryservice.MemoryEmbeddingCloudBindingRef{
-				ConnectorID: strings.TrimSpace(input.CloudBinding.ConnectorID),
-				ModelID:     strings.TrimSpace(input.CloudBinding.ModelID),
-			}
-		}(),
-		LocalBinding: func() *memoryservice.MemoryEmbeddingLocalBindingRef {
-			if input.LocalBinding == nil {
-				return nil
-			}
-			return &memoryservice.MemoryEmbeddingLocalBindingRef{
-				LocalModelID: strings.TrimSpace(input.LocalBinding.TargetID),
-			}
-		}(),
-		RevisionToken: strings.TrimSpace(input.RevisionToken),
-	}
-}
-
-func runtimeAgentBankLocator(agentID string) *runtimev1.MemoryBankLocator {
-	return &runtimev1.MemoryBankLocator{
-		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: strings.TrimSpace(agentID)},
-		},
-	}
-}
-
-func (d *Daemon) inspectMemoryEmbeddingForAgent(ctx context.Context, req httpserver.MemoryEmbeddingAgentRequest) (httpserver.MemoryEmbeddingInspectResult, error) {
-	memorySvc := d.grpc.MemoryService()
-	if memorySvc == nil {
-		return httpserver.MemoryEmbeddingInspectResult{}, fmt.Errorf("memory service is unavailable")
-	}
-	if err := d.refreshManagedEmbeddingProfile(ctx); err != nil {
-		return httpserver.MemoryEmbeddingInspectResult{}, err
-	}
-	state, err := memorySvc.InspectMemoryEmbeddingState(ctx, memoryservice.InspectMemoryEmbeddingStateRequest{
-		Locator:               runtimeAgentBankLocator(req.TargetRef.AgentID),
-		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromHTTP(req.BindingIntentSnapshot),
-	})
-	if err != nil {
-		return httpserver.MemoryEmbeddingInspectResult{}, err
-	}
-	result := httpserver.MemoryEmbeddingInspectResult{
-		BindingIntentPresent:    state.BindingIntentPresent,
-		BindingSourceKind:       strings.TrimSpace(string(state.BindingSourceKind)),
-		ResolutionState:         strings.TrimSpace(state.ResolutionState),
-		ResolvedProfileIdentity: memoryserviceProfileIdentity(state.ResolvedProfileIdentity),
-		CanonicalBankStatus:     strings.TrimSpace(state.CanonicalBankStatus),
-		BlockedReasonCode:       reasonCodeString(state.BlockedReasonCode),
-	}
-	result.OperationReadiness.BindAllowed = state.OperationReadiness.BindAllowed
-	result.OperationReadiness.CutoverAllowed = state.OperationReadiness.CutoverAllowed
-	return result, nil
-}
-
-func (d *Daemon) requestMemoryEmbeddingBindForAgent(ctx context.Context, req httpserver.MemoryEmbeddingAgentRequest) (httpserver.MemoryEmbeddingBindResult, error) {
-	memorySvc := d.grpc.MemoryService()
-	if memorySvc == nil {
-		return httpserver.MemoryEmbeddingBindResult{}, fmt.Errorf("memory service is unavailable")
-	}
-	if err := d.refreshManagedEmbeddingProfile(ctx); err != nil {
-		return httpserver.MemoryEmbeddingBindResult{}, err
-	}
-	result, err := memorySvc.RequestCanonicalMemoryEmbeddingBind(ctx, memoryservice.RequestCanonicalMemoryEmbeddingBindRequest{
-		Locator:               runtimeAgentBankLocator(req.TargetRef.AgentID),
-		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromHTTP(req.BindingIntentSnapshot),
-	})
-	if err != nil {
-		return httpserver.MemoryEmbeddingBindResult{}, err
-	}
-	return httpserver.MemoryEmbeddingBindResult{
-		Outcome:                  strings.TrimSpace(result.Outcome),
-		BlockedReasonCode:        reasonCodeString(result.BlockedReasonCode),
-		CanonicalBankStatusAfter: strings.TrimSpace(result.CanonicalBankStatusAfter),
-		PendingCutover:           result.PendingCutover,
-	}, nil
-}
-
-func (d *Daemon) requestMemoryEmbeddingCutoverForAgent(ctx context.Context, req httpserver.MemoryEmbeddingAgentRequest) (httpserver.MemoryEmbeddingCutoverResult, error) {
-	memorySvc := d.grpc.MemoryService()
-	if memorySvc == nil {
-		return httpserver.MemoryEmbeddingCutoverResult{}, fmt.Errorf("memory service is unavailable")
-	}
-	if err := d.refreshManagedEmbeddingProfile(ctx); err != nil {
-		return httpserver.MemoryEmbeddingCutoverResult{}, err
-	}
-	result, err := memorySvc.RequestMemoryEmbeddingCutover(ctx, memoryservice.RequestMemoryEmbeddingCutoverRequest{
-		Locator:               runtimeAgentBankLocator(req.TargetRef.AgentID),
-		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromHTTP(req.BindingIntentSnapshot),
-	})
-	if err != nil {
-		return httpserver.MemoryEmbeddingCutoverResult{}, err
-	}
-	return httpserver.MemoryEmbeddingCutoverResult{
-		Outcome:                  strings.TrimSpace(result.Outcome),
-		BlockedReasonCode:        reasonCodeString(result.BlockedReasonCode),
-		CanonicalBankStatusAfter: strings.TrimSpace(result.CanonicalBankStatusAfter),
-	}, nil
-}
-
-func reasonCodeString(value runtimev1.ReasonCode) string {
-	if value == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		return ""
-	}
-	return value.String()
-}
-
-func memoryserviceProfileIdentity(profile *runtimev1.MemoryEmbeddingProfile) string {
-	if profile == nil {
-		return ""
-	}
-	version := strings.TrimSpace(profile.GetVersion())
-	modelID := strings.TrimSpace(profile.GetModelId())
-	provider := strings.TrimSpace(profile.GetProvider())
-	if version != "" {
-		return strings.TrimSpace(strings.Join([]string{provider, modelID, version}, ":"))
-	}
-	return strings.TrimSpace(strings.Join([]string{provider, modelID}, ":"))
-}
-
 func waitForShutdownDrain(ctx context.Context, timeout time.Duration) {
 	wait := timeout / 10
 	if wait > maxShutdownDrainWait {
@@ -537,7 +296,6 @@ func waitForShutdownDrain(ctx context.Context, timeout time.Duration) {
 	case <-timer.C:
 	}
 }
-
 func logShutdownSummary(logger *slog.Logger, summary grpcserver.ShutdownSummary) {
 	if logger == nil {
 		return
@@ -560,7 +318,6 @@ func logShutdownSummary(logger *slog.Logger, summary grpcserver.ShutdownSummary)
 		"cancelled_methods", summary.CancelledByMethod,
 	)
 }
-
 func (d *Daemon) setDegradedStatus(reason string) {
 	trimmedReason := strings.TrimSpace(reason)
 	if trimmedReason == "" {
@@ -577,12 +334,10 @@ func (d *Daemon) setDegradedStatus(reason string) {
 	}
 	d.transitionToDegraded(trimmedReason)
 }
-
 func (d *Daemon) transitionToDegraded(reason string) {
 	d.state.SetStatus(health.StatusDegraded, reason)
 	d.grpc.SyncServingState()
 }
-
 func (d *Daemon) consumeStartupDegradedReason() string {
 	d.startupStatusMu.Lock()
 	defer d.startupStatusMu.Unlock()
@@ -590,7 +345,6 @@ func (d *Daemon) consumeStartupDegradedReason() string {
 	d.startupDegradedReason = ""
 	return reason
 }
-
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	svc := d.grpc.LocalService()
 	effectiveManagedLlama := d.cfg.EngineLlamaEnabled
@@ -601,11 +355,9 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if !effectiveManagedLlama && !managedImageAssetsPresent && !d.cfg.EngineMediaEnabled && !d.cfg.EngineSpeechEnabled && !d.cfg.EngineSidecarEnabled {
 		return
 	}
-
 	onState := func(kind engine.EngineKind, status engine.EngineStatus, detail string) {
 		d.onEngineStateChange(string(kind), string(status), detail)
 	}
-
 	managerFactory := d.newEngineManager
 	if managerFactory == nil {
 		managerFactory = engine.NewManager
@@ -621,7 +373,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	d.engineMgr = mgr
 	managedLlamaConfigPath := resolveManagedLlamaModelsConfigPath()
 	mgr.SetLlamaPaths(d.cfg.LocalModelsPath, managedLlamaConfigPath)
-
 	// Inject engine manager into local service for gRPC access.
 	skipLlamaBootstrap := false
 	mediaHostSupport, _ := d.detectMediaHostSupport()
@@ -691,7 +442,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			skipLlamaBootstrap = true
 		}
 	}
-
 	var wg sync.WaitGroup
 	type bootstrapFailure struct {
 		kind   engine.EngineKind
@@ -718,30 +468,24 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			}
 		}()
 	}
-
 	if effectiveManagedLlama && !skipLlamaBootstrap {
 		bootstrap(engine.EngineLlama, d.cfg.EngineLlamaVersion, d.cfg.EngineLlamaPort,
 			"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL")
 	}
-
 	if managedMediaLoopback {
 		bootstrap(engine.EngineMedia, d.cfg.EngineMediaVersion, d.cfg.EngineMediaPort,
 			"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL")
 	}
-
 	if d.cfg.EngineSpeechEnabled {
 		bootstrap(engine.EngineSpeech, d.cfg.EngineSpeechVersion, d.cfg.EngineSpeechPort,
 			"NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL")
 	}
-
 	if d.cfg.EngineSidecarEnabled {
 		bootstrap(engineSidecar, d.cfg.EngineSidecarVersion, d.cfg.EngineSidecarPort,
 			"NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL")
 	}
-
 	wg.Wait()
 	close(failures)
-
 	firstFailure := ""
 	for failure := range failures {
 		if firstFailure == "" {
@@ -764,7 +508,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		d.setDegradedStatus(fmt.Sprintf("engine bootstrap failed (%s)", firstFailure))
 	}
 }
-
 func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error {
 	var cfg engine.EngineConfig
 	switch kind {
@@ -795,7 +538,6 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 			}
 		}
 	}
-
 	cfg, err := d.engineMgr.EnsureEngine(ctx, cfg)
 	if err != nil {
 		d.logger.Error("ensure engine failed",
@@ -804,7 +546,6 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 		)
 		return fmt.Errorf("ensure %s: %w", kind, err)
 	}
-
 	if err := d.engineMgr.StartEngine(ctx, cfg); err != nil {
 		d.logger.Error("start engine failed",
 			"engine", kind,
@@ -812,11 +553,9 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 		)
 		return fmt.Errorf("start %s: %w", kind, err)
 	}
-
 	d.injectEngineEndpointEnv(kind, envKey, "bootstrap")
 	return nil
 }
-
 func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, source string) {
 	if d.engineMgr == nil || strings.TrimSpace(envKey) == "" {
 		return
@@ -856,7 +595,6 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 		"env", envKey,
 	)
 }
-
 func (d *Daemon) onEngineStateChange(engineName string, status string, detail string) {
 	snapshot := d.state.Snapshot()
 	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
@@ -872,7 +610,6 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 			}
 		}
 	}
-
 	switch status {
 	case "unhealthy":
 		d.setDegradedStatus(fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))

@@ -5,16 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"strings"
-	"time"
-
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"io"
+	"strings"
+	"time"
 )
 
 // K-AGCORE-032 reactive chat consume seam constants.
@@ -48,9 +47,7 @@ const (
 	publicChatDefaultTurnTimeoutMs       int32 = 120_000
 	publicChatMaxFollowUpTurns                 = 8
 )
-
 const PublicChatRuntimeAppID = publicChatRuntimeAppID
-
 const (
 	publicChatTurnOriginUser     = "user"
 	publicChatTurnOriginFollowUp = "follow_up"
@@ -63,13 +60,11 @@ const (
 const publicChatTurnTrackLabel = "chat"
 
 type publicChatAppMessageEmitter func(context.Context, *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error)
-
 type publicChatExecutionBinding struct {
 	ModelID     string
 	RoutePolicy runtimev1.RoutePolicy
 	ConnectorID string
 }
-
 type publicChatReasoningConfig struct {
 	Mode         runtimev1.ReasoningMode
 	TraceMode    runtimev1.ReasoningTraceMode
@@ -102,7 +97,6 @@ type publicChatAnchorState struct {
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 }
-
 type publicChatTurnState struct {
 	ConversationAnchorID string
 	TurnID               string
@@ -135,19 +129,16 @@ type publicChatTurnState struct {
 	SourceActionID   string
 	Projection       *publicChatTurnProjectionState
 }
-
 type publicChatMessagePayload struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 	Name    string `json:"name,omitempty"`
 }
-
 type publicChatExecutionBindingPayload struct {
 	Route       string `json:"route"`
 	ModelID     string `json:"model_id"`
 	ConnectorID string `json:"connector_id,omitempty"`
 }
-
 type publicChatReasoningPayload struct {
 	Mode         string `json:"mode,omitempty"`
 	TraceMode    string `json:"trace_mode,omitempty"`
@@ -171,18 +162,15 @@ type publicChatTurnRequestPayload struct {
 	ExecutionBinding     *publicChatExecutionBindingPayload `json:"execution_binding,omitempty"`
 	Reasoning            *publicChatReasoningPayload        `json:"reasoning,omitempty"`
 }
-
 type publicChatTurnInterruptPayload struct {
 	ConversationAnchorID string `json:"conversation_anchor_id"`
 	TurnID               string `json:"turn_id,omitempty"`
 	Reason               string `json:"reason,omitempty"`
 }
-
 type publicChatSessionSnapshotRequestPayload struct {
 	ConversationAnchorID string `json:"conversation_anchor_id"`
 	RequestID            string `json:"request_id,omitempty"`
 }
-
 type PublicChatTurnExecutionRequest struct {
 	AppID         string
 	SubjectUserID string
@@ -192,26 +180,20 @@ type PublicChatTurnExecutionRequest struct {
 	Binding       publicChatExecutionBinding
 	Reasoning     *publicChatReasoningConfig
 }
-
 type PublicChatTurnExecutor interface {
 	StreamChatTurn(context.Context, *PublicChatTurnExecutionRequest, func(*runtimev1.StreamScenarioEvent) error) error
 }
-
 type rejectingPublicChatTurnExecutor struct{}
-
 type publicChatScenarioStreamer interface {
 	StreamScenario(*runtimev1.StreamScenarioRequest, grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error
 }
-
 type aiBackedPublicChatTurnExecutor struct {
 	ai publicChatScenarioStreamer
 }
-
 type publicChatScenarioStreamServer struct {
 	ctx  context.Context
 	send func(*runtimev1.StreamScenarioEvent) error
 }
-
 type publicChatAssistantMemoryOutcome struct {
 	Status        string
 	AcceptedCount int
@@ -219,7 +201,6 @@ type publicChatAssistantMemoryOutcome struct {
 	ReasonCode    runtimev1.ReasonCode
 	Message       string
 }
-
 type publicChatSidecarOutcome struct {
 	Status              string
 	AcceptedMemoryCount int
@@ -229,13 +210,11 @@ type publicChatSidecarOutcome struct {
 	ReasonCode          runtimev1.ReasonCode
 	Message             string
 }
-
 type publicChatPostTurnOutcome struct {
 	AssistantMemory publicChatAssistantMemoryOutcome
 	Sidecar         publicChatSidecarOutcome
 	FollowUp        publicChatFollowUpOutcome
 }
-
 type ChatTrackSidecarApplySummary struct {
 	AcceptedMemoryCount int
 	CanceledHookIDs     []string
@@ -246,7 +225,6 @@ type ChatTrackSidecarApplySummary struct {
 func (rejectingPublicChatTurnExecutor) StreamChatTurn(context.Context, *PublicChatTurnExecutionRequest, func(*runtimev1.StreamScenarioEvent) error) error {
 	return fmt.Errorf("runtime public chat turn executor unavailable or not admitted")
 }
-
 func IsPublicChatIngressMessageType(messageType string) bool {
 	switch strings.TrimSpace(messageType) {
 	case publicChatTurnRequestType, publicChatTurnInterruptType, publicChatSessionSnapshotRequestType:
@@ -255,27 +233,21 @@ func IsPublicChatIngressMessageType(messageType string) bool {
 		return false
 	}
 }
-
 func NewAIBackedPublicChatTurnExecutor(ai publicChatScenarioStreamer) PublicChatTurnExecutor {
 	if ai == nil {
 		return rejectingPublicChatTurnExecutor{}
 	}
 	return &aiBackedPublicChatTurnExecutor{ai: ai}
 }
-
-func (s *publicChatScenarioStreamServer) SetHeader(metadata.MD) error { return nil }
-
+func (s *publicChatScenarioStreamServer) SetHeader(metadata.MD) error  { return nil }
 func (s *publicChatScenarioStreamServer) SendHeader(metadata.MD) error { return nil }
-
-func (s *publicChatScenarioStreamServer) SetTrailer(metadata.MD) {}
-
+func (s *publicChatScenarioStreamServer) SetTrailer(metadata.MD)       {}
 func (s *publicChatScenarioStreamServer) Context() context.Context {
 	if s == nil || s.ctx == nil {
 		return context.Background()
 	}
 	return s.ctx
 }
-
 func (s *publicChatScenarioStreamServer) SendMsg(message any) error {
 	event, ok := message.(*runtimev1.StreamScenarioEvent)
 	if !ok {
@@ -283,18 +255,15 @@ func (s *publicChatScenarioStreamServer) SendMsg(message any) error {
 	}
 	return s.Send(event)
 }
-
 func (s *publicChatScenarioStreamServer) RecvMsg(any) error {
 	return io.EOF
 }
-
 func (s *publicChatScenarioStreamServer) Send(event *runtimev1.StreamScenarioEvent) error {
 	if s == nil || s.send == nil || event == nil {
 		return nil
 	}
 	return s.send(proto.Clone(event).(*runtimev1.StreamScenarioEvent))
 }
-
 func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 	ctx context.Context,
 	req *PublicChatTurnExecutionRequest,
@@ -339,7 +308,6 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 		},
 	})
 }
-
 func (s *Service) SetPublicChatTurnExecutor(executor PublicChatTurnExecutor) {
 	if s == nil || s.isClosed() {
 		return
@@ -347,7 +315,6 @@ func (s *Service) SetPublicChatTurnExecutor(executor PublicChatTurnExecutor) {
 	s.setPublicChatTurnExecutor(executor)
 	s.resumeRecoveredPublicChatFollowUps()
 }
-
 func (s *Service) HasPublicChatTurnExecutor() bool {
 	if s == nil || s.isClosed() {
 		return false
@@ -355,7 +322,6 @@ func (s *Service) HasPublicChatTurnExecutor() bool {
 	_, rejecting := s.currentPublicChatTurnExecutor().(rejectingPublicChatTurnExecutor)
 	return !rejecting
 }
-
 func (s *Service) SetPublicChatAppEmitter(emitter publicChatAppMessageEmitter) {
 	if s == nil || s.isClosed() {
 		return
@@ -365,11 +331,9 @@ func (s *Service) SetPublicChatAppEmitter(emitter publicChatAppMessageEmitter) {
 		s.resumeRecoveredPublicChatFollowUps()
 	}
 }
-
 func (s *Service) ConsumePublicChatAppMessage(ctx context.Context, event *runtimev1.AppMessageEvent) error {
 	return s.publicChatRuntime().consumeAppMessage(ctx, event)
 }
-
 func (s *Service) handlePublicChatTurnRequest(
 	ctx context.Context,
 	event *runtimev1.AppMessageEvent,
@@ -377,21 +341,18 @@ func (s *Service) handlePublicChatTurnRequest(
 ) error {
 	return s.publicChatRuntime().handleTurnRequest(ctx, event, req)
 }
-
 func (s *Service) handlePublicChatTurnInterrupt(
 	event *runtimev1.AppMessageEvent,
 	req publicChatTurnInterruptPayload,
 ) error {
 	return s.publicChatRuntime().handleTurnInterrupt(event, req)
 }
-
 func (s *Service) handlePublicChatSessionSnapshotRequest(
 	event *runtimev1.AppMessageEvent,
 	req publicChatSessionSnapshotRequestPayload,
 ) error {
 	return s.publicChatRuntime().handleSessionSnapshotRequest(event, req)
 }
-
 func (s *Service) runPublicChatTurn(
 	ctx context.Context,
 	session publicChatAnchorState,
@@ -400,7 +361,6 @@ func (s *Service) runPublicChatTurn(
 ) {
 	s.publicChatRuntime().runTurn(ctx, session, turn, req)
 }
-
 func (s *Service) reservePublicChatTurn(
 	parent context.Context,
 	callerAppID string,
@@ -409,18 +369,15 @@ func (s *Service) reservePublicChatTurn(
 ) (publicChatAnchorState, publicChatTurnState, context.Context, error) {
 	return s.publicChatRuntime().reserveTurn(parent, callerAppID, subjectUserID, req)
 }
-
 func (s *Service) releasePublicChatTurn(sessionID string, turnID string) {
 	s.publicChatRuntime().releaseTurn(sessionID, turnID)
 }
-
 func (s *Service) lookupPublicChatTurnForInterrupt(
 	callerAppID string,
 	req publicChatTurnInterruptPayload,
 ) (publicChatAnchorState, publicChatTurnState, error) {
 	return s.publicChatRuntime().lookupTurnForInterrupt(callerAppID, req)
 }
-
 func (s *Service) publicChatInterruptStatus(turnID string) (bool, string, string) {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
@@ -430,7 +387,6 @@ func (s *Service) publicChatInterruptStatus(turnID string) (bool, string, string
 	}
 	return turn.Interrupted, turn.InterruptReason, turn.LastKnownTraceID
 }
-
 func (s *Service) nextPublicChatStreamSequence(turnID string) uint64 {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
@@ -461,7 +417,6 @@ func (s *Service) publicChatTurnStreamID(turnID string) string {
 	}
 	return strings.TrimSpace(turn.StreamID)
 }
-
 func (s *Service) recordPublicChatTraceID(turnID string, traceID string) {
 	if strings.TrimSpace(turnID) == "" || strings.TrimSpace(traceID) == "" {
 		return
@@ -479,7 +434,6 @@ func (s *Service) recordPublicChatTraceID(turnID string, traceID string) {
 		}
 	}
 }
-
 func (s *Service) setPublicChatExecutionState(
 	agentID string,
 	subjectUserID string,
@@ -488,7 +442,6 @@ func (s *Service) setPublicChatExecutionState(
 ) error {
 	return s.publicChatRuntime().setExecutionState(agentID, subjectUserID, worldID, state)
 }
-
 func (s *Service) setPublicChatExecutionStateWithOrigin(
 	agentID string,
 	subjectUserID string,
@@ -498,7 +451,6 @@ func (s *Service) setPublicChatExecutionStateWithOrigin(
 ) error {
 	return s.publicChatRuntime().setExecutionStateWithOrigin(agentID, subjectUserID, worldID, state, origin)
 }
-
 func (s *Service) emitPublicChatTurnInterrupted(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
@@ -509,7 +461,6 @@ func (s *Service) emitPublicChatTurnInterrupted(
 ) {
 	s.publicChatRuntime().emitTurnInterrupted(session, turn, traceID, modelResolved, routeDecision, reason)
 }
-
 func (s *Service) emitPublicChatTurnFailed(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
@@ -522,7 +473,6 @@ func (s *Service) emitPublicChatTurnFailed(
 ) {
 	s.publicChatRuntime().emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, reasonCode, message, actionHint)
 }
-
 func (s *Service) emitPublicChatTurnEvent(
 	session publicChatAnchorState,
 	turnID string,
@@ -531,7 +481,6 @@ func (s *Service) emitPublicChatTurnEvent(
 ) error {
 	return s.publicChatRuntime().emitTurnEvent(session, turnID, messageType, payload)
 }
-
 func (s *Service) emitPublicChatEvent(
 	callerAppID string,
 	subjectUserID string,
@@ -540,11 +489,9 @@ func (s *Service) emitPublicChatEvent(
 ) error {
 	return s.publicChatRuntime().emitEvent(callerAppID, subjectUserID, messageType, payload)
 }
-
 func (s *Service) shutdownPublicChatSurface() {
 	s.publicChatRuntime().shutdownSurface()
 }
-
 func (s *Service) applyPublicChatPostTurn(
 	ctx context.Context,
 	session publicChatAnchorState,
@@ -554,7 +501,6 @@ func (s *Service) applyPublicChatPostTurn(
 ) publicChatPostTurnOutcome {
 	return s.publicChatRuntime().applyPostTurn(ctx, session, turn, req, structured)
 }
-
 func (s *Service) applyPublicChatAssistantTurnMemory(
 	ctx context.Context,
 	session publicChatAnchorState,
@@ -563,7 +509,6 @@ func (s *Service) applyPublicChatAssistantTurnMemory(
 ) publicChatAssistantMemoryOutcome {
 	return s.publicChatRuntime().applyAssistantTurnMemory(ctx, session, turn, assistantText)
 }
-
 func normalizePublicChatReasoning(input *publicChatReasoningPayload) *publicChatReasoningConfig {
 	if input == nil {
 		return nil
@@ -581,7 +526,6 @@ func normalizePublicChatReasoning(input *publicChatReasoningPayload) *publicChat
 		BudgetTokens: input.BudgetTokens,
 	}
 }
-
 func toProtoReasoningConfig(input *publicChatReasoningConfig) *runtimev1.ReasoningConfig {
 	if input == nil {
 		return nil
@@ -592,7 +536,6 @@ func toProtoReasoningConfig(input *publicChatReasoningConfig) *runtimev1.Reasoni
 		BudgetTokens: input.BudgetTokens,
 	}
 }
-
 func toProtoPublicChatMessages(input []publicChatMessagePayload) []*runtimev1.ChatMessage {
 	out := make([]*runtimev1.ChatMessage, 0, len(input))
 	for _, item := range input {
@@ -609,7 +552,6 @@ func toProtoPublicChatMessages(input []publicChatMessagePayload) []*runtimev1.Ch
 	}
 	return out
 }
-
 func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPayload, error) {
 	raw, err := decodePublicChatStructPayload(payload)
 	if err != nil {
@@ -644,7 +586,6 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 	}
 	return decoded, nil
 }
-
 func decodePublicChatTurnInterruptPayload(payload any) (publicChatTurnInterruptPayload, error) {
 	raw, err := decodePublicChatStructPayload(payload)
 	if err != nil {
@@ -668,7 +609,6 @@ func decodePublicChatTurnInterruptPayload(payload any) (publicChatTurnInterruptP
 	}
 	return decoded, nil
 }
-
 func decodePublicChatSessionSnapshotRequestPayload(payload any) (publicChatSessionSnapshotRequestPayload, error) {
 	raw, err := decodePublicChatStructPayload(payload)
 	if err != nil {
@@ -692,7 +632,6 @@ func decodePublicChatSessionSnapshotRequestPayload(payload any) (publicChatSessi
 	}
 	return decoded, nil
 }
-
 func decodePublicChatStructPayload(payload any) ([]byte, error) {
 	structPayload, ok := payload.(interface{ AsMap() map[string]any })
 	if !ok || structPayload == nil {
@@ -704,7 +643,6 @@ func decodePublicChatStructPayload(payload any) ([]byte, error) {
 	}
 	return raw, nil
 }
-
 func parsePublicChatRoutePolicy(value string) (runtimev1.RoutePolicy, error) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "local", "route_policy_local":
@@ -715,14 +653,12 @@ func parsePublicChatRoutePolicy(value string) (runtimev1.RoutePolicy, error) {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, status.Error(codes.InvalidArgument, "public chat execution_binding.route must be local or cloud")
 	}
 }
-
 func parseOptionalPublicChatRoutePolicy(value string) (runtimev1.RoutePolicy, error) {
 	if strings.TrimSpace(value) == "" {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, nil
 	}
 	return parsePublicChatRoutePolicy(value)
 }
-
 func parsePublicChatReasoningMode(value string) runtimev1.ReasoningMode {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "off", "reasoning_mode_off":
@@ -733,7 +669,6 @@ func parsePublicChatReasoningMode(value string) runtimev1.ReasoningMode {
 		return runtimev1.ReasoningMode_REASONING_MODE_UNSPECIFIED
 	}
 }
-
 func parsePublicChatReasoningTraceMode(value string) runtimev1.ReasoningTraceMode {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "hide", "reasoning_trace_mode_hide":
@@ -744,7 +679,6 @@ func parsePublicChatReasoningTraceMode(value string) runtimev1.ReasoningTraceMod
 		return runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_UNSPECIFIED
 	}
 }
-
 func publicChatRouteLabel(route runtimev1.RoutePolicy) string {
 	switch route {
 	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
@@ -755,13 +689,11 @@ func publicChatRouteLabel(route runtimev1.RoutePolicy) string {
 		return "unspecified"
 	}
 }
-
 func publicChatExecutionBindingMismatch(left publicChatExecutionBinding, right publicChatExecutionBinding) bool {
 	return strings.TrimSpace(left.ModelID) != strings.TrimSpace(right.ModelID) ||
 		left.RoutePolicy != right.RoutePolicy ||
 		strings.TrimSpace(left.ConnectorID) != strings.TrimSpace(right.ConnectorID)
 }
-
 func publicChatFinishReasonLabel(reason runtimev1.FinishReason) string {
 	switch reason {
 	case runtimev1.FinishReason_FINISH_REASON_STOP:
@@ -778,14 +710,12 @@ func publicChatFinishReasonLabel(reason runtimev1.FinishReason) string {
 		return "unspecified"
 	}
 }
-
 func publicChatReasonCodeLabel(code runtimev1.ReasonCode) string {
 	if code == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		return "REASON_CODE_UNSPECIFIED"
 	}
 	return code.String()
 }
-
 func usagePayload(usage *runtimev1.UsageStats) map[string]any {
 	if usage == nil {
 		return map[string]any{}
@@ -796,7 +726,6 @@ func usagePayload(usage *runtimev1.UsageStats) map[string]any {
 		"compute_ms":    usage.GetComputeMs(),
 	}
 }
-
 func (o publicChatAssistantMemoryOutcome) payload() map[string]any {
 	payload := map[string]any{
 		"status":         o.Status,
@@ -811,7 +740,6 @@ func (o publicChatAssistantMemoryOutcome) payload() map[string]any {
 	}
 	return payload
 }
-
 func (o publicChatSidecarOutcome) payload() map[string]any {
 	payload := map[string]any{
 		"status":                o.Status,
@@ -832,7 +760,6 @@ func (o publicChatSidecarOutcome) payload() map[string]any {
 	}
 	return payload
 }
-
 func stringSlicePayload(values []string) []any {
 	out := make([]any, 0, len(values))
 	for _, value := range values {

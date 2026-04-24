@@ -4,6 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,13 +18,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 func codexProbeJWTForTest(t *testing.T, accountID string) string {
@@ -33,11 +32,9 @@ func codexProbeJWTForTest(t *testing.T, accountID string) string {
 	}
 	return "hdr." + base64.RawURLEncoding.EncodeToString(raw) + ".sig"
 }
-
 func TestCreateConnector(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	resp, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: "https://api.openai.com/v1",
@@ -57,11 +54,9 @@ func TestCreateConnector(t *testing.T) {
 		t.Error("expected has_credential=true")
 	}
 }
-
 func TestCreateConnectorMissingAPIKey(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 	})
@@ -73,11 +68,9 @@ func TestCreateConnectorMissingAPIKey(t *testing.T) {
 		t.Errorf("expected InvalidArgument, got %v", st.Code())
 	}
 }
-
 func TestCreateConnectorRejectsUnknownOAuthProfile(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider:            "openai_compatible",
 		Endpoint:            "https://example.com/v1",
@@ -93,11 +86,9 @@ func TestCreateConnectorRejectsUnknownOAuthProfile(t *testing.T) {
 		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
 }
-
 func TestCreateConnectorRejectsIncompatibleOAuthProfile(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider:            "openai_compatible",
 		Endpoint:            "https://example.com/v1",
@@ -113,10 +104,8 @@ func TestCreateConnectorRejectsIncompatibleOAuthProfile(t *testing.T) {
 		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
 }
-
 func TestCreateConnectorAnonymousOAuthManagedRequiresAuth(t *testing.T) {
 	svc := newTestService(t)
-
 	_, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
 		Provider:            "openai_codex",
 		Endpoint:            "https://chatgpt.com/backend-api/codex",
@@ -132,11 +121,9 @@ func TestCreateConnectorAnonymousOAuthManagedRequiresAuth(t *testing.T) {
 		t.Fatalf("expected Unauthenticated, got %v", st.Code())
 	}
 }
-
 func TestCreateConnectorDefaultEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	resp, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "gemini",
 		ApiKey:   "test-key",
@@ -148,11 +135,9 @@ func TestCreateConnectorDefaultEndpoint(t *testing.T) {
 		t.Errorf("expected default gemini endpoint, got %s", resp.Connector.Endpoint)
 	}
 }
-
 func TestCreateConnectorReturnsFreshRecordWhenProviderRepeats(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	first, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Label:    "First",
@@ -176,11 +161,9 @@ func TestCreateConnectorReturnsFreshRecordWhenProviderRepeats(t *testing.T) {
 		t.Fatalf("expected second connector label to match created record, got %q", second.GetConnector().GetLabel())
 	}
 }
-
 func TestCreateConnectorLimit(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	// Create 128 connectors
 	for i := 0; i < maxConnectorsPerUser; i++ {
 		_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
@@ -191,7 +174,6 @@ func TestCreateConnectorLimit(t *testing.T) {
 			t.Fatalf("CreateConnector %d: %v", i, err)
 		}
 	}
-
 	// 129th should fail
 	_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
@@ -205,11 +187,9 @@ func TestCreateConnectorLimit(t *testing.T) {
 		t.Errorf("expected ResourceExhausted, got %v", st.Code())
 	}
 }
-
 func TestGetConnectorNotFound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
-
 	_, err := svc.GetConnector(ctx, &runtimev1.GetConnectorRequest{
 		ConnectorId: "nonexistent",
 	})
@@ -221,19 +201,16 @@ func TestGetConnectorNotFound(t *testing.T) {
 		t.Errorf("expected NotFound, got %v", st.Code())
 	}
 }
-
 func TestGetConnectorOwnerMismatch(t *testing.T) {
 	// K-AUTH-002: owner mismatch must be hidden as NOT_FOUND.
 	svc := newTestService(t)
 	user1Ctx := userContext("user-1")
 	user2Ctx := userContext("user-2")
-
 	resp, _ := svc.CreateConnector(user1Ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
 	})
 	connID := resp.Connector.ConnectorId
-
 	// Different owner should see NOT_FOUND (information hiding)
 	_, err := svc.GetConnector(user2Ctx, &runtimev1.GetConnectorRequest{
 		ConnectorId: connID,
@@ -246,11 +223,9 @@ func TestGetConnectorOwnerMismatch(t *testing.T) {
 		t.Errorf("expected NotFound, got %v", st.Code())
 	}
 }
-
 func TestListConnectorsAnonymousOnlySeesLocal(t *testing.T) {
 	// K-AUTH-001: anonymous callers may only see LOCAL_MODEL connectors.
 	svc := newTestService(t)
-
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
@@ -260,7 +235,6 @@ func TestListConnectorsAnonymousOnlySeesLocal(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateConnector: %v", err)
 	}
-
 	resp, err := svc.ListConnectors(context.Background(), &runtimev1.ListConnectorsRequest{})
 	if err != nil {
 		t.Fatalf("ListConnectors: %v", err)
@@ -274,11 +248,9 @@ func TestListConnectorsAnonymousOnlySeesLocal(t *testing.T) {
 		}
 	}
 }
-
 func TestConnectorOwnerTypeMapping(t *testing.T) {
 	// K-AUTH-003: authenticated REMOTE_MANAGED maps to REALM_USER, anonymous machine-global API-key connectors and LOCAL_MODEL map to SYSTEM.
 	svc := newTestService(t)
-
 	created, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
@@ -292,7 +264,6 @@ func TestConnectorOwnerTypeMapping(t *testing.T) {
 	if created.GetConnector().GetOwnerType() != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER {
 		t.Fatalf("expected remote connector owner type REALM_USER, got %v", created.GetConnector().GetOwnerType())
 	}
-
 	anonymousCreated, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
 		Provider: "gemini",
 		ApiKey:   "machine-key",
@@ -306,7 +277,6 @@ func TestConnectorOwnerTypeMapping(t *testing.T) {
 	if anonymousCreated.GetConnector().GetOwnerId() != "machine" {
 		t.Fatalf("expected anonymous remote connector owner_id=machine, got %q", anonymousCreated.GetConnector().GetOwnerId())
 	}
-
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
@@ -325,17 +295,14 @@ func TestConnectorOwnerTypeMapping(t *testing.T) {
 		}
 	}
 }
-
 func TestListConnectorsFiltering(t *testing.T) {
 	svc := newTestService(t)
 	user1Ctx := userContext("user-1")
 	user2Ctx := userContext("user-2")
-
 	// Ensure local connectors exist
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
-
 	// Create remote connectors for different users
 	if _, err := svc.CreateConnector(user1Ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
@@ -349,7 +316,6 @@ func TestListConnectorsFiltering(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateConnector user-2: %v", err)
 	}
-
 	// List for user-1: should see 6 local + 1 remote
 	resp, err := svc.ListConnectors(user1Ctx, &runtimev1.ListConnectorsRequest{})
 	if err != nil {
@@ -371,18 +337,15 @@ func TestListConnectorsFiltering(t *testing.T) {
 		t.Errorf("expected 1 remote connector for user-1, got %d", remoteCount)
 	}
 }
-
 func TestUpdateConnector(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
 		Label:    "Old",
 	})
 	connID := resp.Connector.ConnectorId
-
 	updated, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
 		ConnectorId: connID,
 		Label:       proto.String("New"),
@@ -395,11 +358,9 @@ func TestUpdateConnector(t *testing.T) {
 		t.Errorf("expected label 'New', got %q", updated.Connector.Label)
 	}
 }
-
 func TestConnectorManagementRequiresAuth(t *testing.T) {
 	// K-AUTH-004: user-owned connectors still require auth; machine-global API-key connectors remain manageable without JWT.
 	svc := newTestService(t)
-
 	createdAnonymous, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
@@ -410,7 +371,6 @@ func TestConnectorManagementRequiresAuth(t *testing.T) {
 	if createdAnonymous.GetConnector().GetOwnerId() != "machine" {
 		t.Fatalf("expected anonymous create to produce owner_id=machine, got %q", createdAnonymous.GetConnector().GetOwnerId())
 	}
-
 	_, err = svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
 		ConnectorId: createdAnonymous.GetConnector().GetConnectorId(),
 		Label:       proto.String("machine-global"),
@@ -418,14 +378,12 @@ func TestConnectorManagementRequiresAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected anonymous update of machine-global connector to succeed, got %v", err)
 	}
-
 	_, err = svc.DeleteConnector(context.Background(), &runtimev1.DeleteConnectorRequest{
 		ConnectorId: createdAnonymous.GetConnector().GetConnectorId(),
 	})
 	if err != nil {
 		t.Fatalf("expected anonymous delete of machine-global connector to succeed, got %v", err)
 	}
-
 	created, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
@@ -434,7 +392,6 @@ func TestConnectorManagementRequiresAuth(t *testing.T) {
 		t.Fatalf("CreateConnector: %v", err)
 	}
 	connectorID := created.GetConnector().GetConnectorId()
-
 	_, err = svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
 		ConnectorId: connectorID,
 		Label:       proto.String("renamed"),
@@ -445,7 +402,6 @@ func TestConnectorManagementRequiresAuth(t *testing.T) {
 	if st, _ := status.FromError(err); st.Code() != codes.Unauthenticated {
 		t.Fatalf("expected update unauthenticated, got %v", st.Code())
 	}
-
 	_, err = svc.DeleteConnector(context.Background(), &runtimev1.DeleteConnectorRequest{
 		ConnectorId: connectorID,
 	})
@@ -456,7 +412,6 @@ func TestConnectorManagementRequiresAuth(t *testing.T) {
 		t.Fatalf("expected delete unauthenticated, got %v", st.Code())
 	}
 }
-
 func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 	svc := newTestService(t)
 	payload := `{"access_token":"token-1"}`
@@ -473,7 +428,6 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 	}, payload); err != nil {
 		t.Fatalf("create invalid oauth-managed connector: %v", err)
 	}
-
 	if _, err := svc.GetConnector(context.Background(), &runtimev1.GetConnectorRequest{
 		ConnectorId: "machine-codex",
 	}); err == nil {
@@ -481,7 +435,6 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
 		t.Fatalf("expected GetConnector NotFound, got %v", st.Code())
 	}
-
 	listResp, err := svc.ListConnectors(context.Background(), &runtimev1.ListConnectorsRequest{})
 	if err != nil {
 		t.Fatalf("ListConnectors: %v", err)
@@ -491,7 +444,6 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 			t.Fatal("expected invalid oauth-managed connector to be hidden from ListConnectors")
 		}
 	}
-
 	testResp, err := svc.TestConnector(context.Background(), &runtimev1.TestConnectorRequest{
 		ConnectorId: "machine-codex",
 	})
@@ -501,7 +453,6 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 	if testResp.GetAck().GetOk() || testResp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND {
 		t.Fatalf("expected TestConnector fail-closed not found, got %+v", testResp.GetAck())
 	}
-
 	if _, err := svc.ListConnectorModels(context.Background(), &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: "machine-codex",
 	}); err == nil {
@@ -509,7 +460,6 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
 		t.Fatalf("expected ListConnectorModels NotFound, got %v", st.Code())
 	}
-
 	if _, err := svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
 		ConnectorId: "machine-codex",
 		Label:       proto.String("renamed"),
@@ -518,7 +468,6 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
 		t.Fatalf("expected UpdateConnector NotFound, got %v", st.Code())
 	}
-
 	if _, err := svc.DeleteConnector(context.Background(), &runtimev1.DeleteConnectorRequest{
 		ConnectorId: "machine-codex",
 	}); err == nil {
@@ -527,13 +476,11 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 		t.Fatalf("expected DeleteConnector NotFound, got %v", st.Code())
 	}
 }
-
 func TestAuthenticatedCallerSeesMachineGlobalAndOwnedConnectors(t *testing.T) {
 	svc := newTestService(t)
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
-
 	if _, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "machine-key",
@@ -552,12 +499,10 @@ func TestAuthenticatedCallerSeesMachineGlobalAndOwnedConnectors(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateConnector user-2: %v", err)
 	}
-
 	resp, err := svc.ListConnectors(userContext("user-1"), &runtimev1.ListConnectorsRequest{})
 	if err != nil {
 		t.Fatalf("ListConnectors: %v", err)
 	}
-
 	remoteOwnerIDs := make([]string, 0, len(resp.GetConnectors()))
 	for _, connector := range resp.GetConnectors() {
 		if connector.GetKind() == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
@@ -575,7 +520,6 @@ func TestAuthenticatedCallerSeesMachineGlobalAndOwnedConnectors(t *testing.T) {
 		}
 	}
 }
-
 func TestSystemManagedRemoteConnectorsRemainImmutable(t *testing.T) {
 	svc := newTestService(t)
 	if _, err := svc.store.Create(ConnectorRecord{
@@ -588,7 +532,6 @@ func TestSystemManagedRemoteConnectorsRemainImmutable(t *testing.T) {
 	}, "system-key"); err != nil {
 		t.Fatalf("create system connector: %v", err)
 	}
-
 	_, err := svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
 		ConnectorId: "sys-openai",
 		Label:       proto.String("renamed"),
@@ -599,7 +542,6 @@ func TestSystemManagedRemoteConnectorsRemainImmutable(t *testing.T) {
 	if st, _ := status.FromError(err); st.Code() != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
-
 	_, err = svc.DeleteConnector(context.Background(), &runtimev1.DeleteConnectorRequest{
 		ConnectorId: "sys-openai",
 	})
@@ -610,17 +552,14 @@ func TestSystemManagedRemoteConnectorsRemainImmutable(t *testing.T) {
 		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
 }
-
 func TestUpdateConnectorNoChanges(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
 	})
 	connID := resp.Connector.ConnectorId
-
 	_, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
 		ConnectorId: connID,
 	})
@@ -628,18 +567,15 @@ func TestUpdateConnectorNoChanges(t *testing.T) {
 		t.Fatal("expected error for no changes")
 	}
 }
-
 func TestUpdateConnectorInfersUpdateMaskFromOptionalFields(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
 		Label:    "Old",
 	})
 	connID := resp.Connector.ConnectorId
-
 	updated, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
 		ConnectorId: connID,
 		Label:       proto.String("New"),
@@ -651,17 +587,14 @@ func TestUpdateConnectorInfersUpdateMaskFromOptionalFields(t *testing.T) {
 		t.Fatalf("expected inferred update_mask to update label, got %q", updated.GetConnector().GetLabel())
 	}
 }
-
 func TestUpdateConnectorRejectsUnknownUpdateMaskPath(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
 	})
 	connID := resp.GetConnector().GetConnectorId()
-
 	_, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
 		ConnectorId: connID,
 		UpdateMask:  &fieldmaskpb.FieldMask{Paths: []string{"unknown_field"}},
@@ -674,17 +607,14 @@ func TestUpdateConnectorRejectsUnknownUpdateMaskPath(t *testing.T) {
 		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
 }
-
 func TestUpdateConnectorRejectsMaskPathWithoutOptionalValue(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
 	})
 	connID := resp.GetConnector().GetConnectorId()
-
 	_, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
 		ConnectorId: connID,
 		UpdateMask:  &fieldmaskpb.FieldMask{Paths: []string{"label"}},
@@ -697,11 +627,9 @@ func TestUpdateConnectorRejectsMaskPathWithoutOptionalValue(t *testing.T) {
 		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
 }
-
 func TestUpdateLocalConnectorImmutable(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
@@ -713,7 +641,6 @@ func TestUpdateLocalConnectorImmutable(t *testing.T) {
 			break
 		}
 	}
-
 	_, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
 		ConnectorId: localID,
 		Label:       proto.String("Hacked"),
@@ -727,17 +654,14 @@ func TestUpdateLocalConnectorImmutable(t *testing.T) {
 		t.Errorf("expected InvalidArgument, got %v", st.Code())
 	}
 }
-
 func TestDeleteConnector(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
 	})
 	connID := resp.Connector.ConnectorId
-
 	delResp, err := svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
 		ConnectorId: connID,
 	})
@@ -747,7 +671,6 @@ func TestDeleteConnector(t *testing.T) {
 	if !delResp.Ack.Ok {
 		t.Error("expected ack.ok=true")
 	}
-
 	// Verify deleted
 	_, err = svc.GetConnector(ctx, &runtimev1.GetConnectorRequest{ConnectorId: connID})
 	st, _ := status.FromError(err)
@@ -755,11 +678,9 @@ func TestDeleteConnector(t *testing.T) {
 		t.Errorf("expected NotFound after delete, got %v", st.Code())
 	}
 }
-
 func TestListConnectorsPageSizeClampTo200(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	// Create >100 connectors to validate page_size clamping behavior.
 	for i := 0; i < 120; i++ {
 		_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
@@ -770,7 +691,6 @@ func TestListConnectorsPageSizeClampTo200(t *testing.T) {
 			t.Fatalf("CreateConnector %d: %v", i, err)
 		}
 	}
-
 	resp, err := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{
 		PageSize: 999,
 	})
@@ -784,11 +704,9 @@ func TestListConnectorsPageSizeClampTo200(t *testing.T) {
 		t.Fatalf("expected no next page token when all items fit in clamped page")
 	}
 }
-
 func TestDeleteLocalConnectorForbidden(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
@@ -800,7 +718,6 @@ func TestDeleteLocalConnectorForbidden(t *testing.T) {
 			break
 		}
 	}
-
 	_, err := svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
 		ConnectorId: localID,
 	})
@@ -808,11 +725,9 @@ func TestDeleteLocalConnectorForbidden(t *testing.T) {
 		t.Fatal("expected error deleting local connector")
 	}
 }
-
 func TestDeleteConnectorIdempotent(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	resp, err := svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
 		ConnectorId: "nonexistent",
 	})
@@ -823,11 +738,9 @@ func TestDeleteConnectorIdempotent(t *testing.T) {
 		t.Error("expected ack.ok=true for idempotent delete")
 	}
 }
-
 func TestTestConnectorNotFound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
-
 	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
 		ConnectorId: "nonexistent",
 	})
@@ -841,23 +754,19 @@ func TestTestConnectorNotFound(t *testing.T) {
 		t.Errorf("expected AI_CONNECTOR_NOT_FOUND, got %v", resp.Ack.ReasonCode)
 	}
 }
-
 func TestTestConnectorDisabled(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
 	})
 	connID := resp.Connector.ConnectorId
-
 	// Disable it
 	disabled := runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED
 	if _, err := svc.store.Update(connID, ConnectorMutations{Status: &disabled}); err != nil {
 		t.Fatalf("Update connector status: %v", err)
 	}
-
 	testResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
 		ConnectorId: connID,
 	})
@@ -871,25 +780,21 @@ func TestTestConnectorDisabled(t *testing.T) {
 		t.Errorf("expected AI_CONNECTOR_DISABLED, got %v", testResp.Ack.ReasonCode)
 	}
 }
-
 func TestListConnectorModelsRemoteUsesCatalogWithoutOutbound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	var hits atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hits.Add(1)
 		http.NotFound(w, r)
 	}))
 	t.Cleanup(server.Close)
-
 	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
 		Providers: map[string]nimillm.ProviderCredentials{
 			"openai": {BaseURL: server.URL, APIKey: "cloud-key"},
 		},
 		HTTPTimeout: 5 * time.Second,
 	}, nil, nil))
-
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: server.URL,
@@ -902,7 +807,6 @@ func TestListConnectorModelsRemoteUsesCatalogWithoutOutbound(t *testing.T) {
 	if connectorID == "" {
 		t.Fatalf("expected connector id")
 	}
-
 	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: connectorID,
 		PageSize:    200,
@@ -927,11 +831,9 @@ func TestListConnectorModelsRemoteUsesCatalogWithoutOutbound(t *testing.T) {
 		t.Fatalf("expected zero upstream calls for YAML-only model listing, got %d", got)
 	}
 }
-
 func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "dashscope",
 		ApiKey:   "managed-key",
@@ -943,7 +845,6 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	if connectorID == "" {
 		t.Fatalf("expected connector id")
 	}
-
 	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: connectorID,
 		PageSize:    200,
@@ -954,7 +855,6 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	if len(resp.GetModels()) == 0 {
 		t.Fatalf("expected dashscope catalog-derived model list")
 	}
-
 	expectedImageModels := map[string]bool{
 		"qwen-image-2.0-pro": true,
 		"qwen-image-2.0":     true,
@@ -979,29 +879,24 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 			}
 		}
 	}
-
 	if len(foundImageModels) != len(expectedImageModels) {
 		t.Fatalf("expected representative dashscope image models %v, found %v", expectedImageModels, foundImageModels)
 	}
 }
-
 func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	var hits atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hits.Add(1)
 		http.NotFound(w, r)
 	}))
 	t.Cleanup(server.Close)
-
 	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
 		Providers: map[string]nimillm.ProviderCredentials{
 			"openai": {BaseURL: server.URL, APIKey: "cloud-key"},
 		},
 	}, nil, nil))
-
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: server.URL,
@@ -1011,7 +906,6 @@ func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {
 		t.Fatalf("CreateConnector: %v", err)
 	}
 	connectorID := created.GetConnector().GetConnectorId()
-
 	first, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: connectorID,
 		PageSize:    200,
@@ -1034,11 +928,9 @@ func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {
 		t.Fatalf("force_refresh must not trigger outbound discovery, got %d upstream calls", got)
 	}
 }
-
 func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	var hits atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hits.Add(1)
@@ -1046,14 +938,12 @@ func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *t
 		_, _ = w.Write([]byte(`{"data":[{"id":"openai/gpt-4.1","architecture":{"input_modalities":["text"],"output_modalities":["text"],"modality":"text->text"}},{"id":"openai/text-embedding-3-large","architecture":{"input_modalities":["text"],"output_modalities":["embeddings"],"modality":"text->embeddings"}}]}`))
 	}))
 	t.Cleanup(server.Close)
-
 	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
 		Providers: map[string]nimillm.ProviderCredentials{
 			"openrouter": {BaseURL: server.URL, APIKey: "cloud-key"},
 		},
 		HTTPTimeout: 5 * time.Second,
 	}, nil, nil))
-
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openrouter",
 		Endpoint: server.URL,
@@ -1063,7 +953,6 @@ func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *t
 		t.Fatalf("CreateConnector: %v", err)
 	}
 	connectorID := created.GetConnector().GetConnectorId()
-
 	first, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: connectorID,
 		PageSize:    200,
@@ -1087,7 +976,6 @@ func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *t
 	if got := modelCapabilities["openai/text-embedding-3-large"]; len(got) != 1 || got[0] != "text.embed" {
 		t.Fatalf("expected openrouter embedding model capabilities to be inferred per-model, got %v", got)
 	}
-
 	second, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: connectorID,
 		PageSize:    200,
@@ -1101,7 +989,6 @@ func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *t
 	if got := hits.Load(); got != 1 {
 		t.Fatalf("expected second dynamic call to use cache, got %d upstream calls", got)
 	}
-
 	_, err = svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId:  connectorID,
 		PageSize:     200,
@@ -1114,11 +1001,9 @@ func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *t
 		t.Fatalf("expected force_refresh to re-discover dynamic inventory, got %d upstream calls", got)
 	}
 }
-
 func TestListConnectorModelsFireworksUsesAccountModelsEndpointAndPerModelCapabilities(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	var hits atomic.Int32
 	var requestedPath atomic.Value
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1132,14 +1017,12 @@ func TestListConnectorModelsFireworksUsesAccountModelsEndpointAndPerModelCapabil
 		_, _ = w.Write([]byte(`{"models":[{"name":"accounts/fireworks/models/deepseek-v3","displayName":"DeepSeek V3","state":"READY","supportsImageInput":false,"baseModelDetails":{"modelType":"chat"}},{"name":"accounts/fireworks/models/qwen3-vl","displayName":"Qwen3 VL","state":"READY","supportsImageInput":true,"baseModelDetails":{"modelType":"chat"}}]}`))
 	}))
 	t.Cleanup(server.Close)
-
 	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
 		Providers: map[string]nimillm.ProviderCredentials{
 			"fireworks": {BaseURL: server.URL + "/inference/v1", APIKey: "cloud-key"},
 		},
 		HTTPTimeout: 5 * time.Second,
 	}, nil, nil))
-
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "fireworks",
 		Endpoint: server.URL + "/inference/v1",
@@ -1149,7 +1032,6 @@ func TestListConnectorModelsFireworksUsesAccountModelsEndpointAndPerModelCapabil
 		t.Fatalf("CreateConnector: %v", err)
 	}
 	connectorID := created.GetConnector().GetConnectorId()
-
 	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: connectorID,
 		PageSize:    200,
@@ -1177,11 +1059,9 @@ func TestListConnectorModelsFireworksUsesAccountModelsEndpointAndPerModelCapabil
 		t.Fatalf("expected fireworks vision model capabilities to include text.generate.vision, got %v", got)
 	}
 }
-
 func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	var hits atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/models" {
@@ -1192,14 +1072,12 @@ func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(server.Close)
-
 	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
 		Providers: map[string]nimillm.ProviderCredentials{
 			"openai": {BaseURL: server.URL, APIKey: "cloud-key"},
 		},
 		HTTPTimeout: 5 * time.Second,
 	}, nil, nil))
-
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: server.URL,
@@ -1208,7 +1086,6 @@ func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateConnector: %v", err)
 	}
-
 	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
 		ConnectorId: created.GetConnector().GetConnectorId(),
 	})
@@ -1222,11 +1099,9 @@ func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 		t.Fatalf("expected exactly one outbound probe during TestConnector, got %d", got)
 	}
 }
-
 func TestTestConnectorRemotePropagatesProviderAuthFailure(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/models" {
 			http.NotFound(w, r)
@@ -1237,14 +1112,12 @@ func TestTestConnectorRemotePropagatesProviderAuthFailure(t *testing.T) {
 		_, _ = io.WriteString(w, `{"error":{"message":"API key not valid. Please pass a valid API key."}}`)
 	}))
 	t.Cleanup(server.Close)
-
 	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
 		Providers: map[string]nimillm.ProviderCredentials{
 			"openai": {BaseURL: server.URL, APIKey: "cloud-key"},
 		},
 		HTTPTimeout: 5 * time.Second,
 	}, nil, nil))
-
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: server.URL,
@@ -1253,7 +1126,6 @@ func TestTestConnectorRemotePropagatesProviderAuthFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateConnector: %v", err)
 	}
-
 	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
 		ConnectorId: created.GetConnector().GetConnectorId(),
 	})
@@ -1267,11 +1139,9 @@ func TestTestConnectorRemotePropagatesProviderAuthFailure(t *testing.T) {
 		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", resp.GetAck().GetReasonCode())
 	}
 }
-
 func TestTestConnectorOpenAICodexUsesOAuthHeaders(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	var capturedOriginator string
 	var capturedAccountID string
 	var capturedClientVersion string
@@ -1286,14 +1156,12 @@ func TestTestConnectorOpenAICodexUsesOAuthHeaders(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(server.Close)
-
 	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
 		Providers: map[string]nimillm.ProviderCredentials{
 			"openai_codex": {BaseURL: server.URL + "/backend-api/codex", APIKey: "cloud-key"},
 		},
 		HTTPTimeout: 5 * time.Second,
 	}, nil, nil))
-
 	credentialPayload, err := json.Marshal(map[string]any{
 		"access_token": codexProbeJWTForTest(t, "acct_probe_123"),
 	})
@@ -1310,7 +1178,6 @@ func TestTestConnectorOpenAICodexUsesOAuthHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateConnector: %v", err)
 	}
-
 	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
 		ConnectorId: created.GetConnector().GetConnectorId(),
 	})
@@ -1330,11 +1197,9 @@ func TestTestConnectorOpenAICodexUsesOAuthHeaders(t *testing.T) {
 		t.Fatalf("expected codex client_version query param, got %q", capturedClientVersion)
 	}
 }
-
 func TestTestConnectorQwenOAuthUsesBearerTokenThroughOpenAICompatibleProvider(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-
 	var capturedAuthorization string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/models" {
@@ -1346,14 +1211,12 @@ func TestTestConnectorQwenOAuthUsesBearerTokenThroughOpenAICompatibleProvider(t 
 		_, _ = io.WriteString(w, `{"object":"list","data":[{"id":"qwen-max","object":"model"}]}`)
 	}))
 	t.Cleanup(server.Close)
-
 	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
 		Providers: map[string]nimillm.ProviderCredentials{
 			"openai_compatible": {BaseURL: server.URL + "/v1", APIKey: "cloud-key"},
 		},
 		HTTPTimeout: 5 * time.Second,
 	}, nil, nil))
-
 	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider:            "openai_compatible",
 		Endpoint:            server.URL + "/v1",
@@ -1364,7 +1227,6 @@ func TestTestConnectorQwenOAuthUsesBearerTokenThroughOpenAICompatibleProvider(t 
 	if err != nil {
 		t.Fatalf("CreateConnector: %v", err)
 	}
-
 	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
 		ConnectorId: created.GetConnector().GetConnectorId(),
 	})
@@ -1378,7 +1240,6 @@ func TestTestConnectorQwenOAuthUsesBearerTokenThroughOpenAICompatibleProvider(t 
 		t.Fatalf("expected bearer oauth token, got %q", capturedAuthorization)
 	}
 }
-
 func TestTestConnectorSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
 	svc := newTestService(t)
 	if _, err := svc.store.Create(ConnectorRecord{
@@ -1391,7 +1252,6 @@ func TestTestConnectorSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
 	}, "system-key"); err != nil {
 		t.Fatalf("create system connector: %v", err)
 	}
-
 	resp, err := svc.TestConnector(context.Background(), &runtimev1.TestConnectorRequest{
 		ConnectorId: "sys-openai",
 	})
@@ -1402,19 +1262,15 @@ func TestTestConnectorSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
 		t.Fatalf("expected system-owned remote connector to be visible, got ok=false reason=%v", resp.GetAck().GetReasonCode())
 	}
 }
-
 func TestEnsureLocalConnectors(t *testing.T) {
 	store := newTestStore(t)
-
 	if err := EnsureLocalConnectors(store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
-
 	records, _ := store.Load()
 	if len(records) != 6 {
 		t.Fatalf("expected 6 local connectors, got %d", len(records))
 	}
-
 	// Running again should be idempotent
 	if err := EnsureLocalConnectors(store); err != nil {
 		t.Fatalf("EnsureLocalConnectors second run: %v", err)
@@ -1424,14 +1280,12 @@ func TestEnsureLocalConnectors(t *testing.T) {
 		t.Fatalf("expected still 6 connectors, got %d", len(records2))
 	}
 }
-
 func TestTestConnectorLocalUsesRuntimeAvailability(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
-
 	localList, err := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{KindFilter: runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL})
 	if err != nil {
 		t.Fatalf("ListConnectors: %v", err)
@@ -1446,7 +1300,6 @@ func TestTestConnectorLocalUsesRuntimeAvailability(t *testing.T) {
 	if llmConnectorID == "" {
 		t.Fatalf("expected LLM local connector")
 	}
-
 	svc.SetLocalModelLister(&fakeLocalModelLister{
 		models: []*runtimev1.LocalAssetRecord{
 			{AssetId: "image-only", Capabilities: []string{"image.generate"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
@@ -1462,7 +1315,6 @@ func TestTestConnectorLocalUsesRuntimeAvailability(t *testing.T) {
 	if emptyResp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got %v", emptyResp.GetAck().GetReasonCode())
 	}
-
 	svc.SetLocalModelLister(&fakeLocalModelLister{
 		models: []*runtimev1.LocalAssetRecord{
 			{AssetId: "chat-model", Capabilities: []string{"chat"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
@@ -1476,14 +1328,12 @@ func TestTestConnectorLocalUsesRuntimeAvailability(t *testing.T) {
 		t.Fatalf("expected local connector to be available")
 	}
 }
-
 func TestListConnectorModelsLocalUsesRuntimeModels(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
-
 	localList, err := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{KindFilter: runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL})
 	if err != nil {
 		t.Fatalf("ListConnectors: %v", err)
@@ -1498,7 +1348,6 @@ func TestListConnectorModelsLocalUsesRuntimeModels(t *testing.T) {
 	if llmConnectorID == "" {
 		t.Fatalf("expected LLM local connector")
 	}
-
 	svc.SetLocalModelLister(&fakeLocalModelLister{
 		models: []*runtimev1.LocalAssetRecord{
 			{AssetId: "chat-model", Capabilities: []string{"chat"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
@@ -1506,7 +1355,6 @@ func TestListConnectorModelsLocalUsesRuntimeModels(t *testing.T) {
 			{AssetId: "chat-installed", Capabilities: []string{"chat"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED},
 		},
 	})
-
 	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: llmConnectorID,
 		PageSize:    20,
@@ -1521,7 +1369,6 @@ func TestListConnectorModelsLocalUsesRuntimeModels(t *testing.T) {
 		t.Fatalf("unexpected local model id: %s", resp.GetModels()[0].GetModelId())
 	}
 }
-
 func TestListConnectorModelsSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
 	svc := newTestService(t)
 	if _, err := svc.store.Create(ConnectorRecord{
@@ -1534,7 +1381,6 @@ func TestListConnectorModelsSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) 
 	}, "system-key"); err != nil {
 		t.Fatalf("create system connector: %v", err)
 	}
-
 	resp, err := svc.ListConnectorModels(context.Background(), &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: "sys-openai",
 		PageSize:    20,
