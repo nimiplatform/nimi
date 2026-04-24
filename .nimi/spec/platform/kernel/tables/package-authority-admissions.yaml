@@ -19,4 +19,21 @@ admissions:
       host_local_projection_roots:
         - .nimi/contracts
         - .nimi/methodology
+      host_authority_projection_refs:
+        - host_ref: .nimi/spec/_meta/command-gating-matrix.yaml
+          package_ref: nimi-coding/spec/_meta/command-gating-matrix.yaml
+        - host_ref: .nimi/spec/_meta/generate-drift-migration-checklist.yaml
+          package_ref: nimi-coding/spec/_meta/generate-drift-migration-checklist.yaml
+        - host_ref: .nimi/spec/_meta/governance-routing-cutover-checklist.yaml
+          package_ref: nimi-coding/spec/_meta/governance-routing-cutover-checklist.yaml
+        - host_ref: .nimi/spec/_meta/phase2-impacted-surface-matrix.yaml
+          package_ref: nimi-coding/spec/_meta/phase2-impacted-surface-matrix.yaml
+        - host_ref: .nimi/spec/_meta/spec-authority-cutover-readiness.yaml
+          package_ref: nimi-coding/spec/_meta/spec-authority-cutover-readiness.yaml
+        - host_ref: .nimi/spec/_meta/spec-tree-model.yaml
+          package_ref: nimi-coding/spec/_meta/spec-tree-model.yaml
+        - host_ref: .nimi/spec/bootstrap-state.yaml
+          package_ref: nimi-coding/spec/bootstrap-state.yaml
+        - host_ref: .nimi/spec/product-scope.yaml
+          package_ref: nimi-coding/spec/product-scope.yaml
     source_rule: P-PKG-001

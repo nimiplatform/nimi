@@ -24,6 +24,19 @@ roots:
       - .nimi/contracts
       - .nimi/methodology
     source_rule: P-PKG-006
+  - id: spec-generation-audit-nimicoding-implementation
+    owner_domain: spec-meta
+    authority_refs:
+      - .nimi/spec/_meta/spec-generation-audit.yaml
+    evidence_roots:
+      - .nimi/contracts/spec-generation-audit.schema.yaml
+      - .nimi/methodology/spec-reconstruction.yaml
+      - nimi-coding/cli/commands/validate-spec-audit.mjs
+      - nimi-coding/cli/lib/internal/validators-spec.mjs
+      - nimi-coding/cli/lib/closeout.mjs
+      - nimi-coding/test/spec-generation-scenarios.mjs
+      - nimi-coding/test/nimicoding.test.mjs
+    source_rule: P-PKG-008
   - id: platform-repository-governance
     owner_domain: platform
     authority_refs:

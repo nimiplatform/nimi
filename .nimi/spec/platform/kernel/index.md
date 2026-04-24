@@ -17,6 +17,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `ALMI` | AI Last Mile contract | `ai-last-mile-contract.md` |
 | `DESIGN` | Nimi design pattern contract | `design-pattern-contract.md` |
 | `KIT` | Kit shared platform infrastructure | `kit-contract.md` |
+| `CAPCAT` | Canonical capability catalog contract | `capability-catalog-contract.md` |
 | `APP` | App-slice admission contract | `app-slice-admission-contract.md` |
 | `WEB` | Web and release gateway contract | `web-release-contract.md` |
 | `PKG` | Package authority admission and host-local projection | `package-authority-admission-contract.md` |
@@ -50,6 +51,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `ai-last-mile-contract.md` | `P-ALMI-*` | Hook Action Fabric, Principal model, execution protocol |
 | `design-pattern-contract.md` | `P-DESIGN-*` | Cross-app Nimi UI Toolkit authority, generated primitive contract, scheme plus accent theme model, adoption registry, and hard gate |
 | `kit-contract.md` | `P-KIT-*` | Kit package authority, sub-module contracts (UI, Auth, Core, Telemetry), and hard gate |
+| `capability-catalog-contract.md` | `P-CAPCAT-*` | Canonical capability catalog cross-layer identity authority, runtime source resolver semantics, deferred entry admission |
 | `app-slice-admission-contract.md` | `P-APP-*` | App-local spec admission, subordinate authority scope, evidence roots, and audit expansion rules |
 | `web-release-contract.md` | `P-WEB-*` | Web surface, install gateway, Cloudflare adapter, and release evidence ownership |
 | `package-authority-admission-contract.md` | `P-PKG-*` | Package-local spec admission, package-vs-host projection boundary, and audit expansion rules |
@@ -73,10 +75,11 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `tables/nimi-ui-compositions.yaml` | `design-pattern-contract.md` | Explicit registry for app-owned composition components and thin wrappers that must not become parallel primitive authority |
 | `tables/nimi-ui-allowlists.yaml` | `design-pattern-contract.md` | Approved design escape hatches |
 | `tables/nimi-kit-registry.yaml` | `kit-contract.md` | Kit sub-module registry with kind, exports, dependency direction, and admission metadata |
+| `tables/canonical-capability-catalog.yaml` | `capability-catalog-contract.md` | Canonical `CanonicalCapabilityId` rows with structured sourceRef, i18n keys, runtime evidence class, and deferred entries |
 | `tables/app-slice-admissions.yaml` | `app-slice-admission-contract.md` | Active app-local spec slices admitted by `.nimi/spec` as subordinate audit authority |
 | `tables/package-authority-admissions.yaml` | `package-authority-admission-contract.md` | Active package-local spec roots admitted by `.nimi/spec` as package audit authority |
 | `tables/audit-evidence-roots.yaml` | `web-release-contract.md`, `kit-contract.md`, `package-authority-admission-contract.md` | Authority-specific implementation and host-local evidence roots admitted for spec-first audit planning |
-| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `design-pattern-contract.md`, `kit-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
+| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `design-pattern-contract.md`, `kit-contract.md`, `capability-catalog-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
 
 ## Version Terminology
 

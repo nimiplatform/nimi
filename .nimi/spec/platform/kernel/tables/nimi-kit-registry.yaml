@@ -142,7 +142,13 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-043
-    notes: Runtime-safe — may be consumed by runtime-side code (Go consumers import via kit/core transpiled output or shared contract).
+    generated_from_spec:
+      source_table: .nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml
+      source_rule: P-CAPCAT-001
+      generated_path: kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts
+      emitter: scripts/gen-canonical-capability-catalog.mjs
+      drift_gate: scripts/check-canonical-capability-catalog.mjs
+    notes: Runtime-safe — may be consumed by runtime-side code (Go consumers import via kit/core transpiled output or shared contract). The CANONICAL_CAPABILITY_CATALOG constant is codegen output of canonical-capability-catalog.yaml per P-CAPCAT-001; do not hand-edit.
   - id: kit.telemetry
     subpath: /telemetry
     kind: infra

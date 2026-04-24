@@ -220,6 +220,12 @@ export async function loadPackageAuthorityAdmissions(projectRoot, listGitFiles, 
       const evidenceRoots = Array.isArray(row?.evidence_roots)
         ? row.evidence_roots.map((entry) => String(entry ?? "").trim().replace(/\\/g, "/").replace(/\/$/, "")).filter(Boolean)
         : null;
+      const hostAuthorityProjectionRefs = Array.isArray(row?.projection_boundary?.host_authority_projection_refs)
+        ? row.projection_boundary.host_authority_projection_refs.map((entry) => ({
+          host_ref: String(entry?.host_ref ?? "").trim().replace(/\\/g, "/"),
+          package_ref: String(entry?.package_ref ?? "").trim().replace(/\\/g, "/"),
+        })).filter((entry) => entry.host_ref || entry.package_ref)
+        : [];
       const admissionKey = `${tableRef}#${id}`;
       if (!id || seenIds.has(admissionKey)) {
         return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} has missing or duplicate package authority id.\n` };
@@ -234,12 +240,26 @@ export async function loadPackageAuthorityAdmissions(projectRoot, listGitFiles, 
       if (!evidenceRoots || evidenceRoots.length === 0 || !evidenceRoots.every((rootRef) => safeProjectRef(rootRef) && !rootRef.startsWith(".nimi/spec/") && refInsideRoot(authorityRoot, rootRef))) {
         return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} has invalid evidence_roots.\n` };
       }
+      const seenProjectionHostRefs = new Set();
+      for (const projection of hostAuthorityProjectionRefs) {
+        if (!safeProjectRef(projection.host_ref) || !projection.host_ref.startsWith(".nimi/spec/")) {
+          return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} host_authority_projection_refs host_ref must stay under .nimi/spec.\n` };
+        }
+        if (!safeProjectRef(projection.package_ref) || !refInsideRoot(projection.package_ref, authorityRoot)) {
+          return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} host_authority_projection_refs package_ref must stay under authority_root.\n` };
+        }
+        if (seenProjectionHostRefs.has(projection.host_ref)) {
+          return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} host_authority_projection_refs contains duplicate host_ref.\n` };
+        }
+        seenProjectionHostRefs.add(projection.host_ref);
+      }
       admissions.push({
         id,
         owner_domain: ownerDomain,
         status,
         authority_root: authorityRoot,
         evidence_roots: evidenceRoots,
+        host_authority_projection_refs: hostAuthorityProjectionRefs,
         admission_ref: admissionKey,
       });
     }

@@ -29,7 +29,7 @@ export {
   DEFAULT_SOURCE_ALLOWLIST,
 } from './capabilities.js';
 
-// Codegen tier classification
+// Codegen tier classification (hook capability permission tiering)
 export type {
   CodegenCapabilityTier,
   CodegenCapabilityDecision,
@@ -42,3 +42,23 @@ export {
   classifyCodegenCapability,
   resolveCodegenCapabilityDecision,
 } from './codegen-catalog.js';
+
+// Canonical capability catalog (spec-resident, generated from
+// .nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml).
+// See P-CAPCAT-001 / P-CAPCAT-002 / P-CAPCAT-003.
+export type {
+  CanonicalCapabilitySectionId,
+  CanonicalCapabilityEditorKind,
+  CanonicalCapabilityRuntimeEvidenceClass,
+  CanonicalCapabilitySourceTable,
+  CanonicalCapabilitySourceRef,
+  CanonicalCapabilityI18nKeys,
+  CanonicalCapabilityDescriptor,
+  CanonicalCapabilityDeferredEntry,
+} from './generated/canonical-capability-catalog.js';
+export {
+  CANONICAL_CAPABILITY_CATALOG,
+  CANONICAL_CAPABILITY_CATALOG_BY_ID,
+  CANONICAL_CAPABILITY_IDS,
+  CANONICAL_CAPABILITY_DEFERRED,
+} from './generated/canonical-capability-catalog.js';

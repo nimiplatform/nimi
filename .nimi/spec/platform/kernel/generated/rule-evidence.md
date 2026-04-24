@@ -8,6 +8,10 @@
 | `nimi_ui_pattern` | `static_gate` | `structural` | `pnpm check:nimi-ui-pattern` | `scripts/check-nimi-ui-pattern.mjs` | Cross-app Nimi design pattern gate for shared lib imports, theme pack entrypoints, governed module adoption, and raw style hardcuts. |
 | `nimi_ui_lib_drift` | `generated_projection` | `structural` | `pnpm check:nimi-ui-lib-drift` | `scripts/generate-nimi-ui-lib.mjs` | Generated Nimi design shared-lib projection drift check for tokens and theme packs. |
 | `nimi_kit_gate` | `static_gate` | `structural` | `pnpm check:nimi-kit` | `scripts/check-nimi-kit.mjs` | Nimi kit hard gate for registry parity, surface topology, integration taxonomy, and cross-layer boundary enforcement. |
+| `app_slice_admission_gate` | `static_gate` | `structural` | `node scripts/check-platform-spec-kernel-consistency.mjs` | `scripts/check-platform-spec-kernel-consistency.mjs` | Platform kernel gate validating app-slice admission rows, authority roots, evidence roots, and source rule linkage. |
+| `audit_evidence_root_gate` | `static_gate` | `structural` | `node scripts/check-platform-spec-kernel-consistency.mjs` | `scripts/check-platform-spec-kernel-consistency.mjs` | Platform kernel gate validating authority-specific audit evidence roots and source rule linkage. |
+| `package_authority_admission_gate` | `static_gate` | `structural` | `node scripts/check-platform-spec-kernel-consistency.mjs` | `scripts/check-platform-spec-kernel-consistency.mjs` | Platform kernel gate validating package authority admissions, package-vs-host projection boundaries, authority roots, evidence roots, and source rule linkage. |
+| `canonical_capability_catalog_gate` | `static_gate` | `structural` | `pnpm check:canonical-capability-catalog` | `scripts/check-canonical-capability-catalog.mjs` | Platform kernel gate validating canonical capability catalog row consistency against runtime tables, completeness against the admitted capability union, deferred entry admission fields, and codegen idempotency. |
 
 ## Rule Coverage Matrix
 
@@ -84,12 +88,37 @@
 | `P-KIT-074` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
 | `P-KIT-080` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
 | `P-KIT-090` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
+| `P-CAPCAT-001` | `covered` | `platform_kernel_consistency`, `canonical_capability_catalog_gate` | — |
+| `P-CAPCAT-002` | `covered` | `canonical_capability_catalog_gate` | — |
+| `P-CAPCAT-003` | `covered` | `canonical_capability_catalog_gate` | — |
 | `P-GOV-001` | `covered` | `platform_kernel_consistency` | — |
 | `P-GOV-002` | `covered` | `platform_kernel_consistency` | — |
 | `P-GOV-003` | `covered` | `platform_kernel_consistency` | — |
 | `P-GOV-010` | `covered` | `platform_kernel_consistency` | — |
 | `P-GOV-011` | `covered` | `platform_kernel_consistency` | — |
 | `P-GOV-020` | `covered` | `platform_kernel_consistency` | — |
+| `P-GOV-021` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
+| `P-GOV-022` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
+| `P-GOV-023` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
+| `P-APP-001` | `covered` | `platform_kernel_consistency`, `app_slice_admission_gate` | — |
+| `P-APP-002` | `covered` | `platform_kernel_consistency`, `app_slice_admission_gate` | — |
+| `P-APP-003` | `covered` | `platform_kernel_consistency`, `app_slice_admission_gate` | — |
+| `P-APP-004` | `covered` | `platform_kernel_consistency`, `app_slice_admission_gate` | — |
+| `P-APP-005` | `covered` | `platform_kernel_consistency`, `app_slice_admission_gate` | — |
+| `P-APP-006` | `covered` | `platform_kernel_consistency`, `app_slice_admission_gate` | — |
+| `P-WEB-001` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
+| `P-WEB-002` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
+| `P-WEB-003` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
+| `P-WEB-004` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
+| `P-WEB-005` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
+| `P-PKG-001` | `covered` | `platform_kernel_consistency`, `package_authority_admission_gate` | — |
+| `P-PKG-002` | `covered` | `platform_kernel_consistency`, `package_authority_admission_gate` | — |
+| `P-PKG-003` | `covered` | `platform_kernel_consistency`, `package_authority_admission_gate`, `audit_evidence_root_gate` | — |
+| `P-PKG-004` | `covered` | `platform_kernel_consistency`, `package_authority_admission_gate` | — |
+| `P-PKG-005` | `covered` | `platform_kernel_consistency`, `package_authority_admission_gate` | — |
+| `P-PKG-006` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
+| `P-PKG-007` | `covered` | `platform_kernel_consistency`, `package_authority_admission_gate` | — |
+| `P-PKG-008` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
 | `P-PROTO-001` | `covered` | `platform_kernel_consistency` | — |
 | `P-PROTO-002` | `covered` | `platform_kernel_consistency` | — |
 | `P-PROTO-003` | `covered` | `platform_kernel_consistency` | — |

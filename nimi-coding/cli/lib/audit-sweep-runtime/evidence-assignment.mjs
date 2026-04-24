@@ -1,74 +1,18 @@
-import { DEFAULT_MAX_FILES_PER_CHUNK } from "./common.mjs";
-import { specSurfaceForFile } from "./admissions.mjs";
-
 function chunkMatchesEvidenceFile(chunk, fileRef) {
-  return Array.isArray(chunk.evidence_roots)
-    && chunk.evidence_roots.some((rootRef) => {
+  const roots = Array.isArray(chunk.admitted_evidence_roots) && chunk.admitted_evidence_roots.length > 0
+    ? chunk.admitted_evidence_roots
+    : chunk.evidence_roots;
+  return Array.isArray(roots)
+    && roots.some((rootRef) => {
       const normalizedRoot = rootRef.replace(/\\/g, "/").replace(/\/$/, "");
       return fileRef === normalizedRoot || fileRef.startsWith(`${normalizedRoot}/`);
     });
 }
 
-function findChunkBySurface(chunks, ownerDomain, specSurface) {
-  return chunks.find((chunk) => chunk.owner_domain === ownerDomain && chunk.spec_surface === specSurface) ?? null;
-}
-
-const GENERIC_EVIDENCE_MATCH_TOKENS = new Set([
-  "agent",
-  "app",
-  "apps",
-  "audit",
-  "contract",
-  "contracts",
-  "domain",
-  "generated",
-  "go",
-  "guides",
-  "index",
-  "internal",
-  "js",
-  "json",
-  "kernel",
-  "md",
-  "mjs",
-  "nimi",
-  "platform",
-  "root",
-  "schema",
-  "spec",
-  "src",
-  "table",
-  "tables",
-  "test",
-  "ts",
-  "tsx",
-  "yaml",
-  "yml",
-]);
-
-function matchTokens(value) {
-  return new Set(String(value)
-    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-    .split(/[^a-zA-Z0-9]+/g)
-    .map((token) => token.toLowerCase())
-    .filter((token) => token.length > 1 && !GENERIC_EVIDENCE_MATCH_TOKENS.has(token)));
-}
-
-function scoreEvidenceChunk(entry, chunk) {
-  const evidenceTokens = matchTokens(entry.file_ref);
-  const authorityTokens = matchTokens((chunk.authority_refs ?? chunk.files ?? []).join("/"));
-  let score = 0;
-  for (const token of evidenceTokens) {
-    if (authorityTokens.has(token)) {
-      score += 10;
-    }
-  }
-  if (chunk.spec_surface === "kernel-contracts") {
-    score += 3;
-  } else if (chunk.spec_surface === "domain-guides") {
-    score += 2;
-  }
-  return score;
+function chunkHasExactAdmittedEvidenceRef(chunk, fileRef) {
+  return Array.isArray(chunk.evidence_root_admission_refs)
+    && Array.isArray(chunk.admitted_evidence_roots)
+    && chunk.admitted_evidence_roots.some((rootRef) => rootRef.replace(/\\/g, "/").replace(/\/$/, "") === fileRef);
 }
 
 function topLevelEvidenceDocForRoot(rootRef, fileRef) {
@@ -80,54 +24,22 @@ function topLevelEvidenceDocForRoot(rootRef, fileRef) {
   return !relative.includes("/") && /^(README|AGENTS)(?:\.[^.]+)?$/i.test(relative);
 }
 
-function pickSpecificOwnerEvidenceChunk(entry, candidates, currentCounts, maxEvidenceFilesPerChunk) {
-  const ownerDomain = candidates[0]?.owner_domain;
-  if (!ownerDomain) {
-    return null;
+function chunkAcceptsEvidenceFile(chunk, fileRef) {
+  const surface = String(chunk.spec_surface ?? "");
+  const roots = Array.isArray(chunk.admitted_evidence_roots) && chunk.admitted_evidence_roots.length > 0
+    ? chunk.admitted_evidence_roots
+    : chunk.evidence_roots;
+  const isTopLevelDoc = (roots ?? []).some((rootRef) => topLevelEvidenceDocForRoot(rootRef, fileRef));
+  if (isTopLevelDoc) {
+    return surface === "domain-guides" || surface === "app-domain-guides" || surface === "package-root" || surface === "INDEX";
   }
-  if (entry.file_ref.startsWith(".nimi/spec/")) {
-    const surface = specSurfaceForFile(entry.file_ref);
-    return candidates.find((chunk) => (chunk.authority_refs ?? []).includes(entry.file_ref))
-      ?? findChunkBySurface(candidates, surface.ownerDomain, surface.surface);
+  if (surface === "kernel-contracts" || surface === "app-kernel-contracts") {
+    return true;
   }
-  if (candidates.some((chunk) => (
-    chunk.owner_domain === ownerDomain
-    && chunk.spec_surface === "domain-guides"
-    && (chunk.evidence_roots ?? []).some((rootRef) => topLevelEvidenceDocForRoot(rootRef, entry.file_ref))
-  ))) {
-    return findChunkBySurface(candidates, ownerDomain, "domain-guides");
+  if (surface === "spec-generation-audit" || surface === "high-risk-admissions" || surface === "package-meta" || surface === "package-root") {
+    return true;
   }
-  const ranked = candidates
-    .map((chunk) => ({ chunk, score: scoreEvidenceChunk(entry, chunk) }))
-    .sort((left, right) => (
-      right.score - left.score
-      || (currentCounts.get(left.chunk.chunk_id) ?? 0) - (currentCounts.get(right.chunk.chunk_id) ?? 0)
-      || left.chunk.chunk_id.localeCompare(right.chunk.chunk_id)
-    ));
-  return ranked.find((entry) => (currentCounts.get(entry.chunk.chunk_id) ?? 0) < maxEvidenceFilesPerChunk)?.chunk
-    ?? ranked
-      .sort((left, right) => (
-        (currentCounts.get(left.chunk.chunk_id) ?? 0) - (currentCounts.get(right.chunk.chunk_id) ?? 0)
-        || right.score - left.score
-        || left.chunk.chunk_id.localeCompare(right.chunk.chunk_id)
-      ))[0]?.chunk
-    ?? candidates[0];
-}
-
-function pickBroadOwnerEvidenceChunk(entry, candidates, currentCounts, maxEvidenceFilesPerChunk) {
-  const ranked = candidates
-    .map((chunk) => ({ chunk, score: scoreEvidenceChunk(entry, chunk) }))
-    .filter((candidate) => candidate.score > 0)
-    .sort((left, right) => (
-      right.score - left.score
-      || (currentCounts.get(left.chunk.chunk_id) ?? 0) - (currentCounts.get(right.chunk.chunk_id) ?? 0)
-      || left.chunk.chunk_id.localeCompare(right.chunk.chunk_id)
-    ));
-  if (ranked.length === 0) {
-    return null;
-  }
-  return ranked.find((entry) => (currentCounts.get(entry.chunk.chunk_id) ?? 0) < maxEvidenceFilesPerChunk)?.chunk
-    ?? ranked[0].chunk;
+  return false;
 }
 
 function deriveEmptyEvidenceInventoryReason(chunk) {
@@ -144,12 +56,7 @@ function deriveEmptyEvidenceInventoryReason(chunk) {
 }
 
 export function assignEvidenceInventory(evidenceEntries, chunks, options = {}) {
-  const maxEvidenceFilesPerChunk = Number.isInteger(options.maxEvidenceFilesPerChunk) && options.maxEvidenceFilesPerChunk > 0
-    ? options.maxEvidenceFilesPerChunk
-    : DEFAULT_MAX_FILES_PER_CHUNK;
-  const broadOwnerDomains = new Set(["spec-meta", "spec-root"]);
   const chunksById = new Map(chunks.map((chunk) => [chunk.chunk_id, { ...chunk, evidence_inventory: [] }]));
-  const currentCounts = new Map(chunks.map((chunk) => [chunk.chunk_id, 0]));
   const unmapped = [];
 
   for (const entry of evidenceEntries.sort((left, right) => left.file_ref.localeCompare(right.file_ref))) {
@@ -158,18 +65,16 @@ export function assignEvidenceInventory(evidenceEntries, chunks, options = {}) {
       unmapped.push(entry.file_ref);
       continue;
     }
-    const preferred = candidates.filter((chunk) => !broadOwnerDomains.has(chunk.owner_domain));
-    const pool = (preferred.length > 0 ? preferred : candidates)
+    const exactAdmissionCandidates = candidates.filter((chunk) => chunkHasExactAdmittedEvidenceRef(chunk, entry.file_ref));
+    const selectedChunks = (exactAdmissionCandidates.length > 0 ? exactAdmissionCandidates : candidates.filter((chunk) => chunkAcceptsEvidenceFile(chunk, entry.file_ref)))
       .sort((left, right) => left.chunk_id.localeCompare(right.chunk_id));
-    const selected = preferred.length > 0
-      ? pickSpecificOwnerEvidenceChunk(entry, pool, currentCounts, maxEvidenceFilesPerChunk)
-      : pickBroadOwnerEvidenceChunk(entry, pool, currentCounts, maxEvidenceFilesPerChunk);
-    if (!selected) {
+    if (selectedChunks.length === 0) {
       unmapped.push(entry.file_ref);
       continue;
     }
-    chunksById.get(selected.chunk_id).evidence_inventory.push(entry.file_ref);
-    currentCounts.set(selected.chunk_id, (currentCounts.get(selected.chunk_id) ?? 0) + 1);
+    for (const selected of selectedChunks) {
+      chunksById.get(selected.chunk_id).evidence_inventory.push(entry.file_ref);
+    }
   }
 
   return {

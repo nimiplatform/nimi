@@ -245,10 +245,41 @@ function slugPart(value) {
 
 function buildSpecChunks(includedInventory, options) {
   const sortedEntries = [...includedInventory].sort((left, right) => left.file_ref.localeCompare(right.file_ref));
-  return sortedEntries.map((entry, index) => {
+  const includedRefs = new Set(sortedEntries.map((entry) => entry.file_ref));
+  const hostProjectionByHostRef = new Map();
+  const hostProjectionsByPackageRef = new Map();
+  for (const admission of options.packageAuthorityAdmissions ?? []) {
+    for (const projection of admission.host_authority_projection_refs ?? []) {
+      if (!includedRefs.has(projection.package_ref)) {
+        continue;
+      }
+      const enrichedProjection = {
+        host_ref: projection.host_ref,
+        package_ref: projection.package_ref,
+        package_authority_id: admission.id,
+        admission_ref: admission.admission_ref,
+      };
+      hostProjectionByHostRef.set(projection.host_ref, enrichedProjection);
+      const projections = hostProjectionsByPackageRef.get(projection.package_ref) ?? [];
+      projections.push(enrichedProjection);
+      hostProjectionsByPackageRef.set(projection.package_ref, projections);
+    }
+  }
+  let chunkIndex = 0;
+  const chunks = [];
+  for (const entry of sortedEntries) {
+    if (hostProjectionByHostRef.has(entry.file_ref)) {
+      continue;
+    }
     const surface = specSurfaceForFile(entry.file_ref, options.appSliceAdmissions, options.packageAuthorityAdmissions);
     const appAdmission = surface.appAdmission;
     const packageAdmission = surface.packageAdmission;
+    const hostAuthorityProjectionRefs = (hostProjectionsByPackageRef.get(entry.file_ref) ?? [])
+      .sort((left, right) => left.host_ref.localeCompare(right.host_ref));
+    const authorityRefs = [
+      entry.file_ref,
+      ...hostAuthorityProjectionRefs.map((projection) => projection.host_ref),
+    ];
     const rootAdmissions = (options.auditEvidenceRootAdmissions ?? [])
       .filter((admission) => admission.owner_domain === surface.ownerDomain && admission.authority_refs.includes(entry.file_ref));
     const admittedEvidenceRoots = rootAdmissions.flatMap((admission) => admission.evidence_roots);
@@ -260,21 +291,22 @@ function buildSpecChunks(includedInventory, options) {
         ...evidenceRootsForSpecOwner(surface.ownerDomain, options.targetRootRef),
         ...admittedEvidenceRoots,
       ])].sort();
+    chunkIndex += 1;
     const chunkId = [
-      `chunk-${String(index + 1).padStart(3, "0")}`,
+      `chunk-${String(chunkIndex).padStart(3, "0")}`,
       slugPart(surface.ownerDomain),
       slugPart(surface.surface),
       slugPart(path.posix.basename(entry.file_ref, path.posix.extname(entry.file_ref))),
     ].join("-");
-    return {
+    chunks.push({
       chunk_id: chunkId,
       state: "planned",
       owner_domain: surface.ownerDomain,
       planning_basis: "spec_authority",
       spec_surface: surface.surface,
       criteria: options.criteria,
-      files: [entry.file_ref],
-      authority_refs: [entry.file_ref],
+      files: authorityRefs,
+      authority_refs: authorityRefs,
       authority_kind: packageAdmission ? "admitted_package_authority" : (appAdmission ? "admitted_app_slice" : "nimi_spec"),
       ...(packageAdmission ? {
         package_authority_id: packageAdmission.id,
@@ -288,12 +320,17 @@ function buildSpecChunks(includedInventory, options) {
       } : {}),
       ...(rootAdmissions.length > 0 ? {
         evidence_root_admission_refs: rootAdmissions.map((admission) => admission.admission_ref),
+        admitted_evidence_roots: admittedEvidenceRoots,
+      } : {}),
+      ...(hostAuthorityProjectionRefs.length > 0 ? {
+        host_authority_projection_refs: hostAuthorityProjectionRefs,
       } : {}),
       evidence_roots: evidenceRoots,
-      file_count: 1,
+      file_count: authorityRefs.length,
       finding_count: 0,
-    };
-  });
+    });
+  }
+  return chunks;
 }
 
 async function listAdmittedPackageAuthorityEntries(projectRoot, packageAuthorityAdmissions, excludePatterns) {
@@ -549,6 +586,7 @@ export async function createAuditSweepPlan(projectRoot, options) {
         status: admission.status,
         authority_root: admission.authority_root,
         evidence_roots: admission.evidence_roots,
+        host_authority_projection_refs: admission.host_authority_projection_refs ?? [],
         admission_ref: admission.admission_ref,
       })),
     } : {}),
@@ -609,6 +647,8 @@ export async function createAuditSweepPlan(projectRoot, options) {
       ...(chunk.admission_ref ? { admission_ref: chunk.admission_ref } : {}),
       ...(chunk.authority_root ? { authority_root: chunk.authority_root } : {}),
       ...(chunk.evidence_root_admission_refs ? { evidence_root_admission_refs: chunk.evidence_root_admission_refs } : {}),
+      ...(chunk.admitted_evidence_roots ? { admitted_evidence_roots: chunk.admitted_evidence_roots } : {}),
+      ...(chunk.host_authority_projection_refs ? { host_authority_projection_refs: chunk.host_authority_projection_refs } : {}),
       ...(chunk.evidence_roots ? { evidence_roots: chunk.evidence_roots } : {}),
       ...(chunk.evidence_inventory ? { evidence_inventory: chunk.evidence_inventory } : {}),
       ...(chunk.evidence_inventory_status ? { evidence_inventory_status: chunk.evidence_inventory_status } : {}),

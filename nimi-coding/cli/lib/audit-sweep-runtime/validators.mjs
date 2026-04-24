@@ -234,6 +234,22 @@ function validatePlanShape(plan, sweepId, checks) {
     ));
     const packageAuthorityChunksOk = packageAuthorityChunks.every((chunk) => {
       const admission = packageAdmissionByRef.get(chunk.admission_ref);
+      const declaredProjections = Array.isArray(admission?.host_authority_projection_refs)
+        ? admission.host_authority_projection_refs
+        : [];
+      const declaredProjectionByHost = new Map(declaredProjections
+        .filter((entry) => isPlainObject(entry) && nonEmptyString(entry.host_ref) && nonEmptyString(entry.package_ref))
+        .map((entry) => [entry.host_ref, entry.package_ref]));
+      const chunkProjections = Array.isArray(chunk.host_authority_projection_refs) ? chunk.host_authority_projection_refs : [];
+      const chunkProjectionByHost = new Map(chunkProjections
+        .filter((entry) => isPlainObject(entry) && nonEmptyString(entry.host_ref) && nonEmptyString(entry.package_ref))
+        .map((entry) => [entry.host_ref, entry.package_ref]));
+      const chunkProjectionRefsOk = chunkProjections.every((entry) => isPlainObject(entry)
+        && nonEmptyString(entry.host_ref)
+        && nonEmptyString(entry.package_ref)
+        && declaredProjectionByHost.get(entry.host_ref) === entry.package_ref
+        && chunk.authority_refs.includes(entry.host_ref)
+        && chunk.authority_refs.includes(entry.package_ref));
       return chunk.authority_kind === "admitted_package_authority"
         && nonEmptyString(chunk.package_authority_id)
         && nonEmptyString(chunk.admission_ref)
@@ -243,7 +259,11 @@ function validatePlanShape(plan, sweepId, checks) {
         && admission.authority_root === chunk.authority_root
         && Array.isArray(admission.evidence_roots)
         && sortedArrayEquals(chunk.evidence_roots, admission.evidence_roots)
-        && chunk.authority_refs.every((fileRef) => String(fileRef).startsWith(`${chunk.authority_root}/`));
+        && chunkProjectionRefsOk
+        && chunk.authority_refs.every((fileRef) => (
+          String(fileRef).startsWith(`${chunk.authority_root}/`)
+          || chunkProjectionByHost.get(String(fileRef)) === declaredProjectionByHost.get(String(fileRef))
+        ));
     });
     check(checks, "plan_spec_package_authority_admitted", packageAuthorityChunksOk, "package-local authority chunks are admitted through .nimi/spec package authority admissions");
     const evidenceRootAdmissionsOk = plan.chunks.every((chunk) => (
@@ -258,10 +278,10 @@ function validatePlanShape(plan, sweepId, checks) {
     const evidenceInventoryFiles = Array.isArray(plan.evidence_inventory) ? plan.evidence_inventory.map((entry) => entry.file_ref) : [];
     const unmappedEvidenceFiles = Array.isArray(plan.unmapped_evidence_files) ? plan.unmapped_evidence_files : [];
     const mappedEvidenceFiles = plan.chunks.flatMap((chunk) => Array.isArray(chunk.evidence_inventory) ? chunk.evidence_inventory : []);
-    const mappedOnce = new Set(mappedEvidenceFiles).size === mappedEvidenceFiles.length;
+    const mappedEvidenceSet = new Set(mappedEvidenceFiles);
     const expectedMappedFiles = evidenceInventoryFiles.filter((fileRef) => !unmappedEvidenceFiles.includes(fileRef));
-    check(checks, "plan_spec_evidence_inventory_mapped_once", mappedOnce
-      && sortedArrayEquals(mappedEvidenceFiles, expectedMappedFiles), "every mapped evidence inventory file belongs to exactly one chunk");
+    check(checks, "plan_spec_evidence_inventory_mapped", expectedMappedFiles.every((fileRef) => mappedEvidenceSet.has(fileRef))
+      && mappedEvidenceFiles.every((fileRef) => evidenceInventoryFiles.includes(fileRef)), "every mapped evidence inventory file belongs to at least one chunk");
     check(checks, "plan_spec_unmapped_evidence_declared", unmappedEvidenceFiles.every((fileRef) => evidenceInventoryFiles.includes(fileRef)), "unmapped evidence files belong to the evidence inventory");
     check(checks, "plan_spec_unmapped_evidence_fail_closed", unmappedEvidenceFiles.length === 0, "spec-authority plans have no unmapped evidence files");
     check(checks, "plan_spec_coverage_counts_match", plan.coverage?.authority_files === includedFiles.length

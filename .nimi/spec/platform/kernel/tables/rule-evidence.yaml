@@ -42,6 +42,12 @@ evidence_catalog:
     command: node scripts/check-platform-spec-kernel-consistency.mjs
     path: scripts/check-platform-spec-kernel-consistency.mjs
     description: Platform kernel gate validating package authority admissions, package-vs-host projection boundaries, authority roots, evidence roots, and source rule linkage.
+  canonical_capability_catalog_gate:
+    type: static_gate
+    evidence_type: structural
+    command: pnpm check:canonical-capability-catalog
+    path: scripts/check-canonical-capability-catalog.mjs
+    description: Platform kernel gate validating canonical capability catalog row consistency against runtime tables, completeness against the admitted capability union, deferred entry admission fields, and codegen idempotency.
 
 rules:
   - rule_id: P-ALMI-001
@@ -277,6 +283,15 @@ rules:
   - rule_id: P-KIT-090
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
+  - rule_id: P-CAPCAT-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency, canonical_capability_catalog_gate]
+  - rule_id: P-CAPCAT-002
+    status: covered
+    evidence_refs: [canonical_capability_catalog_gate]
+  - rule_id: P-CAPCAT-003
+    status: covered
+    evidence_refs: [canonical_capability_catalog_gate]
   - rule_id: P-GOV-001
     status: covered
     evidence_refs: [platform_kernel_consistency]
@@ -353,6 +368,12 @@ rules:
     status: covered
     evidence_refs: [platform_kernel_consistency, package_authority_admission_gate]
   - rule_id: P-PKG-006
+    status: covered
+    evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
+  - rule_id: P-PKG-007
+    status: covered
+    evidence_refs: [platform_kernel_consistency, package_authority_admission_gate]
+  - rule_id: P-PKG-008
     status: covered
     evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
   - rule_id: P-PROTO-001

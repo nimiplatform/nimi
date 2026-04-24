@@ -25,3 +25,11 @@ Spec-first audit planning may expand admitted package-local specs into authority
 ## P-PKG-006 — Host-Local Evidence Admission
 
 Audit evidence roots for host-local `.nimi/contracts/**` and `.nimi/methodology/**` must be admitted through `.nimi/spec/**/kernel/tables/audit-evidence-roots.yaml` and anchored to an explicit `.nimi/spec/**` authority file. Unadmitted host-local truth must remain unmapped evidence and block full-audit closeout.
+
+## P-PKG-007 — Host Authority Projection Merge
+
+When a host `.nimi/spec/**` authority file is a projected copy or host admission of a package-local authority file, the package authority admission table must declare an explicit `host_authority_projection_refs` mapping from the host authority ref to the package authority ref. Spec-first audit planning must merge those refs into one package-owned audit chunk, retain both refs in `authority_refs`, and audit implementation evidence only once under the package evidence roots. Tools must not infer this relationship from matching content hashes or file names.
+
+## P-PKG-008 — Authority-Specific Package Evidence Admission
+
+Host-generated `.nimi/spec/**` authority artifacts that are enforced by package implementation code must admit the exact package implementation files or host-local contract files as audit evidence through `.nimi/spec/**/kernel/tables/audit-evidence-roots.yaml`. Exact file evidence roots must be assigned to the named authority chunk before broad package evidence roots, so package-owned implementation evidence cannot be hidden inside a different package authority chunk.

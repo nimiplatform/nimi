@@ -265,11 +265,13 @@ const requiredKernelFiles = [
   'ai-last-mile-contract.md',
   'design-pattern-contract.md',
   'kit-contract.md',
+  'capability-catalog-contract.md',
   'app-slice-admission-contract.md',
   'web-release-contract.md',
   'package-authority-admission-contract.md',
   'governance-contract.md',
   'tables/nimi-kit-registry.yaml',
+  'tables/canonical-capability-catalog.yaml',
   'tables/app-slice-admissions.yaml',
   'tables/audit-evidence-roots.yaml',
   'tables/package-authority-admissions.yaml',
@@ -300,6 +302,7 @@ const kernelContracts = [
   'ai-last-mile-contract.md',
   'design-pattern-contract.md',
   'kit-contract.md',
+  'capability-catalog-contract.md',
   'app-slice-admission-contract.md',
   'web-release-contract.md',
   'package-authority-admission-contract.md',
@@ -907,6 +910,9 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
       const hostRoots = Array.isArray(projectionBoundary.host_local_projection_roots)
         ? projectionBoundary.host_local_projection_roots.map((item) => String(item || '').trim()).filter(Boolean)
         : [];
+      const hostAuthorityProjectionRefs = Array.isArray(projectionBoundary.host_authority_projection_refs)
+        ? projectionBoundary.host_authority_projection_refs
+        : [];
       if (!ownerRef.startsWith('.nimi/spec/') || !fs.existsSync(path.join(cwd, ownerRef))) {
         fail(`${rel}: ${id} invalid projection_boundary.host_project_admission_owner ${ownerRef || '<empty>'}`);
       }
@@ -917,6 +923,21 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
         if (!hostRoot.startsWith('.nimi/') || hostRoot.startsWith('.nimi/spec/') || !fs.existsSync(path.join(cwd, hostRoot))) {
           fail(`${rel}: ${id} invalid host_local_projection_root ${hostRoot}`);
         }
+      }
+      const seenHostProjectionRefs = new Set();
+      for (const projectionRef of hostAuthorityProjectionRefs) {
+        const hostRef = String(projectionRef?.host_ref || '').trim();
+        const packageRef = String(projectionRef?.package_ref || '').trim();
+        if (!hostRef.startsWith('.nimi/spec/') || hostRef.includes('..') || path.isAbsolute(hostRef) || !fs.existsSync(path.join(cwd, hostRef))) {
+          fail(`${rel}: ${id} invalid host_authority_projection_refs host_ref ${hostRef || '<empty>'}`);
+        }
+        if (!packageRef.startsWith(`${authorityRoot.replace(/\/$/u, '')}/`) || packageRef.includes('..') || path.isAbsolute(packageRef) || !fs.existsSync(path.join(cwd, packageRef))) {
+          fail(`${rel}: ${id} invalid host_authority_projection_refs package_ref ${packageRef || '<empty>'}`);
+        }
+        if (seenHostProjectionRefs.has(hostRef)) {
+          fail(`${rel}: ${id} duplicate host_authority_projection_refs host_ref ${hostRef}`);
+        }
+        seenHostProjectionRefs.add(hostRef);
       }
     }
     if (!definedRuleIds.has(source)) {

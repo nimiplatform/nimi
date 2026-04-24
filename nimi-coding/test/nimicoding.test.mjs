@@ -5012,6 +5012,11 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       "# Runtime Audit Surface\n",
       "utf8",
     );
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "runtime", "kernel", "runtime-secondary-surface.md"),
+      "# Runtime Secondary Surface\n",
+      "utf8",
+    );
     await mkdir(path.join(projectRoot, ".nimi", "spec", "runtime", "kernel", "generated"), { recursive: true });
     await writeFile(
       path.join(projectRoot, ".nimi", "spec", "runtime", "kernel", "generated", "runtime-audit-surface.md"),
@@ -5069,6 +5074,10 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     assert.equal(runtimeChunk.coverage_contract.evidence_files_must_cover_inventory, true);
     assert.ok(runtimeChunk.evidence_inventory.includes("runtime/internal/service.go"));
     assert.ok(runtimeChunk.evidence_inventory.includes("runtime/internal/service_test.go"));
+    const runtimeSecondaryChunk = plan.chunks.find((chunk) => chunk.authority_refs.includes(".nimi/spec/runtime/kernel/runtime-secondary-surface.md"));
+    assert.ok(runtimeSecondaryChunk);
+    assert.ok(runtimeSecondaryChunk.evidence_inventory.includes("runtime/internal/service.go"));
+    assert.ok(runtimeSecondaryChunk.evidence_inventory.includes("runtime/internal/service_test.go"));
     const runtimeGeneratedChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "kernel-generated");
     assert.ok(runtimeGeneratedChunk);
     assert.ok(!runtimeGeneratedChunk.evidence_inventory.includes("runtime/internal/service.go"));
@@ -5429,6 +5438,12 @@ test("audit-sweep plan expands admitted package authority and host-local project
               host_project_admission_owner: ".nimi/spec/platform/kernel/package-authority-admission-contract.md",
               package_truth_root: "tools/tooling/spec",
               host_local_projection_roots: [".nimi/contracts", ".nimi/methodology"],
+              host_authority_projection_refs: [
+                {
+                  host_ref: ".nimi/spec/product-scope.yaml",
+                  package_ref: "tools/tooling/spec/product-scope.yaml",
+                },
+              ],
             },
             source_rule: "P-PKG-001",
           },
@@ -5448,6 +5463,13 @@ test("audit-sweep plan expands admitted package authority and host-local project
             evidence_roots: [".nimi/contracts", ".nimi/methodology"],
             source_rule: "P-PKG-006",
           },
+          {
+            id: "host-generated-audit-tooling-implementation",
+            owner_domain: "spec-meta",
+            authority_refs: [".nimi/spec/_meta/spec-generation-audit.yaml"],
+            evidence_roots: ["tools/tooling/cli/index.mjs"],
+            source_rule: "P-PKG-008",
+          },
         ],
       }),
       "utf8",
@@ -5455,6 +5477,8 @@ test("audit-sweep plan expands admitted package authority and host-local project
     await mkdir(path.join(projectRoot, "tools", "tooling", "spec"), { recursive: true });
     await mkdir(path.join(projectRoot, "tools", "tooling", "cli"), { recursive: true });
     await mkdir(path.join(projectRoot, "tools", "tooling", "contracts"), { recursive: true });
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "_meta"), { recursive: true });
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml"), "version: 1\nspec_generation_audit:\n  files: []\n", "utf8");
     await writeFile(path.join(projectRoot, "tools", "tooling", "spec", "product-scope.yaml"), "version: 1\nproduct: tooling\n", "utf8");
     await writeFile(path.join(projectRoot, "tools", "tooling", "cli", "index.mjs"), "export const run = () => true;\n", "utf8");
     await writeFile(path.join(projectRoot, "tools", "tooling", "contracts", "tool.schema.yaml"), "version: 1\n", "utf8");
@@ -5483,14 +5507,33 @@ test("audit-sweep plan expands admitted package authority and host-local project
     assert.equal(packageChunk.authority_kind, "admitted_package_authority");
     assert.equal(packageChunk.package_authority_id, "tooling");
     assert.equal(packageChunk.admission_ref, ".nimi/spec/platform/kernel/tables/package-authority-admissions.yaml#tooling");
+    assert.deepEqual(packageChunk.authority_refs, ["tools/tooling/spec/product-scope.yaml", ".nimi/spec/product-scope.yaml"]);
+    assert.deepEqual(packageChunk.files, ["tools/tooling/spec/product-scope.yaml", ".nimi/spec/product-scope.yaml"]);
+    assert.deepEqual(packageChunk.host_authority_projection_refs, [
+      {
+        host_ref: ".nimi/spec/product-scope.yaml",
+        package_ref: "tools/tooling/spec/product-scope.yaml",
+        package_authority_id: "tooling",
+        admission_ref: ".nimi/spec/platform/kernel/tables/package-authority-admissions.yaml#tooling",
+      },
+    ]);
     assert.deepEqual(packageChunk.evidence_roots, ["tools/tooling"]);
-    assert.ok(packageChunk.evidence_inventory.includes("tools/tooling/cli/index.mjs"));
     assert.ok(packageChunk.evidence_inventory.includes("tools/tooling/contracts/tool.schema.yaml"));
     assert.ok(!packageChunk.evidence_inventory.includes("tools/tooling/spec/product-scope.yaml"));
+    assert.equal(plan.chunks.filter((chunk) => chunk.authority_refs.includes(".nimi/spec/product-scope.yaml")).length, 1);
+
+    const specAuditChunk = plan.chunks.find((chunk) => chunk.authority_refs.includes(".nimi/spec/_meta/spec-generation-audit.yaml"));
+    assert.ok(specAuditChunk);
+    assert.deepEqual(specAuditChunk.evidence_root_admission_refs, [".nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml#host-generated-audit-tooling-implementation"]);
+    assert.deepEqual(specAuditChunk.admitted_evidence_roots, ["tools/tooling/cli/index.mjs"]);
+    assert.ok(specAuditChunk.evidence_inventory.includes("tools/tooling/cli/index.mjs"));
+    assert.ok(!packageChunk.evidence_inventory.includes("tools/tooling/cli/index.mjs"));
 
     const hostProjectionChunk = plan.chunks.find((chunk) => chunk.authority_refs.includes(".nimi/spec/platform/kernel/package-authority-admission-contract.md"));
     assert.ok(hostProjectionChunk);
     assert.ok(hostProjectionChunk.evidence_root_admission_refs.includes(".nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml#host-local-tooling-projection"));
+    assert.ok(hostProjectionChunk.admitted_evidence_roots.includes(".nimi/contracts"));
+    assert.ok(hostProjectionChunk.admitted_evidence_roots.includes(".nimi/methodology"));
     assert.ok(hostProjectionChunk.evidence_inventory.includes(".nimi/contracts/host-local-tool.schema.yaml"));
     assert.ok(hostProjectionChunk.evidence_inventory.includes(".nimi/methodology/host-local-tool.yaml"));
   });

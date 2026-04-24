@@ -25,6 +25,8 @@ optional_top_level_fields:
   - admission_ref
   - authority_root
   - evidence_root_admission_refs
+  - admitted_evidence_roots
+  - host_authority_projection_refs
   - evidence_roots
   - evidence_inventory
   - evidence_inventory_status
@@ -54,6 +56,7 @@ hard_constraints:
   - spec_authority_chunks_with_empty_evidence_inventory_must_declare_explicit_empty_reason
   - spec_authority_chunks_must_declare_coverage_contract
   - spec_authority_chunk_files_remain_authority_refs_only
+  - admitted_package_authority_projection_refs_must_be_explicitly_mapped
   - spec_authority_ingest_requires_one_authority_outcome_per_authority_ref
   - spec_authority_ingest_requires_evidence_files_exactly_matching_evidence_inventory
   - spec_authority_authority_outcome_evidence_refs_must_belong_to_authority_refs_or_evidence_inventory
