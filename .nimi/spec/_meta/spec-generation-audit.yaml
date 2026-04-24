@@ -4472,55 +4472,6 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
-    - canonical_path: .nimi/spec/runtime/kernel/generated/runtime-agent-core-typed-family.md
-      file_class: kernel_generated
-      source_refs:
-        - .nimi/spec/runtime/kernel/tables/ai-timeout-defaults.yaml
-        - .nimi/spec/runtime/kernel/tables/asset-kind-registry.yaml
-        - .nimi/spec/runtime/kernel/tables/capability-to-asset-kind.yaml
-        - .nimi/spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml
-        - .nimi/spec/runtime/kernel/tables/config-schema.yaml
-        - .nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml
-        - .nimi/spec/runtime/kernel/tables/daemon-health-states.yaml
-        - .nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml
-        - .nimi/spec/runtime/kernel/tables/interceptor-chain.yaml
-        - .nimi/spec/runtime/kernel/tables/job-states.yaml
-        - .nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml
-        - .nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml
-        - .nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml
-        - .nimi/spec/runtime/kernel/tables/local-image-supervised-backend-matrix.yaml
-        - .nimi/spec/runtime/kernel/tables/managed-image-backend-packages.yaml
-        - .nimi/spec/runtime/kernel/tables/metadata-keys.yaml
-        - .nimi/spec/runtime/kernel/tables/multimodal-artifact-fields.yaml
-        - .nimi/spec/runtime/kernel/tables/multimodal-canonical-fields.yaml
-        - .nimi/spec/runtime/kernel/tables/provider-capabilities.yaml
-        - .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
-        - .nimi/spec/runtime/kernel/tables/provider-extension-registry.yaml
-        - .nimi/spec/runtime/kernel/tables/provider-probe-targets.yaml
-        - .nimi/spec/runtime/kernel/tables/reason-codes.yaml
-        - .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
-        - .nimi/spec/runtime/kernel/tables/rpc-migration-map.yaml
-        - .nimi/spec/runtime/kernel/tables/rule-evidence.catalog.yaml
-        - .nimi/spec/runtime/kernel/tables/rule-evidence.rules-multimodal.yaml
-        - .nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml
-        - .nimi/spec/runtime/kernel/tables/rule-evidence.yaml
-        - .nimi/spec/runtime/kernel/tables/runtime-agent-core-typed-family.yaml
-        - .nimi/spec/runtime/kernel/tables/runtime-delivery-gates.yaml
-        - .nimi/spec/runtime/kernel/tables/runtime-memory-bank-scope.yaml
-        - .nimi/spec/runtime/kernel/tables/runtime-memory-hook-trigger.yaml
-        - .nimi/spec/runtime/kernel/tables/runtime-memory-replication-outcome.yaml
-        - .nimi/spec/runtime/kernel/tables/runtime-proto-governance-gates.yaml
-        - .nimi/spec/runtime/kernel/tables/scenario-execution-matrix.yaml
-        - .nimi/spec/runtime/kernel/tables/scenario-profile-fields.yaml
-        - .nimi/spec/runtime/kernel/tables/scenario-types.yaml
-        - .nimi/spec/runtime/kernel/tables/state-transitions.yaml
-        - .nimi/spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml
-        - .nimi/spec/runtime/kernel/tables/voice-enums.yaml
-        - .nimi/spec/runtime/kernel/tables/workflow-node-types.yaml
-        - .nimi/spec/runtime/kernel/tables/workflow-states.yaml
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
     - canonical_path: .nimi/spec/runtime/kernel/generated/runtime-delivery-gates.md
       file_class: kernel_generated
       source_refs:
@@ -5256,13 +5207,6 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
-    - canonical_path: .nimi/spec/runtime/kernel/runtime-agent-core-contract.md
-      file_class: kernel_markdown
-      source_refs:
-        - .nimi/spec/runtime/kernel/runtime-agent-core-contract.md
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
     - canonical_path: .nimi/spec/runtime/kernel/runtime-memory-service-contract.md
       file_class: kernel_markdown
       source_refs:
@@ -5498,13 +5442,6 @@ spec_generation_audit:
       file_class: kernel_tables
       source_refs:
         - .nimi/spec/runtime/kernel/tables/rule-evidence.yaml
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
-    - canonical_path: .nimi/spec/runtime/kernel/tables/runtime-agent-core-typed-family.yaml
-      file_class: kernel_tables
-      source_refs:
-        - .nimi/spec/runtime/kernel/tables/runtime-agent-core-typed-family.yaml
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
@@ -6402,6 +6339,111 @@ spec_generation_audit:
       file_class: kernel_tables
       source_refs:
         - .nimi/spec/cognition/kernel/tables/skill-service-operations.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/realm/kernel/generated/projection-contract.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/projection-contract.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/realm/kernel/projection-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/realm/kernel/projection-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/realm/kernel/tables/projection-contract.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/realm/kernel/tables/projection-contract.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/realm/projection.md
+      file_class: domain_guides
+      source_refs:
+        - .nimi/spec/realm/projection.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/agent-hook-intent-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/agent-hook-intent-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/generated/connector-auth-profiles.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/connector-auth-profiles.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/generated/runtime-agent-typed-family.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/tables/connector-auth-profiles.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/connector-auth-profiles.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/sdk/kernel/world-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/sdk/kernel/world-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/sdk/world.md
+      file_class: domain_guides
+      source_refs:
+        - .nimi/spec/sdk/world.md
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []

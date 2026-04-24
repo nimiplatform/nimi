@@ -757,6 +757,11 @@ method_mappings:
   proto_method: WriteAgentMemory
   mapping_status: aligned
 - design_service: RuntimeAgentService
+  design_method: SetAgentPresentationProfile
+  proto_service: RuntimeAgentService
+  proto_method: SetAgentPresentationProfile
+  mapping_status: aligned
+- design_service: RuntimeAgentService
   design_method: SubscribeAgentEvents
   proto_service: RuntimeAgentService
   proto_method: SubscribeAgentEvents

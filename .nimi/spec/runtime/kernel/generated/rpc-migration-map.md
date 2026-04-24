@@ -162,6 +162,7 @@
 | `RuntimeAgentService` | `CancelHook` | `RuntimeAgentService` | `CancelHook` | `aligned` |
 | `RuntimeAgentService` | `QueryAgentMemory` | `RuntimeAgentService` | `QueryAgentMemory` | `aligned` |
 | `RuntimeAgentService` | `WriteAgentMemory` | `RuntimeAgentService` | `WriteAgentMemory` | `aligned` |
+| `RuntimeAgentService` | `SetAgentPresentationProfile` | `RuntimeAgentService` | `SetAgentPresentationProfile` | `aligned` |
 | `RuntimeAgentService` | `SubscribeAgentEvents` | `RuntimeAgentService` | `SubscribeAgentEvents` | `aligned` |
 
 ## Excluded Proto Methods
