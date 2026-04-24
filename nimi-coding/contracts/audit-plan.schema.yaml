@@ -1,0 +1,49 @@
+version: 1
+schema:
+  id: nimi-coding.audit-plan.v1
+  kind: audit-plan
+required_top_level_fields:
+  - version
+  - kind
+  - sweep_id
+  - target_root
+  - inventory_hash
+  - inventory
+  - chunks
+  - coverage
+  - created_at
+  - updated_at
+inventory_entry_required_fields:
+  - file_ref
+  - sha256
+  - bytes
+  - extension
+  - owner_domain
+  - classification
+  - included
+  - exclusion_reason
+chunk_required_fields:
+  - chunk_id
+  - state
+  - owner_domain
+  - criteria
+  - files
+  - file_count
+state_enum:
+  - planned
+  - dispatched
+  - ingested
+  - reviewed
+  - frozen
+  - failed
+  - skipped
+coverage_required_fields:
+  - total_files
+  - included_files
+  - excluded_files
+  - chunk_count
+hard_constraints:
+  - inventory_hash_must_cover_all_inventory_entries
+  - every_included_file_must_belong_to_exactly_one_chunk
+  - excluded_files_must_have_explicit_exclusion_reason
+  - zero_included_files_cannot_be_candidate_ready

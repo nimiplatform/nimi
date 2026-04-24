@@ -1,0 +1,31 @@
+version: 1
+schema:
+  id: nimi-coding.audit-rerun.v1
+  kind: audit-rerun
+required_top_level_fields:
+  - finding_id
+  - source_fingerprint
+  - disposition
+  - rerun
+  - evidence_summary
+  - verified_at
+disposition_enum:
+  - remediated
+  - accepted-risk
+  - false-positive
+  - deferred-backlog
+rerun_required_fields:
+  - chunk_id
+  - covered_files
+  - verdict
+  - auditor
+verdict_enum:
+  - not_reproduced
+  - still_reproduced
+  - manager_accepted
+  - deferred
+hard_constraints:
+  - remediated_requires_not_reproduced_verdict
+  - rerun_covered_files_must_include_original_finding_file
+  - source_fingerprint_must_match_original_finding
+  - manager_dispositions_require_manager_acceptance_evidence

@@ -1,0 +1,26 @@
+version: 1
+schema:
+  id: nimi-coding.audit-closeout.v1
+  kind: audit-closeout
+required_top_level_fields:
+  - sweep_id
+  - ledger_ref
+  - remediation_map_ref
+  - audit_closeout_ref
+  - coverage_status
+  - finding_posture
+  - closeout_posture
+  - verified_at
+coverage_status_enum:
+  - full
+  - partial
+  - blocked
+closeout_posture_enum:
+  - audit_complete_findings_open
+  - audit_complete_all_findings_postured
+  - blocked
+hard_constraints:
+  - closeout_requires_latest_ledger_snapshot
+  - audit_complete_requires_no_active_chunks
+  - all_open_findings_require_remediation_map_coverage
+  - all_closed_findings_require_resolution_evidence

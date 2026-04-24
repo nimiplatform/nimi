@@ -1,0 +1,67 @@
+version: 1
+adapter_profile:
+  id: codex
+  host_class: native_codex_sdk_host
+  upstream_seed_profile: external_ai_host
+  purpose: >
+    Constrain native Codex SDK execution to act as a direct Codex host for
+    nimicoding topic-loop dispatch, using @openai/codex-sdk thread runs without
+    promoting Codex thread state into semantic truth.
+  semantic_owner:
+    - .nimi/methodology
+    - .nimi/spec
+    - .nimi/contracts
+    - .nimi/config
+  operational_owner:
+    - .codex
+    - .nimi/local
+    - .nimi/cache
+  admitted_skill_surfaces:
+    - spec_reconstruction
+    - doc_spec_audit
+    - audit_sweep
+    - high_risk_execution
+    - topic_loop_execution
+  prompt_handoff:
+    bootstrap_surface:
+      - nimicoding handoff --skill spec_reconstruction --prompt
+      - nimicoding handoff --skill doc_spec_audit --prompt
+      - nimicoding handoff --skill audit_sweep --prompt
+      - nimicoding handoff --skill high_risk_execution --prompt
+    future_surface:
+      status: active_via_codex_sdk
+      commands:
+        - Codex.startThread().run
+        - Codex.resumeThread().run
+  output_handoff:
+    worker_output_target: .nimi/local/outputs/** candidate artifact
+    evidence_target: .nimi/local/evidence/** candidate artifact
+    closeout_target: local-only closeout payload unless later admitted
+  native_review_boundary:
+    approval_review:
+      scope: lower_layer_permission_review
+      semantic_effect: none
+      evidence_target: .nimi/local/evidence/** candidate artifact
+    github_auto_review:
+      scope: lower_layer_pr_review_findings
+      semantic_effect: evidence_only
+      evidence_target: .nimi/local/evidence/** candidate artifact
+    forbidden_semantic_substitutions:
+      - wave_admission
+      - packet_freeze
+      - result_verdict
+      - wave_closeout
+      - topic_closeout
+      - true_close
+  hard_constraints:
+    - codex_sdk_must_not_become_semantic_owner
+    - codex_sdk_must_not_write_canonical_.nimi/spec_truth_directly_without_validator_admission
+    - codex_sdk_must_not_define_acceptance_disposition_or_finding_judgment
+    - codex_thread_state_must_remain_operational_only
+    - codex_sdk_runs_must_be_recorded_in_topic_run_ledger
+    - codex_native_approval_review_must_remain_permission_review_only
+    - codex_github_auto_review_must_remain_evidence_only
+    - codex_review_must_not_substitute_nimicoding_semantic_commands
+    - unresolved_authority_or_missing_context_must_fail_closed
+  current_gaps:
+    - topic_semantic_orchestrator_command_surface_not_yet_packaged

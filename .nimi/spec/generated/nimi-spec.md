@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-04-23
+> 生成时间: 2026-04-24
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -3293,7 +3293,7 @@ Future Capabilities 系统用三个互锁的注册表解决这个问题：能力
 追溯链
 ─────────────────────────────────────────────────
 Research Topic Doc     Backlog Item           Spec Document
-(.nimi/local/report/{proposal|ongoing|pending|closed}/<topic-id>/*.md) (backlog-items.yaml)   (.nimi/spec/**/*.md)
+(.nimi/topics/{proposal|ongoing|pending|closed}/<topic-id>/*.md) (backlog-items.yaml)   (.nimi/spec/**/*.md)
        │                      │                      │
    source_id ─────→ source_ids[]              target_spec_path
                               │                      │
@@ -5191,6 +5191,8 @@ Fixed rules:
 | http_request | Proxy HTTP request through Tauri backend (bypasses browser CORS) |
 | open_external_url | Open external URL in system browser |
 | desktop_avatar_launch_handoff | Launch the avatar app handoff URI with explicit agent/avatar-instance/anchor context and no raw JWT payload |
+| desktop_avatar_close_handoff | Request closure of a specific live avatar instance by avatar_instance_id through the avatar app handoff path without mutating runtime or desktop-local avatar truth |
+| desktop_avatar_instance_registry_list | Read the avatar-published live instance projection for desktop session-link inventory without inventing local carrier truth |
 | oauth_token_exchange | Exchange OAuth authorization code for tokens |
 | oauth_listen_for_code | Listen for OAuth callback code on redirect URI |
 | confirm_private_sync | Confirm private data sync for agent/session |

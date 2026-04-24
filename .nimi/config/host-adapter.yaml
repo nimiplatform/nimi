@@ -3,6 +3,7 @@ host_adapter:
   runtime_owner: external_ai_host
   selected_adapter_id: none
   admitted_adapter_ids:
+    - codex
     - oh_my_codex
     - claude
   handoff_mode: prompt_output_evidence_handoff

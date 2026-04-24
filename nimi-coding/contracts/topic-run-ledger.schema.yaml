@@ -1,0 +1,70 @@
+id: nimicoding.topic-run-ledger.v1
+kind: topic-run-ledger
+ledger_required:
+  - ledger_id
+  - topic_id
+  - run_id
+  - kind
+  - run_status
+  - event_count
+  - event_refs
+  - latest_event_ref
+  - current_wave_id
+  - latest_decision_ref
+  - latest_packet_ref
+  - latest_prompt_ref
+  - latest_result_ref
+  - latest_closeout_ref
+  - current_human_gate
+  - retry_posture
+  - updated_at
+event_required:
+  - event_id
+  - topic_id
+  - run_id
+  - event_index
+  - event_kind
+  - stop_class
+  - recommended_action
+  - source_ref
+  - summary
+  - recorded_at
+  - artifact_refs
+event_kind_enum:
+  - decision_emitted
+  - packet_frozen
+  - worker_dispatched
+  - audit_dispatched
+  - result_recorded
+  - human_gate_opened
+  - human_gate_resolved
+  - wave_closed
+  - topic_closed
+  - runner_blocked
+run_status_enum:
+  - running
+  - awaiting_human_confirmation
+  - awaiting_external_evidence
+  - blocked
+  - completed
+artifact_ref_keys:
+  - decision_ref
+  - packet_ref
+  - prompt_ref
+  - worker_output_ref
+  - audit_output_ref
+  - result_ref
+  - closeout_ref
+  - evidence_ref
+retry_posture_enum:
+  - not_applicable
+  - retry_allowed_same_command
+  - retry_requires_new_packet
+  - retry_forbidden_until_human_gate
+rules:
+  - run events are append-only topic artifacts
+  - the ledger is a rebuildable projection from run events
+  - event stop_class and recommended_action must use the topic-step-decision contract enums
+  - require_human_confirmation opens current_human_gate unless resolved by a later human_gate_resolved event
+  - completed must not imply semantic promotion or true-close
+  - no event may encode transport secrets or host resume tokens

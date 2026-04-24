@@ -20,6 +20,7 @@ adapter_profile:
   admitted_skill_surfaces:
     - spec_reconstruction
     - doc_spec_audit
+    - audit_sweep
     - high_risk_execution
     - inline_review
   context_integration:
@@ -37,6 +38,7 @@ adapter_profile:
     bootstrap_surface:
       - nimicoding handoff --skill spec_reconstruction --prompt
       - nimicoding handoff --skill doc_spec_audit --prompt
+      - nimicoding handoff --skill audit_sweep --prompt
       - nimicoding handoff --skill high_risk_execution --prompt
     future_surface:
       status: active_via_hooks

@@ -22,6 +22,9 @@ expected_skill_surfaces:
   - id: doc_spec_audit
     required: true
     purpose: compare_human_docs_against_.nimi/spec
+  - id: audit_sweep
+    required: false
+    purpose: perform_full_coverage_audit_sweep_and_emit_frozen_findings_ledger
   - id: high_risk_execution
     required: false
     purpose: packetized_execution_after_project_truth_matures

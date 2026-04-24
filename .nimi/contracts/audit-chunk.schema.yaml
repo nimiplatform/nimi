@@ -1,0 +1,38 @@
+version: 1
+schema:
+  id: nimi-coding.audit-chunk.v1
+  kind: audit-chunk
+required_top_level_fields:
+  - version
+  - kind
+  - sweep_id
+  - chunk_id
+  - state
+  - owner_domain
+  - criteria
+  - files
+  - file_hashes
+  - lifecycle
+  - created_at
+  - updated_at
+state_enum:
+  - planned
+  - dispatched
+  - ingested
+  - reviewed
+  - frozen
+  - failed
+  - skipped
+lifecycle_required_fields:
+  - planned_at
+  - dispatched_at
+  - ingested_at
+  - reviewed_at
+  - frozen_at
+  - failed_at
+  - skipped_at
+hard_constraints:
+  - chunk_files_must_match_plan_inventory
+  - ingest_requires_dispatch
+  - frozen_requires_manager_review
+  - failed_or_skipped_requires_explicit_reason

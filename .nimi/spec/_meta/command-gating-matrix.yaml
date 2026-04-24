@@ -49,6 +49,14 @@ command_gating_matrix:
       - canonical_cutover_ready
       - canonical_active
   - command: handoff
+    skill: audit_sweep
+    allowed_tree_states:
+      - canonical_tree_ready
+    allowed_authority_modes:
+      - external_authority_active
+      - canonical_cutover_ready
+      - canonical_active
+  - command: handoff
     skill: high_risk_execution
     allowed_tree_states:
       - canonical_tree_ready
@@ -67,6 +75,12 @@ command_gating_matrix:
     completed_requires:
       tree_state: canonical_tree_ready
       audit_references_canonical_root: true
+  - command: closeout
+    skill: audit_sweep
+    completed_requires:
+      tree_state: canonical_tree_ready
+      canonical_required_files_valid: true
+      spec_generation_audit_valid: true
   - command: closeout
     skill: high_risk_execution
     completed_requires:

@@ -1,0 +1,24 @@
+version: 1
+result_contract:
+  id: delegated_audit_sweep_result
+summary_required_fields:
+  - plan_ref
+  - chunk_refs
+  - ledger_ref
+  - report_ref
+  - remediation_map_ref
+  - audit_closeout_ref
+  - evidence_refs
+  - finding_count
+  - unresolved_finding_count
+  - status
+  - summary
+  - verified_at
+summary_status_enum:
+  - candidate_ready
+  - partial
+  - blocked
+locality: local_only
+semantic_constraints:
+  - do_not_promote_audit_sweep_summary_to_project_truth
+  - do_not_treat_external_audit_sweep_summary_as_remediation_or_closure_judgement

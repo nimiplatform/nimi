@@ -1,0 +1,37 @@
+version: 1
+schema:
+  id: nimi-coding.audit-remediation-map.v1
+  kind: audit-remediation-map
+required_top_level_fields:
+  - version
+  - kind
+  - sweep_id
+  - source_ledger_ref
+  - source_findings_ref
+  - grouping_policy
+  - waves
+  - unmapped_findings
+  - created_at
+  - updated_at
+wave_required_fields:
+  - wave_id
+  - status
+  - owner_domain
+  - priority
+  - actionability
+  - finding_ids
+  - source_chunks
+  - files
+  - write_set
+  - depends_on
+  - admission_checklist
+status_enum:
+  - proposed
+  - admitted
+  - superseded
+  - empty
+hard_constraints:
+  - remediation_map_must_not_mutate_source_ledger
+  - every_open_finding_must_be_mapped_or_explicitly_unmapped
+  - write_set_conflicts_must_be_visible
+  - needs_decision_findings_require_manager_decision_admission

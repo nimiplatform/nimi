@@ -1,0 +1,44 @@
+version: 1
+schema:
+  id: nimi-coding.audit-ledger.v1
+  kind: audit-ledger
+required_top_level_fields:
+  - version
+  - kind
+  - sweep_id
+  - snapshot_id
+  - immutable
+  - plan_ref
+  - chunk_refs
+  - findings_ref
+  - evidence_refs
+  - run_ledger_ref
+  - status
+  - coverage
+  - finding_count
+  - unresolved_finding_count
+  - finding_posture
+  - created_at
+status_enum:
+  - candidate_ready
+  - partial
+  - blocked
+coverage_required_fields:
+  - total_files
+  - included_files
+  - audited_files
+  - frozen_chunks
+  - failed_chunks
+  - skipped_chunks
+finding_posture_required_fields:
+  - open
+  - remediated
+  - accepted_risk
+  - false_positive
+  - deferred_backlog
+hard_constraints:
+  - ledger_snapshots_are_immutable
+  - candidate_ready_requires_all_included_files_audited
+  - candidate_ready_requires_all_chunks_frozen
+  - failed_or_skipped_chunks_force_partial_or_blocked
+  - ledger_must_reference_append_only_run_ledger

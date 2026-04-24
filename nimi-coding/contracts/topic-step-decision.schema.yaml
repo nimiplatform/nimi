@@ -1,0 +1,40 @@
+id: nimicoding.topic-step-decision.v1
+kind: topic-step-decision
+required:
+  - decision_id
+  - topic_id
+  - wave_id
+  - decision_kind
+  - stop_class
+  - recommended_action
+  - reason_code
+  - requires_human_confirmation
+  - recommended_decision
+  - recommendation_rationale
+  - expected_artifacts
+  - next_command_ref
+stop_class_enum:
+  - continue
+  - require_human_confirmation
+  - await_external_evidence
+  - blocked
+  - completed
+recommended_action_enum:
+  - admit_wave
+  - freeze_packet
+  - dispatch_worker
+  - dispatch_audit
+  - record_result
+  - open_remediation
+  - continue_overflow
+  - hold_topic
+  - resume_topic
+  - closeout_wave
+  - closeout_topic
+  - no_action
+rules:
+  - continue must carry a concrete next_command_ref
+  - require_human_confirmation must carry a recommended_decision and recommendation_rationale
+  - blocked must carry blocking_checks or a reason_code that names the failed gate
+  - completed must not imply semantic promotion or true-close
+  - decision output must not mutate topic state

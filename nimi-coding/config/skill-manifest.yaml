@@ -24,6 +24,16 @@ skills:
     inputs:
       - README.md
       - .nimi/spec
+  - id: audit_sweep
+    source: external
+    required: false
+    result_contract_ref: .nimi/contracts/audit-sweep-result.yaml
+    inputs:
+      - .nimi/methodology
+      - .nimi/spec
+      - .nimi/contracts
+      - .nimi/local
+      - .nimi/config/audit-execution-artifacts.yaml
   - id: high_risk_execution
     source: external
     required: false
