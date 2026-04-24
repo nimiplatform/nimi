@@ -1,4 +1,6 @@
 import {
+  AUDIT_SWEEP_SUMMARY_REQUIRED_FIELDS,
+  AUDIT_SWEEP_SUMMARY_STATUS,
   DOC_SPEC_AUDIT_DEFAULT_COMPARED_PATHS,
   DOC_SPEC_AUDIT_SUMMARY_REQUIRED_FIELDS,
   DOC_SPEC_AUDIT_SUMMARY_STATUS,
@@ -29,6 +31,19 @@ export function parseDocSpecAuditContract(text) {
     summaryRequiredFields,
     summaryStatusEnum,
     defaultComparedPaths,
+  };
+}
+
+export function parseAuditSweepContract(text) {
+  const parsed = parseYamlText(text);
+  const summaryRequiredFields = toStringArray(parsed?.summary_required_fields);
+  const summaryStatusEnum = toStringArray(parsed?.summary_status_enum);
+
+  return {
+    ok: arraysEqual(summaryRequiredFields, AUDIT_SWEEP_SUMMARY_REQUIRED_FIELDS)
+      && arraysEqual(summaryStatusEnum, AUDIT_SWEEP_SUMMARY_STATUS),
+    summaryRequiredFields,
+    summaryStatusEnum,
   };
 }
 

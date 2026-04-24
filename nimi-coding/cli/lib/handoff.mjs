@@ -13,6 +13,7 @@ import {
   SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
 } from "../constants.mjs";
 import {
+  loadAuditSweepContract,
   loadDocSpecAuditContract,
   loadExternalHostCompatibilityContract,
   loadHighRiskSchemaContracts,
@@ -20,6 +21,7 @@ import {
   loadSpecReconstructionContract,
   loadSpecTreeModelContract,
 } from "./contracts.mjs";
+import { loadAuditExecutionArtifactsConfig } from "./audit-execution.mjs";
 import { inspectDoctorState } from "./doctor.mjs";
 import { loadExternalExecutionArtifactsConfig } from "./external-execution.mjs";
 import { readTextIfFile } from "./fs-helpers.mjs";
@@ -101,6 +103,8 @@ function getSkillSpecificExpectations(
   resultContractRef,
   specContract,
   auditContract,
+  auditSweepContract,
+  auditExecutionArtifacts,
   highRiskSchemaContracts,
   externalExecutionArtifacts,
 ) {
@@ -132,6 +136,32 @@ function getSkillSpecificExpectations(
       skillExpectedResults: [
         `compare_${auditContract.defaultComparedPaths.join("_and_")}_against_.nimi/spec_truth`,
         `return_local_only_summary_that_satisfies_${resultContractRef}`,
+      ],
+    };
+  }
+
+  if (skillId === "audit_sweep") {
+    return {
+      compareTargets: [".nimi/spec", ".nimi/contracts", ".nimi/methodology"],
+      closeoutSummaryFields: auditSweepContract.summaryRequiredFields,
+      closeoutSummaryStatus: auditSweepContract.summaryStatusEnum,
+      executionSchemaRefs: [],
+      artifactRoots: auditExecutionArtifacts.artifactRoots ?? {},
+      expectedArtifactKinds: [
+        "audit-plan",
+        "audit-chunk",
+        "audit-ledger",
+        "audit-report",
+        "audit-remediation-map",
+        "audit-packet",
+        "audit-run-ledger",
+        "audit-closeout",
+      ],
+      skillExpectedResults: [
+        "freeze_full_coverage_inventory_for_a_declared_target_root",
+        "partition_inventory_into_machine_identifiable_audit_chunks",
+        `return_local_only_audit_sweep_summary_that_satisfies_${resultContractRef}`,
+        "produce_frozen_findings_ledger_and_remediation_map_without_claiming_semantic_closure",
       ],
     };
   }
@@ -194,7 +224,9 @@ export async function buildHandoffPayload(projectRoot, skillId) {
   const specTreeModel = await loadSpecTreeModelContract(projectRoot);
   const specGenerationInputs = await loadSpecGenerationInputsConfig(projectRoot);
   const auditContract = await loadDocSpecAuditContract(projectRoot);
+  const auditSweepContract = await loadAuditSweepContract(projectRoot);
   const hostCompatibilityContract = await loadExternalHostCompatibilityContract(projectRoot);
+  const auditExecutionArtifacts = await loadAuditExecutionArtifactsConfig(projectRoot);
   const externalExecutionArtifacts = await loadExternalExecutionArtifactsConfig(projectRoot);
   const highRiskSchemaContracts = await loadHighRiskSchemaContracts(projectRoot);
 
@@ -231,6 +263,8 @@ export async function buildHandoffPayload(projectRoot, skillId) {
     resultContractRef,
     specContract,
     auditContract,
+    auditSweepContract,
+    auditExecutionArtifacts,
     highRiskSchemaContracts,
     externalExecutionArtifacts,
   );
@@ -300,6 +334,7 @@ export async function buildHandoffPayload(projectRoot, skillId) {
           selectedOverlayHostClass: null,
         },
         futureOnlyHostSurfaces: [],
+        nativeReviewSurfaces: [],
       },
     },
     runtimeOwner: doctorResult.delegatedContracts.runtimeOwner,
@@ -353,6 +388,7 @@ export async function buildHandoffPayload(projectRoot, skillId) {
       currentGaps: doctorResult.adapterProfiles.selected?.currentGaps ?? [],
       futureSurface: doctorResult.adapterProfiles.selected?.promptHandoff?.futureSurface ?? [],
       futureSurfaceStatus: doctorResult.adapterProfiles.selected?.promptHandoff?.futureSurfaceStatus ?? null,
+      nativeReviewBoundary: doctorResult.adapterProfiles.selected?.nativeReviewBoundary ?? null,
       admittedProfiles: doctorResult.adapterProfiles.admitted,
     },
     constraints: hardConstraints,
@@ -494,6 +530,9 @@ export function formatHandoffPrompt(payload) {
   if (payload.handoffSurface.hostCompatibilitySummary.futureOnlyHostSurfaces.length > 0) {
     lines.push(`- ${localize("Future-only host surfaces", "仅未来支持的 host surface")}: ${payload.handoffSurface.hostCompatibilitySummary.futureOnlyHostSurfaces.map((surface) => `${surface.adapterId}:${surface.command}:${surface.status ?? "unknown"}`).join(", ")}`);
   }
+  if ((payload.handoffSurface.hostCompatibilitySummary.nativeReviewSurfaces ?? []).length > 0) {
+    lines.push(`- ${localize("Native review surfaces", "原生审查 surface")}: ${payload.handoffSurface.hostCompatibilitySummary.nativeReviewSurfaces.map((surface) => `${surface.adapterId}:approval=${surface.approvalReviewScope}:${surface.approvalReviewSemanticEffect},pr=${surface.githubAutoReviewScope}:${surface.githubAutoReviewSemanticEffect}`).join("; ")}`);
+  }
 
   if (payload.adapter.selectedId && payload.adapter.selectedId !== "none") {
     lines.push(`- ${localize("Adapter handoff mode", "Adapter handoff 模式")}: ${payload.adapter.handoffMode ?? localize("unknown", "未知")}`);
@@ -512,6 +551,10 @@ export function formatHandoffPrompt(payload) {
     if (payload.adapter.futureSurface.length > 0) {
       lines.push(`- ${localize("Adapter future-only surfaces", "Adapter 仅未来支持的 surface")}: ${payload.adapter.futureSurface.join(", ")}`);
       lines.push(`- ${localize("Adapter future-only surface status", "Adapter 仅未来 surface 状态")}: ${payload.adapter.futureSurfaceStatus ?? localize("unknown", "未知")}`);
+    }
+    if (payload.adapter.nativeReviewBoundary) {
+      lines.push(`- ${localize("Adapter native review boundary", "Adapter 原生审查边界")}: approval=${payload.adapter.nativeReviewBoundary.approvalReview.scope}:${payload.adapter.nativeReviewBoundary.approvalReview.semanticEffect}; pr=${payload.adapter.nativeReviewBoundary.githubAutoReview.scope}:${payload.adapter.nativeReviewBoundary.githubAutoReview.semanticEffect}`);
+      lines.push(`- ${localize("Adapter forbidden semantic substitutions", "Adapter 禁止替代的语义动作")}: ${payload.adapter.nativeReviewBoundary.forbiddenSemanticSubstitutions.join(", ")}`);
     }
     lines.push(localize(
       "- The adapter may route execution, but it must not decide semantic acceptance or final disposition.",
@@ -638,6 +681,12 @@ export function resolveStartHostChoice(explicitHost, payload) {
   if (payload.adapter.selectedId === "oh_my_codex") {
     return "oh-my-codex";
   }
+  if (payload.adapter.selectedId === "codex") {
+    return "codex";
+  }
+  if (payload.adapter.selectedId === "claude") {
+    return "claude";
+  }
 
   return "generic";
 }
@@ -734,6 +783,12 @@ export function formatStartPastePrompt(payload, options) {
     lines.push(localize(
       "Additional OMX rule: keep `.omx/**` and external execution state operational only. Do not write semantic truth directly into `.nimi/spec/**`.",
       "额外 OMX 规则：将 `.omx/**` 和外部执行状态保持为 operational only。不要直接把语义 truth 写入 `.nimi/spec/**`。",
+    ));
+  }
+  if (hostId === "codex") {
+    lines.push(localize(
+      "Additional Codex rule: use the native Codex SDK boundary for execution. Do not route this through oh-my-codex or shell out to the Codex CLI.",
+      "额外 Codex 规则：执行时使用原生 Codex SDK 边界。不要经由 oh-my-codex，也不要 shell 到 Codex CLI。",
     ));
   }
 

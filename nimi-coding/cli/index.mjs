@@ -2,6 +2,7 @@ import { runBlueprintAudit } from "./commands/blueprint-audit.mjs";
 import { runClear } from "./commands/clear.mjs";
 import { runCloseout } from "./commands/closeout.mjs";
 import { runAdmitHighRiskDecision } from "./commands/admit-high-risk-decision.mjs";
+import { runAuditSweep } from "./commands/audit-sweep.mjs";
 import { runDecideHighRiskExecution } from "./commands/decide-high-risk-execution.mjs";
 import { runDoctor } from "./commands/doctor.mjs";
 import { runHandoff } from "./commands/handoff.mjs";
@@ -31,6 +32,7 @@ const COMMANDS = {
   "blueprint-audit": runBlueprintAudit,
   handoff: runHandoff,
   closeout: runCloseout,
+  "audit-sweep": runAuditSweep,
   "admit-high-risk-decision": runAdmitHighRiskDecision,
   "decide-high-risk-execution": runDecideHighRiskExecution,
   "ingest-high-risk-execution": runIngestHighRiskExecution,

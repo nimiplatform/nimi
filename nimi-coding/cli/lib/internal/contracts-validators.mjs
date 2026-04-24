@@ -167,6 +167,62 @@ export function validateDocSpecAuditSummary(summary, contract, verifiedAt) {
   return { ok: true };
 }
 
+export function validateAuditSweepSummary(summary, contract, verifiedAt) {
+  const envelopeError = validateSummaryEnvelope(summary, contract, verifiedAt, "audit_sweep summary");
+  if (envelopeError) {
+    return envelopeError;
+  }
+
+  const unexpectedFields = Object.keys(summary).filter(
+    (field) => !contract.summaryRequiredFields.includes(field),
+  );
+  if (unexpectedFields.length > 0) {
+    return {
+      ok: false,
+      reason: `audit_sweep summary contains unexpected fields: ${unexpectedFields.join(", ")}`,
+    };
+  }
+
+  for (const field of [
+    "plan_ref",
+    "ledger_ref",
+    "report_ref",
+    "remediation_map_ref",
+    "audit_closeout_ref",
+  ]) {
+    if (typeof summary[field] !== "string" || summary[field].trim().length === 0) {
+      return {
+        ok: false,
+        reason: `audit_sweep summary.${field} must be a non-empty string`,
+      };
+    }
+  }
+
+  for (const field of ["chunk_refs", "evidence_refs"]) {
+    if (
+      !Array.isArray(summary[field])
+      || summary[field].length === 0
+      || summary[field].some((entry) => typeof entry !== "string" || entry.trim().length === 0)
+    ) {
+      return {
+        ok: false,
+        reason: `audit_sweep summary.${field} must be a non-empty array of non-empty strings`,
+      };
+    }
+  }
+
+  for (const field of ["finding_count", "unresolved_finding_count"]) {
+    if (!Number.isInteger(summary[field]) || summary[field] < 0) {
+      return {
+        ok: false,
+        reason: `audit_sweep summary.${field} must be a non-negative integer`,
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
 export function validateHighRiskExecutionSummary(summary, contract, verifiedAt) {
   const envelopeError = validateSummaryEnvelope(
     summary,

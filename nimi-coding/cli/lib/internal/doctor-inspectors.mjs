@@ -93,6 +93,16 @@ export function buildHostCompatibilityReport(externalHostCompatibilityContract, 
       command,
     }));
   });
+  const nativeReviewSurfaces = adapterProfiles.admitted
+    .filter((profile) => profile.nativeReviewBoundary)
+    .map((profile) => ({
+      adapterId: profile.id,
+      approvalReviewScope: profile.nativeReviewBoundary.approvalReview.scope,
+      approvalReviewSemanticEffect: profile.nativeReviewBoundary.approvalReview.semanticEffect,
+      githubAutoReviewScope: profile.nativeReviewBoundary.githubAutoReview.scope,
+      githubAutoReviewSemanticEffect: profile.nativeReviewBoundary.githubAutoReview.semanticEffect,
+      forbiddenSemanticSubstitutions: profile.nativeReviewBoundary.forbiddenSemanticSubstitutions,
+    }));
 
   let overlayMode = "generic_only";
   if (admittedOverlayIds.length > 0) {
@@ -115,6 +125,7 @@ export function buildHostCompatibilityReport(externalHostCompatibilityContract, 
       selectedOverlayHostClass: selectedOverlayProfile?.hostClass ?? null,
     },
     futureOnlyHostSurfaces,
+    nativeReviewSurfaces,
   };
 }
 

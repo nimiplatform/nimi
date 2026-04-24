@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   AGENTS_BEGIN,
+  AUDIT_SWEEP_RESULT_CONTRACT_REF,
   CLAUDE_BEGIN,
   EXTERNAL_HOST_COMPATIBILITY_CONTRACT_REF,
   HIGH_RISK_ADMISSION_CONTRACT_REF,
@@ -14,6 +15,7 @@ import {
   selectAdapterProfile,
 } from "../adapter-profiles.mjs";
 import {
+  loadAuditSweepContract,
   loadDocSpecAuditContract,
   loadExternalHostCompatibilityContract,
   loadHighRiskAdmissionContract,
@@ -22,6 +24,7 @@ import {
   loadSpecReconstructionContract,
   validateHighRiskAdmissionsSpec,
 } from "../contracts.mjs";
+import { loadAuditExecutionArtifactsConfig } from "../audit-execution.mjs";
 import { loadExternalExecutionArtifactsConfig } from "../external-execution.mjs";
 import { pathExists, readTextIfFile } from "../fs-helpers.mjs";
 import { parseYamlText } from "../yaml-helpers.mjs";
@@ -39,9 +42,11 @@ export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegat
 
   const specContract = await loadSpecReconstructionContract(projectRoot);
   const auditContract = await loadDocSpecAuditContract(projectRoot);
+  const auditSweepContract = await loadAuditSweepContract(projectRoot);
   const externalHostCompatibilityContract = await loadExternalHostCompatibilityContract(projectRoot);
   const highRiskExecutionContract = await loadHighRiskExecutionContract(projectRoot);
   const highRiskAdmissionContract = await loadHighRiskAdmissionContract(projectRoot);
+  const auditExecutionArtifacts = await loadAuditExecutionArtifactsConfig(projectRoot);
   const externalExecutionArtifacts = await loadExternalExecutionArtifactsConfig(projectRoot);
   const highRiskSchemaContracts = await loadHighRiskSchemaContracts(projectRoot);
   checks.push(
@@ -60,6 +65,15 @@ export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegat
       auditContract.ok
         ? "doc-spec-audit result contract is present and structurally valid"
         : "doc-spec-audit result contract is missing or malformed",
+    ),
+  );
+  checks.push(
+    buildCheck(
+      "audit_sweep_result_contract",
+      auditSweepContract.ok,
+      auditSweepContract.ok
+        ? "audit-sweep result contract is present and structurally valid"
+        : `${AUDIT_SWEEP_RESULT_CONTRACT_REF} is missing or malformed`,
     ),
   );
   checks.push(
@@ -87,6 +101,15 @@ export async function finalizeDoctorState(projectRoot, bootstrapSurface, delegat
       highRiskAdmissionContract.ok
         ? "Packaged high-risk admission schema contract is present and aligned"
         : `${HIGH_RISK_ADMISSION_CONTRACT_REF} is missing or malformed`,
+    ),
+  );
+  checks.push(
+    buildCheck(
+      "audit_execution_artifacts_contract",
+      auditExecutionArtifacts.ok,
+      auditExecutionArtifacts.ok
+        ? "audit execution artifact landing-path contract is present and structurally valid"
+        : "audit execution artifact landing-path contract is missing or malformed",
     ),
   );
   checks.push(

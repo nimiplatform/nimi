@@ -3,6 +3,7 @@ import path from "node:path";
 import {
   loadBlueprintReference as loadBlueprintReferenceInternal,
   loadCommandGatingMatrix as loadCommandGatingMatrixInternal,
+  loadAuditSweepContract as loadAuditSweepContractInternal,
   loadDocSpecAuditContract as loadDocSpecAuditContractInternal,
   loadExternalHostCompatibilityContract as loadExternalHostCompatibilityContractInternal,
   loadHighRiskAdmissionContract as loadHighRiskAdmissionContractInternal,
@@ -18,6 +19,7 @@ import { readTextIfFile } from "./fs-helpers.mjs";
 import { parseYamlText } from "./yaml-helpers.mjs";
 import { matchCommandGatingRule } from "./internal/contracts-parse.mjs";
 import {
+  validateAuditSweepSummary as validateAuditSweepSummaryInternal,
   validateDocSpecAuditSummary as validateDocSpecAuditSummaryInternal,
   validateHighRiskAdmissionRecord as validateHighRiskAdmissionRecordInternal,
   validateHighRiskAdmissionsSpec as validateHighRiskAdmissionsSpecInternal,
@@ -61,6 +63,10 @@ export function loadDocSpecAuditContract(projectRoot) {
   return loadDocSpecAuditContractInternal(projectRoot);
 }
 
+export function loadAuditSweepContract(projectRoot) {
+  return loadAuditSweepContractInternal(projectRoot);
+}
+
 export function loadHighRiskExecutionContract(projectRoot) {
   return loadHighRiskExecutionContractInternal(projectRoot);
 }
@@ -83,6 +89,10 @@ export function validateSpecReconstructionSummary(summary, contract, verifiedAt)
 
 export function validateDocSpecAuditSummary(summary, contract, verifiedAt) {
   return validateDocSpecAuditSummaryInternal(summary, contract, verifiedAt);
+}
+
+export function validateAuditSweepSummary(summary, contract, verifiedAt) {
+  return validateAuditSweepSummaryInternal(summary, contract, verifiedAt);
 }
 
 export function validateHighRiskExecutionSummary(summary, contract, verifiedAt) {
@@ -125,6 +135,8 @@ export async function loadTopicRuntimeContracts(projectRoot) {
     remediationSchema,
     decisionReviewSchema,
     pendingNoteSchema,
+    topicStepDecisionSchema,
+    topicRunLedgerSchema,
     forbiddenShortcutsCatalog,
     lifecycleReport,
     fourClosurePolicy,
@@ -138,6 +150,8 @@ export async function loadTopicRuntimeContracts(projectRoot) {
     loadYamlWithFallback(projectRoot, ".nimi/contracts/remediation.schema.yaml", "nimi-coding/contracts/remediation.schema.yaml"),
     loadYamlWithFallback(projectRoot, ".nimi/contracts/decision-review.schema.yaml", "nimi-coding/contracts/decision-review.schema.yaml"),
     loadYamlWithFallback(projectRoot, ".nimi/contracts/pending-note.schema.yaml", "nimi-coding/contracts/pending-note.schema.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/topic-step-decision.schema.yaml", "nimi-coding/contracts/topic-step-decision.schema.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/contracts/topic-run-ledger.schema.yaml", "nimi-coding/contracts/topic-run-ledger.schema.yaml"),
     loadYamlWithFallback(projectRoot, ".nimi/contracts/forbidden-shortcuts.catalog.yaml", "nimi-coding/contracts/forbidden-shortcuts.catalog.yaml"),
     loadYamlWithFallback(projectRoot, ".nimi/methodology/topic-lifecycle-report.yaml", "nimi-coding/methodology/topic-lifecycle-report.yaml"),
     loadYamlWithFallback(projectRoot, ".nimi/methodology/four-closure-policy.yaml", "nimi-coding/methodology/four-closure-policy.yaml"),
@@ -153,6 +167,8 @@ export async function loadTopicRuntimeContracts(projectRoot) {
     remediationSchema,
     decisionReviewSchema,
     pendingNoteSchema,
+    topicStepDecisionSchema,
+    topicRunLedgerSchema,
     forbiddenShortcutsCatalog,
     lifecycleReport,
     fourClosurePolicy,

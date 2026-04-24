@@ -19,6 +19,7 @@ import {
 } from "../value-helpers.mjs";
 import { parseYamlText } from "../yaml-helpers.mjs";
 export {
+  parseAuditSweepContract,
   parseDocSpecAuditContract,
   parseExternalHostCompatibilityContract,
   parseHighRiskAdmissionContract,

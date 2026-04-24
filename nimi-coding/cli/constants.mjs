@@ -50,17 +50,27 @@ export const CLAUDE_END = "<!-- nimicoding:managed:claude:end -->";
 
 export const SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF = ".nimi/contracts/spec-reconstruction-result.yaml";
 export const DOC_SPEC_AUDIT_RESULT_CONTRACT_REF = ".nimi/contracts/doc-spec-audit-result.yaml";
+export const AUDIT_SWEEP_RESULT_CONTRACT_REF = ".nimi/contracts/audit-sweep-result.yaml";
+export const AUDIT_PLAN_SCHEMA_REF = ".nimi/contracts/audit-plan.schema.yaml";
+export const AUDIT_CHUNK_SCHEMA_REF = ".nimi/contracts/audit-chunk.schema.yaml";
+export const AUDIT_FINDING_SCHEMA_REF = ".nimi/contracts/audit-finding.schema.yaml";
+export const AUDIT_LEDGER_SCHEMA_REF = ".nimi/contracts/audit-ledger.schema.yaml";
+export const AUDIT_REMEDIATION_MAP_SCHEMA_REF = ".nimi/contracts/audit-remediation-map.schema.yaml";
+export const AUDIT_RERUN_SCHEMA_REF = ".nimi/contracts/audit-rerun.schema.yaml";
+export const AUDIT_CLOSEOUT_SCHEMA_REF = ".nimi/contracts/audit-closeout.schema.yaml";
 export const HIGH_RISK_EXECUTION_RESULT_CONTRACT_REF = ".nimi/contracts/high-risk-execution-result.yaml";
 export const HIGH_RISK_ADMISSION_CONTRACT_REF = ".nimi/contracts/high-risk-admission.schema.yaml";
 export const EXTERNAL_HOST_COMPATIBILITY_CONTRACT_REF = ".nimi/contracts/external-host-compatibility.yaml";
 export const HOST_ADAPTER_CONFIG_REF = ".nimi/config/host-adapter.yaml";
 export const EXTERNAL_EXECUTION_ARTIFACTS_CONFIG_REF = ".nimi/config/external-execution-artifacts.yaml";
+export const AUDIT_EXECUTION_ARTIFACTS_CONFIG_REF = ".nimi/config/audit-execution-artifacts.yaml";
 export const EXECUTION_PACKET_SCHEMA_REF = ".nimi/contracts/execution-packet.schema.yaml";
 export const ORCHESTRATION_STATE_SCHEMA_REF = ".nimi/contracts/orchestration-state.schema.yaml";
 export const PROMPT_SCHEMA_REF = ".nimi/contracts/prompt.schema.yaml";
 export const WORKER_OUTPUT_SCHEMA_REF = ".nimi/contracts/worker-output.schema.yaml";
 export const ACCEPTANCE_SCHEMA_REF = ".nimi/contracts/acceptance.schema.yaml";
 export const ADAPTER_PACKAGE_PROFILE_REFS = {
+  codex: "adapters/codex/profile.yaml",
   oh_my_codex: "adapters/oh-my-codex/profile.yaml",
   claude: "adapters/claude/profile.yaml",
 };
@@ -169,6 +179,27 @@ export const DOC_SPEC_AUDIT_SUMMARY_STATUS = [
   "blocked",
 ];
 
+export const AUDIT_SWEEP_SUMMARY_REQUIRED_FIELDS = [
+  "plan_ref",
+  "chunk_refs",
+  "ledger_ref",
+  "report_ref",
+  "remediation_map_ref",
+  "audit_closeout_ref",
+  "evidence_refs",
+  "finding_count",
+  "unresolved_finding_count",
+  "status",
+  "summary",
+  "verified_at",
+];
+
+export const AUDIT_SWEEP_SUMMARY_STATUS = [
+  "candidate_ready",
+  "partial",
+  "blocked",
+];
+
 export const HIGH_RISK_EXECUTION_SUMMARY_REQUIRED_FIELDS = [
   "packet_ref",
   "orchestration_state_ref",
@@ -194,8 +225,26 @@ export const HIGH_RISK_EXECUTION_ARTIFACT_ROOTS = {
   evidence_refs: ".nimi/local/evidence",
 };
 
+export const AUDIT_SWEEP_ARTIFACT_ROOTS = {
+  plan_ref: ".nimi/local/audit/plans",
+  chunk_refs: ".nimi/local/audit/chunks",
+  ledger_ref: ".nimi/local/audit/ledgers",
+  report_ref: ".nimi/local/audit/reports",
+  remediation_map_ref: ".nimi/local/audit/remediation-maps",
+  audit_closeout_ref: ".nimi/local/audit/closeouts",
+  packet_ref: ".nimi/local/audit/packets",
+  evidence_refs: ".nimi/local/audit/evidence",
+  run_ledger_ref: ".nimi/local/audit/runs",
+};
+
 export const HIGH_RISK_EXECUTION_ARTIFACT_HARD_CONSTRAINTS = [
   "external_execution_artifacts_remain_operational_only",
+  "imported_refs_must_stay_under_declared_local_roots",
+  "candidate_artifacts_must_not_override_semantic_truth",
+];
+
+export const AUDIT_SWEEP_ARTIFACT_HARD_CONSTRAINTS = [
+  "audit_execution_artifacts_remain_operational_only",
   "imported_refs_must_stay_under_declared_local_roots",
   "candidate_artifacts_must_not_override_semantic_truth",
 ];
@@ -219,6 +268,7 @@ export const SPEC_GENERATION_AUDIT_CONTRACT_REF = ".nimi/contracts/spec-generati
 export const SKILL_RESULT_CONTRACT_REFS = {
   spec_reconstruction: SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
   doc_spec_audit: DOC_SPEC_AUDIT_RESULT_CONTRACT_REF,
+  audit_sweep: AUDIT_SWEEP_RESULT_CONTRACT_REF,
   high_risk_execution: HIGH_RISK_EXECUTION_RESULT_CONTRACT_REF,
 };
 
@@ -244,10 +294,19 @@ export const REQUIRED_BOOTSTRAP_FILES = [
   ".nimi/config/host-profile.yaml",
   HOST_ADAPTER_CONFIG_REF,
   EXTERNAL_EXECUTION_ARTIFACTS_CONFIG_REF,
+  AUDIT_EXECUTION_ARTIFACTS_CONFIG_REF,
   ".nimi/config/skill-installer.yaml",
   ".nimi/config/installer-evidence.yaml",
   SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
   DOC_SPEC_AUDIT_RESULT_CONTRACT_REF,
+  AUDIT_SWEEP_RESULT_CONTRACT_REF,
+  AUDIT_PLAN_SCHEMA_REF,
+  AUDIT_CHUNK_SCHEMA_REF,
+  AUDIT_FINDING_SCHEMA_REF,
+  AUDIT_LEDGER_SCHEMA_REF,
+  AUDIT_REMEDIATION_MAP_SCHEMA_REF,
+  AUDIT_RERUN_SCHEMA_REF,
+  AUDIT_CLOSEOUT_SCHEMA_REF,
   HIGH_RISK_EXECUTION_RESULT_CONTRACT_REF,
   HIGH_RISK_ADMISSION_CONTRACT_REF,
   SPEC_GENERATION_INPUTS_CONTRACT_REF,

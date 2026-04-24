@@ -129,6 +129,66 @@ const DEFAULT_TOPIC_RUNTIME_AUTHORITY = {
     requirePacketLineageForClosedWaves: true,
     requireResultLineageForClosedWaves: true,
   },
+  topicStepDecision: {
+    stopClasses: [
+      "continue",
+      "require_human_confirmation",
+      "await_external_evidence",
+      "blocked",
+      "completed",
+    ],
+    recommendedActions: [
+      "admit_wave",
+      "freeze_packet",
+      "dispatch_worker",
+      "dispatch_audit",
+      "record_result",
+      "open_remediation",
+      "continue_overflow",
+      "hold_topic",
+      "resume_topic",
+      "closeout_wave",
+      "closeout_topic",
+      "no_action",
+    ],
+  },
+  topicRunLedger: {
+    eventKinds: [
+      "decision_emitted",
+      "packet_frozen",
+      "worker_dispatched",
+      "audit_dispatched",
+      "result_recorded",
+      "human_gate_opened",
+      "human_gate_resolved",
+      "wave_closed",
+      "topic_closed",
+      "runner_blocked",
+    ],
+    runStatuses: [
+      "running",
+      "awaiting_human_confirmation",
+      "awaiting_external_evidence",
+      "blocked",
+      "completed",
+    ],
+    artifactRefKeys: [
+      "decision_ref",
+      "packet_ref",
+      "prompt_ref",
+      "worker_output_ref",
+      "audit_output_ref",
+      "result_ref",
+      "closeout_ref",
+      "evidence_ref",
+    ],
+    retryPostures: [
+      "not_applicable",
+      "retry_allowed_same_command",
+      "retry_requires_new_packet",
+      "retry_forbidden_until_human_gate",
+    ],
+  },
   ignoredTopicValidateSemantics: {
     status: "report_only",
     canonicalSuccess: false,
@@ -185,6 +245,8 @@ export async function loadTopicRuntimeAuthority(projectRoot) {
   const remediationSchema = loaded.remediationSchema.data ?? {};
   const decisionReviewSchema = loaded.decisionReviewSchema.data ?? {};
   const pendingNoteSchema = loaded.pendingNoteSchema.data ?? {};
+  const topicStepDecisionSchema = loaded.topicStepDecisionSchema.data ?? {};
+  const topicRunLedgerSchema = loaded.topicRunLedgerSchema.data ?? {};
   const forbiddenShortcutsCatalog = loaded.forbiddenShortcutsCatalog.data ?? {};
   const lifecycleReport = loaded.lifecycleReport.data?.topic_lifecycle_report ?? {};
   const fourClosurePolicy = loaded.fourClosurePolicy.data?.four_closure_policy ?? {};
@@ -280,6 +342,34 @@ export async function loadTopicRuntimeAuthority(projectRoot) {
       requireResultLineageForClosedWaves: normalizeBoolean(
         fourClosurePolicy.true_close_audit_evidence?.require_result_lineage_for_closed_waves,
         DEFAULT_TOPIC_RUNTIME_AUTHORITY.trueCloseAuditEvidence.requireResultLineageForClosedWaves,
+      ),
+    },
+    topicStepDecision: {
+      stopClasses: toStringArray(
+        topicStepDecisionSchema.stop_class_enum,
+        DEFAULT_TOPIC_RUNTIME_AUTHORITY.topicStepDecision.stopClasses,
+      ),
+      recommendedActions: toStringArray(
+        topicStepDecisionSchema.recommended_action_enum,
+        DEFAULT_TOPIC_RUNTIME_AUTHORITY.topicStepDecision.recommendedActions,
+      ),
+    },
+    topicRunLedger: {
+      eventKinds: toStringArray(
+        topicRunLedgerSchema.event_kind_enum,
+        DEFAULT_TOPIC_RUNTIME_AUTHORITY.topicRunLedger.eventKinds,
+      ),
+      runStatuses: toStringArray(
+        topicRunLedgerSchema.run_status_enum,
+        DEFAULT_TOPIC_RUNTIME_AUTHORITY.topicRunLedger.runStatuses,
+      ),
+      artifactRefKeys: toStringArray(
+        topicRunLedgerSchema.artifact_ref_keys,
+        DEFAULT_TOPIC_RUNTIME_AUTHORITY.topicRunLedger.artifactRefKeys,
+      ),
+      retryPostures: toStringArray(
+        topicRunLedgerSchema.retry_posture_enum,
+        DEFAULT_TOPIC_RUNTIME_AUTHORITY.topicRunLedger.retryPostures,
       ),
     },
     ignoredTopicValidateSemantics: {
@@ -1388,6 +1478,639 @@ export async function loadTopicPacket(projectRoot, input, packetId) {
     ...loaded,
     packetPath,
     packet,
+  };
+}
+
+async function listWavePackets(topicDir, waveId) {
+  const entries = await readdir(topicDir, { withFileTypes: true });
+  const packets = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.startsWith("packet-") || !entry.name.endsWith(".md")) {
+      continue;
+    }
+    const packetPath = path.join(topicDir, entry.name);
+    const packetText = await readTextIfFile(packetPath);
+    const packet = readFrontmatterObject(packetText ?? "");
+    if (packet?.wave_id !== waveId) {
+      continue;
+    }
+    packets.push({
+      packet,
+      packetPath,
+      packetRefName: entry.name,
+    });
+  }
+  return packets.sort((left, right) => left.packetRefName.localeCompare(right.packetRefName));
+}
+
+async function listWaveResults(topicDir, waveId) {
+  const entries = await readdir(topicDir, { withFileTypes: true });
+  const results = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.startsWith("result-") || !entry.name.endsWith(".md")) {
+      continue;
+    }
+    const resultPath = path.join(topicDir, entry.name);
+    const resultText = await readTextIfFile(resultPath);
+    const result = readFrontmatterObject(resultText ?? "");
+    if (result?.wave_id !== waveId) {
+      continue;
+    }
+    results.push({
+      result,
+      resultPath,
+      resultRefName: entry.name,
+    });
+  }
+  return results.sort((left, right) => left.resultRefName.localeCompare(right.resultRefName));
+}
+
+function buildTopicStepDecision(topic, wave, values) {
+  const waveId = wave?.wave_id ?? null;
+  return {
+    decision_id: `${topic.topic_id}:${waveId ?? "topic"}:${values.reasonCode}`,
+    topic_id: topic.topic_id,
+    wave_id: waveId,
+    decision_kind: "topic_next_step",
+    stop_class: values.stopClass,
+    recommended_action: values.recommendedAction,
+    reason_code: values.reasonCode,
+    requires_human_confirmation: values.stopClass === "require_human_confirmation",
+    recommended_decision: values.recommendedDecision,
+    recommendation_rationale: values.recommendationRationale,
+    expected_artifacts: values.expectedArtifacts ?? [],
+    next_command_ref: values.nextCommandRef ?? null,
+    blocking_checks: values.blockingChecks ?? [],
+  };
+}
+
+function commandRef(parts) {
+  return ["nimicoding", "topic", ...parts].join(" ");
+}
+
+async function buildDecisionForSelectedWave(projectRoot, loaded, graphReport, wave) {
+  const failedGraphChecks = (graphReport.checks ?? []).filter((entry) => !entry.ok);
+  if (!graphReport.ok) {
+    return buildTopicStepDecision(loaded.topic, wave, {
+      stopClass: "blocked",
+      recommendedAction: "no_action",
+      reasonCode: "topic_graph_validation_failed",
+      recommendedDecision: "fix_topic_graph_before_continuing",
+      recommendationRationale: "The wave graph is the dispatch authority for topic execution and must validate before any next step is emitted.",
+      blockingChecks: failedGraphChecks,
+    });
+  }
+
+  if (["closed", "retired", "superseded"].includes(wave.state)) {
+    return buildTopicStepDecision(loaded.topic, wave, {
+      stopClass: "blocked",
+      recommendedAction: "no_action",
+      reasonCode: "selected_wave_is_terminal",
+      recommendedDecision: "select_a_non_terminal_wave_or_close_the_topic",
+      recommendationRationale: `Selected wave ${wave.wave_id} is ${wave.state} and cannot be dispatched.`,
+    });
+  }
+
+  if (["candidate", "preflight_draft", "needs_revision"].includes(wave.state)) {
+    const admission = await validateWaveAdmission(projectRoot, loaded.topicId, wave.wave_id);
+    if (!admission.ok) {
+      return buildTopicStepDecision(loaded.topic, wave, {
+        stopClass: "blocked",
+        recommendedAction: "admit_wave",
+        reasonCode: "wave_admission_validation_failed",
+        recommendedDecision: "repair_admission_blockers",
+        recommendationRationale: "The selected wave cannot be admitted until its admission checks pass.",
+        nextCommandRef: commandRef(["validate", "admission", loaded.topicId, wave.wave_id, "--json"]),
+        blockingChecks: (admission.checks ?? []).filter((entry) => !entry.ok),
+      });
+    }
+    return buildTopicStepDecision(loaded.topic, wave, {
+      stopClass: "require_human_confirmation",
+      recommendedAction: "admit_wave",
+      reasonCode: "wave_requires_manager_admission",
+      recommendedDecision: "approve_wave_admission_if_the_current_topic_plan_still_matches_the_manager_intent",
+      recommendationRationale: "Admitting a wave changes semantic execution posture and remains a manager-owned judgement.",
+      nextCommandRef: commandRef(["wave", "admit", loaded.topicId, wave.wave_id]),
+    });
+  }
+
+  if (["preflight_admitted", "implementation_admitted", "continuation_packet_open"].includes(wave.state)) {
+    const packets = await listWavePackets(loaded.topicDir, wave.wave_id);
+    const dispatchablePacket = packets.find((entry) => (
+      ["candidate", "admitted", "preflight", "dispatched"].includes(entry.packet.status)
+    ));
+    if (!dispatchablePacket) {
+      return buildTopicStepDecision(loaded.topic, wave, {
+        stopClass: "require_human_confirmation",
+        recommendedAction: "freeze_packet",
+        reasonCode: "admitted_wave_requires_packet",
+        recommendedDecision: "freeze_a_packet_for_the_selected_wave",
+        recommendationRationale: "The wave is admitted, but no dispatchable packet lineage exists for the runner to execute.",
+        expectedArtifacts: ["packet-<packet-id>.md"],
+        nextCommandRef: commandRef(["packet", "freeze", loaded.topicId, "--from", "<draft-packet>"]),
+      });
+    }
+    return buildTopicStepDecision(loaded.topic, wave, {
+      stopClass: "continue",
+      recommendedAction: "dispatch_worker",
+      reasonCode: "dispatchable_packet_available",
+      recommendedDecision: "dispatch_the_selected_packet_to_the_worker",
+      recommendationRationale: "A dispatchable packet exists for the admitted wave, so the next operational step is mechanical.",
+      expectedArtifacts: [`prompt-${dispatchablePacket.packet.packet_id}-worker.md`],
+      nextCommandRef: commandRef(["worker", "dispatch", loaded.topicId, "--packet", dispatchablePacket.packet.packet_id]),
+    });
+  }
+
+  if (wave.state === "implementation_active") {
+    const results = await listWaveResults(loaded.topicDir, wave.wave_id);
+    if (results.length === 0) {
+      return buildTopicStepDecision(loaded.topic, wave, {
+        stopClass: "await_external_evidence",
+        recommendedAction: "record_result",
+        reasonCode: "awaiting_worker_or_audit_result",
+        recommendedDecision: "ingest_the_next_worker_or_audit_result_when_available",
+        recommendationRationale: "The wave is active and has packet lineage, but no result has been recorded yet.",
+        expectedArtifacts: ["result-<wave-id>-<kind>.md"],
+        nextCommandRef: commandRef(["result", "record", loaded.topicId, "--kind", "<kind>", "--verdict", "<verdict>", "--from", "<path>", "--verified-at", "<utc>"]),
+      });
+    }
+    return buildTopicStepDecision(loaded.topic, wave, {
+      stopClass: "require_human_confirmation",
+      recommendedAction: "closeout_wave",
+      reasonCode: "wave_has_result_lineage_and_needs_closeout_judgement",
+      recommendedDecision: "approve_wave_closeout_if_the_result_evidence_supports_all_four_closure_dimensions",
+      recommendationRationale: "Wave closeout is stronger than operational completion and remains manager-owned.",
+      nextCommandRef: commandRef(["closeout", "wave", loaded.topicId, wave.wave_id, "--authority", "closed", "--semantic", "closed", "--consumer", "closed", "--drift-resistance", "closed", "--disposition", "complete"]),
+    });
+  }
+
+  if (wave.state === "overflowed") {
+    return buildTopicStepDecision(loaded.topic, wave, {
+      stopClass: "require_human_confirmation",
+      recommendedAction: "continue_overflow",
+      reasonCode: "overflow_requires_manager_judgement",
+      recommendedDecision: "approve_continuation_only_if_the_same_owner_domain_rule_still_holds",
+      recommendationRationale: "Overflow is not pass or rollback; continuation requires explicit manager judgement.",
+      nextCommandRef: commandRef(["overflow", "continue", loaded.topicId, "--packet", "<continuation-packet-id>", "--overflowed-packet", "<packet-id>", "--manager-judgement", "<text>", "--same-owner-domain"]),
+    });
+  }
+
+  return buildTopicStepDecision(loaded.topic, wave, {
+    stopClass: "blocked",
+    recommendedAction: "no_action",
+    reasonCode: "unsupported_wave_state",
+    recommendedDecision: "repair_or_review_the_selected_wave_state",
+    recommendationRationale: `No next-step rule is defined for wave state ${wave.state}.`,
+  });
+}
+
+export async function decideTopicNextStep(projectRoot, input = null) {
+  const loaded = await loadTopicReport(projectRoot, input);
+  if (!loaded.ok) {
+    return loaded;
+  }
+
+  const rootValidation = await validateTopicRoot(projectRoot, input);
+  const selectedWave = getTopicWaves(loaded.topic)
+    .find((entry) => entry.wave_id === loaded.topic.selected_next_target) ?? null;
+
+  if (!rootValidation.ok) {
+    return {
+      ok: true,
+      topicId: loaded.topicId,
+      topicRef: toPortableRelativePath(path.relative(projectRoot, loaded.topicDir)),
+      decision: buildTopicStepDecision(loaded.topic, selectedWave, {
+        stopClass: "blocked",
+        recommendedAction: "no_action",
+        reasonCode: "topic_root_validation_failed",
+        recommendedDecision: "repair_topic_root_before_continuing",
+        recommendationRationale: "The topic root must validate before a next execution step can be selected.",
+        blockingChecks: (rootValidation.checks ?? []).filter((entry) => !entry.ok),
+      }),
+    };
+  }
+
+  if (loaded.topic.state === "pending") {
+    return {
+      ok: true,
+      topicId: loaded.topicId,
+      topicRef: toPortableRelativePath(path.relative(projectRoot, loaded.topicDir)),
+      decision: buildTopicStepDecision(loaded.topic, selectedWave, {
+        stopClass: "await_external_evidence",
+        recommendedAction: "resume_topic",
+        reasonCode: "topic_pending_wait",
+        recommendedDecision: "resume_only_when_the_pending_note_reopen_criteria_are_met",
+        recommendationRationale: "Pending is an explicit wait state and must not be bypassed by the loop.",
+        nextCommandRef: commandRef(["resume", loaded.topicId, "--criteria-met", "<text>"]),
+      }),
+    };
+  }
+
+  if (!loaded.topic.selected_next_target || loaded.topic.selected_next_target === "topic_design_baseline") {
+    const activeWaves = getTopicWaves(loaded.topic).filter((entry) => (
+      !["closed", "retired", "superseded"].includes(entry.state)
+    ));
+    const allWavesTerminal = activeWaves.length === 0 && getTopicWaves(loaded.topic).length > 0;
+    return {
+      ok: true,
+      topicId: loaded.topicId,
+      topicRef: toPortableRelativePath(path.relative(projectRoot, loaded.topicDir)),
+      decision: buildTopicStepDecision(loaded.topic, null, allWavesTerminal
+        ? {
+          stopClass: "completed",
+          recommendedAction: "closeout_topic",
+          reasonCode: "all_waves_terminal",
+          recommendedDecision: "run_topic_closeout_and_true_close_checks",
+          recommendationRationale: "All waves are terminal, so the next step is topic-level closeout review.",
+          nextCommandRef: commandRef(["closeout", "topic", loaded.topicId, "--authority", "closed", "--semantic", "closed", "--consumer", "closed", "--drift-resistance", "closed", "--disposition", "complete"]),
+        }
+        : {
+          stopClass: "require_human_confirmation",
+          recommendedAction: "admit_wave",
+          reasonCode: "no_selected_next_target",
+          recommendedDecision: "select_the_next_wave_or_hold_the_topic",
+          recommendationRationale: "The loop cannot choose among possible next waves without manager judgement.",
+          nextCommandRef: commandRef(["wave", "select", loaded.topicId, "<wave-id>"]),
+        }),
+    };
+  }
+
+  if (!selectedWave) {
+    return {
+      ok: true,
+      topicId: loaded.topicId,
+      topicRef: toPortableRelativePath(path.relative(projectRoot, loaded.topicDir)),
+      decision: buildTopicStepDecision(loaded.topic, null, {
+        stopClass: "blocked",
+        recommendedAction: "no_action",
+        reasonCode: "selected_next_target_does_not_resolve",
+        recommendedDecision: "repair_topic_selected_next_target",
+        recommendationRationale: `selected_next_target does not resolve to a declared wave: ${loaded.topic.selected_next_target}`,
+      }),
+    };
+  }
+
+  const graphReport = await validateTopicGraph(projectRoot, input);
+  return {
+    ok: true,
+    topicId: loaded.topicId,
+    topicRef: toPortableRelativePath(path.relative(projectRoot, loaded.topicDir)),
+    decision: await buildDecisionForSelectedWave(projectRoot, loaded, graphReport, selectedWave),
+  };
+}
+
+const RUN_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function validateRunId(value) {
+  return typeof value === "string" && RUN_ID_PATTERN.test(value);
+}
+
+function runLedgerFilename(runId) {
+  return `run-ledger-${runId}.yaml`;
+}
+
+function runEventFilename(runId, eventIndex, eventKind) {
+  return `run-event-${runId}-${String(eventIndex).padStart(4, "0")}-${eventKind}.yaml`;
+}
+
+function stopClassToRunStatus(stopClass) {
+  if (stopClass === "continue") {
+    return "running";
+  }
+  if (stopClass === "require_human_confirmation") {
+    return "awaiting_human_confirmation";
+  }
+  if (stopClass === "await_external_evidence") {
+    return "awaiting_external_evidence";
+  }
+  if (stopClass === "blocked") {
+    return "blocked";
+  }
+  if (stopClass === "completed") {
+    return "completed";
+  }
+  return "blocked";
+}
+
+function retryPostureForEvent(event) {
+  if (event.stop_class === "require_human_confirmation") {
+    return "retry_forbidden_until_human_gate";
+  }
+  if (event.stop_class === "blocked") {
+    return "retry_requires_new_packet";
+  }
+  if (event.stop_class === "await_external_evidence") {
+    return "retry_allowed_same_command";
+  }
+  return "not_applicable";
+}
+
+function normalizeArtifactRefs(input) {
+  const refs = {};
+  for (const [key, value] of Object.entries(input ?? {})) {
+    if (typeof key === "string" && key.length > 0 && typeof value === "string" && value.length > 0) {
+      refs[key] = value;
+    }
+  }
+  return refs;
+}
+
+async function validatePortableRefExists(projectRoot, ref, label) {
+  if (path.isAbsolute(ref)) {
+    return `${label} must be project-relative: ${ref}`;
+  }
+  const info = await pathExists(path.join(projectRoot, ref));
+  if (!info?.isFile()) {
+    return `${label} does not resolve to a file: ${ref}`;
+  }
+  return null;
+}
+
+async function loadTopicRunEvents(topicDir, runId) {
+  const entries = await readdir(topicDir, { withFileTypes: true });
+  const events = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.startsWith(`run-event-${runId}-`) || !entry.name.endsWith(".yaml")) {
+      continue;
+    }
+    const eventPath = path.join(topicDir, entry.name);
+    const eventText = await readTextIfFile(eventPath);
+    const event = parseYamlText(eventText ?? "");
+    if (!event || typeof event !== "object" || event.run_id !== runId) {
+      continue;
+    }
+    events.push({
+      event,
+      eventRef: entry.name,
+      eventPath,
+    });
+  }
+  return events.sort((left, right) => {
+    const leftIndex = Number(left.event.event_index ?? 0);
+    const rightIndex = Number(right.event.event_index ?? 0);
+    return leftIndex - rightIndex || left.eventRef.localeCompare(right.eventRef);
+  });
+}
+
+function latestArtifactRef(events, key) {
+  for (const entry of [...events].reverse()) {
+    const value = entry.event.artifact_refs?.[key];
+    if (typeof value === "string" && value.length > 0) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function buildCurrentHumanGate(events) {
+  const gateClosingEvents = new Set(["human_gate_resolved", "wave_closed", "topic_closed"]);
+  for (const entry of [...events].reverse()) {
+    const event = entry.event;
+    if (gateClosingEvents.has(event.event_kind)) {
+      return null;
+    }
+    if (event.stop_class === "require_human_confirmation" || event.event_kind === "human_gate_opened") {
+      return {
+        event_ref: entry.eventRef,
+        wave_id: event.wave_id ?? null,
+        recommended_action: event.recommended_action,
+        summary: event.summary,
+        source_ref: event.source_ref,
+      };
+    }
+  }
+  return null;
+}
+
+function buildTopicRunLedgerProjection(topic, runId, events, updatedAt) {
+  const latest = events.at(-1) ?? null;
+  const latestEvent = latest?.event ?? null;
+  return {
+    ledger_id: `${topic.topic_id}:${runId}`,
+    topic_id: topic.topic_id,
+    run_id: runId,
+    kind: "topic-run-ledger",
+    run_status: latestEvent ? stopClassToRunStatus(latestEvent.stop_class) : "running",
+    event_count: events.length,
+    event_refs: events.map((entry) => entry.eventRef),
+    latest_event_ref: latest?.eventRef ?? null,
+    current_wave_id: latestEvent?.wave_id ?? topic.selected_next_target ?? null,
+    latest_decision_ref: latestArtifactRef(events, "decision_ref"),
+    latest_packet_ref: latestArtifactRef(events, "packet_ref"),
+    latest_prompt_ref: latestArtifactRef(events, "prompt_ref"),
+    latest_result_ref: latestArtifactRef(events, "result_ref"),
+    latest_closeout_ref: latestArtifactRef(events, "closeout_ref"),
+    current_human_gate: buildCurrentHumanGate(events),
+    retry_posture: latestEvent ? retryPostureForEvent(latestEvent) : "not_applicable",
+    updated_at: updatedAt,
+  };
+}
+
+async function writeTopicRunLedger(projectRoot, loaded, runId, events, updatedAt) {
+  const ledger = buildTopicRunLedgerProjection(loaded.topic, runId, events, updatedAt);
+  const ledgerPath = path.join(loaded.topicDir, runLedgerFilename(runId));
+  await writeFile(ledgerPath, YAML.stringify(ledger), "utf8");
+  return {
+    ok: true,
+    topicId: loaded.topicId,
+    topicRef: toPortableRelativePath(path.relative(projectRoot, loaded.topicDir)),
+    runId,
+    ledgerRef: toPortableRelativePath(path.relative(projectRoot, ledgerPath)),
+    ledger,
+  };
+}
+
+export async function initTopicRunLedger(projectRoot, input, runId, startedAt = new Date().toISOString()) {
+  if (!validateRunId(runId)) {
+    return {
+      ok: false,
+      error: `Topic run ledger refused: invalid run id ${runId}`,
+    };
+  }
+  const loaded = await loadTopicReport(projectRoot, input);
+  if (!loaded.ok) {
+    return loaded;
+  }
+  const ledgerPath = path.join(loaded.topicDir, runLedgerFilename(runId));
+  const existing = await readTextIfFile(ledgerPath);
+  if (existing !== null) {
+    return {
+      ok: false,
+      error: `Topic run ledger already exists: ${runId}`,
+    };
+  }
+  const report = await writeTopicRunLedger(projectRoot, loaded, runId, [], startedAt);
+  return {
+    ...report,
+    runStatus: report.ledger.run_status,
+    eventCount: report.ledger.event_count,
+  };
+}
+
+export async function recordTopicRunEvent(projectRoot, input, options) {
+  if (!validateRunId(options.runId)) {
+    return {
+      ok: false,
+      error: `Topic run event refused: invalid run id ${options.runId}`,
+    };
+  }
+  const loaded = await loadTopicReport(projectRoot, input);
+  if (!loaded.ok) {
+    return loaded;
+  }
+  const authority = await loadTopicRuntimeAuthority(projectRoot);
+  if (!authority.topicRunLedger.eventKinds.includes(options.eventKind)) {
+    return {
+      ok: false,
+      error: `Topic run event refused: unsupported event kind ${options.eventKind}`,
+    };
+  }
+  if (!authority.topicStepDecision.stopClasses.includes(options.stopClass)) {
+    return {
+      ok: false,
+      error: `Topic run event refused: unsupported stop class ${options.stopClass}`,
+    };
+  }
+  if (!authority.topicStepDecision.recommendedActions.includes(options.recommendedAction)) {
+    return {
+      ok: false,
+      error: `Topic run event refused: unsupported recommended action ${options.recommendedAction}`,
+    };
+  }
+  if (!isIsoUtcTimestamp(options.recordedAt)) {
+    return {
+      ok: false,
+      error: `Topic run event refused: --verified-at must be an ISO-8601 UTC timestamp: ${options.recordedAt}`,
+    };
+  }
+  if (!options.sourceRef || !options.summary) {
+    return {
+      ok: false,
+      error: "Topic run event refused: --source and --summary are required",
+    };
+  }
+  const sourceError = await validatePortableRefExists(projectRoot, options.sourceRef, "source_ref");
+  if (sourceError) {
+    return {
+      ok: false,
+      error: `Topic run event refused: ${sourceError}`,
+    };
+  }
+  const ledgerPath = path.join(loaded.topicDir, runLedgerFilename(options.runId));
+  const existingLedger = await readTextIfFile(ledgerPath);
+  if (existingLedger === null) {
+    return {
+      ok: false,
+      error: `Topic run event refused: run ledger does not exist: ${options.runId}`,
+    };
+  }
+
+  const artifactRefs = normalizeArtifactRefs(options.artifactRefs);
+  const invalidArtifactKeys = Object.keys(artifactRefs)
+    .filter((key) => !authority.topicRunLedger.artifactRefKeys.includes(key));
+  if (invalidArtifactKeys.length > 0) {
+    return {
+      ok: false,
+      error: `Topic run event refused: unsupported artifact ref keys: ${invalidArtifactKeys.join(", ")}`,
+    };
+  }
+  for (const [key, ref] of Object.entries(artifactRefs)) {
+    const artifactError = await validatePortableRefExists(projectRoot, ref, key);
+    if (artifactError) {
+      return {
+        ok: false,
+        error: `Topic run event refused: ${artifactError}`,
+      };
+    }
+  }
+
+  const events = await loadTopicRunEvents(loaded.topicDir, options.runId);
+  const eventIndex = events.length + 1;
+  const event = {
+    event_id: `${options.runId}:${String(eventIndex).padStart(4, "0")}:${options.eventKind}`,
+    topic_id: loaded.topicId,
+    run_id: options.runId,
+    event_index: eventIndex,
+    event_kind: options.eventKind,
+    stop_class: options.stopClass,
+    recommended_action: options.recommendedAction,
+    wave_id: options.waveId ?? loaded.topic.selected_next_target ?? null,
+    source_ref: options.sourceRef,
+    summary: options.summary,
+    recorded_at: options.recordedAt,
+    artifact_refs: artifactRefs,
+  };
+  const eventPath = path.join(loaded.topicDir, runEventFilename(options.runId, eventIndex, options.eventKind));
+  await writeFile(eventPath, YAML.stringify(event), "utf8");
+
+  const updatedEvents = await loadTopicRunEvents(loaded.topicDir, options.runId);
+  const report = await writeTopicRunLedger(projectRoot, loaded, options.runId, updatedEvents, options.recordedAt);
+  return {
+    ...report,
+    eventId: event.event_id,
+    eventRef: toPortableRelativePath(path.relative(projectRoot, eventPath)),
+    runStatus: report.ledger.run_status,
+    eventCount: report.ledger.event_count,
+  };
+}
+
+export async function buildTopicRunLedger(projectRoot, input, runId, updatedAt = new Date().toISOString()) {
+  if (!validateRunId(runId)) {
+    return {
+      ok: false,
+      error: `Topic run ledger refused: invalid run id ${runId}`,
+    };
+  }
+  const loaded = await loadTopicReport(projectRoot, input);
+  if (!loaded.ok) {
+    return loaded;
+  }
+  const ledgerPath = path.join(loaded.topicDir, runLedgerFilename(runId));
+  const existingLedger = await readTextIfFile(ledgerPath);
+  if (existingLedger === null) {
+    return {
+      ok: false,
+      error: `Topic run ledger not found: ${runId}`,
+    };
+  }
+  const events = await loadTopicRunEvents(loaded.topicDir, runId);
+  const report = await writeTopicRunLedger(projectRoot, loaded, runId, events, updatedAt);
+  return {
+    ...report,
+    runStatus: report.ledger.run_status,
+    eventCount: report.ledger.event_count,
+  };
+}
+
+export async function readTopicRunLedger(projectRoot, input, runId) {
+  if (!validateRunId(runId)) {
+    return {
+      ok: false,
+      error: `Topic run ledger refused: invalid run id ${runId}`,
+    };
+  }
+  const loaded = await loadTopicReport(projectRoot, input);
+  if (!loaded.ok) {
+    return loaded;
+  }
+  const ledgerPath = path.join(loaded.topicDir, runLedgerFilename(runId));
+  const ledgerText = await readTextIfFile(ledgerPath);
+  if (ledgerText === null) {
+    return {
+      ok: false,
+      error: `Topic run ledger not found: ${runId}`,
+    };
+  }
+  const ledger = parseYamlText(ledgerText);
+  return {
+    ok: true,
+    topicId: loaded.topicId,
+    topicRef: toPortableRelativePath(path.relative(projectRoot, loaded.topicDir)),
+    runId,
+    ledgerRef: toPortableRelativePath(path.relative(projectRoot, ledgerPath)),
+    ledger,
+    runStatus: ledger.run_status,
+    eventCount: ledger.event_count,
   };
 }
 

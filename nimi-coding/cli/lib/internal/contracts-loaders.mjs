@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import {
+  AUDIT_SWEEP_RESULT_CONTRACT_REF,
   ACCEPTANCE_SCHEMA_REF,
   BLUEPRINT_REFERENCE_REF,
   COMMAND_GATING_MATRIX_REF,
@@ -22,6 +23,7 @@ import { readTextIfFile } from "../fs-helpers.mjs";
 import {
   parseBlueprintReference,
   parseCommandGatingMatrix,
+  parseAuditSweepContract,
   parseDocSpecAuditContract,
   parseExternalHostCompatibilityContract,
   parseHighRiskAdmissionContract,
@@ -85,6 +87,10 @@ export function loadBlueprintReference(projectRoot) {
 
 export function loadDocSpecAuditContract(projectRoot) {
   return loadParsedYaml(projectRoot, DOC_SPEC_AUDIT_RESULT_CONTRACT_REF, parseDocSpecAuditContract);
+}
+
+export function loadAuditSweepContract(projectRoot) {
+  return loadParsedYaml(projectRoot, AUDIT_SWEEP_RESULT_CONTRACT_REF, parseAuditSweepContract);
 }
 
 export function loadHighRiskExecutionContract(projectRoot) {

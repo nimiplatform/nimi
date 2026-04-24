@@ -21,6 +21,7 @@
     "nimicoding"
   ],
   "dependencies": {
+    "@openai/codex-sdk": "^0.124.0",
     "yaml": "^2.8.1"
   },
   "files": [

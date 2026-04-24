@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import YAML from "yaml";
 
 import { runCli } from "../cli/nimicoding.mjs";
+import { runNativeCodexSdkPrompt } from "../cli/lib/codex-sdk-runner.mjs";
 import { createBootstrapSeedFileMap } from "../cli/seeds/bootstrap.mjs";
 import {
   applyFixtureScenario,
@@ -79,6 +80,63 @@ async function captureRunCli(args) {
     process.stderr.write = originalStderrWrite;
   }
 }
+
+test("native Codex adapter dispatches through the Codex SDK boundary", async () => {
+  const calls = [];
+  const fakeCodex = {
+    startThread() {
+      calls.push(["startThread"]);
+      return {
+        id: "thread-started",
+        async run(prompt) {
+          calls.push(["run", prompt]);
+          return { final_response: "started" };
+        },
+      };
+    },
+    resumeThread(threadId) {
+      calls.push(["resumeThread", threadId]);
+      return {
+        id: threadId,
+        async run(prompt) {
+          calls.push(["run", prompt]);
+          return { finalResponse: "resumed" };
+        },
+      };
+    },
+  };
+
+  const started = await runNativeCodexSdkPrompt({
+    codex: fakeCodex,
+    prompt: "execute admitted topic step",
+  });
+  assert.equal(started.ok, true);
+  assert.equal(started.adapterId, "codex");
+  assert.equal(started.sdkPackage, "@openai/codex-sdk");
+  assert.equal(started.mode, "start_thread");
+  assert.equal(started.threadId, "thread-started");
+  assert.equal(started.finalResponse, "started");
+
+  const resumed = await runNativeCodexSdkPrompt({
+    codex: fakeCodex,
+    threadId: "thread-existing",
+    prompt: "continue admitted topic step",
+  });
+  assert.equal(resumed.ok, true);
+  assert.equal(resumed.mode, "resume_thread");
+  assert.equal(resumed.threadId, "thread-existing");
+  assert.equal(resumed.finalResponse, "resumed");
+  assert.deepEqual(calls, [
+    ["startThread"],
+    ["run", "execute admitted topic step"],
+    ["resumeThread", "thread-existing"],
+    ["run", "continue admitted topic step"],
+  ]);
+
+  const refused = await runNativeCodexSdkPrompt({ codex: fakeCodex, prompt: "" });
+  assert.equal(refused.ok, false);
+  assert.match(refused.error, /prompt must be a non-empty string/);
+});
 
 async function runCliSubprocess(args, options = {}) {
   try {
@@ -769,6 +827,10 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
       path.join(projectRoot, ".nimi", "config", "external-execution-artifacts.yaml"),
       "utf8",
     );
+    const auditExecutionArtifacts = await readFile(
+      path.join(projectRoot, ".nimi", "config", "audit-execution-artifacts.yaml"),
+      "utf8",
+    );
     const productScope = await readFile(
       path.join(projectRoot, ".nimi", "spec", "product-scope.yaml"),
       "utf8",
@@ -803,6 +865,10 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     );
     const highRiskExecutionContract = await readFile(
       path.join(projectRoot, ".nimi", "contracts", "high-risk-execution-result.yaml"),
+      "utf8",
+    );
+    const auditSweepContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "audit-sweep-result.yaml"),
       "utf8",
     );
     const highRiskAdmissionContract = await readFile(
@@ -866,10 +932,17 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(topicLifecycle, /true_closed/);
     assert.match(fourClosurePolicy, /all_four_must_be_explicit_for_wave_closeout: true/);
     assert.match(hostAdapter, /selected_adapter_id: none/);
+    assert.match(hostAdapter, /- codex/);
     assert.match(hostAdapter, /- oh_my_codex/);
     assert.match(hostAdapter, /artifact_contract_ref: \.nimi\/config\/external-execution-artifacts\.yaml/);
     assert.match(externalExecutionArtifacts, /packet_ref: \.nimi\/local\/packets/);
     assert.match(externalExecutionArtifacts, /worker_output_ref: \.nimi\/local\/outputs/);
+    assert.match(auditExecutionArtifacts, /skill_id: audit_sweep/);
+    assert.match(auditExecutionArtifacts, /plan_ref: \.nimi\/local\/audit\/plans/);
+    assert.match(auditExecutionArtifacts, /remediation_map_ref: \.nimi\/local\/audit\/remediation-maps/);
+    assert.match(auditExecutionArtifacts, /audit_closeout_ref: \.nimi\/local\/audit\/closeouts/);
+    assert.match(auditExecutionArtifacts, /packet_ref: \.nimi\/local\/audit\/packets/);
+    assert.match(auditExecutionArtifacts, /run_ledger_ref: \.nimi\/local\/audit\/runs/);
     assert.match(productScope, /canonical_spec_root: "\.nimi\/spec"/);
     assert.match(productScope, /phase_one_posture: contract_and_checklist_only/);
     assert.match(productScope, /phase_one_contracts:/);
@@ -899,6 +972,8 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(exchangeProjection, /- closeout/);
     assert.match(specReconstructionContract, /canonical_tree_completion:/);
     assert.match(specReconstructionContract, /required_tree_state: canonical_tree_ready/);
+    assert.match(auditSweepContract, /delegated_audit_sweep_result/);
+    assert.match(auditSweepContract, /candidate_ready/);
     assert.match(highRiskExecutionContract, /delegated_high_risk_execution_result/);
     assert.match(highRiskExecutionContract, /candidate_ready/);
     assert.match(highRiskAdmissionContract, /canonical_high_risk_admissions_truth/);
@@ -1593,6 +1668,297 @@ test("topic packet freeze validates required fields and writes a frozen packet a
     ]);
     assert.equal(brokenFreeze.exitCode, 1);
     assert.match(brokenFreeze.stderr, /missing required fields/);
+  });
+});
+
+test("topic run-next-step emits gated decisions without mutating topic state", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "next-step-demo",
+      "--justification",
+      "next-step gate demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+
+    const admitDecisionResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(admitDecisionResult.exitCode, 0);
+    const admitDecision = JSON.parse(admitDecisionResult.stdout).decision;
+    assert.equal(admitDecision.stop_class, "require_human_confirmation");
+    assert.equal(admitDecision.recommended_action, "admit_wave");
+    assert.equal(admitDecision.requires_human_confirmation, true);
+
+    const admitResult = await captureRunCli([
+      "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
+    ]);
+    assert.equal(admitResult.exitCode, 0);
+
+    const packetDecisionResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(packetDecisionResult.exitCode, 0);
+    const packetDecision = JSON.parse(packetDecisionResult.stdout).decision;
+    assert.equal(packetDecision.stop_class, "require_human_confirmation");
+    assert.equal(packetDecision.recommended_action, "freeze_packet");
+
+    const draftPath = path.join(projectRoot, "draft-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-foundation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["all required fields stay explicit"],
+        negative_tests: ["missing required field fails closed"],
+        reopen_conditions: ["owner-cut changes require new packet"],
+      }),
+      "utf8",
+    );
+    const freezeResult = await captureRunCli([
+      "topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json",
+    ]);
+    assert.equal(freezeResult.exitCode, 0);
+
+    const dispatchDecisionResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(dispatchDecisionResult.exitCode, 0);
+    const dispatchDecision = JSON.parse(dispatchDecisionResult.stdout).decision;
+    assert.equal(dispatchDecision.stop_class, "continue");
+    assert.equal(dispatchDecision.recommended_action, "dispatch_worker");
+    assert.equal(dispatchDecision.requires_human_confirmation, false);
+
+    const movedTopicYamlPath = path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId, "topic.yaml");
+    const topicYaml = YAML.parse(await readFile(movedTopicYamlPath, "utf8"));
+    const wave = topicYaml.waves.find((entry) => entry.wave_id === "wave-1-foundation");
+    assert.equal(wave.state, "preflight_admitted");
+  });
+});
+
+test("topic run-ledger records append-only events and rebuilds the run projection", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "run-ledger-demo",
+      "--justification",
+      "run ledger demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    const initResult = await captureRunCli([
+      "topic",
+      "run-ledger",
+      "init",
+      createPayload.topicId,
+      "--run-id",
+      "ralph-loop-demo",
+      "--json",
+    ]);
+    assert.equal(initResult.exitCode, 0);
+    const initPayload = JSON.parse(initResult.stdout);
+    assert.equal(initPayload.runStatus, "running");
+    assert.equal(initPayload.eventCount, 0);
+
+    const decisionRef = "decision-output.json";
+    await writeFile(
+      path.join(projectRoot, decisionRef),
+      `${JSON.stringify({ stop_class: "require_human_confirmation", recommended_action: "admit_wave" }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const sourceRef = `${createPayload.topicRef}/topic.yaml`;
+    const gateResult = await captureRunCli([
+      "topic",
+      "run-ledger",
+      "record",
+      createPayload.topicId,
+      "--run-id",
+      "ralph-loop-demo",
+      "--event",
+      "decision_emitted",
+      "--stop-class",
+      "require_human_confirmation",
+      "--action",
+      "admit_wave",
+      "--source",
+      sourceRef,
+      "--summary",
+      "manager admission gate emitted",
+      "--verified-at",
+      "2026-04-24T00:00:00Z",
+      "--artifact",
+      `decision_ref=${decisionRef}`,
+      "--json",
+    ]);
+    assert.equal(gateResult.exitCode, 0);
+    const gatePayload = JSON.parse(gateResult.stdout);
+    assert.equal(gatePayload.runStatus, "awaiting_human_confirmation");
+    assert.equal(gatePayload.eventCount, 1);
+    assert.equal(gatePayload.ledger.current_human_gate.recommended_action, "admit_wave");
+
+    const resolvedResult = await captureRunCli([
+      "topic",
+      "run-ledger",
+      "record",
+      createPayload.topicId,
+      "--run-id",
+      "ralph-loop-demo",
+      "--event",
+      "human_gate_resolved",
+      "--stop-class",
+      "continue",
+      "--action",
+      "admit_wave",
+      "--source",
+      sourceRef,
+      "--summary",
+      "manager approved wave admission",
+      "--verified-at",
+      "2026-04-24T00:01:00Z",
+      "--json",
+    ]);
+    assert.equal(resolvedResult.exitCode, 0);
+
+    const buildResult = await captureRunCli([
+      "topic",
+      "run-ledger",
+      "build",
+      createPayload.topicId,
+      "--run-id",
+      "ralph-loop-demo",
+      "--json",
+    ]);
+    assert.equal(buildResult.exitCode, 0);
+    const buildPayload = JSON.parse(buildResult.stdout);
+    assert.equal(buildPayload.runStatus, "running");
+    assert.equal(buildPayload.eventCount, 2);
+    assert.equal(buildPayload.ledger.current_human_gate, null);
+    assert.deepEqual(buildPayload.ledger.event_refs, [
+      "run-event-ralph-loop-demo-0001-decision_emitted.yaml",
+      "run-event-ralph-loop-demo-0002-human_gate_resolved.yaml",
+    ]);
+
+    const ledger = YAML.parse(await readFile(
+      path.join(projectRoot, createPayload.topicRef, "run-ledger-ralph-loop-demo.yaml"),
+      "utf8",
+    ));
+    assert.equal(ledger.kind, "topic-run-ledger");
+    assert.equal(ledger.latest_decision_ref, decisionRef);
+
+    await writeFile(path.join(projectRoot, "closeout-wave-1-foundation.md"), "# closeout\n", "utf8");
+    const closeResult = await captureRunCli([
+      "topic",
+      "run-ledger",
+      "record",
+      createPayload.topicId,
+      "--run-id",
+      "ralph-loop-demo",
+      "--event",
+      "wave_closed",
+      "--stop-class",
+      "continue",
+      "--action",
+      "no_action",
+      "--source",
+      "closeout-wave-1-foundation.md",
+      "--summary",
+      "wave closure resolved closeout gate",
+      "--verified-at",
+      "2026-04-24T00:02:00Z",
+      "--artifact",
+      "closeout_ref=closeout-wave-1-foundation.md",
+      "--json",
+    ]);
+    assert.equal(closeResult.exitCode, 0);
+    const closePayload = JSON.parse(closeResult.stdout);
+    assert.equal(closePayload.ledger.current_human_gate, null);
+  });
+});
+
+test("topic run-ledger fails closed on invalid artifact lineage", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "run-ledger-invalid",
+      "--justification",
+      "run ledger invalid lineage",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic",
+      "run-ledger",
+      "init",
+      createPayload.topicId,
+      "--run-id",
+      "invalid-lineage",
+      "--json",
+    ]);
+
+    const recordResult = await captureRunCli([
+      "topic",
+      "run-ledger",
+      "record",
+      createPayload.topicId,
+      "--run-id",
+      "invalid-lineage",
+      "--event",
+      "decision_emitted",
+      "--stop-class",
+      "continue",
+      "--action",
+      "dispatch_worker",
+      "--source",
+      `${createPayload.topicRef}/topic.yaml`,
+      "--summary",
+      "invalid artifact ref",
+      "--verified-at",
+      "2026-04-24T00:00:00Z",
+      "--artifact",
+      "packet_ref=missing-packet.md",
+      "--json",
+    ]);
+    assert.equal(recordResult.exitCode, 1);
+    assert.match(recordResult.stderr, /packet_ref does not resolve to a file/);
   });
 });
 
@@ -2801,9 +3167,19 @@ test("doctor emits machine-readable JSON", async () => {
     assert.ok(payload.hostCompatibility.forbiddenBehavior.includes("assume_packaged_run_kernel"));
     assert.equal(payload.hostCompatibility.genericExternalHostCompatible, true);
     assert.equal(payload.hostCompatibility.namedOverlaySupport.mode, "named_admitted_overlay_available");
-    assert.deepEqual(payload.hostCompatibility.namedOverlaySupport.admittedOverlayIds, ["oh_my_codex", "claude"]);
+    assert.deepEqual(payload.hostCompatibility.namedOverlaySupport.admittedOverlayIds, ["codex", "oh_my_codex", "claude"]);
     assert.equal(payload.hostCompatibility.namedOverlaySupport.selectedOverlayId, null);
     assert.deepEqual(payload.hostCompatibility.futureOnlyHostSurfaces, [
+      {
+        adapterId: "codex",
+        status: "active_via_codex_sdk",
+        command: "Codex.startThread().run",
+      },
+      {
+        adapterId: "codex",
+        status: "active_via_codex_sdk",
+        command: "Codex.resumeThread().run",
+      },
       {
         adapterId: "oh_my_codex",
         status: "future_only_not_packaged",
@@ -2840,16 +3216,19 @@ test("doctor emits machine-readable JSON", async () => {
     assert.equal(payload.delegatedContracts.runtimeOwner, "external_ai_host");
     assert.equal(payload.delegatedContracts.executionMode, "delegated");
     assert.equal(payload.delegatedContracts.selectedAdapterId, "none");
-    assert.deepEqual(payload.delegatedContracts.admittedAdapterIds, ["oh_my_codex", "claude"]);
+    assert.deepEqual(payload.delegatedContracts.admittedAdapterIds, ["codex", "oh_my_codex", "claude"]);
     assert.equal(payload.delegatedContracts.adapterHandoffMode, "prompt_output_evidence_handoff");
     assert.equal(payload.delegatedContracts.semanticReviewOwner, "nimicoding_manager");
-    assert.equal(payload.adapterProfiles.admitted.length, 2);
+    assert.equal(payload.adapterProfiles.admitted.length, 3);
     assert.equal(payload.adapterProfiles.invalid.length, 0);
-    assert.deepEqual(payload.adapterProfiles.admitted.map((entry) => entry.id), ["oh_my_codex", "claude"]);
-    assert.equal(payload.adapterProfiles.admitted[0].profileRef, "adapters/oh-my-codex/profile.yaml");
-    assert.equal(payload.adapterProfiles.admitted[0].hostClass, "external_execution_host");
-    assert.equal(payload.adapterProfiles.admitted[0].promptHandoff.futureSurfaceStatus, "future_only_not_packaged");
-    assert.deepEqual(payload.adapterProfiles.admitted[0].promptHandoff.futureSurface, ["nimicoding run-next-prompt"]);
+    assert.deepEqual(payload.adapterProfiles.admitted.map((entry) => entry.id), ["codex", "oh_my_codex", "claude"]);
+    assert.equal(payload.adapterProfiles.admitted[0].profileRef, "adapters/codex/profile.yaml");
+    assert.equal(payload.adapterProfiles.admitted[0].hostClass, "native_codex_sdk_host");
+    assert.equal(payload.adapterProfiles.admitted[0].promptHandoff.futureSurfaceStatus, "active_via_codex_sdk");
+    assert.deepEqual(payload.adapterProfiles.admitted[0].promptHandoff.futureSurface, [
+      "Codex.startThread().run",
+      "Codex.resumeThread().run",
+    ]);
     assert.equal(payload.adapterProfiles.selected, null);
     assert.equal(payload.auditArtifact.present, false);
     assert.equal(payload.executionContracts.total, 5);
@@ -3875,16 +4254,46 @@ test("handoff exports spec reconstruction payload during bootstrap-only mode", a
     assert.ok(payload.handoffSurface.forbiddenHostBehavior.includes("assume_packaged_run_kernel"));
     assert.equal(payload.handoffSurface.hostCompatibilitySummary.genericExternalHostCompatible, true);
     assert.equal(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.mode, "named_admitted_overlay_available");
-    assert.deepEqual(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.admittedOverlayIds, ["oh_my_codex", "claude"]);
+    assert.deepEqual(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.admittedOverlayIds, ["codex", "oh_my_codex", "claude"]);
     assert.deepEqual(payload.handoffSurface.hostCompatibilitySummary.futureOnlyHostSurfaces, [
+      {
+        adapterId: "codex",
+        status: "active_via_codex_sdk",
+        command: "Codex.startThread().run",
+      },
+      {
+        adapterId: "codex",
+        status: "active_via_codex_sdk",
+        command: "Codex.resumeThread().run",
+      },
       {
         adapterId: "oh_my_codex",
         status: "future_only_not_packaged",
         command: "nimicoding run-next-prompt",
       },
     ]);
+    assert.deepEqual(payload.handoffSurface.hostCompatibilitySummary.nativeReviewSurfaces, [
+      {
+        adapterId: "codex",
+        approvalReviewScope: "lower_layer_permission_review",
+        approvalReviewSemanticEffect: "none",
+        githubAutoReviewScope: "lower_layer_pr_review_findings",
+        githubAutoReviewSemanticEffect: "evidence_only",
+        forbiddenSemanticSubstitutions: [
+          "wave_admission",
+          "packet_freeze",
+          "result_verdict",
+          "wave_closeout",
+          "topic_closeout",
+          "true_close",
+        ],
+      },
+    ]);
+    const codexProfile = payload.adapter.admittedProfiles.find((profile) => profile.id === "codex");
+    assert.equal(codexProfile.nativeReviewBoundary.approvalReview.scope, "lower_layer_permission_review");
+    assert.equal(codexProfile.nativeReviewBoundary.githubAutoReview.semanticEffect, "evidence_only");
     assert.equal(payload.adapter.selectedId, "none");
-    assert.deepEqual(payload.adapter.admittedIds, ["oh_my_codex", "claude"]);
+    assert.deepEqual(payload.adapter.admittedIds, ["codex", "oh_my_codex", "claude"]);
     assert.equal(payload.adapter.semanticReviewOwner, "nimicoding_manager");
     assert.equal(payload.contracts.hostAdapterRef, ".nimi/config/host-adapter.yaml");
     assert.equal(
@@ -3930,8 +4339,9 @@ test("handoff projects an external host prompt for spec reconstruction", async (
     assert.doesNotMatch(promptText, /spec-target-truth-profile/);
     assert.match(promptText, /Generic external host compatible: true/);
     assert.match(promptText, /Named overlay mode: named_admitted_overlay_available/);
-    assert.match(promptText, /Admitted named overlays: oh_my_codex/);
-    assert.match(promptText, /Future-only host surfaces: oh_my_codex:nimicoding run-next-prompt:future_only_not_packaged/);
+    assert.match(promptText, /Admitted named overlays: codex, oh_my_codex, claude/);
+    assert.match(promptText, /Future-only host surfaces: codex:Codex\.startThread\(\)\.run:active_via_codex_sdk, codex:Codex\.resumeThread\(\)\.run:active_via_codex_sdk, oh_my_codex:nimicoding run-next-prompt:future_only_not_packaged/);
+    assert.match(promptText, /Native review surfaces: codex:approval=lower_layer_permission_review:none,pr=lower_layer_pr_review_findings:evidence_only/);
     assert.match(promptText, /You are the external AI host responsible/);
     assert.match(promptText, /Read this project-local truth first, in order:/);
     assert.match(promptText, /Do not assume local skill installation or self-hosting/);
@@ -4040,6 +4450,821 @@ test("handoff allows high risk execution after the canonical tree is ready and i
   });
 });
 
+test("handoff allows audit sweep after the canonical tree is ready and includes audit artifact roots", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "audit_sweep", "--json"]);
+
+    assert.equal(handoffResult.exitCode, 0);
+    const payload = JSON.parse(handoffResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.skill.id, "audit_sweep");
+    assert.equal(payload.skill.resultContractRef, ".nimi/contracts/audit-sweep-result.yaml");
+    assert.deepEqual(payload.skill.compareTargets, [".nimi/spec", ".nimi/contracts", ".nimi/methodology"]);
+    assert.deepEqual(payload.skill.expectedCloseoutSummaryFields, [
+      "plan_ref",
+      "chunk_refs",
+      "ledger_ref",
+      "report_ref",
+      "remediation_map_ref",
+      "audit_closeout_ref",
+      "evidence_refs",
+      "finding_count",
+      "unresolved_finding_count",
+      "status",
+      "summary",
+      "verified_at",
+    ]);
+    assert.deepEqual(payload.skill.expectedCloseoutSummaryStatus, [
+      "candidate_ready",
+      "partial",
+      "blocked",
+    ]);
+    assert.deepEqual(payload.skill.expectedArtifactKinds, [
+      "audit-plan",
+      "audit-chunk",
+      "audit-ledger",
+      "audit-report",
+      "audit-remediation-map",
+      "audit-packet",
+      "audit-run-ledger",
+      "audit-closeout",
+    ]);
+    assert.deepEqual(payload.skill.expectedArtifactRoots, {
+      plan_ref: ".nimi/local/audit/plans",
+      chunk_refs: ".nimi/local/audit/chunks",
+      ledger_ref: ".nimi/local/audit/ledgers",
+      report_ref: ".nimi/local/audit/reports",
+      remediation_map_ref: ".nimi/local/audit/remediation-maps",
+      audit_closeout_ref: ".nimi/local/audit/closeouts",
+      packet_ref: ".nimi/local/audit/packets",
+      evidence_refs: ".nimi/local/audit/evidence",
+      run_ledger_ref: ".nimi/local/audit/runs",
+    });
+    assert.ok(payload.context.skillInputs.includes(".nimi/config/audit-execution-artifacts.yaml"));
+    assert.ok(payload.context.orderedPaths.includes(".nimi/config/audit-execution-artifacts.yaml"));
+    assert.equal(payload.skill.readiness.ok, true);
+  });
+});
+
+async function seedFrozenAuditSweep(projectRoot, {
+  sweepId,
+  actionability = "auto-fix",
+  severity = "medium",
+  findingTitle = "Fixture finding",
+} = {}) {
+  await mkdir(path.join(projectRoot, "src"), { recursive: true });
+  await writeFile(path.join(projectRoot, "src", "service.ts"), "export function service() { return 1; }\n", "utf8");
+
+  assert.equal((await captureRunCli([
+    "audit-sweep",
+    "plan",
+    "--root",
+    "src",
+    "--sweep-id",
+    sweepId,
+    "--json",
+  ])).exitCode, 0);
+  assert.equal((await captureRunCli([
+    "audit-sweep",
+    "chunk",
+    "dispatch",
+    "--sweep-id",
+    sweepId,
+    "--chunk-id",
+    "chunk-001",
+    "--dispatched-at",
+    "2026-04-10T00:00:00.000Z",
+    "--json",
+  ])).exitCode, 0);
+  await writeFile(
+    path.join(projectRoot, `${sweepId}-audit-output.json`),
+    `${JSON.stringify({
+      chunk_id: "chunk-001",
+      auditor: { id: "test-auditor", model: "fixture" },
+      coverage: { files: ["src/service.ts"] },
+      findings: [
+        {
+          severity,
+          actionability,
+          confidence: "high",
+          category: "quality",
+          impact: "The fixture finding demonstrates audit-sweep lifecycle enforcement.",
+          location: { file: "src/service.ts", line: 1, symbol: "service" },
+          title: findingTitle,
+          description: "The audited fixture service requires an explicit remediation posture.",
+          evidence: {
+            summary: "service() is the audited fixture surface.",
+            auditor_reasoning: "The file is in the chunk and the finding is intentionally actionable.",
+          },
+        },
+      ],
+    }, null, 2)}\n`,
+    "utf8",
+  );
+  assert.equal((await captureRunCli([
+    "audit-sweep",
+    "chunk",
+    "ingest",
+    "--sweep-id",
+    sweepId,
+    "--chunk-id",
+    "chunk-001",
+    "--from",
+    `${sweepId}-audit-output.json`,
+    "--verified-at",
+    "2026-04-10T00:00:00.000Z",
+    "--json",
+  ])).exitCode, 0);
+  assert.equal((await captureRunCli([
+    "audit-sweep",
+    "chunk",
+    "review",
+    "--sweep-id",
+    sweepId,
+    "--chunk-id",
+    "chunk-001",
+    "--verdict",
+    "pass",
+    "--reviewed-at",
+    "2026-04-10T01:00:00.000Z",
+    "--summary",
+    "manager accepted auditor fixture",
+    "--json",
+  ])).exitCode, 0);
+  const ledgerResult = await captureRunCli([
+    "audit-sweep",
+    "ledger",
+    "build",
+    "--sweep-id",
+    sweepId,
+    "--verified-at",
+    "2026-04-10T02:00:00.000Z",
+    "--json",
+  ]);
+  assert.equal(ledgerResult.exitCode, 0);
+  return JSON.parse(ledgerResult.stdout);
+}
+
+test("audit-sweep plan creates deterministic local chunk artifacts", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, "src", "domain"), { recursive: true });
+    await writeFile(path.join(projectRoot, "src", "domain", "alpha.ts"), "export const alpha = 1;\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "domain", "beta.ts"), "export const beta = 2;\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
+
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src",
+      "--criteria",
+      "quality,security",
+      "--max-files",
+      "1",
+      "--sweep-id",
+      "audit-sweep-test-plan",
+      "--json",
+    ]);
+
+    assert.equal(planResult.exitCode, 0);
+    const payload = JSON.parse(planResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.sweepId, "audit-sweep-test-plan");
+    assert.equal(payload.totalFiles, 2);
+    assert.equal(payload.includedFiles, 2);
+    assert.equal(payload.chunkCount, 2);
+    assert.equal(payload.planRef, ".nimi/local/audit/plans/audit-sweep-test-plan.yaml");
+    assert.deepEqual(payload.criteria, ["quality", "security"]);
+    assert.match(payload.inventoryHash, /^[a-f0-9]{64}$/);
+
+    const plan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-plan.yaml"), "utf8"));
+    assert.equal(plan.kind, "audit-plan");
+    assert.deepEqual(plan.inventory.map((entry) => entry.file_ref), [
+      "src/domain/alpha.ts",
+      "src/domain/beta.ts",
+    ]);
+    assert.equal(plan.inventory[0].included, true);
+    assert.equal(plan.chunks[0].state, "planned");
+
+    const chunk = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "chunks", "audit-sweep-test-plan", "chunk-001.yaml"), "utf8"));
+    assert.equal(chunk.kind, "audit-chunk");
+    assert.equal(chunk.file_count, 1);
+    assert.equal(chunk.state, "planned");
+    assert.ok(chunk.file_hashes["src/domain/alpha.ts"] || chunk.file_hashes["src/domain/beta.ts"]);
+    const runLedger = await readFile(path.join(projectRoot, ".nimi", "local", "audit", "runs", "audit-sweep-test-plan.jsonl"), "utf8");
+    assert.match(runLedger, /"event_type":"plan_created"/);
+  });
+});
+
+test("audit-sweep state machine builds immutable ledger, remediation map, rerun closure, and closeout summary", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+    await seedReconstructedTargetTruth(projectRoot);
+
+    await mkdir(path.join(projectRoot, "src"), { recursive: true });
+    await writeFile(path.join(projectRoot, "src", "service.ts"), "export function service() { return 1; }\n", "utf8");
+
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--json",
+    ]);
+    assert.equal(planResult.exitCode, 0);
+
+    const dispatchResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--chunk-id",
+      "chunk-001",
+      "--dispatched-at",
+      "2026-04-10T00:00:00.000Z",
+      "--auditor",
+      "test-auditor",
+      "--json",
+    ]);
+    assert.equal(dispatchResult.exitCode, 0);
+    const dispatchPayload = JSON.parse(dispatchResult.stdout);
+    assert.equal(dispatchPayload.state, "dispatched");
+    assert.equal(dispatchPayload.packetRef, ".nimi/local/audit/packets/audit-sweep-test-ledger/chunk-001.auditor-packet.yaml");
+    const auditorPacket = YAML.parse(await readFile(path.join(projectRoot, ...dispatchPayload.packetRef.split("/")), "utf8"));
+    assert.equal(auditorPacket.kind, "audit-auditor-packet");
+    assert.deepEqual(auditorPacket.output_contract.coverage_files_must_exactly_match, ["src/service.ts"]);
+
+    const evidencePath = path.join(projectRoot, "audit-output.json");
+    await writeFile(
+      evidencePath,
+      `${JSON.stringify({
+        chunk_id: "chunk-001",
+        auditor: { id: "test-auditor", model: "fixture" },
+        coverage: { files: ["src/service.ts"] },
+        findings: [
+          {
+            severity: "high",
+            actionability: "needs-decision",
+            confidence: "high",
+            category: "security",
+            impact: "The service can ship behavior that has not passed a security decision.",
+            location: {
+              file: "src/service.ts",
+              line: 1,
+              symbol: "service",
+            },
+            title: "Service exposes unchecked behavior",
+            description: "The service path needs a concrete security review before remediation.",
+            evidence: {
+              summary: "service() returns without any guard or decision point.",
+              auditor_reasoning: "The exported service is in the audited chunk and lacks a security decision boundary.",
+            },
+          },
+        ],
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const ingestResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--chunk-id",
+      "chunk-001",
+      "--from",
+      "audit-output.json",
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(ingestResult.exitCode, 0);
+    const ingestPayload = JSON.parse(ingestResult.stdout);
+    assert.equal(ingestPayload.state, "ingested");
+    assert.equal(ingestPayload.addedCount, 1);
+    assert.equal(ingestPayload.evidenceRef, ".nimi/local/audit/evidence/audit-sweep-test-ledger/chunk-001.audit-evidence.json");
+
+    const reviewResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "review",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--chunk-id",
+      "chunk-001",
+      "--verdict",
+      "pass",
+      "--reviewed-at",
+      "2026-04-10T01:00:00.000Z",
+      "--summary",
+      "manager accepted auditor evidence",
+      "--json",
+    ]);
+    assert.equal(reviewResult.exitCode, 0);
+    assert.equal(JSON.parse(reviewResult.stdout).state, "frozen");
+
+    const ledgerResult = await captureRunCli([
+      "audit-sweep",
+      "ledger",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(ledgerResult.exitCode, 0);
+    const ledgerPayload = JSON.parse(ledgerResult.stdout);
+    assert.equal(ledgerPayload.status, "candidate_ready");
+    assert.match(ledgerPayload.snapshotId, /^ledger-[a-f0-9]{16}$/);
+    assert.equal(ledgerPayload.findingCount, 1);
+    assert.equal(ledgerPayload.unresolvedFindingCount, 1);
+    assert.equal(ledgerPayload.coverage.audited_files, 1);
+    assert.match(ledgerPayload.ledgerRef, /^\.nimi\/local\/audit\/ledgers\/audit-sweep-test-ledger\/ledger-[a-f0-9]{16}\.yaml$/);
+    assert.match(ledgerPayload.reportRef, /^\.nimi\/local\/audit\/reports\/audit-sweep-test-ledger\/ledger-[a-f0-9]{16}\.md$/);
+
+    const ledger = YAML.parse(await readFile(path.join(projectRoot, ...ledgerPayload.ledgerRef.split("/")), "utf8"));
+    assert.equal(ledger.kind, "audit-ledger");
+    assert.equal(ledger.immutable, true);
+    assert.equal(ledger.finding_count, 1);
+    assert.equal(ledger.unresolved_finding_count, 1);
+    assert.deepEqual(ledger.evidence_refs, [
+      ".nimi/local/audit/evidence/audit-sweep-test-ledger/findings.yaml",
+      ".nimi/local/audit/evidence/audit-sweep-test-ledger/chunk-001.audit-evidence.json",
+    ]);
+    const latestPointer = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "ledgers", "audit-sweep-test-ledger", "latest.yaml"), "utf8"));
+    assert.equal(latestPointer.ledger_ref, ledgerPayload.ledgerRef);
+
+    const remediationMapResult = await captureRunCli([
+      "audit-sweep",
+      "remediation-map",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--max-findings",
+      "1",
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(remediationMapResult.exitCode, 0);
+    const remediationMapPayload = JSON.parse(remediationMapResult.stdout);
+    assert.equal(remediationMapPayload.waveCount, 1);
+    assert.equal(remediationMapPayload.mappedFindingCount, 1);
+    assert.match(remediationMapPayload.remediationMapRef, /^\.nimi\/local\/audit\/remediation-maps\/audit-sweep-test-ledger\/ledger-[a-f0-9]{16}\.yaml$/);
+
+    const remediationMap = YAML.parse(await readFile(path.join(projectRoot, ...remediationMapPayload.remediationMapRef.split("/")), "utf8"));
+    assert.equal(remediationMap.kind, "audit-remediation-map");
+    assert.equal(remediationMap.source_ledger_ref, ledgerPayload.ledgerRef);
+    assert.equal(remediationMap.waves[0].wave_id, "remediation-wave-001");
+    assert.equal(remediationMap.waves[0].owner_domain, "src");
+    assert.deepEqual(remediationMap.waves[0].finding_ids, ["finding-0001"]);
+    assert.equal(remediationMap.waves[0].admission_checklist.re_audit_required, true);
+
+    const findingsStore = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "evidence", "audit-sweep-test-ledger", "findings.yaml"), "utf8"));
+    const sourceFingerprint = findingsStore.findings[0].fingerprint;
+
+    await writeFile(
+      path.join(projectRoot, "resolution-output.json"),
+      `${JSON.stringify({
+        finding_id: "finding-0001",
+        source_fingerprint: sourceFingerprint,
+        disposition: "remediated",
+        rerun: {
+          chunk_id: "chunk-001",
+          covered_files: ["src/service.ts"],
+          verdict: "not_reproduced",
+          auditor: { id: "test-auditor", model: "fixture" },
+        },
+        evidence_summary: "Re-audit evidence confirms the finding has been remediated.",
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const resolveResult = await captureRunCli([
+      "audit-sweep",
+      "finding",
+      "resolve",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--finding-id",
+      "finding-0001",
+      "--disposition",
+      "remediated",
+      "--from",
+      "resolution-output.json",
+      "--verified-at",
+      "2026-04-11T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(resolveResult.exitCode, 0);
+    const resolvePayload = JSON.parse(resolveResult.stdout);
+    assert.equal(resolvePayload.disposition, "remediated");
+    assert.equal(resolvePayload.evidenceRef, ".nimi/local/audit/evidence/audit-sweep-test-ledger/resolution-finding-0001.json");
+
+    const rebuiltLedgerResult = await captureRunCli([
+      "audit-sweep",
+      "ledger",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--verified-at",
+      "2026-04-11T00:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(rebuiltLedgerResult.exitCode, 0);
+    const rebuiltLedgerPayload = JSON.parse(rebuiltLedgerResult.stdout);
+    assert.equal(rebuiltLedgerPayload.unresolvedFindingCount, 0);
+    assert.ok(rebuiltLedgerPayload.evidenceRefs.includes(".nimi/local/audit/evidence/audit-sweep-test-ledger/resolution-finding-0001.json"));
+    assert.notEqual(rebuiltLedgerPayload.ledgerRef, ledgerPayload.ledgerRef);
+
+    const emptyRemediationMapResult = await captureRunCli([
+      "audit-sweep",
+      "remediation-map",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--verified-at",
+      "2026-04-11T00:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(emptyRemediationMapResult.exitCode, 0);
+    assert.equal(JSON.parse(emptyRemediationMapResult.stdout).waveCount, 0);
+
+    const closeoutSummaryResult = await captureRunCli([
+      "audit-sweep",
+      "closeout",
+      "summary",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--verified-at",
+      "2026-04-11T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(closeoutSummaryResult.exitCode, 0);
+    const closeoutImport = JSON.parse(closeoutSummaryResult.stdout);
+    assert.equal(closeoutImport.skill.id, "audit_sweep");
+    assert.equal(closeoutImport.outcome, "completed");
+    assert.equal(closeoutImport.summary.status, "candidate_ready");
+    assert.equal(closeoutImport.summary.unresolved_finding_count, 0);
+    assert.equal(closeoutImport.auditCloseout.closeout_posture, "audit_complete_all_findings_postured");
+    assert.equal(closeoutImport.summary.audit_closeout_ref, closeoutImport.auditCloseoutRef);
+    assert.equal("audit_closeout" in closeoutImport.summary, false);
+
+    const closeoutImportPath = path.join(projectRoot, "audit-sweep-closeout.json");
+    await writeFile(closeoutImportPath, `${JSON.stringify(closeoutImport, null, 2)}\n`, "utf8");
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      closeoutImportPath,
+      "--json",
+    ]);
+    assert.equal(closeoutResult.exitCode, 0);
+    const closeoutPayload = JSON.parse(closeoutResult.stdout);
+    assert.equal(closeoutPayload.ok, true);
+    assert.equal(closeoutPayload.skill.id, "audit_sweep");
+
+    const statusResult = await captureRunCli([
+      "audit-sweep",
+      "status",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--json",
+    ]);
+    assert.equal(statusResult.exitCode, 0);
+    const statusPayload = JSON.parse(statusResult.stdout);
+    assert.equal(statusPayload.coverage.frozenChunks, 1);
+    assert.equal(statusPayload.findingCount, 1);
+
+    const validateResult = await captureRunCli([
+      "audit-sweep",
+      "validate",
+      "--sweep-id",
+      "audit-sweep-test-ledger",
+      "--scope",
+      "all",
+      "--json",
+    ]);
+    assert.equal(validateResult.exitCode, 0);
+    const validatePayload = JSON.parse(validateResult.stdout);
+    assert.equal(validatePayload.ok, true);
+    assert.ok(validatePayload.checks.length > 0);
+  });
+});
+
+test("audit-sweep chunk ingest fails closed on malformed findings", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, "src"), { recursive: true });
+    await writeFile(path.join(projectRoot, "src", "service.ts"), "export const service = 1;\n", "utf8");
+
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src",
+      "--sweep-id",
+      "audit-sweep-test-invalid",
+      "--json",
+    ]);
+    assert.equal(planResult.exitCode, 0);
+
+    const dispatchResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-invalid",
+      "--chunk-id",
+      "chunk-001",
+      "--dispatched-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(dispatchResult.exitCode, 0);
+
+    await writeFile(
+      path.join(projectRoot, "bad-audit-output.json"),
+      `${JSON.stringify({
+        chunk_id: "chunk-001",
+        auditor: { id: "test-auditor" },
+        coverage: { files: ["src/service.ts"] },
+        findings: [
+          {
+            severity: "high",
+            category: "security",
+            confidence: "high",
+            impact: "Impact exists, actionability does not.",
+            location: { file: "src/service.ts" },
+            title: "Missing actionability",
+            description: "This finding omits required actionability.",
+            evidence: {
+              summary: "Invalid fixture.",
+              auditor_reasoning: "Invalid fixture.",
+            },
+          },
+        ],
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const ingestResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-invalid",
+      "--chunk-id",
+      "chunk-001",
+      "--from",
+      "bad-audit-output.json",
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(ingestResult.exitCode, 2);
+    assert.match(ingestResult.stderr, /actionability must be one of/);
+  });
+});
+
+test("audit-sweep closeout and validators fail closed on missing remediation map and tampered ledger", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await seedReconstructedTargetTruth(projectRoot);
+    const ledgerPayload = await seedFrozenAuditSweep(projectRoot, {
+      sweepId: "audit-sweep-test-gates",
+      actionability: "auto-fix",
+    });
+
+    const closeoutWithoutMap = await captureRunCli([
+      "audit-sweep",
+      "closeout",
+      "summary",
+      "--sweep-id",
+      "audit-sweep-test-gates",
+      "--verified-at",
+      "2026-04-10T03:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(closeoutWithoutMap.exitCode, 2);
+    assert.match(closeoutWithoutMap.stderr, /remediation map exists for the latest ledger/);
+
+    const ledgerPath = path.join(projectRoot, ...ledgerPayload.ledgerRef.split("/"));
+    const ledger = YAML.parse(await readFile(ledgerPath, "utf8"));
+    ledger.coverage.audited_files = 0;
+    await writeFile(ledgerPath, YAML.stringify(ledger), "utf8");
+
+    const validateLedger = await captureRunCli([
+      "audit-sweep",
+      "validate",
+      "--sweep-id",
+      "audit-sweep-test-gates",
+      "--scope",
+      "ledger",
+      "--json",
+    ]);
+    assert.equal(validateLedger.exitCode, 2);
+    const validatePayload = JSON.parse(validateLedger.stdout);
+    assert.equal(validatePayload.ok, false);
+    assert.ok(validatePayload.checks.some((entry) => entry.id === "ledger_coverage_counts_match" && entry.ok === false));
+  });
+});
+
+test("audit-sweep rejects coverage mismatch, invalid rerun, and unexpected closeout fields", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await seedReconstructedTargetTruth(projectRoot);
+    await mkdir(path.join(projectRoot, "src"), { recursive: true });
+    await writeFile(path.join(projectRoot, "src", "service.ts"), "export const service = 1;\n", "utf8");
+    assert.equal((await captureRunCli(["audit-sweep", "plan", "--root", "src", "--sweep-id", "audit-sweep-test-negative", "--json"])).exitCode, 0);
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-negative",
+      "--chunk-id",
+      "chunk-001",
+      "--dispatched-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+
+    await writeFile(
+      path.join(projectRoot, "coverage-mismatch.json"),
+      `${JSON.stringify({
+        chunk_id: "chunk-001",
+        auditor: { id: "test-auditor" },
+        coverage: { files: [] },
+        findings: [],
+      }, null, 2)}\n`,
+      "utf8",
+    );
+    const mismatch = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-negative",
+      "--chunk-id",
+      "chunk-001",
+      "--from",
+      "coverage-mismatch.json",
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(mismatch.exitCode, 2);
+    assert.match(mismatch.stderr, /coverage\.files must exactly match/);
+
+    const ledgerPayload = await seedFrozenAuditSweep(projectRoot, {
+      sweepId: "audit-sweep-test-rerun-negative",
+      actionability: "auto-fix",
+    });
+    const findingsStore = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "evidence", "audit-sweep-test-rerun-negative", "findings.yaml"), "utf8"));
+    await writeFile(
+      path.join(projectRoot, "bad-resolution.json"),
+      `${JSON.stringify({
+        finding_id: "finding-0001",
+        source_fingerprint: findingsStore.findings[0].fingerprint,
+        disposition: "remediated",
+        rerun: {
+          chunk_id: "chunk-001",
+          covered_files: ["src/service.ts"],
+          verdict: "still_reproduced",
+          auditor: { id: "test-auditor" },
+        },
+        evidence_summary: "The finding still reproduces, so remediated is invalid.",
+      }, null, 2)}\n`,
+      "utf8",
+    );
+    const badRerun = await captureRunCli([
+      "audit-sweep",
+      "finding",
+      "resolve",
+      "--sweep-id",
+      "audit-sweep-test-rerun-negative",
+      "--finding-id",
+      "finding-0001",
+      "--disposition",
+      "remediated",
+      "--from",
+      "bad-resolution.json",
+      "--verified-at",
+      "2026-04-11T00:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(badRerun.exitCode, 2);
+    assert.match(badRerun.stderr, /requires not_reproduced/);
+
+    await captureRunCli([
+      "audit-sweep",
+      "remediation-map",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-rerun-negative",
+      "--verified-at",
+      "2026-04-10T03:00:00.000Z",
+      "--json",
+    ]);
+    const closeout = await captureRunCli([
+      "audit-sweep",
+      "closeout",
+      "summary",
+      "--sweep-id",
+      "audit-sweep-test-rerun-negative",
+      "--verified-at",
+      "2026-04-10T04:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(closeout.exitCode, 0);
+    const closeoutImport = JSON.parse(closeout.stdout);
+    closeoutImport.summary.audit_closeout = { forbidden: true };
+    await writeFile(path.join(projectRoot, "bad-audit-closeout-extra.json"), `${JSON.stringify(closeoutImport, null, 2)}\n`, "utf8");
+    const imported = await captureRunCli(["closeout", "--from", "bad-audit-closeout-extra.json", "--json"]);
+    assert.equal(imported.exitCode, 2);
+    assert.match(imported.stderr, /unexpected fields: audit_closeout/);
+    assert.match(ledgerPayload.ledgerRef, /audit-sweep-test-rerun-negative/);
+  });
+});
+
+test("audit-sweep remediation-map admit materializes topic waves and preserves manager decision gates", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await seedReconstructedTargetTruth(projectRoot);
+    await seedFrozenAuditSweep(projectRoot, {
+      sweepId: "audit-sweep-test-topic-admit",
+      actionability: "auto-fix",
+    });
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "remediation-map",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-topic-admit",
+      "--verified-at",
+      "2026-04-10T03:00:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+
+    const createTopicResult = await captureRunCli([
+      "topic",
+      "create",
+      "audit-remediation-demo",
+      "--title",
+      "Audit Remediation Demo",
+      "--justification",
+      "audit-sweep remediation waves need topic-owned repair execution",
+      "--applicability",
+      "authority-bearing",
+      "--json",
+    ]);
+    assert.equal(createTopicResult.exitCode, 0);
+    const topic = JSON.parse(createTopicResult.stdout);
+
+    const admitResult = await captureRunCli([
+      "audit-sweep",
+      "remediation-map",
+      "admit",
+      "--sweep-id",
+      "audit-sweep-test-topic-admit",
+      "--topic-id",
+      topic.topicId,
+      "--json",
+    ]);
+    assert.equal(admitResult.exitCode, 0);
+    const admitPayload = JSON.parse(admitResult.stdout);
+    assert.deepEqual(admitPayload.materializedWaveIds, ["wave-audit-remediation-001"]);
+    assert.deepEqual(admitPayload.admittedWaveIds, ["wave-audit-remediation-001"]);
+
+    const topicYaml = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "topics", "ongoing", topic.topicId, "topic.yaml"), "utf8"));
+    assert.equal(topicYaml.waves[0].wave_id, "wave-audit-remediation-001");
+    assert.equal(topicYaml.waves[0].state, "preflight_admitted");
+    assert.deepEqual(topicYaml.waves[0].source_audit_sweep.finding_ids, ["finding-0001"]);
+  });
+});
+
 test("handoff prompt for high risk execution includes execution schema refs", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
@@ -4102,6 +5327,42 @@ test("handoff exposes selected host adapter when one is admitted", async () => {
       "automatic_semantic_admission_automation_not_packaged_in_standalone",
       "host_specific_runtime_execution_not_packaged_in_standalone",
     ]);
+  });
+});
+
+test("handoff exposes Codex native review boundary as lower-layer evidence only", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const adapterPath = path.join(projectRoot, ".nimi", "config", "host-adapter.yaml");
+    const adapterText = await readFile(adapterPath, "utf8");
+    await writeFile(
+      adapterPath,
+      adapterText.replace("selected_adapter_id: none", "selected_adapter_id: codex"),
+      "utf8",
+    );
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "high_risk_execution", "--json"]);
+
+    assert.equal(handoffResult.exitCode, 0);
+    const payload = JSON.parse(handoffResult.stdout);
+    assert.equal(payload.adapter.selectedId, "codex");
+    assert.equal(payload.adapter.profileRef, "adapters/codex/profile.yaml");
+    assert.equal(payload.adapter.hostClass, "native_codex_sdk_host");
+    assert.equal(payload.adapter.futureSurfaceStatus, "active_via_codex_sdk");
+    assert.deepEqual(payload.adapter.futureSurface, [
+      "Codex.startThread().run",
+      "Codex.resumeThread().run",
+    ]);
+    assert.equal(payload.adapter.nativeReviewBoundary.approvalReview.scope, "lower_layer_permission_review");
+    assert.equal(payload.adapter.nativeReviewBoundary.approvalReview.semanticEffect, "none");
+    assert.equal(payload.adapter.nativeReviewBoundary.githubAutoReview.scope, "lower_layer_pr_review_findings");
+    assert.equal(payload.adapter.nativeReviewBoundary.githubAutoReview.semanticEffect, "evidence_only");
+    assert.ok(payload.adapter.nativeReviewBoundary.forbiddenSemanticSubstitutions.includes("wave_closeout"));
+    assert.ok(payload.adapter.nativeReviewBoundary.forbiddenSemanticSubstitutions.includes("true_close"));
   });
 });
 

@@ -6,9 +6,11 @@ import {
   SKILL_RESULT_CONTRACT_REFS,
 } from "../constants.mjs";
 import {
+  loadAuditSweepContract,
   loadDocSpecAuditContract,
   loadHighRiskExecutionContract,
   loadSpecReconstructionContract,
+  validateAuditSweepSummary,
   validateDocSpecAuditSummary,
   validateHighRiskExecutionSummary,
   validateSpecReconstructionSummary,
@@ -18,6 +20,7 @@ import {
   loadExternalExecutionArtifactsConfig,
   validateHighRiskExecutionArtifactRefs,
 } from "./external-execution.mjs";
+import { validateAuditSweepArtifacts } from "./audit-sweep-runtime/validators.mjs";
 import { readTextIfFile } from "./fs-helpers.mjs";
 import {
   localize,
@@ -33,6 +36,7 @@ function translateCloseoutReason(reason) {
   const translations = new Map([
     ["spec_reconstruction result contract is missing or malformed", "spec_reconstruction 结果契约缺失或格式错误"],
     ["doc_spec_audit result contract is missing or malformed", "doc_spec_audit 结果契约缺失或格式错误"],
+    ["audit_sweep result contract is missing or malformed", "audit_sweep 结果契约缺失或格式错误"],
     ["high_risk_execution result contract is missing or malformed", "high_risk_execution 结果契约缺失或格式错误"],
     ["Bootstrap or handoff validation is failing; repair doctor errors before projecting closeout results", "bootstrap 或 handoff 校验失败；请先修复 doctor 报错，再投影 closeout 结果"],
     ["Non-completed outcomes may be projected as local-only closeout artifacts", "非 completed 的 outcome 可以仅投影为本地 closeout 产物"],
@@ -68,6 +72,14 @@ function translateCloseoutReason(reason) {
   return reason;
 }
 
+function inferAuditSweepIdFromSummary(summary) {
+  if (typeof summary?.ledger_ref !== "string") {
+    return null;
+  }
+  const match = summary.ledger_ref.match(/^\.nimi\/local\/audit\/ledgers\/([^/]+)\/ledger-[a-f0-9]{16}\.yaml$/);
+  return match ? match[1] : null;
+}
+
 async function validateCloseoutSummaryForSkill(projectRoot, skillId, summary, verifiedAt) {
   if (summary === undefined) {
     return { ok: true };
@@ -95,6 +107,37 @@ async function validateCloseoutSummaryForSkill(projectRoot, skillId, summary, ve
     }
 
     return validateDocSpecAuditSummary(summary, contract, verifiedAt);
+  }
+
+  if (skillId === "audit_sweep") {
+    const contract = await loadAuditSweepContract(projectRoot);
+    if (!contract.ok) {
+      return {
+        ok: false,
+        reason: "audit_sweep result contract is missing or malformed",
+      };
+    }
+
+    const summaryValidation = validateAuditSweepSummary(summary, contract, verifiedAt);
+    if (!summaryValidation.ok) {
+      return summaryValidation;
+    }
+    const sweepId = inferAuditSweepIdFromSummary(summary);
+    if (!sweepId) {
+      return {
+        ok: false,
+        reason: "audit_sweep summary.ledger_ref must identify a local audit sweep ledger",
+      };
+    }
+    const artifactValidation = await validateAuditSweepArtifacts(projectRoot, { sweepId, scope: "closeout" });
+    if (!artifactValidation.ok) {
+      const failed = artifactValidation.checks.find((entry) => !entry.ok);
+      return {
+        ok: false,
+        reason: `audit_sweep artifact validation failed: ${failed?.reason ?? "unknown failure"}`,
+      };
+    }
+    return { ok: true };
   }
 
   if (skillId === "high_risk_execution") {
@@ -130,6 +173,11 @@ function validateOutcomeStatusConsistency(skillId, outcome, summary) {
     },
     doc_spec_audit: {
       completed: ["aligned", "drift_detected"],
+      blocked: ["blocked"],
+      failed: [],
+    },
+    audit_sweep: {
+      completed: ["candidate_ready", "partial"],
       blocked: ["blocked"],
       failed: [],
     },

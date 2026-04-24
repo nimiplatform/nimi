@@ -8,14 +8,19 @@ import {
   createDecisionReview,
   admitWaveInTopic,
   createTopic,
+  decideTopicNextStep,
   deriveCreateDefaults,
   dispatchTopicPacket,
   freezePacketForTopic,
   holdTopicInPending,
+  initTopicRunLedger,
   loadTopicRuntimeAuthority,
   openTopicRemediation,
+  readTopicRunLedger,
   recordTopicResult,
+  recordTopicRunEvent,
   resumePendingTopic,
+  buildTopicRunLedger,
   runTopicTrueCloseAudit,
   resolveTopicProjectRoot,
   selectWaveInTopic,
@@ -198,6 +203,53 @@ function formatTopicValidate(report) {
     );
   }
 
+  return `${lines.join("\n")}\n`;
+}
+
+function formatNextStep(report) {
+  const decision = report.decision;
+  const lines = [
+    styleHeading(`nimicoding topic run-next-step: ${report.topicId}`),
+    "",
+    `${styleLabel(localize("Path", "路径"))}: ${report.topicRef}`,
+    `${styleLabel(localize("Stop Class", "Stop Class"))}: ${decision.stop_class}`,
+    `${styleLabel(localize("Action", "Action"))}: ${decision.recommended_action}`,
+    `${styleLabel(localize("Reason", "Reason"))}: ${decision.reason_code}`,
+    `${styleLabel(localize("Human Confirmation", "Human Confirmation"))}: ${decision.requires_human_confirmation ? "true" : "false"}`,
+    `${styleLabel(localize("Recommendation", "Recommendation"))}: ${decision.recommended_decision}`,
+    `${styleLabel(localize("Rationale", "Rationale"))}: ${decision.recommendation_rationale}`,
+  ];
+  if (decision.next_command_ref) {
+    lines.push(`${styleLabel(localize("Next Command", "Next Command"))}: ${decision.next_command_ref}`);
+  }
+  if (Array.isArray(decision.expected_artifacts) && decision.expected_artifacts.length > 0) {
+    lines.push("", styleLabel(localize("Expected Artifacts", "Expected Artifacts")));
+    lines.push(...decision.expected_artifacts.map((entry) => `- ${entry}`));
+  }
+  if (Array.isArray(decision.blocking_checks) && decision.blocking_checks.length > 0) {
+    lines.push("", styleLabel(localize("Blocking Checks", "Blocking Checks")));
+    lines.push(...decision.blocking_checks.map((entry) => `- [${entry.ok ? "ok" : "fail"}] ${entry.id}: ${entry.reason}`));
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+function formatRunLedger(report, action) {
+  const ledger = report.ledger ?? {};
+  const lines = [
+    styleHeading(`nimicoding topic run-ledger ${action}: ${report.topicId}`),
+    "",
+    `${styleLabel(localize("Path", "路径"))}: ${report.topicRef}`,
+    `${styleLabel(localize("Run", "Run"))}: ${report.runId}`,
+    `${styleLabel(localize("Ledger", "Ledger"))}: ${report.ledgerRef}`,
+    `${styleLabel(localize("Status", "Status"))}: ${report.runStatus ?? ledger.run_status}`,
+    `${styleLabel(localize("Events", "Events"))}: ${report.eventCount ?? ledger.event_count ?? 0}`,
+  ];
+  if (report.eventRef) {
+    lines.push(`${styleLabel(localize("Event", "Event"))}: ${report.eventRef}`);
+  }
+  if (ledger.current_human_gate) {
+    lines.push(`${styleLabel(localize("Human Gate", "Human Gate"))}: ${ledger.current_human_gate.summary}`);
+  }
   return `${lines.join("\n")}\n`;
 }
 
@@ -618,6 +670,216 @@ function parseTopicReadOptions(args, command) {
     ok: true,
     options,
   };
+}
+
+function parseRunNextStepOptions(args) {
+  const [topicInput, ...rest] = args;
+  if (!topicInput) {
+    return {
+      ok: false,
+      error: `${localize(
+        "nimicoding topic run-next-step refused: expected <topic-id>.",
+        "nimicoding topic run-next-step 已拒绝：需要 <topic-id>。",
+      )}\n`,
+    };
+  }
+
+  const options = { topicInput, json: false };
+  for (const arg of rest) {
+    if (arg === "--json") {
+      options.json = true;
+      continue;
+    }
+    return {
+      ok: false,
+      error: `${localize(
+        `nimicoding topic run-next-step refused: unknown option ${arg}.`,
+        `nimicoding topic run-next-step 已拒绝：未知选项 ${arg}。`,
+      )}\n`,
+    };
+  }
+
+  return { ok: true, options };
+}
+
+function parseArtifactRef(value) {
+  const separator = value.indexOf("=");
+  if (separator <= 0 || separator === value.length - 1) {
+    return null;
+  }
+  return [value.slice(0, separator), value.slice(separator + 1)];
+}
+
+function parseRunLedgerOptions(args) {
+  const [action, topicInput, ...rest] = args;
+  if (!action || !topicInput) {
+    return {
+      ok: false,
+      error: `${localize(
+        "nimicoding topic run-ledger refused: expected <init|record|build|status> <topic-id>.",
+        "nimicoding topic run-ledger 已拒绝：需要 <init|record|build|status> <topic-id>。",
+      )}\n`,
+    };
+  }
+  if (!["init", "record", "build", "status"].includes(action)) {
+    return {
+      ok: false,
+      error: `${localize(
+        `nimicoding topic run-ledger refused: unknown action ${action}.`,
+        `nimicoding topic run-ledger 已拒绝：未知动作 ${action}。`,
+      )}\n`,
+    };
+  }
+
+  const options = {
+    action,
+    topicInput,
+    runId: null,
+    eventKind: null,
+    stopClass: null,
+    recommendedAction: null,
+    sourceRef: null,
+    summary: null,
+    verifiedAt: null,
+    waveId: null,
+    artifactRefs: {},
+    json: false,
+  };
+
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = rest[index];
+    const next = rest[index + 1];
+    if (arg === "--json") {
+      options.json = true;
+      continue;
+    }
+    if (arg === "--run-id") {
+      const valueCheck = requireOptionValue("--run-id", next, "nimicoding topic run-ledger refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      options.runId = next;
+      index += 1;
+      continue;
+    }
+    if (arg === "--event") {
+      const valueCheck = requireOptionValue("--event", next, "nimicoding topic run-ledger record refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      options.eventKind = next;
+      index += 1;
+      continue;
+    }
+    if (arg === "--stop-class") {
+      const valueCheck = requireOptionValue("--stop-class", next, "nimicoding topic run-ledger record refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      options.stopClass = next;
+      index += 1;
+      continue;
+    }
+    if (arg === "--action") {
+      const valueCheck = requireOptionValue("--action", next, "nimicoding topic run-ledger record refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      options.recommendedAction = next;
+      index += 1;
+      continue;
+    }
+    if (arg === "--source") {
+      const valueCheck = requireOptionValue("--source", next, "nimicoding topic run-ledger record refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      options.sourceRef = next;
+      index += 1;
+      continue;
+    }
+    if (arg === "--summary") {
+      const valueCheck = requireOptionValue("--summary", next, "nimicoding topic run-ledger record refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      options.summary = next;
+      index += 1;
+      continue;
+    }
+    if (arg === "--verified-at") {
+      const valueCheck = requireOptionValue("--verified-at", next, "nimicoding topic run-ledger record refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      options.verifiedAt = next;
+      index += 1;
+      continue;
+    }
+    if (arg === "--wave") {
+      const valueCheck = requireOptionValue("--wave", next, "nimicoding topic run-ledger record refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      options.waveId = next;
+      index += 1;
+      continue;
+    }
+    if (arg === "--artifact") {
+      const valueCheck = requireOptionValue("--artifact", next, "nimicoding topic run-ledger record refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      const parsed = parseArtifactRef(next);
+      if (!parsed) {
+        return {
+          ok: false,
+          error: `${localize(
+            `nimicoding topic run-ledger record refused: --artifact must use key=ref, found ${next}.`,
+            `nimicoding topic run-ledger record 已拒绝：--artifact 必须使用 key=ref，当前为 ${next}。`,
+          )}\n`,
+        };
+      }
+      options.artifactRefs[parsed[0]] = parsed[1];
+      index += 1;
+      continue;
+    }
+    return {
+      ok: false,
+      error: `${localize(
+        `nimicoding topic run-ledger refused: unknown option ${arg}.`,
+        `nimicoding topic run-ledger 已拒绝：未知选项 ${arg}。`,
+      )}\n`,
+    };
+  }
+
+  if (!options.runId) {
+    return {
+      ok: false,
+      error: `${localize(
+        "nimicoding topic run-ledger refused: --run-id is required.",
+        "nimicoding topic run-ledger 已拒绝：必须提供 --run-id。",
+      )}\n`,
+    };
+  }
+  if (action === "record" && (
+    !options.eventKind
+    || !options.stopClass
+    || !options.recommendedAction
+    || !options.sourceRef
+    || !options.summary
+    || !options.verifiedAt
+  )) {
+    return {
+      ok: false,
+      error: `${localize(
+        "nimicoding topic run-ledger record refused: --event, --stop-class, --action, --source, --summary, and --verified-at are required.",
+        "nimicoding topic run-ledger record 已拒绝：必须提供 --event、--stop-class、--action、--source、--summary 和 --verified-at。",
+      )}\n`,
+    };
+  }
+
+  return { ok: true, options };
 }
 
 function parseTopicHoldOptions(args) {
@@ -1660,6 +1922,71 @@ async function runTopicStatus(args) {
   return report.ok ? 0 : 1;
 }
 
+async function runTopicNextStep(args) {
+  const parsed = parseRunNextStepOptions(args);
+  if (!parsed.ok) {
+    process.stderr.write(parsed.error);
+    return 2;
+  }
+
+  const projectRoot = await resolveTopicProjectRoot(process.cwd());
+  const report = await decideTopicNextStep(projectRoot, parsed.options.topicInput);
+  if (!report.ok) {
+    process.stderr.write(`${report.error}\n`);
+    return 1;
+  }
+
+  if (parsed.options.json) {
+    writeJson(buildJsonReport("topic.run-next-step", report));
+  } else {
+    process.stdout.write(formatNextStep(report));
+  }
+  return 0;
+}
+
+async function runTopicRunLedger(args) {
+  const parsed = parseRunLedgerOptions(args);
+  if (!parsed.ok) {
+    process.stderr.write(parsed.error);
+    return 2;
+  }
+
+  const projectRoot = await resolveTopicProjectRoot(process.cwd());
+  const options = parsed.options;
+  let report;
+  if (options.action === "init") {
+    report = await initTopicRunLedger(projectRoot, options.topicInput, options.runId);
+  } else if (options.action === "record") {
+    report = await recordTopicRunEvent(projectRoot, options.topicInput, {
+      runId: options.runId,
+      eventKind: options.eventKind,
+      stopClass: options.stopClass,
+      recommendedAction: options.recommendedAction,
+      sourceRef: options.sourceRef,
+      summary: options.summary,
+      recordedAt: options.verifiedAt,
+      waveId: options.waveId,
+      artifactRefs: options.artifactRefs,
+    });
+  } else if (options.action === "build") {
+    report = await buildTopicRunLedger(projectRoot, options.topicInput, options.runId);
+  } else {
+    report = await readTopicRunLedger(projectRoot, options.topicInput, options.runId);
+  }
+
+  if (!report.ok) {
+    process.stderr.write(`${report.error}\n`);
+    return 1;
+  }
+
+  if (options.json) {
+    writeJson(buildJsonReport(`topic.run-ledger.${options.action}`, report));
+  } else {
+    process.stdout.write(formatRunLedger(report, options.action));
+  }
+  return 0;
+}
+
 async function runTopicHold(args) {
   const parsed = parseTopicHoldOptions(args);
   if (!parsed.ok) {
@@ -2232,8 +2559,8 @@ export async function runTopic(args) {
   const [subcommand, ...rest] = args;
   if (!subcommand) {
     process.stderr.write(`${localize(
-      "nimicoding topic refused: expected a subcommand (`create`, `status`, `validate`, `wave`, `packet`, `worker`, `audit`, `result`, `remediation`, `overflow`, `hold`, `resume`, `closeout`, `true-close-audit`, or `decision-review`).",
-      "nimicoding topic 已拒绝：需要子命令（`create`、`status`、`validate`、`wave`、`packet`、`worker`、`audit`、`result`、`remediation`、`overflow`、`hold`、`resume`、`closeout`、`true-close-audit` 或 `decision-review`）。",
+      "nimicoding topic refused: expected a subcommand (`create`, `status`, `run-next-step`, `run-ledger`, `validate`, `wave`, `packet`, `worker`, `audit`, `result`, `remediation`, `overflow`, `hold`, `resume`, `closeout`, `true-close-audit`, or `decision-review`).",
+      "nimicoding topic 已拒绝：需要子命令（`create`、`status`、`run-next-step`、`run-ledger`、`validate`、`wave`、`packet`、`worker`、`audit`、`result`、`remediation`、`overflow`、`hold`、`resume`、`closeout`、`true-close-audit` 或 `decision-review`）。",
     )}\n`);
     return 2;
   }
@@ -2243,6 +2570,12 @@ export async function runTopic(args) {
   }
   if (subcommand === "status") {
     return runTopicStatus(rest);
+  }
+  if (subcommand === "run-next-step") {
+    return runTopicNextStep(rest);
+  }
+  if (subcommand === "run-ledger") {
+    return runTopicRunLedger(rest);
   }
   if (subcommand === "validate") {
     return runTopicValidate(rest);

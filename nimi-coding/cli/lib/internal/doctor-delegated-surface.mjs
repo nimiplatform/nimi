@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import {
+  AUDIT_SWEEP_RESULT_CONTRACT_REF,
   DOC_SPEC_AUDIT_RESULT_CONTRACT_REF,
   EXTERNAL_EXECUTION_ARTIFACTS_CONFIG_REF,
   EXTERNAL_HOST_COMPATIBILITY_CONTRACT_REF,
@@ -124,9 +125,11 @@ export async function inspectDoctorDelegatedSurface(projectRoot) {
 
   const reconstructionSkill = manifestSkills.find((skill) => skill.id === "spec_reconstruction") ?? null;
   const docAuditSkill = manifestSkills.find((skill) => skill.id === "doc_spec_audit") ?? null;
+  const auditSweepSkill = manifestSkills.find((skill) => skill.id === "audit_sweep") ?? null;
   const highRiskSkill = manifestSkills.find((skill) => skill.id === "high_risk_execution") ?? null;
   const resultContractAlignment = reconstructionSkill?.result_contract_ref === SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF
     && docAuditSkill?.result_contract_ref === DOC_SPEC_AUDIT_RESULT_CONTRACT_REF
+    && auditSweepSkill?.result_contract_ref === AUDIT_SWEEP_RESULT_CONTRACT_REF
     && highRiskSkill?.result_contract_ref === HIGH_RISK_EXECUTION_RESULT_CONTRACT_REF;
   checks.push(
     buildCheck(

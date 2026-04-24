@@ -168,6 +168,7 @@ export function emptyHostCompatibility() {
       selectedOverlayHostClass: null,
     },
     futureOnlyHostSurfaces: [],
+    nativeReviewSurfaces: [],
   };
 }
 
