@@ -2,13 +2,14 @@ import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent, type R
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Bell, LogOut, type LucideProps } from 'lucide-react';
 import { AmbientBackground, Surface } from '@nimiplatform/nimi-kit/ui';
-import { useAppStore, computeAgeMonths } from './app-store.js';
+import { useAppStore, computeAgeMonths, type ChildProfile } from './app-store.js';
 import { startParentosWindowDrag } from '../bridge/window-drag.js';
 import { clearAuthSession as clearPersistedAuthSession } from '../bridge/index.js';
 import { setAppSetting } from '../bridge/sqlite-bridge.js';
 import { syncParentOSLocalDataScope } from '../infra/parentos-bootstrap.js';
 import { isoNow } from '../bridge/ulid.js';
 import { ProfileTodoDrawer } from '../features/profile/profile-todo-drawer.js';
+import { ChildAvatar } from '../shared/child-avatar.js';
 
 const textMain = '#1e293b';
 const textMuted = '#475569';
@@ -30,7 +31,7 @@ const accountMenuItems = [
 ] as const;
 
 function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
-  childList: Array<{ childId: string; displayName: string; birthDate: string; gender: string }>;
+  childList: ChildProfile[];
   activeChildId: string | null;
   onSwitchChild: (id: string) => void;
 }) {
@@ -133,9 +134,11 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
                         transition: `opacity 0.18s ease ${idx * 0.03}s, transform 0.18s ease ${idx * 0.03}s`,
                       }}
                     >
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
-                        style={{ background: isActive ? '#4ECCA3' : '#f1f5f9', color: isActive ? '#fff' : textMain }}>
-                        {c.displayName.charAt(0)}
+                      <div
+                        className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                        style={{ outline: isActive ? '2px solid #4ECCA3' : '1px solid rgba(226, 232, 240, 0.95)' }}
+                      >
+                        <ChildAvatar child={c} className="h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0">
                         <span className="block truncate text-[12px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>{c.displayName}</span>

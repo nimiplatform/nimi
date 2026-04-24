@@ -287,7 +287,7 @@ export function CustomTodoComposer({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerOpenNonce, setDatePickerOpenNonce] = useState(0);
   const [adding, setAdding] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const isComposingRef = useRef(false);
 
@@ -297,6 +297,17 @@ export function CustomTodoComposer({
     textarea.style.height = '0px';
     textarea.style.height = `${Math.min(textarea.scrollHeight, 112)}px`;
   }, [newTitle]);
+
+  useEffect(() => {
+    if (expanded) inputRef.current?.focus();
+  }, [expanded]);
+
+  const reset = useCallback(() => {
+    setNewTitle('');
+    setNewDueDate('');
+    setShowDatePicker(false);
+    setExpanded(false);
+  }, []);
 
   const handleAdd = useCallback(async () => {
     const title = newTitle.trim();
@@ -315,12 +326,12 @@ export function CustomTodoComposer({
     setAdding(true);
     try {
       await insertCustomTodo({ todoId, childId, title, dueDate: newDueDate || null, now });
+      onAdded(optimisticTodo);
+      onChanged();
       setNewTitle('');
       setNewDueDate('');
       setShowDatePicker(false);
-      inputRef.current?.focus();
-      onAdded(optimisticTodo);
-      onChanged();
+      setExpanded(false);
     } catch (error) {
       catchLog('timeline', 'action:add-custom-todo-failed')(error);
     } finally {
@@ -328,7 +339,6 @@ export function CustomTodoComposer({
     }
   }, [newTitle, newDueDate, childId, onAdded, onChanged]);
 
-  const isActive = isFocused || showDatePicker || newDueDate.length > 0 || newTitle.trim().length > 0;
   const dateFieldClassName = `w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#C2E8F7]/50`;
   const dateFieldStyle = {
     borderColor: S.border,
@@ -337,88 +347,136 @@ export function CustomTodoComposer({
     background: '#fafaf8',
   };
 
-  const showSecondaryRow = isActive || Boolean(newDueDate);
+  const canSubmit = newTitle.trim().length > 0 && !adding;
+  const dateActive = showDatePicker || Boolean(newDueDate);
+
+  if (!expanded) {
+    return (
+      <div className="px-5 pb-3 pt-3">
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="group flex w-full items-center gap-3 rounded-2xl px-3.5 py-3 transition-all hover:bg-white"
+          style={{
+            background: '#fafaf8',
+            border: '1.5px dashed #d4d4d1',
+          }}
+        >
+          <span
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white transition-transform group-hover:scale-105"
+            style={{ background: '#3BB88A', boxShadow: '0 2px 6px rgba(59, 184, 138, 0.28)' }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </span>
+          <span className="text-[13px]" style={{ color: '#9ca3af' }}>添加日常待办...</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="px-5 pb-3 pt-3">
       <div
-        className="rounded-2xl px-3 py-2.5 transition-all"
+        className="rounded-2xl px-3.5 pt-3 pb-2.5 transition-all"
         style={{
-          background: isActive ? 'rgba(78, 204, 163, 0.10)' : 'transparent',
-          boxShadow: isActive ? '0 10px 22px rgba(78, 204, 163, 0.08)' : 'none',
+          background: 'rgba(78, 204, 163, 0.04)',
+          border: '1.5px solid #3BB88A',
+          boxShadow: '0 8px 22px rgba(78, 204, 163, 0.14)',
         }}
       >
-        <div className="flex items-start gap-2">
-          <span
-            className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[13px] font-medium transition-colors"
-            style={{ color: isActive ? '#3BB88A' : '#64748b' }}
-          >
-            +
-          </span>
-          <textarea
-            ref={inputRef}
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            onCompositionStart={() => { isComposingRef.current = true; }}
-            onCompositionEnd={() => { isComposingRef.current = false; }}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            onKeyDown={(e) => {
-              if (e.key !== 'Enter' || e.shiftKey || isComposingRef.current || e.nativeEvent.isComposing) return;
+        <textarea
+          ref={inputRef}
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          onCompositionStart={() => { isComposingRef.current = true; }}
+          onCompositionEnd={() => { isComposingRef.current = false; }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
               e.preventDefault();
-              void handleAdd();
+              reset();
+              return;
+            }
+            if (e.key !== 'Enter' || e.shiftKey || isComposingRef.current || e.nativeEvent.isComposing) return;
+            e.preventDefault();
+            void handleAdd();
+          }}
+          placeholder="比如：提醒我每晚读 10 分钟绘本"
+          disabled={adding}
+          rows={1}
+          className="block w-full resize-none overflow-y-auto border-0 bg-transparent py-1 text-[13px] leading-[1.55] outline-none placeholder:text-[#9ca3af]"
+          style={{ color: '#1e293b' }}
+        />
+
+        <div className="mt-2 flex items-center gap-1.5">
+          <button
+            type="button"
+            title={showDatePicker ? '收起日期' : newDueDate ? '修改日期' : '设置日期'}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              if (showDatePicker) {
+                setShowDatePicker(false);
+                return;
+              }
+              setShowDatePicker(true);
+              setDatePickerOpenNonce((value) => value + 1);
             }}
-            placeholder="添加日常待办..."
-            disabled={adding}
-            rows={1}
-            className="min-w-0 flex-1 resize-none overflow-y-auto border-0 bg-transparent py-1 text-[13px] leading-[1.55] outline-none placeholder:text-[12px]"
-            style={{ color: isActive ? '#1e293b' : C.text }}
-          />
+            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium transition-all"
+            style={{
+              color: dateActive ? '#3BB88A' : '#64748b',
+              background: dateActive ? 'rgba(78, 204, 163, 0.14)' : '#fff',
+              border: `1px solid ${dateActive ? 'rgba(78, 204, 163, 0.42)' : '#e5e7eb'}`,
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            <span>{newDueDate ? formatDueDate(newDueDate) : '今天'}</span>
+          </button>
+          <button
+            type="button"
+            title="即将支持"
+            disabled
+            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium"
+            style={{
+              color: '#9ca3af',
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              cursor: 'not-allowed',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+            <span>加提醒</span>
+          </button>
+          <button
+            type="button"
+            title="即将支持"
+            disabled
+            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium"
+            style={{
+              color: '#9ca3af',
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              cursor: 'not-allowed',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 1l4 4-4 4" />
+              <path d="M3 11V9a4 4 0 014-4h14" />
+              <path d="M7 23l-4-4 4-4" />
+              <path d="M21 13v2a4 4 0 01-4 4H3" />
+            </svg>
+            <span>重复</span>
+          </button>
         </div>
-        {showSecondaryRow && (
-          <div className="mt-1.5 flex items-center gap-1 pl-7">
-            <button
-              type="button"
-              title={showDatePicker ? '收起日期' : newDueDate ? '修改日期' : '设置日期'}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                if (showDatePicker) {
-                  setShowDatePicker(false);
-                  return;
-                }
-                setShowDatePicker(true);
-                setDatePickerOpenNonce((value) => value + 1);
-              }}
-              className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-[10px] transition-all"
-              style={{
-                color: showDatePicker || newDueDate ? '#3BB88A' : '#64748b',
-                background: showDatePicker || newDueDate ? 'rgba(78, 204, 163, 0.14)' : 'transparent',
-              }}
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <path d="M16 2v4M8 2v4M3 10h18" />
-              </svg>
-              <span>{newDueDate ? formatDueDate(newDueDate) : '加日期'}</span>
-            </button>
-            {newDueDate && !showDatePicker ? (
-              <button
-                type="button"
-                title="清除日期"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setNewDueDate('')}
-                className="flex h-5 w-5 items-center justify-center rounded-full transition-colors hover:bg-white/70"
-                style={{ color: '#94a3b8' }}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            ) : null}
-          </div>
-        )}
+
         {showDatePicker && (
-          <div className="mt-2 pl-7">
+          <div className="mt-2">
             <ProfileDatePicker
               value={newDueDate}
               onChange={setNewDueDate}
@@ -430,6 +488,31 @@ export function CustomTodoComposer({
             />
           </div>
         )}
+
+        <div className="mt-2.5 flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={reset}
+            className="h-7 rounded-full px-3 text-[12px] font-medium transition-colors hover:bg-white/60"
+            style={{ color: '#64748b' }}
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleAdd()}
+            disabled={!canSubmit}
+            className="h-7 rounded-full px-4 text-[12px] font-medium transition-all"
+            style={{
+              background: canSubmit ? '#3BB88A' : '#e5e7eb',
+              color: canSubmit ? '#fff' : '#9ca3af',
+              cursor: canSubmit ? 'pointer' : 'not-allowed',
+              boxShadow: canSubmit ? '0 2px 8px rgba(59, 184, 138, 0.28)' : 'none',
+            }}
+          >
+            添加
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -661,17 +744,33 @@ export function ReminderPanel({
 
       {showTabs && (
         <div className="mx-3 mb-5 flex gap-0.5 rounded-full p-[3px]" style={{ background: 'rgba(0,0,0,0.04)' }}>
-          {([['today', '今天'], ['upcoming', '近期']] as const).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
-              className="flex-1 rounded-full py-[6px] text-[11px] font-bold transition-all"
-              style={tab === key ? { background: '#fff', color: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } : { color: '#9CA0A6' }}
-            >
-              {label}
-            </button>
-          ))}
+          {([
+            ['today', '今天', todayFocus.length],
+            ['upcoming', '近期 7 天', upcoming.length],
+          ] as const).map(([key, label, count]) => {
+            const active = tab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTab(key)}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-[6px] text-[11px] font-bold transition-all"
+                style={active ? { background: '#fff', color: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } : { color: '#9CA0A6' }}
+              >
+                <span>{label}</span>
+                {count > 0 && (
+                  <span
+                    className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold"
+                    style={active
+                      ? { background: 'rgba(78, 204, 163, 0.15)', color: '#3BB88A' }
+                      : { background: 'rgba(0,0,0,0.06)', color: '#9CA0A6' }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 

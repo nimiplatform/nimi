@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import { Link } from 'react-router-dom';
-import { convertFileSrc } from '@tauri-apps/api/core';
 import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { Bone, BookOpen, Eye, Mic, Moon, Ruler, Sparkles, Syringe, Trophy } from 'lucide-react';
 import { useAppStore, computeAgeMonths, type ChildProfile } from '../../app-shell/app-store.js';
+import { ChildAvatar } from '../../shared/child-avatar.js';
 import {
   buildQuickLinks,
   describeNurtureMode,
@@ -13,6 +13,20 @@ import {
   type RecentChangeItem,
 } from './timeline-data.js';
 import { Cd, Hdr, textMain, textMuted, textSoft } from './timeline-card-primitives.js';
+import growthIcon from '../profile/assets/archive-icons/growth.png';
+import visionIcon from '../profile/assets/archive-icons/vision.png';
+import fitnessIcon from '../profile/assets/archive-icons/fitness.png';
+import dentalIcon from '../profile/assets/archive-icons/dental.png';
+import heightIcon from '../profile/assets/archive-icons/height.png';
+import milestonesIcon from '../profile/assets/archive-icons/milestones.png';
+import vaccinesIcon from '../profile/assets/archive-icons/vaccines.png';
+import allergiesIcon from '../profile/assets/archive-icons/allergies.png';
+import sleepIcon from '../profile/assets/archive-icons/sleep.png';
+import medicalIcon from '../profile/assets/archive-icons/medical.png';
+import postureIcon from '../profile/assets/archive-icons/posture.png';
+import outdoorIcon from '../profile/assets/archive-icons/outdoor.png';
+import smartScanIcon from '../profile/assets/archive-icons/smart-scan.png';
+import journalQuickLinkIcon from './assets/journal-quick-link.png';
 
 const ICON_BY_DOMAIN: Record<RecentChangeIconName, ComponentType<{ size?: number; strokeWidth?: number; className?: string }>> = {
   moon: Moon,
@@ -52,6 +66,42 @@ const ICON_TINT: Record<string, string> = {
   '🌱': 'rgba(78,204,163,0.12)',
   '🧍': 'rgba(244,114,182,0.10)',
 };
+
+const QUICK_LINK_ICON_META: Record<string, { src: string; offsetX?: number; scale?: number; bg?: string }> = {
+  growth: { src: growthIcon },
+  vaccines: { src: vaccinesIcon, offsetX: -2 },
+  sleep: { src: sleepIcon },
+  journal: { src: journalQuickLinkIcon, offsetX: -3, scale: 1.18, bg: 'rgba(167, 139, 250, 0.12)' },
+  reports: { src: smartScanIcon },
+  medical: { src: medicalIcon, offsetX: -2, scale: 1.16 },
+  milestones: { src: milestonesIcon },
+  outdoor: { src: outdoorIcon },
+  vision: { src: visionIcon },
+  dental: { src: dentalIcon, offsetX: -4, scale: 1.2 },
+  fitness: { src: fitnessIcon },
+  tanner: { src: heightIcon, offsetX: -2.5 },
+  posture: { src: postureIcon, scale: 1.14 },
+  allergies: { src: allergiesIcon, offsetX: -2, scale: 1.16 },
+};
+
+const DEFAULT_QUICK_LINK_ICON_META: { src: string; offsetX?: number; scale?: number; bg?: string } = { src: smartScanIcon };
+
+function QuickLinkIcon({ src, offsetX = 0, scale = 1, bg }: { src: string; offsetX?: number; scale?: number; bg?: string }) {
+  return (
+    <div
+      className="mb-3 h-11 w-11 overflow-hidden rounded-xl transition-transform duration-200 group-hover:scale-110"
+      style={{ background: bg, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}
+      aria-hidden="true"
+    >
+      <img
+        src={src}
+        alt=""
+        className="block h-full w-full object-cover"
+        style={{ transform: `translateX(${offsetX}px) scale(${scale})` }}
+      />
+    </div>
+  );
+}
 
 function RecentChangeIcon({ item, size = 18 }: { item: RecentChangeItem; size?: number }) {
   const key = item.iconName ?? 'book';
@@ -105,7 +155,12 @@ function ChildSwitchPopover({ child, childList }: { child: ChildProfile; childLi
               <button key={item.childId} type="button" onClick={() => { setActiveChildId(item.childId); closePicker(); }}
                 className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-white/60"
                 style={{ ...(isActive ? { background: 'rgba(78,204,163,0.1)' } : undefined), opacity: open ? 1 : 0, transform: open ? 'translateY(0)' : 'translateY(3px)', transition: `opacity 0.15s ease ${index * 0.03}s, transform 0.15s ease ${index * 0.03}s` }}>
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold" style={{ background: isActive ? '#4ECCA3' : '#E2E8F0', color: isActive ? '#fff' : textMain }}>{item.displayName.charAt(0)}</div>
+                <div
+                  className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                  style={{ outline: isActive ? '2px solid #4ECCA3' : '1px solid rgba(226, 232, 240, 0.95)' }}
+                >
+                  <ChildAvatar child={item} className="h-full w-full object-cover" />
+                </div>
                 <div className="min-w-0">
                   <p className="truncate text-[12px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>{item.displayName}</p>
                   <p className="text-[10px]" style={{ color: textMuted }}>{formatAgeLabel(computeAgeMonths(item.birthDate))} · {item.gender === 'female' ? '女孩' : '男孩'}</p>
@@ -155,13 +210,7 @@ export function ChildContextCard({ child, childList, ageMonths }: { child: Child
           data-nimi-material="glass-regular"
           data-nimi-tone="card"
         >
-          {child.avatarPath ? (
-            <img src={convertFileSrc(child.avatarPath)} alt="" className="h-full w-full rounded-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center rounded-full text-[40px] font-semibold text-white" style={{ background: 'linear-gradient(135deg, #334155 0%, #1e293b 100%)' }}>
-              {child.displayName.charAt(0)}
-            </div>
-          )}
+          <ChildAvatar child={child} ageMonths={ageMonths} className="h-full w-full rounded-full object-cover" />
         </div>
         <div className="relative mt-6 max-w-full text-center">
           <h2 className="truncate text-[22px] font-semibold tracking-tight" style={{ color: '#1d1d1f', letterSpacing: '-0.3px' }}>
@@ -322,14 +371,17 @@ export function QuickLinksStrip({ ageMonths }: { ageMonths: number }) {
       <Hdr title="常用入口" />
       <div className="grid grid-cols-6 gap-4">
         {links.map((item) => (
-          <Link key={item.to} to={item.to}
-            className="group flex flex-col items-center rounded-[20px] px-3 py-5 transition-all duration-200 hover:-translate-y-1 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-            style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
-            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl text-[20px] transition-transform duration-200 group-hover:scale-110" style={{ background: ICON_TINT[item.emoji] ?? 'rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-              {item.emoji}
-            </div>
-            <p className="text-[11px] font-semibold" style={{ color: textMain }}>{item.label}</p>
-          </Link>
+          (() => {
+            const iconMeta = QUICK_LINK_ICON_META[item.id] ?? DEFAULT_QUICK_LINK_ICON_META;
+            return (
+              <Link key={item.to} to={item.to}
+                className="group flex flex-col items-center rounded-[20px] px-3 py-5 transition-all duration-200 hover:-translate-y-1 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+                style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
+                <QuickLinkIcon src={iconMeta.src} offsetX={iconMeta.offsetX} scale={iconMeta.scale} bg={iconMeta.bg} />
+                <p className="text-[11px] font-semibold" style={{ color: textMain }}>{item.label}</p>
+              </Link>
+            );
+          })()
         ))}
       </div>
     </Cd>

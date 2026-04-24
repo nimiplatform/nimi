@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { convertFileSrc } from '@tauri-apps/api/core';
 import { useAppStore, computeAgeMonths, type ChildProfile } from '../../app-shell/app-store.js';
 import { S } from '../../app-shell/page-style.js';
+import { ChildAvatar } from '../../shared/child-avatar.js';
 import { DentalHistoryView } from './dental-history-view.js';
 import { DentalOverviewTab } from './dental-overview-tab.js';
 import { OrthodonticTab } from './orthodontic-tab.js';
@@ -146,14 +146,11 @@ function ChildSwitchPill({
   const renderAvatar = (c: ChildProfile, size: number, active: boolean) => (
     <div style={{
       width: size, height: size, borderRadius: '50%',
-      background: active ? S.accent : S.blue, color: '#fff',
       display: 'grid', placeItems: 'center',
-      fontSize: size * 0.42, fontWeight: 600,
       flexShrink: 0, overflow: 'hidden',
+      outline: active ? '2px solid rgba(78, 204, 163, 0.45)' : '1px solid rgba(226, 232, 240, 0.95)',
     }}>
-      {c.avatarPath
-        ? <img src={convertFileSrc(c.avatarPath)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        : c.displayName.charAt(0).toUpperCase()}
+      <ChildAvatar child={c} className="h-full w-full object-cover" />
     </div>
   );
 

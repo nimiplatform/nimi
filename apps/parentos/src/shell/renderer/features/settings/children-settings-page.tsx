@@ -10,6 +10,7 @@ import { fileToBase64 } from '../journal/journal-page-helpers.js';
 import { AvatarCropModal } from './avatar-crop-modal.js';
 import { ProfileDatePicker } from '../profile/profile-date-picker.js';
 import { AppSelect } from '../../app-shell/app-select.js';
+import { ChildAvatar } from '../../shared/child-avatar.js';
 
 /** Convert a local filesystem path to a Tauri 2 asset URL */
 function assetUrl(path: string): string {
@@ -275,15 +276,11 @@ export default function ChildrenSettingsPage() {
             <div key={child.childId} className={`${S.radius} p-5 mb-4 transition-all duration-200 hover:shadow-md`}
               style={{ background: S.card, boxShadow: S.shadow, borderLeft: isActive ? `3px solid ${S.blue}` : '3px solid transparent' }}>
               <div className="flex items-center gap-4">
-                {child.avatarPath ? (
-                  <img src={assetUrl(child.avatarPath)} alt=""
-                    className="w-12 h-12 rounded-full object-cover shrink-0" />
-                ) : (
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-lg"
-                    style={{ background: isActive ? S.blue : '#c0bdb8' }}>
-                    {child.displayName.charAt(0)}
-                  </div>
-                )}
+                <ChildAvatar
+                  child={child}
+                  className="w-12 h-12 rounded-full object-cover shrink-0"
+                  style={{ outline: isActive ? `2px solid ${S.blue}` : '1px solid rgba(226, 232, 240, 0.95)' }}
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-[15px] font-semibold" style={{ color: S.text }}>{child.displayName}</h3>
@@ -359,11 +356,10 @@ export default function ChildrenSettingsPage() {
                 {form.avatarPreview ? (
                   <img src={form.avatarPreview} alt="" className="w-20 h-20 rounded-full object-cover" />
                 ) : (
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: '#f5f3ef' }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c0bdb8" strokeWidth="1.5" strokeLinecap="round">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                    </svg>
-                  </div>
+                  <ChildAvatar
+                    child={{ avatarPath: null, birthDate: form.birthDate, gender: form.gender }}
+                    className="w-20 h-20"
+                  />
                 )}
                 <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">

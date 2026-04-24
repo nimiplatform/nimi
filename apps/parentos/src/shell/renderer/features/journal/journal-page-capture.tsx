@@ -210,13 +210,16 @@ export function JournalPageCapture(props: {
                 <button
                   type="button"
                   onClick={() => props.onCaptureModeChange('voice')}
-                  className={`${S.radiusSm} px-3 py-1.5 text-[11px] flex items-center gap-1.5 transition-colors hover:bg-[#f0f0ec]`}
+                  className={`voice-note-btn ${S.radiusSm} px-3 py-1.5 text-[11px] flex items-center gap-1.5`}
                   style={{ background: '#f5f3ef', color: S.sub }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="22" />
-                  </svg>
+                  <span className="voice-note-btn__ripple" aria-hidden="true" />
+                  <span className="voice-note-btn__icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="22" />
+                    </svg>
+                  </span>
                   语音记事
                 </button>
                 <button

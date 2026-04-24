@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { AmbientBackground, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { S } from '../../app-shell/page-style.js';
-import { C } from './timeline-data.js';
+import { ChildAvatar } from '../../shared/child-avatar.js';
 
 /* ── data ───────────────────────────────────────────────── */
 
@@ -107,12 +107,7 @@ export function WelcomePage() {
                             border: '1px solid rgba(255,255,255,0.8)',
                           }}
                         >
-                          <span
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[14px] font-bold text-white"
-                            style={{ background: C.cardProfile }}
-                          >
-                            {child.displayName.charAt(0)}
-                          </span>
+                          <ChildAvatar child={child} ageMonths={age} className="h-9 w-9 shrink-0 rounded-full object-cover" />
                           <span>
                             <span className="block text-[13px] font-semibold">{child.displayName}</span>
                             <span className="block text-[11px]" style={{ color: textMuted }}>{ageLabel}</span>

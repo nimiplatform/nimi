@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { convertFileSrc } from '@tauri-apps/api/core';
 import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import { getProfileSectionSummaries } from '../../bridge/sqlite-bridge.js';
 import type { SectionSummary } from '../../bridge/sqlite-bridge.js';
+import { ChildAvatar } from '../../shared/child-avatar.js';
 import growthIcon from './assets/archive-icons/growth.png';
 import visionIcon from './assets/archive-icons/vision.png';
 import fitnessIcon from './assets/archive-icons/fitness.png';
@@ -34,6 +34,8 @@ interface ArchiveSection {
   sectionId: string;
   to: string;
   iconSrc: string;
+  iconOffsetX?: number;
+  iconScale?: number;
   label: string;
   desc: string;
   color: string;
@@ -51,19 +53,19 @@ const ARCHIVE_SECTIONS: ArchiveSection[] = [
   },
   { sectionId: 'vaccines', to: '/profile/vaccines', iconSrc: vaccinesIcon, label: '疫苗记录', desc: '疫苗接种记录和接种计划', color: '#ddedfb' },
   { sectionId: 'vision', to: '/profile/vision', iconSrc: visionIcon, label: '视力档案', desc: '验光单、眼轴单和视力变化趋势追踪', color: '#dde4f5' },
-  { sectionId: 'dental', to: '/profile/dental', iconSrc: dentalIcon, label: '口腔发育', desc: '乳牙萌出、换牙和口腔检查记录', color: '#e2f0dc' },
-  { sectionId: 'allergies', to: '/profile/allergies', iconSrc: allergiesIcon, label: '过敏记录', desc: '食物、药物和环境过敏原记录', color: '#f5dce8' },
+  { sectionId: 'dental', to: '/profile/dental', iconSrc: dentalIcon, iconOffsetX: -2.5, iconScale: 1.2, label: '口腔发育', desc: '乳牙萌出、换牙和口腔检查记录', color: '#e2f0dc' },
+  { sectionId: 'allergies', to: '/profile/allergies', iconSrc: allergiesIcon, iconOffsetX: -2, iconScale: 1.16, label: '过敏记录', desc: '食物、药物和环境过敏原记录', color: '#f5dce8' },
   { sectionId: 'sleep', to: '/profile/sleep', iconSrc: sleepIcon, label: '睡眠记录', desc: '睡眠时长、作息规律和睡眠质量追踪', color: '#dde4f5' },
-  { sectionId: 'medical-events', to: '/profile/medical-events', iconSrc: medicalIcon, label: '就医记录', desc: '门诊、住院、用药和检验报告', color: '#e5dcf5' },
-  { sectionId: 'posture', to: '/profile/posture', iconSrc: postureIcon, label: '体态档案', desc: '脊柱侧弯、足弓和身体姿态评估', color: '#e5f0dc' },
-  { sectionId: 'tanner', to: '/profile/tanner', iconSrc: heightIcon, label: '青春期发育', desc: 'Tanner 分期、骨龄和青春期发育追踪', color: '#e2f0dc', ageGate: (age) => age >= 84 },
+  { sectionId: 'medical-events', to: '/profile/medical-events', iconSrc: medicalIcon, iconOffsetX: -2, iconScale: 1.16, label: '就医记录', desc: '门诊、住院、用药和检验报告', color: '#e5dcf5' },
+  { sectionId: 'posture', to: '/profile/posture', iconSrc: postureIcon, iconScale: 1.14, label: '体态档案', desc: '脊柱侧弯、足弓和身体姿态评估', color: '#e5f0dc' },
+  { sectionId: 'tanner', to: '/profile/tanner', iconSrc: heightIcon, iconOffsetX: -2.5, label: '青春期发育', desc: 'Tanner 分期、骨龄和青春期发育追踪', color: '#e2f0dc', ageGate: (age) => age >= 84 },
   { sectionId: 'fitness', to: '/profile/fitness', iconSrc: fitnessIcon, label: '体能测评', desc: '体能测试成绩和运动能力评估', color: '#fbe8d4' },
   { sectionId: 'outdoor', to: '/profile/outdoor', iconSrc: outdoorIcon, label: '每周户外目标', desc: '户外活动记录、每周进度和趋势追踪', color: '#dcf0e5' },
 ];
 
 /* ── tool routes (non-archive) ──────────────────────────── */
 
-interface ToolEntry { to: string; iconSrc: string; label: string; desc: string }
+interface ToolEntry { to: string; iconSrc: string; iconOffsetX?: number; iconScale?: number; label: string; desc: string }
 
 const TOOL_ENTRIES: ToolEntry[] = [
   { to: '/profile/report-upload', iconSrc: smartScanIcon, label: '智能识别', desc: '上传体检单，自动识别数据' },
@@ -182,13 +184,12 @@ export default function ProfilePage() {
         <Surface as="div" material="glass-thick" padding="none" tone="card" className="relative overflow-hidden p-6 mb-6 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
           <div className="flex items-center gap-5">
             {/* Avatar */}
-            {activeChild.avatarPath ? (
-              <img src={convertFileSrc(activeChild.avatarPath)} alt="" className="w-[72px] h-[72px] rounded-full object-cover border-2" style={{ borderColor: 'rgba(226,232,240,0.3)', boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }} />
-            ) : (
-              <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center" style={{ background: '#1e293b', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>
-                <span className="text-2xl font-semibold text-white">{activeChild.displayName.charAt(0)}</span>
-              </div>
-            )}
+            <ChildAvatar
+              child={activeChild}
+              ageMonths={ageMonths}
+              className="w-[72px] h-[72px] rounded-full object-cover border-2"
+              style={{ borderColor: 'rgba(226,232,240,0.3)', boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }}
+            />
             {/* Info */}
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>{activeChild.displayName}</h1>
@@ -235,7 +236,7 @@ export default function ProfilePage() {
             return (
               <Surface key={s.to} as={Link} to={s.to} material="glass-regular" padding="none" tone="card"
                 className="flex items-start gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
-                <ArchiveCardIcon src={s.iconSrc} />
+                <ArchiveCardIcon src={s.iconSrc} offsetX={s.iconOffsetX} scale={s.iconScale} />
                 <div className="min-w-0 flex-1">
                   <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{label}</h3>
                   {/* Section summary line */}
@@ -255,7 +256,7 @@ export default function ProfilePage() {
           {CROSS_LINKS.map((t) => (
             <Surface key={t.to} as={Link} to={t.to} material="glass-regular" padding="none" tone="card"
               className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
-              <ArchiveCardIcon src={t.iconSrc} />
+              <ArchiveCardIcon src={t.iconSrc} offsetX={t.iconOffsetX} scale={t.iconScale} />
               <div className="min-w-0 flex-1">
                 <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
                 <p className="text-[11px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
@@ -276,7 +277,7 @@ export default function ProfilePage() {
                 <Surface key={t.to} as={Link} to={t.to} material="glass-regular" padding="none" tone="card"
                   className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]"
                   style={{ borderLeft: `3px solid ${C.accent}` }}>
-                  <ArchiveCardIcon src={t.iconSrc} />
+                  <ArchiveCardIcon src={t.iconSrc} offsetX={t.iconOffsetX} scale={t.iconScale} />
                   <div className="min-w-0 flex-1">
                     <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
                     <p className="text-[11px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
@@ -294,10 +295,16 @@ export default function ProfilePage() {
 
 /* ── Section status line component ──────────────────────── */
 
-function ArchiveCardIcon({ src }: { src: string }) {
+function ArchiveCardIcon({ src, offsetX = 0, scale = 1 }: { src: string; offsetX?: number; scale?: number }) {
   return (
-    <div className="w-[42px] h-[42px] rounded-[12px] overflow-hidden shrink-0 border border-white/40 bg-white/50 p-[2px] shadow-[0_4px_12px_rgba(148,163,184,0.12)]">
-      <img src={src} alt="" aria-hidden="true" className="w-full h-full object-contain" />
+    <div className="w-[42px] h-[42px] rounded-[12px] overflow-hidden shrink-0 shadow-[0_4px_12px_rgba(148,163,184,0.12)]">
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        className="block w-full h-full object-cover"
+        style={{ transform: `translateX(${offsetX}px) scale(${scale})` }}
+      />
     </div>
   );
 }
