@@ -1,7 +1,7 @@
 version: 1
 rule_compliance:
   total_c_rules: 58
-  audit_date: "2026-04-16"
+  audit_date: "2026-04-24"
 
 evidence_catalog:
   cognition_spec_governance_gate:
@@ -116,7 +116,7 @@ rules:
   - rule_id: C-COG-023
     status: covered
     evidence_refs: [cognition_build_gate, cognition_test_gate, cognition_generated_docs_gate]
-    note: Typed reference integrity now covers save-time validation, target liveness, memory delete/remove blockers for admitted knowledge citations, active-only kernel-rule citation validation, and kernel-rule deactivation blockers.
+    note: Typed reference integrity now covers save-time validation, admitted target-family fail-closed checks, target liveness, memory delete/remove blockers for admitted knowledge citations, active-only kernel-rule citation validation, and kernel-rule deactivation blockers. R20 finding-0002 is closed by rejecting kernel_rule-to-kernel_rule artifact refs before commit.
   - rule_id: C-COG-024
     status: covered
     evidence_refs: [cognition_test_gate]
@@ -139,7 +139,7 @@ rules:
   - rule_id: C-COG-030
     status: covered
     evidence_refs: [cognition_test_gate, cognition_generated_docs_gate]
-    note: Prompt now consumes only service-owned memory views plus validated knowledge and skill artifacts, and malformed advisory inputs fail closed.
+    note: Prompt now consumes only service-owned memory views plus validated knowledge and skill artifacts, and malformed advisory inputs fail closed. R20 finding-0003 is closed by moving raw prompt renderers behind an internal package consumed only by PromptService.
   - rule_id: C-COG-031
     status: covered
     evidence_refs: [cognition_test_gate]
@@ -213,7 +213,7 @@ rules:
   - rule_id: C-COG-050
     status: covered
     evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
-    note: Prompt lane registry is now explicit and structurally validated.
+    note: Prompt lane registry is now explicit and structurally validated; public prompt rendering remains admitted only through PromptService.FormatCore, PromptService.FormatAdvisory, and PromptService.FormatAll.
   - rule_id: C-COG-051
     status: covered
     evidence_refs: [cognition_test_gate, cognition_generated_docs_gate]
@@ -245,4 +245,4 @@ rules:
   - rule_id: C-COG-058
     status: covered
     evidence_refs: [cognition_spec_governance_gate, cognition_build_gate, cognition_test_gate]
-    note: Skill remains cognition-owned advisory retrieval/lifecycle only and does not absorb runtime execution-policy or scheduler ownership.
+    note: Skill remains cognition-owned advisory retrieval/lifecycle only and does not absorb runtime execution-policy or scheduler ownership. R20 finding-0004 is closed by removing untyped bundle metadata from the admitted Bundle shape and excluding unadmitted metadata from skill FTS.
