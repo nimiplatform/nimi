@@ -401,7 +401,6 @@ export function resolveMediaUrlFromArtifact(input: {
     } | null;
     metadata?: ProtoStructLike | Record<string, unknown> | null;
   } | null | undefined;
-  defaultMimeType: string;
   missingArtifactMessage: string;
   missingMediaMessage: string;
   actionHint: string;
@@ -420,7 +419,15 @@ export function resolveMediaUrlFromArtifact(input: {
       source: 'runtime',
     });
   }
-  const mimeType = normalizeText(artifact.mimeType) || input.defaultMimeType;
+  const mimeType = normalizeText(artifact.mimeType);
+  if (!mimeType || !mimeType.toLowerCase().startsWith('audio/')) {
+    throw createNimiError({
+      message: 'agent voice synthesis artifact is missing a legal audio mime type',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: input.actionHint,
+      source: 'runtime',
+    });
+  }
   const uri = normalizeText(artifact.uri);
   const bytes = artifact.bytes || null;
   const mediaUrl = uri || (bytes && bytes.length > 0 ? encodeBytesAsDataUrl(mimeType, bytes) : '');

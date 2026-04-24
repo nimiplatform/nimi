@@ -227,19 +227,6 @@ export function findSingleExecutableVoiceAction(
   return voiceActions[0] || null;
 }
 
-export function findSingleExecutableFollowUpAction(
-  envelope: AgentResolvedMessageActionEnvelope,
-): AgentResolvedModalityAction | null {
-  const followUpActions = envelope.actions.filter((action) => action.modality === 'follow-up-turn');
-  if (followUpActions.length === 0) {
-    return null;
-  }
-  if (followUpActions.length > 1) {
-    throw new Error('agent-local-chat-v1 admits at most one follow-up-turn action per turn');
-  }
-  return followUpActions[0] || null;
-}
-
 export function resolveImageStateFromResolvedAction(input: {
   turnId: string;
   action: AgentResolvedModalityAction;

@@ -1551,6 +1551,44 @@ test('agent local host turn timeout never drops below text stream default', () =
   assert.equal(resolveAgentTurnTotalTimeoutMs(aiConfig), 120000);
 });
 
+test('agent AISnapshot configEvidence freezes materialized AIConfig details', () => {
+  const projection = createLocalTextProjection();
+  const configA = createEmptyAIConfig();
+  configA.capabilities.selectedBindings['text.generate'] = {
+    source: 'cloud',
+    connectorId: 'connector-a',
+    model: 'model-a',
+  };
+  configA.capabilities.selectedParams['text.generate'] = {
+    temperature: 0.2,
+  };
+  const configB = createEmptyAIConfig();
+  configB.capabilities.selectedBindings['text.generate'] = {
+    source: 'cloud',
+    connectorId: 'connector-a',
+    model: 'model-b',
+  };
+  configB.capabilities.selectedParams['text.generate'] = {
+    temperature: 0.8,
+  };
+
+  const snapshotA = createAISnapshot({
+    config: configA,
+    capability: 'text.generate',
+    projection,
+  });
+  const snapshotB = createAISnapshot({
+    config: configB,
+    capability: 'text.generate',
+    projection,
+  });
+
+  assert.deepEqual(snapshotA.configEvidence.capabilityBindingKeys, ['text.generate']);
+  assert.equal(snapshotA.configEvidence.configSnapshot.capabilities.selectedBindings['text.generate']?.model, 'model-a');
+  assert.equal(snapshotB.configEvidence.configSnapshot.capabilities.selectedBindings['text.generate']?.model, 'model-b');
+  assert.notEqual(snapshotA.configEvidence.configHash, snapshotB.configEvidence.configHash);
+});
+
 test('agent runtime invoke supports cloud routes via connectorId', async () => {
   const projection = {
     capability: 'text.generate' as const,
@@ -2392,6 +2430,65 @@ test('agent voice runtime returns cached playback artifact from audio.synthesize
   });
 });
 
+test('agent voice runtime fails closed when audio.synthesize artifact omits mimeType', async () => {
+  const voiceProjection = {
+    capability: 'audio.synthesize' as const,
+    selectedBinding: {
+      source: 'local' as const,
+      connectorId: '',
+      model: 'kokoro-82m',
+    },
+    resolvedBinding: {
+      capability: 'audio.synthesize' as const,
+      resolvedBindingRef: 'local:audio:kokoro-82m',
+      source: 'local' as const,
+      provider: 'kokoro',
+      model: 'kokoro-82m',
+      modelId: 'kokoro-82m',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:8010',
+      localProviderEndpoint: 'http://127.0.0.1:8010',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection: null,
+    voiceProjection,
+  });
+  const voiceExecutionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
+    capability: 'audio.synthesize',
+    projection: voiceProjection,
+    agentResolution,
+  });
+
+  await assert.rejects(() => synthesizeChatAgentVoiceRuntime({
+    prompt: '晚安，记得早点休息。',
+    voiceExecutionSnapshot,
+  }, {
+    buildRuntimeRequestMetadataImpl: async () => ({ traceId: 'trace-voice-request' }),
+    getRuntimeClientImpl: () => ({
+      media: {
+        tts: {
+          synthesize: async () => ({
+            artifacts: [{
+              artifactId: 'voice-artifact-missing-mime',
+              uri: 'file:///tmp/voice-turn-1.mp3',
+            }],
+          }),
+        },
+      },
+    }) as never,
+  }), /missing a legal audio mime type/);
+});
+
 test('agent image runtime injects managed image workflow profile entries for local-import z_image_turbo routes', async () => {
   const projection = {
     capability: 'image.generate' as const,
@@ -2905,6 +3002,10 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(voiceAdapterSource, /resolveIsVoiceSessionForeground/);
   assert.match(voiceAdapterSource, /document\.addEventListener\('visibilitychange', syncForegroundState\)/);
   assert.match(voiceAdapterSource, /autoStopMode:\s*'silence'/);
+  assert.match(voiceAdapterSource, /activeConversationAnchorId/);
+  assert.match(voiceAdapterSource, /conversationAnchorId:\s*sessionAnchorId/);
+  assert.match(voiceAdapterSource, /persistVoiceTranscriptDraft\(\{\s*text: result\.text,\s*conversationAnchorId: sessionAnchorId,\s*\}\)/);
+  assert.match(hostActionSubmitSource, /latestVoiceCapture\?\.conversationAnchorId === conversationAnchorId/);
   assert.match(adapterSource, /return createReadyConversationSetupState\('agent'\);/);
   assert.match(adapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleError/);
   assert.match(hostActionSubmitSource, /ensureAgentConversationSubmitRouteReady/);

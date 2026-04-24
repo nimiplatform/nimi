@@ -7,6 +7,7 @@ import {
   ScenarioJobStatus,
   ScenarioType,
 } from '@nimiplatform/sdk/runtime';
+import { createAIConfigEvidence, createEmptyAIConfig } from '@nimiplatform/sdk/mod';
 import type {
   AgentLocalMessageRecord,
   AgentLocalUpdateMessageInput,
@@ -33,6 +34,7 @@ function createWorkflowMetadata(
     sourceTurnId: 'turn-source',
     sourceMessageId: 'beat-source',
     sourceActionId: 'action-source',
+    conversationAnchorId: 'anchor-1',
     beatId: 'beat-workflow',
     workflowCapability: 'voice_workflow.tts_t2v',
     workflowType: 'tts_t2v',
@@ -83,10 +85,7 @@ function createVoiceExecutionSnapshot(): AISnapshot {
       kind: 'thread',
       scopeId: 'thread-1',
     },
-    configEvidence: {
-      profileOrigin: 'test',
-      capabilityBindingKeys: ['audio.synthesize'],
-    },
+    configEvidence: createAIConfigEvidence(createEmptyAIConfig()),
     conversationCapabilitySlice: {
       executionId: 'slice-voice-1',
       createdAt: '2026-04-10T12:00:00.000Z',
@@ -255,6 +254,50 @@ test('voice workflow tracker keeps pending messages current when the job is stil
   assert.match(result.updatedMessage?.contentText || '', /still preparing assets/i);
 });
 
+test('voice workflow metadata requires source conversation anchor evidence', () => {
+  const metadata = createWorkflowMetadata();
+  const json = toAgentChatVoiceWorkflowMetadataJson(metadata);
+  delete (json as Record<string, unknown>).conversationAnchorId;
+
+  assert.equal(parseAgentChatVoiceWorkflowMetadata(json), null);
+});
+
+test('voice workflow tracker does not reconcile messages for a different active anchor', async () => {
+  const message = createWorkflowMessage({
+    workflowStatus: 'running',
+    conversationAnchorId: 'anchor-source',
+  });
+  const harness = createStoreHarness(message);
+  let polled = false;
+
+  const result = await reconcileAgentChatVoiceWorkflowMessage({
+    message,
+    activeConversationAnchorId: 'anchor-other',
+    voiceExecutionSnapshot: createVoiceExecutionSnapshot(),
+    storeClient: harness.storeClient,
+    runtimeDeps: createRuntimeDeps({
+      client: {
+        ai: {
+          async getScenarioJob() {
+            polled = true;
+            return createScenarioJobResponse({
+              status: ScenarioJobStatus.COMPLETED,
+              traceId: 'trace-workflow-complete',
+            });
+          },
+        },
+      },
+    }),
+    now: () => 321,
+  });
+
+  assert.equal(result.updatedMessage, null);
+  assert.equal(result.stillPending, true);
+  assert.equal(polled, false);
+  assert.equal(harness.updateMessageCalls.length, 0);
+  assert.equal(harness.updateTurnBeatCalls.length, 0);
+});
+
 test('voice workflow tracker projects playback back into the current thread when the job completes', async () => {
   const message = createWorkflowMessage({
     workflowStatus: 'running',
@@ -301,6 +344,7 @@ test('voice workflow tracker projects playback back into the current thread when
   assert.equal(result.updatedMessage?.mediaUrl, 'file:///tmp/voice-ready.mp3');
   const metadata = parseAgentChatVoiceWorkflowMetadata(result.updatedMessage?.metadataJson);
   assert.equal(metadata?.workflowStatus, 'complete');
+  assert.equal(metadata?.conversationAnchorId, 'anchor-1');
   assert.equal(metadata?.artifactId, 'artifact-voice-ready');
   assert.equal(harness.updateTurnBeatCalls[0]?.status, 'delivered');
   assert.equal(harness.updateTurnBeatCalls[0]?.artifactId, 'artifact-voice-ready');

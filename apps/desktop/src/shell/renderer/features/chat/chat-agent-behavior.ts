@@ -49,22 +49,13 @@ export type AgentResolvedModalityActionPromptPayload =
   | {
     kind: 'voice-prompt';
     promptText: string;
-  }
-  | {
-    kind: 'video-prompt';
-    promptText: string;
-  }
-  | {
-    kind: 'follow-up-turn';
-    promptText: string;
-    delayMs: number;
   };
 
 export type AgentResolvedModalityAction = {
   actionId: string;
   actionIndex: number;
   actionCount: number;
-  modality: 'image' | 'voice' | 'video' | 'follow-up-turn';
+  modality: 'image' | 'voice';
   operation: string;
   promptPayload: AgentResolvedModalityActionPromptPayload;
   sourceMessageId: string;

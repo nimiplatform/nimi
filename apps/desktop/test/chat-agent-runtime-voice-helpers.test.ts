@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolveVoicePlaybackCueEnvelopeFromArtifact } from '../src/shell/renderer/features/chat/chat-agent-runtime-voice-helpers.js';
+import {
+  resolveMediaUrlFromArtifact,
+  resolveVoicePlaybackCueEnvelopeFromArtifact,
+} from '../src/shell/renderer/features/chat/chat-agent-runtime-voice-helpers.js';
 
 test('voice playback cue envelope resolver admits nested provider metadata scopes', () => {
   const envelope = resolveVoicePlaybackCueEnvelopeFromArtifact({
@@ -87,4 +90,29 @@ test('voice playback cue envelope resolver prefers admitted nested envelope over
       },
     ],
   });
+});
+
+test('voice media artifact resolver fails closed when playback mime is missing', () => {
+  assert.throws(() => resolveMediaUrlFromArtifact({
+    artifact: {
+      artifactId: 'voice-artifact-missing-mime',
+      uri: 'file:///tmp/voice-missing-mime.mp3',
+    },
+    missingArtifactMessage: 'agent voice synthesis returned no artifacts',
+    missingMediaMessage: 'agent voice synthesis artifact has no uri or bytes',
+    actionHint: 'retry_voice_synthesis',
+  }), /missing a legal audio mime type/);
+});
+
+test('voice media artifact resolver fails closed when playback mime is not audio', () => {
+  assert.throws(() => resolveMediaUrlFromArtifact({
+    artifact: {
+      artifactId: 'voice-artifact-text-mime',
+      mimeType: 'text/plain',
+      uri: 'file:///tmp/voice-text.txt',
+    },
+    missingArtifactMessage: 'agent voice synthesis returned no artifacts',
+    missingMediaMessage: 'agent voice synthesis artifact has no uri or bytes',
+    actionHint: 'retry_voice_synthesis',
+  }), /missing a legal audio mime type/);
 });

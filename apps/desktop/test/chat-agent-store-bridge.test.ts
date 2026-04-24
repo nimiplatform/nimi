@@ -555,7 +555,7 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
     const canceled = await chatAgentStoreClient.cancelTurn({
       threadId: 'thread-1',
       turnId: 'turn-1',
-      scope: 'tail',
+      scope: 'turn',
       abortedAtMs: 125,
     });
     assert.equal(canceled.status, 'canceled');
@@ -616,7 +616,7 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
     {
       threadId: 'thread-1',
       turnId: 'turn-1',
-      scope: 'tail',
+      scope: 'turn',
       abortedAtMs: 125,
     },
   );

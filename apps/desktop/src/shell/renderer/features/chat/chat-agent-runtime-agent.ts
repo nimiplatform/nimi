@@ -72,35 +72,26 @@ function toResolvedAction(value: unknown, index: number, actionCount: number): A
   const promptPayloadRecord = value && typeof record.prompt_payload === 'object' && !Array.isArray(record.prompt_payload)
     ? record.prompt_payload as Record<string, unknown>
     : {};
-  const modality = normalizeText(record.modality) as AgentResolvedModalityAction['modality'];
+  const modality = normalizeText(record.modality);
+  if (modality !== 'image' && modality !== 'voice') {
+    throw new Error(`runtime.agent structured action[${index}].modality is invalid`);
+  }
   const promptText = normalizeText(promptPayloadRecord.prompt_text);
-  const delayMs = Number(promptPayloadRecord.delay_ms);
   return {
     actionId: normalizeText(record.action_id) || `runtime-agent-action-${index}`,
     actionIndex: Number.isFinite(Number(record.action_index)) ? Number(record.action_index) : index,
     actionCount: Number.isFinite(Number(record.action_count)) ? Number(record.action_count) : actionCount,
     modality,
     operation: normalizeText(record.operation),
-    promptPayload: modality === 'follow-up-turn'
-      ? {
-        kind: 'follow-up-turn',
-        promptText,
-        delayMs: Number.isFinite(delayMs) ? delayMs : 0,
-      }
-      : modality === 'image'
+    promptPayload: modality === 'image'
         ? {
           kind: 'image-prompt',
           promptText,
         }
-        : modality === 'voice'
-          ? {
-            kind: 'voice-prompt',
-            promptText,
-          }
-          : {
-            kind: 'video-prompt',
-            promptText,
-          },
+        : {
+          kind: 'voice-prompt',
+          promptText,
+        },
     sourceMessageId: normalizeText(record.source_message_id),
     deliveryCoupling: normalizeText(record.delivery_coupling) === 'with-message'
       ? 'with-message'

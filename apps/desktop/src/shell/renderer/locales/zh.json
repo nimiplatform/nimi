@@ -1190,6 +1190,8 @@
     "voiceSessionSpeaking": "正在说话…",
     "voiceSessionTranscribing": "正在转写…",
     "voiceSessionTargetRequired": "请先选择一个 agent，再开始语音输入。",
+    "voiceSessionAnchorRequired": "语音输入当前不可用，因为对话锚点尚未就绪。",
+    "voiceSessionAnchorChanged": "语音输入已停止，因为对话锚点发生变化。",
     "voiceSessionRouteRequired": "语音输入当前不可用，因为尚未配置转写路由。",
     "voiceSessionRuntimeUnavailable": "语音输入当前不可用，因为转写运行时尚未就绪。",
     "voiceSessionRouteUnavailable": "语音输入当前不可用，因为所选转写路由无法解析。",

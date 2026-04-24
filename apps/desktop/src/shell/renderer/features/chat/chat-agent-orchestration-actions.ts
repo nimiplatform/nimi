@@ -8,7 +8,6 @@ import type {
 } from './chat-agent-behavior';
 import type { AgentModelOutputDiagnostics } from './chat-agent-behavior-resolver';
 import {
-  findSingleExecutableFollowUpAction,
   findSingleExecutableImageAction,
   findSingleExecutableVoiceAction,
   resolveImageStateFromResolvedAction,
@@ -40,12 +39,10 @@ export async function runResolvedEnvelopeActions(input: {
   imageState: AgentLocalChatImageState;
   voiceState: AgentLocalChatVoiceState;
   outputDiagnostics: AgentModelOutputDiagnostics | null;
-  followUpAction: AgentResolvedMessageActionEnvelope['actions'][number] | null;
 }> {
   let voiceState: AgentLocalChatVoiceState = { status: 'none' };
   let imageState: AgentLocalChatImageState = { status: 'none' };
   let outputDiagnostics = input.outputDiagnostics;
-  const followUpAction = findSingleExecutableFollowUpAction(input.envelope);
   const voiceAction = findSingleExecutableVoiceAction(input.envelope);
   const voiceDecision = voiceAction
     ? resolveVoiceStateFromResolvedAction({
@@ -97,6 +94,7 @@ export async function runResolvedEnvelopeActions(input: {
               );
               const workflowMetadata = buildVoiceWorkflowMetadata({
                 turnId: input.turnId,
+                conversationAnchorId: input.metadata.conversationAnchorId,
                 voiceDecision,
                 workflowStatus: submittedWorkflow.workflowStatus,
                 jobId: submittedWorkflow.jobId,
@@ -276,6 +274,5 @@ export async function runResolvedEnvelopeActions(input: {
     imageState,
     voiceState,
     outputDiagnostics,
-    followUpAction,
   };
 }

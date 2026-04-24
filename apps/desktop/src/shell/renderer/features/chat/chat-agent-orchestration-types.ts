@@ -38,23 +38,6 @@ export const AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES = {
   videoGeneration: false,
 } as const;
 
-export type AgentFollowUpChainContext = {
-  chainId: string;
-  followUpDepth: number;
-  maxFollowUpTurns: number;
-  followUpSourceActionId: string;
-  sourceTurnId: string;
-  canceledByUser: boolean;
-};
-
-export type AgentPendingFollowUpEntry = {
-  chainId: string;
-  followUpDepth: number;
-  maxFollowUpTurns: number;
-  timerId: ReturnType<typeof setTimeout> | null;
-  canceledByUser: boolean;
-};
-
 export type AgentLocalChatRuntimeRequest = {
   agentId: string;
   conversationAnchorId: string;
@@ -192,13 +175,4 @@ export type AgentLocalChatProviderMetadata = {
 export type AgentLocalChatProviderOptions = {
   runtimeAdapter?: AgentLocalChatRuntimeAdapter;
   continuityAdapter?: import('./chat-agent-continuity').AgentLocalChatContinuityAdapter;
-  followUpAssistantRuntimeFollowUp?: (input: {
-    agentId: string;
-    displayName: string;
-    worldId: string | null;
-    assistantText: string;
-    turnId: string;
-    threadId: string;
-    history: readonly import('@nimiplatform/nimi-kit/features/chat').ConversationTurnHistoryMessage[];
-  }) => Promise<void>;
 };

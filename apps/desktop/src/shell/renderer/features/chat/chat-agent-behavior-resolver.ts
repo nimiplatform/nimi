@@ -34,8 +34,18 @@ export type {
   ResolveAgentModelOutputEnvelopeResult,
 } from './chat-agent-behavior-resolver-types';
 
-export function resolveAgentTurnMode(userText: string): AgentResolvedTurnMode {
+export function resolveAgentTurnMode(input: {
+  userText: string;
+  hasUserAttachments?: boolean;
+}): AgentResolvedTurnMode {
+  const userText = input.userText;
   const text = String(userText || '').trim();
+  if (!text) {
+    if (input.hasUserAttachments) {
+      return 'explicit-media';
+    }
+    throw new Error('agent turn text is required for behavior resolution');
+  }
   if (EXPLICIT_VOICE_RE.test(text)) return 'explicit-voice';
   if (EXPLICIT_MEDIA_RE.test(text)) return 'explicit-media';
   if (CHECKIN_RE.test(text)) return 'checkin';
@@ -66,9 +76,13 @@ export {
 
 export function resolveAgentChatBehavior(input: {
   userText: string;
+  hasUserAttachments?: boolean;
   settings: AgentChatExperienceSettings;
 }): AgentResolvedBehavior {
-  const resolvedTurnMode = resolveAgentTurnMode(input.userText);
+  const resolvedTurnMode = resolveAgentTurnMode({
+    userText: input.userText,
+    hasUserAttachments: input.hasUserAttachments,
+  });
   const resolvedExperiencePolicy = resolveAgentExperiencePolicy({
     turnMode: resolvedTurnMode,
   });

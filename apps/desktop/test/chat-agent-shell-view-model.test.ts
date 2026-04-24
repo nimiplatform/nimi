@@ -396,3 +396,44 @@ test('agent behavior resolver keeps explicit-media turns single-message without 
   assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'explicit-media-request');
   assert.equal(resolved.resolvedExperiencePolicy.autonomyPolicy, 'guarded');
 });
+
+test('agent behavior resolver fails closed for empty submitted turns', () => {
+  assert.throws(
+    () => resolveAgentChatBehaviorFromResolver({
+      userText: '   ',
+      hasUserAttachments: false,
+      settings: {
+        thinkingPreference: 'off',
+        maxOutputTokensOverride: null,
+      },
+    }),
+    /agent turn text is required for behavior resolution/,
+  );
+});
+
+test('agent behavior resolver admits attachment-only submitted turns as explicit media', () => {
+  const resolved = resolveAgentChatBehaviorFromResolver({
+    userText: '   ',
+    hasUserAttachments: true,
+    settings: {
+      thinkingPreference: 'off',
+      maxOutputTokensOverride: null,
+    },
+  });
+
+  assert.equal(resolved.resolvedTurnMode, 'explicit-media');
+  assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'explicit-media-request');
+});
+
+test('agent behavior resolver explicitly classifies valid unmatched text as information', () => {
+  const resolved = resolveAgentChatBehaviorFromResolver({
+    userText: 'ok',
+    settings: {
+      thinkingPreference: 'off',
+      maxOutputTokensOverride: null,
+    },
+  });
+
+  assert.equal(resolved.resolvedTurnMode, 'information');
+  assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'default');
+});

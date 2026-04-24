@@ -225,6 +225,30 @@ pub(crate) fn commit_turn_result(
             "projection.clearDraft and projection.draft are mutually exclusive".to_string(),
         );
     }
+    if input.turn.role == ChatAgentTurnRole::Assistant {
+        let text_beat_count = input
+            .beats
+            .iter()
+            .filter(|beat| beat.modality == ChatAgentBeatModality::Text)
+            .count();
+        if text_beat_count > 1 {
+            return Err("assistant turns admit at most one text beat per turn".to_string());
+        }
+        let assistant_text_projection_count = input
+            .projection
+            .messages
+            .iter()
+            .filter(|message| {
+                message.role == ChatAgentMessageRole::Assistant
+                    && message.kind == ChatAgentMessageKind::Text
+            })
+            .count();
+        if assistant_text_projection_count > 1 {
+            return Err(
+                "assistant turns admit at most one projected text message per turn".to_string(),
+            );
+        }
+    }
 
     let tx = conn
         .transaction()
@@ -674,8 +698,11 @@ pub(crate) fn cancel_turn(
     let thread_id = normalize_required_string(&input.thread_id, "threadId")?;
     let turn_id = normalize_required_string(&input.turn_id, "turnId")?;
     let scope = normalize_required_string(&input.scope, "scope")?;
-    if scope != "turn" && scope != "tail" && scope != "projection" {
-        return Err("scope must be one of: turn, tail, projection".to_string());
+    if scope == "tail" {
+        return Err("scope tail is not admitted after the single-message hard cut".to_string());
+    }
+    if scope != "turn" && scope != "projection" {
+        return Err("scope must be one of: turn, projection".to_string());
     }
     let aborted_at_ms = require_non_negative_ms(input.aborted_at_ms, "abortedAtMs")?;
 

@@ -496,36 +496,20 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                     completed_at_ms: Some(260),
                     aborted_at_ms: None,
                 },
-                beats: vec![
-                    ChatAgentTurnBeatInput {
-                        id: "beat-001".to_string(),
-                        turn_id: "turn-001".to_string(),
-                        beat_index: 0,
-                        modality: ChatAgentBeatModality::Text,
-                        status: ChatAgentBeatStatus::Sealed,
-                        text_shadow: Some("first beat".to_string()),
-                        artifact_id: None,
-                        mime_type: Some("text/plain".to_string()),
-                        media_url: None,
-                        projection_message_id: Some("message-001".to_string()),
-                        created_at_ms: 210,
-                        delivered_at_ms: Some(220),
-                    },
-                    ChatAgentTurnBeatInput {
-                        id: "beat-002".to_string(),
-                        turn_id: "turn-001".to_string(),
-                        beat_index: 1,
-                        modality: ChatAgentBeatModality::Text,
-                        status: ChatAgentBeatStatus::Delivered,
-                        text_shadow: Some("tail beat".to_string()),
-                        artifact_id: None,
-                        mime_type: Some("text/plain".to_string()),
-                        media_url: None,
-                        projection_message_id: Some("message-002".to_string()),
-                        created_at_ms: 230,
-                        delivered_at_ms: Some(260),
-                    },
-                ],
+                beats: vec![ChatAgentTurnBeatInput {
+                    id: "beat-001".to_string(),
+                    turn_id: "turn-001".to_string(),
+                    beat_index: 0,
+                    modality: ChatAgentBeatModality::Text,
+                    status: ChatAgentBeatStatus::Sealed,
+                    text_shadow: Some("first beat".to_string()),
+                    artifact_id: None,
+                    mime_type: Some("text/plain".to_string()),
+                    media_url: None,
+                    projection_message_id: Some("message-001".to_string()),
+                    created_at_ms: 210,
+                    delivered_at_ms: Some(220),
+                }],
                 interaction_snapshot: Some(ChatAgentInteractionSnapshotInput {
                     thread_id: thread.id.clone(),
                     version: 1,
@@ -542,7 +526,7 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                     slot_type: "preference".to_string(),
                     summary: "User prefers concise answers".to_string(),
                     source_turn_id: Some("turn-001".to_string()),
-                    source_beat_id: Some("beat-002".to_string()),
+                    source_beat_id: Some("beat-001".to_string()),
                     score: 0.9,
                     updated_at_ms: 262,
                 }],
@@ -550,7 +534,7 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                     id: "recall-001".to_string(),
                     thread_id: thread.id.clone(),
                     source_turn_id: Some("turn-001".to_string()),
-                    source_beat_id: Some("beat-002".to_string()),
+                    source_beat_id: Some("beat-001".to_string()),
                     summary: "Summarize the delivery plan".to_string(),
                     search_text: "delivery plan summary".to_string(),
                     updated_at_ms: 263,
@@ -564,44 +548,24 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                         archived_at_ms: None,
                         target_snapshot: sample_target_snapshot("agent-truth-source"),
                     },
-                    messages: vec![
-                        ChatAgentProjectionMessageInput {
-                            id: "message-001".to_string(),
-                            thread_id: thread.id.clone(),
-                            role: ChatAgentMessageRole::Assistant,
-                            status: ChatAgentMessageStatus::Pending,
-                            kind: ChatAgentMessageKind::Text,
-                            content_text: "first beat".to_string(),
-                            reasoning_text: None,
-                            error: None,
-                            trace_id: Some("trace-turn-001".to_string()),
-                            parent_message_id: None,
-                            media_url: None,
-                            media_mime_type: None,
-                            artifact_id: None,
-                            metadata_json: None,
-                            created_at_ms: 210,
-                            updated_at_ms: 220,
-                        },
-                        ChatAgentProjectionMessageInput {
-                            id: "message-002".to_string(),
-                            thread_id: thread.id.clone(),
-                            role: ChatAgentMessageRole::Assistant,
-                            status: ChatAgentMessageStatus::Complete,
-                            kind: ChatAgentMessageKind::Text,
-                            content_text: "tail beat".to_string(),
-                            reasoning_text: None,
-                            error: None,
-                            trace_id: Some("trace-turn-001".to_string()),
-                            parent_message_id: Some("message-001".to_string()),
-                            media_url: None,
-                            media_mime_type: None,
-                            artifact_id: None,
-                            metadata_json: None,
-                            created_at_ms: 230,
-                            updated_at_ms: 260,
-                        },
-                    ],
+                    messages: vec![ChatAgentProjectionMessageInput {
+                        id: "message-001".to_string(),
+                        thread_id: thread.id.clone(),
+                        role: ChatAgentMessageRole::Assistant,
+                        status: ChatAgentMessageStatus::Pending,
+                        kind: ChatAgentMessageKind::Text,
+                        content_text: "first beat".to_string(),
+                        reasoning_text: None,
+                        error: None,
+                        trace_id: Some("trace-turn-001".to_string()),
+                        parent_message_id: None,
+                        media_url: None,
+                        media_mime_type: None,
+                        artifact_id: None,
+                        metadata_json: None,
+                        created_at_ms: 210,
+                        updated_at_ms: 220,
+                    }],
                     draft: None,
                     clear_draft: true,
                 },
@@ -610,10 +574,10 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
         .expect("commit turn result");
 
         assert_eq!(committed.turn.id, "turn-001");
-        assert_eq!(committed.beats.len(), 2);
-        assert_eq!(committed.bundle.messages.len(), 2);
+        assert_eq!(committed.beats.len(), 1);
+        assert_eq!(committed.bundle.messages.len(), 1);
         assert!(committed.bundle.draft.is_none());
-        assert_eq!(committed.bundle.messages[1].content_text, "tail beat");
+        assert_eq!(committed.bundle.messages[0].content_text, "first beat");
         assert_eq!(
             committed
                 .interaction_snapshot
@@ -637,7 +601,7 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
         .expect("load turn context");
         assert_eq!(context.recent_turns.len(), 1);
         assert_eq!(context.recent_turns[0].provider_mode, "agent-local-chat-v1");
-        assert_eq!(context.recent_beats.len(), 2);
+        assert_eq!(context.recent_beats.len(), 1);
         assert_eq!(
             context.recent_beats[0].projection_message_id.as_deref(),
             Some("message-001")
@@ -658,23 +622,19 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
         assert!(emptied_bundle.messages.is_empty());
 
         let rebuilt = rebuild_projection(&mut conn, &thread.id).expect("rebuild projection");
-        assert_eq!(rebuilt.bundle.messages.len(), 2);
+        assert_eq!(rebuilt.bundle.messages.len(), 1);
         assert_eq!(
             rebuilt.bundle.messages[0].status,
             ChatAgentMessageStatus::Pending
         );
-        assert_eq!(
-            rebuilt.bundle.messages[1].status,
-            ChatAgentMessageStatus::Complete
-        );
-        assert_eq!(rebuilt.bundle.messages[1].content_text, "tail beat");
+        assert_eq!(rebuilt.bundle.messages[0].content_text, "first beat");
 
         let canceled = cancel_turn(
             &mut conn,
             &ChatAgentCancelTurnInput {
                 thread_id: thread.id.clone(),
                 turn_id: "turn-001".to_string(),
-                scope: "tail".to_string(),
+                scope: "turn".to_string(),
                 aborted_at_ms: 280,
             },
         )
@@ -695,6 +655,171 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
         assert_eq!(
             post_cancel_context.recent_turns[0].status,
             ChatAgentTurnStatus::Canceled
+        );
+    });
+}
+
+#[test]
+fn chat_agent_store_rejects_multi_text_beat_assistant_turns() {
+    let home = temp_home("single-message-hardcut");
+    with_env(&[("HOME", home.to_str())], || {
+        let path = crate::desktop_paths::resolve_nimi_data_dir()
+            .expect("nimi data dir")
+            .join("chat-agent")
+            .join("main.db");
+        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
+        let mut conn = Connection::open(&path).expect("open");
+        super::schema::init_schema(&conn).expect("init schema");
+
+        let thread = create_thread(
+            &conn,
+            &ChatAgentCreateThreadInput {
+                id: "thread-single-message-hardcut".to_string(),
+                agent_id: "agent-single-message-hardcut".to_string(),
+                title: "Agent Single Message".to_string(),
+                created_at_ms: 100,
+                updated_at_ms: 100,
+                last_message_at_ms: None,
+                archived_at_ms: None,
+                target_snapshot: sample_target_snapshot("agent-single-message-hardcut"),
+            },
+        )
+        .expect("create thread");
+
+        let result = commit_turn_result(
+            &mut conn,
+            &ChatAgentCommitTurnResultInput {
+                thread_id: thread.id.clone(),
+                turn: ChatAgentTurnRecordInput {
+                    id: "turn-multi-text".to_string(),
+                    thread_id: thread.id.clone(),
+                    role: ChatAgentTurnRole::Assistant,
+                    status: ChatAgentTurnStatus::Completed,
+                    provider_mode: "agent-local-chat-v1".to_string(),
+                    trace_id: Some("trace-turn-multi-text".to_string()),
+                    prompt_trace_id: Some("prompt-trace-multi-text".to_string()),
+                    started_at_ms: 200,
+                    completed_at_ms: Some(260),
+                    aborted_at_ms: None,
+                },
+                beats: vec![
+                    ChatAgentTurnBeatInput {
+                        id: "beat-text-001".to_string(),
+                        turn_id: "turn-multi-text".to_string(),
+                        beat_index: 0,
+                        modality: ChatAgentBeatModality::Text,
+                        status: ChatAgentBeatStatus::Delivered,
+                        text_shadow: Some("first beat".to_string()),
+                        artifact_id: None,
+                        mime_type: Some("text/plain".to_string()),
+                        media_url: None,
+                        projection_message_id: Some("message-text-001".to_string()),
+                        created_at_ms: 210,
+                        delivered_at_ms: Some(220),
+                    },
+                    ChatAgentTurnBeatInput {
+                        id: "beat-text-002".to_string(),
+                        turn_id: "turn-multi-text".to_string(),
+                        beat_index: 1,
+                        modality: ChatAgentBeatModality::Text,
+                        status: ChatAgentBeatStatus::Delivered,
+                        text_shadow: Some("second beat".to_string()),
+                        artifact_id: None,
+                        mime_type: Some("text/plain".to_string()),
+                        media_url: None,
+                        projection_message_id: Some("message-text-002".to_string()),
+                        created_at_ms: 230,
+                        delivered_at_ms: Some(260),
+                    },
+                ],
+                interaction_snapshot: None,
+                relation_memory_slots: vec![],
+                recall_entries: vec![],
+                projection: ChatAgentProjectionCommitInput {
+                    thread: ChatAgentUpdateThreadMetadataInput {
+                        id: thread.id.clone(),
+                        title: "Agent Single Message".to_string(),
+                        updated_at_ms: 260,
+                        last_message_at_ms: Some(260),
+                        archived_at_ms: None,
+                        target_snapshot: sample_target_snapshot("agent-single-message-hardcut"),
+                    },
+                    messages: vec![
+                        ChatAgentProjectionMessageInput {
+                            id: "message-text-001".to_string(),
+                            thread_id: thread.id.clone(),
+                            role: ChatAgentMessageRole::Assistant,
+                            status: ChatAgentMessageStatus::Complete,
+                            kind: ChatAgentMessageKind::Text,
+                            content_text: "first beat".to_string(),
+                            reasoning_text: None,
+                            error: None,
+                            trace_id: Some("trace-turn-multi-text".to_string()),
+                            parent_message_id: None,
+                            media_url: None,
+                            media_mime_type: None,
+                            artifact_id: None,
+                            metadata_json: None,
+                            created_at_ms: 210,
+                            updated_at_ms: 220,
+                        },
+                        ChatAgentProjectionMessageInput {
+                            id: "message-text-002".to_string(),
+                            thread_id: thread.id.clone(),
+                            role: ChatAgentMessageRole::Assistant,
+                            status: ChatAgentMessageStatus::Complete,
+                            kind: ChatAgentMessageKind::Text,
+                            content_text: "second beat".to_string(),
+                            reasoning_text: None,
+                            error: None,
+                            trace_id: Some("trace-turn-multi-text".to_string()),
+                            parent_message_id: Some("message-text-001".to_string()),
+                            media_url: None,
+                            media_mime_type: None,
+                            artifact_id: None,
+                            metadata_json: None,
+                            created_at_ms: 230,
+                            updated_at_ms: 260,
+                        },
+                    ],
+                    draft: None,
+                    clear_draft: true,
+                },
+            },
+        );
+
+        assert_eq!(
+            result.expect_err("multi-text assistant turn must fail closed"),
+            "assistant turns admit at most one text beat per turn"
+        );
+    });
+}
+
+#[test]
+fn chat_agent_store_rejects_tail_cancel_scope() {
+    let home = temp_home("tail-cancel-hardcut");
+    with_env(&[("HOME", home.to_str())], || {
+        let path = crate::desktop_paths::resolve_nimi_data_dir()
+            .expect("nimi data dir")
+            .join("chat-agent")
+            .join("main.db");
+        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
+        let mut conn = Connection::open(&path).expect("open");
+        super::schema::init_schema(&conn).expect("init schema");
+
+        let result = cancel_turn(
+            &mut conn,
+            &ChatAgentCancelTurnInput {
+                thread_id: "thread-missing".to_string(),
+                turn_id: "turn-missing".to_string(),
+                scope: "tail".to_string(),
+                aborted_at_ms: 1,
+            },
+        );
+
+        assert_eq!(
+            result.expect_err("tail cancel scope must fail closed"),
+            "scope tail is not admitted after the single-message hard cut"
         );
     });
 }

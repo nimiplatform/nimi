@@ -15,8 +15,6 @@ import type { AgentResolvedStatusCueDiagnostic } from './chat-agent-behavior-res
 const AGENT_ACTION_MODALITIES: ReadonlySet<AgentResolvedModalityAction['modality']> = new Set([
     'image',
     'voice',
-    'video',
-    'follow-up-turn',
 ]);
 const AGENT_ACTION_DELIVERY_COUPLINGS: ReadonlySet<AgentResolvedModalityAction['deliveryCoupling']> = new Set([
     'after-message',
@@ -57,14 +55,6 @@ function parseNonNegativeInteger(value: unknown, label: string): number {
     const normalized = Number(value);
     if (!Number.isInteger(normalized) || normalized < 0) {
         throw new Error(`${label} must be a non-negative integer`);
-    }
-    return normalized;
-}
-
-function parsePositiveInteger(value: unknown, label: string): number {
-    const normalized = Number(value);
-    if (!Number.isInteger(normalized) || normalized <= 0) {
-        throw new Error(`${label} must be a positive integer`);
     }
     return normalized;
 }
@@ -132,20 +122,7 @@ function parsePromptPayload(
         }
         return { kind, promptText };
     }
-    if (modality === 'video') {
-        if (kind !== 'video-prompt') {
-            throw new Error(`${label}.kind must match modality video`);
-        }
-        return { kind, promptText };
-    }
-    if (kind !== 'follow-up-turn') {
-        throw new Error(`${label}.kind must match modality follow-up-turn`);
-    }
-    return {
-        kind,
-        promptText,
-        delayMs: parsePositiveInteger(record.delayMs, `${label}.delayMs`),
-    };
+    throw new Error(`${label}.kind is invalid`);
 }
 
 function parseResolvedMessage(value: unknown): AgentResolvedMessage {
@@ -225,20 +202,15 @@ function parseResolvedModalityAction(
 function validatePhaseOneActionEnvelopeLimits(actions: readonly AgentResolvedModalityAction[]): void {
     let imageActionCount = 0;
     let voiceActionCount = 0;
-    let followUpActionCount = 0;
     for (const action of actions) {
         if (action.modality === 'image') imageActionCount += 1;
         if (action.modality === 'voice') voiceActionCount += 1;
-        if (action.modality === 'follow-up-turn') followUpActionCount += 1;
     }
     if (imageActionCount > 1) {
         throw new Error('agent-local-chat-v1 admits at most one image action in phase 0');
     }
     if (voiceActionCount > 1) {
         throw new Error('agent-local-chat-v1 admits at most one voice action in phase 1');
-    }
-    if (followUpActionCount > 1) {
-        throw new Error('agent-local-chat-v1 admits at most one follow-up-turn action per turn');
     }
 }
 
@@ -313,9 +285,6 @@ export function parseAgentResolvedMessageActionEnvelopeWithDiagnosticsFromPayloa
         actionIds.add(action.actionId);
         if (action.sourceMessageId !== message.messageId) {
             throw new Error(`action ${action.actionId} source message reference is inconsistent`);
-        }
-        if (action.modality === 'follow-up-turn' && action.operation !== 'assistant.turn.schedule') {
-            throw new Error(`follow-up-turn action ${action.actionId} must use assistant.turn.schedule`);
         }
     }
     validatePhaseOneActionEnvelopeLimits(actions);

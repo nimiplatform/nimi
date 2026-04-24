@@ -566,7 +566,7 @@ export function parseAgentLocalCommitTurnResultInput(value: unknown): AgentLocal
 export function parseAgentLocalCancelTurnInput(value: unknown): AgentLocalCancelTurnInput {
   const record = assertRecord(value, 'chat_agent cancel_turn payload is invalid');
   const scope = parseRequiredString(record.scope, 'scope', 'chat_agent cancel_turn payload');
-  if (scope !== 'turn' && scope !== 'tail' && scope !== 'projection') {
+  if (scope !== 'turn' && scope !== 'projection') {
     throw new Error('chat_agent cancel_turn payload: scope is invalid');
   }
   return {

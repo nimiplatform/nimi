@@ -1190,6 +1190,8 @@
     "voiceSessionSpeaking": "Speaking…",
     "voiceSessionTranscribing": "Transcribing…",
     "voiceSessionTargetRequired": "Select an agent before starting voice input.",
+    "voiceSessionAnchorRequired": "Voice input is unavailable because the conversation anchor is not ready.",
+    "voiceSessionAnchorChanged": "Voice input stopped because the conversation anchor changed.",
     "voiceSessionRouteRequired": "Voice input is unavailable because no transcribe route is configured.",
     "voiceSessionRuntimeUnavailable": "Voice input is unavailable because the transcribe runtime is not ready.",
     "voiceSessionRouteUnavailable": "Voice input is unavailable because the selected transcribe route cannot be resolved.",

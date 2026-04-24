@@ -53,16 +53,14 @@ test('desktop chat output contract helper exposes message-action envelope rules'
   assert.match(section, /Keep "actionIndex" zero-based and contiguous; every action must repeat the same "actionCount" equal to the actions array length/);
   assert.match(section, /Every action must include "actionId", "actionIndex", "actionCount", "modality", "operation", "promptPayload", "sourceMessageId", and "deliveryCoupling"/);
   assert.match(section, /"deliveryCoupling" must be "after-message".*or "with-message"/);
-  assert.match(section, /Use one shared action schema for all modalities: "modality" must be "image", "voice", "video", or "follow-up-turn"/);
+  assert.match(section, /Use one shared action schema for admitted modalities: "modality" must be "image" or "voice"/);
+  assert.match(section, /Do not emit "video"; video-generation product admission is deferred/);
+  assert.match(section, /Do not emit "follow-up-turn"; deferred continuation belongs to runtime HookIntent/);
   assert.match(section, /Phase 1 limits: emit at most one "image" action and at most one "voice" action in the entire "actions" array/);
-  assert.match(section, /At most one "follow-up-turn" action may appear in the entire "actions" array/);
-  assert.match(section, /A follow-up-turn may appear again in later auto follow-up turns, but each single turn still admits at most one follow-up-turn action/);
-  assert.match(section, /The full auto follow-up chain is capped at 8 assistant turns total/);
-  assert.match(section, /A user reply in the same thread cancels any pending follow-up-turn delay/);
   assert.match(section, /Never emit multiple "voice" actions in the same turn/);
-  assert.match(section, /Use typed prompt payloads only: image -> \{"kind":"image-prompt","promptText":"\.\.\."\}, voice -> \{"kind":"voice-prompt","promptText":"\.\.\."\}, video -> \{"kind":"video-prompt","promptText":"\.\.\."\}, follow-up-turn -> \{"kind":"follow-up-turn","promptText":"\.\.\.","delayMs":400\}/);
+  assert.match(section, /Use typed prompt payloads only: image -> \{"kind":"image-prompt","promptText":"\.\.\."\}, voice -> \{"kind":"voice-prompt","promptText":"\.\.\."\}/);
+  assert.doesNotMatch(section, /video-prompt/);
   assert.match(section, /For voice actions, use "operation": "audio\.synthesize" for narrow playback, "voice_workflow\.tts_v2v" for clone workflow, or "voice_workflow\.tts_t2v" for design workflow/);
-  assert.match(section, /For follow-up-turn actions, use "operation": "assistant\.turn\.schedule".*may return its own actions array/);
   assert.match(section, /If no modality action exists, return "actions": \[\]/);
   assert.doesNotMatch(section, /Only output the user-visible reply body/);
   assert.doesNotMatch(section, /fall back to plain text instead of partial Markdown/);
@@ -313,6 +311,61 @@ test('agent message-action envelope parser fails close on multiple voice actions
       ],
     }));
   }, /agent-local-chat-v1 admits at most one voice action in phase 1/);
+});
+
+test('agent message-action envelope parser fails closed on deferred video actions', () => {
+  assert.throws(() => {
+    parseAgentResolvedMessageActionEnvelope(JSON.stringify({
+      schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+      message: {
+        messageId: 'message-0',
+        text: '我不能接收视频生成动作。',
+      },
+      actions: [
+        {
+          actionId: 'video-0',
+          actionIndex: 0,
+          actionCount: 1,
+          modality: 'video',
+          operation: 'video.generate',
+          promptPayload: {
+            kind: 'video-prompt',
+            promptText: '镜头缓慢推进的夜景。',
+          },
+          sourceMessageId: 'message-0',
+          deliveryCoupling: 'after-message',
+        },
+      ],
+    }));
+  }, /actions\[0\]\.modality is invalid/);
+});
+
+test('agent message-action envelope parser fails closed on desktop follow-up actions', () => {
+  assert.throws(() => {
+    parseAgentResolvedMessageActionEnvelope(JSON.stringify({
+      schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+      message: {
+        messageId: 'message-0',
+        text: '我不能接收桌面延迟跟进动作。',
+      },
+      actions: [
+        {
+          actionId: 'follow-up-0',
+          actionIndex: 0,
+          actionCount: 1,
+          modality: 'follow-up-turn',
+          operation: 'assistant.turn.schedule',
+          promptPayload: {
+            kind: 'follow-up-turn',
+            promptText: '稍后再说一句。',
+            delayMs: 400,
+          },
+          sourceMessageId: 'message-0',
+          deliveryCoupling: 'after-message',
+        },
+      ],
+    }));
+  }, /actions\[0\]\.modality is invalid/);
 });
 
 test('agent message-action envelope parser normalizes redundant actionCount mirrors', () => {

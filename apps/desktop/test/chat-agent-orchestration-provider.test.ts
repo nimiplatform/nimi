@@ -255,7 +255,7 @@ function createBeatActionEnvelopeText(input: {
   actions?: Array<{
     actionId?: string;
     actionIndex: number;
-    modality: 'image' | 'voice' | 'video' | 'follow-up-turn';
+    modality: 'image' | 'voice';
     operation?: string;
     promptText: string;
     sourceMessageId: string;
@@ -268,7 +268,6 @@ function createBeatActionEnvelopeText(input: {
     throw new Error('message-action test helper requires at least one message beat');
   }
   const messageId = 'message-0';
-  const followUpBeat = input.beats[1];
   const actions = (input.actions || []).map((action) => ({
     actionId: action.actionId ?? `action-${action.actionIndex}`,
     actionIndex: action.actionIndex,
@@ -278,35 +277,12 @@ function createBeatActionEnvelopeText(input: {
     promptPayload: {
       kind: action.modality === 'image'
         ? 'image-prompt'
-        : action.modality === 'voice'
-          ? 'voice-prompt'
-          : action.modality === 'video'
-            ? 'video-prompt'
-            : 'follow-up-turn',
+        : 'voice-prompt',
       promptText: action.promptText,
-      ...(action.modality === 'follow-up-turn'
-        ? { delayMs: 400 }
-        : {}),
     },
     sourceMessageId: action.sourceMessageId.startsWith('beat-') ? messageId : action.sourceMessageId,
     deliveryCoupling: action.deliveryCoupling ?? 'after-message',
   }));
-  if (followUpBeat) {
-    actions.push({
-      actionId: `action-${actions.length}`,
-      actionIndex: actions.length,
-      actionCount: actions.length + 1,
-      modality: 'follow-up-turn',
-      operation: 'assistant.turn.schedule',
-      promptPayload: {
-        kind: 'follow-up-turn',
-        promptText: followUpBeat.text,
-        delayMs: followUpBeat.delayMs ?? 400,
-      },
-      sourceMessageId: messageId,
-      deliveryCoupling: 'after-message',
-    });
-  }
   const normalizedActions = actions.map((action, index) => ({
     ...action,
     actionIndex: index,
@@ -793,7 +769,7 @@ test('agent local chat execution seam drops assistant replies whose user turn no
       {
         id: 'history-user-1',
         role: 'user',
-        text: `Oversized user turn ${'detail '.repeat(120)}`,
+        text: `Oversized user turn ${'detail '.repeat(500)}`,
       },
       {
         id: 'history-assistant-1',
@@ -808,10 +784,9 @@ test('agent local chat execution seam drops assistant replies whose user turn no
     ],
     userText: 'What should we do next?',
     context: sampleTurnContext(),
-    modelContextTokens: 2400,
+    modelContextTokens: 1900,
   });
 
-  assert.ok(request.messages.some((message) => message.text === 'Earlier assistant reply.'));
   assert.ok(request.messages.some((message) => message.text === 'Latest retained user turn.'));
   assert.ok(!request.messages.some((message) => message.text === 'This reply must not survive without its user turn.'));
   assert.ok(!request.messages.some((message) => message.text?.startsWith('Oversized user turn')));
@@ -886,6 +861,7 @@ test('agent local chat execution seam allows attachment-only turns and emits ima
     }],
     resolvedBehavior: resolveAgentChatBehavior({
       userText: '',
+      hasUserAttachments: true,
       settings: {
         thinkingPreference: 'off',
         maxOutputTokensOverride: null,
@@ -1287,20 +1263,7 @@ test('agent local chat provider does not locally schedule follow-up timers for r
                   text: 'I will think about that.',
                 },
                 statusCue: null,
-                actions: [{
-                  actionId: 'action-follow-up',
-                  actionIndex: 0,
-                  actionCount: 1,
-                  modality: 'follow-up-turn' as const,
-                  operation: 'assistant.turn.schedule',
-                  promptPayload: {
-                    kind: 'follow-up-turn' as const,
-                    promptText: 'Follow up later.',
-                    delayMs: 400,
-                  },
-                  sourceMessageId: 'runtime-message-follow-up',
-                  deliveryCoupling: 'after-message' as const,
-                }],
+                actions: [],
               },
               trace: {
                 traceId: 'runtime-trace-follow-up',
@@ -1367,389 +1330,32 @@ test('agent local chat provider commits canceled turns with turn scope before th
   assert.equal(canceledEvent?.type === 'turn-canceled' ? canceledEvent.scope : null, 'turn');
 });
 
-test('agent local chat provider schedules a follow-up turn from the model envelope', async () => {
+test('agent local chat provider fails closed when desktop model emits follow-up-turn action', async () => {
   const fakeTimers = installFakeTimers();
   const committed: AgentCommitInput[] = [];
-  const followUpRuntimeWrites: Array<{ turnId: string; assistantText: string; historyLength: number }> = [];
   try {
     const provider = createAgentLocalChatConversationProvider({
       runtimeAdapter: createRuntimeAdapter({
         async streamText() {
-          const envelopeText = createBeatActionEnvelopeText({
-            beats: [
-              {
-                beatId: 'beat-primary',
-                beatIndex: 0,
-                text: '先给你一句短答。',
-              },
-              {
-                beatId: 'beat-follow-up',
-                beatIndex: 1,
-                text: '过一会儿我再补一句跟进。',
+          const envelopeText = JSON.stringify({
+            schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+            message: {
+              messageId: 'message-0',
+              text: '先给你一句短答。',
+            },
+            actions: [{
+              actionId: 'action-follow-up-0',
+              actionIndex: 0,
+              actionCount: 1,
+              modality: 'follow-up-turn',
+              operation: 'assistant.turn.schedule',
+              promptPayload: {
+                kind: 'follow-up-turn',
+                promptText: '过一会儿我再补一句跟进。',
                 delayMs: 400,
               },
-            ],
-          });
-          async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
-            yield { type: 'start' };
-            yield { type: 'text-delta', textDelta: envelopeText };
-            yield {
-              type: 'finish',
-              finishReason: 'stop',
-              trace: {
-                traceId: 'trace-follow-up-turn',
-                promptTraceId: 'prompt-follow-up-turn',
-              },
-            };
-          }
-          return { stream: stream() };
-        },
-        async invokeText(request) {
-          assert.equal(request.threadId, 'thread-1');
-          assert.equal(request.messages?.at(-1)?.role, 'assistant');
-          assert.equal(request.messages?.at(-1)?.text, '先给你一句短答。');
-          assert.doesNotMatch(request.prompt || '', /过一会儿我再补一句跟进/);
-          assert.match(request.systemPrompt || '', /FollowUpInstruction:/);
-          assert.match(request.systemPrompt || '', /过一会儿我再补一句跟进/);
-          return {
-            text: JSON.stringify({
-              schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-              message: {
-                messageId: 'message-follow-up',
-                text: '过一会儿我再补一句跟进。',
-              },
-              actions: [],
-            }),
-            traceId: 'trace-follow-up-turn-2',
-            promptTraceId: 'prompt-follow-up-turn-2',
-          };
-        },
-      }),
-      continuityAdapter: createContinuityAdapter(committed, 'truth:151:t1:b2:s0:m0:r0'),
-      followUpAssistantRuntimeFollowUp: async (input) => {
-        followUpRuntimeWrites.push({
-          turnId: input.turnId,
-          assistantText: input.assistantText,
-          historyLength: input.history.length,
-        });
-      },
-    });
-
-    const iterator = provider.runTurn(sampleTurnInput({
-      agentLocalChat: {
-        agentResolution: {
-          ready: true,
-          reason: 'ok',
-          textProjection: {
-            capability: 'text.generate',
-            selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
-            resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
-            health: null,
-            metadata: null,
-            supported: true,
-            reasonCode: null,
-          },
-          imageProjection: {
-            capability: 'image.generate',
-            selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
-            resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
-            health: null,
-            metadata: null,
-            supported: true,
-            reasonCode: null,
-          },
-          imageReady: true,
-        },
-        textExecutionSnapshot: { executionId: 'text-snapshot' },
-        imageExecutionSnapshot: { executionId: 'image-snapshot' },
-      },
-    }))[Symbol.asyncIterator]();
-    const firstFourEvents = [
-      await iterator.next(),
-      await iterator.next(),
-      await iterator.next(),
-      await iterator.next(),
-    ].map((entry) => entry.value);
-    assert.deepEqual(
-      firstFourEvents.map((event) => event.type),
-      [
-        'turn-started',
-        'text-delta',
-        'message-sealed',
-        'projection-rebuilt',
-      ],
-    );
-    assert.equal(committed.length, 1);
-    assert.equal(committed[0]?.textMessageState?.text, '先给你一句短答。');
-    assert.match(String(committed[0]?.textMessageState?.metadataJson?.prompt || ''), /What should we do next/);
-
-    const completionEvent = await iterator.next();
-    assert.equal(completionEvent.value?.type, 'turn-completed');
-
-    const pendingFollowUpProjection = iterator.next();
-    await Promise.resolve();
-    const timerIds = fakeTimers.getTimerIds();
-    const delayTimerId = timerIds.find((id) => fakeTimers.getTimerDelay(id) === 400);
-    assert.ok(delayTimerId, 'expected delay timer from follow-up-turn action');
-
-    fakeTimers.runTimer(delayTimerId);
-
-    const followUpProjection = await pendingFollowUpProjection;
-    assert.equal(followUpProjection.value?.type, 'projection-rebuilt');
-    assert.equal(followUpProjection.value?.threadId, 'thread-1');
-
-    const completion = await iterator.next();
-    assert.equal(completion.done, true);
-    assert.equal(completion.value, undefined);
-
-    assert.equal(committed.length, 2);
-    assert.equal(committed[0]?.outcome, 'completed');
-    assert.equal(committed[1]?.outcome, 'completed');
-    assert.equal(committed[1]?.textMessageState?.text, '过一会儿我再补一句跟进。');
-    assert.match(String(committed[1]?.textMessageState?.metadataJson?.prompt || ''), /先给你一句短答/);
-    assert.doesNotMatch(String(committed[1]?.textMessageState?.metadataJson?.prompt || ''), /过一会儿我再补一句跟进/);
-    assert.match(String(committed[1]?.textMessageState?.metadataJson?.rawModelOutput || ''), /message-follow-up/);
-    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpTurn, true);
-    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpInstruction, '过一会儿我再补一句跟进。');
-    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpSourceActionId, 'action-0');
-    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpDelayMs, 400);
-    assert.deepEqual(followUpRuntimeWrites, [{
-      turnId: committed[1]?.turnId || '',
-      assistantText: '过一会儿我再补一句跟进。',
-      historyLength: 3,
-    }]);
-    assert.deepEqual(
-      committed[1]?.events.map((event) => event.type),
-      [
-        'turn-started',
-        'message-sealed',
-        'turn-completed',
-      ],
-    );
-  } finally {
-    fakeTimers.restore();
-  }
-});
-
-test('agent local chat provider lets follow-up turns continue their own actions and follow-up chain', async () => {
-  const fakeTimers = installFakeTimers();
-  const committed: AgentCommitInput[] = [];
-  const imagePrompts: string[] = [];
-  const invokedPrompts: string[] = [];
-  const followUpRuntimeWrites: string[] = [];
-  try {
-    const provider = createAgentLocalChatConversationProvider({
-      runtimeAdapter: createRuntimeAdapter({
-        async streamText() {
-          const envelopeText = createBeatActionEnvelopeText({
-            beats: [
-              {
-                beatId: 'beat-primary',
-                beatIndex: 0,
-                text: '先说第一句。',
-              },
-              {
-                beatId: 'beat-follow-up-1',
-                beatIndex: 1,
-                text: '十秒后继续安慰一次。',
-                delayMs: 400,
-              },
-            ],
-          });
-          async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
-            yield { type: 'start' };
-            yield { type: 'text-delta', textDelta: envelopeText };
-            yield {
-              type: 'finish',
-              finishReason: 'stop',
-              trace: {
-                traceId: 'trace-chain-root',
-                promptTraceId: 'prompt-chain-root',
-              },
-            };
-          }
-          return { stream: stream() };
-        },
-        async invokeText(request) {
-          invokedPrompts.push(String(request.systemPrompt || ''));
-          const latestPrompt = invokedPrompts.at(-1) || '';
-          assert.equal(request.messages?.at(-1)?.role, 'assistant');
-          if (latestPrompt.includes('十秒后继续安慰一次。')) {
-            return {
-              text: JSON.stringify({
-                schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-                message: {
-                  messageId: 'message-follow-up-1',
-                  text: '我还在，继续陪你。',
-                },
-                actions: [
-                  {
-                    actionId: 'action-follow-up-image',
-                    actionIndex: 0,
-                    actionCount: 2,
-                    modality: 'image',
-                    operation: 'generate',
-                    promptPayload: {
-                      kind: 'image-prompt',
-                      promptText: '一张安慰氛围的小图',
-                    },
-                    sourceMessageId: 'message-follow-up-1',
-                    deliveryCoupling: 'after-message',
-                  },
-                  {
-                    actionId: 'action-follow-up-next',
-                    actionIndex: 1,
-                    actionCount: 2,
-                    modality: 'follow-up-turn',
-                    operation: 'assistant.turn.schedule',
-                    promptPayload: {
-                      kind: 'follow-up-turn',
-                      promptText: '如果你还没回复，我再轻轻问一句。',
-                      delayMs: 300,
-                    },
-                    sourceMessageId: 'message-follow-up-1',
-                    deliveryCoupling: 'after-message',
-                  },
-                ],
-              }),
-              traceId: 'trace-follow-up-1',
-              promptTraceId: 'prompt-follow-up-1',
-            };
-          }
-          assert.match(latestPrompt, /如果你还没回复，我再轻轻问一句。/);
-          return {
-            text: JSON.stringify({
-              schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-              message: {
-                messageId: 'message-follow-up-2',
-                text: '我还在这里，想说的时候随时告诉我。',
-              },
-              actions: [],
-            }),
-            traceId: 'trace-follow-up-2',
-            promptTraceId: 'prompt-follow-up-2',
-          };
-        },
-        async generateImage(request) {
-          imagePrompts.push(request.prompt);
-          return {
-            mediaUrl: 'data:image/png;base64,BB==',
-            mimeType: 'image/png',
-            artifactId: 'artifact-follow-up-image',
-            traceId: 'trace-follow-up-image',
-          };
-        },
-      }),
-      continuityAdapter: createContinuityAdapter(committed, 'truth:152:t1:b3:s0:m0:r0'),
-      followUpAssistantRuntimeFollowUp: async (input) => {
-        followUpRuntimeWrites.push(`${input.turnId}:${input.assistantText}`);
-      },
-    });
-
-    const iterator = provider.runTurn(sampleTurnInput({
-      agentLocalChat: {
-        agentResolution: {
-          ready: true,
-          reason: 'ok',
-          textProjection: {
-            capability: 'text.generate',
-            selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
-            resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
-            health: null,
-            metadata: null,
-            supported: true,
-            reasonCode: null,
-          },
-          imageProjection: {
-            capability: 'image.generate',
-            selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
-            resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
-            health: null,
-            metadata: null,
-            supported: true,
-            reasonCode: null,
-          },
-          imageReady: true,
-        },
-        textExecutionSnapshot: { executionId: 'text-snapshot' },
-        imageExecutionSnapshot: { executionId: 'image-snapshot' },
-      },
-    }))[Symbol.asyncIterator]();
-    const initialEvents = [
-      await iterator.next(),
-      await iterator.next(),
-      await iterator.next(),
-      await iterator.next(),
-    ].map((entry) => entry.value?.type);
-    assert.deepEqual(initialEvents, [
-      'turn-started',
-      'text-delta',
-      'message-sealed',
-      'projection-rebuilt',
-    ]);
-
-    const completionEvent = await iterator.next();
-    assert.equal(completionEvent.value?.type, 'turn-completed');
-
-    const firstFollowUpProjectionPromise = iterator.next();
-    await Promise.resolve();
-    const firstDelayId = fakeTimers.getTimerIds().find((id) => fakeTimers.getTimerDelay(id) === 400);
-    assert.ok(firstDelayId, 'expected first follow-up timer');
-    fakeTimers.runTimer(firstDelayId);
-
-    const firstFollowUpProjection = await firstFollowUpProjectionPromise;
-    assert.equal(firstFollowUpProjection.value?.type, 'projection-rebuilt');
-
-    const secondFollowUpProjectionPromise = iterator.next();
-    await Promise.resolve();
-    const secondDelayId = fakeTimers.getTimerIds().find((id) => fakeTimers.getTimerDelay(id) === 300);
-    assert.ok(secondDelayId, 'expected second follow-up timer');
-    fakeTimers.runTimer(secondDelayId);
-
-    const secondFollowUpProjection = await secondFollowUpProjectionPromise;
-    assert.equal(secondFollowUpProjection.value?.type, 'projection-rebuilt');
-
-    const completion = await iterator.next();
-    assert.equal(completion.done, true);
-
-    assert.equal(invokedPrompts.length, 2);
-    assert.match(invokedPrompts[0] || '', /十秒后继续安慰一次。/);
-    assert.match(invokedPrompts[1] || '', /如果你还没回复，我再轻轻问一句。/);
-    assert.deepEqual(imagePrompts, ['一张安慰氛围的小图'], JSON.stringify(committed[1]?.imageState));
-    assert.equal(committed.length, 3);
-    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpDepth, 1);
-    assert.equal(committed[1]?.textMessageState?.metadataJson?.maxFollowUpTurns, 8);
-    assert.equal(committed[1]?.textMessageState?.metadataJson?.chainId, committed[2]?.textMessageState?.metadataJson?.chainId);
-    assert.equal(committed[2]?.textMessageState?.metadataJson?.followUpDepth, 2);
-    assert.equal(committed[1]?.imageState?.status, 'complete');
-    assert.equal(committed[2]?.imageState?.status, 'none');
-    assert.deepEqual(followUpRuntimeWrites, [
-      `${committed[1]?.turnId || ''}:我还在，继续陪你。`,
-      `${committed[2]?.turnId || ''}:我还在这里，想说的时候随时告诉我。`,
-    ]);
-  } finally {
-    fakeTimers.restore();
-  }
-});
-
-test('agent local chat provider suppresses duplicate follow-up text and stops the chain', async () => {
-  const fakeTimers = installFakeTimers();
-  const committed: AgentCommitInput[] = [];
-  let followUpInvocations = 0;
-  try {
-    const provider = createAgentLocalChatConversationProvider({
-      runtimeAdapter: createRuntimeAdapter({
-        async streamText() {
-          const envelopeText = createBeatActionEnvelopeText({
-            beats: [{
-              beatId: 'beat-primary',
-              beatIndex: 0,
-              text: '你好呀！很高兴见到你，我是翠翠。今天心情怎么样？',
-            }, {
-              beatId: 'beat-follow-up',
-              beatIndex: 1,
-              text: '如果对方还没回复，就再轻轻问候一句。',
-              delayMs: 200,
+              sourceMessageId: 'message-0',
+              deliveryCoupling: 'after-message',
             }],
           });
           async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
@@ -1759,224 +1365,32 @@ test('agent local chat provider suppresses duplicate follow-up text and stops th
               type: 'finish',
               finishReason: 'stop',
               trace: {
-                traceId: 'trace-follow-up-root',
-                promptTraceId: 'prompt-follow-up-root',
+                traceId: 'trace-follow-up-rejected',
+                promptTraceId: 'prompt-follow-up-rejected',
               },
             };
           }
           return { stream: stream() };
         },
         async invokeText() {
-          followUpInvocations += 1;
-          return {
-            text: JSON.stringify({
-              schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-              message: {
-                messageId: 'message-follow-up-duplicate',
-                text: '你好呀！很高兴见到你，我是翠翠。今天心情怎么样？',
-              },
-              actions: [{
-                actionId: 'action-follow-up-again',
-                actionIndex: 0,
-                actionCount: 1,
-                modality: 'follow-up-turn',
-                operation: 'assistant.turn.schedule',
-                promptPayload: {
-                  kind: 'follow-up-turn',
-                  promptText: '重复问一句。',
-                  delayMs: 200,
-                },
-                sourceMessageId: 'message-follow-up-duplicate',
-                deliveryCoupling: 'after-message',
-              }],
-            }),
-            traceId: 'trace-follow-up-duplicate',
-            promptTraceId: 'prompt-follow-up-duplicate',
-          };
+          throw new Error('desktop follow-up timer path must not run');
         },
       }),
-      continuityAdapter: createContinuityAdapter(committed, 'truth:153:t1:b1:s0:m0:r0'),
+      continuityAdapter: createContinuityAdapter(committed, 'truth:151:t1:b1:s0:m0:r0'),
     });
 
-    const iterator = provider.runTurn(sampleTurnInput())[Symbol.asyncIterator]();
-    await iterator.next();
-    await iterator.next();
-    await iterator.next();
-    await iterator.next();
-    await iterator.next();
+    const events = await collectEvents(provider, sampleTurnInput());
 
-    const pendingFollowUpProjection = iterator.next();
-    await Promise.resolve();
-    const timerId = fakeTimers.getTimerIds().find((id) => fakeTimers.getTimerDelay(id) === 200);
-    assert.ok(timerId, 'expected duplicate follow-up timer');
-    fakeTimers.runTimer(timerId);
-
-    const followUpProjection = await pendingFollowUpProjection;
-    assert.equal(followUpProjection.done, true);
-    assert.equal(followUpProjection.value, undefined);
-    assert.equal(followUpInvocations, 1);
+    assert.equal(events.some((event) => event.type === 'projection-rebuilt'), true);
+    const failedEvent = events.at(-1);
+    assert.equal(failedEvent?.type, 'turn-failed');
     assert.equal(committed.length, 1);
-    assert.equal(committed[0]?.textMessageState?.text, '你好呀！很高兴见到你，我是翠翠。今天心情怎么样？');
-  } finally {
-    fakeTimers.restore();
-  }
-});
-
-test('agent local chat provider prefers runtime.agent stream for scheduled follow-up compatibility turns when available', async () => {
-  const fakeTimers = installFakeTimers();
-  const committed: AgentCommitInput[] = [];
-  const observedFollowUpHistories: AgentRuntimeStreamRequest['history'][] = [];
-  let invokeTextUsed = false;
-  try {
-    const runtimeAdapter = createRuntimeAdapter({
-      async streamText() {
-        runtimeAdapter.streamAgentTurn = async (request) => {
-          observedFollowUpHistories.push(request.history || []);
-          async function* stream() {
-            yield {
-              type: 'message-sealed' as const,
-              envelope: {
-                schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-                message: {
-                  messageId: 'message-follow-up-runtime-agent',
-                  text: '三秒后我来啦。',
-                },
-                statusCue: null,
-                actions: [],
-              },
-              trace: {
-                traceId: 'trace-follow-up-runtime-agent',
-                promptTraceId: 'trace-follow-up-runtime-agent',
-                modelResolved: 'kimi-k2',
-                routeDecision: 'local',
-              },
-              metadataJson: {
-                debugType: 'agent-text-turn',
-                prompt: String(request.prompt || ''),
-                systemPrompt: String(request.systemPrompt || ''),
-                rawModelOutput: null,
-                normalizedModelOutput: null,
-                statusCue: null,
-                followUpInstruction: null,
-                followUpTurn: false,
-                chainId: null,
-                followUpDepth: null,
-                maxFollowUpTurns: null,
-                followUpCanceledByUser: false,
-                followUpSourceActionId: null,
-                followUpDelayMs: null,
-                runtimeAgentTurns: {
-                  transport: 'runtime.agent.turns',
-                  conversationAnchorId: 'anchor-follow-up-runtime-agent',
-                  runtimeTurnId: 'runtime-turn-follow-up-runtime-agent',
-                  runtimeStreamId: 'runtime-stream-follow-up-runtime-agent',
-                  route: 'local',
-                  modelId: 'kimi-k2',
-                  connectorId: null,
-                  traceId: 'trace-follow-up-runtime-agent',
-                  modelResolved: 'kimi-k2',
-                  routeDecision: 'local',
-                },
-              },
-              diagnostics: {
-                transport: 'runtime.agent.turns',
-                conversationAnchorId: 'anchor-follow-up-runtime-agent',
-                runtimeTurnId: 'runtime-turn-follow-up-runtime-agent',
-                runtimeStreamId: 'runtime-stream-follow-up-runtime-agent',
-                route: 'local',
-                modelId: 'kimi-k2',
-                connectorId: null,
-              },
-            };
-            yield {
-              type: 'turn-completed' as const,
-              outputText: '三秒后我来啦。',
-              finishReason: 'stop',
-              trace: {
-                traceId: 'trace-follow-up-runtime-agent',
-                promptTraceId: 'trace-follow-up-runtime-agent',
-                modelResolved: 'kimi-k2',
-                routeDecision: 'local',
-              },
-              diagnostics: {
-                transport: 'runtime.agent.turns',
-                conversationAnchorId: 'anchor-follow-up-runtime-agent',
-                runtimeTurnId: 'runtime-turn-follow-up-runtime-agent',
-                runtimeStreamId: 'runtime-stream-follow-up-runtime-agent',
-                route: 'local',
-                modelId: 'kimi-k2',
-                connectorId: null,
-              },
-            };
-          }
-          return { stream: stream() };
-        };
-        const envelopeText = createBeatActionEnvelopeText({
-          beats: [{
-            beatId: 'beat-primary',
-            beatIndex: 0,
-            text: '先回你一句。',
-          }, {
-            beatId: 'beat-follow-up',
-            beatIndex: 1,
-            text: '三秒后再跟进一次。',
-            delayMs: 300,
-          }],
-        });
-        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
-          yield { type: 'start' };
-          yield { type: 'text-delta', textDelta: envelopeText };
-          yield {
-            type: 'finish',
-            finishReason: 'stop',
-            trace: {
-              traceId: 'trace-follow-up-root',
-              promptTraceId: 'prompt-follow-up-root',
-            },
-          };
-        }
-        return { stream: stream() };
-      },
-      async invokeText() {
-        invokeTextUsed = true;
-        throw new Error('invokeText fallback should not be used when streamAgentTurn is available');
-      },
-    });
-    runtimeAdapter.streamAgentTurn = undefined;
-
-    const provider = createAgentLocalChatConversationProvider({
-      runtimeAdapter,
-      continuityAdapter: createContinuityAdapter(committed, 'truth:follow-up-runtime-agent'),
-    });
-
-    const iterator = provider.runTurn(sampleTurnInput())[Symbol.asyncIterator]();
-    await iterator.next();
-    await iterator.next();
-    await iterator.next();
-    await iterator.next();
-    const completionEvent = await iterator.next();
-    assert.equal(completionEvent.value?.type, 'turn-completed');
-
-    const pendingProjection = iterator.next();
-    await Promise.resolve();
-    const delayId = fakeTimers.getTimerIds().find((id) => fakeTimers.getTimerDelay(id) === 300);
-    assert.ok(delayId, 'expected pending follow-up timer');
-    fakeTimers.runTimer(delayId);
-
-    const followUpProjection = await pendingProjection;
-    assert.equal(followUpProjection.value?.type, 'projection-rebuilt');
-
-    const completion = await iterator.next();
-    assert.equal(completion.done, true);
-    assert.equal(invokeTextUsed, false);
-    assert.equal(observedFollowUpHistories.length, 1);
-    assert.equal(committed.length, 2);
-    assert.equal(
-      String((committed[1]?.textMessageState?.metadataJson?.runtimeAgentTurns as Record<string, unknown> | undefined)?.conversationAnchorId || ''),
-      'anchor-follow-up-runtime-agent',
-    );
-    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpTurn, true);
-    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpDepth, 1);
+    assert.equal(committed[0]?.outcome, 'failed');
+    assert.deepEqual(fakeTimers.getTimerIds(), []);
+    if (failedEvent?.type !== 'turn-failed') {
+      assert.fail('expected follow-up action to fail closed');
+    }
+    assert.match(failedEvent.error.message, /Agent response format was invalid/);
   } finally {
     fakeTimers.restore();
   }
@@ -2034,73 +1448,6 @@ test('agent local chat provider fails closed when runtime.agent.turns completes 
     (failedEvent.diagnostics as Record<string, unknown> | undefined)?.missingStructuredProjection,
     true,
   );
-});
-
-test('agent local chat provider stops a pending follow-up chain when the turn signal is aborted', async () => {
-  const fakeTimers = installFakeTimers();
-  const committed: AgentCommitInput[] = [];
-  const abortController = new AbortController();
-  try {
-    const provider = createAgentLocalChatConversationProvider({
-      runtimeAdapter: createRuntimeAdapter({
-        async streamText() {
-          const envelopeText = createBeatActionEnvelopeText({
-            beats: [
-              {
-                beatId: 'beat-primary',
-                beatIndex: 0,
-                text: '先回你一句。',
-              },
-              {
-                beatId: 'beat-follow-up',
-                beatIndex: 1,
-                text: '三秒后再跟进一次。',
-                delayMs: 400,
-              },
-            ],
-          });
-          async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
-            yield { type: 'start' };
-            yield { type: 'text-delta', textDelta: envelopeText };
-            yield {
-              type: 'finish',
-              finishReason: 'stop',
-              trace: {
-                traceId: 'trace-abort-root',
-                promptTraceId: 'prompt-abort-root',
-              },
-            };
-          }
-          return { stream: stream() };
-        },
-      }),
-      continuityAdapter: createContinuityAdapter(committed, 'truth:153:t1:b1:s0:m0:r0'),
-    });
-
-    const iterator = provider.runTurn(sampleTurnInput({
-      signal: abortController.signal,
-    }))[Symbol.asyncIterator]();
-    await iterator.next();
-    await iterator.next();
-    await iterator.next();
-    await iterator.next();
-    const completionEvent = await iterator.next();
-    assert.equal(completionEvent.value?.type, 'turn-completed');
-
-    const pendingProjection = iterator.next();
-    await Promise.resolve();
-    const delayId = fakeTimers.getTimerIds().find((id) => fakeTimers.getTimerDelay(id) === 400);
-    assert.ok(delayId, 'expected pending follow-up timer');
-
-    abortController.abort();
-
-    const completion = await pendingProjection;
-    assert.equal(completion.done, true);
-    assert.equal(committed.length, 1);
-    assert.equal(fakeTimers.getTimerIds().length, 0);
-  } finally {
-    fakeTimers.restore();
-  }
 });
 
 test('agent local chat provider can emit a second image beat from the resolved model action envelope', async () => {
@@ -2412,14 +1759,14 @@ test('agent local chat provider does not generate an image when the resolved env
   assert.equal(committed[0]?.imageState?.status, 'none');
 });
 
-test('agent local chat provider executes voice actions and keeps video deferred in phase 1', async () => {
+test('agent local chat provider executes admitted voice actions', async () => {
   const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter: createRuntimeAdapter({
       async streamText() {
         const envelopeText = createBeatActionEnvelopeText({
           beats: [{
-            beatId: 'beat-voice-video',
+            beatId: 'beat-voice-turn',
             beatIndex: 0,
             text: '我先只用文字回复你。',
           }],
@@ -2428,14 +1775,7 @@ test('agent local chat provider executes voice actions and keeps video deferred 
             actionIndex: 0,
             modality: 'voice',
             promptText: '一段轻声回应',
-            sourceMessageId: 'beat-voice-video',
-            sourceBeatIndex: 0,
-          }, {
-            actionId: 'action-video-1',
-            actionIndex: 1,
-            modality: 'video',
-            promptText: '镜头缓慢推进的夜景',
-            sourceMessageId: 'beat-voice-video',
+            sourceMessageId: 'beat-voice-turn',
             sourceBeatIndex: 0,
           }],
         });
@@ -2446,8 +1786,8 @@ test('agent local chat provider executes voice actions and keeps video deferred 
             type: 'finish',
             finishReason: 'stop',
             trace: {
-              traceId: 'trace-voice-video-turn',
-              promptTraceId: 'prompt-voice-video-turn',
+              traceId: 'trace-voice-turn',
+              promptTraceId: 'prompt-voice-turn',
             },
           };
         }
@@ -2464,7 +1804,7 @@ test('agent local chat provider executes voice actions and keeps video deferred 
         };
       },
       async generateImage() {
-        throw new Error('image generation should stay unopened for voice/video-only actions');
+        throw new Error('image generation should stay unopened for voice-only actions');
       },
     }),
     continuityAdapter: createContinuityAdapter(committed, 'truth:153:t1:b1:s0:m0:r0'),
@@ -2755,6 +2095,7 @@ test('agent local chat provider submits workflow voice actions without silently 
   assert.equal(workflowMetadata?.voiceReference?.kind, 'voice_asset_id');
   assert.equal(workflowMetadata?.sourceMessageId, 'message-0');
   assert.equal(workflowMetadata?.sourceActionId, 'action-voice-clone');
+  assert.equal(workflowMetadata?.conversationAnchorId, 'anchor-1');
 });
 
 test('agent local chat provider fails close when workflow voice clone has no current-thread reference audio', async () => {

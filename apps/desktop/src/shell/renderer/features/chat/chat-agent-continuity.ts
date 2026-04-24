@@ -387,6 +387,9 @@ export function createAgentLocalChatContinuityAdapter(
     }),
     commitAgentTurnResult: commitAgentTurnResultInternal,
     cancelTurn: async (input) => {
+      if (input.scope === 'tail') {
+        throw new Error('chat_agent cancelTurn scope tail is not admitted after the single-message hard cut');
+      }
       await storeClient.cancelTurn({
         threadId: input.threadId,
         turnId: input.turnId,

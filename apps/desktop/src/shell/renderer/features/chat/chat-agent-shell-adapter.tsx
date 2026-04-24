@@ -1046,21 +1046,21 @@ export function useAgentConversationModeHost(
       };
     });
   }, []);
-  const persistVoiceTranscriptDraft = useCallback(async (text: string) => {
-    if (!activeThreadId) {
+  const persistVoiceTranscriptDraft = useCallback(async (input: { text: string; conversationAnchorId: string }) => {
+    if (!activeThreadId || !activeConversationAnchorId || input.conversationAnchorId !== activeConversationAnchorId) {
       throw new Error('Voice input is unavailable because no active thread is selected.');
     }
     const draft = await chatAgentStoreClient.putDraft({
       threadId: activeThreadId,
-      text,
+      text: input.text,
       updatedAtMs: Date.now(),
     });
-    currentDraftTextRef.current = text;
+    currentDraftTextRef.current = input.text;
     setBundleCache(
       activeThreadId,
       (current) => upsertBundleDraft(current, draft) || current,
     );
-  }, [activeThreadId, currentDraftTextRef, setBundleCache]);
+  }, [activeConversationAnchorId, activeThreadId, currentDraftTextRef, setBundleCache]);
   const {
     clearLatestVoiceCaptureForThread,
     handsFreeState,
@@ -1071,6 +1071,7 @@ export function useAgentConversationModeHost(
     voiceSessionState,
   } = useAgentConversationVoiceSession({
     activeTarget,
+    activeConversationAnchorId,
     activeThreadId,
     aiConfig: agentAdapterAiConfig,
     agentResolution,
@@ -1124,6 +1125,7 @@ export function useAgentConversationModeHost(
           textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile, behaviorSettings.maxOutputTokensOverride),
           resolvedBehavior: resolveAgentChatBehavior({
             userText: turnInput.userMessage.text,
+            hasUserAttachments: turnInput.userMessage.attachments.length > 0,
             settings: behaviorSettings,
           }),
         },

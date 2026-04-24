@@ -39,8 +39,6 @@ import {
 } from './chat-agent-orchestration-shared';
 import { createAgentLocalChatConversationRuntimeAdapter } from './chat-agent-orchestration-runtime';
 import { runResolvedEnvelopeActions } from './chat-agent-orchestration-actions';
-import { runScheduledFollowUpTurn } from './chat-agent-orchestration-follow-up';
-import { runDesktopAgentAssistantTurnRuntimeFollowUp } from './chat-agent-runtime-memory';
 import { feedStreamEvent } from '../turns/stream-controller';
 import {
   AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES,
@@ -54,10 +52,10 @@ export { buildAgentLocalChatPrompt } from './chat-nimi-execution-engine';
 export { createAgentLocalChatContinuityAdapter } from './chat-agent-continuity';
 export { createAgentTailAbortSignal } from './chat-agent-orchestration-shared';
 export { createAgentLocalChatConversationRuntimeAdapter } from './chat-agent-orchestration-runtime';
-export { cancelPendingAgentFollowUpChain } from './chat-agent-orchestration-follow-up';
+export function cancelPendingAgentFollowUpChain(_threadId: string): void {
+  // Deferred continuation is runtime HookIntent-owned; Desktop has no follow-up timer queue.
+}
 export type {
-  AgentFollowUpChainContext,
-  AgentPendingFollowUpEntry,
   AgentLocalChatRuntimeRequest,
   AgentLocalChatImageRequest,
   AgentLocalChatVoiceRequest,
@@ -67,7 +65,6 @@ export type {
   AgentLocalChatProviderOptions,
 } from './chat-agent-orchestration-types';
 
-const MAX_AGENT_FOLLOW_UP_TURNS = 8;
 const RUNTIME_AGENT_WAIT_KEEPALIVE_MS = 10_000;
 
 async function* runRuntimeAgentTurn(input: {
@@ -374,7 +371,6 @@ export function createAgentLocalChatConversationProvider(
 ): ConversationOrchestrationProvider {
   const runtimeAdapter = options.runtimeAdapter ?? createAgentLocalChatConversationRuntimeAdapter();
   const continuityAdapter = options.continuityAdapter ?? createAgentLocalChatContinuityAdapter();
-  const followUpAssistantRuntimeFollowUp = options.followUpAssistantRuntimeFollowUp ?? runDesktopAgentAssistantTurnRuntimeFollowUp;
   return {
     modeId: 'agent-local-chat-v1',
     capabilities: AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES,
@@ -625,32 +621,6 @@ export function createAgentLocalChatConversationProvider(
               };
               terminalEventEmitted = true;
               yield terminalEvent;
-              if (actionResult.followUpAction && actionResult.followUpAction.modality === 'follow-up-turn') {
-                for await (const followUpProjection of runScheduledFollowUpTurn({
-                  baseInput: input,
-                  metadata,
-                  runtimeAdapter,
-                  continuityAdapter,
-                  followUpAssistantRuntimeFollowUp,
-                  followUpAction: actionResult.followUpAction,
-                  priorAssistantText: outputText,
-                  chainContext: {
-                    chainId: randomIdV11('agent-followup-chain'),
-                    followUpDepth: 1,
-                    maxFollowUpTurns: MAX_AGENT_FOLLOW_UP_TURNS,
-                    followUpSourceActionId: actionResult.followUpAction.actionId,
-                    sourceTurnId: input.turnId,
-                    canceledByUser: false,
-                  },
-                })) {
-                  yield {
-                    type: 'projection-rebuilt',
-                    threadId: followUpProjection.threadId,
-                    projectionVersion: followUpProjection.projectionVersion,
-                    bundle: followUpProjection.bundle,
-                  };
-                }
-              }
               return;
             }
             case 'error': {

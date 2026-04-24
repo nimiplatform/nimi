@@ -102,7 +102,6 @@ export async function synthesizeChatAgentVoiceRuntime(
   const artifact = Array.isArray(response.artifacts) ? response.artifacts[0] : null;
   const media = resolveMediaUrlFromArtifact({
     artifact,
-    defaultMimeType: 'audio/mpeg',
     missingArtifactMessage: 'agent voice synthesis returned no artifacts',
     missingMediaMessage: 'agent voice synthesis artifact has no uri or bytes',
     actionHint: 'retry_voice_synthesis',
@@ -342,7 +341,6 @@ export async function synthesizeChatAgentVoiceReferenceRuntime(
       bytes?: Uint8Array | null;
       artifactId?: unknown;
     } | null,
-    defaultMimeType: 'audio/mpeg',
     missingArtifactMessage: 'projected voice playback returned no artifacts',
     missingMediaMessage: 'projected voice playback artifact has no uri or bytes',
     actionHint: 'retry_voice_synthesis',

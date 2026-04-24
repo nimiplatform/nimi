@@ -20,14 +20,15 @@ import { reconcileAgentChatVoiceWorkflowMessage } from './chat-agent-voice-workf
 import {
   transcribeChatAgentVoiceRuntime,
   toChatAgentRuntimeError,
-  type ChatAgentVoiceWorkflowReferenceAudio,
 } from './chat-agent-runtime';
 import {
   startAgentVoiceCaptureSession,
   type AgentVoiceCaptureSession,
 } from './chat-agent-voice-capture';
 import {
+  type AgentVoiceSessionAnchorBoundReferenceAudio,
   createInitialAgentVoiceSessionShellState,
+  normalizeAgentVoiceSessionConversationAnchorId,
   type AgentVoiceSessionMode,
   resolveIdleAgentVoiceSessionShellState,
   type AgentVoiceSessionShellState,
@@ -47,11 +48,12 @@ function resolveIsVoiceSessionForeground(): boolean {
 
 type UseAgentConversationVoiceSessionInput = {
   activeTarget: { agentId: string } | null;
+  activeConversationAnchorId: string | null;
   activeThreadId: string | null;
   aiConfig: AIConfig;
   agentResolution: AgentEffectiveCapabilityResolution | null;
   bundleMessages: readonly AgentLocalMessageRecord[] | undefined;
-  persistVoiceTranscriptDraft: (text: string) => Promise<void>;
+  persistVoiceTranscriptDraft: (input: { text: string; conversationAnchorId: string }) => Promise<void>;
   reportHostError: (error: unknown) => void;
   setBundleCache: (
     threadId: string,
@@ -75,7 +77,7 @@ export function useAgentConversationVoiceSession(
     onEnter: () => void;
     onExit: () => void;
   };
-  latestVoiceCaptureByThreadRef: MutableRefObject<Record<string, ChatAgentVoiceWorkflowReferenceAudio | undefined>>;
+  latestVoiceCaptureByThreadRef: MutableRefObject<Record<string, AgentVoiceSessionAnchorBoundReferenceAudio | undefined>>;
   onVoiceSessionCancel: () => void;
   onVoiceSessionToggle: () => void;
   voiceCaptureState: {
@@ -90,7 +92,7 @@ export function useAgentConversationVoiceSession(
   const [isVoiceSessionForeground, setIsVoiceSessionForeground] = useState<boolean>(
     () => resolveIsVoiceSessionForeground(),
   );
-  const latestVoiceCaptureByThreadRef = useRef<Record<string, ChatAgentVoiceWorkflowReferenceAudio | undefined>>({});
+  const latestVoiceCaptureByThreadRef = useRef<Record<string, AgentVoiceSessionAnchorBoundReferenceAudio | undefined>>({});
   const voiceCaptureSessionRef = useRef<AgentVoiceCaptureSession | null>(null);
   const voiceTranscribeAbortRef = useRef<AbortController | null>(null);
   const [voiceCaptureState, setVoiceCaptureState] = useState<{
@@ -109,7 +111,7 @@ export function useAgentConversationVoiceSession(
     };
     resetVoiceSession();
     return resetVoiceSession;
-  }, [input.activeTarget?.agentId, input.activeThreadId]);
+  }, [input.activeConversationAnchorId, input.activeTarget?.agentId, input.activeThreadId]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -130,15 +132,19 @@ export function useAgentConversationVoiceSession(
   }, []);
 
   useEffect(() => {
-    if (!input.activeThreadId || !input.bundleMessages?.length) {
+    if (!input.activeThreadId || !input.activeConversationAnchorId || !input.bundleMessages?.length) {
       return undefined;
     }
     const activeThreadId = input.activeThreadId;
+    const activeConversationAnchorId = input.activeConversationAnchorId;
     const pendingMessages = input.bundleMessages.filter((message) => {
       const metadata = parseAgentChatVoiceWorkflowMetadata(message.metadataJson);
-      return metadata?.workflowStatus === 'submitted'
-        || metadata?.workflowStatus === 'queued'
-        || metadata?.workflowStatus === 'running';
+      if (metadata?.conversationAnchorId !== activeConversationAnchorId) {
+        return false;
+      }
+      return metadata.workflowStatus === 'submitted'
+        || metadata.workflowStatus === 'queued'
+        || metadata.workflowStatus === 'running';
     });
     if (pendingMessages.length === 0) {
       return undefined;
@@ -160,6 +166,7 @@ export function useAgentConversationVoiceSession(
           }
           const result = await reconcileAgentChatVoiceWorkflowMessage({
             message,
+            activeConversationAnchorId,
             voiceExecutionSnapshot,
           });
           if (!result.updatedMessage || cancelled) {
@@ -191,6 +198,7 @@ export function useAgentConversationVoiceSession(
     input.aiConfig,
     input.agentResolution,
     input.bundleMessages,
+    input.activeConversationAnchorId,
     input.activeThreadId,
     input.reportHostError,
     input.setBundleCache,
@@ -201,6 +209,11 @@ export function useAgentConversationVoiceSession(
     if (!input.activeTarget) {
       return input.t('Chat.voiceSessionTargetRequired', {
         defaultValue: 'Select an agent before starting voice input.',
+      });
+    }
+    if (!input.activeThreadId || !normalizeAgentVoiceSessionConversationAnchorId(input.activeConversationAnchorId)) {
+      return input.t('Chat.voiceSessionAnchorRequired', {
+        defaultValue: 'Voice input is unavailable because the conversation anchor is not ready.',
       });
     }
     if (input.transcribeCapabilityProjection?.reasonCode === 'selection_missing' || input.transcribeCapabilityProjection?.reasonCode === 'selection_cleared') {
@@ -241,8 +254,22 @@ export function useAgentConversationVoiceSession(
     failureDefaultMessage: string;
   }) => {
     try {
-      if (params.interruptActiveStream !== false && input.activeThreadId) {
-        cancelStream(input.activeThreadId);
+      const activeThreadId = input.activeThreadId;
+      const conversationAnchorId = normalizeAgentVoiceSessionConversationAnchorId(input.activeConversationAnchorId);
+      if (!activeThreadId || !conversationAnchorId) {
+        const message = input.t('Chat.voiceSessionAnchorRequired', {
+          defaultValue: 'Voice input is unavailable because the conversation anchor is not ready.',
+        });
+        setVoiceSessionState({
+          status: 'failed',
+          mode: params.degradeToPushToTalkOnFailure ? 'push-to-talk' : params.mode,
+          conversationAnchorId,
+          message,
+        });
+        return false;
+      }
+      if (params.interruptActiveStream !== false) {
+        cancelStream(activeThreadId);
       }
       const captureSession = await startAgentVoiceCaptureSession(
         params.mode === 'hands-free'
@@ -268,6 +295,7 @@ export function useAgentConversationVoiceSession(
       setVoiceSessionState({
         status: 'listening',
         mode: params.mode,
+        conversationAnchorId,
         message: null,
       });
       return true;
@@ -276,12 +304,22 @@ export function useAgentConversationVoiceSession(
       input.reportHostError(new Error(message, { cause: error }));
       setVoiceSessionState(
         params.degradeToPushToTalkOnFailure
-          ? { status: 'failed', mode: 'push-to-talk', message }
-          : { status: 'failed', mode: params.mode, message },
+          ? {
+            status: 'failed',
+            mode: 'push-to-talk',
+            conversationAnchorId: normalizeAgentVoiceSessionConversationAnchorId(input.activeConversationAnchorId),
+            message,
+          }
+          : {
+            status: 'failed',
+            mode: params.mode,
+            conversationAnchorId: normalizeAgentVoiceSessionConversationAnchorId(input.activeConversationAnchorId),
+            message,
+          },
       );
       return false;
     }
-  }, [input.activeThreadId, input.reportHostError]);
+  }, [input.activeConversationAnchorId, input.activeThreadId, input.reportHostError, input.t]);
 
   useEffect(() => {
     if (voiceSessionState.mode !== 'hands-free' || isVoiceSessionForeground) {
@@ -296,18 +334,35 @@ export function useAgentConversationVoiceSession(
         return;
       }
       if (voiceSessionState.status === 'listening') {
-      const captureSession = voiceCaptureSessionRef.current;
-      if (!captureSession) {
+        const captureSession = voiceCaptureSessionRef.current;
+        if (!captureSession) {
+          setVoiceCaptureState(null);
+          setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(voiceSessionState.mode));
+          return;
+        }
+        const sessionAnchorId = voiceSessionState.conversationAnchorId;
+        const activeConversationAnchorId = normalizeAgentVoiceSessionConversationAnchorId(input.activeConversationAnchorId);
+        if (!sessionAnchorId || sessionAnchorId !== activeConversationAnchorId) {
+          voiceCaptureSessionRef.current = null;
+          captureSession.cancel();
+          setVoiceCaptureState(null);
+          setVoiceSessionState({
+            status: 'failed',
+            mode: voiceSessionState.mode,
+            conversationAnchorId: activeConversationAnchorId,
+            message: input.t('Chat.voiceSessionAnchorChanged', {
+              defaultValue: 'Voice input stopped because the conversation anchor changed.',
+            }),
+          });
+          return;
+        }
+        voiceCaptureSessionRef.current = null;
         setVoiceCaptureState(null);
-        setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(voiceSessionState.mode));
-        return;
-      }
-      voiceCaptureSessionRef.current = null;
-      setVoiceCaptureState(null);
-      const activeMode = voiceSessionState.mode;
-      setVoiceSessionState({
-        status: 'transcribing',
+        const activeMode = voiceSessionState.mode;
+        setVoiceSessionState({
+          status: 'transcribing',
           mode: activeMode,
+          conversationAnchorId: sessionAnchorId,
           message: null,
         });
         const abortController = new AbortController();
@@ -330,13 +385,21 @@ export function useAgentConversationVoiceSession(
           });
           if (input.activeThreadId) {
             latestVoiceCaptureByThreadRef.current[input.activeThreadId] = {
+              conversationAnchorId: sessionAnchorId,
               bytes: recording.bytes,
               mimeType: recording.mimeType,
               transcriptText: result.text,
             };
           }
-          await input.persistVoiceTranscriptDraft(result.text);
-          if (activeMode === 'hands-free' && isVoiceSessionForeground) {
+          await input.persistVoiceTranscriptDraft({
+            text: result.text,
+            conversationAnchorId: sessionAnchorId,
+          });
+          if (
+            activeMode === 'hands-free'
+            && isVoiceSessionForeground
+            && sessionAnchorId === normalizeAgentVoiceSessionConversationAnchorId(input.activeConversationAnchorId)
+          ) {
             const continued = await beginVoiceCapture({
               mode: 'hands-free',
               interruptActiveStream: false,
@@ -360,6 +423,7 @@ export function useAgentConversationVoiceSession(
           setVoiceSessionState({
             status: 'failed',
             mode: activeMode,
+            conversationAnchorId: sessionAnchorId,
             message: runtimeError.message,
           });
         } finally {
@@ -378,6 +442,7 @@ export function useAgentConversationVoiceSession(
         setVoiceSessionState({
           status: 'failed',
           mode: voiceSessionState.mode,
+          conversationAnchorId: normalizeAgentVoiceSessionConversationAnchorId(input.activeConversationAnchorId),
           message: unavailableMessage,
         });
         return;
@@ -389,14 +454,17 @@ export function useAgentConversationVoiceSession(
     })();
   }, [
     beginVoiceCapture,
+    input.activeConversationAnchorId,
     input.activeThreadId,
     input.aiConfig,
     input.agentResolution,
     input.persistVoiceTranscriptDraft,
     input.reportHostError,
+    input.t,
     input.transcribeCapabilityProjection,
     resolveVoiceSessionUnavailableMessage,
     voiceSessionState.mode,
+    voiceSessionState.conversationAnchorId,
     voiceSessionState.status,
     isVoiceSessionForeground,
   ]);
@@ -424,6 +492,7 @@ export function useAgentConversationVoiceSession(
         setVoiceSessionState({
           status: 'failed',
           mode: 'push-to-talk',
+          conversationAnchorId: normalizeAgentVoiceSessionConversationAnchorId(input.activeConversationAnchorId),
           message: unavailableMessage,
         });
         return;
@@ -436,6 +505,7 @@ export function useAgentConversationVoiceSession(
     })();
   }, [
     beginVoiceCapture,
+    input.activeConversationAnchorId,
     resolveVoiceSessionUnavailableMessage,
     voiceSessionState.mode,
     voiceSessionState.status,

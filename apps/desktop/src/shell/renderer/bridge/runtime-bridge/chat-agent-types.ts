@@ -268,6 +268,6 @@ export type AgentLocalCommitTurnResultInput = {
 export type AgentLocalCancelTurnInput = {
   threadId: string;
   turnId: string;
-  scope: 'turn' | 'tail' | 'projection';
+  scope: 'turn' | 'projection';
   abortedAtMs: number;
 };

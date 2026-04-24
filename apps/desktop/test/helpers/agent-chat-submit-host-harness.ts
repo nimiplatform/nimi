@@ -194,6 +194,7 @@ export function resolveAgentConsumerSnapshotForHarness(input: {
     voiceSessionState: {
       status: 'idle',
       mode: 'push-to-talk',
+      conversationAnchorId: null,
       message: null,
     },
     footerViewState,

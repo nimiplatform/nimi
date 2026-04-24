@@ -13,6 +13,7 @@ test('agent voice session composer state maps listening to recording semantics',
     state: {
       status: 'listening',
       mode: 'push-to-talk',
+      conversationAnchorId: 'anchor-1',
       message: null,
     },
     onToggle: () => undefined,
@@ -26,16 +27,19 @@ test('agent voice session shell starts idle and failed shell state maps to faile
   assert.deepEqual(createInitialAgentVoiceSessionShellState(), {
     status: 'idle',
     mode: 'push-to-talk',
+    conversationAnchorId: null,
     message: null,
   });
   assert.deepEqual(createForegroundHandsFreeAgentVoiceSessionShellState(), {
     status: 'idle',
     mode: 'hands-free',
+    conversationAnchorId: null,
     message: null,
   });
   assert.deepEqual(resolveIdleAgentVoiceSessionShellState('hands-free'), {
     status: 'idle',
     mode: 'hands-free',
+    conversationAnchorId: null,
     message: null,
   });
 
@@ -43,6 +47,7 @@ test('agent voice session shell starts idle and failed shell state maps to faile
     state: {
       status: 'failed',
       mode: 'hands-free',
+      conversationAnchorId: 'anchor-1',
       message: 'route unavailable',
     },
     onToggle: () => undefined,

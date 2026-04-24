@@ -163,6 +163,7 @@ export function resolveVoiceWorkflowProgressMessage(
 
 export function buildVoiceWorkflowMetadata(input: {
   turnId: string;
+  conversationAnchorId: string;
   voiceDecision: Extract<AgentLocalChatVoiceState, { status: 'pending' }>;
   workflowStatus: AgentChatVoiceWorkflowStatus;
   jobId: string;
@@ -178,6 +179,7 @@ export function buildVoiceWorkflowMetadata(input: {
     sourceTurnId: input.turnId,
     sourceMessageId: input.voiceDecision.sourceMessageId,
     sourceActionId: input.voiceDecision.sourceActionId,
+    conversationAnchorId: input.conversationAnchorId,
     beatId: input.voiceDecision.beatId,
     workflowCapability: input.voiceDecision.workflowIntent.capability,
     workflowType: input.voiceDecision.workflowIntent.workflowType,

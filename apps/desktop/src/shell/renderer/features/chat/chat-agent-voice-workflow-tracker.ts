@@ -27,6 +27,7 @@ function normalizeText(value: unknown): string {
 
 export async function reconcileAgentChatVoiceWorkflowMessage(input: {
   message: AgentLocalMessageRecord;
+  activeConversationAnchorId?: string | null;
   voiceExecutionSnapshot: AISnapshot | null;
   runtimeDeps?: ChatAgentVoiceWorkflowRuntimeDeps;
   storeClient?: VoiceWorkflowTrackerStoreClient;
@@ -37,6 +38,13 @@ export async function reconcileAgentChatVoiceWorkflowMessage(input: {
     return {
       updatedMessage: null,
       stillPending: false,
+    };
+  }
+  const activeConversationAnchorId = normalizeText(input.activeConversationAnchorId);
+  if (activeConversationAnchorId && metadata.conversationAnchorId !== activeConversationAnchorId) {
+    return {
+      updatedMessage: null,
+      stillPending: true,
     };
   }
   const storeClient = input.storeClient ?? chatAgentStoreClient;

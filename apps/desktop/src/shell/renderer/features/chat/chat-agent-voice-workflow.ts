@@ -36,6 +36,7 @@ export type AgentChatVoiceWorkflowMessageMetadata = {
   sourceTurnId: string;
   sourceMessageId: string;
   sourceActionId: string;
+  conversationAnchorId: string;
   beatId: string;
   workflowCapability: AgentVoiceWorkflowCapability;
   workflowType: AgentChatVoiceWorkflowType;
@@ -90,6 +91,7 @@ export function toAgentChatVoiceWorkflowMetadataJson(
     sourceTurnId: metadata.sourceTurnId,
     sourceMessageId: metadata.sourceMessageId,
     sourceActionId: metadata.sourceActionId,
+    conversationAnchorId: metadata.conversationAnchorId,
     beatId: metadata.beatId,
     workflowCapability: metadata.workflowCapability,
     workflowType: metadata.workflowType,
@@ -135,13 +137,14 @@ export function parseAgentChatVoiceWorkflowMetadata(
   const sourceTurnId = normalizeText(record.sourceTurnId);
   const sourceMessageId = normalizeText(record.sourceMessageId);
   const sourceActionId = normalizeText(record.sourceActionId);
+  const conversationAnchorId = normalizeText(record.conversationAnchorId);
   const beatId = normalizeText(record.beatId);
   const jobId = normalizeText(record.jobId);
   const playbackPrompt = normalizeText(record.playbackPrompt);
   const transcriptText = typeof record.transcriptText === 'string'
     ? record.transcriptText
     : playbackPrompt;
-  if (!sourceTurnId || !sourceMessageId || !sourceActionId || !beatId || !jobId || !playbackPrompt) {
+  if (!sourceTurnId || !sourceMessageId || !sourceActionId || !conversationAnchorId || !beatId || !jobId || !playbackPrompt) {
     return null;
   }
   const voiceReferenceRecord = record.voiceReference;
@@ -163,6 +166,7 @@ export function parseAgentChatVoiceWorkflowMetadata(
     sourceTurnId,
     sourceMessageId,
     sourceActionId,
+    conversationAnchorId,
     beatId,
     workflowCapability,
     workflowType,

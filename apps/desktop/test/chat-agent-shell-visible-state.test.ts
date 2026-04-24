@@ -204,6 +204,7 @@ function resolveSurfaceState(input: {
     voiceSessionState: input.voiceSessionState || {
       status: 'idle',
       mode: 'push-to-talk',
+      conversationAnchorId: null,
       message: null,
     },
   });
@@ -269,6 +270,7 @@ test('agent visible state surfaces foreground hands-free as an admitted idle lab
     voiceSessionState: {
       status: 'idle',
       mode: 'hands-free',
+      conversationAnchorId: null,
       message: null,
     },
   });
@@ -405,6 +407,7 @@ test('agent visible state preserves loading over the latest accepted statusCue',
     voiceSessionState: {
       status: 'transcribing',
       mode: 'push-to-talk',
+      conversationAnchorId: 'anchor-agent-1',
       message: null,
     },
   });
@@ -435,6 +438,7 @@ test('agent visible state preserves loading over runtime committed projection', 
     voiceSessionState: {
       status: 'transcribing',
       mode: 'push-to-talk',
+      conversationAnchorId: 'anchor-agent-1',
       message: null,
     },
   });
@@ -460,6 +464,7 @@ test('agent visible state uses live microphone amplitude while listening', () =>
     voiceSessionState: {
       status: 'listening',
       mode: 'push-to-talk',
+      conversationAnchorId: 'anchor-agent-1',
       message: null,
     },
     voiceCaptureState: {

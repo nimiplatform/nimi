@@ -257,7 +257,8 @@ export async function submitAgentConversationTurn(input: {
 
     input.hostInput.currentDraftTextRef.current = submittedText;
     const latestVoiceCapture = input.hostInput.latestVoiceCaptureByThreadRef.current[effectiveThreadId] || null;
-    const matchedVoiceCapture = latestVoiceCapture?.transcriptText === submittedText
+    const matchedVoiceCapture = latestVoiceCapture?.conversationAnchorId === conversationAnchorId
+      && latestVoiceCapture.transcriptText === submittedText
       ? latestVoiceCapture
       : null;
     let submitSession = createInitialAgentSubmitDriverState({

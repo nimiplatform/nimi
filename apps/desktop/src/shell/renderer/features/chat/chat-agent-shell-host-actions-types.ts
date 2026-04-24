@@ -13,6 +13,7 @@ import type {
   AgentSubmitDriverState,
 } from './chat-agent-shell-submit-driver';
 import type { ChatAgentVoiceWorkflowReferenceAudio } from './chat-agent-runtime';
+import type { AgentVoiceSessionAnchorBoundReferenceAudio } from './chat-agent-voice-session';
 import type {
   AgentVoiceWorkflowCapability,
   AgentEffectiveCapabilityResolution,
@@ -55,7 +56,7 @@ export type UseAgentConversationHostActionsInput = {
   draftText: string | null | undefined;
   draftUpdatedAtMs: number | null | undefined;
   latestVoiceCaptureByThreadRef: {
-    current: Record<string, ChatAgentVoiceWorkflowReferenceAudio | undefined>;
+    current: Record<string, AgentVoiceSessionAnchorBoundReferenceAudio | undefined>;
   };
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
