@@ -3,33 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import {
-  DEFAULT_OPENAI_ENDPOINT_V11,
-  getVendorLabelV11,
-  VENDOR_ORDER_V11,
-  randomIdV11,
-  type ApiVendor,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
+import { DEFAULT_OPENAI_ENDPOINT_V11, VENDOR_ORDER_V11, getVendorLabelV11, randomIdV11, type ApiVendor } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import {
-  defaultConnectorAuthOptionForProvider,
-  listConnectorAuthOptionsForProvider,
-  sdkCreateConnector,
-  sdkDeleteConnector,
-  sdkUpdateConnector,
-  sdkListConnectors,
-  sdkListProviderCatalog,
-  providerToVendor,
-  resolveProviderEndpoint,
-  vendorToProvider,
-} from './runtime-config-connector-sdk-service';
-import {
-  inferVendorFromEndpoint,
-  addConnectorToState,
-  removeSelectedConnector,
-  updateConnectorField,
-  replaceConnectorsInState,
-} from './runtime-config-connector-actions';
+import { defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, sdkCreateConnector, sdkDeleteConnector, sdkListConnectors, sdkListProviderCatalog, sdkUpdateConnector, vendorToProvider } from './runtime-config-connector-sdk-service';
+import { addConnectorToState, inferVendorFromEndpoint, removeSelectedConnector, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
 import { formatRuntimeConfigErrorBanner } from './runtime-config-connector-error';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Card as PrimitiveCard, RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
@@ -38,187 +15,9 @@ import { SectionTitle as SharedSectionTitle } from '@renderer/features/settings/
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 import { acquireCodexManagedCredential, type CodexOAuthPendingState } from './runtime-config-codex-oauth';
-
-// Icons
-function CloudIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19" />
-      <path d="M17.5 19c2.485 0 4.5-2.015 4.5-4.5S19.985 10 17.5 10c-.186 0-.367.012-.544.035C16.473 6.607 13.487 4 10 4 6.134 4 3 7.134 3 11c0 .37.03.732.086 1.084A4.496 4.496 0 0 0 2 19.5C2 21.985 4.015 24 6.5 24h11c2.485 0 4.5-2.015 4.5-4.5S19.985 15 17.5 15" />
-    </svg>
-  );
-}
-
-function PlusIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-
-function TrashIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  );
-}
-
-function BoltIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-}
-
-function KeyIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4" />
-    </svg>
-  );
-}
-
-function ServerIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-      <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-      <line x1="6" y1="6" x2="6.01" y2="6" />
-      <line x1="6" y1="18" x2="6.01" y2="18" />
-    </svg>
-  );
-}
-
-function SearchIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-
-function EyeIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function EyeOffIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-      <line x1="2" y1="2" x2="22" y2="22" />
-    </svg>
-  );
-}
-
-function CheckIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
-type CloudPageProps = {
-  model: RuntimeConfigPanelControllerModel;
-  state: RuntimeConfigStateV11;
-};
-
-// Use shared SectionTitle from settings-layout-components (imported as SharedSectionTitle)
+import { BoltIcon, Button, CheckIcon, CloudIcon, EyeIcon, EyeOffIcon, Input, KeyIcon, PlusIcon, SearchIcon, ServerIcon, TrashIcon } from './runtime-config-page-cloud-primitives';
+type CloudPageProps = { model: RuntimeConfigPanelControllerModel; state: RuntimeConfigStateV11 };
 const SectionTitle = SharedSectionTitle;
-
-
-// Button Component
-function Button({
-  children,
-  onClick,
-  variant = 'primary',
-  size = 'md',
-  disabled,
-  icon,
-}: {
-  children?: React.ReactNode;
-  onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md';
-  disabled?: boolean;
-  icon?: React.ReactNode;
-}) {
-  const variantClass = variant === 'primary'
-    ? 'bg-[var(--nimi-action-primary-bg)] text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
-    : variant === 'secondary'
-      ? 'border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-white text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] disabled:bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] disabled:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]'
-      : variant === 'danger'
-        ? 'border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50'
-        : 'text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] disabled:text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]';
-
-  const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-all disabled:cursor-not-allowed hover:shadow-sm ${variantClass} ${sizeClass}`}
-    >
-      {icon}
-      {children}
-    </button>
-  );
-}
-
-// Input Component
-function Input({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = 'text',
-  disabled,
-  icon,
-}: {
-  label?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-  disabled?: boolean;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <div>
-      {label && <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label>}
-      <div className="relative">
-        {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
-            {icon}
-          </div>
-        )}
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={disabled}
-          className={`h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-sm text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${icon ? 'pl-10 pr-4' : 'px-4'}`}
-        />
-      </div>
-    </div>
-  );
-}
-
 export function CloudPage({ model, state }: CloudPageProps) {
   const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
   const CONNECTORS_LOAD_ERROR_LABEL = 'Load connectors failed';
@@ -227,14 +26,12 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const authStatus = useAppStore((s) => s.auth.status);
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
   const pageFeedbackRef = useRef(model.pageFeedback);
-
   const [tokenDraft, setTokenDraft] = useState('');
   const [savingToken, setSavingToken] = useState(false);
   const [tokenSaveError, setTokenSaveError] = useState('');
   const [tokenSavedConnectorId, setTokenSavedConnectorId] = useState('');
   const [codexOAuthPending, setCodexOAuthPending] = useState<CodexOAuthPendingState | null>(null);
   const [codexOAuthBusy, setCodexOAuthBusy] = useState(false);
-
   const selectedConnectorId = selectedConnector?.id || '';
   const connectorScope = selectedConnector?.scope || 'user';
   const isRuntimeSystem = connectorScope === 'runtime-system';
@@ -264,18 +61,15 @@ export function CloudPage({ model, state }: CloudPageProps) {
     && authStatus === 'authenticated'
     && !savingToken
     && !codexOAuthBusy;
-
   useEffect(() => {
     pageFeedbackRef.current = model.pageFeedback;
   }, [model.pageFeedback]);
-
   useEffect(() => {
     setTokenDraft('');
     setTokenSaveError('');
     setCodexOAuthPending(null);
     setCodexOAuthBusy(false);
   }, [selectedConnectorId]);
-
   const canSaveToken = useMemo(
     () => (
       Boolean(selectedConnectorId)
@@ -290,14 +84,12 @@ export function CloudPage({ model, state }: CloudPageProps) {
     () => providerCatalog.find((entry) => entry.provider === selectedConnector?.provider) || null,
     [providerCatalog, selectedConnector?.provider],
   );
-
   const reportError = useCallback((label: string, error: unknown) => {
     model.setPageFeedback({
       kind: 'error',
       message: formatRuntimeConfigErrorBanner(label, error),
     });
   }, [model]);
-
   const clearPageErrorByLabel = useCallback((label: string) => {
     if (
       pageFeedbackRef.current?.kind === 'error'
@@ -306,17 +98,14 @@ export function CloudPage({ model, state }: CloudPageProps) {
       model.setPageFeedback(null);
     }
   }, [model]);
-
   useEffect(() => {
     model.setConnectorTestFeedback(null);
   }, [model, selectedConnectorId]);
-
   const loadProviderCatalog = useCallback(async () => {
     const providers = await sdkListProviderCatalog();
     setProviderCatalog(Array.isArray(providers) ? providers : []);
     clearPageErrorByLabel(PROVIDER_CATALOG_ERROR_LABEL);
   }, [clearPageErrorByLabel, PROVIDER_CATALOG_ERROR_LABEL]);
-
   const vendorOptions = useMemo(() => {
     const known = [...VENDOR_ORDER_V11];
     const knownSet = new Set(known);
@@ -331,7 +120,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
       label: getVendorLabelV11(vendor),
     }));
   }, [providerCatalog]);
-
   const refreshConnectorsFromSdk = useCallback(async () => {
     const connectors = await sdkListConnectors();
     updateState((prev) => {
@@ -340,7 +128,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
     });
     clearPageErrorByLabel(CONNECTORS_LOAD_ERROR_LABEL);
   }, [clearPageErrorByLabel, updateState, CONNECTORS_LOAD_ERROR_LABEL]);
-
   useEffect(() => {
     let cancelled = false;
     void loadProviderCatalog()
@@ -353,7 +140,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
       cancelled = true;
     };
   }, [loadProviderCatalog, reportError, PROVIDER_CATALOG_ERROR_LABEL]);
-
   useEffect(() => {
     const unsubscribe = getPlatformClient().runtime.events.on('runtime.connected', () => {
       void loadProviderCatalog()
@@ -373,7 +159,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
     PROVIDER_CATALOG_ERROR_LABEL,
     CONNECTORS_LOAD_ERROR_LABEL,
   ]);
-
   const onAddConnector = useCallback(async () => {
     const vendor: ApiVendor = 'openrouter';
     const provider = vendorToProvider(vendor);
@@ -400,7 +185,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
     };
     updateState((prev) => addConnectorToState(prev, draft));
   }, [authStatus, state.connectors.length, updateState]);
-
   const onRemoveSelectedConnector = useCallback(async () => {
     if (!selectedConnectorId) return;
     if (isRuntimeSystem) return;
@@ -411,11 +195,9 @@ export function CloudPage({ model, state }: CloudPageProps) {
     await sdkDeleteConnector(selectedConnectorId);
     await refreshConnectorsFromSdk();
   }, [isRuntimeSystem, selectedConnectorId, selectedConnector, updateState, refreshConnectorsFromSdk]);
-
   const onSelectConnector = useCallback((connectorId: string) => {
     updateState((prev) => ({ ...prev, selectedConnectorId: connectorId }));
   }, [updateState]);
-
   const onRenameSelectedConnector = useCallback((label: string) => {
     if (isRuntimeSystem) return;
     const previousLabel = String(selectedConnector?.label || '');
@@ -430,7 +212,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
       })();
     }
   }, [isRuntimeSystem, selectedConnector, selectedConnectorId, updateState, reportError]);
-
   const onChangeConnectorEndpoint = useCallback((endpoint: string) => {
     if (!selectedConnector || isRuntimeSystem) return;
     const previousConnector = selectedConnector;
@@ -466,7 +247,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
       })();
     }
   }, [isRuntimeSystem, selectedConnector, selectedConnectorId, updateState, reportError]);
-
   const onSaveConnectorCredential = useCallback(async (input: {
     credentialValue?: string;
     credentialJson?: string;
@@ -478,7 +258,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
     if (selectedConnector.authMode === 'oauth_managed' && authStatus !== 'authenticated') {
       throw new Error('Managed OAuth connectors require an authenticated desktop session.');
     }
-
     if (selectedConnector.isDraft) {
       const created = await sdkCreateConnector({
         provider: selectedConnector.provider,
@@ -497,7 +276,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
       model.onVaultChanged();
       return created.id;
     }
-
     await sdkUpdateConnector({
       connectorId: selectedConnectorId,
       credentialValue: normalizedSecret,
@@ -509,7 +287,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
     model.onVaultChanged();
     return selectedConnectorId;
   }, [authStatus, selectedConnectorId, selectedConnector, updateState, model]);
-
   const onAcquireCodexOAuth = useCallback(async () => {
     if (!selectedConnector || !selectedConnectorId || !isCodexManagedConnector) {
       return;
@@ -536,7 +313,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
       setCodexOAuthBusy(false);
     }
   }, [isCodexManagedConnector, onSaveConnectorCredential, selectedConnector, selectedConnectorId]);
-
   const onChangeConnectorVendor = useCallback(async (vendor: string) => {
     if (!selectedConnector || !canEditVendor) return;
     const previousConnector = selectedConnector;
@@ -568,7 +344,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
       }
     }
   }, [canEditVendor, selectedConnector, selectedConnectorId, updateState]);
-
   const onChangeConnectorAuthOption = useCallback((nextValue: string) => {
     if (!selectedConnector || isRuntimeSystem || !isDraft) return;
     const nextOption = authOptions.find((option) => option.value === nextValue) || null;
@@ -582,7 +357,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
     setTokenSaveError('');
     setTokenSavedConnectorId('');
   }, [authOptions, isDraft, isRuntimeSystem, selectedConnector, selectedConnectorId, updateState]);
-
   const saveTokenToVault = async () => {
     if (!selectedConnectorId) return;
     const secret = tokenDraft.trim();
@@ -599,7 +373,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
       setSavingToken(false);
     }
   };
-
   return (
     <RuntimePageShell className="space-y-4">
       {/* Top bar: actions */}
@@ -629,7 +402,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
           </button>
         </div>
       </div>
-
       {model.connectorTestFeedback ? (
         <InlineFeedback
           feedback={model.connectorTestFeedback}
@@ -638,7 +410,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
           onDismiss={() => model.setConnectorTestFeedback(null)}
         />
       ) : null}
-
       {/* Split panel: connector list (left) + config (right) */}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         {/* Left panel — connector list */}
@@ -701,7 +472,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
             </div>
           )}
         </PrimitiveCard>
-
         {/* Right panel — connector config */}
         <PrimitiveCard className="h-[600px] overflow-y-auto p-5">
           {selectedConnector ? (
@@ -736,7 +506,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   ) : null}
                 </div>
               </div>
-
               {/* Endpoint and Credential */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
@@ -811,7 +580,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   </p>
                 </div>
               ) : null}
-
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-2 pt-2">
                 {!isSystemOwned && (
@@ -866,7 +634,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 <div className="flex-1" />
                 <StatusBadge status={selectedConnector.status} />
               </div>
-
               {/* Info Messages */}
               <div className="space-y-2">
                 <p className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">ID: {selectedConnector.id}</p>
@@ -925,9 +692,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   <p className="text-xs text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] rounded-lg px-3 py-2">{tokenSaveError}</p>
                 )}
               </div>
-
               <div className="h-px bg-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)]" />
-
               {/* Models Section */}
               <div className="space-y-3">
                 <Input

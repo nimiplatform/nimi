@@ -25,6 +25,7 @@ const chatAiPresentationSource = readWorkspaceFile('src/shell/renderer/features/
 const chatAgentAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
 const chatAgentCanonicalComposerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx');
 const chatAgentPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
+const chatAgentAvatarSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-avatar-settings-panel.tsx');
 const chatHumanAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-adapter.tsx');
 const canonicalHumanComposerProfileSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-canonical-composer-profile.tsx');
 const chatAiModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
@@ -182,7 +183,7 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /const AGENT_TRANSCRIPT_WIDTH_CLASS = 'max-w-\[min\(680px,calc\(100vw-680px\)\)\]'/);
   assert.match(chatAgentPresentationSource, /widthPositionClassName=\{AGENT_TRANSCRIPT_POSITION_CLASS\}/);
   assert.match(chatAgentPresentationSource, /topContent: schedulingFeedbackNode/);
-  assert.match(chatAgentPresentationSource, /<ChatAgentAvatarAppLauncher/);
+  assert.match(chatAgentAvatarSettingsSource, /<ChatAgentAvatarAppLauncher/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);
   assert.match(chatAgentPresentationSource, /diagnosticsContent=/);
   assert.match(chatAgentPresentationSource, /composerContent:/);

@@ -64,9 +64,10 @@ test('chat page startup keeps agent mode lazy-loaded while removing the desktop-
 
 test('agent shell presentation disables stage panel props so desktop chat cannot present a co-equal local avatar carrier route', () => {
   const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
+  const avatarSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-avatar-settings-panel.tsx');
   assert.match(source, /stagePanelProps:\s*undefined/);
   assert.match(source, /topContent:\s*schedulingFeedbackNode/);
-  assert.equal((source.match(/ChatAgentAvatarAppLauncher/g) || []).length, 2);
+  assert.equal((avatarSettingsSource.match(/ChatAgentAvatarAppLauncher/g) || []).length, 2);
   assert.doesNotMatch(source, /avatarStagePlacement/u);
   assert.doesNotMatch(source, /useAgentAvatarPlacement/u);
 });

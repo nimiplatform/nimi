@@ -2,8 +2,8 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIConfig, RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import {
-  CapabilityModelCard,
   ImageParamsEditor,
+  ModelConfigPanel,
   ProfileConfigSection,
   VideoParamsEditor,
   parseImageParams,
@@ -285,7 +285,13 @@ export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
                     onBack={() => setActiveModuleId(null)}
                     backLabel={backLabel}
                   />
-                  <CapabilityModelCard item={activeModule.item} />
+                  <ModelConfigPanel
+                    sections={[{
+                      id: activeModule.descriptor.id,
+                      title: activeModule.label,
+                      items: [activeModule.item],
+                    }]}
+                  />
                 </div>
               </div>
             ) : (

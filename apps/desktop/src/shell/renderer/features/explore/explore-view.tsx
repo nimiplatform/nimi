@@ -240,10 +240,16 @@ export function ExploreView(props: ExploreViewProps) {
         }
       `}</style>
       {/* Header bar */}
-      <div className="shrink-0">
+      <Surface
+        tone="panel"
+        material="glass-regular"
+        elevation="base"
+        padding="none"
+        className="shrink-0 rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+      >
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-end justify-between gap-4 px-5 py-4">
           <div>
-            <div className="nimi-kicker-tiny mb-3">{t('Explore.pageKicker', { defaultValue: 'Nimi · Explore' })}</div>
+            <div className="desktop-kicker-tiny mb-3">{t('Explore.pageKicker', { defaultValue: 'Nimi · Explore' })}</div>
             <h1
               className="m-0 leading-none"
               style={{
@@ -279,7 +285,7 @@ export function ExploreView(props: ExploreViewProps) {
             </Surface>
           </div>
         </div>
-      </div>
+      </Surface>
 
       {/* Scrollable content */}
       <ScrollArea
@@ -370,7 +376,7 @@ export function ExploreView(props: ExploreViewProps) {
                     WebkitBackdropFilter: 'blur(12px)',
                   }}
                 >
-                  <span className="nimi-world-pulse-dot" />
+                  <span className="desktop-world-pulse-dot" />
                   <span
                     style={{
                       fontFamily: 'var(--nimi-font-mono)',

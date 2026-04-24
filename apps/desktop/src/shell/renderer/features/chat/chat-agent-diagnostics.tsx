@@ -15,6 +15,7 @@ import {
   RuntimeInspectCard,
   RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
+import { AgentDiagnosticsAvatarOverrideCard } from './chat-agent-diagnostics-avatar-override';
 
 const DIAGNOSTIC_INPUT_CLASS_NAME = 'mt-1.5 w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-2.5 py-1.5 text-[13px] font-medium text-[var(--nimi-text-primary)] outline-none transition focus:border-[color:var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] disabled:cursor-not-allowed disabled:opacity-50';
 
@@ -326,6 +327,8 @@ export function AgentDiagnosticsPanel(props: {
               </div>
             ) : null}
           </DiagnosticsSectionCard>
+
+          <AgentDiagnosticsAvatarOverrideCard t={t} disabled={mutationPending} />
 
         </>
       ) : null}

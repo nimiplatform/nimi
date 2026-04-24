@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from 'react';
+import React, { useState, useCallback, type ReactNode } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import {
   hasConversationSetupBlockingState,

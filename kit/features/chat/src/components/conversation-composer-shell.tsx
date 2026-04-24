@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import React, { type CSSProperties, type ReactNode } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 
 export type ConversationComposerShellProps = {

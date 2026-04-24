@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 
 export function CanonicalSettingsSegmentButton(props: {

@@ -10,6 +10,38 @@
 @source "../../features/model-config/src/**/*.{ts,tsx}";
 @source "../../features/model-picker/src/**/*.{ts,tsx}";
 
+/* Map Tailwind v4 font-family utilities onto shared Nimi font tokens. */
+@theme {
+  --font-sans: var(--nimi-font-sans);
+  --font-mono: var(--nimi-font-mono);
+  --font-serif: var(--nimi-font-display);
+}
+
+:root {
+  --nimi-font-sans:
+    "Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC",
+    "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  --nimi-font-display:
+    "Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC",
+    "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  --nimi-font-mono:
+    "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace,
+    SFMono-Regular, Menlo, Consolas, monospace;
+  --nimi-fg-1: var(--nimi-text-primary);
+  --nimi-fg-2: var(--nimi-text-secondary);
+  --nimi-fg-3: var(--nimi-text-muted);
+  --nimi-fg-4: var(--nimi-field-placeholder);
+  --nimi-fg-inverse: var(--nimi-text-inverse);
+  --nimi-accent: var(--nimi-action-primary-bg);
+  --nimi-accent-hover: var(--nimi-action-primary-bg-hover);
+  --nimi-accent-soft: color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent);
+  --nimi-accent-onAccent: #06281e;
+}
+
+[data-nimi-scheme="dark"] {
+  --nimi-accent-onAccent: #062217;
+}
+
 html,
 body,
 #root {

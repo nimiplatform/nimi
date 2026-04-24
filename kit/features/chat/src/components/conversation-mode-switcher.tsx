@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationMode } from '../types.js';
 

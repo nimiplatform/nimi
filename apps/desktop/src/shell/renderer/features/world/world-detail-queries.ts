@@ -4,54 +4,30 @@ import {
   normalizeWorldTruthDetail,
   type WorldTruthListItem,
   type WorldTruthDetail,
-  type WorldTruthRecommendedAgent,
 } from '@nimiplatform/sdk/world';
 import { dataSync } from '@runtime/data-sync';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
-import type { JsonObject } from '@runtime/net/json';
 import { queryClient } from '@renderer/infra/query-client/query-client';
+import { buildWorldHistorySummary, mergeWorldPrimaryDetailTruth, toSemanticBundle, toWorldAuditItem, toWorldBindingItem, toWorldLorebookItem } from './world-detail-query-converters';
 import type {
   WorldAgent,
   WorldAuditItem,
-  WorldBindingItem,
   WorldDetailData,
   WorldHistoryBundle,
   WorldHistoryItem,
-  WorldLorebookItem,
   WorldPublicAssetsData,
   WorldRecommendedAgent,
   WorldSceneItem,
   WorldSemanticData,
-  WorldSemanticLanguage,
-  WorldSemanticLevel,
-  WorldSemanticRealm,
-  WorldSemanticRule,
-  WorldSemanticSnapshotItem,
-  WorldSemanticTaboo,
-  WorldSemanticTimelineItem,
 } from './world-detail-types';
 import type { WorldListItem } from './world-list-model';
-
-type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
 type WorldDetailWithAgentsResponse = Awaited<ReturnType<typeof dataSync.loadWorldDetailWithAgents>>;
 type WorldDetailWithAgentsDto = NonNullable<WorldDetailWithAgentsResponse>;
 type WorldHistoryPayload = Awaited<ReturnType<typeof dataSync.loadWorldHistory>>;
 type WorldHistoryDetailDto = WorldHistoryPayload['items'][number];
-type WorldSemanticBundleDto = Awaited<ReturnType<typeof dataSync.loadWorldSemanticBundle>>;
-type WorldviewDetailDto = NonNullable<WorldSemanticBundleDto['worldview']>;
-type PowerSystemDto = RealmModel<'PowerSystemDto'>;
-type PowerSystemLevelDto = RealmModel<'PowerSystemLevelDto'>;
-type PowerSystemTabooDto = RealmModel<'PowerSystemTabooDto'>;
-type SpaceRealmDto = RealmModel<'SpaceRealmDto'>;
-type WorldLanguageDto = RealmModel<'WorldLanguageDto'>;
-type PublicWorldLorebookDto = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>['items'][number];
-type PublicBindingDto = Awaited<ReturnType<typeof dataSync.loadWorldBindings>>['items'][number];
 type PublicWorldSceneDto = Awaited<ReturnType<typeof dataSync.loadWorldScenes>>['items'][number];
-
 export type WorldPrimaryDetailRecord = WorldDetailWithAgentsDto & {
   worldTruth: WorldTruthDetail;
 };
-
 type WorldDisplayComputed = {
   time: {
     currentWorldTime: string | null;
@@ -72,7 +48,6 @@ type WorldDisplayComputed = {
   };
   featuredAgentCount: number;
 };
-
 export type WorldDisplayDetail = {
   primary: WorldPrimaryDetailRecord;
   world: WorldDetailData;
@@ -88,7 +63,6 @@ export type WorldDisplayDetail = {
     publicAssets: 'success' | 'error';
   };
 };
-
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT = 4;
 const EMPTY_WORLD_HISTORY: WorldHistoryBundle = {
@@ -114,36 +88,23 @@ const EMPTY_WORLD_PUBLIC_ASSETS: WorldPublicAssetsData = {
   scenes: [],
   bindings: [],
 };
-
 const EVENT_HORIZON_TAG: Record<'PAST' | 'ONGOING' | 'FUTURE', string> = {
   PAST: 'Past',
   ONGOING: 'Ongoing',
   FUTURE: 'Future',
 };
-
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
-
 function readBoolean(value: unknown): boolean | null {
   return typeof value === 'boolean' ? value : null;
 }
-
 function readNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
-
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 }
-
-function assertRecord(value: unknown, fieldName: string): JsonObject {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
-  }
-  return value as JsonObject;
-}
-
 function requireString(value: unknown, fieldName: string): string {
   const normalized = readString(value);
   if (!normalized) {
@@ -151,7 +112,6 @@ function requireString(value: unknown, fieldName: string): string {
   }
   return normalized;
 }
-
 function requireNumber(value: unknown, fieldName: string): number {
   const normalized = readNumber(value);
   if (normalized === null) {
@@ -159,34 +119,15 @@ function requireNumber(value: unknown, fieldName: string): number {
   }
   return normalized;
 }
-
 function requireStringArray(value: unknown, fieldName: string): string[] {
   if (!Array.isArray(value)) {
     throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
   }
   return value.map((item, index) => requireString(item, `${fieldName}_${index}`));
 }
-
-function requireRecordArray(value: unknown, fieldName: string): JsonObject[] {
-  if (!Array.isArray(value)) {
-    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
-  }
-  return value.map((item, index) => assertRecord(item, `${fieldName}_${index}`));
-}
-
-function assertArrayIfPresent(value: unknown, fieldName: string): void {
-  if (value == null) {
-    return;
-  }
-  if (!Array.isArray(value)) {
-    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
-  }
-}
-
 function normalizeWorldId(worldId: string): string {
   return String(worldId || '').trim();
 }
-
 function formatLabel(source: string): string {
   return source
     .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -194,14 +135,6 @@ function formatLabel(source: string): string {
     .trim()
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
-
-function stringifyLoose(value: unknown): string | null {
-  if (typeof value === 'string' && value.trim()) return value.trim();
-  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
-  if (typeof value === 'boolean') return value ? 'true' : 'false';
-  return null;
-}
-
 function inferEventHorizon(raw: WorldHistoryDetailDto): 'PAST' | 'ONGOING' | 'FUTURE' {
   const eventType = readString(raw.eventType)?.toLowerCase() ?? '';
   if (eventType.includes('future')) return 'FUTURE';
@@ -215,12 +148,10 @@ function inferEventHorizon(raw: WorldHistoryDetailDto): 'PAST' | 'ONGOING' | 'FU
   }
   return 'PAST';
 }
-
 function inferEventLevel(raw: WorldHistoryDetailDto): 'PRIMARY' | 'SECONDARY' {
   const eventType = readString(raw.eventType)?.toLowerCase() ?? '';
   return eventType.includes('secondary') ? 'SECONDARY' : 'PRIMARY';
 }
-
 function toWorldHistoryItem(raw: WorldHistoryDetailDto, index: number): WorldHistoryItem {
   const id = requireString(raw.id, 'event_id');
   const title = requireString(raw.title, 'event_title');
@@ -260,14 +191,12 @@ function toWorldHistoryItem(raw: WorldHistoryDetailDto, index: number): WorldHis
     needsEvidence: evidenceRefs.length === 0,
   };
 }
-
 function toWorldDisplayComputed(raw: unknown): WorldDisplayComputed {
   const record = asRecord(raw);
   const time = asRecord(record?.time);
   const languages = asRecord(record?.languages);
   const entry = asRecord(record?.entry);
   const score = asRecord(record?.score);
-
   return {
     time: {
       currentWorldTime: readString(time?.currentWorldTime),
@@ -316,19 +245,16 @@ function toWorldDisplayComputed(raw: unknown): WorldDisplayComputed {
     featuredAgentCount: readNumber(record?.featuredAgentCount) ?? 0,
   };
 }
-
 function formatAgentHandle(agent: Record<string, unknown>, display: Record<string, unknown> | null, name: string): string {
   const raw = readString(agent.handle)
     ? String(agent.handle)
     : (readString(display?.role) ? String(display?.role) : name);
   return raw.startsWith('@') || raw.startsWith('~') ? raw : `@${raw}`;
 }
-
 function toWorldAgent(agent: Record<string, unknown>, worldCreatedAt: string): WorldAgent {
   const display = asRecord(agent.display);
   const stats = asRecord(agent.stats);
   const name = String(agent.name || 'Unknown');
-
   return {
     id: String(agent.id || ''),
     name,
@@ -353,7 +279,6 @@ function toWorldAgent(agent: Record<string, unknown>, worldCreatedAt: string): W
       : null,
   };
 }
-
 function toWorldDisplayData(detail: WorldPrimaryDetailRecord): WorldDetailData {
   const computed = toWorldDisplayComputed(detail.computed);
   return {
@@ -396,7 +321,6 @@ function toWorldDisplayData(detail: WorldPrimaryDetailRecord): WorldDetailData {
     recommendedAgents: computed.entry.recommendedAgents,
   };
 }
-
 export function toWorldDisplayFallback(world: WorldListItem): WorldDetailData {
   return {
     id: world.id,
@@ -445,332 +369,14 @@ export function toWorldDisplayFallback(world: WorldListItem): WorldDetailData {
     })),
   };
 }
-
-function toOperationRules(raw?: PowerSystemDto['rules']): WorldSemanticRule[] {
-  return (raw ?? []).reduce<WorldSemanticRule[]>((acc, item) => {
-    const key = requireString(item.key, 'semantic_rule_key');
-    const title = requireString(item.title, 'semantic_rule_title');
-    const value = requireString(item.value, 'semantic_rule_value');
-    acc.push({ key, title, value });
-    return acc;
-  }, []);
-}
-
-function toSemanticLevels(raw?: PowerSystemLevelDto[]): WorldSemanticLevel[] {
-  return (raw ?? []).reduce<WorldSemanticLevel[]>((acc, item) => {
-    const name = requireString(item.name, 'semantic_level_name');
-    acc.push({
-      name,
-      description: readString(item.description),
-      extra: readString(item.breakthroughCondition),
-    });
-    return acc;
-  }, []);
-}
-
-function toTaboos(raw?: PowerSystemTabooDto[]): WorldSemanticTaboo[] {
-  return (raw ?? []).reduce<WorldSemanticTaboo[]>((acc, item) => {
-    const name = readString(item.name) ?? readString(item.title);
-    if (!name) {
-      throw new Error('WORLD_DETAIL_SEMANTIC_TABOO_NAME_INVALID');
-    }
-    acc.push({
-      name,
-      description: readString(item.description),
-      severity: readString(item.severity),
-    });
-    return acc;
-  }, []);
-}
-
-function toRealms(raw?: SpaceRealmDto[]): WorldSemanticRealm[] {
-  return (raw ?? []).reduce<WorldSemanticRealm[]>((acc, item) => {
-    const name = requireString(item.name, 'semantic_realm_name');
-    acc.push({
-      name,
-      description: readString(item.description),
-      accessibility: readString(item.accessibility),
-    });
-    return acc;
-  }, []);
-}
-
-function toLanguages(raw?: WorldLanguageDto[]): WorldSemanticLanguage[] {
-  return (raw ?? []).reduce<WorldSemanticLanguage[]>((acc, item) => {
-    const name = requireString(item.name, 'semantic_language_name');
-    acc.push({
-      name,
-      category: readString(item.category),
-      description: readString(item.description),
-      writingSample: readString(item.writingSample),
-      spokenSample: readString(item.spokenSample),
-      isCommon: readBoolean(item.isCommon),
-    });
-    return acc;
-  }, []);
-}
-
-function toWorldviewEvents(raw: JsonObject[]): WorldSemanticTimelineItem[] {
-  return raw.reduce<WorldSemanticTimelineItem[]>((acc, item) => {
-    const id = requireString(item.id, 'worldview_event_id');
-    acc.push({
-      id,
-      title: readString(item.title) ?? readString(item.name) ?? formatLabel(readString(item.eventType) ?? 'Update'),
-      summary: readString(item.summary) ?? readString(item.description),
-      eventType: readString(item.eventType),
-      createdAt: readString(item.createdAt) ?? readString(item.occurredAt),
-    });
-    return acc;
-  }, []);
-}
-
-function toWorldviewSnapshots(raw: JsonObject[]): WorldSemanticSnapshotItem[] {
-  return raw.reduce<WorldSemanticSnapshotItem[]>((acc, item) => {
-    const id = requireString(item.id, 'worldview_snapshot_id');
-    const version = readString(item.versionLabel) ?? readString(item.version) ?? readString(item.snapshotVersion);
-    acc.push({
-      id,
-      versionLabel: version ?? `Snapshot ${acc.length + 1}`,
-      summary: readString(item.summary) ?? readString(item.description),
-      createdAt: readString(item.createdAt),
-    });
-    return acc;
-  }, []);
-}
-
-function toSemanticBundle(raw: WorldSemanticBundleDto): WorldSemanticData {
-  assertArrayIfPresent(raw.worldviewEvents, 'worldview_events');
-  assertArrayIfPresent(raw.worldviewSnapshots, 'worldview_snapshots');
-  if (raw.worldview != null) {
-    assertRecord(raw.worldview, 'worldview');
-  }
-  const worldview: WorldviewDetailDto | null = raw.worldview;
-  const coreSystem = worldview?.coreSystem;
-  const spaceTopology = worldview?.spaceTopology;
-  const causality = worldview?.causality;
-  const languages = worldview?.languages;
-
-  const operationRules = toOperationRules(coreSystem?.rules);
-  const powerSystems = (coreSystem?.powerSystems ?? []).reduce<WorldSemanticData['powerSystems']>((acc, item) => {
-    const name = readString(item.name);
-    if (!name) return acc;
-    acc.push({
-      name,
-      description: readString(item.description),
-      levels: toSemanticLevels(item.levels),
-      rules: Array.isArray(item.rules)
-        ? item.rules.map((value) => stringifyLoose(value)).filter((value): value is string => Boolean(value))
-        : [],
-    });
-    return acc;
-  }, []);
-  const standaloneLevels = toSemanticLevels(coreSystem?.levels);
-  const taboos = toTaboos(coreSystem?.taboos);
-  const topology = spaceTopology
-    ? {
-        type: readString(spaceTopology.type),
-        boundary: readString(spaceTopology.boundary),
-        dimensions: stringifyLoose(spaceTopology.dimensions),
-        realms: toRealms(spaceTopology.realms),
-      }
-    : null;
-  const causalityModel = causality
-    ? {
-        type: readString(causality.type),
-        karmaEnabled: readBoolean(causality.karmaEnabled),
-        fateWeight: readNumber(causality.fateWeight),
-      }
-    : null;
-  const languageList = toLanguages(languages?.languages);
-  const worldviewEvents = toWorldviewEvents(requireRecordArray(raw.worldviewEvents ?? [], 'worldview_events'));
-  const worldviewSnapshots = toWorldviewSnapshots(
-    requireRecordArray(raw.worldviewSnapshots ?? [], 'worldview_snapshots'),
-  );
-
-  const hasContent = Boolean(
-    readString(coreSystem?.name) ||
-    readString(coreSystem?.description) ||
-    operationRules.length ||
-    powerSystems.length ||
-    standaloneLevels.length ||
-    taboos.length ||
-    topology?.realms.length ||
-    topology?.type ||
-    topology?.boundary ||
-    topology?.dimensions ||
-    causalityModel?.type ||
-    causalityModel?.karmaEnabled != null ||
-    causalityModel?.fateWeight != null ||
-    languageList.length,
-  );
-
-  return {
-    operationTitle: readString(coreSystem?.name),
-    operationDescription: readString(coreSystem?.description),
-    operationRules,
-    powerSystems,
-    standaloneLevels,
-    taboos,
-    topology,
-    causality: causalityModel,
-    languages: languageList,
-    worldviewEvents,
-    worldviewSnapshots,
-    hasContent,
-  };
-}
-
-function toWorldAuditItem(raw: WorldLevelAuditEventDto): WorldAuditItem {
-  const id = requireString(raw.id, 'audit_id');
-  const occurredAt = raw.occurredAt as unknown;
-  const eventType = readString(raw.eventType);
-  return {
-    id,
-    label: formatLabel(eventType || 'Audit'),
-    eventType,
-    occurredAt: typeof occurredAt === 'string'
-      ? occurredAt
-      : occurredAt instanceof Date
-        ? occurredAt.toISOString()
-        : '',
-    prevLevel: raw.prevLevel ?? null,
-    nextLevel: raw.nextLevel ?? null,
-    ewmaScore: raw.ewmaScore ?? null,
-    freezeReason: readString(raw.freezeReason),
-  };
-}
-
-function toWorldLorebookItem(raw: PublicWorldLorebookDto): WorldLorebookItem {
-  const id = requireString(raw.id, 'lorebook_id');
-  return {
-    id,
-    key: requireString(raw.key, 'lorebook_key'),
-    name: readString(raw.name),
-    content: requireString(raw.content, 'lorebook_content'),
-    keywords: raw.keywords == null ? [] : requireStringArray(raw.keywords, 'lorebook_keywords'),
-    priority: readNumber(raw.priority),
-  };
-}
-
-function toWorldBindingItem(raw: PublicBindingDto): WorldBindingItem {
-  const id = requireString(raw.id, 'binding_id');
-  const resourceRecord = assertRecord(raw.resource, 'binding_resource');
-  const resourceId = requireString(resourceRecord.id, 'binding_resource_id');
-  const resourceUrl = requireString(resourceRecord.url, 'binding_resource_url');
-  return {
-    id,
-    objectType: requireString(raw.objectType, 'binding_object_type'),
-    objectId: requireString(raw.objectId, 'binding_object_id'),
-    hostType: requireString(raw.hostType, 'binding_host_type'),
-    hostId: requireString(raw.hostId, 'binding_host_id'),
-    bindingKind: requireString(raw.bindingKind, 'binding_kind'),
-    bindingPoint: readString(raw.bindingPoint),
-    priority: requireNumber(raw.priority, 'binding_priority'),
-    tags: requireStringArray(raw.tags, 'binding_tags'),
-    resource: {
-      id: resourceId,
-      url: resourceUrl,
-      resourceType: requireString(resourceRecord.resourceType, 'binding_resource_type'),
-      label: readString(resourceRecord.label),
-    },
-  };
-}
-
-function buildWorldHistorySummary(items: WorldHistoryItem[]): WorldHistoryBundle['summary'] {
-  if (items.length === 0) {
-    return null;
-  }
-
-  const primaryCount = items.filter((item) => item.level === 'PRIMARY').length;
-  const secondaryCount = items.length - primaryCount;
-
-  return {
-    primaryCount,
-    secondaryCount,
-    totalCount: items.length,
-    eventCharacterCoverage: items.filter((item) => item.characterRefs.length > 0).length / items.length,
-    eventLocationCoverage: items.filter((item) => item.locationRefs.length > 0).length / items.length,
-  };
-}
-
-function toPrimaryRecommendedAgents(
-  agents: WorldTruthRecommendedAgent[] | undefined,
-): WorldDetailWithAgentsDto['computed']['entry']['recommendedAgents'] | undefined {
-  if (!agents?.length) {
-    return undefined;
-  }
-  return agents.map((agent) => {
-    const display = {
-      isNative: false,
-      isTransitGuest: false,
-      ...(agent.role ? { role: agent.role } : {}),
-      ...(agent.faction ? { faction: agent.faction } : {}),
-      ...(agent.location ? { location: agent.location } : {}),
-      ...(agent.statusSummary ? { statusSummary: agent.statusSummary } : {}),
-    };
-    return {
-      id: agent.agentId,
-      name: agent.name,
-      ...(agent.handle ? { handle: agent.handle } : {}),
-      ...(agent.avatarUrl ? { avatarUrl: agent.avatarUrl } : {}),
-      importance: agent.importance ?? 'SECONDARY',
-      ...(Object.keys(display).length > 0 ? { display } : {}),
-    };
-  });
-}
-
-function mergeWorldPrimaryDetailTruth(
-  detail: WorldDetailWithAgentsDto,
-  worldTruth: WorldTruthDetail,
-): WorldPrimaryDetailRecord {
-  const recommendedAgents = toPrimaryRecommendedAgents(worldTruth.recommendedAgents);
-  const mergedComputed: WorldDetailWithAgentsDto['computed'] = recommendedAgents
-    ? {
-        ...detail.computed,
-        entry: {
-          ...detail.computed.entry,
-          recommendedAgents,
-        },
-      }
-    : detail.computed;
-
-  return {
-    ...detail,
-    ...(worldTruth.worldId ? { id: worldTruth.worldId } : {}),
-    ...(worldTruth.title ? { name: worldTruth.title } : {}),
-    ...(worldTruth.description ? { description: worldTruth.description } : {}),
-    ...(worldTruth.tagline ? { tagline: worldTruth.tagline } : {}),
-    ...(worldTruth.overview ? { overview: worldTruth.overview } : {}),
-    ...(worldTruth.motto ? { motto: worldTruth.motto } : {}),
-    ...(worldTruth.contentRating ? { contentRating: worldTruth.contentRating } : {}),
-    ...(worldTruth.iconUrl ? { iconUrl: worldTruth.iconUrl } : {}),
-    ...(worldTruth.bannerUrl ? { bannerUrl: worldTruth.bannerUrl } : {}),
-    ...(worldTruth.type ? { type: worldTruth.type } : {}),
-    ...(worldTruth.status ? { status: worldTruth.status } : {}),
-    ...(worldTruth.level != null ? { level: worldTruth.level } : {}),
-    ...(worldTruth.agentCount != null ? { agentCount: worldTruth.agentCount } : {}),
-    ...(worldTruth.createdAt ? { createdAt: worldTruth.createdAt } : {}),
-    ...(worldTruth.updatedAt ? { updatedAt: worldTruth.updatedAt } : {}),
-    ...(worldTruth.creatorId ? { creatorId: worldTruth.creatorId } : {}),
-    ...(worldTruth.nativeCreationState ? { nativeCreationState: worldTruth.nativeCreationState } : {}),
-    ...(worldTruth.genre ? { genre: worldTruth.genre } : {}),
-    ...(worldTruth.era ? { era: worldTruth.era } : {}),
-    ...(worldTruth.themes ? { themes: worldTruth.themes } : {}),
-    computed: mergedComputed,
-    worldTruth,
-  };
-}
-
 export function worldListQueryKey() {
   return ['worlds-list'] as const;
 }
-
 export async function fetchWorldListItems(
   status?: WorldTruthListItem['status'],
 ): Promise<WorldTruthListItem[]> {
   return createWorldFacade(getPlatformClient()).truth.list(status);
 }
-
 export function worldDisplayDetailQueryKey(worldId: string) {
   return [
     'world-display-detail',
@@ -778,23 +384,18 @@ export function worldDisplayDetailQueryKey(worldId: string) {
     DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT,
   ] as const;
 }
-
 export function worldHistoryQueryKey(worldId: string) {
   return ['world-history', normalizeWorldId(worldId)] as const;
 }
-
 export function worldSemanticBundleQueryKey(worldId: string) {
   return ['world-semantic-bundle', normalizeWorldId(worldId)] as const;
 }
-
 export function worldLevelAuditsQueryKey(worldId: string) {
   return ['world-level-audits', normalizeWorldId(worldId)] as const;
 }
-
 export function worldPublicAssetsQueryKey(worldId: string) {
   return ['world-public-assets', normalizeWorldId(worldId)] as const;
 }
-
 export async function fetchWorldDetailWithAgents(worldId: string): Promise<WorldPrimaryDetailRecord> {
   const normalizedWorldId = normalizeWorldId(worldId);
   const [detailResponse, worldview] = await Promise.all([
@@ -816,7 +417,6 @@ export async function fetchWorldDetailWithAgents(worldId: string): Promise<World
   // bounded supplement the current primary lane still needs.
   return mergeWorldPrimaryDetailTruth(detail, worldTruth);
 }
-
 export async function fetchWorldHistory(worldId: string): Promise<WorldHistoryBundle> {
   const payload = await dataSync.loadWorldHistory(normalizeWorldId(worldId));
   const items = payload.items
@@ -827,17 +427,14 @@ export async function fetchWorldHistory(worldId: string): Promise<WorldHistoryBu
     summary: buildWorldHistorySummary(items),
   };
 }
-
 export async function fetchWorldSemanticBundle(worldId: string): Promise<WorldSemanticData> {
   const payload = await dataSync.loadWorldSemanticBundle(normalizeWorldId(worldId));
   return toSemanticBundle(payload);
 }
-
 export async function fetchWorldLevelAudits(worldId: string): Promise<WorldAuditItem[]> {
   const payload = await dataSync.loadWorldLevelAudits(normalizeWorldId(worldId), 20);
   return payload.map(toWorldAuditItem);
 }
-
 function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem {
   return {
     id: requireString(raw.id, 'scene_id'),
@@ -846,7 +443,6 @@ function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem {
     activeEntities: raw.activeEntities ?? [],
   };
 }
-
 export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPublicAssetsData> {
   const normalizedWorldId = normalizeWorldId(worldId);
   const [lorebooksPayload, bindingsPayload, scenesPayload] = await Promise.all([
@@ -854,27 +450,23 @@ export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPubl
     dataSync.loadWorldBindings(normalizedWorldId),
     dataSync.loadWorldScenes(normalizedWorldId),
   ]);
-
   return {
     lorebooks: lorebooksPayload.items.map(toWorldLorebookItem),
     scenes: scenesPayload.items.map(toWorldSceneItem),
     bindings: bindingsPayload.items.map(toWorldBindingItem),
   };
 }
-
 export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDisplayDetail> {
   const primary = await fetchWorldDetailWithAgents(worldId);
   const world = toWorldDisplayData(primary);
   const agentRecords = Array.isArray(primary.agents) ? (primary.agents as Array<Record<string, unknown>>) : [];
   const agents = agentRecords.map((agent) => toWorldAgent(agent, world.createdAt));
-
   const [historyResult, semanticResult, auditsResult, publicAssetsResult] = await Promise.allSettled([
     fetchWorldHistory(worldId),
     fetchWorldSemanticBundle(worldId),
     fetchWorldLevelAudits(worldId),
     fetchWorldPublicAssets(worldId),
   ]);
-
   return {
     primary,
     world,
@@ -891,13 +483,11 @@ export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDis
     },
   };
 }
-
 export function prefetchWorldDetailAndHistory(worldId: string): void {
   const normalizedWorldId = normalizeWorldId(worldId);
   if (!normalizedWorldId) {
     return;
   }
-
   void queryClient.prefetchQuery({
     queryKey: worldDisplayDetailQueryKey(normalizedWorldId),
     queryFn: () => fetchWorldDisplayDetail(normalizedWorldId),

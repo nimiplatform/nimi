@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@nimiplatform/nimi-kit/ui';
@@ -17,6 +17,7 @@ import {
 } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
 import { createRuntimeAgentPresentationProfileAdapter } from '@renderer/infra/runtime-agent-presentation-profile';
 import { ChatAgentAvatarAppLauncher } from './chat-agent-avatar-app-launcher';
+import { DetailRow, SectionCard, formatBackendLabel, formatLaunchModeLabel } from './chat-agent-avatar-settings-panel-primitives';
 import { ChatAgentAvatarBindingSettings } from './chat-agent-avatar-binding-settings';
 import {
   hasAvatarInstanceInLiveInventory,
@@ -28,10 +29,8 @@ import {
   persistStoredAgentAvatarLaunchPolicy,
   type AgentAvatarLaunchPolicy,
 } from './chat-agent-avatar-launch-policy-storage';
-
 const CLOSE_CONFIRMATION_ATTEMPTS = 5;
 const CLOSE_CONFIRMATION_DELAY_MS = 120;
-
 type ChatAgentAvatarSettingsPanelProps = {
   selectedTarget: {
     id: string;
@@ -42,7 +41,6 @@ type ChatAgentAvatarSettingsPanelProps = {
   presentationProfile: AvatarPresentationProfile | null;
   onRefreshInspect?: () => unknown;
 };
-
 type AvatarProfileDraft = {
   backendKind: AvatarPresentationProfile['backendKind'];
   avatarAssetRef: string;
@@ -51,11 +49,9 @@ type AvatarProfileDraft = {
   interactionPolicyRef: string;
   defaultVoiceReference: string;
 };
-
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
-
 function requireRuntimeSubjectUserId(): string {
   const subjectUserId = normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
   if (!subjectUserId) {
@@ -63,17 +59,14 @@ function requireRuntimeSubjectUserId(): string {
   }
   return subjectUserId;
 }
-
 const runtimeAgentPresentationProfileAdapter = createRuntimeAgentPresentationProfileAdapter({
   getSubjectUserId: requireRuntimeSubjectUserId,
 });
-
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 }
-
 function createProfileDraft(profile: AvatarPresentationProfile | null): AvatarProfileDraft {
   return {
     backendKind: profile?.backendKind || 'vrm',
@@ -84,7 +77,6 @@ function createProfileDraft(profile: AvatarPresentationProfile | null): AvatarPr
     defaultVoiceReference: profile?.defaultVoiceReference || '',
   };
 }
-
 function updateDraftField<K extends keyof AvatarProfileDraft>(
   current: AvatarProfileDraft,
   field: K,
@@ -95,62 +87,6 @@ function updateDraftField<K extends keyof AvatarProfileDraft>(
     [field]: value,
   };
 }
-
-function formatBackendLabel(
-  value: AvatarPresentationProfile['backendKind'] | null | undefined,
-  t: ReturnType<typeof useTranslation>['t'],
-): string {
-  switch (value) {
-    case 'vrm':
-      return t('Chat.avatarBackendVrmLabel', { defaultValue: 'VRM' });
-    case 'live2d':
-      return t('Chat.avatarBackendLive2dLabel', { defaultValue: 'Live2D' });
-    case 'sprite2d':
-      return t('Chat.avatarBackendSprite2dLabel', { defaultValue: 'Sprite 2D' });
-    case 'canvas2d':
-      return t('Chat.avatarBackendCanvas2dLabel', { defaultValue: 'Canvas 2D' });
-    case 'video':
-      return t('Chat.avatarBackendVideoLabel', { defaultValue: 'Video' });
-    default:
-      return t('Chat.avatarBackendUnboundLabel', { defaultValue: 'Unbound' });
-  }
-}
-
-function SectionCard(props: {
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="space-y-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_95%,var(--nimi-surface-panel))] p-4 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-      <div className="space-y-1">
-        <h3 className="text-[13px] font-semibold text-[var(--nimi-text-primary)]">{props.title}</h3>
-        <p className="text-xs leading-5 text-[var(--nimi-text-muted)]">{props.description}</p>
-      </div>
-      {props.children}
-    </section>
-  );
-}
-
-function DetailRow(props: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
-        {props.label}
-      </span>
-      <span className="max-w-[65%] break-all text-right text-xs text-[var(--nimi-text-primary)]">
-        {props.value}
-      </span>
-    </div>
-  );
-}
-
-function formatLaunchModeLabel(value: 'existing' | 'open_new', t: ReturnType<typeof useTranslation>['t']): string {
-  return value === 'existing'
-    ? t('Chat.avatarSessionLinkModeExisting', { defaultValue: 'existing' })
-    : t('Chat.avatarSessionLinkModeOpenNew', { defaultValue: 'open_new' });
-}
-
 export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanelProps) {
   const { t } = useTranslation();
   const tauriReady = hasTauriInvoke();
@@ -191,7 +127,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
   const targetedLiveInstance = avatarInstanceId
     ? liveInstances.find((instance) => instance.avatarInstanceId === avatarInstanceId) || null
     : null;
-
   useEffect(() => {
     setDraft(createProfileDraft(props.presentationProfile));
     setFeedback(null);
@@ -202,12 +137,10 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
     setInstanceActionError(null);
     setLaunchPolicy(loadStoredAgentAvatarLaunchPolicy(props.selectedTarget?.id));
   }, [props.presentationProfile, props.selectedTarget?.id]);
-
   const updateLaunchPolicy = (next: AgentAvatarLaunchPolicy) => {
     const persisted = persistStoredAgentAvatarLaunchPolicy(props.selectedTarget?.id, next);
     setLaunchPolicy(persisted);
   };
-
   const handleSave = async () => {
     if (!props.selectedTarget || !draft.avatarAssetRef.trim()) {
       return;
@@ -234,7 +167,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
       setPendingAction(null);
     }
   };
-
   const handleClear = async () => {
     if (!props.selectedTarget) {
       return;
@@ -255,7 +187,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
       setPendingAction(null);
     }
   };
-
   const runInstanceAction = async (
     key: string,
     input: {
@@ -310,7 +241,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
       setInstanceActionPendingKey(null);
     }
   };
-
   const handleRevealInstance = async (instance: DesktopAvatarLiveInstanceRecord) => {
     await runInstanceAction(
       `reveal:${instance.avatarInstanceId}`,
@@ -329,7 +259,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
       },
     );
   };
-
   const handleRetargetInstance = async (instance: DesktopAvatarLiveInstanceRecord) => {
     await runInstanceAction(
       `retarget:${instance.avatarInstanceId}`,
@@ -348,7 +277,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
       },
     );
   };
-
   const handleCloseInstance = async (instance: DesktopAvatarLiveInstanceRecord) => {
     const key = `close:${instance.avatarInstanceId}`;
     setInstanceActionPendingKey(key);
@@ -433,7 +361,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
       setInstanceActionPendingKey(null);
     }
   };
-
   return (
     <div className="space-y-4" data-testid="chat-agent-avatar-settings-panel">
       <SectionCard
@@ -574,7 +501,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
           </div>
         )}
       </SectionCard>
-
       <SectionCard
         title={t('Chat.avatarLaunchSectionTitle', { defaultValue: 'Companion Launch' })}
         description={t('Chat.avatarLaunchSectionDescription', {
@@ -673,7 +599,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
           </div>
         )}
       </SectionCard>
-
       <SectionCard
         title={t('Chat.avatarSessionLinkSectionTitle', { defaultValue: 'Session Link' })}
         description={t('Chat.avatarSessionLinkSectionDescription', {
@@ -710,7 +635,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
                   : t('Chat.avatarSessionLinkLiveStatusPending', { defaultValue: 'Current target is not present in live inventory yet' })}
               />
             </div>
-
             <div className="space-y-2 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_92%,white)] p-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-primary)]">
@@ -853,7 +777,6 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
           </div>
         )}
       </SectionCard>
-
       <SectionCard
         title={t('Chat.avatarLocalShellSectionTitle', { defaultValue: 'Local Shell Appearance' })}
         description={t('Chat.avatarLocalShellSectionDescription', {

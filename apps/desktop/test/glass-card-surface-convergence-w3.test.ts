@@ -10,7 +10,10 @@ function readWorkspaceFile(relativePath: string): string {
 const sharedSurfaceSource = readWorkspaceFile('src/shell/renderer/components/surface.tsx');
 const homePostFeedSource = readWorkspaceFile('src/shell/renderer/features/home/post-feed.tsx');
 const homeArticleSource = readWorkspaceFile('src/shell/renderer/features/home/article.tsx');
-const exploreCardsSource = readWorkspaceFile('src/shell/renderer/features/explore/explore-cards.tsx');
+const exploreCardsSource = [
+  readWorkspaceFile('src/shell/renderer/features/explore/explore-cards.tsx'),
+  readWorkspaceFile('src/shell/renderer/features/explore/explore-agent-recommendation-card.tsx'),
+].join('\n');
 const notificationPanelSource = readWorkspaceFile('src/shell/renderer/features/notification/notification-panel.tsx');
 
 test('W3 glass card convergence: shared desktop card surface supports interactive and active route rows', () => {

@@ -124,7 +124,7 @@ export function StatusDot({ active, activeLabel, idleLabel }: { active: boolean;
         color: active ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-text-muted)',
       }}
     >
-      {active && <span className="nimi-world-pulse-dot" aria-hidden="true" />}
+      {active && <span className="desktop-world-pulse-dot" aria-hidden="true" />}
       {active ? activeLabel : idleLabel}
     </span>
   );
