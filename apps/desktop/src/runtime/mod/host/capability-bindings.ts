@@ -1,10 +1,12 @@
 import { expandCapabilitiesFromDeclarations } from '@runtime/hook/contracts/capabilities';
 import type { RuntimeModRegistration } from '../types';
 
-export function resolveRegistrationCapabilities(input: RuntimeModRegistration): {
+export type RuntimeModCapabilityResolution = {
   baselineCapabilities: string[];
   manifestCapabilities: string[];
-} {
+};
+
+export function resolveRegistrationCapabilities(input: RuntimeModRegistration): RuntimeModCapabilityResolution {
   const requested = expandCapabilitiesFromDeclarations(input.capabilities || []);
   const manifest = expandCapabilitiesFromDeclarations(input.manifestCapabilities || []);
   return {

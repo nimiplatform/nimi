@@ -11,6 +11,7 @@
 - `runtime/external-agent/` — External agent runtime
 - `runtime/external-agent/tier1-actions.ts` — Tier-1 action 注册
 - `bridge/runtime-bridge/external-agent.ts` — External agent IPC 桥接
+- `features/runtime-config/runtime-config-external-agent-access.tsx` — External Agent Access 面板
 
 ## Kernel References
 

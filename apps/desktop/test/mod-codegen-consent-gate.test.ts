@@ -6,7 +6,7 @@ import { resolveCodegenConsentDecision } from '../src/runtime/mod/codegen';
 
 test('consent gate splits granted/denied T1 capabilities', () => {
   const preflight = preflightCodegenBundle({
-    modId: 'world.nimi.codegen.consent',
+    modId: 'world.nimi.user.codegen.consent',
     capabilities: ['runtime.ai.text.generate', 'runtime.media.image.generate', 'runtime.media.video.generate'],
     sourceCode: 'export const value = 1;',
   });

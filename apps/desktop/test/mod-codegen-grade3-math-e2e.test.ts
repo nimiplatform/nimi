@@ -17,7 +17,7 @@ test('grade3 math prompt can generate/install/register in codegen happy path', a
   resetRuntimeHostForTesting();
 
   const artifacts = generateCodegenArtifacts({
-    modId: 'world.nimi.user-math-quiz',
+    modId: 'world.nimi.user.math-quiz',
     slug: 'math-quiz',
     prompt: '给我三年级孩子做一个每日数学题测试',
     capabilities: [
@@ -47,8 +47,22 @@ test('grade3 math prompt can generate/install/register in codegen happy path', a
 
   await registerRuntimeMod(registration, { replaceExisting: true });
 
-  assert.ok(listRegisteredRuntimeModIds().includes('world.nimi.user-math-quiz'));
+  assert.ok(listRegisteredRuntimeModIds().includes('world.nimi.user.math-quiz'));
 
-  unregisterRuntimeMod('world.nimi.user-math-quiz');
+  unregisterRuntimeMod('world.nimi.user.math-quiz');
   resetRuntimeHostForTesting();
+});
+
+test('codegen default manifest id uses admitted user dot prefix', () => {
+  const artifacts = generateCodegenArtifacts({
+    modId: '',
+    slug: 'math-quiz',
+    prompt: 'Create a grade three math quiz',
+    capabilities: ['runtime.ai.text.generate'],
+    modelUsed: 'deepseek-v3',
+    routePolicy: 'cloud',
+  });
+
+  assert.equal(artifacts.manifest.id, 'world.nimi.user.math-quiz');
+  assert.equal(artifacts.preflight.ok, true);
 });

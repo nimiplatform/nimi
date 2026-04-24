@@ -11,6 +11,15 @@ function runtimeWriteUnavailableResult() {
   };
 }
 
+function tier1ActionCapabilities(actionId: string, options: { supportsDryRun: boolean }): string[] {
+  return [
+    `action.discover.${actionId}`,
+    ...(options.supportsDryRun ? [`action.dry-run.${actionId}`] : []),
+    `action.verify.${actionId}`,
+    `action.commit.${actionId}`,
+  ];
+}
+
 function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
   const actions = [
     'runtime.local-ai.models.list',
@@ -39,7 +48,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       supportsDryRun: true,
       description: 'List local runtime models',
     },
-    requiredCapabilities: ['action.commit.runtime.local-ai.models.list'],
+    requiredCapabilities: tier1ActionCapabilities('runtime.local-ai.models.list', { supportsDryRun: true }),
     handler: async () => {
       const models = await localRuntime.listAssets();
       return {
@@ -70,7 +79,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       supportsDryRun: true,
       description: 'Query local runtime model health',
     },
-    requiredCapabilities: ['action.commit.runtime.local-ai.models.health'],
+    requiredCapabilities: tier1ActionCapabilities('runtime.local-ai.models.health', { supportsDryRun: true }),
     handler: async (input) => {
       const localModelId = String(input.input.localModelId || '').trim() || undefined;
       const models = await localRuntime.health(localModelId);
@@ -97,7 +106,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       supportsDryRun: false,
       description: 'Start a local runtime model',
     },
-    requiredCapabilities: ['action.commit.runtime.local-ai.models.start'],
+    requiredCapabilities: tier1ActionCapabilities('runtime.local-ai.models.start', { supportsDryRun: false }),
     handler: async (input) => {
       if (getOfflineCoordinator().getTier() === 'L2') {
         return runtimeWriteUnavailableResult();
@@ -134,7 +143,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       supportsDryRun: false,
       description: 'Stop a local runtime model',
     },
-    requiredCapabilities: ['action.commit.runtime.local-ai.models.stop'],
+    requiredCapabilities: tier1ActionCapabilities('runtime.local-ai.models.stop', { supportsDryRun: false }),
     handler: async (input) => {
       if (getOfflineCoordinator().getTier() === 'L2') {
         return runtimeWriteUnavailableResult();
@@ -171,7 +180,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       supportsDryRun: false,
       description: 'Remove a local runtime model',
     },
-    requiredCapabilities: ['action.commit.runtime.local-ai.models.remove'],
+    requiredCapabilities: tier1ActionCapabilities('runtime.local-ai.models.remove', { supportsDryRun: false }),
     handler: async (input) => {
       if (getOfflineCoordinator().getTier() === 'L2') {
         return runtimeWriteUnavailableResult();
@@ -208,7 +217,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       supportsDryRun: false,
       description: 'Install model from Hugging Face',
     },
-    requiredCapabilities: ['action.commit.runtime.local-ai.models.install'],
+    requiredCapabilities: tier1ActionCapabilities('runtime.local-ai.models.install', { supportsDryRun: false }),
     handler: async (input) => {
       if (getOfflineCoordinator().getTier() === 'L2') {
         return runtimeWriteUnavailableResult();
@@ -257,7 +266,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       supportsDryRun: false,
       description: 'Import local model manifest',
     },
-    requiredCapabilities: ['action.commit.runtime.local-ai.models.import'],
+    requiredCapabilities: tier1ActionCapabilities('runtime.local-ai.models.import', { supportsDryRun: false }),
     handler: async (input) => {
       if (getOfflineCoordinator().getTier() === 'L2') {
         return runtimeWriteUnavailableResult();

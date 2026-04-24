@@ -13,7 +13,17 @@ test('codegen registration denies T2 and enforces T1 consent', async () => {
 
   await assert.rejects(
     () => registerRuntimeMod({
-      modId: 'world.nimi.codegen.t2',
+      modId: 'world.nimi.user-hyphenated',
+      sourceType: 'codegen',
+      capabilities: ['runtime.ai.text.generate'],
+      setup: () => {},
+    }),
+    /CODEGEN_MOD_ID_PREFIX_INVALID/,
+  );
+
+  await assert.rejects(
+    () => registerRuntimeMod({
+      modId: 'world.nimi.user.codegen.t2',
       sourceType: 'codegen',
       capabilities: ['turn.register.pre-model'],
       setup: () => {},
@@ -23,7 +33,7 @@ test('codegen registration denies T2 and enforces T1 consent', async () => {
 
   await assert.rejects(
     () => registerRuntimeMod({
-      modId: 'world.nimi.codegen.t1-missing-consent',
+      modId: 'world.nimi.user.codegen.t1-missing-consent',
       sourceType: 'codegen',
       capabilities: ['runtime.media.image.generate'],
       setup: () => {},
@@ -32,15 +42,15 @@ test('codegen registration denies T2 and enforces T1 consent', async () => {
   );
 
   await registerRuntimeMod({
-    modId: 'world.nimi.codegen.t1-with-consent',
+    modId: 'world.nimi.user.codegen.t1-with-consent',
     sourceType: 'codegen',
     capabilities: ['runtime.media.image.generate'],
     grantCapabilities: ['runtime.media.image.generate'],
     setup: () => {},
   });
 
-  assert.ok(listRegisteredRuntimeModIds().includes('world.nimi.codegen.t1-with-consent'));
+  assert.ok(listRegisteredRuntimeModIds().includes('world.nimi.user.codegen.t1-with-consent'));
 
-  unregisterRuntimeMod('world.nimi.codegen.t1-with-consent');
+  unregisterRuntimeMod('world.nimi.user.codegen.t1-with-consent');
   resetRuntimeHostForTesting();
 });

@@ -1,6 +1,10 @@
 import type { RuntimeModRegistration } from '../types';
 import { transformSync } from 'esbuild';
-import { preflightCodegenBundle, type CodegenPreflightResult } from './preflight';
+import {
+  CODEGEN_MANIFEST_ID_PREFIX,
+  preflightCodegenBundle,
+  type CodegenPreflightResult,
+} from './preflight';
 
 export type CodegenGenerateInput = {
   modId: string;
@@ -122,7 +126,7 @@ function buildCodegenDist(sourceCode: string): string {
 
 export function generateCodegenArtifacts(input: CodegenGenerateInput): CodegenGeneratedArtifacts {
   const slug = normalizeSlug(input.slug);
-  const modId = String(input.modId || '').trim() || `world.nimi.user-${slug}`;
+  const modId = String(input.modId || '').trim() || `${CODEGEN_MANIFEST_ID_PREFIX}${slug}`;
   const source = buildTemplateSource({
     modId,
     prompt: input.prompt,

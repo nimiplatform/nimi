@@ -5,7 +5,12 @@ import { anyCapabilityMatches } from '@runtime/hook/contracts/capabilities';
 import type { RuntimeModRegistration } from '../types';
 import { resolveDeclaredDataCapabilities } from './capability-bindings';
 import { resolveCodegenCapabilityDecision } from '../codegen/capability-catalog';
+import {
+    CODEGEN_MANIFEST_ID_PREFIX,
+    isAdmittedCodegenManifestId,
+} from '../codegen/preflight';
 import { type ModRuntimeContext } from "@nimiplatform/sdk/mod";
+import { ReasonCode } from '@nimiplatform/sdk/types';
 export async function registerRuntimeModState(input: {
     mod: RuntimeModRegistration;
     sourceType: HookSourceType;
@@ -31,6 +36,9 @@ export async function registerRuntimeModState(input: {
         ...input.capabilityResolution.manifestCapabilities,
     ];
     if (input.sourceType === 'codegen') {
+        if (!isAdmittedCodegenManifestId(input.mod.modId)) {
+            throw new Error(`${ReasonCode.CODEGEN_MOD_ID_PREFIX_INVALID}: codegen manifest id must start with ${CODEGEN_MANIFEST_ID_PREFIX}`);
+        }
         const decision = resolveCodegenCapabilityDecision(mergedCapabilities);
         const hardDenied = Array.from(new Set([...decision.denied, ...decision.unknown]));
         if (hardDenied.length > 0) {

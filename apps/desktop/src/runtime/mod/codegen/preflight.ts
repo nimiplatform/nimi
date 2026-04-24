@@ -36,6 +36,7 @@ type DenyPattern = {
 };
 
 const CODEGEN_DEFAULT_MAX_BUNDLE_BYTES = 512 * 1024;
+export const CODEGEN_MANIFEST_ID_PREFIX = 'world.nimi.user.';
 
 const CODEGEN_DENY_PATTERNS: DenyPattern[] = [
   {
@@ -127,6 +128,12 @@ function summarizeReasonCode(violations: CodegenPreflightViolation[]): string {
   return 'ACTION_EXECUTED';
 }
 
+export function isAdmittedCodegenManifestId(modId: string): boolean {
+  const normalized = String(modId || '').trim();
+  return normalized.startsWith(CODEGEN_MANIFEST_ID_PREFIX)
+    && normalized.length > CODEGEN_MANIFEST_ID_PREFIX.length;
+}
+
 export function preflightCodegenBundle(input: CodegenPreflightInput): CodegenPreflightResult {
   const sourceCode = String(input.sourceCode || '');
   const capabilities = Array.isArray(input.capabilities) ? input.capabilities : [];
@@ -135,10 +142,17 @@ export function preflightCodegenBundle(input: CodegenPreflightInput): CodegenPre
     : CODEGEN_DEFAULT_MAX_BUNDLE_BYTES;
 
   const violations: CodegenPreflightViolation[] = [];
-  if (!String(input.modId || '').trim()) {
+  const modId = String(input.modId || '').trim();
+  if (!modId) {
     violations.push({
       reasonCode: ReasonCode.CODEGEN_MOD_ID_REQUIRED,
       detail: 'modId is required for codegen preflight',
+      severity: 'error',
+    });
+  } else if (!isAdmittedCodegenManifestId(modId)) {
+    violations.push({
+      reasonCode: ReasonCode.CODEGEN_MOD_ID_PREFIX_INVALID,
+      detail: `codegen manifest id must start with ${CODEGEN_MANIFEST_ID_PREFIX}`,
       severity: 'error',
     });
   }

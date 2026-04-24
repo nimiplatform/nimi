@@ -106,6 +106,14 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+function parseActionPhase(value: unknown): ExternalAgentActionExecutionRequest['phase'] {
+  const phase = asString(value);
+  if (phase === 'dry-run' || phase === 'verify' || phase === 'commit') {
+    return phase;
+  }
+  throw new Error('ACTION_INPUT_INVALID: external agent action phase must be explicit');
+}
+
 function stableActionHash(actions: ExternalAgentActionDescriptor[]): string {
   return JSON.stringify(actions
     .map((item) => ({
@@ -142,18 +150,10 @@ function parseExecutionRequest(value: unknown): ExternalAgentActionExecutionRequ
   const root = asRecord(value);
   const context = asRecord(root.context);
   const mode = asString(context.mode) === 'autonomous' ? 'autonomous' : 'delegated';
-  const phaseRaw = asString(root.phase);
-  const phase: 'dry-run' | 'verify' | 'commit' = phaseRaw === 'verify'
-    ? 'verify'
-    : phaseRaw === 'commit'
-      ? 'commit'
-      : root.dryRun
-        ? 'dry-run'
-        : 'commit';
   return {
     executionId: asString(root.executionId),
     actionId: asString(root.actionId),
-    phase,
+    phase: parseActionPhase(root.phase),
     input: asRecord(root.input),
     context: {
       principalId: asString(context.principalId),
@@ -172,6 +172,24 @@ function parseExecutionRequest(value: unknown): ExternalAgentActionExecutionRequ
     },
     idempotencyKey: asString(root.idempotencyKey) || undefined,
     verifyTicket: asString(root.verifyTicket) || undefined,
+  };
+}
+
+function invalidExecutionRequestCompletion(value: unknown, error: unknown) {
+  const root = asRecord(value);
+  const context = asRecord(root.context);
+  const executionId = asString(root.executionId);
+  const traceId = asString(context.traceId) || executionId;
+  return {
+    executionId,
+    ok: false,
+    reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+    actionHint: 'fix_input',
+    traceId,
+    executionMode: 'guarded' as const,
+    output: {
+      error: error instanceof Error ? error.message : String(error || 'Invalid external agent action request'),
+    },
   };
 }
 
@@ -258,7 +276,13 @@ export async function startExternalAgentActionBridge(): Promise<void> {
 
   const unsubscribeResult = await Promise.resolve(
     listen(EXTERNAL_AGENT_ACTION_REQUEST_EVENT, (event) => {
-      const request = parseExecutionRequest(event.payload);
+      let request: ExternalAgentActionExecutionRequest;
+      try {
+        request = parseExecutionRequest(event.payload);
+      } catch (error) {
+        void completeExecution(invalidExecutionRequestCompletion(event.payload, error));
+        return;
+      }
       void executeActionRequest(request).catch(async (error) => {
         await completeExecution({
           executionId: request.executionId,

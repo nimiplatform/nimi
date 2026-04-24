@@ -29,6 +29,14 @@ function resolveTauriEventListen(): ((eventName: string, handler: (event: { payl
   return listenTauri;
 }
 
+function parseActionPhase(value: unknown): ExternalAgentActionExecutionRequest['phase'] {
+  const phase = String(value || '').trim();
+  if (phase === 'dry-run' || phase === 'verify' || phase === 'commit') {
+    return phase;
+  }
+  throw new Error('ACTION_INPUT_INVALID: external agent action phase must be explicit');
+}
+
 export async function issueExternalAgentToken(
   payload: ExternalAgentIssueTokenPayload,
 ): Promise<ExternalAgentIssueTokenResult> {
@@ -86,18 +94,10 @@ function parseExecutionRequest(value: unknown): ExternalAgentActionExecutionRequ
   const record = parseOptionalJsonObject(value) || {};
   const contextRaw = parseOptionalJsonObject(record.context) || {};
   const mode = String(contextRaw.mode || '').trim() === 'autonomous' ? 'autonomous' : 'delegated';
-  const phaseRaw = String(record.phase || '').trim();
-  const phase: 'dry-run' | 'verify' | 'commit' = phaseRaw === 'verify'
-    ? 'verify'
-    : phaseRaw === 'commit'
-      ? 'commit'
-      : record.dryRun
-        ? 'dry-run'
-        : 'commit';
   return {
     executionId: String(record.executionId || '').trim(),
     actionId: String(record.actionId || '').trim(),
-    phase,
+    phase: parseActionPhase(record.phase),
     input: parseOptionalJsonObject(record.input) || {},
     context: {
       principalId: String(contextRaw.principalId || '').trim(),
@@ -127,7 +127,11 @@ export async function subscribeExternalAgentActionExecuteRequests(
   }
 
   const unsubscribe = await Promise.resolve(listen(EXTERNAL_AGENT_ACTION_REQUEST_EVENT, (event) => {
-    listener(parseExecutionRequest(event.payload));
+    try {
+      listener(parseExecutionRequest(event.payload));
+    } catch {
+      // Invalid external action requests fail closed by not emitting a request.
+    }
   }));
   if (typeof unsubscribe === 'function') {
     return unsubscribe;
