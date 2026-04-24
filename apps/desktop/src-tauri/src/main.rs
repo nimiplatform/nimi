@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use nimi_kit_shell_tauri::auth_session_commands;
+use nimi_kit_shell_tauri::runtime_bridge;
 mod chat_agent_store;
 mod chat_ai_store;
 mod desktop_agent_backdrop_store;
@@ -13,7 +14,6 @@ mod external_agent_gateway;
 mod local_runtime;
 mod main_parts;
 mod menu_bar_shell;
-mod runtime_bridge;
 mod runtime_mod;
 #[cfg(test)]
 mod test_support;

@@ -4,6 +4,7 @@ use std::process::{Command, Stdio};
 
 use super::daemon_command::{self, runtime_cli_command_spec};
 use super::{bridge_error, read_last_error, set_last_error};
+use crate::runtime_bridge::current_release_version_hook;
 
 pub(super) fn parse_runtime_version_payload(payload: &Value) -> Result<String, String> {
     let version = payload
@@ -31,12 +32,9 @@ pub(super) fn probe_runtime_version(
     )?;
     let version = parse_runtime_version_payload(&payload)?;
     if mode == daemon_command::RuntimeBridgeMode::Release {
-        let expected = crate::desktop_release::current_release_version().ok_or_else(|| {
-            bridge_error(
-                "RUNTIME_BRIDGE_RELEASE_VERSION_UNAVAILABLE",
-                "desktop release metadata is unavailable while probing bundled runtime version",
-            )
-        })?;
+        let Some(expected) = current_release_version_hook() else {
+            return Ok(version);
+        };
         if version != expected {
             return Err(bridge_error(
                 "RUNTIME_BRIDGE_VERSION_MISMATCH",

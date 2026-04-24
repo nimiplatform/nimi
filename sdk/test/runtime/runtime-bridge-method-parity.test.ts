@@ -36,7 +36,7 @@ function sdkMethodIdValues(): string[] {
 }
 
 const runtimeBridgeMethodFile = fileURLToPath(
-  new URL('../../../apps/desktop/src-tauri/src/runtime_bridge/generated/method_ids.rs', import.meta.url),
+  new URL('../../../kit/shell/tauri/src/runtime_bridge/generated/method_ids.rs', import.meta.url),
 );
 const runtimeBridgeMethodSource = readFileSync(runtimeBridgeMethodFile, 'utf-8');
 

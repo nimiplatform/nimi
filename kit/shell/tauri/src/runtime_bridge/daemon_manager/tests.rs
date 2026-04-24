@@ -2,7 +2,6 @@ use super::{
     config_get, config_set, grpc_addr, runtime_cli_command_spec, runtime_config_path, start,
     status, stop, DEFAULT_GRPC_ADDR,
 };
-use crate::desktop_release::{reset_test_state, set_test_release_version};
 use crate::test_support::{test_guard, with_env};
 use std::fs;
 use std::path::PathBuf;
@@ -292,8 +291,6 @@ fn status_includes_launch_mode() {
 #[test]
 fn status_uses_runtime_cli_truth_for_release_mode_version() {
     let _guard = test_guard();
-    reset_test_state();
-    set_test_release_version("0.9.1");
     let dir = make_temp_dir("runtime-version-cli");
     let fake_nimi = dir.join("nimi");
     write_executable(
@@ -319,16 +316,13 @@ exit 7
         },
     );
     let _ = fs::remove_dir_all(dir);
-    reset_test_state();
 }
 
 #[cfg(unix)]
 #[test]
-fn status_surfaces_runtime_version_mismatch_error() {
+fn status_skips_release_version_match_when_host_hook_is_absent() {
     let _guard = test_guard();
-    reset_test_state();
-    set_test_release_version("0.9.1");
-    let dir = make_temp_dir("runtime-version-mismatch");
+    let dir = make_temp_dir("runtime-version-no-host-hook");
     let fake_nimi = dir.join("nimi");
     write_executable(
         &fake_nimi,
@@ -348,16 +342,11 @@ exit 7
         ],
         || {
             let snapshot = status();
-            assert!(snapshot.version.is_none());
-            assert!(snapshot
-                .last_error
-                .as_deref()
-                .unwrap_or_default()
-                .contains("RUNTIME_BRIDGE_VERSION_MISMATCH"));
+            assert_eq!(snapshot.version.as_deref(), Some("0.9.2"));
+            assert!(snapshot.last_error.is_none());
         },
     );
     let _ = fs::remove_dir_all(dir);
-    reset_test_state();
 }
 
 #[cfg(unix)]
@@ -400,7 +389,7 @@ fn runtime_cli_command_spec_release_mode_requires_binary() {
             let error = runtime_cli_command_spec(&["config", "get", "--json"])
                 .err()
                 .unwrap_or_default();
-            assert!(error.contains("RUNTIME_BRIDGE_BUNDLED_RUNTIME_UNAVAILABLE"));
+            assert!(error.contains("RUNTIME_BRIDGE_BUNDLED_RUNTIME_MISSING"));
         },
     );
 

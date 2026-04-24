@@ -6,6 +6,8 @@ use std::time::Duration;
 use tokio::net::TcpStream as TokioTcpStream;
 use tokio::time::{sleep, timeout};
 
+use crate::runtime_bridge::resolve_nimi_dir_hook;
+
 use super::DEFAULT_GRPC_ADDR;
 
 #[derive(Debug, Deserialize)]
@@ -28,7 +30,7 @@ pub(crate) fn grpc_addr() -> String {
     DEFAULT_GRPC_ADDR.to_string()
 }
 
-pub(crate) fn http_addr() -> String {
+pub fn http_addr() -> String {
     if let Some(value) = read_non_empty_env("NIMI_RUNTIME_HTTP_ADDR") {
         return value;
     }
@@ -45,11 +47,11 @@ pub(crate) fn runtime_config_path() -> Option<PathBuf> {
     if let Some(value) = read_non_empty_env("NIMI_RUNTIME_CONFIG_PATH") {
         return Some(expand_home_path(value.as_str()));
     }
-    Some(
-        crate::desktop_paths::resolve_nimi_dir()
-            .ok()?
-            .join("config.json"),
-    )
+    if let Some(Ok(nimi_dir)) = resolve_nimi_dir_hook() {
+        return Some(nimi_dir.join("config.json"));
+    }
+    let home = read_non_empty_env("HOME")?;
+    Some(PathBuf::from(home).join(".nimi/config.json"))
 }
 
 pub(super) fn read_non_empty_env(name: &str) -> Option<String> {

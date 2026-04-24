@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  createAIConfigEvidence,
   createDefaultAIScopeRef,
+  createEmptyAIConfig,
   type AIRuntimeEvidence,
   type AISchedulingJudgement,
   type AISchedulingEvaluationTarget,
@@ -40,10 +42,7 @@ async function loadSurface() {
 }
 
 function createTestSnapshot(overrides: Partial<AISnapshot> & { executionId: string; scopeRef: AIScopeRef }): AISnapshot {
-  const configEvidence: AIConfigEvidence = {
-    profileOrigin: null,
-    capabilityBindingKeys: [],
-  };
+  const configEvidence: AIConfigEvidence = createAIConfigEvidence(createEmptyAIConfig(overrides.scopeRef));
   const slice: AIConversationExecutionSlice = {
     executionId: overrides.executionId,
     createdAt: overrides.createdAt || new Date().toISOString(),

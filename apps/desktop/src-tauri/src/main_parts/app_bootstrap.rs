@@ -4,6 +4,33 @@ use crate::{
     desktop_updates, external_agent_gateway, local_runtime, menu_bar_shell, runtime_bridge,
     runtime_mod,
 };
+use nimi_kit_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
+use std::sync::Arc;
+
+fn install_shared_runtime_bridge_hooks() {
+    let _ = nimi_kit_shell_tauri::runtime_bridge::set_runtime_bridge_host_hooks(
+        RuntimeBridgeHostHooks {
+            status_override: Some(Arc::new(|| {
+                crate::desktop_e2e_fixture::runtime_bridge_status_override()
+            })),
+            sync_daemon_status: Some(Arc::new(|app, status| {
+                crate::menu_bar_shell::sync_daemon_status(app, status);
+            })),
+            set_action_in_flight: Some(Arc::new(|app, action| {
+                crate::menu_bar_shell::set_action_in_flight(app, action);
+            })),
+            staged_runtime_binary_path: Some(Arc::new(|| {
+                crate::desktop_release::staged_runtime_binary_path()
+            })),
+            runtime_last_error: Some(Arc::new(|| crate::desktop_release::runtime_last_error())),
+            current_release_version: Some(Arc::new(|| {
+                crate::desktop_release::current_release_version()
+            })),
+            resolve_nimi_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_dir)),
+            resolve_nimi_data_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_data_dir)),
+        },
+    );
+}
 
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
     let updater_pubkey = crate::desktop_updates::configured_updater_pubkey();
@@ -124,6 +151,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
         })
         .setup(|app| {
             eprintln!("[boot:{:}] setup entered", now_ms());
+            install_shared_runtime_bridge_hooks();
             let gateway_state =
                 external_agent_gateway::ExternalAgentGatewayState::new(app.handle().clone());
             external_agent_gateway::start_external_agent_gateway(gateway_state.clone());

@@ -1,6 +1,8 @@
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use tonic::transport::{Channel, Endpoint};
 
 use super::error_map::bridge_error;
@@ -12,6 +14,7 @@ struct CachedChannel {
 }
 
 static CHANNEL_CACHE: OnceLock<Mutex<Option<CachedChannel>>> = OnceLock::new();
+static INVALIDATION_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 fn cache() -> &'static Mutex<Option<CachedChannel>> {
     CHANNEL_CACHE.get_or_init(|| Mutex::new(None))
@@ -30,6 +33,15 @@ pub fn invalidate_channel() {
         .lock()
         .expect("runtime bridge channel cache lock poisoned");
     *guard = None;
+    INVALIDATION_COUNT.fetch_add(1, Ordering::Relaxed);
+}
+
+pub fn invalidation_count() -> usize {
+    INVALIDATION_COUNT.load(Ordering::Relaxed)
+}
+
+pub fn reset_invalidation_count() {
+    INVALIDATION_COUNT.store(0, Ordering::Relaxed);
 }
 
 pub async fn shared_channel(grpc_addr: &str) -> Result<Channel, String> {
@@ -52,10 +64,7 @@ pub async fn shared_channel(grpc_addr: &str) -> Result<Channel, String> {
                 error.to_string().as_str(),
             )
         })?
-        .connect_timeout(Duration::from_secs(2))
-        // Keep timeout control at the individual RPC layer. Applying a
-        // channel-wide timeout here cancels long-lived server streams after the
-        // endpoint budget instead of the caller-specified request timeout.
+        .connect_timeout(Duration::from_secs(5))
         .tcp_nodelay(true);
     let channel = endpoint.connect().await.map_err(|error| {
         bridge_error("RUNTIME_BRIDGE_CONNECT_FAILED", error.to_string().as_str())
