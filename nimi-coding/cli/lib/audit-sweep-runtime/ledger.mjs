@@ -55,21 +55,71 @@ function buildFindingPosture(findings) {
   };
 }
 
-function deriveLedgerStatus(plan, chunks) {
-  const includedFiles = plan.coverage?.included_files ?? 0;
+function buildLedgerCoverage(plan, chunks) {
+  const frozenChunks = chunks.filter((chunk) => chunk.state === "frozen");
+  const base = {
+    frozen_chunks: frozenChunks.length,
+    failed_chunks: chunks.filter((chunk) => chunk.state === "failed").length,
+    skipped_chunks: chunks.filter((chunk) => chunk.state === "skipped").length,
+    active_chunks: chunks.filter((chunk) => ACTIVE_CHUNK_STATES.has(chunk.state)).length,
+  };
+  if (plan.planning_basis?.mode !== "spec_authority") {
+    const auditedFiles = new Set(frozenChunks.flatMap((chunk) => chunk.files));
+    return {
+      total_files: plan.coverage.total_files,
+      included_files: plan.coverage.included_files,
+      audited_files: auditedFiles.size,
+      ...base,
+    };
+  }
+
+  const auditedAuthorityFiles = new Set(frozenChunks.flatMap((chunk) => chunk.files));
+  const auditedEvidenceFiles = new Set(frozenChunks.flatMap((chunk) => chunk.evidence_inventory ?? []));
+  const authorityTotal = plan.coverage?.authority_files ?? plan.coverage?.included_files ?? 0;
+  const evidenceTotal = plan.coverage?.evidence_files ?? plan.evidence_inventory?.length ?? 0;
+  const unmappedEvidenceFiles = plan.coverage?.unmapped_evidence_files ?? plan.unmapped_evidence_files?.length ?? 0;
+  return {
+    total_files: authorityTotal + evidenceTotal,
+    included_files: authorityTotal + evidenceTotal,
+    audited_files: auditedAuthorityFiles.size + auditedEvidenceFiles.size,
+    authority_coverage: {
+      total_files: authorityTotal,
+      audited_files: auditedAuthorityFiles.size,
+    },
+    evidence_coverage: {
+      total_files: evidenceTotal,
+      audited_files: auditedEvidenceFiles.size,
+      unmapped_files: unmappedEvidenceFiles,
+    },
+    ...base,
+  };
+}
+
+function deriveLedgerStatus(plan, coverage, chunks) {
+  const includedFiles = coverage.included_files ?? 0;
   const frozenChunks = chunks.filter((chunk) => chunk.state === "frozen").length;
-  const failedChunks = chunks.filter((chunk) => chunk.state === "failed").length;
-  const skippedChunks = chunks.filter((chunk) => chunk.state === "skipped").length;
-  const activeChunks = chunks.filter((chunk) => ACTIVE_CHUNK_STATES.has(chunk.state)).length;
 
   if (includedFiles === 0) {
     return "blocked";
   }
-  if (activeChunks > 0) {
+  if (coverage.active_chunks > 0) {
     return "partial";
   }
-  if (failedChunks > 0 || skippedChunks > 0) {
+  if (coverage.failed_chunks > 0 || coverage.skipped_chunks > 0) {
     return "partial";
+  }
+  if (plan.planning_basis?.mode === "spec_authority") {
+    const authorityFull = coverage.authority_coverage?.total_files > 0
+      && coverage.authority_coverage.audited_files === coverage.authority_coverage.total_files;
+    const evidenceFull = coverage.evidence_coverage?.audited_files === coverage.evidence_coverage?.total_files
+      && coverage.evidence_coverage?.unmapped_files === 0;
+    if (frozenChunks === chunks.length && authorityFull && evidenceFull) {
+      return "candidate_ready";
+    }
+    if (authorityFull && !evidenceFull) {
+      return "blocked_evidence_incomplete";
+    }
+    return "partial_authority_only";
   }
   return frozenChunks === chunks.length ? "candidate_ready" : "partial";
 }
@@ -82,6 +132,11 @@ function formatReport({ sweepId, ledger, findings }) {
     `- Status: ${ledger.status}`,
     `- Included files: ${ledger.coverage.included_files}`,
     `- Audited files: ${ledger.coverage.audited_files}`,
+    ...(ledger.coverage.authority_coverage ? [
+      `- Authority coverage: ${ledger.coverage.authority_coverage.audited_files}/${ledger.coverage.authority_coverage.total_files}`,
+      `- Evidence coverage: ${ledger.coverage.evidence_coverage.audited_files}/${ledger.coverage.evidence_coverage.total_files}`,
+      `- Unmapped evidence files: ${ledger.coverage.evidence_coverage.unmapped_files}`,
+    ] : []),
     `- Frozen chunks: ${ledger.coverage.frozen_chunks}`,
     `- Findings: ${ledger.finding_count}`,
     `- Open findings: ${ledger.finding_posture.open}`,
@@ -135,9 +190,10 @@ export async function buildAuditSweepLedger(projectRoot, options) {
     return inputError(chunksResult.error);
   }
   const { findingsRef: aggregateFindingsRef, store } = await loadFindings(projectRoot, sweepId);
+  await writeYamlRef(projectRoot, aggregateFindingsRef, store);
   const chunks = chunksResult.chunks;
-  const status = deriveLedgerStatus(planResult.plan, chunks);
-  const auditedFiles = new Set(chunks.filter((chunk) => chunk.state === "frozen").flatMap((chunk) => chunk.files));
+  const coverage = buildLedgerCoverage(planResult.plan, chunks);
+  const status = deriveLedgerStatus(planResult.plan, coverage, chunks);
   const evidenceRefs = [
     aggregateFindingsRef,
     ...chunks.map((chunk) => chunk.evidence_ref).filter(Boolean),
@@ -162,15 +218,7 @@ export async function buildAuditSweepLedger(projectRoot, options) {
     report_ref: currentReportRef,
     remediation_map_ref: remediationMapRef(sweepId, snapshotId),
     status,
-    coverage: {
-      total_files: planResult.plan.coverage.total_files,
-      included_files: planResult.plan.coverage.included_files,
-      audited_files: auditedFiles.size,
-      frozen_chunks: chunks.filter((chunk) => chunk.state === "frozen").length,
-      failed_chunks: chunks.filter((chunk) => chunk.state === "failed").length,
-      skipped_chunks: chunks.filter((chunk) => chunk.state === "skipped").length,
-      active_chunks: chunks.filter((chunk) => ACTIVE_CHUNK_STATES.has(chunk.state)).length,
-    },
+    coverage,
     finding_count: store.findings.length,
     unresolved_finding_count: findingPosture.open,
     finding_posture: findingPosture,

@@ -243,41 +243,228 @@ function slugPart(value) {
 }
 
 function buildSpecChunks(includedInventory, options) {
-  const bySurface = new Map();
-  for (const entry of includedInventory) {
+  const sortedEntries = [...includedInventory].sort((left, right) => left.file_ref.localeCompare(right.file_ref));
+  return sortedEntries.map((entry, index) => {
     const surface = specSurfaceForFile(entry.file_ref);
-    const key = `${surface.ownerDomain}/${surface.surface}`;
-    const entries = bySurface.get(key) ?? {
-      ownerDomain: surface.ownerDomain,
-      surface: surface.surface,
-      files: [],
-    };
-    entries.files.push(entry);
-    bySurface.set(key, entries);
-  }
-
-  const chunks = [];
-  for (const surface of [...bySurface.values()].sort((left, right) => (
-    `${left.ownerDomain}/${left.surface}`.localeCompare(`${right.ownerDomain}/${right.surface}`)
-  ))) {
-    const sortedEntries = surface.files.sort((left, right) => left.file_ref.localeCompare(right.file_ref));
-    const chunkId = `chunk-${String(chunks.length + 1).padStart(3, "0")}-${slugPart(surface.ownerDomain)}-${slugPart(surface.surface)}`;
-    chunks.push({
+    const chunkId = [
+      `chunk-${String(index + 1).padStart(3, "0")}`,
+      slugPart(surface.ownerDomain),
+      slugPart(surface.surface),
+      slugPart(path.posix.basename(entry.file_ref, path.posix.extname(entry.file_ref))),
+    ].join("-");
+    return {
       chunk_id: chunkId,
       state: "planned",
       owner_domain: surface.ownerDomain,
       planning_basis: "spec_authority",
       spec_surface: surface.surface,
       criteria: options.criteria,
-      files: sortedEntries.map((entry) => entry.file_ref),
-      authority_refs: sortedEntries.map((entry) => entry.file_ref),
+      files: [entry.file_ref],
+      authority_refs: [entry.file_ref],
       evidence_roots: evidenceRootsForSpecOwner(surface.ownerDomain, options.targetRootRef),
-      file_count: sortedEntries.length,
+      file_count: 1,
       finding_count: 0,
+    };
+  });
+}
+
+async function listAuditableEntriesForRoot(projectRoot, rootRef, excludePatterns) {
+  const rootInfo = await pathExists(artifactPath(projectRoot, rootRef));
+  if (!rootInfo) {
+    return [];
+  }
+  const gitFiles = await listGitFiles(projectRoot, rootRef);
+  const allFileRefs = gitFiles.length > 0
+    ? gitFiles.map((entry) => toPosix(entry))
+    : (rootInfo.isDirectory() ? await listFallbackFiles(projectRoot, rootRef, excludePatterns) : [rootRef]);
+  const entries = [];
+  for (const fileRef of allFileRefs) {
+    const normalizedRef = toPosix(fileRef);
+    if (isExcluded(normalizedRef, excludePatterns)) {
+      continue;
+    }
+    const extension = path.posix.extname(normalizedRef);
+    if (!AUDITABLE_EXTENSIONS.has(extension)) {
+      continue;
+    }
+    entries.push(await buildInventoryEntry(projectRoot, normalizedRef, ".", excludePatterns));
+  }
+  return entries.filter((entry) => entry.included);
+}
+
+function chunkMatchesEvidenceFile(chunk, fileRef) {
+  return Array.isArray(chunk.evidence_roots)
+    && chunk.evidence_roots.some((rootRef) => {
+      const normalizedRoot = rootRef.replace(/\\/g, "/").replace(/\/$/, "");
+      return fileRef === normalizedRoot || fileRef.startsWith(`${normalizedRoot}/`);
     });
+}
+
+function findChunkBySurface(chunks, ownerDomain, specSurface) {
+  return chunks.find((chunk) => chunk.owner_domain === ownerDomain && chunk.spec_surface === specSurface) ?? null;
+}
+
+const GENERIC_EVIDENCE_MATCH_TOKENS = new Set([
+  "agent",
+  "app",
+  "apps",
+  "audit",
+  "contract",
+  "contracts",
+  "domain",
+  "generated",
+  "go",
+  "guides",
+  "index",
+  "internal",
+  "js",
+  "json",
+  "kernel",
+  "md",
+  "mjs",
+  "nimi",
+  "platform",
+  "root",
+  "schema",
+  "spec",
+  "src",
+  "table",
+  "tables",
+  "test",
+  "ts",
+  "tsx",
+  "yaml",
+  "yml",
+]);
+
+function matchTokens(value) {
+  return new Set(String(value)
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .split(/[^a-zA-Z0-9]+/g)
+    .map((token) => token.toLowerCase())
+    .filter((token) => token.length > 1 && !GENERIC_EVIDENCE_MATCH_TOKENS.has(token)));
+}
+
+function scoreEvidenceChunk(entry, chunk) {
+  const evidenceTokens = matchTokens(entry.file_ref);
+  const authorityTokens = matchTokens((chunk.authority_refs ?? chunk.files ?? []).join("/"));
+  let score = 0;
+  for (const token of evidenceTokens) {
+    if (authorityTokens.has(token)) {
+      score += 10;
+    }
+  }
+  if (chunk.spec_surface === "kernel-contracts") {
+    score += 3;
+  } else if (chunk.spec_surface === "domain-guides") {
+    score += 2;
+  }
+  return score;
+}
+
+function topLevelEvidenceDocForRoot(rootRef, fileRef) {
+  const normalizedRoot = rootRef.replace(/\\/g, "/").replace(/\/$/, "");
+  if (!normalizedRoot || !(fileRef === normalizedRoot || fileRef.startsWith(`${normalizedRoot}/`))) {
+    return false;
+  }
+  const relative = fileRef === normalizedRoot ? "" : fileRef.slice(normalizedRoot.length + 1);
+  return !relative.includes("/") && /^(README|AGENTS)(?:\.[^.]+)?$/i.test(relative);
+}
+
+function pickSpecificOwnerEvidenceChunk(entry, candidates, currentCounts, maxEvidenceFilesPerChunk) {
+  const ownerDomain = candidates[0]?.owner_domain;
+  if (!ownerDomain) {
+    return null;
+  }
+  if (entry.file_ref.startsWith(".nimi/spec/")) {
+    const surface = specSurfaceForFile(entry.file_ref);
+    return candidates.find((chunk) => (chunk.authority_refs ?? []).includes(entry.file_ref))
+      ?? findChunkBySurface(candidates, surface.ownerDomain, surface.surface);
+  }
+  if (candidates.some((chunk) => (
+    chunk.owner_domain === ownerDomain
+    && chunk.spec_surface === "domain-guides"
+    && (chunk.evidence_roots ?? []).some((rootRef) => topLevelEvidenceDocForRoot(rootRef, entry.file_ref))
+  ))) {
+    return findChunkBySurface(candidates, ownerDomain, "domain-guides");
+  }
+  const ranked = candidates
+    .map((chunk) => ({ chunk, score: scoreEvidenceChunk(entry, chunk) }))
+    .sort((left, right) => (
+      right.score - left.score
+      || (currentCounts.get(left.chunk.chunk_id) ?? 0) - (currentCounts.get(right.chunk.chunk_id) ?? 0)
+      || left.chunk.chunk_id.localeCompare(right.chunk.chunk_id)
+    ));
+  return ranked.find((entry) => (currentCounts.get(entry.chunk.chunk_id) ?? 0) < maxEvidenceFilesPerChunk)?.chunk
+    ?? ranked
+      .sort((left, right) => (
+        (currentCounts.get(left.chunk.chunk_id) ?? 0) - (currentCounts.get(right.chunk.chunk_id) ?? 0)
+        || right.score - left.score
+        || left.chunk.chunk_id.localeCompare(right.chunk.chunk_id)
+      ))[0]?.chunk
+    ?? candidates[0];
+}
+
+function pickBroadOwnerEvidenceChunk(entry, candidates, currentCounts, maxEvidenceFilesPerChunk) {
+  const ranked = candidates
+    .map((chunk) => ({ chunk, score: scoreEvidenceChunk(entry, chunk) }))
+    .filter((candidate) => candidate.score > 0)
+    .sort((left, right) => (
+      right.score - left.score
+      || (currentCounts.get(left.chunk.chunk_id) ?? 0) - (currentCounts.get(right.chunk.chunk_id) ?? 0)
+      || left.chunk.chunk_id.localeCompare(right.chunk.chunk_id)
+    ));
+  if (ranked.length === 0) {
+    return null;
+  }
+  return ranked.find((entry) => (currentCounts.get(entry.chunk.chunk_id) ?? 0) < maxEvidenceFilesPerChunk)?.chunk
+    ?? ranked[0].chunk;
+}
+
+function assignEvidenceInventory(evidenceEntries, chunks, options = {}) {
+  const maxEvidenceFilesPerChunk = Number.isInteger(options.maxEvidenceFilesPerChunk) && options.maxEvidenceFilesPerChunk > 0
+    ? options.maxEvidenceFilesPerChunk
+    : DEFAULT_MAX_FILES_PER_CHUNK;
+  const broadOwnerDomains = new Set(["spec-meta", "spec-root"]);
+  const chunksById = new Map(chunks.map((chunk) => [chunk.chunk_id, { ...chunk, evidence_inventory: [] }]));
+  const currentCounts = new Map(chunks.map((chunk) => [chunk.chunk_id, 0]));
+  const unmapped = [];
+
+  for (const entry of evidenceEntries.sort((left, right) => left.file_ref.localeCompare(right.file_ref))) {
+    const candidates = chunks.filter((chunk) => chunkMatchesEvidenceFile(chunk, entry.file_ref));
+    if (candidates.length === 0) {
+      unmapped.push(entry.file_ref);
+      continue;
+    }
+    const preferred = candidates.filter((chunk) => !broadOwnerDomains.has(chunk.owner_domain));
+    const pool = (preferred.length > 0 ? preferred : candidates)
+      .sort((left, right) => left.chunk_id.localeCompare(right.chunk_id));
+    const selected = preferred.length > 0
+      ? pickSpecificOwnerEvidenceChunk(entry, pool, currentCounts, maxEvidenceFilesPerChunk)
+      : pickBroadOwnerEvidenceChunk(entry, pool, currentCounts, maxEvidenceFilesPerChunk);
+    if (!selected) {
+      unmapped.push(entry.file_ref);
+      continue;
+    }
+    chunksById.get(selected.chunk_id).evidence_inventory.push(entry.file_ref);
+    currentCounts.set(selected.chunk_id, (currentCounts.get(selected.chunk_id) ?? 0) + 1);
   }
 
-  return chunks;
+  return {
+    chunks: chunks.map((chunk) => {
+      const enriched = chunksById.get(chunk.chunk_id);
+      return {
+        ...chunk,
+        evidence_inventory: enriched.evidence_inventory.sort(),
+        coverage_contract: {
+          authority_refs_required: true,
+          evidence_inventory_required: true,
+          evidence_files_must_cover_inventory: true,
+        },
+      };
+    }),
+    unmappedEvidenceFiles: unmapped.sort(),
+  };
 }
 
 export async function createAuditSweepPlan(projectRoot, options) {
@@ -318,9 +505,37 @@ export async function createAuditSweepPlan(projectRoot, options) {
   }
 
   const includedInventory = inventory.filter((entry) => entry.included);
-  const chunks = chunkBasis.basis === "spec"
+  const authorityFileRefs = new Set(includedInventory.map((entry) => entry.file_ref));
+  let chunks = chunkBasis.basis === "spec"
     ? buildSpecChunks(includedInventory, { criteria, targetRootRef })
     : buildFileChunks(includedInventory, { criteria, maxFilesPerChunk });
+  let evidenceInventory = [];
+  let unmappedEvidenceFiles = [];
+  let evidenceInventoryHash = null;
+  if (chunkBasis.basis === "spec") {
+    const evidenceRoots = [...new Set(chunks.flatMap((chunk) => chunk.evidence_roots ?? []))].sort();
+    const evidenceByFile = new Map();
+    for (const rootRef of evidenceRoots) {
+      const entries = await listAuditableEntriesForRoot(projectRoot, rootRef, excludePatterns);
+      for (const entry of entries) {
+        if (!authorityFileRefs.has(entry.file_ref)) {
+          evidenceByFile.set(entry.file_ref, entry);
+        }
+      }
+    }
+    evidenceInventory = [...evidenceByFile.values()].sort((left, right) => left.file_ref.localeCompare(right.file_ref));
+    const assigned = assignEvidenceInventory(evidenceInventory, chunks, {
+      maxEvidenceFilesPerChunk: maxFilesPerChunk,
+    });
+    chunks = assigned.chunks;
+    unmappedEvidenceFiles = assigned.unmappedEvidenceFiles;
+    evidenceInventoryHash = sha256Object(evidenceInventory.map((entry) => ({
+      file_ref: entry.file_ref,
+      sha256: entry.sha256,
+      included: entry.included,
+      exclusion_reason: entry.exclusion_reason,
+    })));
+  }
   const createdAt = options.createdAt ?? new Date().toISOString();
   const inventoryHash = sha256Object(inventory.map((entry) => ({
     file_ref: entry.file_ref,
@@ -344,12 +559,31 @@ export async function createAuditSweepPlan(projectRoot, options) {
     max_files_per_chunk: maxFilesPerChunk,
     exclude_patterns: excludePatterns,
     inventory_hash: inventoryHash,
+    ...(evidenceInventoryHash ? { evidence_inventory_hash: evidenceInventoryHash } : {}),
     inventory,
+    ...(chunkBasis.basis === "spec" ? {
+      evidence_inventory: evidenceInventory.map((entry) => ({
+        file_ref: entry.file_ref,
+        sha256: entry.sha256,
+        bytes: entry.bytes,
+        extension: entry.extension,
+        owner_domain: entry.owner_domain,
+        classification: entry.classification,
+        included: entry.included,
+        exclusion_reason: entry.exclusion_reason,
+      })),
+      unmapped_evidence_files: unmappedEvidenceFiles,
+    } : {}),
     chunks,
     coverage: {
       total_files: inventory.length,
       included_files: includedInventory.length,
       excluded_files: inventory.length - includedInventory.length,
+      ...(chunkBasis.basis === "spec" ? {
+        authority_files: includedInventory.length,
+        evidence_files: evidenceInventory.length,
+        unmapped_evidence_files: unmappedEvidenceFiles.length,
+      } : {}),
       chunk_count: chunks.length,
     },
     run_ledger_ref: runLedgerRef(sweepId),
@@ -360,6 +594,7 @@ export async function createAuditSweepPlan(projectRoot, options) {
   await writeYamlRef(projectRoot, planRef(sweepId), plan);
   for (const chunk of chunks) {
     const chunkInventory = includedInventory.filter((entry) => chunk.files.includes(entry.file_ref));
+    const evidenceByFile = new Map(evidenceInventory.map((entry) => [entry.file_ref, entry]));
     await writeYamlRef(projectRoot, chunkRef(sweepId, chunk.chunk_id), {
       version: 1,
       kind: "audit-chunk",
@@ -373,8 +608,13 @@ export async function createAuditSweepPlan(projectRoot, options) {
       ...(chunk.spec_surface ? { spec_surface: chunk.spec_surface } : {}),
       ...(chunk.authority_refs ? { authority_refs: chunk.authority_refs } : {}),
       ...(chunk.evidence_roots ? { evidence_roots: chunk.evidence_roots } : {}),
+      ...(chunk.evidence_inventory ? { evidence_inventory: chunk.evidence_inventory } : {}),
+      ...(chunk.coverage_contract ? { coverage_contract: chunk.coverage_contract } : {}),
       file_count: chunk.files.length,
       file_hashes: Object.fromEntries(chunkInventory.map((entry) => [entry.file_ref, entry.sha256])),
+      ...(chunk.evidence_inventory ? {
+        evidence_file_hashes: Object.fromEntries(chunk.evidence_inventory.map((fileRef) => [fileRef, evidenceByFile.get(fileRef)?.sha256]).filter(([, hash]) => Boolean(hash))),
+      } : {}),
       lifecycle: {
         planned_at: createdAt,
         dispatched_at: null,
@@ -412,6 +652,11 @@ export async function createAuditSweepPlan(projectRoot, options) {
     totalFiles: inventory.length,
     includedFiles: includedInventory.length,
     excludedFiles: inventory.length - includedInventory.length,
+    ...(chunkBasis.basis === "spec" ? {
+      evidenceFiles: evidenceInventory.length,
+      unmappedEvidenceFiles: unmappedEvidenceFiles.length,
+      evidenceInventoryHash,
+    } : {}),
     inventoryHash,
     criteria,
     maxFilesPerChunk,

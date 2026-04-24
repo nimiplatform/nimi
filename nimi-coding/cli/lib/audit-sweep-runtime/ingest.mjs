@@ -46,14 +46,23 @@ function validateEvidenceEnvelope(evidence, chunk) {
     if (coveredAuthority.length !== expectedAuthority.length || coveredAuthority.some((fileRef, index) => fileRef !== expectedAuthority[index])) {
       return { ok: false, error: "audit evidence coverage.authority_refs must exactly match chunk authority refs" };
     }
+    const coveredFiles = [...evidence.coverage.files].sort();
+    if (coveredFiles.length !== expectedAuthority.length || coveredFiles.some((fileRef, index) => fileRef !== expectedAuthority[index])) {
+      return { ok: false, error: "spec-authority audit evidence coverage.files must exactly match chunk authority refs" };
+    }
     const evidenceFiles = evidence.coverage.evidence_files;
     if (!Array.isArray(evidenceFiles)) {
       return { ok: false, error: "spec-authority audit evidence coverage.evidence_files is required" };
     }
-    for (const fileRef of evidenceFiles) {
-      if (typeof fileRef !== "string" || !chunkAllowsFindingFile(chunk, fileRef.replace(/\\/g, "/"))) {
-        return { ok: false, error: "spec-authority audit evidence coverage.evidence_files must stay inside declared evidence roots" };
-      }
+    const normalizedEvidenceFiles = evidenceFiles.map((fileRef) => typeof fileRef === "string" ? fileRef.replace(/\\/g, "/") : fileRef);
+    if (normalizedEvidenceFiles.some((fileRef) => typeof fileRef !== "string")) {
+      return { ok: false, error: "spec-authority audit evidence coverage.evidence_files must contain file refs" };
+    }
+    const expectedEvidenceFiles = [...(chunk.evidence_inventory ?? [])].sort();
+    const coveredEvidenceFiles = [...normalizedEvidenceFiles].sort();
+    if (coveredEvidenceFiles.length !== expectedEvidenceFiles.length
+      || coveredEvidenceFiles.some((fileRef, index) => fileRef !== expectedEvidenceFiles[index])) {
+      return { ok: false, error: "spec-authority audit evidence coverage.evidence_files must exactly match chunk evidence inventory" };
     }
     const outcomes = evidence.coverage.authority_outcomes;
     if (!Array.isArray(outcomes)) {
@@ -82,7 +91,7 @@ function validateEvidenceEnvelope(evidence, chunk) {
       }
       for (const evidenceRef of outcome.evidence_refs) {
         if (typeof evidenceRef !== "string" || !chunkAllowsFindingFile(chunk, evidenceRef.replace(/\\/g, "/"))) {
-          return { ok: false, error: `authority_outcomes[${index}].evidence_refs must stay inside declared evidence roots` };
+          return { ok: false, error: `authority_outcomes[${index}].evidence_refs must belong to chunk authority refs or evidence inventory` };
         }
       }
       if (outcome.status === "audited" && outcome.evidence_refs.length === 0) {
@@ -120,7 +129,7 @@ function chunkAllowsFindingFile(chunk, fileRef) {
   if (chunk.planning_basis !== "spec_authority") {
     return false;
   }
-  return Array.isArray(chunk.evidence_roots) && chunk.evidence_roots.some((rootRef) => isInsideRef(rootRef, fileRef));
+  return Array.isArray(chunk.evidence_inventory) && chunk.evidence_inventory.includes(fileRef);
 }
 
 function normalizeFinding(rawFinding, index, chunk, sweepId, evidenceRef, verifiedAt) {

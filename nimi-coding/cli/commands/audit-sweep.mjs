@@ -247,6 +247,18 @@ function parseAuditSweepOptions(args) {
   };
 }
 
+function writeStream(stream, text) {
+  return new Promise((resolve, reject) => {
+    stream.write(text, (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
 export async function runAuditSweep(args) {
   const selected = parseAuditSweepOptions(args);
   if (!selected.ok) {
@@ -278,9 +290,9 @@ export async function runAuditSweep(args) {
     return payload.exitCode;
   }
   if (selected.parsed.options.json) {
-    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+    await writeStream(process.stdout, `${JSON.stringify(payload, null, 2)}\n`);
   } else {
-    process.stdout.write(formatAuditSweepPayload(payload));
+    await writeStream(process.stdout, formatAuditSweepPayload(payload));
   }
   return payload.exitCode;
 }

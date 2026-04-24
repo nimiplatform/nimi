@@ -35,6 +35,9 @@ export async function buildAuditSweepCloseoutImport(projectRoot, options) {
   if (ledger.status === "blocked") {
     return inputError("nimicoding audit-sweep refused: blocked ledger cannot produce completed closeout summary.\n");
   }
+  if (ledger.status === "blocked_evidence_incomplete" || ledger.status === "partial_authority_only") {
+    return inputError("nimicoding audit-sweep refused: incomplete spec authority/evidence coverage cannot produce completed closeout summary.\n");
+  }
   if (ledger.coverage.active_chunks > 0) {
     return inputError("nimicoding audit-sweep refused: closeout summary requires no active chunks.\n");
   }
@@ -85,7 +88,9 @@ export async function buildAuditSweepCloseoutImport(projectRoot, options) {
     finding_count: ledger.finding_count,
     unresolved_finding_count: ledger.unresolved_finding_count,
     status: ledger.status,
-    summary: `Audit sweep ${sweepId} has ${ledger.coverage.audited_files}/${ledger.coverage.included_files} included files audited, ${ledger.finding_count} findings, and ${ledger.unresolved_finding_count} open findings.`,
+    summary: ledger.coverage.authority_coverage
+      ? `Audit sweep ${sweepId} has authority coverage ${ledger.coverage.authority_coverage.audited_files}/${ledger.coverage.authority_coverage.total_files}, evidence coverage ${ledger.coverage.evidence_coverage.audited_files}/${ledger.coverage.evidence_coverage.total_files}, ${ledger.finding_count} findings, and ${ledger.unresolved_finding_count} open findings.`
+      : `Audit sweep ${sweepId} has ${ledger.coverage.audited_files}/${ledger.coverage.included_files} included files audited, ${ledger.finding_count} findings, and ${ledger.unresolved_finding_count} open findings.`,
     verified_at: options.verifiedAt,
   };
   const runRef = await appendRunEvent(projectRoot, sweepId, {

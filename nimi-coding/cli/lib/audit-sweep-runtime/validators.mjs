@@ -76,10 +76,21 @@ function nonNegativeInteger(value) {
   return Number.isInteger(value) && value >= 0;
 }
 
+function sortedArrayEquals(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right)) {
+    return false;
+  }
+  const normalizedLeft = [...left].sort();
+  const normalizedRight = [...right].sort();
+  return normalizedLeft.length === normalizedRight.length
+    && normalizedLeft.every((value, index) => value === normalizedRight[index]);
+}
+
 export function deriveLedgerSnapshotId(sweepId, plan, chunks, findings) {
   const snapshotSeed = {
     sweepId,
     inventoryHash: plan.inventory_hash,
+    evidenceInventoryHash: plan.evidence_inventory_hash ?? null,
     chunkStates: chunks.map((chunk) => ({
       chunk_id: chunk.chunk_id,
       state: chunk.state,
@@ -156,12 +167,50 @@ function validatePlanShape(plan, sweepId, checks) {
     && chunk.file_count === chunk.files.length);
   check(checks, "plan_chunk_summaries_valid", chunkSummariesOk, "audit plan chunk summaries are valid");
   if (plan.planning_basis?.mode === "spec_authority") {
+    const evidenceInventoryOk = Array.isArray(plan.evidence_inventory)
+      && Array.isArray(plan.unmapped_evidence_files)
+      && nonEmptyString(plan.evidence_inventory_hash);
+    check(checks, "plan_spec_evidence_inventory_present", evidenceInventoryOk, "spec-authority plan declares evidence inventory and unmapped evidence files");
+    const evidenceInventoryEntriesOk = Array.isArray(plan.evidence_inventory) && plan.evidence_inventory.every((entry) => isPlainObject(entry)
+      && hasRequiredFields(entry, ["file_ref", "sha256", "bytes", "extension", "owner_domain", "classification", "included", "exclusion_reason"])
+      && nonEmptyString(entry.file_ref)
+      && nonEmptyString(entry.sha256)
+      && nonNegativeInteger(entry.bytes)
+      && entry.included === true
+      && entry.exclusion_reason === null);
+    check(checks, "plan_spec_evidence_inventory_entries_valid", evidenceInventoryEntriesOk, "spec-authority evidence inventory entries are complete included files");
+    const recomputedEvidenceInventoryHash = Array.isArray(plan.evidence_inventory)
+      ? sha256Object(plan.evidence_inventory.map((entry) => ({
+        file_ref: entry.file_ref,
+        sha256: entry.sha256,
+        included: entry.included,
+        exclusion_reason: entry.exclusion_reason,
+      })))
+      : null;
+    check(checks, "plan_spec_evidence_inventory_hash_matches", plan.evidence_inventory_hash === recomputedEvidenceInventoryHash, "spec-authority plan evidence_inventory_hash covers all evidence entries");
     const specChunksOk = plan.chunks.every((chunk) => Array.isArray(chunk.authority_refs)
       && chunk.authority_refs.length === chunk.files.length
       && chunk.authority_refs.every((fileRef) => chunk.files.includes(fileRef))
       && Array.isArray(chunk.evidence_roots)
+      && Array.isArray(chunk.evidence_inventory)
+      && isPlainObject(chunk.coverage_contract)
+      && chunk.coverage_contract.authority_refs_required === true
+      && chunk.coverage_contract.evidence_inventory_required === true
+      && chunk.coverage_contract.evidence_files_must_cover_inventory === true
       && nonEmptyString(chunk.spec_surface));
-    check(checks, "plan_spec_authority_chunks_valid", specChunksOk, "spec-authority audit chunks declare authority refs and evidence roots");
+    check(checks, "plan_spec_authority_chunks_valid", specChunksOk, "spec-authority audit chunks declare authority refs, evidence roots, and coverage contract");
+    const evidenceInventoryFiles = Array.isArray(plan.evidence_inventory) ? plan.evidence_inventory.map((entry) => entry.file_ref) : [];
+    const unmappedEvidenceFiles = Array.isArray(plan.unmapped_evidence_files) ? plan.unmapped_evidence_files : [];
+    const mappedEvidenceFiles = plan.chunks.flatMap((chunk) => Array.isArray(chunk.evidence_inventory) ? chunk.evidence_inventory : []);
+    const mappedOnce = new Set(mappedEvidenceFiles).size === mappedEvidenceFiles.length;
+    const expectedMappedFiles = evidenceInventoryFiles.filter((fileRef) => !unmappedEvidenceFiles.includes(fileRef));
+    check(checks, "plan_spec_evidence_inventory_mapped_once", mappedOnce
+      && sortedArrayEquals(mappedEvidenceFiles, expectedMappedFiles), "every mapped evidence inventory file belongs to exactly one chunk");
+    check(checks, "plan_spec_unmapped_evidence_declared", unmappedEvidenceFiles.every((fileRef) => evidenceInventoryFiles.includes(fileRef)), "unmapped evidence files belong to the evidence inventory");
+    check(checks, "plan_spec_unmapped_evidence_fail_closed", unmappedEvidenceFiles.length === 0, "spec-authority plans have no unmapped evidence files");
+    check(checks, "plan_spec_coverage_counts_match", plan.coverage?.authority_files === includedFiles.length
+      && plan.coverage?.evidence_files === evidenceInventoryFiles.length
+      && plan.coverage?.unmapped_evidence_files === unmappedEvidenceFiles.length, "spec-authority coverage counts split authority and evidence inventory");
   }
 }
 
@@ -200,8 +249,20 @@ function validateChunkShape(chunk, plan, checks) {
       && chunk.authority_refs.length === chunk.files.length
       && chunk.authority_refs.every((fileRef) => chunk.files.includes(fileRef))
       && Array.isArray(chunk.evidence_roots)
+      && Array.isArray(chunk.evidence_inventory)
+      && isPlainObject(chunk.coverage_contract)
+      && chunk.coverage_contract.authority_refs_required === true
+      && chunk.coverage_contract.evidence_inventory_required === true
+      && chunk.coverage_contract.evidence_files_must_cover_inventory === true
       && nonEmptyString(chunk.spec_surface);
-    check(checks, `chunk_${chunk.chunk_id}_spec_authority_fields`, specChunkOk, "spec-authority chunk declares authority refs and evidence roots");
+    check(checks, `chunk_${chunk.chunk_id}_spec_authority_fields`, specChunkOk, "spec-authority chunk declares authority refs, evidence inventory, and coverage contract");
+    check(checks, `chunk_${chunk.chunk_id}_evidence_inventory_matches_plan`, planChunk !== null
+      && sortedArrayEquals(chunk.evidence_inventory, planChunk.evidence_inventory), "spec-authority chunk evidence inventory matches plan");
+    const evidenceInventoryByFile = new Map((plan.evidence_inventory ?? []).map((entry) => [entry.file_ref, entry]));
+    const evidenceHashesOk = Array.isArray(chunk.evidence_inventory)
+      && isPlainObject(chunk.evidence_file_hashes)
+      && chunk.evidence_inventory.every((fileRef) => chunk.evidence_file_hashes[fileRef] === evidenceInventoryByFile.get(fileRef)?.sha256);
+    check(checks, `chunk_${chunk.chunk_id}_evidence_hashes_match_inventory`, evidenceHashesOk, "spec-authority chunk evidence hashes match evidence inventory");
   }
   const lifecycle = chunk.lifecycle;
   const lifecycleOk = isPlainObject(lifecycle)
@@ -232,13 +293,18 @@ function validateSpecAuthorityCoverageEnvelope(evidence, chunk) {
   if (coveredAuthority.length !== expectedAuthority.length || coveredAuthority.some((fileRef, index) => fileRef !== expectedAuthority[index])) {
     return { ok: false, reason: "spec-authority evidence covers exactly the chunk authority refs" };
   }
+  if (!Array.isArray(evidence.coverage.files) || !sortedArrayEquals(evidence.coverage.files, expectedAuthority)) {
+    return { ok: false, reason: "spec-authority evidence coverage.files matches authority_refs only" };
+  }
   if (!Array.isArray(evidence.coverage.evidence_files)) {
     return { ok: false, reason: "spec-authority evidence declares examined evidence_files" };
   }
-  for (const fileRef of evidence.coverage.evidence_files) {
-    if (typeof fileRef !== "string" || !chunkAllowsFindingFile(chunk, fileRef.replace(/\\/g, "/"))) {
-      return { ok: false, reason: "spec-authority evidence_files stay inside declared evidence roots" };
-    }
+  const evidenceFiles = evidence.coverage.evidence_files.map((fileRef) => typeof fileRef === "string" ? fileRef.replace(/\\/g, "/") : fileRef);
+  if (evidenceFiles.some((fileRef) => typeof fileRef !== "string")) {
+    return { ok: false, reason: "spec-authority evidence_files are file refs" };
+  }
+  if (!sortedArrayEquals(evidenceFiles, chunk.evidence_inventory ?? [])) {
+    return { ok: false, reason: "spec-authority evidence_files exactly cover chunk evidence inventory" };
   }
   if (!Array.isArray(evidence.coverage.authority_outcomes)) {
     return { ok: false, reason: "spec-authority evidence declares authority_outcomes" };
@@ -262,7 +328,7 @@ function validateSpecAuthorityCoverageEnvelope(evidence, chunk) {
     }
     for (const evidenceRef of outcome.evidence_refs) {
       if (typeof evidenceRef !== "string" || !chunkAllowsFindingFile(chunk, evidenceRef.replace(/\\/g, "/"))) {
-        return { ok: false, reason: "authority_outcomes evidence_refs stay inside declared evidence roots" };
+        return { ok: false, reason: "authority_outcomes evidence_refs belong to authority refs or evidence inventory" };
       }
     }
     if (outcome.status === "audited" && outcome.evidence_refs.length === 0) {
@@ -311,7 +377,7 @@ function chunkAllowsFindingFile(chunk, fileRef) {
   if (chunk?.planning_basis !== "spec_authority") {
     return false;
   }
-  return Array.isArray(chunk.evidence_roots) && chunk.evidence_roots.some((rootRef) => isInsideRef(rootRef, fileRef));
+  return Array.isArray(chunk.evidence_inventory) && chunk.evidence_inventory.includes(fileRef);
 }
 
 function validateFindingShape(finding, chunksById, checks) {
@@ -412,9 +478,12 @@ function validateRunLedgerReplay(events, plan, chunks, findings, latestLedger, c
     const frozen = eventsByType.get("chunk_frozen")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
     const failed = eventsByType.get("chunk_failed")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
     const skipped = eventsByType.get("chunk_skipped")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
-    check(checks, `run_replay_${chunk.chunk_id}_dispatch`, chunk.state === "planned" || dispatched, `run ledger records dispatch for ${chunk.chunk_id}`);
-    check(checks, `run_replay_${chunk.chunk_id}_ingest`, !["ingested", "reviewed", "frozen", "failed"].includes(chunk.state) || ingested, `run ledger records ingest for ${chunk.chunk_id}`);
-    check(checks, `run_replay_${chunk.chunk_id}_terminal`, (chunk.state !== "frozen" || frozen) && (chunk.state !== "failed" || failed) && (chunk.state !== "skipped" || skipped), `run ledger records terminal state for ${chunk.chunk_id}`);
+    const dispatchRequired = chunk.state !== "planned";
+    const ingestRequired = ["ingested", "reviewed", "frozen", "failed"].includes(chunk.state);
+    const terminalRequired = ["frozen", "failed", "skipped"].includes(chunk.state);
+    check(checks, `run_replay_${chunk.chunk_id}_dispatch`, !dispatchRequired || dispatched, dispatchRequired ? `run ledger records dispatch for ${chunk.chunk_id}` : `run ledger dispatch not required for planned chunk ${chunk.chunk_id}`);
+    check(checks, `run_replay_${chunk.chunk_id}_ingest`, !ingestRequired || ingested, ingestRequired ? `run ledger records ingest for ${chunk.chunk_id}` : `run ledger ingest not required for ${chunk.state} chunk ${chunk.chunk_id}`);
+    check(checks, `run_replay_${chunk.chunk_id}_terminal`, !terminalRequired || ((chunk.state !== "frozen" || frozen) && (chunk.state !== "failed" || failed) && (chunk.state !== "skipped" || skipped)), terminalRequired ? `run ledger records terminal state for ${chunk.chunk_id}` : `run ledger terminal event not required for ${chunk.state} chunk ${chunk.chunk_id}`);
   }
   for (const finding of findings.filter((entry) => entry.disposition !== "open")) {
     check(checks, `run_replay_${finding.id}_resolution`, eventsByType.get("finding_resolved")?.some((event) => event.finding_id === finding.id && event.evidence_ref === finding.resolution?.evidence_ref) === true, `run ledger records resolution for ${finding.id}`);
@@ -435,7 +504,43 @@ async function validateEvidenceRefs(projectRoot, refs, checks, prefix) {
 }
 
 function buildLedgerExpectedCounts(plan, chunks, findings) {
-  const auditedFiles = new Set(chunks.filter((chunk) => chunk.state === "frozen").flatMap((chunk) => chunk.files));
+  const frozenChunks = chunks.filter((chunk) => chunk.state === "frozen");
+  const lifecycleCoverage = {
+    frozen_chunks: frozenChunks.length,
+    failed_chunks: chunks.filter((chunk) => chunk.state === "failed").length,
+    skipped_chunks: chunks.filter((chunk) => chunk.state === "skipped").length,
+    active_chunks: chunks.filter((chunk) => ACTIVE_CHUNK_STATES.has(chunk.state)).length,
+  };
+  let coverage = null;
+  if (plan.planning_basis?.mode === "spec_authority") {
+    const authorityTotal = plan.coverage?.authority_files ?? plan.coverage?.included_files ?? 0;
+    const evidenceTotal = plan.coverage?.evidence_files ?? plan.evidence_inventory?.length ?? 0;
+    const auditedAuthorityFiles = new Set(frozenChunks.flatMap((chunk) => chunk.files));
+    const auditedEvidenceFiles = new Set(frozenChunks.flatMap((chunk) => chunk.evidence_inventory ?? []));
+    coverage = {
+      total_files: authorityTotal + evidenceTotal,
+      included_files: authorityTotal + evidenceTotal,
+      audited_files: auditedAuthorityFiles.size + auditedEvidenceFiles.size,
+      authority_coverage: {
+        total_files: authorityTotal,
+        audited_files: auditedAuthorityFiles.size,
+      },
+      evidence_coverage: {
+        total_files: evidenceTotal,
+        audited_files: auditedEvidenceFiles.size,
+        unmapped_files: plan.coverage?.unmapped_evidence_files ?? plan.unmapped_evidence_files?.length ?? 0,
+      },
+      ...lifecycleCoverage,
+    };
+  } else {
+    const auditedFiles = new Set(frozenChunks.flatMap((chunk) => chunk.files));
+    coverage = {
+      total_files: plan.coverage.total_files,
+      included_files: plan.coverage.included_files,
+      audited_files: auditedFiles.size,
+      ...lifecycleCoverage,
+    };
+  }
   const findingPosture = {
     open: findings.filter((finding) => finding.disposition === "open").length,
     remediated: findings.filter((finding) => finding.disposition === "remediated").length,
@@ -444,15 +549,7 @@ function buildLedgerExpectedCounts(plan, chunks, findings) {
     deferred_backlog: findings.filter((finding) => finding.disposition === "deferred-backlog").length,
   };
   return {
-    coverage: {
-      total_files: plan.coverage.total_files,
-      included_files: plan.coverage.included_files,
-      audited_files: auditedFiles.size,
-      frozen_chunks: chunks.filter((chunk) => chunk.state === "frozen").length,
-      failed_chunks: chunks.filter((chunk) => chunk.state === "failed").length,
-      skipped_chunks: chunks.filter((chunk) => chunk.state === "skipped").length,
-      active_chunks: chunks.filter((chunk) => ACTIVE_CHUNK_STATES.has(chunk.state)).length,
-    },
+    coverage,
     findingPosture,
   };
 }
@@ -472,9 +569,21 @@ async function validateLatestLedger(projectRoot, sweepId, plan, chunks, findings
     && ledger.unresolved_finding_count === expected.findingPosture.open
     && JSON.stringify(ledger.finding_posture) === JSON.stringify(expected.findingPosture), "ledger finding counts match findings store");
   check(checks, "ledger_latest_pointer_matches", latest.ledgerRef === ledgerRef(sweepId, ledger.snapshot_id), "latest pointer references the immutable ledger snapshot");
-  check(checks, "ledger_status_valid", ["candidate_ready", "partial", "blocked"].includes(ledger.status), "ledger status is valid");
+  check(checks, "ledger_status_valid", ["candidate_ready", "partial", "blocked", "blocked_evidence_incomplete", "partial_authority_only"].includes(ledger.status), "ledger status is valid");
   check(checks, "ledger_candidate_ready_strict", ledger.status !== "candidate_ready"
     || (ledger.coverage.included_files > 0 && ledger.coverage.audited_files === ledger.coverage.included_files && ledger.coverage.active_chunks === 0 && ledger.coverage.failed_chunks === 0 && ledger.coverage.skipped_chunks === 0), "candidate_ready requires all included files audited and all chunks frozen");
+  if (plan.planning_basis?.mode === "spec_authority") {
+    const authorityFull = ledger.coverage.authority_coverage?.total_files > 0
+      && ledger.coverage.authority_coverage.audited_files === ledger.coverage.authority_coverage.total_files;
+    const evidenceFull = ledger.coverage.evidence_coverage?.audited_files === ledger.coverage.evidence_coverage?.total_files
+      && ledger.coverage.evidence_coverage?.unmapped_files === 0;
+    check(checks, "ledger_spec_coverage_split_present", isPlainObject(ledger.coverage.authority_coverage)
+      && isPlainObject(ledger.coverage.evidence_coverage), "spec-authority ledger splits authority and evidence coverage");
+    check(checks, "ledger_spec_candidate_ready_requires_evidence", ledger.status !== "candidate_ready"
+      || (authorityFull && evidenceFull), "candidate_ready requires full authority and evidence coverage");
+    check(checks, "ledger_spec_no_full_with_unmapped_evidence", ledger.status !== "candidate_ready"
+      || ledger.coverage.evidence_coverage?.unmapped_files === 0, "candidate_ready requires zero unmapped evidence files");
+  }
   await validateEvidenceRefs(projectRoot, [
     ledger.plan_ref,
     ...(Array.isArray(ledger.chunk_refs) ? ledger.chunk_refs : []),
@@ -533,6 +642,8 @@ async function validateCloseoutArtifact(projectRoot, sweepId, ledgerInfo, remedi
     && closeout.remediation_map_ref === remediationInfo?.remediation_map_ref
     && closeout.audit_closeout_ref === closeoutRef, "audit closeout references latest ledger and remediation map");
   check(checks, "audit_closeout_posture", closeout.closeout_posture === (openCount > 0 ? "audit_complete_findings_open" : "audit_complete_all_findings_postured"), "audit closeout posture matches finding state");
+  check(checks, "audit_closeout_coverage_status", closeout.coverage_status !== "full"
+    || ledgerInfo.ledger?.status === "candidate_ready", "audit closeout full coverage requires candidate_ready ledger");
   check(checks, "audit_closeout_verified_at", isIsoUtcTimestamp(closeout.verified_at), "audit closeout verified_at is ISO UTC");
   return { closeout, audit_closeout_ref: closeoutRef };
 }

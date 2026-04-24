@@ -31,6 +31,11 @@ export async function getAuditSweepStatus(projectRoot, options) {
     coverage: {
       totalFiles: planResult.plan.coverage?.total_files ?? 0,
       includedFiles: planResult.plan.coverage?.included_files ?? 0,
+      ...(planResult.plan.planning_basis?.mode === "spec_authority" ? {
+        authorityFiles: planResult.plan.coverage?.authority_files ?? 0,
+        evidenceFiles: planResult.plan.coverage?.evidence_files ?? 0,
+        unmappedEvidenceFiles: planResult.plan.coverage?.unmapped_evidence_files ?? 0,
+      } : {}),
       frozenChunks: chunks.filter((chunk) => chunk.state === "frozen").length,
       activeChunks: chunks.filter((chunk) => ACTIVE_CHUNK_STATES.has(chunk.state)).length,
       chunks: chunks.reduce((acc, chunk) => {

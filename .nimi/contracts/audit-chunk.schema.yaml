@@ -20,6 +20,9 @@ optional_top_level_fields:
   - spec_surface
   - authority_refs
   - evidence_roots
+  - evidence_inventory
+  - coverage_contract
+  - evidence_file_hashes
 state_enum:
   - planned
   - dispatched
@@ -39,8 +42,12 @@ lifecycle_required_fields:
 hard_constraints:
   - chunk_files_must_match_plan_inventory
   - spec_authority_chunks_must_declare_authority_refs_and_evidence_roots
+  - spec_authority_chunks_must_declare_evidence_inventory
+  - spec_authority_chunks_must_declare_coverage_contract
+  - spec_authority_chunk_files_remain_authority_refs_only
   - spec_authority_ingest_requires_one_authority_outcome_per_authority_ref
-  - spec_authority_ingest_requires_examined_evidence_files
+  - spec_authority_ingest_requires_evidence_files_exactly_matching_evidence_inventory
+  - spec_authority_authority_outcome_evidence_refs_must_belong_to_authority_refs_or_evidence_inventory
   - ingest_requires_dispatch
   - frozen_requires_manager_review
   - failed_or_skipped_requires_explicit_reason

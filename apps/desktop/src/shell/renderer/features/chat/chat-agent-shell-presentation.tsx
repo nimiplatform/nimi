@@ -60,7 +60,7 @@ import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
-import { CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
+import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout';
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -140,8 +140,6 @@ type UseAgentConversationPresentationInput = {
   onClearAgentHistory?: () => Promise<void> | void;
 };
 
-const AGENT_TRANSCRIPT_WIDTH_CLASS = 'max-w-[min(680px,calc(100vw-680px))]';
-const AGENT_TRANSCRIPT_POSITION_CLASS = CHAT_CONTENT_POSITION_CLASS;
 const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-[clamp(140px,16vh,200px)]';
 
 export function useAgentConversationPresentation(
@@ -341,10 +339,8 @@ export function useAgentConversationPresentation(
       }),
       loadingLabel: input.t('Chat.agentTranscriptLoading', { defaultValue: 'Loading local agent conversation…' }),
     },
-    transcriptWidthClassName: AGENT_TRANSCRIPT_WIDTH_CLASS,
-    transcriptWidthPositionClassName: AGENT_TRANSCRIPT_POSITION_CLASS,
-    transcriptScrollViewportWidthClassName: AGENT_TRANSCRIPT_WIDTH_CLASS,
-    transcriptScrollViewportPositionClassName: AGENT_TRANSCRIPT_POSITION_CLASS,
+    transcriptWidthClassName: CHAT_CONTENT_WIDTH_CLASS,
+    transcriptWidthPositionClassName: CHAT_CONTENT_POSITION_CLASS,
     transcriptContentPaddingBottomClassName: AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
     renderMessageContent: input.renderMessageContent,
     renderMessageAccessory: input.renderMessageAccessory,
@@ -525,8 +521,8 @@ export function useAgentConversationPresentation(
                 fallbackLabel={characterData.avatarFallback || resolvedAgentDisplayName}
               />
             )}
-            widthClassName={AGENT_TRANSCRIPT_WIDTH_CLASS}
-            widthPositionClassName={AGENT_TRANSCRIPT_POSITION_CLASS}
+            widthClassName={CHAT_CONTENT_WIDTH_CLASS}
+            widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
           />
         </div>
       ) : null

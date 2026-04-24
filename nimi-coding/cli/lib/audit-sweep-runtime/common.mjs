@@ -147,7 +147,7 @@ export function artifactPath(projectRoot, ref) {
 export async function writeYamlRef(projectRoot, ref, value) {
   const destination = artifactPath(projectRoot, ref);
   await mkdir(path.dirname(destination), { recursive: true });
-  await writeFile(destination, YAML.stringify(value), "utf8");
+  await writeFile(destination, YAML.stringify(value, { aliasDuplicateObjects: false }), "utf8");
 }
 
 export async function writeJsonRef(projectRoot, ref, value) {

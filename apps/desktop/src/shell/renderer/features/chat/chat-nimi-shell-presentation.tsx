@@ -166,6 +166,8 @@ export function useAiConversationPresentation(
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
       pendingFirstBeat: input.pendingFirstBeat,
+      widthClassName: CHAT_CONTENT_WIDTH_CLASS,
+      widthPositionClassName: CHAT_CONTENT_POSITION_CLASS,
     },
     stagePanelProps: {
       footerContent: input.footerContent,

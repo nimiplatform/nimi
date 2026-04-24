@@ -4994,8 +4994,23 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       "# Runtime Audit Surface\n",
       "utf8",
     );
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "runtime", "kernel", "generated"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "runtime", "kernel", "generated", "runtime-audit-surface.md"),
+      "# Generated Runtime Audit Surface\n",
+      "utf8",
+    );
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "runtime", "kernel", "tables"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "runtime", "kernel", "tables", "runtime-audit-surface.yaml"),
+      "surfaces:\n  - runtime-audit-surface\n",
+      "utf8",
+    );
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "runtime", "index.md"), "# Runtime Domain\n", "utf8");
     await mkdir(path.join(projectRoot, "runtime", "internal"), { recursive: true });
+    await writeFile(path.join(projectRoot, "runtime", "README.md"), "# Runtime\n", "utf8");
     await writeFile(path.join(projectRoot, "runtime", "internal", "service.go"), "package internal\n", "utf8");
+    await writeFile(path.join(projectRoot, "runtime", "internal", "service_test.go"), "package internal\n", "utf8");
 
     const planResult = await captureRunCli([
       "audit-sweep",
@@ -5014,18 +5029,41 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     assert.equal(payload.ok, true);
     assert.equal(payload.chunkBasis, "spec_authority");
 
-    const plan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-spec-basis.yaml"), "utf8"));
+    const planText = await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-spec-basis.yaml"), "utf8");
+    assert.doesNotMatch(planText, /^\s+\w+: &a\d+/m);
+    const plan = YAML.parse(planText);
     assert.equal(plan.planning_basis.mode, "spec_authority");
     assert.equal(plan.planning_basis.authority_root, ".nimi/spec");
     assert.equal(plan.planning_basis.files_are_evidence_only, true);
     assert.ok(plan.inventory.every((entry) => entry.file_ref.startsWith(".nimi/spec/")));
     assert.ok(!plan.inventory.some((entry) => entry.file_ref === "runtime/internal/service.go"));
+    assert.ok(plan.evidence_inventory.some((entry) => entry.file_ref === "runtime/internal/service.go"));
+    assert.equal(plan.coverage.authority_files, plan.coverage.included_files);
+    assert.ok(plan.coverage.evidence_files > 0);
+    assert.ok(plan.coverage.unmapped_evidence_files > 0);
+    assert.equal(plan.unmapped_evidence_files.length, plan.coverage.unmapped_evidence_files);
 
     const runtimeChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "kernel-contracts");
     assert.ok(runtimeChunk);
     assert.ok(runtimeChunk.authority_refs.includes(".nimi/spec/runtime/kernel/runtime-audit-surface.md"));
     assert.ok(runtimeChunk.evidence_roots.includes("runtime"));
     assert.ok(runtimeChunk.evidence_roots.includes("config"));
+    assert.equal(runtimeChunk.coverage_contract.evidence_files_must_cover_inventory, true);
+    assert.ok(runtimeChunk.evidence_inventory.includes("runtime/internal/service.go"));
+    assert.ok(runtimeChunk.evidence_inventory.includes("runtime/internal/service_test.go"));
+    const runtimeGeneratedChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "kernel-generated");
+    assert.ok(runtimeGeneratedChunk);
+    assert.ok(!runtimeGeneratedChunk.evidence_inventory.includes("runtime/internal/service.go"));
+    const runtimeTablesChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "kernel-tables");
+    assert.ok(runtimeTablesChunk);
+    assert.ok(!runtimeTablesChunk.evidence_inventory.includes("runtime/internal/service.go"));
+    const runtimeDomainChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "domain-guides");
+    assert.ok(runtimeDomainChunk);
+    assert.ok(runtimeDomainChunk.evidence_inventory.includes("runtime/README.md"));
+    assert.ok(!runtimeDomainChunk.evidence_inventory.includes("runtime/internal/service.go"));
+    const serviceEvidenceChunk = plan.chunks.find((chunk) => chunk.evidence_inventory.includes("runtime/internal/service.go"));
+    assert.ok(serviceEvidenceChunk);
+    assert.equal(serviceEvidenceChunk.chunk_id, runtimeChunk.chunk_id);
     const specRootChunk = plan.chunks.find((chunk) => chunk.owner_domain === "spec-root");
     assert.ok(specRootChunk);
     assert.ok(specRootChunk.evidence_roots.includes("apps"));
@@ -5038,7 +5076,7 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       "--sweep-id",
       "audit-sweep-test-spec-basis",
       "--chunk-id",
-      runtimeChunk.chunk_id,
+      serviceEvidenceChunk.chunk_id,
       "--dispatched-at",
       "2026-04-24T00:00:00.000Z",
       "--json",
@@ -5049,11 +5087,11 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     await writeFile(
       incompleteEvidencePath,
       `${JSON.stringify({
-        chunk_id: runtimeChunk.chunk_id,
+        chunk_id: serviceEvidenceChunk.chunk_id,
         auditor: { id: "spec-first-auditor" },
         coverage: {
-          authority_refs: runtimeChunk.authority_refs,
-          files: runtimeChunk.authority_refs,
+          authority_refs: serviceEvidenceChunk.authority_refs,
+          files: serviceEvidenceChunk.authority_refs,
         },
         findings: [],
       }, null, 2)}\n`,
@@ -5066,7 +5104,7 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       "--sweep-id",
       "audit-sweep-test-spec-basis",
       "--chunk-id",
-      runtimeChunk.chunk_id,
+      serviceEvidenceChunk.chunk_id,
       "--from",
       "runtime-audit-evidence-incomplete.json",
       "--verified-at",
@@ -5080,12 +5118,12 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     await writeFile(
       missingAuthorityRefsEvidencePath,
       `${JSON.stringify({
-        chunk_id: runtimeChunk.chunk_id,
+        chunk_id: serviceEvidenceChunk.chunk_id,
         auditor: { id: "spec-first-auditor" },
         coverage: {
-          files: runtimeChunk.authority_refs,
-          evidence_files: [],
-          authority_outcomes: runtimeChunk.authority_refs.map((authorityRef) => ({
+          files: serviceEvidenceChunk.authority_refs,
+          evidence_files: serviceEvidenceChunk.evidence_inventory,
+          authority_outcomes: serviceEvidenceChunk.authority_refs.map((authorityRef) => ({
             authority_ref: authorityRef,
             status: "not_applicable",
             evidence_refs: [],
@@ -5103,7 +5141,7 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       "--sweep-id",
       "audit-sweep-test-spec-basis",
       "--chunk-id",
-      runtimeChunk.chunk_id,
+      serviceEvidenceChunk.chunk_id,
       "--from",
       "runtime-audit-evidence-missing-authority-refs.json",
       "--verified-at",
@@ -5113,17 +5151,55 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     assert.equal(missingAuthorityRefsIngestResult.exitCode, 2);
     assert.match(missingAuthorityRefsIngestResult.stderr, /coverage\.authority_refs is required/);
 
+    const partialEvidencePath = path.join(projectRoot, "runtime-audit-evidence-partial.json");
+    await writeFile(
+      partialEvidencePath,
+      `${JSON.stringify({
+        chunk_id: serviceEvidenceChunk.chunk_id,
+        auditor: { id: "spec-first-auditor" },
+        coverage: {
+          authority_refs: serviceEvidenceChunk.authority_refs,
+          files: serviceEvidenceChunk.authority_refs,
+          evidence_files: [],
+          authority_outcomes: serviceEvidenceChunk.authority_refs.map((authorityRef) => ({
+            authority_ref: authorityRef,
+            status: "not_applicable",
+            evidence_refs: [],
+            reason: "Negative fixture intentionally omits implementation evidence inventory coverage.",
+          })),
+        },
+        findings: [],
+      }, null, 2)}\n`,
+      "utf8",
+    );
+    const partialIngestResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-spec-basis",
+      "--chunk-id",
+      serviceEvidenceChunk.chunk_id,
+      "--from",
+      "runtime-audit-evidence-partial.json",
+      "--verified-at",
+      "2026-04-24T00:00:50.000Z",
+      "--json",
+    ]);
+    assert.equal(partialIngestResult.exitCode, 2);
+    assert.match(partialIngestResult.stderr, /coverage\.evidence_files must exactly match chunk evidence inventory/);
+
     const evidencePath = path.join(projectRoot, "runtime-audit-evidence.json");
     await writeFile(
       evidencePath,
       `${JSON.stringify({
-        chunk_id: runtimeChunk.chunk_id,
+        chunk_id: serviceEvidenceChunk.chunk_id,
         auditor: { id: "spec-first-auditor" },
         coverage: {
-          authority_refs: runtimeChunk.authority_refs,
-          files: [...runtimeChunk.authority_refs, "runtime/internal/service.go"],
-          evidence_files: ["runtime/internal/service.go"],
-          authority_outcomes: runtimeChunk.authority_refs.map((authorityRef) => ({
+          authority_refs: serviceEvidenceChunk.authority_refs,
+          files: serviceEvidenceChunk.authority_refs,
+          evidence_files: serviceEvidenceChunk.evidence_inventory,
+          authority_outcomes: serviceEvidenceChunk.authority_refs.map((authorityRef) => ({
             authority_ref: authorityRef,
             status: "audited",
             evidence_refs: ["runtime/internal/service.go"],
@@ -5156,7 +5232,7 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       "--sweep-id",
       "audit-sweep-test-spec-basis",
       "--chunk-id",
-      runtimeChunk.chunk_id,
+      serviceEvidenceChunk.chunk_id,
       "--from",
       "runtime-audit-evidence.json",
       "--verified-at",
@@ -5184,10 +5260,89 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     const tamperedValidatePayload = JSON.parse(tamperedValidateResult.stdout);
     assert.equal(tamperedValidatePayload.ok, false);
     assert.ok(tamperedValidatePayload.checks.some((check) => (
-      check.id === `chunk_${runtimeChunk.chunk_id}_spec_authority_evidence_coverage`
+      check.id === `chunk_${serviceEvidenceChunk.chunk_id}_spec_authority_evidence_coverage`
       && check.ok === false
       && check.reason === "spec-authority evidence declares authority_refs"
     )));
+  });
+});
+
+test("audit-sweep validate emits complete JSON for large spec sweeps", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    for (let index = 0; index < 80; index += 1) {
+      const domainRoot = path.join(projectRoot, ".nimi", "spec", `domain-${String(index).padStart(2, "0")}`, "kernel");
+      await mkdir(domainRoot, { recursive: true });
+      await writeFile(path.join(domainRoot, `surface-${String(index).padStart(2, "0")}.md`), `# Surface ${index}\n`, "utf8");
+    }
+
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      ".",
+      "--chunk-basis",
+      "spec",
+      "--sweep-id",
+      "audit-sweep-test-large-json",
+      "--json",
+    ]);
+    assert.equal(planResult.exitCode, 0);
+
+    const validateResult = await runCliSubprocess([
+      "audit-sweep",
+      "validate",
+      "--sweep-id",
+      "audit-sweep-test-large-json",
+      "--scope",
+      "chunks",
+      "--json",
+    ], { cwd: projectRoot });
+    assert.equal(validateResult.exitCode, 2, validateResult.stderr);
+    assert.ok(validateResult.stdout.length > 65536);
+    const validatePayload = JSON.parse(validateResult.stdout);
+    assert.equal(validatePayload.ok, false);
+    assert.ok(validatePayload.checks.some((check) => (
+      check.id === "plan_spec_unmapped_evidence_fail_closed"
+      && check.ok === false
+      && check.reason === "spec-authority plans have no unmapped evidence files"
+    )));
+    assert.ok(validatePayload.checks.some((check) => (
+      check.id.startsWith("run_replay_chunk-001-")
+      && check.id.endsWith("_dispatch")
+      && check.ok === true
+      && check.reason.startsWith("run ledger dispatch not required for planned chunk ")
+    )));
+    assert.ok(validatePayload.checks.some((check) => (
+      check.id.startsWith("run_replay_chunk-001-")
+      && check.id.endsWith("_ingest")
+      && check.ok === true
+      && check.reason.startsWith("run ledger ingest not required for planned chunk ")
+    )));
+    assert.ok(validatePayload.checks.some((check) => (
+      check.id.startsWith("run_replay_chunk-001-")
+      && check.id.endsWith("_terminal")
+      && check.ok === true
+      && check.reason.startsWith("run ledger terminal event not required for planned chunk ")
+    )));
+
+    const ledgerResult = await runCliSubprocess([
+      "audit-sweep",
+      "ledger",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-large-json",
+      "--verified-at",
+      "2026-04-24T00:00:00.000Z",
+      "--json",
+    ], { cwd: projectRoot });
+    assert.equal(ledgerResult.exitCode, 0, ledgerResult.stderr);
+    const ledgerPayload = JSON.parse(ledgerResult.stdout);
+    assert.equal(ledgerPayload.status, "partial");
+    assert.equal(ledgerPayload.coverage.audited_files, 0);
+    assert.ok(ledgerPayload.coverage.evidence_coverage.unmapped_files > 0);
   });
 });
 

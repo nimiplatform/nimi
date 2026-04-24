@@ -180,8 +180,11 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-\[clamp\(140px,16vh,200px\)\]'/);
   assert.doesNotMatch(chatAgentPresentationSource, /avatarStagePlacement/);
   assert.doesNotMatch(chatAgentPresentationSource, /useAgentAvatarPlacement/);
-  assert.match(chatAgentPresentationSource, /const AGENT_TRANSCRIPT_WIDTH_CLASS = 'max-w-\[min\(680px,calc\(100vw-680px\)\)\]'/);
-  assert.match(chatAgentPresentationSource, /widthPositionClassName=\{AGENT_TRANSCRIPT_POSITION_CLASS\}/);
+  assert.match(chatAgentPresentationSource, /CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS/);
+  assert.match(chatAgentPresentationSource, /transcriptWidthClassName: CHAT_CONTENT_WIDTH_CLASS/);
+  assert.match(chatAgentPresentationSource, /transcriptWidthPositionClassName: CHAT_CONTENT_POSITION_CLASS/);
+  assert.match(chatAgentPresentationSource, /widthClassName=\{CHAT_CONTENT_WIDTH_CLASS\}/);
+  assert.match(chatAgentPresentationSource, /widthPositionClassName=\{CHAT_CONTENT_POSITION_CLASS\}/);
   assert.match(chatAgentPresentationSource, /topContent: schedulingFeedbackNode/);
   assert.match(chatAgentAvatarSettingsSource, /<ChatAgentAvatarAppLauncher/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);
