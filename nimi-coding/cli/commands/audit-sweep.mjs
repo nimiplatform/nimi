@@ -96,6 +96,7 @@ function parseOptions(args, commandName, spec) {
 function parsePlanOptions(args) {
   return parseOptions(args, "plan", {
     root: { flag: "--root", required: true },
+    chunkBasis: { flag: "--chunk-basis" },
     criteria: { flag: "--criteria" },
     exclude: { flag: "--exclude" },
     maxFilesPerChunk: { flag: "--max-files", type: "positive-int" },

@@ -102,6 +102,31 @@ function ownerDomainForFile(fileRef, targetRootRef) {
   return path.posix.join(targetRootRef === "." ? "" : targetRootRef, parts[0]) || parts[0];
 }
 
+function isSpecAuthorityRoot(ref) {
+  return ref === ".nimi/spec" || ref === ".nimi/spec/";
+}
+
+async function hasSpecAuthorityRoot(projectRoot) {
+  const info = await pathExists(path.join(projectRoot, ".nimi", "spec"));
+  return info?.isDirectory() === true;
+}
+
+function resolveChunkBasis(targetRootRef, requested, specRootPresent) {
+  const normalized = requested ? String(requested).trim() : "auto";
+  if (!["auto", "files", "spec"].includes(normalized)) {
+    return { ok: false, error: "nimicoding audit-sweep refused: --chunk-basis must be auto, files, or spec.\n" };
+  }
+  if (normalized === "files") {
+    return { ok: true, basis: "files" };
+  }
+  if (normalized === "spec") {
+    return specRootPresent
+      ? { ok: true, basis: "spec" }
+      : { ok: false, error: "nimicoding audit-sweep refused: --chunk-basis spec requires .nimi/spec.\n" };
+  }
+  return { ok: true, basis: (targetRootRef === "." || isSpecAuthorityRoot(targetRootRef)) && specRootPresent ? "spec" : "files" };
+}
+
 async function buildInventoryEntry(projectRoot, fileRef, targetRootRef, excludePatterns) {
   const extension = path.posix.extname(fileRef);
   const excluded = isExcluded(fileRef, excludePatterns);
@@ -125,7 +150,7 @@ async function buildInventoryEntry(projectRoot, fileRef, targetRootRef, excludeP
   };
 }
 
-function buildChunks(includedInventory, options) {
+function buildFileChunks(includedInventory, options) {
   const byOwner = new Map();
   for (const entry of includedInventory) {
     const files = byOwner.get(entry.owner_domain) ?? [];
@@ -153,38 +178,134 @@ function buildChunks(includedInventory, options) {
   return chunks;
 }
 
+function specSurfaceForFile(fileRef) {
+  const withoutRoot = fileRef.startsWith(".nimi/spec/")
+    ? fileRef.slice(".nimi/spec/".length)
+    : fileRef;
+  const parts = withoutRoot.split("/");
+  if (parts[0] === "_meta") {
+    return { ownerDomain: "spec-meta", surface: path.posix.basename(fileRef, path.posix.extname(fileRef)) };
+  }
+  if (parts.length === 1) {
+    return { ownerDomain: "spec-root", surface: path.posix.basename(fileRef, path.posix.extname(fileRef)) };
+  }
+  const domain = parts[0];
+  if (parts[1] === "kernel" && parts[2] === "tables") {
+    return { ownerDomain: domain, surface: "kernel-tables" };
+  }
+  if (parts[1] === "kernel" && parts[2] === "generated") {
+    return { ownerDomain: domain, surface: "kernel-generated" };
+  }
+  if (parts[1] === "kernel") {
+    return { ownerDomain: domain, surface: "kernel-contracts" };
+  }
+  return { ownerDomain: domain, surface: "domain-guides" };
+}
+
+function evidenceRootsForSpecOwner(ownerDomain, targetRootRef) {
+  if (targetRootRef !== ".") {
+    return [targetRootRef];
+  }
+  const roots = {
+    "spec-meta": [".nimi/spec", ".nimi/contracts", ".nimi/methodology", "nimi-coding"],
+    "spec-root": [".nimi/spec", ".nimi/contracts", ".nimi/methodology", "nimi-coding"],
+    cognition: ["nimi-cognition", ".nimi/spec/cognition"],
+    desktop: ["apps/desktop", "kit", ".nimi/spec/desktop"],
+    future: [".nimi/spec/future", ".nimi/topics"],
+    platform: ["kit", "scripts", ".nimi/spec/platform"],
+    realm: ["sdk/src/realm", "runtime/internal/protocol", ".nimi/spec/realm"],
+    runtime: ["runtime", "proto/runtime/v1", "scripts", "config", ".nimi/spec/runtime"],
+    sdk: ["sdk/src", "sdk/test", "scripts", ".nimi/spec/sdk"],
+  };
+  return roots[ownerDomain] ?? [ownerDomain, `.nimi/spec/${ownerDomain}`];
+}
+
+function slugPart(value) {
+  return String(value)
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase() || "spec";
+}
+
+function buildSpecChunks(includedInventory, options) {
+  const bySurface = new Map();
+  for (const entry of includedInventory) {
+    const surface = specSurfaceForFile(entry.file_ref);
+    const key = `${surface.ownerDomain}/${surface.surface}`;
+    const entries = bySurface.get(key) ?? {
+      ownerDomain: surface.ownerDomain,
+      surface: surface.surface,
+      files: [],
+    };
+    entries.files.push(entry);
+    bySurface.set(key, entries);
+  }
+
+  const chunks = [];
+  for (const surface of [...bySurface.values()].sort((left, right) => (
+    `${left.ownerDomain}/${left.surface}`.localeCompare(`${right.ownerDomain}/${right.surface}`)
+  ))) {
+    const sortedEntries = surface.files.sort((left, right) => left.file_ref.localeCompare(right.file_ref));
+    const chunkId = `chunk-${String(chunks.length + 1).padStart(3, "0")}-${slugPart(surface.ownerDomain)}-${slugPart(surface.surface)}`;
+    chunks.push({
+      chunk_id: chunkId,
+      state: "planned",
+      owner_domain: surface.ownerDomain,
+      planning_basis: "spec_authority",
+      spec_surface: surface.surface,
+      criteria: options.criteria,
+      files: sortedEntries.map((entry) => entry.file_ref),
+      authority_refs: sortedEntries.map((entry) => entry.file_ref),
+      evidence_roots: evidenceRootsForSpecOwner(surface.ownerDomain, options.targetRootRef),
+      file_count: sortedEntries.length,
+      finding_count: 0,
+    });
+  }
+
+  return chunks;
+}
+
 export async function createAuditSweepPlan(projectRoot, options) {
   const targetRoot = resolveInsideProject(projectRoot, options.root ?? ".", "--root");
   if (!targetRoot.ok) {
     return inputError(targetRoot.error);
   }
+  const targetRootRef = targetRoot.ref || ".";
 
   const targetInfo = await pathExists(targetRoot.absolutePath);
   if (!targetInfo || !targetInfo.isDirectory()) {
     return inputError("nimicoding audit-sweep refused: --root must point to an existing directory.\n");
   }
 
-  const sweepId = options.sweepId ? safeSweepId(options.sweepId) : deriveSweepId(targetRoot.ref);
+  const sweepId = options.sweepId ? safeSweepId(options.sweepId) : deriveSweepId(targetRootRef);
   if (!sweepId) {
     return inputError("nimicoding audit-sweep refused: --sweep-id must be a safe id.\n");
   }
 
+  const specRootPresent = await hasSpecAuthorityRoot(projectRoot);
+  const chunkBasis = resolveChunkBasis(targetRootRef, options.chunkBasis, specRootPresent);
+  if (!chunkBasis.ok) {
+    return inputError(chunkBasis.error);
+  }
+  const inventoryRootRef = chunkBasis.basis === "spec" ? ".nimi/spec" : targetRootRef;
   const criteria = normalizeCsv(options.criteria, DEFAULT_CRITERIA);
   const excludePatterns = [...DEFAULT_EXCLUDE_PATTERNS, ...normalizeCsv(options.exclude)];
   const maxFilesPerChunk = Number.isInteger(options.maxFilesPerChunk) && options.maxFilesPerChunk > 0
     ? options.maxFilesPerChunk
     : DEFAULT_MAX_FILES_PER_CHUNK;
-  const gitFiles = await listGitFiles(projectRoot, targetRoot.ref);
+  const gitFiles = await listGitFiles(projectRoot, inventoryRootRef);
   const allFileRefs = gitFiles.length > 0
     ? gitFiles.map((entry) => toPosix(entry))
-    : await listFallbackFiles(projectRoot, targetRoot.ref, excludePatterns);
+    : await listFallbackFiles(projectRoot, inventoryRootRef, excludePatterns);
   const inventory = [];
   for (const fileRef of allFileRefs) {
-    inventory.push(await buildInventoryEntry(projectRoot, fileRef, targetRoot.ref, excludePatterns));
+    inventory.push(await buildInventoryEntry(projectRoot, fileRef, inventoryRootRef, excludePatterns));
   }
 
   const includedInventory = inventory.filter((entry) => entry.included);
-  const chunks = buildChunks(includedInventory, { criteria, maxFilesPerChunk });
+  const chunks = chunkBasis.basis === "spec"
+    ? buildSpecChunks(includedInventory, { criteria, targetRootRef })
+    : buildFileChunks(includedInventory, { criteria, maxFilesPerChunk });
   const createdAt = options.createdAt ?? new Date().toISOString();
   const inventoryHash = sha256Object(inventory.map((entry) => ({
     file_ref: entry.file_ref,
@@ -196,7 +317,14 @@ export async function createAuditSweepPlan(projectRoot, options) {
     version: 1,
     kind: "audit-plan",
     sweep_id: sweepId,
-    target_root: targetRoot.ref,
+    target_root: targetRootRef,
+    planning_basis: {
+      mode: chunkBasis.basis === "spec" ? "spec_authority" : "file_inventory",
+      authority_root: chunkBasis.basis === "spec" ? ".nimi/spec" : null,
+      inventory_root: inventoryRootRef,
+      evidence_root: targetRootRef,
+      files_are_evidence_only: chunkBasis.basis === "spec",
+    },
     criteria,
     max_files_per_chunk: maxFilesPerChunk,
     exclude_patterns: excludePatterns,
@@ -226,6 +354,10 @@ export async function createAuditSweepPlan(projectRoot, options) {
       owner_domain: chunk.owner_domain,
       criteria,
       files: chunk.files,
+      ...(chunk.planning_basis ? { planning_basis: chunk.planning_basis } : {}),
+      ...(chunk.spec_surface ? { spec_surface: chunk.spec_surface } : {}),
+      ...(chunk.authority_refs ? { authority_refs: chunk.authority_refs } : {}),
+      ...(chunk.evidence_roots ? { evidence_roots: chunk.evidence_roots } : {}),
       file_count: chunk.files.length,
       file_hashes: Object.fromEntries(chunkInventory.map((entry) => [entry.file_ref, entry.sha256])),
       lifecycle: {
@@ -268,6 +400,7 @@ export async function createAuditSweepPlan(projectRoot, options) {
     inventoryHash,
     criteria,
     maxFilesPerChunk,
+    chunkBasis: plan.planning_basis.mode,
   };
 }
 

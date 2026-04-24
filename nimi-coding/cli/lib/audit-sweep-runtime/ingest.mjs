@@ -37,15 +37,38 @@ function validateEvidenceEnvelope(evidence, chunk) {
   if (!isPlainObject(evidence.coverage) || !Array.isArray(evidence.coverage.files)) {
     return { ok: false, error: "audit evidence coverage.files is required" };
   }
-  const covered = [...evidence.coverage.files].sort();
-  const expected = [...chunk.files].sort();
-  if (covered.length !== expected.length || covered.some((fileRef, index) => fileRef !== expected[index])) {
-    return { ok: false, error: "audit evidence coverage.files must exactly match chunk files" };
+  if (chunk.planning_basis === "spec_authority") {
+    const coveredAuthority = [...(evidence.coverage.authority_refs ?? evidence.coverage.files)].sort();
+    const expectedAuthority = [...(chunk.authority_refs ?? chunk.files)].sort();
+    if (coveredAuthority.length !== expectedAuthority.length || coveredAuthority.some((fileRef, index) => fileRef !== expectedAuthority[index])) {
+      return { ok: false, error: "audit evidence coverage.authority_refs must exactly match chunk authority refs" };
+    }
+  } else {
+    const covered = [...evidence.coverage.files].sort();
+    const expected = [...chunk.files].sort();
+    if (covered.length !== expected.length || covered.some((fileRef, index) => fileRef !== expected[index])) {
+      return { ok: false, error: "audit evidence coverage.files must exactly match chunk files" };
+    }
   }
   if (!Array.isArray(evidence.findings)) {
     return { ok: false, error: "audit evidence findings must be an array" };
   }
   return { ok: true };
+}
+
+function isInsideRef(rootRef, fileRef) {
+  const normalizedRoot = rootRef.replace(/\\/g, "/").replace(/\/$/, "");
+  return fileRef === normalizedRoot || fileRef.startsWith(`${normalizedRoot}/`);
+}
+
+function chunkAllowsFindingFile(chunk, fileRef) {
+  if (chunk.files.includes(fileRef)) {
+    return true;
+  }
+  if (chunk.planning_basis !== "spec_authority") {
+    return false;
+  }
+  return Array.isArray(chunk.evidence_roots) && chunk.evidence_roots.some((rootRef) => isInsideRef(rootRef, fileRef));
 }
 
 function normalizeFinding(rawFinding, index, chunk, sweepId, evidenceRef, verifiedAt) {
@@ -80,7 +103,7 @@ function normalizeFinding(rawFinding, index, chunk, sweepId, evidenceRef, verifi
     return { ok: false, error: `finding ${index + 1} location.file is required` };
   }
   const fileRef = rawFinding.location.file.replace(/\\/g, "/");
-  if (!chunk.files.includes(fileRef)) {
+  if (!chunkAllowsFindingFile(chunk, fileRef)) {
     return { ok: false, error: `finding ${index + 1} location.file must belong to chunk ${chunk.chunk_id}` };
   }
 

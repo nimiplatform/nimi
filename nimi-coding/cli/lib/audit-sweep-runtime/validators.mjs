@@ -155,6 +155,14 @@ function validatePlanShape(plan, sweepId, checks) {
     && Array.isArray(chunk.files)
     && chunk.file_count === chunk.files.length);
   check(checks, "plan_chunk_summaries_valid", chunkSummariesOk, "audit plan chunk summaries are valid");
+  if (plan.planning_basis?.mode === "spec_authority") {
+    const specChunksOk = plan.chunks.every((chunk) => Array.isArray(chunk.authority_refs)
+      && chunk.authority_refs.length === chunk.files.length
+      && chunk.authority_refs.every((fileRef) => chunk.files.includes(fileRef))
+      && Array.isArray(chunk.evidence_roots)
+      && nonEmptyString(chunk.spec_surface));
+    check(checks, "plan_spec_authority_chunks_valid", specChunksOk, "spec-authority audit chunks declare authority refs and evidence roots");
+  }
 }
 
 function validateChunkShape(chunk, plan, checks) {
@@ -187,6 +195,14 @@ function validateChunkShape(chunk, plan, checks) {
   const hashesOk = Array.isArray(chunk.files) && isPlainObject(chunk.file_hashes)
     && chunk.files.every((fileRef) => chunk.file_hashes[fileRef] === inventoryByFile.get(fileRef)?.sha256);
   check(checks, `chunk_${chunk.chunk_id}_hashes_match_inventory`, hashesOk, "audit chunk file hashes match inventory");
+  if (chunk.planning_basis === "spec_authority") {
+    const specChunkOk = Array.isArray(chunk.authority_refs)
+      && chunk.authority_refs.length === chunk.files.length
+      && chunk.authority_refs.every((fileRef) => chunk.files.includes(fileRef))
+      && Array.isArray(chunk.evidence_roots)
+      && nonEmptyString(chunk.spec_surface);
+    check(checks, `chunk_${chunk.chunk_id}_spec_authority_fields`, specChunkOk, "spec-authority chunk declares authority refs and evidence roots");
+  }
   const lifecycle = chunk.lifecycle;
   const lifecycleOk = isPlainObject(lifecycle)
     && ["planned_at", "dispatched_at", "ingested_at", "reviewed_at", "frozen_at", "failed_at", "skipped_at"].every((field) => field in lifecycle)
@@ -199,6 +215,21 @@ function validateChunkShape(chunk, plan, checks) {
     || nonEmptyString(chunk.failure?.reason)
     || nonEmptyString(chunk.skip?.reason)
     || nonEmptyString(chunk.review?.summary), "failed or skipped chunks have an explicit reason");
+}
+
+function isInsideRef(rootRef, fileRef) {
+  const normalizedRoot = rootRef.replace(/\\/g, "/").replace(/\/$/, "");
+  return fileRef === normalizedRoot || fileRef.startsWith(`${normalizedRoot}/`);
+}
+
+function chunkAllowsFindingFile(chunk, fileRef) {
+  if (chunk?.files?.includes(fileRef)) {
+    return true;
+  }
+  if (chunk?.planning_basis !== "spec_authority") {
+    return false;
+  }
+  return Array.isArray(chunk.evidence_roots) && chunk.evidence_roots.some((rootRef) => isInsideRef(rootRef, fileRef));
 }
 
 function validateFindingShape(finding, chunksById, checks) {
@@ -230,7 +261,7 @@ function validateFindingShape(finding, chunksById, checks) {
     && FINDING_DISPOSITION.has(finding.disposition), "audit finding enums are valid");
   check(checks, `finding_${finding.id}_location_in_chunk`, chunk !== null
     && nonEmptyString(finding.location?.file)
-    && chunk.files.includes(finding.location.file), "audit finding location belongs to its source chunk");
+    && chunkAllowsFindingFile(chunk, finding.location.file), "audit finding location belongs to its source chunk");
   check(checks, `finding_${finding.id}_evidence_valid`, nonEmptyString(finding.evidence?.summary)
     && nonEmptyString(finding.evidence?.auditor_reasoning)
     && nonEmptyString(finding.evidence_ref), "audit finding evidence is explicit");

@@ -22,6 +22,7 @@ export function helpText() {
     `  ${styleCommand("nimicoding topic status [<topic-id>|<topic-path>] [--json]")}`,
     `  ${styleCommand("nimicoding topic run-next-step <topic-id> [--json]")}`,
     `  ${styleCommand("nimicoding topic run-ledger <init|record|build|status> <topic-id> --run-id <id> [--json]")}`,
+    `  ${styleCommand("nimicoding topic-runner <step|run> <topic-id> --run-id <id> --adapter <codex|oh_my_codex|claude> [--execute-host] [--json]")}`,
     `  ${styleCommand("nimicoding topic validate [<topic-id>|<topic-path>] [--json]")}`,
     `  ${styleCommand("nimicoding topic validate graph <topic-id> [--json]")}`,
     `  ${styleCommand("nimicoding topic validate admission <topic-id> <wave-id> [--json]")}`,

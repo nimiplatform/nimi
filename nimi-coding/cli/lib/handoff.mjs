@@ -1,6 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-
 import {
   DOC_SPEC_AUDIT_RESULT_CONTRACT_REF,
   EXTERNAL_HOST_COMPATIBILITY_CONTRACT_REF,
@@ -32,7 +31,6 @@ import {
   styleStatus,
 } from "./ui.mjs";
 import { mergeOrderedPaths, parseSkillSection, parseYamlText, readYamlList } from "./yaml-helpers.mjs";
-
 function translateHandoffReason(reason) {
   const translations = new Map([
     ["Bootstrap or handoff validation is failing; repair doctor errors before exporting handoff payloads", "bootstrap 或 handoff 校验失败；请先修复 doctor 报错，再导出 handoff payload"],
@@ -48,7 +46,6 @@ function translateHandoffReason(reason) {
   }
   return translations.get(reason) ?? reason;
 }
-
 function commandRuleAllowsCurrentState(rule, doctorResult) {
   if (!rule) {
     return {
@@ -56,7 +53,6 @@ function commandRuleAllowsCurrentState(rule, doctorResult) {
       reason: "This skill is not allowed in the current lifecycle state",
     };
   }
-
   const treeState = doctorResult.lifecycleState?.treeState;
   const authorityMode = doctorResult.lifecycleState?.authorityMode;
   if (Array.isArray(rule.allowedTreeStates) && rule.allowedTreeStates.length > 0 && !rule.allowedTreeStates.includes(treeState)) {
@@ -65,20 +61,17 @@ function commandRuleAllowsCurrentState(rule, doctorResult) {
       reason: "This skill is not allowed in the current lifecycle state",
     };
   }
-
   if (Array.isArray(rule.allowedAuthorityModes) && rule.allowedAuthorityModes.length > 0 && !rule.allowedAuthorityModes.includes(authorityMode)) {
     return {
       ok: false,
       reason: "This skill is not allowed in the current authority mode",
     };
   }
-
   return {
     ok: true,
     reason: "Skill prerequisites are satisfied by the current project-local truth",
   };
 }
-
 function evaluateSkillReadiness(skillId, doctorResult) {
   if (!doctorResult.ok || !doctorResult.handoffReadiness.ok) {
     return {
@@ -86,18 +79,15 @@ function evaluateSkillReadiness(skillId, doctorResult) {
       reason: "Bootstrap or handoff validation is failing; repair doctor errors before exporting handoff payloads",
     };
   }
-
   if (skillId === "spec_reconstruction") {
     return {
       ok: true,
       reason: "Projects may delegate spec reconstruction to an external AI host when canonical tree work is needed",
     };
   }
-
   const rule = (doctorResult.commandGating?.entries ?? []).find((entry) => entry.command === "handoff" && entry.skill === skillId) ?? null;
   return commandRuleAllowsCurrentState(rule, doctorResult);
 }
-
 function getSkillSpecificExpectations(
   skillId,
   resultContractRef,
@@ -124,7 +114,6 @@ function getSkillSpecificExpectations(
       ],
     };
   }
-
   if (skillId === "doc_spec_audit") {
     return {
       compareTargets: auditContract.defaultComparedPaths,
@@ -139,7 +128,6 @@ function getSkillSpecificExpectations(
       ],
     };
   }
-
   if (skillId === "audit_sweep") {
     return {
       compareTargets: [".nimi/spec", ".nimi/contracts", ".nimi/methodology"],
@@ -165,7 +153,6 @@ function getSkillSpecificExpectations(
       ],
     };
   }
-
   if (skillId === "high_risk_execution") {
     const executionSchemaRefs = highRiskSchemaContracts.map((entry) => entry.path);
     return {
@@ -201,7 +188,6 @@ function getSkillSpecificExpectations(
       ],
     };
   }
-
   return {
     compareTargets: [],
     closeoutSummaryFields: [],
@@ -212,7 +198,6 @@ function getSkillSpecificExpectations(
     skillExpectedResults: [],
   };
 }
-
 export async function buildHandoffPayload(projectRoot, skillId) {
   const doctorResult = await inspectDoctorState(projectRoot);
   const manifestText = await readTextIfFile(path.join(projectRoot, ".nimi", "config", "skill-manifest.yaml"));
@@ -229,12 +214,10 @@ export async function buildHandoffPayload(projectRoot, skillId) {
   const auditExecutionArtifacts = await loadAuditExecutionArtifactsConfig(projectRoot);
   const externalExecutionArtifacts = await loadExternalExecutionArtifactsConfig(projectRoot);
   const highRiskSchemaContracts = await loadHighRiskSchemaContracts(projectRoot);
-
   const manifestSkills = parseSkillSection(manifestText, "skills");
   const expectedSkills = parseSkillSection(skillsConfigText, "expected_skill_surfaces");
   const manifestSkill = manifestSkills.find((skill) => skill.id === skillId) ?? null;
   const expectedSkill = expectedSkills.find((skill) => skill.id === skillId) ?? null;
-
   if (!manifestSkill || !expectedSkill) {
     return {
       ok: false,
@@ -244,7 +227,6 @@ export async function buildHandoffPayload(projectRoot, skillId) {
       doctor: doctorResult,
     };
   }
-
   const readiness = evaluateSkillReadiness(skillId, doctorResult);
   const resultContractRef = manifestSkill.result_contract_ref ?? SKILL_RESULT_CONTRACT_REFS[skillId] ?? null;
   const handoffContextOrder = readYamlList(handoffText, "required_context_order");
@@ -304,7 +286,6 @@ export async function buildHandoffPayload(projectRoot, skillId) {
         : [],
     }
     : null;
-
   return {
     contractVersion: HANDOFF_PAYLOAD_CONTRACT_VERSION,
     ok: readiness.ok,
@@ -408,7 +389,6 @@ export async function buildHandoffPayload(projectRoot, skillId) {
       : readiness.reason,
   };
 }
-
 export function formatHandoffPayload(payload) {
   const lines = [
     styleHeading(`nimicoding handoff: ${payload.projectRoot}`),
@@ -444,7 +424,6 @@ export function formatHandoffPayload(payload) {
     `  - skill_inputs: ${payload.context.skillInputs.length}`,
     "",
   ];
-
   if (payload.generationContext) {
     lines.push(
       styleLabel(localize("Generation:", "生成：")),
@@ -459,15 +438,12 @@ export function formatHandoffPayload(payload) {
       "",
     );
   }
-
   lines.push(
     styleLabel(localize("Next:", "下一步：")),
     `  - ${localize(payload.nextAction, translateHandoffReason(payload.nextAction))}`,
   );
-
   return `${lines.join("\n")}\n`;
 }
-
 export function formatHandoffPrompt(payload) {
   const isSpecReconstruction = payload.skill.id === "spec_reconstruction" && payload.generationContext;
   const lines = [
@@ -509,7 +485,6 @@ export function formatHandoffPrompt(payload) {
     `- ${localize("Host adapter", "Host adapter")}: ${payload.adapter.selectedId ?? "none"}`,
     `- ${localize("Semantic review owner", "语义审查 owner")}: ${payload.adapter.semanticReviewOwner ?? localize("unknown", "未知")}`,
   ];
-
   if (payload.handoffSurface.supportedHostPosture.length > 0) {
     lines.push(`- ${localize("Supported host posture", "支持的 host 姿态")}: ${payload.handoffSurface.supportedHostPosture.join(", ")}`);
   }
@@ -533,7 +508,6 @@ export function formatHandoffPrompt(payload) {
   if ((payload.handoffSurface.hostCompatibilitySummary.nativeReviewSurfaces ?? []).length > 0) {
     lines.push(`- ${localize("Native review surfaces", "原生审查 surface")}: ${payload.handoffSurface.hostCompatibilitySummary.nativeReviewSurfaces.map((surface) => `${surface.adapterId}:approval=${surface.approvalReviewScope}:${surface.approvalReviewSemanticEffect},pr=${surface.githubAutoReviewScope}:${surface.githubAutoReviewSemanticEffect}`).join("; ")}`);
   }
-
   if (payload.adapter.selectedId && payload.adapter.selectedId !== "none") {
     lines.push(`- ${localize("Adapter handoff mode", "Adapter handoff 模式")}: ${payload.adapter.handoffMode ?? localize("unknown", "未知")}`);
     lines.push(`- ${localize("Adapter profile ref", "Adapter profile 引用")}: ${payload.adapter.profileRef ?? localize("unknown", "未知")}`);
@@ -561,11 +535,9 @@ export function formatHandoffPrompt(payload) {
       "- Adapter 可以路由执行，但不得决定语义验收或最终 disposition。",
     ));
   }
-
   if (payload.skill.compareTargets.length > 0) {
     lines.push(`- ${localize("Compare targets", "比较目标")}: ${payload.skill.compareTargets.join(", ")}`);
   }
-
   if (isSpecReconstruction) {
     lines.push(`- ${localize("Canonical target root", "Canonical 目标根")}: ${payload.generationContext.canonicalTargetRoot}`);
     lines.push(`- ${localize("Generation mode", "生成模式")}: ${payload.generationContext.mode}`);
@@ -586,27 +558,21 @@ export function formatHandoffPrompt(payload) {
       lines.push(`- ${localize("Skeleton rules", "骨架规则")}: ${payload.generationContext.skeletonRules.join(", ")}`);
     }
   }
-
   if (payload.skill.expectedCloseoutSummaryFields.length > 0) {
     lines.push(`- ${localize("Expected closeout summary fields", "预期 closeout summary 字段")}: ${payload.skill.expectedCloseoutSummaryFields.join(", ")}`);
   }
-
   if (payload.skill.expectedCloseoutSummaryStatus.length > 0) {
     lines.push(`- ${localize("Expected closeout summary status", "预期 closeout summary 状态")}: ${payload.skill.expectedCloseoutSummaryStatus.join(", ")}`);
   }
-
   if (payload.skill.executionSchemaRefs.length > 0) {
     lines.push(`- ${localize("Execution schema refs", "执行 schema 引用")}: ${payload.skill.executionSchemaRefs.join(", ")}`);
   }
-
   if (Object.keys(payload.skill.expectedArtifactRoots).length > 0) {
     lines.push(`- ${localize("Expected local artifact roots", "预期本地产物根路径")}: ${Object.entries(payload.skill.expectedArtifactRoots).map(([field, value]) => `${field}=${value}`).join("; ")}`);
   }
-
   if (payload.skill.expectedArtifactKinds.length > 0) {
     lines.push(`- ${localize("Expected artifact kinds", "预期产物类型")}: ${payload.skill.expectedArtifactKinds.join(", ")}`);
   }
-
   lines.push(
     "",
     localize("Rules:", "规则："),
@@ -614,7 +580,6 @@ export function formatHandoffPrompt(payload) {
     localize("- Fail closed on unresolved authority, missing context, or contract drift.", "- 在 authority 未解决、上下文缺失或契约漂移时必须 fail-close。"),
     localize("- Treat `.nimi/**` as the primary truth surface.", "- 将 `.nimi/**` 视为主要 truth surface。"),
   );
-
   if (isSpecReconstruction) {
     lines.push(localize(
       "- Build the canonical tree directly under `.nimi/spec/**`; do not produce a compact summary as the primary output.",
@@ -633,11 +598,9 @@ export function formatHandoffPrompt(payload) {
       "- 对于没有 benchmark blueprint 的普通项目，请根据声明的 mixed inputs 推断域集合，并优先生成 kernel markdown/tables。",
     ));
   }
-
   lines.push("", localize(payload.nextAction, translateHandoffReason(payload.nextAction)));
   return `${lines.join("\n")}\n`;
 }
-
 export const START_HOST_OPTIONS = [
   {
     id: "generic",
@@ -668,16 +631,13 @@ export const START_HOST_OPTIONS = [
     zhDescription: "附带已准入 OMX 执行边界提醒",
   },
 ];
-
 export function getStartHostOption(hostId) {
   return START_HOST_OPTIONS.find((option) => option.id === hostId) ?? null;
 }
-
 export function resolveStartHostChoice(explicitHost, payload) {
   if (explicitHost) {
     return explicitHost;
   }
-
   if (payload.adapter.selectedId === "oh_my_codex") {
     return "oh-my-codex";
   }
@@ -687,10 +647,8 @@ export function resolveStartHostChoice(explicitHost, payload) {
   if (payload.adapter.selectedId === "claude") {
     return "claude";
   }
-
   return "generic";
 }
-
 export function formatStartPastePrompt(payload, options) {
   const hostId = options.hostId ?? "generic";
   const jsonRef = options.jsonRef;
@@ -701,7 +659,6 @@ export function formatStartPastePrompt(payload, options) {
     claude: localize("Task package for Claude", "面向 Claude 的任务包"),
     "oh-my-codex": localize("Task package for oh-my-codex", "面向 oh-my-codex 的任务包"),
   }[hostId] ?? localize("Task package for external AI host", "面向外部 AI Host 的任务包");
-
   const lines = [
     `${hostHeading}:`,
     localize(`- Task: \`${payload.skill.id}\``, `- 任务：\`${payload.skill.id}\``),
@@ -728,7 +685,6 @@ export function formatStartPastePrompt(payload, options) {
       `4. 完成 \`${payload.skill.id}\`，并按 \`${payload.skill.resultContractRef ?? "声明的结果契约"}\` 格式返回结果。`,
     ),
   ];
-
   if (payload.skill.id === "spec_reconstruction" && payload.generationContext) {
     lines.splice(3, 0, localize(
       `- Canonical target root: \`${payload.generationContext.canonicalTargetRoot}\``,
@@ -778,7 +734,6 @@ export function formatStartPastePrompt(payload, options) {
       ));
     }
   }
-
   if (hostId === "oh-my-codex") {
     lines.push(localize(
       "Additional OMX rule: keep `.omx/**` and external execution state operational only. Do not write semantic truth directly into `.nimi/spec/**`.",
@@ -791,19 +746,15 @@ export function formatStartPastePrompt(payload, options) {
       "额外 Codex 规则：执行时使用原生 Codex SDK 边界。不要经由 oh-my-codex，也不要 shell 到 Codex CLI。",
     ));
   }
-
   lines.push(localize(
     `Host profile: ${host.label}.`,
     `Host 配置：${host.zhLabel}。`,
   ));
-
   return `${lines.join("\n")}\n`;
 }
-
 function toPortablePath(relativePath) {
   return relativePath.split(path.sep).join("/");
 }
-
 function buildHandoffArtifactRefs(skillId) {
   const safeSkillId = skillId.replace(/[^A-Za-z0-9._-]/g, "-");
   return {
@@ -811,29 +762,23 @@ function buildHandoffArtifactRefs(skillId) {
     promptRef: path.join(".nimi", "local", "handoff", `${safeSkillId}.prompt.md`),
   };
 }
-
 export async function writeHandoffPromptArtifacts(projectRoot, payload) {
   const refs = buildHandoffArtifactRefs(payload.skill.id);
   const absoluteJsonPath = path.join(projectRoot, refs.jsonRef);
   const absolutePromptPath = path.join(projectRoot, refs.promptRef);
-
   await mkdir(path.dirname(absoluteJsonPath), { recursive: true });
   await writeFile(absoluteJsonPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
   await writeFile(absolutePromptPath, formatHandoffPrompt(payload), "utf8");
-
   return {
     jsonRef: toPortablePath(refs.jsonRef),
     promptRef: toPortablePath(refs.promptRef),
   };
 }
-
 export async function writeHandoffJsonArtifact(projectRoot, payload) {
   const refs = buildHandoffArtifactRefs(payload.skill.id);
   const absoluteJsonPath = path.join(projectRoot, refs.jsonRef);
-
   await mkdir(path.dirname(absoluteJsonPath), { recursive: true });
   await writeFile(absoluteJsonPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-
   return {
     jsonRef: toPortablePath(refs.jsonRef),
   };

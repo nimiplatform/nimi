@@ -10,6 +10,7 @@
 - Debug/fix order: `runtime` → `sdk` → `apps/desktop`/`apps/web` → `nimi-mods`. Reuse `nimi-kit` first for UI work via `kit/README.md` and `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`.
 - Fail closed on contract violations. No legacy shims, no pseudo-success, no app-level REST bypass, no provider/model hardcoding.
 - Boundary enforcement: Desktop/Web must not import `runtime/internal/**`; SDK must not cross `realm`/`runtime` private boundaries; Mods must not bypass `nimi-hook`; Runtime must not import `sdk/**` or `apps/**`; no file collisions or forwarding shells outside `index.ts`.
+- Ralph/topic runner: do not emulate the loop by generating long `topic run-ledger record` primitive command chains. Use packaged `pnpm exec nimicoding topic-runner run|step ...` when available; otherwise use `topic run-next-step --json` and stop on every non-`continue` stop class.
 ## Retrieval Defaults
 - Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `.nimi/spec/*/kernel`, `scripts`, `nimi-coding/**`, `.local/**`, `.nimi/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.

@@ -43,6 +43,6 @@ evidence_required_fields:
   - summary
   - auditor_reasoning
 hard_constraints:
-  - finding_location_file_must_belong_to_source_chunk
+  - finding_location_file_must_belong_to_source_chunk_or_declared_spec_authority_evidence_roots
   - finding_fingerprint_must_be_stable_over_semantically_identical_evidence
   - non_open_disposition_requires_resolution_evidence

@@ -1962,6 +1962,325 @@ test("topic run-ledger fails closed on invalid artifact lineage", async () => {
   });
 });
 
+test("topic-runner stops on human gates without executing placeholder commands", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "runner-human-gate",
+      "--justification",
+      "runner human gate demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    const runnerResult = await captureRunCli([
+      "topic-runner",
+      "step",
+      createPayload.topicId,
+      "--run-id",
+      "runner-human-gate",
+      "--adapter",
+      "codex",
+      "--verified-at",
+      "2026-04-24T00:00:00Z",
+      "--json",
+    ]);
+
+    assert.equal(runnerResult.exitCode, 0);
+    const payload = JSON.parse(runnerResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.executed, false);
+    assert.equal(payload.stopClass, "require_human_confirmation");
+    assert.equal(payload.recommendedAction, "admit_wave");
+    assert.match(payload.decision.next_command_ref, /<wave-id>/);
+    assert.equal(payload.gate.reasonCode, "no_selected_next_target");
+    assert.equal(payload.gate.recommendedAction, "admit_wave");
+    assert.match(payload.gate.nextCommandRef, /<wave-id>/);
+
+    const ledger = YAML.parse(await readFile(
+      path.join(projectRoot, createPayload.topicRef, "run-ledger-runner-human-gate.yaml"),
+      "utf8",
+    ));
+    assert.equal(ledger.event_count, 1);
+    assert.equal(ledger.current_human_gate.recommended_action, "admit_wave");
+    assert.match(ledger.latest_decision_ref, /runner-decision-runner-human-gate-0001\.json/);
+  });
+});
+
+test("topic-runner run records a runner_blocked event when the max-step circuit breaker opens", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "runner-circuit-breaker",
+      "--justification",
+      "runner circuit breaker demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-runner", "runner",
+      "--goal", "trip runner max step breaker", "--owner-domain", "nimicoding/topic-runner", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-runner", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-runner", "--json"]);
+
+    const draftPath = path.join(projectRoot, "runner-breaker-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-runner",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-runner",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic-runner"],
+        canonical_seams: ["runner circuit breaker"],
+        forbidden_shortcuts: ["unbounded retry"],
+        acceptance_invariants: ["max step exhaustion records runner_blocked"],
+        negative_tests: ["max step exhaustion is not success"],
+        reopen_conditions: ["runner needs hidden retry state"],
+      }),
+      "utf8",
+    );
+    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json"]);
+
+    const runnerResult = await captureRunCli([
+      "topic-runner",
+      "run",
+      createPayload.topicId,
+      "--run-id",
+      "runner-circuit-breaker",
+      "--adapter",
+      "codex",
+      "--max-steps",
+      "1",
+      "--verified-at",
+      "2026-04-24T00:00:00Z",
+      "--json",
+    ]);
+
+    assert.equal(runnerResult.exitCode, 1);
+    const payload = JSON.parse(runnerResult.stdout);
+    assert.equal(payload.runnerStatus, "blocked");
+    assert.equal(payload.circuitBreaker.state, "open");
+    assert.equal(payload.circuitBreaker.reason, "max_steps_exhausted");
+
+    const ledger = YAML.parse(await readFile(
+      path.join(projectRoot, payload.topicRef, "run-ledger-runner-circuit-breaker.yaml"),
+      "utf8",
+    ));
+    assert.equal(ledger.run_status, "blocked");
+    assert.equal(ledger.event_count, 3);
+    assert.deepEqual(ledger.event_refs, [
+      "run-event-runner-circuit-breaker-0001-decision_emitted.yaml",
+      "run-event-runner-circuit-breaker-0002-worker_dispatched.yaml",
+      "run-event-runner-circuit-breaker-0003-runner_blocked.yaml",
+    ]);
+  });
+});
+
+test("topic-runner run executes mechanical dispatch and records run-ledger lineage", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "runner-dispatch",
+      "--justification",
+      "runner dispatch demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-runner", "runner",
+      "--goal", "dispatch via topic runner", "--owner-domain", "nimicoding/topic-runner", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-runner", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-runner", "--json"]);
+
+    const draftPath = path.join(projectRoot, "runner-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-runner",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-runner",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic-runner"],
+        canonical_seams: ["runner dispatch command"],
+        forbidden_shortcuts: ["manual run-ledger primitive chain"],
+        acceptance_invariants: ["topic-runner records decision and dispatch"],
+        negative_tests: ["placeholder command is refused"],
+        reopen_conditions: ["runner needs semantic ownership"],
+      }),
+      "utf8",
+    );
+    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json"]);
+
+    const runnerResult = await captureRunCli([
+      "topic-runner",
+      "run",
+      createPayload.topicId,
+      "--run-id",
+      "runner-dispatch",
+      "--adapter",
+      "codex",
+      "--verified-at",
+      "2026-04-24T00:00:00Z",
+      "--json",
+    ]);
+
+    assert.equal(runnerResult.exitCode, 0);
+    const payload = JSON.parse(runnerResult.stdout);
+    assert.equal(payload.mode, "run");
+    assert.equal(payload.stepCount, 2);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.stopClass, "await_external_evidence");
+    assert.equal(payload.steps[0].runnerStatus, "continued");
+    assert.equal(payload.steps[0].dispatch.role, "worker");
+
+    await readFile(path.join(projectRoot, payload.steps[0].dispatch.promptRef), "utf8");
+    const ledger = YAML.parse(await readFile(
+      path.join(projectRoot, payload.topicRef, "run-ledger-runner-dispatch.yaml"),
+      "utf8",
+    ));
+    assert.equal(ledger.event_count, 3);
+    assert.deepEqual(ledger.event_refs, [
+      "run-event-runner-dispatch-0001-decision_emitted.yaml",
+      "run-event-runner-dispatch-0002-worker_dispatched.yaml",
+      "run-event-runner-dispatch-0003-decision_emitted.yaml",
+    ]);
+    assert.equal(ledger.latest_packet_ref, `${payload.topicRef}/packet-wave-1-runner.md`);
+    assert.equal(ledger.latest_prompt_ref, `${payload.topicRef}/prompt-wave-1-runner-worker.md`);
+    assert.equal(ledger.run_status, "awaiting_external_evidence");
+  });
+});
+
+test("topic-runner completed stop does not true-close the topic", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "runner-completed-boundary",
+      "--justification",
+      "runner completed boundary demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-runner", "runner",
+      "--goal", "prove runner completion is not true-close", "--owner-domain", "nimicoding/topic-runner", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-runner", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-runner", "--json"]);
+
+    const draftPath = path.join(projectRoot, "runner-completed-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-runner",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-runner",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic-runner"],
+        canonical_seams: ["runner completed stop is operational only"],
+        forbidden_shortcuts: ["runner_true_close_promotion"],
+        acceptance_invariants: ["completed stop records ledger only"],
+        negative_tests: ["completed stop creates no true-close artifacts"],
+        reopen_conditions: ["runner closes topic without true-close audit"],
+      }),
+      "utf8",
+    );
+    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json"]);
+    await captureRunCli(["topic", "worker", "dispatch", createPayload.topicId, "--packet", "wave-1-runner", "--json"]);
+
+    const resultSource = path.join(projectRoot, "runner-completed-result.md");
+    await writeFile(resultSource, "# Runner Result\n\nCompleted boundary evidence.\n", "utf8");
+    await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "implementation",
+      "--verdict",
+      "PASS",
+      "--from",
+      resultSource,
+      "--verified-at",
+      "2026-04-24T00:00:00Z",
+      "--json",
+    ]);
+    await captureRunCli([
+      "topic",
+      "closeout",
+      "wave",
+      createPayload.topicId,
+      "wave-1-runner",
+      "--authority",
+      "closed",
+      "--semantic",
+      "closed",
+      "--consumer",
+      "closed",
+      "--drift-resistance",
+      "closed",
+      "--disposition",
+      "complete",
+      "--json",
+    ]);
+
+    const runnerResult = await captureRunCli([
+      "topic-runner",
+      "step",
+      createPayload.topicId,
+      "--run-id",
+      "runner-completed-boundary",
+      "--adapter",
+      "codex",
+      "--verified-at",
+      "2026-04-24T00:00:00Z",
+      "--json",
+    ]);
+
+    assert.equal(runnerResult.exitCode, 0);
+    const payload = JSON.parse(runnerResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.executed, false);
+    assert.equal(payload.stopClass, "completed");
+    assert.equal(payload.recommendedAction, "closeout_topic");
+    assert.equal(payload.gate.stopClass, "completed");
+
+    const topicDir = path.join(projectRoot, payload.topicRef);
+    const ledger = YAML.parse(await readFile(
+      path.join(topicDir, "run-ledger-runner-completed-boundary.yaml"),
+      "utf8",
+    ));
+    assert.equal(ledger.run_status, "completed");
+    assert.equal(ledger.event_count, 1);
+    await assert.rejects(readFile(path.join(topicDir, "topic-true-close-audit.md"), "utf8"));
+    await assert.rejects(readFile(path.join(topicDir, "topic-true-close-record.md"), "utf8"));
+  });
+});
+
 test("topic worker dispatch writes a prompt artifact and moves the selected wave into active implementation", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
@@ -4661,6 +4980,114 @@ test("audit-sweep plan creates deterministic local chunk artifacts", async () =>
     assert.ok(chunk.file_hashes["src/domain/alpha.ts"] || chunk.file_hashes["src/domain/beta.ts"]);
     const runLedger = await readFile(path.join(projectRoot, ".nimi", "local", "audit", "runs", "audit-sweep-test-plan.jsonl"), "utf8");
     assert.match(runLedger, /"event_type":"plan_created"/);
+  });
+});
+
+test("audit-sweep plan uses spec authority chunks for whole-project sweeps", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "runtime", "kernel"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "runtime", "kernel", "runtime-audit-surface.md"),
+      "# Runtime Audit Surface\n",
+      "utf8",
+    );
+    await mkdir(path.join(projectRoot, "runtime", "internal"), { recursive: true });
+    await writeFile(path.join(projectRoot, "runtime", "internal", "service.go"), "package internal\n", "utf8");
+
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      ".",
+      "--criteria",
+      "quality,boundary",
+      "--sweep-id",
+      "audit-sweep-test-spec-basis",
+      "--json",
+    ]);
+
+    assert.equal(planResult.exitCode, 0);
+    const payload = JSON.parse(planResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.chunkBasis, "spec_authority");
+
+    const plan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-spec-basis.yaml"), "utf8"));
+    assert.equal(plan.planning_basis.mode, "spec_authority");
+    assert.equal(plan.planning_basis.authority_root, ".nimi/spec");
+    assert.equal(plan.planning_basis.files_are_evidence_only, true);
+    assert.ok(plan.inventory.every((entry) => entry.file_ref.startsWith(".nimi/spec/")));
+    assert.ok(!plan.inventory.some((entry) => entry.file_ref === "runtime/internal/service.go"));
+
+    const runtimeChunk = plan.chunks.find((chunk) => chunk.owner_domain === "runtime" && chunk.spec_surface === "kernel-contracts");
+    assert.ok(runtimeChunk);
+    assert.ok(runtimeChunk.authority_refs.includes(".nimi/spec/runtime/kernel/runtime-audit-surface.md"));
+    assert.ok(runtimeChunk.evidence_roots.includes("runtime"));
+    assert.ok(runtimeChunk.evidence_roots.includes("config"));
+
+    const dispatchResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-spec-basis",
+      "--chunk-id",
+      runtimeChunk.chunk_id,
+      "--dispatched-at",
+      "2026-04-24T00:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(dispatchResult.exitCode, 0);
+
+    const evidencePath = path.join(projectRoot, "runtime-audit-evidence.json");
+    await writeFile(
+      evidencePath,
+      `${JSON.stringify({
+        chunk_id: runtimeChunk.chunk_id,
+        auditor: { id: "spec-first-auditor" },
+        coverage: {
+          authority_refs: runtimeChunk.authority_refs,
+          files: [...runtimeChunk.authority_refs, "runtime/internal/service.go"],
+        },
+        findings: [
+          {
+            severity: "medium",
+            category: "boundary",
+            actionability: "auto-fix",
+            confidence: "high",
+            impact: "Spec-owned runtime chunk can report implementation evidence without making file inventory the planning basis.",
+            location: { file: "runtime/internal/service.go", line: 1 },
+            title: "Runtime evidence allowed by spec chunk",
+            description: "The finding location is under a declared evidence root for the runtime spec authority chunk.",
+            evidence: {
+              summary: "runtime/internal/service.go is evidence for the runtime authority chunk.",
+              auditor_reasoning: "Spec authority selected the chunk; implementation files are evidence.",
+            },
+          },
+        ],
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const ingestResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-spec-basis",
+      "--chunk-id",
+      runtimeChunk.chunk_id,
+      "--from",
+      "runtime-audit-evidence.json",
+      "--verified-at",
+      "2026-04-24T00:01:00.000Z",
+      "--json",
+    ]);
+    assert.equal(ingestResult.exitCode, 0, ingestResult.stderr);
+    const ingestPayload = JSON.parse(ingestResult.stdout);
+    assert.equal(ingestPayload.addedCount, 1);
   });
 });
 

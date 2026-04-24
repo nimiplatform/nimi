@@ -13,6 +13,8 @@ required_top_level_fields:
   - coverage
   - created_at
   - updated_at
+optional_top_level_fields:
+  - planning_basis
 inventory_entry_required_fields:
   - file_ref
   - sha256
@@ -29,6 +31,11 @@ chunk_required_fields:
   - criteria
   - files
   - file_count
+chunk_optional_fields:
+  - planning_basis
+  - spec_surface
+  - authority_refs
+  - evidence_roots
 state_enum:
   - planned
   - dispatched
@@ -47,3 +54,5 @@ hard_constraints:
   - every_included_file_must_belong_to_exactly_one_chunk
   - excluded_files_must_have_explicit_exclusion_reason
   - zero_included_files_cannot_be_candidate_ready
+  - spec_authority_plans_must_chunk_by_authority_refs_not_file_inventory
+  - spec_authority_chunk_files_are_authority_refs_and_evidence_roots_define_audit_evidence_scope
