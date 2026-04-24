@@ -206,9 +206,24 @@ function evidenceRootsForSpecOwner(ownerDomain, targetRootRef) {
   if (targetRootRef !== ".") {
     return [targetRootRef];
   }
+  const repoWideEvidenceRoots = [
+    ".github",
+    "apps",
+    "config",
+    "kit",
+    "nimi-coding",
+    "nimi-cognition",
+    "proto",
+    "runtime",
+    "scripts",
+    "sdk",
+    ".nimi/spec",
+    ".nimi/contracts",
+    ".nimi/methodology",
+  ];
   const roots = {
-    "spec-meta": [".nimi/spec", ".nimi/contracts", ".nimi/methodology", "nimi-coding"],
-    "spec-root": [".nimi/spec", ".nimi/contracts", ".nimi/methodology", "nimi-coding"],
+    "spec-meta": repoWideEvidenceRoots,
+    "spec-root": repoWideEvidenceRoots,
     cognition: ["nimi-cognition", ".nimi/spec/cognition"],
     desktop: ["apps/desktop", "kit", ".nimi/spec/desktop"],
     future: [".nimi/spec/future", ".nimi/topics"],

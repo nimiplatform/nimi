@@ -5026,6 +5026,10 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     assert.ok(runtimeChunk.authority_refs.includes(".nimi/spec/runtime/kernel/runtime-audit-surface.md"));
     assert.ok(runtimeChunk.evidence_roots.includes("runtime"));
     assert.ok(runtimeChunk.evidence_roots.includes("config"));
+    const specRootChunk = plan.chunks.find((chunk) => chunk.owner_domain === "spec-root");
+    assert.ok(specRootChunk);
+    assert.ok(specRootChunk.evidence_roots.includes("apps"));
+    assert.ok(specRootChunk.evidence_roots.includes("config"));
 
     const dispatchResult = await captureRunCli([
       "audit-sweep",
