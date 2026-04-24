@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { HashRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { PolyinfoLayout } from './polyinfo-layout.js';
-import { getOfficialSectorCatalogQueryOptions } from './official-sector-query.js';
+import { getOfficialRootSectorsQueryOptions } from './official-sector-query.js';
 import { buildSectorPath, resolveInitialSectorPath } from './workspace-routes.js';
 import { useAppStore } from './app-store.js';
 
@@ -34,7 +34,7 @@ function RouteFallback() {
 function IndexRedirect() {
   const customSectors = useAppStore((state) => state.customSectors);
   const lastActiveSectorId = useAppStore((state) => state.lastActiveSectorId);
-  const sectorsQuery = useQuery(getOfficialSectorCatalogQueryOptions());
+  const sectorsQuery = useQuery(getOfficialRootSectorsQueryOptions());
   const hasCustomSector = Object.keys(customSectors).length > 0;
 
   if (sectorsQuery.isLoading) {

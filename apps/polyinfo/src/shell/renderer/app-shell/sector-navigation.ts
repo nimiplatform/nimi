@@ -1,4 +1,4 @@
-import type { CustomSectorRecord, SectorTag } from '@renderer/data/types.js';
+import type { CustomSectorRecord, FrontendCategoryGroup, FrontendCategoryItem, SectorTag } from '@renderer/data/types.js';
 
 export type PrimarySectorGroupId = string | 'custom';
 
@@ -42,23 +42,37 @@ export function buildSecondaryOfficialSectorItems(
 
 export function resolvePrimarySectorGroupId(input: {
   preferredSectorId: string | null;
-  officialSectors: SectorTag[];
+  officialRootSectors: FrontendCategoryGroup[];
+  visibleSubsectors: FrontendCategoryItem[];
   customSectors: Record<string, CustomSectorRecord>;
+  fallbackPrimaryGroup?: PrimarySectorGroupId | null;
 }): PrimarySectorGroupId | null {
-  const { preferredSectorId, officialSectors, customSectors } = input;
+  const { preferredSectorId, officialRootSectors, visibleSubsectors, customSectors, fallbackPrimaryGroup } = input;
 
   if (preferredSectorId) {
     if (customSectors[preferredSectorId]) {
       return 'custom';
     }
 
-    const officialSector = officialSectors.find((sector) => sector.slug === preferredSectorId);
-    if (officialSector) {
-      return officialSector.parentSlug ?? officialSector.slug;
+    const officialRoot = officialRootSectors.find((sector) => sector.slug === preferredSectorId);
+    if (officialRoot) {
+      return officialRoot.slug;
+    }
+
+    const visibleSubsector = visibleSubsectors.find((sector) => sector.slug === preferredSectorId);
+    if (visibleSubsector) {
+      return visibleSubsector.parentSlug;
     }
   }
 
-  const firstOfficialRoot = getOfficialRootSectors(officialSectors)[0];
+  if (
+    fallbackPrimaryGroup === 'custom'
+    || Boolean(fallbackPrimaryGroup && officialRootSectors.some((sector) => sector.slug === fallbackPrimaryGroup))
+  ) {
+    return fallbackPrimaryGroup ?? null;
+  }
+
+  const firstOfficialRoot = officialRootSectors[0];
   if (firstOfficialRoot) {
     return firstOfficialRoot.slug;
   }

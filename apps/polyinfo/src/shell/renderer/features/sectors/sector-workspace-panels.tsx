@@ -1,8 +1,6 @@
 import {
   memo,
-  startTransition,
   useCallback,
-  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -13,13 +11,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import {
   buildAnalysisPackage,
-  createMarketWebSocket,
   fetchEventBySlug,
   fetchSectorHistory,
   fetchSectorMarkets,
   mergeSectorMarketBatches,
   parsePolymarketEventSlugFromUrl,
-  type MarketConnectionState,
 } from '@renderer/data/polymarket.js';
 import type {
   AnalysisPackage,
@@ -44,7 +40,6 @@ import {
 import { buildEventOutcomeDisplay } from './sector-market-display.js';
 import {
   buildEmptyConversationMessage,
-  buildManualAnalysisGuardMessage,
 } from './sector-workspace-state.js';
 import { streamSectorAnalyst } from './sector-analyst-runtime.js';
 import {
@@ -74,7 +69,6 @@ type MarketBoardPanelProps = {
   overlay: TaxonomyOverlay;
   onRequestMarketData: () => void;
   onAnalysisReadyChange: (ready: boolean) => void;
-  onConnectionStatusChange: (status: MarketConnectionState) => void;
   analysisPackageRef: { current: AnalysisPackage | null };
 };
 export const MarketBoardPanel = memo(function MarketBoardPanel({
@@ -89,14 +83,12 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
   overlay,
   onRequestMarketData,
   onAnalysisReadyChange,
-  onConnectionStatusChange,
   analysisPackageRef,
 }: MarketBoardPanelProps) {
   const upsertImportedEvent = useAppStore((state) => state.upsertImportedEvent);
   const removeImportedEvent = useAppStore((state) => state.removeImportedEvent);
   const setActiveWindow = useAppStore((state) => state.setActiveWindow);
-  const [liveByTokenId, setLiveByTokenId] = useState<Record<string, { bestBid?: number; bestAsk?: number; lastTradePrice?: number }>>({});
-  const [connectionStatus, setConnectionStatus] = useState<MarketConnectionState>('closed');
+
   const [visibleEventCount, setVisibleEventCount] = useState(INITIAL_VISIBLE_EVENT_COUNT);
   const [importUrl, setImportUrl] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
@@ -109,8 +101,6 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     setImportUrl('');
     setImportError(null);
     setIsImporting(false);
-    setLiveByTokenId({});
-    setConnectionStatus('closed');
     setAppendedOfficialBatches([]);
     setIsLoadingMoreEvents(false);
   }, [sectorId]);
@@ -145,31 +135,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     refetchOnReconnect: false,
   });
   const historyWindowReady = marketDataRequested && historiesQuery.isSuccess;
-  useEffect(() => {
-    if (!marketDataRequested) {
-      setConnectionStatus('closed');
-      setLiveByTokenId({});
-      return;
-    }
-    if (marketInventory.length === 0) {
-      setConnectionStatus('closed');
-      return;
-    }
-    const cleanup = createMarketWebSocket(
-      marketInventory.map((market) => market.yesTokenId),
-      (next) => {
-        startTransition(() => {
-          setLiveByTokenId(next);
-        });
-      },
-      setConnectionStatus,
-    );
-    return cleanup;
-  }, [marketDataRequested, marketInventory]);
-  useEffect(() => {
-    onConnectionStatusChange(connectionStatus);
-  }, [connectionStatus, onConnectionStatusChange]);
-  const deferredLiveByTokenId = useDeferredValue(liveByTokenId);
+
   const analysisPackage = useMemo(() => {
     if (!activeSectorMeta || !historyWindowReady || marketInventory.length === 0) {
       return null;
@@ -184,12 +150,11 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
       overlay,
       markets: marketInventory,
       histories: historiesQuery.data ?? {},
-      liveByTokenId: deferredLiveByTokenId,
+      liveByTokenId: {},
     });
   }, [
     activeSectorMeta,
     activeWindow,
-    deferredLiveByTokenId,
     historyWindowReady,
     historiesQuery.data,
     marketInventory,
@@ -222,11 +187,11 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
         : '历史价格还没准备完成。你可以稍等，或者手动再试一次。'
     : '当前先展示事件和实时快照。只有你点击 Load Prices 后，才会加载历史价格进入分析模式。';
   return (
-    <section className="flex min-h-0 flex-1 flex-col rounded-[28px] border border-white/8 bg-slate-950/50">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-5 py-4">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b polyinfo-hairline px-5 py-4">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Market Movements</p>
-          <p className="mt-1 text-[13px] text-slate-500">盘口变化 / Real-time Order Flow</p>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-teal-200/60">Market Movements</p>
+          <p className="mt-1 text-[13px] text-slate-500">盘口变化 / REST price snapshots</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -243,18 +208,18 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
               }
             }}
             disabled={loadingMarketData || marketInventory.length === 0}
-            className="rounded-full bg-sky-300 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"
+            className="rounded-xl bg-teal-300 px-4 py-2 text-sm font-medium text-slate-950 transition-colors hover:bg-teal-200 disabled:opacity-50"
           >
             {loadingMarketData ? 'Loading…' : marketDataRequested ? 'Refresh Prices' : 'Load Prices'}
           </button>
-          <div className="flex rounded-lg border border-white/8 bg-white/[0.03] p-1">
+          <div className="flex rounded-xl border border-white/10 bg-white/[0.035] p-1">
             {(['24h', '48h', '7d'] as const).map((window) => (
               <button
                 key={window}
                 type="button"
                 onClick={() => setActiveWindow(window)}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium ${
-                  activeWindow === window ? 'bg-sky-300 text-slate-950' : 'text-slate-300'
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                  activeWindow === window ? 'bg-white text-slate-950' : 'text-slate-300 hover:text-white'
                 }`}
               >
                 {window}
@@ -263,7 +228,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
           </div>
         </div>
       </div>
-      <div className="border-b border-white/8 px-5 py-3 text-sm text-slate-400">
+      <div className="border-b polyinfo-hairline bg-slate-950/20 px-5 py-3 text-sm text-slate-400">
         {boardModeMessage}
       </div>
       {loadingBoard ? (
@@ -280,7 +245,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="hidden border-b border-white/8 px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-slate-500 xl:grid xl:grid-cols-[1.4fr_1.25fr_0.45fr_1fr] xl:gap-4">
+          <div className="hidden border-b polyinfo-hairline px-5 py-3 text-[11px] uppercase tracking-[0.14em] text-slate-500 xl:grid xl:grid-cols-[1.4fr_1.25fr_0.45fr_1fr] xl:gap-4">
             <span>事件 (Event)</span>
             <span>选项概率 (Top 5)</span>
             <span>总成交量</span>
@@ -297,12 +262,12 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
               });
               const outcomeDisplay = buildEventOutcomeDisplay(eventMarkets, analysisMarketsById);
               return (
-                <div key={event.id} className="border-b border-white/8 last:border-b-0">
+                <div key={event.id} className="border-b polyinfo-hairline last:border-b-0">
                   <div className="grid gap-4 px-5 py-5 xl:grid-cols-[1.4fr_1.25fr_0.45fr_1fr]">
                     <div className="min-w-0">
                       <div className="flex items-start justify-between gap-3">
                         <h3
-                          className="max-w-full break-words text-[1.02rem] font-semibold leading-[1.55] text-white xl:text-[1.08rem]"
+                            className="max-w-full break-words text-[1.02rem] font-semibold leading-[1.55] text-white xl:text-[1.06rem]"
                           title={event.title}
                         >
                           {event.title}
@@ -311,7 +276,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                           <button
                             type="button"
                             onClick={() => removeImportedEvent(sectorId, event.id)}
-                            className="rounded-full bg-white/[0.05] px-2 py-1 text-[11px] text-slate-300 hover:bg-rose-400/12 hover:text-rose-100"
+                            className="rounded-lg bg-white/[0.06] px-2 py-1 text-[11px] text-slate-300 hover:bg-rose-400/12 hover:text-rose-100"
                           >
                             Delete
                           </button>
@@ -327,7 +292,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                     <div className="space-y-2">
                       {outcomeDisplay.map((item) => {
                         return (
-                          <div key={item.marketId} className="rounded-lg border border-white/8 bg-white/[0.04] px-3 py-2">
+                          <div key={item.marketId} className="rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2">
                             <div className="flex items-center justify-between gap-3">
                               <p
                                 className="min-w-0 flex-1 break-words text-[13px] font-medium leading-5 text-slate-200"
@@ -340,7 +305,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                                   {formatProbability(item.probability)}
                                 </p>
                                 {typeof item.delta === 'number' ? (
-                                  <p className={`text-[11px] font-medium ${getDeltaTone(item.delta)}`}>
+                                  <p className={`text-[11px] font-semibold ${getDeltaTone(item.delta)}`}>
                                     {formatDelta(item.delta)}
                                   </p>
                                 ) : null}
@@ -354,7 +319,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                       ${formatCompactMoney(eventVolume)}
                     </div>
                     <div className="border-l border-white/8 pl-4 text-[12px] text-slate-400">
-                      <p className="text-sky-200">N:: {logic.narrativeTitle ?? '待选择'}</p>
+                      <p className="text-teal-200">N:: {logic.narrativeTitle ?? '待选择'}</p>
                       <p className="mt-2 truncate">V:: {logic.coreIssueTitle ?? '待选择'}</p>
                     </div>
                   </div>
@@ -362,7 +327,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
               );
             })}
             {!isCustomSector && (visibleEventCount < eventCards.length || hasMoreOfficialEvents) ? (
-              <div className="border-t border-white/8 px-5 py-4">
+              <div className="border-t polyinfo-hairline px-5 py-4">
                 <button
                   type="button"
                   onClick={async () => {
@@ -386,7 +351,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                     }
                   }}
                   disabled={isLoadingMoreEvents}
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-200 hover:bg-white/[0.06] disabled:opacity-50"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm text-slate-200 hover:bg-white/[0.06] disabled:opacity-50"
                 >
                   {visibleEventCount < eventCards.length
                     ? `继续展开已加载事件 (${Math.min(VISIBLE_EVENT_INCREMENT, eventCards.length - visibleEventCount)})`
@@ -400,13 +365,13 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
         </div>
       )}
       {isCustomSector ? (
-        <div className="border-t border-white/8 px-5 py-4">
+        <div className="border-t polyinfo-hairline px-5 py-4">
           <div className="flex gap-2">
             <input
               value={importUrl}
               onChange={(event) => setImportUrl(event.target.value)}
               placeholder="Polymarket URL to import..."
-              className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white outline-none"
+              className="flex-1 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-white outline-none focus:border-teal-300/50"
             />
             <button
               type="button"
@@ -441,7 +406,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                   setIsImporting(false);
                 }
               }}
-              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"
+              className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"
             >
               Import
             </button>
@@ -458,7 +423,7 @@ type AnalystSidebarProps = {
   activeWindow: WindowKey;
   marketDataRequested: boolean;
   analysisReady: boolean;
-  connectionStatus: MarketConnectionState;
+  overlay: TaxonomyOverlay;
   analysisPackageRef: { current: AnalysisPackage | null };
 };
 export const AnalystSidebar = memo(function AnalystSidebar({
@@ -467,7 +432,7 @@ export const AnalystSidebar = memo(function AnalystSidebar({
   activeWindow,
   marketDataRequested,
   analysisReady,
-  connectionStatus,
+  overlay,
   analysisPackageRef,
 }: AnalystSidebarProps) {
   const auth = useAppStore((state) => state.auth);
@@ -538,13 +503,6 @@ export const AnalystSidebar = memo(function AnalystSidebar({
   });
   const sendPrompt = useCallback(async (prompt: string) => {
     const analysisPackage = analysisPackageRef.current;
-    if (!analysisPackage) {
-      setSectorError(sectorId, buildManualAnalysisGuardMessage({
-        sectorLabel,
-        windowLabel: activeWindow,
-      }));
-      return;
-    }
     if (!routeOptionsQuery.data || !routeStatus.ready || !routeStatus.binding) {
       const blockedMessage = routeOptionsQuery.isError
         ? `运行配置读取失败：${routeOptionsQuery.error instanceof Error ? routeOptionsQuery.error.message : 'unknown error'}`
@@ -585,6 +543,7 @@ export const AnalystSidebar = memo(function AnalystSidebar({
           sectorSlug: sectorId,
           window: activeWindow,
           package: analysisPackage,
+          taxonomy: overlay,
         }),
         prompt: nextConversation.map((message) => `${message.role === 'assistant' ? 'Analyst' : 'User'}: ${message.content}`).join('\n\n'),
         onTextDelta: (delta) => {
@@ -612,14 +571,16 @@ export const AnalystSidebar = memo(function AnalystSidebar({
       if (extracted.proposal) {
         setSectorDraftProposal(sectorId, extracted.proposal);
       }
-      const snapshot = buildSnapshotFromAssistantMessage({
-        sectorSlug: sectorId,
-        sectorLabel,
-        window: activeWindow,
-        message: completedAssistantMessage,
-      });
-      if (snapshot) {
-        recordAnalysisSnapshot(sectorId, snapshot);
+      if (analysisPackage) {
+        const snapshot = buildSnapshotFromAssistantMessage({
+          sectorSlug: sectorId,
+          sectorLabel,
+          window: activeWindow,
+          message: completedAssistantMessage,
+        });
+        if (snapshot) {
+          recordAnalysisSnapshot(sectorId, snapshot);
+        }
       }
     } catch (error) {
       if (abortController.signal.aborted) {
@@ -657,6 +618,7 @@ export const AnalystSidebar = memo(function AnalystSidebar({
     analysisPackageRef,
     auth.user?.id,
     conversation,
+    overlay,
     recordAnalysisSnapshot,
     routeOptionsQuery.data,
     routeOptionsQuery.error,
@@ -673,24 +635,24 @@ export const AnalystSidebar = memo(function AnalystSidebar({
     upsertSectorMessage,
   ]);
   return (
-    <aside className="flex min-h-0 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
-      <div className="flex items-center justify-between border-b border-white/8 px-4 py-4">
+    <aside className="polyinfo-surface flex min-h-0 flex-col overflow-hidden rounded-2xl">
+      <div className="flex items-center justify-between border-b polyinfo-hairline px-4 py-4">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-indigo-400" />
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-200">Sector Analyst (Online)</p>
+          <span className="h-2 w-2 rounded-full bg-teal-300 shadow-[0_0_18px_rgba(45,212,191,0.45)]" />
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">Sector Analyst</p>
         </div>
-        <span className="rounded-full bg-white/[0.04] px-3 py-1 text-[11px] text-slate-400">
+        <span className="rounded-lg bg-white/[0.045] px-3 py-1 text-[11px] text-slate-400">
           {sectorLabel}
         </span>
       </div>
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="space-y-4 p-4">
-          <div className="flex flex-wrap gap-2 text-[11px]">
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-slate-300">
+        <div className="space-y-3 p-4">
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="rounded-md bg-white/[0.045] px-2.5 py-1.5 text-slate-300">
               {bindingSummary.title}
             </span>
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-slate-300">
-              {connectionStatus}
+            <span className="rounded-md bg-white/[0.045] px-2.5 py-1.5 text-slate-300">
+              {marketDataRequested ? 'REST prices' : 'prices not loaded'}
             </span>
             <button
               type="button"
@@ -700,19 +662,19 @@ export const AnalystSidebar = memo(function AnalystSidebar({
                 setStreamingAssistant(null);
                 resetSectorConversation(sectorId);
               }}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-slate-300 hover:bg-white/[0.08]"
+              className="rounded-md bg-white/[0.045] px-2.5 py-1.5 text-slate-300 hover:bg-white/[0.08]"
             >
               Reset
             </button>
           </div>
-          <p className="text-[12px] leading-5 text-slate-400">
+          <p className="border-l border-teal-300/35 pl-3 text-[12px] leading-5 text-slate-400">
             根据当前盘口变化，判断 core issue 和 narrative 是否需要调整。
           </p>
           {routeNotice ? (
             <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
               {routeNotice}
               <div className="mt-3">
-                <Link to="/runtime" className="rounded-full bg-white/[0.08] px-3 py-2 text-xs text-slate-100">
+                <Link to="/runtime" className="rounded-lg bg-white/[0.08] px-3 py-2 text-xs text-slate-100">
                   打开 Runtime 页面
                 </Link>
               </div>
@@ -725,41 +687,40 @@ export const AnalystSidebar = memo(function AnalystSidebar({
             </div>
           ) : null}
         </div>
-        <div className="min-h-0 flex-1 border-t border-white/8 px-4 py-4">
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/8 bg-white/[0.02] p-3">
-            {visibleConversation.length === 0 ? (
-              <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto text-sm text-slate-500">
-                {emptyConversationMessage}
-              </div>
-            ) : (
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-                {visibleConversation.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`rounded-2xl border px-3 py-3 text-[13px] leading-6 ${
-                      message.role === 'assistant'
-                        ? 'border-white/8 bg-white/[0.04] text-slate-100'
-                        : 'border-sky-300/25 bg-sky-300/10 text-sky-50'
-                    }`}
-                  >
-                    <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                      {message.role === 'assistant' ? 'Analyst' : 'You'}
-                    </p>
-                    <p className="whitespace-pre-wrap break-words">
-                      {message.content || (message.status === 'streaming' ? '…' : '')}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="min-h-0 flex-1 border-t polyinfo-hairline px-4 py-4">
+          {visibleConversation.length === 0 ? (
+            <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto text-sm text-slate-500">
+              {emptyConversationMessage}
+            </div>
+          ) : (
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
+              {visibleConversation.map((message) => (
+                <div
+                  key={message.id}
+                  className={`border-l py-1 pl-4 pr-1 text-[13px] leading-6 ${
+                    message.role === 'assistant'
+                      ? 'border-white/15 text-slate-100'
+                      : 'border-teal-300/55 bg-teal-300/[0.035] text-teal-50'
+                  }`}
+                >
+                  <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                    {message.role === 'assistant' ? 'Analyst' : 'You'}
+                  </p>
+                  <p className="whitespace-pre-wrap break-words">
+                    {message.content || (message.status === 'streaming' ? '…' : '')}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="border-t border-white/8 p-4">
+
+        <div className="border-t polyinfo-hairline p-4">
           <textarea
             value={draftText}
             onChange={(event) => setSectorDraftText(sectorId, event.target.value)}
             rows={4}
-            className="w-full rounded-2xl border border-white/10 bg-slate-950/80 px-3 py-3 text-[13px] text-white outline-none placeholder:text-slate-500 focus:border-sky-300/50"
+            className="w-full rounded-lg border border-white/10 bg-slate-950/70 px-3 py-3 text-[13px] text-white outline-none placeholder:text-slate-500 focus:border-teal-300/50"
             placeholder="Query logic / propose changes..."
           />
           <div className="mt-3 flex gap-3">
@@ -769,7 +730,7 @@ export const AnalystSidebar = memo(function AnalystSidebar({
               onClick={() => {
                 void sendPrompt(draftText);
               }}
-              className="flex-1 rounded-full bg-sky-300 px-4 py-3 text-sm font-medium text-slate-950 disabled:opacity-50"
+              className="flex-1 rounded-lg bg-teal-300 px-4 py-3 text-sm font-medium text-slate-950 hover:bg-teal-200 disabled:opacity-50"
             >
               {isStreaming ? '分析中…' : 'Send'}
             </button>
@@ -779,7 +740,7 @@ export const AnalystSidebar = memo(function AnalystSidebar({
               onClick={() => {
                 streamAbortRef.current?.abort();
               }}
-              className="rounded-full bg-white/[0.08] px-4 py-3 text-sm text-slate-200 disabled:opacity-50"
+              className="rounded-lg bg-white/[0.08] px-4 py-3 text-sm text-slate-200 disabled:opacity-50"
             >
               Stop
             </button>

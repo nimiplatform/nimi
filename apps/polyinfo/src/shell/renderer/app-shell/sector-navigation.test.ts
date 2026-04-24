@@ -43,7 +43,14 @@ describe('sector navigation helpers', () => {
   it('maps an official sector back to its top-level group', () => {
     expect(resolvePrimarySectorGroupId({
       preferredSectorId: 'iran',
-      officialSectors: sectors,
+      officialRootSectors: [
+        { id: 'politics', label: 'Politics', slug: 'politics' },
+        { id: 'crypto', label: 'Crypto', slug: 'crypto' },
+      ],
+      visibleSubsectors: [
+        { id: 'iran', label: 'Iran', slug: 'iran', parentSlug: 'politics', displayedCount: 12 },
+        { id: 'elections', label: 'Elections', slug: 'elections', parentSlug: 'politics', displayedCount: 8 },
+      ],
       customSectors: {},
     })).toBe('politics');
   });
@@ -51,7 +58,11 @@ describe('sector navigation helpers', () => {
   it('maps a custom sector to the custom top-level group', () => {
     expect(resolvePrimarySectorGroupId({
       preferredSectorId: 'custom-1',
-      officialSectors: sectors,
+      officialRootSectors: [
+        { id: 'politics', label: 'Politics', slug: 'politics' },
+        { id: 'crypto', label: 'Crypto', slug: 'crypto' },
+      ],
+      visibleSubsectors: [],
       customSectors: {
         'custom-1': {
           id: 'custom-1',

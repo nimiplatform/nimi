@@ -315,6 +315,7 @@ export function createPolyinfoDataSlice(set: AppStoreSet, get: () => AppStoreSta
           updatedAt: Date.now(),
         },
       };
+      persistChats(nextChats);
       set({ chatsBySector: nextChats });
     },
     upsertSectorMessage: (sectorSlug, message) => {
@@ -355,6 +356,7 @@ export function createPolyinfoDataSlice(set: AppStoreSet, get: () => AppStoreSta
           updatedAt: Date.now(),
         },
       };
+      persistChats(nextChats);
       set({ chatsBySector: nextChats });
     },
     setSectorError: (sectorSlug, error) => {
@@ -367,6 +369,7 @@ export function createPolyinfoDataSlice(set: AppStoreSet, get: () => AppStoreSta
           updatedAt: Date.now(),
         },
       };
+      persistChats(nextChats);
       set({ chatsBySector: nextChats });
     },
     setSectorDraftProposal: (sectorSlug, proposal) => {
@@ -379,6 +382,7 @@ export function createPolyinfoDataSlice(set: AppStoreSet, get: () => AppStoreSta
           updatedAt: Date.now(),
         },
       };
+      persistChats(nextChats);
       set({ chatsBySector: nextChats });
     },
     dismissSectorDraftProposal: (sectorSlug) => {
@@ -391,6 +395,7 @@ export function createPolyinfoDataSlice(set: AppStoreSet, get: () => AppStoreSta
           updatedAt: Date.now(),
         },
       };
+      persistChats(nextChats);
       set({ chatsBySector: nextChats });
     },
     confirmSectorDraftProposal: (sectorSlug) => {
@@ -407,14 +412,14 @@ export function createPolyinfoDataSlice(set: AppStoreSet, get: () => AppStoreSta
         [sectorSlug]: applyProposal(currentOverlay, proposal),
       });
       const currentChat = get().chatsBySector[sectorSlug] ?? buildDefaultSectorChatState(sectorSlug);
-      const nextChats = {
+      const nextChats = persistChats({
         ...get().chatsBySector,
         [sectorSlug]: {
           ...currentChat,
           draftProposal: null,
           updatedAt: Date.now(),
         },
-      };
+      });
       set({
         taxonomyBySector: nextTaxonomy,
         chatsBySector: nextChats,

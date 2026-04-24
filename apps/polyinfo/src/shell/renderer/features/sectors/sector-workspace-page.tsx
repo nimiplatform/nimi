@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
-import { getOfficialSectorCatalogQueryOptions } from '@renderer/app-shell/official-sector-query.js';
-import {
-  validateImportedEventRecord,
-  type MarketConnectionState,
-} from '@renderer/data/polymarket.js';
+import { getOfficialRootSectorsQueryOptions } from '@renderer/app-shell/official-sector-query.js';
+import { validateImportedEventRecord } from '@renderer/data/polymarket.js';
 import type {
   AnalysisPackage,
+  FrontendCategoryItem,
   ImportedEventRecord,
   PreparedMarket,
+  SectorTag,
 } from '@renderer/data/types.js';
 import { AnalystSidebar, MarketBoardPanel } from './sector-workspace-panels.js';
 
@@ -26,17 +25,17 @@ function StructureCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="group relative rounded-xl border border-white/10 bg-slate-950/75 px-4 py-4">
+    <div className="group relative border-l border-white/10 bg-white/[0.025] px-3 py-2.5 transition-colors hover:border-teal-300/35 hover:bg-white/[0.04]">
       <button
         type="button"
         onClick={onDelete}
-        className="absolute right-3 top-3 rounded-full bg-white/[0.05] px-2 py-1 text-[11px] text-slate-300 opacity-0 transition-opacity hover:bg-rose-400/12 hover:text-rose-100 group-hover:opacity-100"
+        className="absolute right-2.5 top-2.5 rounded-md bg-white/[0.06] px-1.5 py-1 text-[10px] text-slate-300 opacity-0 transition-opacity hover:bg-rose-400/12 hover:text-rose-100 group-hover:opacity-100"
       >
         Delete
       </button>
-      <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{eyebrow}</p>
-      <p className="mt-3 text-[1.02rem] font-semibold text-white">{title}</p>
-      <p className="mt-2 text-[13px] leading-6 text-slate-400">{description}</p>
+      <p className="text-[9px] uppercase tracking-[0.14em] text-teal-200/50">{eyebrow}</p>
+      <p className="mt-2 pr-12 text-[13px] font-semibold leading-5 text-white">{title}</p>
+      <p className="mt-1.5 text-[12px] leading-5 text-slate-400">{description}</p>
     </div>
   );
 }
@@ -66,7 +65,6 @@ export function SectorWorkspacePage() {
   const [narrativeDefinition, setNarrativeDefinition] = useState('');
   const [coreIssueTitle, setCoreIssueTitle] = useState('');
   const [coreIssueDefinition, setCoreIssueDefinition] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState<MarketConnectionState>('closed');
   const [analysisReady, setAnalysisReady] = useState(false);
   const validatedCustomSectorSignatureRef = useRef<string>('');
   const analysisPackageRef = useRef<AnalysisPackage | null>(null);
@@ -83,12 +81,38 @@ export function SectorWorkspacePage() {
   const upsertImportedEvent = useAppStore((state) => state.upsertImportedEvent);
   const taxonomy = useAppStore((state) => state.taxonomyBySector[decodedSectorId]);
 
-  const officialSectorsQuery = useQuery(getOfficialSectorCatalogQueryOptions());
+  const queryClient = useQueryClient();
+  const officialRootSectorsQuery = useQuery(getOfficialRootSectorsQueryOptions());
 
-  const activeOfficialSector = useMemo(
-    () => (officialSectorsQuery.data ?? []).find((sector) => sector.slug === decodedSectorId) ?? null,
-    [decodedSectorId, officialSectorsQuery.data],
-  );
+  const activeOfficialSector = useMemo((): SectorTag | null => {
+    const activeRoot = (officialRootSectorsQuery.data ?? []).find((sector) => sector.slug === decodedSectorId);
+    if (activeRoot) {
+      return {
+        id: activeRoot.id,
+        label: activeRoot.label,
+        slug: activeRoot.slug,
+        description: activeRoot.description,
+      };
+    }
+
+    const cachedSubsectorEntries = queryClient.getQueriesData<FrontendCategoryItem[]>({
+      queryKey: ['polyinfo', 'official-subsectors'],
+    });
+    for (const [, subsectors] of cachedSubsectorEntries) {
+      const activeSubsector = subsectors?.find((sector) => sector.slug === decodedSectorId);
+      if (activeSubsector) {
+        return {
+          id: activeSubsector.id,
+          label: activeSubsector.label,
+          slug: activeSubsector.slug,
+          parentSlug: activeSubsector.parentSlug,
+          displayedCount: activeSubsector.displayedCount,
+        };
+      }
+    }
+
+    return null;
+  }, [decodedSectorId, officialRootSectorsQuery.data, queryClient]);
   const activeCustomSector = customSectors[decodedSectorId] ?? null;
   const isCustomSector = Boolean(activeCustomSector);
   const activeImportedEvents = importedEventsBySector[decodedSectorId] ?? [];
@@ -106,7 +130,6 @@ export function SectorWorkspacePage() {
     setLastActiveSectorId(decodedSectorId);
     analysisPackageRef.current = null;
     setAnalysisReady(false);
-    setConnectionStatus('closed');
   }, [decodedSectorId, ensureSectorTaxonomy, setLastActiveSectorId]);
 
   useEffect(() => {
@@ -159,26 +182,27 @@ export function SectorWorkspacePage() {
     return <Navigate to="/" replace />;
   }
 
-  if (officialSectorsQuery.isLoading && !activeCustomSector) {
+  if (officialRootSectorsQuery.isLoading && !activeCustomSector) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-sm text-slate-300">
+      <div className="polyinfo-surface rounded-2xl p-6 text-sm text-slate-300">
         正在读取 sector…
       </div>
     );
   }
 
-  if (officialSectorsQuery.isError && !activeCustomSector) {
+  if (officialRootSectorsQuery.isError && !activeCustomSector) {
     return (
-      <div className="rounded-3xl border border-rose-400/20 bg-rose-400/10 p-6 text-sm text-rose-100">
-        <p>读取官方 sector 失败：{officialSectorsQuery.error instanceof Error ? officialSectorsQuery.error.message : 'unknown error'}</p>
+      <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-6 text-sm text-rose-100">
+        <p>读取官方 sector 失败：{officialRootSectorsQuery.error instanceof Error ? officialRootSectorsQuery.error.message : 'unknown error'}</p>
         <button
           type="button"
+          disabled={officialRootSectorsQuery.isFetching}
           onClick={() => {
-            void officialSectorsQuery.refetch();
+            void officialRootSectorsQuery.refetch();
           }}
-          className="mt-4 rounded-full bg-white/10 px-3 py-2 text-xs text-white hover:bg-white/15"
+          className="mt-4 rounded-full bg-white/10 px-3 py-2 text-xs text-white hover:bg-white/15 disabled:opacity-50"
         >
-          重试
+          {officialRootSectorsQuery.isFetching ? '重试中…' : '重试'}
         </button>
       </div>
     );
@@ -186,19 +210,22 @@ export function SectorWorkspacePage() {
 
   if (!activeOfficialSector && !activeCustomSector) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-sm text-slate-300">
+      <div className="polyinfo-surface rounded-2xl p-6 text-sm text-slate-300">
         找不到这个 sector。
       </div>
     );
   }
 
   return (
-    <div className="grid h-full min-h-0 gap-2 overflow-hidden xl:grid-cols-[minmax(0,1fr)_352px]">
-      <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/60">
-        <div className="flex items-center justify-between border-b border-white/8 px-6 py-4">
+    <div className="grid h-full min-h-0 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="polyinfo-surface flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl">
+        <div className="flex items-center justify-between border-b polyinfo-hairline px-6 py-5">
           <div className="flex min-w-0 items-center gap-3">
-            <h1 className="truncate text-[1.85rem] font-semibold text-white">{activeSectorMeta?.label} Analysis</h1>
-            <span className="rounded-full bg-emerald-400/12 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-emerald-200">
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-teal-200/60">Sector workspace</p>
+              <h1 className="mt-1 truncate text-[1.7rem] font-semibold text-white">{activeSectorMeta?.label}</h1>
+            </div>
+            <span className="rounded-xl bg-teal-300/12 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-teal-100">
               {isCustomSector ? 'Custom' : 'Active'}
             </span>
           </div>
@@ -212,23 +239,23 @@ export function SectorWorkspacePage() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-5">
-          <div className="grid gap-4 xl:grid-cols-2">
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Core Variables</p>
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-5">
+          <div className="grid h-[232px] shrink-0 gap-4 overflow-hidden xl:grid-cols-2">
+            <section className="flex min-h-0 flex-col overflow-hidden">
+              <div className="mb-2 flex shrink-0 items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">Core Variables</p>
                   <button
                     type="button"
                     onClick={() => setShowCoreIssueForm((current) => !current)}
-                    className="text-sm text-slate-400 hover:text-sky-200"
+                    className="rounded-md border border-white/10 px-1.5 py-0.5 text-xs text-slate-400 hover:border-teal-300/30 hover:text-teal-100"
                   >
                     +
                   </button>
                 </div>
-                <span className="text-[10px] text-slate-500">Critical Logic Nodes</span>
+                <span className="text-[9px] text-slate-500">Critical Logic Nodes</span>
               </div>
-              <div className="space-y-3">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto border-l polyinfo-hairline pl-3 pr-1">
                 {overlay.coreVariables.map((item) => (
                   <StructureCard
                     key={item.id}
@@ -239,24 +266,24 @@ export function SectorWorkspacePage() {
                   />
                 ))}
                 {overlay.coreVariables.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-[13px] text-slate-500">
+                  <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-3 py-4 text-[12px] text-slate-500">
                     还没有 core issue。
                   </div>
                 ) : null}
                 {showCoreIssueForm ? (
-                  <div className="rounded-xl border border-sky-300/25 bg-sky-300/10 p-4">
+                  <div className="rounded-lg border border-teal-300/25 bg-teal-300/10 p-3">
                     <input
                       value={coreIssueTitle}
                       onChange={(event) => setCoreIssueTitle(event.target.value)}
                       placeholder="Core issue 标题"
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-[13px] text-white outline-none"
+                      className="w-full rounded-lg border border-white/10 bg-slate-950/70 px-2.5 py-1.5 text-[12px] text-white outline-none focus:border-teal-300/50"
                     />
                     <textarea
                       value={coreIssueDefinition}
                       onChange={(event) => setCoreIssueDefinition(event.target.value)}
                       rows={3}
                       placeholder="一句定义"
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-[13px] text-white outline-none"
+                      className="mt-2 w-full rounded-lg border border-white/10 bg-slate-950/70 px-2.5 py-1.5 text-[12px] text-white outline-none focus:border-teal-300/50"
                     />
                     <div className="mt-3 flex gap-2">
                       <button
@@ -273,14 +300,14 @@ export function SectorWorkspacePage() {
                           setCoreIssueDefinition('');
                           setShowCoreIssueForm(false);
                         }}
-                        className="rounded-full bg-sky-300 px-3 py-2 text-xs font-medium text-slate-950"
+                        className="rounded-md bg-teal-300 px-2.5 py-1.5 text-xs font-medium text-slate-950"
                       >
                         Save
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowCoreIssueForm(false)}
-                        className="rounded-full bg-white/[0.06] px-3 py-2 text-xs text-slate-300"
+                        className="rounded-md bg-white/[0.06] px-2.5 py-1.5 text-xs text-slate-300"
                       >
                         Cancel
                       </button>
@@ -290,21 +317,21 @@ export function SectorWorkspacePage() {
               </div>
             </section>
 
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Active Narratives</p>
+            <section className="flex min-h-0 flex-col overflow-hidden">
+              <div className="mb-2 flex shrink-0 items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">Active Narratives</p>
                   <button
                     type="button"
                     onClick={() => setShowNarrativeForm((current) => !current)}
-                    className="text-sm text-slate-400 hover:text-sky-200"
+                    className="rounded-md border border-white/10 px-1.5 py-0.5 text-xs text-slate-400 hover:border-teal-300/30 hover:text-teal-100"
                   >
                     +
                   </button>
                 </div>
-                <span className="text-[10px] text-slate-500 italic">Market Context</span>
+                <span className="text-[9px] text-slate-500 italic">Market Context</span>
               </div>
-              <div className="space-y-3">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto border-l polyinfo-hairline pl-3 pr-1">
                 {overlay.narratives.map((item) => (
                   <StructureCard
                     key={item.id}
@@ -315,24 +342,24 @@ export function SectorWorkspacePage() {
                   />
                 ))}
                 {overlay.narratives.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-[13px] text-slate-500">
+                  <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-3 py-4 text-[12px] text-slate-500">
                     还没有 narrative。
                   </div>
                 ) : null}
                 {showNarrativeForm ? (
-                  <div className="rounded-xl border border-sky-300/25 bg-sky-300/10 p-4">
+                  <div className="rounded-lg border border-teal-300/25 bg-teal-300/10 p-3">
                     <input
                       value={narrativeTitle}
                       onChange={(event) => setNarrativeTitle(event.target.value)}
                       placeholder="Narrative 标题"
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-[13px] text-white outline-none"
+                      className="w-full rounded-lg border border-white/10 bg-slate-950/70 px-2.5 py-1.5 text-[12px] text-white outline-none focus:border-teal-300/50"
                     />
                     <textarea
                       value={narrativeDefinition}
                       onChange={(event) => setNarrativeDefinition(event.target.value)}
                       rows={3}
                       placeholder="一句定义"
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-[13px] text-white outline-none"
+                      className="mt-2 w-full rounded-lg border border-white/10 bg-slate-950/70 px-2.5 py-1.5 text-[12px] text-white outline-none focus:border-teal-300/50"
                     />
                     <div className="mt-3 flex gap-2">
                       <button
@@ -349,14 +376,14 @@ export function SectorWorkspacePage() {
                           setNarrativeDefinition('');
                           setShowNarrativeForm(false);
                         }}
-                        className="rounded-full bg-sky-300 px-3 py-2 text-xs font-medium text-slate-950"
+                        className="rounded-md bg-teal-300 px-2.5 py-1.5 text-xs font-medium text-slate-950"
                       >
                         Save
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowNarrativeForm(false)}
-                        className="rounded-full bg-white/[0.06] px-3 py-2 text-xs text-slate-300"
+                        className="rounded-md bg-white/[0.06] px-2.5 py-1.5 text-xs text-slate-300"
                       >
                         Cancel
                       </button>
@@ -384,7 +411,6 @@ export function SectorWorkspacePage() {
               }));
             }}
             onAnalysisReadyChange={setAnalysisReady}
-            onConnectionStatusChange={setConnectionStatus}
             analysisPackageRef={analysisPackageRef}
           />
         </div>
@@ -396,7 +422,7 @@ export function SectorWorkspacePage() {
         activeWindow={activeWindow}
         marketDataRequested={marketDataRequested}
         analysisReady={analysisReady}
-        connectionStatus={connectionStatus}
+        overlay={overlay}
         analysisPackageRef={analysisPackageRef}
       />
     </div>

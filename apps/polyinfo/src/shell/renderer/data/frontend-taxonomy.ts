@@ -278,7 +278,13 @@ export async function fetchFrontendSectorCatalog(): Promise<SectorTag[]> {
   if (!sectorCatalogCache) {
     sectorCatalogCache = (async () => {
       const roots = await fetchFrontendRootCategories();
-      const subcategoryGroups = await mapWithConcurrency(roots, 4, (root) => fetchFrontendSubcategories(root));
+      const subcategoryGroups = await mapWithConcurrency(roots, 4, async (root) => {
+        try {
+          return await fetchFrontendSubcategories(root);
+        } catch {
+          return [];
+        }
+      });
       const sectors = new Map<string, SectorTag>();
 
       for (const root of roots) {

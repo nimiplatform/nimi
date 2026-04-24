@@ -112,4 +112,30 @@ describe('polyinfo data slice', () => {
       updatedAt: Date.now(),
     });
   });
+
+  it('persists draft, error, streaming, and proposal chat state changes', () => {
+    const harness = createHarness();
+    harness.getState().ensureSectorThread('rates', 'Rates Analyst');
+    harness.getState().setSectorDraftText('rates', 'draft text');
+    harness.getState().setSectorError('rates', 'temporary error');
+    harness.getState().setSectorStreaming('rates', true);
+    harness.getState().setSectorDraftProposal('rates', {
+      id: 'proposal-1',
+      entityType: 'core-variable',
+      action: 'create',
+      title: 'Policy pressure',
+      definition: 'Track whether markets are pricing policy pressure.',
+    });
+
+    const saved = JSON.parse(window.localStorage.getItem('nimi:polyinfo:chat:v1') || '{}') as Record<string, unknown>;
+    expect(saved.rates).toMatchObject({
+      draftText: 'draft text',
+      error: 'temporary error',
+      isStreaming: true,
+      draftProposal: {
+        id: 'proposal-1',
+        title: 'Policy pressure',
+      },
+    });
+  });
 });

@@ -13,7 +13,7 @@ describe('sector workspace state helpers', () => {
       marketDataRequested: false,
       analysisReady: false,
       loadingMarketData: false,
-    })).toContain('请先点击 Load Prices');
+    })).toContain('可以先讨论结构');
   });
 
   it('shows a ready message after prices are prepared but before chat starts', () => {

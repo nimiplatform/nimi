@@ -468,8 +468,19 @@ function migrateSavedChats(value: Record<string, unknown>): Record<string, Secto
   }));
 }
 
+function hasCompleteDraftDefinition(proposal: DraftProposal): proposal is DraftProposal & { definition: string } {
+  return Boolean(proposal.title.trim() && proposal.definition?.trim());
+}
+
+function hasTargetRecord(proposal: DraftProposal): proposal is DraftProposal & { recordId: string } {
+  return Boolean(proposal.recordId?.trim());
+}
+
 export function applyProposal(overlay: TaxonomyOverlay, proposal: DraftProposal): TaxonomyOverlay {
   if (proposal.entityType === 'narrative' && proposal.action === 'create') {
+    if (!hasCompleteDraftDefinition(proposal)) {
+      return overlay;
+    }
     return {
       ...overlay,
       narratives: [
@@ -486,6 +497,9 @@ export function applyProposal(overlay: TaxonomyOverlay, proposal: DraftProposal)
   }
 
   if (proposal.entityType === 'narrative' && proposal.action === 'update' && proposal.recordId) {
+    if (!proposal.title.trim()) {
+      return overlay;
+    }
     return {
       ...overlay,
       narratives: overlay.narratives.map((record) => (
@@ -509,6 +523,9 @@ export function applyProposal(overlay: TaxonomyOverlay, proposal: DraftProposal)
   }
 
   if (proposal.entityType === 'core-variable' && proposal.action === 'update' && proposal.recordId) {
+    if (!proposal.title.trim()) {
+      return overlay;
+    }
     return {
       ...overlay,
       coreVariables: overlay.coreVariables.map((record) => (
@@ -531,6 +548,12 @@ export function applyProposal(overlay: TaxonomyOverlay, proposal: DraftProposal)
     };
   }
 
+  if (proposal.entityType !== 'core-variable' || proposal.action !== 'create') {
+    return overlay;
+  }
+  if (!hasCompleteDraftDefinition(proposal) || hasTargetRecord(proposal)) {
+    return overlay;
+  }
   return {
     ...overlay,
     coreVariables: [

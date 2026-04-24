@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  applyProposal,
   loadLastActiveSectorId,
   buildDefaultSectorChatState,
   loadSavedCustomSectors,
@@ -184,5 +185,27 @@ describe('taxonomy storage migration', () => {
       ],
     });
     expect(loadLastActiveSectorId()).toBe('custom-1');
+  });
+
+  it('does not apply incomplete create proposals into canonical taxonomy', () => {
+    const overlay = {
+      narratives: [],
+      coreVariables: [],
+    };
+
+    expect(applyProposal(overlay, {
+      id: 'proposal-1',
+      entityType: 'narrative',
+      action: 'create',
+      title: 'Incomplete',
+    })).toBe(overlay);
+
+    expect(applyProposal(overlay, {
+      id: 'proposal-2',
+      entityType: 'core-variable',
+      action: 'create',
+      title: 'Incomplete',
+      definition: '',
+    })).toBe(overlay);
   });
 });

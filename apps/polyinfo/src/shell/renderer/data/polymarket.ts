@@ -580,6 +580,33 @@ export function buildAnalysisPackage(input: {
 
 export type MarketWebSocketHandler = (next: Record<string, MarketLiveState>) => void;
 
+function applyLivePriceUpdate(
+  liveByTokenId: Record<string, MarketLiveState>,
+  raw: Record<string, unknown>,
+): boolean {
+  const assetId = typeof raw.asset_id === 'string'
+    ? raw.asset_id
+    : typeof raw.assetId === 'string'
+      ? raw.assetId
+      : undefined;
+  if (!assetId) {
+    return false;
+  }
+
+  const current = liveByTokenId[assetId] ?? {};
+  const next: MarketLiveState = { ...current };
+  const bestBid = Number(raw.best_bid ?? raw.bestBid);
+  const bestAsk = Number(raw.best_ask ?? raw.bestAsk);
+  const lastTradePrice = Number(raw.price ?? raw.last_trade_price ?? raw.lastTradePrice);
+
+  if (Number.isFinite(bestBid) && bestBid >= 0) next.bestBid = bestBid;
+  if (Number.isFinite(bestAsk) && bestAsk >= 0) next.bestAsk = bestAsk;
+  if (Number.isFinite(lastTradePrice) && lastTradePrice >= 0) next.lastTradePrice = lastTradePrice;
+
+  liveByTokenId[assetId] = next;
+  return true;
+}
+
 export function createMarketWebSocket(
   assetIds: string[],
   onUpdate: MarketWebSocketHandler,
@@ -634,7 +661,7 @@ export function createMarketWebSocket(
 
     socket.addEventListener('open', () => {
       onStatusChange?.('live');
-      socket?.send(JSON.stringify({ assets_ids: assetIds, type: 'market' }));
+      socket?.send(JSON.stringify({ assets_ids: assetIds, type: 'market', custom_feature_enabled: true }));
       pingTimer = window.setInterval(() => {
         socket?.send('PING');
       }, 10_000);
@@ -651,28 +678,17 @@ export function createMarketWebSocket(
         return;
       }
 
-      const assetId = typeof parsed.asset_id === 'string'
-        ? parsed.asset_id
-        : typeof parsed.assetId === 'string'
-          ? parsed.assetId
-          : undefined;
-
-      if (!assetId) {
+      let updated = applyLivePriceUpdate(liveByTokenId, parsed);
+      const priceChanges = Array.isArray(parsed.price_changes) ? parsed.price_changes : [];
+      for (const priceChange of priceChanges) {
+        if (priceChange && typeof priceChange === 'object' && !Array.isArray(priceChange)) {
+          updated = applyLivePriceUpdate(liveByTokenId, priceChange as Record<string, unknown>) || updated;
+        }
+      }
+      if (!updated) {
         return;
       }
-
-      const current = liveByTokenId[assetId] ?? {};
-      const next: MarketLiveState = { ...current };
-      const bestBid = Number(parsed.best_bid ?? parsed.bestBid);
-      const bestAsk = Number(parsed.best_ask ?? parsed.bestAsk);
-      const lastTradePrice = Number(parsed.price ?? parsed.last_trade_price ?? parsed.lastTradePrice);
-
-      if (Number.isFinite(bestBid) && bestBid >= 0) next.bestBid = bestBid;
-      if (Number.isFinite(bestAsk) && bestAsk >= 0) next.bestAsk = bestAsk;
-      if (Number.isFinite(lastTradePrice) && lastTradePrice >= 0) next.lastTradePrice = lastTradePrice;
-
-      liveByTokenId[assetId] = next;
-      hasPendingUpdate = true;
+      hasPendingUpdate = updated;
       scheduleFlush();
     });
 

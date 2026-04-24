@@ -48,10 +48,10 @@ export function ProposalCard({ sectorSlug }: { sectorSlug: string }) {
     return null;
   }
   return (
-    <div className="rounded-2xl border border-sky-300/25 bg-sky-300/10 p-4">
+    <div className="rounded-lg border border-teal-300/25 bg-teal-300/10 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-sky-200">Pending Change</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-teal-200">Pending Change</p>
           <h3 className="mt-1 text-[13px] font-medium text-white">{draftProposal.title}</h3>
         </div>
         <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-200">
@@ -68,14 +68,14 @@ export function ProposalCard({ sectorSlug }: { sectorSlug: string }) {
         <button
           type="button"
           onClick={() => confirmDraft(sectorSlug)}
-          className="rounded-full bg-sky-300 px-3 py-2 text-xs font-medium text-slate-950"
+          className="rounded-lg bg-teal-300 px-3 py-2 text-xs font-medium text-slate-950 hover:bg-teal-200"
         >
           Apply
         </button>
         <button
           type="button"
           onClick={() => dismissDraft(sectorSlug)}
-          className="rounded-full bg-white/8 px-3 py-2 text-xs text-slate-300 hover:bg-white/12"
+          className="rounded-lg bg-white/8 px-3 py-2 text-xs text-slate-300 hover:bg-white/12"
         >
           Dismiss
         </button>

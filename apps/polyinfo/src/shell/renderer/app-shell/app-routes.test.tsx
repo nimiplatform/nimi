@@ -4,14 +4,16 @@ import { Outlet } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from './app-store.js';
 import { AppRoutes } from './app-routes.js';
-import type { SectorTag } from '@renderer/data/types.js';
+import type { FrontendCategoryGroup } from '@renderer/data/types.js';
 
-const { fetchFrontendSectorCatalogMock } = vi.hoisted(() => ({
-  fetchFrontendSectorCatalogMock: vi.fn<() => Promise<SectorTag[]>>(),
+const { fetchFrontendRootCategoriesMock } = vi.hoisted(() => ({
+  fetchFrontendRootCategoriesMock: vi.fn<() => Promise<FrontendCategoryGroup[]>>(),
 }));
 
 vi.mock('@renderer/data/frontend-taxonomy.js', () => ({
-  fetchFrontendSectorCatalog: fetchFrontendSectorCatalogMock,
+  fetchFrontendRootCategories: fetchFrontendRootCategoriesMock,
+  fetchFrontendSectorCatalog: fetchFrontendRootCategoriesMock,
+  fetchFrontendSubcategories: vi.fn(async () => []),
 }));
 
 vi.mock('./polyinfo-layout.js', () => ({
@@ -62,7 +64,7 @@ describe('app routes', () => {
       customSectors: {},
       lastActiveSectorId: null,
     });
-    fetchFrontendSectorCatalogMock.mockReset();
+    fetchFrontendRootCategoriesMock.mockReset();
   });
 
   afterEach(() => {
@@ -70,7 +72,7 @@ describe('app routes', () => {
   });
 
   it('redirects / to the last active workspace', async () => {
-    fetchFrontendSectorCatalogMock.mockResolvedValue([
+    fetchFrontendRootCategoriesMock.mockResolvedValue([
       { id: 'iran', label: 'Iran', slug: 'iran' },
     ]);
     useAppStore.setState({
@@ -95,7 +97,7 @@ describe('app routes', () => {
   });
 
   it('does not expose a mapping route', async () => {
-    fetchFrontendSectorCatalogMock.mockResolvedValue([
+    fetchFrontendRootCategoriesMock.mockResolvedValue([
       { id: 'iran', label: 'Iran', slug: 'iran' },
     ]);
 

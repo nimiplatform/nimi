@@ -2,7 +2,9 @@ import type {
   AnalysisPackage,
   AnalysisSnapshot,
   AnalystMessage,
+  CoreVariableRecord,
   DraftProposal,
+  NarrativeRecord,
   WindowKey,
 } from '@renderer/data/types.js';
 
@@ -30,9 +32,13 @@ export function buildAnalystSystemPrompt(input: {
   sectorLabel: string;
   sectorSlug: string;
   window: WindowKey;
-  package: AnalysisPackage;
+  package: AnalysisPackage | null;
+  taxonomy?: {
+    narratives: NarrativeRecord[];
+    coreVariables: CoreVariableRecord[];
+  };
 }): string {
-  const normalizedMarkets = input.package.markets.map((market) => ({
+  const normalizedMarkets = (input.package?.markets ?? []).map((market) => ({
     id: market.id,
     question: market.question,
     eventTitle: market.eventTitle,
@@ -49,12 +55,19 @@ export function buildAnalystSystemPrompt(input: {
     coreVariableIds: market.coreVariableIds,
     coreVariableTitles: market.coreVariableTitles,
   }));
+  const narratives = input.package?.narratives ?? input.taxonomy?.narratives ?? [];
+  const coreVariables = input.package?.coreVariables ?? input.taxonomy?.coreVariables ?? [];
+  const hasPriceData = Boolean(input.package);
 
   return [
     `你是 Polyinfo 的 sector analyst，当前负责板块 "${input.sectorLabel}" (${input.sectorSlug})。`,
-    '你只能使用下面给出的盘口数据、已有 narrative、已有 core variable 和对话历史进行分析。',
+    hasPriceData
+      ? '你只能使用下面给出的盘口数据、已有 narrative、已有 core variable 和对话历史进行分析。'
+      : '本轮还没有加载价格数据。你可以帮助用户整理 narrative、core issue 和分析框架，但不能给出价格驱动的确定结论。',
     '不要引入新闻、社交媒体、现实背景知识或任何外部事件解释。只根据下注信息本身做判断。',
-    `本轮分析窗口固定为 ${input.window}。`,
+    hasPriceData
+      ? `本轮分析窗口固定为 ${input.window}。`
+      : `如果用户要求盘口判断，请明确提醒：当前还没有 Load Prices，结论可能不准确，需要加载价格后再确认。`,
     '',
     '回答要求：',
     '1. 先直接给出判断，不要绕。',
@@ -71,10 +84,15 @@ export function buildAnalystSystemPrompt(input: {
     '',
     '当前结构化输入如下：',
     JSON.stringify({
-      sector: input.package.sector,
-      window: input.package.window,
-      narratives: input.package.narratives,
-      coreVariables: input.package.coreVariables,
+      sector: input.package?.sector ?? {
+        id: input.sectorSlug,
+        label: input.sectorLabel,
+        slug: input.sectorSlug,
+      },
+      window: input.package?.window ?? input.window,
+      priceDataLoaded: hasPriceData,
+      narratives,
+      coreVariables,
       markets: normalizedMarkets,
     }),
   ].join('\n');

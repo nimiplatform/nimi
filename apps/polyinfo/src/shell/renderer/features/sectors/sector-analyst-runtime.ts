@@ -33,6 +33,23 @@ function createTraceId(prefix = 'polyinfo-analyst'): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function normalizeStreamFailureMessage(failed: unknown): string {
+  const record = failed && typeof failed === 'object' ? failed as Record<string, unknown> : {};
+  const reasonDetail = normalizeText(record.reasonDetail);
+  const message = normalizeText(record.message);
+  const actionHint = normalizeText(record.actionHint);
+  if (reasonDetail) {
+    return reasonDetail;
+  }
+  if (message) {
+    return message;
+  }
+  if (actionHint === 'retry stream request') {
+    return '本次分析请求中断了，请稍后重试。';
+  }
+  return actionHint || '分析请求失败，请稍后重试。';
+}
+
 function buildScenarioHead(binding: RuntimeRouteBinding) {
   const modelId = normalizeText(binding.modelId || binding.model);
   if (!modelId) {
@@ -158,12 +175,7 @@ export async function streamSectorAnalyst(
       break;
     case 'failed': {
       const failed = event.payload.failed;
-      throw new Error(
-        normalizeText((failed as { reasonDetail?: string }).reasonDetail)
-          || normalizeText((failed as { message?: string }).message)
-          || normalizeText(failed.actionHint)
-          || 'runtime stream failed',
-      );
+      throw new Error(normalizeStreamFailureMessage(failed));
     }
     case undefined:
       break;
