@@ -38,10 +38,62 @@ function validateEvidenceEnvelope(evidence, chunk) {
     return { ok: false, error: "audit evidence coverage.files is required" };
   }
   if (chunk.planning_basis === "spec_authority") {
-    const coveredAuthority = [...(evidence.coverage.authority_refs ?? evidence.coverage.files)].sort();
+    if (!Array.isArray(evidence.coverage.authority_refs)) {
+      return { ok: false, error: "spec-authority audit evidence coverage.authority_refs is required" };
+    }
+    const coveredAuthority = [...evidence.coverage.authority_refs].sort();
     const expectedAuthority = [...(chunk.authority_refs ?? chunk.files)].sort();
     if (coveredAuthority.length !== expectedAuthority.length || coveredAuthority.some((fileRef, index) => fileRef !== expectedAuthority[index])) {
       return { ok: false, error: "audit evidence coverage.authority_refs must exactly match chunk authority refs" };
+    }
+    const evidenceFiles = evidence.coverage.evidence_files;
+    if (!Array.isArray(evidenceFiles)) {
+      return { ok: false, error: "spec-authority audit evidence coverage.evidence_files is required" };
+    }
+    for (const fileRef of evidenceFiles) {
+      if (typeof fileRef !== "string" || !chunkAllowsFindingFile(chunk, fileRef.replace(/\\/g, "/"))) {
+        return { ok: false, error: "spec-authority audit evidence coverage.evidence_files must stay inside declared evidence roots" };
+      }
+    }
+    const outcomes = evidence.coverage.authority_outcomes;
+    if (!Array.isArray(outcomes)) {
+      return { ok: false, error: "spec-authority audit evidence coverage.authority_outcomes is required" };
+    }
+    const expectedAuthoritySet = new Set(expectedAuthority);
+    const outcomeAuthorityRefs = new Set();
+    const validStatuses = new Set(["audited", "blocked", "not_applicable"]);
+    for (const [index, outcome] of outcomes.entries()) {
+      if (!isPlainObject(outcome)) {
+        return { ok: false, error: `authority_outcomes[${index}] must be an object` };
+      }
+      const authorityRef = typeof outcome.authority_ref === "string" ? outcome.authority_ref.replace(/\\/g, "/") : "";
+      if (!expectedAuthoritySet.has(authorityRef)) {
+        return { ok: false, error: `authority_outcomes[${index}].authority_ref must belong to chunk authority_refs` };
+      }
+      if (outcomeAuthorityRefs.has(authorityRef)) {
+        return { ok: false, error: `authority_outcomes contains duplicate authority_ref ${authorityRef}` };
+      }
+      outcomeAuthorityRefs.add(authorityRef);
+      if (!validStatuses.has(outcome.status)) {
+        return { ok: false, error: `authority_outcomes[${index}].status must be audited, blocked, or not_applicable` };
+      }
+      if (!Array.isArray(outcome.evidence_refs)) {
+        return { ok: false, error: `authority_outcomes[${index}].evidence_refs must be an array` };
+      }
+      for (const evidenceRef of outcome.evidence_refs) {
+        if (typeof evidenceRef !== "string" || !chunkAllowsFindingFile(chunk, evidenceRef.replace(/\\/g, "/"))) {
+          return { ok: false, error: `authority_outcomes[${index}].evidence_refs must stay inside declared evidence roots` };
+        }
+      }
+      if (outcome.status === "audited" && outcome.evidence_refs.length === 0) {
+        return { ok: false, error: `authority_outcomes[${index}] audited status requires evidence_refs` };
+      }
+      if (outcome.status !== "audited" && (typeof outcome.reason !== "string" || !outcome.reason.trim())) {
+        return { ok: false, error: `authority_outcomes[${index}] ${outcome.status} status requires reason` };
+      }
+    }
+    if (outcomeAuthorityRefs.size !== expectedAuthority.length) {
+      return { ok: false, error: "spec-authority audit evidence coverage.authority_outcomes must contain exactly one entry per authority ref" };
     }
   } else {
     const covered = [...evidence.coverage.files].sort();

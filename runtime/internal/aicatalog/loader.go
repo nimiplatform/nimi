@@ -315,6 +315,31 @@ func inferProviderFromFilename(filename string) string {
 	return normalizeProvider(base)
 }
 
+func validateVideoGenerationCapability(provider string, modelID string, video *VideoGenerationCapability) error {
+	if video == nil {
+		return nil
+	}
+	if len(video.Modes) == 0 {
+		return fmt.Errorf("model %s:%s video_generation.modes must not be empty", provider, modelID)
+	}
+	if len(video.InputRoles) == 0 {
+		return fmt.Errorf("model %s:%s video_generation.input_roles must not be empty", provider, modelID)
+	}
+	if len(video.Limits) == 0 {
+		return fmt.Errorf("model %s:%s video_generation.limits must not be empty", provider, modelID)
+	}
+	if len(video.Options.Supports) == 0 {
+		return fmt.Errorf("model %s:%s video_generation.options.supports must not be empty", provider, modelID)
+	}
+	if video.Options.Constraints == nil {
+		return fmt.Errorf("model %s:%s video_generation.options.constraints must not be nil", provider, modelID)
+	}
+	if !video.Outputs.VideoURL && !video.Outputs.LastFrameURL {
+		return fmt.Errorf("model %s:%s video_generation.outputs must declare at least one artifact", provider, modelID)
+	}
+	return nil
+}
+
 func mergeEffectiveProviderDocuments(
 	base map[string]ProviderDocument,
 	shared map[string]overlayDocument,

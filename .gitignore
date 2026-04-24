@@ -34,6 +34,7 @@ nimi-mods/
 /runtime/models/
 
 # local caches
+.pnpm-store/
 .vscode/
 .idea/
 .cache/

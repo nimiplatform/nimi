@@ -217,6 +217,88 @@ function validateChunkShape(chunk, plan, checks) {
     || nonEmptyString(chunk.review?.summary), "failed or skipped chunks have an explicit reason");
 }
 
+function validateSpecAuthorityCoverageEnvelope(evidence, chunk) {
+  if (!isPlainObject(evidence) || evidence.chunk_id !== chunk.chunk_id) {
+    return { ok: false, reason: "audit evidence chunk_id matches chunk" };
+  }
+  if (!isPlainObject(evidence.coverage)) {
+    return { ok: false, reason: "audit evidence coverage is an object" };
+  }
+  if (!Array.isArray(evidence.coverage.authority_refs)) {
+    return { ok: false, reason: "spec-authority evidence declares authority_refs" };
+  }
+  const coveredAuthority = [...evidence.coverage.authority_refs].sort();
+  const expectedAuthority = [...(chunk.authority_refs ?? chunk.files)].sort();
+  if (coveredAuthority.length !== expectedAuthority.length || coveredAuthority.some((fileRef, index) => fileRef !== expectedAuthority[index])) {
+    return { ok: false, reason: "spec-authority evidence covers exactly the chunk authority refs" };
+  }
+  if (!Array.isArray(evidence.coverage.evidence_files)) {
+    return { ok: false, reason: "spec-authority evidence declares examined evidence_files" };
+  }
+  for (const fileRef of evidence.coverage.evidence_files) {
+    if (typeof fileRef !== "string" || !chunkAllowsFindingFile(chunk, fileRef.replace(/\\/g, "/"))) {
+      return { ok: false, reason: "spec-authority evidence_files stay inside declared evidence roots" };
+    }
+  }
+  if (!Array.isArray(evidence.coverage.authority_outcomes)) {
+    return { ok: false, reason: "spec-authority evidence declares authority_outcomes" };
+  }
+  const expectedAuthoritySet = new Set(expectedAuthority);
+  const seenAuthorityRefs = new Set();
+  for (const outcome of evidence.coverage.authority_outcomes) {
+    if (!isPlainObject(outcome)) {
+      return { ok: false, reason: "authority_outcomes entries are objects" };
+    }
+    const authorityRef = typeof outcome.authority_ref === "string" ? outcome.authority_ref.replace(/\\/g, "/") : "";
+    if (!expectedAuthoritySet.has(authorityRef) || seenAuthorityRefs.has(authorityRef)) {
+      return { ok: false, reason: "authority_outcomes map one-to-one to chunk authority refs" };
+    }
+    seenAuthorityRefs.add(authorityRef);
+    if (!["audited", "blocked", "not_applicable"].includes(outcome.status)) {
+      return { ok: false, reason: "authority_outcomes status is valid" };
+    }
+    if (!Array.isArray(outcome.evidence_refs)) {
+      return { ok: false, reason: "authority_outcomes evidence_refs are arrays" };
+    }
+    for (const evidenceRef of outcome.evidence_refs) {
+      if (typeof evidenceRef !== "string" || !chunkAllowsFindingFile(chunk, evidenceRef.replace(/\\/g, "/"))) {
+        return { ok: false, reason: "authority_outcomes evidence_refs stay inside declared evidence roots" };
+      }
+    }
+    if (outcome.status === "audited" && outcome.evidence_refs.length === 0) {
+      return { ok: false, reason: "audited authority_outcomes declare evidence_refs" };
+    }
+    if (outcome.status !== "audited" && !nonEmptyString(outcome.reason)) {
+      return { ok: false, reason: "non-audited authority_outcomes declare reason" };
+    }
+  }
+  return {
+    ok: seenAuthorityRefs.size === expectedAuthority.length,
+    reason: "spec-authority evidence declares one authority outcome per authority ref",
+  };
+}
+
+async function validateChunkEvidenceArtifact(projectRoot, chunk, checks) {
+  if (!["ingested", "reviewed", "frozen", "failed"].includes(chunk.state)) {
+    return;
+  }
+  if (!nonEmptyString(chunk.evidence_ref)) {
+    return;
+  }
+  let evidence = null;
+  try {
+    evidence = JSON.parse(await readFile(artifactPath(projectRoot, chunk.evidence_ref), "utf8"));
+  } catch {
+    check(checks, `chunk_${chunk.chunk_id}_evidence_json_valid`, false, "chunk evidence artifact is valid JSON");
+    return;
+  }
+  check(checks, `chunk_${chunk.chunk_id}_evidence_json_valid`, true, "chunk evidence artifact is valid JSON");
+  if (chunk.planning_basis === "spec_authority") {
+    const coverageCheck = validateSpecAuthorityCoverageEnvelope(evidence, chunk);
+    check(checks, `chunk_${chunk.chunk_id}_spec_authority_evidence_coverage`, coverageCheck.ok, coverageCheck.reason);
+  }
+}
+
 function isInsideRef(rootRef, fileRef) {
   const normalizedRoot = rootRef.replace(/\\/g, "/").replace(/\/$/, "");
   return fileRef === normalizedRoot || fileRef.startsWith(`${normalizedRoot}/`);
@@ -481,6 +563,7 @@ export async function validateAuditSweepArtifacts(projectRoot, options) {
   if (scope === "chunks" || scope === "all") {
     for (const chunk of chunks) {
       validateChunkShape(chunk, planResult.plan, checks);
+      await validateChunkEvidenceArtifact(projectRoot, chunk, checks);
     }
   }
 

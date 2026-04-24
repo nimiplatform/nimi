@@ -5045,6 +5045,74 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     ]);
     assert.equal(dispatchResult.exitCode, 0);
 
+    const incompleteEvidencePath = path.join(projectRoot, "runtime-audit-evidence-incomplete.json");
+    await writeFile(
+      incompleteEvidencePath,
+      `${JSON.stringify({
+        chunk_id: runtimeChunk.chunk_id,
+        auditor: { id: "spec-first-auditor" },
+        coverage: {
+          authority_refs: runtimeChunk.authority_refs,
+          files: runtimeChunk.authority_refs,
+        },
+        findings: [],
+      }, null, 2)}\n`,
+      "utf8",
+    );
+    const incompleteIngestResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-spec-basis",
+      "--chunk-id",
+      runtimeChunk.chunk_id,
+      "--from",
+      "runtime-audit-evidence-incomplete.json",
+      "--verified-at",
+      "2026-04-24T00:00:30.000Z",
+      "--json",
+    ]);
+    assert.equal(incompleteIngestResult.exitCode, 2);
+    assert.match(incompleteIngestResult.stderr, /coverage\.evidence_files is required/);
+
+    const missingAuthorityRefsEvidencePath = path.join(projectRoot, "runtime-audit-evidence-missing-authority-refs.json");
+    await writeFile(
+      missingAuthorityRefsEvidencePath,
+      `${JSON.stringify({
+        chunk_id: runtimeChunk.chunk_id,
+        auditor: { id: "spec-first-auditor" },
+        coverage: {
+          files: runtimeChunk.authority_refs,
+          evidence_files: [],
+          authority_outcomes: runtimeChunk.authority_refs.map((authorityRef) => ({
+            authority_ref: authorityRef,
+            status: "not_applicable",
+            evidence_refs: [],
+            reason: "No implementation surface examined in this negative fixture.",
+          })),
+        },
+        findings: [],
+      }, null, 2)}\n`,
+      "utf8",
+    );
+    const missingAuthorityRefsIngestResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-spec-basis",
+      "--chunk-id",
+      runtimeChunk.chunk_id,
+      "--from",
+      "runtime-audit-evidence-missing-authority-refs.json",
+      "--verified-at",
+      "2026-04-24T00:00:45.000Z",
+      "--json",
+    ]);
+    assert.equal(missingAuthorityRefsIngestResult.exitCode, 2);
+    assert.match(missingAuthorityRefsIngestResult.stderr, /coverage\.authority_refs is required/);
+
     const evidencePath = path.join(projectRoot, "runtime-audit-evidence.json");
     await writeFile(
       evidencePath,
@@ -5054,6 +5122,12 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
         coverage: {
           authority_refs: runtimeChunk.authority_refs,
           files: [...runtimeChunk.authority_refs, "runtime/internal/service.go"],
+          evidence_files: ["runtime/internal/service.go"],
+          authority_outcomes: runtimeChunk.authority_refs.map((authorityRef) => ({
+            authority_ref: authorityRef,
+            status: "audited",
+            evidence_refs: ["runtime/internal/service.go"],
+          })),
         },
         findings: [
           {
@@ -5092,6 +5166,28 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     assert.equal(ingestResult.exitCode, 0, ingestResult.stderr);
     const ingestPayload = JSON.parse(ingestResult.stdout);
     assert.equal(ingestPayload.addedCount, 1);
+
+    const tamperedEvidencePath = path.join(projectRoot, ...ingestPayload.evidenceRef.split("/"));
+    const tamperedEvidence = JSON.parse(await readFile(tamperedEvidencePath, "utf8"));
+    delete tamperedEvidence.coverage.authority_refs;
+    await writeFile(tamperedEvidencePath, `${JSON.stringify(tamperedEvidence, null, 2)}\n`, "utf8");
+    const tamperedValidateResult = await captureRunCli([
+      "audit-sweep",
+      "validate",
+      "--sweep-id",
+      "audit-sweep-test-spec-basis",
+      "--scope",
+      "chunks",
+      "--json",
+    ]);
+    assert.equal(tamperedValidateResult.exitCode, 2);
+    const tamperedValidatePayload = JSON.parse(tamperedValidateResult.stdout);
+    assert.equal(tamperedValidatePayload.ok, false);
+    assert.ok(tamperedValidatePayload.checks.some((check) => (
+      check.id === `chunk_${runtimeChunk.chunk_id}_spec_authority_evidence_coverage`
+      && check.ok === false
+      && check.reason === "spec-authority evidence declares authority_refs"
+    )));
   });
 });
 

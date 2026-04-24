@@ -5,27 +5,12 @@ export type AgentAvatarLaunchPolicy = {
   autoRefreshLiveInventory: boolean;
 };
 
-type StoredAgentAvatarLaunchPolicy = Partial<AgentAvatarLaunchPolicy>;
-type StoredAgentAvatarLaunchPolicyRecord = Record<string, StoredAgentAvatarLaunchPolicy>;
+const launchPolicyByAgentId = new Map<string, AgentAvatarLaunchPolicy>();
 
 export const DEFAULT_AGENT_AVATAR_LAUNCH_POLICY: AgentAvatarLaunchPolicy = {
   defaultLaunchTarget: 'current',
   autoRefreshLiveInventory: true,
 };
-
-function getLocalStorage(): Storage | null {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      return window.localStorage;
-    }
-    if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis) {
-      return globalThis.localStorage as Storage;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
 
 function normalizeLaunchTarget(value: unknown): AgentAvatarLaunchPolicy['defaultLaunchTarget'] {
   return value === 'new' ? 'new' : 'current';
@@ -35,38 +20,6 @@ function normalizeAutoRefresh(value: unknown): boolean {
   return typeof value === 'boolean' ? value : DEFAULT_AGENT_AVATAR_LAUNCH_POLICY.autoRefreshLiveInventory;
 }
 
-function loadRecord(): StoredAgentAvatarLaunchPolicyRecord {
-  const storage = getLocalStorage();
-  if (!storage) {
-    return {};
-  }
-  try {
-    const raw = storage.getItem(AGENT_AVATAR_LAUNCH_POLICY_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return {};
-    }
-    return parsed as StoredAgentAvatarLaunchPolicyRecord;
-  } catch {
-    return {};
-  }
-}
-
-function persistRecord(record: StoredAgentAvatarLaunchPolicyRecord): void {
-  const storage = getLocalStorage();
-  if (!storage) {
-    return;
-  }
-  try {
-    storage.setItem(AGENT_AVATAR_LAUNCH_POLICY_STORAGE_KEY, JSON.stringify(record));
-  } catch {
-    // ignore local persistence failures
-  }
-}
-
 export function loadStoredAgentAvatarLaunchPolicy(
   agentId: string | null | undefined,
 ): AgentAvatarLaunchPolicy {
@@ -74,7 +27,7 @@ export function loadStoredAgentAvatarLaunchPolicy(
   if (!normalizedAgentId) {
     return { ...DEFAULT_AGENT_AVATAR_LAUNCH_POLICY };
   }
-  const stored = loadRecord()[normalizedAgentId];
+  const stored = launchPolicyByAgentId.get(normalizedAgentId);
   if (!stored || typeof stored !== 'object') {
     return { ...DEFAULT_AGENT_AVATAR_LAUNCH_POLICY };
   }
@@ -96,8 +49,6 @@ export function persistStoredAgentAvatarLaunchPolicy(
   if (!normalizedAgentId) {
     return normalizedPolicy;
   }
-  const record = loadRecord();
-  record[normalizedAgentId] = normalizedPolicy;
-  persistRecord(record);
+  launchPolicyByAgentId.set(normalizedAgentId, normalizedPolicy);
   return normalizedPolicy;
 }

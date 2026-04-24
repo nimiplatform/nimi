@@ -56,3 +56,5 @@ hard_constraints:
   - zero_included_files_cannot_be_candidate_ready
   - spec_authority_plans_must_chunk_by_authority_refs_not_file_inventory
   - spec_authority_chunk_files_are_authority_refs_and_evidence_roots_define_audit_evidence_scope
+  - spec_authority_audit_evidence_must_report_one_authority_outcome_per_authority_ref
+  - spec_authority_audit_evidence_must_report_examined_evidence_files

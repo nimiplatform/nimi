@@ -39,6 +39,8 @@ lifecycle_required_fields:
 hard_constraints:
   - chunk_files_must_match_plan_inventory
   - spec_authority_chunks_must_declare_authority_refs_and_evidence_roots
+  - spec_authority_ingest_requires_one_authority_outcome_per_authority_ref
+  - spec_authority_ingest_requires_examined_evidence_files
   - ingest_requires_dispatch
   - frozen_requires_manager_review
   - failed_or_skipped_requires_explicit_reason

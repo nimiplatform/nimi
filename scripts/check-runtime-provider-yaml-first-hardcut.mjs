@@ -90,8 +90,8 @@ function main() {
   if (!connectorService.includes('func (s *Service) listDynamicConnectorModels(') || !connectorService.includes('backend.ListModels(ctx)')) {
     fail(`${rel(connectorServicePath)} dynamic ListConnectorModels helper must call backend.ListModels`);
   }
-  if (!connectorService.includes('LoadCredential(')) {
-    fail(`${rel(connectorServicePath)} dynamic ListConnectorModels path must load connector credentials`);
+  if (!connectorService.includes('LoadSecretPayload(') || !connectorService.includes('ResolveCredential(')) {
+    fail(`${rel(connectorServicePath)} dynamic ListConnectorModels path must resolve connector credentials from stored secret payload`);
   }
 
   if (voiceMethods.includes('ListSpeechVoices(')) {

@@ -36,6 +36,8 @@ function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt) {
       required_top_level_fields: ["chunk_id", "auditor", "coverage", "findings"],
       coverage_files_must_exactly_match: chunk.files,
       coverage_authority_refs_must_exactly_match: chunk.authority_refs ?? chunk.files,
+      spec_authority_coverage_requires_authority_outcomes: chunk.planning_basis === "spec_authority",
+      spec_authority_coverage_requires_evidence_files: chunk.planning_basis === "spec_authority",
       finding_locations_must_belong_to_chunk_files_or_evidence_roots: true,
       finding_contract_ref: ".nimi/contracts/audit-finding.schema.yaml",
       ingest_command: `nimicoding audit-sweep chunk ingest --sweep-id ${sweepId} --chunk-id ${chunk.chunk_id} --from <audit-output.json> --verified-at <ISO-8601-UTC>`,
@@ -43,6 +45,9 @@ function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt) {
     hard_constraints: [
       "do_not_sample_out_files_from_this_chunk",
       "for_spec_authority_chunks_audit_the_authority_refs_first_and_use_evidence_roots_for_implementation_evidence",
+      "for_spec_authority_chunks_emit_one_authority_outcome_per_authority_ref",
+      "for_spec_authority_chunks_emit_evidence_files_for_all_non_authority_files_examined",
+      "if_no_implementation_surface_exists_mark_the_authority_outcome_not_applicable_with_reason",
       "do_not_return_pseudo_success",
       "do_not_emit_findings_outside_chunk_files_or_declared_evidence_roots",
       "fail_closed_if_a_file_cannot_be_audited",

@@ -7,7 +7,7 @@ export type AgentConversationAnchorBinding = {
   updatedAtMs: number;
 };
 
-type AnchorBindingsRecord = Record<string, AgentConversationAnchorBinding>;
+const anchorBindingsByThreadId = new Map<string, AgentConversationAnchorBinding>();
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -41,60 +41,6 @@ function normalizeBinding(
   };
 }
 
-function getLocalStorage(): Storage | null {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      return window.localStorage;
-    }
-    if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis) {
-      return globalThis.localStorage as Storage;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function loadAnchorBindingsRecord(): AnchorBindingsRecord {
-  const storage = getLocalStorage();
-  if (!storage) {
-    return {};
-  }
-  try {
-    const raw = storage.getItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const normalized: AnchorBindingsRecord = {};
-    for (const [threadId, value] of Object.entries(parsed)) {
-      const binding = normalizeBinding(value);
-      if (!binding || binding.threadId !== threadId) {
-        continue;
-      }
-      normalized[threadId] = binding;
-    }
-    return normalized;
-  } catch {
-    return {};
-  }
-}
-
-function persistAnchorBindingsRecord(record: AnchorBindingsRecord): void {
-  const storage = getLocalStorage();
-  if (!storage) {
-    return;
-  }
-  try {
-    storage.setItem(
-      AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY,
-      JSON.stringify(record),
-    );
-  } catch {
-    // ignore persistence failures
-  }
-}
-
 export function getAgentConversationAnchorBinding(
   threadId: string | null | undefined,
 ): AgentConversationAnchorBinding | null {
@@ -102,7 +48,7 @@ export function getAgentConversationAnchorBinding(
   if (!normalizedThreadId) {
     return null;
   }
-  return loadAnchorBindingsRecord()[normalizedThreadId] || null;
+  return anchorBindingsByThreadId.get(normalizedThreadId) || null;
 }
 
 export function persistAgentConversationAnchorBinding(
@@ -112,9 +58,7 @@ export function persistAgentConversationAnchorBinding(
   if (!normalizedBinding) {
     throw new Error('agent conversation anchor binding is invalid');
   }
-  const current = loadAnchorBindingsRecord();
-  current[normalizedBinding.threadId] = normalizedBinding;
-  persistAnchorBindingsRecord(current);
+  anchorBindingsByThreadId.set(normalizedBinding.threadId, normalizedBinding);
   return normalizedBinding;
 }
 
@@ -125,10 +69,5 @@ export function clearAgentConversationAnchorBinding(
   if (!normalizedThreadId) {
     return;
   }
-  const current = loadAnchorBindingsRecord();
-  if (!(normalizedThreadId in current)) {
-    return;
-  }
-  delete current[normalizedThreadId];
-  persistAnchorBindingsRecord(current);
+  anchorBindingsByThreadId.delete(normalizedThreadId);
 }

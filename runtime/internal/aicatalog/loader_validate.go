@@ -80,25 +80,8 @@ func validateSnapshot(snapshot Snapshot) error {
 		if modelRequiresVideoGeneration(model) && model.VideoGeneration == nil {
 			return fmt.Errorf("model %s:%s missing video_generation", provider, modelID)
 		}
-		if model.VideoGeneration != nil {
-			if len(model.VideoGeneration.Modes) == 0 {
-				return fmt.Errorf("model %s:%s video_generation.modes must not be empty", provider, modelID)
-			}
-			if len(model.VideoGeneration.InputRoles) == 0 {
-				return fmt.Errorf("model %s:%s video_generation.input_roles must not be empty", provider, modelID)
-			}
-			if len(model.VideoGeneration.Limits) == 0 {
-				return fmt.Errorf("model %s:%s video_generation.limits must not be empty", provider, modelID)
-			}
-			if len(model.VideoGeneration.Options.Supports) == 0 {
-				return fmt.Errorf("model %s:%s video_generation.options.supports must not be empty", provider, modelID)
-			}
-			if model.VideoGeneration.Options.Constraints == nil {
-				return fmt.Errorf("model %s:%s video_generation.options.constraints must not be nil", provider, modelID)
-			}
-			if !model.VideoGeneration.Outputs.VideoURL && !model.VideoGeneration.Outputs.LastFrameURL {
-				return fmt.Errorf("model %s:%s video_generation.outputs must declare at least one artifact", provider, modelID)
-			}
+		if err := validateVideoGenerationCapability(provider, modelID, model.VideoGeneration); err != nil {
+			return err
 		}
 	}
 	if len(ttsModelRefs) > 0 && len(snapshot.Voices) == 0 {
