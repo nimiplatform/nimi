@@ -6,7 +6,14 @@ import { asString, toPrettyJson } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
 import { makeEmptyDiagnostics } from '../tester-state.js';
 import { getRuntimeClient, resolveCallParams, bindingToRouteInfo } from '../tester-runtime.js';
-import { DiagnosticsPanel, ErrorBox, InfoBox, RawJsonSection, RunButton } from '../tester-diagnostics.js';
+import { DiagnosticsPanel, ErrorBox, InfoBox, RawJsonSection } from '../tester-diagnostics.js';
+
+const ARROW_UP_ICON = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="19" x2="12" y2="5" />
+    <polyline points="5 12 12 5 19 12" />
+  </svg>
+);
 
 type TextEmbedPanelProps = {
   state: CapabilityState;
@@ -93,16 +100,47 @@ export function TextEmbedPanel(props: TextEmbedPanelProps) {
     vectorText?: string;
   } | null;
 
+  const canSubmit = !state.busy && Boolean(text.trim());
+  const runLabel = t('Tester.textEmbed.run');
+
   return (
     <div className="flex flex-col gap-3">
-      <TextareaField
-        className="font-mono text-xs"
-        textareaClassName="h-28"
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        placeholder={t('Tester.textEmbed.inputPlaceholder')}
-      />
-      <RunButton busy={state.busy} busyLabel={state.busyLabel} label={t('Tester.textEmbed.run')} onClick={() => { void handleRun(); }} />
+      <div className="flex flex-col rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 pb-2 pt-3 transition-colors focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]">
+        <TextareaField
+          tone="quiet"
+          className="p-0"
+          textareaClassName="min-h-[5rem] resize-none px-0 py-0 font-mono text-xs"
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          placeholder={t('Tester.textEmbed.inputPlaceholder')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && canSubmit) {
+              event.preventDefault();
+              void handleRun();
+            }
+          }}
+        />
+        <div className="mt-2 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => { void handleRun(); }}
+            disabled={!canSubmit}
+            aria-label={runLabel}
+            title={runLabel}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {state.busy ? (
+              <span className="inline-flex items-center gap-0.5">
+                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.2s]" />
+                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.1s]" />
+                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80" />
+              </span>
+            ) : (
+              ARROW_UP_ICON
+            )}
+          </button>
+        </div>
+      </div>
       {state.error ? <ErrorBox message={state.error} /> : null}
       {embedOutput ? (
         <Surface tone="card" padding="sm" className="text-xs">

@@ -29,7 +29,11 @@ test('D-AUTH-010: external principal token UI flow preserves required structure'
   assert.match(externalAgentUiSource, /const canIssue = gatewayStatus\.enabled && !gatewayStatus\.loading;/);
   assert.match(externalAgentUiSource, /const ttlIsPositiveInteger =/);
   assert.match(externalAgentUiSource, /ttlValidationMessage/);
+  assert.match(externalAgentUiSource, /const \[showIssueForm, setShowIssueForm\] = useState\(false\);/);
+  assert.match(externalAgentUiSource, /const filterTabs: Array<\{ key: TokenFilter; label: string \}> = \[/);
   assert.match(externalAgentUiSource, /disabled=\{busy \|\| !canIssue \|\| !ttlIsPositiveInteger\}/);
-  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !canIssue \|\| !tokenId\.trim\(\)\}/);
-  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !canIssue\}/);
+  assert.match(externalAgentUiSource, /disabled=\{!canIssue\}/);
+  assert.match(externalAgentUiSource, /handleRevokeToken\(token\.tokenId\)/);
+  assert.match(externalAgentUiSource, /noTokensInFilter/);
+  assert.match(externalAgentUiSource, /noTokensIssuedHint/);
 });

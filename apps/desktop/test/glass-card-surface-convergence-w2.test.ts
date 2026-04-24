@@ -33,7 +33,8 @@ test('W2 glass card convergence: settings and runtime shared cards consume the s
 });
 
 test('W2 glass card convergence: runtime local debug section reuses the shared operational card wrapper', () => {
-  assert.match(runtimeLocalDebugSource, /import \{ Button, Card, RuntimeSelect \} from '.\/runtime-config-primitives\.js';/);
-  assert.match(runtimeLocalDebugSource, /<Card className="mt-3 overflow-hidden">/);
+  assert.match(runtimeLocalDebugSource, /import \{ Button \} from '.\/runtime-config-primitives\.js';/);
+  assert.match(runtimeLocalDebugSource, /import \{ ScrollArea, Surface, Tooltip, cn \} from '@nimiplatform\/nimi-kit\/ui';/);
+  assert.match(runtimeLocalDebugSource, /<Surface tone="card" className=\{cn\(TOKEN_PANEL_CARD, 'overflow-hidden'\)\}>/);
   assert.doesNotMatch(runtimeLocalDebugSource, /function SurfaceCard/u);
 });

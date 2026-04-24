@@ -19,7 +19,7 @@ import { RuntimeConfigMemoryEmbeddingSection } from './runtime-config-memory-emb
 import { Button } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
 
-type RuntimeTabKey = 'overview' | 'health' | 'activity' | 'access';
+type RuntimeTabKey = 'overview' | 'health' | 'activity' | 'memory' | 'access';
 
 // Shared tokens & tones — kept in sync with runtime-config-page-overview.tsx
 const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
@@ -260,6 +260,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
       badge: unhealthyProviderCount > 0 ? unhealthyProviderCount : undefined,
     },
     { key: 'activity', label: t('runtimeConfig.runtime.tabActivity', { defaultValue: 'Activity' }) },
+    { key: 'memory', label: t('runtimeConfig.runtime.tabMemory', { defaultValue: 'Memory' }) },
     { key: 'access', label: t('runtimeConfig.runtime.tabAccess', { defaultValue: 'Access' }) },
   ];
 
@@ -396,7 +397,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                     <div className="grid grid-cols-3 gap-4">
                       {entries.map((entry) => (
                         <div key={entry.key} className="min-w-0">
-                          <p className={cn('text-[11px]', toneStyle.subtleText)}>{entry.label}</p>
+                          <p className={cn('text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>{entry.label}</p>
                           <p className={cn('mt-1 truncate font-mono text-sm', TOKEN_TEXT_PRIMARY)}>
                             {entry.value}
                           </p>
@@ -763,10 +764,12 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         </>
       ) : null}
 
+      {activeTab === 'memory' ? (
+        <RuntimeConfigMemoryEmbeddingSection state={state} />
+      ) : null}
+
       {activeTab === 'access' ? (
         <>
-          <RuntimeConfigMemoryEmbeddingSection state={state} />
-
           {/* External Agent Access */}
           <ExternalAgentAccessPanel />
 

@@ -6,6 +6,7 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   SHELL_CHROME_ACTION_CELL_CLASS,
   SHELL_CHROME_METRIC_CELL_CLASS,
+  SHELL_CHROME_METRIC_GROUP_CLASS,
 } from './shell-chrome-classes';
 
 type MainLayoutTopBarProps = {
@@ -116,8 +117,8 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2">
-                <Tooltip content="Spark" className="h-9">
+              <div className={SHELL_CHROME_METRIC_GROUP_CLASS}>
+                <Tooltip content="Spark" className="h-7">
                   <button
                     type="button"
                     data-mod-tab-interactive="true"
@@ -138,7 +139,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                     <span>{props.balancesPending ? '--' : formatMetricValue(props.sparkBalance)}</span>
                   </button>
                 </Tooltip>
-                <Tooltip content="Gem" className="h-9">
+                <Tooltip content="Gem" className="h-7">
                   <button
                     type="button"
                     data-mod-tab-interactive="true"
@@ -160,7 +161,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                   </button>
                 </Tooltip>
               </div>
-              <Tooltip content={t('Navigation.notifications')} className="h-10">
+              <Tooltip content={t('Navigation.notifications')} className="h-9">
                 <button
                   type="button"
                   data-mod-tab-interactive="true"
@@ -173,7 +174,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                   </svg>
                   {props.unreadCount > 0 ? (
-                    <span className="absolute right-1 top-1 min-w-[16px] rounded-full bg-red-500 px-1 text-[10px] leading-[16px] text-white">
+                    <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] items-center justify-center rounded-full border border-white bg-red-500 px-1 text-[10px] leading-[16px] text-white">
                       {unreadBadge}
                     </span>
                   ) : null}
