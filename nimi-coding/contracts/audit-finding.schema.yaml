@@ -18,6 +18,11 @@ required_fields:
   - evidence
   - disposition
   - evidence_ref
+optional_fields:
+  - owner_domain
+  - root_cause
+  - cluster_id
+  - detected_at
 severity_enum:
   - critical
   - high
@@ -42,7 +47,15 @@ location_required_fields:
 evidence_required_fields:
   - summary
   - auditor_reasoning
+root_cause_optional_fields:
+  - key
+  - authority_ref
+  - evidence_root
+  - contract_seam
+  - repair_target
 hard_constraints:
   - finding_location_file_must_belong_to_source_chunk_or_declared_spec_authority_evidence_roots
   - finding_fingerprint_must_be_stable_over_semantically_identical_evidence
   - non_open_disposition_requires_resolution_evidence
+  - duplicate_symptoms_may_cluster_only_when_root_cause_key_and_authority_context_match
+  - unique_critical_or_high_root_causes_must_remain_canonical_findings

@@ -4929,6 +4929,53 @@ async function seedFrozenAuditSweep(projectRoot, {
   return JSON.parse(ledgerResult.stdout);
 }
 
+function clusteredAuditFinding({
+  file,
+  line = 1,
+  severity = "high",
+  actionability = "auto-fix",
+  category = "contract",
+  title,
+  rootCauseKey,
+  repairTarget = "src/service.ts",
+  authorityRef = "src/service-contract.md",
+}) {
+  return {
+    severity,
+    actionability,
+    confidence: "high",
+    category,
+    impact: `${title} creates a material audit obligation.`,
+    location: { file, line, symbol: "service" },
+    title,
+    description: `${title} needs owner remediation under the clustered audit model.`,
+    root_cause: {
+      key: rootCauseKey,
+      authority_ref: authorityRef,
+      evidence_root: "src",
+      contract_seam: "service-contract",
+      repair_target: repairTarget,
+    },
+    evidence: {
+      summary: `${file} reproduces ${title}.`,
+      auditor_reasoning: `${file} is in the audited chunk and the root cause metadata is explicit.`,
+    },
+  };
+}
+
+async function writeAuditEvidence(projectRoot, fileName, chunkId, files, findings) {
+  await writeFile(
+    path.join(projectRoot, fileName),
+    `${JSON.stringify({
+      chunk_id: chunkId,
+      auditor: { id: "test-auditor", model: "fixture" },
+      coverage: { files },
+      findings,
+    }, null, 2)}\n`,
+    "utf8",
+  );
+}
+
 test("audit-sweep plan creates deterministic local chunk artifacts", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
@@ -5926,6 +5973,339 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     const validatePayload = JSON.parse(validateResult.stdout);
     assert.equal(validatePayload.ok, true);
     assert.ok(validatePayload.checks.length > 0);
+  });
+});
+
+test("audit-sweep clusters duplicate symptoms, preserves unique high severity findings, and pauses on risk budget", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await mkdir(path.join(projectRoot, "src"), { recursive: true });
+    await writeFile(path.join(projectRoot, "src", "a.ts"), "export function service() { return 1; }\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "b.ts"), "export function service() { return 2; }\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "c.ts"), "export function service() { return 3; }\n", "utf8");
+
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src",
+      "--max-files",
+      "1",
+      "--max-domain-findings",
+      "2",
+      "--sweep-id",
+      "audit-sweep-test-clustering-budget",
+      "--json",
+    ]);
+    assert.equal(planResult.exitCode, 0, planResult.stderr);
+
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-clustering-budget",
+      "--chunk-id",
+      "chunk-001",
+      "--dispatched-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+    await writeAuditEvidence(projectRoot, "cluster-budget-1.json", "chunk-001", ["src/a.ts"], [
+      clusteredAuditFinding({
+        file: "src/a.ts",
+        title: "Shared service contract drift",
+        rootCauseKey: "shared-service-contract-drift",
+      }),
+    ]);
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-clustering-budget",
+      "--chunk-id",
+      "chunk-001",
+      "--from",
+      "cluster-budget-1.json",
+      "--verified-at",
+      "2026-04-10T00:10:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-clustering-budget",
+      "--chunk-id",
+      "chunk-002",
+      "--dispatched-at",
+      "2026-04-10T00:20:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+    await writeAuditEvidence(projectRoot, "cluster-budget-2.json", "chunk-002", ["src/b.ts"], [
+      clusteredAuditFinding({
+        file: "src/b.ts",
+        title: "Shared service contract drift",
+        rootCauseKey: "shared-service-contract-drift",
+      }),
+      clusteredAuditFinding({
+        file: "src/b.ts",
+        line: 2,
+        title: "Unique high risk service bypass",
+        rootCauseKey: "unique-high-risk-service-bypass",
+      }),
+    ]);
+    const secondIngest = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-clustering-budget",
+      "--chunk-id",
+      "chunk-002",
+      "--from",
+      "cluster-budget-2.json",
+      "--verified-at",
+      "2026-04-10T00:30:00.000Z",
+      "--json",
+    ]);
+    assert.equal(secondIngest.exitCode, 0, secondIngest.stderr);
+    const secondPayload = JSON.parse(secondIngest.stdout);
+    assert.equal(secondPayload.addedCount, 1);
+    assert.equal(secondPayload.clusteredCount, 1);
+    assert.equal(secondPayload.riskBudgetStatus.state, "paused");
+
+    const blockedDispatch = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-clustering-budget",
+      "--chunk-id",
+      "chunk-003",
+      "--dispatched-at",
+      "2026-04-10T00:40:00.000Z",
+      "--json",
+    ]);
+    assert.equal(blockedDispatch.exitCode, 2);
+    assert.match(blockedDispatch.stderr, /risk budget paused/);
+
+    const findingsStore = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "evidence", "audit-sweep-test-clustering-budget", "findings.yaml"), "utf8"));
+    assert.equal(findingsStore.findings.length, 2);
+    assert.equal(findingsStore.remediation_obligation_count, 2);
+    assert.equal(findingsStore.clustered_symptom_count, 1);
+    assert.equal(findingsStore.clusters.length, 2);
+    assert.ok(findingsStore.clusters.some((cluster) => cluster.duplicate_symptom_count === 1));
+
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "ledger",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-clustering-budget",
+      "--verified-at",
+      "2026-04-10T00:50:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+    const remediationMapResult = await captureRunCli([
+      "audit-sweep",
+      "remediation-map",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-clustering-budget",
+      "--verified-at",
+      "2026-04-10T01:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(remediationMapResult.exitCode, 0, remediationMapResult.stderr);
+    const remediationMapPayload = JSON.parse(remediationMapResult.stdout);
+    assert.equal(remediationMapPayload.waveCount, 1);
+    assert.equal(remediationMapPayload.remediationBundleCount, 1);
+    assert.equal(remediationMapPayload.clusteredSymptomCount, 1);
+    assert.equal(remediationMapPayload.waves[0].cluster_ids.length, 2);
+    assert.equal(remediationMapPayload.waves[0].remediation_bundle.duplicate_symptom_count, 1);
+  });
+});
+
+test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when authority context changes", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await mkdir(path.join(projectRoot, "src"), { recursive: true });
+    await writeFile(path.join(projectRoot, "src", "a.ts"), "export function service() { return 1; }\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "b.ts"), "export function service() { return 2; }\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "c.ts"), "export function service() { return 3; }\n", "utf8");
+
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src",
+      "--max-files",
+      "1",
+      "--sweep-id",
+      "audit-sweep-test-accepted-cluster",
+      "--json",
+    ])).exitCode, 0);
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-accepted-cluster",
+      "--chunk-id",
+      "chunk-001",
+      "--dispatched-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+    await writeAuditEvidence(projectRoot, "accepted-cluster-1.json", "chunk-001", ["src/a.ts"], [
+      clusteredAuditFinding({
+        file: "src/a.ts",
+        title: "Accepted service cluster",
+        rootCauseKey: "accepted-service-cluster",
+      }),
+    ]);
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-accepted-cluster",
+      "--chunk-id",
+      "chunk-001",
+      "--from",
+      "accepted-cluster-1.json",
+      "--verified-at",
+      "2026-04-10T00:10:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "ledger",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-accepted-cluster",
+      "--verified-at",
+      "2026-04-10T00:20:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "remediation-map",
+      "build",
+      "--sweep-id",
+      "audit-sweep-test-accepted-cluster",
+      "--verified-at",
+      "2026-04-10T00:30:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+
+    const createTopic = await captureRunCli([
+      "topic",
+      "create",
+      "accepted-cluster-demo",
+      "--title",
+      "Accepted Cluster Demo",
+      "--justification",
+      "audit-sweep accepted cluster resume behavior needs a repair owner",
+      "--applicability",
+      "authority-bearing",
+      "--json",
+    ]);
+    assert.equal(createTopic.exitCode, 0, createTopic.stderr);
+    const topic = JSON.parse(createTopic.stdout);
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "remediation-map",
+      "admit",
+      "--sweep-id",
+      "audit-sweep-test-accepted-cluster",
+      "--topic-id",
+      topic.topicId,
+      "--json",
+    ])).exitCode, 0);
+
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-accepted-cluster",
+      "--chunk-id",
+      "chunk-002",
+      "--dispatched-at",
+      "2026-04-10T00:40:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+    await writeAuditEvidence(projectRoot, "accepted-cluster-2.json", "chunk-002", ["src/b.ts"], [
+      clusteredAuditFinding({
+        file: "src/b.ts",
+        title: "Accepted service cluster",
+        rootCauseKey: "accepted-service-cluster",
+      }),
+    ]);
+    const unchangedResume = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-accepted-cluster",
+      "--chunk-id",
+      "chunk-002",
+      "--from",
+      "accepted-cluster-2.json",
+      "--verified-at",
+      "2026-04-10T00:50:00.000Z",
+      "--json",
+    ]);
+    assert.equal(unchangedResume.exitCode, 0, unchangedResume.stderr);
+    const unchangedPayload = JSON.parse(unchangedResume.stdout);
+    assert.equal(unchangedPayload.addedCount, 0);
+    assert.equal(unchangedPayload.acceptedClusterSkipCount, 1);
+
+    const findingsPath = path.join(projectRoot, ".nimi", "local", "audit", "evidence", "audit-sweep-test-accepted-cluster", "findings.yaml");
+    const findingsStore = YAML.parse(await readFile(findingsPath, "utf8"));
+    findingsStore.clusters[0].acceptance.source_inventory_hash = "changed-authority-context";
+    await writeFile(findingsPath, YAML.stringify(findingsStore), "utf8");
+
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-accepted-cluster",
+      "--chunk-id",
+      "chunk-003",
+      "--dispatched-at",
+      "2026-04-10T01:00:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+    await writeAuditEvidence(projectRoot, "accepted-cluster-3.json", "chunk-003", ["src/c.ts"], [
+      clusteredAuditFinding({
+        file: "src/c.ts",
+        title: "Accepted service cluster",
+        rootCauseKey: "accepted-service-cluster",
+      }),
+    ]);
+    const changedRoot = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-accepted-cluster",
+      "--chunk-id",
+      "chunk-003",
+      "--from",
+      "accepted-cluster-3.json",
+      "--verified-at",
+      "2026-04-10T01:10:00.000Z",
+      "--json",
+    ]);
+    assert.equal(changedRoot.exitCode, 0, changedRoot.stderr);
+    assert.equal(JSON.parse(changedRoot.stdout).addedCount, 1);
   });
 });
 

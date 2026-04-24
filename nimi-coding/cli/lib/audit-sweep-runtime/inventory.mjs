@@ -35,10 +35,10 @@ import {
   specSurfaceForFile,
 } from "./admissions.mjs";
 import { assignEvidenceInventory } from "./evidence-assignment.mjs";
+import { buildRiskBudgetPolicy } from "./risk-budget.mjs";
 import { pathExists } from "../fs-helpers.mjs";
 
 const execFile = promisify(execFileCallback);
-
 async function listGitFiles(projectRoot, targetRootRef) {
   try {
     const result = await execFile(
@@ -515,6 +515,7 @@ export async function createAuditSweepPlan(projectRoot, options) {
   const maxFilesPerChunk = Number.isInteger(options.maxFilesPerChunk) && options.maxFilesPerChunk > 0
     ? options.maxFilesPerChunk
     : DEFAULT_MAX_FILES_PER_CHUNK;
+  const riskBudgetPolicy = buildRiskBudgetPolicy(options);
   let appSliceAdmissions = [];
   let auditEvidenceRootAdmissions = [];
   let auditEvidenceRootAdmissionRefs = [];
@@ -635,6 +636,8 @@ export async function createAuditSweepPlan(projectRoot, options) {
     },
     criteria,
     max_files_per_chunk: maxFilesPerChunk,
+    ...(riskBudgetPolicy ? { risk_budget_policy: riskBudgetPolicy } : {}),
+    risk_budget_status: null,
     audit_sweep_config_ref: projectConfig.found ? AUDIT_SWEEP_PROJECT_CONFIG_REF : null,
     ...(chunkBasis.basis === "spec" && appSliceAdmissions.length > 0 ? {
       app_slice_admission_ref: APP_SLICE_ADMISSION_REF,
@@ -778,6 +781,7 @@ export async function createAuditSweepPlan(projectRoot, options) {
     inventoryHash,
     criteria,
     maxFilesPerChunk,
+    riskBudgetPolicy,
     chunkBasis: plan.planning_basis.mode,
   };
 }

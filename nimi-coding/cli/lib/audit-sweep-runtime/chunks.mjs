@@ -9,6 +9,7 @@ import {
   safeSweepId,
   writeYamlRef,
 } from "./common.mjs";
+import { budgetBlockForChunk } from "./risk-budget.mjs";
 
 function updatePlanChunk(plan, chunkId, patch) {
   return {
@@ -17,7 +18,7 @@ function updatePlanChunk(plan, chunkId, patch) {
   };
 }
 
-function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt) {
+function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt, plan) {
   const specAuthority = chunk.planning_basis === "spec_authority";
   return {
     version: 1,
@@ -38,6 +39,8 @@ function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt) {
     evidence_inventory_status: chunk.evidence_inventory_status ?? null,
     evidence_inventory_empty_reason: chunk.evidence_inventory_empty_reason ?? null,
     coverage_contract: chunk.coverage_contract ?? null,
+    risk_budget_policy: plan.risk_budget_policy ?? null,
+    risk_budget_status: plan.risk_budget_status ?? null,
     audit_instructions: specAuthority ? {
       posture: "spec_first_full_audit",
       authority_source: ".nimi/spec/**",
@@ -117,6 +120,10 @@ export async function dispatchAuditSweepChunk(projectRoot, options) {
   if (chunkResult.chunk.state !== "planned") {
     return inputError("nimicoding audit-sweep refused: chunk dispatch requires planned state.\n");
   }
+  const budgetBlock = budgetBlockForChunk(planResult.plan, chunkResult.chunk);
+  if (budgetBlock) {
+    return inputError(`nimicoding audit-sweep refused: ${budgetBlock}; build or admit remediation bundles before continuing discovery.\n`);
+  }
 
   const updatedChunk = {
     ...chunkResult.chunk,
@@ -139,7 +146,7 @@ export async function dispatchAuditSweepChunk(projectRoot, options) {
     },
     updated_at: options.dispatchedAt,
   };
-  const packet = buildAuditorPacket(sweepId, chunkResult.chunk, updatedChunk.dispatch.auditor, options.dispatchedAt);
+  const packet = buildAuditorPacket(sweepId, chunkResult.chunk, updatedChunk.dispatch.auditor, options.dispatchedAt, planResult.plan);
   const auditorPacketRef = packetRef(sweepId, options.chunkId);
   await writeYamlRef(projectRoot, auditorPacketRef, packet);
   await writeYamlRef(projectRoot, chunkResult.chunkRef, updatedChunk);

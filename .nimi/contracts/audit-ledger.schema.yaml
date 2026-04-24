@@ -16,6 +16,9 @@ required_top_level_fields:
   - status
   - coverage
   - finding_count
+  - finding_cluster_count
+  - clustered_symptom_count
+  - remediation_obligation_count
   - unresolved_finding_count
   - finding_posture
   - created_at
@@ -42,3 +45,4 @@ hard_constraints:
   - candidate_ready_requires_all_chunks_frozen
   - failed_or_skipped_chunks_force_partial_or_blocked
   - ledger_must_reference_append_only_run_ledger
+  - remediation_obligation_count_excludes_clustered_duplicate_symptoms

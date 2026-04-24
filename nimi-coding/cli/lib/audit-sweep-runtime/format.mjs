@@ -38,6 +38,12 @@ export function formatAuditSweepPayload(payload) {
   if (payload.findingCount !== undefined) {
     lines.push(`findings: ${payload.findingCount}`);
   }
+  if (payload.findingClusterCount !== undefined) {
+    lines.push(`finding clusters: ${payload.findingClusterCount}`);
+  }
+  if (payload.clusteredSymptomCount !== undefined) {
+    lines.push(`clustered symptoms: ${payload.clusteredSymptomCount}`);
+  }
   if (payload.unresolvedFindingCount !== undefined) {
     lines.push(`open findings: ${payload.unresolvedFindingCount}`);
   }

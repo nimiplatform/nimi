@@ -23,6 +23,7 @@ import {
   writeYamlRef,
 } from "./common.mjs";
 import { deriveLedgerSnapshotId } from "./validators.mjs";
+import { ensureClusterStore } from "./risk-budget.mjs";
 
 function countBy(values, keyFn) {
   const counts = {};
@@ -142,6 +143,8 @@ function formatReport({ sweepId, ledger, findings }) {
     ] : []),
     `- Frozen chunks: ${ledger.coverage.frozen_chunks}`,
     `- Findings: ${ledger.finding_count}`,
+    `- Finding clusters: ${ledger.finding_cluster_count ?? 0}`,
+    `- Clustered duplicate symptoms: ${ledger.clustered_symptom_count ?? 0}`,
     `- Open findings: ${ledger.finding_posture.open}`,
     "",
     "## Severity Counts",
@@ -193,6 +196,7 @@ export async function buildAuditSweepLedger(projectRoot, options) {
     return inputError(chunksResult.error);
   }
   const { findingsRef: aggregateFindingsRef, store } = await loadFindings(projectRoot, sweepId);
+  ensureClusterStore(store);
   await writeYamlRef(projectRoot, aggregateFindingsRef, store);
   const chunks = chunksResult.chunks;
   const coverage = buildLedgerCoverage(planResult.plan, chunks);
@@ -203,7 +207,7 @@ export async function buildAuditSweepLedger(projectRoot, options) {
     ...store.findings.map((finding) => finding.resolution?.evidence_ref).filter(Boolean),
   ];
   const findingPosture = buildFindingPosture(store.findings);
-  const snapshotId = deriveLedgerSnapshotId(sweepId, planResult.plan, chunks, store.findings);
+  const snapshotId = deriveLedgerSnapshotId(sweepId, planResult.plan, chunks, store.findings, store.clusters);
   const currentLedgerRef = ledgerRef(sweepId, snapshotId);
   const currentReportRef = reportRef(sweepId, snapshotId);
   const latestPointerRef = artifactRef("ledger_ref", sweepId, "latest.yaml");
@@ -223,6 +227,9 @@ export async function buildAuditSweepLedger(projectRoot, options) {
     status,
     coverage,
     finding_count: store.findings.length,
+    finding_cluster_count: store.clusters.length,
+    clustered_symptom_count: store.clustered_symptom_count ?? 0,
+    remediation_obligation_count: store.remediation_obligation_count ?? store.findings.length,
     unresolved_finding_count: findingPosture.open,
     finding_posture: findingPosture,
     severity_counts: countBy(store.findings, (finding) => finding.severity),
@@ -263,6 +270,9 @@ export async function buildAuditSweepLedger(projectRoot, options) {
     runLedgerRef: runRef,
     evidenceRefs,
     findingCount: store.findings.length,
+    findingClusterCount: store.clusters.length,
+    clusteredSymptomCount: store.clustered_symptom_count ?? 0,
+    remediationObligationCount: store.remediation_obligation_count ?? store.findings.length,
     unresolvedFindingCount: findingPosture.open,
     coverage: ledger.coverage,
   };

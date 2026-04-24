@@ -6,6 +6,7 @@ import {
   loadPlan,
   safeSweepId,
 } from "./common.mjs";
+import { ensureClusterStore } from "./risk-budget.mjs";
 
 export async function getAuditSweepStatus(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
@@ -18,6 +19,7 @@ export async function getAuditSweepStatus(projectRoot, options) {
     return inputError(planResult.error);
   }
   const { findingsRef, store } = await loadFindings(projectRoot, sweepId);
+  ensureClusterStore(store);
   const latestLedger = await loadLatestLedger(projectRoot, sweepId);
   const chunks = Array.isArray(planResult.plan.chunks) ? planResult.plan.chunks : [];
 
@@ -44,6 +46,10 @@ export async function getAuditSweepStatus(projectRoot, options) {
       }, {}),
     },
     findingCount: store.findings.length,
+    findingClusterCount: store.clusters.length,
+    clusteredSymptomCount: store.clustered_symptom_count ?? 0,
+    remediationObligationCount: store.remediation_obligation_count ?? store.findings.length,
     unresolvedFindingCount: store.findings.filter((finding) => finding.disposition === "open").length,
+    riskBudgetStatus: planResult.plan.risk_budget_status ?? null,
   };
 }

@@ -258,6 +258,10 @@ export async function loadFindings(projectRoot, sweepId) {
       sweep_id: sweepId,
       findings: [],
       duplicate_count: 0,
+      clusters: [],
+      clustered_symptom_count: 0,
+      accepted_cluster_skip_count: 0,
+      remediation_obligation_count: 0,
       updated_at: nowIso(),
     },
   };

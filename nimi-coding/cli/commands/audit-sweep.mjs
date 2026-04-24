@@ -100,6 +100,10 @@ function parsePlanOptions(args) {
     criteria: { flag: "--criteria" },
     exclude: { flag: "--exclude" },
     maxFilesPerChunk: { flag: "--max-files", type: "positive-int" },
+    maxSweepFindings: { flag: "--max-sweep-findings", type: "positive-int" },
+    maxDomainFindings: { flag: "--max-domain-findings", type: "positive-int" },
+    maxSweepHighRiskFindings: { flag: "--max-sweep-high-risk-findings", type: "positive-int" },
+    maxDomainHighRiskFindings: { flag: "--max-domain-high-risk-findings", type: "positive-int" },
     sweepId: { flag: "--sweep-id" },
     json: { default: false },
   });

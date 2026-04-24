@@ -21,6 +21,16 @@ import {
   sha256Object,
   writeYamlRef,
 } from "./common.mjs";
+import {
+  buildDuplicateSymptom,
+  buildRiskBudgetStatus,
+  clusterAcceptanceMatchesPlan,
+  createCluster,
+  deriveFindingCluster,
+  ensureClusterStore,
+  findingRequiresCanonicalInCluster,
+  updateClusterWithCanonical,
+} from "./risk-budget.mjs";
 import { isPlainObject } from "../value-helpers.mjs";
 import { pathExists } from "../fs-helpers.mjs";
 
@@ -197,6 +207,8 @@ function normalizeFinding(rawFinding, index, chunk, sweepId, evidenceRef, verifi
     },
     title,
     description,
+    root_cause: null,
+    cluster_id: null,
     evidence: {
       summary: evidenceSummary,
       auditor_reasoning: auditorReasoning,
@@ -222,6 +234,26 @@ function normalizeFinding(rawFinding, index, chunk, sweepId, evidenceRef, verifi
       evidenceSummary,
     }),
   };
+}
+
+function existingFindingForFingerprint(store, fingerprint) {
+  return store.findings.find((finding) => finding.fingerprint === fingerprint) ?? null;
+}
+
+function clusterForFinding(store, finding) {
+  if (!finding?.cluster_id) {
+    return null;
+  }
+  return store.clusters.find((cluster) => cluster.cluster_id === finding.cluster_id) ?? null;
+}
+
+function recordClusteredSymptom(store, cluster, finding, fingerprint, classification) {
+  cluster.duplicate_symptoms.push(buildDuplicateSymptom(finding, fingerprint, classification));
+  cluster.duplicate_symptom_count = (cluster.duplicate_symptom_count ?? 0) + 1;
+  cluster.source_chunks = [...new Set([...(cluster.source_chunks ?? []), finding.chunk_id])].sort();
+  cluster.files = [...new Set([...(cluster.files ?? []), finding.location.file])].sort();
+  cluster.updated_at = finding.detected_at;
+  store.clustered_symptom_count = (store.clustered_symptom_count ?? 0) + 1;
 }
 
 export async function ingestAuditSweepChunk(projectRoot, options) {
@@ -270,29 +302,79 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
   await copyFile(source.absolutePath, artifactPath(projectRoot, evidenceRef));
 
   const { findingsRef: aggregateFindingsRef, store } = await loadFindings(projectRoot, sweepId);
+  ensureClusterStore(store);
   const seen = new Set(store.findings.map((finding) => finding.fingerprint));
+  const clustersByKey = new Map(store.clusters.map((cluster) => [cluster.cluster_key, cluster]));
   let addedCount = 0;
   let duplicateCount = 0;
+  let clusteredCount = 0;
+  let acceptedClusterSkipCount = 0;
   for (const [index, rawFinding] of evidenceJson.value.findings.entries()) {
     const normalized = normalizeFinding(rawFinding, index, chunkResult.chunk, sweepId, evidenceRef, options.verifiedAt);
     if (!normalized.ok) {
       return inputError(`nimicoding audit-sweep refused: ${normalized.error}.\n`);
     }
+    const clusterResult = deriveFindingCluster(rawFinding, normalized.finding, chunkResult.chunk, planResult.plan);
+    if (!clusterResult.ok) {
+      return inputError(`nimicoding audit-sweep refused: finding ${index + 1} ${clusterResult.error}.\n`);
+    }
     if (seen.has(normalized.fingerprint)) {
       duplicateCount += 1;
+      const sourceFinding = existingFindingForFingerprint(store, normalized.fingerprint);
+      const sourceCluster = clusterForFinding(store, sourceFinding);
+      if (sourceCluster) {
+        recordClusteredSymptom(store, sourceCluster, normalized.finding, normalized.fingerprint, "exact_duplicate");
+        clusteredCount += 1;
+      }
       continue;
     }
-    seen.add(normalized.fingerprint);
-    store.findings.push({
+
+    let cluster = clustersByKey.get(clusterResult.cluster.cluster_key) ?? null;
+    const acceptedClusterSameContext = cluster && clusterAcceptanceMatchesPlan(cluster, planResult.plan);
+    const acceptedClusterChangedContext = cluster && cluster.acceptance && !acceptedClusterSameContext;
+    if (acceptedClusterSameContext) {
+      recordClusteredSymptom(store, cluster, normalized.finding, normalized.fingerprint, "accepted_cluster_resume_skip");
+      store.accepted_cluster_skip_count = (store.accepted_cluster_skip_count ?? 0) + 1;
+      acceptedClusterSkipCount += 1;
+      clusteredCount += 1;
+      continue;
+    }
+    if (cluster && !acceptedClusterChangedContext && !findingRequiresCanonicalInCluster(normalized.finding, cluster)) {
+      recordClusteredSymptom(store, cluster, normalized.finding, normalized.fingerprint, "clustered_duplicate_symptom");
+      duplicateCount += 1;
+      clusteredCount += 1;
+      continue;
+    }
+
+    const finding = {
       id: `finding-${String(store.findings.length + 1).padStart(4, "0")}`,
       fingerprint: normalized.fingerprint,
       ...normalized.finding,
-    });
+      root_cause: {
+        key: clusterResult.cluster.root_cause_key,
+        authority_ref: clusterResult.cluster.authority_ref,
+        evidence_root: clusterResult.cluster.evidence_root,
+        contract_seam: clusterResult.cluster.contract_seam,
+        repair_target: clusterResult.cluster.repair_target,
+      },
+      cluster_id: clusterResult.cluster.cluster_id,
+    };
+    seen.add(normalized.fingerprint);
+    store.findings.push(finding);
+    if (cluster) {
+      updateClusterWithCanonical(cluster, finding);
+    } else {
+      cluster = createCluster(clusterResult.cluster, finding);
+      store.clusters.push(cluster);
+      clustersByKey.set(cluster.cluster_key, cluster);
+    }
     addedCount += 1;
   }
   store.duplicate_count = (store.duplicate_count ?? 0) + duplicateCount;
+  store.remediation_obligation_count = store.findings.length;
   store.updated_at = options.verifiedAt;
   await writeYamlRef(projectRoot, aggregateFindingsRef, store);
+  const riskBudgetStatus = buildRiskBudgetStatus(planResult.plan, store, options.verifiedAt);
 
   const updatedChunk = {
     ...chunkResult.chunk,
@@ -308,6 +390,7 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
   await writeYamlRef(projectRoot, chunkResult.chunkRef, updatedChunk);
   await writeYamlRef(projectRoot, planResult.planRef, {
     ...planResult.plan,
+    risk_budget_status: riskBudgetStatus,
     chunks: planResult.plan.chunks.map((chunk) => chunk.chunk_id === options.chunkId
       ? { ...chunk, state: "ingested", finding_count: evidenceJson.value.findings.length, evidence_ref: evidenceRef }
       : chunk),
@@ -323,6 +406,9 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
     finding_count: evidenceJson.value.findings.length,
     added_count: addedCount,
     duplicate_count: duplicateCount,
+    clustered_count: clusteredCount,
+    accepted_cluster_skip_count: acceptedClusterSkipCount,
+    risk_budget_status: riskBudgetStatus,
   });
 
   return {
@@ -336,6 +422,9 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
     findingCount: evidenceJson.value.findings.length,
     addedCount,
     duplicateCount,
+    clusteredCount,
+    acceptedClusterSkipCount,
+    riskBudgetStatus,
     runLedgerRef: runRef,
   };
 }

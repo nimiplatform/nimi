@@ -9,6 +9,7 @@ required_top_level_fields:
   - source_ledger_ref
   - source_findings_ref
   - grouping_policy
+  - remediation_bundles
   - waves
   - unmapped_findings
   - created_at
@@ -20,11 +21,22 @@ wave_required_fields:
   - priority
   - actionability
   - finding_ids
+  - cluster_ids
+  - clustered_symptom_count
   - source_chunks
   - files
   - write_set
   - depends_on
+  - remediation_bundle
   - admission_checklist
+remediation_bundle_required_fields:
+  - bundle_id
+  - cluster_ids
+  - representative_finding_ids
+  - canonical_finding_ids
+  - duplicate_symptom_count
+  - source_chunks
+  - repair_targets
 status_enum:
   - proposed
   - admitted
@@ -33,5 +45,7 @@ status_enum:
 hard_constraints:
   - remediation_map_must_not_mutate_source_ledger
   - every_open_finding_must_be_mapped_or_explicitly_unmapped
+  - duplicate_symptoms_must_remain_traceable_inside_remediation_bundles
+  - duplicate_symptoms_do_not_count_as_independent_remediation_obligations_by_default
   - write_set_conflicts_must_be_visible
   - needs_decision_findings_require_manager_decision_admission
