@@ -42,8 +42,8 @@ import {
   resolveAgentThinkingSupportFromProjection,
 } from './chat-shared-thinking';
 import {
-  loadStoredAgentChatExperienceSettings,
-  persistStoredAgentChatExperienceSettings,
+  createDefaultAgentChatExperienceSettings,
+  normalizeAgentChatExperienceSettings,
   type AgentChatExperienceSettings,
 } from './chat-settings-storage';
 import {
@@ -134,7 +134,7 @@ export function useAgentConversationModeHost(
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const [behaviorSettings, setBehaviorSettingsState] = useState<AgentChatExperienceSettings>(
-    () => loadStoredAgentChatExperienceSettings(),
+    () => createDefaultAgentChatExperienceSettings(),
   );
   const [developerModeEnabled, setDeveloperModeEnabled] = useState(
     () => loadStoredPerformancePreferences().developerMode === true,
@@ -217,8 +217,7 @@ export function useAgentConversationModeHost(
     [textCapabilityProjection],
   );
   const setBehaviorSettings = useCallback((nextSettings: AgentChatExperienceSettings) => {
-    persistStoredAgentChatExperienceSettings(nextSettings);
-    setBehaviorSettingsState(nextSettings);
+    setBehaviorSettingsState(normalizeAgentChatExperienceSettings(nextSettings));
   }, []);
   useEffect(() => subscribeStoredPerformancePreferences((preferences) => {
     setDeveloperModeEnabled(preferences.developerMode === true);

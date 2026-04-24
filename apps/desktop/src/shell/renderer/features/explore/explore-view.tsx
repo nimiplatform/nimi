@@ -4,11 +4,11 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
+import { usePostCardActionAdapter } from '../home/post-card-action-adapter';
 import { PostFeed } from '../home/post-feed';
 import {
   AgentRecommendationCard,
   type ExploreAgentCardData,
-  type FeaturedWorldCardData,
 } from './explore-cards';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -36,7 +36,6 @@ type ExploreViewProps = {
   searchText: string;
   selectedCategory: string | null;
   categories: string[];
-  featuredWorlds: FeaturedWorldCardData[];
   topAgents: ExploreAgentCardData[];
   worldBanners: WorldBanner[];
   fetchPostPage: (cursor: string | null) => Promise<{ items: PostDto[]; nextCursor: string | null }>;
@@ -115,6 +114,7 @@ export function ExploreView(props: ExploreViewProps) {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [topAgentsPage, setTopAgentsPage] = useState(0);
   const [topAgentsDirection, setTopAgentsDirection] = useState<'forward' | 'backward'>('forward');
+  const postCardActionAdapter = usePostCardActionAdapter();
   const [feedColumns, setFeedColumns] = useState(() => (
     typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 640px)').matches
       ? 2
@@ -679,6 +679,7 @@ export function ExploreView(props: ExploreViewProps) {
                 <div className="h-fit [contain:paint] [transform:translateZ(0)]">
                   <PostCard
                     post={post}
+                    actionAdapter={postCardActionAdapter}
                     onDelete={props.onPostDelete}
                     onOpenAuthorProfile={props.onPostAuthorOpen}
                   />

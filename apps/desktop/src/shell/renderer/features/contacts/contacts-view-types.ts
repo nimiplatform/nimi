@@ -32,8 +32,8 @@ export type ContactsViewProps = {
   onRejectRequest: (request: ContactRequestRecord) => void;
   onCancelRequest: (request: ContactRequestRecord) => void;
   onRemoveFriend: (contact: ContactRecord) => void;
-  onBlockFriend?: (contact: ContactRecord) => void;
-  onUnblockUser?: (contact: ContactRecord) => void;
+  onBlockFriend?: (contact: ContactRecord) => Promise<void> | void;
+  onUnblockUser?: (contact: ContactRecord) => Promise<void> | void;
   onOpenAddContact: () => void;
 };
 

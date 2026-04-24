@@ -6,6 +6,7 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
 import { PostCard, type PostCardAuthorProfileTarget } from './post-card';
+import { usePostCardActionAdapter } from './post-card-action-adapter';
 import { PostFeed } from './post-feed';
 import { prepareHomeFeedItems } from './utils';
 
@@ -93,6 +94,7 @@ export function HomeView(props: HomeViewProps) {
   const createPostRequestRef = useRef<number>(props.createPostRequestKey ?? 0);
   const feedScrollRef = useRef<HTMLDivElement>(null);
   const postFeedKey = `moments-${refreshKey}`;
+  const postCardActionAdapter = usePostCardActionAdapter();
 
   const fetchPage = useCallback(
     async (cursorArg: string | null) => {
@@ -181,6 +183,7 @@ export function HomeView(props: HomeViewProps) {
               renderItem={(post) => (
                 <PostCard
                   post={post}
+                  actionAdapter={postCardActionAdapter}
                   onDelete={() => setRefreshKey((k) => k + 1)}
                   onBlock={() => setRefreshKey((k) => k + 1)}
                   showAddFriendBadge={false}

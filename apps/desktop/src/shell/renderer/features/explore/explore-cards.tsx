@@ -65,14 +65,6 @@ export type ExplorePostCardData = {
   likes?: number;
   isLiked?: boolean;
 };
-export type FeaturedWorldCardData = {
-  id: string;
-  title: string;
-  subtitle: string;
-  imageUrl: string | null;
-  gradient: string;
-  creatorAvatarUrl: string | null;
-};
 export function toSafeBackgroundImage(rawUrl: string | null | undefined): string | null {
   const normalized = String(rawUrl || '').trim();
   if (!normalized) {
@@ -115,58 +107,6 @@ function ChatIcon({ size = 16 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
-  );
-}
-export function FeaturedWorldCard({
-  world,
-  onClick,
-}: {
-  world: FeaturedWorldCardData;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group relative h-44 w-full overflow-hidden rounded-xl text-left"
-    >
-      <div className="absolute inset-0" style={{ background: world.gradient }}>
-        {world.imageUrl && (
-          <img src={world.imageUrl} alt={world.title} className="h-full w-full object-cover" />
-        )}
-      </div>
-      <div className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/30" />
-      <div className="relative flex h-full flex-col justify-between p-4">
-        <div>
-          <h3 className="text-lg font-bold leading-snug text-white">
-            {world.title}:
-          </h3>
-          <p className="text-sm text-white/80">{world.subtitle}</p>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-white/70">
-              {i18n.t('AgentDetail.publicBadge', { defaultValue: 'Public' })}
-            </span>
-            <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-          </div>
-          <div className="relative">
-            {world.creatorAvatarUrl ? (
-              <img
-                src={world.creatorAvatarUrl}
-                alt=""
-                className="h-8 w-8 rounded-full object-cover ring-2 ring-white/30"
-              />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-bold text-white ring-2 ring-white/30">
-                {world.title.charAt(0)}
-              </div>
-            )}
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-400 ring-2 ring-white/30" />
-          </div>
-        </div>
-      </div>
-    </button>
   );
 }
 export function ExploreAgentCard({

@@ -1,7 +1,6 @@
 import { normalizeChatThinkingPreference, type ChatThinkingPreference } from './chat-shared-thinking';
 
 export const CHAT_THINKING_PREFERENCE_STORAGE_KEY = 'nimi.chat.settings.thinking.v1';
-export const AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY = 'nimi.chat.settings.agent.behavior.v1';
 
 export type AgentChatExperienceSettings = {
   thinkingPreference: ChatThinkingPreference;
@@ -29,35 +28,8 @@ export function normalizeAgentChatExperienceSettings(value: unknown): AgentChatE
   };
 }
 
-export function loadStoredAgentChatExperienceSettings(): AgentChatExperienceSettings {
-  try {
-    const storedSettings = localStorage.getItem(AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY);
-    if (storedSettings) {
-      return normalizeAgentChatExperienceSettings(JSON.parse(storedSettings));
-    }
-  } catch {
-    // fall through to legacy thinking-only migration
-  }
-  return {
-    ...DEFAULT_AGENT_CHAT_EXPERIENCE_SETTINGS,
-    thinkingPreference: loadStoredChatThinkingPreference(),
-  };
-}
-
-export function persistStoredAgentChatExperienceSettings(settings: AgentChatExperienceSettings): void {
-  const normalizedSettings = normalizeAgentChatExperienceSettings(settings);
-  try {
-    localStorage.setItem(
-      AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY,
-      JSON.stringify(normalizedSettings),
-    );
-    localStorage.setItem(
-      CHAT_THINKING_PREFERENCE_STORAGE_KEY,
-      normalizedSettings.thinkingPreference,
-    );
-  } catch {
-    // ignore
-  }
+export function createDefaultAgentChatExperienceSettings(): AgentChatExperienceSettings {
+  return { ...DEFAULT_AGENT_CHAT_EXPERIENCE_SETTINGS };
 }
 
 export function loadStoredChatThinkingPreference(): ChatThinkingPreference {
@@ -69,9 +41,12 @@ export function loadStoredChatThinkingPreference(): ChatThinkingPreference {
 }
 
 export function persistStoredChatThinkingPreference(preference: ChatThinkingPreference): void {
-  const currentSettings = loadStoredAgentChatExperienceSettings();
-  persistStoredAgentChatExperienceSettings({
-    ...currentSettings,
-    thinkingPreference: normalizeChatThinkingPreference(preference),
-  });
+  try {
+    localStorage.setItem(
+      CHAT_THINKING_PREFERENCE_STORAGE_KEY,
+      normalizeChatThinkingPreference(preference),
+    );
+  } catch {
+    // ignore
+  }
 }

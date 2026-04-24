@@ -26,10 +26,9 @@ test('W2 contacts/profile convergence: admitted profile tabs consume shared desk
   assert.match(profileLikesSource, /<DesktopCardSurface kind="promoted-glass"/);
   assert.match(profileLikesSource, /<DesktopCompactAction tone="danger"/);
 
-  assert.match(profileCollectionsSource, /import \{ DesktopCompactAction \} from '@renderer\/components\/action';/);
   assert.match(profileCollectionsSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
   assert.match(profileCollectionsSource, /<DesktopCardSurface kind="promoted-glass"/);
-  assert.match(profileCollectionsSource, /<DesktopCompactAction tone="danger"/);
+  assert.doesNotMatch(profileCollectionsSource, /DesktopCompactAction/);
 
   assert.match(profileMediaSource, /import \{ DesktopCompactAction \} from '@renderer\/components\/action';/);
   assert.match(profileMediaSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);

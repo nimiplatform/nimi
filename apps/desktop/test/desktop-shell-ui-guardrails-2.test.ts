@@ -17,6 +17,7 @@ const homeViewSource = readSource('../src/shell/renderer/features/home/home-view
 const notificationPanelSource = readSource('../src/shell/renderer/features/notification/notification-panel.tsx');
 const notificationRejectDialogSource = readSource('../src/shell/renderer/features/notification/notification-reject-gift-dialog.tsx');
 const postCardSource = readSource('../src/shell/renderer/features/home/post-card.tsx');
+const postCardActionAdapterSource = readSource('../src/shell/renderer/features/home/post-card-action-adapter.tsx');
 const contactDetailTabsSource = readSource('../src/shell/renderer/features/contacts/contact-detail-view-tabs.tsx');
 const contactDetailProfileModalSource = readSource('../src/shell/renderer/features/contacts/contact-detail-profile-modal.tsx');
 const runtimeConfigSystemResourcesSource = readSource('../src/shell/renderer/features/runtime-config/runtime-config-system-resources.ts');
@@ -64,7 +65,8 @@ test('explore panel keeps agent queries declarative without imperative refetch l
 test('add friend modal forwards the typed greeting message to the add-friend action', () => {
   assert.match(addFriendModalSource, /onAddFriend: \(message\?: string\) => Promise<void>/);
   assert.match(addFriendModalSource, /await onAddFriend\(message\.trim\(\) \|\| undefined\)/);
-  assert.match(postCardSource, /dataSync\.requestOrAcceptFriend\(authorId, message\)/);
+  assert.match(postCardSource, /actionAdapter\.requestOrAcceptFriend\(authorId, message\)/);
+  assert.match(postCardActionAdapterSource, /dataSync\.requestOrAcceptFriend\(authorId, message\)/);
 });
 
 test('add contact modal localizes footer action labels instead of hardcoding English strings', () => {
@@ -155,8 +157,8 @@ test('profile post feeds keep a stable two-column breakpoint instead of a late p
 test('contact detail feed tabs use stable grid layout instead of masonry in profile detail surfaces', () => {
   assert.match(contactDetailTabsSource, /<PostsTab profileId=\{profileId\} layout="grid" blockedContent=\{isBlockedProfile\} \/>/);
   assert.doesNotMatch(contactDetailTabsSource, /<PostsTab profileId=\{profileId\} layout="masonry"( blockedContent=\{isBlockedProfile\})? \/>/);
-  assert.match(contactDetailTabsSource, /<CollectionsTab profileId=\{profileId\} canManageSavedPosts=\{isOwnProfile\} layout="grid" \/>/);
-  assert.doesNotMatch(contactDetailTabsSource, /<CollectionsTab profileId=\{profileId\} canManageSavedPosts=\{isOwnProfile\} layout="masonry" \/>/);
+  assert.match(contactDetailTabsSource, /<CollectionsTab profileId=\{profileId\} layout="grid" \/>/);
+  assert.doesNotMatch(contactDetailTabsSource, /<CollectionsTab profileId=\{profileId\} layout="masonry" \/>/);
   assert.match(contactDetailTabsSource, /<LikesTab profileId=\{profileId\} layout="grid" \/>/);
   assert.doesNotMatch(contactDetailTabsSource, /<LikesTab profileId=\{profileId\} layout="masonry" \/>/);
 });

@@ -9,7 +9,7 @@ import { ContactDetailProfileModal, type ContactDetailProfileSeed } from '@rende
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { ExploreView } from './explore-view';
-import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
+import type { ExploreAgentCardData } from './explore-cards';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { toWorldListItemFromTruth } from '../world/world-list-model';
 import {
@@ -26,33 +26,6 @@ type PostDto = RealmModel<'PostDto'>;
 const PAGE_SIZE = 20;
 const DEFAULT_CATEGORIES = ['Research', 'Coding', 'Writing', 'Analysis', 'Creative', 'Education', 'Health & Finance'];
 const TOP_AGENTS_COUNT = 5;
-
-const DEFAULT_FEATURED_WORLDS: FeaturedWorldCardData[] = [
-  {
-    id: 'coding-world',
-    title: 'Coding World',
-    subtitle: 'Build & Automate',
-    imageUrl: null,
-    gradient: 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)',
-    creatorAvatarUrl: null,
-  },
-  {
-    id: 'creative-world',
-    title: 'Creative World',
-    subtitle: 'Art, Music & Stories',
-    imageUrl: null,
-    gradient: 'linear-gradient(135deg, #4a0e4e 0%, #c94b4b 100%)',
-    creatorAvatarUrl: null,
-  },
-  {
-    id: 'research-world',
-    title: 'Research World',
-    subtitle: 'Discuss & Stories',
-    imageUrl: null,
-    gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-    creatorAvatarUrl: null,
-  },
-];
 
 function toRecord(value: unknown): JsonObject | null {
   return parseOptionalJsonObject(value) ?? null;
@@ -289,22 +262,7 @@ export function ExplorePanel() {
     queryFn: async () => {
       const tag = selectedCategory || undefined;
       const query = searchText.trim() || undefined;
-      return dataSync.callApi((realm) => realm.services.SearchService.searchIndexedUsers(
-        PAGE_SIZE,
-        undefined,
-        undefined,
-        undefined,
-        true,
-        undefined,
-        undefined,
-        undefined,
-        tag,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        query,
-      ));
+      return dataSync.loadExploreAgents({ tag, query, limit: PAGE_SIZE });
     },
     enabled: authStatus === 'authenticated',
   });
@@ -337,8 +295,9 @@ export function ExplorePanel() {
   const fetchPostPage = useCallback(
     async (cursor: string | null) => {
       const tag = selectedCategory || undefined;
-      const result = await dataSync.callApi((realm) => realm.services.ExploreService.getExploreFeed(undefined, tag, PAGE_SIZE, cursor ?? undefined),
-      );
+      const result = cursor
+        ? await dataSync.loadMoreExploreFeed(PAGE_SIZE, cursor, tag)
+        : await dataSync.loadExploreFeed(tag ?? null, PAGE_SIZE);
       const payload = toRecord(result);
       const items = Array.isArray(payload?.items) ? (payload.items as PostDto[]) : [];
       const page = toRecord(payload?.page);
@@ -447,7 +406,6 @@ export function ExplorePanel() {
         searchText={searchText}
         selectedCategory={selectedCategory}
         categories={categories}
-        featuredWorlds={DEFAULT_FEATURED_WORLDS}
         topAgents={topAgents}
         worldBanners={worldBanners}
         fetchPostPage={fetchPostPage}

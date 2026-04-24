@@ -39,7 +39,6 @@ function getContactDetailTabLabel(t: ReturnType<typeof useTranslation>['t'], tab
 function renderTabPanel(
   activeTab: ProfileTab,
   isBlockedProfile: boolean,
-  isOwnProfile: boolean,
   profileId: string,
   tab: ProfileTab,
   visitedTabs: ProfileTab[],
@@ -54,7 +53,7 @@ function renderTabPanel(
       content = <PostsTab profileId={profileId} layout="grid" blockedContent={isBlockedProfile} />;
       break;
     case 'Collections':
-      content = <CollectionsTab profileId={profileId} canManageSavedPosts={isOwnProfile} layout="grid" />;
+      content = <CollectionsTab profileId={profileId} layout="grid" />;
       break;
     case 'Likes':
       content = <LikesTab profileId={profileId} layout="grid" />;
@@ -130,7 +129,7 @@ export function ContactDetailTabs(props: ContactDetailTabsProps) {
       </div>
       <div className="px-5 py-5">
         {CONTACT_DETAIL_TABS.map((tab) => (
-          renderTabPanel(props.activeTab, Boolean(props.isBlockedProfile), Boolean(props.isOwnProfile), props.profileId, tab, props.visitedTabs)
+          renderTabPanel(props.activeTab, Boolean(props.isBlockedProfile), props.profileId, tab, props.visitedTabs)
         ))}
       </div>
     </>

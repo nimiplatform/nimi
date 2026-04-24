@@ -37,7 +37,7 @@ function makeMessage(overrides: Record<string, unknown>) {
     text: '',
     payload: null,
     isRead: false,
-    // Default to "just now" so messages pass the Wave 5 recency gate
+    // Default to "just now" so messages pass the recency gate.
     createdAt: new Date().toISOString(),
     author: {
       type: 'human' as const,
@@ -172,7 +172,7 @@ describe('detectGroupAgentTriggers', () => {
     assert.equal(triggers.length, 0);
   });
 
-  it('detects reply-to-agent trigger', () => {
+  it('detects reply-to-agent trigger from replyTo payload', () => {
     const agentMessage = makeMessage({
       id: 'msg_agent_reply',
       text: 'I think the design is great.',
@@ -189,7 +189,9 @@ describe('detectGroupAgentTriggers', () => {
       id: 'msg_2',
       text: 'Can you elaborate?',
       senderId: 'user_alice',
-      replyToMessageId: 'msg_agent_reply',
+      replyTo: {
+        messageId: 'msg_agent_reply',
+      },
     });
     const triggers = detectGroupAgentTriggers({
       message: replyMessage as never,
@@ -202,7 +204,7 @@ describe('detectGroupAgentTriggers', () => {
     assert.equal(triggers[0]!.agentAccountId, 'agent_bot_a');
   });
 
-  it('detects reply-to-agent trigger from replyTo payload', () => {
+  it('detects reply-to-agent trigger from replyTo id payload', () => {
     const agentMessage = makeMessage({
       id: 'msg_agent_reply_payload',
       text: 'I think the design is great.',
@@ -234,6 +236,34 @@ describe('detectGroupAgentTriggers', () => {
     assert.equal(triggers[0]!.agentAccountId, 'agent_bot_a');
   });
 
+  it('does not trigger from legacy replyToMessageId without a replyTo payload', () => {
+    const agentMessage = makeMessage({
+      id: 'msg_agent_legacy_reply',
+      text: 'I think the design is great.',
+      senderId: 'agent_bot_a',
+      author: {
+        type: 'agent',
+        accountId: 'agent_bot_a',
+        displayName: 'Bot-A',
+        avatarUrl: null,
+        agentOwnerId: 'user_alice',
+      },
+    });
+    const replyMessage = makeMessage({
+      id: 'msg_legacy_reply',
+      text: 'Can you elaborate?',
+      senderId: 'user_alice',
+      replyToMessageId: 'msg_agent_legacy_reply',
+    });
+    const triggers = detectGroupAgentTriggers({
+      message: replyMessage as never,
+      participants: participants as never,
+      currentUserId: 'user_alice',
+      allMessages: [agentMessage, replyMessage] as never,
+    });
+    assert.equal(triggers.length, 0);
+  });
+
   it('deduplicates when message both mentions and replies to same agent', () => {
     const agentMessage = makeMessage({
       id: 'msg_agent',
@@ -251,7 +281,9 @@ describe('detectGroupAgentTriggers', () => {
       id: 'msg_3',
       text: '@Bot-A tell me more',
       senderId: 'user_alice',
-      replyToMessageId: 'msg_agent',
+      replyTo: {
+        messageId: 'msg_agent',
+      },
     });
     const triggers = detectGroupAgentTriggers({
       message: replyMessage as never,
@@ -304,7 +336,7 @@ describe('detectGroupAgentTriggers', () => {
   });
 });
 
-describe('isMessageWithinTriggerWindow (Wave 5)', () => {
+describe('isMessageWithinTriggerWindow', () => {
   it('returns true for a message created just now', () => {
     const now = Date.now();
     assert.ok(isMessageWithinTriggerWindow({ createdAt: new Date(now - 1000).toISOString() }, now));
@@ -334,7 +366,7 @@ describe('isMessageWithinTriggerWindow (Wave 5)', () => {
   });
 });
 
-describe('detectGroupAgentTriggers recency gate (Wave 5)', () => {
+describe('detectGroupAgentTriggers recency gate', () => {
   const participants = [
     makeParticipant({ accountId: 'user_alice', type: 'human', displayName: 'Alice' }),
     makeParticipant({
@@ -424,7 +456,20 @@ describe('D-LLM-026b isolation', () => {
     }
   });
 
-  it('chat-group-agent-execution does not import scope creation or memory modules (Wave 5 re-verify)', () => {
+  it('chat-group-agent-dispatcher uses current replyTo contract language only', () => {
+    const dispatcherPath = resolve(
+      __dirname,
+      '../src/shell/renderer/features/chat/chat-group-agent-dispatcher.ts',
+    );
+    const source = readFileSync(dispatcherPath, 'utf-8');
+
+    assert.doesNotMatch(source, /replyToMessageId/);
+    assert.doesNotMatch(source, /legacyReplyToId/);
+    assert.doesNotMatch(source, /MVP|Wave \d|Wave hardening|staged/i);
+    assert.match(source, /message replyTo payload targets a message authored by an agent owned by currentUserId/);
+  });
+
+  it('chat-group-agent-execution does not import scope creation or memory modules', () => {
     const executionPath = resolve(
       __dirname,
       '../src/shell/renderer/features/chat/chat-group-agent-execution.ts',
@@ -447,7 +492,7 @@ describe('D-LLM-026b isolation', () => {
     );
   });
 
-  it('chat-group-adapter does not import continuity or memory modules (Wave 5)', () => {
+  it('chat-group-adapter does not import continuity or memory modules', () => {
     const adapterPath = resolve(
       __dirname,
       '../src/shell/renderer/features/chat/chat-group-adapter.tsx',

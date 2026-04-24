@@ -5,11 +5,15 @@
 ## Scope
 
 首页/时间线功能域 — Home tab 展示社交 feed、快捷入口、推荐内容。
+Home 可以展示 post card 上的跨域入口，但不得在 card projection 内直接拥有
+Contacts、Chat、Economy、Profile 或 Governance mutation。Home post card 必须消费
+显式 action adapter / callback surface；具体读写仍由对应 DataSync flow 或 feature
+owner 承担。
 
 ## Module Map
 
 - `features/home/` — 首页面板
-- `runtime/data-sync/flows/feed-flow.ts` — Feed 数据流
+- `runtime/data-sync/flows/post-attachment-flow.ts` — Feed / Post 数据流
 
 ## Kernel References
 
@@ -20,6 +24,10 @@
 ### DataSync (D-DSYNC-007)
 
 Feed 数据流（方法清单见 `D-DSYNC-007`）。
+
+Home feed 读取和 post-local interaction 走 D-DSYNC-007。联系人请求、聊天开启、送礼、
+资料详情弹层等跨域入口只能通过显式 owner callback/surface 注入到 Home projection，
+不得在 `PostCard` projection 中直接 import DataSync facade 或跨域 modal。
 
 ### State (D-STATE-004)
 

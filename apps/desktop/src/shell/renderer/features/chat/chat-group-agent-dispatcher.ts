@@ -2,7 +2,7 @@
  * Group Agent Dispatcher — Mention/Reply Detection
  *
  * Detects @mention and reply-to-agent triggers in GROUP messages.
- * Only triggers agents owned by the current user (MVP constraint).
+ * Only triggers agents owned by the current user.
  * Does NOT perform any execution — returns trigger descriptors for the
  * execution path to consume.
  *
@@ -55,10 +55,6 @@ function extractAgentParticipants(
 }
 
 function resolveReplyToMessageId(message: GroupMessageViewDto): string {
-  const legacyReplyToId = String((message as Record<string, unknown>).replyToMessageId || '').trim();
-  if (legacyReplyToId) {
-    return legacyReplyToId;
-  }
   const replyTo = (message as Record<string, unknown>).replyTo;
   if (!replyTo || typeof replyTo !== 'object') {
     return '';
@@ -128,12 +124,12 @@ export function isMessageWithinTriggerWindow(
 /**
  * Detects GROUP agent triggers from a message.
  *
- * Trigger rules (MVP + Wave 5 hardening):
+ * Trigger rules:
  * - Mention: message text @mentions an agent participant owned by currentUserId
- * - Reply: message replyTo targets a message authored by an agent owned by currentUserId
+ * - Reply: message replyTo payload targets a message authored by an agent owned by currentUserId
  * - Each trigger is deduplicated by agentAccountId
  * - Never triggers for agents not owned by currentUserId
- * - Only triggers for messages within the recency window (Wave 5: prevents stale triggers)
+ * - Only triggers for messages within the recency window to prevent stale triggers
  */
 export function detectGroupAgentTriggers(input: {
   message: GroupMessageViewDto;
@@ -143,7 +139,6 @@ export function detectGroupAgentTriggers(input: {
 }): GroupAgentTrigger[] {
   const { message, participants, currentUserId, allMessages } = input;
 
-  // Wave 5: Recency gate — skip old messages to prevent triggers on history load.
   // Diagnostics for this skip are emitted by the adapter (caller), not here,
   // because this module must remain free of @renderer path-alias imports for testability.
   if (!isMessageWithinTriggerWindow(message)) {

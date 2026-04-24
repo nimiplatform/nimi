@@ -406,11 +406,10 @@
     "loadPostsFailed": "加载帖子失败",
     "loadLikedPostsFailed": "加载点赞帖子失败",
     "loadMediaFailed": "加载媒体内容失败",
-    "loadSavedPostsFailed": "加载收藏帖子失败",
     "noMediaYet": "还没有媒体内容",
     "noProfileDataAvailable": "没有可用的资料数据",
     "Collections": {
-      "selfOnly": "收藏的帖子仅在你自己的资料页可见。"
+      "empty": "暂无合集"
     },
     "CreatePost": {
       "editPost": "编辑帖子",
@@ -1329,6 +1328,7 @@
     "missingAuthorForFriendRequest": "无法添加好友：未找到用户 ID",
     "missingAuthorForGift": "无法送礼：未找到用户 ID",
     "missingAuthorForChat": "无法开始聊天：未找到用户 ID",
+    "openChatFailed": "打开聊天失败",
     "likes": "点赞",
     "modifyVisibility": "修改可见范围",
     "noContent": "暂无内容",
@@ -1339,8 +1339,6 @@
     "postVisibilityUpdateFailed": "更新帖子可见范围失败",
     "postLinkCopied": "帖子链接已复制",
     "copyLinkFailed": "复制帖子链接失败",
-    "postSaved": "帖子已收藏",
-    "postRemovedFromSaved": "帖子已从收藏中移除",
     "postUpdateFailed": "更新帖子失败",
     "postUpdated": "帖子更新成功！",
     "postVideo": "帖子视频",
@@ -1362,9 +1360,6 @@
       "other": "其他"
     },
     "save": "保存",
-    "savePost": "收藏帖子",
-    "savePostFailed": "收藏帖子失败",
-    "saved": "已收藏",
     "sayHello": "打个招呼...",
     "submitReport": "提交举报",
     "submitting": "提交中...",
@@ -4170,6 +4165,32 @@
       "applyingLabel": "应用中...",
       "reloadLabel": "刷新",
       "importLabel": "导入 AI 预设"
+    },
+    "section": {
+      "chat": {
+        "title": "对话"
+      },
+      "tts": {
+        "title": "文本转语音"
+      },
+      "stt": {
+        "title": "语音转文本"
+      },
+      "image": {
+        "title": "图像"
+      },
+      "video": {
+        "title": "视频"
+      },
+      "voice": {
+        "title": "语音"
+      },
+      "embed": {
+        "title": "嵌入"
+      },
+      "world": {
+        "title": "世界"
+      }
     },
     "hub": {
       "title": "AI 模型",

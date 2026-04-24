@@ -4,6 +4,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { DesktopCompactAction } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import { PostCard } from '@renderer/features/home/post-card';
+import { usePostCardActionAdapter } from '@renderer/features/home/post-card-action-adapter';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -64,6 +65,7 @@ export function PostFeedWithMediaPreview({
   const [focusedPostId, setFocusedPostId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [detectedScrollEl, setDetectedScrollEl] = useState<HTMLElement | null>(null);
+  const postCardActionAdapter = usePostCardActionAdapter();
 
   useEffect(() => {
     if (!focusedPostId) {
@@ -107,6 +109,7 @@ export function PostFeedWithMediaPreview({
     >
       <PostCard
         post={post}
+        actionAdapter={postCardActionAdapter}
         onDelete={onDeletePost ? () => onDeletePost(post.id) : undefined}
       />
     </div>

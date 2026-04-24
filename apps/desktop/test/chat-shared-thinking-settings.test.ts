@@ -2,11 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY,
   CHAT_THINKING_PREFERENCE_STORAGE_KEY,
-  loadStoredAgentChatExperienceSettings,
+  createDefaultAgentChatExperienceSettings,
   loadStoredChatThinkingPreference,
-  persistStoredAgentChatExperienceSettings,
   persistStoredChatThinkingPreference,
 } from '../src/shell/renderer/features/chat/chat-settings-storage.js';
 
@@ -58,7 +56,7 @@ test('chat thinking settings persist globally with off as the default', () => {
   }
 });
 
-test('agent chat behavior settings persist as one canonical feature-local record', () => {
+test('agent chat behavior settings start from process-local defaults without localStorage', () => {
   const previousStorage = globalThis.localStorage;
   const localStorageMock = createStorage();
   Object.defineProperty(globalThis, 'localStorage', {
@@ -67,23 +65,9 @@ test('agent chat behavior settings persist as one canonical feature-local record
   });
 
   try {
-    assert.deepEqual(loadStoredAgentChatExperienceSettings(), {
+    localStorageMock.setItem(CHAT_THINKING_PREFERENCE_STORAGE_KEY, 'on');
+    assert.deepEqual(createDefaultAgentChatExperienceSettings(), {
       thinkingPreference: 'off',
-      maxOutputTokensOverride: null,
-    });
-
-    persistStoredAgentChatExperienceSettings({
-      thinkingPreference: 'on',
-      maxOutputTokensOverride: null,
-    });
-
-    assert.deepEqual(JSON.parse(localStorageMock.getItem(AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY) || 'null'), {
-      thinkingPreference: 'on',
-      maxOutputTokensOverride: null,
-    });
-    assert.equal(localStorageMock.getItem(CHAT_THINKING_PREFERENCE_STORAGE_KEY), 'on');
-    assert.deepEqual(loadStoredAgentChatExperienceSettings(), {
-      thinkingPreference: 'on',
       maxOutputTokensOverride: null,
     });
   } finally {
@@ -94,7 +78,7 @@ test('agent chat behavior settings persist as one canonical feature-local record
   }
 });
 
-test('agent chat behavior settings migrate the legacy thinking preference when no unified record exists', () => {
+test('global chat thinking persistence does not create an agent behavior record', () => {
   const previousStorage = globalThis.localStorage;
   const localStorageMock = createStorage();
   Object.defineProperty(globalThis, 'localStorage', {
@@ -103,11 +87,9 @@ test('agent chat behavior settings migrate the legacy thinking preference when n
   });
 
   try {
-    localStorageMock.setItem(CHAT_THINKING_PREFERENCE_STORAGE_KEY, 'on');
-    assert.deepEqual(loadStoredAgentChatExperienceSettings(), {
-      thinkingPreference: 'on',
-      maxOutputTokensOverride: null,
-    });
+    persistStoredChatThinkingPreference('on');
+    assert.equal(localStorageMock.getItem(CHAT_THINKING_PREFERENCE_STORAGE_KEY), 'on');
+    assert.equal(localStorageMock.length, 1);
   } finally {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,

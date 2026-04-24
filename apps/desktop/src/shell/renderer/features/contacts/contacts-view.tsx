@@ -128,6 +128,8 @@ export function ContactsView(props: ContactsViewProps) {
   const [sidebarWidth, setSidebarWidth] = useState(280);
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
+  const [blockMutationPending, setBlockMutationPending] = useState(false);
+  const [unblockMutationPending, setUnblockMutationPending] = useState(false);
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<ContactRequestRecord | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<TabFilter | null>(null);
@@ -251,67 +253,51 @@ export function ContactsView(props: ContactsViewProps) {
     });
   };
 
-  // 处理拉黑用户
-  const handleBlockUser = (contact: ContactRecord) => {
-    // 记录当前分类（如果正在查看该联系人）
-    const currentCat = selectedCategory;
+  const handleBlockUser = async (contact: ContactRecord) => {
+    if (blockMutationPending) return;
 
-    const blockedInfo: BlockedUserInfo = {
-      ...contact,
-      previousCategory: currentCat || 'humans', // 默认恢复到 humans
-      blockedAt: Date.now(),
-    };
-
-    setBlockedUsers(prev => {
-      const newMap = new Map(prev);
-      newMap.set(contact.id, blockedInfo);
-      return newMap;
-    });
-
-    // 如果当前正在查看被拉黑的联系人，清空选中
-    if (selectedContact?.id === contact.id) {
-      setSelectedContact(null);
-    }
-
-    // 展开 Blocks 分类以便用户看到
-    setExpandedCategories(prev => {
-      const newSet = new Set(prev);
-      newSet.add('blocks');
-      return newSet;
-    });
-
-    // 调用父组件的回调
-    props.onBlockFriend?.(contact);
-    setBlockingContact(null);
-  };
-
-  // 处理解除拉黑
-  const handleUnblockUser = (contact: ContactRecord) => {
-    const previousCategory = getBlockedUserPreviousCategory(contact.id);
-
-    setBlockedUsers(prev => {
-      const newMap = new Map(prev);
-      newMap.delete(contact.id);
-      return newMap;
-    });
-
-    // 如果当前正在查看该联系人，清空选中
-    if (selectedContact?.id === contact.id) {
-      setSelectedContact(null);
-    }
-
-    // 展开原来的分类以便用户看到恢复的用户
-    if (previousCategory && previousCategory !== 'blocks') {
+    try {
+      setBlockMutationPending(true);
+      await props.onBlockFriend?.(contact);
+      if (selectedContact?.id === contact.id) {
+        setSelectedContact(null);
+      }
       setExpandedCategories(prev => {
         const newSet = new Set(prev);
-        newSet.add(previousCategory);
+        newSet.add('blocks');
         return newSet;
       });
+      setBlockingContact(null);
+    } catch {
+      // Parent mutation owns user feedback; keep the dialog open for retry.
+    } finally {
+      setBlockMutationPending(false);
     }
+  };
 
-    // 调用父组件的回调
-    props.onUnblockUser?.(contact);
-    setUnblockingContact(null);
+  const handleUnblockUser = async (contact: ContactRecord) => {
+    if (unblockMutationPending) return;
+    const previousCategory = getBlockedUserPreviousCategory(contact.id);
+
+    try {
+      setUnblockMutationPending(true);
+      await props.onUnblockUser?.(contact);
+      if (selectedContact?.id === contact.id) {
+        setSelectedContact(null);
+      }
+      if (previousCategory && previousCategory !== 'blocks') {
+        setExpandedCategories(prev => {
+          const newSet = new Set(prev);
+          newSet.add(previousCategory);
+          return newSet;
+        });
+      }
+      setUnblockingContact(null);
+    } catch {
+      // Parent mutation owns user feedback; keep the dialog open for retry.
+    } finally {
+      setUnblockMutationPending(false);
+    }
   };
 
   // 更新各分类的数量（包含本地拉黑状态）
@@ -607,7 +593,9 @@ export function ContactsView(props: ContactsViewProps) {
       {blockingContact && (
         <BlockConfirmDialog
           contact={blockingContact}
-          onConfirm={() => handleBlockUser(blockingContact)}
+          onConfirm={() => {
+            void handleBlockUser(blockingContact);
+          }}
           onCancel={() => setBlockingContact(null)}
         />
       )}
@@ -616,7 +604,9 @@ export function ContactsView(props: ContactsViewProps) {
       {unblockingContact && (
         <UnblockConfirmDialog
           contact={unblockingContact}
-          onConfirm={() => handleUnblockUser(unblockingContact)}
+          onConfirm={() => {
+            void handleUnblockUser(unblockingContact);
+          }}
           onCancel={() => setUnblockingContact(null)}
         />
       )}

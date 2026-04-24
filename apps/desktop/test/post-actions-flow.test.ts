@@ -7,6 +7,10 @@ const postCardSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/home/post-card.tsx'),
   'utf8',
 );
+const postCardActionAdapterSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/home/post-card-action-adapter.tsx'),
+  'utf8',
+);
 const reportModalSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/home/report-modal.tsx'),
   'utf8',
@@ -16,11 +20,15 @@ const postCardUiSource = fs.readFileSync(
   'utf8',
 );
 
-test('post card uses real like/unlike/report/visibility APIs', () => {
-  assert.match(postCardSource, /dataSync\.likePost\(/);
-  assert.match(postCardSource, /dataSync\.unlikePost\(/);
-  assert.match(postCardSource, /dataSync\.createReport\(/);
-  assert.match(postCardSource, /dataSync\.updatePostVisibility\(/);
+test('post card action adapter uses real like/unlike/report/visibility APIs', () => {
+  assert.match(postCardActionAdapterSource, /dataSync\.likePost\(/);
+  assert.match(postCardActionAdapterSource, /dataSync\.unlikePost\(/);
+  assert.match(postCardActionAdapterSource, /dataSync\.createReport\(/);
+  assert.match(postCardActionAdapterSource, /dataSync\.updatePostVisibility\(/);
+  assert.match(postCardSource, /actionAdapter\.likePost\(/);
+  assert.match(postCardSource, /actionAdapter\.unlikePost\(/);
+  assert.match(postCardSource, /actionAdapter\.createReport\(/);
+  assert.match(postCardSource, /actionAdapter\.updatePostVisibility\(/);
 });
 
 test('report modal reason list matches backend enum contract', () => {
@@ -47,4 +55,17 @@ test('edit post no longer shows coming soon path', () => {
 test('post card does not keep an agent-chat unavailable branch in product UI', () => {
   assert.match(postCardSource, /showChatButton=\{post\.author\?\.isAgent !== true\}/);
   assert.doesNotMatch(postCardSource, /agentChatUnavailableFromMoments/);
+});
+
+test('post card is projection-only and consumes explicit owner adapters', () => {
+  assert.match(postCardSource, /actionAdapter:\s*PostCardActionAdapter/);
+  assert.doesNotMatch(postCardSource, /@runtime\/data-sync/);
+  assert.doesNotMatch(postCardSource, /dataSync\./);
+  assert.doesNotMatch(postCardSource, /import\s+\{?\s*ContactDetailProfileModal\b/);
+  assert.doesNotMatch(postCardSource, /import\s+\{?\s*SendGiftModal\b/);
+  assert.doesNotMatch(postCardSource, /from\s+['"].*send-gift-modal/);
+  assert.doesNotMatch(postCardSource, /import\s+\{?\s*CreatePostModal\b/);
+  assert.doesNotMatch(postCardSource, /from\s+['"].*create-post-modal(?:\.js)?['"]/);
+  assert.doesNotMatch(postCardSource, /import\s+\{?\s*AddFriendModal\b/);
+  assert.doesNotMatch(postCardSource, /from\s+['"].*add-friend-modal/);
 });

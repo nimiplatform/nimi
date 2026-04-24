@@ -406,11 +406,10 @@
     "loadPostsFailed": "Failed to load posts",
     "loadLikedPostsFailed": "Failed to load liked posts",
     "loadMediaFailed": "Failed to load media",
-    "loadSavedPostsFailed": "Failed to load saved posts",
     "noMediaYet": "No media yet",
     "noProfileDataAvailable": "No profile data available",
     "Collections": {
-      "selfOnly": "Saved posts are only visible on your own profile."
+      "empty": "No collections yet"
     },
     "CreatePost": {
       "editPost": "Edit Post",
@@ -1329,6 +1328,7 @@
     "missingAuthorForFriendRequest": "Cannot add friend: user ID not found",
     "missingAuthorForGift": "Cannot send gift: user ID not found",
     "missingAuthorForChat": "Cannot start chat: user ID not found",
+    "openChatFailed": "Failed to open chat",
     "likes": "Likes",
     "modifyVisibility": "Modify visibility",
     "noContent": "No content",
@@ -1339,8 +1339,6 @@
     "postVisibilityUpdateFailed": "Failed to update post visibility",
     "postLinkCopied": "Post link copied",
     "copyLinkFailed": "Failed to copy post link",
-    "postSaved": "Post saved",
-    "postRemovedFromSaved": "Post removed from saved",
     "postUpdateFailed": "Failed to update post",
     "postUpdated": "Post updated successfully!",
     "postVideo": "Post video",
@@ -1362,9 +1360,6 @@
       "other": "Other"
     },
     "save": "Save",
-    "savePost": "Save post",
-    "savePostFailed": "Failed to save post",
-    "saved": "Saved",
     "sayHello": "Say Hello...",
     "submitReport": "Submit Report",
     "submitting": "Submitting...",
@@ -4170,6 +4165,32 @@
       "applyingLabel": "Applying...",
       "reloadLabel": "Reload",
       "importLabel": "Import AI Profile"
+    },
+    "section": {
+      "chat": {
+        "title": "Chat"
+      },
+      "tts": {
+        "title": "Text to speech"
+      },
+      "stt": {
+        "title": "Speech to text"
+      },
+      "image": {
+        "title": "Image"
+      },
+      "video": {
+        "title": "Video"
+      },
+      "voice": {
+        "title": "Voice"
+      },
+      "embed": {
+        "title": "Embeddings"
+      },
+      "world": {
+        "title": "World"
+      }
     },
     "hub": {
       "title": "AI Models",

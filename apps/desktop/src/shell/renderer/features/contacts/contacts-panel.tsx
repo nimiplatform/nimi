@@ -254,6 +254,7 @@ export function ContactsPanel() {
         kind: 'error',
         message: toErrorMessage(error, t('Contacts.blockUserFailed', { defaultValue: 'Failed to block user' })),
       });
+      throw error;
     }
   }, [refetchContacts, agentLimitQuery.refetch, t]);
 
@@ -279,6 +280,7 @@ export function ContactsPanel() {
         kind: 'error',
         message: toErrorMessage(error, t('Contacts.unblockUserFailed', { defaultValue: 'Failed to unblock user' })),
       });
+      throw error;
     }
   }, [refetchContacts, t]);
 
@@ -347,12 +349,8 @@ export function ContactsPanel() {
         onRemoveFriend={(contact) => {
           void onRemoveFriend(contact);
         }}
-        onBlockFriend={(contact) => {
-          void onBlockFriend(contact);
-        }}
-        onUnblockUser={(contact) => {
-          void onUnblockUser(contact);
-        }}
+        onBlockFriend={onBlockFriend}
+        onUnblockUser={onUnblockUser}
         onOpenAddContact={() => {
           setAddContactOpen(true);
         }}

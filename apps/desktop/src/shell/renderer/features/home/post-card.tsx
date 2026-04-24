@@ -1,16 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { useQueryClient } from '@tanstack/react-query';
 import { ReportReason } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import type { ContactDetailProfileSeed } from '@renderer/features/contacts/contact-detail-profile-modal.js';
-import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
-import { CreatePostModal } from '@renderer/features/profile/create-post-modal.js';
 import type { EditablePostSeed } from '@renderer/features/profile/create-post-modal-helpers.js';
-import { dataSync } from '@runtime/data-sync';
-import { AddFriendModal } from './add-friend-modal';
 import { PostCardArticle } from './article';
 import { BlockUserConfirmModal, DeletePostConfirmModal } from './confirm-modals';
 import { EditVisibilityModal } from './edit-visibility-modal';
@@ -26,8 +19,7 @@ import {
 } from './utils';
 
 type PostDto = RealmModel<'PostDto'>;
-
-const INTERNAL_OPEN_CHAT_ERROR_CODE = 'HOME_OPEN_CHAT_FAILED';
+type CreateReportDto = RealmModel<'CreateReportDto'>;
 
 function extractPostAttachmentId(attachment: unknown): string {
   if (!attachment || typeof attachment !== 'object') {
@@ -40,7 +32,7 @@ function extractPostAttachmentId(attachment: unknown): string {
 function toBannerErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
     const next = error.message.trim();
-    if (next && next !== INTERNAL_OPEN_CHAT_ERROR_CODE) {
+    if (next) {
       return next;
     }
   }
@@ -52,8 +44,57 @@ export type PostCardAuthorProfileTarget = {
   profileSeed: ContactDetailProfileSeed;
 };
 
+export type PostCardActionAdapter = {
+  realmBaseUrl: string;
+  authStatus: string;
+  currentUserId: string | null;
+  isFriend(authorId: string): boolean;
+  blockUser(author: {
+    id: string;
+    displayName: string;
+    handle: string;
+    avatarUrl?: string | null;
+  }): Promise<unknown>;
+  createReport(payload: CreateReportDto): Promise<unknown>;
+  likePost(postId: string): Promise<void>;
+  unlikePost(postId: string): Promise<void>;
+  updatePostVisibility(postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE'): Promise<unknown>;
+  deletePost(postId: string): Promise<void>;
+  requestOrAcceptFriend(authorId: string, message?: string): Promise<unknown>;
+  openChat(input: { authorId: string; authStatus: string }): Promise<void>;
+  invalidateContacts?: () => Promise<unknown>;
+  renderGiftSurface?: (input: {
+    open: boolean;
+    authorId: string;
+    authorName: string;
+    authorHandle: string;
+    authorIsAgent: boolean;
+    authorAvatarUrl?: string | null;
+    onClose: () => void;
+    onSent: () => void;
+  }) => ReactNode;
+  renderFriendRequestSurface?: (input: {
+    open: boolean;
+    author: {
+      name: string;
+      handle: string;
+      avatarUrl?: string | null;
+      isAgent: boolean;
+    };
+    onClose: () => void;
+    onAddFriend: (message?: string) => Promise<void>;
+  }) => ReactNode;
+  renderEditPostSurface?: (input: {
+    open: boolean;
+    initialPost: EditablePostSeed | null;
+    onClose: () => void;
+    onComplete: (result: { success: boolean }) => void;
+  }) => ReactNode;
+};
+
 type PostCardProps = {
   post: PostDto;
+  actionAdapter: PostCardActionAdapter;
   onDelete?: () => void;
   onBlock?: () => void;
   showAddFriendBadge?: boolean;
@@ -61,19 +102,11 @@ type PostCardProps = {
 };
 
 export function PostCard(input: PostCardProps) {
-  const { post, onDelete, onBlock, showAddFriendBadge = true, onOpenAuthorProfile } = input;
-  const queryClient = useQueryClient();
-  const savedPostsStorageKey = 'nimi.desktop.saved-post-ids';
-  const savedPostsUpdatedEvent = 'nimi:saved-posts-updated';
+  const { post, actionAdapter, onDelete, onBlock, showAddFriendBadge = true, onOpenAuthorProfile } = input;
 
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
-  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
-  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
-  const authStatus = useAppStore((state) => state.auth.status);
-  const currentUserId = useAppStore((state) => state.auth.user?.id);
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [isSavedPost, setIsSavedPost] = useState(false);
+  const realmBaseUrl = actionAdapter.realmBaseUrl;
+  const authStatus = actionAdapter.authStatus;
+  const currentUserId = actionAdapter.currentUserId;
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
@@ -177,7 +210,7 @@ export function PostCard(input: PostCardProps) {
       agentOwnerWorldId: typeof authorRecord?.ownerWorldId === 'string' ? authorRecord.ownerWorldId : null,
     };
   }, [authorId, authorRecord, post.author?.avatarUrl, post.author?.displayName, post.author?.handle, post.author?.isAgent]);
-  const isAuthorFriend = authorRecord?.isFriend === true || dataSync.isFriend(authorId);
+  const isAuthorFriend = authorRecord?.isFriend === true || actionAdapter.isFriend(authorId);
 
   useEffect(() => {
     ui.setIsFriend(isAuthorFriend);
@@ -189,27 +222,13 @@ export function PostCard(input: PostCardProps) {
     }
   }, [post.visibility]);
 
-  useEffect(() => {
-    if (!post.id || typeof window === 'undefined') {
-      return;
-    }
-    try {
-      const raw = window.localStorage.getItem(savedPostsStorageKey);
-      const ids = raw ? JSON.parse(raw) : [];
-      const savedIds = Array.isArray(ids) ? ids.map(String) : [];
-      setIsSavedPost(savedIds.includes(post.id));
-    } catch {
-      setIsSavedPost(false);
-    }
-  }, [post.id, savedPostsStorageKey]);
-
   const handleBlockUser = useCallback(async () => {
     if (!authorId) {
       return;
     }
     ui.setIsBlocking(true);
     try {
-      await dataSync.blockUser({
+      await actionAdapter.blockUser({
         id: authorId,
         displayName: post.author.displayName || '',
         handle: post.author.handle || '',
@@ -229,11 +248,11 @@ export function PostCard(input: PostCardProps) {
       ui.setIsBlocking(false);
       ui.setShowBlockConfirm(false);
     }
-  }, [authorId, onBlock, post.author.avatarUrl, post.author.displayName, post.author.handle, ui]);
+  }, [actionAdapter, authorId, onBlock, post.author.avatarUrl, post.author.displayName, post.author.handle, ui]);
 
   const handleReportPost = useCallback(async (payload: { reason: keyof typeof ReportReason; description?: string }) => {
     try {
-      await dataSync.createReport({
+      await actionAdapter.createReport({
         targetType: 'POST',
         targetId: post.id,
         reason: payload.reason,
@@ -251,7 +270,7 @@ export function PostCard(input: PostCardProps) {
       });
       throw error;
     }
-  }, [post.id, ui]);
+  }, [actionAdapter, post.id, ui]);
 
   const handleToggleLike = useCallback(async () => {
     if (!post.id || isLikePending) {
@@ -259,13 +278,13 @@ export function PostCard(input: PostCardProps) {
     }
     const previous = ui.isLiked;
     const next = !previous;
-    ui.setIsLiked(next);
-    setIsLikePending(true);
+      ui.setIsLiked(next);
+      setIsLikePending(true);
     try {
       if (next) {
-        await dataSync.likePost(post.id);
+        await actionAdapter.likePost(post.id);
       } else {
-        await dataSync.unlikePost(post.id);
+        await actionAdapter.unlikePost(post.id);
       }
     } catch (error) {
       ui.setIsLiked(previous);
@@ -279,7 +298,7 @@ export function PostCard(input: PostCardProps) {
     } finally {
       setIsLikePending(false);
     }
-  }, [isLikePending, post.id, ui]);
+  }, [actionAdapter, isLikePending, post.id, ui]);
 
   const handleUpdateVisibility = useCallback(async (visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') => {
     if (!post.id || isVisibilityPending) {
@@ -287,7 +306,7 @@ export function PostCard(input: PostCardProps) {
     }
     setIsVisibilityPending(true);
     try {
-      await dataSync.updatePostVisibility(post.id, visibility);
+      await actionAdapter.updatePostVisibility(post.id, visibility);
       setPostVisibility(visibility);
       setFeedback(null);
       ui.setShowEditVisibilityModal(false);
@@ -299,7 +318,7 @@ export function PostCard(input: PostCardProps) {
     } finally {
       setIsVisibilityPending(false);
     }
-  }, [isVisibilityPending, post.id, ui]);
+  }, [actionAdapter, isVisibilityPending, post.id, ui]);
 
   const handleDeletePost = useCallback(async () => {
     if (!post.id) {
@@ -307,7 +326,7 @@ export function PostCard(input: PostCardProps) {
     }
     ui.setIsDeleting(true);
     try {
-      await dataSync.deletePost(post.id);
+      await actionAdapter.deletePost(post.id);
       setFeedback(null);
       onDelete?.();
     } catch (error) {
@@ -319,7 +338,7 @@ export function PostCard(input: PostCardProps) {
       ui.setIsDeleting(false);
       ui.setShowDeleteConfirm(false);
     }
-  }, [onDelete, post.id, ui]);
+  }, [actionAdapter, onDelete, post.id, ui]);
 
   const handleEditPost = useCallback(() => {
     ui.togglePostMenu();
@@ -352,44 +371,15 @@ export function PostCard(input: PostCardProps) {
     }
   }, [post.id, ui]);
 
-  const handleSavePost = useCallback(() => {
-    ui.togglePostMenu();
-    if (!post.id || typeof window === 'undefined') {
-      setFeedback({
-        kind: 'error',
-        message: i18n.t('Home.savePostFailed', { defaultValue: 'Failed to save post' }),
-      });
-      return;
-    }
-    try {
-      const raw = window.localStorage.getItem(savedPostsStorageKey);
-      const ids = raw ? JSON.parse(raw) : [];
-      const savedIds = Array.isArray(ids) ? ids.map(String) : [];
-      const nextSaved = !savedIds.includes(post.id);
-      const nextIds = nextSaved
-        ? [...savedIds, post.id]
-        : savedIds.filter((id) => id !== post.id);
-      window.localStorage.setItem(savedPostsStorageKey, JSON.stringify(nextIds));
-      window.dispatchEvent(new CustomEvent(savedPostsUpdatedEvent, { detail: { savedIds: nextIds } }));
-      setIsSavedPost(nextSaved);
-      setFeedback(null);
-    } catch {
-      setFeedback({
-        kind: 'error',
-        message: i18n.t('Home.savePostFailed', { defaultValue: 'Failed to save post' }),
-      });
-    }
-  }, [post.id, savedPostsStorageKey, savedPostsUpdatedEvent, ui]);
-
   const handleAddFriend = useCallback(async (message?: string) => {
     if (!authorId) {
       throw new Error(i18n.t('Home.missingAuthorForFriendRequest', { defaultValue: 'Cannot add friend: user ID not found' }));
     }
-    await dataSync.requestOrAcceptFriend(authorId, message);
+    await actionAdapter.requestOrAcceptFriend(authorId, message);
     ui.setIsFriend(true);
     setFeedback(null);
-    await queryClient.invalidateQueries({ queryKey: ['contacts'] });
-  }, [authorId, queryClient, ui]);
+    await actionAdapter.invalidateContacts?.();
+  }, [actionAdapter, authorId, ui]);
 
   const handleChat = useCallback(async () => {
     const userId = authorId;
@@ -402,65 +392,7 @@ export function PostCard(input: PostCardProps) {
     }
 
     try {
-      const result = await dataSync.startChat(userId);
-      if (!result?.chatId) {
-        throw new Error(INTERNAL_OPEN_CHAT_ERROR_CODE);
-      }
-      const requestedChatId = String(
-        (result.chat && typeof result.chat === 'object'
-          ? (result.chat as { id?: string | number }).id
-          : null)
-        ?? result.chatId,
-      ).trim();
-      if (!requestedChatId) {
-        throw new Error(INTERNAL_OPEN_CHAT_ERROR_CODE);
-      }
-      const chatsSnapshot = await dataSync.loadChats();
-      const createdChat = result.chat && typeof result.chat === 'object'
-        ? ({
-          ...(result.chat as Record<string, unknown>),
-          id: String((result.chat as { id?: string | number }).id ?? requestedChatId),
-        })
-        : null;
-      const snapshotItems = Array.isArray((chatsSnapshot as { items?: unknown[] })?.items)
-        ? (chatsSnapshot as { items: unknown[] }).items
-        : [];
-      const matchedChat = snapshotItems.find((item) => {
-        if (!item || typeof item !== 'object') {
-          return false;
-        }
-        const otherUser = (item as { otherUser?: { id?: string | number } }).otherUser;
-        return String(otherUser?.id ?? '').trim() === userId;
-      });
-      const chatId = String(
-        (matchedChat && typeof matchedChat === 'object'
-          ? (matchedChat as { id?: string | number }).id
-          : null)
-        ?? createdChat?.id
-        ?? requestedChatId,
-      ).trim();
-      if (!chatId) {
-        throw new Error(INTERNAL_OPEN_CHAT_ERROR_CODE);
-      }
-      const mergedItems = createdChat
-        ? [createdChat, ...snapshotItems.filter((item) => String((item as { id?: string | number })?.id ?? '') !== chatId)]
-        : snapshotItems;
-      const nextChatsSnapshot = { ...chatsSnapshot, items: mergedItems };
-      queryClient.setQueryData(['chats', authStatus], nextChatsSnapshot);
-      queryClient.setQueryData(['chats'], nextChatsSnapshot);
-      setSelectedChatId(chatId);
-      setRuntimeFields({
-        targetType: 'FRIEND',
-        targetAccountId: userId,
-        agentId: '',
-        worldId: '',
-      });
-      setActiveTab('chat');
-      if (typeof window !== 'undefined') {
-        window.requestAnimationFrame(() => {
-          setSelectedChatId(chatId);
-        });
-      }
+      await actionAdapter.openChat({ authorId: userId, authStatus });
     } catch (error) {
       setFeedback({
         kind: 'error',
@@ -471,13 +403,9 @@ export function PostCard(input: PostCardProps) {
       });
     }
   }, [
+    actionAdapter,
     authorId,
-    post.author?.isAgent,
     authStatus,
-    queryClient,
-    setActiveTab,
-    setRuntimeFields,
-    setSelectedChatId,
   ]);
 
   const openAuthorProfile = useCallback(() => {
@@ -491,7 +419,6 @@ export function PostCard(input: PostCardProps) {
       });
       return;
     }
-    setProfileModalOpen(true);
   }, [authorId, authorProfileSeed, onOpenAuthorProfile]);
 
   return (
@@ -525,8 +452,6 @@ export function PostCard(input: PostCardProps) {
         onCopyLink={() => {
           void handleCopyLink();
         }}
-        onSavePost={handleSavePost}
-        isSavedPost={isSavedPost}
         onToggleLike={() => {
           void handleToggleLike();
         }}
@@ -537,31 +462,31 @@ export function PostCard(input: PostCardProps) {
         onOpenGift={ui.openGiftModal}
       />
 
-      <SendGiftModal
-        open={ui.isSendGiftOpen && Boolean(authorId)}
-        receiverId={authorId}
-        receiverName={post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' })}
-        receiverHandle={post.author?.handle || ''}
-        receiverIsAgent={post.author?.isAgent === true}
-        receiverAvatarUrl={post.author?.avatarUrl}
-        onClose={() => ui.setIsSendGiftOpen(false)}
-        onSent={() => {
+      {actionAdapter.renderGiftSurface?.({
+        open: ui.isSendGiftOpen && Boolean(authorId),
+        authorId,
+        authorName: post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+        authorHandle: post.author?.handle || '',
+        authorIsAgent: post.author?.isAgent === true,
+        authorAvatarUrl: post.author?.avatarUrl,
+        onClose: () => ui.setIsSendGiftOpen(false),
+        onSent: () => {
           setFeedback(null);
           ui.setIsSendGiftOpen(false);
-        }}
-      />
+        },
+      })}
 
-      <AddFriendModal
-        author={{
+      {actionAdapter.renderFriendRequestSurface?.({
+        open: ui.showAddFriendModal,
+        author: {
           name: post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
           handle: post.author?.handle || '',
           avatarUrl: post.author?.avatarUrl,
           isAgent: post.author?.isAgent || false,
-        }}
-        isOpen={ui.showAddFriendModal}
-        onClose={() => ui.setShowAddFriendModal(false)}
-        onAddFriend={handleAddFriend}
-      />
+        },
+        onClose: () => ui.setShowAddFriendModal(false),
+        onAddFriend: handleAddFriend,
+      })}
 
       <BlockUserConfirmModal
         isOpen={ui.showBlockConfirm}
@@ -599,11 +524,11 @@ export function PostCard(input: PostCardProps) {
         }}
       />
 
-      <CreatePostModal
-        open={editModalOpen}
-        initialPost={editPostSeed}
-        onClose={() => setEditModalOpen(false)}
-        onComplete={({ success }) => {
+      {actionAdapter.renderEditPostSurface?.({
+        open: editModalOpen,
+        initialPost: editPostSeed,
+        onClose: () => setEditModalOpen(false),
+        onComplete: ({ success }) => {
           setEditModalOpen(false);
           if (success) {
             setFeedback(null);
@@ -614,15 +539,8 @@ export function PostCard(input: PostCardProps) {
             kind: 'error',
             message: i18n.t('Home.postUpdateFailed', { defaultValue: 'Failed to update post' }),
           });
-        }}
-      />
-
-      <ContactDetailProfileModal
-        open={profileModalOpen && Boolean(authorId)}
-        profileId={authorId}
-        profileSeed={authorProfileSeed}
-        onClose={() => setProfileModalOpen(false)}
-      />
+        },
+      })}
     </>
   );
 }
