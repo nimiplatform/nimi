@@ -1,29 +1,4 @@
 {
   "extends": "chat.live2d-render-smoke.json",
-  "scenarioId": "chat.live2d-render-smoke-sample",
-  "tauriFixture": {
-    "agentAvatarStore": {
-      "resources": [
-        {
-          "resourceId": "__CUBISM_SAMPLE_RESOURCE_ID__",
-          "kind": "live2d",
-          "displayName": "__CUBISM_SAMPLE_DISPLAY_NAME__",
-          "sourceFilename": "__CUBISM_SAMPLE_MODEL_FILENAME__",
-          "storedPath": "__CUBISM_SAMPLE_LIVE2D_ROOT__",
-          "fileUrl": "__CUBISM_SAMPLE_LIVE2D_MODEL_FILE_URL__",
-          "posterPath": null,
-          "importedAtMs": 1777777777000,
-          "updatedAtMs": 1777777777000,
-          "status": "ready"
-        }
-      ],
-      "bindings": [
-        {
-          "agentId": "agent-e2e-alpha",
-          "resourceId": "__CUBISM_SAMPLE_RESOURCE_ID__",
-          "updatedAtMs": 1777777777000
-        }
-      ]
-    }
-  }
+  "scenarioId": "chat.live2d-render-smoke-sample"
 }

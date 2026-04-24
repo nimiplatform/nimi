@@ -1,29 +1,4 @@
 {
   "extends": "chat.memory-standard-bind.json",
-  "scenarioId": "chat.live2d-render-smoke",
-  "tauriFixture": {
-    "agentAvatarStore": {
-      "resources": [
-        {
-          "resourceId": "fixture-live2d-hiyori",
-          "kind": "live2d",
-          "displayName": "Fixture Hiyori Live2D",
-          "sourceFilename": "Hiyori.model3.json",
-          "storedPath": "__CUBISM_SAMPLE_LIVE2D_ROOT__",
-          "fileUrl": "__CUBISM_SAMPLE_LIVE2D_MODEL_FILE_URL__",
-          "posterPath": null,
-          "importedAtMs": 1777777777000,
-          "updatedAtMs": 1777777777000,
-          "status": "ready"
-        }
-      ],
-      "bindings": [
-        {
-          "agentId": "agent-e2e-alpha",
-          "resourceId": "fixture-live2d-hiyori",
-          "updatedAtMs": 1777777777000
-        }
-      ]
-    }
-  }
+  "scenarioId": "chat.live2d-render-smoke"
 }

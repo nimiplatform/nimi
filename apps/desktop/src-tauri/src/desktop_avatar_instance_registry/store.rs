@@ -7,6 +7,7 @@ use sysinfo::{Pid, ProcessesToUpdate, System};
 const AVATAR_INSTANCE_REGISTRY_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_REGISTRY_FILE: &str = "instances.json";
 const PROCESS_START_TIME_SKEW_MS: i64 = 1_000;
+const AVATAR_INSTANCE_REGISTRY_SCHEMA_VERSION: u32 = 1;
 
 fn registry_path() -> Result<PathBuf, String> {
     Ok(resolve_nimi_data_dir()?
@@ -53,6 +54,64 @@ fn is_projection_owned_by_live_process(publisher_pid: u32, published_at_ms: i64)
     process_start_time_matches_projection(process_started_at_ms, published_at_ms)
 }
 
+fn required_trimmed(value: &str, field: &str) -> Result<(), String> {
+    if value.trim().is_empty() {
+        return Err(format!(
+            "avatar instance registry record {field} is required"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_instance_record(record: &DesktopAvatarInstanceRegistryRecord) -> Result<(), String> {
+    required_trimmed(&record.avatar_instance_id, "avatar_instance_id")?;
+    required_trimmed(&record.agent_id, "agent_id")?;
+    required_trimmed(&record.launched_by, "launched_by")?;
+
+    match record.anchor_mode.trim() {
+        "existing" => {
+            let anchor_id = record
+                .conversation_anchor_id
+                .as_deref()
+                .map(str::trim)
+                .unwrap_or("");
+            if anchor_id.is_empty() {
+                return Err(
+                    "avatar instance registry record conversation_anchor_id is required for existing anchor mode"
+                        .to_string(),
+                );
+            }
+        }
+        "open_new" => {}
+        _ => {
+            return Err("avatar instance registry record anchor_mode is invalid".to_string());
+        }
+    }
+
+    let source_surface = record
+        .source_surface
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or("");
+    if source_surface.is_empty() {
+        return Err("avatar instance registry record source_surface is required".to_string());
+    }
+
+    Ok(())
+}
+
+fn validate_registry_file(file: &DesktopAvatarInstanceRegistryFile) -> Result<(), String> {
+    if file.schema_version != AVATAR_INSTANCE_REGISTRY_SCHEMA_VERSION {
+        return Err(format!(
+            "avatar instance registry schema_version must be {AVATAR_INSTANCE_REGISTRY_SCHEMA_VERSION}"
+        ));
+    }
+    for record in &file.instances {
+        validate_instance_record(record)?;
+    }
+    Ok(())
+}
+
 fn list_instances_from_file(
     file: DesktopAvatarInstanceRegistryFile,
     agent_id: Option<&str>,
@@ -60,6 +119,7 @@ fn list_instances_from_file(
     if !is_projection_owned_by_live_process(file.publisher_pid, file.published_at_ms) {
         return Ok(Vec::new());
     }
+    validate_registry_file(&file)?;
     let filter = agent_id
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty());
@@ -103,6 +163,35 @@ mod tests {
         ));
         let _ = fs::create_dir_all(&root);
         root.join("instances.json")
+    }
+
+    fn now_ms() -> i64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_millis() as i64)
+            .unwrap_or(0)
+    }
+
+    fn valid_record() -> super::DesktopAvatarInstanceRegistryRecord {
+        super::DesktopAvatarInstanceRegistryRecord {
+            avatar_instance_id: "instance-1".to_string(),
+            agent_id: "agent-1".to_string(),
+            conversation_anchor_id: Some("anchor-1".to_string()),
+            anchor_mode: "existing".to_string(),
+            launched_by: "desktop".to_string(),
+            source_surface: Some("desktop-agent-chat".to_string()),
+        }
+    }
+
+    fn live_registry_file(
+        instances: Vec<super::DesktopAvatarInstanceRegistryRecord>,
+    ) -> DesktopAvatarInstanceRegistryFile {
+        DesktopAvatarInstanceRegistryFile {
+            schema_version: 1,
+            publisher_pid: std::process::id(),
+            published_at_ms: now_ms(),
+            instances,
+        }
     }
 
     #[test]
@@ -151,14 +240,7 @@ mod tests {
                 schema_version: 1,
                 publisher_pid: 999999,
                 published_at_ms: 100,
-                instances: vec![super::DesktopAvatarInstanceRegistryRecord {
-                    avatar_instance_id: "instance-1".to_string(),
-                    agent_id: "agent-1".to_string(),
-                    conversation_anchor_id: Some("anchor-1".to_string()),
-                    anchor_mode: "existing".to_string(),
-                    launched_by: "desktop".to_string(),
-                    source_surface: Some("desktop-agent-chat".to_string()),
-                }],
+                instances: vec![valid_record()],
             },
             None,
         )
@@ -174,20 +256,94 @@ mod tests {
                 schema_version: 1,
                 publisher_pid: 0,
                 published_at_ms: 100,
-                instances: vec![super::DesktopAvatarInstanceRegistryRecord {
-                    avatar_instance_id: "instance-1".to_string(),
-                    agent_id: "agent-1".to_string(),
-                    conversation_anchor_id: Some("anchor-1".to_string()),
-                    anchor_mode: "existing".to_string(),
-                    launched_by: "desktop".to_string(),
-                    source_surface: Some("desktop-agent-chat".to_string()),
-                }],
+                instances: vec![valid_record()],
             },
             None,
         )
         .expect("list instances");
 
         assert!(listed.is_empty());
+    }
+
+    #[test]
+    fn list_instances_rejects_invalid_schema_for_live_projection() {
+        let result = list_instances_from_file(
+            DesktopAvatarInstanceRegistryFile {
+                schema_version: 0,
+                publisher_pid: std::process::id(),
+                published_at_ms: now_ms(),
+                instances: vec![valid_record()],
+            },
+            None,
+        );
+
+        assert!(result
+            .expect_err("invalid schema must fail closed")
+            .contains("schema_version"));
+    }
+
+    #[test]
+    fn list_instances_rejects_empty_admitted_identities() {
+        let mut record = valid_record();
+        record.avatar_instance_id = " ".to_string();
+
+        let result = list_instances_from_file(live_registry_file(vec![record]), None);
+
+        assert!(result
+            .expect_err("empty avatar instance id must fail closed")
+            .contains("avatar_instance_id"));
+    }
+
+    #[test]
+    fn list_instances_rejects_invalid_anchor_mode() {
+        let mut record = valid_record();
+        record.anchor_mode = "tail".to_string();
+
+        let result = list_instances_from_file(live_registry_file(vec![record]), None);
+
+        assert!(result
+            .expect_err("invalid anchor mode must fail closed")
+            .contains("anchor_mode"));
+    }
+
+    #[test]
+    fn list_instances_rejects_existing_anchor_without_conversation_anchor_id() {
+        let mut record = valid_record();
+        record.conversation_anchor_id = None;
+
+        let result = list_instances_from_file(live_registry_file(vec![record]), None);
+
+        assert!(result
+            .expect_err("missing existing anchor id must fail closed")
+            .contains("conversation_anchor_id"));
+    }
+
+    #[test]
+    fn list_instances_rejects_missing_source_surface() {
+        let mut record = valid_record();
+        record.source_surface = None;
+
+        let result = list_instances_from_file(live_registry_file(vec![record]), None);
+
+        assert!(result
+            .expect_err("missing source surface must fail closed")
+            .contains("source_surface"));
+    }
+
+    #[test]
+    fn list_instances_validates_records_before_filtering() {
+        let mut invalid_non_matching_record = valid_record();
+        invalid_non_matching_record.agent_id = "other-agent".to_string();
+        invalid_non_matching_record.source_surface = None;
+
+        let result = list_instances_from_file(
+            live_registry_file(vec![valid_record(), invalid_non_matching_record]),
+            Some("agent-1"),
+        );
+
+        assert!(result
+            .expect_err("invalid non-matching record must still fail closed")
+            .contains("source_surface"));
     }
 
     #[test]

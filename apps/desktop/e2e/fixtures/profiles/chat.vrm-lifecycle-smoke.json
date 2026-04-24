@@ -1,29 +1,4 @@
 {
   "extends": "chat.memory-standard-bind.json",
-  "scenarioId": "chat.vrm-lifecycle-smoke",
-  "tauriFixture": {
-    "agentAvatarStore": {
-      "resources": [
-        {
-          "resourceId": "__VRM_SAMPLE_RESOURCE_ID__",
-          "kind": "vrm",
-          "displayName": "__VRM_SAMPLE_DISPLAY_NAME__",
-          "sourceFilename": "__VRM_SAMPLE_FILENAME__",
-          "storedPath": "__VRM_SAMPLE_ROOT__",
-          "fileUrl": "__VRM_SAMPLE_FILE_URL__",
-          "posterPath": null,
-          "importedAtMs": 1777777777000,
-          "updatedAtMs": 1777777777000,
-          "status": "ready"
-        }
-      ],
-      "bindings": [
-        {
-          "agentId": "agent-e2e-alpha",
-          "resourceId": "__VRM_SAMPLE_RESOURCE_ID__",
-          "updatedAtMs": 1777777777000
-        }
-      ]
-    }
-  }
+  "scenarioId": "chat.vrm-lifecycle-smoke"
 }
