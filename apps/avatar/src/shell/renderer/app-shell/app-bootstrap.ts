@@ -16,6 +16,7 @@ import {
   watchAuthSessionChanges,
 } from '@renderer/bridge';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
+import { startAvatarRuntimeCarrier, type AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
@@ -74,6 +75,11 @@ function createAbortError(message: string): Error {
   const error = new Error(message);
   error.name = 'AbortError';
   return error;
+}
+
+function resolveAvatarModelPath(): string {
+  return readNormalizedString(import.meta.env['VITE_AVATAR_MODEL_PATH'])
+    || readNormalizedString(import.meta.env['NIMI_AVATAR_MODEL_PATH']);
 }
 
 type RuntimeExecutionBinding = {
@@ -225,6 +231,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let shellUnlisten: (() => void) | null = null;
   let stopAuthSessionWatch = () => {};
   let driver: AgentDataDriver | null = null;
+  let carrier: AvatarRuntimeCarrier | null = null;
   let unsubscribeStatus = () => {};
   let unsubscribeBundle = () => {};
   let shouldClearPlatformClient = false;
@@ -255,6 +262,8 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     unsubscribeBundle();
     shellUnlisten?.();
     stopAuthSessionWatch();
+    carrier?.shutdown();
+    carrier = null;
     if (driver) {
       await driver.stop().catch(() => {});
     }
@@ -459,6 +468,10 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             };
           },
         },
+      });
+      carrier = await startAvatarRuntimeCarrier({
+        driver,
+        modelPath: resolveAvatarModelPath(),
       });
 
       if (resolvedBootstrapAuthSession.source === 'persisted') {

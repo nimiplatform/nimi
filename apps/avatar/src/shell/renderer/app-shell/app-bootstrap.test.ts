@@ -8,6 +8,7 @@ const createPlatformClientMock = vi.fn();
 const clearPlatformClientMock = vi.fn();
 const resolveDesktopBootstrapAuthSessionMock = vi.fn();
 const bootstrapAuthSessionMock = vi.fn();
+const startAvatarRuntimeCarrierMock = vi.fn();
 const getAvatarLaunchContextMock = vi.fn();
 const getRuntimeDefaultsMock = vi.fn();
 const hasTauriInvokeMock = vi.fn();
@@ -45,6 +46,10 @@ let watchedAuthSessionError: ((error: Error) => Promise<void> | void) | null = n
 vi.mock('../driver/factory.js', () => ({
   resolveDriverKind: () => driverKind,
   createDriver: (...args: unknown[]) => createDriverMock(...args),
+}));
+
+vi.mock('../carrier/avatar-carrier.js', () => ({
+  startAvatarRuntimeCarrier: (...args: unknown[]) => startAvatarRuntimeCarrierMock(...args),
 }));
 
 vi.mock('@nimiplatform/sdk', () => ({
@@ -152,6 +157,7 @@ describe('bootstrapAvatar', () => {
     resolveDesktopBootstrapAuthSessionMock.mockReset();
     clearPlatformClientMock.mockReset();
     bootstrapAuthSessionMock.mockReset();
+    startAvatarRuntimeCarrierMock.mockReset();
     getAvatarLaunchContextMock.mockReset();
     getRuntimeDefaultsMock.mockReset();
     hasTauriInvokeMock.mockReset();
@@ -172,6 +178,29 @@ describe('bootstrapAvatar', () => {
     watchedAuthSessionChange = null;
     watchedAuthSessionError = null;
     window.localStorage.clear();
+    vi.stubEnv('VITE_AVATAR_MODEL_PATH', '/models/ren');
+    startAvatarRuntimeCarrierMock.mockResolvedValue({
+      shutdown: vi.fn(),
+      model: {
+        runtimeDir: '/models/ren/runtime',
+        modelId: 'ren',
+        model3JsonPath: '/models/ren/runtime/ren.model3.json',
+        nimiDir: '/models/ren/runtime/nimi',
+      },
+      registry: {
+        activity: new Map(),
+        event: new Map(),
+        continuous: new Map(),
+      },
+      commandBus: {
+        on: vi.fn(() => () => {}),
+        emit: vi.fn(),
+      },
+      backendSession: {
+        applyCommand: vi.fn(),
+        unload: vi.fn(),
+      },
+    });
     onShellReadyMock.mockResolvedValue(() => {});
     setAlwaysOnTopMock.mockResolvedValue(undefined);
     watchAuthSessionChangesMock.mockImplementation((input: {
@@ -321,6 +350,10 @@ describe('bootstrapAvatar', () => {
       sdk: expect.objectContaining({
         agentId: 'runtime-default-agent',
       }),
+    }));
+    expect(startAvatarRuntimeCarrierMock).toHaveBeenCalledWith(expect.objectContaining({
+      driver: expect.any(Object),
+      modelPath: '/models/ren',
     }));
     expect(openConversationAnchorMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().consume.authority).toBe('runtime');

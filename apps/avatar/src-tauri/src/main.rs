@@ -391,6 +391,11 @@ async fn nimi_avatar_read_text_file(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| format!("read {} failed: {}", path, e))
 }
 
+#[tauri::command]
+async fn nimi_avatar_read_binary_file(path: String) -> Result<Vec<u8>, String> {
+    fs::read(&path).map_err(|e| format!("read {} failed: {}", path, e))
+}
+
 fn configure_runtime_bridge_env() {
     if cfg!(debug_assertions) && std::env::var_os("NIMI_RUNTIME_BRIDGE_MODE").is_none() {
         std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME");
@@ -436,6 +441,7 @@ fn main() {
             nimi_avatar_resolve_model,
             nimi_avatar_scan_nas_handlers,
             nimi_avatar_read_text_file,
+            nimi_avatar_read_binary_file,
         ])
         .setup(|app| {
             use tauri_plugin_deep_link::DeepLinkExt;

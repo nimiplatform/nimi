@@ -3,9 +3,9 @@
 > **Authority**: App-local kernel contract
 > **Status**: Baseline locked 2026-04-21 (migrated from topic proposal 议题 4b)
 > **Upstream platform refs**:
-> - [APML 1.0 wire format](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md)
-> - [Activity ontology](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)
-> - [Platform event contract](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md)
+> - [APML model-facing wire authority](../../../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
+> - [Runtime presentation/activity projection seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
+> - [Runtime HookIntent contract](../../../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
 > - [Runtime transient presentation seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 > **Sibling kernel contracts**:
 > - [Avatar event contract](avatar-event-contract.md)
@@ -21,7 +21,7 @@
 ---
 ## 1. Purpose & Scope
 ### 1.1 Why NAS
-APML `<activity>` / `<expression>` / `<pose>` 是**语义意图**。每个 backend package 要把意图转成具体 embodiment 行为；当前 shipped branch 只是把它们落到 Live2D。单纯 declarative mapping（"happy → motion X"）**不够**，因为:
+Runtime presentation activity / expression / pose projection 是**语义意图**。每个 backend package 要把意图转成具体 embodiment 行为；当前 shipped branch 只是把它们落到 Live2D。单纯 declarative mapping（"happy → motion X"）**不够**，因为:
 - 复杂动作需要 **sequence**（挥手 → 鞠躬 → 微笑）
 - 动态响应需要 **signal/channel direct control**（眼神跟随 cursor）
 - 交互需要 **state machine**（连续点击 3 次触发特殊反应）
@@ -40,12 +40,11 @@ APML `<activity>` / `<expression>` / `<pose>` 是**语义意图**。每个 backe
 - Agent data bundle context 形态
 - Embodiment projection API v1 scope（当前 shipped branch 由 Live2D 实现）
 - Default fallback 机制
+- Worker-backed capability-RPC sandbox mechanism
 - Hot reload 语义
 - File name normalization 规则（activity id / event name → 文件名）
 **Out-of-scope**:
-- 具体 sandbox 机制（下个 session 讨论）
 - 具体 pub/sub broker 实现（属 runtime implementation）
-- JS 运行时选型（QuickJS / iframe / Web Worker 等，属 implementation）
 - VRM / 3D / robot backend 具体 API（future）
 - End-user customization UI（app 自己实现，不在本 spec）
 ---
@@ -456,13 +455,45 @@ avatar.model.script.reloaded:
 ```
 ---
 ## 9. Sandbox & Security
-Handler 是第三方 JS，必须 sandbox。**具体 sandbox 机制本 baseline 不决定**。占位要求：
-- Handler 不能 access `window` / `document` / `fetch` / `localStorage` / network
-- Handler 只能通过 `projection` 和 `ctx` 两个 API 与外界交互
-- 安全工具（`Math` / `Date` / `console` subset）可用
-- Handler 异常不影响 avatar app 主流程（runtime catch + log）
-- Continuous handler 每次 `update` 有 CPU budget（超时 → warn + skip 当帧）
-具体选型（iframe / Web Worker / embedded QuickJS / SES）在后续议题讨论。
+Handler 是第三方 JS，必须 sandbox。NAS 1.0 runtime **硬切为
+Worker-backed capability-RPC sandbox**，不再把 sandbox 机制留作未来议题。
+
+### 9.1 Worker-backed capability boundary
+- 每个 discovered handler 在 dedicated module Worker 中加载和执行。
+- Renderer main thread 不再通过 `Blob` URL 直接 `import()` 第三方 handler。
+- Handler 与外界的唯一交互面是启动时传入的 `ctx`、`projection` capability
+  object、`AbortSignal`，以及安全工具（`Math` / `Date` / `console` subset）。
+- Worker 内禁用 ambient network/storage globals：`fetch` / `XMLHttpRequest` /
+  `WebSocket` / `EventSource` / `localStorage` / `sessionStorage` /
+  `indexedDB` / `caches` / `importScripts`。
+- Source policy fail-close 拒绝引用 `window` / `document` / `globalThis` /
+  `self` / `postMessage` / 上述 network/storage globals、static import、dynamic
+  import、non-default export、`eval`、`Function`、`constructor`。
+- Handler source policy violation、module load failure、malformed default export,
+  or worker boot failure **must not register** a handler.
+
+### 9.2 Capability RPC projection
+Worker handler cannot receive renderer/backend objects. `projection` is a
+capability-RPC proxy with an explicit allow-list:
+`triggerMotion`, `stopMotion`, `setSignal`, `addSignal`, `setExpression`,
+`clearExpression`, `setPose`, `clearPose`, and optional `runDefaultActivity`.
+Unknown capability methods are rejected fail-closed.
+
+`projection.wait(ms)` is local to the Worker. `projection.getSurfaceBounds()`
+returns the invocation-start surface snapshot. `projection.getSignal(id)` reads
+the handler-local signal mirror seeded for the invocation and updated by
+`setSignal` / `addSignal`; it is not a live synchronous renderer read because
+the Worker boundary cannot support synchronous main-thread RPC.
+
+### 9.3 Execution budget and shutdown
+- Activity/event `execute()` budget: 5000 ms.
+- Continuous `update()` budget: 1000 ms.
+- Timeout terminates the handler Worker and rejects the invocation; no
+  placeholder success is allowed.
+- Carrier shutdown cancels in-flight handlers, stops continuous scheduling, and
+  terminates registered handler Workers.
+Handler 异常不影响 avatar app 主流程（runtime catch + log），但必须 surface 为
+error/warn evidence, never as success.
 ---
 ## 10. Handler Discovery & Registration
 ### 10.1 Discovery
@@ -630,7 +661,8 @@ export default {
 | **47** | Default fallback | ✅ Option B (branch-owned activity fallback hook) | Neutral NAS baseline 不编码单一 backend 语义；当前 Live2D branch 继续提供 convention fallback |
 | **48** | Hot reload | ✅ Option B (dev + prod 都支持) | Model 调试 + 用户装新 model |
 | **49** | Handler execution model | ✅ Option B (新事件抢占旧执行) | 符合 activity transient 语义 |
-**NAS 1.0 baseline locked 2026-04-21**。Sandbox 机制单独议题后续讨论。
+| **50** | Sandbox mechanism | ✅ Option B (Worker-backed capability RPC + source policy) | Third-party JS 不进入 renderer global scope；能力调用显式 allow-list；DOM/network/storage fail-close |
+**NAS 1.0 baseline locked 2026-04-21; sandbox hard cut admitted 2026-04-25**。
 ---
 ## 附录 A: Activity Id → File Name Normalization
 ```

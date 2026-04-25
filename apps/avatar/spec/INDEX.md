@@ -32,9 +32,9 @@ Reading path:
 
 These are consumed as upstream contracts, located in the topic proposal directory. They are **not** redefined here:
 
-- APML wire format — `../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md`
-- APML LLM compliance — `apml-llm-compliance.md`
-- Activity ontology — `activity-ontology.md`
-- Event contract + app convention — `event-hook-contract.md`
-- SDK Event API — `sdk-event-api.md`
-- Presentation Timeline — `presentation-timeline.md`
+- APML wire format — `../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
+- APML LLM compliance — `../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md` plus first-party prompt contracts
+- Activity projection — `../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` and `kernel/tables/activity-mapping.yaml`
+- Event contract + app convention — `../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`, `../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, and `kernel/avatar-event-contract.md`
+- SDK Event API — `../../.nimi/spec/sdk/kernel/runtime-contract.md`
+- Presentation Timeline — `../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`

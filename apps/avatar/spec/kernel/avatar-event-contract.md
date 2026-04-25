@@ -4,8 +4,8 @@
 > **Authority**: App-local kernel contract
 > **Status**: Baseline updated 2026-04-21 (consumer-aligned to mounted runtime substrate)
 > **Upstream platform refs**:
-> - [Platform event contract + App convention](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md)
-> - [Activity ontology](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)
+> - [Runtime HookIntent contract](../../../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
+> - [Runtime presentation/activity projection seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 > - [Runtime transient presentation seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 > - [Conversation anchor contract](../../../../.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
 > **Sibling kernel contracts**:
@@ -18,9 +18,9 @@
 
 ## 0. 阅读指南
 
-本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 platform event contract（议题 3）convention。Avatar 是独立 app，但 current canonical normal path 由 desktop bridge / handoff 启动；owner 为 `avatar.*`。合计 31 events（8 user + 18 avatar + 5 app）。
+本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 runtime HookIntent / presentation projection authority 与 app-local event convention。Avatar 是独立 app，但 current canonical normal path 由 desktop bridge / handoff 启动；owner 为 `avatar.*`。合计 31 events（8 user + 18 avatar + 5 app）。
 
-Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义 —— activity-ontology.md §8 已经把语义映射从 rendering 解耦。
+Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义。Runtime presentation/activity projection 与 app-local `tables/activity-mapping.yaml` 把语义映射从 rendering 解耦；closed activity ontology 只保留为设计证据，不是本 app 的活动 authority。
 
 ---
 
@@ -217,7 +217,7 @@ Avatar app 订阅对方 app 的 events（通过 runtime 中转）：
 
 Avatar app 的 rendering backend 具体实现（Live2D Cubism SDK / VRM / 3D / Lottie / 极简 blob）不影响本 spec 的 event 定义 —— event 语义是 rendering-agnostic 的。
 
-Activity → motion/expression 的具体映射见 [activity-ontology §8](../../../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)。每个 rendering backend 按其 convention + metadata 解析。
+Activity → motion/expression 的具体映射见 [activity mapping table](tables/activity-mapping.yaml)。每个 rendering backend 按其 convention + metadata 解析。
 
 ---
 

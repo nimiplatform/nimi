@@ -8,6 +8,7 @@ export type HandlerMeta = {
 
 export type ActivityOrEventHandler = {
   meta?: HandlerMeta;
+  dispose?(): void;
   execute(
     ctx: AgentDataBundle,
     projection: EmbodimentProjectionApi,
@@ -19,7 +20,8 @@ export type ContinuousHandler = {
   meta?: HandlerMeta;
   fps?: number;
   enabled?: boolean;
-  update(ctx: AgentDataBundle, projection: EmbodimentProjectionApi): void;
+  dispose?(): void;
+  update(ctx: AgentDataBundle, projection: EmbodimentProjectionApi): Promise<void> | void;
 };
 
 export type RegisteredActivityHandler = {

@@ -73,11 +73,9 @@ export class ContinuousScheduler {
           const prev = this.lastRun.get(key) ?? 0;
           if (now - prev < interval) continue;
           this.lastRun.set(key, now);
-          try {
-            entry.handler.update(bundle, this.projection);
-          } catch (err) {
+          void Promise.resolve(entry.handler.update(bundle, this.projection)).catch((err: unknown) => {
             console.warn(`[nas:continuous] ${key} threw: ${err instanceof Error ? err.message : String(err)}`);
-          }
+          });
         }
       }
       this.timerId = requestAnimationFrame(tick);

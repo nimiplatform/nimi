@@ -7,6 +7,11 @@ import type {
   RegisteredContinuousHandler,
   RegisteredEventHandler,
 } from './handler-types.js';
+import {
+  createSandboxedActivityOrEventHandler,
+  createSandboxedContinuousHandler,
+  type SandboxWorkerFactory,
+} from './handler-sandbox.js';
 
 type RustHandlerEntry = { file_stem: string; absolute_path: string };
 type RustNasManifest = {
@@ -35,17 +40,6 @@ export async function scanNasHandlers(nimiDir: string): Promise<NasManifest> {
 
 async function readSource(path: string): Promise<string> {
   return invoke<string>('nimi_avatar_read_text_file', { path });
-}
-
-async function importFromSource(source: string): Promise<unknown> {
-  const blob = new Blob([source], { type: 'text/javascript' });
-  const url = URL.createObjectURL(blob);
-  try {
-    const module = await import(/* @vite-ignore */ url);
-    return (module as { default?: unknown }).default ?? null;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
 }
 
 function isActivityOrEventHandler(value: unknown): value is ActivityOrEventHandler {
@@ -78,11 +72,35 @@ export function createHandlerRegistry(): HandlerRegistry {
   };
 }
 
-export async function populateRegistry(registry: HandlerRegistry, manifest: NasManifest): Promise<void> {
+export function disposeRegistry(registry: HandlerRegistry): void {
+  for (const entry of registry.activity.values()) {
+    entry.handler.dispose?.();
+  }
+  for (const entry of registry.event.values()) {
+    entry.handler.dispose?.();
+  }
+  for (const entry of registry.continuous.values()) {
+    entry.handler.dispose?.();
+  }
+  registry.activity.clear();
+  registry.event.clear();
+  registry.continuous.clear();
+}
+
+export type PopulateRegistryOptions = {
+  createWorker?: SandboxWorkerFactory;
+};
+
+export async function populateRegistry(
+  registry: HandlerRegistry,
+  manifest: NasManifest,
+  options: PopulateRegistryOptions = {},
+): Promise<void> {
+  const createWorker = options.createWorker;
   for (const entry of manifest.activity) {
     try {
       const source = await readSource(entry.absolute_path);
-      const module = await importFromSource(source);
+      const module = await createSandboxedActivityOrEventHandler(source, entry.absolute_path, createWorker);
       if (!isActivityOrEventHandler(module)) {
         console.warn(`[nas] activity handler ${entry.file_stem} has no execute()`);
         continue;
@@ -106,7 +124,7 @@ export async function populateRegistry(registry: HandlerRegistry, manifest: NasM
     }
     try {
       const source = await readSource(entry.absolute_path);
-      const module = await importFromSource(source);
+      const module = await createSandboxedActivityOrEventHandler(source, entry.absolute_path, createWorker);
       if (!isActivityOrEventHandler(module)) {
         console.warn(`[nas] event handler ${entry.file_stem} has no execute()`);
         continue;
@@ -125,7 +143,7 @@ export async function populateRegistry(registry: HandlerRegistry, manifest: NasM
   for (const entry of manifest.continuous) {
     try {
       const source = await readSource(entry.absolute_path);
-      const module = await importFromSource(source);
+      const module = await createSandboxedContinuousHandler(source, entry.absolute_path, createWorker);
       if (!isContinuousHandler(module)) {
         console.warn(`[nas] continuous handler ${entry.file_stem} has no update()`);
         continue;

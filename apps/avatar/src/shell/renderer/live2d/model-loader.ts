@@ -28,6 +28,11 @@ export async function readTextFile(path: string): Promise<string> {
   return invoke<string>('nimi_avatar_read_text_file', { path });
 }
 
+export async function readBinaryFile(path: string): Promise<ArrayBuffer> {
+  const bytes = await invoke<number[]>('nimi_avatar_read_binary_file', { path });
+  return new Uint8Array(bytes).buffer;
+}
+
 export type Model3Settings = {
   Version: number;
   FileReferences?: {

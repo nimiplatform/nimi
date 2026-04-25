@@ -8,6 +8,7 @@ import {
   dismissCompanionInput,
   failCompanionSubmit,
   setCompanionDraft,
+  type CompanionState,
 } from './companion-state.js';
 import {
   beginVoiceListening,
@@ -15,6 +16,7 @@ import {
   setVoiceCompanionError,
   setVoiceLevel,
   setVoiceTranscriptSubmitted,
+  type VoiceCompanionState,
 } from './voice-companion-state.js';
 
 type AvatarShellViewProps = Record<string, any>;
@@ -132,7 +134,7 @@ return (
                 aria-expanded={settingsOpen}
                 aria-controls="avatar-shell-settings"
                 onClick={() => {
-                  setSettingsOpen((current) => !current);
+                  setSettingsOpen((current: boolean) => !current);
                 }}
               >
                 {settingsOpen ? 'Hide settings' : 'Shell settings'}
@@ -333,16 +335,16 @@ return (
                                 if (voice.status === 'listening') {
                                   const activeSession = voiceCaptureSessionRef.current;
                                   if (!activeSession) {
-                                    setVoice((current) => setVoiceCompanionError(current, 'Foreground voice capture is no longer active.'));
+                                    setVoice((current: VoiceCompanionState) => setVoiceCompanionError(current, 'Foreground voice capture is no longer active.'));
                                     return;
                                   }
                                   const operationAnchorKey = companionAnchorKey;
                                   const operationId = beginVoiceOperation(operationAnchorKey);
                                   voiceCaptureSessionRef.current = null;
-                                  setVoice((current) => beginVoiceTranscribing(current));
+                                  setVoice((current: VoiceCompanionState) => beginVoiceTranscribing(current));
                                   const abortController = new AbortController();
                                   voiceSubmitAbortRef.current = abortController;
-                                  void activeSession.stop().then((recording) => {
+                                  void activeSession.stop().then((recording: { bytes: Uint8Array; mimeType: string }) => {
                                     if (
                                       !isVoiceOperationCurrent(operationId, operationAnchorKey)
                                       || abortController.signal.aborted
@@ -357,11 +359,11 @@ return (
                                       language: navigator.language || 'en-US',
                                       signal: abortController.signal,
                                     });
-                                  }).then((result) => {
+                                  }).then((result: { transcript: string }) => {
                                     if (!isVoiceOperationCurrent(operationId, operationAnchorKey)) {
                                       return;
                                     }
-                                    setVoice((current) => setVoiceTranscriptSubmitted(current, {
+                                    setVoice((current: VoiceCompanionState) => setVoiceTranscriptSubmitted(current, {
                                       transcript: result.transcript,
                                       at: new Date().toISOString(),
                                     }));
@@ -372,7 +374,7 @@ return (
                                     if ((error as Error | null)?.name === 'AbortError') {
                                       return;
                                     }
-                                    setVoice((current) => setVoiceCompanionError(current, toErrorMessage(error)));
+                                    setVoice((current: VoiceCompanionState) => setVoiceCompanionError(current, toErrorMessage(error)));
                                   }).finally(() => {
                                     if (voiceSubmitAbortRef.current === abortController) {
                                       voiceSubmitAbortRef.current = null;
@@ -381,24 +383,24 @@ return (
                                   });
                                   return;
                                 }
-                                setCompanion((current) => ({
+                                setCompanion((current: CompanionState) => ({
                                   ...current,
                                   bubbleVisible: true,
                                   unread: false,
                                 }));
-                                setVoice((current) => beginVoiceListening(current));
+                                setVoice((current: VoiceCompanionState) => beginVoiceListening(current));
                                 const operationAnchorKey = companionAnchorKey;
                                 const operationId = beginVoiceOperation(operationAnchorKey);
                                 void bootstrapHandle.startVoiceCapture({
                                   agentId: companionBinding.agentId,
                                   conversationAnchorId: companionBinding.conversationAnchorId,
-                                  onLevelChange: (amplitude) => {
+                                  onLevelChange: (amplitude: number) => {
                                     if (!isVoiceOperationCurrent(operationId, operationAnchorKey)) {
                                       return;
                                     }
-                                    setVoice((current) => setVoiceLevel(current, amplitude));
+                                    setVoice((current: VoiceCompanionState) => setVoiceLevel(current, amplitude));
                                   },
-                                }).then((session) => {
+                                }).then((session: { cancel(): void }) => {
                                   if (!isVoiceOperationCurrent(operationId, operationAnchorKey)) {
                                     session.cancel();
                                     return;
@@ -410,7 +412,7 @@ return (
                                   }
                                   voiceCaptureSessionRef.current = null;
                                   clearVoiceOperation(operationId, operationAnchorKey);
-                                  setVoice((current) => setVoiceCompanionError(current, toErrorMessage(error)));
+                                  setVoice((current: VoiceCompanionState) => setVoiceCompanionError(current, toErrorMessage(error)));
                                 });
                               }}
                             >
@@ -430,7 +432,7 @@ return (
                                     turnId: activeTurnCue?.turnId || voice.currentTurnId || undefined,
                                     reason: 'avatar_voice_interrupt',
                                   }).catch((error: unknown) => {
-                                    setVoice((current) => setVoiceCompanionError(current, toErrorMessage(error)));
+                                    setVoice((current: VoiceCompanionState) => setVoiceCompanionError(current, toErrorMessage(error)));
                                   });
                                 }}
                               >
@@ -480,7 +482,7 @@ return (
                               return;
                             }
                             const submittedAt = new Date().toISOString();
-                            setCompanion((current) => beginCompanionSubmit(current, {
+                            setCompanion((current: CompanionState) => beginCompanionSubmit(current, {
                               text,
                               at: submittedAt,
                             }));
@@ -489,9 +491,9 @@ return (
                               conversationAnchorId: companionBinding.conversationAnchorId,
                               text,
                             }).then(() => {
-                              setCompanion((current) => completeCompanionSubmit(current));
+                              setCompanion((current: CompanionState) => completeCompanionSubmit(current));
                             }).catch((error: unknown) => {
-                              setCompanion((current) => failCompanionSubmit(current, {
+                              setCompanion((current: CompanionState) => failCompanionSubmit(current, {
                                 message: toErrorMessage(error),
                                 draft: text,
                               }));
@@ -503,7 +505,7 @@ return (
                             <textarea
                               value={companion.draft}
                               onChange={(event) => {
-                                setCompanion((current) => setCompanionDraft(current, event.target.value));
+                                setCompanion((current: CompanionState) => setCompanionDraft(current, event.target.value));
                               }}
                               rows={2}
                               maxLength={400}
@@ -515,7 +517,7 @@ return (
                               type="button"
                               className="avatar-companion__ghost"
                               onClick={() => {
-                                setCompanion((current) => dismissCompanionInput(current));
+                                setCompanion((current: CompanionState) => dismissCompanionInput(current));
                               }}
                             >
                               Dismiss
@@ -566,7 +568,7 @@ return (
                 <p className="avatar-recovery__guidance">{recoveryGuidance}</p>
                 <p className="avatar-recovery__hint">{recoveryHint}</p>
                 <div className="avatar-recovery__checklist" aria-label="Recovery scope">
-                  {recoveryChecklist.map((item) => (
+                  {recoveryChecklist.map((item: string) => (
                     <p key={item} className="avatar-recovery__check">
                       {item}
                     </p>
@@ -605,7 +607,7 @@ return (
                 <span className="avatar-badge avatar-badge--neutral">4 local settings</span>
               </div>
               <div className="avatar-settings-card__effects">
-                {shellControlEffects.map((item) => (
+                {shellControlEffects.map((item: { label: string; value: string; detail: string }) => (
                   <div key={item.label} className="avatar-settings-card__effect">
                     <div className="avatar-settings-card__effect-copy">
                       <span className="avatar-settings-card__effect-label">{item.label}</span>
@@ -619,7 +621,7 @@ return (
             </section>
             {displayPresentation.contextCards.length > 0 ? (
               <div className="avatar-presence">
-                {displayPresentation.contextCards.map((item) => (
+                {displayPresentation.contextCards.map((item: { label: string; value: string }) => (
                   <div key={item.label}>
                     <span className="avatar-presence__label">{item.label}</span>
                     <strong className="avatar-presence__value">{item.value}</strong>
@@ -629,7 +631,7 @@ return (
             ) : null}
             {displayPresentation.meta.length > 0 ? (
               <dl className="avatar-meta" aria-label="Avatar surface status">
-                {displayPresentation.meta.map((item) => (
+                {displayPresentation.meta.map((item: { label: string; value: string }) => (
                   <div key={item.label} className="avatar-meta__item">
                     <dt>{item.label}</dt>
                     <dd>{item.value}</dd>

@@ -4,16 +4,25 @@
 
 export type CubismMocVersion = number;
 
+export type CubismMocHandle = {
+  _release?(): void;
+};
+
+export type CubismModelHandle = {
+  update?(): void;
+  release?(): void;
+};
+
 export interface CubismCoreGlobal {
   Version: {
     csmGetVersion(): number;
     csmGetLatestMocVersion(): number;
   };
   Moc: {
-    fromArrayBuffer(buffer: ArrayBuffer): unknown | null;
+    fromArrayBuffer(buffer: ArrayBuffer): CubismMocHandle | null;
   };
   Model: {
-    fromMoc(moc: unknown): unknown | null;
+    fromMoc(moc: CubismMocHandle): CubismModelHandle | null;
   };
   Logging: {
     csmSetLogFunction(fn: (message: string) => void): void;

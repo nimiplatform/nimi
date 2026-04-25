@@ -5,6 +5,7 @@ import tseslint from 'typescript-eslint';
 export default defineConfig([
   globalIgnores([
     'dist/**',
+    '.cache/**',
     'node_modules/**',
     'src-tauri/target/**',
     'src/shell/renderer/public/assets/**',
