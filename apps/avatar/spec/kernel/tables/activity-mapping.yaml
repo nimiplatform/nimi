@@ -94,29 +94,30 @@ core_activities:
 
 extended_examples:
   description: >
-    Extended activities use 'ext:' prefix. Model creators may use these if their
-    model supports richer emotion palette. Not required for core coverage.
+    Extended activities use 'ext:' prefix and are admitted by the active runtime
+    ontology table. Model creators may use these if their model supports richer
+    presentation. Not required for core coverage.
   samples:
+    - activity_id: "ext:apologetic"
+      motion_group: "Activity_ExtApologetic"
     - activity_id: "ext:grateful"
       motion_group: "Activity_ExtGrateful"
     - activity_id: "ext:proud"
       motion_group: "Activity_ExtProud"
-    - activity_id: "ext:nostalgic"
-      motion_group: "Activity_ExtNostalgic"
-    - activity_id: "ext:determined"
-      motion_group: "Activity_ExtDetermined"
-    - activity_id: "ext:jealous"
-      motion_group: "Activity_ExtJealous"
-    - activity_id: "ext:relieved"
-      motion_group: "Activity_ExtRelieved"
-    - activity_id: "ext:bored"
-      motion_group: "Activity_ExtBored"
-    - activity_id: "ext:curious"
-      motion_group: "Activity_ExtCurious"
-    - activity_id: "ext:amused"
-      motion_group: "Activity_ExtAmused"
-    - activity_id: "ext:disgusted"
-      motion_group: "Activity_ExtDisgusted"
+    - activity_id: "ext:lonely"
+      motion_group: "Activity_ExtLonely"
+    - activity_id: "ext:acknowledging"
+      motion_group: "Activity_ExtAcknowledging"
+    - activity_id: "ext:encouraging"
+      motion_group: "Activity_ExtEncouraging"
+    - activity_id: "ext:teasing"
+      motion_group: "Activity_ExtTeasing"
+    - activity_id: "ext:resting"
+      motion_group: "Activity_ExtResting"
+    - activity_id: "ext:playing"
+      motion_group: "Activity_ExtPlaying"
+    - activity_id: "ext:eating"
+      motion_group: "Activity_ExtEating"
 
 mod_custom_examples:
   description: >
@@ -163,7 +164,8 @@ lookup_algorithm:
 
 constraints:
   drift_checks:
-    - description: "所有 core_activities 必须对齐 activity-ontology §4 (20 items)"
+    - description: "所有 core_activities 必须对齐 .nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml"
+    - description: "extended_examples 必须只使用 active runtime ontology admitted ext:* ids"
     - description: "Motion group 名严格遵守 naming_rule（split + CamelCase + prefix）"
     - description: "Intensity 变体若存在必须匹配 enum(weak|moderate|strong)"
-    - description: "新增 extended / mod activity 时文档需更新"
+    - description: "新增 extended / mod activity 需要先更新 active runtime ontology 或 manifest-backed authority"

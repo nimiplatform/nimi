@@ -129,11 +129,74 @@ Fixed rules:
 - envelope-level hard violations must fail the whole turn and suppress
   `message_committed`
 
+## K-AGCORE-049 Agent Activity Ontology Projection Boundary
+
+Runtime owns the app-facing `runtime.agent.presentation.activity_requested`
+activity ontology for first-party projection. The active value space is pinned
+in `tables/agent-activity-ontology.yaml`.
+
+Fixed rules:
+
+- activity category is exactly one of `emotion`, `interaction`, or `state`
+- core and extended activity ids are admitted only through
+  `tables/agent-activity-ontology.yaml`
+- public runtime chat output that proposes an unknown activity id must fail
+  closed before durable turn commit rather than being projected as a free-form
+  renderer cue
+- `detail.source` records provenance such as `apml_output` or `direct_api`; it
+  must not be used as a substitute category like `chat` or `status`
+- `detail.intensity` may be absent or one of `weak`, `moderate`, `strong`;
+  public chat APML does not currently admit activity intensity attributes, so
+  APML-sourced public activity projections normally omit intensity
+- renderer/app mappings may provide backend fallback behavior for admitted ids,
+  but they must not re-own runtime activity category or intensity truth
+- closed-topic activity ontology documents are evidence only; the active
+  runtime SSOT is this rule plus `tables/agent-activity-ontology.yaml`
+
+## K-AGCORE-050 Agent Event Owner Map And Broad Bus Deferral
+
+The active event owner map for the Live2D companion continuation is narrower
+than the closed-topic platform event design.
+
+Active owner map:
+
+- Runtime owns the admitted Layer A public projection families listed in
+  K-AGCORE-037, K-AGCORE-042, and `tables/runtime-agent-event-projection.yaml`
+- APML parser events remain runtime-internal diagnostics and must not be exposed
+  as durable app-facing `apml.*` product events
+- Desktop owns only chat shell bridge / handoff semantics under
+  `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- Avatar owns app-local `avatar.*` event naming and consume semantics under
+  `apps/avatar/spec/kernel/avatar-event-contract.md`
+- SDK may consume admitted runtime agent projections but does not own platform
+  event ontology
+
+Deferred or not admitted in this wave:
+
+- a general cross-app event broker for `desktop.*`, `avatar.*`, `system.*`, or
+  third-party app namespaces
+- broad wildcard subscription semantics beyond the current
+  `runtime.agent.turns.subscribe` consume path
+- cancellable before-events as a public runtime/SDK broker feature
+- SDK app-event emission as a general platform API
+
+Fixed rules:
+
+- no implementation may cite the closed event-hook design as active authority
+  for broad bus or wildcard behavior
+- first-party apps may document app-local event conventions, but those app-local
+  specs must not redefine runtime-owned `runtime.agent.*` payloads
+- any future widening into a general event bus requires a new admitted runtime
+  and SDK authority packet plus implementation tests
+
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
 - `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
 - `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`
+- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- `apps/avatar/spec/kernel/avatar-event-contract.md`
 - `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/state-event-bus.md`
 - `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/presentation-timeline.md`

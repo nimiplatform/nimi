@@ -41,6 +41,16 @@ Current shipped backend-specific rendering branch:
 - Default lipsync behavior (Phase 2)
 - Physics / expression / motion playback
 
+### [`carrier-visual-acceptance-contract.md`](carrier-visual-acceptance-contract.md)
+
+Avatar app carrier visual acceptance:
+
+- evidence taxonomy for real runtime path, deterministic harness, fixture path,
+  Desktop renderer evidence, and closed historical evidence
+- current Live2D branch canvas/WebGL proof requirements
+- negative closure rules that block placeholder, fixture-only, or Desktop-only
+  visual success
+
 ### [`agent-script-contract.md`](agent-script-contract.md)
 
 NimiAgentScript (NAS) handler convention:
@@ -50,8 +60,8 @@ NimiAgentScript (NAS) handler convention:
 - Handler interface (3 types: activity / event / continuous)
 - Embodiment projection API surface for handlers
 - Default fallback (convention-based)
-- Hot reload semantics
-- Sandbox placeholder (specific mechanism deferred)
+- Hot reload semantics backed by Tauri `notify` watcher + atomic registry reload
+- Worker-backed capability-RPC sandbox boundary
 
 ### [`avatar-event-contract.md`](avatar-event-contract.md)
 
@@ -100,7 +110,7 @@ These are **not** redefined here. App consumes them:
 | Runtime transient presentation seam | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` |
 | Event contract + app convention | `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`, `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, and this app-local `avatar-event-contract.md` |
 | SDK Event API | `.nimi/spec/sdk/kernel/runtime-contract.md` |
-| Presentation Timeline | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` |
+| Presentation Timeline | Deferred candidate only unless later admitted by `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`; current active surface is runtime turn/presentation/state projection |
 
 When upstream changes, impact on this kernel is reviewed and documented per-contract.
 

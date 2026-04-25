@@ -277,3 +277,60 @@ Fixed rules:
 - SDK may carry runtime-owned turn/presentation/emotion projections, but it
   must not elevate renderer-local values into runtime canonical read/write truth
 - when first-party apps combine runtime-owned presentation profile with surface-local avatar interaction state, the ownership cut must remain explicit and fail-closed
+
+## S-RUNTIME-106 Broad Event API Deferral Boundary
+
+The closed 2026-04-20 SDK Event API design remains evidence only. The active SDK
+runtime surface admits the current `runtime.agent.*` consume path, not a general
+platform event API.
+
+Active SDK boundary:
+
+- `runtime.agent.turns.subscribe(...)` may merge admitted app-message turn /
+  presentation events with RuntimeAgentService state/hook events
+- `runtime.agent.turns.subscribe(...)` may filter by explicit `agentId` and
+  optional `conversationAnchorId`
+- emitted SDK event names and payloads must remain downstream of
+  `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`
+- SDK parsing must fail closed on invalid runtime activity category or
+  intensity values
+
+Not admitted on the stable SDK surface in this wave:
+
+- `client.events.on(...)`, `once(...)`, `onBefore(...)`, `emit(...)`, or
+  `clear(...)` as a broad app developer event bus
+- wildcard subscription contracts for `desktop.*`, `avatar.*`, `system.*`,
+  `apml.*`, or third-party namespaces
+- cancellable before-event semantics
+- SDK-owned app-event schema or rate-limit truth
+
+Future admission of the broad Event API requires a new SDK/runtime authority
+packet and must not be inferred from closed-topic design evidence.
+
+## S-RUNTIME-107 Local SDK Consumer Trust Posture
+
+The SDK local runtime consumer posture is an active SDK/runtime boundary, not a
+closed-topic trust checklist.
+
+Fixed rules:
+
+- SDK consumers must provide explicit `agentId` for every agent-scoped runtime
+  call; construction-time current-agent helpers are not canonical truth
+- `conversationAnchorId` is the only admitted cross-surface continuity scope for
+  a selected conversation; SDK must not synthesize app-local session ids or
+  reuse same-agent traffic across anchors
+- auth credentials, subject context, agent identity, and conversation anchor
+  identity remain separate inputs; SDK must not infer one from another
+- runtime reconnect/session recovery is consumer-owned per `S-RUNTIME-070`; SDK
+  may expose recovery methods such as anchor snapshot/session snapshot reads,
+  but it must not silently reconnect, reopen, or downgrade to fixture/mock data
+- protected runtime agent turn read/write paths must request the admitted
+  runtime scopes for that operation and must fail closed when runtime rejects the
+  request
+- SDK runtime consume projection remains downstream of active runtime authority
+  and must not import runtime-private implementation packages or app-local
+  avatar/Desktop surfaces
+
+Trust-posture evidence must be current implementation or test evidence from the
+SDK/runtime public surface. Closed 2026-04-20 trust posture artifacts may be
+used only as historical evidence and cannot close this rule by themselves.

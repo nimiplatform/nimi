@@ -13,7 +13,9 @@
 
 ## 0. 阅读指南
 
-本 contract 定义 Nimi Avatar 当前 shipped backend branch 的 Live2D rendering pipeline：Cubism SDK for Web 官方集成边界、model loading、motion / expression / physics / parameter API、rendering loop 和 NAS continuous handler 的帧同步、默认 Cubism 行为（breath / blink / lipsync）与 NAS override 边界。
+本 contract 定义 Nimi Avatar 当前 shipped backend branch 的 Live2D backend execution pipeline：Cubism SDK for Web 官方集成边界、model loading、motion / expression / physics / parameter API、backend command-state update、NAS continuous handler 帧调度、默认 Cubism 行为（breath / blink / lipsync）与 NAS override 边界。
+
+Wave 4 hard cut: current Avatar app evidence proves Live2D model/resource loading, command-state mutation, Cubism `model.update()`, and NAS continuous scheduling. It does **not** claim Avatar carrier WebGL canvas draw-loop proof. Desktop chat has a separate Cubism WebGL renderer; that implementation cannot be used as active proof for this Avatar app carrier branch.
 
 **本 contract 不定义** embodiment projection canonical truth（见 `embodiment-projection-contract.md`）、NAS handler convention（见 `agent-script-contract.md`）或 shell / window 行为（见 `app-shell-contract.md`）。
 
@@ -40,7 +42,7 @@
 |---|---|---|
 | Cubism Core (binary) | MOC3 binary runtime | Live2D 官方 |
 | Cubism Framework | Motion / expression / physics / parameter runtime | 官方 npm |
-| `Live2DRenderer` (app) | Model lifecycle / WebGL canvas binding | `src/shell/renderer/live2d/` |
+| `Live2DBackendSession` (app) | Model lifecycle / Cubism model update / command-state execution | `src/shell/renderer/live2d/backend-session.ts` |
 | `Live2DPluginAPI` (app) | current Live2D branch implementation of embodiment projection API + branch-owned default activity fallback | `src/shell/renderer/live2d/plugin-api.ts` |
 
 ---
@@ -94,17 +96,13 @@ Avatar app 接收 `model_path`（来自 `avatar.app.start.detail.model_path` 或
 
 ---
 
-## 3. Rendering Loop
+## 3. Backend Frame Loop
 
 ### 3.1 Frame Cadence (NAV-L2D-005)
 
-- 主 render loop 运行于 `requestAnimationFrame`，目标 60fps（浏览器 vsync）
-- 每帧步骤：
-  1. `update(deltaTime)` — Cubism framework 内部（motion / physics / expression）
-  2. NAS continuous handlers 按各自 `fps` 调度（见 §4）
-  3. `preDraw` → 参数应用到 MOC3
-  4. `draw` → WebGL render
-  5. `postDraw` → frame events emit
+- NAS continuous scheduler 运行于 `requestAnimationFrame`，目标 60fps（浏览器 vsync）
+- Current Avatar app backend-session applies commands and calls Cubism `model.update()` when command-state changes.
+- Avatar carrier WebGL `preDraw` / `draw` / `postDraw` proof is not admitted in Phase 1. A later visual-render wave must add deterministic canvas proof before this contract may claim Avatar carrier draw-loop closure.
 
 ### 3.2 Delta Time
 
@@ -117,7 +115,7 @@ Avatar app 接收 `model_path`（来自 `avatar.app.start.detail.model_path` 或
 
 ### 4.1 调度规则 (NAV-L2D-006)
 
-Continuous handler 在**主 render loop 内**按声明 fps 调度：
+Continuous handler 在 Avatar app frame scheduler 内按声明 fps 调度：
 
 ```
 For each continuous handler h:
@@ -127,15 +125,15 @@ For each continuous handler h:
     h.lastRunAt = now
 ```
 
-- 所有 continuous handlers 在 `update(deltaTime)` 之后、`preDraw` 之前调用
+- 所有 continuous handlers 在同一 scheduler tick 内按顺序调用；current backend command-state changes are applied through the projection API.
 - 多 handler 并行：同帧内按 filename 字典序顺序调用
-- Handler 写的 `setParameter` 立即生效于当前帧 preDraw
+- Handler 写的 `setParameter` 立即更新 backend command-state and Cubism model update path.
 
 ### 4.2 Frame Budget
 
 - 单个 continuous handler 预算：`1000 / fps * 0.5` ms
 - 超预算 → `console.warn` + skip 下一帧（不禁用 handler）
-- 连续 10 帧超预算 → emit `avatar.model.handler.throttled` event
+- 连续 10 帧超预算 → emit `avatar.model.handler.throttled` event (not implemented in current Phase 1; this event remains blocked until frame-budget enforcement lands)
 
 ---
 

@@ -123,6 +123,48 @@ Fixed rules:
 - no runtime-private executor may retain JSON model-output compatibility or
   silently downgrade invalid APML into success
 
+## K-AGCORE-048 APML LLM Compliance Harness
+
+APML LLM compliance is an enforcement posture, not only prompt wording.
+
+The admitted compliance boundary is:
+
+- first-party prompts may teach only admitted public APML shapes;
+- runtime parsers remain the authority for acceptance or rejection;
+- invalid model output must fail closed with diagnostics and no placeholder
+  success;
+- executable negative tests are required for every admitted dialect class that
+  can be confused with legacy JSON, prose wrappers, or another APML dialect.
+
+Public chat compliance must cover:
+
+- successful `<message>` output with admitted message children;
+- successful sibling image/voice `<action>` output;
+- successful narrow `<time-hook>` and `<event-hook>` HookIntent proposal output;
+- rejection of JSON model-output compatibility;
+- rejection of prose wrappers, Markdown/code fences, comments, processing
+  instructions, directives, XML namespaces, duplicate attributes, unknown
+  attributes, unknown tags, invalid hierarchy, and multiple competing hook
+  triggers;
+- rejection of runtime-private roots such as `<life-turn>`,
+  `<chat-track-sidecar>`, and `<canonical-review>` on the public chat path.
+
+Runtime-private compliance must cover each K-AGCORE-047 root-specific dialect
+separately. A private root is never a synonym for the public chat vocabulary.
+
+Fixed rules:
+
+- prompt-only compliance is not sufficient for closeout;
+- provider-specific hidden formatting, grammar hacks, or constrained decoding
+  may be added only by later explicit authority and must not weaken parser
+  fail-close semantics;
+- parsers must not strip wrappers, repair malformed XML, recover fenced APML,
+  or translate invalid output into a best-effort success envelope;
+- Desktop or SDK consumers must not re-accept model output that runtime would
+  reject on the same admitted path;
+- compliance tests must exercise both success and negative cases before a
+  dialect widening can be closed.
+
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`

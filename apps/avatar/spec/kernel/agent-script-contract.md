@@ -425,25 +425,25 @@ Default = silent skip。大多数 event 没有有意义的 default 行为。
 ## 8. Hot Reload ⚠️ [分叉 48 — Option B]
 Dev + production 都支持。
 ### 8.1 Reload Triggering
-Avatar app 启动 file watcher 监听 `<model>/runtime/nimi/` 目录。任意 JS 文件变更 → 触发 reload。
+Avatar app 启动 Tauri `notify` file watcher 监听 `<model>/runtime/nimi/` 目录。任意 JS 文件变更 → 触发 reload。Watcher event 只作为 reload trigger；canonical handler truth 仍来自重新扫描目录与重新加载 handler source，不来自 watcher payload 推断。
 ### 8.2 Reload Flow
 ```
 File change detected (e.g. nimi/activity/happy.js)
   ↓
 Parse new module
-  ├── Syntax error → reject, log, keep old handler
-  └── Valid → proceed
+      ├── Syntax error → reject, log, keep old handler
+      └── Valid → proceed
       ↓
 Atomic swap in handler registry
-  ↓
+      ↓
 In-flight execute() continues to completion with old handler
-  ↓
+      ↓
 Next invocation uses new handler
-  ↓
+      ↓
 Emit avatar.model.script.reloaded event
 ```
 ### 8.3 Continuous Handler Reload
-Continuous handler 的 `update` 被重载后，**下一帧**开始用新 handler。
+Continuous handler 的 `update` 被重载后，**下一帧**开始用新 handler。Reload 失败不得改变 active continuous handler set。
 ### 8.4 Reload Event Payload
 ```yaml
 avatar.model.script.reloaded:
@@ -451,6 +451,7 @@ avatar.model.script.reloaded:
     model_id: string
     changed_files: [string]          # e.g. ["activity/happy.js"]
     reload_mode: "add" | "update" | "remove"
+    applied: bool                    # false means old registry remains active
     validation_errors: [string]      # if any
 ```
 ---

@@ -116,11 +116,11 @@ session_events:
 
 presentation_events:
   - event: runtime.agent.presentation.activity_requested
-    source_rule: K-AGCORE-037
+    source_rule: K-AGCORE-049
     detail:
       activity_name: string
-      category: string
-      intensity: string_optional
+      category: enum(emotion|interaction|state)
+      intensity: enum(weak|moderate|strong)_optional
       source: string
   - event: runtime.agent.presentation.motion_requested
     source_rule: K-AGCORE-037

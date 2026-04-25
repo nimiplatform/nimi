@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_s_rules: 138
+  total_s_rules: 139
   audit_date: "2026-03-23"
   sdk_version: "0.4.0"
 
@@ -514,6 +514,16 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "Transient avatar interaction state remains above SDK runtime; consistency gate records the explicit downstream ownership boundary"
+  - rule_id: S-RUNTIME-106
+    status: covered
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    test_files: [sdk/test/runtime/runtime-agent-surface.test.ts]
+    note: "Broad SDK Event API remains deferred; the admitted consume path is runtime.agent.turns.subscribe with fail-closed runtime projection parsing"
+  - rule_id: S-RUNTIME-107
+    status: covered
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_boundary_gate]
+    test_files: [sdk/test/runtime/runtime-agent-surface.test.ts]
+    note: "Local SDK consumer trust posture is covered by explicit agent/anchor request projection, anchor-native snapshot recovery, protected runtime.agent read/write scopes, and multi-agent/multi-anchor isolation tests"
 
   # --- World Contract (S-WORLD) ---
   - rule_id: S-WORLD-001

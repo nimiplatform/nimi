@@ -1,0 +1,78 @@
+version: 1
+source_rule: K-AGCORE-049
+
+categories:
+  emotion:
+    intensity_supported: true
+    activities:
+      - happy
+      - sad
+      - shy
+      - angry
+      - surprised
+      - confused
+      - excited
+      - worried
+      - embarrassed
+      - neutral
+  interaction:
+    intensity_supported: false
+    activities:
+      - greet
+      - farewell
+      - agree
+      - disagree
+      - listening
+      - thinking
+  state:
+    intensity_supported: false
+    activities:
+      - idle
+      - celebrating
+      - sleeping
+      - focused
+
+intensity:
+  admitted_values:
+    - weak
+    - moderate
+    - strong
+  rules:
+    - only emotion activities other than neutral may carry intensity
+    - interaction and state activities must project intensity as absent
+    - public APML activity intensity attributes are not admitted until a later APML dialect widening
+
+extended_activities:
+  emotion:
+    intensity_supported: true
+    activities:
+      - ext:apologetic
+      - ext:proud
+      - ext:lonely
+      - ext:grateful
+  interaction:
+    intensity_supported: false
+    activities:
+      - ext:acknowledging
+      - ext:encouraging
+      - ext:teasing
+  state:
+    intensity_supported: false
+    activities:
+      - ext:resting
+      - ext:playing
+      - ext:eating
+
+custom_namespace:
+  prefix_pattern: "mod-<modid>:<activity>"
+  modid_pattern: "^[a-z][a-z0-9-]*$"
+  activity_pattern: "^[a-z][a-z0-9-]*$"
+  category_source: mod manifest only
+  current_runtime_public_chat_admission: not admitted without manifest-backed authority
+
+projection_rules:
+  - runtime.agent.presentation.activity_requested.detail.activity_name must be one of the admitted core or extended ids unless a manifest-backed mod namespace is admitted later.
+  - runtime.agent.presentation.activity_requested.detail.category must be emotion, interaction, or state.
+  - runtime.agent.presentation.activity_requested.detail.intensity must be absent or weak, moderate, strong.
+  - runtime.agent.presentation.activity_requested.detail.source records the upstream projection source and does not replace category authority.
+  - apps/avatar may map admitted ids to backend-specific motion groups, but must not change the activity category or intensity truth.

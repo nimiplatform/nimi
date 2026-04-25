@@ -187,7 +187,7 @@ interface MockTrigger {
       "type": "runtime.agent.presentation.activity_requested",
       "detail": {
         "activity_name": "neutral",
-        "category": "state",
+        "category": "emotion",
         "intensity": null,
         "source": "mock"
       }

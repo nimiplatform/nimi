@@ -505,6 +505,9 @@
 | `K-AGCORE-045` | `covered` | `runtime_kernel_consistency` |
 | `K-AGCORE-046` | `covered` | `runtime_kernel_consistency` |
 | `K-AGCORE-047` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AGCORE-048` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AGCORE-049` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AGCORE-050` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
 | `K-RPC-004c` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
