@@ -4,9 +4,11 @@ mod avatar_instance_projection;
 mod avatar_instance_registry;
 mod avatar_launch_context;
 
+use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use avatar_instance_projection::{persist_projection, AvatarInstanceProjectionRecord};
 use avatar_instance_registry::AvatarInstanceRegistry;
@@ -17,6 +19,7 @@ use avatar_launch_context::{
 use nimi_kit_shell_tauri::auth_session_commands;
 use nimi_kit_shell_tauri::runtime_bridge;
 use nimi_kit_shell_tauri::runtime_defaults as defaults;
+use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use tauri::{
     Emitter, Manager, PhysicalSize, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
@@ -54,6 +57,21 @@ struct NasHandlerEntry {
     file_stem: String,
     absolute_path: String,
 }
+
+#[derive(Default)]
+struct NasWatcherRegistry {
+    watchers: Mutex<HashMap<String, RecommendedWatcher>>,
+}
+
+#[derive(Clone, Serialize)]
+struct NasHandlersChangedPayload {
+    watcher_id: String,
+    nimi_dir: String,
+    changed_files: Vec<String>,
+    reload_mode: String,
+}
+
+const NAS_HANDLERS_CHANGED_EVENT: &str = "avatar://nas-handlers-changed";
 
 fn sanitize_window_label_component(input: &str) -> String {
     let mut sanitized = String::new();
@@ -396,6 +414,87 @@ async fn nimi_avatar_read_binary_file(path: String) -> Result<Vec<u8>, String> {
     fs::read(&path).map_err(|e| format!("read {} failed: {}", path, e))
 }
 
+fn nas_reload_mode_for_event(kind: &EventKind) -> &'static str {
+    match kind {
+        EventKind::Create(_) => "add",
+        EventKind::Remove(_) => "remove",
+        EventKind::Modify(_) => "update",
+        _ => "update",
+    }
+}
+
+#[tauri::command]
+async fn nimi_avatar_watch_nas_handlers(
+    app: tauri::AppHandle,
+    state: State<'_, NasWatcherRegistry>,
+    nimi_dir: String,
+    watcher_id: String,
+) -> Result<(), String> {
+    let root = PathBuf::from(&nimi_dir);
+    if !root.is_dir() {
+        return Err(format!("nimi directory does not exist: {}", nimi_dir));
+    }
+    if watcher_id.trim().is_empty() {
+        return Err("NAS watcher id is required".to_string());
+    }
+
+    let event_root = root.clone();
+    let event_nimi_dir = nimi_dir.clone();
+    let event_watcher_id = watcher_id.clone();
+    let mut watcher = RecommendedWatcher::new(
+        move |result: notify::Result<notify::Event>| {
+            let Ok(event) = result else {
+                return;
+            };
+            let changed_files = event
+                .paths
+                .iter()
+                .map(|path| {
+                    path.strip_prefix(&event_root)
+                        .unwrap_or(path)
+                        .display()
+                        .to_string()
+                })
+                .collect::<Vec<_>>();
+            if changed_files.is_empty() {
+                return;
+            }
+            let payload = NasHandlersChangedPayload {
+                watcher_id: event_watcher_id.clone(),
+                nimi_dir: event_nimi_dir.clone(),
+                changed_files,
+                reload_mode: nas_reload_mode_for_event(&event.kind).to_string(),
+            };
+            let _ = app.emit(NAS_HANDLERS_CHANGED_EVENT, payload);
+        },
+        Config::default(),
+    )
+    .map_err(|e| format!("create NAS watcher failed: {e}"))?;
+    watcher
+        .watch(&root, RecursiveMode::Recursive)
+        .map_err(|e| format!("watch NAS directory failed: {e}"))?;
+
+    let mut watchers = state
+        .watchers
+        .lock()
+        .map_err(|_| "NAS watcher registry lock poisoned".to_string())?;
+    watchers.insert(watcher_id, watcher);
+    Ok(())
+}
+
+#[tauri::command]
+async fn nimi_avatar_unwatch_nas_handlers(
+    state: State<'_, NasWatcherRegistry>,
+    watcher_id: String,
+) -> Result<(), String> {
+    let mut watchers = state
+        .watchers
+        .lock()
+        .map_err(|_| "NAS watcher registry lock poisoned".to_string())?;
+    watchers.remove(&watcher_id);
+    Ok(())
+}
+
 fn configure_runtime_bridge_env() {
     if cfg!(debug_assertions) && std::env::var_os("NIMI_RUNTIME_BRIDGE_MODE").is_none() {
         std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME");
@@ -409,6 +508,7 @@ fn main() {
 
     tauri::Builder::default()
         .manage(AvatarInstanceRegistry::new())
+        .manage(NasWatcherRegistry::default())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -442,6 +542,8 @@ fn main() {
             nimi_avatar_scan_nas_handlers,
             nimi_avatar_read_text_file,
             nimi_avatar_read_binary_file,
+            nimi_avatar_watch_nas_handlers,
+            nimi_avatar_unwatch_nas_handlers,
         ])
         .setup(|app| {
             use tauri_plugin_deep_link::DeepLinkExt;

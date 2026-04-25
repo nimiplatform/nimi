@@ -5,6 +5,8 @@ import { useAvatarStore } from '../app-shell/app-store.js';
 const resolveModelManifestMock = vi.fn();
 const scanNasHandlersMock = vi.fn();
 const populateRegistryMock = vi.fn();
+const startNasHandlerHotReloadMock = vi.fn();
+const stopNasHandlerHotReloadMock = vi.fn();
 const waitForCubismCoreMock = vi.fn();
 const loadOfficialCubismFrameworkRuntimeMock = vi.fn();
 const createLive2DBackendSessionMock = vi.fn();
@@ -33,6 +35,7 @@ vi.mock('../nas/handler-registry.js', async () => {
     ...actual,
     scanNasHandlers: (...args: unknown[]) => scanNasHandlersMock(...args),
     populateRegistry: (...args: unknown[]) => populateRegistryMock(...args),
+    startNasHandlerHotReload: (...args: unknown[]) => startNasHandlerHotReloadMock(...args),
   };
 });
 
@@ -110,6 +113,8 @@ describe('avatar runtime carrier', () => {
     resolveModelManifestMock.mockReset();
     scanNasHandlersMock.mockReset();
     populateRegistryMock.mockReset();
+    startNasHandlerHotReloadMock.mockReset();
+    stopNasHandlerHotReloadMock.mockReset();
     waitForCubismCoreMock.mockReset();
     loadOfficialCubismFrameworkRuntimeMock.mockReset();
     createLive2DBackendSessionMock.mockReset();
@@ -128,6 +133,8 @@ describe('avatar runtime carrier', () => {
       configJsonPath: null,
     });
     populateRegistryMock.mockResolvedValue(undefined);
+    stopNasHandlerHotReloadMock.mockResolvedValue(undefined);
+    startNasHandlerHotReloadMock.mockResolvedValue(stopNasHandlerHotReloadMock);
     waitForCubismCoreMock.mockResolvedValue({ Version: { csmGetVersion: () => 1, csmGetLatestMocVersion: () => 1 } });
     loadOfficialCubismFrameworkRuntimeMock.mockResolvedValue({ CubismFramework: {} });
     createLive2DBackendSessionMock.mockResolvedValue({
@@ -219,6 +226,12 @@ describe('avatar runtime carrier', () => {
     await Promise.resolve();
 
     expect(scanNasHandlersMock).toHaveBeenCalledWith('/models/ren/runtime/nimi');
+    expect(startNasHandlerHotReloadMock).toHaveBeenCalledWith(expect.objectContaining({
+      modelId: 'ren',
+      nimiDir: '/models/ren/runtime/nimi',
+      registry: carrier.registry,
+      emit: expect.any(Function),
+    }));
     expect(handler.execute).toHaveBeenCalledWith(
       expect.objectContaining({
         event: expect.objectContaining({
@@ -231,6 +244,7 @@ describe('avatar runtime carrier', () => {
     );
 
     carrier.shutdown();
+    expect(stopNasHandlerHotReloadMock).toHaveBeenCalledTimes(1);
   });
 
   it('fails closed and records model error when model manifest resolution fails', async () => {

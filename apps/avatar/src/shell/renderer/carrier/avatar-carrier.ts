@@ -5,7 +5,14 @@ import { createLive2DBackendSession, type Live2DBackendSession } from '../live2d
 import { loadOfficialCubismFrameworkRuntime } from '../live2d/cubism-framework-runtime.js';
 import { ContinuousScheduler, wireEventDispatch } from '../nas/event-dispatch.js';
 import { HandlerExecutor } from '../nas/handler-executor.js';
-import { createHandlerRegistry, disposeRegistry, populateRegistry, scanNasHandlers, type HandlerRegistry } from '../nas/handler-registry.js';
+import {
+  createHandlerRegistry,
+  disposeRegistry,
+  populateRegistry,
+  scanNasHandlers,
+  startNasHandlerHotReload,
+  type HandlerRegistry,
+} from '../nas/handler-registry.js';
 import { resolveModelManifest, type ModelManifest } from '../live2d/model-loader.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
 
@@ -43,9 +50,16 @@ export async function startAvatarRuntimeCarrier(input: {
   }
 
   const registry = createHandlerRegistry();
+  let stopNasHotReload: (() => Promise<void>) | null = null;
   if (model.nimiDir) {
     const manifest = await scanNasHandlers(model.nimiDir);
     await populateRegistry(registry, manifest);
+    stopNasHotReload = await startNasHandlerHotReload({
+      modelId: model.modelId,
+      nimiDir: model.nimiDir,
+      registry,
+      emit: (event) => input.driver.emit(event),
+    });
   }
 
   const commandBus = createCommandBus();
@@ -57,6 +71,9 @@ export async function startAvatarRuntimeCarrier(input: {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     store.setModelError(message);
+    await stopNasHotReload?.().catch((err: unknown) => {
+      console.warn(`[avatar:nas] failed to stop hot reload watcher after backend failure: ${err instanceof Error ? err.message : String(err)}`);
+    });
     disposeRegistry(registry);
     throw error;
   }
@@ -111,6 +128,9 @@ export async function startAvatarRuntimeCarrier(input: {
       unwireDispatch();
       unwireBackend();
       executor.cancelAll();
+      void stopNasHotReload?.().catch((err: unknown) => {
+        console.warn(`[avatar:nas] failed to stop hot reload watcher: ${err instanceof Error ? err.message : String(err)}`);
+      });
       disposeRegistry(registry);
       backendSession.unload();
     },
