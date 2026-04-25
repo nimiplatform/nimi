@@ -3,7 +3,6 @@ import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 
-type MarkNotificationsReadInputDto = RealmModel<'MarkNotificationsReadInputDto'>;
 type CreateReviewDto = RealmModel<'CreateReviewDto'>;
 type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
 type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;

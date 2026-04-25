@@ -682,6 +682,241 @@ test('agent runtime turn stream binds to the current request_id and ignores back
   }
 });
 
+test('agent runtime turn consumes runtime-owned projection events without opting out of SDK agent events', async () => {
+  clearPlatformClient();
+  const client = await createPlatformClient({
+    appId: 'nimi.desktop.test.anchor-agent-projection',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+  const subscribeCalls: Array<{
+    agentId: string;
+    conversationAnchorId?: string;
+    includeAgentEvents?: boolean;
+  }> = [];
+  const requestCalls: Array<{
+    agentId: string;
+    conversationAnchorId: string;
+    requestId?: string;
+    threadId: string;
+  }> = [];
+  (client as unknown as { runtime: unknown }).runtime = {
+    local: {
+      listLocalAssets: async () => ({
+        assets: [{
+          localAssetId: 'local-model-1',
+          assetId: 'llama3',
+          engine: 'llama',
+          endpoint: 'http://127.0.0.1:11434/v1',
+          updatedAt: '2026-04-23T00:00:00.000Z',
+          status: 2,
+        }],
+        nextPageToken: '',
+      }),
+      warmLocalAsset: async () => ({
+        asset: {
+          localAssetId: 'local-model-1',
+        },
+      }),
+    },
+    agent: {
+      turns: {
+        subscribe: async (request: {
+          agentId: string;
+          conversationAnchorId?: string;
+          includeAgentEvents?: boolean;
+        }) => {
+          subscribeCalls.push(request);
+          return {
+            async *[Symbol.asyncIterator]() {
+              while (!requestCalls[0]?.requestId) {
+                await Promise.resolve();
+              }
+              yield {
+                eventName: 'runtime.agent.turn.accepted' as const,
+                agentId: 'agent-1',
+                conversationAnchorId: 'anchor-projection',
+                turnId: 'turn-projection',
+                streamId: 'stream-projection',
+                detail: { requestId: requestCalls[0]?.requestId || '' },
+              };
+              yield {
+                eventName: 'runtime.agent.state.status_text_changed' as const,
+                agentId: 'agent-1',
+                conversationAnchorId: 'other-anchor',
+                detail: {
+                  currentStatusText: 'wrong anchor',
+                },
+              };
+              yield {
+                eventName: 'runtime.agent.state.status_text_changed' as const,
+                agentId: 'agent-1',
+                conversationAnchorId: 'anchor-projection',
+                originatingTurnId: 'turn-projection',
+                originatingStreamId: 'stream-projection',
+                detail: {
+                  currentStatusText: 'thinking',
+                  previousStatusText: 'idle',
+                },
+              };
+              yield {
+                eventName: 'runtime.agent.hook.intent_proposed' as const,
+                agentId: 'agent-1',
+                conversationAnchorId: 'anchor-projection',
+                originatingTurnId: 'turn-projection',
+                originatingStreamId: 'stream-projection',
+                detail: {
+                  intentId: 'hook-1',
+                  triggerFamily: 'event',
+                  triggerDetail: { eventKind: 'user-idle' },
+                  effect: 'follow-up-turn',
+                  admissionState: 'proposed',
+                },
+              };
+              yield {
+                eventName: 'runtime.agent.presentation.activity_requested' as const,
+                agentId: 'agent-1',
+                conversationAnchorId: 'anchor-projection',
+                turnId: 'turn-projection',
+                streamId: 'stream-projection',
+                detail: {
+                  activityName: 'chat-thinking',
+                  category: 'status',
+                  source: 'runtime-agent',
+                },
+              };
+              yield {
+                eventName: 'runtime.agent.turn.structured' as const,
+                turnId: 'turn-projection',
+                streamId: 'stream-projection',
+                detail: {
+                  kind: 'agent_resolved_message_action_envelope',
+                  payload: {
+                    message: {
+                      message_id: 'assistant-1',
+                      text: 'projection consumed',
+                    },
+                    actions: [],
+                  },
+                },
+              };
+              yield {
+                eventName: 'runtime.agent.turn.message_committed' as const,
+                turnId: 'turn-projection',
+                streamId: 'stream-projection',
+                messageId: 'assistant-1',
+                detail: {
+                  messageId: 'assistant-1',
+                  text: 'projection consumed',
+                },
+              };
+              yield {
+                eventName: 'runtime.agent.turn.completed' as const,
+                turnId: 'turn-projection',
+                streamId: 'stream-projection',
+                detail: {
+                  terminalReason: 'stop',
+                },
+              };
+            },
+          };
+        },
+        request: async (request: {
+          agentId: string;
+          conversationAnchorId: string;
+          requestId?: string;
+          threadId: string;
+        }) => {
+          requestCalls.push(request);
+        },
+        interrupt: async () => undefined,
+      },
+    },
+  };
+
+  try {
+    const projection = createLocalTextProjection();
+    const agentResolution = buildAgentEffectiveCapabilityResolution({
+      textProjection: projection,
+    });
+    const executionSnapshot = createAISnapshot({
+      config: createEmptyAIConfig(),
+      capability: 'text.generate',
+      projection,
+      agentResolution,
+    });
+
+    const result = await streamChatAgentRuntimeAgentTurn({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-projection',
+      threadId: 'thread-projection',
+      messages: [{ role: 'user', text: 'hello projection' }],
+      reasoningPreference: 'off',
+      agentResolution,
+      textExecutionSnapshot: executionSnapshot,
+      runtimeConfigState: null,
+      runtimeFields: {
+        targetType: '',
+        targetAccountId: '',
+        agentId: 'agent-1',
+        targetId: '',
+        worldId: '',
+        provider: 'llama',
+        runtimeModelType: 'chat',
+        localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+        localProviderModel: 'llama3',
+        localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
+        connectorId: '',
+        mode: 'STORY',
+        turnIndex: 1,
+        userConfirmedUpload: false,
+      },
+      signal: new AbortController().signal,
+    });
+    const parts: Array<{
+      type: string;
+      outputText?: string;
+      diagnostics?: Record<string, unknown>;
+    }> = [];
+    for await (const part of result.stream) {
+      parts.push(part as {
+        type: string;
+        outputText?: string;
+        diagnostics?: Record<string, unknown>;
+      });
+    }
+
+    assert.equal(subscribeCalls.length, 1);
+    assert.equal(subscribeCalls[0]?.includeAgentEvents, undefined);
+    assert.deepEqual(
+      parts.map((part) => part.type),
+      ['message-sealed', 'turn-completed'],
+    );
+    assert.equal(parts[1]?.outputText, 'projection consumed');
+    const projectionEvents = parts[1]?.diagnostics?.runtimeProjectionEvents;
+    assert.ok(Array.isArray(projectionEvents));
+    const projectionEventRecords = projectionEvents as Array<{
+      eventName: string;
+      runtimeTurnId: string | null;
+      detail: Record<string, unknown>;
+    }>;
+    assert.deepEqual(
+      projectionEventRecords.map((event) => event.eventName),
+      [
+        'runtime.agent.state.status_text_changed',
+        'runtime.agent.hook.intent_proposed',
+        'runtime.agent.presentation.activity_requested',
+      ],
+    );
+    assert.equal(projectionEventRecords[0]?.runtimeTurnId, 'turn-projection');
+    assert.equal(projectionEventRecords[1]?.detail.intentId, 'hook-1');
+    assert.equal(projectionEventRecords[2]?.detail.activityName, 'chat-thinking');
+  } finally {
+    clearPlatformClient();
+  }
+});
+
 test('agent runtime turn warms local model before requesting runtime.agent turn on local routes', async () => {
   resetRuntimeLocalModelWarmCacheForTests();
   clearPlatformClient();

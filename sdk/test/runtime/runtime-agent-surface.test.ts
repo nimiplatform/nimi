@@ -418,6 +418,181 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
   }
 });
 
+test('runtime agent turns subscribe parses Wave 2 hook projection events with origin and rejection detail', async () => {
+  let capturedAgentSubscribeRequest: SubscribeAgentEventsRequest | null = null;
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.auth.registerApp) {
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          accepted: true,
+        }));
+      }
+      if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+        const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
+        assert.deepEqual(request.scopes, ['runtime.agent.chat.read']);
+        return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
+          tokenId: 'token-read',
+          appId: APP_ID,
+          subjectUserId: 'subject-1',
+          externalPrincipalId: APP_ID,
+          effectiveScopes: request.scopes,
+          policyVersion: '1.0.0',
+          issuedScopeCatalogVersion: '1.0.0',
+          canDelegate: false,
+          secret: 'secret-read',
+        }));
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.app.subscribeAppMessages) {
+        return {
+          async *[Symbol.asyncIterator]() {},
+        };
+      }
+      if (input.methodId === RuntimeMethodIds.agent.subscribeEvents) {
+        capturedAgentSubscribeRequest = SubscribeAgentEventsRequest.fromBinary(input.request);
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield createAgentEvent({
+              eventType: AgentEventType.HOOK,
+              agentId: 'agent-1',
+              detail: {
+                oneofKind: 'hook',
+                hook: {
+                  family: HookAdmissionState.PROPOSED,
+                  intent: {
+                    intentId: 'action-wave2-event',
+                    agentId: 'agent-1',
+                    conversationAnchorId: 'anchor-1',
+                    originatingTurnId: 'turn-wave2',
+                    originatingStreamId: 'stream-wave2',
+                    triggerFamily: HookTriggerFamily.EVENT,
+                    triggerDetail: {
+                      detail: {
+                        oneofKind: 'eventUserIdle',
+                        eventUserIdle: {
+                          idleFor: { seconds: '120', nanos: 0 },
+                        },
+                      },
+                    },
+                    effect: HookEffect.FOLLOW_UP_TURN,
+                    admissionState: HookAdmissionState.PROPOSED,
+                  },
+                  observedAt: Timestamp.create({ seconds: '1700000100', nanos: 500000000 }),
+                },
+              },
+            });
+            yield createAgentEvent({
+              eventType: AgentEventType.HOOK,
+              agentId: 'agent-1',
+              detail: {
+                oneofKind: 'hook',
+                hook: {
+                  family: HookAdmissionState.REJECTED,
+                  intent: {
+                    intentId: 'action-wave2-event',
+                    agentId: 'agent-1',
+                    conversationAnchorId: 'anchor-1',
+                    originatingTurnId: 'turn-wave2',
+                    originatingStreamId: 'stream-wave2',
+                    triggerFamily: HookTriggerFamily.EVENT,
+                    triggerDetail: {
+                      detail: {
+                        oneofKind: 'eventUserIdle',
+                        eventUserIdle: {
+                          idleFor: { seconds: '120', nanos: 0 },
+                        },
+                      },
+                    },
+                    effect: HookEffect.FOLLOW_UP_TURN,
+                    admissionState: HookAdmissionState.REJECTED,
+                    reason: 'continue after idle',
+                  },
+                  reasonCode: RuntimeProtoReasonCode.AI_OUTPUT_INVALID,
+                  message: 'event hook trigger execution is not admitted by runtime public chat follow-up scheduler',
+                  reason: 'continue after idle',
+                  observedAt: Timestamp.create({ seconds: '1700000101', nanos: 0 }),
+                },
+              },
+            });
+          },
+        };
+      }
+      throw new Error(`unexpected stream method: ${input.methodId}`);
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      subjectContext: {
+        subjectUserId: 'subject-1',
+      },
+    });
+
+    const stream = await runtime.agent.turns.subscribe({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+    });
+    const events = await collectRuntimeAgentEvents(stream);
+
+    assert.equal(capturedAgentSubscribeRequest?.agentId, 'agent-1');
+    assert.deepEqual(capturedAgentSubscribeRequest?.eventFilters, [
+      AgentEventType.HOOK,
+      AgentEventType.STATE,
+    ]);
+    assert.deepEqual(events.map((event) => event.eventName), [
+      'runtime.agent.hook.intent_proposed',
+      'runtime.agent.hook.rejected',
+    ]);
+
+    const proposed = events[0];
+    assert.equal(proposed?.eventName, 'runtime.agent.hook.intent_proposed');
+    if (proposed?.eventName === 'runtime.agent.hook.intent_proposed') {
+      assert.equal(proposed.conversationAnchorId, 'anchor-1');
+      assert.equal(proposed.originatingTurnId, 'turn-wave2');
+      assert.equal(proposed.originatingStreamId, 'stream-wave2');
+      assert.equal(proposed.detail.intentId, 'action-wave2-event');
+      assert.equal(proposed.detail.triggerFamily, 'event');
+      assert.equal(proposed.detail.effect, 'follow-up-turn');
+      assert.equal(proposed.detail.admissionState, 'proposed');
+      assert.deepEqual(proposed.detail.triggerDetail, {
+        kind: 'event_user_idle',
+        idleForMs: 120000,
+      });
+      assert.equal(proposed.detail.observedAt, '2023-11-14T22:15:00.500Z');
+    }
+
+    const rejected = events[1];
+    assert.equal(rejected?.eventName, 'runtime.agent.hook.rejected');
+    if (rejected?.eventName === 'runtime.agent.hook.rejected') {
+      assert.equal(rejected.conversationAnchorId, 'anchor-1');
+      assert.equal(rejected.originatingTurnId, 'turn-wave2');
+      assert.equal(rejected.originatingStreamId, 'stream-wave2');
+      assert.equal(rejected.detail.intentId, 'action-wave2-event');
+      assert.equal(rejected.detail.triggerFamily, 'event');
+      assert.equal(rejected.detail.admissionState, 'rejected');
+      assert.equal(rejected.detail.reasonCode, 'AI_OUTPUT_INVALID');
+      assert.equal(rejected.detail.message, 'event hook trigger execution is not admitted by runtime public chat follow-up scheduler');
+      assert.equal(rejected.detail.reason, 'continue after idle');
+      assert.deepEqual(rejected.detail.triggerDetail, {
+        kind: 'event_user_idle',
+        idleForMs: 120000,
+      });
+      assert.equal(rejected.detail.observedAt, '2023-11-14T22:15:01.000Z');
+    }
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
 test('runtime agent session snapshot recovery stays anchor-native and consumer-owned', async () => {
   const capturedMessages: SendAppMessageRequest[] = [];
 

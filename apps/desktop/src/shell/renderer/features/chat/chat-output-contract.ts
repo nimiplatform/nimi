@@ -14,7 +14,7 @@ function buildDesktopChatOutputContractLines(): string[] {
     '<action> must include id, kind, source-message, and coupling="after-message" or coupling="with-message".',
     '<action> must contain <prompt-payload kind="image|voice"><prompt-text>...</prompt-text></prompt-payload>.',
     'Emit at most one image action and at most one voice action in the entire response.',
-    'Deferred continuation must use <time-hook> or <event-hook> with <effect kind="follow-up-turn">, not an <action>.',
+    'Deferred continuation must use <time-hook> with <delay-ms> or <event-hook> with exactly one <event-user-idle idle-for="600s"/> or <event-chat-ended/>, plus <effect kind="follow-up-turn">, not an <action>.',
     'If no action or hook is needed, emit only the single <message> element.',
     'Keep internal planning private and never include chain-of-thought fields.',
   ];

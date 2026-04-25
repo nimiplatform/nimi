@@ -258,6 +258,29 @@ function buildResolvedBehaviorSection(resolvedBehavior: AgentResolvedBehavior | 
   });
 }
 
+function buildActionPlanningSection(resolvedBehavior: AgentResolvedBehavior | null | undefined): string | null {
+  if (!resolvedBehavior) {
+    return null;
+  }
+  const lines = [
+    'Plan immediate post-turn actions only through APML <action> siblings after </message>.',
+    'Never put a media generation prompt only in visible message text when an immediate media action is intended.',
+  ];
+  if (resolvedBehavior.resolvedExperiencePolicy.contentBoundary === 'explicit-media-request') {
+    lines.push(
+      'For an affirmative latest user request to create, send, show, or generate an image, emit exactly one image action with operation="image.generate" and a complete <prompt-text>.',
+      'If the latest user message negates or cancels image generation, do not emit an image action.',
+    );
+  }
+  if (resolvedBehavior.resolvedTurnMode === 'explicit-voice') {
+    lines.push(
+      'For an affirmative latest user request for voice playback, emit exactly one voice action with operation="audio.synthesize" and a complete <prompt-text>.',
+      'If the latest user message negates or cancels voice playback, do not emit a voice action.',
+    );
+  }
+  return ['Action Planning:', ...lines.map((line) => `- ${line}`)].join('\n');
+}
+
 function buildSafetyPolicySection(): string {
   return [
     'Treat the following as non-negotiable safety rules.',
@@ -278,12 +301,14 @@ function buildSystemPrompt(input: {
   resolvedBehavior?: AgentResolvedBehavior | null;
 }): string | null {
   const resolvedBehaviorSection = buildResolvedBehaviorSection(input.resolvedBehavior);
+  const actionPlanningSection = buildActionPlanningSection(input.resolvedBehavior);
   const followUpInstruction = normalizeWhitespace(input.followUpInstruction);
   const sections = [
     normalizeText(input.systemPrompt) ? `Preset:\n${normalizeWhitespace(input.systemPrompt)}` : null,
     `Target:\n${buildTargetSection(input.targetSnapshot, input.bioCharLimit)}`,
     `Continuity:\n${buildContinuitySection(input.digest)}`,
     resolvedBehaviorSection ? `ResolvedBehavior:\n${resolvedBehaviorSection}` : null,
+    actionPlanningSection,
     `Safety Policy:\n${buildSafetyPolicySection()}`,
     followUpInstruction
       ? `FollowUpInstruction:\n${followUpInstruction}\n\nTreat this as an internal continuation cue, not a new user message. Continue naturally from the latest assistant turn. Add only net-new content. Do not restate the previous assistant reply. If no natural continuation is needed, return only one concise <message> and do not repeat the prior message.`

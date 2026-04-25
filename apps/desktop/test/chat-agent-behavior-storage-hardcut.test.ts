@@ -10,7 +10,7 @@ function readSource(relativePath: string): string {
 const chatSettingsStorageSource = readSource('../src/shell/renderer/features/chat/chat-settings-storage.ts');
 const chatAgentShellAdapterSource = readSource('../src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
 const packetSource = readSource(
-  '../../../.nimi/topics/ongoing/2026-04-24-governance-runtime-desktop-gate-repair/packet-wave-2-desktop-agent-chat-behavior-storage-hardcut.md',
+  '../../../.nimi/topics/closed/2026-04-24-governance-runtime-desktop-gate-repair/packet-wave-2-desktop-agent-chat-behavior-storage-hardcut.md',
 );
 
 test('agent chat behavior settings no longer have a durable renderer storage key', () => {
@@ -30,7 +30,7 @@ test('agent shell keeps behavior settings in process state instead of localStora
 });
 
 test('packet claims only finding-0010 for the agent behavior storage hardcut', () => {
-  assert.match(packetSource, /finding_claims:\n  - finding-0010/);
+  assert.match(packetSource, /finding_claims:\n {2}- finding-0010/);
   assert.doesNotMatch(packetSource, /finding_claims:[\s\S]*finding-0013/);
   assert.doesNotMatch(packetSource, /finding_claims:[\s\S]*finding-0016/);
   assert.doesNotMatch(packetSource, /finding_claims:[\s\S]*finding-0023/);

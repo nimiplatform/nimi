@@ -33,7 +33,8 @@ test('desktop chat output contract helper exposes APML rules', () => {
   assert.match(section, /sibling <action> tags after <\/message>/);
   assert.match(section, /kind may be only "image" or "voice"/);
   assert.match(section, /Do not emit kind="video"/);
-  assert.match(section, /<time-hook> or <event-hook>/);
+  assert.match(section, /<time-hook> with <delay-ms>/);
+  assert.match(section, /<event-user-idle idle-for="600s"\/> or <event-chat-ended\/>/);
   assert.doesNotMatch(section, /Return exactly one JSON object/);
   assert.doesNotMatch(section, /schemaId/);
 });

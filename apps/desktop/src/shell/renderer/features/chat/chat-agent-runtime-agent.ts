@@ -22,6 +22,12 @@ import type {
   AgentLocalChatTurnStreamPart,
 } from './chat-agent-orchestration-types';
 import { normalizeText } from './chat-agent-orchestration-shared';
+import {
+  isRuntimeAgentProjectionEvent,
+  matchesRuntimeAgentProjectionScope,
+  summarizeRuntimeAgentProjectionEvent,
+  type RuntimeAgentProjectionSummary,
+} from './chat-agent-runtime-agent-projection';
 import { resolveRouteInput } from './chat-agent-runtime-text';
 import {
   resolveChatThinkingConfig,
@@ -277,7 +283,6 @@ export async function streamChatAgentRuntimeAgentTurn(
   const subscribed = await runtime.agent.turns.subscribe({
     agentId: request.agentId,
     conversationAnchorId: request.conversationAnchorId,
-    includeAgentEvents: false,
   });
   safeLogRuntimeAgentEvent({
     level: 'info',
@@ -398,6 +403,7 @@ export async function streamChatAgentRuntimeAgentTurn(
       let committedMessage: PendingCommittedMessage | null = null;
       let messageSealedEmitted = false;
       let currentTurnAccepted = false;
+      const runtimeProjectionEvents: RuntimeAgentProjectionSummary[] = [];
       const iterator = subscribed[Symbol.asyncIterator]();
 
       const maybeYieldCommittedMessage = function* (
@@ -436,6 +442,9 @@ export async function streamChatAgentRuntimeAgentTurn(
             modelId,
             connectorId,
             trace,
+            extra: runtimeProjectionEvents.length > 0
+              ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
+              : undefined,
           }),
         };
       };
@@ -499,6 +508,52 @@ export async function streamChatAgentRuntimeAgentTurn(
                   },
                 });
               }
+              break;
+            case 'runtime.agent.state.status_text_changed':
+            case 'runtime.agent.state.execution_state_changed':
+            case 'runtime.agent.state.emotion_changed':
+            case 'runtime.agent.state.posture_changed':
+            case 'runtime.agent.hook.intent_proposed':
+            case 'runtime.agent.hook.pending':
+            case 'runtime.agent.hook.rejected':
+            case 'runtime.agent.hook.running':
+            case 'runtime.agent.hook.completed':
+            case 'runtime.agent.hook.failed':
+            case 'runtime.agent.hook.canceled':
+            case 'runtime.agent.hook.rescheduled':
+            case 'runtime.agent.presentation.activity_requested':
+            case 'runtime.agent.presentation.motion_requested':
+            case 'runtime.agent.presentation.expression_requested':
+            case 'runtime.agent.presentation.pose_requested':
+            case 'runtime.agent.presentation.pose_cleared':
+            case 'runtime.agent.presentation.lookat_requested':
+              if (!isRuntimeAgentProjectionEvent(event)
+                || !matchesRuntimeAgentProjectionScope({
+                  event,
+                  conversationAnchorId: request.conversationAnchorId,
+                  currentTurnAccepted,
+                  currentRuntimeTurnId,
+                })) {
+                break;
+              }
+              runtimeProjectionEvents.push(summarizeRuntimeAgentProjectionEvent(event));
+              safeLogRuntimeAgentEvent({
+                level: 'info',
+                area: 'agent-chat-runtime',
+                message: 'action:runtime-agent-turn:projection-event',
+                details: {
+                  agentId: request.agentId,
+                  conversationAnchorId: request.conversationAnchorId,
+                  threadId: request.threadId,
+                  requestId,
+                  eventName: event.eventName,
+                  runtimeTurnId: currentRuntimeTurnId || null,
+                  runtimeStreamId: currentRuntimeStreamId || null,
+                  route,
+                  modelId,
+                  connectorId: connectorId || null,
+                },
+              });
               break;
             case 'runtime.agent.turn.reasoning_delta':
               if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
@@ -599,6 +654,9 @@ export async function streamChatAgentRuntimeAgentTurn(
                     trace,
                     extra: {
                       missingStructuredProjection: true,
+                      ...(runtimeProjectionEvents.length > 0
+                        ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
+                        : {}),
                     },
                   }),
                 };
@@ -617,6 +675,9 @@ export async function streamChatAgentRuntimeAgentTurn(
                   modelId,
                   connectorId,
                   trace,
+                  extra: runtimeProjectionEvents.length > 0
+                    ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
+                    : undefined,
                 }),
               };
               return;
@@ -658,6 +719,9 @@ export async function streamChatAgentRuntimeAgentTurn(
                   modelId,
                   connectorId,
                   trace,
+                  extra: runtimeProjectionEvents.length > 0
+                    ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
+                    : undefined,
                 }),
               };
               return;
@@ -680,6 +744,9 @@ export async function streamChatAgentRuntimeAgentTurn(
                   trace,
                   extra: {
                     reason: normalizeText(event.detail.reason) || 'interrupt_requested',
+                    ...(runtimeProjectionEvents.length > 0
+                      ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
+                      : {}),
                   },
                 }),
               };

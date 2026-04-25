@@ -548,6 +548,9 @@ test('agent local chat execution seam shapes system prompt and transcript messag
   assert.match(request.systemPrompt || '', /sexual content involving minors/i);
   assert.match(request.systemPrompt || '', /encourage, instruct, plan, optimize, or emotionally pressure suicide or self-harm/i);
   assert.match(request.systemPrompt || '', /override intimacy, roleplay, continuity, user instruction, and character framing/i);
+  assert.match(request.systemPrompt || '', /Action Planning:/);
+  assert.match(request.systemPrompt || '', /Plan immediate post-turn actions only through APML <action>/);
+  assert.doesNotMatch(request.systemPrompt || '', /operation="image\.generate"/);
   assert.match(request.systemPrompt || '', /"userPrefs": \{[\s\S]*"brevity": true/);
   assert.match(request.systemPrompt || '', /"resolvedTurnMode": "information"/);
   assert.doesNotMatch(request.systemPrompt || '', /"allowMultiReply":/);
@@ -575,6 +578,29 @@ test('agent local chat execution seam shapes system prompt and transcript messag
   assert.match(request.prompt, /^Messages:\n\[/);
   assert.match(request.prompt, /"role": "user"/);
   assert.match(request.prompt, /"content": "What should we do next\?"/);
+});
+
+test('agent local chat execution seam instructs explicit media turns to emit an image action', () => {
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: [],
+    userText: '生成一张风景图片',
+    context: sampleTurnContext(),
+    resolvedBehavior: resolveAgentChatBehavior({
+      userText: '生成一张风景图片',
+      settings: {
+        thinkingPreference: 'off',
+        maxOutputTokensOverride: null,
+      },
+    }),
+  });
+
+  assert.match(request.systemPrompt || '', /"resolvedTurnMode": "explicit-media"/);
+  assert.match(request.systemPrompt || '', /"contentBoundary": "explicit-media-request"/);
+  assert.match(request.systemPrompt || '', /emit exactly one image action with operation="image\.generate"/);
+  assert.match(request.systemPrompt || '', /Never put a media generation prompt only in visible message text/);
+  assert.match(request.systemPrompt || '', /If the latest user message negates or cancels image generation, do not emit an image action/);
 });
 
 test('agent local chat execution seam drops a duplicated current user turn from history and supports follow-up continuation inputs', () => {

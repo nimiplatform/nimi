@@ -5,9 +5,6 @@ import type {
 } from '@nimiplatform/nimi-kit/features/chat';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import {
-  randomIdV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
-import {
   toChatAgentRuntimeError,
 } from './chat-agent-runtime';
 import {

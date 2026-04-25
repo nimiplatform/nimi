@@ -8,10 +8,6 @@ const worldFlowSource = readFileSync(
   'utf8',
 );
 
-const socialFlowSource = readFileSync(
-  resolve(import.meta.dirname, '../src/runtime/data-sync/flows/social-flow.ts'),
-  'utf8',
-);
 const agentFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/runtime/data-sync/flows/agent-flow.ts'),
   'utf8',
