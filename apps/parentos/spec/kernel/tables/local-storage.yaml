@@ -466,6 +466,8 @@ tables:
       - { name: completedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
       - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
       - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: recurrenceRule, type: TEXT, nullable: true, description: "JSON: {preset:daily|weekly|monthly|yearly|custom, interval?:int, unit?:day|week|month|year, weekdays?:int[]}" }
+      - { name: reminderOffsetMinutes, type: INTEGER, nullable: true, description: "Minutes before dueDate to raise an in-app reminder (e.g. 5, 10, 30, 60, 120, 1440, 2880, 10080)" }
     indexes:
       - { columns: [childId, completedAt] }
       - { columns: [childId, dueDate] }

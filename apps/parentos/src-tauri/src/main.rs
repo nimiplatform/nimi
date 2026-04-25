@@ -215,6 +215,7 @@ fn main() {
             sqlite::queries::insert_custom_todo,
             sqlite::queries::update_custom_todo,
             sqlite::queries::complete_custom_todo,
+            sqlite::queries::advance_custom_todo_due_date,
             sqlite::queries::uncomplete_custom_todo,
             sqlite::queries::delete_custom_todo,
             sqlite::queries::get_custom_todos,

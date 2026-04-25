@@ -227,6 +227,8 @@ export function createJournalPersistenceActions(input: {
         childId: input.childId,
         title: input.postSaveExperiment.title,
         dueDate: null,
+        recurrenceRule: null,
+        reminderOffsetMinutes: null,
         now: isoNow(),
       });
       input.setPostSaveExperiment(null);

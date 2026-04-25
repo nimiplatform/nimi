@@ -2,15 +2,26 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { S } from '../../app-shell/page-style.js';
 import { getLocalToday } from '../../engine/reminder-engine.js';
 import {
+  advanceCustomTodoDueDate,
   completeCustomTodo,
   deleteCustomTodo,
   insertCustomTodo,
   uncompleteCustomTodo,
 } from '../../bridge/sqlite-bridge.js';
-import type { CustomTodoRow } from '../../bridge/sqlite-bridge.js';
+import type { CustomTodoRow, TodoRecurrenceRule } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { ProfileDatePicker } from '../profile/profile-date-picker.js';
+import { TodoRecurrencePicker } from './todo-recurrence-picker.js';
+import {
+  computeNextDueDate,
+  describeRecurrenceRule,
+  describeReminderOffset,
+  parseRecurrenceRule,
+  serializeRecurrenceRule,
+} from './todo-recurrence.js';
+import { TodoReminderPicker } from './todo-reminder-picker.js';
+import { CustomTodoReminderBanner, useCustomTodoReminders } from './todo-reminder-scheduler.js';
 
 function formatDueDate(dueDate: string): string {
   const today = getLocalToday();
@@ -47,6 +58,8 @@ export function CustomTodoComposer({
   const [datePickerOpenNonce, setDatePickerOpenNonce] = useState(0);
   const [adding, setAdding] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [recurrenceRule, setRecurrenceRule] = useState<TodoRecurrenceRule | null>(null);
+  const [reminderOffsetMinutes, setReminderOffsetMinutes] = useState<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const isComposingRef = useRef(false);
 
@@ -66,6 +79,8 @@ export function CustomTodoComposer({
     setNewDueDate('');
     setShowDatePicker(false);
     setExpanded(false);
+    setRecurrenceRule(null);
+    setReminderOffsetMinutes(null);
   }, []);
 
   const handleAdd = useCallback(async () => {
@@ -73,6 +88,7 @@ export function CustomTodoComposer({
     if (!title) return;
     const now = isoNow();
     const todoId = ulid();
+    const serializedRule = serializeRecurrenceRule(recurrenceRule);
     const optimisticTodo: CustomTodoRow = {
       todoId,
       childId,
@@ -81,22 +97,29 @@ export function CustomTodoComposer({
       completedAt: null,
       createdAt: now,
       updatedAt: now,
+      recurrenceRule: serializedRule,
+      reminderOffsetMinutes,
     };
     setAdding(true);
     try {
-      await insertCustomTodo({ todoId, childId, title, dueDate: newDueDate || null, now });
+      await insertCustomTodo({
+        todoId,
+        childId,
+        title,
+        dueDate: newDueDate || null,
+        recurrenceRule: serializedRule,
+        reminderOffsetMinutes,
+        now,
+      });
       onAdded(optimisticTodo);
       onChanged();
-      setNewTitle('');
-      setNewDueDate('');
-      setShowDatePicker(false);
-      setExpanded(false);
+      reset();
     } catch (error) {
       catchLog('timeline', 'action:add-custom-todo-failed')(error);
     } finally {
       setAdding(false);
     }
-  }, [newTitle, newDueDate, childId, onAdded, onChanged]);
+  }, [childId, newDueDate, newTitle, onAdded, onChanged, recurrenceRule, reminderOffsetMinutes, reset]);
 
   const dateFieldClassName = `w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#C2E8F7]/50`;
   const dateFieldStyle = {
@@ -115,11 +138,7 @@ export function CustomTodoComposer({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="group flex w-full items-center gap-3 rounded-2xl px-3.5 py-3 transition-all hover:bg-white"
-          style={{
-            background: '#fafaf8',
-            border: '1.5px dashed #d4d4d1',
-          }}
+          className="group flex w-full items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-[#d4d4d1] bg-[#fafaf8] px-3.5 py-3 transition-all hover:border-[#3BB88A] hover:bg-[rgba(59,184,138,0.04)] hover:shadow-[0_8px_22px_rgba(59,184,138,0.14)]"
         >
           <span
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white transition-transform group-hover:scale-105"
@@ -129,7 +148,7 @@ export function CustomTodoComposer({
               <path d="M12 5v14M5 12h14" />
             </svg>
           </span>
-          <span className="text-[13px]" style={{ color: '#9ca3af' }}>添加日常待办...</span>
+          <span className="text-[13px] transition-colors group-hover:text-[#3BB88A]" style={{ color: '#9ca3af' }}>添加日常待办...</span>
         </button>
       </div>
     );
@@ -138,13 +157,14 @@ export function CustomTodoComposer({
   return (
     <div className="px-5 pb-3 pt-3">
       <div
-        className="rounded-2xl px-3.5 pt-3 pb-2.5 transition-all"
+        className="rounded-2xl px-4 pb-3 pt-3.5 transition-all"
         style={{
-          background: 'rgba(78, 204, 163, 0.04)',
+          background: '#ffffff',
           border: '1.5px solid #3BB88A',
-          boxShadow: '0 8px 22px rgba(78, 204, 163, 0.14)',
+          boxShadow: '0 8px 22px rgba(59, 184, 138, 0.14)',
         }}
       >
+        <div className="mb-1 text-[14px] font-semibold" style={{ color: '#111827' }}>要做什么？</div>
         <textarea
           ref={inputRef}
           value={newTitle}
@@ -168,7 +188,9 @@ export function CustomTodoComposer({
           style={{ color: '#1e293b' }}
         />
 
-        <div className="mt-2 flex items-center gap-1.5">
+        <div className="my-2.5 h-px" style={{ background: '#eef0ee' }} />
+
+        <div className="flex items-center gap-1">
           <button
             type="button"
             title={showDatePicker ? '收起日期' : newDueDate ? '修改日期' : '设置日期'}
@@ -181,57 +203,18 @@ export function CustomTodoComposer({
               setShowDatePicker(true);
               setDatePickerOpenNonce((value) => value + 1);
             }}
-            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium transition-all"
+            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3.5 text-[12px] font-medium transition-colors"
             style={{
-              color: dateActive ? '#3BB88A' : '#64748b',
-              background: dateActive ? 'rgba(78, 204, 163, 0.14)' : '#fff',
-              border: `1px solid ${dateActive ? 'rgba(78, 204, 163, 0.42)' : '#e5e7eb'}`,
+              color: dateActive ? '#ffffff' : '#64748b',
+              background: dateActive ? '#3BB88A' : 'transparent',
+              border: 'none',
+              boxShadow: dateActive ? '0 2px 8px rgba(59, 184, 138, 0.28)' : 'none',
             }}
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
             <span>{newDueDate ? formatDueDate(newDueDate) : '今天'}</span>
           </button>
-          <button
-            type="button"
-            title="即将支持"
-            disabled
-            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium"
-            style={{
-              color: '#9ca3af',
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              cursor: 'not-allowed',
-            }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 2" />
-            </svg>
-            <span>加提醒</span>
-          </button>
-          <button
-            type="button"
-            title="即将支持"
-            disabled
-            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium"
-            style={{
-              color: '#9ca3af',
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              cursor: 'not-allowed',
-            }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 1l4 4-4 4" />
-              <path d="M3 11V9a4 4 0 014-4h14" />
-              <path d="M7 23l-4-4 4-4" />
-              <path d="M21 13v2a4 4 0 01-4 4H3" />
-            </svg>
-            <span>重复</span>
-          </button>
+          <TodoReminderPicker value={reminderOffsetMinutes} onChange={setReminderOffsetMinutes} />
+          <TodoRecurrencePicker value={recurrenceRule} onChange={setRecurrenceRule} />
         </div>
 
         {showDatePicker && (
@@ -248,12 +231,12 @@ export function CustomTodoComposer({
           </div>
         )}
 
-        <div className="mt-2.5 flex items-center justify-end gap-1">
+        <div className="mt-3 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={reset}
-            className="h-7 rounded-full px-3 text-[12px] font-medium transition-colors hover:bg-white/60"
-            style={{ color: '#64748b' }}
+            className="h-8 rounded-full px-4 text-[13px] font-medium transition-colors hover:bg-[#f3f4f6]"
+            style={{ color: '#64748b', background: 'transparent' }}
           >
             取消
           </button>
@@ -261,7 +244,7 @@ export function CustomTodoComposer({
             type="button"
             onClick={() => void handleAdd()}
             disabled={!canSubmit}
-            className="h-7 rounded-full px-4 text-[12px] font-medium transition-all"
+            className="h-8 rounded-full px-5 text-[13px] font-medium transition-all"
             style={{
               background: canSubmit ? '#3BB88A' : '#e5e7eb',
               color: canSubmit ? '#fff' : '#9ca3af',
@@ -297,10 +280,18 @@ export function CustomTodoInlineList({
   animatedTodoId: string | null;
 }) {
   const handleToggle = useCallback(async (todo: CustomTodoRow) => {
+    const now = isoNow();
     if (todo.completedAt) {
-      await uncompleteCustomTodo(todo.todoId, isoNow());
+      await uncompleteCustomTodo(todo.todoId, now);
+      onChanged();
+      return;
+    }
+    const rule = parseRecurrenceRule(todo.recurrenceRule);
+    if (rule) {
+      const nextDueDate = computeNextDueDate(todo.dueDate, rule);
+      await advanceCustomTodoDueDate({ todoId: todo.todoId, nextDueDate, now });
     } else {
-      await completeCustomTodo(todo.todoId, isoNow());
+      await completeCustomTodo(todo.todoId, now);
     }
     onChanged();
   }, [onChanged]);
@@ -311,13 +302,25 @@ export function CustomTodoInlineList({
   }, [onChanged]);
 
   const { pending, completed } = useMemo(() => sortCustomTodos(todos), [todos]);
+  const { active: activeReminders, dismiss: dismissReminder, dismissAll: dismissAllReminders } =
+    useCustomTodoReminders(todos);
   if (pending.length === 0 && completed.length === 0) return null;
 
   return (
     <div className="px-3 pb-1">
+      {activeReminders.length > 0 && (
+        <CustomTodoReminderBanner
+          reminders={activeReminders}
+          onDismiss={dismissReminder}
+          onDismissAll={dismissAllReminders}
+        />
+      )}
       <div className="space-y-1.5">
         {pending.map((todo) => {
           const isAnimated = animatedTodoId === todo.todoId;
+          const rule = parseRecurrenceRule(todo.recurrenceRule);
+          const reminderLabel = describeReminderOffset(todo.reminderOffsetMinutes);
+          const recurrenceLabel = rule ? describeRecurrenceRule(rule) : '';
           return (
             <div
               key={todo.todoId}
@@ -337,10 +340,40 @@ export function CustomTodoInlineList({
               </button>
               <div className="min-w-0 flex-1">
                 <p className="text-[12px] font-medium leading-snug [overflow-wrap:anywhere]" style={{ color: '#38506f' }}>{todo.title}</p>
-                {todo.dueDate && (
-                  <p className="mt-0.5 text-[10px]" style={{ color: todo.dueDate < getLocalToday() ? '#ef4444' : '#8aa1bc' }}>
-                    {formatDueDate(todo.dueDate)}
-                  </p>
+                {(todo.dueDate || reminderLabel || recurrenceLabel) && (
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                    {todo.dueDate && (
+                      <span style={{ color: todo.dueDate < getLocalToday() ? '#ef4444' : '#8aa1bc' }}>
+                        {formatDueDate(todo.dueDate)}
+                      </span>
+                    )}
+                    {recurrenceLabel && (
+                      <span
+                        className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[1px]"
+                        style={{ color: '#3BB88A', background: 'rgba(59, 184, 138, 0.12)' }}
+                      >
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 1l4 4-4 4" />
+                          <path d="M3 11V9a4 4 0 014-4h14" />
+                          <path d="M7 23l-4-4 4-4" />
+                          <path d="M21 13v2a4 4 0 01-4 4H3" />
+                        </svg>
+                        {recurrenceLabel}
+                      </span>
+                    )}
+                    {reminderLabel && (
+                      <span
+                        className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[1px]"
+                        style={{ color: '#F59E0B', background: 'rgba(245, 158, 11, 0.12)' }}
+                      >
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="9" />
+                          <path d="M12 7v5l3 2" />
+                        </svg>
+                        {reminderLabel}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
               <button

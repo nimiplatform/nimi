@@ -121,6 +121,20 @@ export function clearReminderConsultation(params: {
   return invoke<void>('clear_reminder_consultation', params);
 }
 
+export type TodoRecurrencePreset = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+export type TodoRecurrenceUnit = 'day' | 'week' | 'month' | 'year';
+
+/**
+ * Serialized recurrence rule persisted on `custom_todos.recurrenceRule` as JSON.
+ * Weekdays use 0=Sun..6=Sat.
+ */
+export interface TodoRecurrenceRule {
+  preset: TodoRecurrencePreset;
+  interval?: number;
+  unit?: TodoRecurrenceUnit;
+  weekdays?: number[];
+}
+
 export interface CustomTodoRow {
   todoId: string;
   childId: string;
@@ -129,6 +143,8 @@ export interface CustomTodoRow {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  recurrenceRule: string | null;
+  reminderOffsetMinutes: number | null;
 }
 
 export function insertCustomTodo(params: {
@@ -136,6 +152,8 @@ export function insertCustomTodo(params: {
   childId: string;
   title: string;
   dueDate: string | null;
+  recurrenceRule: string | null;
+  reminderOffsetMinutes: number | null;
   now: string;
 }) {
   return invoke<void>('insert_custom_todo', params);
@@ -145,6 +163,8 @@ export function updateCustomTodo(params: {
   todoId: string;
   title: string;
   dueDate: string | null;
+  recurrenceRule: string | null;
+  reminderOffsetMinutes: number | null;
   now: string;
 }) {
   return invoke<void>('update_custom_todo', params);
@@ -152,6 +172,18 @@ export function updateCustomTodo(params: {
 
 export function completeCustomTodo(todoId: string, now: string) {
   return invoke<void>('complete_custom_todo', { todoId, now });
+}
+
+/**
+ * Advance a recurring todo: clears completedAt and bumps dueDate to the next occurrence.
+ * The renderer computes `nextDueDate` from the `recurrenceRule` JSON before calling.
+ */
+export function advanceCustomTodoDueDate(params: {
+  todoId: string;
+  nextDueDate: string | null;
+  now: string;
+}) {
+  return invoke<void>('advance_custom_todo_due_date', params);
 }
 
 export function uncompleteCustomTodo(todoId: string, now: string) {

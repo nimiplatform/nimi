@@ -23,6 +23,8 @@ mod migrations_v8;
 mod migrations_v9;
 #[path = "migrations_v10.rs"]
 mod migrations_v10;
+#[path = "migrations_v11.rs"]
+mod migrations_v11;
 
 use migrations_schema::V1_SCHEMA_SQL;
 use migrations_v2::apply_v2;
@@ -34,8 +36,9 @@ use migrations_v7::apply_v7;
 use migrations_v8::apply_v8;
 use migrations_v9::apply_v9;
 use migrations_v10::apply_v10;
+use migrations_v11::apply_v11;
 
-const SCHEMA_VERSION: u32 = 10;
+const SCHEMA_VERSION: u32 = 11;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), String> {
     ensure_schema_version_table(conn)?;
@@ -96,6 +99,11 @@ pub fn run_migrations(conn: &Connection) -> Result<(), String> {
         record_schema_version(conn, 10)?;
     }
 
+    if current_version < 11 {
+        apply_v11(conn)?;
+        record_schema_version(conn, 11)?;
+    }
+
     repair_missing_tables(conn)?;
 
     Ok(())
@@ -119,6 +127,7 @@ fn repair_missing_tables(conn: &Connection) -> Result<(), String> {
     apply_v8(conn)?;
     apply_v9(conn)?;
     apply_v10(conn)?;
+    apply_v11(conn)?;
     Ok(())
 }
 

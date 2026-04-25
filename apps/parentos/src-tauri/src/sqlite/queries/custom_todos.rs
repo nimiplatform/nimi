@@ -15,6 +15,8 @@ pub struct CustomTodoRecord {
     pub completed_at: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    pub recurrence_rule: Option<String>,
+    pub reminder_offset_minutes: Option<i64>,
 }
 
 #[tauri::command]
@@ -23,12 +25,14 @@ pub fn insert_custom_todo(
     child_id: String,
     title: String,
     due_date: Option<String>,
+    recurrence_rule: Option<String>,
+    reminder_offset_minutes: Option<i64>,
     now: String,
 ) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
-        "INSERT INTO custom_todos (todoId, childId, title, dueDate, completedAt, createdAt, updatedAt) VALUES (?1,?2,?3,?4,NULL,?5,?5)",
-        params![todo_id, child_id, title, due_date, now],
+        "INSERT INTO custom_todos (todoId, childId, title, dueDate, completedAt, createdAt, updatedAt, recurrenceRule, reminderOffsetMinutes) VALUES (?1,?2,?3,?4,NULL,?5,?5,?6,?7)",
+        params![todo_id, child_id, title, due_date, now, recurrence_rule, reminder_offset_minutes],
     )
     .map_err(|e| format!("insert_custom_todo: {e}"))?;
     Ok(())
@@ -39,12 +43,14 @@ pub fn update_custom_todo(
     todo_id: String,
     title: String,
     due_date: Option<String>,
+    recurrence_rule: Option<String>,
+    reminder_offset_minutes: Option<i64>,
     now: String,
 ) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
-        "UPDATE custom_todos SET title=?2, dueDate=?3, updatedAt=?4 WHERE todoId=?1",
-        params![todo_id, title, due_date, now],
+        "UPDATE custom_todos SET title=?2, dueDate=?3, recurrenceRule=?4, reminderOffsetMinutes=?5, updatedAt=?6 WHERE todoId=?1",
+        params![todo_id, title, due_date, recurrence_rule, reminder_offset_minutes, now],
     )
     .map_err(|e| format!("update_custom_todo: {e}"))?;
     Ok(())
@@ -58,6 +64,21 @@ pub fn complete_custom_todo(todo_id: String, now: String) -> Result<(), String> 
         params![todo_id, now],
     )
     .map_err(|e| format!("complete_custom_todo: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn advance_custom_todo_due_date(
+    todo_id: String,
+    next_due_date: Option<String>,
+    now: String,
+) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE custom_todos SET dueDate=?2, completedAt=NULL, updatedAt=?3 WHERE todoId=?1",
+        params![todo_id, next_due_date, now],
+    )
+    .map_err(|e| format!("advance_custom_todo_due_date: {e}"))?;
     Ok(())
 }
 
@@ -84,7 +105,7 @@ pub fn delete_custom_todo(todo_id: String) -> Result<(), String> {
 pub fn get_custom_todos(child_id: String) -> Result<Vec<CustomTodoRecord>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
-        .prepare("SELECT todoId, childId, title, dueDate, completedAt, createdAt, updatedAt FROM custom_todos WHERE childId=?1 ORDER BY completedAt IS NOT NULL, createdAt DESC")
+        .prepare("SELECT todoId, childId, title, dueDate, completedAt, createdAt, updatedAt, recurrenceRule, reminderOffsetMinutes FROM custom_todos WHERE childId=?1 ORDER BY completedAt IS NOT NULL, createdAt DESC")
         .map_err(|e| format!("get_custom_todos: {e}"))?;
     let rows = stmt
         .query_map(params![child_id], |row| {
@@ -96,6 +117,8 @@ pub fn get_custom_todos(child_id: String) -> Result<Vec<CustomTodoRecord>, Strin
                 completed_at: row.get(4)?,
                 created_at: row.get(5)?,
                 updated_at: row.get(6)?,
+                recurrence_rule: row.get(7)?,
+                reminder_offset_minutes: row.get(8)?,
             })
         })
         .map_err(|e| format!("get_custom_todos: {e}"))?;
