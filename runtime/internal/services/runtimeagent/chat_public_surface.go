@@ -111,23 +111,24 @@ type publicChatTurnState struct {
 	// `runtime.agent.turn.accepted.detail.request_id` per yaml
 	// `accepted.detail.request_id`; runtime carrier execution truth (trace
 	// id, model resolved, etc.) does not live on turn projection events.
-	RequestID        string
-	AgentID          string
-	CallerAppID      string
-	SubjectUserID    string
-	ThreadID         string
-	Cancel           context.CancelFunc
-	Interrupted      bool
-	InterruptReason  string
-	LastKnownTraceID string
-	StreamSequence   uint64
-	Origin           string
-	ChainID          string
-	FollowUpDepth    int
-	MaxFollowUpTurns int
-	SourceTurnID     string
-	SourceActionID   string
-	Projection       *publicChatTurnProjectionState
+	RequestID         string
+	AgentID           string
+	CallerAppID       string
+	SubjectUserID     string
+	ThreadID          string
+	Cancel            context.CancelFunc
+	Interrupted       bool
+	InterruptReason   string
+	LastKnownTraceID  string
+	StreamSequence    uint64
+	TimelineStartedAt time.Time
+	Origin            string
+	ChainID           string
+	FollowUpDepth     int
+	MaxFollowUpTurns  int
+	SourceTurnID      string
+	SourceActionID    string
+	Projection        *publicChatTurnProjectionState
 }
 type publicChatMessagePayload struct {
 	Role    string `json:"role"`

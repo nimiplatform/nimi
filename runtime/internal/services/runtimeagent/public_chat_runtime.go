@@ -567,6 +567,7 @@ func (r publicChatRuntime) reserveTurn(
 	parent = context.Background()
 	turnID := "agent_turn_" + ulid.Make().String()
 	streamID := "agent_stream_" + ulid.Make().String()
+	timelineStartedAt := time.Now()
 	turnCtx, cancel := context.WithCancel(parent)
 	turn := &publicChatTurnState{
 		ConversationAnchorID: session.ConversationAnchorID,
@@ -577,6 +578,7 @@ func (r publicChatRuntime) reserveTurn(
 		SubjectUserID:        session.SubjectUserID,
 		ThreadID:             session.ThreadID,
 		Cancel:               cancel,
+		TimelineStartedAt:    timelineStartedAt,
 		Origin:               publicChatTurnOriginUser,
 	}
 	turn.Projection = newPublicChatTurnProjection(turn)

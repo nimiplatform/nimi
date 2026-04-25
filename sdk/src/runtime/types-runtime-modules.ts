@@ -256,6 +256,28 @@ export type RuntimeAgentConsumeRequest = {
   includeAgentEvents?: boolean;
 };
 
+export type RuntimeAgentTimelineChannel =
+  | 'text'
+  | 'voice'
+  | 'avatar'
+  | 'state'
+  | 'lipsync';
+
+export type RuntimeAgentTimelineEnvelope = {
+  turnId: string;
+  streamId: string;
+  channel: RuntimeAgentTimelineChannel;
+  offsetMs: number;
+  sequence: number;
+  startedAtWall: string;
+  observedAtWall: string;
+  timebaseOwner: 'runtime';
+  projectionRuleId: 'K-AGCORE-051';
+  clockBasis: 'monotonic_with_wall_anchor';
+  providerNeutral: true;
+  appLocalAuthority: false;
+};
+
 export type RuntimeAgentSessionTurnSnapshot = {
   turnId: string;
   status?: string;
@@ -327,6 +349,7 @@ export type RuntimeAgentTurnEnvelope = {
   conversationAnchorId: string;
   turnId: string;
   streamId: string;
+  timeline?: RuntimeAgentTimelineEnvelope;
 };
 
 export type RuntimeAgentPresentationEnvelope = {

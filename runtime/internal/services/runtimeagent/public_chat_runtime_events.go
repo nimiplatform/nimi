@@ -188,14 +188,17 @@ func (r publicChatRuntime) emitTurnEvent(session publicChatAnchorState, turnID s
 		// fail-closed rather than fabricate stream_id from turn_id.
 		return status.Error(codes.FailedPrecondition, "runtime.agent.turn.* stream identity unavailable")
 	}
-	// Track stream sequence as runtime-private bookkeeping for the snapshot
-	// projection only; do not surface as turn envelope/detail per yaml.
-	r.svc.nextPublicChatStreamSequence(trimmedTurnID)
+	sequence := r.svc.nextPublicChatStreamSequence(trimmedTurnID)
+	timeline, err := r.svc.publicChatTurnTimelineEnvelope(trimmedTurnID, messageType, sequence, time.Now())
+	if err != nil {
+		return err
+	}
 	out := map[string]any{
 		"agent_id":               session.AgentID,
 		"conversation_anchor_id": session.ConversationAnchorID,
 		"turn_id":                trimmedTurnID,
 		"stream_id":              streamID,
+		"timeline":               timeline,
 	}
 	if detail == nil {
 		out["detail"] = map[string]any{}
@@ -219,13 +222,18 @@ func (r publicChatRuntime) emitTurnMessageCommitted(session publicChatAnchorStat
 	if streamID == "" {
 		return status.Error(codes.FailedPrecondition, "runtime.agent.turn.* stream identity unavailable")
 	}
-	r.svc.nextPublicChatStreamSequence(trimmedTurnID)
+	sequence := r.svc.nextPublicChatStreamSequence(trimmedTurnID)
+	timeline, err := r.svc.publicChatTurnTimelineEnvelope(trimmedTurnID, publicChatTurnMessageCommittedType, sequence, time.Now())
+	if err != nil {
+		return err
+	}
 	out := map[string]any{
 		"agent_id":               session.AgentID,
 		"conversation_anchor_id": session.ConversationAnchorID,
 		"turn_id":                trimmedTurnID,
 		"stream_id":              streamID,
 		"message_id":             trimmedMessageID,
+		"timeline":               timeline,
 		"detail": map[string]any{
 			"message_id": trimmedMessageID,
 			"text":       strings.TrimSpace(text),

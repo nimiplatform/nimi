@@ -49,6 +49,51 @@ import type { RuntimeAgentConsumeEvent } from '../../src/runtime/types-runtime-m
 const APP_ID = 'nimi.runtime.agent.surface.test';
 const OPEN_CONVERSATION_ANCHOR_METHOD = '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor';
 const GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot';
+const TIMELINE_STARTED_AT = '2026-04-25T00:00:00.000Z';
+
+function timelineChannelForTestEvent(messageType: string): 'text' | 'state' | '' {
+  switch (messageType) {
+    case 'runtime.agent.turn.text_delta':
+    case 'runtime.agent.turn.reasoning_delta':
+    case 'runtime.agent.turn.structured':
+    case 'runtime.agent.turn.message_committed':
+      return 'text';
+    case 'runtime.agent.turn.accepted':
+    case 'runtime.agent.turn.started':
+    case 'runtime.agent.turn.post_turn':
+    case 'runtime.agent.turn.completed':
+    case 'runtime.agent.turn.failed':
+    case 'runtime.agent.turn.interrupted':
+    case 'runtime.agent.turn.interrupt_ack':
+      return 'state';
+    default:
+      return '';
+  }
+}
+
+function withRuntimeTimeline(messageType: string, payload: Record<string, unknown>): Record<string, unknown> {
+  const channel = timelineChannelForTestEvent(messageType);
+  if (!channel || payload.timeline) {
+    return payload;
+  }
+  return {
+    ...payload,
+    timeline: {
+      turn_id: payload.turn_id,
+      stream_id: payload.stream_id,
+      channel,
+      offset_ms: 12,
+      sequence: 1,
+      started_at_wall: TIMELINE_STARTED_AT,
+      observed_at_wall: '2026-04-25T00:00:00.012Z',
+      timebase_owner: 'runtime',
+      projection_rule_id: 'K-AGCORE-051',
+      clock_basis: 'monotonic_with_wall_anchor',
+      provider_neutral: true,
+      app_local_authority: false,
+    },
+  };
+}
 
 function installNodeGrpcBridge(bridge: NodeGrpcBridge): void {
   setNodeGrpcBridge(bridge);
@@ -83,7 +128,7 @@ function createAppEvent(messageType: string, payload: Record<string, unknown>): 
     toAppId: APP_ID,
     subjectUserId: 'subject-1',
     messageType,
-    payload: Struct.fromJson(payload as never),
+    payload: Struct.fromJson(withRuntimeTimeline(messageType, payload) as never),
     reasonCode: RuntimeProtoReasonCode.ACTION_EXECUTED,
     traceId: `trace-${messageType}`,
     timestamp: Timestamp.create({ seconds: '1700000002', nanos: 0 }),
@@ -423,6 +468,15 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
       assert.equal(activityRequested.detail.source, 'apml_output');
     }
 
+    const textDelta = events.find((event) => event.eventName === 'runtime.agent.turn.text_delta');
+    assert.ok(textDelta);
+    if (textDelta?.eventName === 'runtime.agent.turn.text_delta') {
+      assert.equal(textDelta.timeline?.turnId, 'turn-1');
+      assert.equal(textDelta.timeline?.streamId, 'stream-1');
+      assert.equal(textDelta.timeline?.channel, 'text');
+      assert.equal(textDelta.timeline?.projectionRuleId, 'K-AGCORE-051');
+    }
+
     const hookRunning = events.find((event) => event.eventName === 'runtime.agent.hook.running');
     assert.ok(hookRunning);
     if (hookRunning?.eventName === 'runtime.agent.hook.running') {
@@ -453,6 +507,89 @@ test('runtime agent consume surface rejects invalid activity projection category
       source: 'apml_output',
     },
   }), /detail\.category must be emotion, interaction, or state/);
+});
+
+test('runtime agent consume surface preserves runtime-owned turn timeline envelope', () => {
+  const event = parseAppConsumeEvent('runtime.agent.turn.text_delta', withRuntimeTimeline('runtime.agent.turn.text_delta', {
+    agent_id: 'agent-1',
+    conversation_anchor_id: 'anchor-1',
+    turn_id: 'turn-1',
+    stream_id: 'stream-1',
+    detail: { text: 'hello' },
+  }));
+
+  assert.equal(event.eventName, 'runtime.agent.turn.text_delta');
+  assert.equal(event.timeline?.turnId, 'turn-1');
+  assert.equal(event.timeline?.streamId, 'stream-1');
+  assert.equal(event.timeline?.channel, 'text');
+  assert.equal(event.timeline?.timebaseOwner, 'runtime');
+  assert.equal(event.timeline?.projectionRuleId, 'K-AGCORE-051');
+  assert.equal(event.timeline?.clockBasis, 'monotonic_with_wall_anchor');
+  assert.equal(event.timeline?.providerNeutral, true);
+  assert.equal(event.timeline?.appLocalAuthority, false);
+});
+
+test('runtime agent consume surface rejects malformed turn timeline envelopes', () => {
+  const base = withRuntimeTimeline('runtime.agent.turn.accepted', {
+    agent_id: 'agent-1',
+    conversation_anchor_id: 'anchor-1',
+    turn_id: 'turn-1',
+    stream_id: 'stream-1',
+    detail: { request_id: 'req-1' },
+  });
+  assert.throws(() => parseAppConsumeEvent('runtime.agent.turn.accepted', {
+    ...base,
+    timeline: undefined,
+  }), /requires timeline\.turn_id/);
+  assert.throws(() => parseAppConsumeEvent('runtime.agent.turn.accepted', {
+    ...base,
+    timeline: {
+      ...(base.timeline as Record<string, unknown>),
+      channel: 'lipsync',
+    },
+  }), /timeline\.channel must be state/);
+  assert.throws(() => parseAppConsumeEvent('runtime.agent.turn.accepted', {
+    ...base,
+    timeline: {
+      ...(base.timeline as Record<string, unknown>),
+      stream_id: 'stream-other',
+    },
+  }), /timeline turn_id and stream_id must match/);
+  assert.throws(() => parseAppConsumeEvent('runtime.agent.turn.accepted', {
+    ...base,
+    timeline: {
+      ...(base.timeline as Record<string, unknown>),
+      offset_ms: -1,
+    },
+  }), /timeline\.offset_ms must be non-negative/);
+  assert.throws(() => parseAppConsumeEvent('runtime.agent.turn.accepted', {
+    ...base,
+    timeline: {
+      ...(base.timeline as Record<string, unknown>),
+      sequence: 0,
+    },
+  }), /timeline\.sequence must be a positive integer/);
+  assert.throws(() => parseAppConsumeEvent('runtime.agent.turn.accepted', {
+    ...base,
+    timeline: {
+      ...(base.timeline as Record<string, unknown>),
+      sequence: 'not-a-number',
+    },
+  }), /timeline\.sequence must be a finite number/);
+  assert.throws(() => parseAppConsumeEvent('runtime.agent.turn.accepted', {
+    ...base,
+    timeline: {
+      ...(base.timeline as Record<string, unknown>),
+      app_local_authority: true,
+    },
+  }), /timeline\.app_local_authority must be false/);
+  assert.throws(() => parseAppConsumeEvent('runtime.agent.turn.accepted', {
+    ...base,
+    timeline: {
+      ...(base.timeline as Record<string, unknown>),
+      extra_field: 'parallel truth',
+    },
+  }), /timeline contains unknown fields: extra_field/);
 });
 
 test('runtime agent turns subscribe parses Wave 2 hook projection events with origin and rejection detail', async () => {
