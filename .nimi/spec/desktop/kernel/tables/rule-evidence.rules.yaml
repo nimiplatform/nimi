@@ -1154,6 +1154,11 @@
     - desktop_kernel_consistency
     - desktop_lint_gate
     - desktop_test_gate
+- rule_id: D-STRM-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "Agent PresentationTimeline consume boundary is admitted; implementation evidence is owned by the follow-on Desktop consume wave"
 - rule_id: D-TEL-001
   status: covered
   evidence_refs:

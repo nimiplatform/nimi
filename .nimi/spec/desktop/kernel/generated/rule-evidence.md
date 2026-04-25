@@ -244,6 +244,7 @@
 | `D-STRM-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STRM-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STRM-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-STRM-011` | `covered` | `desktop_kernel_consistency` |
 | `D-TEL-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-TEL-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-TEL-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

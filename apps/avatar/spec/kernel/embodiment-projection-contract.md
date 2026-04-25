@@ -87,6 +87,12 @@ Projection layer 只产出 backend-neutral embodiment cues：
 `parameter_delta` 明确属于 backend-extensible branch。它可以被当前 Live2D branch 消费，
 但不是 runtime semantic truth。
 
+`speak` is admitted only as an embodiment-local cue downstream of runtime-owned
+PresentationTimeline truth (`K-AGCORE-051`). The projection layer may carry
+voice timing and lipsync intent into backend branches, but it must not own
+canonical voice timing, synthesize lipsync frames, or report speak success
+without Avatar backend proof.
+
 ---
 
 ## 4. Backend Split

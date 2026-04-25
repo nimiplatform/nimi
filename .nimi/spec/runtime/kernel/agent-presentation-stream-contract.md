@@ -189,6 +189,44 @@ Fixed rules:
 - any future widening into a general event bus requires a new admitted runtime
   and SDK authority packet plus implementation tests
 
+## K-AGCORE-051 Presentation Timeline Voice/Lipsync Admission Boundary
+
+Runtime is the canonical owner of PresentationTimeline truth for the admitted
+Live2D companion voice/lipsync branch.
+
+This rule admits the branch that was previously candidate-only in the closed
+2026-04-20 design. It does not make closed `PresentationStream`,
+`TimelineMarker`, or `voice.level` shapes active API truth by name; Wave 2 must
+land the exact projection schema in `tables/runtime-agent-event-projection.yaml`
+before runtime implementation can claim support.
+
+Fixed rules:
+
+- runtime owns stream identity, timebase identity, offset/duration/deadline
+  semantics, and interrupt propagation for text / activity / voice / lipsync
+  coordination
+- apps may schedule rendering locally, but they must consume runtime-owned
+  timeline metadata and must not invent canonical offsets or stream identity
+- the admitted timebase must include a monotonic offset basis for scheduling and
+  a wall-clock anchor for trace/debug evidence
+- voice timing and lipsync frames must remain downstream of the same
+  `agent_id`, `conversation_anchor_id`, `turn_id`, and `stream_id` used by the
+  admitted turn/presentation projection families
+- malformed, missing, negative, or non-monotonic timing metadata in an admitted
+  timeline-bearing event must fail closed before durable projection
+- interrupt/cancel must project a single stream-level cancellation truth that
+  consumers can apply to text continuation, voice playback, lipsync frames, and
+  avatar motion scheduling
+- runtime must not expose a broad app event bus or wildcard event API as the
+  mechanism for this branch; the branch must stay within admitted
+  `runtime.agent.*` projection families unless a later authority widens it
+- voice provider selection remains outside this rule; runtime may carry
+  provider-produced timing/audio-level evidence, but it must not hardcode a
+  provider or model as timeline authority
+
+Implementation waves must not report this rule as product-complete until
+runtime, SDK/Desktop, Avatar, and cross-surface acceptance evidence all exist.
+
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`

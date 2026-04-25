@@ -334,3 +334,28 @@ Fixed rules:
 Trust-posture evidence must be current implementation or test evidence from the
 SDK/runtime public surface. Closed 2026-04-20 trust posture artifacts may be
 used only as historical evidence and cannot close this rule by themselves.
+
+## S-RUNTIME-108 Presentation Timeline Consume Boundary
+
+The SDK may expose PresentationTimeline metadata only as a downstream projection
+of runtime-owned `runtime.agent.*` timeline-bearing events admitted by
+`K-AGCORE-051`.
+
+Fixed rules:
+
+- SDK must preserve runtime-owned `agentId`, `conversationAnchorId`, `turnId`,
+  `streamId`, timebase, offset, duration, deadline, and interrupt semantics
+  without collapsing them into app-local session or renderer state
+- SDK parsing must fail closed on malformed timing metadata, unknown timeline
+  channel names, invalid negative offsets, or non-monotonic voice/lipsync frame
+  sequences once Wave 2 admits the concrete runtime schema
+- SDK must not publish this branch as `client.events.*`, wildcard subscription,
+  cancellable before-event, or general app-event broker behavior
+- SDK must not synthesize voice timing, lipsync frames, or mouth-open values;
+  those values remain runtime/provider/avatar downstream data with explicit
+  ownership
+- SDK may provide ergonomic typed accessors over admitted timeline metadata, but
+  those accessors must remain thin projections over runtime event payloads
+
+Closed 2026-04-20 SDK Event API and PresentationTimeline designs are evidence
+only and cannot close SDK timeline support without current tests.

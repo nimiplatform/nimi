@@ -7,9 +7,37 @@ turn_envelope:
     - conversation_anchor_id
     - turn_id
     - stream_id
+    - timeline
   extra_fields_by_event:
     runtime.agent.turn.message_committed:
       - message_id
+  timeline:
+    source_rule: K-AGCORE-051
+    required_fields:
+      - turn_id
+      - stream_id
+      - channel
+      - offset_ms
+      - sequence
+      - started_at_wall
+      - observed_at_wall
+      - timebase_owner
+      - projection_rule_id
+      - clock_basis
+      - provider_neutral
+      - app_local_authority
+    channel_enum:
+      - text
+      - voice
+      - avatar
+      - state
+      - lipsync
+    fixed_values:
+      timebase_owner: runtime
+      projection_rule_id: K-AGCORE-051
+      clock_basis: monotonic_with_wall_anchor
+      provider_neutral: true
+      app_local_authority: false
 
 presentation_envelope:
   source_rule: K-AGCORE-037

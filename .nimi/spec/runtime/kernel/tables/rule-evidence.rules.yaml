@@ -1482,6 +1482,10 @@
 - rule_id: K-AGCORE-050
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-AGCORE-051
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "PresentationTimeline voice/lipsync branch is admitted as authority; implementation evidence is owned by the follow-on runtime timeline wave"
 - rule_id: K-RPC-004a
   status: deferred
   evidence_refs: []

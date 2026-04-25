@@ -219,6 +219,29 @@ job 执行中凭据失效时，Runtime 返回 `AI_PROVIDER_AUTH_FAILED` reason c
 
 **跨层引用**：Runtime K-JOB-001~006、SDK S-ERROR-001。
 
+## D-STRM-011 — Agent Presentation Timeline Consumption
+
+Desktop may consume PresentationTimeline metadata only after runtime admits the
+concrete `K-AGCORE-051` projection schema and SDK exposes it as typed
+runtime-agent data.
+
+Fixed rules:
+
+- Desktop stream rendering may align text display to runtime-owned timebase and
+  offset metadata, but it must not become the owner of canonical timeline truth
+- Desktop must preserve `agent_id`, `conversation_anchor_id`, `turn_id`, and
+  `stream_id` linkage when passing timeline-bearing handoff or diagnostic data
+  to Avatar
+- user stop/cancel must consume runtime stream interrupt truth and must not
+  leave voice, lipsync, or avatar motion continuation running as independent
+  renderer-local success
+- Desktop must not use broad Event API, wildcard subscription, or app-local
+  desktop event namespaces to bypass SDK/runtime-agent timeline projection
+- Desktop renderer-only evidence cannot close Avatar speak/lipsync behavior
+
+This rule admits Desktop as a timeline consumer only; runtime remains the
+timeline authority and Avatar remains the lipsync/render proof owner.
+
 ## Fact Sources
 
 - `agent-chat-behavior-contract.md` — D-LLM-022 ~ D-LLM-026 behavior authority boundary

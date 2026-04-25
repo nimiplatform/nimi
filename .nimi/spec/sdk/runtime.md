@@ -5,7 +5,7 @@
 
 ## 0. 权威导入
 
-- `kernel/runtime-contract.md`（S-RUNTIME-010, S-RUNTIME-011, S-RUNTIME-012, S-RUNTIME-015, S-RUNTIME-023, S-RUNTIME-028, S-RUNTIME-045, S-RUNTIME-050, S-RUNTIME-066, S-RUNTIME-067, S-RUNTIME-068, S-RUNTIME-069, S-RUNTIME-070, S-RUNTIME-071, S-RUNTIME-072, S-RUNTIME-073, S-RUNTIME-103, S-RUNTIME-104, S-RUNTIME-105, S-RUNTIME-106, S-RUNTIME-107）
+- `kernel/runtime-contract.md`（S-RUNTIME-010, S-RUNTIME-011, S-RUNTIME-012, S-RUNTIME-015, S-RUNTIME-023, S-RUNTIME-028, S-RUNTIME-045, S-RUNTIME-050, S-RUNTIME-066, S-RUNTIME-067, S-RUNTIME-068, S-RUNTIME-069, S-RUNTIME-070, S-RUNTIME-071, S-RUNTIME-072, S-RUNTIME-073, S-RUNTIME-103, S-RUNTIME-104, S-RUNTIME-105, S-RUNTIME-106, S-RUNTIME-107, S-RUNTIME-108）
 - `kernel/surface-contract.md`（S-SURFACE-002, S-SURFACE-003, S-SURFACE-004）
 - `kernel/transport-contract.md`（S-TRANSPORT-001, S-TRANSPORT-002, S-TRANSPORT-005, S-TRANSPORT-007, S-TRANSPORT-008, S-TRANSPORT-009, S-TRANSPORT-010, S-TRANSPORT-011, S-TRANSPORT-012, S-TRANSPORT-013）
 - `kernel/error-projection.md`（S-ERROR-001, S-ERROR-006, S-ERROR-009, S-ERROR-012, S-ERROR-014, S-ERROR-015）
@@ -55,6 +55,9 @@
   `conversationAnchorId`、auth/subject 分离、consumer-owned recovery、protected
   scope checks、以及 runtime-public projection boundary 共同定义；closed-topic
   trust checklist 只能作为历史证据。
+- `S-RUNTIME-108`: PresentationTimeline consume boundary 只允许作为
+  runtime-owned `runtime.agent.*` timeline projection 的下游 SDK 投影；不得扩写为
+  broad Event API、wildcard broker、或 SDK-owned lipsync/timing truth。
 
 - `LocalAsset*` RPC 与统一 asset 列表/安装/导入/删除
 - 主模型 `engine_config` 字段投影

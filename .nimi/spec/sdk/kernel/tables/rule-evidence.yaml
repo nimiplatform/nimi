@@ -524,6 +524,10 @@ rules:
     evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_boundary_gate]
     test_files: [sdk/test/runtime/runtime-agent-surface.test.ts]
     note: "Local SDK consumer trust posture is covered by explicit agent/anchor request projection, anchor-native snapshot recovery, protected runtime.agent read/write scopes, and multi-agent/multi-anchor isolation tests"
+  - rule_id: S-RUNTIME-108
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "PresentationTimeline consume boundary is admitted; concrete SDK parser/API evidence is owned by the follow-on SDK/Desktop consume wave"
 
   # --- World Contract (S-WORLD) ---
   - rule_id: S-WORLD-001

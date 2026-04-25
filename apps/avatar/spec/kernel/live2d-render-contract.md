@@ -204,11 +204,22 @@ Cubism 支持 expression overlay。Nimi Avatar 只维护**单一 active expressi
 - Model 需声明 `Eyes` group（`ParamEyeLOpen` / `ParamEyeROpen`）
 - NAS handler setParameter 同样覆盖
 
-### 7.4 Auto Lipsync (Phase 2)
+### 7.4 Auto Lipsync (NAV-L2D-013)
 
-- Phase 2 接入 runtime-private / local `voice.level` event stream
-- 映射到 `ParamMouthOpenY`（Cubism 官方 lipsync API）
-- Phase 1 不启用（`ParamMouthOpenY` 保持 default 或受 handler 控制）
+- Auto lipsync is admitted only through runtime-owned PresentationTimeline
+  truth (`K-AGCORE-051`) plus Avatar-owned voice adapter / mouth parameter
+  execution.
+- Input must be provider-neutral voice timing or audio-level evidence bound to
+  the same `agent_id`, `conversation_anchor_id`, `turn_id`, and `stream_id` as
+  the runtime projection.
+- The Live2D branch maps computed mouth openness to `ParamMouthOpenY` through
+  Cubism parameter APIs.
+- A successful lipsync proof must show non-placeholder computed frames and real
+  `ParamMouthOpenY` mutation on the loaded model.
+- Constant mouth-open values, event-name-only tests, fixture-only audio, or
+  Desktop renderer evidence cannot close this branch.
+- Interrupt/cancel must stop further mouth parameter writes for the interrupted
+  stream and restore the branch to idle/default mouth behavior.
 
 ---
 

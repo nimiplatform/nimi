@@ -22,7 +22,14 @@
 
 Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义。Runtime presentation/activity projection 与 app-local `tables/activity-mapping.yaml` 把语义映射从 rendering 解耦；closed activity ontology 只保留为设计证据，不是本 app 的活动 authority。
 
-Wave 4 hard cut: `avatar.speak.*` and `avatar.lipsync.frame` are reserved Phase 2 event names, not current public emitted/consumed events. Current Phase 1 code must not emit placeholder speak/lipsync success; consumers must treat these names as unavailable until a later active runtime voice timing contract admits the pipeline.
+Voice/lipsync admission hard cut: `avatar.speak.*` and `avatar.lipsync.frame`
+are no longer closed-topic-only ideas, but they are unavailable as product
+success until the runtime-owned PresentationTimeline branch admitted by
+`K-AGCORE-051` and this topic's Avatar implementation wave provide current
+evidence. Current code must not emit placeholder speak/lipsync success.
+Consumers must treat these names as unavailable unless the event is backed by
+runtime timeline identity, voice timing/audio-level input, and Avatar-owned
+Live2D mouth parameter proof.
 
 ---
 
@@ -72,11 +79,11 @@ projection 触发）：
 | `avatar.pose.set` | `<pose>` 设置 | Low | — |
 | `avatar.pose.clear` | `<clear-pose/>` | Low | — |
 | `avatar.lookat.set` | `<lookat>` 触发 | Low | — |
-| `avatar.lipsync.frame` | Phase 2 reserved lip-sync frame; not emitted in Phase 1 | **Very high (opt-in)** | — |
-| `avatar.speak.start` | Phase 2 reserved TTS playback start; not emitted in Phase 1 | Low | — |
-| `avatar.speak.chunk` | Phase 2 reserved TTS chunk; not emitted in Phase 1 | Medium | — |
-| `avatar.speak.end` | Phase 2 reserved TTS playback completion; not emitted in Phase 1 | Low | — |
-| `avatar.speak.interrupt` | Phase 2 reserved TTS interrupt; not emitted in Phase 1 | Low | — |
+| `avatar.lipsync.frame` | Admitted lip-sync frame; unavailable until runtime timeline and Avatar mouth-parameter proof land | **Very high (opt-in)** | — |
+| `avatar.speak.start` | Admitted TTS playback start; unavailable until runtime timeline and Avatar voice adapter proof land | Low | — |
+| `avatar.speak.chunk` | Admitted TTS chunk; unavailable until runtime timeline and Avatar voice adapter proof land | Medium | — |
+| `avatar.speak.end` | Admitted TTS playback completion; unavailable until runtime timeline and Avatar voice adapter proof land | Low | — |
+| `avatar.speak.interrupt` | Admitted TTS interrupt; unavailable until runtime timeline and Avatar cancellation proof land | Low | — |
 
 ### 2.3 App Lifecycle (5 events, `avatar.app.*`)
 
@@ -127,13 +134,18 @@ avatar.lipsync.frame:
   detail:
     mouth_open_y: float                            # 0.0 - 1.0
     timestamp_offset_ms: int
+    stream_id: string                              # runtime-owned stream id
+    turn_id: string                                # runtime-owned turn id
+    sequence: int                                  # monotonic within stream
 
 avatar.speak.start:
   detail:
-    tts_engine: string
+    voice_adapter_id: string                       # provider-neutral adapter id
     voice_id: string?
     text_preview: string                           # first N chars
     duration_estimate_ms: int
+    stream_id: string
+    turn_id: string
 ```
 
 ---
@@ -174,10 +186,13 @@ events:
     detail_schema:
       mouth_open_y: float
       timestamp_offset_ms: int
+      stream_id: string
+      turn_id: string
+      sequence: int
     rate_limit_tier: very_high_opt_in
     default_max_rate_hz: 60
-    stability: phase_2_reserved
-    visibility: unavailable_in_phase_1
+    stability: admitted_pending_implementation
+    visibility: unavailable_until_timeline_voice_lipsync_pipeline_lands
   # ... 其他 events
 
 before_cancel_policy:

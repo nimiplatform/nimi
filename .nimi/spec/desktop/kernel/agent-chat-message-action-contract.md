@@ -196,6 +196,19 @@ product relation truth；执行层只消费。
 - 若 downstream 需要新增 richer assistant behavior surface，必须先落新的 admitted
   desktop kernel authority；不得扩写 timer、scheduler、prompt runtime、notification、
   bridge、或 modality helper 作为替代 owner
+- admitted Desktop `voice` message actions do not by themselves own companion
+  voice playback, lipsync, or PresentationTimeline truth
+- any assistant voice action that participates in Live2D companion speech must
+  be coupled to runtime-owned timeline projection admitted by `K-AGCORE-051`
+- Desktop may carry model-planned voice action intent and prompt payload, but it
+  must not synthesize voice timing, lipsync frames, or Avatar mouth parameter
+  values from chat text
+- `deliveryCoupling=with-message` may express product intent to coordinate text
+  and voice, but actual timing remains runtime timeline truth
+- if runtime timeline projection is unavailable, Desktop must not claim
+  synchronized companion voice/lipsync success; it may only execute the already
+  admitted voice action semantics governed by the voice executor/session
+  contracts
 
 ## Fact Sources
 
