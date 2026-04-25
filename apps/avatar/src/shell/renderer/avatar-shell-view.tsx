@@ -18,6 +18,7 @@ import {
   setVoiceTranscriptSubmitted,
   type VoiceCompanionState,
 } from './voice-companion-state.js';
+import { Live2DCarrierVisualSurface } from './live2d/Live2DCarrierVisualSurface.js';
 
 type AvatarShellViewProps = Record<string, any>;
 function normalizeText(value: string | null | undefined): string {
@@ -194,6 +195,7 @@ return (
                 });
               }}
             >
+              <Live2DCarrierVisualSurface session={bootstrapHandle?.carrier?.backendSession ?? null} />
               <div className="avatar-stage__backdrop" />
               <div className="avatar-stage__orbit avatar-stage__orbit--one" />
               <div className="avatar-stage__orbit avatar-stage__orbit--two" />

@@ -137,6 +137,7 @@
     "check:live-provider-invariants": "node scripts/check-live-provider-invariants.mjs",
     "check:live-smoke-gate": "node scripts/check-live-smoke-gate.mjs",
     "check:live-smoke-gate-regression": "node --test scripts/check-live-smoke-gate.test.mjs",
+    "check:live2d-companion-timeline-acceptance": "pnpm --filter @nimiplatform/sdk exec tsx ../scripts/check-live2d-companion-timeline-acceptance.ts",
     "live:audio-fixtures": "node scripts/live-audio-fixtures.mjs",
     "run:seedance-video-smoke": "node scripts/run-seedance-video-smoke.mjs",
     "run:ai-gold-path": "node scripts/run-ai-gold-path.mjs",

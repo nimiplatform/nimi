@@ -16,6 +16,7 @@ export type OfficialCubismFrameworkRuntime = {
     getModelFileName: () => string;
     getTextureCount: () => number;
     getTextureFileName: (index: number) => string;
+    getLayoutMap?: (layout: Map<string, number>) => boolean;
     getPhysicsFileName: () => string;
     getPoseFileName: () => string;
     getExpressionCount: () => number;

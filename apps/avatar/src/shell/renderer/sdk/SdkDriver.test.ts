@@ -235,4 +235,91 @@ describe('SdkDriver', () => {
 
     await driver.stop();
   });
+
+  it('preserves SDK runtime timeline metadata on Avatar passthrough events without synthesizing it', async () => {
+    async function* stream() {
+      yield {
+        eventName: 'runtime.agent.turn.text_delta',
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-voice-1',
+        streamId: 'stream-voice-1',
+        timeline: {
+          turnId: 'turn-voice-1',
+          streamId: 'stream-voice-1',
+          channel: 'text',
+          offsetMs: 0,
+          sequence: 1,
+          startedAtWall: '2026-04-25T00:00:00.000Z',
+          observedAtWall: '2026-04-25T00:00:00.020Z',
+          timebaseOwner: 'runtime',
+          projectionRuleId: 'K-AGCORE-051',
+          clockBasis: 'monotonic_with_wall_anchor',
+          providerNeutral: true,
+          appLocalAuthority: false,
+        },
+        detail: {
+          text: 'voice line',
+        },
+      };
+      yield {
+        eventName: 'runtime.agent.turn.completed',
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-no-timeline',
+        streamId: 'stream-no-timeline',
+        detail: {
+          terminalReason: 'completed',
+        },
+      };
+      await new Promise(() => {});
+    }
+
+    const runtime = {
+      agent: {
+        turns: {
+          getSessionSnapshot: async () => ({
+            sessionStatus: 'active',
+            transcriptMessageCount: 0,
+          }),
+          subscribe: async () => stream(),
+        },
+      },
+    } as const;
+
+    const driver = new SdkDriver({
+      runtime: runtime as never,
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      activeWorldId: 'world-1',
+      activeUserId: 'user-1',
+      locale: 'en-US',
+      now: () => 1_710_000_030_000,
+    });
+    const events: Array<{ name: string; detail: Record<string, unknown> }> = [];
+    driver.onEvent((event) => events.push(event));
+
+    await driver.start();
+    await waitForTasks();
+
+    expect(events.find((event) => event.name === 'runtime.agent.turn.text_delta')?.detail).toEqual(expect.objectContaining({
+      runtime_timeline: expect.objectContaining({
+        turn_id: 'turn-voice-1',
+        stream_id: 'stream-voice-1',
+        timebase_owner: 'runtime',
+        projection_rule_id: 'K-AGCORE-051',
+        provider_neutral: true,
+        app_local_authority: false,
+      }),
+    }));
+    expect(events.find((event) => event.name === 'runtime.agent.turn.completed')?.detail).not.toHaveProperty('runtime_timeline');
+    expect(driver.getBundle().custom).toEqual(expect.objectContaining({
+      last_runtime_timeline: expect.objectContaining({
+        turn_id: 'turn-voice-1',
+        stream_id: 'stream-voice-1',
+      }),
+    }));
+
+    await driver.stop();
+  });
 });

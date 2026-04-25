@@ -76,7 +76,7 @@ function createBundle(): AgentDataBundle {
 }
 
 function createDriver() {
-  let eventHandler: ((event: AgentEvent) => void) | null = null;
+  const eventHandlers = new Set<(event: AgentEvent) => void>();
   const emitted: Array<{ name: string; detail: Record<string, unknown> }> = [];
   const driver: AgentDataDriver & { trigger(event: AgentEvent): void; emitted: typeof emitted } = {
     kind: 'sdk',
@@ -85,9 +85,9 @@ function createDriver() {
     async stop() {},
     getBundle: () => createBundle(),
     onEvent(handler) {
-      eventHandler = handler;
+      eventHandlers.add(handler);
       return () => {
-        eventHandler = null;
+        eventHandlers.delete(handler);
       };
     },
     onBundleChange() {
@@ -100,7 +100,7 @@ function createDriver() {
       emitted.push(event);
     },
     trigger(event) {
-      eventHandler?.(event);
+      eventHandlers.forEach((handler) => handler(event));
     },
     emitted,
   };
@@ -245,6 +245,69 @@ describe('avatar runtime carrier', () => {
 
     carrier.shutdown();
     expect(stopNasHandlerHotReloadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps runtime-owned voice timing to Live2D mouth parameters without Avatar synthesizing timeline truth', async () => {
+    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
+    const driver = createDriver();
+    const carrier = await startAvatarRuntimeCarrier({
+      driver,
+      modelPath: '/models/ren',
+    });
+
+    driver.trigger({
+      event_id: 'event-voice-1',
+      name: 'runtime.agent.turn.text_delta',
+      timestamp: '2026-04-25T00:00:03.000Z',
+      detail: {
+        turn_id: 'turn-voice-1',
+        stream_id: 'stream-voice-1',
+        runtime_timeline: {
+          turn_id: 'turn-voice-1',
+          stream_id: 'stream-voice-1',
+          channel: 'text',
+          offset_ms: 0,
+          sequence: 1,
+          started_at_wall: '2026-04-25T00:00:02.900Z',
+          observed_at_wall: '2026-04-25T00:00:03.000Z',
+          timebase_owner: 'runtime',
+          projection_rule_id: 'K-AGCORE-051',
+          clock_basis: 'monotonic_with_wall_anchor',
+          provider_neutral: true,
+          app_local_authority: false,
+        },
+        voice_timing: {
+          adapter_id: 'runtime.voice.timeline-levels',
+          frames: [
+            { offset_ms: 0, mouth_open_y: 0.12 },
+            { offset_ms: 80, mouth_open_y: 0.86 },
+            { offset_ms: 160, mouth_open_y: 0.33 },
+          ],
+        },
+      },
+    });
+    await Promise.resolve();
+
+    const mouthCommands = backendApplyCommandMock.mock.calls
+      .map((call) => call[0])
+      .filter((command) => command.kind === 'parameter' && command.id === 'ParamMouthOpenY');
+    expect(mouthCommands.map((command) => command.value)).toEqual([0.12, 0.86, 0.33, 0]);
+    expect(new Set(mouthCommands.map((command) => command.value)).size).toBeGreaterThan(2);
+    expect(driver.emitted.map((event) => event.name)).toEqual(expect.arrayContaining([
+      'avatar.speak.start',
+      'avatar.lipsync.frame',
+      'avatar.speak.end',
+    ]));
+    expect(driver.emitted.find((event) => event.name === 'avatar.speak.start')?.detail).toEqual(expect.objectContaining({
+      turn_id: 'turn-voice-1',
+      stream_id: 'stream-voice-1',
+      runtime_timeline: expect.objectContaining({
+        timebase_owner: 'runtime',
+        app_local_authority: false,
+      }),
+    }));
+
+    carrier.shutdown();
   });
 
   it('fails closed and records model error when model manifest resolution fails', async () => {

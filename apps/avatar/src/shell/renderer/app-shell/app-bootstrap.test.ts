@@ -355,6 +355,12 @@ describe('bootstrapAvatar', () => {
       driver: expect.any(Object),
       modelPath: '/models/ren',
     }));
+    expect(handle.carrier).toEqual(expect.objectContaining({
+      backendSession: expect.objectContaining({
+        applyCommand: expect.any(Function),
+        unload: expect.any(Function),
+      }),
+    }));
     expect(openConversationAnchorMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().consume.authority).toBe('runtime');
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('instance-1');

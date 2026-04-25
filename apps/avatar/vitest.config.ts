@@ -16,6 +16,7 @@ export default defineConfig({
       { find: 'react-dom', replacement: path.resolve(__dirname, 'node_modules/react-dom/index.js') },
       { find: 'react', replacement: path.resolve(__dirname, 'node_modules/react/index.js') },
       { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
+      { find: '@framework', replacement: path.resolve(__dirname, '.cache/assets/js/CubismSdkForWeb-5-r.5/Framework/src') },
       { find: '@live2d', replacement: path.resolve(__dirname, 'src/shell/renderer/live2d') },
       { find: '@nas', replacement: path.resolve(__dirname, 'src/shell/renderer/nas') },
       { find: '@mock', replacement: path.resolve(__dirname, 'src/shell/renderer/mock') },

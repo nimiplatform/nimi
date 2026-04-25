@@ -31,6 +31,7 @@ import { setAlwaysOnTop } from './tauri-commands.js';
 
 export type BootstrapHandle = {
   driver: AgentDataDriver;
+  carrier?: AvatarRuntimeCarrier | null;
   getVoiceInputAvailability(input: {
     agentId: string;
     conversationAnchorId: string;
@@ -704,6 +705,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
     return {
       driver,
+      carrier,
       getVoiceInputAvailability,
       startVoiceCapture,
       submitVoiceCaptureTurn,

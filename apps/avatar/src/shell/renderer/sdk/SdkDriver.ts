@@ -134,6 +134,27 @@ function clearTurnCueRecord(
   };
 }
 
+function normalizeRuntimeTimelineForAvatar(event: RuntimeAgentConsumeEvent): Record<string, unknown> | null {
+  const timeline = 'timeline' in event ? event.timeline : undefined;
+  if (!timeline) {
+    return null;
+  }
+  return {
+    turn_id: timeline.turnId,
+    stream_id: timeline.streamId,
+    channel: timeline.channel,
+    offset_ms: timeline.offsetMs,
+    sequence: timeline.sequence,
+    started_at_wall: timeline.startedAtWall,
+    observed_at_wall: timeline.observedAtWall,
+    timebase_owner: timeline.timebaseOwner,
+    projection_rule_id: timeline.projectionRuleId,
+    clock_basis: timeline.clockBasis,
+    provider_neutral: timeline.providerNeutral,
+    app_local_authority: timeline.appLocalAuthority,
+  };
+}
+
 export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
@@ -433,6 +454,15 @@ export class SdkDriver implements AgentDataDriver {
   }
 
   private applyRuntimeEvent(event: RuntimeAgentConsumeEvent): void {
+    const runtimeTimeline = normalizeRuntimeTimelineForAvatar(event);
+    if (runtimeTimeline) {
+      this.bundle = {
+        ...this.bundle,
+        custom: mergeCustomRecord(this.bundle.custom, {
+          last_runtime_timeline: runtimeTimeline,
+        }),
+      };
+    }
     switch (event.eventName) {
       case 'runtime.agent.session.snapshot':
         this.applySessionSnapshot(event.detail.snapshot);
@@ -637,6 +667,7 @@ export class SdkDriver implements AgentDataDriver {
   }
 
   private toPassthroughAgentEvent(event: RuntimeAgentConsumeEvent): AgentEvent {
+    const runtimeTimeline = normalizeRuntimeTimelineForAvatar(event);
     return toRuntimeAgentEvent(event.eventName, {
       ...event.detail,
       agent_id: event.agentId,
@@ -645,6 +676,7 @@ export class SdkDriver implements AgentDataDriver {
       originating_stream_id: 'originatingStreamId' in event ? event.originatingStreamId ?? null : null,
       turn_id: 'turnId' in event ? event.turnId : null,
       stream_id: 'streamId' in event ? event.streamId : null,
+      ...(runtimeTimeline ? { runtime_timeline: runtimeTimeline } : {}),
     }, this.now());
   }
 

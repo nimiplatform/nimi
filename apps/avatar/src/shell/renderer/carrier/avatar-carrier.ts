@@ -15,6 +15,7 @@ import {
 } from '../nas/handler-registry.js';
 import { resolveModelManifest, type ModelManifest } from '../live2d/model-loader.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
+import { wireAvatarVoiceLipsync } from '../voice-lipsync/avatar-voice-lipsync.js';
 
 export type AvatarRuntimeCarrier = {
   model: ModelManifest;
@@ -101,6 +102,10 @@ export async function startAvatarRuntimeCarrier(input: {
     executor,
     projection,
   });
+  const unwireVoiceLipsync = wireAvatarVoiceLipsync({
+    driver: input.driver,
+    projection,
+  });
   const continuous = new ContinuousScheduler(
     registry,
     () => input.driver.getBundle(),
@@ -125,6 +130,7 @@ export async function startAvatarRuntimeCarrier(input: {
     backendSession,
     shutdown() {
       continuous.stop();
+      unwireVoiceLipsync();
       unwireDispatch();
       unwireBackend();
       executor.cancelAll();
