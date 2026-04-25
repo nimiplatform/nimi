@@ -19,7 +19,7 @@
     "initial_execution_state": "IDLE"
   },
   "events": [
-    { "kind": "time", "at_ms":     0, "type": "apml.state.activity", "detail": { "activity_name": "neutral",     "category": "state",   "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms":     0, "type": "apml.state.activity", "detail": { "activity_name": "neutral",     "category": "emotion", "intensity": null,       "source": "mock" } },
     { "kind": "time", "at_ms":  2000, "type": "apml.state.activity", "detail": { "activity_name": "happy",       "category": "emotion", "intensity": "weak",     "source": "mock" } },
     { "kind": "time", "at_ms":  4500, "type": "apml.state.activity", "detail": { "activity_name": "happy",       "category": "emotion", "intensity": "strong",   "source": "mock" } },
     { "kind": "time", "at_ms":  7000, "type": "apml.state.activity", "detail": { "activity_name": "sad",         "category": "emotion", "intensity": "moderate", "source": "mock" } },

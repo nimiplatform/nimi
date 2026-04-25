@@ -59,7 +59,7 @@ describe('MockDriver', () => {
   it('updates bundle activity when an apml.state.activity event fires', async () => {
     const scenario = makeScenario({
       events: [
-        { kind: 'time', at_ms: 0, type: 'apml.state.activity', detail: { activity_name: 'neutral', category: 'state', intensity: null, source: 'mock' } },
+        { kind: 'time', at_ms: 0, type: 'apml.state.activity', detail: { activity_name: 'neutral', category: 'emotion', intensity: null, source: 'mock' } },
       ],
     });
     const driver = new MockDriver({ scenario });

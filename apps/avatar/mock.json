@@ -27,7 +27,7 @@
       "type": "apml.state.activity",
       "detail": {
         "activity_name": "neutral",
-        "category": "state",
+        "category": "emotion",
         "intensity": null,
         "source": "mock"
       }
