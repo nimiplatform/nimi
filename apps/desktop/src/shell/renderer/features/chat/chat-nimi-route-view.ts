@@ -159,7 +159,7 @@ export function resolveAgentChatRequestedMaxOutputTokens(
   }
   const maxOutputTokens = Number(profile?.maxOutputTokens);
   // Route profile ceilings are capability metadata, not a reliable per-turn target.
-  // Very small ceilings routinely truncate the message-action envelope before it closes.
+  // Very small ceilings routinely truncate APML before the message closes.
   if (!Number.isFinite(maxOutputTokens) || maxOutputTokens < MIN_AGENT_CHAT_REQUEST_MAX_OUTPUT_TOKENS) {
     return null;
   }

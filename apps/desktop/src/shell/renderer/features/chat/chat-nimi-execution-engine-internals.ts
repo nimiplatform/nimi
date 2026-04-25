@@ -9,7 +9,7 @@ import type {
   AgentLocalTurnBeatRecord,
   AgentLocalTurnContext,
 } from '@renderer/bridge/runtime-bridge/types';
-import { AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID, type AgentResolvedBehavior } from './chat-agent-behavior';
+import type { AgentResolvedBehavior } from './chat-agent-behavior';
 import { buildDesktopChatOutputContractSection } from './chat-output-contract';
 import type {
   AgentChatContinuityArtifactFact,
@@ -286,10 +286,10 @@ function buildSystemPrompt(input: {
     resolvedBehaviorSection ? `ResolvedBehavior:\n${resolvedBehaviorSection}` : null,
     `Safety Policy:\n${buildSafetyPolicySection()}`,
     followUpInstruction
-      ? `FollowUpInstruction:\n${followUpInstruction}\n\nTreat this as an internal continuation cue, not a new user message. Continue naturally from the latest assistant turn. Add only net-new content. Do not restate the previous assistant reply. If no natural continuation is needed, return an empty actions array and do not repeat the prior message.`
+      ? `FollowUpInstruction:\n${followUpInstruction}\n\nTreat this as an internal continuation cue, not a new user message. Continue naturally from the latest assistant turn. Add only net-new content. Do not restate the previous assistant reply. If no natural continuation is needed, return only one concise <message> and do not repeat the prior message.`
       : null,
     buildDesktopChatOutputContractSection(),
-    `Instruction:\nReply as the target agent through the message-action envelope. The top-level object must include "schemaId", "message", and "actions". Begin exactly with {"schemaId":"${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}". Output raw JSON only: start with "{" and end with "}". Never emit backticks or Markdown. Use continuity as background truth. Keep internal planning private.`,
+    'Instruction:\nReply as the target agent using APML. Begin exactly with <message id="message-0">. Output APML only: no JSON, no backticks, no Markdown, no wrapper prose. Use continuity as background truth. Keep internal planning private.',
   ].filter(Boolean);
 
   return sections.length > 0 ? sections.join('\n\n') : null;

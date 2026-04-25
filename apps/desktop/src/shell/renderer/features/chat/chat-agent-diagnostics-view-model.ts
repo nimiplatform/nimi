@@ -82,18 +82,6 @@ function hasRecentTurn(lifecycle: AgentTurnLifecycleState | null): boolean {
 function buildTurnStatusCard(
   lifecycle: AgentTurnLifecycleState,
 ): AgentDiagnosticsCardData {
-  if (lifecycle.terminal === 'completed' && lifecycle.diagnostics?.recoveryPath !== 'none') {
-    return {
-      key: 'turn-status',
-      label: 'Last Turn',
-      value: 'Recovered',
-      detail: joinDetails([
-        lifecycle.error?.message || null,
-        `classification=${lifecycle.diagnostics?.classification || '-'}`,
-        `recoveryPath=${lifecycle.diagnostics?.recoveryPath || '-'}`,
-      ]),
-    };
-  }
   if (lifecycle.terminal === 'completed') {
     return {
       key: 'turn-status',

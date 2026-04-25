@@ -31,7 +31,7 @@ const AGENT_STATUS_CUE_MOODS: ReadonlySet<AgentResolvedStatusCueMood> = new Set(
 
 function parseRecord(value: unknown, label: string): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        throw new Error(`${label} must be a JSON object`);
+        throw new Error(`${label} must be an object`);
     }
     return value as Record<string, unknown>;
 }
@@ -254,11 +254,268 @@ function parseStatusCueBranch(input: {
     }
 }
 
+function parseTagAttributes(rawAttrs: string, label: string): Record<string, string> {
+    const attrs: Record<string, string> = {};
+    const normalized = String(rawAttrs || '').trim();
+    if (!normalized) {
+        return attrs;
+    }
+    const attrPattern = /([A-Za-z][A-Za-z0-9_-]*)\s*=\s*"([^"]*)"/gu;
+    let consumed = '';
+    let match: RegExpExecArray | null;
+    while ((match = attrPattern.exec(normalized)) !== null) {
+        const attrName = match[1] || '';
+        if (Object.prototype.hasOwnProperty.call(attrs, attrName)) {
+            throw new Error(`${label}.${attrName} is duplicated`);
+        }
+        attrs[attrName] = match[2] || '';
+        consumed += match[0];
+    }
+    const leftovers = normalized.replace(attrPattern, '').trim();
+    if (leftovers) {
+        throw new Error(`${label} attributes are invalid`);
+    }
+    if (!consumed && normalized) {
+        throw new Error(`${label} attributes are invalid`);
+    }
+    return attrs;
+}
+
+function assertAllowedAPMLAttributes(
+    attrs: Record<string, string>,
+    label: string,
+    allowed: readonly string[],
+): void {
+    const allowedSet = new Set(allowed);
+    for (const attr of Object.keys(attrs)) {
+        if (!allowedSet.has(attr)) {
+            throw new Error(`${label}.${attr} is not admitted`);
+        }
+    }
+}
+
+function parseAPMLStartTag(input: string, tagName: string, label: string): {
+    attrs: Record<string, string>;
+    bodyStart: number;
+} {
+    const pattern = new RegExp(`^<${tagName}\\b([^>]*)>`, 'iu');
+    const match = input.match(pattern);
+    if (!match) {
+        throw new Error(`${label} must start with <${tagName}>`);
+    }
+    const startTag = match[0] || '';
+    if (startTag.endsWith('/>')) {
+        throw new Error(`${label} must not be self-closing`);
+    }
+    return {
+        attrs: parseTagAttributes(match[1] || '', label),
+        bodyStart: startTag.length,
+    };
+}
+
+function extractRequiredAPMLTagBody(input: string, tagName: string, label: string): {
+    attrs: Record<string, string>;
+    body: string;
+    rest: string;
+} {
+    const start = parseAPMLStartTag(input, tagName, label);
+    const closeTag = `</${tagName}>`;
+    const closeIndex = input.indexOf(closeTag, start.bodyStart);
+    if (closeIndex < 0) {
+        throw new Error(`${label} missing ${closeTag}`);
+    }
+    return {
+        attrs: start.attrs,
+        body: input.slice(start.bodyStart, closeIndex),
+        rest: input.slice(closeIndex + closeTag.length),
+    };
+}
+
+function extractAPMLChildText(input: string, tagName: string, label: string): {
+    value: string | null;
+    output: string;
+} {
+    const pattern = new RegExp(`<${tagName}\\b([^>]*)>([\\s\\S]*?)</${tagName}>`, 'giu');
+    let value: string | null = null;
+    const output = input.replace(pattern, (_match, rawAttrs: string, body: string) => {
+        if (value != null) {
+            throw new Error(`${label} admits at most one <${tagName}>`);
+        }
+        const attrs = parseTagAttributes(rawAttrs || '', `${label}.${tagName}`);
+        assertAllowedAPMLAttributes(attrs, `${label}.${tagName}`, []);
+        if (String(body || '').includes('<')) {
+            throw new Error(`${label}.${tagName} must contain text only`);
+        }
+        value = String(body || '').trim();
+        return '';
+    });
+    return { value, output };
+}
+
+function normalizeAPMLText(value: string): string {
+    return String(value || '')
+        .replace(/[ \t]*\n[ \t]*/gu, '\n')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+}
+
+function defaultAPMLOperation(kind: AgentResolvedModalityAction['modality']): string {
+    return kind === 'image' ? 'image.generate' : 'audio.synthesize';
+}
+
+function parseAPMLMessage(input: string): {
+    message: AgentResolvedMessage;
+    statusCue: AgentResolvedStatusCue | null;
+    statusCueDiagnostic: AgentResolvedStatusCueDiagnostic | null;
+    rest: string;
+} {
+    const parsed = extractRequiredAPMLTagBody(input, 'message', 'APML message');
+    assertAllowedAPMLAttributes(parsed.attrs, 'APML message', ['id']);
+    const messageId = parseTrimmedString(parsed.attrs.id, 'APML message.id');
+    const emotion = extractAPMLChildText(parsed.body, 'emotion', 'APML message');
+    const activity = extractAPMLChildText(emotion.output, 'activity', 'APML message');
+    const visibleText = normalizeAPMLText(activity.output);
+    if (visibleText.includes('<')) {
+        throw new Error('APML message contains unsupported tags');
+    }
+    const message: AgentResolvedMessage = {
+        messageId,
+        text: parseTrimmedString(visibleText, 'APML message text'),
+    };
+    const rawFieldsPresent = [
+        ...(emotion.value ? ['emotion'] : []),
+        ...(activity.value ? ['activity'] : []),
+    ];
+    const statusCue: AgentResolvedStatusCue | null = emotion.value || activity.value
+        ? {
+            sourceMessageId: messageId,
+            ...(emotion.value
+                ? AGENT_STATUS_CUE_MOODS.has(emotion.value as AgentResolvedStatusCueMood)
+                    ? { mood: emotion.value as AgentResolvedStatusCueMood }
+                    : { label: emotion.value }
+                : {}),
+            ...(activity.value ? { actionCue: activity.value } : {}),
+        }
+        : null;
+    return {
+        message,
+        statusCue,
+        statusCueDiagnostic: statusCue
+            ? {
+                accepted: true,
+                reason: null,
+                sourceMessageId: messageId,
+                rawFieldsPresent,
+            }
+            : null,
+        rest: parsed.rest,
+    };
+}
+
+function parseAPMLAction(input: string, messageId: string, actionIndex: number): {
+    action: AgentResolvedModalityAction;
+    rest: string;
+} {
+    const parsed = extractRequiredAPMLTagBody(input, 'action', 'APML action');
+    assertAllowedAPMLAttributes(parsed.attrs, 'APML action', ['id', 'kind', 'source-message', 'coupling', 'operation']);
+    const kind = parseTrimmedString(parsed.attrs.kind, 'APML action.kind');
+    if (kind === 'video') {
+        throw new Error('APML video action is deferred to future authority');
+    }
+    if (kind !== 'image' && kind !== 'voice') {
+        throw new Error('APML action.kind is invalid');
+    }
+    const payload = extractRequiredAPMLTagBody(parsed.body.trim(), 'prompt-payload', 'APML prompt-payload');
+    assertAllowedAPMLAttributes(payload.attrs, 'APML prompt-payload', ['kind']);
+    if (payload.rest.trim()) {
+        throw new Error('APML action contains unsupported tags');
+    }
+    const payloadKind = parseTrimmedString(payload.attrs.kind, 'APML prompt-payload.kind');
+    if (payloadKind !== kind) {
+        throw new Error('APML prompt-payload.kind must match action.kind');
+    }
+    const promptText = extractAPMLChildText(payload.body, 'prompt-text', 'APML prompt-payload');
+    if (promptText.output.trim()) {
+        throw new Error('APML prompt-payload contains unsupported tags');
+    }
+    const sourceMessageId = parseOptionalTrimmedString(parsed.attrs['source-message'], 'APML action.source-message')
+        || messageId;
+    return {
+        action: {
+            actionId: parseTrimmedString(parsed.attrs.id, 'APML action.id'),
+            actionIndex,
+            actionCount: 0,
+            modality: kind,
+            operation: parseOptionalTrimmedString(parsed.attrs.operation, 'APML action.operation')
+                || defaultAPMLOperation(kind),
+            promptPayload: kind === 'image'
+                ? {
+                    kind: 'image-prompt',
+                    promptText: parseTrimmedString(promptText.value, 'APML prompt-text'),
+                }
+                : {
+                    kind: 'voice-prompt',
+                    promptText: parseTrimmedString(promptText.value, 'APML prompt-text'),
+                },
+            sourceMessageId,
+            deliveryCoupling: parseOptionalTrimmedString(parsed.attrs.coupling, 'APML action.coupling') === 'with-message'
+                ? 'with-message'
+                : 'after-message',
+        },
+        rest: parsed.rest,
+    };
+}
+
+export function parseAgentResolvedMessageActionAPMLEnvelopeWithDiagnostics(modelOutput: string): {
+    envelope: AgentResolvedMessageActionEnvelope;
+    statusCueDiagnostic: AgentResolvedStatusCueDiagnostic | null;
+} {
+    const raw = String(modelOutput || '').trim();
+    if (!raw.startsWith('<message')) {
+        throw new Error('APML output must begin with <message>');
+    }
+    const parsedMessage = parseAPMLMessage(raw);
+    let rest = parsedMessage.rest.trim();
+    const actions: AgentResolvedModalityAction[] = [];
+    while (rest) {
+        if (rest.startsWith('<time-hook') || rest.startsWith('<event-hook')) {
+            throw new Error('APML hook tags are runtime HookIntent-owned and are not admitted in the Desktop local parser');
+        }
+        if (!rest.startsWith('<action')) {
+            throw new Error('APML output contains unsupported top-level tags');
+        }
+        const parsedAction = parseAPMLAction(rest, parsedMessage.message.messageId, actions.length);
+        actions.push(parsedAction.action);
+        rest = parsedAction.rest.trim();
+    }
+    if (actions.length > 0) {
+        for (const action of actions) {
+            action.actionCount = actions.length;
+            if (action.sourceMessageId !== parsedMessage.message.messageId) {
+                throw new Error(`action ${action.actionId} source message reference is inconsistent`);
+            }
+        }
+    }
+    validatePhaseOneActionEnvelopeLimits(actions);
+    return {
+        envelope: {
+            schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+            message: parsedMessage.message,
+            ...(parsedMessage.statusCue ? { statusCue: parsedMessage.statusCue } : {}),
+            actions,
+        },
+        statusCueDiagnostic: parsedMessage.statusCueDiagnostic,
+    };
+}
+
 export function parseAgentResolvedMessageActionEnvelopeWithDiagnosticsFromPayload(payload: unknown): {
     envelope: AgentResolvedMessageActionEnvelope;
     statusCueDiagnostic: AgentResolvedStatusCueDiagnostic | null;
 } {
-    const record = parseRecord(payload, 'agent model output message-action envelope');
+    const record = parseRecord(payload, 'agent resolved message-action projection');
     const schemaId = parseTrimmedString(record.schemaId, 'schemaId');
     if (schemaId !== AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID) {
         throw new Error(`schemaId must equal ${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}`);
@@ -303,25 +560,19 @@ export function parseAgentResolvedMessageActionEnvelopeFromPayload(payload: unkn
     return parseAgentResolvedMessageActionEnvelopeWithDiagnosticsFromPayload(payload).envelope;
 }
 
-export function parseAgentResolvedMessageActionEnvelope(modelOutput: string): AgentResolvedMessageActionEnvelope {
+export function parseAgentResolvedMessageActionEnvelopeWithDiagnostics(modelOutput: string): {
+    envelope: AgentResolvedMessageActionEnvelope;
+    statusCueDiagnostic: AgentResolvedStatusCueDiagnostic | null;
+} {
     const raw = String(modelOutput || '').trim();
     if (!raw) {
         throw new Error('Agent model output message-action envelope is required');
     }
-    let payload: unknown;
-    try {
-        payload = JSON.parse(raw) as unknown;
-    } catch (error) {
-        const detail = error instanceof Error ? error.message : String(error || 'invalid JSON');
-        const hint = raw.startsWith('`')
-            ? 'leading backticks detected; remove Markdown code fences and return the JSON object directly'
-            : 'return the JSON object directly with no wrapper text';
-        throw new Error(
-            `Agent model output must be a raw JSON object with no Markdown code fences or wrapper text: ${hint} (${detail})`,
-            { cause: error },
-        );
-    }
-    return parseAgentResolvedMessageActionEnvelopeFromPayload(payload);
+    return parseAgentResolvedMessageActionAPMLEnvelopeWithDiagnostics(raw);
+}
+
+export function parseAgentResolvedMessageActionEnvelope(modelOutput: string): AgentResolvedMessageActionEnvelope {
+    return parseAgentResolvedMessageActionEnvelopeWithDiagnostics(modelOutput).envelope;
 }
 
 export function buildAgentResolvedOutputText(envelope: AgentResolvedMessageActionEnvelope): string {

@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
 import {
   parseAgentResolvedMessageActionEnvelope,
   resolveAgentModelOutputEnvelope,
@@ -18,84 +17,64 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-function buildMinimalEnvelopeText(
-  text: string,
-  schemaId: string = AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-): string {
-  return JSON.stringify({
-    schemaId,
-    message: {
-      messageId: 'message-0',
-      text,
-    },
-    actions: [],
-  });
+function buildMinimalAPML(text: string): string {
+  return `<message id="message-0">${text}</message>`;
 }
 
-test('desktop chat output contract helper exposes message-action envelope rules', () => {
+test('desktop chat output contract helper exposes APML rules', () => {
   const section = buildDesktopChatOutputContractSection();
 
   assert.match(section, /^Output Contract:/m);
-  assert.match(section, /Return exactly one JSON object that matches the Agent Message-Action Envelope schema/);
-  assert.match(section, /Do not output prose, Markdown, code fences, comments, XML, or any wrapper text before or after the JSON object/);
-  assert.match(section, /The first character of your response must be "\{" and the final character must be "\}"/);
-  assert.match(section, /Never wrap the JSON object in ```json, backticks, quotes, or any Markdown block/);
-  assert.match(section, /The top-level object must contain "schemaId", "message", and "actions"\. Do not rename or omit these keys/);
-  assert.match(section, /You may optionally include one top-level "statusCue" object for the current turn/);
-  assert.match(section, new RegExp(`Set "schemaId" to "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"\\.`));
-  assert.match(section, new RegExp(`Begin your response with \\{"schemaId":"${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
-  assert.match(section, /Put all user-visible assistant text inside exactly one "message\.text" field/);
-  assert.match(section, /The "message" object must include "messageId" and "text"/);
-  assert.match(section, /If "statusCue" is present, it must include "sourceMessageId" equal to "message\.messageId"/);
-  assert.match(section, /If "statusCue" is present, it may include only "sourceMessageId", "mood", "label", "intensity", and "actionCue"/);
-  assert.match(section, /If "statusCue\.mood" is present, it must be one of "neutral", "joy", "focus", "calm", "playful", "concerned", or "surprised"/);
-  assert.match(section, /If "statusCue\.intensity" is present, it must be a number between 0 and 1/);
-  assert.match(section, /Keep "actionIndex" zero-based and contiguous; every action must repeat the same "actionCount" equal to the actions array length/);
-  assert.match(section, /Every action must include "actionId", "actionIndex", "actionCount", "modality", "operation", "promptPayload", "sourceMessageId", and "deliveryCoupling"/);
-  assert.match(section, /"deliveryCoupling" must be "after-message".*or "with-message"/);
-  assert.match(section, /Use one shared action schema for admitted modalities: "modality" must be "image" or "voice"/);
-  assert.match(section, /Do not emit "video"; video-generation product admission is deferred/);
-  assert.match(section, /Do not emit "follow-up-turn"; deferred continuation belongs to runtime HookIntent/);
-  assert.match(section, /Phase 1 limits: emit at most one "image" action and at most one "voice" action in the entire "actions" array/);
-  assert.match(section, /Never emit multiple "voice" actions in the same turn/);
-  assert.match(section, /Use typed prompt payloads only: image -> \{"kind":"image-prompt","promptText":"\.\.\."\}, voice -> \{"kind":"voice-prompt","promptText":"\.\.\."\}/);
-  assert.doesNotMatch(section, /video-prompt/);
-  assert.match(section, /For voice actions, use "operation": "audio\.synthesize" for narrow playback, "voice_workflow\.tts_v2v" for clone workflow, or "voice_workflow\.tts_t2v" for design workflow/);
-  assert.match(section, /If no modality action exists, return "actions": \[\]/);
-  assert.doesNotMatch(section, /Only output the user-visible reply body/);
-  assert.doesNotMatch(section, /fall back to plain text instead of partial Markdown/);
+  assert.match(section, /Return APML only/);
+  assert.match(section, /first non-whitespace characters must be <message/);
+  assert.match(section, /exactly one <message id="\.\.\.">/);
+  assert.match(section, /<emotion>neutral\|joy\|focus\|calm\|playful\|concerned\|surprised<\/emotion>/);
+  assert.match(section, /<activity>\.\.\.<\/activity>/);
+  assert.match(section, /sibling <action> tags after <\/message>/);
+  assert.match(section, /kind may be only "image" or "voice"/);
+  assert.match(section, /Do not emit kind="video"/);
+  assert.match(section, /<time-hook> or <event-hook>/);
+  assert.doesNotMatch(section, /Return exactly one JSON object/);
+  assert.doesNotMatch(section, /schemaId/);
 });
 
-test('desktop chat output contract helper appends contract after existing system prompt', () => {
+test('desktop chat output contract helper appends APML contract after existing system prompt', () => {
   const prompt = composeDesktopChatSystemPrompt('Be concise.');
 
   assert.match(prompt, /^Be concise\./);
   assert.match(prompt, /\n\nOutput Contract:\n/);
-  assert.match(prompt, /Return exactly one JSON object that matches the Agent Message-Action Envelope schema/);
-  assert.match(prompt, /The first character of your response must be "\{" and the final character must be "\}"/);
+  assert.match(prompt, /Return APML only/);
   assert.match(prompt, /Response Skeleton:/);
-  assert.match(prompt, new RegExp(`"schemaId": "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
-  assert.doesNotMatch(prompt, /fall back to plain text instead of partial Markdown/);
+  assert.match(prompt, /^<message id="message-0">/m);
+  assert.doesNotMatch(prompt, /Return exactly one JSON object/);
 });
 
-test('desktop chat output contract helper exposes a minimal envelope skeleton', () => {
+test('desktop chat output contract helper exposes an APML skeleton', () => {
   const skeleton = buildDesktopChatEnvelopeSkeleton();
 
-  assert.match(skeleton, /^\{/m);
-  assert.match(skeleton, new RegExp(`"schemaId": "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
-  assert.match(skeleton, /"message": \{/);
-  assert.match(skeleton, /"statusCue": null/);
-  assert.match(skeleton, /"actions": \[\]/);
+  assert.match(skeleton, /^<message id="message-0">/m);
+  assert.match(skeleton, /<emotion>neutral<\/emotion>/);
+  assert.match(skeleton, /<activity>responding<\/activity>/);
+  assert.match(skeleton, /Assistant reply text here\./);
+  assert.doesNotMatch(skeleton, /schemaId/);
 });
 
-test('resolveAgentModelOutputEnvelope recovers fenced JSON output', () => {
-  const modelOutput = `\uFEFF\`\`\`json\r\n${buildMinimalEnvelopeText('Recovered fenced output.')}\r\n\`\`\``;
+test('resolveAgentModelOutputEnvelope accepts strict APML output', () => {
   const resolved = resolveAgentModelOutputEnvelope({
-    modelOutput,
+    modelOutput: [
+      '<message id="message-0">',
+      '  <emotion>joy</emotion>',
+      '  <activity>wave</activity>',
+      '  Ready.',
+      '</message>',
+      '<action id="image-0" kind="image" source-message="message-0" coupling="after-message">',
+      '  <prompt-payload kind="image"><prompt-text>A quiet rainy street.</prompt-text></prompt-payload>',
+      '</action>',
+    ].join('\n'),
     finishReason: 'stop',
     trace: {
-      traceId: 'trace-fenced',
-      promptTraceId: 'prompt-fenced',
+      traceId: 'trace-apml',
+      promptTraceId: 'prompt-apml',
     },
     usage: {
       inputTokens: 10,
@@ -109,59 +88,30 @@ test('resolveAgentModelOutputEnvelope recovers fenced JSON output', () => {
 
   assert.equal(resolved.ok, true);
   if (!resolved.ok) {
-    assert.fail('expected fenced JSON to recover');
+    assert.fail('expected APML to resolve');
   }
-  assert.equal(resolved.envelope.message.text, 'Recovered fenced output.');
-  assert.equal(resolved.diagnostics.classification, 'json-fenced');
-  assert.equal(resolved.diagnostics.recoveryPath, 'strip-fence');
+  assert.equal(resolved.envelope.message.text, 'Ready.');
+  assert.equal(resolved.envelope.statusCue?.mood, 'joy');
+  assert.equal(resolved.envelope.statusCue?.actionCue, 'wave');
+  assert.equal(resolved.envelope.actions[0]?.modality, 'image');
+  assert.equal(resolved.diagnostics.classification, 'strict-apml');
+  assert.equal(resolved.diagnostics.recoveryPath, 'none');
   assert.equal(resolved.diagnostics.suspectedTruncation, false);
-  assert.equal(resolved.diagnostics.finishReason, 'stop');
-  assert.equal(resolved.diagnostics.traceId, 'trace-fenced');
-  assert.equal(resolved.diagnostics.promptTraceId, 'prompt-fenced');
+  assert.equal(resolved.diagnostics.traceId, 'trace-apml');
+  assert.equal(resolved.diagnostics.promptTraceId, 'prompt-apml');
   assert.equal(resolved.diagnostics.usage?.totalTokens, 22);
 });
 
-test('resolveAgentModelOutputEnvelope recovers wrapper text around a single JSON object', () => {
+test('resolveAgentModelOutputEnvelope rejects JSON model output instead of recovering it', () => {
   const resolved = resolveAgentModelOutputEnvelope({
-    modelOutput: `Here is the envelope:\n${buildMinimalEnvelopeText('Recovered wrapper output.')}\nThanks.`,
-    finishReason: 'stop',
-    contextWindowSource: 'default-estimate',
-    promptOverflow: false,
-  });
-
-  assert.equal(resolved.ok, true);
-  if (!resolved.ok) {
-    assert.fail('expected wrapped JSON to recover');
-  }
-  assert.equal(resolved.envelope.message.text, 'Recovered wrapper output.');
-  assert.equal(resolved.diagnostics.classification, 'json-wrapper');
-  assert.equal(resolved.diagnostics.recoveryPath, 'extract-json-object');
-});
-
-test('resolveAgentModelOutputEnvelope recovers the envelope when wrapper text contains other braces', () => {
-  const resolved = resolveAgentModelOutputEnvelope({
-    modelOutput: [
-      'Status note: {model added commentary before the contract output}',
-      buildMinimalEnvelopeText('Recovered after noisy wrapper braces.'),
-      'Tail note: {postscript}',
-    ].join('\n'),
-    finishReason: 'stop',
-    contextWindowSource: 'default-estimate',
-    promptOverflow: false,
-  });
-
-  assert.equal(resolved.ok, true);
-  if (!resolved.ok) {
-    assert.fail('expected wrapped JSON with stray braces to recover');
-  }
-  assert.equal(resolved.envelope.message.text, 'Recovered after noisy wrapper braces.');
-  assert.equal(resolved.diagnostics.classification, 'json-wrapper');
-  assert.equal(resolved.diagnostics.recoveryPath, 'extract-json-object');
-});
-
-test('resolveAgentModelOutputEnvelope rejects pure plain text outputs', () => {
-  const resolved = resolveAgentModelOutputEnvelope({
-    modelOutput: '我可以先帮你整理下一步计划。',
+    modelOutput: JSON.stringify({
+      schemaId: 'nimi.agent.chat.message-action.v1',
+      message: {
+        messageId: 'message-0',
+        text: 'JSON should not be accepted.',
+      },
+      actions: [],
+    }),
     finishReason: 'stop',
     contextWindowSource: 'default-estimate',
     promptOverflow: false,
@@ -169,16 +119,32 @@ test('resolveAgentModelOutputEnvelope rejects pure plain text outputs', () => {
 
   assert.equal(resolved.ok, false);
   if (resolved.ok) {
-    assert.fail('expected plain text to fail');
+    assert.fail('expected JSON model output to fail');
   }
-  assert.equal(resolved.diagnostics.classification, 'invalid-json');
+  assert.equal(resolved.diagnostics.classification, 'invalid-apml');
   assert.equal(resolved.diagnostics.recoveryPath, 'none');
-  assert.equal(resolved.diagnostics.suspectedTruncation, false);
+  assert.match(resolved.diagnostics.parseErrorDetail || '', /APML output must begin with <message>/);
 });
 
-test('resolveAgentModelOutputEnvelope marks incomplete JSON as partial and suspected truncation', () => {
+test('resolveAgentModelOutputEnvelope rejects fenced APML output without recovery', () => {
   const resolved = resolveAgentModelOutputEnvelope({
-    modelOutput: `{"schemaId":"${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}","message":{"messageId":"message-0"`,
+    modelOutput: `\`\`\`xml\n${buildMinimalAPML('No fenced APML.')}\n\`\`\``,
+    finishReason: 'stop',
+    contextWindowSource: 'default-estimate',
+    promptOverflow: false,
+  });
+
+  assert.equal(resolved.ok, false);
+  if (resolved.ok) {
+    assert.fail('expected fenced APML to fail');
+  }
+  assert.equal(resolved.diagnostics.classification, 'invalid-apml');
+  assert.equal(resolved.diagnostics.recoveryPath, 'none');
+});
+
+test('resolveAgentModelOutputEnvelope marks incomplete APML as partial and suspected truncation', () => {
+  const resolved = resolveAgentModelOutputEnvelope({
+    modelOutput: '<message id="message-0"><emotion>calm</emotion>unfinished',
     finishReason: 'length',
     trace: {
       traceId: 'trace-partial',
@@ -195,9 +161,9 @@ test('resolveAgentModelOutputEnvelope marks incomplete JSON as partial and suspe
 
   assert.equal(resolved.ok, false);
   if (resolved.ok) {
-    assert.fail('expected partial JSON to fail');
+    assert.fail('expected partial APML to fail');
   }
-  assert.equal(resolved.diagnostics.classification, 'partial-json');
+  assert.equal(resolved.diagnostics.classification, 'partial-apml');
   assert.equal(resolved.diagnostics.recoveryPath, 'none');
   assert.equal(resolved.diagnostics.suspectedTruncation, true);
   assert.equal(resolved.diagnostics.finishReason, 'length');
@@ -205,274 +171,68 @@ test('resolveAgentModelOutputEnvelope marks incomplete JSON as partial and suspe
   assert.equal(resolved.diagnostics.promptOverflow, true);
 });
 
-test('resolveAgentModelOutputEnvelope does not recover malformed JSON attempts with actions', () => {
-  const resolved = resolveAgentModelOutputEnvelope({
-    modelOutput: [
-      '{',
-      `  "schemaId": "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}",`,
-      '  "beats": [{',
-      '    "beatId": "beat-0",',
-      '    "beatIndex": 0,',
-      '    "beatCount": 1,',
-      '    "intent": "reply",',
-      '    "deliveryPhase": "primary",',
-      '    "text": "hello"',
-      '  }],',
-      '  "actions": [{',
-      '    "actionId": "action-0",',
-      '    "actionIndex": 0,',
-      '    "actionCount": 1,',
-      '    "modality": "image",',
-      '    "operation": "images.generate"',
-      '  }]',
-      '}',
-    ].join('\n'),
-    finishReason: 'stop',
-    contextWindowSource: 'route-profile',
-    promptOverflow: false,
-  });
-
-  assert.equal(resolved.ok, false);
-  if (resolved.ok) {
-    assert.fail('expected malformed JSON attempt to fail');
-  }
-  assert.equal(resolved.diagnostics.classification, 'invalid-json');
-  assert.equal(resolved.diagnostics.recoveryPath, 'none');
-});
-
-test('resolveAgentModelOutputEnvelope fails close on schema-invalid JSON', () => {
-  const resolved = resolveAgentModelOutputEnvelope({
-    modelOutput: buildMinimalEnvelopeText('Wrong schema.', 'agent.schema.invalid'),
-    finishReason: 'stop',
-    contextWindowSource: 'default-estimate',
-    promptOverflow: false,
-  });
-
-  assert.equal(resolved.ok, false);
-  if (resolved.ok) {
-    assert.fail('expected schema-invalid JSON to fail');
-  }
-  assert.equal(resolved.diagnostics.classification, 'invalid-json');
-  assert.equal(resolved.diagnostics.suspectedTruncation, false);
-});
-
-test('agent message-action envelope parser fails close on fenced JSON with a contract-specific error', () => {
+test('agent message-action APML parser fails closed on multiple voice actions', () => {
   assert.throws(() => {
     parseAgentResolvedMessageActionEnvelope([
-      '```json',
-      '{',
-      `  "schemaId": "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}",`,
-      '  "message": {',
-      '    "messageId": "message-0",',
-      '    "text": "hello"',
-      '  },',
-      '  "actions": []',
-      '}',
-      '```',
+      buildMinimalAPML('你好呀。'),
+      '<action id="voice-0" kind="voice" source-message="message-0" coupling="with-message">',
+      '  <prompt-payload kind="voice"><prompt-text>用轻柔语气读出第一句。</prompt-text></prompt-payload>',
+      '</action>',
+      '<action id="voice-1" kind="voice" source-message="message-0" coupling="after-message">',
+      '  <prompt-payload kind="voice"><prompt-text>用轻柔语气读出第二句。</prompt-text></prompt-payload>',
+      '</action>',
     ].join('\n'));
-  }, /raw JSON object with no Markdown code fences or wrapper text/);
+  }, /at most one voice action/);
 });
 
-test('agent message-action envelope parser fails close on multiple voice actions in phase 1', () => {
+test('agent message-action APML parser fails closed on deferred video actions', () => {
   assert.throws(() => {
-    parseAgentResolvedMessageActionEnvelope(JSON.stringify({
-      schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-      message: {
-        messageId: 'message-0',
-        text: '你好呀。',
-      },
-      actions: [
-        {
-          actionId: 'voice-0',
-          actionIndex: 0,
-          actionCount: 2,
-          modality: 'voice',
-          operation: 'audio.synthesize',
-          promptPayload: {
-            kind: 'voice-prompt',
-            promptText: '用轻柔语气读出第一句。',
-          },
-          sourceMessageId: 'message-0',
-          deliveryCoupling: 'with-message',
-        },
-        {
-          actionId: 'voice-1',
-          actionIndex: 1,
-          actionCount: 2,
-          modality: 'voice',
-          operation: 'audio.synthesize',
-          promptPayload: {
-            kind: 'voice-prompt',
-            promptText: '用轻柔语气读出第二句。',
-          },
-          sourceMessageId: 'message-0',
-          deliveryCoupling: 'after-message',
-        },
-      ],
-    }));
-  }, /agent-local-chat-v1 admits at most one voice action in phase 1/);
+    parseAgentResolvedMessageActionEnvelope([
+      buildMinimalAPML('我不能接收视频生成动作。'),
+      '<action id="video-0" kind="video" source-message="message-0" coupling="after-message">',
+      '  <prompt-payload kind="video"><prompt-text>镜头缓慢推进的夜景。</prompt-text></prompt-payload>',
+      '</action>',
+    ].join('\n'));
+  }, /video action is deferred/);
 });
 
-test('agent message-action envelope parser fails closed on deferred video actions', () => {
+test('agent message-action APML parser fails closed on desktop hook tags', () => {
   assert.throws(() => {
-    parseAgentResolvedMessageActionEnvelope(JSON.stringify({
-      schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-      message: {
-        messageId: 'message-0',
-        text: '我不能接收视频生成动作。',
-      },
-      actions: [
-        {
-          actionId: 'video-0',
-          actionIndex: 0,
-          actionCount: 1,
-          modality: 'video',
-          operation: 'video.generate',
-          promptPayload: {
-            kind: 'video-prompt',
-            promptText: '镜头缓慢推进的夜景。',
-          },
-          sourceMessageId: 'message-0',
-          deliveryCoupling: 'after-message',
-        },
-      ],
-    }));
-  }, /actions\[0\]\.modality is invalid/);
+    parseAgentResolvedMessageActionEnvelope([
+      buildMinimalAPML('我不能接收桌面延迟跟进动作。'),
+      '<time-hook id="follow-up-0">',
+      '  <delay-ms>400</delay-ms>',
+      '  <effect kind="follow-up-turn"><prompt-text>稍后再说一句。</prompt-text></effect>',
+      '</time-hook>',
+    ].join('\n'));
+  }, /runtime HookIntent-owned/);
 });
 
-test('agent message-action envelope parser fails closed on desktop follow-up actions', () => {
+test('agent message-action APML parser fails closed on unsupported attributes', () => {
   assert.throws(() => {
-    parseAgentResolvedMessageActionEnvelope(JSON.stringify({
-      schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-      message: {
-        messageId: 'message-0',
-        text: '我不能接收桌面延迟跟进动作。',
-      },
-      actions: [
-        {
-          actionId: 'follow-up-0',
-          actionIndex: 0,
-          actionCount: 1,
-          modality: 'follow-up-turn',
-          operation: 'assistant.turn.schedule',
-          promptPayload: {
-            kind: 'follow-up-turn',
-            promptText: '稍后再说一句。',
-            delayMs: 400,
-          },
-          sourceMessageId: 'message-0',
-          deliveryCoupling: 'after-message',
-        },
-      ],
-    }));
-  }, /actions\[0\]\.modality is invalid/);
+    parseAgentResolvedMessageActionEnvelope('<message id="message-0" schema="legacy">你好。</message>');
+  }, /APML message\.schema is not admitted/);
+
+  assert.throws(() => {
+    parseAgentResolvedMessageActionEnvelope([
+      buildMinimalAPML('我不能接收额外属性。'),
+      '<action id="image-0" kind="image" source-message="message-0" priority="hidden">',
+      '  <prompt-payload kind="image"><prompt-text>一张安静的桌面。</prompt-text></prompt-payload>',
+      '</action>',
+    ].join('\n'));
+  }, /APML action\.priority is not admitted/);
 });
 
-test('agent message-action envelope parser normalizes redundant actionCount mirrors', () => {
-  const envelope = parseAgentResolvedMessageActionEnvelope(JSON.stringify({
-    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-    message: {
-      messageId: 'message-0',
-      text: 'hello',
-    },
-    actions: [
-      {
-        actionId: 'action-0',
-        actionIndex: 0,
-        actionCount: 0,
-        modality: 'image',
-        operation: 'images.generate',
-        promptPayload: {
-          kind: 'image-prompt',
-          promptText: 'A warm portrait',
-        },
-        sourceMessageId: 'message-0',
-        deliveryCoupling: 'after-message',
-      },
-    ],
-  }));
-
-  assert.equal(envelope.message.messageId, 'message-0');
-  assert.equal(envelope.actions[0]?.actionCount, 1);
+test('agent message-action APML parser fails closed on duplicate attributes', () => {
+  assert.throws(() => {
+    parseAgentResolvedMessageActionEnvelope('<message id="message-0" id="message-1">你好。</message>');
+  }, /APML message\.id is duplicated/);
 });
 
-test('agent message-action envelope parser accepts one bounded statusCue branch', () => {
-  const envelope = parseAgentResolvedMessageActionEnvelope(JSON.stringify({
-    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-    message: {
-      messageId: 'message-0',
-      text: 'hello',
-    },
-    statusCue: {
-      sourceMessageId: 'message-0',
-      mood: 'joy',
-      label: 'Feeling bright',
-      intensity: 0.62,
-    },
-    actions: [],
-  }));
-
-  assert.deepEqual(envelope.statusCue, {
-    sourceMessageId: 'message-0',
-    mood: 'joy',
-    label: 'Feeling bright',
-    intensity: 0.62,
-  });
-});
-
-test('agent message-action envelope parser fails closed on malformed statusCue branch only', () => {
-  const envelope = parseAgentResolvedMessageActionEnvelope(JSON.stringify({
-    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-    message: {
-      messageId: 'message-0',
-      text: 'hello',
-    },
-    statusCue: {
-      sourceMessageId: 'message-0',
-      mood: 'joy',
-      extraField: 'not-admitted',
-    },
-    actions: [],
-  }));
-
-  assert.equal(envelope.message.text, 'hello');
-  assert.equal(envelope.statusCue ?? null, null);
-});
-
-test('resolveAgentModelOutputEnvelope records rejected statusCue diagnostics while preserving the envelope', () => {
-  const resolved = resolveAgentModelOutputEnvelope({
-    modelOutput: JSON.stringify({
-      schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-      message: {
-        messageId: 'message-0',
-        text: 'hello',
-      },
-      statusCue: {
-        sourceMessageId: 'message-0',
-        mood: 'joy',
-        extraField: 'not-admitted',
-      },
-      actions: [],
-    }),
-    finishReason: 'stop',
-    contextWindowSource: 'default-estimate',
-    promptOverflow: false,
-  });
-
-  assert.equal(resolved.ok, true);
-  if (!resolved.ok) {
-    assert.fail('expected valid root envelope to recover');
-  }
-  assert.equal(resolved.envelope.statusCue ?? null, null);
-  assert.equal(resolved.diagnostics.statusCue?.accepted, false);
-  assert.match(resolved.diagnostics.statusCue?.reason || '', /statusCue\.extraField is not admitted/);
-});
-
-test('desktop AI host does NOT inject the message-action output contract into simple-ai systemPrompt', () => {
+test('desktop AI host does NOT inject the APML output contract into simple-ai systemPrompt', () => {
   const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
 
-  // The simple-ai provider streams raw text-deltas directly and does not parse
-  // message-action envelopes. Injecting the output contract would cause the model
-  // to return JSON that the simple-ai provider displays verbatim.
+  // The simple-ai provider streams raw text deltas directly and does not parse
+  // message-action envelopes. Injecting APML would cause visible markup.
   assert.doesNotMatch(source, /composeDesktopChatSystemPrompt/);
 });

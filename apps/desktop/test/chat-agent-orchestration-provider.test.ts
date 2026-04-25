@@ -265,37 +265,24 @@ function createBeatActionEnvelopeText(input: {
 }): string {
   const primaryBeat = input.beats[0];
   if (!primaryBeat) {
-    throw new Error('message-action test helper requires at least one message beat');
+    throw new Error('APML test helper requires at least one message beat');
   }
   const messageId = 'message-0';
-  const actions = (input.actions || []).map((action) => ({
-    actionId: action.actionId ?? `action-${action.actionIndex}`,
-    actionIndex: action.actionIndex,
-    actionCount: (input.actions || []).length,
-    modality: action.modality,
-    operation: action.operation ?? 'generate',
-    promptPayload: {
-      kind: action.modality === 'image'
-        ? 'image-prompt'
-        : 'voice-prompt',
-      promptText: action.promptText,
-    },
-    sourceMessageId: action.sourceMessageId.startsWith('beat-') ? messageId : action.sourceMessageId,
-    deliveryCoupling: action.deliveryCoupling ?? 'after-message',
-  }));
-  const normalizedActions = actions.map((action, index) => ({
-    ...action,
-    actionIndex: index,
-    actionCount: actions.length,
-  }));
-  return JSON.stringify({
-    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-    message: {
-      messageId,
-      text: primaryBeat.text,
-    },
-    actions: normalizedActions,
+  const escapeAPML = (value: string): string => value
+    .replace(/&/gu, '&amp;')
+    .replace(/</gu, '&lt;')
+    .replace(/>/gu, '&gt;');
+  const message = `<message id="${messageId}">${escapeAPML(primaryBeat.text)}</message>`;
+  const actions = (input.actions || []).map((action) => {
+    const sourceMessageId = action.sourceMessageId.startsWith('beat-') ? messageId : action.sourceMessageId;
+    const operation = action.operation ? ` operation="${action.operation}"` : '';
+    return [
+      `<action id="${action.actionId ?? `action-${action.actionIndex}`}" kind="${action.modality}" source-message="${sourceMessageId}" coupling="${action.deliveryCoupling ?? 'after-message'}"${operation}>`,
+      `  <prompt-payload kind="${action.modality}"><prompt-text>${escapeAPML(action.promptText)}</prompt-text></prompt-payload>`,
+      '</action>',
+    ].join('\n');
   });
+  return [message, ...actions].join('\n');
 }
 
 let restoreBrowserGlobals: () => void = () => {};
@@ -566,7 +553,7 @@ test('agent local chat execution seam shapes system prompt and transcript messag
   assert.doesNotMatch(request.systemPrompt || '', /"allowMultiReply":/);
   assert.doesNotMatch(request.systemPrompt || '', /"deliveryPolicy":/);
   assert.match(request.systemPrompt || '', /Output Contract:/);
-  assert.match(request.systemPrompt || '', /Return exactly one JSON object/);
+  assert.match(request.systemPrompt || '', /Return APML only/);
   assert.equal(request.diagnostics.engineId, AI_CHAT_EXECUTION_ENGINE_ID);
   assert.equal(request.diagnostics.diagnosticsVersion, AI_CHAT_EXECUTION_ENGINE_DIAGNOSTICS_VERSION);
   assert.equal(request.diagnostics.firstConsumerId, 'agent-local-chat-v1');
@@ -656,17 +643,17 @@ test('agent local chat execution seam compacts continuity and packs history by b
       {
         id: 'history-user-1',
         role: 'user',
-        text: `Old question ${'alpha '.repeat(120)}`,
+        text: `Old question ${'alpha '.repeat(400)}`,
       },
       {
         id: 'history-assistant-1',
         role: 'assistant',
-        text: `Old answer ${'beta '.repeat(120)}`,
+        text: `Old answer ${'beta '.repeat(400)}`,
       },
       {
         id: 'history-assistant-2',
         role: 'assistant',
-        text: `Latest assistant context ${'gamma '.repeat(80)}`,
+        text: `Latest assistant context ${'gamma '.repeat(250)}`,
       },
     ],
     userText: 'What should we do next?',
@@ -1020,7 +1007,7 @@ test('agent local chat provider seals a single message before terminal and commi
   assert.equal(committed.length, 1);
   assert.equal(committed[0]?.outcome, 'completed');
   assert.match(String(committed[0]?.textMessageState?.metadataJson?.prompt || ''), /^Messages:\n\[/);
-  assert.match(String(committed[0]?.textMessageState?.metadataJson?.rawModelOutput || ''), /schemaId/);
+  assert.match(String(committed[0]?.textMessageState?.metadataJson?.rawModelOutput || ''), /^<message/);
   assert.equal(committed[0]?.events.some((event) => event.type === 'message-sealed'), true);
   assert.equal(events.at(-1)?.type, 'turn-completed');
 });
@@ -1312,7 +1299,7 @@ test('agent local chat provider commits canceled turns with turn scope before th
       async streamText() {
         async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
           yield { type: 'start' };
-          yield { type: 'text-delta', textDelta: '{"schemaId":"nimi.agent.chat.beat-action.v1"' };
+          yield { type: 'text-delta', textDelta: '<message id="message-0"' };
           throw Object.assign(new Error('aborted'), { name: 'AbortError' });
         }
         return { stream: stream() };
@@ -1330,34 +1317,20 @@ test('agent local chat provider commits canceled turns with turn scope before th
   assert.equal(canceledEvent?.type === 'turn-canceled' ? canceledEvent.scope : null, 'turn');
 });
 
-test('agent local chat provider fails closed when desktop model emits follow-up-turn action', async () => {
+test('agent local chat provider fails closed when desktop model emits runtime-owned APML hook', async () => {
   const fakeTimers = installFakeTimers();
   const committed: AgentCommitInput[] = [];
   try {
     const provider = createAgentLocalChatConversationProvider({
       runtimeAdapter: createRuntimeAdapter({
         async streamText() {
-          const envelopeText = JSON.stringify({
-            schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-            message: {
-              messageId: 'message-0',
-              text: '先给你一句短答。',
-            },
-            actions: [{
-              actionId: 'action-follow-up-0',
-              actionIndex: 0,
-              actionCount: 1,
-              modality: 'follow-up-turn',
-              operation: 'assistant.turn.schedule',
-              promptPayload: {
-                kind: 'follow-up-turn',
-                promptText: '过一会儿我再补一句跟进。',
-                delayMs: 400,
-              },
-              sourceMessageId: 'message-0',
-              deliveryCoupling: 'after-message',
-            }],
-          });
+          const envelopeText = [
+            '<message id="message-0">先给你一句短答。</message>',
+            '<time-hook id="action-follow-up-0">',
+            '  <delay-ms>400</delay-ms>',
+            '  <effect kind="follow-up-turn"><prompt-text>过一会儿我再补一句跟进。</prompt-text></effect>',
+            '</time-hook>',
+          ].join('\n');
           async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
             yield { type: 'start' };
             yield { type: 'text-delta', textDelta: envelopeText };
@@ -2260,11 +2233,11 @@ test('agent local chat provider fails close when runtime stream finishes without
   assert.match(failedEvent?.type === 'turn-failed' ? failedEvent.error.message : '', /without output text/);
 });
 
-test('agent local chat provider completes fenced JSON outputs with recovery diagnostics', async () => {
+test('agent local chat provider fails fenced APML outputs without recovery', async () => {
   const committed: AgentCommitInput[] = [];
   let capturedRequest: AgentRuntimeStreamRequest | null = null;
-  const rawModelOutput = `\`\`\`json\n${createBeatActionEnvelopeText({
-    beats: [{ beatIndex: 0, text: 'Recovered from fenced JSON.' }],
+  const rawModelOutput = `\`\`\`xml\n${createBeatActionEnvelopeText({
+    beats: [{ beatIndex: 0, text: 'Fenced APML must fail.' }],
   })}\n\`\`\``;
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter: createRuntimeAdapter({
@@ -2307,22 +2280,22 @@ test('agent local chat provider completes fenced JSON outputs with recovery diag
   }
   const fencedRequest = capturedRequest as AgentRuntimeStreamRequest;
   assert.equal(fencedRequest.maxOutputTokensRequested, 321);
-  assert.equal(committed[0]?.outcome, 'completed');
-  const completedEvent = events.at(-1);
-  assert.equal(completedEvent?.type, 'turn-completed');
-  if (completedEvent?.type !== 'turn-completed') {
-    assert.fail('expected a completed terminal event');
+  assert.equal(committed[0]?.outcome, 'failed');
+  const failedEvent = events.at(-1);
+  assert.equal(failedEvent?.type, 'turn-failed');
+  if (failedEvent?.type !== 'turn-failed') {
+    assert.fail('expected a failed terminal event');
   }
-  assert.equal(completedEvent.finishReason, 'stop');
-  assert.equal(completedEvent.trace?.traceId, 'trace-fenced');
-  assert.equal(completedEvent.trace?.promptTraceId, 'prompt-fenced');
-  assert.equal(completedEvent.usage?.inputTokens, 12);
-  assert.equal(completedEvent.usage?.outputTokens, 18);
-  const diagnostics = completedEvent.diagnostics as Record<string, unknown> | undefined;
-  assert.equal(diagnostics?.classification, 'json-fenced');
-  assert.equal(diagnostics?.recoveryPath, 'strip-fence');
+  assert.equal(failedEvent.finishReason, 'stop');
+  assert.equal(failedEvent.trace?.traceId, 'trace-fenced');
+  assert.equal(failedEvent.trace?.promptTraceId, 'prompt-fenced');
+  assert.equal(failedEvent.usage?.inputTokens, 12);
+  assert.equal(failedEvent.usage?.outputTokens, 18);
+  const diagnostics = failedEvent.diagnostics as Record<string, unknown> | undefined;
+  assert.equal(diagnostics?.classification, 'invalid-apml');
+  assert.equal(diagnostics?.recoveryPath, 'none');
   assert.equal(diagnostics?.suspectedTruncation, false);
-  assert.equal(diagnostics?.parseErrorDetail, null);
+  assert.match(String(diagnostics?.parseErrorDetail || ''), /begin with <message>/);
   assert.equal(diagnostics?.rawOutputChars, rawModelOutput.length);
   assert.equal(diagnostics?.normalizedOutputChars, rawModelOutput.length);
   assert.equal(diagnostics?.finishReason, 'stop');
@@ -2339,9 +2312,10 @@ test('agent local chat provider completes fenced JSON outputs with recovery diag
   assert.match(String(diagnostics?.requestSystemPrompt || ''), /Output Contract:/);
   assert.equal(diagnostics?.rawModelOutputText, rawModelOutput);
   assert.equal(diagnostics?.normalizedModelOutputText, rawModelOutput);
+  assert.equal(events.some((event) => event.type === 'message-sealed'), false);
 });
 
-test('agent local chat provider completes wrapped JSON outputs with recovery diagnostics', async () => {
+test('agent local chat provider fails wrapped APML outputs without recovery', async () => {
   const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter: createRuntimeAdapter({
@@ -2351,7 +2325,7 @@ test('agent local chat provider completes wrapped JSON outputs with recovery dia
           yield {
             type: 'text-delta',
             textDelta: `Here is the envelope:\n${createBeatActionEnvelopeText({
-              beats: [{ beatIndex: 0, text: 'Recovered from wrapper text.' }],
+              beats: [{ beatIndex: 0, text: 'Wrapped APML must fail.' }],
             })}\nThanks.`,
           };
           yield {
@@ -2375,15 +2349,15 @@ test('agent local chat provider completes wrapped JSON outputs with recovery dia
 
   const events = await collectEvents(provider, sampleTurnInput());
 
-  assert.equal(committed[0]?.outcome, 'completed');
-  const completedEvent = events.at(-1);
-  assert.equal(completedEvent?.type, 'turn-completed');
-  if (completedEvent?.type !== 'turn-completed') {
-    assert.fail('expected a completed terminal event');
+  assert.equal(committed[0]?.outcome, 'failed');
+  const failedEvent = events.at(-1);
+  assert.equal(failedEvent?.type, 'turn-failed');
+  if (failedEvent?.type !== 'turn-failed') {
+    assert.fail('expected a failed terminal event');
   }
-  const diagnostics = completedEvent.diagnostics as Record<string, unknown> | undefined;
-  assert.equal(diagnostics?.classification, 'json-wrapper');
-  assert.equal(diagnostics?.recoveryPath, 'extract-json-object');
+  const diagnostics = failedEvent.diagnostics as Record<string, unknown> | undefined;
+  assert.equal(diagnostics?.classification, 'invalid-apml');
+  assert.equal(diagnostics?.recoveryPath, 'none');
   assert.equal(diagnostics?.finishReason, 'stop');
 });
 
@@ -2429,14 +2403,14 @@ test('agent local chat provider fails closed when the model emits scratchpad pla
   }
   assert.match(failedEvent.error.message, /format was invalid/i);
   const diagnostics = failedEvent.diagnostics as Record<string, unknown> | undefined;
-  assert.equal(diagnostics?.classification, 'invalid-json');
+  assert.equal(diagnostics?.classification, 'invalid-apml');
   assert.equal(diagnostics?.recoveryPath, 'none');
   assert.equal(diagnostics?.traceId, 'trace-scratchpad');
   assert.equal(diagnostics?.promptTraceId, 'prompt-scratchpad');
   assert.equal(events.some((event) => event.type === 'message-sealed'), false);
 });
 
-test('agent local chat provider fails partial JSON outputs with truncation diagnostics', async () => {
+test('agent local chat provider fails partial APML outputs with truncation diagnostics', async () => {
   const committed: AgentCommitInput[] = [];
   let capturedRequest: AgentRuntimeStreamRequest | null = null;
   const provider = createAgentLocalChatConversationProvider({
@@ -2447,7 +2421,7 @@ test('agent local chat provider fails partial JSON outputs with truncation diagn
           yield { type: 'start' };
           yield {
             type: 'text-delta',
-            textDelta: `{"schemaId":"${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}","beats":[{"beatId":"beat-0"`,
+            textDelta: '<message id="message-0"><emotion>focus</emotion>unfinished',
           };
           yield {
             type: 'finish',
@@ -2488,14 +2462,14 @@ test('agent local chat provider fails partial JSON outputs with truncation diagn
   }
   assert.match(failedEvent.error.message, /truncated/i);
   assert.match(failedEvent.error.message, /Partial output:/);
-  assert.match(failedEvent.error.message, /"schemaId":"nimi\.agent\.chat\.message-action\.v1"/);
+  assert.match(failedEvent.error.message, /<message id="message-0"/);
   assert.equal(failedEvent.finishReason, 'length');
   assert.equal(failedEvent.trace?.traceId, 'trace-partial');
   assert.equal(failedEvent.trace?.promptTraceId, 'prompt-partial');
   assert.equal(failedEvent.usage?.inputTokens, 40);
   assert.equal(failedEvent.usage?.outputTokens, 41);
   const diagnostics = failedEvent.diagnostics as Record<string, unknown> | undefined;
-  assert.equal(diagnostics?.classification, 'partial-json');
+  assert.equal(diagnostics?.classification, 'partial-apml');
   assert.equal(diagnostics?.recoveryPath, 'none');
   assert.equal(diagnostics?.suspectedTruncation, true);
   assert.equal(diagnostics?.finishReason, 'length');

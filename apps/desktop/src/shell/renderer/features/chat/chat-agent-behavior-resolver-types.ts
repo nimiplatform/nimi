@@ -10,17 +10,13 @@ export type AgentResolvedStatusCueDiagnostic = {
 };
 
 export const AGENT_MODEL_OUTPUT_CLASSIFICATIONS = [
-    'strict-json',
-    'json-fenced',
-    'json-wrapper',
-    'partial-json',
-    'invalid-json',
+    'strict-apml',
+    'invalid-apml',
+    'partial-apml',
     'preflight-rejected',
 ] as const;
 export const AGENT_MODEL_OUTPUT_RECOVERY_PATHS = [
     'none',
-    'strip-fence',
-    'extract-json-object',
 ] as const;
 
 export type AgentModelOutputClassification = (typeof AGENT_MODEL_OUTPUT_CLASSIFICATIONS)[number];

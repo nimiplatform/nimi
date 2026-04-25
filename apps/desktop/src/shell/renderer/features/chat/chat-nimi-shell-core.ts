@@ -11,6 +11,7 @@ import type {
   ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { toConversationMessageViewModel } from './chat-nimi-thread-model';
+import { parseAgentResolvedMessageActionEnvelope } from './chat-agent-behavior-resolver-envelope';
 
 export const THREADS_QUERY_KEY = ['chat-ai-threads'];
 
@@ -23,30 +24,17 @@ export function normalizeText(value: unknown): string {
 }
 
 /**
- * If `text` is a message-action JSON envelope produced by the output contract,
- * extract the human-readable message text. Otherwise return unchanged.
- *
- * This guards the simple-ai path against envelopes that leaked into stored
- * messages (from before the output contract was removed) or that a model
- * emits spontaneously after seeing envelope-shaped history.
+ * If `text` is APML output produced by the agent output contract, extract the
+ * human-readable message text. Otherwise return unchanged.
  */
 export function stripBeatActionEnvelopeIfPresent(text: string): string {
   const trimmed = text.trim();
-  if (!trimmed.startsWith('{')) return text;
   try {
-    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
-    if (
-      parsed.schemaId === 'nimi.agent.chat.message-action.v1'
-      && parsed.message
-      && typeof parsed.message === 'object'
-    ) {
-      const extracted = normalizeText((parsed.message as { text?: unknown }).text);
-      return extracted || text;
-    }
+    const parsed = parseAgentResolvedMessageActionEnvelope(trimmed);
+    return normalizeText(parsed.message.text) || text;
   } catch {
-    // Not valid JSON — return as-is.
+    return text;
   }
-  return text;
 }
 
 export function sortThreadSummaries(threads: readonly ChatAiThreadSummary[]): ChatAiThreadSummary[] {

@@ -3,7 +3,7 @@ import type {
 } from './chat-agent-behavior';
 import {
     buildAgentResolvedOutputText,
-    parseAgentResolvedMessageActionEnvelopeWithDiagnosticsFromPayload,
+    parseAgentResolvedMessageActionEnvelopeWithDiagnostics,
 } from './chat-agent-behavior-resolver-envelope';
 import {
     AGENT_MODEL_OUTPUT_CLASSIFICATIONS,
@@ -196,131 +196,12 @@ function buildAgentModelOutputDiagnostics(input: {
     };
 }
 
-function stripFencedJsonBlock(rawModelOutput: string): string | null {
-    const match = rawModelOutput.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/iu);
-    if (!match) {
-        return null;
-    }
-    return normalizeModelOutputText(match[1] || '');
-}
-
-function extractWrappedJsonObjectCandidates(rawModelOutput: string): string[] {
-    const candidates: string[] = [];
-    const seen = new Set<string>();
-    const objectStartIndexes: number[] = [];
-    let inString = false;
-    let escaped = false;
-    for (let index = 0; index < rawModelOutput.length; index += 1) {
-        const char = rawModelOutput[index];
-        if (inString) {
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (char === '\\') {
-                escaped = true;
-                continue;
-            }
-            if (char === '"') {
-                inString = false;
-            }
-            continue;
-        }
-        if (char === '"') {
-            inString = true;
-            continue;
-        }
-        if (char === '{') {
-            objectStartIndexes.push(index);
-            continue;
-        }
-        if (char !== '}' || objectStartIndexes.length === 0) {
-            continue;
-        }
-        const startIndex = objectStartIndexes.pop();
-        if (startIndex === undefined) {
-            continue;
-        }
-        const before = rawModelOutput.slice(0, startIndex).trim();
-        const after = rawModelOutput.slice(index + 1).trim();
-        if (!before && !after) {
-            continue;
-        }
-        const candidate = normalizeModelOutputText(rawModelOutput.slice(startIndex, index + 1));
-        if (!candidate || seen.has(candidate)) {
-            continue;
-        }
-        seen.add(candidate);
-        candidates.push(candidate);
-    }
-    return candidates;
-}
-
-function hasUnbalancedJsonDelimiters(rawModelOutput: string): boolean {
-    let curlyDepth = 0;
-    let squareDepth = 0;
-    let inString = false;
-    let escaped = false;
-    for (const char of rawModelOutput) {
-        if (inString) {
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (char === '\\') {
-                escaped = true;
-                continue;
-            }
-            if (char === '"') {
-                inString = false;
-            }
-            continue;
-        }
-        if (char === '"') {
-            inString = true;
-            continue;
-        }
-        if (char === '{') {
-            curlyDepth += 1;
-            continue;
-        }
-        if (char === '}') {
-            curlyDepth -= 1;
-            continue;
-        }
-        if (char === '[') {
-            squareDepth += 1;
-            continue;
-        }
-        if (char === ']') {
-            squareDepth -= 1;
-        }
-    }
-    return curlyDepth !== 0 || squareDepth !== 0;
-}
-
-function looksLikeJsonAttempt(rawModelOutput: string): boolean {
-    return rawModelOutput.startsWith('{')
-        || rawModelOutput.startsWith('[')
-        || rawModelOutput.startsWith('```')
-        || rawModelOutput.includes('{"schemaId"')
-        || rawModelOutput.includes('"schemaId"');
-}
-
-function isLikelyPartialJsonDetail(detail: string): boolean {
+function isLikelyPartialAPML(rawModelOutput: string, detail: string): boolean {
     const normalized = String(detail || '').trim().toLowerCase();
-    return normalized.includes('unexpected end of json input')
-        || normalized.includes('unexpected end of input')
-        || normalized.includes("expected '}'")
-        || normalized.includes("expected ']'")
-        || normalized.includes('end of json input');
-}
-
-function classifyJsonFailure(rawModelOutput: string, detail: string): AgentModelOutputClassification {
-    if (isLikelyPartialJsonDetail(detail) || hasUnbalancedJsonDelimiters(rawModelOutput)) {
-        return 'partial-json';
-    }
-    return looksLikeJsonAttempt(rawModelOutput) ? 'invalid-json' : 'invalid-json';
+    const trimmed = String(rawModelOutput || '').trim();
+    return normalized.includes('missing </message>')
+        || normalized.includes('unexpected eof')
+        || (trimmed.startsWith('<message') && !trimmed.includes('</message>'));
 }
 
 function tryParseEnvelopeCandidate(rawModelOutput: string): {
@@ -329,8 +210,7 @@ function tryParseEnvelopeCandidate(rawModelOutput: string): {
     statusCue: AgentResolvedStatusCueDiagnostic | null;
 } {
     try {
-        const payload = JSON.parse(rawModelOutput) as unknown;
-        const parsed = parseAgentResolvedMessageActionEnvelopeWithDiagnosticsFromPayload(payload);
+        const parsed = parseAgentResolvedMessageActionEnvelopeWithDiagnostics(rawModelOutput);
         return {
             envelope: parsed.envelope,
             parseErrorDetail: null,
@@ -339,7 +219,7 @@ function tryParseEnvelopeCandidate(rawModelOutput: string): {
     } catch (error) {
         return {
             envelope: null,
-            parseErrorDetail: error instanceof Error ? error.message : String(error || 'invalid JSON'),
+            parseErrorDetail: error instanceof Error ? error.message : String(error || 'invalid APML'),
             statusCue: null,
         };
     }
@@ -469,7 +349,7 @@ export function resolveAgentModelOutputEnvelope(
             ok: true,
             envelope: strictCandidate.envelope,
             diagnostics: buildAgentModelOutputDiagnostics({
-                classification: 'strict-json',
+                classification: 'strict-apml',
                 recoveryPath: 'none',
                 suspectedTruncation: false,
                 rawModelOutput,
@@ -487,73 +367,13 @@ export function resolveAgentModelOutputEnvelope(
         };
     }
 
-    const fencedCandidateText = stripFencedJsonBlock(normalizedModelOutput);
-    if (fencedCandidateText) {
-        const fencedCandidate = tryParseEnvelopeCandidate(fencedCandidateText);
-        if (fencedCandidate.envelope) {
-            return {
-                ok: true,
-                envelope: fencedCandidate.envelope,
-                diagnostics: buildAgentModelOutputDiagnostics({
-                    classification: 'json-fenced',
-                    recoveryPath: 'strip-fence',
-                    suspectedTruncation: false,
-                    rawModelOutput,
-                    normalizedModelOutput,
-                    finishReason: input.finishReason,
-                    trace: input.trace,
-                    usage: input.usage,
-                    contextWindowSource: input.contextWindowSource,
-                    maxOutputTokensRequested: input.maxOutputTokensRequested,
-                    promptOverflow: input.promptOverflow,
-                    requestPrompt: input.requestPrompt,
-                    requestSystemPrompt: input.requestSystemPrompt,
-                    statusCue: fencedCandidate.statusCue,
-                }),
-            };
-        }
-    }
-
-    const wrappedJsonObjects = extractWrappedJsonObjectCandidates(normalizedModelOutput);
-    for (const wrappedJsonObject of wrappedJsonObjects) {
-        const wrappedCandidate = tryParseEnvelopeCandidate(wrappedJsonObject);
-        if (wrappedCandidate.envelope) {
-            return {
-                ok: true,
-                envelope: wrappedCandidate.envelope,
-                diagnostics: buildAgentModelOutputDiagnostics({
-                    classification: 'json-wrapper',
-                    recoveryPath: 'extract-json-object',
-                    suspectedTruncation: false,
-                    rawModelOutput,
-                    normalizedModelOutput,
-                    finishReason: input.finishReason,
-                    trace: input.trace,
-                    usage: input.usage,
-                    contextWindowSource: input.contextWindowSource,
-                    maxOutputTokensRequested: input.maxOutputTokensRequested,
-                    promptOverflow: input.promptOverflow,
-                    requestPrompt: input.requestPrompt,
-                    requestSystemPrompt: input.requestSystemPrompt,
-                    statusCue: wrappedCandidate.statusCue,
-                }),
-            };
-        }
-    }
-
-    const parseErrorDetail = normalizeNullableText(strictCandidate.parseErrorDetail)
-        || normalizeNullableText(
-            fencedCandidateText ? tryParseEnvelopeCandidate(fencedCandidateText).parseErrorDetail : null,
-        )
-        || normalizeNullableText(wrappedJsonObjects.map((candidate) => tryParseEnvelopeCandidate(candidate).parseErrorDetail)
-            .find((detail) => normalizeNullableText(detail)));
+    const parseErrorDetail = normalizeNullableText(strictCandidate.parseErrorDetail);
     const suspectedTruncation = normalizeNullableText(input.finishReason) === 'length'
-        || Boolean(parseErrorDetail && isLikelyPartialJsonDetail(parseErrorDetail))
-        || hasUnbalancedJsonDelimiters(normalizedModelOutput);
+        || Boolean(parseErrorDetail && isLikelyPartialAPML(normalizedModelOutput, parseErrorDetail));
     return {
         ok: false,
         diagnostics: buildAgentModelOutputDiagnostics({
-            classification: classifyJsonFailure(normalizedModelOutput, parseErrorDetail || 'invalid JSON'),
+            classification: suspectedTruncation ? 'partial-apml' : 'invalid-apml',
             recoveryPath: 'none',
             suspectedTruncation,
             parseErrorDetail,
