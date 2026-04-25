@@ -154,7 +154,7 @@ Desktop 存在两套并行数据获取架构：
 | **DataSync Facade**（D-DSYNC-000~012） | Realm REST API | 社交、聊天、世界、经济、Feed、通知 | 上下文锁、轮询管理器、normalizeApiError |
 | **Runtime 数据路径** | SDK Runtime gRPC / D-IPC commands | 本地模型、健康状态、provider 状态、AI 推理 | 无统一 facade（各 D-IPC command 独立调用） |
 
-两套架构使用不同的重试策略（D-NET-002 vs S-RUNTIME-045）、错误归一化（normalizeApiError vs toBridgeUserError）、状态管理（DataSync Zustand slices vs Runtime store slices）。此双轨设计为有意：Realm REST 和 Runtime gRPC 是不同传输域，强行统一会引入不必要的抽象层。
+两套架构使用不同的重试策略（D-NET-002 vs S-RUNTIME-045）、错误归一化（normalizeApiError vs toBridgeNimiError）、状态管理（DataSync Zustand slices vs Runtime store slices）。此双轨设计为有意：Realm REST 和 Runtime gRPC 是不同传输域，强行统一会引入不必要的抽象层。
 
 **Phase 2 服务路径选择规则**：
 

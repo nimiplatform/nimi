@@ -137,7 +137,7 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 - 前置检查 `hasTauriInvoke()`（Tauri runtime presence；不得依赖 `withGlobalTauri`）。
 - 生成 `invokeId`（`${command}-${timestamp}-${random}`）。
 - 结构化日志：invoke-start、invoke-success、invoke-failed。
-- 错误归一化：`toBridgeUserError()` 将 Tauri 错误转为用户可读消息。
+- 错误归一化：`toBridgeNimiError()` 将 Tauri/runtime 错误归一化为结构化 `NimiError`；用户可读文案只通过 `details.userMessage` 或显示层转换读取。
 
 ### IPC Infrastructure Commands
 

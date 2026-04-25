@@ -1858,10 +1858,24 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
+    - canonical_path: .nimi/spec/platform/kernel/app-slice-admission-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/platform/kernel/app-slice-admission-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
     - canonical_path: .nimi/spec/platform/kernel/architecture-contract.md
       file_class: kernel_markdown
       source_refs:
         - .nimi/spec/platform/kernel/architecture-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/platform/kernel/capability-catalog-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/platform/kernel/capability-catalog-contract.md
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
@@ -1876,6 +1890,13 @@ spec_generation_audit:
       file_class: kernel_markdown
       source_refs:
         - .nimi/spec/platform/kernel/nimi-ui-material-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/platform/kernel/package-authority-admission-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/platform/kernel/package-authority-admission-contract.md
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
@@ -2250,10 +2271,31 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
+    - canonical_path: .nimi/spec/platform/kernel/tables/app-slice-admissions.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/platform/kernel/tables/app-slice-admissions.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
     - canonical_path: .nimi/spec/platform/kernel/tables/audit-events.yaml
       file_class: kernel_tables
       source_refs:
         - .nimi/spec/platform/kernel/tables/audit-events.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
@@ -2320,6 +2362,13 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
+    - canonical_path: .nimi/spec/platform/kernel/tables/package-authority-admissions.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/platform/kernel/tables/package-authority-admissions.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
     - canonical_path: .nimi/spec/platform/kernel/tables/participant-profiles.yaml
       file_class: kernel_tables
       source_refs:
@@ -2345,6 +2394,13 @@ spec_generation_audit:
       file_class: kernel_tables
       source_refs:
         - .nimi/spec/platform/kernel/tables/rule-evidence.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/platform/kernel/web-release-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/platform/kernel/web-release-contract.md
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
@@ -5778,6 +5834,13 @@ spec_generation_audit:
       file_class: kernel_markdown
       source_refs:
         - .nimi/spec/sdk/kernel/mod-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/sdk/kernel/package-governance-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/sdk/kernel/package-governance-contract.md
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []

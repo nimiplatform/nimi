@@ -59,7 +59,7 @@ Desktop 必须把 first-wave local speech 失败至少投影为以下 bundle-awa
 
 ## D-ERR-005 — Bridge 错误归一化
 
-`toBridgeUserError(error)` 作为 `toBridgeNimiError(error)` 的别名，必须抛出结构化 `NimiError`，并遵循固定优先级：
+`toBridgeNimiError(error)` 是 Desktop bridge 的 canonical 结构化错误归一化 helper，必须返回/抛出结构化 `NimiError`，并遵循固定优先级：
 
 1. 输入已是 `NimiError`：保持结构化字段不变。
 2. 可解析 JSON payload：提取 `reasonCode/actionHint/traceId/retryable/message`。
@@ -87,7 +87,7 @@ Desktop 必须把 first-wave local speech 失败至少投影为以下 bundle-awa
 
 Runtime 错误通过三层投影到 Desktop UI：
 
-**投影路径**：Runtime K-ERR ReasonCode → SDK S-ERROR 投影 → Desktop `toBridgeNimiError` 映射（`toBridgeUserError` 仅保留兼容别名）。
+**投影路径**：Runtime K-ERR ReasonCode → SDK S-ERROR 投影 → Desktop `toBridgeNimiError` 映射。
 
 **关键 ReasonCode UI 映射**：
 
