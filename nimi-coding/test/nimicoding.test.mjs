@@ -5048,6 +5048,87 @@ test("audit-sweep plan creates deterministic local chunk artifacts", async () =>
   });
 });
 
+test("audit-sweep plan supports explicit per-run ignore policy without claiming ignored chunks as audited", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await mkdir(path.join(projectRoot, "src"), { recursive: true });
+    await writeFile(path.join(projectRoot, "src", "included.ts"), "export const included = 1;\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "ignored.ts"), "export const ignored = 1;\n", "utf8");
+
+    const missingReason = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src",
+      "--max-files",
+      "1",
+      "--ignore",
+      "src/ignored.ts",
+      "--sweep-id",
+      "audit-sweep-test-ignore-missing-reason",
+      "--json",
+    ]);
+    assert.equal(missingReason.exitCode, 2);
+    assert.match(missingReason.stderr, /requires --ignore-reason/);
+
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src",
+      "--max-files",
+      "1",
+      "--ignore",
+      "src/ignored.ts",
+      "--ignore-reason",
+      "out-of-scope generated fixture for this sweep",
+      "--sweep-id",
+      "audit-sweep-test-ignore-policy",
+      "--json",
+    ]);
+    assert.equal(planResult.exitCode, 0, planResult.stderr);
+    const payload = JSON.parse(planResult.stdout);
+    assert.equal(payload.auditIgnorePolicy.ignored_chunk_count, 1);
+
+    const plan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-ignore-policy.yaml"), "utf8"));
+    assert.equal(plan.audit_ignore_policy.reason, "out-of-scope generated fixture for this sweep");
+    assert.equal(plan.audit_ignore_policy.ignored_chunk_count, 1);
+    const ignoredChunkSummary = plan.chunks.find((chunk) => chunk.files.includes("src/ignored.ts"));
+    assert.equal(ignoredChunkSummary.state, "skipped");
+    assert.equal(plan.coverage.ignored_chunks, 1);
+
+    const ignoredChunk = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "chunks", "audit-sweep-test-ignore-policy", ignoredChunkSummary.chunk_id + ".yaml"), "utf8"));
+    assert.equal(ignoredChunk.state, "skipped");
+    assert.equal(ignoredChunk.skip.ignored_by_policy, true);
+
+    const dispatchIgnored = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-ignore-policy",
+      "--chunk-id",
+      ignoredChunkSummary.chunk_id,
+      "--dispatched-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(dispatchIgnored.exitCode, 2);
+    assert.match(dispatchIgnored.stderr, /requires planned state/);
+
+    const validateChunks = await captureRunCli([
+      "audit-sweep",
+      "validate",
+      "--sweep-id",
+      "audit-sweep-test-ignore-policy",
+      "--scope",
+      "chunks",
+      "--json",
+    ]);
+    assert.equal(validateChunks.exitCode, 0, validateChunks.stderr);
+  });
+});
+
 test("audit-sweep plan uses spec authority chunks for whole-project sweeps", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);

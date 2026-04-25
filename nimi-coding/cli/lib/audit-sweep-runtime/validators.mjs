@@ -334,7 +334,7 @@ function validateChunkShape(chunk, plan, checks) {
     && ["planned_at", "dispatched_at", "ingested_at", "reviewed_at", "frozen_at", "failed_at", "skipped_at"].every((field) => field in lifecycle)
     && isIsoUtcTimestamp(lifecycle.planned_at);
   check(checks, `chunk_${chunk.chunk_id}_lifecycle_valid`, lifecycleOk, "audit chunk lifecycle is explicit");
-  check(checks, `chunk_${chunk.chunk_id}_dispatch_posture`, chunk.state === "planned" || isPlainObject(chunk.dispatch), "non-planned chunks have dispatch packet posture");
+  check(checks, `chunk_${chunk.chunk_id}_dispatch_posture`, chunk.state === "planned" || chunk.state === "skipped" || isPlainObject(chunk.dispatch), "non-planned, non-skipped chunks have dispatch packet posture");
   check(checks, `chunk_${chunk.chunk_id}_ingest_posture`, !["ingested", "reviewed", "frozen", "failed"].includes(chunk.state) || nonEmptyString(chunk.evidence_ref), "ingested or later chunks reference audit evidence");
   check(checks, `chunk_${chunk.chunk_id}_frozen_review`, chunk.state !== "frozen" || chunk.review?.verdict === "pass", "frozen chunks have passing manager review");
   check(checks, `chunk_${chunk.chunk_id}_failure_or_skip_reason`, !["failed", "skipped"].includes(chunk.state)
@@ -543,7 +543,7 @@ function validateRunLedgerReplay(events, plan, chunks, findings, latestLedger, c
     const frozen = eventsByType.get("chunk_frozen")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
     const failed = eventsByType.get("chunk_failed")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
     const skipped = eventsByType.get("chunk_skipped")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
-    const dispatchRequired = chunk.state !== "planned";
+    const dispatchRequired = chunk.state !== "planned" && chunk.state !== "skipped";
     const ingestRequired = ["ingested", "reviewed", "frozen", "failed"].includes(chunk.state);
     const terminalRequired = ["frozen", "failed", "skipped"].includes(chunk.state);
     check(checks, `run_replay_${chunk.chunk_id}_dispatch`, !dispatchRequired || dispatched, dispatchRequired ? `run ledger records dispatch for ${chunk.chunk_id}` : `run ledger dispatch not required for planned chunk ${chunk.chunk_id}`);

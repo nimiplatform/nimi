@@ -32,9 +32,9 @@ import {
   loadAuditEvidenceRootAdmissions,
   loadAuditSweepProjectConfig,
   loadPackageAuthorityAdmissions,
-  specSurfaceForFile,
 } from "./admissions.mjs";
 import { assignEvidenceInventory } from "./evidence-assignment.mjs";
+import { buildSpecChunks } from "./inventory-spec-chunks.mjs";
 import { buildRiskBudgetPolicy } from "./risk-budget.mjs";
 import { pathExists } from "../fs-helpers.mjs";
 
@@ -203,198 +203,90 @@ function buildFileChunks(includedInventory, options) {
   return chunks;
 }
 
-function evidenceRootsForSpecOwner(ownerDomain, targetRootRef) {
-  if (targetRootRef !== ".") {
-    return [targetRootRef];
-  }
-  const repoWideEvidenceRoots = [
-    ".github",
-    "apps",
-    "config",
-    "kit",
-    "nimi-coding",
-    "nimi-cognition",
-    "proto",
-    "runtime",
-    "scripts",
-    "sdk",
-    ".nimi/spec",
-    ".nimi/contracts",
-    ".nimi/methodology",
+function buildAuditIgnorePolicy(projectConfig, options) {
+  const patterns = [
+    ...(projectConfig.ignorePatterns ?? []),
+    ...normalizeCsv(options.ignore),
   ];
-  const roots = {
-    "spec-meta": repoWideEvidenceRoots,
-    "spec-root": repoWideEvidenceRoots,
-    cognition: ["nimi-cognition", ".nimi/spec/cognition"],
-    desktop: ["apps/desktop", "kit", ".nimi/spec/desktop"],
-    future: [".nimi/spec/future", ".nimi/topics"],
-    platform: ["kit", "scripts", ".nimi/spec/platform"],
-    realm: ["sdk/src/realm", "runtime/internal/protocol", ".nimi/spec/realm"],
-    runtime: ["runtime", "proto/runtime/v1", "scripts", "config", ".nimi/spec/runtime"],
-    sdk: ["sdk/src", "sdk/test", "scripts", ".nimi/spec/sdk"],
-  };
-  return roots[ownerDomain] ?? [ownerDomain, `.nimi/spec/${ownerDomain}`];
-}
-
-function slugPart(value) {
-  return String(value)
-    .replace(/[^a-zA-Z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .toLowerCase() || "spec";
-}
-
-function extractModuleMapRefs(markdownText) {
-  const lines = String(markdownText ?? "").split(/\r?\n/);
-  const refs = [];
-  let inModuleMap = false;
-  for (const line of lines) {
-    const heading = /^(#{1,6})\s+(.+?)\s*$/.exec(line);
-    if (heading) {
-      const headingText = heading[2].trim().toLowerCase();
-      if (headingText === "module map") {
-        inModuleMap = true;
-        continue;
-      }
-      if (inModuleMap && heading[1].length <= 2) {
-        break;
-      }
-    }
-    if (!inModuleMap) {
-      continue;
-    }
-    const match = /^\s*[-*]\s+`([^`]+)`/.exec(line);
-    if (match) {
-      refs.push(match[1].trim());
-    }
+  const ownerDomains = [
+    ...(projectConfig.ignoreOwnerDomains ?? []),
+    ...normalizeCsv(options.ignoreOwner),
+  ];
+  const reason = typeof options.ignoreReason === "string" && options.ignoreReason.trim()
+    ? options.ignoreReason.trim()
+    : projectConfig.ignoreReason;
+  if (patterns.length === 0 && ownerDomains.length === 0) {
+    return null;
   }
-  return [...new Set(refs)].sort();
+  if (!reason) {
+    return {
+      ok: false,
+      error: "nimicoding audit-sweep refused: --ignore or --ignore-owner requires --ignore-reason, or .nimi/config/audit-sweep.yaml audit_sweep.ignore_reason.\n",
+    };
+  }
+  return {
+    ok: true,
+    policy: {
+      mode: "explicit_scope_omission",
+      patterns,
+      owner_domains: ownerDomains,
+      reason,
+    },
+  };
 }
 
-function candidateEvidenceRefsForModuleMapPath(modulePath, evidenceRoots) {
-  const normalized = String(modulePath ?? "").replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/$/, "");
-  if (!normalized || normalized.startsWith("http:") || normalized.startsWith("https:")) {
+function chunkIgnoreMatches(chunk, ignorePolicy) {
+  if (!ignorePolicy) {
     return [];
   }
-  const directRoot = /^(?:\.nimi|apps|config|kit|nimi-[^/]+|proto|runtime|scripts|sdk)\//.test(normalized);
-  const candidates = [];
-  if (directRoot) {
-    candidates.push(normalized);
+  const matches = [];
+  if (ignorePolicy.owner_domains.includes(chunk.owner_domain)) {
+    matches.push(`owner:${chunk.owner_domain}`);
   }
-  for (const rootRef of evidenceRoots ?? []) {
-    const root = String(rootRef ?? "").replace(/\\/g, "/").replace(/\/$/, "");
-    if (!root || root.startsWith(".nimi/spec")) {
-      continue;
-    }
-    candidates.push(`${root}/${normalized}`);
-    if (root.startsWith("apps/")) {
-      candidates.push(`${root}/src/${normalized}`);
-      candidates.push(`${root}/src/shell/renderer/${normalized}`);
-      candidates.push(`${root}/src-tauri/src/${normalized}`);
+  const refs = [
+    ...(chunk.files ?? []),
+    ...(chunk.authority_refs ?? []),
+    ...(chunk.evidence_roots ?? []),
+    ...(chunk.evidence_inventory ?? []),
+  ];
+  for (const pattern of ignorePolicy.patterns) {
+    if (refs.some((ref) => isExcluded(ref, [pattern]))) {
+      matches.push(`pattern:${pattern}`);
     }
   }
-  return [...new Set(candidates)].sort();
+  return [...new Set(matches)].sort();
 }
 
-function buildSpecChunks(includedInventory, options) {
-  const sortedEntries = [...includedInventory].sort((left, right) => left.file_ref.localeCompare(right.file_ref));
-  const includedRefs = new Set(sortedEntries.map((entry) => entry.file_ref));
-  const hostProjectionByHostRef = new Map();
-  const hostProjectionsByPackageRef = new Map();
-  for (const admission of options.packageAuthorityAdmissions ?? []) {
-    for (const projection of admission.host_authority_projection_refs ?? []) {
-      if (!includedRefs.has(projection.package_ref)) {
-        continue;
-      }
-      const enrichedProjection = {
-        host_ref: projection.host_ref,
-        package_ref: projection.package_ref,
-        package_authority_id: admission.id,
-        admission_ref: admission.admission_ref,
-      };
-      hostProjectionByHostRef.set(projection.host_ref, enrichedProjection);
-      const projections = hostProjectionsByPackageRef.get(projection.package_ref) ?? [];
-      projections.push(enrichedProjection);
-      hostProjectionsByPackageRef.set(projection.package_ref, projections);
-    }
+function applyAuditIgnorePolicy(chunks, ignorePolicy, ignoredAt) {
+  if (!ignorePolicy) {
+    return { chunks, ignoredChunks: [] };
   }
-  let chunkIndex = 0;
-  const chunks = [];
-  for (const entry of sortedEntries) {
-    if (hostProjectionByHostRef.has(entry.file_ref)) {
-      continue;
+  const ignoredChunks = [];
+  const nextChunks = chunks.map((chunk) => {
+    const matches = chunkIgnoreMatches(chunk, ignorePolicy);
+    if (matches.length === 0) {
+      return chunk;
     }
-    const surface = specSurfaceForFile(entry.file_ref, options.appSliceAdmissions, options.packageAuthorityAdmissions);
-    const appAdmission = surface.appAdmission;
-    const packageAdmission = surface.packageAdmission;
-    const hostAuthorityProjectionRefs = (hostProjectionsByPackageRef.get(entry.file_ref) ?? [])
-      .sort((left, right) => left.host_ref.localeCompare(right.host_ref));
-    const authorityRefs = [
-      entry.file_ref,
-      ...hostAuthorityProjectionRefs.map((projection) => projection.host_ref),
-    ];
-    const rootAdmissions = (options.auditEvidenceRootAdmissions ?? [])
-      .filter((admission) => admission.owner_domain === surface.ownerDomain && admission.authority_refs.includes(entry.file_ref));
-    const admittedEvidenceRoots = rootAdmissions.flatMap((admission) => admission.evidence_roots);
-    const evidenceRoots = packageAdmission
-      ? packageAdmission.evidence_roots
-      : appAdmission
-      ? appAdmission.evidence_roots
-      : [...new Set([
-        ...evidenceRootsForSpecOwner(surface.ownerDomain, options.targetRootRef),
-        ...admittedEvidenceRoots,
-      ])].sort();
-    const moduleMapRefs = surface.surface === "domain-guides" || surface.surface === "app-domain-guides"
-      ? extractModuleMapRefs(options.authorityTextByRef?.get(entry.file_ref) ?? "")
-      : [];
-    const declaredEvidenceTargets = moduleMapRefs
-      .map((moduleRef) => ({
-        source_path: moduleRef,
-        candidates: candidateEvidenceRefsForModuleMapPath(moduleRef, evidenceRoots),
-      }))
-      .filter((target) => target.candidates.length > 0);
-    chunkIndex += 1;
-    const chunkId = [
-      `chunk-${String(chunkIndex).padStart(3, "0")}`,
-      slugPart(surface.ownerDomain),
-      slugPart(surface.surface),
-      slugPart(path.posix.basename(entry.file_ref, path.posix.extname(entry.file_ref))),
-    ].join("-");
-    chunks.push({
-      chunk_id: chunkId,
-      state: "planned",
-      owner_domain: surface.ownerDomain,
-      planning_basis: "spec_authority",
-      spec_surface: surface.surface,
-      criteria: options.criteria,
-      files: authorityRefs,
-      authority_refs: authorityRefs,
-      authority_kind: packageAdmission ? "admitted_package_authority" : (appAdmission ? "admitted_app_slice" : "nimi_spec"),
-      ...(packageAdmission ? {
-        package_authority_id: packageAdmission.id,
-        admission_ref: packageAdmission.admission_ref,
-        authority_root: packageAdmission.authority_root,
-      } : {}),
-      ...(appAdmission ? {
-        app_id: appAdmission.app_id,
-        admission_ref: appAdmission.admission_ref,
-        authority_root: appAdmission.authority_root,
-      } : {}),
-      ...(rootAdmissions.length > 0 ? {
-        evidence_root_admission_refs: rootAdmissions.map((admission) => admission.admission_ref),
-        admitted_evidence_roots: admittedEvidenceRoots,
-      } : {}),
-      ...(hostAuthorityProjectionRefs.length > 0 ? {
-        host_authority_projection_refs: hostAuthorityProjectionRefs,
-      } : {}),
-      ...(declaredEvidenceTargets.length > 0 ? {
-        declared_evidence_targets: declaredEvidenceTargets,
-      } : {}),
-      evidence_roots: evidenceRoots,
-      file_count: authorityRefs.length,
-      finding_count: 0,
+    ignoredChunks.push({
+      chunk_id: chunk.chunk_id,
+      owner_domain: chunk.owner_domain,
+      matches,
+      files: chunk.files ?? [],
+      authority_refs: chunk.authority_refs ?? chunk.files ?? [],
+      evidence_roots: chunk.evidence_roots ?? [],
     });
-  }
-  return chunks;
+    return {
+      ...chunk,
+      state: "skipped",
+      skip: {
+        reason: ignorePolicy.reason,
+        ignored_by_policy: true,
+        matches,
+        skipped_at: ignoredAt,
+      },
+    };
+  });
+  return { chunks: nextChunks, ignoredChunks };
 }
 
 async function listAdmittedPackageAuthorityEntries(projectRoot, packageAuthorityAdmissions, excludePatterns) {
@@ -507,6 +399,11 @@ export async function createAuditSweepPlan(projectRoot, options) {
   if (!projectConfig.ok) {
     return inputError(projectConfig.error);
   }
+  const auditIgnorePolicyResult = buildAuditIgnorePolicy(projectConfig, options);
+  if (auditIgnorePolicyResult?.ok === false) {
+    return inputError(auditIgnorePolicyResult.error);
+  }
+  const auditIgnorePolicy = auditIgnorePolicyResult?.policy ?? null;
   const excludePatterns = [
     ...DEFAULT_EXCLUDE_PATTERNS,
     ...projectConfig.excludePatterns,
@@ -616,6 +513,8 @@ export async function createAuditSweepPlan(projectRoot, options) {
     })));
   }
   const createdAt = options.createdAt ?? new Date().toISOString();
+  const ignoreResult = applyAuditIgnorePolicy(chunks, auditIgnorePolicy, createdAt);
+  chunks = ignoreResult.chunks;
   const inventoryHash = sha256Object(inventory.map((entry) => ({
     file_ref: entry.file_ref,
     sha256: entry.sha256,
@@ -636,6 +535,13 @@ export async function createAuditSweepPlan(projectRoot, options) {
     },
     criteria,
     max_files_per_chunk: maxFilesPerChunk,
+    ...(auditIgnorePolicy ? {
+      audit_ignore_policy: {
+        ...auditIgnorePolicy,
+        ignored_chunk_count: ignoreResult.ignoredChunks.length,
+        ignored_chunks: ignoreResult.ignoredChunks,
+      },
+    } : {}),
     ...(riskBudgetPolicy ? { risk_budget_policy: riskBudgetPolicy } : {}),
     risk_budget_status: null,
     audit_sweep_config_ref: projectConfig.found ? AUDIT_SWEEP_PROJECT_CONFIG_REF : null,
@@ -693,6 +599,9 @@ export async function createAuditSweepPlan(projectRoot, options) {
         unmapped_evidence_files: unmappedEvidenceFiles.length,
         authority_chunks_without_evidence_inventory: chunks.filter((chunk) => (chunk.evidence_inventory ?? []).length === 0).length,
       } : {}),
+      ...(auditIgnorePolicy ? {
+        ignored_chunks: ignoreResult.ignoredChunks.length,
+      } : {}),
       chunk_count: chunks.length,
     },
     run_ledger_ref: runLedgerRef(sweepId),
@@ -709,7 +618,7 @@ export async function createAuditSweepPlan(projectRoot, options) {
       kind: "audit-chunk",
       sweep_id: sweepId,
       chunk_id: chunk.chunk_id,
-      state: "planned",
+      state: chunk.state,
       owner_domain: chunk.owner_domain,
       criteria,
       files: chunk.files,
@@ -743,24 +652,36 @@ export async function createAuditSweepPlan(projectRoot, options) {
         reviewed_at: null,
         frozen_at: null,
         failed_at: null,
-        skipped_at: null,
+        skipped_at: chunk.state === "skipped" ? createdAt : null,
       },
       evidence_ref: null,
       review: null,
       failure: null,
+      ...(chunk.skip ? { skip: chunk.skip } : {}),
       finding_count: 0,
       created_at: createdAt,
       updated_at: createdAt,
     });
   }
 
-  const runRef = await appendRunEvent(projectRoot, sweepId, {
+  let runRef = await appendRunEvent(projectRoot, sweepId, {
     event_type: "plan_created",
     plan_ref: planRef(sweepId),
     inventory_hash: inventoryHash,
     included_files: includedInventory.length,
     chunk_count: chunks.length,
+    ignored_chunk_count: ignoreResult.ignoredChunks.length,
   });
+  for (const ignoredChunk of ignoreResult.ignoredChunks) {
+    runRef = await appendRunEvent(projectRoot, sweepId, {
+      event_type: "chunk_skipped",
+      chunk_id: ignoredChunk.chunk_id,
+      chunk_ref: chunkRef(sweepId, ignoredChunk.chunk_id),
+      reason: auditIgnorePolicy.reason,
+      ignored_by_policy: true,
+      matches: ignoredChunk.matches,
+    });
+  }
 
   return {
     ok: true,
@@ -781,6 +702,10 @@ export async function createAuditSweepPlan(projectRoot, options) {
     inventoryHash,
     criteria,
     maxFilesPerChunk,
+    auditIgnorePolicy: auditIgnorePolicy ? {
+      ...auditIgnorePolicy,
+      ignored_chunk_count: ignoreResult.ignoredChunks.length,
+    } : null,
     riskBudgetPolicy,
     chunkBasis: plan.planning_basis.mode,
   };

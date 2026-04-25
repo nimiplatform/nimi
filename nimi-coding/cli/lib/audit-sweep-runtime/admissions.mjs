@@ -27,7 +27,7 @@ export async function loadAuditSweepProjectConfig(projectRoot) {
   const configPath = artifactPath(projectRoot, AUDIT_SWEEP_PROJECT_CONFIG_REF);
   const info = await pathExists(configPath);
   if (!info?.isFile()) {
-    return { ok: true, found: false, excludePatterns: [] };
+    return { ok: true, found: false, excludePatterns: [], ignorePatterns: [], ignoreOwnerDomains: [], ignoreReason: null };
   }
 
   let parsed;
@@ -41,10 +41,31 @@ export async function loadAuditSweepProjectConfig(projectRoot) {
   }
 
   const rawExcludePatterns = parsed?.audit_sweep?.exclude_patterns ?? parsed?.exclude_patterns ?? [];
+  const rawIgnorePatterns = parsed?.audit_sweep?.ignore_patterns ?? parsed?.ignore_patterns ?? [];
+  const rawIgnoreOwnerDomains = parsed?.audit_sweep?.ignore_owner_domains ?? parsed?.ignore_owner_domains ?? [];
+  const rawIgnoreReason = parsed?.audit_sweep?.ignore_reason ?? parsed?.ignore_reason ?? null;
   if (!Array.isArray(rawExcludePatterns)) {
     return {
       ok: false,
       error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} exclude_patterns must be an array.\n`,
+    };
+  }
+  if (!Array.isArray(rawIgnorePatterns)) {
+    return {
+      ok: false,
+      error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_patterns must be an array.\n`,
+    };
+  }
+  if (!Array.isArray(rawIgnoreOwnerDomains)) {
+    return {
+      ok: false,
+      error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_owner_domains must be an array.\n`,
+    };
+  }
+  if (rawIgnoreReason !== null && (typeof rawIgnoreReason !== "string" || rawIgnoreReason.trim().length === 0)) {
+    return {
+      ok: false,
+      error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_reason must be a non-empty string when present.\n`,
     };
   }
 
@@ -58,8 +79,35 @@ export async function loadAuditSweepProjectConfig(projectRoot) {
     }
     excludePatterns.push(pattern.trim());
   }
+  const ignorePatterns = [];
+  for (const pattern of rawIgnorePatterns) {
+    if (typeof pattern !== "string" || pattern.trim().length === 0) {
+      return {
+        ok: false,
+        error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_patterns entries must be non-empty strings.\n`,
+      };
+    }
+    ignorePatterns.push(pattern.trim());
+  }
+  const ignoreOwnerDomains = [];
+  for (const ownerDomain of rawIgnoreOwnerDomains) {
+    if (typeof ownerDomain !== "string" || ownerDomain.trim().length === 0) {
+      return {
+        ok: false,
+        error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_owner_domains entries must be non-empty strings.\n`,
+      };
+    }
+    ignoreOwnerDomains.push(ownerDomain.trim());
+  }
 
-  return { ok: true, found: true, excludePatterns };
+  return {
+    ok: true,
+    found: true,
+    excludePatterns,
+    ignorePatterns,
+    ignoreOwnerDomains,
+    ignoreReason: rawIgnoreReason?.trim() ?? null,
+  };
 }
 
 export async function loadAppSliceAdmissions(projectRoot) {

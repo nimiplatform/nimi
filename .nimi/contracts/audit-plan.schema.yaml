@@ -15,6 +15,7 @@ required_top_level_fields:
   - updated_at
 optional_top_level_fields:
   - planning_basis
+  - audit_ignore_policy
   - risk_budget_policy
   - risk_budget_status
   - audit_sweep_config_ref
@@ -83,6 +84,8 @@ hard_constraints:
   - zero_included_files_cannot_be_candidate_ready
   - spec_authority_plans_must_chunk_by_authority_refs_not_file_inventory
   - spec_authority_chunk_files_are_authority_refs_and_evidence_roots_define_audit_evidence_scope
+  - explicit_audit_ignore_policy_must_record_reason_and_ignored_chunks
+  - ignored_chunks_must_be_skipped_not_counted_as_audited
   - risk_budget_pause_must_not_mark_unresolved_findings_as_closed
   - risk_budget_pause_blocks_further_dispatch_until_remediation_bundle_or_manager_action
   - admitted_package_authority_projection_refs_must_be_explicitly_mapped
