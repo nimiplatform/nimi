@@ -511,7 +511,7 @@ func TestRuntimeAgentRunLifeTrackSweepPrefersEarlierCallbackOverCadenceTick(t *t
 // TestRuntimeAgentRunLifeTrackSweepDelaysCadenceTickUntilSuppressionExpires
 // previously exercised HookCadenceInteraction_SUPPRESS_BASE_TICK_UNTIL_EXPIRED.
 // Per K-AGCORE-041 the admitted trigger/effect matrix does not include any
-// cadence_interaction field; runtime host owns cadence truth as a separate
+// cadence-interaction tag; runtime host owns cadence truth as a separate
 // concern reconciled via `reconcileCadenceHooks`. This behaviour is therefore
 // not a public surface anymore and this test is retired as part of the
 // Exec Pack 2 hard cut. Internal reconciliation semantics are covered by
@@ -1885,33 +1885,25 @@ func TestAIBackedCanonicalReviewExecutorDecodesValidOutput(t *testing.T) {
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `{
-  "summary": "review complete",
-  "tokens_used": 42,
-  "narratives": [
-    {
-      "narrative_id": "nar-ai-1",
-      "topic": "review quality",
-      "content": "The work remains focused on review quality.",
-      "source_version": "wave4",
-      "status": "active",
-      "source_memory_ids": ["mem-1", "mem-2"]
-    }
-  ],
-  "truths": [
-    {
-      "truth_id": "truth-ai-1",
-      "dimension": "relational",
-      "normalized_key": "relationship:review-quality",
-      "statement": "The agent and user are collaborating on review quality.",
-      "confidence": 0.91,
-      "source_count": 2,
-      "review_count": 1,
-      "status": "admitted",
-      "source_memory_ids": ["mem-1", "mem-3"]
-    }
-  ]
-}`,
+						Text: `<canonical-review>
+  <summary>review complete</summary>
+  <tokens-used>42</tokens-used>
+  <narratives>
+    <narrative id="nar-ai-1" topic="review quality" source-version="wave4" status="active">
+      <content>The work remains focused on review quality.</content>
+      <source-memory-id>mem-1</source-memory-id>
+      <source-memory-id>mem-2</source-memory-id>
+    </narrative>
+  </narratives>
+  <truths>
+    <truth id="truth-ai-1" dimension="relational" normalized-key="relationship:review-quality" confidence="0.91" source-count="2" review-count="1" status="admitted">
+      <statement>The agent and user are collaborating on review quality.</statement>
+      <source-memory-id>mem-1</source-memory-id>
+      <source-memory-id>mem-3</source-memory-id>
+    </truth>
+  </truths>
+  <relations></relations>
+</canonical-review>`,
 					},
 				},
 			},
@@ -1963,68 +1955,61 @@ func TestAIBackedCanonicalReviewExecutorRejectsInvalidOutput(t *testing.T) {
 	}{
 		{
 			name:    "markdown",
-			output:  "```json\n{}\n```",
-			wantErr: "output invalid",
+			output:  "```xml\n<canonical-review><summary>bad</summary></canonical-review>\n```",
+			wantErr: "must begin with <canonical-review>",
 		},
 		{
 			name: "unknown_field",
-			output: `{
-  "summary": "bad",
-  "narratives": [],
-  "truths": [],
-  "extra_field": []
-}`,
-			wantErr: "unknown field",
+			output: `<canonical-review>
+  <summary>bad</summary>
+  <narratives></narratives>
+  <truths></truths>
+  <relations></relations>
+  <extra-field></extra-field>
+</canonical-review>`,
+			wantErr: "unsupported <extra-field> tag",
 		},
 		{
 			name: "invalid_dimension",
-			output: `{
-  "summary": "bad",
-  "narratives": [],
-  "truths": [
-    {
-      "truth_id": "truth-bad-1",
-      "dimension": "employment",
-      "normalized_key": "bad:key",
-      "statement": "bad",
-      "confidence": 0.9,
-      "source_memory_ids": ["mem-1"]
-    }
-  ]
-}`,
+			output: `<canonical-review>
+  <summary>bad</summary>
+  <narratives></narratives>
+  <truths>
+    <truth id="truth-bad-1" dimension="employment" normalized-key="bad:key" confidence="0.9">
+      <statement>bad</statement>
+      <source-memory-id>mem-1</source-memory-id>
+    </truth>
+  </truths>
+  <relations></relations>
+</canonical-review>`,
 			wantErr: "dimension must be relational, cognitive, value, or procedural",
 		},
 		{
 			name: "invalid_relation_type",
-			output: `{
-  "summary": "bad",
-  "narratives": [],
-  "truths": [],
-  "relations": [
-    {
-      "source_id": "mem-1",
-      "target_id": "mem-2",
-      "relation_type": "same_event",
-      "confidence": 0.9
-    }
-  ]
-}`,
+			output: `<canonical-review>
+  <summary>bad</summary>
+  <narratives></narratives>
+  <truths></truths>
+  <relations>
+    <relation source-id="mem-1" target-id="mem-2" relation-type="same_event" confidence="0.9"/>
+  </relations>
+</canonical-review>`,
 			wantErr: "relation_type must be causal, emotional, or thematic",
 		},
 		{
 			name: "narrative_from_leftover_only",
-			output: `{
-  "summary": "bad",
-  "narratives": [
-    {
-      "narrative_id": "nar-bad-1",
-      "topic": "singleton",
-      "content": "bad singleton narrative",
-      "source_memory_ids": ["mem-3", "mem-3"]
-    }
-  ],
-  "truths": []
-}`,
+			output: `<canonical-review>
+  <summary>bad</summary>
+  <narratives>
+    <narrative id="nar-bad-1" topic="singleton">
+      <content>bad singleton narrative</content>
+      <source-memory-id>mem-3</source-memory-id>
+      <source-memory-id>mem-3</source-memory-id>
+    </narrative>
+  </narratives>
+  <truths></truths>
+  <relations></relations>
+</canonical-review>`,
 			wantErr: "must cite at least 2 distinct source_memory_ids",
 		},
 	}
@@ -2134,40 +2119,27 @@ func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesWave4Norma
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: fmt.Sprintf(`{
-  "summary": "wave 4 review",
-  "tokens_used": 64,
-  "narratives": [
-    {
-      "narrative_id": "nar-ai-exec-1",
-      "topic": "memory redesign",
-      "content": "The current focus remains memory redesign review quality.",
-      "source_version": "wave4",
-      "status": "active",
-      "source_memory_ids": ["%s", "%s"]
-    }
-  ],
-  "truths": [
-    {
-      "truth_id": "truth-ai-exec-1",
-      "dimension": "relational",
-      "normalized_key": "relationship:review-cadence",
-      "statement": "The agent and user are iterating closely on review quality.",
-      "confidence": 0.9,
-      "source_count": 2,
-      "status": "admitted",
-      "source_memory_ids": ["%s", "%s"]
-    }
-  ],
-  "relations": [
-    {
-      "source_id": "%s",
-      "target_id": "%s",
-      "relation_type": "thematic",
-      "confidence": 0.9
-    }
-  ]
-}`, retainResp.GetRecords()[0].GetMemoryId(), retainResp.GetRecords()[1].GetMemoryId(), retainResp.GetRecords()[0].GetMemoryId(), retainResp.GetRecords()[1].GetMemoryId(), retainResp.GetRecords()[0].GetMemoryId(), retainResp.GetRecords()[2].GetMemoryId()),
+						Text: fmt.Sprintf(`<canonical-review>
+  <summary>wave 4 review</summary>
+  <tokens-used>64</tokens-used>
+  <narratives>
+    <narrative id="nar-ai-exec-1" topic="memory redesign" source-version="wave4" status="active">
+      <content>The current focus remains memory redesign review quality.</content>
+      <source-memory-id>%s</source-memory-id>
+      <source-memory-id>%s</source-memory-id>
+    </narrative>
+  </narratives>
+  <truths>
+    <truth id="truth-ai-exec-1" dimension="relational" normalized-key="relationship:review-cadence" confidence="0.9" source-count="2" status="admitted">
+      <statement>The agent and user are iterating closely on review quality.</statement>
+      <source-memory-id>%s</source-memory-id>
+      <source-memory-id>%s</source-memory-id>
+    </truth>
+  </truths>
+  <relations>
+    <relation source-id="%s" target-id="%s" relation-type="thematic" confidence="0.9"/>
+  </relations>
+</canonical-review>`, retainResp.GetRecords()[0].GetMemoryId(), retainResp.GetRecords()[1].GetMemoryId(), retainResp.GetRecords()[0].GetMemoryId(), retainResp.GetRecords()[1].GetMemoryId(), retainResp.GetRecords()[0].GetMemoryId(), retainResp.GetRecords()[2].GetMemoryId()),
 					},
 				},
 			},
@@ -3229,7 +3201,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `{"status_text":"watching the world","summary":"life turn complete","tokens_used":999,"canonical_memory_candidates":[{"canonical_class":"WORLD_SHARED","policy_reason":"world_fact","record":{"kind":"MEMORY_RECORD_KIND_OBSERVATIONAL","observational":{"observation":"Lanterns are lit","sourceRef":"life-track"}}},{"canonical_class":"DYADIC","policy_reason":"broken","record":{"kind":"MEMORY_RECORD_KIND_SEMANTIC","semantic":{"subject":"user","predicate":"","object":"prefers tea"}}}],"next_hook_intent":null}`,
+						Text: `<life-turn><status-text>watching the world</status-text><summary>life turn complete</summary><tokens-used>999</tokens-used><canonical-memory-candidates><candidate canonical-class="WORLD_SHARED" policy-reason="world_fact"><observational><observation>Lanterns are lit</observation><source-ref>life-track</source-ref></observational></candidate><candidate canonical-class="DYADIC" policy-reason="broken"><semantic><subject>user</subject><predicate></predicate><object>prefers tea</object></semantic></candidate></canonical-memory-candidates></life-turn>`,
 					},
 				},
 			},
@@ -3938,7 +3910,7 @@ func TestRuntimeAgentLifeTrackLoopReschedulesWithAIOutput(t *testing.T) {
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: fmt.Sprintf(`{"summary":"try again later","tokens_used":2,"canonical_memory_candidates":[],"next_hook_intent":{"triggerFamily":"HOOK_TRIGGER_FAMILY_TIME","triggerDetail":{"time":{"delay":"%ds"}},"effect":"HOOK_EFFECT_FOLLOW_UP_TURN","admissionState":"HOOK_ADMISSION_STATE_PROPOSED","reason":"try again later"}}`, int64(followupDelay.Seconds())),
+						Text: fmt.Sprintf(`<life-turn><summary>try again later</summary><tokens-used>2</tokens-used><canonical-memory-candidates></canonical-memory-candidates><next-hook-intent trigger-family="TIME" effect="FOLLOW_UP_TURN" reason="try again later"><time delay="%ds"/></next-hook-intent></life-turn>`, int64(followupDelay.Seconds())),
 					},
 				},
 			},
@@ -4008,7 +3980,7 @@ func TestRuntimeAgentLifeTrackLoopPersistsBehavioralPostureFromAIOutput(t *testi
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `{"behavioral_posture":{"posture_class":"careful_support","action_family":"support","interrupt_mode":"cautious","transition_reason":"user seems discouraged","truth_basis_ids":["truth-1","truth-1","truth-2"],"status_text":"staying close and careful"},"summary":"posture updated","tokens_used":4,"canonical_memory_candidates":[],"next_hook_intent":null}`,
+						Text: `<life-turn><behavioral-posture><posture-class>careful_support</posture-class><action-family>support</action-family><interrupt-mode>cautious</interrupt-mode><transition-reason>user seems discouraged</transition-reason><truth-basis-id>truth-1</truth-basis-id><truth-basis-id>truth-1</truth-basis-id><truth-basis-id>truth-2</truth-basis-id><status-text>staying close and careful</status-text></behavioral-posture><summary>posture updated</summary><tokens-used>4</tokens-used><canonical-memory-candidates></canonical-memory-candidates></life-turn>`,
 					},
 				},
 			},
@@ -4084,7 +4056,7 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `{"summary":"bad","initiate_chat_intent":{"message":"hello"}}`,
+						Text: `<life-turn><summary>bad</summary><initiate-chat-intent><message>hello</message></initiate-chat-intent></life-turn>`,
 					},
 				},
 			},
@@ -4163,7 +4135,7 @@ func TestRuntimeAgentLifeTrackLoopFailsOnInvalidBehavioralPostureOutput(t *testi
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `{"behavioral_posture":{"posture_class":"bad","action_family":"freestyle","interrupt_mode":"welcome","transition_reason":"bad","status_text":"bad"},"summary":"bad","tokens_used":2,"canonical_memory_candidates":[],"next_hook_intent":null}`,
+						Text: `<life-turn><behavioral-posture><posture-class>bad</posture-class><action-family>freestyle</action-family><interrupt-mode>welcome</interrupt-mode><transition-reason>bad</transition-reason><status-text>bad</status-text></behavioral-posture><summary>bad</summary><tokens-used>2</tokens-used><canonical-memory-candidates></canonical-memory-candidates></life-turn>`,
 					},
 				},
 			},
@@ -4443,7 +4415,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `{"behavioral_posture":{"posture_class":"focused_support","action_family":"support","interrupt_mode":"focused","transition_reason":"chat sidecar","truth_basis_ids":["truth-a","truth-a","truth-b"],"status_text":"focused and present"},"cancel_pending_hook_ids":["hook-chat-exec-old"],"next_hook_intent":{"triggerFamily":"HOOK_TRIGGER_FAMILY_TIME","triggerDetail":{"time":{"delay":"600s"}},"effect":"HOOK_EFFECT_FOLLOW_UP_TURN","admissionState":"HOOK_ADMISSION_STATE_PROPOSED","reason":"follow up later"},"canonical_memory_candidates":[{"canonical_class":"PUBLIC_SHARED","policy_reason":"chat_summary","record":{"kind":"MEMORY_RECORD_KIND_OBSERVATIONAL","observational":{"observation":"user asked about wave 6 chat posture patch"}}}]}`,
+						Text: `<chat-track-sidecar><behavioral-posture><posture-class>focused_support</posture-class><action-family>support</action-family><interrupt-mode>focused</interrupt-mode><transition-reason>chat sidecar</transition-reason><truth-basis-id>truth-a</truth-basis-id><truth-basis-id>truth-a</truth-basis-id><truth-basis-id>truth-b</truth-basis-id><status-text>focused and present</status-text></behavioral-posture><cancel-pending-hook-id>hook-chat-exec-old</cancel-pending-hook-id><next-hook-intent trigger-family="TIME" effect="FOLLOW_UP_TURN" reason="follow up later"><time delay="600s"/></next-hook-intent><canonical-memory-candidates><candidate canonical-class="PUBLIC_SHARED" policy-reason="chat_summary"><observational><observation>user asked about wave 6 chat posture patch</observation></observational></candidate></canonical-memory-candidates></chat-track-sidecar>`,
 					},
 				},
 			},
@@ -4526,7 +4498,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessagePreservesCallerAppIDForAIE
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `{"behavioral_posture":null,"cancel_pending_hook_ids":[],"next_hook_intent":null,"canonical_memory_candidates":[]}`,
+						Text: `<chat-track-sidecar><canonical-memory-candidates></canonical-memory-candidates></chat-track-sidecar>`,
 					},
 				},
 			},
@@ -4577,7 +4549,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorFailsClosedOnInv
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `{"behavioral_posture":{"posture_class":"bad","action_family":"freestyle","interrupt_mode":"welcome","status_text":"bad"},"initiate_chat_intent":{"message":"hi"}}`,
+						Text: `<chat-track-sidecar><behavioral-posture><posture-class>bad</posture-class><action-family>freestyle</action-family><interrupt-mode>welcome</interrupt-mode><status-text>bad</status-text></behavioral-posture><initiate-chat-intent><message>hi</message></initiate-chat-intent></chat-track-sidecar>`,
 					},
 				},
 			},
@@ -4623,7 +4595,7 @@ func TestChatTrackSidecarPromptsFrameTranscriptAsEvidence(t *testing.T) {
 	if !strings.Contains(systemPrompt, "absorb explicit same-window self-correction or contradiction before candidate emission") {
 		t.Fatalf("expected prompt to require same-window correction absorption, got %q", systemPrompt)
 	}
-	if !strings.Contains(systemPrompt, "emit [] or prefer OBSERVATIONAL over SEMANTIC") {
+	if !strings.Contains(systemPrompt, "empty <canonical-memory-candidates></canonical-memory-candidates> or prefer <observational> over <semantic>") {
 		t.Fatalf("expected prompt to prefer observational/no candidate when unstable, got %q", systemPrompt)
 	}
 }
@@ -4646,7 +4618,7 @@ func TestLifeTurnPromptsFrameEvidenceAsStabilizedCandidateInput(t *testing.T) {
 	if !strings.Contains(systemPrompt, "absorb explicit same-window self-correction or contradiction before candidate emission") {
 		t.Fatalf("expected prompt to require same-window correction absorption, got %q", systemPrompt)
 	}
-	if !strings.Contains(systemPrompt, "emit [] or prefer OBSERVATIONAL over SEMANTIC") {
+	if !strings.Contains(systemPrompt, "empty <canonical-memory-candidates></canonical-memory-candidates> or prefer <observational> over <semantic>") {
 		t.Fatalf("expected prompt to prefer observational/no candidate when unstable, got %q", systemPrompt)
 	}
 }
@@ -4664,8 +4636,8 @@ func TestChatTrackSidecarPromptsFrameCadenceInteractionAsBoundedHostOwnedHint(t 
 	if !strings.Contains(systemPrompt, "runtime host owns cadence truth") {
 		t.Fatalf("expected prompt to keep cadence host-owned, got %q", systemPrompt)
 	}
-	if !strings.Contains(systemPrompt, "no cadence_interaction field is admitted") {
-		t.Fatalf("expected prompt to explicitly forbid cadence_interaction, got %q", systemPrompt)
+	if !strings.Contains(systemPrompt, "no cadence-interaction tag is admitted") {
+		t.Fatalf("expected prompt to explicitly forbid cadence-interaction, got %q", systemPrompt)
 	}
 	if !strings.Contains(systemPrompt, "HookIntent") {
 		t.Fatalf("expected prompt to reference new HookIntent vocabulary, got %q", systemPrompt)
@@ -4687,14 +4659,14 @@ func TestLifeTurnPromptsFrameCadenceInteractionAsBoundedHostOwnedHint(t *testing
 	if !strings.Contains(systemPrompt, "runtime host owns cadence truth") {
 		t.Fatalf("expected prompt to keep cadence host-owned, got %q", systemPrompt)
 	}
-	if !strings.Contains(systemPrompt, "no cadence_interaction field is admitted") {
-		t.Fatalf("expected prompt to explicitly forbid cadence_interaction, got %q", systemPrompt)
+	if !strings.Contains(systemPrompt, "no cadence-interaction tag is admitted") {
+		t.Fatalf("expected prompt to explicitly forbid cadence-interaction, got %q", systemPrompt)
 	}
 }
 
 // TestDecodeLifeTurnExecutorResultAcceptsCadenceInteractionIntent is retired
 // because HookCadenceInteraction is not admitted in the K-AGCORE-041 v1
-// matrix. The new HookIntent vocabulary has no cadence_interaction field.
+// matrix. The new HookIntent vocabulary has no cadence-interaction tag.
 func TestDecodeLifeTurnExecutorResultAcceptsCadenceInteractionIntent(t *testing.T) {
 	t.Skip("retired: HookCadenceInteraction is not admitted in K-AGCORE-041 v1 matrix")
 }
@@ -4721,7 +4693,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `{"behavioral_posture":{"posture_class":"engaged","action_family":"engage","interrupt_mode":"welcome","transition_reason":"chat ingress","truth_basis_ids":["truth-1"],"status_text":"ready to engage"},"cancel_pending_hook_ids":[],"next_hook_intent":null,"canonical_memory_candidates":[]}`,
+						Text: `<chat-track-sidecar><behavioral-posture><posture-class>engaged</posture-class><action-family>engage</action-family><interrupt-mode>welcome</interrupt-mode><transition-reason>chat ingress</transition-reason><truth-basis-id>truth-1</truth-basis-id><status-text>ready to engage</status-text></behavioral-posture><canonical-memory-candidates></canonical-memory-candidates></chat-track-sidecar>`,
 					},
 				},
 			},

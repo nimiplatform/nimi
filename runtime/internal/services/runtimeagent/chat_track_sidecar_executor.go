@@ -1,17 +1,13 @@
 package runtimeagent
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"sort"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -50,13 +46,6 @@ type chatTrackSidecarScenarioExecutor interface {
 
 type aiBackedChatTrackSidecarExecutor struct {
 	ai chatTrackSidecarScenarioExecutor
-}
-
-type chatTrackSidecarExecutorJSON struct {
-	BehavioralPosture         *lifeTurnBehavioralPostureJSON `json:"behavioral_posture"`
-	CancelPendingHookIDs      []string                       `json:"cancel_pending_hook_ids"`
-	NextHookIntent            json.RawMessage                `json:"next_hook_intent"`
-	CanonicalMemoryCandidates []lifeTurnMemoryCandidateJSON  `json:"canonical_memory_candidates"`
 }
 
 func (rejectingChatTrackSidecarExecutor) ExecuteChatTrackSidecar(context.Context, *ChatTrackSidecarExecutorRequest) (*ChatTrackSidecarResult, error) {
@@ -164,48 +153,38 @@ func chatTrackSidecarPrompts(req *ChatTrackSidecarExecutorRequest) (string, stri
 		return "", "", fmt.Errorf("marshal chat sidecar hooks: %w", err)
 	}
 	systemPrompt := strings.TrimSpace(`You are the runtime-private Chat Track sidecar executor for Nimi Agent Core.
-Return exactly one JSON object and nothing else.
-Allowed top-level fields:
-- behavioral_posture: object or null
-- cancel_pending_hook_ids: string[]
-- next_hook_intent: object or null
-- canonical_memory_candidates: array
+Return APML only. The first non-whitespace characters must be <chat-track-sidecar>.
+Allowed top-level shape:
+<chat-track-sidecar>
+  <behavioral-posture>...</behavioral-posture> optional
+  repeated <cancel-pending-hook-id>...</cancel-pending-hook-id>
+  <next-hook-intent ...>...</next-hook-intent> optional
+  <canonical-memory-candidates>...</canonical-memory-candidates>
+</chat-track-sidecar>
 
 Rules:
-- Do not emit markdown, prose, code fences, or comments.
-- Do not emit any field outside behavioral_posture, cancel_pending_hook_ids, next_hook_intent, and canonical_memory_candidates.
+- Do not emit markdown, prose, code fences, JSON, or comments.
+- Do not emit any tag outside behavioral-posture, cancel-pending-hook-id, next-hook-intent, and canonical-memory-candidates.
 - Do not emit proactive initiate-chat semantics, arbitrary state mutation, direct world/user mutation, or free-form scheduling logic.
 - current chat transcript is source evidence, not canonical memory truth by default.
-- emit canonical_memory_candidates only when the current evidence window supports a stable durable memory proposal.
+- emit canonical-memory-candidates only when the current evidence window supports a stable durable memory proposal.
 - absorb explicit same-window self-correction or contradiction before candidate emission; do not emit two conflicting durable candidates from one evidence window.
-- if the evidence remains unstable, tentative, or situational, emit [] or prefer OBSERVATIONAL over SEMANTIC.
-- behavioral_posture, if present, may only contain:
-  - posture_class: string
-  - action_family: observe | engage | support | assist | reflect | rest
-  - interrupt_mode: welcome | cautious | focused
-  - transition_reason: string
-  - truth_basis_ids: array of truth ids
-  - status_text: string
-- cancel_pending_hook_ids may only reference intent ids present in pending_hooks.
-- next_hook_intent must be valid HookIntent proto-json if present and is
-  constrained to the K-AGCORE-041 narrow-admission matrix:
-    - trigger_family: TIME or EVENT
-    - trigger_detail:
-        time { delay: google.protobuf.Duration }  (family = TIME)
-        event_user_idle { idle_for: google.protobuf.Duration }  (family = EVENT)
-        event_chat_ended {}  (family = EVENT)
-    - effect: FOLLOW_UP_TURN (only admitted effect)
-    - admission_state: leave as PROPOSED; runtime admission finalizes it
-- runtime host owns cadence truth; no cadence_interaction field is admitted.
-- no absolute scheduled time, turn_completed, state_condition, world_event,
-  or compound trigger is admitted in v1.
-- canonical_memory_candidates entries may only contain:
-  - canonical_class: PUBLIC_SHARED | WORLD_SHARED | DYADIC
-  - policy_reason: string
-  - record: MemoryRecordInput proto-json using exactly one payload branch: episodic, semantic, or observational
-- If no hooks should be canceled, return [].
-- If no follow-up hook is needed, set next_hook_intent to null.
-- If no canonical memory should be written, set canonical_memory_candidates to [].
+- if the evidence remains unstable, tentative, or situational, emit empty <canonical-memory-candidates></canonical-memory-candidates> or prefer <observational> over <semantic>.
+- behavioral-posture may contain only <posture-class>, <action-family>, <interrupt-mode>, <transition-reason>, repeated <truth-basis-id>, and <status-text>.
+- action-family: observe | engage | support | assist | reflect | rest.
+- interrupt-mode: welcome | cautious | focused.
+- cancel-pending-hook-id may only reference intent ids present in pending_hooks.
+- next-hook-intent is an APML proposal for a typed HookIntent after runtime validation and uses one trigger child only: <time delay="600s"/>, <event-user-idle idle-for="600s"/>, or <event-chat-ended/>.
+- next-hook-intent attributes: trigger-family="TIME|EVENT", effect="FOLLOW_UP_TURN", optional reason="...".
+- runtime host owns cadence truth; no cadence-interaction tag is admitted.
+- no absolute scheduled time, turn-completed, state-condition, world-event, or compound trigger is admitted in v1.
+- candidate format: <candidate canonical-class="PUBLIC_SHARED|WORLD_SHARED|DYADIC" policy-reason="..."> with exactly one <episodic>, <semantic>, or <observational> child.
+- episodic fields: <summary>, optional <occurred-at>, repeated <participant>.
+- semantic fields: <subject>, <predicate>, <object>, optional <confidence>.
+- observational fields: <observation>, optional <observed-at>, optional <source-ref>.
+- If no hooks should be canceled, omit <cancel-pending-hook-id>.
+- If no follow-up hook is needed, omit <next-hook-intent>.
+- If no canonical memory should be written, emit empty <canonical-memory-candidates></canonical-memory-candidates>.
 `)
 	userPrompt := strings.TrimSpace(fmt.Sprintf(`Committed agent truth:
 agent=%s
@@ -226,32 +205,16 @@ func decodeChatTrackSidecarExecutorResult(raw string, req *ChatTrackSidecarExecu
 	if strings.TrimSpace(raw) == "" {
 		return nil, fmt.Errorf("chat track sidecar executor returned empty output")
 	}
-	decoder := json.NewDecoder(bytes.NewBufferString(raw))
-	decoder.DisallowUnknownFields()
-	var payload chatTrackSidecarExecutorJSON
-	if err := decoder.Decode(&payload); err != nil {
-		return nil, fmt.Errorf("chat track sidecar executor output invalid: %w", err)
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		if err == nil {
-			return nil, fmt.Errorf("chat track sidecar executor output must contain a single JSON object")
-		}
+	var payload chatTrackSidecarExecutorAPML
+	if err := decodeStrictAPML(raw, "chat-track-sidecar", &payload); err != nil {
 		return nil, fmt.Errorf("chat track sidecar executor output invalid: %w", err)
 	}
 	result := &ChatTrackSidecarResult{
-		CancelPendingHookIDs:      append([]string(nil), payload.CancelPendingHookIDs...),
+		CancelPendingHookIDs:      uniqueNonEmptyStrings(payload.CancelPendingHookIDs),
 		CanonicalMemoryCandidates: make([]*runtimev1.CanonicalMemoryCandidate, 0, len(payload.CanonicalMemoryCandidates)),
 	}
 	if payload.BehavioralPosture != nil {
-		patch := &BehavioralPosturePatch{
-			PostureClass:     payload.BehavioralPosture.PostureClass,
-			ActionFamily:     payload.BehavioralPosture.ActionFamily,
-			InterruptMode:    payload.BehavioralPosture.InterruptMode,
-			TransitionReason: payload.BehavioralPosture.TransitionReason,
-			TruthBasisIDs:    append([]string(nil), payload.BehavioralPosture.TruthBasisIDs...),
-			StatusText:       payload.BehavioralPosture.StatusText,
-		}
+		patch := apmlPosturePatch(payload.BehavioralPosture)
 		normalized, err := normalizeBehavioralPosturePatch("chat_track", *patch)
 		if err != nil {
 			return nil, fmt.Errorf("chat track sidecar executor behavioral_posture invalid: %w", err)
@@ -265,26 +228,23 @@ func decodeChatTrackSidecarExecutorResult(raw string, req *ChatTrackSidecarExecu
 			StatusText:       normalized.StatusText,
 		}
 	}
-	if len(payload.NextHookIntent) > 0 && string(payload.NextHookIntent) != "null" {
-		intent := &runtimev1.HookIntent{}
-		unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
-		if err := unmarshal.Unmarshal(payload.NextHookIntent, intent); err != nil {
-			return nil, fmt.Errorf("chat track sidecar executor next_hook_intent invalid: %w", err)
-		}
-		if strings.TrimSpace(intent.GetIntentId()) == "" {
-			intent.IntentId = "hook_" + ulid.Make().String()
-		}
-		if err := validateHookIntent(intent); err != nil {
+	if payload.NextHookIntent != nil {
+		intent, err := apmlHookIntentValue(payload.NextHookIntent)
+		if err != nil {
 			return nil, fmt.Errorf("chat track sidecar executor next_hook_intent invalid: %w", err)
 		}
 		result.NextHookIntent = intent
 	}
 	now := time.Now().UTC()
 	for _, candidate := range payload.CanonicalMemoryCandidates {
+		parsedCandidate, err := apmlMemoryCandidateRaw(candidate)
+		if err != nil {
+			return nil, fmt.Errorf("chat track sidecar executor canonical_memory_candidate invalid: %w", err)
+		}
 		item, err := buildChatTrackCanonicalMemoryCandidate(req, &lifeTurnMemoryCandidate{
-			CanonicalClass: candidate.CanonicalClass,
-			PolicyReason:   strings.TrimSpace(candidate.PolicyReason),
-			RecordRaw:      append([]byte(nil), candidate.Record...),
+			CanonicalClass: parsedCandidate.CanonicalClass,
+			PolicyReason:   parsedCandidate.PolicyReason,
+			RecordRaw:      append([]byte(nil), parsedCandidate.RecordRaw...),
 		}, now)
 		if err != nil {
 			return nil, err

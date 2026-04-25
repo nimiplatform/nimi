@@ -125,7 +125,7 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 				case <-release:
 				}
 			}
-			envelope := publicChatStructuredEnvelopeJSON(
+			envelope := publicChatStructuredEnvelopeAPML(
 				fmt.Sprintf("message-pack4-%d", currentCall),
 				fmt.Sprintf("reply-%d", currentCall),
 			)
@@ -567,7 +567,7 @@ func TestWave1ExecPack4NegativeIngressAndNoAPMLConsumerPath(t *testing.T) {
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := publicChatStructuredEnvelopeWithFollowUpJSON("message-pack4-hook", "hook me later", "action-pack4-hook", "follow up", 300)
+			envelope := publicChatStructuredEnvelopeWithFollowUpAPML("message-pack4-hook", "hook me later", "action-pack4-hook", "follow up", 300)
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-pack4-hook",

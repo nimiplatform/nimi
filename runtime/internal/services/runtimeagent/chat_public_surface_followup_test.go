@@ -108,9 +108,9 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 			}); err != nil {
 				return err
 			}
-			envelope := publicChatStructuredEnvelopeJSON(fmt.Sprintf("message-%d", currentCall), fmt.Sprintf("turn-%d", currentCall))
+			envelope := publicChatStructuredEnvelopeAPML(fmt.Sprintf("message-%d", currentCall), fmt.Sprintf("turn-%d", currentCall))
 			if currentCall == 1 {
-				envelope = publicChatStructuredEnvelopeWithFollowUpJSON("message-1", "turn-1", "action-follow-up-1", "come back later", 150)
+				envelope = publicChatStructuredEnvelopeWithFollowUpAPML("message-1", "turn-1", "action-follow-up-1", "come back later", 150)
 			}
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
@@ -247,7 +247,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 			var envelope string
 			switch currentCall {
 			case 1:
-				envelope = publicChatStructuredEnvelopeWithFollowUpJSON("message-1", "persist me", "action-recover", "resume after restart", 200)
+				envelope = publicChatStructuredEnvelopeWithFollowUpAPML("message-1", "persist me", "action-recover", "resume after restart", 200)
 			case 2:
 				if got := strings.TrimSpace(req.SystemPrompt); !strings.Contains(got, "resume after restart") {
 					t.Fatalf("expected recovered follow-up system prompt, got=%q", got)
@@ -255,7 +255,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 				if len(req.Messages) < 2 || req.Messages[len(req.Messages)-1].GetContent() != "persist me" {
 					t.Fatalf("expected recovered follow-up transcript to include persisted assistant text, got=%v", req.Messages)
 				}
-				envelope = publicChatStructuredEnvelopeJSON("message-2", "recovered follow up")
+				envelope = publicChatStructuredEnvelopeAPML("message-2", "recovered follow up")
 			default:
 				t.Fatalf("unexpected recovered call count=%d", currentCall)
 			}
@@ -391,9 +391,9 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 			var envelope string
 			switch currentCall {
 			case 1:
-				envelope = publicChatStructuredEnvelopeWithFollowUpJSON("message-1", "hello from runtime", "action-follow-up-1", "continue naturally", 200)
+				envelope = publicChatStructuredEnvelopeWithFollowUpAPML("message-1", "hello from runtime", "action-follow-up-1", "continue naturally", 200)
 			default:
-				envelope = publicChatStructuredEnvelopeJSON("message-2", "new user reply handled")
+				envelope = publicChatStructuredEnvelopeAPML("message-2", "new user reply handled")
 			}
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
@@ -531,7 +531,7 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 			}); err != nil {
 				return err
 			}
-			envelope := publicChatStructuredEnvelopeWithFollowUpJSON("message-1", "turn-1", "action-follow-up-1", "come back later", 20)
+			envelope := publicChatStructuredEnvelopeWithFollowUpAPML("message-1", "turn-1", "action-follow-up-1", "come back later", 20)
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   fmt.Sprintf("trace-follow-up-cancel-%d", currentCall),
@@ -667,7 +667,7 @@ func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := publicChatStructuredEnvelopeJSON("message-restart-snapshot", "persisted terminal text")
+			envelope := publicChatStructuredEnvelopeAPML("message-restart-snapshot", "persisted terminal text")
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-restart-snapshot",
@@ -786,7 +786,7 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(ctx context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := publicChatStructuredEnvelopeJSON("message-concurrent", "done")
+			envelope := publicChatStructuredEnvelopeAPML("message-concurrent", "done")
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-concurrent",
@@ -885,7 +885,7 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := publicChatStructuredEnvelopeJSON("message-session", "hello")
+			envelope := publicChatStructuredEnvelopeAPML("message-session", "hello")
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-session",
@@ -976,7 +976,7 @@ func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := publicChatStructuredEnvelopeJSON("message-binding", "hello")
+			envelope := publicChatStructuredEnvelopeAPML("message-binding", "hello")
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-binding",

@@ -1,11 +1,9 @@
 package runtimeagent
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -28,44 +26,44 @@ type aiBackedCanonicalReviewExecutor struct {
 	ai canonicalReviewScenarioExecutor
 }
 
-type canonicalReviewExecutorJSON struct {
-	Summary    string                         `json:"summary"`
-	TokensUsed *int64                         `json:"tokens_used"`
-	Narratives []canonicalReviewNarrativeJSON `json:"narratives"`
-	Truths     []canonicalReviewTruthJSON     `json:"truths"`
-	Relations  []canonicalReviewRelationJSON  `json:"relations"`
+type canonicalReviewExecutorProjection struct {
+	Summary    string
+	TokensUsed *int64
+	Narratives []canonicalReviewNarrativeProjection
+	Truths     []canonicalReviewTruthProjection
+	Relations  []canonicalReviewRelationProjection
 }
 
-type canonicalReviewNarrativeJSON struct {
-	NarrativeID     string   `json:"narrative_id"`
-	Topic           string   `json:"topic"`
-	Content         string   `json:"content"`
-	SourceVersion   string   `json:"source_version"`
-	Status          string   `json:"status"`
-	SourceMemoryIDs []string `json:"source_memory_ids"`
+type canonicalReviewNarrativeProjection struct {
+	NarrativeID     string
+	Topic           string
+	Content         string
+	SourceVersion   string
+	Status          string
+	SourceMemoryIDs []string
 }
 
-type canonicalReviewTruthJSON struct {
-	TruthID           string   `json:"truth_id"`
-	Dimension         string   `json:"dimension"`
-	NormalizedKey     string   `json:"normalized_key"`
-	Statement         string   `json:"statement"`
-	Confidence        float64  `json:"confidence"`
-	SourceCount       *int32   `json:"source_count"`
-	ReviewCount       *int32   `json:"review_count"`
-	FirstReviewAt     string   `json:"first_review_at"`
-	LastReviewAt      string   `json:"last_review_at"`
-	Status            string   `json:"status"`
-	SupersedesTruthID string   `json:"supersedes_truth_id"`
-	SourceMemoryIDs   []string `json:"source_memory_ids"`
+type canonicalReviewTruthProjection struct {
+	TruthID           string
+	Dimension         string
+	NormalizedKey     string
+	Statement         string
+	Confidence        float64
+	SourceCount       *int32
+	ReviewCount       *int32
+	FirstReviewAt     string
+	LastReviewAt      string
+	Status            string
+	SupersedesTruthID string
+	SourceMemoryIDs   []string
 }
 
-type canonicalReviewRelationJSON struct {
-	RelationID   string  `json:"relation_id"`
-	SourceID     string  `json:"source_id"`
-	TargetID     string  `json:"target_id"`
-	RelationType string  `json:"relation_type"`
-	Confidence   float64 `json:"confidence"`
+type canonicalReviewRelationProjection struct {
+	RelationID   string
+	SourceID     string
+	TargetID     string
+	RelationType string
+	Confidence   float64
 }
 
 type canonicalReviewPromptTruth struct {
@@ -176,60 +174,48 @@ func canonicalReviewPrompts(req *CanonicalReviewExecutorRequest) (string, string
 		return "", "", fmt.Errorf("marshal canonical review leftovers: %w", err)
 	}
 	systemPrompt := strings.TrimSpace(`You are the runtime-private canonical review executor for Nimi Agent Core.
-Return exactly one JSON object and nothing else.
-Allowed top-level fields:
-- summary: string
-- tokens_used: integer
-- narratives: array
-- truths: array
-- relations: array
+Return APML only. The first non-whitespace characters must be <canonical-review>.
+Allowed top-level shape:
+<canonical-review>
+  <summary>...</summary>
+  <tokens-used>integer</tokens-used> optional
+  <narratives>...</narratives>
+  <truths>...</truths>
+  <relations>...</relations>
+</canonical-review>
 
 Rules:
-- Do not emit markdown, prose, code fences, or comments.
-- Do not emit any field outside summary, tokens_used, narratives, truths, and relations.
+- Do not emit markdown, prose, code fences, JSON, or comments.
+- Do not emit any tag outside summary, tokens-used, narratives, truths, and relations.
 - narratives may only summarize provided topic clusters.
-- Every narrative must cite source_memory_ids from exactly one cluster and must cite at least 2 distinct records.
+- Every narrative must cite source-memory-id tags from exactly one cluster and must cite at least 2 distinct records.
 - Do not create a narrative from leftovers alone.
 - truths may only use dimensions relational, cognitive, value, or procedural.
-- Every truth source_memory_id must come from the provided review inputs.
+- Every truth source-memory-id must come from the provided review inputs.
 - relations are optional and limited to causal, emotional, or thematic.
-- Every relation source_id and target_id must come from the provided review inputs.
+- Every relation source-id and target-id must come from the provided review inputs.
 - Relations must not be self-edges.
 - relation confidence must be between 0.80 and 1.0.
 - confidence must be between 0 and 1.
-- source_count, if present, must be a non-negative integer.
-- review_count, if present, must be a non-negative integer.
-- first_review_at and last_review_at, if present, must be RFC3339 timestamps.
-- If no narratives or truths should be emitted, return [] for that field.
+- source-count, if present, must be a non-negative integer.
+- review-count, if present, must be a non-negative integer.
+- first-review-at and last-review-at, if present, must be RFC3339 timestamps.
+- If no narratives, truths, or relations should be emitted, emit the empty container tag.
 
-Narrative fields:
-- narrative_id: string
-- topic: string
-- content: string
-- source_version: string or ""
-- status: string or ""
-- source_memory_ids: string[]
+Narrative format:
+<narrative id="..." topic="..." source-version="..." status="...">
+  <content>...</content>
+  repeated <source-memory-id>...</source-memory-id>
+</narrative>
 
-Truth fields:
-- truth_id: string
-- dimension: relational | cognitive | value | procedural
-- normalized_key: string
-- statement: string
-- confidence: number
-- source_count: integer or null
-- review_count: integer or null
-- first_review_at: RFC3339 string or ""
-- last_review_at: RFC3339 string or ""
-- status: string or ""
-- supersedes_truth_id: string or ""
-- source_memory_ids: string[]
+Truth format:
+<truth id="..." dimension="relational|cognitive|value|procedural" normalized-key="..." confidence="0.91" source-count="2" review-count="1" first-review-at="" last-review-at="" status="" supersedes-truth-id="">
+  <statement>...</statement>
+  repeated <source-memory-id>...</source-memory-id>
+</truth>
 
-Relation fields:
-- relation_id: string or ""
-- source_id: string
-- target_id: string
-- relation_type: causal | emotional | thematic
-- confidence: number
+Relation format:
+<relation id="..." source-id="..." target-id="..." relation-type="causal|emotional|thematic" confidence="0.90"/>
 `)
 	userPrompt := strings.TrimSpace(fmt.Sprintf(`Committed agent truth:
 agent=%s
@@ -259,18 +245,51 @@ func decodeCanonicalReviewExecutorResult(raw string, fallbackTokens int64, req *
 	if strings.TrimSpace(raw) == "" {
 		return nil, fmt.Errorf("canonical review executor returned empty output")
 	}
-	decoder := json.NewDecoder(bytes.NewBufferString(raw))
-	decoder.DisallowUnknownFields()
-	var payload canonicalReviewExecutorJSON
-	if err := decoder.Decode(&payload); err != nil {
+	var apmlPayload canonicalReviewExecutorAPML
+	if err := decodeStrictAPML(raw, "canonical-review", &apmlPayload); err != nil {
 		return nil, fmt.Errorf("canonical review executor output invalid: %w", err)
 	}
-	var trailing any
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		if err == nil {
-			return nil, fmt.Errorf("canonical review executor output must contain a single JSON object")
-		}
-		return nil, fmt.Errorf("canonical review executor output invalid: %w", err)
+	payload := canonicalReviewExecutorProjection{
+		Summary:    apmlPayload.Summary,
+		TokensUsed: apmlPayload.TokensUsed,
+		Narratives: make([]canonicalReviewNarrativeProjection, 0, len(apmlPayload.Narratives)),
+		Truths:     make([]canonicalReviewTruthProjection, 0, len(apmlPayload.Truths)),
+		Relations:  make([]canonicalReviewRelationProjection, 0, len(apmlPayload.Relations)),
+	}
+	for _, narrative := range apmlPayload.Narratives {
+		payload.Narratives = append(payload.Narratives, canonicalReviewNarrativeProjection{
+			NarrativeID:     narrative.NarrativeID,
+			Topic:           narrative.Topic,
+			Content:         narrative.Content,
+			SourceVersion:   narrative.SourceVersion,
+			Status:          narrative.Status,
+			SourceMemoryIDs: append([]string(nil), narrative.SourceMemoryIDs...),
+		})
+	}
+	for _, truth := range apmlPayload.Truths {
+		payload.Truths = append(payload.Truths, canonicalReviewTruthProjection{
+			TruthID:           truth.TruthID,
+			Dimension:         truth.Dimension,
+			NormalizedKey:     truth.NormalizedKey,
+			Statement:         truth.Statement,
+			Confidence:        truth.Confidence,
+			SourceCount:       truth.SourceCount,
+			ReviewCount:       truth.ReviewCount,
+			FirstReviewAt:     truth.FirstReviewAt,
+			LastReviewAt:      truth.LastReviewAt,
+			Status:            truth.Status,
+			SupersedesTruthID: truth.SupersedesTruthID,
+			SourceMemoryIDs:   append([]string(nil), truth.SourceMemoryIDs...),
+		})
+	}
+	for _, relation := range apmlPayload.Relations {
+		payload.Relations = append(payload.Relations, canonicalReviewRelationProjection{
+			RelationID:   relation.RelationID,
+			SourceID:     relation.SourceID,
+			TargetID:     relation.TargetID,
+			RelationType: relation.RelationType,
+			Confidence:   relation.Confidence,
+		})
 	}
 	result := &CanonicalReviewExecutorResult{
 		Outcomes: memoryservice.CanonicalReviewOutcomes{
@@ -331,7 +350,7 @@ func decodeCanonicalReviewExecutorResult(raw string, fallbackTokens int64, req *
 	return result, nil
 }
 
-func decodeCanonicalReviewNarrative(input canonicalReviewNarrativeJSON, clustersByRecordID map[string]int) (memoryservice.NarrativeCandidate, error) {
+func decodeCanonicalReviewNarrative(input canonicalReviewNarrativeProjection, clustersByRecordID map[string]int) (memoryservice.NarrativeCandidate, error) {
 	narrativeID := strings.TrimSpace(input.NarrativeID)
 	if narrativeID == "" {
 		return memoryservice.NarrativeCandidate{}, fmt.Errorf("canonical review narrative_id is required")
@@ -372,7 +391,7 @@ func decodeCanonicalReviewNarrative(input canonicalReviewNarrativeJSON, clusters
 	}, nil
 }
 
-func decodeCanonicalReviewTruth(input canonicalReviewTruthJSON, allowedRecordIDs map[string]struct{}) (memoryservice.TruthCandidate, error) {
+func decodeCanonicalReviewTruth(input canonicalReviewTruthProjection, allowedRecordIDs map[string]struct{}) (memoryservice.TruthCandidate, error) {
 	truthID := strings.TrimSpace(input.TruthID)
 	if truthID == "" {
 		return memoryservice.TruthCandidate{}, fmt.Errorf("canonical review truth_id is required")
@@ -445,7 +464,7 @@ func decodeCanonicalReviewTruth(input canonicalReviewTruthJSON, allowedRecordIDs
 	return output, nil
 }
 
-func decodeCanonicalReviewRelation(input canonicalReviewRelationJSON, bank *runtimev1.MemoryBankLocator, allowedRecordIDs map[string]struct{}) (memoryservice.RelationCandidate, error) {
+func decodeCanonicalReviewRelation(input canonicalReviewRelationProjection, bank *runtimev1.MemoryBankLocator, allowedRecordIDs map[string]struct{}) (memoryservice.RelationCandidate, error) {
 	sourceID := strings.TrimSpace(input.SourceID)
 	targetID := strings.TrimSpace(input.TargetID)
 	if sourceID == "" || targetID == "" {

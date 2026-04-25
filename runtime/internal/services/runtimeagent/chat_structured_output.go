@@ -1,9 +1,10 @@
 package runtimeagent
 
 import (
-	"bytes"
-	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"io"
+	"strconv"
 	"strings"
 )
 
@@ -53,20 +54,10 @@ func parsePublicChatStructuredEnvelope(raw string) (*publicChatStructuredEnvelop
 	if trimmed == "" {
 		return nil, fmt.Errorf("structured chat output is required")
 	}
-	decoder := json.NewDecoder(bytes.NewBufferString(trimmed))
-	decoder.DisallowUnknownFields()
-	var envelope publicChatStructuredEnvelope
-	if err := decoder.Decode(&envelope); err != nil {
-		return nil, fmt.Errorf("structured chat output invalid: %w", err)
+	if !strings.HasPrefix(trimmed, "<message") {
+		return nil, fmt.Errorf("structured chat output must be APML beginning with <message>")
 	}
-	var trailing any
-	if err := decoder.Decode(&trailing); err == nil {
-		return nil, fmt.Errorf("structured chat output must contain exactly one JSON object")
-	}
-	if err := validatePublicChatStructuredEnvelope(&envelope); err != nil {
-		return nil, err
-	}
-	return &envelope, nil
+	return parsePublicChatAPMLOutput(trimmed)
 }
 
 func validatePublicChatStructuredEnvelope(envelope *publicChatStructuredEnvelope) error {
@@ -175,7 +166,7 @@ func validatePublicChatStructuredAction(action *publicChatStructuredAction, inde
 		return fmt.Errorf("actions[%d].actionCount must equal %d", index, actionCount)
 	}
 	switch action.Modality {
-	case "image", "voice", "video", "follow-up-turn":
+	case "image", "voice", "follow-up-turn":
 	default:
 		return fmt.Errorf("actions[%d].modality is invalid", index)
 	}
@@ -202,10 +193,6 @@ func validatePublicChatStructuredAction(action *publicChatStructuredAction, inde
 		if action.PromptPayload.Kind != "voice-prompt" {
 			return fmt.Errorf("actions[%d].promptPayload.kind must match modality voice", index)
 		}
-	case "video":
-		if action.PromptPayload.Kind != "video-prompt" {
-			return fmt.Errorf("actions[%d].promptPayload.kind must match modality video", index)
-		}
 	case "follow-up-turn":
 		if action.PromptPayload.Kind != "follow-up-turn" {
 			return fmt.Errorf("actions[%d].promptPayload.kind must match modality follow-up-turn", index)
@@ -218,6 +205,349 @@ func validatePublicChatStructuredAction(action *publicChatStructuredAction, inde
 		}
 	}
 	return nil
+}
+
+type publicChatAPMLActionDraft struct {
+	actionID         string
+	modality         string
+	operation        string
+	sourceMessageID  string
+	deliveryCoupling string
+	promptKind       string
+	promptText       strings.Builder
+}
+
+type publicChatAPMLHookDraft struct {
+	intentID string
+	delayMs  int
+	prompt   strings.Builder
+}
+
+func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error) {
+	decoder := xml.NewDecoder(strings.NewReader("<apml>" + raw + "</apml>"))
+	decoder.Strict = false
+	var envelope publicChatStructuredEnvelope
+	envelope.SchemaID = publicChatStructuredSchemaID
+	envelope.Actions = []publicChatStructuredAction{}
+	var messageSeen bool
+	var messageDepth int
+	var messageText strings.Builder
+	var captureKind string
+	var captureDepth int
+	var capture strings.Builder
+	var suppressMessageTextDepth int
+	var action *publicChatAPMLActionDraft
+	var hook *publicChatAPMLHookDraft
+	var timeHookSeen bool
+	for {
+		token, err := decoder.Token()
+		if errorsIsEOF(err) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("APML output invalid: %w", err)
+		}
+		switch item := token.(type) {
+		case xml.StartElement:
+			name := item.Name.Local
+			if name == "apml" {
+				continue
+			}
+			if captureKind != "" {
+				return nil, fmt.Errorf("APML %s must contain text only", captureKind)
+			}
+			switch {
+			case name == "message":
+				if messageSeen {
+					return nil, fmt.Errorf("APML output must contain exactly one message")
+				}
+				if action != nil || hook != nil {
+					return nil, fmt.Errorf("APML message must not be nested in action or hook")
+				}
+				messageSeen = true
+				messageDepth = 1
+				envelope.Message.MessageID = strings.TrimSpace(xmlAttr(item, "id"))
+				if envelope.Message.MessageID == "" {
+					return nil, fmt.Errorf("APML message.id is required")
+				}
+			case messageDepth > 0:
+				messageDepth++
+				switch name {
+				case "activity", "emotion":
+					captureKind = "message:" + name
+					captureDepth = 1
+					capture.Reset()
+					suppressMessageTextDepth++
+				case "pause", "speed", "pitch", "emphasis", "whisper", "voice", "surface":
+					suppressMessageTextDepth++
+				default:
+					return nil, fmt.Errorf("unsupported APML message tag <%s>", name)
+				}
+			case name == "action":
+				if action != nil {
+					return nil, fmt.Errorf("APML action must not be nested")
+				}
+				kind := strings.TrimSpace(xmlAttr(item, "kind"))
+				switch kind {
+				case "image", "voice":
+				case "video":
+					return nil, fmt.Errorf("APML video action is deferred")
+				default:
+					return nil, fmt.Errorf("APML action.kind is invalid")
+				}
+				action = &publicChatAPMLActionDraft{
+					actionID:         strings.TrimSpace(xmlAttr(item, "id")),
+					modality:         kind,
+					operation:        firstNonEmpty(strings.TrimSpace(xmlAttr(item, "operation")), publicChatDefaultAPMLOperation(kind)),
+					sourceMessageID:  strings.TrimSpace(xmlAttr(item, "source-message")),
+					deliveryCoupling: firstNonEmpty(strings.TrimSpace(xmlAttr(item, "coupling")), "after-message"),
+					promptKind:       kind,
+				}
+				if action.actionID == "" {
+					return nil, fmt.Errorf("APML action.id is required")
+				}
+			case action != nil:
+				switch name {
+				case "prompt-payload":
+					kind := strings.TrimSpace(xmlAttr(item, "kind"))
+					if kind != "" {
+						action.promptKind = kind
+					}
+				case "prompt-text":
+					captureKind = "action:prompt-text"
+					captureDepth = 1
+					capture.Reset()
+				case "voice-id", "voice-emotion", "duration", "aspect-ratio", "style", "negative-prompt":
+				default:
+					return nil, fmt.Errorf("unsupported APML action tag <%s>", name)
+				}
+			case name == "time-hook":
+				if timeHookSeen {
+					return nil, fmt.Errorf("APML output admits at most one time-hook")
+				}
+				timeHookSeen = true
+				hook = &publicChatAPMLHookDraft{intentID: strings.TrimSpace(xmlAttr(item, "id"))}
+				if hook.intentID == "" {
+					hook.intentID = fmt.Sprintf("hook-%d", len(envelope.Actions))
+				}
+			case hook != nil:
+				switch name {
+				case "delay-ms":
+					captureKind = "hook:delay-ms"
+					captureDepth = 1
+					capture.Reset()
+				case "effect":
+					if strings.TrimSpace(xmlAttr(item, "kind")) != "follow-up-turn" {
+						return nil, fmt.Errorf("APML time-hook effect.kind must be follow-up-turn")
+					}
+				case "prompt-text":
+					captureKind = "hook:prompt-text"
+					captureDepth = 1
+					capture.Reset()
+				default:
+					return nil, fmt.Errorf("unsupported APML time-hook tag <%s>", name)
+				}
+			default:
+				return nil, fmt.Errorf("unsupported APML top-level tag <%s>", name)
+			}
+		case xml.CharData:
+			text := string([]byte(item))
+			if captureKind != "" {
+				capture.WriteString(text)
+			} else if messageDepth > 0 && suppressMessageTextDepth == 0 {
+				messageText.WriteString(text)
+			} else if strings.TrimSpace(text) != "" {
+				return nil, fmt.Errorf("APML text must be inside message")
+			}
+		case xml.EndElement:
+			name := item.Name.Local
+			if name == "apml" {
+				continue
+			}
+			if captureKind != "" {
+				captureDepth--
+				if captureDepth == 0 {
+					finishedCaptureKind := captureKind
+					if err := applyPublicChatAPMLCapture(&envelope, action, hook, captureKind, strings.TrimSpace(capture.String())); err != nil {
+						return nil, err
+					}
+					captureKind = ""
+					if strings.HasPrefix(finishedCaptureKind, "message:") {
+						if suppressMessageTextDepth > 0 {
+							suppressMessageTextDepth--
+						}
+						if messageDepth > 0 {
+							messageDepth--
+						}
+					}
+					if strings.HasPrefix(finishedCaptureKind, "hook:") && hook != nil {
+						// Captured hook children close normally; the enclosing
+						// hook remains active until </time-hook>.
+					}
+					if strings.HasPrefix(finishedCaptureKind, "action:") && action != nil {
+						// Captured action children close normally; the enclosing
+						// action remains active until </action>.
+					}
+				}
+				continue
+			}
+			if messageDepth > 0 {
+				if name != "message" && suppressMessageTextDepth > 0 {
+					suppressMessageTextDepth--
+				}
+				messageDepth--
+				if messageDepth == 0 {
+					envelope.Message.Text = normalizePublicChatAPMLText(messageText.String())
+				}
+				continue
+			}
+			if name == "action" && action != nil {
+				next, err := publicChatStructuredActionFromAPMLDraft(*action, envelope.Message.MessageID, len(envelope.Actions))
+				if err != nil {
+					return nil, err
+				}
+				envelope.Actions = append(envelope.Actions, next)
+				action = nil
+				continue
+			}
+			if name == "time-hook" && hook != nil {
+				next, err := publicChatStructuredFollowUpActionFromAPMLHook(*hook, envelope.Message.MessageID, len(envelope.Actions))
+				if err != nil {
+					return nil, err
+				}
+				envelope.Actions = append(envelope.Actions, next)
+				hook = nil
+			}
+		}
+	}
+	for index := range envelope.Actions {
+		envelope.Actions[index].ActionIndex = index
+		envelope.Actions[index].ActionCount = len(envelope.Actions)
+	}
+	if err := validatePublicChatStructuredEnvelope(&envelope); err != nil {
+		return nil, err
+	}
+	return &envelope, nil
+}
+
+func errorsIsEOF(err error) bool {
+	return err == io.EOF
+}
+
+func xmlAttr(element xml.StartElement, name string) string {
+	for _, attr := range element.Attr {
+		if attr.Name.Local == name {
+			return attr.Value
+		}
+	}
+	return ""
+}
+
+func publicChatDefaultAPMLOperation(kind string) string {
+	switch kind {
+	case "image":
+		return "image.generate"
+	case "voice":
+		return "audio.synthesize"
+	default:
+		return ""
+	}
+}
+
+func applyPublicChatAPMLCapture(envelope *publicChatStructuredEnvelope, action *publicChatAPMLActionDraft, hook *publicChatAPMLHookDraft, kind string, value string) error {
+	switch kind {
+	case "message:emotion":
+		if value == "" {
+			return nil
+		}
+		if envelope.StatusCue == nil {
+			envelope.StatusCue = &publicChatStructuredStatusCue{SourceMessageID: envelope.Message.MessageID}
+		}
+		if publicChatStatusCueMoodAdmitted(value) {
+			envelope.StatusCue.Mood = value
+		} else {
+			envelope.StatusCue.Label = value
+		}
+	case "message:activity":
+		if value == "" {
+			return nil
+		}
+		if envelope.StatusCue == nil {
+			envelope.StatusCue = &publicChatStructuredStatusCue{SourceMessageID: envelope.Message.MessageID}
+		}
+		envelope.StatusCue.ActionCue = value
+	case "action:prompt-text":
+		if action == nil {
+			return fmt.Errorf("APML prompt-text outside action")
+		}
+		action.promptText.WriteString(value)
+	case "hook:delay-ms":
+		if hook == nil {
+			return fmt.Errorf("APML delay-ms outside time-hook")
+		}
+		delay, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil || delay <= 0 {
+			return fmt.Errorf("APML time-hook delay-ms must be positive")
+		}
+		hook.delayMs = delay
+	case "hook:prompt-text":
+		if hook == nil {
+			return fmt.Errorf("APML prompt-text outside time-hook")
+		}
+		hook.prompt.WriteString(value)
+	}
+	return nil
+}
+
+func publicChatStatusCueMoodAdmitted(value string) bool {
+	switch strings.TrimSpace(value) {
+	case "neutral", "joy", "focus", "calm", "playful", "concerned", "surprised":
+		return true
+	default:
+		return false
+	}
+}
+
+func normalizePublicChatAPMLText(value string) string {
+	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+}
+
+func publicChatStructuredActionFromAPMLDraft(action publicChatAPMLActionDraft, messageID string, index int) (publicChatStructuredAction, error) {
+	sourceMessageID := firstNonEmpty(action.sourceMessageID, messageID)
+	promptKind := action.promptKind + "-prompt"
+	if strings.HasSuffix(action.promptKind, "-prompt") {
+		promptKind = action.promptKind
+	}
+	return publicChatStructuredAction{
+		ActionID:         action.actionID,
+		ActionIndex:      index,
+		ActionCount:      index + 1,
+		Modality:         action.modality,
+		Operation:        action.operation,
+		SourceMessageID:  sourceMessageID,
+		DeliveryCoupling: action.deliveryCoupling,
+		PromptPayload: publicChatStructuredPromptPayload{
+			Kind:       promptKind,
+			PromptText: strings.TrimSpace(action.promptText.String()),
+		},
+	}, nil
+}
+
+func publicChatStructuredFollowUpActionFromAPMLHook(hook publicChatAPMLHookDraft, messageID string, index int) (publicChatStructuredAction, error) {
+	return publicChatStructuredAction{
+		ActionID:         hook.intentID,
+		ActionIndex:      index,
+		ActionCount:      index + 1,
+		Modality:         "follow-up-turn",
+		Operation:        "assistant.turn.schedule",
+		SourceMessageID:  messageID,
+		DeliveryCoupling: "after-message",
+		PromptPayload: publicChatStructuredPromptPayload{
+			Kind:       "follow-up-turn",
+			PromptText: strings.TrimSpace(hook.prompt.String()),
+			DelayMs:    hook.delayMs,
+		},
+	}, nil
 }
 
 func (e *publicChatStructuredEnvelope) payload() map[string]any {

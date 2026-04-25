@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -82,17 +83,18 @@ func (r publicChatRuntime) emitTurnFailed(session publicChatAnchorState, turn pu
 	}
 }
 
-// projectCommittedStatusCue emits runtime.agent.state.emotion_changed and
-// runtime.agent.presentation.expression_requested derived from the structured
-// envelope's StatusCue once the turn has committed. Runtime MUST NOT emit
-// presentation events without real stream identity; when origin linkage
-// cannot be constructed the projection is skipped rather than fabricated.
+// projectCommittedStatusCue emits runtime.agent.state.emotion_changed plus
+// runtime.agent.presentation.* requests derived from the structured envelope's
+// StatusCue once the turn has committed. Runtime MUST NOT emit presentation
+// events without real stream identity; when origin linkage cannot be
+// constructed the projection is skipped rather than fabricated.
 func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
 	if r.svc == nil || r.svc.isClosed() || structured == nil || structured.StatusCue == nil {
 		return
 	}
 	mood := strings.TrimSpace(structured.StatusCue.Mood)
-	if mood == "" {
+	activityName := strings.TrimSpace(structured.StatusCue.ActionCue)
+	if mood == "" && activityName == "" {
 		return
 	}
 	anchorID := strings.TrimSpace(session.ConversationAnchorID)
@@ -111,33 +113,49 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 		OriginatingTurnID:    turnID,
 		OriginatingStreamID:  streamID,
 	}
-	previousEmotion := strings.TrimSpace(entry.State.GetCurrentEmotion())
-	if previousEmotion == mood {
-		// Already at this emotion; skip re-emission to preserve
-		// durable-until-replace semantics per K-AGCORE-038.
-		return
-	}
-	// K-AGCORE-038: current_emotion is durable runtime state. Commit it into
-	// AgentStateProjection alongside the projection event so GetAgentState /
-	// snapshot / recovery observe the same truth.
-	entry.State.CurrentEmotion = mood
-	entry.State.UpdatedAt = timestamppb.New(now)
-	events := make([]*runtimev1.AgentEvent, 0, 2)
-	events = append(events, r.svc.stateEmotionChangedEvent(
-		entry.Agent.GetAgentId(),
-		mood,
-		previousEmotion,
-		"chat_status_cue",
-		origin,
-		now,
-	))
-	presentationEvent, perr := r.svc.emitPresentationExpressionEvent(entry.Agent.GetAgentId(), anchorID, turnID, streamID, mood, 0, now)
-	if perr != nil {
-		if r.svc.logger != nil {
-			r.svc.logger.Warn("skip presentation.expression_requested; envelope invalid", "agent_id", session.AgentID, "error", perr)
+	events := make([]*runtimev1.AgentEvent, 0, 3)
+	if mood != "" {
+		previousEmotion := strings.TrimSpace(entry.State.GetCurrentEmotion())
+		if previousEmotion != mood {
+			// K-AGCORE-038: current_emotion is durable runtime state. Commit it into
+			// AgentStateProjection alongside the projection event so GetAgentState /
+			// snapshot / recovery observe the same truth.
+			entry.State.CurrentEmotion = mood
+			entry.State.UpdatedAt = timestamppb.New(now)
+			events = append(events, r.svc.stateEmotionChangedEvent(
+				entry.Agent.GetAgentId(),
+				mood,
+				previousEmotion,
+				"chat_status_cue",
+				origin,
+				now,
+			))
+			presentationEvent, perr := r.svc.emitPresentationExpressionEvent(entry.Agent.GetAgentId(), anchorID, turnID, streamID, mood, 0, now)
+			if perr != nil {
+				if r.svc.logger != nil {
+					r.svc.logger.Warn("skip presentation.expression_requested; envelope invalid", "agent_id", session.AgentID, "error", perr)
+				}
+			} else {
+				events = append(events, presentationEvent)
+			}
 		}
-	} else {
-		events = append(events, presentationEvent)
+	}
+	if activityName != "" {
+		intensity := ""
+		if structured.StatusCue.Intensity != nil {
+			intensity = strconv.FormatFloat(*structured.StatusCue.Intensity, 'f', -1, 64)
+		}
+		activityEvent, aerr := r.svc.emitPresentationActivityEvent(entry.Agent.GetAgentId(), anchorID, turnID, streamID, activityName, "chat", intensity, "chat_status_cue", now)
+		if aerr != nil {
+			if r.svc.logger != nil {
+				r.svc.logger.Warn("skip presentation.activity_requested; envelope invalid", "agent_id", session.AgentID, "error", aerr)
+			}
+		} else {
+			events = append(events, activityEvent)
+		}
+	}
+	if len(events) == 0 {
+		return
 	}
 	if err := r.svc.updateAgent(entry, events...); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit runtime.agent.state+presentation from status cue failed", "agent_id", session.AgentID, "turn_id", turnID, "error", err)

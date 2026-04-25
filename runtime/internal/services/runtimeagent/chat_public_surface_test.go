@@ -341,22 +341,19 @@ func waitForPublicChatAgentIdle(t *testing.T, svc *Service, agentID string) {
 	}
 	t.Fatalf("timed out waiting for agent %s to return to idle", agentID)
 }
-func publicChatStructuredEnvelopeJSON(messageID string, text string) string {
-	return fmt.Sprintf(`{"schemaId":"%s","message":{"messageId":"%s","text":"%s"},"actions":[]}`,
-		publicChatStructuredSchemaID,
+func publicChatStructuredEnvelopeAPML(messageID string, text string) string {
+	return fmt.Sprintf(`<message id="%s">%s</message>`,
 		messageID,
 		text,
 	)
 }
-func publicChatStructuredEnvelopeWithFollowUpJSON(messageID string, text string, actionID string, prompt string, delayMs int) string {
-	return fmt.Sprintf(`{"schemaId":"%s","message":{"messageId":"%s","text":"%s"},"actions":[{"actionId":"%s","actionIndex":0,"actionCount":1,"modality":"follow-up-turn","operation":"assistant.turn.schedule","promptPayload":{"kind":"follow-up-turn","promptText":"%s","delayMs":%d},"sourceMessageId":"%s","deliveryCoupling":"after-message"}]}`,
-		publicChatStructuredSchemaID,
+func publicChatStructuredEnvelopeWithFollowUpAPML(messageID string, text string, actionID string, prompt string, delayMs int) string {
+	return fmt.Sprintf(`<message id="%s">%s</message><time-hook id="%s"><delay-ms>%d</delay-ms><effect kind="follow-up-turn"><prompt-text>%s</prompt-text></effect></time-hook>`,
 		messageID,
 		text,
 		actionID,
-		prompt,
 		delayMs,
-		messageID,
+		prompt,
 	)
 }
 func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
@@ -368,7 +365,7 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := publicChatStructuredEnvelopeJSON("message-1", "hello from runtime")
+			envelope := publicChatStructuredEnvelopeAPML("message-1", "hello from runtime")
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-public-chat",
@@ -466,7 +463,7 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 		t.Fatalf("runtime.agent.turn.started must not carry model_resolved per yaml")
 	}
 	deltaDetail := publicChatTurnDetail(t, delta)
-	if got := deltaDetail["text"]; got != publicChatStructuredEnvelopeJSON("message-1", "hello from runtime") {
+	if got := deltaDetail["text"]; got != publicChatStructuredEnvelopeAPML("message-1", "hello from runtime") {
 		t.Fatalf("unexpected delta.detail.text: %v", got)
 	}
 	structuredDetail := publicChatTurnDetail(t, structured)
@@ -546,7 +543,7 @@ func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) 
 			case <-ctx.Done():
 				return ctx.Err()
 			}
-			envelope := publicChatStructuredEnvelopeJSON("message-detached", "detached execution survived ingress cancellation")
+			envelope := publicChatStructuredEnvelopeAPML("message-detached", "detached execution survived ingress cancellation")
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-detached-public-chat",
@@ -710,7 +707,7 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(ctx context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := publicChatStructuredEnvelopeJSON("message-snapshot", "snapshot complete")
+			envelope := publicChatStructuredEnvelopeAPML("message-snapshot", "snapshot complete")
 			splitAt := len(envelope) / 2
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
@@ -913,7 +910,7 @@ func TestPublicChatTurnRequestAllowsRouteOmissionWhenRuntimeResolvesBinding(t *t
 			if req.Binding.ModelID != "local/default" {
 				t.Fatalf("expected runtime-resolved model to preserve requested id, got=%q", req.Binding.ModelID)
 			}
-			envelope := publicChatStructuredEnvelopeJSON("message-route-omission", "runtime resolved route")
+			envelope := publicChatStructuredEnvelopeAPML("message-route-omission", "runtime resolved route")
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-route-omission",
@@ -1127,7 +1124,7 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 			var envelope string
 			switch currentCall {
 			case 1:
-				envelope = publicChatStructuredEnvelopeWithFollowUpJSON("message-1", "hello from runtime", "action-follow-up-1", "continue naturally", 20)
+				envelope = publicChatStructuredEnvelopeWithFollowUpAPML("message-1", "hello from runtime", "action-follow-up-1", "continue naturally", 20)
 			case 2:
 				if got := strings.TrimSpace(req.SystemPrompt); !strings.Contains(got, "FollowUpInstruction:") || !strings.Contains(got, "continue naturally") {
 					t.Fatalf("expected follow-up system prompt to include internal continuation cue, got=%q", got)
@@ -1135,7 +1132,7 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 				if len(req.Messages) < 2 || req.Messages[len(req.Messages)-1].GetContent() != "hello from runtime" {
 					t.Fatalf("expected follow-up request to include prior assistant text, got=%v", req.Messages)
 				}
-				envelope = publicChatStructuredEnvelopeJSON("message-2", "runtime follow up complete")
+				envelope = publicChatStructuredEnvelopeAPML("message-2", "runtime follow up complete")
 			default:
 				t.Fatalf("unexpected follow-up executor call %d", currentCall)
 			}

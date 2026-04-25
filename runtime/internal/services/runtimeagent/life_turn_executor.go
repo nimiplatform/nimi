@@ -1,16 +1,13 @@
 package runtimeagent
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -65,30 +62,6 @@ type lifeTurnExecutionError struct {
 	tokensUsed     int64
 }
 
-type lifeTurnExecutorJSON struct {
-	BehavioralPosture         *lifeTurnBehavioralPostureJSON `json:"behavioral_posture"`
-	StatusText                *string                        `json:"status_text"`
-	Summary                   string                         `json:"summary"`
-	TokensUsed                *int64                         `json:"tokens_used"`
-	CanonicalMemoryCandidates []lifeTurnMemoryCandidateJSON  `json:"canonical_memory_candidates"`
-	NextHookIntent            json.RawMessage                `json:"next_hook_intent"`
-}
-
-type lifeTurnMemoryCandidateJSON struct {
-	CanonicalClass string          `json:"canonical_class"`
-	PolicyReason   string          `json:"policy_reason"`
-	Record         json.RawMessage `json:"record"`
-}
-
-type lifeTurnBehavioralPostureJSON struct {
-	PostureClass     string   `json:"posture_class"`
-	ActionFamily     string   `json:"action_family"`
-	InterruptMode    string   `json:"interrupt_mode"`
-	TransitionReason string   `json:"transition_reason"`
-	TruthBasisIDs    []string `json:"truth_basis_ids"`
-	StatusText       string   `json:"status_text"`
-}
-
 func NewAIBackedLifeTrackExecutor(ai lifeTurnScenarioExecutor) LifeTrackExecutor {
 	if ai == nil {
 		return rejectingLifeTrackExecutor{}
@@ -121,25 +94,25 @@ func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, re
 	if e == nil || e.ai == nil {
 		return nil, &lifeTurnExecutionError{
 			admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
-			reasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
-			message:    "runtime internal life-track executor unavailable or not admitted",
+			reasonCode:     runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+			message:        "runtime internal life-track executor unavailable or not admitted",
 		}
 	}
 	execReq, err := buildLifeTurnScenarioRequest(req)
 	if err != nil {
 		return nil, &lifeTurnExecutionError{
 			admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
-			reasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
-			message:    err.Error(),
+			reasonCode:     runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+			message:        err.Error(),
 		}
 	}
 	resp, err := e.ai.ExecuteScenario(ctx, execReq)
 	if err != nil {
 		return nil, &lifeTurnExecutionError{
 			admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
-			reasonCode: reasonCodeFromError(err),
-			message:    err.Error(),
-			retryable:  false,
+			reasonCode:     reasonCodeFromError(err),
+			message:        err.Error(),
+			retryable:      false,
 		}
 	}
 	text := strings.TrimSpace(resp.GetOutput().GetTextGenerate().GetText())
@@ -147,8 +120,8 @@ func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, re
 	if err != nil {
 		return nil, &lifeTurnExecutionError{
 			admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
-			reasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
-			message:    err.Error(),
+			reasonCode:     runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+			message:        err.Error(),
 		}
 	}
 	return result, nil
@@ -224,14 +197,16 @@ func lifeTurnPrompts(req *lifeTurnRequest) (string, string, error) {
 		return "", "", fmt.Errorf("marshal life turn recall: %w", err)
 	}
 	systemPrompt := strings.TrimSpace(`You are the runtime-private Life Track executor for Nimi Agent Core.
-Return exactly one JSON object and nothing else.
-Allowed top-level fields:
-- behavioral_posture: object or null
-- status_text: string or null
-- summary: string
-- tokens_used: integer
-- canonical_memory_candidates: array
-- next_hook_intent: object or null
+Return APML only. The first non-whitespace characters must be <life-turn>.
+Allowed top-level shape:
+<life-turn>
+  <behavioral-posture>...</behavioral-posture> optional
+  <status-text>...</status-text> optional
+  <summary>...</summary>
+  <tokens-used>integer</tokens-used> optional
+  <canonical-memory-candidates>...</canonical-memory-candidates>
+  <next-hook-intent ...>...</next-hook-intent> optional
+</life-turn>
 
 Rules:
 - Do not emit markdown, prose, code fences, or comments.
@@ -240,33 +215,27 @@ Rules:
 - recall, hook context, and conversational evidence are source evidence, not canonical memory truth by default.
 - emit canonical_memory_candidates only when the current evidence window supports a stable durable memory proposal.
 - absorb explicit same-window self-correction or contradiction before candidate emission; do not emit two conflicting durable candidates from one evidence window.
-- if the evidence remains unstable, tentative, or situational, emit [] or prefer OBSERVATIONAL over SEMANTIC.
-- behavioral_posture, if present, may only contain:
-  - posture_class: string
-  - action_family: observe | engage | support | assist | reflect | rest
-  - interrupt_mode: welcome | cautious | focused
-  - transition_reason: string
-  - truth_basis_ids: array of truth ids
-  - status_text: string
-- canonical_memory_candidates entries may only contain:
-  - canonical_class: PUBLIC_SHARED | WORLD_SHARED | DYADIC
-  - policy_reason: string
-  - record: MemoryRecordInput proto-json using exactly one payload branch: episodic, semantic, or observational
-- next_hook_intent must be valid HookIntent proto-json if present and is
-  constrained to the K-AGCORE-041 narrow-admission matrix:
-    - trigger_family: TIME or EVENT
-    - trigger_detail:
-        time { delay: google.protobuf.Duration }  (family = TIME)
-        event_user_idle { idle_for: google.protobuf.Duration }  (family = EVENT)
-        event_chat_ended {}  (family = EVENT)
-    - effect: FOLLOW_UP_TURN (only admitted effect)
-    - admission_state: leave as PROPOSED; runtime admission finalizes it
-- runtime host owns cadence truth; no cadence_interaction field is admitted.
+- if the evidence remains unstable, tentative, or situational, emit empty <canonical-memory-candidates></canonical-memory-candidates> or prefer <observational> over <semantic>.
+- behavioral-posture, if present, may only contain:
+  - <posture-class>, <action-family>, <interrupt-mode>, <transition-reason>, repeated <truth-basis-id>, <status-text>
+  - action-family: observe | engage | support | assist | reflect | rest
+  - interrupt-mode: welcome | cautious | focused
+- canonical-memory-candidates contains repeated:
+  - <candidate canonical-class="PUBLIC_SHARED|WORLD_SHARED|DYADIC" policy-reason="...">
+  - exactly one payload child: <episodic>, <semantic>, or <observational>
+  - episodic fields: <summary>, optional <occurred-at>, repeated <participant>
+  - semantic fields: <subject>, <predicate>, <object>, optional <confidence>
+  - observational fields: <observation>, optional <observed-at>, optional <source-ref>
+- next-hook-intent, if present, uses:
+  - <next-hook-intent trigger-family="TIME|EVENT" effect="FOLLOW_UP_TURN" reason="...">
+  - one trigger child only: <time delay="600s"/>, <event-user-idle idle-for="600s"/>, or <event-chat-ended/>
+- next-hook-intent is an APML proposal for a typed HookIntent after runtime validation.
+- runtime host owns cadence truth; no cadence-interaction tag is admitted.
 - no absolute scheduled time, turn_completed, state_condition, world_event,
   or compound trigger is admitted in v1.
-- If no follow-up hook is needed, set next_hook_intent to null.
-- If no canonical memory should be written, set canonical_memory_candidates to [].
-- If status text should remain unchanged, set status_text to null.
+- If no follow-up hook is needed, omit <next-hook-intent>.
+- If no canonical memory should be written, emit empty <canonical-memory-candidates></canonical-memory-candidates>.
+- If status text should remain unchanged, omit <status-text>.
 `)
 	userPrompt := strings.TrimSpace(fmt.Sprintf(`Committed agent truth:
 agent=%s
@@ -290,17 +259,8 @@ func decodeLifeTurnExecutorResult(raw string, fallbackTokens int64) (*lifeTurnRe
 	if strings.TrimSpace(raw) == "" {
 		return nil, fmt.Errorf("life turn executor returned empty output")
 	}
-	decoder := json.NewDecoder(bytes.NewBufferString(raw))
-	decoder.DisallowUnknownFields()
-	var payload lifeTurnExecutorJSON
-	if err := decoder.Decode(&payload); err != nil {
-		return nil, fmt.Errorf("life turn executor output invalid: %w", err)
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		if err == nil {
-			return nil, fmt.Errorf("life turn executor output must contain a single JSON object")
-		}
+	var payload lifeTurnExecutorAPML
+	if err := decodeStrictAPML(raw, "life-turn", &payload); err != nil {
 		return nil, fmt.Errorf("life turn executor output invalid: %w", err)
 	}
 	result := &lifeTurnResult{
@@ -317,14 +277,7 @@ func decodeLifeTurnExecutorResult(raw string, fallbackTokens int64) (*lifeTurnRe
 		result.TokensUsed = *payload.TokensUsed
 	}
 	if payload.BehavioralPosture != nil {
-		patch := &BehavioralPosturePatch{
-			PostureClass:     payload.BehavioralPosture.PostureClass,
-			ActionFamily:     payload.BehavioralPosture.ActionFamily,
-			InterruptMode:    payload.BehavioralPosture.InterruptMode,
-			TransitionReason: payload.BehavioralPosture.TransitionReason,
-			TruthBasisIDs:    append([]string(nil), payload.BehavioralPosture.TruthBasisIDs...),
-			StatusText:       payload.BehavioralPosture.StatusText,
-		}
+		patch := apmlPosturePatch(payload.BehavioralPosture)
 		if strings.TrimSpace(patch.StatusText) == "" && payload.StatusText != nil {
 			patch.StatusText = strings.TrimSpace(*payload.StatusText)
 		}
@@ -344,26 +297,22 @@ func decodeLifeTurnExecutorResult(raw string, fallbackTokens int64) (*lifeTurnRe
 			result.StatusText = &result.PosturePatch.StatusText
 		}
 	}
-	if len(payload.NextHookIntent) > 0 && string(payload.NextHookIntent) != "null" {
-		intent := &runtimev1.HookIntent{}
-		unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
-		if err := unmarshal.Unmarshal(payload.NextHookIntent, intent); err != nil {
-			return nil, fmt.Errorf("life turn executor next_hook_intent invalid: %w", err)
-		}
-		// Model-proposed intents may omit intent_id; runtime stamps it.
-		if strings.TrimSpace(intent.GetIntentId()) == "" {
-			intent.IntentId = "hook_" + ulid.Make().String()
-		}
-		if err := validateHookIntent(intent); err != nil {
+	if payload.NextHookIntent != nil {
+		intent, err := apmlHookIntentValue(payload.NextHookIntent)
+		if err != nil {
 			return nil, fmt.Errorf("life turn executor next_hook_intent invalid: %w", err)
 		}
 		result.NextHookIntent = intent
 	}
 	for _, candidate := range payload.CanonicalMemoryCandidates {
+		parsedCandidate, err := apmlMemoryCandidateRaw(candidate)
+		if err != nil {
+			return nil, fmt.Errorf("life turn executor canonical_memory_candidate invalid: %w", err)
+		}
 		result.CanonicalMemoryCandidates = append(result.CanonicalMemoryCandidates, &lifeTurnMemoryCandidate{
-			CanonicalClass: candidate.CanonicalClass,
-			PolicyReason:   strings.TrimSpace(candidate.PolicyReason),
-			RecordRaw:      append([]byte(nil), candidate.Record...),
+			CanonicalClass: parsedCandidate.CanonicalClass,
+			PolicyReason:   parsedCandidate.PolicyReason,
+			RecordRaw:      append([]byte(nil), parsedCandidate.RecordRaw...),
 		})
 	}
 	return result, nil

@@ -2,7 +2,6 @@ package runtimeagent
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -197,10 +196,7 @@ func TestWave1ExecPack3CommittedPresentationReachesTypedStream(t *testing.T) {
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := fmt.Sprintf(
-				`{"schemaId":"%s","message":{"messageId":"message-presentation","text":"presentation committed"},"statusCue":{"sourceMessageId":"message-presentation","mood":"joy"},"actions":[]}`,
-				publicChatStructuredSchemaID,
-			)
+			envelope := `<message id="message-presentation"><emotion>joy</emotion>presentation committed</message>`
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-presentation-stream",
@@ -303,5 +299,120 @@ func TestWave1ExecPack3CommittedPresentationReachesTypedStream(t *testing.T) {
 	}
 	if strings.TrimSpace(detail.GetExpressionId()) != "joy" {
 		t.Fatalf("expected committed expression_id=joy, got %#v", detail)
+	}
+}
+
+func TestWave1ExecPack3CommittedAPMLActivityReachesTypedStream(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			envelope := `<message id="message-activity"><activity>wave</activity>activity committed</message>`
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				TraceId:   "trace-activity-stream",
+				Payload: &runtimev1.StreamScenarioEvent_Started{
+					Started: &runtimev1.ScenarioStreamStarted{
+						ModelResolved: "qwen3-chat",
+						RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				TraceId:   "trace-activity-stream",
+				Payload: &runtimev1.StreamScenarioEvent_Delta{
+					Delta: &runtimev1.ScenarioStreamDelta{
+						Delta: &runtimev1.ScenarioStreamDelta_Text{
+							Text: &runtimev1.TextStreamDelta{Text: envelope},
+						},
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			return emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+				TraceId:   "trace-activity-stream",
+				Payload: &runtimev1.StreamScenarioEvent_Completed{
+					Completed: &runtimev1.ScenarioStreamCompleted{
+						FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+					},
+				},
+			})
+		},
+	})
+
+	svc.mu.RLock()
+	cursor := svc.sequence
+	svc.mu.RUnlock()
+
+	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"agent_id":               "agent-alpha",
+			"conversation_anchor_id": anchorID,
+			"messages": []any{
+				map[string]any{"role": "user", "content": "show activity"},
+			},
+			"execution_binding": map[string]any{
+				"route":    "local",
+				"model_id": "local/default",
+			},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
+	}
+
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
+	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
+	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
+	_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
+	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+
+	streamCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	stream := newAgentEventCaptureStreamLimit(streamCtx, 1)
+	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		AgentId: "agent-alpha",
+		Cursor:  encodeCursor(cursor),
+		EventFilters: []runtimev1.AgentEventType{
+			runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION,
+		},
+	}, stream); err != context.Canceled && err != context.DeadlineExceeded {
+		t.Fatalf("SubscribeAgentEvents: %v", err)
+	}
+
+	if len(stream.events) != 1 {
+		t.Fatalf("expected one committed activity presentation event, got %d", len(stream.events))
+	}
+	detail := stream.events[0].GetPresentation()
+	if detail.GetFamily() != runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED {
+		t.Fatalf("expected activity_requested family, got %s", detail.GetFamily())
+	}
+	if strings.TrimSpace(detail.GetConversationAnchorId()) != anchorID {
+		t.Fatalf("expected committed presentation anchor_id=%s, got %q", anchorID, detail.GetConversationAnchorId())
+	}
+	if strings.TrimSpace(detail.GetTurnId()) == "" || strings.TrimSpace(detail.GetStreamId()) == "" {
+		t.Fatalf("expected committed presentation turn_id + stream_id, got %#v", detail)
+	}
+	if strings.TrimSpace(detail.GetActivityName()) != "wave" {
+		t.Fatalf("expected committed activity_name=wave, got %#v", detail)
+	}
+	if strings.TrimSpace(detail.GetActivityCategory()) != "chat" || strings.TrimSpace(detail.GetActivitySource()) != "chat_status_cue" {
+		t.Fatalf("expected committed activity category/source, got %#v", detail)
 	}
 }
