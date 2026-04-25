@@ -1,5 +1,6 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
+import type { RuntimeAgentConsumeEvent } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   ConversationRuntimeTrace,
@@ -28,6 +29,10 @@ import {
   summarizeRuntimeAgentProjectionEvent,
   type RuntimeAgentProjectionSummary,
 } from './chat-agent-runtime-agent-projection';
+import {
+  summarizeRuntimeAgentTimeline,
+  type RuntimeAgentTimelineSummary,
+} from './chat-agent-runtime-agent-timeline';
 import { resolveRouteInput } from './chat-agent-runtime-text';
 import {
   resolveChatThinkingConfig,
@@ -150,6 +155,7 @@ function toDebugMetadata(input: {
   connectorId?: string;
   trace?: ConversationRuntimeTrace;
   envelope: AgentResolvedMessageActionEnvelope;
+  latestTimeline?: RuntimeAgentTimelineSummary | null;
 }): JsonObject {
   return {
     debugType: 'agent-text-turn',
@@ -177,6 +183,7 @@ function toDebugMetadata(input: {
       traceId: input.trace?.traceId || null,
       modelResolved: input.trace?.modelResolved || null,
       routeDecision: input.trace?.routeDecision || null,
+      presentationTimeline: input.latestTimeline || null,
     },
   } satisfies JsonObject;
 }
@@ -404,7 +411,21 @@ export async function streamChatAgentRuntimeAgentTurn(
       let messageSealedEmitted = false;
       let currentTurnAccepted = false;
       const runtimeProjectionEvents: RuntimeAgentProjectionSummary[] = [];
+      const runtimeTurnTimelines: RuntimeAgentTimelineSummary[] = [];
       const iterator = subscribed[Symbol.asyncIterator]();
+
+      const timelineDiagnostics = () => runtimeTurnTimelines.length > 0
+        ? { runtimeTurnTimelines: [...runtimeTurnTimelines] }
+        : {};
+      const projectionDiagnostics = () => runtimeProjectionEvents.length > 0
+        ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
+        : {};
+      const recordTurnTimeline = (event: RuntimeAgentConsumeEvent) => {
+        const timeline = summarizeRuntimeAgentTimeline(event);
+        if (timeline) {
+          runtimeTurnTimelines.push(timeline);
+        }
+      };
 
       const maybeYieldCommittedMessage = function* (
         trace?: ConversationRuntimeTrace,
@@ -433,6 +454,7 @@ export async function streamChatAgentRuntimeAgentTurn(
             connectorId,
             trace,
             envelope: sealedEnvelope,
+            latestTimeline: runtimeTurnTimelines[runtimeTurnTimelines.length - 1] || null,
           }),
           diagnostics: buildRuntimeAgentDiagnostics({
             conversationAnchorId: request.conversationAnchorId,
@@ -442,9 +464,10 @@ export async function streamChatAgentRuntimeAgentTurn(
             modelId,
             connectorId,
             trace,
-            extra: runtimeProjectionEvents.length > 0
-              ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
-              : undefined,
+            extra: {
+              ...timelineDiagnostics(),
+              ...projectionDiagnostics(),
+            },
           }),
         };
       };
@@ -456,6 +479,7 @@ export async function streamChatAgentRuntimeAgentTurn(
             break;
           }
           const event = nextResult.value;
+          recordTurnTimeline(event);
           const trace = resolveRuntimeTrace();
           switch (event.eventName) {
             case 'runtime.agent.turn.accepted':
@@ -646,20 +670,19 @@ export async function streamChatAgentRuntimeAgentTurn(
                   outputText: committedMessage?.text || provisionalText || undefined,
                   diagnostics: buildRuntimeAgentDiagnostics({
                     conversationAnchorId: request.conversationAnchorId,
-                    runtimeTurnId: currentRuntimeTurnId || committedMessage?.runtimeTurnId || '',
-                    runtimeStreamId: currentRuntimeStreamId || committedMessage?.runtimeStreamId || '',
-                    route,
-                    modelId,
-                    connectorId,
-                    trace,
-                    extra: {
-                      missingStructuredProjection: true,
-                      ...(runtimeProjectionEvents.length > 0
-                        ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
-                        : {}),
-                    },
-                  }),
-                };
+                  runtimeTurnId: currentRuntimeTurnId || committedMessage?.runtimeTurnId || '',
+                  runtimeStreamId: currentRuntimeStreamId || committedMessage?.runtimeStreamId || '',
+                  route,
+                  modelId,
+                  connectorId,
+                  trace,
+                  extra: {
+                    missingStructuredProjection: true,
+                    ...timelineDiagnostics(),
+                    ...projectionDiagnostics(),
+                  },
+                }),
+              };
                 return;
               }
               yield {
@@ -675,9 +698,10 @@ export async function streamChatAgentRuntimeAgentTurn(
                   modelId,
                   connectorId,
                   trace,
-                  extra: runtimeProjectionEvents.length > 0
-                    ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
-                    : undefined,
+                  extra: {
+                    ...timelineDiagnostics(),
+                    ...projectionDiagnostics(),
+                  },
                 }),
               };
               return;
@@ -719,9 +743,10 @@ export async function streamChatAgentRuntimeAgentTurn(
                   modelId,
                   connectorId,
                   trace,
-                  extra: runtimeProjectionEvents.length > 0
-                    ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
-                    : undefined,
+                  extra: {
+                    ...timelineDiagnostics(),
+                    ...projectionDiagnostics(),
+                  },
                 }),
               };
               return;
@@ -744,9 +769,8 @@ export async function streamChatAgentRuntimeAgentTurn(
                   trace,
                   extra: {
                     reason: normalizeText(event.detail.reason) || 'interrupt_requested',
-                    ...(runtimeProjectionEvents.length > 0
-                      ? { runtimeProjectionEvents: [...runtimeProjectionEvents] }
-                      : {}),
+                    ...timelineDiagnostics(),
+                    ...projectionDiagnostics(),
                   },
                 }),
               };

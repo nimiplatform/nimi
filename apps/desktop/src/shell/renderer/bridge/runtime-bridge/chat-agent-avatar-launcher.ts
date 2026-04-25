@@ -36,10 +36,23 @@ export type DesktopAvatarLaunchHandoffPayload = {
   sourceSurface: string;
 };
 
+function normalizeOptionalString(value: string | null | undefined): string | null {
+  const normalized = String(value || '').trim();
+  return normalized || null;
+}
+
 function normalizeRequiredString(value: string, field: string): string {
   const normalized = String(value || '').trim();
   if (!normalized) {
     throw new Error(`desktop avatar handoff requires ${field}`);
+  }
+  return normalized;
+}
+
+function normalizeAnchorMode(value: string): DesktopAvatarLaunchAnchorMode {
+  const normalized = normalizeRequiredString(value, 'anchorMode');
+  if (normalized !== 'existing' && normalized !== 'open_new') {
+    throw new Error('desktop avatar handoff requires anchorMode to be existing or open_new');
   }
   return normalized;
 }
@@ -69,11 +82,19 @@ export function parseDesktopAvatarCloseHandoffResult(value: unknown): DesktopAva
 export function buildDesktopAvatarLaunchHandoffPayload(
   input: DesktopAvatarLaunchHandoffInput,
 ): DesktopAvatarLaunchHandoffPayload {
+  const anchorMode = normalizeAnchorMode(input.anchorMode);
+  const conversationAnchorId = normalizeOptionalString(input.conversationAnchorId);
+  if (anchorMode === 'existing' && !conversationAnchorId) {
+    throw new Error('desktop avatar handoff requires conversationAnchorId when anchorMode=existing');
+  }
+  if (anchorMode === 'open_new' && conversationAnchorId) {
+    throw new Error('desktop avatar handoff must omit conversationAnchorId when anchorMode=open_new');
+  }
   return {
     agentId: normalizeRequiredString(input.agentId, 'agentId'),
     avatarInstanceId: normalizeRequiredString(input.avatarInstanceId, 'avatarInstanceId'),
-    conversationAnchorId: input.conversationAnchorId ?? null,
-    anchorMode: normalizeRequiredString(input.anchorMode, 'anchorMode') as DesktopAvatarLaunchAnchorMode,
+    conversationAnchorId,
+    anchorMode,
     launchedBy: input.launchedBy || 'desktop',
     sourceSurface: input.sourceSurface || 'desktop-agent-chat',
   };

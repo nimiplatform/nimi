@@ -105,6 +105,56 @@ test('desktop avatar launcher payload round-trips into avatar launch context wit
   });
 });
 
+test('desktop avatar launcher round-trips open-new handoff without existing anchor leakage', () => {
+  const payload = buildDesktopAvatarLaunchHandoffPayload({
+    agentId: 'agent-1',
+    avatarInstanceId: 'desktop-avatar-agent-1-open-new-anchor',
+    conversationAnchorId: null,
+    anchorMode: 'open_new',
+    launchedBy: 'desktop',
+    sourceSurface: 'desktop-agent-chat',
+  });
+
+  assert.deepEqual(parseAvatarLaunchContext(payload), {
+    agentId: 'agent-1',
+    avatarInstanceId: 'desktop-avatar-agent-1-open-new-anchor',
+    conversationAnchorId: null,
+    anchorMode: 'open_new',
+    launchedBy: 'desktop',
+    sourceSurface: 'desktop-agent-chat',
+  });
+});
+
+test('desktop avatar launcher fails closed before invoking handoff for invalid anchor context', () => {
+  assert.throws(
+    () => buildDesktopAvatarLaunchHandoffPayload({
+      agentId: 'agent-1',
+      avatarInstanceId: 'instance-1',
+      conversationAnchorId: null,
+      anchorMode: 'existing',
+    }),
+    /conversationAnchorId when anchorMode=existing/,
+  );
+  assert.throws(
+    () => buildDesktopAvatarLaunchHandoffPayload({
+      agentId: 'agent-1',
+      avatarInstanceId: 'instance-1',
+      conversationAnchorId: 'anchor-1',
+      anchorMode: 'open_new',
+    }),
+    /must omit conversationAnchorId/,
+  );
+  assert.throws(
+    () => buildDesktopAvatarLaunchHandoffPayload({
+      agentId: 'agent-1',
+      avatarInstanceId: 'instance-1',
+      conversationAnchorId: null,
+      anchorMode: 'invalid' as never,
+    }),
+    /anchorMode to be existing or open_new/,
+  );
+});
+
 test('desktop avatar launcher parses handoff results', () => {
   assert.deepEqual(
     parseDesktopAvatarLaunchHandoffResult({

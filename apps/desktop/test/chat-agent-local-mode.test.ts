@@ -41,6 +41,29 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
+function createRuntimeTurnTimeline(input: {
+  turnId: string;
+  streamId: string;
+  channel: 'text' | 'state';
+  sequence: number;
+  offsetMs?: number;
+}) {
+  return {
+    turnId: input.turnId,
+    streamId: input.streamId,
+    channel: input.channel,
+    offsetMs: input.offsetMs ?? 10,
+    sequence: input.sequence,
+    startedAtWall: '2026-04-25T00:00:00.000Z',
+    observedAtWall: '2026-04-25T00:00:00.010Z',
+    timebaseOwner: 'runtime' as const,
+    projectionRuleId: 'K-AGCORE-051' as const,
+    clockBasis: 'monotonic_with_wall_anchor' as const,
+    providerNeutral: true as const,
+    appLocalAuthority: false as const,
+  };
+}
+
 function createLocalTextProjection() {
   return {
     capability: 'text.generate' as const,
@@ -653,6 +676,7 @@ test('agent runtime turn stream binds to the current request_id and ignores back
       type: string;
       textDelta?: string;
       outputText?: string;
+      diagnostics?: Record<string, unknown>;
       error?: {
         code?: string;
         message?: string;
@@ -663,6 +687,7 @@ test('agent runtime turn stream binds to the current request_id and ignores back
         type: string;
         textDelta?: string;
         outputText?: string;
+        diagnostics?: Record<string, unknown>;
         error?: {
           code?: string;
           message?: string;
@@ -677,6 +702,7 @@ test('agent runtime turn stream binds to the current request_id and ignores back
       ['message-sealed', 'turn-completed'],
     );
     assert.equal(parts[1]?.outputText, '你好，我在。');
+    assert.equal('runtimeTurnTimelines' in (parts[1]?.diagnostics || {}), false);
   } finally {
     clearPlatformClient();
   }
@@ -739,6 +765,12 @@ test('agent runtime turn consumes runtime-owned projection events without opting
                 conversationAnchorId: 'anchor-projection',
                 turnId: 'turn-projection',
                 streamId: 'stream-projection',
+                timeline: createRuntimeTurnTimeline({
+                  turnId: 'turn-projection',
+                  streamId: 'stream-projection',
+                  channel: 'state',
+                  sequence: 1,
+                }),
                 detail: { requestId: requestCalls[0]?.requestId || '' },
               };
               yield {
@@ -790,6 +822,13 @@ test('agent runtime turn consumes runtime-owned projection events without opting
                 eventName: 'runtime.agent.turn.structured' as const,
                 turnId: 'turn-projection',
                 streamId: 'stream-projection',
+                timeline: createRuntimeTurnTimeline({
+                  turnId: 'turn-projection',
+                  streamId: 'stream-projection',
+                  channel: 'text',
+                  sequence: 2,
+                  offsetMs: 20,
+                }),
                 detail: {
                   kind: 'agent_resolved_message_action_envelope',
                   payload: {
@@ -806,6 +845,13 @@ test('agent runtime turn consumes runtime-owned projection events without opting
                 turnId: 'turn-projection',
                 streamId: 'stream-projection',
                 messageId: 'assistant-1',
+                timeline: createRuntimeTurnTimeline({
+                  turnId: 'turn-projection',
+                  streamId: 'stream-projection',
+                  channel: 'text',
+                  sequence: 3,
+                  offsetMs: 30,
+                }),
                 detail: {
                   messageId: 'assistant-1',
                   text: 'projection consumed',
@@ -815,6 +861,13 @@ test('agent runtime turn consumes runtime-owned projection events without opting
                 eventName: 'runtime.agent.turn.completed' as const,
                 turnId: 'turn-projection',
                 streamId: 'stream-projection',
+                timeline: createRuntimeTurnTimeline({
+                  turnId: 'turn-projection',
+                  streamId: 'stream-projection',
+                  channel: 'state',
+                  sequence: 4,
+                  offsetMs: 40,
+                }),
                 detail: {
                   terminalReason: 'stop',
                 },
@@ -896,6 +949,31 @@ test('agent runtime turn consumes runtime-owned projection events without opting
     assert.equal(parts[1]?.outputText, 'projection consumed');
     const projectionEvents = parts[1]?.diagnostics?.runtimeProjectionEvents;
     assert.ok(Array.isArray(projectionEvents));
+    const runtimeTimelines = parts[1]?.diagnostics?.runtimeTurnTimelines;
+    assert.ok(Array.isArray(runtimeTimelines));
+    const runtimeTimelineRecords = runtimeTimelines as Array<{
+      turnId: string;
+      streamId: string;
+      channel: string;
+      sequence: number;
+      projectionRuleId: string;
+      timebaseOwner: string;
+      appLocalAuthority: boolean;
+    }>;
+    assert.deepEqual(
+      runtimeTimelineRecords.map((timeline) => [timeline.channel, timeline.sequence]),
+      [
+        ['state', 1],
+        ['text', 2],
+        ['text', 3],
+        ['state', 4],
+      ],
+    );
+    assert.equal(runtimeTimelineRecords[0]?.turnId, 'turn-projection');
+    assert.equal(runtimeTimelineRecords[0]?.streamId, 'stream-projection');
+    assert.equal(runtimeTimelineRecords[0]?.projectionRuleId, 'K-AGCORE-051');
+    assert.equal(runtimeTimelineRecords[0]?.timebaseOwner, 'runtime');
+    assert.equal(runtimeTimelineRecords[0]?.appLocalAuthority, false);
     const projectionEventRecords = projectionEvents as Array<{
       eventName: string;
       runtimeTurnId: string | null;
