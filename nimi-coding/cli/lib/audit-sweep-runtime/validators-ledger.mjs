@@ -99,6 +99,9 @@ function buildLedgerExpectedCounts(plan, chunks, findings, clusters = []) {
 function buildSpecAuthorityCoverage(plan, frozenChunks, lifecycleCoverage) {
   const authorityTotal = plan.coverage?.authority_files ?? plan.coverage?.included_files ?? 0;
   const evidenceTotal = plan.coverage?.evidence_files ?? plan.evidence_inventory?.length ?? 0;
+  const emptyEvidenceChunks = plan.coverage?.authority_chunks_without_evidence_inventory
+    ?? (Array.isArray(plan.chunks) ? plan.chunks.filter((chunk) => (chunk.evidence_inventory ?? []).length === 0).length : 0)
+    ?? 0;
   const auditedAuthorityFiles = new Set(frozenChunks.flatMap((chunk) => chunk.files));
   const auditedEvidenceFiles = new Set(frozenChunks.flatMap((chunk) => chunk.evidence_inventory ?? []));
   return {
@@ -108,6 +111,7 @@ function buildSpecAuthorityCoverage(plan, frozenChunks, lifecycleCoverage) {
     authority_coverage: {
       total_files: authorityTotal,
       audited_files: auditedAuthorityFiles.size,
+      chunks_without_evidence_inventory: emptyEvidenceChunks,
     },
     evidence_coverage: {
       total_files: evidenceTotal,
