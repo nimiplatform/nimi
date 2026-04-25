@@ -120,49 +120,6 @@ func publicChatPostTurnIndicationDetail(structured *publicChatStructuredEnvelope
 	return out
 }
 
-// publicChatHookIntentIndication projects only the mounted HookIntent
-// vocabulary back onto `turn.post_turn.detail.hook_intent` when the turn
-// selected a follow-up proposal. This is an indication seam only: it must
-// not leak session/execution truth such as `follow_up_id`, `scheduled_for`,
-// runtime cancellation state, or delivery outcomes back onto turn events.
-func publicChatHookIntentIndication(structured *publicChatStructuredEnvelope, followUp publicChatFollowUpOutcome) map[string]any {
-	action := firstPublicChatFollowUpAction(structured)
-	if action == nil {
-		return nil
-	}
-	admissionState := publicChatHookIntentAdmissionState(followUp.Status)
-	if admissionState == "" {
-		return nil
-	}
-	out := map[string]any{
-		"trigger_family": "time",
-		"trigger_detail": map[string]any{
-			"time": map[string]any{
-				"delay_ms": action.PromptPayload.DelayMs,
-			},
-		},
-		"effect":          "follow-up-turn",
-		"admission_state": admissionState,
-	}
-	// Use the modeled action id as the indication identifier so the turn-close
-	// seam does not leak runtime follow-up execution ids back onto turn events.
-	if trimmed := strings.TrimSpace(action.ActionID); trimmed != "" {
-		out["intent_id"] = trimmed
-	}
-	return out
-}
-
-func publicChatHookIntentAdmissionState(status string) string {
-	switch strings.TrimSpace(status) {
-	case "scheduled":
-		return "pending"
-	case "rejected":
-		return "rejected"
-	default:
-		return ""
-	}
-}
-
 func firstPublicChatTopLevelAction(structured *publicChatStructuredEnvelope) *publicChatStructuredAction {
 	if structured == nil {
 		return nil
@@ -370,6 +327,18 @@ func (s *Service) schedulePublicChatFollowUp(
 		maxTurns = publicChatMaxFollowUpTurns
 	}
 	if nextDepth > maxTurns {
+		emitErr := s.emitPublicChatFollowUpHookEvents(session, turn, action,
+			publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED},
+			publicChatHookLifecycleTransition{
+				state:      runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
+				reasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+				message:    "follow-up chain cap reached",
+			},
+		)
+		message := "follow-up chain cap reached"
+		if emitErr != nil {
+			message = strings.TrimSpace(emitErr.Error())
+		}
 		return publicChatFollowUpOutcome{
 			Status:           "rejected",
 			ChainID:          turn.ChainID,
@@ -378,7 +347,43 @@ func (s *Service) schedulePublicChatFollowUp(
 			SourceTurnID:     turn.TurnID,
 			SourceActionID:   action.ActionID,
 			ReasonCode:       runtimev1.ReasonCode_AI_OUTPUT_INVALID,
-			Message:          "follow-up chain cap reached",
+			Message:          message,
+		}
+	}
+	if firstNonEmpty(action.PromptPayload.TriggerFamily, "time") == "event" {
+		message := "event hook trigger execution is not admitted by runtime public chat follow-up scheduler"
+		emitErr := s.emitPublicChatFollowUpHookEvents(session, turn, action,
+			publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED},
+			publicChatHookLifecycleTransition{
+				state:      runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
+				reasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+				message:    message,
+			},
+		)
+		if emitErr != nil {
+			message = strings.TrimSpace(emitErr.Error())
+		}
+		return publicChatFollowUpOutcome{
+			Status:           "rejected",
+			ChainID:          turn.ChainID,
+			FollowUpDepth:    nextDepth,
+			MaxFollowUpTurns: maxTurns,
+			SourceTurnID:     turn.TurnID,
+			SourceActionID:   action.ActionID,
+			ReasonCode:       runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+			Message:          message,
+		}
+	}
+	if _, err := publicChatFollowUpHookIntent(session, turn, action, runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED); err != nil {
+		return publicChatFollowUpOutcome{
+			Status:           "rejected",
+			ChainID:          turn.ChainID,
+			FollowUpDepth:    nextDepth,
+			MaxFollowUpTurns: maxTurns,
+			SourceTurnID:     turn.TurnID,
+			SourceActionID:   action.ActionID,
+			ReasonCode:       reasonCodeFromError(err),
+			Message:          strings.TrimSpace(err.Error()),
 		}
 	}
 	followUpID := "agent_followup_" + ulid.Make().String()
@@ -416,6 +421,29 @@ func (s *Service) schedulePublicChatFollowUp(
 	s.chatSurfaceMu.Unlock()
 
 	s.persistCurrentPublicChatSurfaceState()
+	if err := s.emitPublicChatFollowUpHookEvents(session, turn, action,
+		publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED},
+		publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING},
+	); err != nil {
+		cancel()
+		s.chatSurfaceMu.Lock()
+		if current := s.chatAnchors[session.ConversationAnchorID]; current != nil && current.PendingFollowUpID == followUpID {
+			current.PendingFollowUpID = ""
+		}
+		delete(s.chatFollowUps, followUpID)
+		s.chatSurfaceMu.Unlock()
+		s.persistCurrentPublicChatSurfaceState()
+		return publicChatFollowUpOutcome{
+			Status:           "rejected",
+			ChainID:          chainID,
+			FollowUpDepth:    nextDepth,
+			MaxFollowUpTurns: maxTurns,
+			SourceTurnID:     turn.TurnID,
+			SourceActionID:   action.ActionID,
+			ReasonCode:       reasonCodeFromError(err),
+			Message:          strings.TrimSpace(err.Error()),
+		}
+	}
 	s.armPublicChatFollowUp(state)
 	return publicChatFollowUpOutcome{
 		Status:           "scheduled",
@@ -711,7 +739,7 @@ func firstPublicChatFollowUpAction(structured *publicChatStructuredEnvelope) *pu
 	}
 	for index := range structured.Actions {
 		action := &structured.Actions[index]
-		if action.Modality == "follow-up-turn" && action.Operation == "assistant.turn.schedule" {
+		if action.Modality == "follow-up-turn" {
 			return action
 		}
 	}

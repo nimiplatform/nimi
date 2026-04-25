@@ -391,7 +391,7 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `{"summary":"daemon life turn complete","tokens_used":2,"canonical_memory_candidates":[],"next_hook_intent":null}`,
+						Text: `<life-turn><summary>daemon life turn complete</summary><tokens-used>2</tokens-used><canonical-memory-candidates></canonical-memory-candidates></life-turn>`,
 					},
 				},
 			},
@@ -755,8 +755,8 @@ func waitForDaemonHookStatus(t *testing.T, daemon *Daemon, agentID string, expec
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		resp, err := daemon.grpc.AgentService().ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
-			AgentId:               agentID,
-			AdmissionStateFilter:  expected,
+			AgentId:              agentID,
+			AdmissionStateFilter: expected,
 		})
 		if err == nil && len(resp.GetHooks()) == 1 {
 			return

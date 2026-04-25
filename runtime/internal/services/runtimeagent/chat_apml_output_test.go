@@ -3,11 +3,13 @@ package runtimeagent
 import (
 	"strings"
 	"testing"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func TestParsePublicChatAPMLOutput_MessageStatusAndActions(t *testing.T) {
 	raw := strings.Join([]string{
-		`<message id="m1" style="mixed">`,
+		`<message id="m1">`,
 		`  <emotion>joy</emotion><activity>wave</activity>Hello APML.`,
 		`</message>`,
 		`<action id="a1" kind="image" source-message="m1" coupling="after-message">`,
@@ -57,6 +59,90 @@ func TestParsePublicChatAPMLOutput_TimeHookBecomesFollowUpIntent(t *testing.T) {
 	if action.PromptPayload.DelayMs != 250 || action.PromptPayload.PromptText != "continue with the check" {
 		t.Fatalf("follow-up payload mismatch: %#v", action.PromptPayload)
 	}
+	intent, err := publicChatHookIntentFromAction(&action, "agent-1")
+	if err != nil {
+		t.Fatalf("build HookIntent from time hook: %v", err)
+	}
+	if intent.GetTriggerFamily() != runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_TIME {
+		t.Fatalf("expected TIME HookIntent, got %#v", intent)
+	}
+	if got := intent.GetTriggerDetail().GetTime().GetDelay().AsDuration().Milliseconds(); got != 250 {
+		t.Fatalf("expected delay 250ms, got %d", got)
+	}
+}
+
+func TestParsePublicChatAPMLOutput_EventHookBecomesHookIntent(t *testing.T) {
+	userIdle := `<message id="m1">I can follow up when you pause.</message><event-hook id="h1"><event-user-idle idle-for="600s"/><effect kind="follow-up-turn"><prompt-text>continue after idle</prompt-text></effect></event-hook>`
+	envelope, err := parsePublicChatStructuredEnvelope(userIdle)
+	if err != nil {
+		t.Fatalf("parse user-idle event hook: %v", err)
+	}
+	if len(envelope.Actions) != 1 {
+		t.Fatalf("expected one event hook action, got %#v", envelope.Actions)
+	}
+	action := envelope.Actions[0]
+	if action.Operation != "assistant.turn.hook" || action.PromptPayload.TriggerFamily != "event" || action.PromptPayload.TriggerEvent != "user-idle" {
+		t.Fatalf("event hook action mismatch: %#v", action)
+	}
+	if action.PromptPayload.IdleMs != 600000 {
+		t.Fatalf("expected idle 600000ms, got %#v", action.PromptPayload)
+	}
+	intent, err := publicChatHookIntentFromAction(&action, "agent-1")
+	if err != nil {
+		t.Fatalf("build HookIntent from user-idle event hook: %v", err)
+	}
+	if intent.GetTriggerFamily() != runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_EVENT || intent.GetTriggerDetail().GetEventUserIdle() == nil {
+		t.Fatalf("expected EVENT/user-idle HookIntent, got %#v", intent)
+	}
+
+	chatEnded := `<message id="m1">I can wrap this after chat ends.</message><event-hook id="h2"><event-chat-ended/><effect kind="follow-up-turn"><prompt-text>close the loop</prompt-text></effect></event-hook>`
+	envelope, err = parsePublicChatStructuredEnvelope(chatEnded)
+	if err != nil {
+		t.Fatalf("parse chat-ended event hook: %v", err)
+	}
+	action = envelope.Actions[0]
+	intent, err = publicChatHookIntentFromAction(&action, "agent-1")
+	if err != nil {
+		t.Fatalf("build HookIntent from chat-ended event hook: %v", err)
+	}
+	if intent.GetTriggerFamily() != runtimev1.HookTriggerFamily_HOOK_TRIGGER_FAMILY_EVENT || intent.GetTriggerDetail().GetEventChatEnded() == nil {
+		t.Fatalf("expected EVENT/chat-ended HookIntent, got %#v", intent)
+	}
+}
+
+func TestPublicChatPostTurnEventHookIndicationStaysProposed(t *testing.T) {
+	raw := `<message id="m1">I can follow up when you pause.</message><event-hook id="h1"><event-user-idle idle-for-ms="120000"/><effect kind="follow-up-turn"><prompt-text>continue after idle</prompt-text></effect></event-hook>`
+	envelope, err := parsePublicChatStructuredEnvelope(raw)
+	if err != nil {
+		t.Fatalf("parse event hook: %v", err)
+	}
+	detail := publicChatPostTurnIndicationDetail(envelope, publicChatFollowUpOutcome{Status: "proposed"})
+	hookIntent, ok := detail["hook_intent"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected hook_intent indication, got %#v", detail)
+	}
+	if got := hookIntent["trigger_family"]; got != "event" {
+		t.Fatalf("expected event trigger family, got %#v", hookIntent)
+	}
+	if got := hookIntent["admission_state"]; got != "proposed" {
+		t.Fatalf("expected proposed admission state, got %#v", hookIntent)
+	}
+	triggerDetail, ok := hookIntent["trigger_detail"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected trigger detail, got %#v", hookIntent)
+	}
+	userIdle, ok := triggerDetail["event_user_idle"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected event_user_idle detail, got %#v", triggerDetail)
+	}
+	if got := userIdle["idle_ms"]; got != float64(120000) {
+		t.Fatalf("expected idle_ms=120000, got %#v", userIdle)
+	}
+	for _, banned := range []string{"follow_up_id", "scheduled_for", "status", "reason_code", "action_hint", "message", "trace_id"} {
+		if _, present := hookIntent[banned]; present {
+			t.Fatalf("hook_intent indication must not leak execution truth %q, got=%v", banned, hookIntent)
+		}
+	}
 }
 
 func TestParsePublicChatAPMLOutputRejectsVideoAndMalformed(t *testing.T) {
@@ -77,6 +163,41 @@ func TestParsePublicChatAPMLOutputRejectsVideoAndMalformed(t *testing.T) {
 	}
 	if _, err := parsePublicChatStructuredEnvelope(`我是 Gemma，可以帮你。`); err == nil || !strings.Contains(err.Error(), "APML") {
 		t.Fatalf("expected APML contract drift rejection, got %v", err)
+	}
+}
+
+func TestParsePublicChatAPMLOutputRejectsUnknownAttributes(t *testing.T) {
+	cases := []string{
+		`<message id="m1" schema="v1">hello</message>`,
+		`<message id="m1">hello</message><action id="a1" kind="image" priority="high"><prompt-payload kind="image"><prompt-text>clip</prompt-text></prompt-payload></action>`,
+		`<message id="m1">hello</message><time-hook id="h1" mode="soft"><delay-ms>250</delay-ms><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></time-hook>`,
+		`<message id="m1">hello</message><event-hook id="h1"><event-user-idle idle-for="600s" mode="soft"/><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></event-hook>`,
+	}
+	for _, raw := range cases {
+		if _, err := parsePublicChatStructuredEnvelope(raw); err == nil || !strings.Contains(err.Error(), "not admitted") {
+			t.Fatalf("expected unknown attribute rejection for %s, got %v", raw, err)
+		}
+	}
+}
+
+func TestParsePublicChatAPMLOutputRejectsInvalidEventHook(t *testing.T) {
+	cases := []string{
+		`<message id="m1">hello</message><event-hook id="h1"><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></event-hook>`,
+		`<message id="m1">hello</message><event-hook id="h1"><event-user-idle/><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></event-hook>`,
+		`<message id="m1">hello</message><event-hook id="h1"><event-user-idle idle-for="600s"/><event-chat-ended/><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></event-hook>`,
+		`<message id="m1">hello</message><event-hook id="h1"><delay-ms>250</delay-ms><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></event-hook>`,
+	}
+	for _, raw := range cases {
+		if _, err := parsePublicChatStructuredEnvelope(raw); err == nil {
+			t.Fatalf("expected invalid event-hook rejection for %s", raw)
+		}
+	}
+}
+
+func TestParsePublicChatAPMLOutputRejectsPrivateDialectRoot(t *testing.T) {
+	raw := `<life-turn><summary>private only</summary><canonical-memory-candidates></canonical-memory-candidates></life-turn>`
+	if _, err := parsePublicChatStructuredEnvelope(raw); err == nil || !strings.Contains(err.Error(), "APML beginning with <message>") {
+		t.Fatalf("expected private dialect root rejection, got %v", err)
 	}
 }
 

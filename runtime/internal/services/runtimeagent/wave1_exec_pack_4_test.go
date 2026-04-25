@@ -557,7 +557,7 @@ func TestWave1ExecPack4ChatTrackHookProposalUsesCanonicalHookLifecycle(t *testin
 	}
 }
 
-func TestWave1ExecPack4NegativeIngressAndNoAPMLConsumerPath(t *testing.T) {
+func TestWave1ExecPack4PublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -629,7 +629,10 @@ func TestWave1ExecPack4NegativeIngressAndNoAPMLConsumerPath(t *testing.T) {
 		t.Fatalf("ConsumePublicChatAppMessage(turn): %v", err)
 	}
 
-	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	accepted := capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	acceptedPayload := publicChatPayloadMap(t, accepted)
+	turnID := strings.TrimSpace(acceptedPayload["turn_id"].(string))
+	streamID := strings.TrimSpace(acceptedPayload["stream_id"].(string))
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
 	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
 	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
@@ -639,32 +642,52 @@ func TestWave1ExecPack4NegativeIngressAndNoAPMLConsumerPath(t *testing.T) {
 
 	requirePublicChatPostTurnHookIntent(t, postTurn, "action-pack4-hook", "pending", 300)
 
-	// Mandatory negative proof from the parent packet: observing
-	// turn.post_turn.detail.hook_intent alone must NOT drive canonical hook
-	// lifecycle truth. The indication is emitted, but runtime.agent.hook.*
-	// remains empty unless a real admitted hook path commits it.
+	// The public chat APML hook path now emits runtime.agent.hook.* projection
+	// truth, but it must not be mistaken for life-track PendingHook scheduler
+	// truth. Public chat follow-up scheduling remains anchored in the chat
+	// session surface.
 	pendingResp, err := svc.ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
 		AgentId:              "agent-alpha",
 		AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
 	})
 	if err != nil {
-		t.Fatalf("ListPendingHooks(after post_turn indication): %v", err)
+		t.Fatalf("ListPendingHooks(after public chat hook projection): %v", err)
 	}
 	if len(pendingResp.GetHooks()) != 0 {
-		t.Fatalf("post_turn.detail.hook_intent must not create canonical pending hook truth, got %#v", pendingResp.GetHooks())
+		t.Fatalf("public chat follow-up must not create life-track pending hook truth, got %#v", pendingResp.GetHooks())
 	}
-	hookCtx, cancelHooks := context.WithTimeout(context.Background(), 150*time.Millisecond)
-	defer cancelHooks()
-	hookStream := newAgentEventCaptureStreamLimit(hookCtx, 1)
+	hookStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
 		AgentId:      "agent-alpha",
 		Cursor:       encodeCursor(cursor),
 		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
 	}, hookStream); err != context.DeadlineExceeded && err != context.Canceled {
-		t.Fatalf("SubscribeAgentEvents(hook after post_turn indication): %v", err)
+		t.Fatalf("SubscribeAgentEvents(hook after public chat hook projection): %v", err)
 	}
-	if len(hookStream.events) != 0 {
-		t.Fatalf("post_turn.detail.hook_intent must not emit runtime.agent.hook.* truth by itself, got %#v", hookStream.events)
+	if len(hookStream.events) != 2 {
+		t.Fatalf("expected proposed+pending public chat hook projection events, got %#v", hookStream.events)
+	}
+	for index, want := range []runtimev1.HookAdmissionState{
+		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
+		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
+	} {
+		detail := hookStream.events[index].GetHook()
+		if got := detail.GetFamily(); got != want {
+			t.Fatalf("unexpected hook projection family at index %d: got %s want %s", index, got, want)
+		}
+		intent := detail.GetIntent()
+		if got := strings.TrimSpace(intent.GetIntentId()); got != "action-pack4-hook" {
+			t.Fatalf("expected projected intent id action-pack4-hook, got %#v", intent)
+		}
+		if got := strings.TrimSpace(intent.GetConversationAnchorId()); got != anchorID {
+			t.Fatalf("expected projected anchor %s, got %#v", anchorID, intent)
+		}
+		if got := strings.TrimSpace(intent.GetOriginatingTurnId()); got != turnID {
+			t.Fatalf("expected projected turn %s, got %#v", turnID, intent)
+		}
+		if got := strings.TrimSpace(intent.GetOriginatingStreamId()); got != streamID {
+			t.Fatalf("expected projected stream %s, got %#v", streamID, intent)
+		}
 	}
 
 	capture.mu.Lock()

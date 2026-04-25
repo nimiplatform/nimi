@@ -44,9 +44,12 @@ type publicChatStructuredAction struct {
 }
 
 type publicChatStructuredPromptPayload struct {
-	Kind       string `json:"kind"`
-	PromptText string `json:"promptText"`
-	DelayMs    int    `json:"delayMs,omitempty"`
+	Kind          string `json:"kind"`
+	PromptText    string `json:"promptText"`
+	DelayMs       int    `json:"delayMs,omitempty"`
+	TriggerFamily string `json:"triggerFamily,omitempty"`
+	TriggerEvent  string `json:"triggerEvent,omitempty"`
+	IdleMs        int    `json:"idleMs,omitempty"`
 }
 
 func parsePublicChatStructuredEnvelope(raw string) (*publicChatStructuredEnvelope, error) {
@@ -197,11 +200,29 @@ func validatePublicChatStructuredAction(action *publicChatStructuredAction, inde
 		if action.PromptPayload.Kind != "follow-up-turn" {
 			return fmt.Errorf("actions[%d].promptPayload.kind must match modality follow-up-turn", index)
 		}
-		if action.PromptPayload.DelayMs <= 0 {
-			return fmt.Errorf("actions[%d].promptPayload.delayMs must be positive", index)
-		}
-		if action.Operation != "assistant.turn.schedule" {
-			return fmt.Errorf("follow-up-turn action %s must use assistant.turn.schedule", action.ActionID)
+		switch firstNonEmpty(action.PromptPayload.TriggerFamily, "time") {
+		case "time":
+			if action.PromptPayload.DelayMs <= 0 {
+				return fmt.Errorf("actions[%d].promptPayload.delayMs must be positive", index)
+			}
+			if action.Operation != "assistant.turn.schedule" {
+				return fmt.Errorf("follow-up-turn action %s must use assistant.turn.schedule", action.ActionID)
+			}
+		case "event":
+			if action.Operation != "assistant.turn.hook" {
+				return fmt.Errorf("follow-up-turn event hook %s must use assistant.turn.hook", action.ActionID)
+			}
+			switch action.PromptPayload.TriggerEvent {
+			case "user-idle":
+				if action.PromptPayload.IdleMs <= 0 {
+					return fmt.Errorf("actions[%d].promptPayload.idleMs must be positive", index)
+				}
+			case "chat-ended":
+			default:
+				return fmt.Errorf("actions[%d].promptPayload.triggerEvent is invalid", index)
+			}
+		default:
+			return fmt.Errorf("actions[%d].promptPayload.triggerFamily is invalid", index)
 		}
 	}
 	return nil
@@ -218,9 +239,12 @@ type publicChatAPMLActionDraft struct {
 }
 
 type publicChatAPMLHookDraft struct {
-	intentID string
-	delayMs  int
-	prompt   strings.Builder
+	intentID      string
+	triggerFamily string
+	triggerEvent  string
+	delayMs       int
+	idleMs        int
+	prompt        strings.Builder
 }
 
 func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error) {
@@ -238,7 +262,7 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 	var suppressMessageTextDepth int
 	var action *publicChatAPMLActionDraft
 	var hook *publicChatAPMLHookDraft
-	var timeHookSeen bool
+	var hookSeen bool
 	for {
 		token, err := decoder.Token()
 		if errorsIsEOF(err) {
@@ -250,6 +274,9 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 		switch item := token.(type) {
 		case xml.StartElement:
 			name := item.Name.Local
+			if err := rejectPublicChatAPMLNamespace(item); err != nil {
+				return nil, err
+			}
 			if name == "apml" {
 				continue
 			}
@@ -258,6 +285,9 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 			}
 			switch {
 			case name == "message":
+				if err := requirePublicChatAPMLAttrs(item, "message", "id"); err != nil {
+					return nil, err
+				}
 				if messageSeen {
 					return nil, fmt.Errorf("APML output must contain exactly one message")
 				}
@@ -274,16 +304,25 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 				messageDepth++
 				switch name {
 				case "activity", "emotion":
+					if err := requirePublicChatAPMLAttrs(item, name); err != nil {
+						return nil, err
+					}
 					captureKind = "message:" + name
 					captureDepth = 1
 					capture.Reset()
 					suppressMessageTextDepth++
 				case "pause", "speed", "pitch", "emphasis", "whisper", "voice", "surface":
+					if err := requirePublicChatAPMLAttrs(item, name); err != nil {
+						return nil, err
+					}
 					suppressMessageTextDepth++
 				default:
 					return nil, fmt.Errorf("unsupported APML message tag <%s>", name)
 				}
 			case name == "action":
+				if err := requirePublicChatAPMLAttrs(item, "action", "id", "kind", "operation", "source-message", "coupling"); err != nil {
+					return nil, err
+				}
 				if action != nil {
 					return nil, fmt.Errorf("APML action must not be nested")
 				}
@@ -309,43 +348,105 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 			case action != nil:
 				switch name {
 				case "prompt-payload":
+					if err := requirePublicChatAPMLAttrs(item, "prompt-payload", "kind"); err != nil {
+						return nil, err
+					}
 					kind := strings.TrimSpace(xmlAttr(item, "kind"))
 					if kind != "" {
 						action.promptKind = kind
 					}
 				case "prompt-text":
+					if err := requirePublicChatAPMLAttrs(item, "prompt-text"); err != nil {
+						return nil, err
+					}
 					captureKind = "action:prompt-text"
 					captureDepth = 1
 					capture.Reset()
 				case "voice-id", "voice-emotion", "duration", "aspect-ratio", "style", "negative-prompt":
+					if err := requirePublicChatAPMLAttrs(item, name); err != nil {
+						return nil, err
+					}
 				default:
 					return nil, fmt.Errorf("unsupported APML action tag <%s>", name)
 				}
 			case name == "time-hook":
-				if timeHookSeen {
-					return nil, fmt.Errorf("APML output admits at most one time-hook")
+				if err := requirePublicChatAPMLAttrs(item, "time-hook", "id"); err != nil {
+					return nil, err
 				}
-				timeHookSeen = true
-				hook = &publicChatAPMLHookDraft{intentID: strings.TrimSpace(xmlAttr(item, "id"))}
+				if hookSeen {
+					return nil, fmt.Errorf("APML output admits at most one hook")
+				}
+				hookSeen = true
+				hook = &publicChatAPMLHookDraft{
+					intentID:      strings.TrimSpace(xmlAttr(item, "id")),
+					triggerFamily: "time",
+				}
+				if hook.intentID == "" {
+					hook.intentID = fmt.Sprintf("hook-%d", len(envelope.Actions))
+				}
+			case name == "event-hook":
+				if err := requirePublicChatAPMLAttrs(item, "event-hook", "id"); err != nil {
+					return nil, err
+				}
+				if hookSeen {
+					return nil, fmt.Errorf("APML output admits at most one hook")
+				}
+				hookSeen = true
+				hook = &publicChatAPMLHookDraft{
+					intentID:      strings.TrimSpace(xmlAttr(item, "id")),
+					triggerFamily: "event",
+				}
 				if hook.intentID == "" {
 					hook.intentID = fmt.Sprintf("hook-%d", len(envelope.Actions))
 				}
 			case hook != nil:
 				switch name {
 				case "delay-ms":
+					if hook.triggerFamily != "time" {
+						return nil, fmt.Errorf("APML event-hook does not admit delay-ms")
+					}
+					if err := requirePublicChatAPMLAttrs(item, "delay-ms"); err != nil {
+						return nil, err
+					}
 					captureKind = "hook:delay-ms"
 					captureDepth = 1
 					capture.Reset()
 				case "effect":
+					if err := requirePublicChatAPMLAttrs(item, "effect", "kind"); err != nil {
+						return nil, err
+					}
 					if strings.TrimSpace(xmlAttr(item, "kind")) != "follow-up-turn" {
-						return nil, fmt.Errorf("APML time-hook effect.kind must be follow-up-turn")
+						return nil, fmt.Errorf("APML hook effect.kind must be follow-up-turn")
 					}
 				case "prompt-text":
+					if err := requirePublicChatAPMLAttrs(item, "prompt-text"); err != nil {
+						return nil, err
+					}
 					captureKind = "hook:prompt-text"
 					captureDepth = 1
 					capture.Reset()
+				case "event-user-idle":
+					if hook.triggerFamily != "event" {
+						return nil, fmt.Errorf("APML time-hook does not admit event-user-idle")
+					}
+					if err := requirePublicChatAPMLAttrs(item, "event-user-idle", "idle-for", "idle-for-ms"); err != nil {
+						return nil, err
+					}
+					if err := hook.setEventUserIdle(xmlAttr(item, "idle-for"), xmlAttr(item, "idle-for-ms")); err != nil {
+						return nil, err
+					}
+				case "event-chat-ended":
+					if hook.triggerFamily != "event" {
+						return nil, fmt.Errorf("APML time-hook does not admit event-chat-ended")
+					}
+					if err := requirePublicChatAPMLAttrs(item, "event-chat-ended"); err != nil {
+						return nil, err
+					}
+					if err := hook.setEventChatEnded(); err != nil {
+						return nil, err
+					}
 				default:
-					return nil, fmt.Errorf("unsupported APML time-hook tag <%s>", name)
+					return nil, fmt.Errorf("unsupported APML hook tag <%s>", name)
 				}
 			default:
 				return nil, fmt.Errorf("unsupported APML top-level tag <%s>", name)
@@ -410,7 +511,7 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 				action = nil
 				continue
 			}
-			if name == "time-hook" && hook != nil {
+			if (name == "time-hook" || name == "event-hook") && hook != nil {
 				next, err := publicChatStructuredFollowUpActionFromAPMLHook(*hook, envelope.Message.MessageID, len(envelope.Actions))
 				if err != nil {
 					return nil, err
@@ -432,6 +533,37 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 
 func errorsIsEOF(err error) bool {
 	return err == io.EOF
+}
+
+func rejectPublicChatAPMLNamespace(element xml.StartElement) error {
+	if element.Name.Space != "" {
+		return fmt.Errorf("APML <%s> namespace is not admitted", element.Name.Local)
+	}
+	for _, attr := range element.Attr {
+		if attr.Name.Space != "" {
+			return fmt.Errorf("APML %s.%s namespace is not admitted", element.Name.Local, attr.Name.Local)
+		}
+	}
+	return nil
+}
+
+func requirePublicChatAPMLAttrs(element xml.StartElement, label string, allowed ...string) error {
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, name := range allowed {
+		allowedSet[name] = struct{}{}
+	}
+	seen := make(map[string]struct{}, len(element.Attr))
+	for _, attr := range element.Attr {
+		name := attr.Name.Local
+		if _, exists := seen[name]; exists {
+			return fmt.Errorf("APML %s.%s is duplicated", label, name)
+		}
+		seen[name] = struct{}{}
+		if _, ok := allowedSet[name]; !ok {
+			return fmt.Errorf("APML %s.%s is not admitted", label, name)
+		}
+	}
+	return nil
 }
 
 func xmlAttr(element xml.StartElement, name string) string {
@@ -534,18 +666,38 @@ func publicChatStructuredActionFromAPMLDraft(action publicChatAPMLActionDraft, m
 }
 
 func publicChatStructuredFollowUpActionFromAPMLHook(hook publicChatAPMLHookDraft, messageID string, index int) (publicChatStructuredAction, error) {
+	if hook.triggerFamily == "" {
+		return publicChatStructuredAction{}, fmt.Errorf("APML hook trigger family is required")
+	}
+	if hook.triggerFamily == "time" && hook.delayMs <= 0 {
+		return publicChatStructuredAction{}, fmt.Errorf("APML time-hook delay-ms must be positive")
+	}
+	if hook.triggerFamily == "event" {
+		switch hook.triggerEvent {
+		case "user-idle":
+			if hook.idleMs <= 0 {
+				return publicChatStructuredAction{}, fmt.Errorf("APML event-hook event-user-idle idle-for must be positive")
+			}
+		case "chat-ended":
+		default:
+			return publicChatStructuredAction{}, fmt.Errorf("APML event-hook must include event-user-idle or event-chat-ended")
+		}
+	}
 	return publicChatStructuredAction{
 		ActionID:         hook.intentID,
 		ActionIndex:      index,
 		ActionCount:      index + 1,
 		Modality:         "follow-up-turn",
-		Operation:        "assistant.turn.schedule",
+		Operation:        publicChatAPMLHookOperation(hook),
 		SourceMessageID:  messageID,
 		DeliveryCoupling: "after-message",
 		PromptPayload: publicChatStructuredPromptPayload{
-			Kind:       "follow-up-turn",
-			PromptText: strings.TrimSpace(hook.prompt.String()),
-			DelayMs:    hook.delayMs,
+			Kind:          "follow-up-turn",
+			PromptText:    strings.TrimSpace(hook.prompt.String()),
+			DelayMs:       hook.delayMs,
+			TriggerFamily: hook.triggerFamily,
+			TriggerEvent:  hook.triggerEvent,
+			IdleMs:        hook.idleMs,
 		},
 	}, nil
 }
@@ -600,7 +752,17 @@ func publicChatStructuredActionsPayload(actions []publicChatStructuredAction) []
 			},
 		}
 		if action.PromptPayload.Kind == "follow-up-turn" {
-			item["prompt_payload"].(map[string]any)["delay_ms"] = action.PromptPayload.DelayMs
+			promptPayload := item["prompt_payload"].(map[string]any)
+			promptPayload["trigger_family"] = firstNonEmpty(action.PromptPayload.TriggerFamily, "time")
+			switch action.PromptPayload.TriggerFamily {
+			case "event":
+				promptPayload["trigger_event"] = action.PromptPayload.TriggerEvent
+				if action.PromptPayload.TriggerEvent == "user-idle" {
+					promptPayload["idle_ms"] = action.PromptPayload.IdleMs
+				}
+			default:
+				promptPayload["delay_ms"] = action.PromptPayload.DelayMs
+			}
 		}
 		out = append(out, item)
 	}
