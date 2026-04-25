@@ -11,10 +11,12 @@
 - experience-policy / settings semantics
 
 本契约不拥有 capability route truth、runtime route truth、state persistence mechanics、stream transport mechanics，也不把 execution helper / prompt engine 升格为语义 owner。
-message-action envelope、immediate post-turn action、hook-based deferred continuation、以及 model-generated modality prompt
-semantics 固定由 `agent-chat-message-action-contract.md`
-（`D-LLM-027` ~ `D-LLM-033`）拥有；本文件只保留 single-message / turn-mode /
-experience-policy truth。avatar transient surface semantics 固定由
+APML projection 后的 resolved message/action、immediate post-turn action、以及
+model-generated modality prompt semantics 固定由
+`agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）拥有；
+runtime-owned hook-based deferred continuation 固定由
+`.nimi/spec/runtime/kernel/agent-hook-intent-contract.md` 拥有；本文件只保留
+single-message / turn-mode / experience-policy truth。avatar transient surface semantics 固定由
 `agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-064`, `D-LLM-069`）拥有。
 
 ## D-LLM-022 — Canonical Behavior Authority Home
@@ -30,8 +32,10 @@ Desktop agent chat 的 canonical behavior owner 固定为本文件。
 adjacent authority 边界固定为：
 
 - `agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）继续拥有
-  message-action envelope、immediate post-turn action、hook-based deferred continuation、以及 model-generated modality prompt
-  payload truth
+  APML projection 后的 resolved message/action、immediate post-turn action、以及
+  model-generated modality prompt payload truth
+- `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md` 继续拥有
+  runtime-owned hook-based deferred continuation truth
 - `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）继续拥有 capability selection / projection / execution snapshot truth
 - `agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-064`, `D-LLM-069`）继续拥有 avatar transient surface / interaction-state truth
 - `ai-profile-config-contract.md` 继续拥有 `AIConfig` / `AISnapshot` authority
@@ -105,8 +109,8 @@ assistant message。
 - 一旦 assistant message 被 resolve，execution / streaming / store projection 只能记录
   lifecycle，不得静默增删 message、重排 text delivery、或把 action-driven follow-up
   降格成同一 turn 的第二条文本 pseudo-success
-- text reply intent 属于 behavior truth；具体 message-action envelope、hook-based deferred continuation
-  action、artifact transport、voice playback、media job lifecycle 是 adjacent consumer
+- text reply intent 属于 behavior truth；具体 APML-projected resolved message/action、
+  runtime HookIntent deferred continuation、artifact transport、voice playback、media job lifecycle 是 adjacent consumer
   semantics，不得在本 contract 外重新定义 text reply ownership
 
 本 landing 明确承认 single-message 是 desktop product behavior surface；当前或历史实现若仍停留在
@@ -225,10 +229,6 @@ Fixed rules:
 - `apps/desktop/src/shell/renderer/features/chat/chat-agent-orchestration.ts` — current desktop message/action execution evidence
 - `apps/desktop/src/shell/renderer/features/chat/chat-settings-storage.ts` — current desktop persisted behavior setting evidence
 - `apps/desktop/src/shell/renderer/features/chat/chat-shared-thinking.ts` — current desktop reasoning preference semantics
-- `nimi-mods/runtime/local-chat/src/types.ts` — local-chat turn mode and beat vocabulary evidence
-- `nimi-mods/runtime/local-chat/src/default-settings-store.ts` — product-settings vs inspect-settings split evidence
-- `nimi-mods/runtime/local-chat/src/hooks/turn-send/resolved-experience-policy.ts` — resolved policy boundary evidence
-- `nimi-mods/runtime/local-chat/src/hooks/turn-send/turn-mode-resolver.ts` — turn-mode classifier evidence
 - `.local/**` — local preflight evidence for desktop agent chat behavior authority / defer decisions (non-authoritative supporting material only)
 - `.local/**` — local execution-engine boundary audit for AI chat non-owner framing (non-authoritative supporting material only)
 - `.nimi/spec/realm/kernel/chat-contract.md` — R-CHAT-002 direct human-only boundary, R-CHAT-004 non-human / orchestration exclusion

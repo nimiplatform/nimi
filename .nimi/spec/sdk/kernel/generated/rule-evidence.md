@@ -168,3 +168,7 @@
 | `S-TRANSPORT-011` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-TRANSPORT-012` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-TRANSPORT-013` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-PKG-001` | `covered` | `sdk_kernel_consistency` |
+| `S-PKG-002` | `covered` | `sdk_kernel_consistency` |
+| `S-PKG-003` | `covered` | `sdk_kernel_consistency` |
+| `S-PKG-004` | `covered` | `sdk_kernel_consistency` |

@@ -62,8 +62,8 @@ truth。
 
 ## D-LLM-035 — Resolved Voice Action Consumption Boundary
 
-agent chat voice executor 只消费已经在 message-action envelope 中被 resolve 的
-`modality: voice` action。
+agent chat voice executor 只消费已经从 runtime APML projection / transitional
+message-action projection 中被 resolve 的 `modality: voice` action。
 
 固定约束：
 

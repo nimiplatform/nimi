@@ -80,6 +80,9 @@ Fixed rules:
   particular update originated from one anchor/turn
 - apps must consume these admitted runtime projection families rather than raw
   `apml.*` parser events as their durable product path
+- APML is admitted only as the model-facing output wire syntax defined by
+  `agent-output-wire-contract.md`; runtime must project APML into these typed
+  families before first-party consumers treat it as durable product truth
 - family-specific envelopes and detail payloads for these admitted projection
   families are pinned in
   `tables/runtime-agent-event-projection.yaml`
@@ -129,6 +132,7 @@ Fixed rules:
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
+- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
 - `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`
 - `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/state-event-bus.md`

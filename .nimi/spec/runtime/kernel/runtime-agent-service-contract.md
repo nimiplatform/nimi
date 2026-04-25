@@ -139,6 +139,10 @@ Primary semantic outputs on this surface must use Nimi-owned typed messages:
 - app-facing transient turn / presentation / state projections must use the
   stable family-specific envelopes and detail shapes pinned in
   `tables/runtime-agent-event-projection.yaml`
+- model-facing agent chat output for the Live2D companion substrate
+  continuation is governed by `agent-output-wire-contract.md`; APML output must
+  be validated and projected into typed runtime events before apps treat it as
+  product truth
 - dynamic envelopes remain limited to auxiliary details / extensions fields
 - implementation-facing transport must distinguish read projections from mutation commands; public agent state mutation may not devolve into arbitrary blob replacement
 - implementation-facing transport must reserve typed families for `HookIntent`,
@@ -263,6 +267,9 @@ Fixed rules:
 - the admitted runtime-private Life Turn result is limited to `status_text`
   diff, posture patch, emotion update, canonical memory candidates, typed
   `HookIntent`, summary, and token usage
+- the model-facing Life Turn executor output contract is the APML
+  `<life-turn>` root admitted by `agent-output-wire-contract.md`; JSON executor
+  output compatibility is not admitted
 - the runtime-private executor must not admit arbitrary attribute mutation, free-form hook logic, direct world/user state mutation, or proactive app-facing initiate-chat semantics
 - canonical memory candidates returned by the executor must still pass RuntimeAgentService-owned canonical class and bank-scope admission before Memory Service writes occur
 - typed `HookIntent` returned by the executor must still pass the same
@@ -334,6 +341,9 @@ Fixed rules:
   not be reintroduced as the canonical review scheduler by implication
 - canonical review must use a dedicated runtime-private review executor contract rather than extending the admitted `Life Turn` result contract
 - admitted review output is limited to narrative candidates, truth candidates, optional relation candidates, summary, token usage, and review-window metadata
+- the model-facing canonical review executor output contract is the APML
+  `<canonical-review>` root admitted by `agent-output-wire-contract.md`; JSON
+  executor output compatibility is not admitted
 - extracting review storage mechanics into a runtime-owned internal memory library does not transfer review ownership, scheduling, admission policy, or recovery semantics away from RuntimeAgentService
 - truth candidate admission and conflict handling remain RuntimeAgentService-owned even when Memory Service persists the resulting state
 
@@ -346,6 +356,9 @@ Fixed rules:
 - sidecar parsing and validation must remain runtime-owned; renderer or client code must not become the semantic owner of sidecar payloads
 - admitted sidecar output is limited to posture patch, emotion update, hook
   cancellations, typed `HookIntent`, and canonical memory candidates
+- the model-facing sidecar executor output contract is the APML
+  `<chat-track-sidecar>` root admitted by `agent-output-wire-contract.md`; JSON
+  executor output compatibility is not admitted
 - sidecar output must not admit proactive initiate-chat semantics, arbitrary state mutation, direct world/user mutation, or free-form scheduling logic
 - typed `HookIntent` and canonical memory candidates returned by the sidecar
   must pass the same runtime-owned validators used elsewhere on

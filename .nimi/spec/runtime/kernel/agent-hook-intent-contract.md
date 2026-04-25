@@ -64,6 +64,9 @@ Fixed rules:
 
 - `intent_proposed` is the projection of a validated APML hook proposal before
   runtime admission finalizes
+- strict JSON message-action `follow-up-turn` is not admitted as the
+  model-facing source of HookIntent truth; APML projection is the only admitted
+  model-facing hook proposal source on this continuation line
 - `pending` is the only admitted "accepted into scheduler truth" state
 - reject reasons, conflict replacement, and budget/autonomy denial must remain
   observable through `runtime.agent.hook.rejected`
@@ -91,5 +94,6 @@ Fixed rules:
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
+- `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
 - `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md`
 - `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md`

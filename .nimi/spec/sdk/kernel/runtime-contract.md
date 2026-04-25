@@ -256,6 +256,10 @@ Fixed rules:
   `conversation_anchor_id`, `turn_id`, `stream_id`, and `message_id` semantics
   rather than collapsing them into app-local session guesses
 - SDK must not publish a parallel top-level `runtime.avatar.*` daemon convenience surface for the same persistent truth
+- SDK must not expose APML parser events as the durable app-facing product path;
+  APML remains runtime model-facing input and SDK consumers observe only typed
+  `runtime.agent.*` projections unless a later mounted runtime rule admits
+  another surface
 
 ## S-RUNTIME-104 Renderer-Local Transient Non-Owner Boundary
 

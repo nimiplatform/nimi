@@ -74,6 +74,7 @@ const kernelFiles = [
   '.nimi/spec/runtime/kernel/agent-presentation-contract.md',
   '.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md',
   '.nimi/spec/runtime/kernel/agent-hook-intent-contract.md',
+  '.nimi/spec/runtime/kernel/agent-output-wire-contract.md',
   '.nimi/spec/runtime/kernel/app-messaging-contract.md',
   '.nimi/spec/runtime/kernel/cli-onboarding-contract.md',
   '.nimi/spec/runtime/kernel/tables/daemon-health-states.yaml',
