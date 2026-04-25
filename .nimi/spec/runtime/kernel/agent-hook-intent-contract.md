@@ -95,5 +95,5 @@ Fixed rules:
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
 - `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md`
-- `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md`
+- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md`
+- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md`

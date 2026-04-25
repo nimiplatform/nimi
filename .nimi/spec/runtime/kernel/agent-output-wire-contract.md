@@ -26,6 +26,12 @@ It does not own:
 
 Fixed rules:
 
+- public reactive chat APML admits only `<message>`, sibling
+  `<action kind="image|voice">`, `<time-hook>`, and `<event-hook>` top-level
+  tags
+- public `<event-hook>` is admitted only for the narrow HookIntent v1 event
+  subset: `event-user-idle` with a positive `idle-for` / `idle-for-ms` duration
+  or `event-chat-ended`; it must carry `<effect kind="follow-up-turn">`
 - strict single-object JSON message-action output is not admitted as a
   model-facing wire authority for this continuation line
 - model-facing JSON compatibility, fenced recovery, wrapper stripping, or
@@ -91,6 +97,15 @@ Admitted root documents:
 - `<chat-track-sidecar>` for Chat Track sidecar execution
 - `<canonical-review>` for canonical review execution
 
+Runtime-private roots are root-specific dialects under this rule, not synonyms
+for the public chat APML vocabulary. The admitted private vocabulary includes:
+
+- `<behavioral-posture>` with posture-class/action-family/interrupt-mode,
+  transition reason, truth basis ids, and optional status text
+- `<canonical-memory-candidates>` with typed candidate payload children
+- `<next-hook-intent>` with one admitted trigger child (`<time>`,
+  `<event-user-idle>`, or `<event-chat-ended>`) and a follow-up-turn effect
+
 Fixed rules:
 
 - every admitted root must have a single APML root document and must begin with
@@ -113,6 +128,6 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
 - `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md`
-- `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md`
-- `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md`
+- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md`
+- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md`
+- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md`

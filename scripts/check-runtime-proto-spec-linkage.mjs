@@ -358,11 +358,83 @@ function checkRuntimeAgentServiceProtoAdmission() {
 
   expectRegex(content, /service\s+RuntimeAgentService\s*\{[\s\S]*rpc\s+InitializeAgent\(InitializeAgentRequest\)\s+returns\s+\(InitializeAgentResponse\);[\s\S]*rpc\s+SubscribeAgentEvents\(SubscribeAgentEventsRequest\)\s+returns\s+\(stream\s+AgentEvent\);[\s\S]*\}/m, `${rel} RuntimeAgentService method set`);
 
-  const nextHookIntent = getProtoMessageBlock(content, 'NextHookIntent', rel);
-  assertMessageHasFields(nextHookIntent, 'NextHookIntent', rel, ['trigger_kind', 'not_before', 'expires_at', 'turn_completed', 'scheduled_time', 'user_idle', 'chat_ended', 'state_condition', 'world_event', 'compound']);
+  // K-AGCORE-041 narrow-admit HookIntent. Implementation-facing transport must
+  // expose typed trigger-detail and hook-intent families on this admitted shape.
+  // Wider trigger families (turn_completed, scheduled_time absolute,
+  // state_condition, world_event, compound) are explicitly NOT admitted and
+  // must not be reintroduced by an implementation rename.
+  const hookIntent = getProtoMessageBlock(content, 'HookIntent', rel);
+  assertMessageHasFields(hookIntent, 'HookIntent', rel, ['intent_id', 'agent_id', 'trigger_family', 'trigger_detail', 'effect', 'admission_state', 'not_before', 'expires_at']);
 
+  const hookTriggerDetail = getProtoMessageBlock(content, 'HookTriggerDetail', rel);
+  assertMessageHasFields(hookTriggerDetail, 'HookTriggerDetail', rel, ['time', 'event_user_idle', 'event_chat_ended']);
+
+  // K-AGCORE-041 trigger family is limited to time and event. Non-admitted
+  // families must not appear in HookTriggerFamily enum.
+  const hookTriggerFamilyEnum = content.match(/enum\s+HookTriggerFamily\s*\{([\s\S]*?)\n\}/m);
+  if (!hookTriggerFamilyEnum) {
+    fail(`${rel} missing enum HookTriggerFamily`);
+  } else {
+    const members = [...hookTriggerFamilyEnum[1].matchAll(/\b(HOOK_TRIGGER_FAMILY_[A-Z0-9_]+)\s*=\s*\d+\s*;/g)].map((m) => m[1]);
+    const allowed = new Set(['HOOK_TRIGGER_FAMILY_UNSPECIFIED', 'HOOK_TRIGGER_FAMILY_TIME', 'HOOK_TRIGGER_FAMILY_EVENT']);
+    for (const member of members) {
+      if (!allowed.has(member)) {
+        fail(`${rel} has non-admitted HookTriggerFamily member: ${member}`);
+      }
+    }
+  }
+
+  // K-AGCORE-041 admitted effect is limited to follow-up-turn.
+  const hookEffectEnum = content.match(/enum\s+HookEffect\s*\{([\s\S]*?)\n\}/m);
+  if (!hookEffectEnum) {
+    fail(`${rel} missing enum HookEffect`);
+  } else {
+    const members = [...hookEffectEnum[1].matchAll(/\b(HOOK_EFFECT_[A-Z0-9_]+)\s*=\s*\d+\s*;/g)].map((m) => m[1]);
+    const allowed = new Set(['HOOK_EFFECT_UNSPECIFIED', 'HOOK_EFFECT_FOLLOW_UP_TURN']);
+    for (const member of members) {
+      if (!allowed.has(member)) {
+        fail(`${rel} has non-admitted HookEffect member: ${member}`);
+      }
+    }
+  }
+
+  // K-AGCORE-041 admission states must remain reconstructable. Enum content is
+  // pinned to the eight admission states declared by the contract.
+  const hookAdmissionStateEnum = content.match(/enum\s+HookAdmissionState\s*\{([\s\S]*?)\n\}/m);
+  if (!hookAdmissionStateEnum) {
+    fail(`${rel} missing enum HookAdmissionState`);
+  } else {
+    for (const member of [
+      'HOOK_ADMISSION_STATE_PROPOSED',
+      'HOOK_ADMISSION_STATE_PENDING',
+      'HOOK_ADMISSION_STATE_REJECTED',
+      'HOOK_ADMISSION_STATE_RUNNING',
+      'HOOK_ADMISSION_STATE_COMPLETED',
+      'HOOK_ADMISSION_STATE_FAILED',
+      'HOOK_ADMISSION_STATE_CANCELED',
+      'HOOK_ADMISSION_STATE_RESCHEDULED',
+    ]) {
+      if (!new RegExp(`\\b${member}\\s*=\\s*\\d+\\s*;`).test(hookAdmissionStateEnum[1])) {
+        fail(`${rel} HookAdmissionState missing admitted state: ${member}`);
+      }
+    }
+  }
+
+  // HookExecutionOutcome carries a single admission-state transition; per-state
+  // distinction lives on intent.admission_state and AgentHookEventDetail.family.
   const hookOutcome = getProtoMessageBlock(content, 'HookExecutionOutcome', rel);
-  assertMessageHasFields(hookOutcome, 'HookExecutionOutcome', rel, ['hook_id', 'status', 'trigger', 'observed_at', 'completed', 'failed', 'canceled', 'rescheduled', 'rejected']);
+  assertMessageHasFields(hookOutcome, 'HookExecutionOutcome', rel, ['intent', 'observed_at', 'reason_code', 'message', 'reason']);
+
+  // PendingHook embeds the admitted HookIntent rather than a parallel trigger /
+  // next-intent shape (closeout-wave-1: NextHookIntent is no longer canonical
+  // public/runtime truth).
+  const pendingHook = getProtoMessageBlock(content, 'PendingHook', rel);
+  assertMessageHasFields(pendingHook, 'PendingHook', rel, ['intent', 'scheduled_for', 'admitted_at']);
+
+  // AgentHookEventDetail must keep the admission-state family discriminator
+  // wired to runtime.agent.hook.* projection (K-AGCORE-042).
+  const agentHookEventDetail = getProtoMessageBlock(content, 'AgentHookEventDetail', rel);
+  assertMessageHasFields(agentHookEventDetail, 'AgentHookEventDetail', rel, ['family', 'intent', 'observed_at']);
 
   const memoryCandidate = getProtoMessageBlock(content, 'CanonicalMemoryCandidate', rel);
   assertMessageHasFields(memoryCandidate, 'CanonicalMemoryCandidate', rel, ['canonical_class', 'target_bank', 'record', 'source_event_id', 'policy_reason']);
@@ -386,14 +458,47 @@ function checkRuntimeAgentServiceProtoAdmission() {
   assertMessageHasFields(listHooksResp, 'ListPendingHooksResponse', rel, ['next_page_token']);
 
   const specAgentService = read('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
+  // Normalize whitespace so authority phrases that wrap across lines still
+  // match — content equivalence, not formatting equivalence.
+  const specAgentServiceFlat = specAgentService.replace(/\s+/g, ' ');
   for (const token of [
-    'typed trigger-detail and next-hook-intent families',
+    'typed trigger-detail and hook-intent families',
     'typed completed / failed / canceled / rescheduled / rejected families',
     'typed command/patch union',
   ]) {
-    if (!specAgentService.includes(token)) {
+    if (!specAgentServiceFlat.includes(token)) {
       fail(`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md missing token: ${token}`);
     }
+  }
+
+  // K-AGCORE-040..043 narrow-admit HookIntent authority must be referenced by
+  // name from the agent-hook-intent contract authority document.
+  const specHookIntent = read('.nimi/spec/runtime/kernel/agent-hook-intent-contract.md');
+  for (const token of [
+    'K-AGCORE-040',
+    'K-AGCORE-041',
+    'K-AGCORE-042',
+    'K-AGCORE-043',
+    'HookIntent',
+  ]) {
+    if (!specHookIntent.includes(token)) {
+      fail(`.nimi/spec/runtime/kernel/agent-hook-intent-contract.md missing token: ${token}`);
+    }
+  }
+
+  // K-AGCORE-006 typed-family registry must declare HOOK_INTENT (steady-state
+  // canonical name; NEXT_HOOK_INTENT is retired per closeout-wave-1).
+  const typedFamilyTable = YAML.parse(read('.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml'));
+  const families = Array.isArray(typedFamilyTable?.families) ? typedFamilyTable.families : [];
+  const familyNames = families.map((item) => String(item?.family || ''));
+  const requiredFamilies = ['HOOK_INTENT', 'HOOK_OUTCOME', 'CANONICAL_MEMORY_CANDIDATE', 'CANONICAL_MEMORY_VIEW', 'CONSTRAINED_STATE_MUTATION', 'AGENT_EVENT'];
+  for (const required of requiredFamilies) {
+    if (!familyNames.includes(required)) {
+      fail(`.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml missing family: ${required}`);
+    }
+  }
+  if (familyNames.includes('NEXT_HOOK_INTENT')) {
+    fail('.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml must not declare retired NEXT_HOOK_INTENT family (K-AGCORE-041 admits HookIntent only)');
   }
 
   const paginationSpec = read('.nimi/spec/runtime/kernel/pagination-filtering.md');

@@ -135,5 +135,5 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
 - `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`
-- `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/state-event-bus.md`
-- `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/presentation-timeline.md`
+- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/state-event-bus.md`
+- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/presentation-timeline.md`

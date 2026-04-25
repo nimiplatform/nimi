@@ -1,9 +1,9 @@
 version: 1
 families:
-  - family: NEXT_HOOK_INTENT
+  - family: HOOK_INTENT
     source_rule: K-AGCORE-006
     mutable_by_app: false
-    description: Typed HookIntent family emitted by chat/life execution and interpreted by runtime-owned narrow admission.
+    description: Typed narrow-admit HookIntent family emitted by chat/life execution and interpreted by runtime-owned admission per K-AGCORE-040..043.
   - family: HOOK_OUTCOME
     source_rule: K-AGCORE-006
     mutable_by_app: false

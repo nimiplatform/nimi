@@ -4,14 +4,14 @@
 > Source: `.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml`
 | Family | Mutable By App | Source |
 |---|---:|---|
-| `NEXT_HOOK_INTENT` | `false` | `K-AGCORE-006` |
+| `HOOK_INTENT` | `false` | `K-AGCORE-006` |
 | `HOOK_OUTCOME` | `false` | `K-AGCORE-006` |
 | `CANONICAL_MEMORY_CANDIDATE` | `false` | `K-AGCORE-006` |
 | `CANONICAL_MEMORY_VIEW` | `false` | `K-AGCORE-006` |
 | `CONSTRAINED_STATE_MUTATION` | `true` | `K-AGCORE-006` |
 | `AGENT_EVENT` | `false` | `K-AGCORE-006` |
 
-- `NEXT_HOOK_INTENT`: Typed HookIntent family emitted by chat/life execution and interpreted by runtime-owned narrow admission.
+- `HOOK_INTENT`: Typed narrow-admit HookIntent family emitted by chat/life execution and interpreted by runtime-owned admission per K-AGCORE-040..043.
 - `HOOK_OUTCOME`: Typed result family covering completed, failed, canceled, or rescheduled hook execution.
 - `CANONICAL_MEMORY_CANDIDATE`: Typed candidate family for memory admission before canonical write policy accepts or rejects it.
 - `CANONICAL_MEMORY_VIEW`: Typed agent-facing recall/result family projected from retained runtime-private memory depth into RuntimeAgentService reads.

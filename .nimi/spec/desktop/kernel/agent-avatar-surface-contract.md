@@ -338,7 +338,7 @@ Fixed rules:
 - `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md` — richer workflow / voice identity semantics
 - `.nimi/spec/platform/kernel/kit-contract.md` — reusable `kit/features/avatar` admission and ownership hardcut
 - `.nimi/topics/ongoing/2026-04-15-agent-live-avatar-airi-audit/design.md` — topic-local avatar landing rationale
-- `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/closeout-wave-4-exec-pack-3.md` — desktop bridge / handoff hard cut rationale
-- `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/closeout-wave-4-exec-pack-4.md` — desktop carrier decommission and single-carrier closeout rationale
+- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/closeout-wave-4-exec-pack-3.md` — desktop bridge / handoff hard cut rationale
+- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/closeout-wave-4-exec-pack-4.md` — desktop carrier decommission and single-carrier closeout rationale
 - `.nimi/topics/closed/2026-04-17-desktop-agent-vrm-pointer-interaction/design.md` — stage-local pointer Wave 1 rationale now superseded by app-level attention redesign
 - `.nimi/topics/ongoing/2026-04-19-desktop-app-level-avatar-attention-context/design.md` — app-level attention projection redesign rationale

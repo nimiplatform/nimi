@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const methodIdsFile = resolve(repoRoot, 'sdk/src/runtime/method-ids.ts');
 const outputFiles = [
-  resolve(repoRoot, 'apps/desktop/src-tauri/src/runtime_bridge/generated/method_ids.rs'),
+  resolve(repoRoot, 'kit/shell/tauri/src/runtime_bridge/generated/method_ids.rs'),
   resolve(repoRoot, 'apps/forge/src-tauri/src/runtime_bridge/generated/method_ids.rs'),
 ];
 const customAllowlistedMethods = [
