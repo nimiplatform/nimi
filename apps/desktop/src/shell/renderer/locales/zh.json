@@ -3103,6 +3103,7 @@
       "auditColSource": "来源",
       "auditColTarget": "目标",
       "auditColReason": "原因",
+      "auditPayload": "负载",
       "auditShowingSummary": "显示 {{count}} 条匹配",
       "clickToExpand": "点击展开",
       "clickToCollapse": "点击收起",
@@ -3989,7 +3990,9 @@
       "responseMetadata": "响应元数据",
       "copyRawJson": "复制原始 JSON",
       "copied": "已复制",
-      "running": "运行中"
+      "running": "运行中",
+      "retry": "重试",
+      "dismiss": "关闭"
     },
     "textGenerate": {
       "promptPlaceholder": "输入提示词...",
@@ -4058,6 +4061,9 @@
       "seed": "种子",
       "timeoutMs": "超时（毫秒）",
       "timeoutPlaceholder": "600000",
+      "optionsText": "选项（每行 key:value）",
+      "rawProfileOverrides": "原始 profile 覆盖（JSON）",
+      "negativePromptShort": "负面：",
       "steps": "步数",
       "stepsPlaceholder": "25",
       "cfgScale": "CFG 尺度",

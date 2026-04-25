@@ -1,11 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, ScrollArea, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
   IMAGE_WORKFLOW_PRESET_SELECTIONS,
   type CapabilityState,
   type ImageGenerationRecord,
+  type ImageResponseFormatMode,
   type ImageWorkflowDraftState,
+  type ImageWorkflowPresetSelectionKey,
 } from '../tester-types.js';
 import {
   asString,
@@ -22,7 +24,7 @@ import {
 import { resolveEffectiveBinding, resolveImageResponseFormat } from '../tester-route.js';
 import { makeEmptyDiagnostics } from '../tester-state.js';
 import { bindingToRouteInfo } from '../tester-runtime.js';
-import { DiagnosticsPanel, ErrorBox, RawJsonSection, RunButton } from '../tester-diagnostics.js';
+import { DiagnosticsPanel, ErrorBox, RawJsonSection } from '../tester-diagnostics.js';
 import { buildLocalProfileExtensions, createModRuntimeClient, type ModRuntimeBoundImageGenerateInput } from '@nimiplatform/sdk/mod';
 
 type ImageGeneratePanelProps = {
@@ -31,6 +33,37 @@ type ImageGeneratePanelProps = {
   draft: ImageWorkflowDraftState;
   onDraftChange: React.Dispatch<React.SetStateAction<ImageWorkflowDraftState>>;
   onStateChange: (updater: (prev: CapabilityState) => CapabilityState) => void;
+};
+
+const SLIDERS_ICON = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="4" y1="6" x2="14" y2="6" />
+    <line x1="18" y1="6" x2="20" y2="6" />
+    <circle cx="16" cy="6" r="2" />
+    <line x1="4" y1="12" x2="6" y2="12" />
+    <line x1="10" y1="12" x2="20" y2="12" />
+    <circle cx="8" cy="12" r="2" />
+    <line x1="4" y1="18" x2="14" y2="18" />
+    <line x1="18" y1="18" x2="20" y2="18" />
+    <circle cx="16" cy="18" r="2" />
+  </svg>
+);
+
+const ARROW_UP_ICON = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="19" x2="12" y2="5" />
+    <polyline points="5 12 12 5 19 12" />
+  </svg>
+);
+
+const PRESET_LABELS: Record<ImageWorkflowPresetSelectionKey, string> = {
+  vaeModel: 'VAE',
+  llmModel: 'LLM / Text Encoder',
+  clipLModel: 'CLIP-L',
+  clipGModel: 'CLIP-G',
+  controlnetModel: 'ControlNet',
+  loraModel: 'LoRA',
+  auxiliaryModel: 'Auxiliary',
 };
 
 function buildProfileOverrides(input: {
@@ -152,6 +185,241 @@ function formatScenarioJobProgress(job: Record<string, unknown> | null | undefin
     parts.push(`${Math.round(currentStep)}/${Math.round(totalSteps)}`);
   }
   return parts.join(' · ');
+}
+
+type ImageAdvancedParamsPopoverProps = {
+  draft: ImageWorkflowDraftState;
+  onDraftChange: (updater: Partial<ImageWorkflowDraftState> | ((prev: ImageWorkflowDraftState) => ImageWorkflowDraftState)) => void;
+  showWorkflowSlots: boolean;
+};
+
+function ImageAdvancedParamsPopover(props: ImageAdvancedParamsPopoverProps) {
+  const { draft, onDraftChange, showWorkflowSlots } = props;
+  const { t } = useTranslation();
+  const [open, setOpen] = React.useState(false);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      const node = wrapperRef.current;
+      if (node && !node.contains(event.target as Node)) setOpen(false);
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  const triggerLabel = t('Tester.imageGenerate.advancedOptions', { defaultValue: 'Advanced Options' });
+
+  const setField = (patch: Partial<ImageWorkflowDraftState>) => onDraftChange(patch);
+
+  return (
+    <div ref={wrapperRef} className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={triggerLabel}
+        aria-expanded={open}
+        title={triggerLabel}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] transition-colors hover:border-[var(--nimi-border-strong)] hover:text-[var(--nimi-text-secondary)] ${
+          open
+            ? 'bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]'
+            : 'text-[var(--nimi-text-muted)]'
+        }`}
+      >
+        {SLIDERS_ICON}
+      </button>
+
+      {open ? (
+        <div
+          role="dialog"
+          aria-label={triggerLabel}
+          className="absolute top-[calc(100%+0.75rem)] right-0 z-[var(--nimi-z-popover,40)] w-[380px] rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-floating)]"
+        >
+          <ScrollArea className="max-h-[60vh]" contentClassName="pr-1">
+            <div className="flex flex-col gap-4 text-xs">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+                  {t('Tester.imageGenerate.negativePromptPlaceholder', { defaultValue: 'Negative prompt (optional)...' }).replace(/\.\.\.$|optional\)\.\.\.$/i, '').trim() || 'Negative prompt'}
+                </label>
+                <TextareaField
+                  textareaClassName="h-16 font-mono text-xs"
+                  value={draft.negativePrompt}
+                  onChange={(event) => setField({ negativePrompt: event.target.value })}
+                  placeholder={t('Tester.imageGenerate.negativePromptPlaceholder')}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.size')}</label>
+                  <TextField
+                    className="font-mono text-xs"
+                    value={draft.size}
+                    onChange={(event) => setField({ size: event.target.value })}
+                    placeholder={t('Tester.imageGenerate.sizePlaceholder')}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.count')}</label>
+                  <TextField
+                    className="font-mono text-xs"
+                    type="number"
+                    min="1"
+                    max="4"
+                    value={draft.n}
+                    onChange={(event) => setField({ n: event.target.value })}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.seed')}</label>
+                  <TextField
+                    className="font-mono text-xs"
+                    type="number"
+                    value={draft.seed}
+                    onChange={(event) => setField({ seed: event.target.value })}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.timeoutMs')}</label>
+                  <TextField
+                    className="font-mono text-xs"
+                    type="number"
+                    value={draft.timeoutMs}
+                    onChange={(event) => setField({ timeoutMs: event.target.value })}
+                    placeholder={t('Tester.imageGenerate.timeoutPlaceholder')}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.responseFormat')}</label>
+                <div className="inline-flex rounded-full border border-[var(--nimi-border-subtle)] p-0.5 text-xs">
+                  {(['auto', 'base64', 'url'] as ImageResponseFormatMode[]).map((mode) => {
+                    const active = draft.responseFormatMode === mode;
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setField({ responseFormatMode: mode })}
+                        className={`flex-1 rounded-full px-2 py-1 transition-colors ${
+                          active
+                            ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+                            : 'text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]'
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="border-t border-[var(--nimi-border-subtle)] pt-3">
+                <div className="mb-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
+                  {t('Tester.imageGenerate.advancedOptions', { defaultValue: 'Sampling' })}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.steps')}</label>
+                    <TextField
+                      className="font-mono text-xs"
+                      type="number"
+                      value={draft.step}
+                      onChange={(event) => setField({ step: event.target.value })}
+                      placeholder={t('Tester.imageGenerate.stepsPlaceholder')}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.cfgScale')}</label>
+                    <TextField
+                      className="font-mono text-xs"
+                      type="number"
+                      step="0.1"
+                      value={draft.cfgScale}
+                      onChange={(event) => setField({ cfgScale: event.target.value })}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.sampler')}</label>
+                    <TextField
+                      className="font-mono text-xs"
+                      value={draft.sampler}
+                      onChange={(event) => setField({ sampler: event.target.value })}
+                      placeholder={t('Tester.imageGenerate.samplerPlaceholder')}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.scheduler')}</label>
+                    <TextField
+                      className="font-mono text-xs"
+                      value={draft.scheduler}
+                      onChange={(event) => setField({ scheduler: event.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-col gap-1">
+                  <label className="text-[var(--nimi-text-muted)]">
+                    {t('Tester.imageGenerate.optionsText', { defaultValue: 'Options (key:value per line)' })}
+                  </label>
+                  <TextareaField
+                    textareaClassName="h-16 font-mono text-xs"
+                    value={draft.optionsText}
+                    onChange={(event) => setField({ optionsText: event.target.value })}
+                    placeholder={'e.g.\nclip_skip:2\nrefiner:true'}
+                  />
+                </div>
+                <div className="mt-3 flex flex-col gap-1">
+                  <label className="text-[var(--nimi-text-muted)]">
+                    {t('Tester.imageGenerate.rawProfileOverrides', { defaultValue: 'Raw profile overrides (JSON)' })}
+                  </label>
+                  <TextareaField
+                    textareaClassName="h-16 font-mono text-xs"
+                    value={draft.rawProfileOverridesText}
+                    onChange={(event) => setField({ rawProfileOverridesText: event.target.value })}
+                    placeholder={'{"steps": 30}'}
+                  />
+                </div>
+              </div>
+
+              {showWorkflowSlots ? (
+                <div className="border-t border-[var(--nimi-border-subtle)] pt-3">
+                  <div className="mb-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
+                    {t('Tester.imageGenerate.companionModels', { defaultValue: 'Companion Models' })}
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {IMAGE_WORKFLOW_PRESET_SELECTIONS.map((preset) => (
+                      <div key={preset.key} className="flex flex-col gap-1">
+                        <label className="text-[var(--nimi-text-muted)]">{PRESET_LABELS[preset.key]} <span className="text-[10px] uppercase">({preset.slot})</span></label>
+                        <TextField
+                          className="font-mono text-xs"
+                          value={draft[preset.key]}
+                          onChange={(event) => setField({ [preset.key]: event.target.value } as Partial<ImageWorkflowDraftState>)}
+                          placeholder={t('Tester.imageGenerate.optional', { defaultValue: 'local artifact id (optional)' })}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </ScrollArea>
+
+          <div
+            aria-hidden
+            className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 border-l border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function ImageHistoryPanel({ records, onDelete, onClear }: {
@@ -501,48 +769,105 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
   }, [appendHistory, buildRequestContext, onStateChange, watchAsyncImageJob]);
 
   const imageUris = (state.output as string[] | null) || [];
+  const canSubmit = !state.busy && Boolean(draft.prompt.trim());
+  const runLabel = mode === 'job'
+    ? t('Tester.imageGenerate.submitJob', { defaultValue: 'Submit Job' })
+    : t('Tester.imageGenerate.runGenerate', { defaultValue: 'Generate Image' });
 
   return (
     <div className="flex flex-col gap-3">
-      <TextareaField className="font-mono text-xs" textareaClassName="h-20" value={draft.prompt} onChange={(event) => updateDraft({ prompt: event.target.value })} placeholder={t('Tester.imageGenerate.promptPlaceholder')} />
-      <TextareaField className="font-mono text-xs" textareaClassName="h-14" value={draft.negativePrompt} onChange={(event) => updateDraft({ negativePrompt: event.target.value })} placeholder={t('Tester.imageGenerate.negativePromptPlaceholder')} />
-
-      <div className="grid grid-cols-2 gap-2">
-        <div className="flex flex-col gap-1 text-xs">
-          <span className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.size')}</span>
-          <TextField className="font-mono text-xs" value={draft.size} onChange={(event) => updateDraft({ size: event.target.value })} placeholder={t('Tester.imageGenerate.sizePlaceholder')} />
+      {mode === 'job' ? (
+        <div className="flex items-center gap-2 rounded-[var(--nimi-radius-lg)] border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] px-3 py-2">
+          <span className="shrink-0 text-xs text-[var(--nimi-text-muted)]">
+            {t('Tester.imageGenerate.watch', { defaultValue: 'Watch' })}
+          </span>
+          <TextField
+            className="flex-1 font-mono text-xs"
+            value={watchJobId}
+            onChange={(event) => setWatchJobId(event.target.value)}
+            placeholder={t('Tester.imageGenerate.jobIdPlaceholder')}
+          />
+          <Button
+            tone="secondary"
+            size="sm"
+            disabled={state.busy || !asString(watchJobId)}
+            onClick={() => { void watchAsyncImageJob({ jobId: asString(watchJobId), requestParams: { jobId: watchJobId, mode: 'attach' }, routeInfo: null }); }}
+          >
+            {t('Tester.imageGenerate.watch', { defaultValue: 'Watch' })}
+          </Button>
         </div>
-        <div className="flex flex-col gap-1 text-xs">
-          <span className="text-[var(--nimi-text-muted)]">{t('Tester.imageGenerate.count')}</span>
-          <TextField className="font-mono text-xs" type="number" min="1" max="4" value={draft.n} onChange={(event) => updateDraft({ n: event.target.value })} />
+      ) : null}
+
+      <div className="flex flex-col rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 pb-2 pt-3 transition-colors">
+        <TextareaField
+          tone="quiet"
+          className="p-0 focus-within:border-transparent focus-within:ring-0"
+          textareaClassName="min-h-[3.5rem] resize-none px-0 py-0 font-mono text-xs"
+          value={draft.prompt}
+          onChange={(event) => updateDraft({ prompt: event.target.value })}
+          placeholder={t('Tester.imageGenerate.promptPlaceholder')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && canSubmit) {
+              event.preventDefault();
+              void handleRun();
+            }
+          }}
+        />
+        {draft.negativePrompt ? (
+          <div className="mt-1 truncate text-[11px] text-[var(--nimi-text-muted)]">
+            <span className="mr-1 uppercase tracking-wide">{t('Tester.imageGenerate.negativePromptShort', { defaultValue: 'neg:' })}</span>
+            <span className="font-mono">{draft.negativePrompt}</span>
+          </div>
+        ) : null}
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--nimi-text-muted)]">
+            {draft.size ? <span className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-0.5 font-mono">{draft.size}</span> : null}
+            {draft.n && draft.n !== '1' ? <span className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-0.5 font-mono">×{draft.n}</span> : null}
+            {draft.seed ? <span className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-0.5 font-mono">seed:{draft.seed}</span> : null}
+            {draft.responseFormatMode && draft.responseFormatMode !== 'auto' ? <span className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-0.5 font-mono">{draft.responseFormatMode}</span> : null}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <ImageAdvancedParamsPopover
+              draft={draft}
+              onDraftChange={updateDraft}
+              showWorkflowSlots={isMediaImageWorkflow}
+            />
+            <button
+              type="button"
+              onClick={() => { void handleRun(); }}
+              disabled={!canSubmit}
+              aria-label={runLabel}
+              title={runLabel}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {state.busy ? (
+                <span className="inline-flex items-center gap-0.5">
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.2s]" />
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.1s]" />
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80" />
+                </span>
+              ) : (
+                ARROW_UP_ICON
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      {mode === 'job' ? (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <TextField className="flex-1 font-mono text-xs" value={watchJobId} onChange={(event) => setWatchJobId(event.target.value)} placeholder={t('Tester.imageGenerate.jobIdPlaceholder')} />
-            <Button tone="secondary" size="sm" disabled={state.busy} onClick={() => { void watchAsyncImageJob({ jobId: asString(watchJobId), requestParams: { jobId: watchJobId, mode: 'attach' }, routeInfo: null }); }}>
-              {t('Tester.imageGenerate.watch')}
-            </Button>
-          </div>
-          <RunButton busy={state.busy} busyLabel={state.busyLabel} label={t('Tester.imageGenerate.submitJob')} onClick={() => { void handleRun(); }} />
-          {jobTimeline.length > 0 ? (
-            <div className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-canvas)] p-2 text-xs">
-              <div className="font-semibold text-[var(--nimi-text-secondary)] mb-1">{t('Tester.imageGenerate.jobTimeline')}</div>
-              {jobTimeline.map((event, i) => (
-                <div key={i} className="text-[var(--nimi-text-primary)]">{`[${event.sequence}] ${event.label}: ${event.status}${asString(event.progressLabel) ? ` · ${asString(event.progressLabel)}` : ''}`}</div>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <RunButton busy={state.busy} busyLabel={state.busyLabel} label={t('Tester.imageGenerate.runGenerate')} onClick={() => { void handleRun(); }} />
-      )}
-
+      {state.busy && state.busyLabel ? (
+        <div className="text-xs text-[var(--nimi-text-muted)]">{state.busyLabel}</div>
+      ) : null}
       {state.error ? <ErrorBox message={state.error} /> : null}
       {imageUris.length > 0 ? (
         <ImagePreviewGrid uris={imageUris} />
+      ) : null}
+      {jobTimeline.length > 0 ? (
+        <div className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-canvas)] p-2 text-xs">
+          <div className="mb-1 font-semibold text-[var(--nimi-text-secondary)]">{t('Tester.imageGenerate.jobTimeline')}</div>
+          {jobTimeline.map((event, i) => (
+            <div key={i} className="text-[var(--nimi-text-primary)]">{`[${event.sequence}] ${event.label}: ${event.status}${asString(event.progressLabel) ? ` · ${asString(event.progressLabel)}` : ''}`}</div>
+          ))}
+        </div>
       ) : null}
       <DiagnosticsPanel diagnostics={state.diagnostics} />
       {state.rawResponse ? <RawJsonSection content={state.rawResponse} /> : null}

@@ -127,10 +127,26 @@ export function RunButton(props: {
   );
 }
 
-export function ErrorBox(props: { message: string }) {
+export function ErrorBox(props: { message: string; onDismiss?: () => void }) {
+  const { t } = useTranslation();
+  const dismissLabel = t('Tester.diagnostics.dismiss', { defaultValue: 'Dismiss' });
   return (
-    <div className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] p-2 text-xs text-[var(--nimi-status-danger)]">
-      {props.message}
+    <div className="relative flex items-start gap-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] p-2 text-xs text-[var(--nimi-status-danger)]">
+      <div className={`flex-1 break-words ${props.onDismiss ? 'pr-5' : ''}`}>{props.message}</div>
+      {props.onDismiss ? (
+        <button
+          type="button"
+          onClick={props.onDismiss}
+          aria-label={dismissLabel}
+          title={dismissLabel}
+          className="absolute right-1.5 top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-[var(--nimi-radius-sm)] text-[var(--nimi-status-danger)] opacity-70 transition-opacity hover:opacity-100"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      ) : null}
     </div>
   );
 }

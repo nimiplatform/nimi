@@ -120,10 +120,10 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 pb-2 pt-3 transition-colors focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]">
+      <div className="flex flex-col rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 pb-2 pt-3 transition-colors">
         <TextareaField
           tone="quiet"
-          className="p-0"
+          className="p-0 focus-within:border-transparent focus-within:ring-0"
           textareaClassName="min-h-[3.5rem] resize-none px-0 py-0 font-mono text-xs"
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}

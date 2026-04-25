@@ -3103,6 +3103,7 @@
       "auditColSource": "Source",
       "auditColTarget": "Target",
       "auditColReason": "Reason",
+      "auditPayload": "payload",
       "auditShowingSummary": "Showing {{count}} matches",
       "clickToExpand": "Click to expand",
       "clickToCollapse": "Click to collapse",
@@ -3989,7 +3990,9 @@
       "responseMetadata": "Response Metadata",
       "copyRawJson": "Copy raw JSON",
       "copied": "Copied",
-      "running": "Running"
+      "running": "Running",
+      "retry": "Retry",
+      "dismiss": "Dismiss"
     },
     "textGenerate": {
       "promptPlaceholder": "Enter your prompt...",
@@ -4058,6 +4061,9 @@
       "seed": "Seed",
       "timeoutMs": "Timeout (ms)",
       "timeoutPlaceholder": "600000",
+      "optionsText": "Options (key:value per line)",
+      "rawProfileOverrides": "Raw profile overrides (JSON)",
+      "negativePromptShort": "neg:",
       "steps": "Steps",
       "stepsPlaceholder": "25",
       "cfgScale": "CFG Scale",

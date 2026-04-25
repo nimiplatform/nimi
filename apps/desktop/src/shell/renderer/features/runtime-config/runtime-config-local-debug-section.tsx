@@ -666,6 +666,7 @@ function FacetPill({
 }
 
 function AuditTableRow({ event }: { event: LocalRuntimeAuditEvent }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   const source = resolveAuditSource(event);
@@ -737,7 +738,9 @@ function AuditTableRow({ event }: { event: LocalRuntimeAuditEvent }) {
           </dl>
           {event.payload && Object.keys(event.payload).length > 0 ? (
             <div className="mt-3">
-              <p className={cn('text-[10px] font-semibold uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>payload</p>
+              <p className={cn('text-[10px] font-semibold uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
+                {t('runtimeConfig.runtime.auditPayload', { defaultValue: 'payload' })}
+              </p>
               <pre className={cn('mt-1 whitespace-pre-wrap break-all rounded-md bg-[var(--nimi-surface-card)] px-2.5 py-2 font-mono text-[11px] leading-relaxed', TOKEN_TEXT_SECONDARY)}>
                 {JSON.stringify(event.payload, null, 2)}
               </pre>

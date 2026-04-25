@@ -202,10 +202,10 @@ export function TextStreamPanel(props: TextStreamPanelProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 pb-2 pt-3 transition-colors focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]">
+      <div className="flex flex-col rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 pb-2 pt-3 transition-colors">
         <TextareaField
           tone="quiet"
-          className="p-0"
+          className="p-0 focus-within:border-transparent focus-within:ring-0"
           textareaClassName="min-h-[3.5rem] resize-none px-0 py-0 font-mono text-xs"
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
@@ -286,7 +286,9 @@ export function TextStreamPanel(props: TextStreamPanelProps) {
         </div>
       </div>
 
-      {state.error ? <ErrorBox message={state.error} /> : null}
+      {state.error ? (
+        <ErrorBox message={state.error} onDismiss={() => onStateChange((prev) => ({ ...prev, error: '' }))} />
+      ) : null}
       {state.busy && state.busyLabel?.includes('Warming') ? (
         <InfoBox message={t('Tester.textStream.prewarmingNotice', { defaultValue: 'Pre-warming local model. This may take a moment on first use.' })} />
       ) : null}
@@ -307,7 +309,14 @@ export function TextStreamPanel(props: TextStreamPanelProps) {
         </details>
       ) : null}
       <DiagnosticsPanel diagnostics={state.diagnostics} />
-      {state.rawResponse ? <RawJsonSection content={state.rawResponse} /> : null}
+      {state.rawResponse ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <RawJsonSection content={state.rawResponse} />
+          <Button tone="secondary" size="sm" onClick={() => { void handleRun(); }} disabled={state.busy || !prompt.trim()}>
+            {t('Tester.diagnostics.retry', { defaultValue: 'Retry' })}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
