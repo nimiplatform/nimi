@@ -225,6 +225,14 @@ func validatePresentationDetail(detail *runtimev1.AgentPresentationEventDetail) 
 		strings.TrimSpace(detail.GetStreamId()) == "" {
 		return errPresentationEnvelopeMissing
 	}
+	if detail.GetFamily() == runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED {
+		return validateActivityProjectionFields(
+			detail.GetActivityName(),
+			detail.GetActivityCategory(),
+			detail.GetActivityIntensity(),
+			detail.GetActivitySource(),
+		)
+	}
 	return nil
 }
 

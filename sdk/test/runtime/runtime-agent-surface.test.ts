@@ -36,6 +36,9 @@ import {
 import {
   Runtime,
 } from '../../src/runtime/runtime.js';
+import {
+  parseAppConsumeEvent,
+} from '../../src/runtime/runtime-agent-surface-parsers.js';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids.js';
 import {
   setNodeGrpcBridge,
@@ -246,6 +249,17 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
               stream_id: 'stream-1',
               detail: { expression_id: 'smile', expected_duration_ms: 1200 },
             });
+            yield createAppEvent('runtime.agent.presentation.activity_requested', {
+              agent_id: 'agent-1',
+              conversation_anchor_id: 'anchor-1',
+              turn_id: 'turn-1',
+              stream_id: 'stream-1',
+              detail: {
+                activity_name: 'thinking',
+                category: 'interaction',
+                source: 'apml_output',
+              },
+            });
             yield createAppEvent('runtime.agent.turn.message_committed', {
               agent_id: 'agent-1',
               conversation_anchor_id: 'anchor-1',
@@ -386,6 +400,7 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
       'runtime.agent.turn.accepted',
       'runtime.agent.turn.text_delta',
       'runtime.agent.presentation.expression_requested',
+      'runtime.agent.presentation.activity_requested',
       'runtime.agent.turn.message_committed',
       'runtime.agent.state.execution_state_changed',
       'runtime.agent.hook.running',
@@ -398,6 +413,14 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
       assert.equal(executionStateChanged.originatingTurnId, 'turn-1');
       assert.equal(executionStateChanged.detail.currentExecutionState, 'chat_active');
       assert.equal(executionStateChanged.detail.previousExecutionState, 'idle');
+    }
+
+    const activityRequested = events.find((event) => event.eventName === 'runtime.agent.presentation.activity_requested');
+    assert.ok(activityRequested);
+    if (activityRequested?.eventName === 'runtime.agent.presentation.activity_requested') {
+      assert.equal(activityRequested.detail.activityName, 'thinking');
+      assert.equal(activityRequested.detail.category, 'interaction');
+      assert.equal(activityRequested.detail.source, 'apml_output');
     }
 
     const hookRunning = events.find((event) => event.eventName === 'runtime.agent.hook.running');
@@ -416,6 +439,20 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
   } finally {
     clearNodeGrpcBridge();
   }
+});
+
+test('runtime agent consume surface rejects invalid activity projection category', () => {
+  assert.throws(() => parseAppConsumeEvent('runtime.agent.presentation.activity_requested', {
+    agent_id: 'agent-1',
+    conversation_anchor_id: 'anchor-1',
+    turn_id: 'turn-1',
+    stream_id: 'stream-1',
+    detail: {
+      activity_name: 'thinking',
+      category: 'status',
+      source: 'apml_output',
+    },
+  }), /detail\.category must be emotion, interaction, or state/);
 });
 
 test('runtime agent turns subscribe parses Wave 2 hook projection events with origin and rejection detail', async () => {

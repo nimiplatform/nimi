@@ -471,8 +471,8 @@ export type RuntimeAgentPresentationActivityRequestedEvent = RuntimeAgentPresent
   eventName: 'runtime.agent.presentation.activity_requested';
   detail: {
     activityName: string;
-    category: string;
-    intensity?: string;
+    category: 'emotion' | 'interaction' | 'state';
+    intensity?: 'weak' | 'moderate' | 'strong';
     source: string;
   };
 };

@@ -144,6 +144,11 @@ func validatePublicChatStructuredStatusCue(cue *publicChatStructuredStatusCue, m
 	if cue.Mood == "" && cue.Label == "" && cue.ActionCue == "" {
 		return fmt.Errorf("statusCue must include at least one usable affect field")
 	}
+	if cue.ActionCue != "" {
+		if _, _, err := normalizePublicChatActivityProjection(cue.ActionCue, cue.Intensity); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -519,6 +524,10 @@ func parsePublicChatAPMLOutput(raw string) (*publicChatStructuredEnvelope, error
 				envelope.Actions = append(envelope.Actions, next)
 				hook = nil
 			}
+		case xml.Comment:
+			return nil, fmt.Errorf("APML output must not contain comments")
+		case xml.ProcInst, xml.Directive:
+			return nil, fmt.Errorf("APML output must not contain processing instructions or directives")
 		}
 	}
 	for index := range envelope.Actions {

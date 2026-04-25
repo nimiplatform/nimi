@@ -56,6 +56,41 @@ function expectString(value: unknown, fieldName: string, messageType: string): s
   }
   return normalized;
 }
+function expectActivityCategory(
+  value: unknown,
+  fieldName: string,
+  messageType: string,
+): 'emotion' | 'interaction' | 'state' {
+  const normalized = expectString(value, fieldName, messageType);
+  if (normalized === 'emotion' || normalized === 'interaction' || normalized === 'state') {
+    return normalized;
+  }
+  throw createNimiError({
+    message: `${messageType} ${fieldName} must be emotion, interaction, or state`,
+    reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    actionHint: 'check_runtime_agent_activity_projection_shape',
+    source: 'sdk',
+  });
+}
+function optionalActivityIntensity(
+  value: unknown,
+  fieldName: string,
+  messageType: string,
+): 'weak' | 'moderate' | 'strong' | undefined {
+  const normalized = optionalString(value);
+  if (!normalized) {
+    return undefined;
+  }
+  if (normalized === 'weak' || normalized === 'moderate' || normalized === 'strong') {
+    return normalized;
+  }
+  throw createNimiError({
+    message: `${messageType} ${fieldName} must be weak, moderate, or strong`,
+    reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    actionHint: 'check_runtime_agent_activity_projection_shape',
+    source: 'sdk',
+  });
+}
 function optionalString(value: unknown): string | undefined {
   const normalized = normalizeText(value);
   return normalized || undefined;
@@ -526,8 +561,10 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
         streamId: expectString(payload.stream_id, 'stream_id', messageType),
         detail: {
           activityName: expectString(detail.activity_name, 'detail.activity_name', messageType),
-          category: expectString(detail.category, 'detail.category', messageType),
-          ...(optionalString(detail.intensity) ? { intensity: optionalString(detail.intensity) } : {}),
+          category: expectActivityCategory(detail.category, 'detail.category', messageType),
+          ...(optionalActivityIntensity(detail.intensity, 'detail.intensity', messageType)
+            ? { intensity: optionalActivityIntensity(detail.intensity, 'detail.intensity', messageType) }
+            : {}),
           source: expectString(detail.source, 'detail.source', messageType),
         },
       };

@@ -15,7 +15,7 @@ test('parses APML message, status cue, and immediate media action', () => {
   const envelope = parseAgentResolvedMessageActionEnvelope([
     '<message id="message-0">',
     '  <emotion>joy</emotion>',
-    '  <activity>wave</activity>',
+    '  <activity>greet</activity>',
     '  你好，我在。',
     '</message>',
     '<action id="image-0" kind="image" source-message="message-0" coupling="after-message">',
@@ -31,7 +31,7 @@ test('parses APML message, status cue, and immediate media action', () => {
   assert.deepEqual(envelope.statusCue, {
     sourceMessageId: 'message-0',
     mood: 'joy',
-    actionCue: 'wave',
+    actionCue: 'greet',
   });
   assert.equal(envelope.actions.length, 1);
   assert.deepEqual(envelope.actions[0], {

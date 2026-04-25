@@ -781,9 +781,9 @@ test('agent runtime turn consumes runtime-owned projection events without opting
                 turnId: 'turn-projection',
                 streamId: 'stream-projection',
                 detail: {
-                  activityName: 'chat-thinking',
-                  category: 'status',
-                  source: 'runtime-agent',
+                  activityName: 'thinking',
+                  category: 'interaction',
+                  source: 'apml_output',
                 },
               };
               yield {
@@ -911,7 +911,7 @@ test('agent runtime turn consumes runtime-owned projection events without opting
     );
     assert.equal(projectionEventRecords[0]?.runtimeTurnId, 'turn-projection');
     assert.equal(projectionEventRecords[1]?.detail.intentId, 'hook-1');
-    assert.equal(projectionEventRecords[2]?.detail.activityName, 'chat-thinking');
+    assert.equal(projectionEventRecords[2]?.detail.activityName, 'thinking');
   } finally {
     clearPlatformClient();
   }

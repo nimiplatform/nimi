@@ -10,7 +10,7 @@ import (
 func TestParsePublicChatAPMLOutput_MessageStatusAndActions(t *testing.T) {
 	raw := strings.Join([]string{
 		`<message id="m1">`,
-		`  <emotion>joy</emotion><activity>wave</activity>Hello APML.`,
+		`  <emotion>joy</emotion><activity>greet</activity>Hello APML.`,
 		`</message>`,
 		`<action id="a1" kind="image" source-message="m1" coupling="after-message">`,
 		`  <prompt-payload kind="image"><prompt-text>a sunrise over glass towers</prompt-text></prompt-payload>`,
@@ -29,7 +29,7 @@ func TestParsePublicChatAPMLOutput_MessageStatusAndActions(t *testing.T) {
 	if envelope.Message.Text != "Hello APML." {
 		t.Fatalf("message text mismatch: %q", envelope.Message.Text)
 	}
-	if envelope.StatusCue == nil || envelope.StatusCue.Mood != "joy" || envelope.StatusCue.ActionCue != "wave" {
+	if envelope.StatusCue == nil || envelope.StatusCue.Mood != "joy" || envelope.StatusCue.ActionCue != "greet" {
 		t.Fatalf("status cue mismatch: %#v", envelope.StatusCue)
 	}
 	if len(envelope.Actions) != 2 {
@@ -40,6 +40,15 @@ func TestParsePublicChatAPMLOutput_MessageStatusAndActions(t *testing.T) {
 	}
 	if got := envelope.Actions[1]; got.Modality != "voice" || got.PromptPayload.Kind != "voice-prompt" || got.PromptPayload.PromptText != "say it warmly" || got.DeliveryCoupling != "with-message" || got.ActionIndex != 1 || got.ActionCount != 2 {
 		t.Fatalf("voice action mismatch: %#v", got)
+	}
+}
+
+func TestParsePublicChatAPMLOutput_RejectsUnknownActivity(t *testing.T) {
+	raw := `<message id="m1"><activity>wave</activity>Hello APML.</message>`
+	if _, err := parsePublicChatStructuredEnvelope(raw); err == nil {
+		t.Fatalf("expected unknown APML activity to fail closed")
+	} else if !strings.Contains(err.Error(), "not admitted by runtime activity ontology") {
+		t.Fatalf("expected activity ontology error, got %v", err)
 	}
 }
 
@@ -167,15 +176,60 @@ func TestParsePublicChatAPMLOutputRejectsVideoAndMalformed(t *testing.T) {
 }
 
 func TestParsePublicChatAPMLOutputRejectsUnknownAttributes(t *testing.T) {
-	cases := []string{
-		`<message id="m1" schema="v1">hello</message>`,
-		`<message id="m1">hello</message><action id="a1" kind="image" priority="high"><prompt-payload kind="image"><prompt-text>clip</prompt-text></prompt-payload></action>`,
-		`<message id="m1">hello</message><time-hook id="h1" mode="soft"><delay-ms>250</delay-ms><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></time-hook>`,
-		`<message id="m1">hello</message><event-hook id="h1"><event-user-idle idle-for="600s" mode="soft"/><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></event-hook>`,
+	cases := []struct {
+		raw     string
+		wantErr string
+	}{
+		{raw: `<message id="m1" schema="v1">hello</message>`, wantErr: "not admitted"},
+		{raw: `<message id="m1" id="m2">hello</message>`, wantErr: "duplicated"},
+		{raw: `<message id="m1">hello</message><action id="a1" kind="image" priority="high"><prompt-payload kind="image"><prompt-text>clip</prompt-text></prompt-payload></action>`, wantErr: "not admitted"},
+		{raw: `<message id="m1">hello</message><time-hook id="h1" mode="soft"><delay-ms>250</delay-ms><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></time-hook>`, wantErr: "not admitted"},
+		{raw: `<message id="m1">hello</message><event-hook id="h1"><event-user-idle idle-for="600s" mode="soft"/><effect kind="follow-up-turn"><prompt-text>continue</prompt-text></effect></event-hook>`, wantErr: "not admitted"},
 	}
-	for _, raw := range cases {
-		if _, err := parsePublicChatStructuredEnvelope(raw); err == nil || !strings.Contains(err.Error(), "not admitted") {
-			t.Fatalf("expected unknown attribute rejection for %s, got %v", raw, err)
+	for _, tt := range cases {
+		if _, err := parsePublicChatStructuredEnvelope(tt.raw); err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+			t.Fatalf("expected attribute rejection containing %q for %s, got %v", tt.wantErr, tt.raw, err)
+		}
+	}
+}
+
+func TestParsePublicChatAPMLOutputRejectsWrappersAndXMLControls(t *testing.T) {
+	cases := []struct {
+		raw     string
+		wantErr string
+	}{
+		{
+			raw:     "```xml\n<message id=\"m1\">hello</message>\n```",
+			wantErr: "APML beginning with <message>",
+		},
+		{
+			raw:     "Here is the response:\n<message id=\"m1\">hello</message>",
+			wantErr: "APML beginning with <message>",
+		},
+		{
+			raw:     `<message id="m1">hello</message><!-- hidden -->`,
+			wantErr: "must not contain comments",
+		},
+		{
+			raw:     `<message id="m1">hello</message><?hidden value?>`,
+			wantErr: "processing instructions or directives",
+		},
+		{
+			raw:     `<message id="m1">hello</message><!DOCTYPE apml>`,
+			wantErr: "processing instructions or directives",
+		},
+		{
+			raw:     `<apml:message xmlns:apml="urn:test" id="m1">hello</apml:message>`,
+			wantErr: "APML beginning with <message>",
+		},
+		{
+			raw:     `<message xmlns="urn:test" id="m1">hello</message>`,
+			wantErr: "namespace is not admitted",
+		},
+	}
+	for _, tt := range cases {
+		if _, err := parsePublicChatStructuredEnvelope(tt.raw); err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+			t.Fatalf("expected error containing %q for %s, got %v", tt.wantErr, tt.raw, err)
 		}
 	}
 }

@@ -29,7 +29,7 @@ test('desktop chat output contract helper exposes APML rules', () => {
   assert.match(section, /first non-whitespace characters must be <message/);
   assert.match(section, /exactly one <message id="\.\.\.">/);
   assert.match(section, /<emotion>neutral\|joy\|focus\|calm\|playful\|concerned\|surprised<\/emotion>/);
-  assert.match(section, /<activity>\.\.\.<\/activity>/);
+  assert.match(section, /<activity>happy\|sad\|shy\|angry\|surprised\|confused\|excited\|worried\|embarrassed\|neutral\|greet\|farewell\|agree\|disagree\|listening\|thinking\|idle\|celebrating\|sleeping\|focused<\/activity>/);
   assert.match(section, /sibling <action> tags after <\/message>/);
   assert.match(section, /kind may be only "image" or "voice"/);
   assert.match(section, /Do not emit kind="video"/);
@@ -55,7 +55,7 @@ test('desktop chat output contract helper exposes an APML skeleton', () => {
 
   assert.match(skeleton, /^<message id="message-0">/m);
   assert.match(skeleton, /<emotion>neutral<\/emotion>/);
-  assert.match(skeleton, /<activity>responding<\/activity>/);
+  assert.match(skeleton, /<activity>thinking<\/activity>/);
   assert.match(skeleton, /Assistant reply text here\./);
   assert.doesNotMatch(skeleton, /schemaId/);
 });
@@ -65,7 +65,7 @@ test('resolveAgentModelOutputEnvelope accepts strict APML output', () => {
     modelOutput: [
       '<message id="message-0">',
       '  <emotion>joy</emotion>',
-      '  <activity>wave</activity>',
+      '  <activity>greet</activity>',
       '  Ready.',
       '</message>',
       '<action id="image-0" kind="image" source-message="message-0" coupling="after-message">',
@@ -93,7 +93,7 @@ test('resolveAgentModelOutputEnvelope accepts strict APML output', () => {
   }
   assert.equal(resolved.envelope.message.text, 'Ready.');
   assert.equal(resolved.envelope.statusCue?.mood, 'joy');
-  assert.equal(resolved.envelope.statusCue?.actionCue, 'wave');
+  assert.equal(resolved.envelope.statusCue?.actionCue, 'greet');
   assert.equal(resolved.envelope.actions[0]?.modality, 'image');
   assert.equal(resolved.diagnostics.classification, 'strict-apml');
   assert.equal(resolved.diagnostics.recoveryPath, 'none');

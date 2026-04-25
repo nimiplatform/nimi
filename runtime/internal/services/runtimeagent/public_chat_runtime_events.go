@@ -3,7 +3,6 @@ package runtimeagent
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -141,11 +140,14 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 		}
 	}
 	if activityName != "" {
-		intensity := ""
-		if structured.StatusCue.Intensity != nil {
-			intensity = strconv.FormatFloat(*structured.StatusCue.Intensity, 'f', -1, 64)
+		category, intensity, ierr := normalizePublicChatActivityProjection(activityName, structured.StatusCue.Intensity)
+		if ierr != nil {
+			if r.svc.logger != nil {
+				r.svc.logger.Warn("skip presentation.activity_requested; activity ontology invalid", "agent_id", session.AgentID, "error", ierr)
+			}
+			return
 		}
-		activityEvent, aerr := r.svc.emitPresentationActivityEvent(entry.Agent.GetAgentId(), anchorID, turnID, streamID, activityName, "chat", intensity, "chat_status_cue", now)
+		activityEvent, aerr := r.svc.emitPresentationActivityEvent(entry.Agent.GetAgentId(), anchorID, turnID, streamID, activityName, category, intensity, "apml_output", now)
 		if aerr != nil {
 			if r.svc.logger != nil {
 				r.svc.logger.Warn("skip presentation.activity_requested; envelope invalid", "agent_id", session.AgentID, "error", aerr)

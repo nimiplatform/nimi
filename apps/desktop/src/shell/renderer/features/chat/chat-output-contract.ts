@@ -8,7 +8,7 @@ function buildDesktopChatOutputContractLines(): string[] {
     'The first non-whitespace characters must be <message and the response must contain exactly one <message id="...">...</message>.',
     'Put all user-visible assistant text inside the single <message> body.',
     'Use <emotion>neutral|joy|focus|calm|playful|concerned|surprised</emotion> inside <message> only when a current affect cue is useful.',
-    'Use <activity>...</activity> inside <message> only for a short presentation/action cue; do not use it as visible text.',
+    'Use <activity>happy|sad|shy|angry|surprised|confused|excited|worried|embarrassed|neutral|greet|farewell|agree|disagree|listening|thinking|idle|celebrating|sleeping|focused</activity> inside <message> only for a short presentation/action cue; do not use it as visible text.',
     'Immediate post-turn media actions must be sibling <action> tags after </message>, never nested inside <message>.',
     '<action> kind may be only "image" or "voice". Do not emit kind="video"; video generation is deferred.',
     '<action> must include id, kind, source-message, and coupling="after-message" or coupling="with-message".',
@@ -24,7 +24,7 @@ export function buildDesktopChatEnvelopeSkeleton(): string {
   return [
     '<message id="message-0">',
     '  <emotion>neutral</emotion>',
-    '  <activity>responding</activity>',
+    '  <activity>thinking</activity>',
     '  Assistant reply text here.',
     '</message>',
   ].join('\n');
