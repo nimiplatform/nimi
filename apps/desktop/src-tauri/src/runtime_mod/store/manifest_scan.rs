@@ -143,7 +143,7 @@ mod manifest_scan_tests {
     fn write_test_manifest(root: &Path) -> PathBuf {
         fs::write(
             root.join("mod.manifest.yaml"),
-            "id: world.nimi.local-chat\nname: Local Chat\nversion: 1.0.0\nentry: dist/mods/local-chat/index.js\niconAsset: assets/icon.svg\nstyles:\n  - dist/mods/local-chat/index.css\n",
+            "id: world.nimi.test-ai\nname: Test AI\nversion: 1.0.0\nentry: dist/mods/test-ai/index.js\niconAsset: assets/icon.svg\nstyles:\n  - dist/mods/test-ai/index.css\n",
         )
         .expect("write test manifest");
         root.join("mod.manifest.yaml")
@@ -152,19 +152,19 @@ mod manifest_scan_tests {
     #[test]
     fn parse_manifest_file_extracts_style_paths() {
         let temp = tempdir().expect("create temp dir");
-        let mod_dir = temp.path().join("local-chat");
-        fs::create_dir_all(mod_dir.join("dist/mods/local-chat")).expect("create test mod dist");
+        let mod_dir = temp.path().join("test-ai");
+        fs::create_dir_all(mod_dir.join("dist/mods/test-ai")).expect("create test mod dist");
         let manifest_path = write_test_manifest(&mod_dir);
 
         let summary = parse_manifest_file(&manifest_path).expect("parse manifest");
         assert_eq!(
             summary.styles,
-            Some(vec!["dist/mods/local-chat/index.css".to_string()])
+            Some(vec!["dist/mods/test-ai/index.css".to_string()])
         );
         assert_eq!(
             summary.style_paths,
             Some(vec![mod_dir
-                .join("dist/mods/local-chat/index.css")
+                .join("dist/mods/test-ai/index.css")
                 .display()
                 .to_string()])
         );

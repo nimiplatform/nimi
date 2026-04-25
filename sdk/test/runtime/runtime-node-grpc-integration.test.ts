@@ -100,7 +100,7 @@ function createStreamGenerateRequest(): StreamScenarioRequest {
   return {
     head: {
       appId: APP_ID,
-      subjectUserId: 'mod:local-chat',
+      subjectUserId: 'mod:test-ai',
       modelId: 'llama3',
       routePolicy: RoutePolicy.LOCAL,
       fallback: FallbackPolicy.DENY,

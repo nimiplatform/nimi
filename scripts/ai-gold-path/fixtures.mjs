@@ -226,15 +226,6 @@ export function loadGoldFixtureAudioInput(fixture) {
   return null;
 }
 
-export function supportsLocalChatLayer(fixture) {
-  return (
-    fixture.capability === 'text.generate'
-    || fixture.capability === 'image.generate'
-    || fixture.capability === 'audio.synthesize'
-    || fixture.capability === 'audio.transcribe'
-  );
-}
-
 export function runtimeEnvForFixture(fixture) {
   if (fixture.provider !== 'dashscope') {
     return {};

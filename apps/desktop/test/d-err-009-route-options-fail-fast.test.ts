@@ -235,7 +235,7 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
 
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
-    modId: 'world.nimi.local-chat',
+    modId: 'world.nimi.test-ai',
   }, {
     sdkListConnectors: async () => ([]),
     sdkListConnectorModelDescriptors: async () => ([]),

@@ -17,7 +17,7 @@
 ## Verification Commands
 - Guardrails: `pnpm nimicoding:validate-ai-governance --profile nimi --scope all`, `pnpm check:no-retired-methodology-refs`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.
 - Spec: run affected `pnpm exec nimicoding validate-spec-governance --profile nimi --scope ...` and `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope ... --check` commands. For broad spec drift, also run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc --check`.
-- Runtime/SDK/Desktop/Web/Live: `go build ./...`, `go vet ./...`, `go test ./...`, `go run ./cmd/runtime-compliance --gate`, `pnpm --filter @nimiplatform/sdk test`, `pnpm check:sdk-coverage`, `pnpm check:sdk-consumer-smoke`, `pnpm --filter @nimiplatform/desktop test`, `pnpm --filter @nimiplatform/web build`, `pnpm check:live-provider-invariants`, `pnpm check:runtime-mod-hook-hardcut`, `pnpm check:mods-no-runtime-sdk`, `pnpm check:local-chat-e2e`.
+- Runtime/SDK/Desktop/Web/Live: `go build ./...`, `go vet ./...`, `go test ./...`, `go run ./cmd/runtime-compliance --gate`, `pnpm --filter @nimiplatform/sdk test`, `pnpm check:sdk-coverage`, `pnpm check:sdk-consumer-smoke`, `pnpm --filter @nimiplatform/desktop test`, `pnpm --filter @nimiplatform/web build`, `pnpm check:live-provider-invariants`, `pnpm check:runtime-mod-hook-hardcut`, `pnpm check:mods-no-runtime-sdk`.
 <!-- nimicoding:managed:agents:start -->
 # Nimi Coding Managed Block
 - Read `.nimi/methodology`, `.nimi/spec`, and `.nimi/contracts` before high-risk changes. Treat `.nimi` as the primary AI truth surface.

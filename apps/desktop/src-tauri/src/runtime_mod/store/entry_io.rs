@@ -111,17 +111,17 @@ mod tests {
         let root = make_temp_root("allow-in-root");
         let mods_dir = root.join("mods");
         let entry = mods_dir
-            .join("local-chat")
+            .join("test-ai")
             .join("dist")
             .join("mods")
-            .join("local-chat")
+            .join("test-ai")
             .join("index.js");
         fs::create_dir_all(entry.parent().expect("entry parent")).expect("create entry parent");
         fs::write(&entry, "export {};\n").expect("write entry");
 
         let normalized = normalize_local_mod_entry_path_from_base(
             &mods_dir,
-            "local-chat/dist/mods/local-chat/index.js",
+            "test-ai/dist/mods/test-ai/index.js",
         )
         .expect("normalize entry path");
         assert_eq!(
@@ -170,18 +170,18 @@ mod tests {
     #[test]
     fn declared_runtime_mod_asset_path_matches_manifest_icon_asset() {
         let root = make_temp_root("declared-asset");
-        let mod_dir = root.join("mods").join("local-chat");
+        let mod_dir = root.join("mods").join("test-ai");
         let icon = mod_dir.join("assets").join("icon.svg");
         fs::create_dir_all(icon.parent().expect("icon parent")).expect("create icon parent");
         fs::write(&icon, "<svg/>").expect("write icon");
         let normalized = icon.canonicalize().expect("canonical icon");
         let manifests = vec![RuntimeLocalManifestSummary {
             path: mod_dir.join("mod.manifest.yaml").display().to_string(),
-            id: "world.nimi.local-chat".to_string(),
+            id: "world.nimi.test-ai".to_string(),
             source_id: None,
             source_type: None,
             source_dir: None,
-            name: Some("Local Chat".to_string()),
+            name: Some("Test AI".to_string()),
             version: Some("1.0.0".to_string()),
             entry: None,
             entry_path: None,
@@ -201,7 +201,7 @@ mod tests {
     #[test]
     fn declared_runtime_mod_asset_path_rejects_undeclared_or_non_canonical_paths() {
         let root = make_temp_root("undeclared-asset");
-        let mod_dir = root.join("mods").join("local-chat");
+        let mod_dir = root.join("mods").join("test-ai");
         let icon = mod_dir.join("assets").join("icon.svg");
         let other = mod_dir.join("assets").join("other.svg");
         fs::create_dir_all(icon.parent().expect("icon parent")).expect("create icon parent");
@@ -210,11 +210,11 @@ mod tests {
         let normalized_other = other.canonicalize().expect("canonical other icon");
         let manifests = vec![RuntimeLocalManifestSummary {
             path: mod_dir.join("mod.manifest.yaml").display().to_string(),
-            id: "world.nimi.local-chat".to_string(),
+            id: "world.nimi.test-ai".to_string(),
             source_id: None,
             source_type: None,
             source_dir: None,
-            name: Some("Local Chat".to_string()),
+            name: Some("Test AI".to_string()),
             version: Some("1.0.0".to_string()),
             entry: None,
             entry_path: None,

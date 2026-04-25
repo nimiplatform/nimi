@@ -177,9 +177,9 @@ async function main() {
         error: withoutRouteError || null,
       },
       nextDesktopChecks: [
-        'local-chat VoicePanel: set TTS Route Source=cloud',
-        'local-chat VoicePanel: choose DashScope connector',
-        `local-chat VoicePanel: set TTS Model=${rawModel}`,
+        'Agent Chat VoicePanel: set TTS Route Source=cloud',
+        'Agent Chat VoicePanel: choose DashScope connector',
+        `Agent Chat VoicePanel: set TTS Model=${rawModel}`,
       ],
       daemonStdErrTail: daemonStderr.trim().split('\n').slice(-10),
     };

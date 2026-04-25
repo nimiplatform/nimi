@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
 import { withRuntimeDaemon } from '../../sdk/test/runtime/contract/helpers/runtime-daemon.js';
-import { prepareNimiModsSdkSnapshot } from '../lib/prepare-nimi-mods-sdk.mjs';
 import {
   GOLD_REPORT_PATH,
   loadGoldFixture,
@@ -14,7 +13,6 @@ import {
   missingFixtureEnv,
   runtimeEnvForFixture,
   summarizeGoldReport,
-  supportsLocalChatLayer,
 } from './fixtures.mjs';
 
 type LayerResult = {
@@ -272,9 +270,7 @@ async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Pro
     record.layers.L1 = skippedLayer(reason);
     record.layers.L2 = skippedLayer(reason);
     record.layers.L3 = skippedLayer(reason);
-    record.layers.L4 = supportsLocalChatLayer(fixture)
-      ? skippedLayer(reason)
-      : reservedLayer('consumer layer not in scope for this capability');
+    record.layers.L4 = reservedLayer('legacy mod consumer layer removed');
     record.first_failing_layer = toFirstFailingLayer(record);
     return record;
   }
@@ -322,15 +318,7 @@ async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Pro
           ['--filter', '@nimiplatform/desktop', 'exec', 'tsx', 'test/helpers/ai-gold-path-runner.ts', '--endpoint', endpoint, '--fixture', fixture.path],
           repoRoot,
         );
-        if (supportsLocalChatLayer(fixture)) {
-          record.layers.L4 = runCommandLayer(
-            'pnpm',
-            ['--dir', 'nimi-mods', '--filter', '@nimiplatform/mod-local-chat', 'exec', 'tsx', 'test/helpers/ai-gold-path-runner.ts', '--endpoint', endpoint, '--fixture', fixture.path],
-            repoRoot,
-          );
-        } else {
-          record.layers.L4 = reservedLayer('consumer layer not in scope for this capability');
-        }
+        record.layers.L4 = reservedLayer('legacy mod consumer layer removed');
       },
     });
   } catch (error) {
@@ -338,11 +326,7 @@ async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Pro
     record.layers.L1 = record.layers.L1 || daemonFailure;
     record.layers.L2 = record.layers.L2 || daemonFailure;
     record.layers.L3 = record.layers.L3 || daemonFailure;
-    record.layers.L4 = record.layers.L4 || (
-      supportsLocalChatLayer(fixture)
-        ? daemonFailure
-        : reservedLayer('consumer layer not in scope for this capability')
-    );
+    record.layers.L4 = record.layers.L4 || reservedLayer('legacy mod consumer layer removed');
   }
 
   record.first_failing_layer = toFirstFailingLayer(record);
@@ -356,14 +340,6 @@ async function main(): Promise<void> {
     : loadGoldFixtures().filter((fixture) => !provider || fixture.provider.toLowerCase() === provider);
   if (fixtures.length === 0) {
     throw new Error(provider ? `no gold fixtures found for provider ${provider}` : 'no gold fixtures found');
-  }
-  if (fixtures.some((fixture) => supportsLocalChatLayer(fixture))) {
-    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-    prepareNimiModsSdkSnapshot({
-      repoRoot,
-      env: process.env,
-      logPrefix: '[ai-gold-path]',
-    });
   }
   const records: FixtureRecord[] = [];
   for (const fixture of fixtures) {

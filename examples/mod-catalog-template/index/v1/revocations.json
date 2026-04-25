@@ -1,9 +1,3 @@
 {
-  "items": [
-    {
-      "scope": "release",
-      "targetId": "world.nimi.local-chat@0.9.0",
-      "reason": "digest-mismatch"
-    }
-  ]
+  "items": []
 }

@@ -250,7 +250,6 @@ export const landingContentZh: LandingContent = {
     title: '用模块扩展',
     subtitle: '基于 Nimi runtime 的预制应用，或者自己构建。',
     items: [
-      { icon: 'chat', name: 'local-chat', description: '与本地 AI 模型对话，私密、快速、无需联网。' },
       { icon: 'sim', name: 'kismet', description: '实时图表经济模拟引擎。' },
       { icon: 'audio', name: 'audio-book', description: 'AI 多角色有声书。' },
       { icon: 'video', name: 'videoplay', description: '从叙事脚本生成剧集级视频。' },

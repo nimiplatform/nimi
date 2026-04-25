@@ -13,7 +13,7 @@ import {
 test('parseExecutionPlan normalizes device profile and selections', () => {
   const parsed = parseExecutionPlan({
     planId: 'plan-1',
-    modId: 'local-chat',
+    modId: 'test-ai',
     capability: 'chat',
     deviceProfile: {
       os: 'darwin',
@@ -66,7 +66,7 @@ test('parseExecutionPlan normalizes device profile and selections', () => {
 test('parseExecutionApplyResult reuses model and service parsers', () => {
   const parsed = parseExecutionApplyResult({
     planId: 'plan-1',
-    modId: 'local-chat',
+    modId: 'test-ai',
     entries: [
       {
         entryId: 'dep-service',

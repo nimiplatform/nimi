@@ -196,7 +196,7 @@ modules:
     kind: feature
     surface_level: headless+ui+runtime+realm
     adapter_contract: ConversationSourceAdapter + ConversationShellAdapter + ConversationThreadAdapter + ConversationComposerAdapter + ConversationOrchestrationProvider + ConversationOrchestrationRegistry + ConversationRuntimeAdapter + ConversationContinuityAdapter + RuntimeChatComposerAdapterOptions + RealmChatComposerAdapterOptions
-    description: Reusable unified conversation shell with target-first AI/human/agent contracts, a local-chat-equivalent canonical presentational and message shell, orchestration provider registry/contracts, active simple-ai runtime integration, active realm typed human chat integration, realtime normalization, timeline composition/display helpers, and a socket-agnostic transport controller
+    description: Reusable unified conversation shell with target-first AI/human/agent contracts, a canonical presentational and message shell, orchestration provider registry/contracts, active simple-ai runtime integration, active realm typed human chat integration, realtime normalization, timeline composition/display helpers, and a socket-agnostic transport controller
     dependencies: [kit.ui]
     peer_dependencies: [react]
     exports:

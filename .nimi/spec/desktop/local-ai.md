@@ -59,7 +59,6 @@
 
 - `pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`
 - `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check`
-- `pnpm check:local-chat-e2e`
 
 ## Offline / Degradation
 

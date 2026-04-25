@@ -1,9 +1,10 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CanonicalCharacterRail } from '../src/components/canonical-character-rail.js';
+import {
+  CanonicalCharacterRail,
+  CANONICAL_NO_BIO_FALLBACK,
+} from '../src/components/canonical-character-rail.js';
 import { CanonicalComposer } from '../src/components/canonical-composer.js';
 import {
   CanonicalConversationPane,
@@ -21,16 +22,6 @@ import {
   ConversationSetupPanel,
   ConversationThreadList,
 } from '../src/index.js';
-import { LOCAL_CHAT_STAGE_SURFACE_WIDTH_CLASS } from '../../../../nimi-mods/runtime/local-chat/src/components/layout/chat-layout-width.js';
-
-const LOCAL_CHAT_CHARACTER_RAIL_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../../../../nimi-mods/runtime/local-chat/src/components/layout/local-chat-character-rail.tsx'),
-  'utf8',
-);
-const LOCAL_CHAT_CONVERSATION_PANE_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../../../../nimi-mods/runtime/local-chat/src/components/layout/local-chat-conversation-pane.tsx'),
-  'utf8',
-);
 
 (
   globalThis as typeof globalThis & {
@@ -263,9 +254,7 @@ describe('conversation shell ui', () => {
     expect(container.textContent).toContain('Voice');
   });
 
-  it('keeps canonical width and shell landmarks aligned with local-chat constants', async () => {
-    expect(CANONICAL_STAGE_SURFACE_WIDTH_CLASS).toBe(LOCAL_CHAT_STAGE_SURFACE_WIDTH_CLASS);
-
+  it('keeps canonical width and shell landmarks stable', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -308,7 +297,7 @@ describe('conversation shell ui', () => {
     expect(container.querySelector('[data-canonical-runtime-inspect="true"]')).not.toBeNull();
   });
 
-  it('matches local-chat character rail landmarks and fallback copy', async () => {
+  it('keeps canonical character rail landmarks and fallback copy stable', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -347,12 +336,9 @@ describe('conversation shell ui', () => {
     });
 
     const canonicalAside = container.querySelector('[data-canonical-character-rail="true"]');
-    expect(LOCAL_CHAT_CHARACTER_RAIL_SOURCE).toContain('w-[clamp(360px,30vw,600px)]');
-    expect(LOCAL_CHAT_CHARACTER_RAIL_SOURCE).toContain("t('Header.noBio')");
-    expect(LOCAL_CHAT_CHARACTER_RAIL_SOURCE).toContain("aria-label={t('Header.backToTargets')}");
-    expect(LOCAL_CHAT_CHARACTER_RAIL_SOURCE).toContain("aria-label={t('Header.openProfileDrawer')}");
+    expect(CANONICAL_STAGE_SURFACE_WIDTH_CLASS).toBe('max-w-[min(1240px,calc(100vw-520px))]');
     expect(canonicalAside?.className).toContain('w-[clamp(360px,30vw,600px)]');
-    expect(container.textContent).toContain('This Agent has no public bio.');
+    expect(container.textContent).toContain(CANONICAL_NO_BIO_FALLBACK);
     expect(container.querySelector('[data-canonical-presence-badge="true"]')).not.toBeNull();
     expect(container.querySelector('[data-canonical-relationship-badge="true"]')).not.toBeNull();
     expect(container.querySelector('[data-canonical-rail-avatar-anchor="true"]')).not.toBeNull();
@@ -360,7 +346,7 @@ describe('conversation shell ui', () => {
     expect(container.querySelector('button[aria-label="Open profile"]')).not.toBeNull();
   });
 
-  it('matches local-chat conversation pane control order and stage/chat labels', async () => {
+  it('keeps canonical conversation pane landmarks stable', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -393,10 +379,6 @@ describe('conversation shell ui', () => {
       await flush();
     });
 
-    expect(LOCAL_CHAT_CONVERSATION_PANE_SOURCE).toContain("aria-label={t('Header.openHistory')}");
-    expect(LOCAL_CHAT_CONVERSATION_PANE_SOURCE).toContain("aria-label={t('Header.returnToStage')}");
-    expect(LOCAL_CHAT_CONVERSATION_PANE_SOURCE).toContain("aria-label={t('Header.openSettings')}");
-    expect(LOCAL_CHAT_CONVERSATION_PANE_SOURCE).toContain('LOCAL_CHAT_STAGE_SURFACE_WIDTH_CLASS');
     expect(container.querySelector('[data-canonical-conversation-pane="true"]')).not.toBeNull();
     expect(container.querySelector('[data-canonical-pane-controls="true"]')).toBeNull();
   });

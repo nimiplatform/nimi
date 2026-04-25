@@ -29,7 +29,7 @@ export function createGenerateRequest(): ExecuteScenarioRequest {
   return {
     head: {
       appId: APP_ID,
-      subjectUserId: 'mod:local-chat',
+      subjectUserId: 'mod:test-ai',
       modelId: 'local-model',
       routePolicy: RoutePolicy.LOCAL,
       fallback: FallbackPolicy.DENY,

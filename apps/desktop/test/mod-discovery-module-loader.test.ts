@@ -16,7 +16,7 @@ test('module loader rewrites supported bare package imports to hosted module url
 
   const rewritten = rewriteRuntimeModSourceImportSpecifiers(
     source,
-    '/mods/local-chat/dist/mods/local-chat/index.js',
+    '/mods/test-ai/dist/mods/test-ai/index.js',
   );
 
   assert.match(
@@ -41,7 +41,7 @@ test('module loader rewrites supported bare package imports to hosted module url
   );
   assert.match(
     rewritten,
-    /import "file:\/\/\/mods\/local-chat\/dist\/mods\/local-chat\/chunk\.js";/,
+    /import "file:\/\/\/mods\/test-ai\/dist\/mods\/test-ai\/chunk\.js";/,
     'relative imports should still resolve against entry path',
   );
 });

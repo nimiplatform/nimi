@@ -94,12 +94,12 @@ test('toRuntimeModRow handles missing manifest fields gracefully', () => {
 
 test('toRuntimeModRow strips "desktop " prefix from display name', () => {
   const row = toRuntimeModRow(
-    makeSummary({ name: 'Desktop Local Chat' }) as never,
+    makeSummary({ name: 'Desktop Test Chat' }) as never,
     0,
     { isInstalled: true, isEnabled: true },
   );
 
-  assert.equal(row.name, 'Local Chat');
+  assert.equal(row.name, 'Test Chat');
 });
 
 test('mod hub icon precedence prefers local asset over catalog icon and falls back otherwise', () => {
@@ -161,9 +161,9 @@ test('mod hub icon precedence prefers local asset over catalog icon and falls ba
   assert.equal(fallbackCatalogRow.iconText, 'FA');
 });
 
-test('toRuntimeModRow does not special-case local-chat display names', () => {
+test('toRuntimeModRow does not special-case test-ai display names', () => {
   const row = toRuntimeModRow(
-    makeSummary({ id: 'world.nimi.local-chat', name: '' }) as never,
+    makeSummary({ id: 'world.nimi.test-ai', name: '' }) as never,
     0,
     { isInstalled: true, isEnabled: true },
   );
@@ -272,7 +272,7 @@ test('buildManagementSections groups installed before available catalog mods', (
 test('buildManagementSections filters by search query', () => {
   const sections = buildManagementSections({
     mods: [
-      toRuntimeModRow(makeSummary({ id: 'mod.local', name: 'Local Chat', description: 'Chat locally' }) as never, 0, {
+      toRuntimeModRow(makeSummary({ id: 'mod.local', name: 'Test Chat', description: 'Test locally' }) as never, 0, {
         isInstalled: true,
         isEnabled: true,
       }),

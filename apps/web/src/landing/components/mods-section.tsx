@@ -7,7 +7,6 @@ import buddyLogoUrl from '../assets/mod-logos/buddy.svg';
 import dailyOutfitLogoUrl from '../assets/mod-logos/daily-outfit.svg';
 import kismetLogoUrl from '../assets/mod-logos/kismet.svg';
 import knowledgeBaseLogoUrl from '../assets/mod-logos/knowledge-base.svg';
-import localChatLogoUrl from '../assets/mod-logos/local-chat.svg';
 import mintYouLogoUrl from '../assets/mod-logos/mint-you.svg';
 import textplayLogoUrl from '../assets/mod-logos/textplay.svg';
 import videoplayLogoUrl from '../assets/mod-logos/videoplay.svg';
@@ -31,7 +30,6 @@ const MOD_IMAGE_LOGOS: Record<string, string> = {
   'daily-outfit': dailyOutfitLogoUrl,
   kismet: kismetLogoUrl,
   'knowledge-base': knowledgeBaseLogoUrl,
-  'local-chat': localChatLogoUrl,
   'mint-you': mintYouLogoUrl,
   textplay: textplayLogoUrl,
   videoplay: videoplayLogoUrl,
@@ -266,7 +264,6 @@ export function ModsSection(props: ModsSectionProps) {
     const orderedNames = [
       'audio-book',
       'textplay',
-      'local-chat',
       'kismet',
       'videoplay',
       'knowledge-base',
@@ -278,7 +275,6 @@ export function ModsSection(props: ModsSectionProps) {
     const orderedDepths: LandingModItem['depth'][] = [
       'back',
       'mid',
-      'front',
       'front',
       'mid',
       'back',

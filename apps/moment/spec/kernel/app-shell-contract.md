@@ -80,7 +80,6 @@ It must not require or foreground internal ecosystem terms such as:
 - scene-atlas
 - agent-capture
 - textplay
-- local-chat
 
 Those may exist as implementation or future-integration context only.
 

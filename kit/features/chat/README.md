@@ -4,16 +4,16 @@
 Reusable chat capability module for unified conversation shell work, target-first chat surfaces, input composition, AI session UX, and default chat surfaces.
 
 ## Canonical Parity Matrix
-`local-chat` is the only UI truth source for the canonical shell. Desktop chat may add source pills on the landing pane, but every other layer must stay structurally equivalent.
+The kit canonical shell is the UI truth source for shared chat surfaces. Desktop chat may add source pills on the landing pane, but every other layer must stay structurally equivalent.
 
-| Surface | Local-chat contract | Canonical kit requirement |
+| Surface | Canonical contract | Canonical kit requirement |
 | --- | --- | --- |
 | Target pane | Minimal bubble field landing | Same bubble field and target-entry behavior; only `AI / Human / Agent` pills may be added |
 | Character rail | Hero avatar, presence badge, relationship badge, profile anchor | Same layout, badge ordering, and avatar anchor semantics |
 | Conversation pane | Right-aligned stage/history + settings actions, fixed stage/composer width | Same header control order and width constraints |
 | Stage panel | Anchored stage card, first-beat-first, wheel-up intent to history | Same anchor, pending, and history-intent behavior |
 | Transcript | Grouped bubbles, date dividers, focused assistant group, welcome/history intro | Same grouping landmarks and scroll behavior |
-| Composer | Local-chat shell with voice/media affordances and runtime hint | Same shell and placement; source-specific logic only through adapters/hooks |
+| Composer | Canonical shell with voice/media affordances and runtime hint | Same shell and placement; source-specific logic only through adapters/hooks |
 | Settings drawer | Drawer header/body shell with independent scroll surface | Same drawer chrome; sections fed by canonical content |
 | Profile drawer | Drawer shell for relationship/memory/target details | Same drawer chrome; sections fed by canonical content |
 | Right sidebar | Prewarm, fixed width, boundary, overlay menu | Same shell and failure behavior |
@@ -36,8 +36,8 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
   - SDK-backed default realm bindings live only under `src/realm/**`; the feature root stays adapter-driven
 
 ## When To Use It
-- Reuse `CanonicalConversationShell` when a product must match `local-chat` target landing, character rail, stage/chat switch, drawer, overlay, and message-surface interaction while swapping only the underlying source adapter.
-- Reuse `CanonicalTargetPane`, `CanonicalCharacterRail`, `CanonicalConversationPane`, `CanonicalStagePanel`, `CanonicalTranscriptView`, `CanonicalMessageBubble`, `CanonicalTypingBubble`, `CanonicalRightSidebar`, `CanonicalDrawerShell`, `CanonicalDrawerSection`, and `CanonicalComposer` when the surrounding app needs extracted `local-chat`-equivalent layout primitives without taking the full shell.
+- Reuse `CanonicalConversationShell` when a product must match the canonical target landing, character rail, stage/chat switch, drawer, overlay, and message-surface interaction while swapping only the underlying source adapter.
+- Reuse `CanonicalTargetPane`, `CanonicalCharacterRail`, `CanonicalConversationPane`, `CanonicalStagePanel`, `CanonicalTranscriptView`, `CanonicalMessageBubble`, `CanonicalTypingBubble`, `CanonicalRightSidebar`, `CanonicalDrawerShell`, `CanonicalDrawerSection`, and `CanonicalComposer` when the surrounding app needs extracted canonical layout primitives without taking the full shell.
 - Reuse `ChatComposer` and session state for AI conversation.
 - Bind runtime text generation through `chat/runtime`.
 - Reuse the orchestration contracts/registry from `chat/headless` before adding app-local mode-specific submit loops.

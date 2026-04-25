@@ -55,7 +55,7 @@ function createLocalTextProjection() {
       provider: 'llama',
       model: 'llama3',
       modelId: 'llama3',
-      localModelId: 'local-chat-1',
+      localModelId: 'local-model-1',
       connectorId: '',
       endpoint: 'http://127.0.0.1:11434/v1',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
@@ -376,7 +376,7 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
     local: {
       listLocalAssets: async () => ({
         assets: [{
-          localAssetId: 'local-chat-1',
+          localAssetId: 'local-model-1',
           assetId: 'llama3',
           engine: 'llama',
           endpoint: 'http://127.0.0.1:11434/v1',
@@ -387,7 +387,7 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
       }),
       warmLocalAsset: async () => ({
         asset: {
-          localAssetId: 'local-chat-1',
+          localAssetId: 'local-model-1',
         },
       }),
     },
@@ -522,7 +522,7 @@ test('agent runtime turn stream binds to the current request_id and ignores back
     local: {
       listLocalAssets: async () => ({
         assets: [{
-          localAssetId: 'local-chat-1',
+          localAssetId: 'local-model-1',
           assetId: 'llama3',
           engine: 'llama',
           endpoint: 'http://127.0.0.1:11434/v1',
@@ -533,7 +533,7 @@ test('agent runtime turn stream binds to the current request_id and ignores back
       }),
       warmLocalAsset: async () => ({
         asset: {
-          localAssetId: 'local-chat-1',
+          localAssetId: 'local-model-1',
         },
       }),
     },
@@ -697,7 +697,7 @@ test('agent runtime turn warms local model before requesting runtime.agent turn 
     local: {
       listLocalAssets: async () => ({
         assets: [{
-          localAssetId: 'local-chat-1',
+          localAssetId: 'local-model-1',
           assetId: 'llama3',
           engine: 'llama',
           endpoint: 'http://127.0.0.1:11434/v1',
@@ -710,7 +710,7 @@ test('agent runtime turn warms local model before requesting runtime.agent turn 
         calls.push('warm');
         return {
           asset: {
-            localAssetId: 'local-chat-1',
+            localAssetId: 'local-model-1',
           },
         };
       },
@@ -993,7 +993,7 @@ test('agent runtime turn falls back when legacy runtime rejects request_id in tu
     local: {
       listLocalAssets: async () => ({
         assets: [{
-          localAssetId: 'local-chat-1',
+          localAssetId: 'local-model-1',
           assetId: 'llama3',
           engine: 'llama',
           endpoint: 'http://127.0.0.1:11434/v1',
@@ -1004,7 +1004,7 @@ test('agent runtime turn falls back when legacy runtime rejects request_id in tu
       }),
       warmLocalAsset: async () => ({
         asset: {
-          localAssetId: 'local-chat-1',
+          localAssetId: 'local-model-1',
         },
       }),
     },
@@ -1170,7 +1170,7 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
     local: {
       listLocalAssets: async () => ({
         assets: [{
-          localAssetId: 'local-chat-1',
+          localAssetId: 'local-model-1',
           assetId: 'llama3',
           engine: 'llama',
           endpoint: 'http://127.0.0.1:11434/v1',
@@ -1181,7 +1181,7 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
       }),
       warmLocalAsset: async () => ({
         asset: {
-          localAssetId: 'local-chat-1',
+          localAssetId: 'local-model-1',
         },
       }),
     },
@@ -1315,7 +1315,7 @@ test('agent local runtime invoke uses runtime text generate with desktop-core me
       provider: 'llama',
       model: 'llama3',
       modelId: 'llama3',
-      localModelId: 'local-chat-1',
+      localModelId: 'local-model-1',
       connectorId: '',
       endpoint: 'http://127.0.0.1:11434/v1',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
@@ -1863,7 +1863,7 @@ test('agent local runtime invoke falls back to resolved endpoint when provider-s
       provider: 'llama',
       model: 'qwen3',
       modelId: 'qwen3',
-      localModelId: 'local-chat-1',
+      localModelId: 'local-model-1',
       connectorId: '',
       endpoint: 'http://127.0.0.1:11434/v1',
     },
@@ -2859,7 +2859,7 @@ test('agent local mode creates image execution snapshot for runtime-authoritativ
       provider: 'llama',
       model: 'llama3',
       modelId: 'llama3',
-      localModelId: 'local-chat-1',
+      localModelId: 'local-model-1',
       connectorId: '',
       endpoint: 'http://127.0.0.1:11434/v1',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
@@ -3061,6 +3061,6 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.createMessage/);
   assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.updateMessage/);
   assert.doesNotMatch(adapterSource, /relay:/);
-  assert.doesNotMatch(adapterSource, /nimi-mods\/runtime\/local-chat/);
+  assert.doesNotMatch(adapterSource, /nimi-mods\/runtime\//);
   assert.doesNotMatch(adapterSource, /RuntimeStatusSidebar/);
 });

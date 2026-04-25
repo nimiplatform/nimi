@@ -37,8 +37,8 @@ function normalizeExtension(entry: UiExtensionEntry): Record<string, unknown> {
 
 /**
  * Look up the actual tabId that a mod's tab-page extension registered with.
- * Mods may use a short tabId (e.g. `mod:local-chat`) instead of the full
- * `mod:${modId}` (e.g. `mod:world.nimi.local-chat`). We must use the registered
+ * Mods may use a short tabId (e.g. `mod:test-ai`) instead of the full
+ * `mod:${modId}` (e.g. `mod:world.nimi.test-ai`). We must use the registered
  * tabId to match the extension's visibility check in the render function.
  */
 export function resolveModTabId(modId: string): `mod:${string}` {

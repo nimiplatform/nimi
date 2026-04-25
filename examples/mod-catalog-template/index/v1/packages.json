@@ -1,32 +1,5 @@
 [
   {
-    "packageId": "world.nimi.local-chat",
-    "packageType": "desktop-mod",
-    "name": "Local Chat",
-    "description": "Optional local chat execution and multimodal routing for Nimi desktop.",
-    "latestVersion": "1.0.0",
-    "latestChannel": "stable",
-    "publisher": {
-      "publisherId": "nimi",
-      "displayName": "Nimi",
-      "trustTier": "official"
-    },
-    "state": {
-      "listed": true,
-      "yanked": false,
-      "quarantined": false
-    },
-    "keywords": [
-      "chat",
-      "assistant",
-      "local"
-    ],
-    "tags": [
-      "official",
-      "multimodal"
-    ]
-  },
-  {
     "packageId": "world.nimi.future-world-app",
     "packageType": "nimi-app",
     "name": "World Companion",

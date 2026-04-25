@@ -9,7 +9,7 @@ export type ConversationComposerShellProps = {
 
 /**
  * Visual container for the conversation composer.
- * Provides the frosted-glass card styling matching local-chat.
+ * Provides the frosted-glass card styling used by canonical chat surfaces.
  * Does NOT include send button — that belongs to the inner ChatComposer.
  */
 export function ConversationComposerShell({

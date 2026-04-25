@@ -158,7 +158,7 @@ export function DesktopSection(props: DesktopSectionProps) {
                           <span className="text-[11px] font-semibold text-[#38bdf8]">{chromeLabels.connected}</span>
                         </div>
                         <div className="flex items-center justify-between border-t border-white/5 px-4 py-2">
-                          <span className="font-mono text-[11px] text-slate-300">mods/local-chat</span>
+                          <span className="font-mono text-[11px] text-slate-300">desktop/agent-chat</span>
                           <span className="text-[11px] font-semibold text-[#9ca3af]">{chromeLabels.installed}</span>
                         </div>
                       </div>

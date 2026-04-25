@@ -4,12 +4,11 @@ import { ChatMarkdownRenderer } from './chat-markdown-renderer.js';
 
 export type RpContentRendererProps = {
   content: string;
-  appearance?: 'canonical' | 'local-chat';
+  appearance?: 'canonical';
 };
 
 const NARRATION_CLASS: Record<NonNullable<RpContentRendererProps['appearance']>, string> = {
   canonical: 'my-2 whitespace-pre-wrap text-[0.92em] italic leading-[1.7] text-gray-500',
-  'local-chat': 'whitespace-pre-wrap text-[0.92em] italic leading-[1.6] text-gray-500',
 };
 
 function NarrationSegment(props: { text: string; appearance: NonNullable<RpContentRendererProps['appearance']> }) {
@@ -29,11 +28,11 @@ export function RpContentRenderer(props: RpContentRendererProps) {
   );
 
   if (!segments || segments.length === 0) {
-    return <ChatMarkdownRenderer content={props.content} appearance={appearance === 'local-chat' ? 'canonical' : appearance} />;
+    return <ChatMarkdownRenderer content={props.content} appearance={appearance} />;
   }
 
   if (segments.length === 1 && segments[0]!.kind === 'dialogue') {
-    return <ChatMarkdownRenderer content={segments[0]!.text} appearance={appearance === 'local-chat' ? 'canonical' : appearance} />;
+    return <ChatMarkdownRenderer content={segments[0]!.text} appearance={appearance} />;
   }
 
   const nodes: ReactNode[] = [];
@@ -45,7 +44,7 @@ export function RpContentRenderer(props: RpContentRendererProps) {
       );
     } else {
       nodes.push(
-        <ChatMarkdownRenderer key={`rp-${i}`} content={segment.text} appearance={appearance === 'local-chat' ? 'canonical' : appearance} />,
+        <ChatMarkdownRenderer key={`rp-${i}`} content={segment.text} appearance={appearance} />,
       );
     }
   }

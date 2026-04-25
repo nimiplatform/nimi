@@ -49,7 +49,7 @@ const ICON_THINKING = (
   </svg>
 );
 
-/** Circular icon button matching local-chat `.lc-btn-secondary` style. */
+/** Circular icon button matching the canonical conversation control style. */
 function HeaderIconButton(props: {
   icon: ReactNode;
   label: string;

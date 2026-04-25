@@ -75,12 +75,12 @@ Provider format examples:
 
 ## Scope
 
-V1 runtime core keeps cloud chat on human DIRECT endpoints and local-chat execution on desktop:
+V1 runtime core keeps cloud chat on human DIRECT endpoints and desktop agent chat execution on desktop:
 
 - `GET /api/human/chats`
 - `POST /api/human/chats/:chatId/messages`
 - `GET /api/human/chats/:chatId/sync`
-- local-chat execution via desktop runtime (cloud agent chat namespace removed)
+- desktop agent chat execution via desktop runtime (cloud agent chat namespace removed)
 
 ## Shell Features
 
@@ -88,8 +88,8 @@ Tauri shell includes:
 
 - Route badge + route reason panel (CLOUD/LOCAL deterministic result)
 - Provider field hard-gated to LOCAL route only
-- Local-chat 会话列表、会话切换与会话删除
-- Local-chat 回合诊断（promptTrace / turnAudit）
+- Agent chat 会话列表、会话切换与会话删除
+- Agent chat 回合诊断（promptTrace / turnAudit）
 - LOCAL 路由默认使用本地 Provider（由用户自配）
 - Provider health check 按钮（LOCAL 路由）可验证本地 endpoint 可达性
 - Renderer local state persistence (connection/session/turn/replay panel) with auto-restore on restart

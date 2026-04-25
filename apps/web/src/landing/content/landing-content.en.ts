@@ -260,7 +260,6 @@ export const landingContentEn: LandingContent = {
     title: 'Extend with mods',
     subtitle: 'Pre-built apps powered by the Nimi runtime. Or build your own.',
     items: [
-      { icon: 'chat', name: 'local-chat', description: 'Chat with local AI models. Private, fast, no network.' },
       { icon: 'sim', name: 'kismet', description: 'Economic simulation engine with real-time charts.' },
       { icon: 'audio', name: 'audio-book', description: 'Multi-voice audiobooks with AI narration.' },
       { icon: 'video', name: 'videoplay', description: 'Episode-scale video from narrative scripts.' },

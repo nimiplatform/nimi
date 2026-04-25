@@ -68,7 +68,7 @@ function createRuntimeConfigState(): RuntimeConfigStateV11 {
     local: {
       endpoint: 'http://127.0.0.1:11434',
       models: [{
-        localModelId: 'local-chat-1',
+        localModelId: 'local-model-1',
         engine: 'llama',
         model: 'qwen3',
         endpoint: 'http://127.0.0.1:11434',
@@ -207,7 +207,7 @@ test('chat ai a4: switching thread route truth updates selection-store projectio
     connectorId: '',
     model: 'qwen3-local',
     modelId: 'qwen3-local',
-    localModelId: 'local-chat-2',
+    localModelId: 'local-model-2',
     engine: 'llama',
     provider: 'llama',
     endpoint: 'http://127.0.0.1:22434',
@@ -234,7 +234,7 @@ test('chat ai a4: switching thread route truth updates selection-store projectio
         provider: 'llama',
         model: 'qwen3-local',
         modelId: 'qwen3-local',
-        localModelId: 'local-chat-2',
+        localModelId: 'local-model-2',
         connectorId: '',
         endpoint: 'http://127.0.0.1:22434',
       };
@@ -319,7 +319,7 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
       provider: 'llama',
       model: 'qwen3',
       modelId: 'qwen3',
-      localModelId: 'local-chat-1',
+      localModelId: 'local-model-1',
       connectorId: '',
       endpoint: 'http://127.0.0.1:11434',
       localProviderEndpoint: 'http://127.0.0.1:11434',

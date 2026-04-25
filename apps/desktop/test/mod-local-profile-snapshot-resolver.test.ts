@@ -18,8 +18,8 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
   useAppStore.getState = (() => ({
     ...originalGetState(),
     localManifestSummaries: [{
-      id: 'world.nimi.local-chat',
-      path: '/mods/world.nimi.local-chat/manifest.json',
+      id: 'world.nimi.test-ai',
+      path: '/mods/world.nimi.test-ai/manifest.json',
       manifest: {
         ai: {
           profiles: [{
@@ -28,7 +28,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
             recommended: true,
             consumeCapabilities: ['tts'],
             entries: [{
-              entryId: 'local-chat/tts-qwen3-1.7b',
+              entryId: 'test-ai/tts-qwen3-1.7b',
               kind: 'service',
               capability: 'tts',
               required: true,
@@ -43,8 +43,8 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
   localRuntime.resolveProfile = (async (input: Record<string, unknown>) => {
     resolveProfileCalls.push(input);
     return {
-      planId: 'plan-local-chat',
-      modId: 'world.nimi.local-chat',
+      planId: 'plan-test-ai',
+      modId: 'world.nimi.test-ai',
       profileId: 'tts-default',
       title: 'TTS Default',
       recommended: true,
@@ -53,8 +53,8 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
       warnings: [],
       assetEntries: [],
       executionPlan: {
-        planId: 'plan-local-chat',
-        modId: 'world.nimi.local-chat',
+        planId: 'plan-test-ai',
+        modId: 'world.nimi.test-ai',
         capability: 'tts',
         deviceProfile: {
           os: 'darwin',
@@ -71,7 +71,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
         selectionRationale: [],
         preflightDecisions: [],
         entries: [{
-          entryId: 'local-chat/tts-qwen3-1.7b',
+          entryId: 'test-ai/tts-qwen3-1.7b',
           kind: 'service',
           capability: 'tts',
           required: true,
@@ -96,7 +96,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
   try {
     const resolver = createModLocalProfileSnapshotResolver();
     const snapshot = await resolver({
-      modId: 'world.nimi.local-chat',
+      modId: 'world.nimi.test-ai',
       capability: 'audio.synthesize',
       routeSourceHint: 'local',
     });

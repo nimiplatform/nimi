@@ -9,26 +9,26 @@ import {
 
 test('parseRuntimeLocalManifestSummary keeps icon asset metadata', () => {
   const summary = parseRuntimeLocalManifestSummary({
-    path: '/mods/local-chat/mod.manifest.yaml',
-    id: 'world.nimi.local-chat',
+    path: '/mods/test-ai/mod.manifest.yaml',
+    id: 'world.nimi.test-ai',
     sourceId: 'dev-runtime',
     sourceType: 'dev',
-    sourceDir: '/mods/local-chat',
-    name: 'Local Chat',
+    sourceDir: '/mods/test-ai',
+    name: 'Test AI',
     version: '1.0.0',
-    entry: 'dist/mods/local-chat/index.js',
-    entryPath: '/mods/local-chat/dist/mods/local-chat/index.js',
+    entry: 'dist/mods/test-ai/index.js',
+    entryPath: '/mods/test-ai/dist/mods/test-ai/index.js',
     iconAsset: 'assets/icon.svg',
-    iconAssetPath: '/mods/local-chat/assets/icon.svg',
-    styles: ['dist/mods/local-chat/index.css'],
-    stylePaths: ['/mods/local-chat/dist/mods/local-chat/index.css'],
+    iconAssetPath: '/mods/test-ai/assets/icon.svg',
+    styles: ['dist/mods/test-ai/index.css'],
+    stylePaths: ['/mods/test-ai/dist/mods/test-ai/index.css'],
     manifest: {
-      id: 'world.nimi.local-chat',
+      id: 'world.nimi.test-ai',
     },
   });
 
   assert.equal(summary.iconAsset, 'assets/icon.svg');
-  assert.equal(summary.iconAssetPath, '/mods/local-chat/assets/icon.svg');
+  assert.equal(summary.iconAssetPath, '/mods/test-ai/assets/icon.svg');
 });
 
 test('parseRuntimeLocalAsset validates mime and base64 fields', () => {
@@ -45,13 +45,13 @@ test('parseRuntimeLocalAsset validates mime and base64 fields', () => {
 
 test('parseCatalogPackageSummary keeps optional iconUrl', () => {
   const summary = parseCatalogPackageSummary({
-    packageId: 'world.nimi.local-chat',
+    packageId: 'world.nimi.test-ai',
     packageType: 'desktop-mod',
-    name: 'Local Chat',
-    description: 'A chat mod',
+    name: 'Test AI',
+    description: 'A test mod',
     latestVersion: '1.0.0',
     latestChannel: 'stable',
-    iconUrl: 'https://catalog.example/assets/mod-icons/world.nimi.local-chat.svg',
+    iconUrl: 'https://catalog.example/assets/mod-icons/world.nimi.test-ai.svg',
     publisher: {
       publisherId: 'nimi',
       displayName: 'Nimi',
@@ -68,6 +68,6 @@ test('parseCatalogPackageSummary keeps optional iconUrl', () => {
 
   assert.equal(
     summary.iconUrl,
-    'https://catalog.example/assets/mod-icons/world.nimi.local-chat.svg',
+    'https://catalog.example/assets/mod-icons/world.nimi.test-ai.svg',
   );
 });
