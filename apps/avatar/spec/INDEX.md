@@ -16,6 +16,7 @@ Reading path:
 | [kernel/embodiment-projection-contract.md](kernel/embodiment-projection-contract.md) | Backend-agnostic embodiment projection layer and protocol split |
 | [kernel/app-shell-contract.md](kernel/app-shell-contract.md) | Window behavior / drag / always-on-top / click-through / small button |
 | [kernel/live2d-render-contract.md](kernel/live2d-render-contract.md) | Current Live2D backend branch: Cubism SDK integration, model loading, rendering pipeline |
+| [kernel/carrier-visual-acceptance-contract.md](kernel/carrier-visual-acceptance-contract.md) | Current Avatar app carrier visual proof requirements and evidence taxonomy |
 | [kernel/agent-script-contract.md](kernel/agent-script-contract.md) | NimiAgentScript (NAS) — convention-based JS handlers for embodiment package creators |
 | [kernel/avatar-event-contract.md](kernel/avatar-event-contract.md) | `avatar.*` events produced and consumed by the app |
 | [kernel/mock-fixture-contract.md](kernel/mock-fixture-contract.md) | Mock data format + scenario catalog for Phase 1 development |

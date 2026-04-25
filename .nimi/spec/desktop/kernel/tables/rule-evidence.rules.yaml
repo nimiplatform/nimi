@@ -560,6 +560,11 @@
   status: covered
   evidence_refs:
     - desktop_kernel_consistency
+- rule_id: D-LLM-070
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+  note: "Desktop-to-Avatar demo acceptance boundary; executable coverage lands in the dedicated demo acceptance waves"
 - rule_id: D-MBAR-001
   status: covered
   evidence_refs:

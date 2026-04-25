@@ -329,6 +329,37 @@ Fixed rules:
   camera choreography, cross-thread avatar synchronization, or standalone
   editor surface; those remain deferred per `D-LLM-058`
 
+## D-LLM-070 — Desktop-To-Avatar Demo Acceptance Boundary
+
+Desktop owns cross-app demo acceptance only as launcher/orchestrator evidence,
+not as Avatar carrier execution proof.
+
+Current first-30-second Desktop-to-Avatar acceptance must prove the following
+on current active code, not by citing closed-topic artifacts:
+
+- Desktop selects a target and invokes the admitted avatar handoff path with
+  explicit `agent_id`, `avatar_instance_id`, and either an existing
+  `conversation_anchor_id` or explicit `open_new` anchor mode
+- the target relation remains anchor-native and does not fall back to same-agent
+  conversation guessing, desktop-local avatar binding, or runtime-default agent
+  truth
+- the acceptance run distinguishes real runtime/SDK handoff evidence from
+  explicit fixture/mock evidence; fixture evidence may support regression
+  checks but cannot close real demo acceptance
+- missing launch context, missing agent id, missing anchor/open-new targeting,
+  stale live instance identity, or unavailable runtime path must fail closed
+  instead of reporting demo success
+- Desktop-rendered Live2D smoke evidence may validate Desktop chat renderer
+  behavior, but it cannot close `apps/avatar` carrier WebGL/canvas proof
+
+Out of scope for this acceptance boundary unless a later authority admits it:
+
+- Phase 2 voice output, lipsync, `avatar.speak.*`, `avatar.lipsync.frame`, or a
+  shared `PresentationTimeline`
+- broad SDK/platform Event API semantics
+- desktop-local Live2D/VRM carrier revival
+- closed 2026-04-20 demo checklist as active product proof
+
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md` — runtime persistent presentation truth and non-owner boundary
@@ -342,3 +373,4 @@ Fixed rules:
 - `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/closeout-wave-4-exec-pack-4.md` — desktop carrier decommission and single-carrier closeout rationale
 - `.nimi/topics/closed/2026-04-17-desktop-agent-vrm-pointer-interaction/design.md` — stage-local pointer Wave 1 rationale now superseded by app-level attention redesign
 - `.nimi/topics/ongoing/2026-04-19-desktop-app-level-avatar-attention-context/design.md` — app-level attention projection redesign rationale
+- `.nimi/topics/closed/2026-04-25-live2d-companion-full-design-alignment-continuation` — full-design alignment evidence and explicit first-demo deferral

@@ -146,6 +146,7 @@
 | `D-LLM-063` | `covered` | `desktop_kernel_consistency` |
 | `D-LLM-064` | `covered` | `desktop_kernel_consistency` |
 | `D-LLM-069` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-070` | `covered` | `desktop_kernel_consistency` |
 | `D-MBAR-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MBAR-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MBAR-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
