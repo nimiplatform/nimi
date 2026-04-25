@@ -7,7 +7,7 @@ import { catchLog } from '../../infra/telemetry/catch-log.js';
 import {
   CustomTodoComposer,
   CustomTodoInlineList,
-} from '../timeline/timeline-page-panels.js';
+} from '../timeline/timeline-custom-todos.js';
 
 const DRAWER_WIDTH = 360;
 
