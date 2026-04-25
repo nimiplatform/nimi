@@ -10,6 +10,7 @@ fn parse_digits_u64(raw: &str) -> Option<u64> {
     digits.parse::<u64>().ok()
 }
 
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 fn read_command_output(program: &str, args: &[&str]) -> Option<String> {
     let output = std::process::Command::new(program)
         .args(args)
@@ -25,6 +26,21 @@ fn read_command_output(program: &str, args: &[&str]) -> Option<String> {
         return None;
     }
     Some(text)
+}
+
+#[cfg(target_os = "windows")]
+static WINDOWS_SYSTEM_RESOURCES: OnceLock<std::sync::Mutex<sysinfo::System>> = OnceLock::new();
+
+#[cfg(target_os = "windows")]
+fn with_windows_system_resources<T>(reader: impl FnOnce(&mut sysinfo::System) -> T) -> Option<T> {
+    let system = WINDOWS_SYSTEM_RESOURCES.get_or_init(|| {
+        let mut system = sysinfo::System::new();
+        system.refresh_cpu_all();
+        system.refresh_memory();
+        std::sync::Mutex::new(system)
+    });
+    let mut guard = system.lock().ok()?;
+    Some(reader(&mut guard))
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -195,61 +211,33 @@ fn collect_temperature_celsius() -> Option<f64> {
 }
 
 #[cfg(target_os = "windows")]
-fn read_powershell_output(script: &str) -> Option<String> {
-    read_command_output(
-        "powershell",
-        &[
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            script,
-        ],
-    )
-}
-
-#[cfg(target_os = "windows")]
 fn collect_cpu_percent() -> Option<f64> {
-    let raw = read_powershell_output(
-        "(Get-Counter '\\Processor(_Total)\\% Processor Time').CounterSamples.CookedValue",
-    )?;
-    raw.lines()
-        .find_map(|line| line.trim().parse::<f64>().ok())
-        .map(|value| value.clamp(0.0, 100.0))
+    with_windows_system_resources(|system| {
+        system.refresh_cpu_usage();
+        f64::from(system.global_cpu_usage()).clamp(0.0, 100.0)
+    })
 }
 
 #[cfg(target_os = "windows")]
 fn collect_memory_usage_bytes() -> Option<(u64, u64)> {
-    let raw = read_powershell_output(
-        "$os=Get-CimInstance Win32_OperatingSystem; \"$($os.TotalVisibleMemorySize) $($os.FreePhysicalMemory)\"",
-    )?;
-    let values = raw
-        .split_whitespace()
-        .filter_map(|item| item.parse::<u64>().ok())
-        .collect::<Vec<_>>();
-    if values.len() < 2 {
-        return None;
-    }
-    let total_bytes = values[0].saturating_mul(1024);
-    let free_bytes = values[1].saturating_mul(1024);
-    let used_bytes = total_bytes.saturating_sub(free_bytes.min(total_bytes));
-    Some((used_bytes, total_bytes))
+    with_windows_system_resources(|system| {
+        system.refresh_memory();
+        let total_bytes = system.total_memory();
+        let used_bytes = system.used_memory().min(total_bytes);
+        (used_bytes, total_bytes)
+    })
 }
 
 #[cfg(target_os = "windows")]
 fn collect_disk_usage_bytes() -> Option<(u64, u64)> {
-    let raw = read_powershell_output(
-        "$d=Get-CimInstance Win32_LogicalDisk -Filter \"DeviceID='C:'\"; \"$($d.Size) $($d.FreeSpace)\"",
-    )?;
-    let values = raw
-        .split_whitespace()
-        .filter_map(|item| item.parse::<u64>().ok())
-        .collect::<Vec<_>>();
-    if values.len() < 2 {
-        return None;
-    }
-    let total_bytes = values[0];
-    let free_bytes = values[1];
+    let disks = sysinfo::Disks::new_with_refreshed_list();
+    let target = disks
+        .list()
+        .iter()
+        .find(|disk| disk.mount_point().to_string_lossy().eq_ignore_ascii_case("C:\\"))
+        .or_else(|| disks.list().first())?;
+    let total_bytes = target.total_space();
+    let free_bytes = target.available_space();
     let used_bytes = total_bytes.saturating_sub(free_bytes.min(total_bytes));
     Some((used_bytes, total_bytes))
 }
