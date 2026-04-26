@@ -63,23 +63,24 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface*
 
 `apps/avatar/spec/**` is Nimi Avatar's admitted app-local authority landing. Normative content belongs only in `spec/kernel/*.md` and `spec/kernel/tables/**`; `spec/INDEX.md` and `spec/nimi-avatar.md` are guides.
 
-### Migrated from Topic Proposal
+### Migrated Contract Lineage
 
-The following contracts migrated from `.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/`:
+The following contracts were crystallized from lifecycle-topic evidence into
+admitted app-local authority:
 
 - `spec/kernel/agent-script-contract.md` ← `nimi-agent-script.md` (议题 4b)
 - `spec/kernel/avatar-event-contract.md` ← `avatar-event-spec.md` (议题 3b)
 
 ### Platform-Level Upstream
 
-Platform contracts remain at topic scope, consumed as upstream:
+Platform contracts are consumed from active `.nimi/spec/**` authority:
 
-- APML wire format → `apml-design.md` (议题 1)
-- APML LLM compliance → `apml-llm-compliance.md` (议题 1a)
-- Activity ontology → `activity-ontology.md` (议题 2)
-- Event contract + convention → `event-hook-contract.md` (议题 3)
-- SDK Event API → `sdk-event-api.md` (议题 4a)
-- Presentation Timeline → `presentation-timeline.md` (议题 5)
+- APML wire format → `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
+- APML LLM compliance → `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
+- Activity ontology → `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` and `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
+- HookIntent / event owner map → `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md` and `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+- SDK runtime consume surface → `.nimi/spec/sdk/kernel/runtime-contract.md`
+- Presentation Timeline boundary → `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
 
 Nimi Avatar-specific contracts in this spec/kernel do not re-define upstream;只定义 app-local 行为 + downstream implementation binding。
 

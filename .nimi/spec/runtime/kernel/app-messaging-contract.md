@@ -145,3 +145,31 @@ AppService 的跨域消费契约状态：
     use `runtime.app.send.cross_app`
 - `runtime.agent.*` RPC projection remains separate and covers
   lifecycle/state/memory/admin/read rather than reactive chat transport
+
+## K-APP-009 Companion Multi-App Interaction Boundary
+
+Agent Companion multi-app interaction uses explicit runtime app messaging and
+runtime-owned `runtime.agent.*` projection families. It is not a platform event
+broker.
+
+Fixed rules:
+
+- first-party app-local event names such as `desktop.chat.*` and `avatar.*`
+  may be documented by their owning app specs, but those names do not become
+  runtime-owned event families by appearing in app-message payloads
+- RuntimeAppService transports addressed app messages; it does not own Desktop
+  shell event semantics, Avatar carrier event semantics, or SDK app-event
+  schema truth
+- app-to-app coordination for the companion path must carry explicit app id,
+  subject context when required, and any runtime continuity identifiers needed
+  by the receiving app; receivers must not infer `agent_id` or
+  `conversation_anchor_id` from same-agent traffic or app-local session ids
+- `runtime.agent` remains the only reserved runtime-owned target for reactive
+  agent chat and admitted projection families; app-local targets must not
+  mint new `runtime.agent.*` payload shapes
+- wildcard subscription, cancellable before-events, and SDK-owned app-event
+  emission remain outside this contract unless a later runtime and SDK
+  authority packet admits them
+- malformed payloads, missing explicit identity, unauthorized app ids, or
+  unsupported message types must fail closed rather than being converted into
+  local UI cues

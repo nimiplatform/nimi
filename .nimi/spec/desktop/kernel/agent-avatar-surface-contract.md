@@ -360,17 +360,56 @@ Out of scope for this acceptance boundary unless a later authority admits it:
 - desktop-local Live2D/VRM carrier revival
 - closed 2026-04-20 demo checklist as active product proof
 
+## D-LLM-071 — Desktop Companion App Event Convention
+
+Desktop owns only bounded shell-local companion event convention for launcher,
+handoff, and chat-shell cues. This convention is downstream of runtime-owned
+`runtime.agent.*` projection and upstream of Avatar app-local consume; it is not
+a platform event broker.
+
+Admitted desktop-local companion event names:
+
+- `desktop.chat.message.send`
+- `desktop.chat.message.receive`
+- `desktop.avatar.launch.requested`
+- `desktop.avatar.launch.failed`
+- `desktop.avatar.handoff.completed`
+- `desktop.avatar.handoff.failed`
+- `desktop.avatar.instance.reveal_requested`
+- `desktop.avatar.instance.close_requested`
+
+Fixed rules:
+
+- every desktop-to-avatar handoff event must resolve to explicit `agent_id`,
+  `avatar_instance_id`, and either a committed `conversation_anchor_id` or the
+  explicit `open_new` anchor mode before leaving Desktop shell ownership
+- Desktop app events may be used as first-party UI cues, but they must not
+  replace `runtime.agent.turn.*`, `runtime.agent.presentation.*`,
+  `runtime.agent.state.*`, or `runtime.agent.hook.*` projection truth
+- Desktop must not publish wildcard subscriptions, cancellable before-events,
+  SDK-owned app event APIs, or a general `desktop.*` broker from this
+  convention
+- Desktop may request bounded live-instance operations by
+  `avatar_instance_id`; Avatar remains execution owner and missing/stale
+  targets must fail closed
+- app-local event payloads must not mint runtime-owned fields or infer
+  continuity from same-agent traffic
+- unsupported desktop companion events must be ignored with observable
+  diagnostics or rejected at the sender boundary; they must not silently become
+  product success
+
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md` — runtime persistent presentation truth and non-owner boundary
+- `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md` — conversation continuity anchor truth
+- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — transient turn, presentation, emotion, and timeline projection truth
 - `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md` — generic behavior / experience semantics
 - `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md` — message/action envelope semantics
 - `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md` — broader voice session semantics
 - `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md` — richer workflow / voice identity semantics
 - `.nimi/spec/platform/kernel/kit-contract.md` — reusable `kit/features/avatar` admission and ownership hardcut
-- `.nimi/topics/ongoing/2026-04-15-agent-live-avatar-airi-audit/design.md` — topic-local avatar landing rationale
-- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/closeout-wave-4-exec-pack-3.md` — desktop bridge / handoff hard cut rationale
-- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/closeout-wave-4-exec-pack-4.md` — desktop carrier decommission and single-carrier closeout rationale
-- `.nimi/topics/closed/2026-04-17-desktop-agent-vrm-pointer-interaction/design.md` — stage-local pointer Wave 1 rationale now superseded by app-level attention redesign
-- `.nimi/topics/ongoing/2026-04-19-desktop-app-level-avatar-attention-context/design.md` — app-level attention projection redesign rationale
-- `.nimi/topics/closed/2026-04-25-live2d-companion-full-design-alignment-continuation` — full-design alignment evidence and explicit first-demo deferral
+- `apps/avatar/spec/kernel/index.md` — Avatar app-local authority map
+- `apps/avatar/spec/kernel/app-shell-contract.md` — Avatar shell launch, fail-closed, and foreground companion UX boundary
+- `apps/avatar/spec/kernel/carrier-visual-acceptance-contract.md` — Avatar carrier visual proof requirements
+- `docs/architecture/agent-companion-core-protocol.md` — core substrate reader guide and correspondence matrix
+- `docs/architecture/live2d-companion.md` — reader guide and first-30-second demo correspondence

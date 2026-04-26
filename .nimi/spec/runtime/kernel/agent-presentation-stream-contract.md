@@ -236,5 +236,6 @@ runtime, SDK/Desktop, Avatar, and cross-surface acceptance evidence all exist.
 - `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
 - `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
 - `apps/avatar/spec/kernel/avatar-event-contract.md`
-- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/state-event-bus.md`
-- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/presentation-timeline.md`
+- `apps/avatar/spec/kernel/tables/activity-mapping.yaml`
+- `docs/architecture/agent-companion-core-protocol.md` — reader guide and core projection correspondence
+- `docs/architecture/live2d-companion.md` — reader guide and runtime projection correspondence

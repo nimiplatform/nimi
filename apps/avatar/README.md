@@ -129,13 +129,16 @@ apps/avatar/
 
 ## Upstream Platform Contracts
 
-Platform-level spec consumed from topic proposal directory:
+Platform-level spec is consumed from active `.nimi/spec/**` authority. The
+tracked reader guide is [Live2D Companion Architecture](../../docs/architecture/live2d-companion.md).
 
-- [APML wire format](../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md)
-- [Activity ontology](../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md)
-- [Event contract](../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md)
-- [SDK Event API](../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/sdk-event-api.md)
-- [Presentation Timeline](../../.nimi/topics/proposal/2026-04-20-desktop-agent-live2d-companion-substrate/presentation-timeline.md)
+- [APML wire format](../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
+- [Activity ontology](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md) and [activity ontology table](../../.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml)
+- [HookIntent and event owner map](../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
+- [Runtime projection stream](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
+- [Conversation anchor](../../.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
+- [SDK runtime consume surface](../../.nimi/spec/sdk/kernel/runtime-contract.md)
+- [Presentation Timeline admission boundary](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 
 ## Carrier Notes
 

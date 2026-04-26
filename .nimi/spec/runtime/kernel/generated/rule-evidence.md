@@ -27,6 +27,7 @@
 | `K-APP-006a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-APP-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-APP-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-APP-009` | `covered` | `runtime_kernel_consistency` |
 | `K-AUDIT-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-AUDIT-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-AUDIT-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

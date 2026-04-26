@@ -31,7 +31,7 @@ Reading path:
 
 ## Upstream Platform Specs
 
-These are consumed as upstream contracts, located in the topic proposal directory. They are **not** redefined here:
+These are consumed as active upstream contracts. They are **not** redefined here:
 
 - APML wire format — `../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
 - APML LLM compliance — `../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md` plus first-party prompt contracts

@@ -67,6 +67,10 @@ Building extensions for the Nimi desktop app?
 ## Architecture
 
 - [Architecture Overview](./architecture/index.md)
+- [Agent Companion Core Protocol](./architecture/agent-companion-core-protocol.md)
+- [Agent Companion Design Memory Register](./architecture/agent-companion-design-memory-register.md)
+- [Agent Companion Design Corpus Preservation](./architecture/agent-companion-design-corpus-preservation.md)
+- [Live2D Companion Architecture](./architecture/live2d-companion.md)
 - [Spec Map](./architecture/spec-map.md)
 
 ## Normative Source Of Truth

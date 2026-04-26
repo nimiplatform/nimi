@@ -82,4 +82,7 @@ Fixed rules:
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
 - `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
-- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/dual-entry-session.md`
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- `apps/avatar/spec/kernel/app-shell-contract.md`
+- `docs/architecture/agent-companion-core-protocol.md` — reader guide and dual-entry session correspondence
+- `docs/architecture/live2d-companion.md` — reader guide and conversation continuity correspondence

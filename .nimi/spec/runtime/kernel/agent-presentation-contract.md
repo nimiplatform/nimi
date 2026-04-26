@@ -123,7 +123,7 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — runtime-owned live agent lifecycle and app-facing control-plane boundary
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime-owned transient presentation / turn seam and current emotion projection
 - `.nimi/spec/runtime/kernel/voice-contract.md` — runtime-owned `VoiceReference` and voice asset truth
-- `.nimi/topics/ongoing/2026-04-15-agent-live-avatar-airi-audit/design.md` — topic-local authority blueprint and landing rationale
-- `.nimi/topics/ongoing/2026-04-15-agent-live-avatar-airi-audit/preflight.md` — admitted high-risk scope and non-owner framing
-- `.nimi/topics/ongoing/2026-04-17-desktop-agent-local-avatar-resource-binding/design.md` — desktop-local avatar binding non-owner rationale
-- `.nimi/topics/proposal/2026-04-17-desktop-agent-live2d-render-integration/design.md` — desktop-local Live2D viewport non-owner rationale
+- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` — desktop-local carrier decommission and avatar-app handoff boundary
+- `apps/avatar/spec/kernel/index.md` — Avatar app-local carrier authority map
+- `docs/architecture/agent-companion-core-protocol.md` — reader guide and core presentation correspondence
+- `docs/architecture/live2d-companion.md` — reader guide and presentation correspondence

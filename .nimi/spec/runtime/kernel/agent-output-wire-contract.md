@@ -29,6 +29,17 @@ Fixed rules:
 - public reactive chat APML admits only `<message>`, sibling
   `<action kind="image|voice">`, `<time-hook>`, and `<event-hook>` top-level
   tags
+- the admitted public `<message>` body is user-visible text plus optional
+  `<emotion>` and `<activity>` cues; `<emotion>` projects only to
+  runtime-owned current emotion state, and `<activity>` projects only to the
+  admitted runtime activity ontology
+- public `<action>` admits only `<prompt-payload kind="image|voice">` with a
+  required `<prompt-text>` child; video, provider-specific parameters, and
+  renderer/backend-specific action controls remain outside this APML dialect
+- public chat APML does not admit direct motion, expression, look-at, pose,
+  speech-prosody, surface-routing, notification, tool, chain-of-thought,
+  memory-write, posture/status, hook-cancel, namespace extension, mod
+  extension, or parser-event syntax
 - public `<event-hook>` is admitted only for the narrow HookIntent v1 event
   subset: `event-user-idle` with a positive `idle-for` / `idle-for-ms` duration
   or `event-chat-ended`; it must carry `<effect kind="follow-up-turn">`
@@ -42,6 +53,10 @@ Fixed rules:
   first-party apps treat it as product truth
 - malformed APML must fail closed with observable turn failure and must not
   leave a turn in an uncommitted pending state
+- closed broad APML designs are evidence only; any future public APML widening
+  for direct presentation controls, prosody, routing, notification, tools,
+  memory/state mutation, namespaces, video actions, or raw `apml.*` events
+  requires a new mounted runtime authority packet before implementation
 
 ## K-AGCORE-045 APML To Runtime Projection Boundary
 
@@ -61,6 +76,10 @@ Fixed rules:
   runtime turn commit point
 - APML activity / expression / posture / status cues may only become product
   truth through the admitted runtime presentation and state projection families
+- broad APML presentation capabilities such as motion, expression, look-at,
+  pose, speech prosody, and voice/lipsync timing are product semantics only
+  after they are represented as typed runtime projection families; their
+  presence in closed APML evidence does not admit public model-facing syntax
 - APML hook tags may only propose `HookIntent`; runtime owns validation,
   admission, scheduling, and public hook lifecycle events
 - apps must not consume raw `apml.*` parser events as their durable product path
@@ -170,6 +189,6 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
 - `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
-- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md`
-- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md`
-- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md`
+- `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
+- `docs/architecture/agent-companion-core-protocol.md` — reader guide and APML / runtime projection correspondence
+- `docs/architecture/live2d-companion.md` — reader guide and APML decision correspondence

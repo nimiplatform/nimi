@@ -242,7 +242,7 @@ Activity → motion/expression 的具体映射见 [activity mapping table](table
 
 - 新增 event → 本 spec minor bump + avatar app release
 - 改 event 语义 / 删 event → avatar app major bump
-- 必须符合议题 3 的 event contract version（当前 1.0）
+- 必须符合本 contract 的 event contract version（当前 1.0）
 - 添加 event 前需同步更新 manifest 声明
 
 ---

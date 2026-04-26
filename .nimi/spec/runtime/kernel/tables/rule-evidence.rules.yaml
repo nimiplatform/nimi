@@ -25,6 +25,10 @@
 - rule_id: K-APP-008
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-APP-009
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Companion multi-app interaction boundary; executable coverage lands with downstream cross-surface implementation."
 - rule_id: K-AUDIT-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]

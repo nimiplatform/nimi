@@ -105,7 +105,7 @@ These are **not** redefined here. App consumes them:
 |----------|----------|
 | APML wire format | `.nimi/spec/runtime/kernel/agent-output-wire-contract.md` |
 | APML LLM compliance | `.nimi/spec/runtime/kernel/agent-output-wire-contract.md` plus Desktop prompt contract |
-| Activity ontology | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` and `tables/activity-mapping.yaml`; closed design evidence remains under `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/activity-ontology.md` |
+| Activity ontology | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`, and app-local `tables/activity-mapping.yaml` |
 | Runtime conversation anchor | `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md` |
 | Runtime transient presentation seam | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` |
 | Event contract + app convention | `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`, `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, and this app-local `avatar-event-contract.md` |

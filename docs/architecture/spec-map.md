@@ -12,6 +12,10 @@ This page maps developer-facing topics to normative spec sources.
 - AI Agent security whitepaper (external-facing): [`docs/architecture/ai-agent-security-interface.md`](./ai-agent-security-interface.md)
 - AI Agent rule mapping (spec thin-domain): [`spec/platform/ai-agent-security-interface.md`](https://github.com/nimiplatform/nimi/blob/main/spec/platform/ai-agent-security-interface.md)
 - MCP × Agent interaction whitepaper (CN): [`zh/architecture/mcp-agent-interaction.md`](../zh/architecture/mcp-agent-interaction.md)
+- Agent Companion Core Protocol guide: [`docs/architecture/agent-companion-core-protocol.md`](./agent-companion-core-protocol.md)
+- Agent Companion design memory and extension register: [`docs/architecture/agent-companion-design-memory-register.md`](./agent-companion-design-memory-register.md)
+- Agent Companion design corpus preservation: [`docs/architecture/agent-companion-design-corpus-preservation.md`](./agent-companion-design-corpus-preservation.md)
+- Live2D companion architecture guide: [`docs/architecture/live2d-companion.md`](./live2d-companion.md)
 
 ## Domain entries
 
@@ -20,6 +24,7 @@ This page maps developer-facing topics to normative spec sources.
 - Desktop: [`spec/desktop`](https://github.com/nimiplatform/nimi/tree/main/spec/desktop)
 - Platform: [`spec/platform`](https://github.com/nimiplatform/nimi/tree/main/spec/platform)
 - Realm: [`spec/realm`](https://github.com/nimiplatform/nimi/tree/main/spec/realm)
+- Nimi Avatar app-local spec: [`apps/avatar/spec`](https://github.com/nimiplatform/nimi/tree/main/apps/avatar/spec)
 
 ## Rule of use
 

@@ -130,9 +130,9 @@ Wave 4 recovery posture 额外固定为：
 {
   "scenario": "basic-emotion-cycle",
   "events": [
-    { "at_ms": 0, "type": "apml.state.activity", "detail": { "activity_name": "happy" } },
-    { "at_ms": 3000, "type": "apml.state.activity", "detail": { "activity_name": "sad" } },
-    { "at_ms": 6000, "type": "apml.state.activity", "detail": { "activity_name": "greet" } }
+    { "kind": "time", "at_ms": 0, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "happy", "category": "emotion", "source": "mock" } },
+    { "kind": "time", "at_ms": 3000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "sad", "category": "emotion", "source": "mock" } },
+    { "kind": "time", "at_ms": 6000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "greet", "category": "interaction", "source": "mock" } }
   ]
 }
 ```

@@ -95,5 +95,6 @@ Fixed rules:
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
 - `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/apml-design.md`
-- `.nimi/topics/closed/2026-04-20-desktop-agent-live2d-companion-substrate/event-hook-contract.md`
+- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — broad event-bus deferral and runtime event owner map
+- `docs/architecture/agent-companion-core-protocol.md` — reader guide and HookIntent / app-event boundary correspondence
+- `docs/architecture/live2d-companion.md` — reader guide and HookIntent correspondence
