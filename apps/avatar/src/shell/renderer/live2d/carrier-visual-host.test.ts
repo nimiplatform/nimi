@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Live2DBackendSession } from './backend-session.js';
 import type { Live2DVisualModelShape, Live2DVisualRuntime } from './carrier-visual-runtime.js';
 
-function createSession(input: { loaded?: boolean } = {}): Live2DBackendSession {
+function createSession(input: { loaded?: boolean; parameters?: Map<string, number> } = {}): Live2DBackendSession {
   return {
     manifest: {
       runtimeDir: '/models/ren/runtime',
@@ -40,7 +40,7 @@ function createSession(input: { loaded?: boolean } = {}): Live2DBackendSession {
       activeMotion: null,
       activeExpression: null,
       activePose: null,
-      parameters: new Map(),
+      parameters: input.parameters ?? new Map(),
       commandLog: [],
     },
     applyCommand: vi.fn(),
@@ -51,6 +51,7 @@ function createSession(input: { loaded?: boolean } = {}): Live2DBackendSession {
 function createFakeGl(options: { drawVisible: boolean }) {
   const state = {
     drawn: false,
+    interactionTone: 0,
   };
   return {
     TEXTURE_2D: 0x0DE1,
@@ -86,13 +87,16 @@ function createFakeGl(options: { drawVisible: boolean }) {
       _type: number,
       pixels: Uint8Array,
     ) => {
-      pixels[0] = state.drawn && options.drawVisible ? 12 : 0;
+      pixels[0] = state.drawn && options.drawVisible ? 12 + state.interactionTone : 0;
       pixels[1] = state.drawn && options.drawVisible ? 34 : 0;
-      pixels[2] = state.drawn && options.drawVisible ? 56 : 0;
+      pixels[2] = state.drawn && options.drawVisible ? 56 + state.interactionTone : 0;
       pixels[3] = state.drawn && options.drawVisible ? 255 : 0;
     }),
     __markDrawn: () => {
       state.drawn = true;
+    },
+    __setInteractionTone: (value: number) => {
+      state.interactionTone = Math.max(0, Math.min(80, Math.round(Math.abs(value) * 4)));
     },
   };
 }
@@ -122,7 +126,11 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
       loadParameters: vi.fn(),
       saveParameters: vi.fn(),
       update: vi.fn(),
-      setParameterValueById: vi.fn(),
+      setParameterValueById: vi.fn((parameterId: unknown, value: number) => {
+        if (parameterId === 'ParamAngleX' || parameterId === 'ParamBodyAngleX' || parameterId === 'ParamBodyAngleZ') {
+          gl.__setInteractionTone(value);
+        }
+      }),
       getCanvasWidth: () => 2,
       getCanvasHeight: () => 2,
       getDrawableCount: () => 1,
@@ -230,7 +238,7 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
   };
 }
 
-async function createHostWithFakeRuntime(options: { drawVisible: boolean; loaded?: boolean }) {
+async function createHostWithFakeRuntime(options: { drawVisible: boolean; loaded?: boolean; parameters?: Map<string, number> }) {
   const { createLive2DCarrierVisualHost } = await import('./carrier-visual-host.js');
   const gl = createFakeGl({ drawVisible: options.drawVisible });
   const canvas = document.createElement('canvas');
@@ -239,7 +247,7 @@ async function createHostWithFakeRuntime(options: { drawVisible: boolean; loaded
   });
   return createLive2DCarrierVisualHost({
     canvas,
-    session: createSession({ loaded: options.loaded }),
+    session: createSession({ loaded: options.loaded, parameters: options.parameters }),
     width: 128,
     height: 160,
   }, {
@@ -260,6 +268,7 @@ describe('Live2D carrier visual host', () => {
       height: 160,
       sampledPixels: 16,
       visiblePixels: 16,
+      sampledPixelChecksum: 462808,
       drawableCount: 1,
       visibleDrawableCount: 1,
       nonZeroOpacityDrawableCount: 1,
@@ -277,5 +286,23 @@ describe('Live2D carrier visual host', () => {
   it('rejects unloaded backend sessions before creating a visual success state', async () => {
     await expect(createHostWithFakeRuntime({ drawVisible: true, loaded: false }))
       .rejects.toThrow('requires a loaded backend session');
+  });
+
+  it('proves interaction physics changes the Avatar-owned carrier visual frame', async () => {
+    const neutralHost = await createHostWithFakeRuntime({ drawVisible: true });
+    const activeHost = await createHostWithFakeRuntime({
+      drawVisible: true,
+      parameters: new Map([
+        ['ParamAngleX', 12],
+        ['ParamBodyAngleZ', 6],
+      ]),
+    });
+
+    const neutral = neutralHost.renderFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    const active = activeHost.renderFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+
+    expect(neutral.visiblePixels).toBeGreaterThan(0);
+    expect(active.visiblePixels).toBeGreaterThan(0);
+    expect(active.sampledPixelChecksum).not.toBe(neutral.sampledPixelChecksum);
   });
 });

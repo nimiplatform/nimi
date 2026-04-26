@@ -362,4 +362,133 @@ describe('Avatar NAS runtime event dispatch', () => {
 
     unwire();
   });
+
+  it('routes admitted avatar.user events to renderer-local physics and exact NAS handlers', async () => {
+    const handler = {
+      execute: vi.fn(async (ctx: AgentDataBundle, projection: EmbodimentProjectionApi) => {
+        expect(ctx.event).toMatchObject({
+          event_name: 'avatar.user.click',
+          detail: { region: 'face', x: 24, y: 48, button: 'left' },
+        });
+        projection.setSignal('ParamInteractionSmile', 1);
+      }),
+    };
+    const registry = createHandlerRegistry();
+    registry.event.set('avatar.user.click', {
+      kind: 'event',
+      eventName: 'avatar.user.click',
+      handler,
+      sourcePath: '/model/runtime/nimi/event/avatar_user_click.js',
+    });
+    const interactionPhysics = { handle: vi.fn(), reset: vi.fn() };
+    const driver = createDriver();
+    const projection = createProjection();
+    const unwire = wireEventDispatch({
+      driver,
+      registry,
+      executor: new HandlerExecutor(),
+      projection,
+      interactionPhysics,
+    });
+
+    const event: AgentEvent = {
+      event_id: 'event-avatar-click',
+      name: 'avatar.user.click',
+      timestamp: '2026-04-26T00:00:04.000Z',
+      detail: { region: 'face', x: 24, y: 48, button: 'left' },
+    };
+    driver.trigger(event);
+    await Promise.resolve();
+
+    expect(interactionPhysics.handle).toHaveBeenCalledWith(event, driver.getBundle());
+    expect(handler.execute).toHaveBeenCalledOnce();
+    expect(projection.setSignal).toHaveBeenCalledWith('ParamInteractionSmile', 1);
+    expect(handlerFilenameToEventName('avatar_user_click.js')).toBe('avatar.user.click');
+    expect(handlerFilenameToEventName('avatar_user_drag_end.js')).toBe('avatar.user.drag.end');
+
+    unwire();
+  });
+
+  it('skips missing and unsupported avatar.user handlers without wildcard fallback', async () => {
+    const driver = createDriver();
+    const projection = createProjection();
+    const interactionPhysics = { handle: vi.fn(), reset: vi.fn() };
+    const unwire = wireEventDispatch({
+      driver,
+      registry: createHandlerRegistry(),
+      executor: new HandlerExecutor(),
+      projection,
+      interactionPhysics,
+    });
+
+    driver.trigger({
+      event_id: 'event-avatar-click-missing',
+      name: 'avatar.user.click',
+      timestamp: '2026-04-26T00:00:04.000Z',
+      detail: { region: 'body', x: 50, y: 80, button: 'left' },
+    });
+    driver.trigger({
+      event_id: 'event-avatar-poke-unsupported',
+      name: 'avatar.user.poke',
+      timestamp: '2026-04-26T00:00:05.000Z',
+      detail: { x: 50, y: 80 },
+    });
+    await Promise.resolve();
+
+    expect(interactionPhysics.handle).toHaveBeenCalledTimes(1);
+    expect(projection.setSignal).not.toHaveBeenCalled();
+    expect(driver.emitted).toEqual([]);
+    expect(handlerFilenameToEventName('avatar_user_poke.js')).toBeNull();
+
+    unwire();
+  });
+
+  it('cancels the prior in-flight handler for the same avatar.user event key', async () => {
+    const startedSignals: AbortSignal[] = [];
+    const handler = {
+      execute: vi.fn(async (_ctx: AgentDataBundle, _projection: EmbodimentProjectionApi, options: { signal: AbortSignal }) => {
+        startedSignals.push(options.signal);
+        if (startedSignals.length === 1) {
+          await new Promise<void>((resolve) => {
+            options.signal.addEventListener('abort', () => resolve(), { once: true });
+          });
+        }
+      }),
+    };
+    const registry = createHandlerRegistry();
+    registry.event.set('avatar.user.drag.move', {
+      kind: 'event',
+      eventName: 'avatar.user.drag.move',
+      handler,
+      sourcePath: '/model/runtime/nimi/event/avatar_user_drag_move.js',
+    });
+    const driver = createDriver();
+    const unwire = wireEventDispatch({
+      driver,
+      registry,
+      executor: new HandlerExecutor(),
+      projection: createProjection(),
+    });
+
+    driver.trigger({
+      event_id: 'event-avatar-drag-move-1',
+      name: 'avatar.user.drag.move',
+      timestamp: '2026-04-26T00:00:06.000Z',
+      detail: { x: 50, y: 80, delta_x: 4, delta_y: 0 },
+    });
+    await Promise.resolve();
+    driver.trigger({
+      event_id: 'event-avatar-drag-move-2',
+      name: 'avatar.user.drag.move',
+      timestamp: '2026-04-26T00:00:06.050Z',
+      detail: { x: 54, y: 80, delta_x: 4, delta_y: 0 },
+    });
+    await Promise.resolve();
+
+    expect(handler.execute).toHaveBeenCalledTimes(2);
+    expect(startedSignals[0]?.aborted).toBe(true);
+    expect(startedSignals[1]?.aborted).toBe(false);
+
+    unwire();
+  });
 });

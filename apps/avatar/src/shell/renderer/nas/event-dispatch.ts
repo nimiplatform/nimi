@@ -1,4 +1,5 @@
 import type { AgentDataBundle, AgentDataDriver, AgentEvent } from '../driver/types.js';
+import { isAvatarUserInteractionEvent, type InteractionPhysicsController } from '../live2d/interaction-physics.js';
 import { activityHandlerKey } from './activity-naming.js';
 import { createDefaultActivityHandler } from './default-fallback.js';
 import type { EmbodimentProjectionApi } from './embodiment-projection-api.js';
@@ -11,6 +12,7 @@ export type DispatchContext = {
   registry: HandlerRegistry;
   executor: HandlerExecutor;
   projection: EmbodimentProjectionApi;
+  interactionPhysics?: InteractionPhysicsController;
 };
 
 function bundleForEvent(base: AgentDataBundle, event: AgentEvent): AgentDataBundle {
@@ -55,7 +57,7 @@ function parseRuntimeExpressionProjection(event: AgentEvent): string | null {
 }
 
 export function wireEventDispatch(context: DispatchContext): () => void {
-  const { driver, registry, executor, projection } = context;
+  const { driver, registry, executor, projection, interactionPhysics } = context;
   const defaultActivity = createDefaultActivityHandler();
 
   const unsubscribe = driver.onEvent((event) => {
@@ -122,6 +124,10 @@ export function wireEventDispatch(context: DispatchContext): () => void {
         console.warn(`[nas:fallback] runtime expression projection failed for ${expressionId}: ${err instanceof Error ? err.message : String(err)}`);
       });
       return;
+    }
+
+    if (interactionPhysics && isAvatarUserInteractionEvent(event.name)) {
+      interactionPhysics.handle(event, driver.getBundle());
     }
 
     const entry = registry.event.get(event.name);

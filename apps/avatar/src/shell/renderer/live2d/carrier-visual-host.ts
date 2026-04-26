@@ -16,6 +16,7 @@ export type Live2DCarrierVisualFrameStats = {
   height: number;
   sampledPixels: number;
   visiblePixels: number;
+  sampledPixelChecksum: number;
   drawableCount: number;
   visibleDrawableCount: number;
   nonZeroOpacityDrawableCount: number;
@@ -66,11 +67,12 @@ function sampleVisiblePixels(input: {
   gl: WebGLRenderingContext | WebGL2RenderingContext;
   width: number;
   height: number;
-}): Pick<Live2DCarrierVisualFrameStats, 'sampledPixels' | 'visiblePixels'> {
+}): Pick<Live2DCarrierVisualFrameStats, 'sampledPixels' | 'visiblePixels' | 'sampledPixelChecksum'> {
   const grid = 4;
   const pixel = new Uint8Array(4);
   let sampledPixels = 0;
   let visiblePixels = 0;
+  let sampledPixelChecksum = 0;
   for (let yIndex = 0; yIndex < grid; yIndex += 1) {
     for (let xIndex = 0; xIndex < grid; xIndex += 1) {
       const x = Math.max(0, Math.min(input.width - 1, Math.round(((xIndex + 0.5) / grid) * input.width)));
@@ -84,9 +86,10 @@ function sampleVisiblePixels(input: {
       if (alpha > 0 || red > 0 || green > 0 || blue > 0) {
         visiblePixels += 1;
       }
+      sampledPixelChecksum = (sampledPixelChecksum + ((red * 3) + (green * 5) + (blue * 7) + (alpha * 11)) * sampledPixels) >>> 0;
     }
   }
-  return { sampledPixels, visiblePixels };
+  return { sampledPixels, visiblePixels, sampledPixelChecksum };
 }
 
 export function assertLive2DCarrierVisualFrame(stats: Live2DCarrierVisualFrameStats): void {
@@ -189,6 +192,9 @@ async function createVisualModel(input: {
         modelMatrix.setMatrix(this.baseModelMatrix);
       }
       model.loadParameters();
+      for (const [parameterId, value] of input.session.execution.parameters) {
+        model.setParameterValueById(parameterId, value);
+      }
       this.breath?.updateParameters(model, inputFrame.deltaTimeSeconds);
       model.saveParameters();
       model.update();

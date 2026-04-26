@@ -16,6 +16,7 @@ import {
 import { resolveModelManifest, type ModelManifest } from '../live2d/model-loader.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
 import { wireAvatarVoiceLipsync } from '../voice-lipsync/avatar-voice-lipsync.js';
+import { createInteractionPhysicsController } from '../live2d/interaction-physics.js';
 
 export type AvatarRuntimeCarrier = {
   model: ModelManifest;
@@ -96,11 +97,13 @@ export async function startAvatarRuntimeCarrier(input: {
     },
   });
   const executor = new HandlerExecutor();
+  const interactionPhysics = createInteractionPhysicsController({ projection });
   const unwireDispatch = wireEventDispatch({
     driver: input.driver,
     registry,
     executor,
     projection,
+    interactionPhysics,
   });
   const unwireVoiceLipsync = wireAvatarVoiceLipsync({
     driver: input.driver,
@@ -133,6 +136,7 @@ export async function startAvatarRuntimeCarrier(input: {
       unwireVoiceLipsync();
       unwireDispatch();
       unwireBackend();
+      interactionPhysics.reset();
       executor.cancelAll();
       void stopNasHotReload?.().catch((err: unknown) => {
         console.warn(`[avatar:nas] failed to stop hot reload watcher: ${err instanceof Error ? err.message : String(err)}`);
