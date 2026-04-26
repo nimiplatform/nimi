@@ -178,7 +178,7 @@ async function openConversationAnchorForTarget(
   const protectedAccess = getRuntimeProtectedAccess();
   await ensureRuntimeAgentExists(target);
   const snapshot = await protectedAccess.withScopes(
-    ['runtime.agent.chat.write'],
+    ['runtime.agent.turn.write'],
     (options) => runtime.agent.anchors.open({
       agentId: target.agentId,
       metadata: {
@@ -219,7 +219,7 @@ async function ensureConversationAnchorBindingUpstream(input: {
   await ensureRuntimeAgentExists(input.target);
   try {
     await protectedAccess.withScopes(
-      ['runtime.agent.chat.read'],
+      ['runtime.agent.turn.read'],
       (options) => runtime.agent.anchors.getSnapshot({
         agentId: input.target.agentId,
         conversationAnchorId: input.binding.conversationAnchorId,

@@ -551,6 +551,8 @@ export async function streamChatAgentRuntimeAgentTurn(
             case 'runtime.agent.presentation.pose_requested':
             case 'runtime.agent.presentation.pose_cleared':
             case 'runtime.agent.presentation.lookat_requested':
+            case 'runtime.agent.presentation.voice_playback_requested':
+            case 'runtime.agent.presentation.lipsync_frame_batch':
               if (!isRuntimeAgentProjectionEvent(event)
                 || !matchesRuntimeAgentProjectionScope({
                   event,

@@ -3282,8 +3282,8 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionHelpersSource, /runtime\.agent\.initializeAgent/);
   assert.match(hostActionHelpersSource, /runtime\.agent\.anchors\.getSnapshot/);
   assert.match(hostActionHelpersSource, /clearAgentConversationAnchorBinding/);
-  assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.chat\.write'\]/);
-  assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.chat\.read'\]/);
+  assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.turn\.write'\]/);
+  assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.turn\.read'\]/);
   assert.match(hostActionHelpersSource, /record\.anchor/);
   assert.match(hostActionSubmitSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.match(hostActionSubmitRunSource, /matchConversationTurnEvent/);
@@ -3316,6 +3316,10 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(voiceAdapterSource, /document\.addEventListener\('visibilitychange', syncForegroundState\)/);
   assert.match(voiceAdapterSource, /autoStopMode:\s*'silence'/);
   assert.match(voiceAdapterSource, /activeConversationAnchorId/);
+  assert.match(voiceAdapterSource, /\[input\.activeConversationAnchorId,\s*input\.activeTarget\?\.agentId,\s*input\.activeThreadId\]/);
+  assert.match(voiceAdapterSource, /sessionAnchorId !== activeConversationAnchorId/);
+  assert.match(voiceAdapterSource, /Voice input stopped because the conversation anchor changed\./);
+  assert.match(voiceAdapterSource, /cancelStream\(activeThreadId\)/);
   assert.match(voiceAdapterSource, /conversationAnchorId:\s*sessionAnchorId/);
   assert.match(voiceAdapterSource, /persistVoiceTranscriptDraft\(\{\s*text: result\.text,\s*conversationAnchorId: sessionAnchorId,\s*\}\)/);
   assert.match(hostActionSubmitSource, /latestVoiceCapture\?\.conversationAnchorId === conversationAnchorId/);

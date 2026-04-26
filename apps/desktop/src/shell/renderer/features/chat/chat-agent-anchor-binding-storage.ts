@@ -8,6 +8,7 @@ export type AgentConversationAnchorBinding = {
 };
 
 const anchorBindingsByThreadId = new Map<string, AgentConversationAnchorBinding>();
+let storageSnapshot = '';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -41,6 +42,74 @@ function normalizeBinding(
   };
 }
 
+function readBrowserStorage(): Storage | null {
+  try {
+    const storage = globalThis.localStorage;
+    return storage && typeof storage.getItem === 'function' ? storage : null;
+  } catch {
+    return null;
+  }
+}
+
+function serializeBindings(): string {
+  return JSON.stringify([...anchorBindingsByThreadId.values()]);
+}
+
+function hydrateBindingsFromStorage(): void {
+  const storage = readBrowserStorage();
+  if (!storage) {
+    return;
+  }
+  let raw: string;
+  try {
+    raw = storage.getItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY) || '';
+  } catch {
+    return;
+  }
+  if (raw === storageSnapshot) {
+    return;
+  }
+  storageSnapshot = raw;
+  anchorBindingsByThreadId.clear();
+  if (!raw) {
+    return;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  if (!Array.isArray(parsed)) {
+    return;
+  }
+  for (const entry of parsed) {
+    const binding = normalizeBinding(entry);
+    if (binding) {
+      anchorBindingsByThreadId.set(binding.threadId, binding);
+    }
+  }
+}
+
+function persistBindingsToStorage(): void {
+  const storage = readBrowserStorage();
+  if (!storage) {
+    return;
+  }
+  const serialized = serializeBindings();
+  try {
+    if (anchorBindingsByThreadId.size === 0) {
+      storage.removeItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY);
+      storageSnapshot = '';
+      return;
+    }
+    storage.setItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY, serialized);
+    storageSnapshot = serialized;
+  } catch {
+    // Persistence is a reload hint only; Runtime snapshot validation remains authoritative.
+  }
+}
+
 export function getAgentConversationAnchorBinding(
   threadId: string | null | undefined,
 ): AgentConversationAnchorBinding | null {
@@ -48,6 +117,7 @@ export function getAgentConversationAnchorBinding(
   if (!normalizedThreadId) {
     return null;
   }
+  hydrateBindingsFromStorage();
   return anchorBindingsByThreadId.get(normalizedThreadId) || null;
 }
 
@@ -59,6 +129,7 @@ export function persistAgentConversationAnchorBinding(
     throw new Error('agent conversation anchor binding is invalid');
   }
   anchorBindingsByThreadId.set(normalizedBinding.threadId, normalizedBinding);
+  persistBindingsToStorage();
   return normalizedBinding;
 }
 
@@ -69,5 +140,7 @@ export function clearAgentConversationAnchorBinding(
   if (!normalizedThreadId) {
     return;
   }
+  hydrateBindingsFromStorage();
   anchorBindingsByThreadId.delete(normalizedThreadId);
+  persistBindingsToStorage();
 }
