@@ -5,6 +5,16 @@ import type {
   PreparedMarket,
 } from '@renderer/data/types.js';
 
+export type OfficialEventCard = {
+  id: string;
+  sourceEventId: string;
+  title: string;
+  eventSlug?: string;
+  markets: PreparedMarket[];
+  staleState: 'active';
+  staleReason?: string;
+};
+
 export function formatProbability(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
@@ -103,8 +113,8 @@ export function summarizeEventLogic(input: {
     coreIssueTitle: overlay.coreVariables[0]?.title,
   };
 }
-export function groupOfficialEvents(markets: PreparedMarket[]) {
-  const groups = new Map<string, { id: string; title: string; markets: PreparedMarket[]; staleState: 'active'; staleReason?: string }>();
+export function groupOfficialEvents(markets: PreparedMarket[]): OfficialEventCard[] {
+  const groups = new Map<string, OfficialEventCard>();
   for (const market of markets) {
     const key = market.eventId || market.eventTitle;
     const existing = groups.get(key);
@@ -114,7 +124,9 @@ export function groupOfficialEvents(markets: PreparedMarket[]) {
     }
     groups.set(key, {
       id: key,
+      sourceEventId: key,
       title: market.eventTitle,
+      eventSlug: market.eventSlug,
       markets: [market],
       staleState: 'active',
     });

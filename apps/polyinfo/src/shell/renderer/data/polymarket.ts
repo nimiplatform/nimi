@@ -159,6 +159,7 @@ function convertGammaEventToImportedPayload(event: GammaEventResponse): Imported
       id: String(market.id),
       eventId: String(event.id),
       eventTitle: event.title,
+      eventSlug: String(event.slug),
       question: String(market.question || ''),
       groupItemTitle: market.groupItemTitle ? String(market.groupItemTitle).trim() : undefined,
       slug: String(market.slug || market.id),
@@ -193,6 +194,28 @@ function convertGammaEventToImportedPayload(event: GammaEventResponse): Imported
     description: event.description,
     endDate: event.markets?.find((market) => market.endDate)?.endDate,
     markets,
+  };
+}
+
+export function buildImportedEventRecord(input: {
+  sectorId: string;
+  sourceUrl?: string;
+  payload: ImportedEventCachedPayload;
+  now?: number;
+}): ImportedEventRecord {
+  const now = input.now ?? Date.now();
+  const sourceUrl = String(input.sourceUrl || '').trim() || `https://polymarket.com/event/${input.payload.slug}`;
+  return {
+    id: `imported-${input.payload.sourceEventId}`,
+    sectorId: input.sectorId,
+    sourceUrl,
+    sourceEventId: input.payload.sourceEventId,
+    title: input.payload.title,
+    cachedEventPayload: input.payload,
+    lastValidatedAt: now,
+    staleState: 'active',
+    createdAt: now,
+    updatedAt: now,
   };
 }
 
@@ -354,6 +377,7 @@ export async function fetchSectorMarkets(
         id: String(market.id),
         eventId: String(event.id),
         eventTitle: event.title,
+        eventSlug: String(event.slug),
         question: String(market.question || ''),
         groupItemTitle: market.groupItemTitle ? String(market.groupItemTitle).trim() : undefined,
         slug: String(market.slug || market.id),

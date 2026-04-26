@@ -34,6 +34,9 @@ export function PolyinfoLayout() {
   const customSectorList = Object.values(customSectors).sort((left, right) => left.title.localeCompare(right.title));
   const officialRootSectors = rootSectorsQuery.data ?? [];
   const [selectedPrimaryGroup, setSelectedPrimaryGroup] = useState<PrimarySectorGroupId | null>(null);
+  const [editingCustomSectorId, setEditingCustomSectorId] = useState<string | null>(null);
+  const [editingCustomSectorTitle, setEditingCustomSectorTitle] = useState('');
+  const [pendingDeleteCustomSectorId, setPendingDeleteCustomSectorId] = useState<string | null>(null);
   const lastSyncedActiveSectorIdRef = useRef<string | null>(null);
   const rootDerivedPrimaryGroup = useMemo(
     () => resolvePrimarySectorGroupId({
@@ -105,14 +108,58 @@ export function PolyinfoLayout() {
     setLastActiveSectorId(sectorId);
     navigate(buildSectorPath(sectorId));
   };
-  const createCustomSector = () => {
-    const title = window.prompt('输入新的自建 sector 名称');
-    if (!title) {
+  const openCustomGroup = () => {
+    setSelectedPrimaryGroup('custom');
+    if (customSectors[activeSectorId]) {
       return;
     }
+    const firstCustomSector = customSectorList[0];
+    if (firstCustomSector) {
+      openSector(firstCustomSector.id);
+    }
+  };
+  const createCustomSector = () => {
+    const nextIndex = customSectorList.length + 1;
+    const title = nextIndex === 1 ? 'New custom sector' : `New custom sector ${nextIndex}`;
     setSelectedPrimaryGroup('custom');
+    setEditingCustomSectorId(null);
+    setPendingDeleteCustomSectorId(null);
     const sectorId = addCustomSector(title);
     openSector(sectorId);
+  };
+  const startRenameCustomSector = (sectorId: string, title: string) => {
+    setPendingDeleteCustomSectorId(null);
+    setEditingCustomSectorId(sectorId);
+    setEditingCustomSectorTitle(title);
+  };
+  const cancelRenameCustomSector = () => {
+    setEditingCustomSectorId(null);
+    setEditingCustomSectorTitle('');
+  };
+  const saveRenameCustomSector = (sectorId: string) => {
+    const nextTitle = editingCustomSectorTitle.trim();
+    if (!nextTitle) {
+      return;
+    }
+    renameCustomSector(sectorId, nextTitle);
+    cancelRenameCustomSector();
+  };
+  const confirmDeleteCustomSector = (sectorId: string) => {
+    const nextCustomSector = customSectorList.find((sector) => sector.id !== sectorId) ?? null;
+    const isDeletingActiveSector = activeSectorId === sectorId;
+    deleteCustomSector(sectorId);
+    setPendingDeleteCustomSectorId(null);
+    if (editingCustomSectorId === sectorId) {
+      cancelRenameCustomSector();
+    }
+    if (!isDeletingActiveSector) {
+      return;
+    }
+    if (nextCustomSector) {
+      openSector(nextCustomSector.id);
+      return;
+    }
+    navigate('/');
   };
   const handleWindowDrag = useCallback(async (event: ReactMouseEvent<HTMLDivElement>) => {
     if (event.button !== 0) {
@@ -203,7 +250,7 @@ export function PolyinfoLayout() {
           <div className="border-b polyinfo-hairline pb-4">
             <button
               type="button"
-              onClick={() => setSelectedPrimaryGroup('custom')}
+              onClick={openCustomGroup}
               className={`polyinfo-focus-ring w-full rounded-xl border px-3.5 py-3 text-left transition-colors ${
                 effectivePrimaryGroup === 'custom'
                   ? 'border-teal-300/60 bg-teal-300/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
@@ -233,57 +280,122 @@ export function PolyinfoLayout() {
                 <div className="space-y-2">
                   {customSectorList.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.025] px-3 py-4 text-sm leading-6 text-slate-500">
-                      还没有自建 sector。导入 Polymarket event 后会出现在这里。
+                      <p>还没有自建 sector。</p>
+                      <button
+                        type="button"
+                        onClick={createCustomSector}
+                        className="mt-3 rounded-lg border border-teal-300/25 px-3 py-2 text-xs text-teal-100 hover:bg-teal-300/10"
+                      >
+                        New custom sector
+                      </button>
                     </div>
                   ) : customSectorList.map((sector) => {
                       const isActive = activeSectorId === sector.id;
+                      const isEditing = editingCustomSectorId === sector.id;
+                      const isPendingDelete = pendingDeleteCustomSectorId === sector.id;
                       return (
                         <div
                           key={sector.id}
+                          data-testid={`custom-sector-card-${sector.id}`}
                           className={`rounded-xl border px-3 py-3 ${
                             isActive
                               ? 'border-teal-300/60 bg-teal-300/12'
                               : 'border-white/10 bg-white/[0.035]'
                           }`}
                         >
-                          <button
-                            type="button"
-                            onClick={() => openSector(sector.id)}
-                            className="w-full text-left"
-                          >
-                            <p className="text-sm font-medium text-white">{sector.title}</p>
-                            <p className="mt-1 text-[11px] leading-5 text-slate-500">URL import enabled</p>
-                          </button>
-                          <div className="mt-3 flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const nextTitle = window.prompt('重命名这个自建 sector', sector.title);
-                                if (!nextTitle) {
-                                  return;
-                                }
-                                renameCustomSector(sector.id, nextTitle);
-                              }}
-                              className="rounded-lg bg-white/[0.06] px-2 py-1 text-[11px] text-slate-300 hover:bg-white/[0.1]"
-                            >
-                              Rename
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!window.confirm(`删除 ${sector.title}？这会一起删除它的聊天、结构和导入 event。`)) {
-                                  return;
-                                }
-                                deleteCustomSector(sector.id);
-                                if (activeSectorId === sector.id) {
-                                  navigate('/');
-                                }
-                              }}
-                              className="rounded-lg bg-rose-400/10 px-2 py-1 text-[11px] text-rose-100 hover:bg-rose-400/16"
-                            >
-                              Delete
-                            </button>
-                          </div>
+                          {isEditing ? (
+                            <div>
+                              <label className="sr-only" htmlFor={`custom-sector-title-${sector.id}`}>
+                                Custom sector name
+                              </label>
+                              <input
+                                id={`custom-sector-title-${sector.id}`}
+                                value={editingCustomSectorTitle}
+                                onChange={(event) => setEditingCustomSectorTitle(event.target.value)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    saveRenameCustomSector(sector.id);
+                                  }
+                                  if (event.key === 'Escape') {
+                                    cancelRenameCustomSector();
+                                  }
+                                }}
+                                className="w-full rounded-lg border border-teal-300/30 bg-slate-950/70 px-2.5 py-2 text-sm text-white outline-none focus:border-teal-300/70"
+                                autoFocus
+                              />
+                              <div className="mt-3 flex gap-2">
+                                <button
+                                  type="button"
+                                  disabled={!editingCustomSectorTitle.trim()}
+                                  onClick={() => saveRenameCustomSector(sector.id)}
+                                  className="rounded-lg bg-teal-300 px-2.5 py-1.5 text-[11px] font-medium text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={cancelRenameCustomSector}
+                                  className="rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-[11px] text-slate-300 hover:bg-white/[0.1]"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openSector(sector.id)}
+                                className="w-full text-left"
+                              >
+                                <p className="text-sm font-medium text-white">{sector.title}</p>
+                                <p className="mt-1 text-[11px] leading-5 text-slate-500">URL import enabled</p>
+                              </button>
+                              {isPendingDelete ? (
+                                <div className="mt-3 rounded-lg border border-rose-300/20 bg-rose-400/10 p-2.5">
+                                  <p className="text-[11px] leading-5 text-rose-100">
+                                    删除后会移除这个 sector 的 event、narrative、variable、聊天和快照。
+                                  </p>
+                                  <div className="mt-3 flex gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => confirmDeleteCustomSector(sector.id)}
+                                      className="rounded-lg bg-rose-300 px-2.5 py-1.5 text-[11px] font-medium text-rose-950"
+                                    >
+                                      Delete
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPendingDeleteCustomSectorId(null)}
+                                      className="rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-[11px] text-slate-300 hover:bg-white/[0.1]"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mt-3 flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => startRenameCustomSector(sector.id, sector.title)}
+                                    className="rounded-lg bg-white/[0.06] px-2 py-1 text-[11px] text-slate-300 hover:bg-white/[0.1]"
+                                  >
+                                    Rename
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingCustomSectorId(null);
+                                      setPendingDeleteCustomSectorId(sector.id);
+                                    }}
+                                    className="rounded-lg bg-rose-400/10 px-2 py-1 text-[11px] text-rose-100 hover:bg-rose-400/16"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
                       );
                     })}

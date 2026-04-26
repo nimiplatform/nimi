@@ -6,11 +6,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
+import { buildSectorPath } from '@renderer/app-shell/workspace-routes.js';
 import {
   buildAnalysisPackage,
+  buildImportedEventRecord,
   fetchEventBySlug,
   fetchSectorHistory,
   fetchSectorMarkets,
@@ -20,6 +22,7 @@ import {
 import type {
   AnalysisPackage,
   AnalystMessage,
+  ImportedEventCachedPayload,
   ImportedEventRecord,
   PreparedMarket,
   SectorMarketBatch,
@@ -52,11 +55,23 @@ import {
   groupOfficialEvents,
   isStaleRuntimeBridgeError,
   summarizeEventLogic,
+  type OfficialEventCard,
 } from './sector-workspace-panel-helpers.js';
 
 const INITIAL_VISIBLE_EVENT_COUNT = 18;
 const VISIBLE_EVENT_INCREMENT = 18;
 const INITIAL_SECTOR_EVENT_PAGE_COUNT = 2;
+
+function buildPayloadFromOfficialEvent(event: OfficialEventCard): ImportedEventCachedPayload {
+  return {
+    sourceEventId: event.sourceEventId,
+    slug: event.eventSlug || event.sourceEventId,
+    title: event.title,
+    endDate: event.markets.find((market) => market.endDate)?.endDate,
+    markets: event.markets,
+  };
+}
+
 type MarketBoardPanelProps = {
   sectorId: string;
   activeOfficialSector: SectorTag | null;
@@ -85,14 +100,20 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
   onAnalysisReadyChange,
   analysisPackageRef,
 }: MarketBoardPanelProps) {
+  const navigate = useNavigate();
   const upsertImportedEvent = useAppStore((state) => state.upsertImportedEvent);
   const removeImportedEvent = useAppStore((state) => state.removeImportedEvent);
+  const customSectors = useAppStore((state) => state.customSectors);
+  const addCustomSector = useAppStore((state) => state.addCustomSector);
   const setActiveWindow = useAppStore((state) => state.setActiveWindow);
 
   const [visibleEventCount, setVisibleEventCount] = useState(INITIAL_VISIBLE_EVENT_COUNT);
   const [importUrl, setImportUrl] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [addMenuEventId, setAddMenuEventId] = useState<string | null>(null);
+  const [eventAddMessage, setEventAddMessage] = useState<string | null>(null);
   const [appendedOfficialBatches, setAppendedOfficialBatches] = useState<SectorMarketBatch[]>([]);
   const [isLoadingMoreEvents, setIsLoadingMoreEvents] = useState(false);
   const lastAnalysisReadyRef = useRef(false);
@@ -100,10 +121,17 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     setVisibleEventCount(INITIAL_VISIBLE_EVENT_COUNT);
     setImportUrl('');
     setImportError(null);
+    setImportMessage(null);
     setIsImporting(false);
+    setAddMenuEventId(null);
+    setEventAddMessage(null);
     setAppendedOfficialBatches([]);
     setIsLoadingMoreEvents(false);
   }, [sectorId]);
+  const customSectorList = useMemo(
+    () => Object.values(customSectors).sort((left, right) => left.title.localeCompare(right.title)),
+    [customSectors],
+  );
   const marketsQuery = useQuery({
     queryKey: ['polyinfo', 'official-sector-markets', sectorId, INITIAL_SECTOR_EVENT_PAGE_COUNT],
     queryFn: () => fetchSectorMarkets(activeOfficialSector!, { pageCount: INITIAL_SECTOR_EVENT_PAGE_COUNT }),
@@ -176,6 +204,33 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
   const officialEventCards = useMemo(() => groupOfficialEvents(marketInventory), [marketInventory]);
   const eventCards = isCustomSector ? activeImportedEvents : officialEventCards;
   const visibleEventCards = isCustomSector ? eventCards : eventCards.slice(0, visibleEventCount);
+  const addOfficialEventToSector = useCallback((event: OfficialEventCard, targetSectorId: string) => {
+    const targetSector = customSectors[targetSectorId];
+    if (!targetSector) {
+      return;
+    }
+    const payload = buildPayloadFromOfficialEvent(event);
+    upsertImportedEvent(targetSectorId, buildImportedEventRecord({
+      sectorId: targetSectorId,
+      sourceUrl: `https://polymarket.com/event/${payload.slug}`,
+      payload,
+    }));
+    setAddMenuEventId(null);
+    setEventAddMessage(`已加入 ${targetSector.title}`);
+  }, [customSectors, upsertImportedEvent]);
+  const createSectorAndAddOfficialEvent = useCallback((event: OfficialEventCard) => {
+    const title = event.title.trim() || 'New custom sector';
+    const targetSectorId = addCustomSector(title);
+    const payload = buildPayloadFromOfficialEvent(event);
+    upsertImportedEvent(targetSectorId, buildImportedEventRecord({
+      sectorId: targetSectorId,
+      sourceUrl: `https://polymarket.com/event/${payload.slug}`,
+      payload,
+    }));
+    setAddMenuEventId(null);
+    setEventAddMessage(`已创建并加入 ${title}`);
+    navigate(buildSectorPath(targetSectorId));
+  }, [addCustomSector, navigate, upsertImportedEvent]);
   const loadingBoard = Boolean(activeOfficialSector) && marketsQuery.isLoading;
   const loadingMarketData = marketDataRequested && historiesQuery.isFetching;
   const hasBoardError = marketsQuery.isError || historiesQuery.isError;
@@ -230,6 +285,9 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
       </div>
       <div className="border-b polyinfo-hairline bg-slate-950/20 px-5 py-3 text-sm text-slate-400">
         {boardModeMessage}
+        {eventAddMessage ? (
+          <span className="ml-3 text-teal-200">{eventAddMessage}</span>
+        ) : null}
       </div>
       {loadingBoard ? (
         <div className="px-5 py-6 text-sm text-slate-400">正在读取这个 sector 的 event 列表…</div>
@@ -272,6 +330,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                         >
                           {event.title}
                         </h3>
+                        <div className="relative shrink-0">
                         {'sourceUrl' in event ? (
                           <button
                             type="button"
@@ -280,7 +339,51 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                           >
                             Delete
                           </button>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label={`Add ${event.title} to custom sector`}
+                            title="Add to custom sector"
+                            onClick={() => {
+                              setEventAddMessage(null);
+                              if (customSectorList.length === 0) {
+                                createSectorAndAddOfficialEvent(event);
+                                return;
+                              }
+                              setAddMenuEventId((current) => (current === event.id ? null : event.id));
+                            }}
+                            className="rounded-lg bg-white/[0.06] px-2 py-1 text-[13px] font-semibold text-slate-300 hover:bg-teal-300/12 hover:text-teal-100"
+                          >
+                            +
+                          </button>
+                        )}
+                        {!('sourceUrl' in event) && addMenuEventId === event.id ? (
+                          <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-white/10 bg-slate-950 p-2 shadow-2xl">
+                            <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.14em] text-slate-500">
+                              Add to custom sector
+                            </p>
+                            <div className="max-h-52 space-y-1 overflow-y-auto">
+                              {customSectorList.map((targetSector) => (
+                                <button
+                                  key={targetSector.id}
+                                  type="button"
+                                  onClick={() => addOfficialEventToSector(event, targetSector.id)}
+                                  className="w-full rounded-lg px-2 py-2 text-left text-xs text-slate-200 hover:bg-white/[0.08]"
+                                >
+                                  {targetSector.title}
+                                </button>
+                              ))}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => createSectorAndAddOfficialEvent(event)}
+                              className="mt-2 w-full rounded-lg border border-teal-300/25 px-2 py-2 text-left text-xs text-teal-100 hover:bg-teal-300/10"
+                            >
+                              New custom sector
+                            </button>
+                          </div>
                         ) : null}
+                        </div>
                       </div>
                       {'sourceUrl' in event ? (
                         <p className="mt-2 truncate text-[11px] text-slate-500">{event.sourceUrl}</p>
@@ -386,22 +489,16 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
                 setImportError(null);
                 try {
                   const payload = await fetchEventBySlug(slug);
-                  const now = Date.now();
-                  upsertImportedEvent(sectorId, {
-                    id: `imported-${payload.sourceEventId}`,
+                  upsertImportedEvent(sectorId, buildImportedEventRecord({
                     sectorId,
                     sourceUrl: importUrl.trim(),
-                    sourceEventId: payload.sourceEventId,
-                    title: payload.title,
-                    cachedEventPayload: payload,
-                    lastValidatedAt: now,
-                    staleState: 'active',
-                    createdAt: now,
-                    updatedAt: now,
-                  });
+                    payload,
+                  }));
+                  setImportMessage(`已加入 ${payload.title}`);
                   setImportUrl('');
                 } catch (error) {
                   setImportError(error instanceof Error ? error.message : String(error));
+                  setImportMessage(null);
                 } finally {
                   setIsImporting(false);
                 }
@@ -412,6 +509,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
             </button>
           </div>
           {importError ? <p className="mt-2 text-xs text-rose-200">{importError}</p> : null}
+          {importMessage ? <p className="mt-2 text-xs text-teal-200">{importMessage}</p> : null}
         </div>
       ) : null}
     </section>

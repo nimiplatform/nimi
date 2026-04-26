@@ -82,6 +82,7 @@ export type PreparedMarket = {
   id: string;
   eventId: string;
   eventTitle: string;
+  eventSlug?: string;
   question: string;
   groupItemTitle?: string;
   slug: string;

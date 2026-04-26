@@ -48,6 +48,21 @@ describe('polyinfo data slice', () => {
     expect(harness.getState().importedEventsBySector[sectorId]).toBeUndefined();
   });
 
+  it('persists custom sector rename and delete changes', () => {
+    const harness = createHarness();
+    const sectorId = harness.getState().addCustomSector('Draft');
+
+    harness.getState().renameCustomSector(sectorId, 'Renamed Desk');
+
+    const savedAfterRename = JSON.parse(window.localStorage.getItem('nimi:polyinfo:custom-sectors:v1') || '{}') as Record<string, { title?: string }>;
+    expect(savedAfterRename[sectorId]?.title).toBe('Renamed Desk');
+
+    harness.getState().deleteCustomSector(sectorId);
+
+    const savedAfterDelete = JSON.parse(window.localStorage.getItem('nimi:polyinfo:custom-sectors:v1') || '{}') as Record<string, unknown>;
+    expect(savedAfterDelete[sectorId]).toBeUndefined();
+  });
+
   it('adds and removes narratives and core variables for a sector', () => {
     const harness = createHarness();
     harness.getState().ensureSectorTaxonomy('custom-1');
@@ -74,6 +89,39 @@ describe('polyinfo data slice', () => {
       narratives: [],
       coreVariables: [],
     });
+  });
+
+  it('upserts imported events by upstream event identity without duplicating rows', () => {
+    const harness = createHarness();
+    const sectorId = harness.getState().addCustomSector('Desk');
+    const baseRecord = {
+      id: 'imported-event-1',
+      sectorId,
+      sourceUrl: 'https://polymarket.com/event/test-event',
+      sourceEventId: 'event-1',
+      title: 'Test Event',
+      cachedEventPayload: {
+        sourceEventId: 'event-1',
+        slug: 'test-event',
+        title: 'Test Event',
+        markets: [],
+      },
+      lastValidatedAt: 1,
+      staleState: 'active' as const,
+      createdAt: 1,
+      updatedAt: 1,
+    };
+
+    harness.getState().upsertImportedEvent(sectorId, baseRecord);
+    harness.getState().upsertImportedEvent(sectorId, {
+      ...baseRecord,
+      id: 'different-local-id',
+      title: 'Updated Test Event',
+      updatedAt: 2,
+    });
+
+    expect(harness.getState().importedEventsBySector[sectorId]).toHaveLength(1);
+    expect(harness.getState().importedEventsBySector[sectorId]?.[0]?.title).toBe('Updated Test Event');
   });
 
   it('resets a sector conversation but keeps the thread identity', () => {
