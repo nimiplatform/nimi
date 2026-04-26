@@ -1,7 +1,16 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { AppOriginEvent } from '../driver/types.js';
-import { handlerFilenameToEventName } from './activity-naming.js';
+import {
+  activityHandlerKey,
+  handlerFilenameToActivityId,
+  handlerFilenameToEventName,
+} from './activity-naming.js';
+import {
+  assertSandboxSourcePolicy,
+  collectStaticImports,
+  validateSandboxSourcePolicy,
+} from './handler-sandbox-policy.js';
 import type {
   ActivityOrEventHandler,
   ContinuousHandler,
@@ -28,6 +37,20 @@ export type NasManifest = {
   event: RustHandlerEntry[];
   continuous: RustHandlerEntry[];
   configJsonPath: string | null;
+  nimiDir?: string;
+};
+
+export type NasConfig = {
+  nas_version?: string;
+  model_id?: string;
+  history_context?: {
+    enabled?: boolean;
+    window_seconds?: number;
+    track?: string[];
+  };
+  features?: Record<string, boolean>;
+  default_idle_motion?: string;
+  default_fallback_motion?: string;
 };
 
 export async function scanNasHandlers(nimiDir: string): Promise<NasManifest> {
@@ -37,6 +60,7 @@ export async function scanNasHandlers(nimiDir: string): Promise<NasManifest> {
     event: raw.event,
     continuous: raw.continuous,
     configJsonPath: raw.config_json_path,
+    nimiDir,
   };
 }
 
@@ -64,10 +88,12 @@ export type HandlerRegistry = {
   activity: Map<string, RegisteredActivityHandler>;
   event: Map<string, RegisteredEventHandler>;
   continuous: Map<string, RegisteredContinuousHandler>;
+  config: NasConfig | null;
 };
 
 export type PopulateRegistryResult = {
   validationErrors: string[];
+  config: NasConfig | null;
 };
 
 export type RegistryReloadMode = 'add' | 'update' | 'remove';
@@ -93,6 +119,7 @@ export function createHandlerRegistry(): HandlerRegistry {
     activity: new Map(),
     event: new Map(),
     continuous: new Map(),
+    config: null,
   };
 }
 
@@ -109,12 +136,125 @@ export function disposeRegistry(registry: HandlerRegistry): void {
   registry.activity.clear();
   registry.event.clear();
   registry.continuous.clear();
+  registry.config = null;
 }
 
 export type PopulateRegistryOptions = {
   createWorker?: SandboxWorkerFactory;
   failOnError?: boolean;
 };
+
+function normalizeSourcePath(path: string): string {
+  return path.replace(/\\/g, '/');
+}
+
+function runtimeNimiRootForSource(sourcePath: string): string | null {
+  const normalized = normalizeSourcePath(sourcePath);
+  const marker = '/runtime/nimi/';
+  const index = normalized.indexOf(marker);
+  if (index < 0) return null;
+  return normalized.slice(0, index + marker.length - 1);
+}
+
+function resolveLibImportPath(sourcePath: string, specifier: string): string {
+  const root = runtimeNimiRootForSource(sourcePath);
+  if (!root) {
+    throw new Error(`NAS handler source is outside runtime/nimi: ${sourcePath}`);
+  }
+  if (!specifier.startsWith('../lib/') || !specifier.endsWith('.js')) {
+    throw new Error(`NAS handler import is outside runtime/nimi/lib: ${specifier}`);
+  }
+  const relative = specifier.slice('../lib/'.length);
+  if (!relative || relative.includes('/') || relative.includes('..')) {
+    throw new Error(`NAS handler lib import must reference a direct lib/*.js helper: ${specifier}`);
+  }
+  return `${root}/lib/${relative}`;
+}
+
+function transformLibSourceForInline(source: string, sourcePath: string): string {
+  assertSandboxSourcePolicy(source, { kind: 'lib', sourcePath });
+  return source
+    .replace(/\bexport\s+async\s+function\s+/g, 'async function ')
+    .replace(/\bexport\s+function\s+/g, 'function ')
+    .replace(/\bexport\s+const\s+/g, 'const ')
+    .replace(/\bexport\s+let\s+/g, 'let ');
+}
+
+function exportedNamesFromLib(source: string): Set<string> {
+  const names = new Set<string>();
+  for (const match of source.matchAll(/\bexport\s+(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)/g)) {
+    names.add(match[1]!);
+  }
+  for (const match of source.matchAll(/\bexport\s+(?:const|let)\s+([A-Za-z_$][A-Za-z0-9_$]*)/g)) {
+    names.add(match[1]!);
+  }
+  return names;
+}
+
+function importedNamesFromBindings(bindings: string): string[] {
+  return bindings
+    .replace(/^\{\s*/, '')
+    .replace(/\s*\}$/, '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+async function bundleHandlerSource(source: string, sourcePath: string): Promise<string> {
+  assertSandboxSourcePolicy(source, {
+    kind: 'handler',
+    sourcePath,
+    allowLibImports: true,
+  });
+  const staticImports = collectStaticImports(source);
+  if (staticImports.length === 0) return source;
+
+  let bundledHandler = source;
+  const inlineSources: string[] = [];
+  const loadedLibs = new Set<string>();
+  for (const imported of staticImports) {
+    const libPath = resolveLibImportPath(sourcePath, imported.specifier);
+    const libSource = await readSource(libPath);
+    const exportedNames = exportedNamesFromLib(libSource);
+    for (const importedName of importedNamesFromBindings(imported.bindings)) {
+      if (!exportedNames.has(importedName)) {
+        throw new Error(`NAS lib ${imported.specifier} does not export ${importedName}`);
+      }
+    }
+    if (!loadedLibs.has(libPath)) {
+      inlineSources.push(transformLibSourceForInline(libSource, libPath));
+      loadedLibs.add(libPath);
+    }
+    bundledHandler = bundledHandler.replace(imported.statement, '');
+  }
+  const bundled = `${inlineSources.join('\n')}\n${bundledHandler}`;
+  assertSandboxSourcePolicy(bundled, { kind: 'handler', sourcePath });
+  return bundled;
+}
+
+async function readConfig(configJsonPath: string | null): Promise<NasConfig | null> {
+  if (!configJsonPath) return null;
+  const raw = await readSource(configJsonPath);
+  const parsed = JSON.parse(raw) as unknown;
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error('NAS config.json must contain a JSON object');
+  }
+  return parsed as NasConfig;
+}
+
+function validateHandlerEntryPath(entry: RustHandlerEntry, expectedDir: 'activity' | 'event' | 'continuous'): string | null {
+  const path = normalizeSourcePath(entry.absolute_path);
+  if (!path.endsWith(`/${expectedDir}/${entry.file_stem}.js`)) {
+    return `NAS ${expectedDir} handler path does not match runtime/nimi/${expectedDir}/${entry.file_stem}.js: ${entry.absolute_path}`;
+  }
+  const policy = validateSandboxSourcePolicy('export default { execute() {} };', { sourcePath: entry.absolute_path });
+  return policy.ok ? null : policy.reason;
+}
+
+function pushValidationError(validationErrors: string[], message: string): void {
+  validationErrors.push(message);
+  console.error(message);
+}
 
 export async function populateRegistry(
   registry: HandlerRegistry,
@@ -123,17 +263,39 @@ export async function populateRegistry(
 ): Promise<PopulateRegistryResult> {
   const createWorker = options.createWorker;
   const validationErrors: string[] = [];
+  try {
+    registry.config = await readConfig(manifest.configJsonPath);
+  } catch (err) {
+    pushValidationError(
+      validationErrors,
+      `[nas] failed to load config.json: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  const activityKeys = new Map<string, string>();
   for (const entry of manifest.activity) {
+    const key = activityHandlerKey(entry.file_stem);
+    const existing = activityKeys.get(key);
+    if (existing) {
+      pushValidationError(validationErrors, `[nas] duplicate normalized activity handler id ${key}: ${existing} and ${entry.file_stem}`);
+      continue;
+    }
+    activityKeys.set(key, entry.file_stem);
+    const pathError = validateHandlerEntryPath(entry, 'activity');
+    if (pathError) {
+      pushValidationError(validationErrors, `[nas] rejected activity handler ${entry.file_stem}: ${pathError}`);
+      continue;
+    }
     try {
-      const source = await readSource(entry.absolute_path);
+      const source = await bundleHandlerSource(await readSource(entry.absolute_path), entry.absolute_path);
       const module = await createSandboxedActivityOrEventHandler(source, entry.absolute_path, createWorker);
       if (!isActivityOrEventHandler(module)) {
-        console.warn(`[nas] activity handler ${entry.file_stem} has no execute()`);
+        pushValidationError(validationErrors, `[nas] activity handler ${entry.file_stem} has no execute()`);
         continue;
       }
-      registry.activity.set(entry.file_stem, {
+      registry.activity.set(key, {
         kind: 'activity',
-        activityId: entry.file_stem,
+        activityId: handlerFilenameToActivityId(entry.file_stem + '.js') ?? entry.file_stem,
         handler: module,
         sourcePath: entry.absolute_path,
       });
@@ -144,17 +306,29 @@ export async function populateRegistry(
     }
   }
 
+  const eventNames = new Map<string, string>();
   for (const entry of manifest.event) {
     const eventName = handlerFilenameToEventName(entry.file_stem + '.js');
     if (!eventName) {
-      console.warn(`[nas] event handler ${entry.file_stem} has no matching event in registry — skipped`);
+      pushValidationError(validationErrors, `[nas] event handler ${entry.file_stem} has no matching event in registry`);
+      continue;
+    }
+    const existing = eventNames.get(eventName);
+    if (existing) {
+      pushValidationError(validationErrors, `[nas] duplicate event handler for ${eventName}: ${existing} and ${entry.file_stem}`);
+      continue;
+    }
+    eventNames.set(eventName, entry.file_stem);
+    const pathError = validateHandlerEntryPath(entry, 'event');
+    if (pathError) {
+      pushValidationError(validationErrors, `[nas] rejected event handler ${entry.file_stem}: ${pathError}`);
       continue;
     }
     try {
-      const source = await readSource(entry.absolute_path);
+      const source = await bundleHandlerSource(await readSource(entry.absolute_path), entry.absolute_path);
       const module = await createSandboxedActivityOrEventHandler(source, entry.absolute_path, createWorker);
       if (!isActivityOrEventHandler(module)) {
-        console.warn(`[nas] event handler ${entry.file_stem} has no execute()`);
+        pushValidationError(validationErrors, `[nas] event handler ${entry.file_stem} has no execute()`);
         continue;
       }
       registry.event.set(eventName, {
@@ -170,12 +344,23 @@ export async function populateRegistry(
     }
   }
 
+  const continuousIds = new Set<string>();
   for (const entry of manifest.continuous) {
+    if (continuousIds.has(entry.file_stem)) {
+      pushValidationError(validationErrors, `[nas] duplicate continuous handler id ${entry.file_stem}`);
+      continue;
+    }
+    continuousIds.add(entry.file_stem);
+    const pathError = validateHandlerEntryPath(entry, 'continuous');
+    if (pathError) {
+      pushValidationError(validationErrors, `[nas] rejected continuous handler ${entry.file_stem}: ${pathError}`);
+      continue;
+    }
     try {
-      const source = await readSource(entry.absolute_path);
+      const source = await bundleHandlerSource(await readSource(entry.absolute_path), entry.absolute_path);
       const module = await createSandboxedContinuousHandler(source, entry.absolute_path, createWorker);
       if (!isContinuousHandler(module)) {
-        console.warn(`[nas] continuous handler ${entry.file_stem} has no update()`);
+        pushValidationError(validationErrors, `[nas] continuous handler ${entry.file_stem} has no update()`);
         continue;
       }
       const fps = typeof module.fps === 'number' && module.fps > 0 ? module.fps : 60;
@@ -194,9 +379,9 @@ export async function populateRegistry(
   }
 
   if (options.failOnError && validationErrors.length > 0) {
-    return { validationErrors };
+    return { validationErrors, config: registry.config };
   }
-  return { validationErrors };
+  return { validationErrors, config: registry.config };
 }
 
 function replaceMap<K, V>(target: Map<K, V>, source: Map<K, V>): void {
@@ -219,6 +404,7 @@ function cloneRegistry(registry: HandlerRegistry): HandlerRegistry {
     activity: new Map(registry.activity),
     event: new Map(registry.event),
     continuous: new Map(registry.continuous),
+    config: registry.config,
   };
 }
 
@@ -251,6 +437,7 @@ export async function reloadRegistry(
   replaceMap(registry.activity, next.activity);
   replaceMap(registry.event, next.event);
   replaceMap(registry.continuous, next.continuous);
+  registry.config = next.config;
   return {
     applied: true,
     reloadMode: input.reloadMode,

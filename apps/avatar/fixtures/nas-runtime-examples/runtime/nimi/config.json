@@ -1,0 +1,12 @@
+{
+  "nas_version": "1.0",
+  "model_id": "wave-2-fixture",
+  "history_context": {
+    "enabled": true,
+    "window_seconds": 60,
+    "track": ["activity", "motion", "expression"]
+  },
+  "features": {
+    "drag_physics": true
+  }
+}

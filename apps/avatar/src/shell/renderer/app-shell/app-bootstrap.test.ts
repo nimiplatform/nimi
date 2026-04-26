@@ -191,6 +191,7 @@ describe('bootstrapAvatar', () => {
         activity: new Map(),
         event: new Map(),
         continuous: new Map(),
+        config: null,
       },
       commandBus: {
         on: vi.fn(() => () => {}),

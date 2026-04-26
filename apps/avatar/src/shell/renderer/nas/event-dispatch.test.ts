@@ -117,6 +117,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       source: 'apml_output',
     }));
     await Promise.resolve();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
     expect(projection.runDefaultActivity).toHaveBeenCalledWith(
       'happy',
@@ -141,6 +142,61 @@ describe('Avatar NAS runtime event dispatch', () => {
         runtime_source: 'apml_output',
       },
     });
+    expect(driver.emitted.find((event) => event.name === 'avatar.activity.end')).toEqual({
+      name: 'avatar.activity.end',
+      detail: {
+        activity_name: 'happy',
+        source: 'default_fallback',
+      },
+    });
+
+    unwire();
+  });
+
+  it('does not run missing-handler fallback when a registered activity handler fails', async () => {
+    const handler = {
+      execute: vi.fn(async () => {
+        throw new Error('custom motion failed');
+      }),
+    };
+    const registry = createHandlerRegistry();
+    registry.activity.set('happy', {
+      kind: 'activity',
+      activityId: 'happy',
+      handler,
+      sourcePath: '/model/runtime/nimi/activity/happy.js',
+    });
+    const driver = createDriver();
+    const projection = createProjection();
+    const unwire = wireEventDispatch({
+      driver,
+      registry,
+      executor: new HandlerExecutor(),
+      projection,
+    });
+
+    driver.trigger(runtimeActivityEvent({
+      activity_name: 'happy',
+      category: 'emotion',
+      intensity: 'strong',
+      source: 'apml_output',
+    }));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(handler.execute).toHaveBeenCalledOnce();
+    expect(projection.runDefaultActivity).not.toHaveBeenCalled();
+    expect(driver.emitted).toContainEqual({
+      name: 'avatar.activity.start',
+      detail: {
+        activity_name: 'happy',
+        category: 'emotion',
+        intensity: 'strong',
+        source: 'runtime_projection',
+        runtime_source: 'apml_output',
+      },
+    });
+    expect(driver.emitted.find((event) => event.name === 'avatar.activity.end')).toBeUndefined();
 
     unwire();
   });

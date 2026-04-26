@@ -1,8 +1,10 @@
 import type { AgentDataBundle, AgentDataDriver, AgentEvent } from '../driver/types.js';
+import { activityHandlerKey } from './activity-naming.js';
 import { createDefaultActivityHandler } from './default-fallback.js';
 import type { EmbodimentProjectionApi } from './embodiment-projection-api.js';
 import { HandlerExecutor } from './handler-executor.js';
 import type { HandlerRegistry } from './handler-registry.js';
+export { ContinuousScheduler } from './continuous-scheduler.js';
 
 export type DispatchContext = {
   driver: AgentDataDriver;
@@ -72,10 +74,30 @@ export function wireEventDispatch(context: DispatchContext): () => void {
         },
       });
       const activityName = activity.name;
-      const entry = registry.activity.get(activityName);
+      const entry = registry.activity.get(activityHandlerKey(activityName));
       const handler = entry?.handler ?? defaultActivity;
       const key = `activity:${activityName}`;
-      void executor.run(key, handler, ctx, projection);
+      void executor.run(key, handler, ctx, projection).then((result) => {
+        if (result.status === 'success') {
+          driver.emit({
+            name: 'avatar.activity.end',
+            detail: {
+              activity_name: activityName,
+              source: entry ? 'nas_handler' : 'default_fallback',
+            },
+          });
+          return;
+        }
+        if (result.status === 'cancelled' || result.status === 'shutdown') {
+          driver.emit({
+            name: 'avatar.activity.cancel',
+            detail: {
+              activity_name: activityName,
+              reason: result.status,
+            },
+          });
+        }
+      });
       return;
     }
 
@@ -110,47 +132,4 @@ export function wireEventDispatch(context: DispatchContext): () => void {
   });
 
   return unsubscribe;
-}
-
-export class ContinuousScheduler {
-  private timerId: number | null = null;
-  private readonly lastRun = new Map<string, number>();
-
-  constructor(
-    private readonly registry: HandlerRegistry,
-    private readonly getBundle: () => AgentDataBundle | null,
-    private readonly projection: EmbodimentProjectionApi,
-  ) {}
-
-  start(): void {
-    if (this.timerId !== null) return;
-    const tick = () => {
-      const bundle = this.getBundle();
-      if (bundle) {
-        const now = performance.now();
-        const keys = Array.from(this.registry.continuous.keys()).sort();
-        for (const key of keys) {
-          const entry = this.registry.continuous.get(key);
-          if (!entry) continue;
-          const interval = 1000 / entry.fps;
-          const prev = this.lastRun.get(key) ?? 0;
-          if (now - prev < interval) continue;
-          this.lastRun.set(key, now);
-          void Promise.resolve(entry.handler.update(bundle, this.projection)).catch((err: unknown) => {
-            console.warn(`[nas:continuous] ${key} threw: ${err instanceof Error ? err.message : String(err)}`);
-          });
-        }
-      }
-      this.timerId = requestAnimationFrame(tick);
-    };
-    this.timerId = requestAnimationFrame(tick);
-  }
-
-  stop(): void {
-    if (this.timerId !== null) {
-      cancelAnimationFrame(this.timerId);
-      this.timerId = null;
-    }
-    this.lastRun.clear();
-  }
 }

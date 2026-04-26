@@ -1,5 +1,9 @@
 import type { PlatformClient } from '@nimiplatform/sdk';
 import type {
+  RuntimeAgentConsumeEvent as SdkRuntimeAgentConsumeEvent,
+  RuntimeAgentSessionSnapshot as SdkRuntimeAgentSessionSnapshot,
+} from '@nimiplatform/sdk/runtime';
+import type {
   AgentDataBundle,
   AgentBundleHistory,
   AgentDataDriver,
@@ -16,13 +20,63 @@ type InternalEvents = {
   'status-change': DriverStatus;
 };
 
-type RuntimeAgentConsumeEvent =
-  Awaited<ReturnType<PlatformClient['runtime']['agent']['turns']['subscribe']>> extends AsyncIterable<infer T>
-    ? T
-    : never;
+type RuntimeAgentTimelineForAvatar = {
+  turnId: string;
+  streamId: string;
+  channel: 'text' | 'voice' | 'avatar' | 'state' | 'lipsync';
+  offsetMs: number;
+  sequence: number;
+  startedAtWall: string;
+  observedAtWall: string;
+  timebaseOwner: 'runtime';
+  projectionRuleId: 'K-AGCORE-051';
+  clockBasis: 'monotonic_with_wall_anchor';
+  providerNeutral: true;
+  appLocalAuthority: false;
+};
 
-type RuntimeAgentSessionSnapshot =
-  Awaited<ReturnType<PlatformClient['runtime']['agent']['turns']['getSessionSnapshot']>>;
+type RuntimeAgentVoicePlaybackEvent = {
+  eventName: 'runtime.agent.presentation.voice_playback_requested';
+  agentId: string;
+  conversationAnchorId: string;
+  turnId: string;
+  streamId: string;
+  timeline: RuntimeAgentTimelineForAvatar;
+  detail: {
+    audioArtifactId: string;
+    audioMimeType: string;
+    playbackState: 'requested' | 'started' | 'completed' | 'interrupted' | 'canceled' | 'failed';
+    durationMs?: number;
+    deadlineOffsetMs?: number;
+    reason?: string;
+  };
+};
+
+type RuntimeAgentLipsyncFrameBatchEvent = {
+  eventName: 'runtime.agent.presentation.lipsync_frame_batch';
+  agentId: string;
+  conversationAnchorId: string;
+  turnId: string;
+  streamId: string;
+  timeline: RuntimeAgentTimelineForAvatar;
+  detail: {
+    audioArtifactId: string;
+    frames: Array<{
+      frameSequence: number;
+      offsetMs: number;
+      durationMs: number;
+      mouthOpenY: number;
+      audioLevel: number;
+    }>;
+  };
+};
+
+type RuntimeAgentConsumeEvent =
+  | SdkRuntimeAgentConsumeEvent
+  | RuntimeAgentVoicePlaybackEvent
+  | RuntimeAgentLipsyncFrameBatchEvent;
+
+type RuntimeAgentSessionSnapshot = SdkRuntimeAgentSessionSnapshot;
 
 type RuntimeAgentExecutionStateValue =
   | 'idle'
@@ -691,6 +745,8 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.presentation.pose_requested':
       case 'runtime.agent.presentation.pose_cleared':
       case 'runtime.agent.presentation.lookat_requested':
+      case 'runtime.agent.presentation.voice_playback_requested':
+      case 'runtime.agent.presentation.lipsync_frame_batch':
       case 'runtime.agent.hook.intent_proposed':
       case 'runtime.agent.hook.pending':
       case 'runtime.agent.hook.rejected':

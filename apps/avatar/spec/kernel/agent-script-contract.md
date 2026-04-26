@@ -468,8 +468,12 @@ Worker-backed capability-RPC sandbox**，不再把 sandbox 机制留作未来议
   `WebSocket` / `EventSource` / `localStorage` / `sessionStorage` /
   `indexedDB` / `caches` / `importScripts`。
 - Source policy fail-close 拒绝引用 `window` / `document` / `globalThis` /
-  `self` / `postMessage` / 上述 network/storage globals、static import、dynamic
-  import、non-default export、`eval`、`Function`、`constructor`。
+  `self` / `postMessage` / 上述 network/storage globals、package import、dynamic
+  import、out-of-tree relative import、non-default handler export、`eval`、
+  `Function`、`constructor`。唯一 admitted import 是 handler 对同一
+  `<model>/runtime/nimi/lib/*.js` 下 helper 的 static relative named import；
+  lib helper 仍受同一 ambient API 禁令约束，且不得 import package、
+  dynamic import、或越过 `runtime/nimi/lib/` 边界。
 - Handler source policy violation、module load failure、malformed default export,
   or worker boot failure **must not register** a handler.
 

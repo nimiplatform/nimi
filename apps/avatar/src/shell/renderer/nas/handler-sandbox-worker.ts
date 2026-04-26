@@ -167,6 +167,10 @@ function isContinuousModule(value: unknown): value is ContinuousModule {
   );
 }
 
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return typeof value === 'object' && value !== null && typeof (value as { then?: unknown }).then === 'function';
+}
+
 function makeCallId(): string {
   return `call-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
@@ -280,7 +284,10 @@ async function handleUpdate(message: Extract<WorkerRequest, { type: 'update' }>)
   if (loadedKind !== 'continuous' || !isContinuousModule(loadedHandler)) {
     throw new Error('NAS sandbox has no continuous handler loaded');
   }
-  await loadedHandler.update(message.ctx, createProjection(message.requestId, message.snapshot));
+  const returned = loadedHandler.update(message.ctx, createProjection(message.requestId, message.snapshot));
+  if (isPromiseLike(returned)) {
+    throw new Error('NAS continuous update must be synchronous and must not return a Promise');
+  }
 }
 
 globalThis.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {

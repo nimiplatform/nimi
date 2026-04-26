@@ -602,3 +602,59 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running nimi-avatar tauri application");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn unique_temp_dir(name: &str) -> PathBuf {
+        let suffix = format!(
+            "{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        );
+        std::env::temp_dir().join(format!("nimi-avatar-{name}-{suffix}"))
+    }
+
+    #[test]
+    fn scan_handler_dir_returns_only_public_js_files_sorted() {
+        let root = unique_temp_dir("scan-handlers");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("zeta.js"), "export default {}").unwrap();
+        fs::write(root.join("alpha.js"), "export default {}").unwrap();
+        fs::write(root.join("_private.js"), "export default {}").unwrap();
+        fs::write(root.join("notes.txt"), "ignore").unwrap();
+        fs::create_dir_all(root.join("nested.js")).unwrap();
+
+        let entries = scan_handler_dir(&root);
+
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| entry.file_stem.as_str())
+                .collect::<Vec<_>>(),
+            vec!["alpha", "zeta"]
+        );
+        assert!(entries
+            .iter()
+            .all(|entry| entry.absolute_path.ends_with(".js")));
+
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn resolve_runtime_dir_accepts_package_root_or_runtime_dir_only() {
+        let root = unique_temp_dir("runtime-dir");
+        let runtime = root.join("runtime");
+        fs::create_dir_all(&runtime).unwrap();
+
+        assert_eq!(resolve_runtime_dir(&root).unwrap(), runtime);
+        assert_eq!(resolve_runtime_dir(&root.join("runtime")).unwrap(), runtime);
+        assert!(resolve_runtime_dir(&root.join("missing")).is_err());
+
+        let _ = fs::remove_dir_all(&root);
+    }
+}

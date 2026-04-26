@@ -250,6 +250,61 @@ describe('avatar runtime carrier', () => {
     expect(stopNasHandlerHotReloadMock).toHaveBeenCalledTimes(1);
   });
 
+  it('shutdown unwires dispatch, cancels in-flight handlers, stops hot reload, and unloads backend', async () => {
+    const observedSignal: { current: AbortSignal | null } = { current: null };
+    const handler = {
+      execute: vi.fn((_ctx: AgentDataBundle, _projection: unknown, options: { signal: AbortSignal }) => {
+        observedSignal.current = options.signal;
+        return new Promise<void>(() => {});
+      }),
+    };
+    populateRegistryMock.mockImplementation(async (registry: {
+      event: Map<string, { kind: 'event'; eventName: string; handler: typeof handler; sourcePath: string }>;
+    }) => {
+      registry.event.set('runtime.agent.hook.running', {
+        kind: 'event',
+        eventName: 'runtime.agent.hook.running',
+        handler,
+        sourcePath: '/models/ren/runtime/nimi/event/runtime_agent_hook_running.js',
+      });
+    });
+    resolveModelManifestMock.mockResolvedValue({
+      runtimeDir: '/models/ren/runtime',
+      modelId: 'ren',
+      model3JsonPath: '/models/ren/runtime/ren.model3.json',
+      nimiDir: '/models/ren/runtime/nimi',
+    });
+    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
+    const driver = createDriver();
+    const carrier = await startAvatarRuntimeCarrier({
+      driver,
+      modelPath: '/models/ren',
+    });
+
+    driver.trigger({
+      event_id: 'event-2',
+      name: 'runtime.agent.hook.running',
+      timestamp: '2026-04-25T00:00:02.000Z',
+      detail: { intentId: 'hook-1' },
+    });
+    await Promise.resolve();
+    expect(handler.execute).toHaveBeenCalledOnce();
+
+    carrier.shutdown();
+    expect(observedSignal.current?.aborted).toBe(true);
+    expect(stopNasHandlerHotReloadMock).toHaveBeenCalledTimes(1);
+    expect(backendUnloadMock).toHaveBeenCalledTimes(1);
+
+    driver.trigger({
+      event_id: 'event-3',
+      name: 'runtime.agent.hook.running',
+      timestamp: '2026-04-25T00:00:03.000Z',
+      detail: { intentId: 'hook-2' },
+    });
+    await Promise.resolve();
+    expect(handler.execute).toHaveBeenCalledTimes(1);
+  });
+
   it('maps runtime-owned voice timing to Live2D mouth parameters without Avatar synthesizing timeline truth', async () => {
     const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
     const driver = createDriver();
@@ -309,6 +364,68 @@ describe('avatar runtime carrier', () => {
         app_local_authority: false,
       }),
     }));
+
+    carrier.shutdown();
+  });
+
+  it('maps runtime presentation lipsync frame batches to Live2D mouth parameters on the carrier path', async () => {
+    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
+    const driver = createDriver();
+    const carrier = await startAvatarRuntimeCarrier({
+      driver,
+      modelPath: '/models/ren',
+    });
+
+    driver.trigger({
+      event_id: 'event-lipsync-1',
+      name: 'runtime.agent.presentation.lipsync_frame_batch',
+      timestamp: '2026-04-25T00:00:03.200Z',
+      detail: {
+        turn_id: 'turn-voice-2',
+        stream_id: 'stream-voice-2',
+        runtime_timeline: {
+          turn_id: 'turn-voice-2',
+          stream_id: 'stream-voice-2',
+          channel: 'lipsync',
+          offset_ms: 0,
+          sequence: 2,
+          started_at_wall: '2026-04-25T00:00:03.100Z',
+          observed_at_wall: '2026-04-25T00:00:03.200Z',
+          timebase_owner: 'runtime',
+          projection_rule_id: 'K-AGCORE-051',
+          clock_basis: 'monotonic_with_wall_anchor',
+          provider_neutral: true,
+          app_local_authority: false,
+        },
+        audioArtifactId: 'artifact-runtime-voice-2',
+        frames: [
+          { frameSequence: 1, offsetMs: 0, durationMs: 80, mouthOpenY: 0.18, audioLevel: 0.12 },
+          { frameSequence: 2, offsetMs: 80, durationMs: 90, mouthOpenY: 0.91, audioLevel: 0.72 },
+          { frameSequence: 3, offsetMs: 170, durationMs: 70, mouthOpenY: 0.27, audioLevel: 0.2 },
+        ],
+      },
+    });
+    await Promise.resolve();
+
+    const mouthCommands = backendApplyCommandMock.mock.calls
+      .map((call) => call[0])
+      .filter((command) => command.kind === 'parameter' && command.id === 'ParamMouthOpenY');
+    expect(mouthCommands.map((command) => command.value)).toEqual([0.18, 0.91, 0.27, 0]);
+    expect(driver.emitted.find((event) => event.name === 'avatar.speak.start')?.detail).toEqual(expect.objectContaining({
+      turn_id: 'turn-voice-2',
+      stream_id: 'stream-voice-2',
+      audio_artifact_id: 'artifact-runtime-voice-2',
+      runtime_timeline: expect.objectContaining({
+        channel: 'lipsync',
+        timebase_owner: 'runtime',
+        app_local_authority: false,
+      }),
+    }));
+    expect(driver.emitted.map((event) => event.name)).toEqual(expect.arrayContaining([
+      'avatar.speak.start',
+      'avatar.lipsync.frame',
+      'avatar.speak.end',
+    ]));
 
     carrier.shutdown();
   });

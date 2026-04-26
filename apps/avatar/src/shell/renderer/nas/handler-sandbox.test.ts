@@ -7,6 +7,7 @@ type WorkerListener = (event: MessageEvent<Record<string, unknown>>) => void;
 
 class FakeWorker {
   readonly projectionResults: Array<Record<string, unknown>> = [];
+  method = 'setSignal';
   private readonly listeners = new Set<WorkerListener>();
 
   addEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
@@ -33,7 +34,7 @@ class FakeWorker {
         type: 'projection-call',
         requestId: message['requestId'],
         callId: 'call-1',
-        method: 'setSignal',
+        method: this.method,
         args: ['gaze.x', 0.5, 1],
       });
       return;
@@ -111,6 +112,29 @@ describe('createSandboxedActivityOrEventHandler', () => {
 
     expect(projection.setSignal).toHaveBeenCalledWith('gaze.x', 0.5, 1);
     expect(worker.projectionResults).toMatchObject([{ type: 'projection-result', callId: 'call-1', ok: true }]);
+    handler.dispose?.();
+  });
+
+  it('rejects unknown projection RPC methods fail-closed', async () => {
+    const worker = new FakeWorker();
+    worker.method = 'unknownCapability';
+    const createWorker: SandboxWorkerFactory = () => worker;
+    const handler = await createSandboxedActivityOrEventHandler(
+      'export default { async execute(ctx, projection) { projection.unknownCapability(); } };',
+      '/model/runtime/nimi/activity/happy.js',
+      createWorker,
+    );
+    const projection = createProjection();
+
+    await handler.execute(bundle, projection, { signal: new AbortController().signal });
+
+    expect(worker.projectionResults).toMatchObject([{
+      type: 'projection-result',
+      callId: 'call-1',
+      ok: false,
+      error: 'unsupported projection method: unknownCapability',
+    }]);
+    expect(projection.setSignal).not.toHaveBeenCalled();
     handler.dispose?.();
   });
 });

@@ -176,7 +176,7 @@ class NasWorkerSandbox {
   ) {}
 
   async load(): Promise<WorkerResponse & { type: 'ready' }> {
-    assertSandboxSourcePolicy(this.source);
+    assertSandboxSourcePolicy(this.source, { sourcePath: this.sourcePath });
     this.ensureWorker();
     const response = await this.request({
       type: 'load',

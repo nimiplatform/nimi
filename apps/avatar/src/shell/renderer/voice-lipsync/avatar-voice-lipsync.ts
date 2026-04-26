@@ -25,6 +25,7 @@ type VoiceFrame = {
 
 type VoiceTiming = {
   adapterId: string;
+  audioArtifactId?: string;
   frames: VoiceFrame[];
 };
 
@@ -150,6 +151,43 @@ function parseVoiceTiming(detail: Record<string, unknown>): VoiceTiming | null {
   return { adapterId, frames: normalized };
 }
 
+function parseRuntimeLipsyncFrameBatch(
+  detail: Record<string, unknown>,
+  timeline: RuntimeTimelineDetail,
+): VoiceTiming | null {
+  if (timeline.channel !== 'lipsync') {
+    return null;
+  }
+  const audioArtifactId = readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id');
+  if (!audioArtifactId) {
+    return null;
+  }
+  const rawFrames = detail['frames'];
+  if (!Array.isArray(rawFrames)) {
+    return null;
+  }
+  const frames = rawFrames.map(normalizeFrame);
+  if (frames.some((frame) => !frame)) {
+    return null;
+  }
+  const normalized = frames as VoiceFrame[];
+  for (let index = 1; index < normalized.length; index += 1) {
+    const previous = normalized[index - 1];
+    const current = normalized[index];
+    if (!previous || !current || previous.offsetMs >= current.offsetMs) {
+      return null;
+    }
+  }
+  if (normalized.length === 0) {
+    return null;
+  }
+  return {
+    adapterId: 'runtime.voice.runtime-agent-lipsync-frame-batch',
+    audioArtifactId,
+    frames: normalized,
+  };
+}
+
 function isProviderNeutralAdapterId(adapterId: string): boolean {
   if (!adapterId.startsWith('runtime.voice.')) {
     return false;
@@ -205,12 +243,36 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     }
   }
 
+  function handleRuntimePlaybackState(event: AgentEvent, detail: Record<string, unknown>): boolean {
+    if (event.name !== 'runtime.agent.presentation.voice_playback_requested') {
+      return false;
+    }
+    const state = readString(detail, 'playbackState') ?? readString(detail, 'playback_state');
+    if (state !== 'interrupted' && state !== 'canceled' && state !== 'failed') {
+      return false;
+    }
+    const timeline = parseRuntimeTimeline(detail);
+    if (!timeline || timeline.channel !== 'voice') {
+      return true;
+    }
+    canceled.add(timelineIdentity(timeline));
+    resetMouth();
+    emitDriverEvent(input.driver, 'avatar.speak.interrupt', timeline, {
+      source_event_name: event.name,
+      playback_state: state,
+      audio_artifact_id: readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id'),
+    });
+    return true;
+  }
+
   function handleVoiceEvent(event: AgentEvent, detail: Record<string, unknown>): void {
     const timeline = parseRuntimeTimeline(detail);
     if (!timeline) {
       return;
     }
-    const voiceTiming = parseVoiceTiming(detail);
+    const voiceTiming = event.name === 'runtime.agent.presentation.lipsync_frame_batch'
+      ? parseRuntimeLipsyncFrameBatch(detail, timeline)
+      : parseVoiceTiming(detail);
     if (!voiceTiming) {
       return;
     }
@@ -221,6 +283,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     emitDriverEvent(input.driver, 'avatar.speak.start', timeline, {
       source_event_name: event.name,
       voice_adapter_id: voiceTiming.adapterId,
+      audio_artifact_id: voiceTiming.audioArtifactId ?? null,
       frame_count: voiceTiming.frames.length,
     });
     for (const frame of voiceTiming.frames) {
@@ -231,6 +294,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       input.projection.setSignal(AVATAR_MOUTH_OPEN_SIGNAL, frame.mouthOpenY, 1);
       emitDriverEvent(input.driver, 'avatar.lipsync.frame', timeline, {
         source_event_name: event.name,
+        audio_artifact_id: voiceTiming.audioArtifactId ?? null,
         offset_ms: frame.offsetMs,
         mouth_open_y: frame.mouthOpenY,
       });
@@ -239,6 +303,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     emitDriverEvent(input.driver, 'avatar.speak.end', timeline, {
       source_event_name: event.name,
       voice_adapter_id: voiceTiming.adapterId,
+      audio_artifact_id: voiceTiming.audioArtifactId ?? null,
     });
   }
 
@@ -253,6 +318,9 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       }
       if (event.name === 'runtime.agent.turn.interrupted' || event.name === 'runtime.agent.turn.interrupt_ack') {
         handleInterrupt(event, detail);
+        return;
+      }
+      if (handleRuntimePlaybackState(event, detail)) {
         return;
       }
       handleVoiceEvent(event, detail);

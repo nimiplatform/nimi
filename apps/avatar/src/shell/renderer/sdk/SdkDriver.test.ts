@@ -430,4 +430,106 @@ describe('SdkDriver', () => {
 
     await driver.stop();
   });
+
+  it('passes runtime-owned voice playback and lipsync presentation events through to Avatar consumers', async () => {
+    async function* stream() {
+      yield {
+        eventName: 'runtime.agent.presentation.voice_playback_requested',
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-voice-1',
+        streamId: 'stream-voice-1',
+        timeline: {
+          turnId: 'turn-voice-1',
+          streamId: 'stream-voice-1',
+          channel: 'voice',
+          offsetMs: 0,
+          sequence: 1,
+          startedAtWall: '2026-04-25T00:00:00.000Z',
+          observedAtWall: '2026-04-25T00:00:00.020Z',
+          timebaseOwner: 'runtime',
+          projectionRuleId: 'K-AGCORE-051',
+          clockBasis: 'monotonic_with_wall_anchor',
+          providerNeutral: true,
+          appLocalAuthority: false,
+        },
+        detail: {
+          audioArtifactId: 'artifact-1',
+          audioMimeType: 'audio/wav',
+          playbackState: 'requested',
+        },
+      };
+      yield {
+        eventName: 'runtime.agent.presentation.lipsync_frame_batch',
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-voice-1',
+        streamId: 'stream-voice-1',
+        timeline: {
+          turnId: 'turn-voice-1',
+          streamId: 'stream-voice-1',
+          channel: 'lipsync',
+          offsetMs: 0,
+          sequence: 2,
+          startedAtWall: '2026-04-25T00:00:00.000Z',
+          observedAtWall: '2026-04-25T00:00:00.030Z',
+          timebaseOwner: 'runtime',
+          projectionRuleId: 'K-AGCORE-051',
+          clockBasis: 'monotonic_with_wall_anchor',
+          providerNeutral: true,
+          appLocalAuthority: false,
+        },
+        detail: {
+          audioArtifactId: 'artifact-1',
+          frames: [
+            { frameSequence: 1, offsetMs: 0, durationMs: 80, mouthOpenY: 0.2, audioLevel: 0.1 },
+          ],
+        },
+      };
+      await new Promise(() => {});
+    }
+
+    const runtime = {
+      agent: {
+        turns: {
+          getSessionSnapshot: async () => ({
+            sessionStatus: 'active',
+            transcriptMessageCount: 0,
+          }),
+          subscribe: async () => stream(),
+        },
+      },
+    } as const;
+
+    const driver = new SdkDriver({
+      runtime: runtime as never,
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      activeWorldId: 'world-1',
+      activeUserId: 'user-1',
+      locale: 'en-US',
+      now: () => 1_710_000_040_000,
+    });
+    const events: Array<{ name: string; detail: Record<string, unknown> }> = [];
+    driver.onEvent((event) => events.push(event));
+
+    await driver.start();
+    await waitForTasks();
+
+    expect(events.map((event) => event.name)).toEqual(expect.arrayContaining([
+      'runtime.agent.presentation.voice_playback_requested',
+      'runtime.agent.presentation.lipsync_frame_batch',
+    ]));
+    expect(events.find((event) => event.name === 'runtime.agent.presentation.lipsync_frame_batch')?.detail)
+      .toEqual(expect.objectContaining({
+        audioArtifactId: 'artifact-1',
+        runtime_timeline: expect.objectContaining({
+          channel: 'lipsync',
+          timebase_owner: 'runtime',
+          app_local_authority: false,
+        }),
+      }));
+
+    await driver.stop();
+  });
 });
