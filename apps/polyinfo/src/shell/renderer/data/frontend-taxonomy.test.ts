@@ -23,7 +23,7 @@ describe('frontend taxonomy', () => {
   it('keeps usable sectors when one root subcategory request fails', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url === 'https://polymarket.com/') {
+      if (url === '/__polyinfo_upstream/polymarket/') {
         return textResponse(`
           <nav aria-label="Main">
             <a href="/new">New</a>
@@ -50,6 +50,6 @@ describe('frontend taxonomy', () => {
     const sectors = await fetchFrontendSectorCatalog();
 
     expect(sectors.map((sector) => sector.slug)).toEqual(['politics', 'culture', 'iran']);
-    expect(fetchMock).toHaveBeenCalledWith('https://polymarket.com/', undefined);
+    expect(fetchMock).toHaveBeenCalledWith('/__polyinfo_upstream/polymarket/', undefined);
   });
 });

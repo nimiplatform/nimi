@@ -188,7 +188,7 @@ export function PolyinfoLayout() {
   return (
     <div className="polyinfo-shell flex h-screen flex-col overflow-hidden text-slate-100">
       <div
-        className="mx-auto grid w-full max-w-[1680px] shrink-0 grid-cols-[256px_minmax(0,1fr)_336px] items-center gap-3 px-4 pb-3 pt-3"
+        className="mx-auto grid w-full max-w-[1680px] shrink-0 grid-cols-1 items-center gap-3 px-4 pb-3 pt-3 sm:grid-cols-[256px_minmax(0,1fr)] xl:grid-cols-[256px_minmax(0,1fr)_336px]"
         data-tauri-drag-region
         onMouseDown={handleWindowDrag}
       >
@@ -227,7 +227,7 @@ export function PolyinfoLayout() {
             })}
           </div>
         </div>
-        <div className="polyinfo-no-drag flex min-w-0 items-center justify-end gap-2">
+        <div className="polyinfo-no-drag flex min-w-0 items-center justify-start gap-2 sm:col-span-2 xl:col-span-1 xl:justify-end">
           {utilityNavItems.map((item) => (
             <NavLink
               key={item.to}
@@ -245,8 +245,8 @@ export function PolyinfoLayout() {
           ))}
         </div>
       </div>
-      <div className="mx-auto flex min-h-0 w-full max-w-[1680px] flex-1 gap-3 px-4 pb-4">
-        <aside className="polyinfo-surface flex w-[256px] shrink-0 flex-col rounded-2xl p-4">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1680px] flex-1 flex-col gap-3 px-4 pb-4 lg:flex-row">
+        <aside className="polyinfo-surface flex max-h-[240px] w-full shrink-0 flex-col rounded-2xl p-4 lg:max-h-none lg:w-[256px]">
           <div className="border-b polyinfo-hairline pb-4">
             <button
               type="button"

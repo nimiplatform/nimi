@@ -4,6 +4,7 @@ import {
   loadPersistedAIConfig,
   resolveTextGenerateRouteStatus,
   summarizeRuntimeBinding,
+  loadTextGenerateRouteOptions,
 } from './runtime-routes.js';
 
 describe('runtime route migration', () => {
@@ -79,6 +80,18 @@ describe('runtime route migration', () => {
 
     expect(getTextGenerateBinding(config)).toBeNull();
     expect(window.localStorage.getItem('nimi:polyinfo:ai-config:v1')).toBeNull();
+  });
+
+  it('returns empty route options in a plain browser without desktop runtime', async () => {
+    const options = await loadTextGenerateRouteOptions({
+      aiConfig: loadPersistedAIConfig(),
+    });
+
+    expect(options).toMatchObject({
+      capability: 'text.generate',
+      local: { models: [] },
+      connectors: [],
+    });
   });
 
   it('reports local binding as not ready when daemon is stopped', () => {

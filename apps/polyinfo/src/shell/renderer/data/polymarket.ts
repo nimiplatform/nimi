@@ -12,6 +12,7 @@ import type {
 } from './types.js';
 import { hasTauriInvoke, invokeChecked } from '@renderer/bridge';
 import { fetchFrontendSectorCatalog } from './frontend-taxonomy.js';
+import { resolvePolyinfoUpstreamUrl } from './upstream.js';
 
 const GAMMA_API_BASE = 'https://gamma-api.polymarket.com';
 const CLOB_API_BASE = 'https://clob.polymarket.com';
@@ -249,7 +250,9 @@ export async function fetchEventBySlug(slug: string): Promise<ImportedEventCache
       { slug: normalizedSlug },
       parseUnknown<GammaEventResponse>,
     )
-    : await fetchJson<GammaEventResponse>(`${GAMMA_API_BASE}/events/slug/${encodeURIComponent(normalizedSlug)}`);
+    : await fetchJson<GammaEventResponse>(
+      resolvePolyinfoUpstreamUrl(GAMMA_API_BASE, `/events/slug/${encodeURIComponent(normalizedSlug)}`),
+    );
   const payload = convertGammaEventToImportedPayload(event);
   if (payload.markets.length === 0) {
     throw new Error('这个 event 当前没有可用市场');
@@ -351,7 +354,10 @@ export async function fetchSectorMarkets(
         parseUnknown<GammaEventsKeysetResponse>,
       )
       : await fetchJson<GammaEventsKeysetResponse>(
-        `${GAMMA_API_BASE}/events/keyset?limit=100&tag_slug=${encodeURIComponent(tag.slug)}&closed=false&order=volume_24hr&ascending=false${afterCursor ? `&after_cursor=${encodeURIComponent(afterCursor)}` : ''}`,
+        resolvePolyinfoUpstreamUrl(
+          GAMMA_API_BASE,
+          `/events/keyset?limit=100&tag_slug=${encodeURIComponent(tag.slug)}&closed=false&order=volume_24hr&ascending=false${afterCursor ? `&after_cursor=${encodeURIComponent(afterCursor)}` : ''}`,
+        ),
       );
     const pageEvents = page.events ?? [];
     events.push(...pageEvents);
@@ -473,7 +479,7 @@ function normalizeHistoryPoints(points: Array<{ t?: number; p?: number }>): Hist
 
 export async function fetchPriceHistory(tokenId: string): Promise<HistoryPoint[]> {
   const response = await fetchJson<PriceHistoryResponse>(
-    `${CLOB_API_BASE}/prices-history?market=${encodeURIComponent(tokenId)}&interval=1w&fidelity=60`,
+    resolvePolyinfoUpstreamUrl(CLOB_API_BASE, `/prices-history?market=${encodeURIComponent(tokenId)}&interval=1w&fidelity=60`),
   );
   return normalizeHistoryPoints(response.history ?? []);
 }
@@ -501,7 +507,7 @@ export async function fetchSectorHistory(
         },
         parseUnknown<BatchPriceHistoryResponse>,
       )
-      : await fetchJson<BatchPriceHistoryResponse>(`${CLOB_API_BASE}/batch-prices-history`, {
+      : await fetchJson<BatchPriceHistoryResponse>(resolvePolyinfoUpstreamUrl(CLOB_API_BASE, '/batch-prices-history'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

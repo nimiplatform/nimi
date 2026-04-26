@@ -6,6 +6,7 @@ import type {
   FrontendCategoryMappingRow,
   SectorTag,
 } from './types.js';
+import { resolvePolyinfoUpstreamUrl } from './upstream.js';
 
 const POLYMARKET_WEB_BASE = 'https://polymarket.com';
 const GAMMA_API_BASE = 'https://gamma-api.polymarket.com';
@@ -171,7 +172,7 @@ function parseHomepageRootCategories(html: string): FrontendCategoryGroup[] {
 async function fetchHomepageHtml(): Promise<string> {
   return hasTauriInvoke()
     ? await invokeChecked('polymarket_frontend_homepage_html', {}, parseUnknown<string>)
-    : await fetchText(`${POLYMARKET_WEB_BASE}/`);
+    : await fetchText(resolvePolyinfoUpstreamUrl(POLYMARKET_WEB_BASE, '/'));
 }
 
 async function fetchFilteredTagsBySlug(slug: string): Promise<FrontendFilteredTagRecord[]> {
@@ -182,7 +183,10 @@ async function fetchFilteredTagsBySlug(slug: string): Promise<FrontendFilteredTa
       parseUnknown<FrontendFilteredTagsResponse | FrontendFilteredTagRecord[]>,
     )
     : await fetchJson<FrontendFilteredTagsResponse | FrontendFilteredTagRecord[]>(
-      `${POLYMARKET_WEB_BASE}/api/tags/filteredBySlug?tag=${encodeURIComponent(slug)}&status=active`,
+      resolvePolyinfoUpstreamUrl(
+        POLYMARKET_WEB_BASE,
+        `/api/tags/filteredBySlug?tag=${encodeURIComponent(slug)}&status=active`,
+      ),
     );
 
   if (Array.isArray(payload)) {
@@ -213,7 +217,9 @@ async function fetchEventsKeysetPage(
   if (afterCursor) {
     search.set('after_cursor', afterCursor);
   }
-  return fetchJson<FrontendEventsKeysetResponse>(`${GAMMA_API_BASE}/events/keyset?${search.toString()}`);
+  return fetchJson<FrontendEventsKeysetResponse>(
+    resolvePolyinfoUpstreamUrl(GAMMA_API_BASE, `/events/keyset?${search.toString()}`),
+  );
 }
 
 async function fetchAllEventsBySlug(slug: string): Promise<FrontendEventRecord[]> {

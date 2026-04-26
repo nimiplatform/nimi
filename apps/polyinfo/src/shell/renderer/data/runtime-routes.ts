@@ -11,6 +11,7 @@ import {
   type RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/mod';
 import type { RuntimeDefaults, RuntimeBridgeDaemonStatus } from '@renderer/bridge';
+import { hasTauriInvoke } from '@renderer/bridge';
 import {
   clearLegacyAnalystRuntimeSettings,
   loadSavedAnalystRuntimeSettings,
@@ -455,6 +456,17 @@ export async function loadTextGenerateRouteOptions(input: {
   aiConfig: AIConfig;
   runtimeDefaults?: RuntimeDefaults | null;
 }): Promise<RuntimeRouteOptionsSnapshot> {
+  if (!hasTauriInvoke()) {
+    return buildRuntimeRouteOptionsSnapshot({
+      capability: 'text.generate',
+      selectedBinding: getTextGenerateBinding(input.aiConfig),
+      localModels: [],
+      connectors: [],
+      defaultLocalEndpoint: normalizeText(input.runtimeDefaults?.runtime.localProviderEndpoint),
+      runtimeDefaultEngine: normalizeText(input.runtimeDefaults?.runtime.provider),
+    });
+  }
+
   const [localModels, connectors] = await Promise.all([
     fetchRuntimeLocalModels(),
     fetchRuntimeCloudConnectors(),
@@ -470,6 +482,13 @@ export async function loadTextGenerateRouteOptions(input: {
 }
 
 export async function fetchRuntimeHealthSummary(): Promise<RuntimeHealthSummary> {
+  if (!hasTauriInvoke()) {
+    return {
+      runtimeHealth: null,
+      providers: [],
+    };
+  }
+
   const runtimeAdmin = getPlatformClient().domains.runtimeAdmin;
   const [runtimeHealth, providerHealth] = await Promise.all([
     runtimeAdmin.getRuntimeHealth({}, { timeoutMs: 5000 }),

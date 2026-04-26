@@ -30,6 +30,23 @@ export default defineConfig(() => {
       host: '127.0.0.1',
       port: 1426,
       strictPort: true,
+      proxy: {
+        '/__polyinfo_upstream/polymarket': {
+          target: 'https://polymarket.com',
+          changeOrigin: true,
+          rewrite: (requestPath) => requestPath.replace(/^\/__polyinfo_upstream\/polymarket/, ''),
+        },
+        '/__polyinfo_upstream/gamma': {
+          target: 'https://gamma-api.polymarket.com',
+          changeOrigin: true,
+          rewrite: (requestPath) => requestPath.replace(/^\/__polyinfo_upstream\/gamma/, ''),
+        },
+        '/__polyinfo_upstream/clob': {
+          target: 'https://clob.polymarket.com',
+          changeOrigin: true,
+          rewrite: (requestPath) => requestPath.replace(/^\/__polyinfo_upstream\/clob/, ''),
+        },
+      },
       fs: {
         allow: [workspaceRoot, path.resolve(__dirname)],
       },
