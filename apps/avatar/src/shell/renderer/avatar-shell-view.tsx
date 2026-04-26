@@ -1,5 +1,6 @@
+import { useEffect, useMemo, useRef } from 'react';
 import { isTauriRuntime } from './app-shell/tauri-lifecycle.js';
-import { startWindowDrag } from './app-shell/tauri-commands.js';
+import { constrainWindowToVisibleArea, setIgnoreCursorEvents, startWindowDrag } from './app-shell/tauri-commands.js';
 import { defaultAvatarShellSettings } from './settings-state.js';
 import { reloadAvatarShell } from './shell-reload.js';
 import {
@@ -19,6 +20,8 @@ import {
   type VoiceCompanionState,
 } from './voice-companion-state.js';
 import { Live2DCarrierVisualSurface } from './live2d/Live2DCarrierVisualSurface.js';
+import { createAvatarHitRegionSnapshot, rectFromElement } from './interaction/avatar-hit-region.js';
+import { AvatarInteractionController } from './interaction/avatar-interaction-controller.js';
 
 type AvatarShellViewProps = Record<string, any>;
 function normalizeText(value: string | null | undefined): string {
@@ -36,6 +39,9 @@ function createAbortError(): Error {
   const error = new Error('Foreground voice request aborted.');
   error.name = 'AbortError';
   return error;
+}
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest('button, input, textarea, select, a, form'));
 }
 export function AvatarShellView(props: AvatarShellViewProps) {
   const {
@@ -103,16 +109,58 @@ export function AvatarShellView(props: AvatarShellViewProps) {
     isVoiceOperationCurrent,
     companionAnchorKey
   } = props;
+  const avatarBodyRef = useRef<HTMLDivElement | null>(null);
+  const controller = useMemo(() => new AvatarInteractionController({
+    getHitRegionSnapshot: () => {
+      if (!embodiedSurfaceReady) return null;
+      const body = rectFromElement(avatarBodyRef.current, 'body') ?? {
+        x: 0,
+        y: 0,
+        width: Math.max(1, shell.windowSize?.width ?? 400),
+        height: Math.max(1, shell.windowSize?.height ?? 600),
+        region: 'body' as const,
+      };
+      return createAvatarHitRegionSnapshot({
+        body,
+        capturedAtMs: performance.now(),
+      });
+    },
+    emit: (event) => {
+      bootstrapHandle?.driver?.emit(event);
+    },
+    setPointerInside: (inside) => {
+      setBodyHovered(inside);
+    },
+    setPointerContact: (contact) => {
+      setBodyPointerContact(contact);
+    },
+    setClickThrough: (ignore) => setIgnoreCursorEvents(ignore),
+    startWindowDrag,
+    constrainWindowToVisibleArea,
+    nowMs: () => performance.now(),
+    isTauriRuntime,
+  }), [
+    bootstrapHandle,
+    embodiedSurfaceReady,
+    setBodyHovered,
+    setBodyPointerContact,
+    shell.windowSize?.height,
+    shell.windowSize?.width,
+  ]);
+  useEffect(() => () => {
+    controller.teardown();
+  }, [controller]);
 return (
     <div className="avatar-root">
       <div
         className={shellClassName}
         data-testid="avatar-shell"
-        onPointerDown={(event) => {
-          if (isTauriRuntime() && event.button === 0) {
-            setBodyPointerContact(false);
-            void startWindowDrag();
-          }
+        onPointerMove={(event) => {
+          if (isInteractiveTarget(event.target)) return;
+          controller.pointerMove(event);
+        }}
+        onPointerLeave={(event) => {
+          controller.pointerLeave(event);
         }}
         role="presentation"
       >
@@ -147,27 +195,23 @@ return (
               ref={stageInteractionRef}
               className={stageClassName}
               data-testid="avatar-stage"
-              onPointerEnter={() => {
-                if (!embodiedSurfaceReady) {
-                  return;
-                }
-                setBodyHovered(true);
+              onPointerEnter={(event) => {
+                if (isInteractiveTarget(event.target)) return;
+                controller.pointerMove(event);
               }}
               onPointerLeave={() => {
-                setBodyHovered(false);
-                setBodyPointerContact(false);
+                controller.pointerCancel();
               }}
               onPointerDown={(event) => {
-                if (!embodiedSurfaceReady || event.button !== 0) {
-                  return;
-                }
-                setBodyPointerContact(true);
+                if (isInteractiveTarget(event.target)) return;
+                controller.pointerDown(event);
               }}
-              onPointerUp={() => {
-                setBodyPointerContact(false);
+              onPointerUp={(event) => {
+                if (isInteractiveTarget(event.target)) return;
+                controller.pointerUp(event);
               }}
               onPointerCancel={() => {
-                setBodyPointerContact(false);
+                controller.pointerCancel();
               }}
               onFocusCapture={() => {
                 if (!embodiedSurfaceReady) {
@@ -199,7 +243,7 @@ return (
               <div className="avatar-stage__backdrop" />
               <div className="avatar-stage__orbit avatar-stage__orbit--one" />
               <div className="avatar-stage__orbit avatar-stage__orbit--two" />
-              <div className="avatar-stage__body">
+              <div className="avatar-stage__body" data-testid="avatar-body-hit-region" ref={avatarBodyRef}>
                 <div className="avatar-stage__glow" />
                 <div className="avatar-stage__core">
                   <span className="avatar-stage__label">{displayPresentation.stageLabel}</span>

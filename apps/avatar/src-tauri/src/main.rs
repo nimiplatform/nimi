@@ -22,7 +22,8 @@ use nimi_kit_shell_tauri::runtime_defaults as defaults;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use tauri::{
-    Emitter, Manager, PhysicalSize, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    Emitter, Manager, PhysicalPosition, PhysicalSize, State, WebviewUrl, WebviewWindow,
+    WebviewWindowBuilder,
 };
 
 #[derive(Clone, Serialize)]
@@ -290,6 +291,41 @@ async fn nimi_avatar_set_ignore_cursor_events(
 }
 
 #[tauri::command]
+async fn nimi_avatar_constrain_window_to_visible_area(
+    window: WebviewWindow,
+    min_visible_ratio: f64,
+) -> Result<(), String> {
+    let position = window.outer_position().map_err(|e| e.to_string())?;
+    let size = window.outer_size().map_err(|e| e.to_string())?;
+    let monitor = window
+        .current_monitor()
+        .map_err(|e| e.to_string())?
+        .or_else(|| window.primary_monitor().ok().flatten())
+        .ok_or_else(|| "no monitor is available for avatar edge constraints".to_string())?;
+    let monitor_position = monitor.position();
+    let monitor_size = monitor.size();
+    let ratio = if min_visible_ratio.is_finite() {
+        min_visible_ratio.clamp(0.05, 1.0)
+    } else {
+        0.2
+    };
+    let min_visible_width = ((size.width as f64) * ratio).ceil() as i32;
+    let min_visible_height = ((size.height as f64) * ratio).ceil() as i32;
+    let min_x = monitor_position.x - size.width as i32 + min_visible_width;
+    let max_x = monitor_position.x + monitor_size.width as i32 - min_visible_width;
+    let min_y = monitor_position.y - size.height as i32 + min_visible_height;
+    let max_y = monitor_position.y + monitor_size.height as i32 - min_visible_height;
+    let constrained = PhysicalPosition::new(
+        position.x.clamp(min_x, max_x),
+        position.y.clamp(min_y, max_y),
+    );
+    if constrained != position {
+        window.set_position(constrained).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 async fn nimi_avatar_set_always_on_top(
     window: WebviewWindow,
     always_on_top: bool,
@@ -536,6 +572,7 @@ fn main() {
             nimi_avatar_start_window_drag,
             nimi_avatar_set_window_size,
             nimi_avatar_set_ignore_cursor_events,
+            nimi_avatar_constrain_window_to_visible_area,
             nimi_avatar_set_always_on_top,
             nimi_avatar_get_launch_context,
             nimi_avatar_resolve_model,

@@ -6,6 +6,8 @@ import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 
 const bootstrapAvatarMock = vi.fn<() => Promise<BootstrapHandle>>();
 const startWindowDragMock = vi.fn();
+const setIgnoreCursorEventsMock = vi.fn();
+const constrainWindowToVisibleAreaMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
 const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
@@ -25,6 +27,8 @@ vi.mock('./app-shell/app-bootstrap.js', () => ({
 
 vi.mock('./app-shell/tauri-commands.js', () => ({
   startWindowDrag: () => startWindowDragMock(),
+  setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
+  constrainWindowToVisibleArea: (...args: unknown[]) => constrainWindowToVisibleAreaMock(...args),
   setAlwaysOnTop: (...args: unknown[]) => setAlwaysOnTopMock(...args),
 }));
 
@@ -161,11 +165,30 @@ function expectNonReadySurface(): void {
   expect(screen.queryByText(/Bound \(/)).toBeNull();
 }
 
+function setElementRect(element: Element, rect: { left: number; top: number; width: number; height: number }): void {
+  Object.defineProperty(element, 'getBoundingClientRect', {
+    configurable: true,
+    value: () => ({
+      left: rect.left,
+      top: rect.top,
+      right: rect.left + rect.width,
+      bottom: rect.top + rect.height,
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+      toJSON: () => ({}),
+    }),
+  });
+}
+
 describe('App surface foundation', () => {
   beforeEach(() => {
     useAvatarStore.setState(useAvatarStore.getInitialState(), true);
     bootstrapAvatarMock.mockReset();
     startWindowDragMock.mockReset();
+    setIgnoreCursorEventsMock.mockReset();
+    constrainWindowToVisibleAreaMock.mockReset();
     setAlwaysOnTopMock.mockReset();
     onLaunchContextUpdatedMock.mockReset();
     reloadAvatarShellMock.mockReset();
@@ -226,7 +249,7 @@ describe('App surface foundation', () => {
     expect(triggerRow.className).toContain('avatar-companion-trigger-row--focus-visible');
   });
 
-  it('keeps native drag dispatch and stage/bubble choreography aligned when the companion opens', async () => {
+  it('starts native drag only after the avatar drag threshold and keeps stage/bubble choreography aligned', async () => {
     tauriRuntime = true;
     seedReadyState();
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
@@ -235,8 +258,12 @@ describe('App surface foundation', () => {
 
     expect(await screen.findByText('Desktop companion ready')).toBeTruthy();
     const stage = screen.getByTestId('avatar-stage');
+    const body = screen.getByTestId('avatar-body-hit-region');
+    setElementRect(body, { left: 10, top: 20, width: 100, height: 200 });
 
-    fireEvent.pointerDown(stage, { button: 0 });
+    fireEvent.pointerDown(stage, { button: 0, clientX: 60, clientY: 180 });
+    expect(startWindowDragMock).not.toHaveBeenCalled();
+    fireEvent.pointerMove(stage, { button: 0, buttons: 1, clientX: 66, clientY: 180 });
     expect(startWindowDragMock).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'Open avatar companion input' }));
@@ -247,7 +274,7 @@ describe('App surface foundation', () => {
     expect(screen.getByTestId('avatar-companion-bubble').className).toContain('avatar-companion--engaged');
   });
 
-  it('clears pointer-contact immediately on native drag handoff so pressed classes do not stick', async () => {
+  it('clears pointer-contact on native drag handoff so pressed classes do not stick', async () => {
     tauriRuntime = true;
     seedReadyState();
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
@@ -256,14 +283,57 @@ describe('App surface foundation', () => {
 
     expect(await screen.findByText('Desktop companion ready')).toBeTruthy();
     const stage = screen.getByTestId('avatar-stage');
+    const body = screen.getByTestId('avatar-body-hit-region');
     const triggerRow = screen.getByTestId('avatar-trigger-row');
+    setElementRect(body, { left: 10, top: 20, width: 100, height: 200 });
 
-    fireEvent.pointerEnter(stage);
-    fireEvent.pointerDown(stage, { button: 0 });
+    fireEvent.pointerEnter(stage, { clientX: 60, clientY: 180 });
+    fireEvent.pointerDown(stage, { button: 0, clientX: 60, clientY: 180 });
+    expect(stage.className).toContain('avatar-stage--pointer-contact');
+    fireEvent.pointerMove(stage, { button: 0, buttons: 1, clientX: 66, clientY: 180 });
 
     expect(startWindowDragMock).toHaveBeenCalledTimes(1);
-    expect(stage.className).not.toContain('avatar-stage--pointer-contact');
-    expect(triggerRow.className).not.toContain('avatar-companion-trigger-row--pointer-contact');
+    await waitFor(() => {
+      expect(stage.className).not.toContain('avatar-stage--pointer-contact');
+      expect(triggerRow.className).not.toContain('avatar-companion-trigger-row--pointer-contact');
+    });
+  });
+
+  it('routes shell-origin avatar.user events only for hit-region interactions', async () => {
+    tauriRuntime = true;
+    seedReadyState();
+    const handle = createBootstrapHandle();
+    bootstrapAvatarMock.mockResolvedValue(handle);
+
+    render(<App />);
+
+    expect(await screen.findByText('Desktop companion ready')).toBeTruthy();
+    const stage = screen.getByTestId('avatar-stage');
+    const body = screen.getByTestId('avatar-body-hit-region');
+    setElementRect(body, { left: 10, top: 20, width: 100, height: 200 });
+
+    fireEvent.pointerMove(stage, { button: 0, clientX: 180, clientY: 180 });
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(true);
+    expect(handle.driver.emit).not.toHaveBeenCalled();
+
+    fireEvent.pointerMove(stage, { button: 0, clientX: 60, clientY: 70 });
+    fireEvent.pointerDown(stage, { button: 0, clientX: 60, clientY: 70 });
+    fireEvent.pointerUp(stage, { button: 0, clientX: 60, clientY: 70 });
+    fireEvent.pointerDown(stage, { button: 2, clientX: 60, clientY: 180 });
+
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
+    const emitMock = vi.mocked(handle.driver.emit);
+    expect(emitMock.mock.calls.map((call) => call[0].name)).toEqual([
+      'avatar.user.hover',
+      'avatar.user.click',
+      'avatar.user.right_click',
+    ]);
+    expect(emitMock.mock.calls[1]?.[0].detail).toMatchObject({
+      region: 'face',
+      x: 50,
+      y: 50,
+      button: 'left',
+    });
   });
 
   it('clears stage focus-visible when pointer modality resumes while focus stays inside the stage', async () => {
