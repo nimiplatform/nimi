@@ -366,6 +366,17 @@ export type RuntimeAgentPresentationEnvelope = {
   streamId: string;
 };
 
+export type RuntimeAgentPresentationTimelineEnvelope = {
+  eventName:
+    | 'runtime.agent.presentation.voice_playback_requested'
+    | 'runtime.agent.presentation.lipsync_frame_batch';
+  agentId: string;
+  conversationAnchorId: string;
+  turnId: string;
+  streamId: string;
+  timeline: RuntimeAgentTimelineEnvelope;
+};
+
 export type RuntimeAgentScopedOriginEnvelope = {
   agentId: string;
   conversationAnchorId?: string;
@@ -542,6 +553,42 @@ export type RuntimeAgentPresentationLookAtRequestedEvent = RuntimeAgentPresentat
   };
 };
 
+export type RuntimeAgentVoicePlaybackState =
+  | 'requested'
+  | 'started'
+  | 'completed'
+  | 'interrupted'
+  | 'canceled'
+  | 'failed';
+
+export type RuntimeAgentPresentationVoicePlaybackRequestedEvent = RuntimeAgentPresentationTimelineEnvelope & {
+  eventName: 'runtime.agent.presentation.voice_playback_requested';
+  detail: {
+    audioArtifactId: string;
+    audioMimeType: string;
+    playbackState: RuntimeAgentVoicePlaybackState;
+    durationMs?: number;
+    deadlineOffsetMs?: number;
+    reason?: string;
+  };
+};
+
+export type RuntimeAgentLipsyncFrame = {
+  frameSequence: number;
+  offsetMs: number;
+  durationMs: number;
+  mouthOpenY: number;
+  audioLevel: number;
+};
+
+export type RuntimeAgentPresentationLipsyncFrameBatchEvent = RuntimeAgentPresentationTimelineEnvelope & {
+  eventName: 'runtime.agent.presentation.lipsync_frame_batch';
+  detail: {
+    audioArtifactId: string;
+    frames: RuntimeAgentLipsyncFrame[];
+  };
+};
+
 export type RuntimeAgentStateStatusTextChangedEvent = RuntimeAgentScopedOriginEnvelope & {
   eventName: 'runtime.agent.state.status_text_changed';
   detail: {
@@ -646,6 +693,8 @@ export type RuntimeAgentConsumeEvent =
   | RuntimeAgentPresentationPoseRequestedEvent
   | RuntimeAgentPresentationPoseClearedEvent
   | RuntimeAgentPresentationLookAtRequestedEvent
+  | RuntimeAgentPresentationVoicePlaybackRequestedEvent
+  | RuntimeAgentPresentationLipsyncFrameBatchEvent
   | RuntimeAgentStateStatusTextChangedEvent
   | RuntimeAgentStateExecutionStateChangedEvent
   | RuntimeAgentStateEmotionChangedEvent

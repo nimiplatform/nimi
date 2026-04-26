@@ -164,9 +164,9 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	case "/nimi.runtime.v1.RuntimeAgentService/ListAgents":
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor":
-		return "runtime.agent.chat.write", true
+		return "runtime.agent.turn.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot":
-		return "runtime.agent.chat.read", true
+		return "runtime.agent.turn.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentState":
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState":
@@ -195,7 +195,7 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		if fromAppID != "" && toAppID != "" && fromAppID != toAppID {
 			if toAppID == runtimeagentservice.PublicChatRuntimeAppID &&
 				runtimeagentservice.IsPublicChatIngressMessageType(message.GetMessageType()) {
-				return "runtime.agent.chat.write", true
+				return "runtime.agent.turn.write", true
 			}
 			return "runtime.app.send.cross_app", true
 		}
@@ -218,11 +218,11 @@ func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
 	if subscribeReq, ok := req.(*runtimev1.SubscribeAppMessagesRequest); ok {
 		for _, fromAppID := range subscribeReq.GetFromAppIds() {
 			if strings.TrimSpace(fromAppID) == runtimeagentservice.PublicChatRuntimeAppID {
-				return "runtime.agent.chat.read", true
+				return "runtime.agent.turn.read", true
 			}
 		}
 		if strings.TrimSpace(subscribeReq.GetAppId()) == runtimeagentservice.PublicChatRuntimeAppID {
-			return "runtime.agent.chat.read", true
+			return "runtime.agent.turn.read", true
 		}
 	}
 

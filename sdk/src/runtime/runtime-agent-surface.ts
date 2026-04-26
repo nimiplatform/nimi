@@ -38,8 +38,8 @@ import type { RuntimeAgentClient } from './types-client-interfaces.js';
 import type { SendAppMessageResponse } from './generated/runtime/v1/app.js';
 import { fromProtoStruct, matchesConsumeRequest, mergeAsyncIterables, parseAgentConsumeEvent, parseAppConsumeEvent } from './runtime-agent-surface-parsers.js';
 const RUNTIME_AGENT_APP_ID = 'runtime.agent';
-const TURN_WRITE_SCOPE = 'runtime.agent.chat.write';
-const TURN_READ_SCOPE = 'runtime.agent.chat.read';
+const TURN_WRITE_SCOPE = 'runtime.agent.turn.write';
+const TURN_READ_SCOPE = 'runtime.agent.turn.read';
 const TURN_REQUEST_TYPE = 'runtime.agent.turn.request';
 const TURN_INTERRUPT_TYPE = 'runtime.agent.turn.interrupt';
 const SESSION_SNAPSHOT_REQUEST_TYPE = 'runtime.agent.session.snapshot.request';
@@ -71,6 +71,8 @@ const CONSUME_MESSAGE_TYPES = new Set<string>([
   'runtime.agent.presentation.pose_requested',
   'runtime.agent.presentation.pose_cleared',
   'runtime.agent.presentation.lookat_requested',
+  'runtime.agent.presentation.voice_playback_requested',
+  'runtime.agent.presentation.lipsync_frame_batch',
 ]);
 type RuntimeAgentAppClient = {
   sendMessage(request: {

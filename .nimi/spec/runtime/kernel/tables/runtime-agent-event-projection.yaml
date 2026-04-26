@@ -177,6 +177,34 @@ presentation_events:
       x: number_optional
       y: number_optional
       z: number_optional
+  - event: runtime.agent.presentation.voice_playback_requested
+    source_rule: K-AGCORE-051
+    timeline_channel: voice
+    detail:
+      audio_artifact_id: string
+      audio_mime_type: string
+      playback_state: enum(requested|started|completed|interrupted|canceled|failed)
+      duration_ms: int_optional
+      deadline_offset_ms: int_optional
+      reason: string_optional
+    notes:
+      - audio_artifact_id is runtime-owned artifact identity; provider/model
+        timing metadata is not timeline authority.
+      - timeline must use turn_envelope.timeline fixed values and channel=voice.
+  - event: runtime.agent.presentation.lipsync_frame_batch
+    source_rule: K-AGCORE-051
+    timeline_channel: lipsync
+    detail:
+      audio_artifact_id: string
+      frames:
+        frame_sequence: positive_int
+        offset_ms: non_negative_int
+        duration_ms: positive_int
+        mouth_open_y: number_0_to_1
+        audio_level: number_0_to_1
+    notes:
+      - frame_sequence and offset_ms must be monotonic within the batch.
+      - timeline must use turn_envelope.timeline fixed values and channel=lipsync.
 
 state_events:
   - event: runtime.agent.state.status_text_changed

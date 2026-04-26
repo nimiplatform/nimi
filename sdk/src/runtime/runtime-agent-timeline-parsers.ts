@@ -64,7 +64,7 @@ function expectTimelineBoolean<T extends boolean>(
   return expected;
 }
 
-function timelineChannelForTurnEvent(messageType: string): RuntimeAgentTimelineChannel {
+function timelineChannelForEvent(messageType: string): RuntimeAgentTimelineChannel {
   switch (messageType) {
     case 'runtime.agent.turn.text_delta':
     case 'runtime.agent.turn.reasoning_delta':
@@ -79,6 +79,10 @@ function timelineChannelForTurnEvent(messageType: string): RuntimeAgentTimelineC
     case 'runtime.agent.turn.interrupted':
     case 'runtime.agent.turn.interrupt_ack':
       return 'state';
+    case 'runtime.agent.presentation.voice_playback_requested':
+      return 'voice';
+    case 'runtime.agent.presentation.lipsync_frame_batch':
+      return 'lipsync';
     default:
       throw createNimiError({
         message: `${messageType} does not admit runtime timeline metadata`,
@@ -130,7 +134,7 @@ export function parseRuntimeAgentTimeline(
     });
   }
   const channel = expectString(payload.channel, 'timeline.channel', messageType);
-  const expectedChannel = timelineChannelForTurnEvent(messageType);
+  const expectedChannel = timelineChannelForEvent(messageType);
   if (channel !== expectedChannel) {
     throw createNimiError({
       message: `${messageType} timeline.channel must be ${expectedChannel}`,

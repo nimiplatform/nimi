@@ -120,3 +120,17 @@ func (s *Service) publicChatTurnTimelineEnvelope(turnID string, messageType stri
 	}
 	return publicChatBuildTimelineEnvelope(snapshot, messageType, sequence, observedAt)
 }
+
+func (s *Service) publicChatTurnTimelineEnvelopeForChannel(turnID string, channel string, sequence uint64, observedAt time.Time) (map[string]any, error) {
+	s.chatSurfaceMu.Lock()
+	turn := s.chatTurns[strings.TrimSpace(turnID)]
+	var snapshot publicChatTurnState
+	if turn != nil {
+		snapshot = *turn
+	}
+	s.chatSurfaceMu.Unlock()
+	if strings.TrimSpace(snapshot.TurnID) == "" {
+		return nil, status.Error(codes.FailedPrecondition, "runtime.agent.timeline turn not found")
+	}
+	return publicChatBuildTimelineEnvelopeForChannel(snapshot, channel, sequence, observedAt)
+}

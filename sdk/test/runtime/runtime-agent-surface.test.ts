@@ -30,21 +30,11 @@ import {
   AuthorizeExternalPrincipalRequest,
   AuthorizeExternalPrincipalResponse,
 } from '../../src/runtime/generated/runtime/v1/grant.js';
-import {
-  ReasonCode as RuntimeProtoReasonCode,
-} from '../../src/runtime/generated/runtime/v1/common.js';
-import {
-  Runtime,
-} from '../../src/runtime/runtime.js';
-import {
-  parseAgentConsumeEvent,
-  parseAppConsumeEvent,
-} from '../../src/runtime/runtime-agent-surface-parsers.js';
+import { ReasonCode as RuntimeProtoReasonCode } from '../../src/runtime/generated/runtime/v1/common.js';
+import { Runtime } from '../../src/runtime/runtime.js';
+import { parseAgentConsumeEvent, parseAppConsumeEvent } from '../../src/runtime/runtime-agent-surface-parsers.js';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids.js';
-import {
-  setNodeGrpcBridge,
-  type NodeGrpcBridge,
-} from '../../src/runtime/transports/node-grpc.js';
+import { setNodeGrpcBridge, type NodeGrpcBridge } from '../../src/runtime/transports/node-grpc.js';
 import type { RuntimeAgentConsumeEvent } from '../../src/runtime/types-runtime-modules.js';
 
 const APP_ID = 'nimi.runtime.agent.surface.test';
@@ -238,7 +228,7 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
       if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
         authorizeCalls += 1;
         const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
-        assert.ok(request.scopes.includes('runtime.agent.chat.read') || request.scopes.includes('runtime.agent.chat.write'));
+        assert.ok(request.scopes.includes('runtime.agent.turn.read') || request.scopes.includes('runtime.agent.turn.write'));
         return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
           tokenId: `token-${authorizeCalls}`,
           appId: APP_ID,
@@ -605,7 +595,7 @@ test('runtime agent turns subscribe parses Wave 2 hook projection events with or
       }
       if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
         const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
-        assert.deepEqual(request.scopes, ['runtime.agent.chat.read']);
+        assert.deepEqual(request.scopes, ['runtime.agent.turn.read']);
         return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
           tokenId: 'token-read',
           appId: APP_ID,
@@ -784,7 +774,7 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
           appId: APP_ID,
           subjectUserId: 'subject-1',
           externalPrincipalId: APP_ID,
-          effectiveScopes: ['runtime.agent.chat.read', 'runtime.agent.chat.write'],
+          effectiveScopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
           policyVersion: '1.0.0',
           issuedScopeCatalogVersion: '1.0.0',
           canDelegate: false,
@@ -920,7 +910,7 @@ test('runtime agent turns subscribe can skip agent event stream for app-only tur
           appId: APP_ID,
           subjectUserId: 'subject-1',
           externalPrincipalId: APP_ID,
-          effectiveScopes: ['runtime.agent.chat.read'],
+          effectiveScopes: ['runtime.agent.turn.read'],
           policyVersion: '1.0.0',
           issuedScopeCatalogVersion: '1.0.0',
           canDelegate: false,
@@ -1010,7 +1000,7 @@ test('runtime agent consume surface admits agent-scoped no-origin state and hook
           appId: APP_ID,
           subjectUserId: 'subject-1',
           externalPrincipalId: APP_ID,
-          effectiveScopes: ['runtime.agent.chat.read'],
+          effectiveScopes: ['runtime.agent.turn.read'],
           policyVersion: '1.0.0',
           issuedScopeCatalogVersion: '1.0.0',
           canDelegate: false,
@@ -1205,7 +1195,7 @@ test('runtime agent consume surface keeps multi-agent and same-agent different-a
           appId: APP_ID,
           subjectUserId: 'subject-1',
           externalPrincipalId: APP_ID,
-          effectiveScopes: ['runtime.agent.chat.read'],
+          effectiveScopes: ['runtime.agent.turn.read'],
           policyVersion: '1.0.0',
           issuedScopeCatalogVersion: '1.0.0',
           canDelegate: false,

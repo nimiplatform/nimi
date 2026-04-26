@@ -44,8 +44,8 @@ func TestProtectedCapabilityForStream(t *testing.T) {
 			FromAppIds: []string{"runtime.agent"},
 		},
 	)
-	if !required || capability != "runtime.agent.chat.read" {
-		t.Fatalf("expected runtime.agent app stream to require runtime.agent.chat.read, got (%q,%v)", capability, required)
+	if !required || capability != "runtime.agent.turn.read" {
+		t.Fatalf("expected runtime.agent app stream to require runtime.agent.turn.read, got (%q,%v)", capability, required)
 	}
 }
 
@@ -97,11 +97,11 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 				ToAppId:     "runtime.agent",
 				MessageType: "runtime.agent.turn.request",
 			},
-			capability: "runtime.agent.chat.write",
+			capability: "runtime.agent.turn.write",
 		},
 		// K-AGCORE-032 hard cut proof: legacy agent.chat.*.v1 on the primary
 		// runtime.agent target must NOT route through the admitted
-		// runtime.agent.chat.write seam; it falls back to a generic
+		// runtime.agent.turn.write seam; it falls back to a generic
 		// cross-app capability (and therefore is not silently accepted as a
 		// primary public chat ingress carrier).
 		{
@@ -132,16 +132,16 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			capability: "runtime.app.send.cross_app",
 		},
 		// Affirmative: OpenConversationAnchor is guarded by the admitted
-		// runtime.agent.chat.write capability.
+		// runtime.agent.turn.write capability.
 		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
 			request:    &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-alpha"},
-			capability: "runtime.agent.chat.write",
+			capability: "runtime.agent.turn.write",
 		},
 		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
 			request:    &runtimev1.GetConversationAnchorSnapshotRequest{AgentId: "agent-alpha"},
-			capability: "runtime.agent.chat.read",
+			capability: "runtime.agent.turn.read",
 		},
 		{
 			method: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
@@ -387,7 +387,7 @@ func TestStreamAuthzInterceptorUsesRuntimeAgentChatCapabilityForAppSubscriptions
 	if authorizer.lastAppID != "nimi.desktop" {
 		t.Fatalf("expected app id nimi.desktop, got %q", authorizer.lastAppID)
 	}
-	if authorizer.lastCap != "runtime.agent.chat.read" {
+	if authorizer.lastCap != "runtime.agent.turn.read" {
 		t.Fatalf("unexpected capability: %q", authorizer.lastCap)
 	}
 }

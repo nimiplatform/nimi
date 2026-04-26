@@ -196,9 +196,10 @@ Live2D companion voice/lipsync branch.
 
 This rule admits the branch that was previously candidate-only in the closed
 2026-04-20 design. It does not make closed `PresentationStream`,
-`TimelineMarker`, or `voice.level` shapes active API truth by name; Wave 2 must
-land the exact projection schema in `tables/runtime-agent-event-projection.yaml`
-before runtime implementation can claim support.
+`TimelineMarker`, or `voice.level` shapes active API truth by name; the exact
+voice/lipsync projection schema lives only in
+`tables/runtime-agent-event-projection.yaml` before runtime implementation can
+claim support.
 
 Fixed rules:
 
