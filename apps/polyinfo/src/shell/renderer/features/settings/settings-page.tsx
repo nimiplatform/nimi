@@ -14,20 +14,12 @@ import {
   resolveTextGenerateRouteStatus,
 } from '@renderer/data/runtime-routes.js';
 import { runPolyinfoBootstrap } from '@renderer/infra/bootstrap/polyinfo-bootstrap.js';
+import {
+  applyPolyinfoAccessTokenSession,
+  normalizePolyinfoAuthUser,
+} from './auth-session.js';
 
 const tauriOAuthBridge = createTauriOAuthBridge();
-
-function normalizeAuthUser(user: Record<string, unknown> | undefined) {
-  if (!user?.id) {
-    throw new Error('登录返回不完整');
-  }
-  return {
-    id: String(user.id),
-    displayName: String(user.displayName || user.name || '').trim(),
-    email: user.email ? String(user.email) : undefined,
-    avatarUrl: user.avatarUrl ? String(user.avatarUrl) : undefined,
-  };
-}
 
 function Field({
   label,
@@ -66,8 +58,12 @@ function AccountSessionPanel() {
     if (!accessToken) {
       throw new Error('登录返回不完整');
     }
-    const normalizedUser = normalizeAuthUser(user);
+    const normalizedUser = normalizePolyinfoAuthUser(user);
 
+    getPlatformClient().realm.updateAuth({
+      accessToken: () => accessToken,
+      refreshToken: () => refreshToken,
+    });
     setAuthSession(normalizedUser, accessToken, refreshToken);
 
     const realmBaseUrl = runtimeDefaults?.realm.realmBaseUrl;
@@ -92,20 +88,27 @@ function AccountSessionPanel() {
       if (!realmBaseUrl) {
         throw new Error('缺少 Realm 地址');
       }
-      await persistSharedDesktopAuthSession({
-        realmBaseUrl,
+      await applyPolyinfoAccessTokenSession({
+        realm: getPlatformClient().realm,
         accessToken: result.accessToken,
-        saveSession: (session) => saveAuthSession(session),
-        clearSession: () => clearPersistedAuthSession(),
+        setAuthSession,
+        persistSession: async (session) => {
+          await persistSharedDesktopAuthSession({
+            realmBaseUrl,
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+            user: session.user,
+            saveSession: (payload) => saveAuthSession(payload),
+            clearSession: () => clearPersistedAuthSession(),
+          });
+        },
       });
-      clearPlatformClient();
-      await runPolyinfoBootstrap();
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : '登录失败');
     } finally {
       setBrowserSubmitting(false);
     }
-  }, [runtimeDefaults?.realm.realmBaseUrl]);
+  }, [runtimeDefaults?.realm.realmBaseUrl, setAuthSession]);
 
   const handleLogin = useCallback(async () => {
     if (!identifier.trim() || !password.trim()) {
