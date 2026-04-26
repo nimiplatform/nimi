@@ -1094,6 +1094,89 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 	}
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }
+
+func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				TraceId:   "trace-unknown-emotion",
+				Payload: &runtimev1.StreamScenarioEvent_Started{
+					Started: &runtimev1.ScenarioStreamStarted{
+						ModelResolved: "qwen3-chat",
+						RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				TraceId:   "trace-unknown-emotion",
+				Payload: &runtimev1.StreamScenarioEvent_Delta{
+					Delta: &runtimev1.ScenarioStreamDelta{
+						Delta: &runtimev1.ScenarioStreamDelta_Text{
+							Text: &runtimev1.TextStreamDelta{Text: `<message id="m1"><emotion>curious</emotion>hello</message>`},
+						},
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			return emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+				TraceId:   "trace-unknown-emotion",
+				Payload: &runtimev1.StreamScenarioEvent_Completed{
+					Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP},
+				},
+			})
+		},
+	})
+	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"agent_id":               "agent-alpha",
+			"conversation_anchor_id": anchorID,
+			"messages": []any{
+				map[string]any{"role": "user", "content": "hello"},
+			},
+			"execution_binding": map[string]any{
+				"route":    "local",
+				"model_id": "local/default",
+			},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
+	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
+	failed := capture.waitForMessageType(t, publicChatTurnFailedType)
+	failedDetail := publicChatTurnDetail(t, failed)
+	if got := failedDetail["reason_code"]; got != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
+		t.Fatalf("expected AI_OUTPUT_INVALID failed.detail.reason_code, got=%v", failedDetail)
+	}
+	if got := strings.TrimSpace(fmt.Sprint(failedDetail["message"])); !strings.Contains(got, "current emotion ontology") {
+		t.Fatalf("expected failed.detail.message to identify emotion ontology rejection, got=%v", failedDetail)
+	}
+	capture.mu.Lock()
+	defer capture.mu.Unlock()
+	for _, item := range capture.items {
+		if item.GetMessageType() == publicChatTurnMessageCommittedType {
+			t.Fatalf("unknown emotion must fail before message commit; saw %s", item.GetMessageType())
+		}
+	}
+}
+
 func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)

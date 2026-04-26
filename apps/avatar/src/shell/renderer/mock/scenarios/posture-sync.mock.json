@@ -19,9 +19,9 @@
     "initial_execution_state": "IDLE"
   },
   "events": [
-    { "kind": "time", "at_ms": 0,     "type": "apml.state.activity", "detail": { "activity_name": "listening",   "category": "interaction", "intensity": null,       "source": "mock" } },
-    { "kind": "time", "at_ms": 5000,  "type": "apml.state.activity", "detail": { "activity_name": "excited",     "category": "emotion",     "intensity": "moderate", "source": "mock" } },
-    { "kind": "time", "at_ms": 10000, "type": "apml.state.activity", "detail": { "activity_name": "celebrating", "category": "state",       "intensity": null,       "source": "mock" } },
-    { "kind": "time", "at_ms": 15000, "type": "apml.state.activity", "detail": { "activity_name": "sleeping",    "category": "state",       "intensity": null,       "source": "mock" } }
+    { "kind": "time", "at_ms": 0,     "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "listening",   "category": "interaction", "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms": 5000,  "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "excited",     "category": "emotion",     "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 10000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "celebrating", "category": "state",       "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms": 15000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "sleeping",    "category": "state",       "intensity": null,       "source": "mock" } }
   ]
 }

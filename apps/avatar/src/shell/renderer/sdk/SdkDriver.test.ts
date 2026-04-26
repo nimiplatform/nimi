@@ -66,9 +66,13 @@ describe('SdkDriver', () => {
 
     expect(driver.status).toBe('running');
     expect(driver.getBundle().activity?.name).toBe('happy');
+    expect(driver.getBundle().activity?.source).toBe('runtime_projection');
+    expect(driver.getBundle().custom).toEqual(expect.objectContaining({
+      last_runtime_activity_source: 'apml_output',
+    }));
     expect(driver.getBundle().status_text).toBe('working');
     expect(eventNames).toContain('runtime.agent.presentation.activity_requested');
-    expect(eventNames).toContain('apml.state.activity');
+    expect(eventNames).not.toContain('apml.state.activity');
 
     await driver.stop();
   });
@@ -105,6 +109,110 @@ describe('SdkDriver', () => {
 
     expect(driver.status).toBe('error');
     errorSpy.mockRestore();
+  });
+
+  it('fails closed when runtime activity projection shape is malformed', async () => {
+    async function* stream() {
+      yield {
+        eventName: 'runtime.agent.presentation.activity_requested',
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-1',
+        streamId: 'stream-1',
+        detail: {
+          activityName: 'happy',
+          category: 'renderer-local',
+          intensity: 'moderate',
+          source: 'apml_output',
+        },
+      } as never;
+      await new Promise(() => {});
+    }
+
+    const runtime = {
+      agent: {
+        turns: {
+          getSessionSnapshot: async () => ({
+            sessionStatus: 'active',
+            transcriptMessageCount: 0,
+          }),
+          subscribe: async () => stream(),
+        },
+      },
+    } as const;
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const driver = new SdkDriver({
+      runtime: runtime as never,
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      activeWorldId: 'world-1',
+      activeUserId: 'user-1',
+      locale: 'en-US',
+    });
+
+    await driver.start();
+    await waitForTasks();
+
+    expect(driver.status).toBe('error');
+    expect(driver.getBundle().activity).toBeUndefined();
+    errorSpy.mockRestore();
+  });
+
+  it('stores runtime emotion projection separately from AgentActivity truth', async () => {
+    async function* stream() {
+      yield {
+        eventName: 'runtime.agent.state.emotion_changed',
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+        originatingTurnId: 'turn-1',
+        originatingStreamId: 'stream-1',
+        detail: {
+          currentEmotion: 'joy',
+          previousEmotion: 'neutral',
+          source: 'chat_status_cue',
+        },
+      };
+      await new Promise(() => {});
+    }
+
+    const runtime = {
+      agent: {
+        turns: {
+          getSessionSnapshot: async () => ({
+            sessionStatus: 'active',
+            transcriptMessageCount: 0,
+          }),
+          subscribe: async () => stream(),
+        },
+      },
+    } as const;
+
+    const driver = new SdkDriver({
+      runtime: runtime as never,
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      activeWorldId: 'world-1',
+      activeUserId: 'user-1',
+      locale: 'en-US',
+    });
+
+    await driver.start();
+    await waitForTasks();
+
+    expect(driver.getBundle().activity).toBeUndefined();
+    expect(driver.getBundle().emotion).toEqual({
+      current: 'joy',
+      previous: 'neutral',
+      source: 'chat_status_cue',
+    });
+    expect(driver.getBundle().custom).toEqual(expect.objectContaining({
+      runtime_current_emotion: 'joy',
+      runtime_previous_emotion: 'neutral',
+      runtime_emotion_source: 'chat_status_cue',
+    }));
+
+    await driver.stop();
   });
 
   it('stores only the latest committed assistant message as presentation cache metadata', async () => {

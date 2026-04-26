@@ -19,16 +19,16 @@
     "initial_execution_state": "IDLE"
   },
   "events": [
-    { "kind": "time", "at_ms":     0, "type": "apml.state.activity", "detail": { "activity_name": "neutral",     "category": "emotion", "intensity": null,       "source": "mock" } },
-    { "kind": "time", "at_ms":  2000, "type": "apml.state.activity", "detail": { "activity_name": "happy",       "category": "emotion", "intensity": "weak",     "source": "mock" } },
-    { "kind": "time", "at_ms":  4500, "type": "apml.state.activity", "detail": { "activity_name": "happy",       "category": "emotion", "intensity": "strong",   "source": "mock" } },
-    { "kind": "time", "at_ms":  7000, "type": "apml.state.activity", "detail": { "activity_name": "sad",         "category": "emotion", "intensity": "moderate", "source": "mock" } },
-    { "kind": "time", "at_ms":  9000, "type": "apml.state.activity", "detail": { "activity_name": "surprised",   "category": "emotion", "intensity": "strong",   "source": "mock" } },
-    { "kind": "time", "at_ms": 11000, "type": "apml.state.activity", "detail": { "activity_name": "shy",         "category": "emotion", "intensity": "moderate", "source": "mock" } },
-    { "kind": "time", "at_ms": 13000, "type": "apml.state.activity", "detail": { "activity_name": "angry",       "category": "emotion", "intensity": "moderate", "source": "mock" } },
-    { "kind": "time", "at_ms": 15000, "type": "apml.state.activity", "detail": { "activity_name": "confused",    "category": "emotion", "intensity": "moderate", "source": "mock" } },
-    { "kind": "time", "at_ms": 17000, "type": "apml.state.activity", "detail": { "activity_name": "excited",     "category": "emotion", "intensity": "strong",   "source": "mock" } },
-    { "kind": "time", "at_ms": 19000, "type": "apml.state.activity", "detail": { "activity_name": "worried",     "category": "emotion", "intensity": "weak",     "source": "mock" } },
-    { "kind": "time", "at_ms": 21000, "type": "apml.state.activity", "detail": { "activity_name": "embarrassed", "category": "emotion", "intensity": "moderate", "source": "mock" } }
+    { "kind": "time", "at_ms":     0, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "neutral",     "category": "emotion", "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms":  2000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "happy",       "category": "emotion", "intensity": "weak",     "source": "mock" } },
+    { "kind": "time", "at_ms":  4500, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "happy",       "category": "emotion", "intensity": "strong",   "source": "mock" } },
+    { "kind": "time", "at_ms":  7000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "sad",         "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms":  9000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "surprised",   "category": "emotion", "intensity": "strong",   "source": "mock" } },
+    { "kind": "time", "at_ms": 11000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "shy",         "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 13000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "angry",       "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 15000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "confused",    "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 17000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "excited",     "category": "emotion", "intensity": "strong",   "source": "mock" } },
+    { "kind": "time", "at_ms": 19000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "worried",     "category": "emotion", "intensity": "weak",     "source": "mock" } },
+    { "kind": "time", "at_ms": 21000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "embarrassed", "category": "emotion", "intensity": "moderate", "source": "mock" } }
   ]
 }

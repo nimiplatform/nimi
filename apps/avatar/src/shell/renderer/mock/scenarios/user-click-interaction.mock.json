@@ -19,12 +19,12 @@
     "initial_execution_state": "IDLE"
   },
   "events": [
-    { "kind": "time", "at_ms": 0, "type": "apml.state.activity", "detail": { "activity_name": "idle", "category": "state", "intensity": null, "source": "mock" } }
+    { "kind": "time", "at_ms": 0, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "idle", "category": "state", "intensity": null, "source": "mock" } }
   ],
   "triggers": [
-    { "trigger_id": "head-click-shy", "on": "avatar.user.click", "filter": { "region": "head" }, "emit": { "type": "apml.state.activity", "detail": { "activity_name": "shy", "category": "emotion", "intensity": "strong", "source": "mock" } } },
-    { "trigger_id": "body-click-happy", "on": "avatar.user.click", "filter": { "region": "body" }, "emit": { "type": "apml.state.activity", "detail": { "activity_name": "happy", "category": "emotion", "intensity": "moderate", "source": "mock" } } },
-    { "trigger_id": "face-click-greet", "on": "avatar.user.click", "filter": { "region": "face" }, "emit": { "type": "apml.state.activity", "detail": { "activity_name": "greet", "category": "interaction", "intensity": null, "source": "mock" } } },
-    { "trigger_id": "double-click-surprised", "on": "avatar.user.double_click", "emit": { "type": "apml.state.activity", "detail": { "activity_name": "surprised", "category": "emotion", "intensity": "strong", "source": "mock" } } }
+    { "trigger_id": "head-click-shy", "on": "avatar.user.click", "filter": { "region": "head" }, "emit": { "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "shy", "category": "emotion", "intensity": "strong", "source": "mock" } } },
+    { "trigger_id": "body-click-happy", "on": "avatar.user.click", "filter": { "region": "body" }, "emit": { "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "happy", "category": "emotion", "intensity": "moderate", "source": "mock" } } },
+    { "trigger_id": "face-click-greet", "on": "avatar.user.click", "filter": { "region": "face" }, "emit": { "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "greet", "category": "interaction", "intensity": null, "source": "mock" } } },
+    { "trigger_id": "double-click-surprised", "on": "avatar.user.double_click", "emit": { "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "surprised", "category": "emotion", "intensity": "strong", "source": "mock" } } }
   ]
 }

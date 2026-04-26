@@ -168,8 +168,8 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 	if got := firstFollowUp["status"]; got != "scheduled" {
 		t.Fatalf("expected snapshot last_turn.follow_up scheduled, got=%v", firstFollowUp)
 	}
-	if detail := publicChatTurnDetail(t, firstPostTurn); detail["action"] == nil {
-		t.Fatalf("expected post_turn detail to carry action indication, got=%v", detail)
+	if detail := publicChatTurnDetail(t, firstPostTurn); detail["action"] != nil {
+		t.Fatalf("post_turn detail must not expose HookIntent as action indication, got=%v", detail)
 	}
 	requirePublicChatPostTurnHookIntent(t, firstPostTurn, "action-follow-up-1", "pending", 150)
 	secondErr := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
@@ -316,8 +316,8 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 	if got := firstFollowUp["status"]; got != "scheduled" {
 		t.Fatalf("expected persisted snapshot last_turn.follow_up scheduled, got=%v", firstFollowUp)
 	}
-	if detail := publicChatTurnDetail(t, postTurn); detail["action"] == nil {
-		t.Fatalf("expected post_turn detail to carry action indication, got=%v", detail)
+	if detail := publicChatTurnDetail(t, postTurn); detail["action"] != nil {
+		t.Fatalf("post_turn detail must not expose HookIntent as action indication, got=%v", detail)
 	}
 	requirePublicChatPostTurnHookIntent(t, postTurn, "action-recover", "pending", 200)
 	closeFirst()

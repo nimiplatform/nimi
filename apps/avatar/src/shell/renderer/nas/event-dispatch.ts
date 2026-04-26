@@ -23,19 +23,82 @@ function bundleForEvent(base: AgentDataBundle, event: AgentEvent): AgentDataBund
   };
 }
 
+function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDataBundle['activity']> | null {
+  const activityName = typeof event.detail['activity_name'] === 'string' ? event.detail['activity_name'].trim() : '';
+  const category = event.detail['category'];
+  const intensity = event.detail['intensity'];
+  const source = event.detail['source'];
+  if (!activityName || (category !== 'emotion' && category !== 'interaction' && category !== 'state')) {
+    return null;
+  }
+  if (source !== 'apml_output' && source !== 'direct_api' && source !== 'mock') {
+    return null;
+  }
+  if (intensity !== undefined && intensity !== null && intensity !== 'weak' && intensity !== 'moderate' && intensity !== 'strong') {
+    return null;
+  }
+  return {
+    name: activityName,
+    category,
+    intensity: intensity === undefined ? null : intensity,
+    source: 'runtime_projection',
+  };
+}
+
+function parseRuntimeExpressionProjection(event: AgentEvent): string | null {
+  const expressionId = typeof event.detail['expression_id'] === 'string'
+    ? event.detail['expression_id'].trim()
+    : '';
+  return expressionId || null;
+}
+
 export function wireEventDispatch(context: DispatchContext): () => void {
   const { driver, registry, executor, projection } = context;
   const defaultActivity = createDefaultActivityHandler();
 
   const unsubscribe = driver.onEvent((event) => {
-    if (event.name === 'apml.state.activity') {
-      const activityName = typeof event.detail['activity_name'] === 'string' ? event.detail['activity_name'] : null;
-      if (!activityName) return;
-      const ctx = bundleForEvent(driver.getBundle(), event);
+    if (event.name === 'runtime.agent.presentation.activity_requested') {
+      const activity = parseRuntimeActivityProjection(event);
+      if (!activity) return;
+      const ctx = bundleForEvent({ ...driver.getBundle(), activity }, event);
+      driver.emit({
+        name: 'avatar.activity.start',
+        detail: {
+          activity_name: activity.name,
+          category: activity.category,
+          intensity: activity.intensity,
+          source: 'runtime_projection',
+          runtime_source: event.detail['source'],
+        },
+      });
+      const activityName = activity.name;
       const entry = registry.activity.get(activityName);
       const handler = entry?.handler ?? defaultActivity;
       const key = `activity:${activityName}`;
       void executor.run(key, handler, ctx, projection);
+      return;
+    }
+
+    if (event.name === 'runtime.agent.presentation.expression_requested') {
+      const expressionId = parseRuntimeExpressionProjection(event);
+      if (!expressionId) return;
+      const entry = registry.event.get(event.name);
+      const ctx = bundleForEvent(driver.getBundle(), event);
+      if (entry) {
+        void executor.run(`event:${event.name}`, entry.handler, ctx, projection);
+        return;
+      }
+      void projection.setExpression(expressionId).then(() => {
+        driver.emit({
+          name: 'avatar.expression.change',
+          detail: {
+            expression_id: expressionId,
+            source: 'runtime_projection',
+          },
+        });
+      }).catch((err: unknown) => {
+        console.warn(`[nas:fallback] runtime expression projection failed for ${expressionId}: ${err instanceof Error ? err.message : String(err)}`);
+      });
       return;
     }
 

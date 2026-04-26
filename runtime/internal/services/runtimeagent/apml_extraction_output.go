@@ -138,7 +138,7 @@ func decodeStrictAPML(raw string, rootName string, out any) error {
 		return err
 	}
 	decoder := xml.NewDecoder(bytes.NewBufferString(trimmed))
-	decoder.Strict = false
+	decoder.Strict = true
 	if err := decoder.Decode(out); err != nil {
 		return fmt.Errorf("APML output invalid: %w", err)
 	}
@@ -180,7 +180,7 @@ func validateAPMLAllowedShape(raw string, rootName string) error {
 		return fmt.Errorf("APML root <%s> is not admitted", rootName)
 	}
 	decoder := xml.NewDecoder(bytes.NewBufferString(raw))
-	decoder.Strict = false
+	decoder.Strict = true
 	stack := make([]string, 0, 8)
 	for {
 		token, err := decoder.Token()

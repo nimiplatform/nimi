@@ -40,8 +40,8 @@ describe('MockDriver', () => {
   it('emits time-based events at the scheduled offset', async () => {
     const scenario = makeScenario({
       events: [
-        { kind: 'time', at_ms: 1000, type: 'apml.state.activity', detail: { activity_name: 'happy', category: 'emotion', intensity: 'moderate', source: 'mock' } },
-        { kind: 'time', at_ms: 2500, type: 'apml.state.activity', detail: { activity_name: 'sad', category: 'emotion', intensity: 'moderate', source: 'mock' } },
+        { kind: 'time', at_ms: 1000, type: 'runtime.agent.presentation.activity_requested', detail: { activity_name: 'happy', category: 'emotion', intensity: 'moderate', source: 'mock' } },
+        { kind: 'time', at_ms: 2500, type: 'runtime.agent.presentation.activity_requested', detail: { activity_name: 'sad', category: 'emotion', intensity: 'moderate', source: 'mock' } },
       ],
     });
     const driver = new MockDriver({ scenario });
@@ -51,15 +51,15 @@ describe('MockDriver', () => {
     vi.advanceTimersByTime(999);
     expect(names).toHaveLength(0);
     vi.advanceTimersByTime(1);
-    expect(names).toEqual(['apml.state.activity:happy']);
+    expect(names).toEqual(['runtime.agent.presentation.activity_requested:happy']);
     vi.advanceTimersByTime(1500);
-    expect(names).toEqual(['apml.state.activity:happy', 'apml.state.activity:sad']);
+    expect(names).toEqual(['runtime.agent.presentation.activity_requested:happy', 'runtime.agent.presentation.activity_requested:sad']);
   });
 
-  it('updates bundle activity when an apml.state.activity event fires', async () => {
+  it('updates bundle activity when a runtime.agent.presentation.activity_requested event fires', async () => {
     const scenario = makeScenario({
       events: [
-        { kind: 'time', at_ms: 0, type: 'apml.state.activity', detail: { activity_name: 'neutral', category: 'emotion', intensity: null, source: 'mock' } },
+        { kind: 'time', at_ms: 0, type: 'runtime.agent.presentation.activity_requested', detail: { activity_name: 'neutral', category: 'emotion', intensity: null, source: 'mock' } },
       ],
     });
     const driver = new MockDriver({ scenario });
@@ -76,7 +76,7 @@ describe('MockDriver', () => {
           on: 'avatar.user.click',
           filter: { region: 'head' },
           emit: {
-            type: 'apml.state.activity',
+            type: 'runtime.agent.presentation.activity_requested',
             detail: { activity_name: 'shy', category: 'emotion', intensity: 'strong', source: 'mock' },
           },
         },
@@ -85,7 +85,7 @@ describe('MockDriver', () => {
     const driver = new MockDriver({ scenario });
     const emissions: string[] = [];
     driver.onEvent((ev) => {
-      if (ev.name === 'apml.state.activity') {
+      if (ev.name === 'runtime.agent.presentation.activity_requested') {
         emissions.push(String(ev.detail['activity_name']));
       }
     });
@@ -102,14 +102,14 @@ describe('MockDriver', () => {
           trigger_id: 't1',
           on: 'avatar.user.click',
           filter: { region: 'head' },
-          emit: { type: 'apml.state.activity', detail: { activity_name: 'shy', category: 'emotion', intensity: 'strong', source: 'mock' } },
+          emit: { type: 'runtime.agent.presentation.activity_requested', detail: { activity_name: 'shy', category: 'emotion', intensity: 'strong', source: 'mock' } },
         },
       ],
     });
     const driver = new MockDriver({ scenario });
     const emissions: string[] = [];
     driver.onEvent((ev) => {
-      if (ev.name === 'apml.state.activity') emissions.push(String(ev.detail['activity_name']));
+      if (ev.name === 'runtime.agent.presentation.activity_requested') emissions.push(String(ev.detail['activity_name']));
     });
     await driver.start();
     driver.emit({ name: 'avatar.user.click', detail: { region: 'body' } });
@@ -122,13 +122,13 @@ describe('MockDriver', () => {
       duration_ms: 2000,
       loop: true,
       events: [
-        { kind: 'time', at_ms: 500, type: 'apml.state.activity', detail: { activity_name: 'a', category: 'state', intensity: null, source: 'mock' } },
+        { kind: 'time', at_ms: 500, type: 'runtime.agent.presentation.activity_requested', detail: { activity_name: 'a', category: 'state', intensity: null, source: 'mock' } },
       ],
     });
     const driver = new MockDriver({ scenario });
     const count = { n: 0 };
     driver.onEvent((ev) => {
-      if (ev.name === 'apml.state.activity') count.n += 1;
+      if (ev.name === 'runtime.agent.presentation.activity_requested') count.n += 1;
     });
     await driver.start();
     vi.advanceTimersByTime(500);
@@ -141,7 +141,7 @@ describe('MockDriver', () => {
   it('stops emitting after stop() is called', async () => {
     const scenario = makeScenario({
       events: [
-        { kind: 'time', at_ms: 1000, type: 'apml.state.activity', detail: { activity_name: 'x', category: 'state', intensity: null, source: 'mock' } },
+        { kind: 'time', at_ms: 1000, type: 'runtime.agent.presentation.activity_requested', detail: { activity_name: 'x', category: 'state', intensity: null, source: 'mock' } },
       ],
     });
     const driver = new MockDriver({ scenario });

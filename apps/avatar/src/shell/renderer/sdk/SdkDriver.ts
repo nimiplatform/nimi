@@ -31,9 +31,9 @@ type RuntimeAgentExecutionStateValue =
   | 'life_running'
   | 'suspended';
 
-type BundleActivitySource = NonNullable<AgentDataBundle['activity']>['source'];
 type BundleActivityCategory = NonNullable<AgentDataBundle['activity']>['category'];
 type BundleActivityIntensity = NonNullable<AgentDataBundle['activity']>['intensity'];
+type BundleCurrentEmotion = NonNullable<AgentDataBundle['emotion']>['current'];
 
 export type SdkDriverOptions = {
   runtime: PlatformClient['runtime'];
@@ -64,25 +64,50 @@ function mapExecutionState(value?: RuntimeAgentExecutionStateValue): AgentDataBu
   }
 }
 
-function normalizeActivitySource(value: unknown): BundleActivitySource {
-  if (value === 'apml_output' || value === 'direct_api' || value === 'mock') {
-    return value;
-  }
-  return 'direct_api';
-}
-
-function normalizeActivityCategory(value: unknown): BundleActivityCategory {
+function requireRuntimeActivityCategory(value: unknown): BundleActivityCategory {
   if (value === 'emotion' || value === 'interaction' || value === 'state') {
     return value;
   }
-  return 'state';
+  throw new Error('avatar sdk driver received malformed runtime activity projection category');
 }
 
-function normalizeActivityIntensity(value: unknown): BundleActivityIntensity {
+function requireRuntimeActivityIntensity(value: unknown): BundleActivityIntensity {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   if (value === 'weak' || value === 'moderate' || value === 'strong') {
     return value;
   }
-  return null;
+  throw new Error('avatar sdk driver received malformed runtime activity projection intensity');
+}
+
+function requireRuntimeProjectionSource(value: unknown, label: string): string {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+  }
+  throw new Error(`avatar sdk driver received malformed ${label} source`);
+}
+
+function requireRuntimeCurrentEmotion(value: unknown): BundleCurrentEmotion {
+  if (
+    value === 'neutral'
+    || value === 'joy'
+    || value === 'focus'
+    || value === 'calm'
+    || value === 'playful'
+    || value === 'concerned'
+    || value === 'surprised'
+  ) {
+    return value;
+  }
+  throw new Error('avatar sdk driver received malformed runtime current emotion');
+}
+
+function optionalRuntimePreviousEmotion(value: unknown): BundleCurrentEmotion | null {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  return requireRuntimeCurrentEmotion(value);
 }
 
 function toRuntimeAgentEvent(
@@ -469,13 +494,16 @@ export class SdkDriver implements AgentDataDriver {
         return;
       case 'runtime.agent.presentation.activity_requested': {
         const timestampNow = this.now();
+        const category = requireRuntimeActivityCategory(event.detail.category);
+        const intensity = requireRuntimeActivityIntensity(event.detail.intensity);
+        const runtimeSource = requireRuntimeProjectionSource(event.detail.source, 'runtime activity projection');
         this.bundle = {
           ...this.bundle,
           activity: {
             name: event.detail.activityName,
-            category: normalizeActivityCategory(event.detail.category),
-            intensity: normalizeActivityIntensity(event.detail.intensity),
-            source: normalizeActivitySource(event.detail.source),
+            category,
+            intensity,
+            source: 'runtime_projection',
           },
           history: mergeHistory(this.bundle.history, {
             last_activity: {
@@ -483,24 +511,19 @@ export class SdkDriver implements AgentDataDriver {
               at: new Date(timestampNow).toISOString(),
             },
           }),
+          custom: mergeCustomRecord(this.bundle.custom, {
+            last_runtime_activity_source: runtimeSource,
+            last_runtime_activity_category: category,
+            last_runtime_activity_intensity: intensity,
+          }),
         };
         this.touchRuntimeNow();
         this.publishBundle();
         this.emitAgentEvent(toRuntimeAgentEvent(event.eventName, {
           activity_name: event.detail.activityName,
-          category: event.detail.category,
-          intensity: event.detail.intensity ?? null,
-          source: event.detail.source,
-          agent_id: event.agentId,
-          conversation_anchor_id: event.conversationAnchorId,
-          turn_id: event.turnId,
-          stream_id: event.streamId,
-        }, timestampNow));
-        this.emitAgentEvent(toRuntimeAgentEvent('apml.state.activity', {
-          activity_name: event.detail.activityName,
-          category: event.detail.category,
-          intensity: event.detail.intensity ?? null,
-          source: event.detail.source,
+          category,
+          intensity,
+          source: runtimeSource,
           agent_id: event.agentId,
           conversation_anchor_id: event.conversationAnchorId,
           turn_id: event.turnId,
@@ -519,14 +542,25 @@ export class SdkDriver implements AgentDataDriver {
         break;
       }
       case 'runtime.agent.presentation.expression_requested': {
-        const at = new Date(this.now()).toISOString();
+        const timestampNow = this.now();
+        const at = new Date(timestampNow).toISOString();
         this.bundle = {
           ...this.bundle,
           history: mergeHistory(this.bundle.history, {
             last_expression: { name: event.detail.expressionId, at },
           }),
         };
-        break;
+        this.touchRuntimeNow();
+        this.publishBundle();
+        this.emitAgentEvent(toRuntimeAgentEvent(event.eventName, {
+          expression_id: event.detail.expressionId,
+          expected_duration_ms: event.detail.expectedDurationMs ?? null,
+          agent_id: event.agentId,
+          conversation_anchor_id: event.conversationAnchorId,
+          turn_id: event.turnId,
+          stream_id: event.streamId,
+        }, timestampNow));
+        return;
       }
       case 'runtime.agent.state.status_text_changed':
         this.bundle = {
@@ -540,17 +574,25 @@ export class SdkDriver implements AgentDataDriver {
           execution_state: mapExecutionState(event.detail.currentExecutionState),
         };
         break;
-      case 'runtime.agent.state.emotion_changed':
+      case 'runtime.agent.state.emotion_changed': {
+        const currentEmotion = requireRuntimeCurrentEmotion(event.detail.currentEmotion);
+        const previousEmotion = optionalRuntimePreviousEmotion(event.detail.previousEmotion);
+        const runtimeSource = requireRuntimeProjectionSource(event.detail.source, 'runtime emotion projection');
         this.bundle = {
           ...this.bundle,
-          activity: {
-            name: event.detail.currentEmotion,
-            category: 'emotion',
-            intensity: null,
-            source: normalizeActivitySource(event.detail.source),
+          emotion: {
+            current: currentEmotion,
+            previous: previousEmotion,
+            source: runtimeSource,
           },
+          custom: mergeCustomRecord(this.bundle.custom, {
+            runtime_current_emotion: currentEmotion,
+            runtime_previous_emotion: previousEmotion,
+            runtime_emotion_source: runtimeSource,
+          }),
         };
         break;
+      }
       case 'runtime.agent.state.posture_changed':
         this.bundle = {
           ...this.bundle,

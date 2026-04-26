@@ -11,10 +11,10 @@ function buildDesktopChatOutputContractLines(): string[] {
     'Use <activity>happy|sad|shy|angry|surprised|confused|excited|worried|embarrassed|neutral|greet|farewell|agree|disagree|listening|thinking|idle|celebrating|sleeping|focused</activity> inside <message> only for a short presentation/action cue; do not use it as visible text.',
     'Immediate post-turn media actions must be sibling <action> tags after </message>, never nested inside <message>.',
     '<action> kind may be only "image" or "voice". Do not emit kind="video"; video generation is deferred.',
-    '<action> must include id, kind, source-message, and coupling="after-message" or coupling="with-message".',
+    '<action> must include only id and kind attributes; do not emit operation, source-message, coupling, priority, routing, or provider/backend attributes.',
     '<action> must contain <prompt-payload kind="image|voice"><prompt-text>...</prompt-text></prompt-payload>.',
     'Emit at most one image action and at most one voice action in the entire response.',
-    'Deferred continuation must use <time-hook> with <delay-ms> or <event-hook> with exactly one <event-user-idle idle-for="600s"/> or <event-chat-ended/>, plus <effect kind="follow-up-turn">, not an <action>.',
+    'Runtime-owned deferred continuation uses <time-hook> / <event-hook>; this Desktop local parser must not emit or accept those hooks.',
     'If no action or hook is needed, emit only the single <message> element.',
     'Keep internal planning private and never include chain-of-thought fields.',
   ];

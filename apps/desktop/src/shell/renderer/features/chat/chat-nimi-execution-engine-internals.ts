@@ -268,13 +268,13 @@ function buildActionPlanningSection(resolvedBehavior: AgentResolvedBehavior | nu
   ];
   if (resolvedBehavior.resolvedExperiencePolicy.contentBoundary === 'explicit-media-request') {
     lines.push(
-      'For an affirmative latest user request to create, send, show, or generate an image, emit exactly one image action with operation="image.generate" and a complete <prompt-text>.',
+      'For an affirmative latest user request to create, send, show, or generate an image, emit exactly one <action id="image-0" kind="image"> with a complete <prompt-text>.',
       'If the latest user message negates or cancels image generation, do not emit an image action.',
     );
   }
   if (resolvedBehavior.resolvedTurnMode === 'explicit-voice') {
     lines.push(
-      'For an affirmative latest user request for voice playback, emit exactly one voice action with operation="audio.synthesize" and a complete <prompt-text>.',
+      'For an affirmative latest user request for voice playback, emit exactly one <action id="voice-0" kind="voice"> with a complete <prompt-text>.',
       'If the latest user message negates or cancels voice playback, do not emit a voice action.',
     );
   }

@@ -24,7 +24,7 @@
     {
       "kind": "time",
       "at_ms": 0,
-      "type": "apml.state.activity",
+      "type": "runtime.agent.presentation.activity_requested",
       "detail": {
         "activity_name": "neutral",
         "category": "emotion",
@@ -35,7 +35,7 @@
     {
       "kind": "time",
       "at_ms": 3000,
-      "type": "apml.state.activity",
+      "type": "runtime.agent.presentation.activity_requested",
       "detail": {
         "activity_name": "happy",
         "category": "emotion",
@@ -46,7 +46,7 @@
     {
       "kind": "time",
       "at_ms": 6000,
-      "type": "apml.state.activity",
+      "type": "runtime.agent.presentation.activity_requested",
       "detail": {
         "activity_name": "greet",
         "category": "interaction",
@@ -57,7 +57,7 @@
     {
       "kind": "time",
       "at_ms": 10000,
-      "type": "apml.state.activity",
+      "type": "runtime.agent.presentation.activity_requested",
       "detail": {
         "activity_name": "thinking",
         "category": "interaction",
@@ -73,7 +73,7 @@
       "on": "avatar.user.click",
       "filter": { "region": "head" },
       "emit": {
-        "type": "apml.state.activity",
+        "type": "runtime.agent.presentation.activity_requested",
         "detail": {
           "activity_name": "shy",
           "category": "emotion",
@@ -87,7 +87,7 @@
       "on": "avatar.user.click",
       "filter": { "region": "body" },
       "emit": {
-        "type": "apml.state.activity",
+        "type": "runtime.agent.presentation.activity_requested",
         "detail": {
           "activity_name": "surprised",
           "category": "emotion",

@@ -45,7 +45,7 @@ function createBundle(): AgentDataBundle {
       name: 'happy',
       category: 'emotion',
       intensity: 'moderate',
-      source: 'apml_output',
+      source: 'runtime_projection',
     },
     posture: {
       posture_class: 'baseline',
@@ -159,10 +159,13 @@ describe('avatar runtime carrier', () => {
 
     driver.trigger({
       event_id: 'event-1',
-      name: 'apml.state.activity',
+      name: 'runtime.agent.presentation.activity_requested',
       timestamp: '2026-04-25T00:00:01.000Z',
       detail: {
         activity_name: 'happy',
+        category: 'emotion',
+        intensity: 'moderate',
+        source: 'apml_output',
       },
     });
     await Promise.resolve();

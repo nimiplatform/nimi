@@ -21,14 +21,14 @@
   },
 
   "events": [
-    { "kind": "time", "at_ms": 0,     "type": "apml.state.activity", "detail": { "activity_name": "neutral",  "category": "emotion",     "intensity": null,       "source": "mock" } },
-    { "kind": "time", "at_ms": 3000,  "type": "apml.state.activity", "detail": { "activity_name": "happy",    "category": "emotion",     "intensity": "moderate", "source": "mock" } },
-    { "kind": "time", "at_ms": 6000,  "type": "apml.state.activity", "detail": { "activity_name": "greet",    "category": "interaction", "intensity": null,       "source": "mock" } },
-    { "kind": "time", "at_ms": 10000, "type": "apml.state.activity", "detail": { "activity_name": "thinking", "category": "interaction", "intensity": null,       "source": "mock" } }
+    { "kind": "time", "at_ms": 0,     "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "neutral",  "category": "emotion",     "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms": 3000,  "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "happy",    "category": "emotion",     "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 6000,  "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "greet",    "category": "interaction", "intensity": null,       "source": "mock" } },
+    { "kind": "time", "at_ms": 10000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "thinking", "category": "interaction", "intensity": null,       "source": "mock" } }
   ],
 
   "triggers": [
-    { "trigger_id": "on-head-click-shy",       "on": "avatar.user.click", "filter": { "region": "head" }, "emit": { "type": "apml.state.activity", "detail": { "activity_name": "shy",       "category": "emotion", "intensity": "strong",   "source": "mock" } } },
-    { "trigger_id": "on-body-click-surprised", "on": "avatar.user.click", "filter": { "region": "body" }, "emit": { "type": "apml.state.activity", "detail": { "activity_name": "surprised", "category": "emotion", "intensity": "moderate", "source": "mock" } } }
+    { "trigger_id": "on-head-click-shy",       "on": "avatar.user.click", "filter": { "region": "head" }, "emit": { "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "shy",       "category": "emotion", "intensity": "strong",   "source": "mock" } } },
+    { "trigger_id": "on-body-click-surprised", "on": "avatar.user.click", "filter": { "region": "body" }, "emit": { "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "surprised", "category": "emotion", "intensity": "moderate", "source": "mock" } } }
   ]
 }

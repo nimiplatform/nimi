@@ -19,6 +19,6 @@
     "initial_execution_state": "IDLE"
   },
   "events": [
-    { "kind": "time", "at_ms": 0, "type": "apml.state.activity", "detail": { "activity_name": "idle", "category": "state", "intensity": null, "source": "mock" } }
+    { "kind": "time", "at_ms": 0, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "idle", "category": "state", "intensity": null, "source": "mock" } }
   ]
 }

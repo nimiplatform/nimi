@@ -37,6 +37,7 @@ import {
   Runtime,
 } from '../../src/runtime/runtime.js';
 import {
+  parseAgentConsumeEvent,
   parseAppConsumeEvent,
 } from '../../src/runtime/runtime-agent-surface-parsers.js';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids.js';
@@ -1077,7 +1078,7 @@ test('runtime agent consume surface admits agent-scoped no-origin state and hook
                 state: {
                   family: AgentStateEventFamily.EMOTION_CHANGED,
                   conversationAnchorId: 'anchor-3',
-                  currentEmotion: 'curious',
+                  currentEmotion: 'calm',
                   emotionSource: 'runtime',
                 },
               },
@@ -1152,12 +1153,40 @@ test('runtime agent consume surface admits agent-scoped no-origin state and hook
     assert.ok(emotionChanged);
     if (emotionChanged?.eventName === 'runtime.agent.state.emotion_changed') {
       assert.equal(emotionChanged.conversationAnchorId, 'anchor-3');
-      assert.equal(emotionChanged.detail.currentEmotion, 'curious');
+      assert.equal(emotionChanged.detail.currentEmotion, 'calm');
       assert.equal(emotionChanged.detail.source, 'runtime');
     }
   } finally {
     clearNodeGrpcBridge();
   }
+});
+
+test('runtime agent consume surface rejects invalid emotion projection', () => {
+  assert.throws(() => parseAgentConsumeEvent(AgentEvent.fromBinary(createAgentEvent({
+    eventType: AgentEventType.STATE,
+    agentId: 'agent-1',
+    detail: {
+      oneofKind: 'state',
+      state: {
+        family: AgentStateEventFamily.EMOTION_CHANGED,
+        currentEmotion: 'curious',
+        emotionSource: 'runtime',
+      },
+    },
+  }))), /current_emotion is not an admitted current emotion/);
+
+  assert.throws(() => parseAgentConsumeEvent(AgentEvent.fromBinary(createAgentEvent({
+    eventType: AgentEventType.STATE,
+    agentId: 'agent-1',
+    detail: {
+      oneofKind: 'state',
+      state: {
+        family: AgentStateEventFamily.EMOTION_CHANGED,
+        currentEmotion: 'calm',
+        emotionSource: '',
+      },
+    },
+  }))), /requires source/);
 });
 
 test('runtime agent consume surface keeps multi-agent and same-agent different-anchor subscriptions isolated', async () => {

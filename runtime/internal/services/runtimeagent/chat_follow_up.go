@@ -129,6 +129,11 @@ func firstPublicChatTopLevelAction(structured *publicChatStructuredEnvelope) *pu
 		if strings.TrimSpace(action.ActionID) == "" {
 			continue
 		}
+		switch strings.TrimSpace(action.Modality) {
+		case "image", "voice":
+		default:
+			continue
+		}
 		return action
 	}
 	return nil

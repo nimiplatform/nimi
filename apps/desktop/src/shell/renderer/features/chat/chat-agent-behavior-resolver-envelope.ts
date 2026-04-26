@@ -389,14 +389,13 @@ function parseAPMLMessage(input: string): {
         ...(emotion.value ? ['emotion'] : []),
         ...(activity.value ? ['activity'] : []),
     ];
+    if (emotion.value && !AGENT_STATUS_CUE_MOODS.has(emotion.value as AgentResolvedStatusCueMood)) {
+        throw new Error('APML message.emotion is not admitted');
+    }
     const statusCue: AgentResolvedStatusCue | null = emotion.value || activity.value
         ? {
             sourceMessageId: messageId,
-            ...(emotion.value
-                ? AGENT_STATUS_CUE_MOODS.has(emotion.value as AgentResolvedStatusCueMood)
-                    ? { mood: emotion.value as AgentResolvedStatusCueMood }
-                    : { label: emotion.value }
-                : {}),
+            ...(emotion.value ? { mood: emotion.value as AgentResolvedStatusCueMood } : {}),
             ...(activity.value ? { actionCue: activity.value } : {}),
         }
         : null;
@@ -420,7 +419,7 @@ function parseAPMLAction(input: string, messageId: string, actionIndex: number):
     rest: string;
 } {
     const parsed = extractRequiredAPMLTagBody(input, 'action', 'APML action');
-    assertAllowedAPMLAttributes(parsed.attrs, 'APML action', ['id', 'kind', 'source-message', 'coupling', 'operation']);
+    assertAllowedAPMLAttributes(parsed.attrs, 'APML action', ['id', 'kind']);
     const kind = parseTrimmedString(parsed.attrs.kind, 'APML action.kind');
     if (kind === 'video') {
         throw new Error('APML video action is deferred to future authority');
@@ -441,16 +440,13 @@ function parseAPMLAction(input: string, messageId: string, actionIndex: number):
     if (promptText.output.trim()) {
         throw new Error('APML prompt-payload contains unsupported tags');
     }
-    const sourceMessageId = parseOptionalTrimmedString(parsed.attrs['source-message'], 'APML action.source-message')
-        || messageId;
     return {
         action: {
             actionId: parseTrimmedString(parsed.attrs.id, 'APML action.id'),
             actionIndex,
             actionCount: 0,
             modality: kind,
-            operation: parseOptionalTrimmedString(parsed.attrs.operation, 'APML action.operation')
-                || defaultAPMLOperation(kind),
+            operation: defaultAPMLOperation(kind),
             promptPayload: kind === 'image'
                 ? {
                     kind: 'image-prompt',
@@ -460,10 +456,8 @@ function parseAPMLAction(input: string, messageId: string, actionIndex: number):
                     kind: 'voice-prompt',
                     promptText: parseTrimmedString(promptText.value, 'APML prompt-text'),
                 },
-            sourceMessageId,
-            deliveryCoupling: parseOptionalTrimmedString(parsed.attrs.coupling, 'APML action.coupling') === 'with-message'
-                ? 'with-message'
-                : 'after-message',
+            sourceMessageId: messageId,
+            deliveryCoupling: 'after-message',
         },
         rest: parsed.rest,
     };

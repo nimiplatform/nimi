@@ -92,6 +92,26 @@ function optionalActivityIntensity(
     source: 'sdk',
   });
 }
+function expectCurrentEmotion(value: unknown, fieldName: string, messageType: string): string {
+  const normalized = expectString(value, fieldName, messageType);
+  if (
+    normalized === 'neutral'
+    || normalized === 'joy'
+    || normalized === 'focus'
+    || normalized === 'calm'
+    || normalized === 'playful'
+    || normalized === 'concerned'
+    || normalized === 'surprised'
+  ) {
+    return normalized;
+  }
+  throw createNimiError({
+    message: `${messageType} ${fieldName} is not an admitted current emotion`,
+    reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    actionHint: 'check_runtime_agent_emotion_projection_shape',
+    source: 'sdk',
+  });
+}
 function optionalString(value: unknown): string | undefined {
   const normalized = normalizeText(value);
   return normalized || undefined;
@@ -723,9 +743,9 @@ export function parseAgentConsumeEvent(event: AgentEvent): RuntimeAgentConsumeEv
             agentId,
             ...origin,
             detail: {
-              currentEmotion: normalizeText(detail.currentEmotion),
+              currentEmotion: expectCurrentEmotion(detail.currentEmotion, 'current_emotion', 'runtime.agent.state.emotion_changed'),
               ...(normalizeText(detail.previousEmotion) ? { previousEmotion: normalizeText(detail.previousEmotion) } : {}),
-              source: normalizeText(detail.emotionSource),
+              source: expectString(detail.emotionSource, 'source', 'runtime.agent.state.emotion_changed'),
             },
           };
         case AgentStateEventFamily.POSTURE_CHANGED: {

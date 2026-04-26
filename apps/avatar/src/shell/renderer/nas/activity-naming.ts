@@ -36,6 +36,8 @@ const EVENT_REGISTRY: readonly string[] = [
   'desktop.chat.message.receive',
   'runtime.agent.state.posture_changed',
   'runtime.agent.state.status_text_changed',
+  'runtime.agent.state.emotion_changed',
+  'runtime.agent.presentation.expression_requested',
   'runtime.agent.hook.running',
   'runtime.agent.hook.completed',
   'system.focus.gained',

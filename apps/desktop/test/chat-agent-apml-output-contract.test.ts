@@ -18,7 +18,7 @@ test('parses APML message, status cue, and immediate media action', () => {
     '  <activity>greet</activity>',
     '  你好，我在。',
     '</message>',
-    '<action id="image-0" kind="image" source-message="message-0" coupling="after-message">',
+    '<action id="image-0" kind="image">',
     '  <prompt-payload kind="image"><prompt-text>soft daylight portrait</prompt-text></prompt-payload>',
     '</action>',
   ].join(''));
@@ -92,6 +92,17 @@ test('rejects APML video and runtime-owned hook tags in the Desktop local parser
     ),
     /HookIntent-owned/u,
   );
+});
+
+test('rejects APML action compatibility attributes in the Desktop local parser', () => {
+  for (const attr of ['operation="image.generate"', 'source-message="message-0"', 'coupling="with-message"']) {
+    assert.throws(
+      () => parseAgentResolvedMessageActionEnvelope(
+        `<message id="message-0">Hello.</message><action id="image-0" kind="image" ${attr}><prompt-payload kind="image"><prompt-text>clip</prompt-text></prompt-payload></action>`,
+      ),
+      /not admitted/u,
+    );
+  }
 });
 
 test('strips APML envelopes from assistant history text', () => {

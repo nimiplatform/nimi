@@ -3,6 +3,7 @@ export type InterruptMode = 'welcome' | 'cautious' | 'focused';
 export type ExecutionState = 'IDLE' | 'CHAT_ACTIVE' | 'LIFE_PENDING' | 'LIFE_RUNNING' | 'SUSPENDED';
 export type ActivityCategory = 'emotion' | 'interaction' | 'state';
 export type ActivityIntensity = 'weak' | 'moderate' | 'strong';
+export type CurrentEmotion = 'neutral' | 'joy' | 'focus' | 'calm' | 'playful' | 'concerned' | 'surprised';
 
 export type PostureSnapshot = {
   posture_class: string;
@@ -39,7 +40,12 @@ export type AgentDataBundle = {
     name: string;
     category: ActivityCategory;
     intensity: ActivityIntensity | null;
-    source: 'apml_output' | 'direct_api' | 'mock';
+    source: 'runtime_projection' | 'direct_api' | 'mock';
+  };
+  emotion?: {
+    current: CurrentEmotion;
+    previous: CurrentEmotion | null;
+    source: string;
   };
   posture: PostureSnapshot;
   status_text: string;

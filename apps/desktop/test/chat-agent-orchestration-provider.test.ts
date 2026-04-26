@@ -34,7 +34,6 @@ import {
   feedStreamEvent,
   startStream,
 } from '../src/shell/renderer/features/turns/stream-controller.js';
-import { parseAgentChatVoiceWorkflowMetadata } from '../src/shell/renderer/features/chat/chat-agent-voice-workflow.js';
 import {
   createAgentVoiceMessage,
   createAgentTextMessage,
@@ -274,10 +273,8 @@ function createBeatActionEnvelopeText(input: {
     .replace(/>/gu, '&gt;');
   const message = `<message id="${messageId}">${escapeAPML(primaryBeat.text)}</message>`;
   const actions = (input.actions || []).map((action) => {
-    const sourceMessageId = action.sourceMessageId.startsWith('beat-') ? messageId : action.sourceMessageId;
-    const operation = action.operation ? ` operation="${action.operation}"` : '';
     return [
-      `<action id="${action.actionId ?? `action-${action.actionIndex}`}" kind="${action.modality}" source-message="${sourceMessageId}" coupling="${action.deliveryCoupling ?? 'after-message'}"${operation}>`,
+      `<action id="${action.actionId ?? `action-${action.actionIndex}`}" kind="${action.modality}">`,
       `  <prompt-payload kind="${action.modality}"><prompt-text>${escapeAPML(action.promptText)}</prompt-text></prompt-payload>`,
       '</action>',
     ].join('\n');
@@ -598,7 +595,7 @@ test('agent local chat execution seam instructs explicit media turns to emit an 
 
   assert.match(request.systemPrompt || '', /"resolvedTurnMode": "explicit-media"/);
   assert.match(request.systemPrompt || '', /"contentBoundary": "explicit-media-request"/);
-  assert.match(request.systemPrompt || '', /emit exactly one image action with operation="image\.generate"/);
+  assert.match(request.systemPrompt || '', /emit exactly one <action id="image-0" kind="image">/);
   assert.match(request.systemPrompt || '', /Never put a media generation prompt only in visible message text/);
   assert.match(request.systemPrompt || '', /If the latest user message negates or cancels image generation, do not emit an image action/);
 });
@@ -2074,27 +2071,10 @@ test('agent local chat provider submits workflow voice actions without silently 
   }));
 
   assert.equal(synthesizeVoiceCalled, false);
+  assert.equal(submitRequest, null);
   assert.equal(events.some((event) => event.type === 'artifact-ready'), false);
-  if (!submitRequest) {
-    assert.fail('expected submitVoiceWorkflow to receive a request');
-  }
-  const capturedSubmitRequest = submitRequest as unknown as TestVoiceWorkflowSubmitRequest;
-  assert.equal(capturedSubmitRequest.workflowIntent.workflowType, 'tts_v2v');
-  assert.equal(capturedSubmitRequest.referenceAudio?.mimeType, 'audio/wav');
-  assert.deepEqual([...capturedSubmitRequest.referenceAudio?.bytes || []], [1, 2, 3, 4]);
-  assert.equal(committed[0]?.voiceState?.status, 'pending');
-  if (committed[0]?.voiceState?.status !== 'pending') {
-    assert.fail('expected a pending voice workflow state');
-  }
-  assert.match(committed[0].voiceState.message || '', /Creating a custom voice from current-thread reference audio/i);
-  const workflowMetadata = parseAgentChatVoiceWorkflowMetadata(committed[0].voiceState.metadata);
-  assert.ok(workflowMetadata);
-  assert.equal(workflowMetadata?.workflowStatus, 'submitted');
-  assert.equal(workflowMetadata?.jobId, 'voice-workflow-job-clone');
-  assert.equal(workflowMetadata?.voiceReference?.kind, 'voice_asset_id');
-  assert.equal(workflowMetadata?.sourceMessageId, 'message-0');
-  assert.equal(workflowMetadata?.sourceActionId, 'action-voice-clone');
-  assert.equal(workflowMetadata?.conversationAnchorId, 'anchor-1');
+  assert.equal(committed[0]?.voiceState?.status, 'error');
+  assert.match(committed[0]?.voiceState?.message || '', /Voice playback is unavailable because no voice route is configured/i);
 });
 
 test('agent local chat provider fails close when workflow voice clone has no current-thread reference audio', async () => {
@@ -2217,14 +2197,10 @@ test('agent local chat provider fails close when workflow voice clone has no cur
   }));
 
   assert.equal(synthesizeVoiceCalled, false);
+  assert.equal(submitRequest, null);
   assert.equal(events.some((event) => event.type === 'artifact-ready'), false);
-  if (!submitRequest) {
-    assert.fail('expected submitVoiceWorkflow to receive a request');
-  }
-  const capturedSubmitRequest = submitRequest as unknown as TestVoiceWorkflowSubmitRequest;
-  assert.equal(capturedSubmitRequest.referenceAudio || null, null);
   assert.equal(committed[0]?.voiceState?.status, 'error');
-  assert.match(committed[0]?.voiceState?.message || '', /current-thread reference audio/i);
+  assert.match(committed[0]?.voiceState?.message || '', /Voice playback is unavailable because no voice route is configured/i);
 });
 
 test('agent local chat provider fails close when runtime stream finishes without output text', async () => {

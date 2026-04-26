@@ -114,21 +114,14 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 	}
 	events := make([]*runtimev1.AgentEvent, 0, 3)
 	if mood != "" {
-		previousEmotion := strings.TrimSpace(entry.State.GetCurrentEmotion())
-		if previousEmotion != mood {
-			// K-AGCORE-038: current_emotion is durable runtime state. Commit it into
-			// AgentStateProjection alongside the projection event so GetAgentState /
-			// snapshot / recovery observe the same truth.
-			entry.State.CurrentEmotion = mood
-			entry.State.UpdatedAt = timestamppb.New(now)
-			events = append(events, r.svc.stateEmotionChangedEvent(
-				entry.Agent.GetAgentId(),
-				mood,
-				previousEmotion,
-				"chat_status_cue",
-				origin,
-				now,
-			))
+		emotionEvent, eerr := r.svc.applyCurrentEmotionTransition(entry, mood, "chat_status_cue", origin, now)
+		if eerr != nil {
+			if r.svc.logger != nil {
+				r.svc.logger.Warn("skip runtime.agent.state.emotion_changed; emotion invalid", "agent_id", session.AgentID, "error", eerr)
+			}
+		}
+		if emotionEvent != nil {
+			events = append(events, emotionEvent)
 			presentationEvent, perr := r.svc.emitPresentationExpressionEvent(entry.Agent.GetAgentId(), anchorID, turnID, streamID, mood, 0, now)
 			if perr != nil {
 				if r.svc.logger != nil {

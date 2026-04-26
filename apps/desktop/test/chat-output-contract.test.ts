@@ -33,8 +33,10 @@ test('desktop chat output contract helper exposes APML rules', () => {
   assert.match(section, /sibling <action> tags after <\/message>/);
   assert.match(section, /kind may be only "image" or "voice"/);
   assert.match(section, /Do not emit kind="video"/);
-  assert.match(section, /<time-hook> with <delay-ms>/);
-  assert.match(section, /<event-user-idle idle-for="600s"\/> or <event-chat-ended\/>/);
+  assert.match(section, /must include only id and kind attributes/);
+  assert.match(section, /must not emit or accept those hooks/);
+  assert.doesNotMatch(section, /<action[^>]*source-message/u);
+  assert.doesNotMatch(section, /<action[^>]*coupling/u);
   assert.doesNotMatch(section, /Return exactly one JSON object/);
   assert.doesNotMatch(section, /schemaId/);
 });
@@ -68,7 +70,7 @@ test('resolveAgentModelOutputEnvelope accepts strict APML output', () => {
       '  <activity>greet</activity>',
       '  Ready.',
       '</message>',
-      '<action id="image-0" kind="image" source-message="message-0" coupling="after-message">',
+      '<action id="image-0" kind="image">',
       '  <prompt-payload kind="image"><prompt-text>A quiet rainy street.</prompt-text></prompt-payload>',
       '</action>',
     ].join('\n'),
@@ -101,6 +103,22 @@ test('resolveAgentModelOutputEnvelope accepts strict APML output', () => {
   assert.equal(resolved.diagnostics.traceId, 'trace-apml');
   assert.equal(resolved.diagnostics.promptTraceId, 'prompt-apml');
   assert.equal(resolved.diagnostics.usage?.totalTokens, 22);
+});
+
+test('resolveAgentModelOutputEnvelope rejects unknown APML emotion', () => {
+  const resolved = resolveAgentModelOutputEnvelope({
+    modelOutput: '<message id="message-0"><emotion>curious</emotion>Visible text.</message>',
+    finishReason: 'stop',
+    contextWindowSource: 'default-estimate',
+    promptOverflow: false,
+  });
+
+  assert.equal(resolved.ok, false);
+  if (resolved.ok) {
+    assert.fail('expected unknown APML emotion to fail');
+  }
+  assert.equal(resolved.diagnostics.classification, 'invalid-apml');
+  assert.match(resolved.diagnostics.parseErrorDetail || '', /APML message\.emotion is not admitted/);
 });
 
 test('resolveAgentModelOutputEnvelope rejects JSON model output instead of recovering it', () => {
@@ -176,10 +194,10 @@ test('agent message-action APML parser fails closed on multiple voice actions', 
   assert.throws(() => {
     parseAgentResolvedMessageActionEnvelope([
       buildMinimalAPML('你好呀。'),
-      '<action id="voice-0" kind="voice" source-message="message-0" coupling="with-message">',
+      '<action id="voice-0" kind="voice">',
       '  <prompt-payload kind="voice"><prompt-text>用轻柔语气读出第一句。</prompt-text></prompt-payload>',
       '</action>',
-      '<action id="voice-1" kind="voice" source-message="message-0" coupling="after-message">',
+      '<action id="voice-1" kind="voice">',
       '  <prompt-payload kind="voice"><prompt-text>用轻柔语气读出第二句。</prompt-text></prompt-payload>',
       '</action>',
     ].join('\n'));
@@ -190,7 +208,7 @@ test('agent message-action APML parser fails closed on deferred video actions', 
   assert.throws(() => {
     parseAgentResolvedMessageActionEnvelope([
       buildMinimalAPML('我不能接收视频生成动作。'),
-      '<action id="video-0" kind="video" source-message="message-0" coupling="after-message">',
+      '<action id="video-0" kind="video">',
       '  <prompt-payload kind="video"><prompt-text>镜头缓慢推进的夜景。</prompt-text></prompt-payload>',
       '</action>',
     ].join('\n'));
@@ -217,11 +235,22 @@ test('agent message-action APML parser fails closed on unsupported attributes', 
   assert.throws(() => {
     parseAgentResolvedMessageActionEnvelope([
       buildMinimalAPML('我不能接收额外属性。'),
-      '<action id="image-0" kind="image" source-message="message-0" priority="hidden">',
+      '<action id="image-0" kind="image" priority="hidden">',
       '  <prompt-payload kind="image"><prompt-text>一张安静的桌面。</prompt-text></prompt-payload>',
       '</action>',
     ].join('\n'));
   }, /APML action\.priority is not admitted/);
+
+  for (const attr of ['source-message="message-0"', 'coupling="with-message"', 'operation="image.generate"']) {
+    assert.throws(() => {
+      parseAgentResolvedMessageActionEnvelope([
+        buildMinimalAPML('我不能接收兼容属性。'),
+        `<action id="image-0" kind="image" ${attr}>`,
+        '  <prompt-payload kind="image"><prompt-text>一张安静的桌面。</prompt-text></prompt-payload>',
+        '</action>',
+      ].join('\n'));
+    }, /not admitted/);
+  }
 });
 
 test('agent message-action APML parser fails closed on duplicate attributes', () => {
