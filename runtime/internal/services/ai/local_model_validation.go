@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 
@@ -42,6 +43,16 @@ type localModelSelector struct {
 	modal          runtimev1.Modal
 }
 
+type localModelExecutionPlan struct {
+	requestedModelID string
+	resolvedModelID  string
+	modal            runtimev1.Modal
+	selected         *runtimev1.LocalAssetRecord
+	warmEndpoint     string
+	readinessSource  string
+	readinessAt      time.Time
+}
+
 var localModelValidationGOOS = runtime.GOOS
 
 func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelID string, remoteTarget *nimillm.RemoteTarget, modal runtimev1.Modal) error {
@@ -49,41 +60,76 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 }
 
 func (s *Service) validateLocalModelRequestWithExtensions(ctx context.Context, requestedModelID string, remoteTarget *nimillm.RemoteTarget, modal runtimev1.Modal, scenarioExtensions map[string]any) error {
+	_, err := s.prepareLocalModelExecutionPlan(ctx, requestedModelID, remoteTarget, modal, scenarioExtensions)
+	return err
+}
+
+func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedModelID string, remoteTarget *nimillm.RemoteTarget, modal runtimev1.Modal, scenarioExtensions map[string]any) (*localModelExecutionPlan, error) {
+	totalStartedAt := time.Now()
 	if remoteTarget != nil {
-		return nil
+		return nil, nil
 	}
 	if s.localModel == nil {
-		return nil
+		return nil, nil
 	}
 	resolvedModelID, err := texttarget.ResolveInternalDefaultAlias(s.selector.targetConfig, requestedModelID)
 	if err != nil {
-		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_default_target",
 			Message:    err.Error(),
 		})
 	}
 	if preferredRoute(resolvedModelID) != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
-		return nil
+		return nil, nil
 	}
+	s.observeCounter("runtime_ai_local_validation_total", 1,
+		"requested_model_id", requestedModelID,
+		"resolved_model_id", resolvedModelID,
+		"modal", modal.String(),
+	)
 
+	listStartedAt := time.Now()
 	localModels, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
+	s.observeLatency("runtime.ai.local.validation_list_ms", listStartedAt,
+		"requested_model_id", requestedModelID,
+		"resolved_model_id", resolvedModelID,
+		"modal", modal.String(),
+		"model_count", len(localModels),
+	)
+	s.observeCounter("runtime_ai_local_validation_list_total", 1,
+		"requested_model_id", requestedModelID,
+		"resolved_model_id", resolvedModelID,
+		"modal", modal.String(),
+	)
 	if err != nil {
-		return normalizeLocalModelRPCError(err)
+		return nil, normalizeLocalModelRPCError(err)
 	}
 
 	selector := parseLocalModelSelector(resolvedModelID, modal)
+	selectStartedAt := time.Now()
 	selected, reason, unavailableDetail := selectRunnableLocalModel(localModels, selector)
+	selectedLocalAssetID := ""
+	if selected != nil {
+		selectedLocalAssetID = strings.TrimSpace(selected.GetLocalAssetId())
+	}
+	s.observeLatency("runtime.ai.local.validation_select_ms", selectStartedAt,
+		"requested_model_id", requestedModelID,
+		"resolved_model_id", resolvedModelID,
+		"modal", modal.String(),
+		"local_asset_id", selectedLocalAssetID,
+		"reason_code", reason.String(),
+	)
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		if reason == runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, reason)
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, reason)
 		}
 		if reason == runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE && strings.TrimSpace(unavailableDetail) != "" {
-			return localModelUnavailableError(unavailableDetail)
+			return nil, localModelUnavailableError(unavailableDetail)
 		}
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, reason)
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, reason)
 	}
 	if selected == nil {
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	if bypassed, err := s.tryBypassUnhealthyManagedImageStartWithDynamicProfile(
 		ctx,
@@ -92,49 +138,102 @@ func (s *Service) validateLocalModelRequestWithExtensions(ctx context.Context, r
 		modal,
 		scenarioExtensions,
 	); err != nil {
-		return err
+		return nil, err
 	} else if bypassed {
 		if modelRequiresInvokeProfile(selected) {
-			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
 		}
-		return nil
+		return &localModelExecutionPlan{
+			requestedModelID: requestedModelID,
+			resolvedModelID:  resolvedModelID,
+			modal:            modal,
+			selected:         selected,
+			readinessSource:  "dynamic_profile_bypass",
+			readinessAt:      time.Now(),
+		}, nil
 	}
 	var warmEndpoint string
+	readinessSource := "listed"
 	if selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldWarmInstalledLocalModel(selected, modal) {
+		warmStartedAt := time.Now()
+		s.observeCounter("runtime_ai_local_validation_warm_total", 1,
+			"requested_model_id", requestedModelID,
+			"resolved_model_id", resolvedModelID,
+			"local_asset_id", selectedLocalAssetID,
+			"modal", modal.String(),
+		)
 		warmed, err := s.localModel.WarmLocalAsset(ctx, &runtimev1.WarmLocalAssetRequest{
 			LocalAssetId: selected.GetLocalAssetId(),
 		})
+		s.observeLatency("runtime.ai.local.validation_warm_or_start_ms", warmStartedAt,
+			"operation", "warm",
+			"requested_model_id", requestedModelID,
+			"resolved_model_id", resolvedModelID,
+			"local_asset_id", selectedLocalAssetID,
+			"modal", modal.String(),
+		)
 		if err != nil {
-			return normalizeLocalModelRPCError(err)
+			return nil, normalizeLocalModelRPCError(err)
 		}
 		selected.Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+		readinessSource = "warm"
 		if warmed != nil && strings.TrimSpace(warmed.GetEndpoint()) != "" {
 			warmEndpoint = strings.TrimSpace(warmed.GetEndpoint())
 		}
 	}
 	if (selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldStartInstalledLocalModel(selected, modal)) ||
 		(selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY && shouldRetryUnhealthyLocalModelStart(selected, modal)) {
+		startStartedAt := time.Now()
+		s.observeCounter("runtime_ai_local_validation_start_total", 1,
+			"requested_model_id", requestedModelID,
+			"resolved_model_id", resolvedModelID,
+			"local_asset_id", selectedLocalAssetID,
+			"modal", modal.String(),
+		)
 		if err := s.primeInstalledLocalModelRequest(ctx, selected, requestedModelID, modal, scenarioExtensions); err != nil {
-			return err
+			return nil, err
 		}
 		started, err := s.localModel.StartLocalAsset(ctx, &runtimev1.StartLocalAssetRequest{
 			LocalAssetId: selected.GetLocalAssetId(),
 		})
 		if err != nil {
-			return normalizeLocalModelRPCError(err)
+			return nil, normalizeLocalModelRPCError(err)
 		}
+		s.observeLatency("runtime.ai.local.validation_warm_or_start_ms", startStartedAt,
+			"operation", "start",
+			"requested_model_id", requestedModelID,
+			"resolved_model_id", resolvedModelID,
+			"local_asset_id", selectedLocalAssetID,
+			"modal", modal.String(),
+		)
 		if started != nil && started.GetAsset() != nil {
 			selected = started.GetAsset()
+			selectedLocalAssetID = strings.TrimSpace(selected.GetLocalAssetId())
 		}
 		if selected.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-			return localModelUnavailableErrorFromRecord(selected)
+			return nil, localModelUnavailableErrorFromRecord(selected)
 		}
+		readinessSource = "start"
 	}
 	s.hydrateLocalProviderFromModel(selected, warmEndpoint)
 	if modelRequiresInvokeProfile(selected) {
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
 	}
-	return nil
+	s.observeLatency("runtime.ai.local.validation_total_ms", totalStartedAt,
+		"requested_model_id", requestedModelID,
+		"resolved_model_id", resolvedModelID,
+		"local_asset_id", selectedLocalAssetID,
+		"modal", modal.String(),
+	)
+	return &localModelExecutionPlan{
+		requestedModelID: requestedModelID,
+		resolvedModelID:  resolvedModelID,
+		modal:            modal,
+		selected:         selected,
+		warmEndpoint:     warmEndpoint,
+		readinessSource:  readinessSource,
+		readinessAt:      time.Now(),
+	}, nil
 }
 
 func (s *Service) tryBypassUnhealthyManagedImageStartWithDynamicProfile(

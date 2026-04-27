@@ -549,7 +549,7 @@ func TestStreamTextFirstPacketTimeoutStartsAfterStreamEstablished(t *testing.T) 
 		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
 	})
 	svc.streamFirstPacketTimeout = 20 * time.Millisecond
-	svc.SetLocalModelLister(&fakeLocalModelLister{
+	localLister := &fakeLocalModelLister{
 		acquireDelay: 40 * time.Millisecond,
 		responses: []*runtimev1.ListLocalAssetsResponse{{
 			Assets: []*runtimev1.LocalAssetRecord{{
@@ -560,7 +560,8 @@ func TestStreamTextFirstPacketTimeoutStartsAfterStreamEstablished(t *testing.T) 
 				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			}},
 		}},
-	})
+	}
+	svc.SetLocalModelLister(localLister)
 
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
@@ -592,6 +593,12 @@ func TestStreamTextFirstPacketTimeoutStartsAfterStreamEstablished(t *testing.T) 
 	last := stream.events[len(stream.events)-1]
 	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
 		t.Fatalf("expected completed terminal event, got %v", last.GetEventType())
+	}
+	if localLister.calls != 1 {
+		t.Fatalf("expected stream text validation and lease to share one local model list, got %d", localLister.calls)
+	}
+	if len(localLister.leaseCalls) == 0 || localLister.leaseCalls[0] != "acquire:local_qwen:stream_text_generate_request" {
+		t.Fatalf("expected lease to acquire selected plan asset, got %#v", localLister.leaseCalls)
 	}
 }
 

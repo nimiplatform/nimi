@@ -203,23 +203,40 @@ func (s *Service) validateLocalTextGenerateInputCapabilities(
 	modelResolved string,
 	input []*runtimev1.ChatMessage,
 ) error {
+	return s.validateLocalTextGenerateInputCapabilitiesWithPlan(ctx, nil, modelResolved, input)
+}
+
+func (s *Service) validateLocalTextGenerateInputCapabilitiesWithPlan(
+	ctx context.Context,
+	plan *localModelExecutionPlan,
+	modelResolved string,
+	input []*runtimev1.ChatMessage,
+) error {
 	required := requiredTextGenerateCapabilities(input)
 	if len(required) == 0 || s == nil || s.localModel == nil {
 		return nil
 	}
-	models, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
-	if err != nil {
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	var selected *runtimev1.LocalAssetRecord
+	if plan != nil {
+		selected = plan.selected
 	}
-	selected, reason, detail := selectRunnableLocalModel(models, parseLocalModelSelector(modelResolved, runtimev1.Modal_MODAL_UNSPECIFIED))
-	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		if detail != "" {
-			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, grpcerr.ReasonOptions{
-				ActionHint: "inspect_local_runtime_model_health",
-				Message:    detail,
-			})
+	if selected == nil || plan == nil || !plan.appliesToModel(modelResolved, runtimev1.Modal_MODAL_TEXT) {
+		models, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
+		if err != nil {
+			return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 		}
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, reason)
+		var reason runtimev1.ReasonCode
+		var detail string
+		selected, reason, detail = selectRunnableLocalModel(models, parseLocalModelSelector(modelResolved, runtimev1.Modal_MODAL_UNSPECIFIED))
+		if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			if detail != "" {
+				return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, grpcerr.ReasonOptions{
+					ActionHint: "inspect_local_runtime_model_health",
+					Message:    detail,
+				})
+			}
+			return grpcerr.WithReasonCode(codes.FailedPrecondition, reason)
+		}
 	}
 	for _, capability := range required {
 		if !localModelSupportsTextGenerateCapability(selected, capability) {
@@ -272,11 +289,22 @@ func (s *Service) validateTextGenerateInputParts(
 	selected provider,
 	input []*runtimev1.ChatMessage,
 ) error {
+	return s.validateTextGenerateInputPartsWithLocalPlan(ctx, nil, modelResolved, remoteTarget, selected, input)
+}
+
+func (s *Service) validateTextGenerateInputPartsWithLocalPlan(
+	ctx context.Context,
+	plan *localModelExecutionPlan,
+	modelResolved string,
+	remoteTarget *nimillm.RemoteTarget,
+	selected provider,
+	input []*runtimev1.ChatMessage,
+) error {
 	if _, unsupported := unsupportedTextGeneratePartType(input); unsupported {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && remoteTarget == nil {
-		return s.validateLocalTextGenerateInputCapabilities(ctx, modelResolved, input)
+		return s.validateLocalTextGenerateInputCapabilitiesWithPlan(ctx, plan, modelResolved, input)
 	}
 	return s.validateRemoteTextGenerateInputCapabilities(ctx, modelResolved, remoteTarget, selected, input)
 }

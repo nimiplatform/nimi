@@ -110,17 +110,26 @@ func (s *Service) prepareScenarioRequest(ctx context.Context, head *runtimev1.Sc
 }
 
 func (s *Service) prepareScenarioRequestWithExtensions(ctx context.Context, head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType, extensions []*runtimev1.ScenarioExtension) (*nimillm.RemoteTarget, error) {
+	remoteTarget, _, err := s.prepareScenarioRequestWithExtensionsAndLocalPlan(ctx, head, scenarioType, extensions)
+	return remoteTarget, err
+}
+
+func (s *Service) prepareScenarioRequestWithLocalPlan(ctx context.Context, head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType) (*nimillm.RemoteTarget, *localModelExecutionPlan, error) {
+	return s.prepareScenarioRequestWithExtensionsAndLocalPlan(ctx, head, scenarioType, nil)
+}
+
+func (s *Service) prepareScenarioRequestWithExtensionsAndLocalPlan(ctx context.Context, head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType, extensions []*runtimev1.ScenarioExtension) (*nimillm.RemoteTarget, *localModelExecutionPlan, error) {
 	if head == nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
 	parsed := parseKeySource(ctx, head.GetConnectorId())
 	if err := validateKeySource(parsed, head.GetAppId()); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := validateBaseRequestWithOptions(
 		head.GetAppId(),
@@ -129,18 +138,19 @@ func (s *Service) prepareScenarioRequestWithExtensions(ctx context.Context, head
 		head.GetRoutePolicy(),
 		requireSubjectUserIDForScenario(head.GetRoutePolicy(), parsed, remoteTarget),
 	); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if err := s.validateLocalModelRequestWithExtensions(
+	localPlan, err := s.prepareLocalModelExecutionPlan(
 		ctx,
 		head.GetModelId(),
 		remoteTarget,
 		scenarioModalFromType(scenarioType),
 		nimillm.ScenarioExtensionPayloadForType(scenarioType, extensions),
-	); err != nil {
-		return nil, err
+	)
+	if err != nil {
+		return nil, nil, err
 	}
-	return remoteTarget, nil
+	return remoteTarget, localPlan, nil
 }
 
 func composeInputText(systemPrompt string, input []*runtimev1.ChatMessage) string {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -12,11 +13,23 @@ import (
 )
 
 func (s *Service) ListLocalAssets(ctx context.Context, req *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
+	startedAt := time.Now()
 	statusFilter := req.GetStatusFilter()
 	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
 	kindFilter := req.GetKindFilter()
 
+	normalizeStartedAt := time.Now()
 	s.normalizeManagedSupervisedManagedStatuses(ctx)
+	s.observeLatency("runtime.local_assets.list_inventory_normalize_ms", normalizeStartedAt,
+		"status_filter", statusFilter.String(),
+		"engine_filter", engineFilter,
+		"kind_filter", kindFilter.String(),
+	)
+	s.observeCounter("runtime_local_assets_list_inventory_normalize_total", 1,
+		"status_filter", statusFilter.String(),
+		"engine_filter", engineFilter,
+		"kind_filter", kindFilter.String(),
+	)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -57,10 +70,25 @@ func (s *Service) ListLocalAssets(ctx context.Context, req *runtimev1.ListLocalA
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.ListLocalAssetsResponse{
+	resp := &runtimev1.ListLocalAssetsResponse{
 		Assets:        models[start:end],
 		NextPageToken: next,
-	}, nil
+	}
+	s.observeCounter("runtime_local_assets_list_total", 1,
+		"status_filter", statusFilter.String(),
+		"engine_filter", engineFilter,
+		"kind_filter", kindFilter.String(),
+		"result_count", len(resp.GetAssets()),
+		"has_next_page", strings.TrimSpace(next) != "",
+	)
+	s.observeLatency("runtime.local_assets.list_total_ms", startedAt,
+		"status_filter", statusFilter.String(),
+		"engine_filter", engineFilter,
+		"kind_filter", kindFilter.String(),
+		"result_count", len(resp.GetAssets()),
+		"has_next_page", strings.TrimSpace(next) != "",
+	)
+	return resp, nil
 }
 
 func (s *Service) ListVerifiedAssets(_ context.Context, req *runtimev1.ListVerifiedAssetsRequest) (*runtimev1.ListVerifiedAssetsResponse, error) {

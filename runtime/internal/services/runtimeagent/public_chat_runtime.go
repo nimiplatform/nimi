@@ -57,6 +57,7 @@ func (r publicChatRuntime) handleTurnRequest(
 	event *runtimev1.AppMessageEvent,
 	req publicChatTurnRequestPayload,
 ) error {
+	reserveStartedAt := time.Now()
 	if r.svc == nil || !r.svc.HasPublicChatTurnExecutor() || !r.svc.HasPublicChatBindingResolver() || r.svc.chatAppEmit == nil {
 		return status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable")
 	}
@@ -67,6 +68,14 @@ func (r publicChatRuntime) handleTurnRequest(
 	if err != nil {
 		return err
 	}
+	r.svc.observeLatency("runtime.agent.turn.reserve_ms", reserveStartedAt,
+		"caller_app_id", callerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+	)
 	released := false
 	turnOrigin := stateEventOrigin{
 		ConversationAnchorID: session.ConversationAnchorID,
@@ -133,6 +142,7 @@ func (r publicChatRuntime) handleSessionSnapshotRequest(
 	event *runtimev1.AppMessageEvent,
 	req publicChatSessionSnapshotRequestPayload,
 ) error {
+	startedAt := time.Now()
 	if r.svc == nil || r.svc.isClosed() || r.svc.chatAppEmit == nil {
 		return status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable")
 	}
@@ -187,7 +197,26 @@ func (r publicChatRuntime) handleSessionSnapshotRequest(
 			"snapshot": snapshotDetail,
 		},
 	}
-	return r.emitEvent(session.CallerAppID, session.SubjectUserID, publicChatSessionSnapshotType, payload)
+	err = r.emitEvent(session.CallerAppID, session.SubjectUserID, publicChatSessionSnapshotType, payload)
+	r.svc.observeCounter("runtime_agent_session_snapshot_request_total", 1,
+		"caller_app_id", strings.TrimSpace(event.GetFromAppId()),
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"request_id", strings.TrimSpace(req.RequestID),
+		"has_active_turn", activeTurn != nil,
+		"has_last_turn", lastTurn != nil,
+		"has_pending_follow_up", pendingFollowUp != nil,
+	)
+	r.svc.observeLatency("runtime.agent.session.snapshot_request_ms", startedAt,
+		"caller_app_id", strings.TrimSpace(event.GetFromAppId()),
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"request_id", strings.TrimSpace(req.RequestID),
+		"has_active_turn", activeTurn != nil,
+		"has_last_turn", lastTurn != nil,
+		"has_pending_follow_up", pendingFollowUp != nil,
+	)
+	return err
 }
 func (r publicChatRuntime) runTurn(
 	ctx context.Context,
@@ -195,6 +224,16 @@ func (r publicChatRuntime) runTurn(
 	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
 ) {
+	runStartedAt := time.Now()
+	r.svc.observeLatency("runtime.agent.turn.accepted_to_run_start_ms", turn.TimelineStartedAt,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"request_id", strings.TrimSpace(turn.RequestID),
+	)
 	defer r.releaseTurn(session.ConversationAnchorID, turn.TurnID)
 	defer func() {
 		if err := r.setExecutionState(session.AgentID, "", "", runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE); err != nil && r.svc.logger != nil {
@@ -208,6 +247,8 @@ func (r publicChatRuntime) runTurn(
 	modelResolved := strings.TrimSpace(session.Binding.ModelID)
 	routeDecision := session.Binding.RoutePolicy
 	traceID := ""
+	streamCompletedAt := time.Time{}
+	firstDeltaObserved := false
 	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
 		AppID:         session.CallerAppID,
 		SubjectUserID: session.SubjectUserID,
@@ -241,6 +282,18 @@ func (r publicChatRuntime) runTurn(
 			// `track: enum(chat|life)`. trace_id / model_resolved /
 			// route_decision are runtime execution truth and live on the
 			// session.snapshot active_turn projection only.
+			r.svc.observeLatency("runtime.agent.turn.accepted_to_started_ms", turn.TimelineStartedAt,
+				"caller_app_id", session.CallerAppID,
+				"agent_id", session.AgentID,
+				"conversation_anchor_id", session.ConversationAnchorID,
+				"turn_id", turn.TurnID,
+				"stream_id", turn.StreamID,
+				"thread_id", session.ThreadID,
+				"request_id", strings.TrimSpace(turn.RequestID),
+				"trace_id", traceID,
+				"resolved_model_id", modelResolved,
+				"route_decision", routeDecision.String(),
+			)
 			return r.emitTurnEvent(session, turn.TurnID, publicChatTurnStartedType, map[string]any{
 				"track": publicChatTurnTrackLabel,
 			})
@@ -254,6 +307,21 @@ func (r publicChatRuntime) runTurn(
 				textDelta := item.Text.GetText()
 				if textDelta == "" {
 					return nil
+				}
+				if !firstDeltaObserved {
+					firstDeltaObserved = true
+					r.svc.observeLatency("runtime.agent.turn.started_to_first_text_delta_ms", runStartedAt,
+						"caller_app_id", session.CallerAppID,
+						"agent_id", session.AgentID,
+						"conversation_anchor_id", session.ConversationAnchorID,
+						"turn_id", turn.TurnID,
+						"stream_id", turn.StreamID,
+						"thread_id", session.ThreadID,
+						"request_id", strings.TrimSpace(turn.RequestID),
+						"trace_id", traceID,
+						"resolved_model_id", modelResolved,
+						"route_decision", routeDecision.String(),
+					)
 				}
 				accumulatedText.WriteString(textDelta)
 				r.svc.mutatePublicChatTurnProjection(turn.TurnID, false, func(projection *publicChatTurnProjectionState) {
@@ -291,6 +359,7 @@ func (r publicChatRuntime) runTurn(
 		case runtimev1.StreamEventType_STREAM_EVENT_COMPLETED:
 			if event.GetCompleted() != nil {
 				finish = proto.Clone(event.GetCompleted()).(*runtimev1.ScenarioStreamCompleted)
+				streamCompletedAt = time.Now()
 				if finish.GetUsage() != nil {
 					usage = proto.Clone(finish.GetUsage()).(*runtimev1.UsageStats)
 				}
@@ -372,7 +441,22 @@ func (r publicChatRuntime) runTurn(
 		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_STREAM_BROKEN, "runtime public chat turn ended without terminal completion", "")
 		return
 	}
+	structuredStartedAt := time.Now()
 	structured, parseErr := parsePublicChatStructuredEnvelope(accumulatedText.String())
+	if !streamCompletedAt.IsZero() {
+		r.svc.observeLatency("runtime.agent.turn.stream_completed_to_structured_ms", streamCompletedAt,
+			"caller_app_id", session.CallerAppID,
+			"agent_id", session.AgentID,
+			"conversation_anchor_id", session.ConversationAnchorID,
+			"turn_id", turn.TurnID,
+			"stream_id", turn.StreamID,
+			"thread_id", session.ThreadID,
+			"request_id", strings.TrimSpace(turn.RequestID),
+			"trace_id", traceID,
+			"resolved_model_id", modelResolved,
+			"route_decision", routeDecision.String(),
+		)
+	}
 	if parseErr != nil {
 		if r.svc.logger != nil {
 			r.svc.logger.Warn("public chat structured parse failed",
@@ -416,10 +500,34 @@ func (r publicChatRuntime) runTurn(
 	// required `message_id` envelope extra per yaml `extra_fields_by_event`.
 	// All `text_delta` slices preceding this commit point are provisional;
 	// late-join consumers reconcile the committed text from this event.
+	messageCommitStartedAt := time.Now()
 	if err := r.emitTurnMessageCommitted(session, turn.TurnID, structured.Message.MessageID, structured.Message.Text); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat message_committed event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}
+	r.svc.observeCounter("runtime_agent_turn_message_committed_total", 1,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"request_id", strings.TrimSpace(turn.RequestID),
+		"trace_id", traceID,
+		"message_id", structured.Message.MessageID,
+	)
+	r.svc.observeLatency("runtime.agent.turn.structured_to_message_committed_ms", structuredStartedAt,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"request_id", strings.TrimSpace(turn.RequestID),
+		"trace_id", traceID,
+		"message_id", structured.Message.MessageID,
+	)
 	postTurnOutcome := r.applyPostTurn(ctx, session, turn, req, structured)
+	postTurnEventStartedAt := time.Now()
 	// yaml `turn.post_turn.detail` admits indication-only `action?` and
 	// `hook_intent?`. Runtime execution truth (assistant_memory result,
 	// chat_sidecar outcome, follow-up scheduling state, trace_id) lives on
@@ -428,6 +536,17 @@ func (r publicChatRuntime) runTurn(
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnPostTurnType, publicChatPostTurnIndicationDetail(structured, postTurnOutcome.FollowUp)); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat post-turn event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}
+	r.svc.observeLatency("runtime.agent.turn.message_committed_to_post_turn_ms", messageCommitStartedAt,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"request_id", strings.TrimSpace(turn.RequestID),
+		"trace_id", traceID,
+		"message_id", structured.Message.MessageID,
+	)
 	r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 		projection.Status = publicChatTurnStatusCompleted
 		projection.TraceID = traceID
@@ -454,6 +573,28 @@ func (r publicChatRuntime) runTurn(
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnCompletedType, publicChatTurnCompletedDetail(finish.GetFinishReason())); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat completion failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}
+	r.svc.observeCounter("runtime_agent_turn_completed_total", 1,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"request_id", strings.TrimSpace(turn.RequestID),
+		"trace_id", traceID,
+		"finish_reason", finish.GetFinishReason().String(),
+	)
+	r.svc.observeLatency("runtime.agent.turn.post_turn_to_completed_ms", postTurnEventStartedAt,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"request_id", strings.TrimSpace(turn.RequestID),
+		"trace_id", traceID,
+		"finish_reason", finish.GetFinishReason().String(),
+	)
 }
 
 // reserveTurn binds a new turn to an existing ConversationAnchor. Per

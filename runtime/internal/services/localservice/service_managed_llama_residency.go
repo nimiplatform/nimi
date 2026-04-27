@@ -101,6 +101,21 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 	}
 
 	mustStart := currentLoaded != localAssetID || !hasEngine
+	if mustStart {
+		s.observeCounter("runtime_ai_managed_llama_restart_total", 1,
+			"local_asset_id", localAssetID,
+			"loaded_local_asset_id", currentLoaded,
+			"requested_reason", strings.TrimSpace(reason),
+			"engine_healthy", hasEngine,
+		)
+	} else {
+		s.observeCounter("runtime_ai_managed_llama_adopt_resident_total", 1,
+			"local_asset_id", localAssetID,
+			"loaded_local_asset_id", currentLoaded,
+			"requested_reason", strings.TrimSpace(reason),
+			"engine_healthy", hasEngine,
+		)
+	}
 	if s.logger != nil {
 		s.logger.Info(
 			"managed llama lease evaluated",
@@ -147,6 +162,12 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 
 	endpoint := defaultString(strings.TrimSpace(engineInfo.Endpoint), s.effectiveLocalModelEndpoint(current))
 	probe := s.waitForWarmProbe(ctx, current, registration, endpoint)
+	s.observeLatency("runtime.ai.local.lease_probe_ms", startedAt,
+		"local_asset_id", localAssetID,
+		"requested_reason", strings.TrimSpace(reason),
+		"restart_required", mustStart,
+		"engine_healthy", hasEngine,
+	)
 	if !modelProbeSucceeded(current, probe, registration) {
 		detail := managedLlamaModelProbeFailureDetail(probe, registration)
 		if _, err := s.updateModelAvailabilityAndWarmState(
@@ -181,6 +202,12 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 			"duration_ms", time.Since(startedAt).Milliseconds(),
 		)
 	}
+	s.observeLatency("runtime.ai.local.lease_restart_ms", startedAt,
+		"local_asset_id", localAssetID,
+		"requested_reason", strings.TrimSpace(reason),
+		"restart_required", mustStart,
+		"engine_healthy", hasEngine,
+	)
 	return readyModel, nil
 }
 

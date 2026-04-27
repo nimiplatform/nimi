@@ -93,6 +93,7 @@ func residencyEnginesForModel(model *runtimev1.LocalAssetRecord, mode runtimev1.
 }
 
 func (s *Service) AcquireLocalAssetLease(ctx context.Context, localAssetID string, reason string) error {
+	startedAt := time.Now()
 	model := s.modelByID(localAssetID)
 	if model == nil {
 		return nil
@@ -106,10 +107,16 @@ func (s *Service) AcquireLocalAssetLease(ctx context.Context, localAssetID strin
 		model = readyModel
 	}
 	s.recordLocalAssetUsage(model, strings.TrimSpace(reason), true)
+	s.observeLatency("runtime.local_assets.lease_acquire_ms", startedAt,
+		"local_asset_id", strings.TrimSpace(localAssetID),
+		"lease_reason", strings.TrimSpace(reason),
+		"local_engine", executionRuntimeEngineForModel(model),
+	)
 	return nil
 }
 
 func (s *Service) ReleaseLocalAssetLease(ctx context.Context, localAssetID string, reason string) error {
+	startedAt := time.Now()
 	model := s.modelByID(localAssetID)
 	if model == nil {
 		return nil
@@ -118,6 +125,11 @@ func (s *Service) ReleaseLocalAssetLease(ctx context.Context, localAssetID strin
 	if s.localKeepAliveDuration() == 0 {
 		s.runResidencySweep(ctx)
 	}
+	s.observeLatency("runtime.local_assets.lease_release_ms", startedAt,
+		"local_asset_id", strings.TrimSpace(localAssetID),
+		"lease_reason", strings.TrimSpace(reason),
+		"local_engine", executionRuntimeEngineForModel(model),
+	)
 	return nil
 }
 

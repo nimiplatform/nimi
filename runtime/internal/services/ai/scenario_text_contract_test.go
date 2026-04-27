@@ -78,16 +78,18 @@ func TestExecuteScenarioTextGenerateHydratesLocalEndpointFromActiveModel(t *test
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc.localModel = &fakeLocalModelLister{
+	localLister := &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
 			Assets: []*runtimev1.LocalAssetRecord{{
-				AssetId:  "qwen3-4b-q4_k_m",
-				Engine:   "llama",
-				Status:   runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				Endpoint: server.URL + "/v1",
+				LocalAssetId: "local_qwen3",
+				AssetId:      "qwen3-4b-q4_k_m",
+				Engine:       "llama",
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				Endpoint:     server.URL + "/v1",
 			}},
 		}},
 	}
+	svc.localModel = localLister
 
 	resp, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -115,6 +117,12 @@ func TestExecuteScenarioTextGenerateHydratesLocalEndpointFromActiveModel(t *test
 	}
 	if text := outputText(resp.GetOutput()); text != "ready" {
 		t.Fatalf("unexpected hydrated local output: %q", text)
+	}
+	if localLister.calls != 1 {
+		t.Fatalf("expected sync text validation and lease to share one local model list, got %d", localLister.calls)
+	}
+	if len(localLister.leaseCalls) == 0 || localLister.leaseCalls[0] != "acquire:local_qwen3:text_generate_request" {
+		t.Fatalf("expected sync lease to acquire selected plan asset, got %#v", localLister.leaseCalls)
 	}
 }
 

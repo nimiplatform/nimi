@@ -24,7 +24,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
+	remoteTarget, localPlan, err := s.prepareScenarioRequestWithLocalPlan(ctx, req.GetHead(), req.GetScenarioType())
 	if err != nil {
 		return nil, err
 	}
@@ -83,12 +83,12 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		return nil, err
 	}
 	defer resolved.release()
-	releaseLease, err := s.acquireSelectedLocalModelLease(requestCtx, req.GetHead().GetModelId(), remoteTarget, runtimev1.Modal_MODAL_TEXT, "text_generate_request")
+	releaseLease, err := s.acquireSelectedLocalModelLeaseWithPlan(requestCtx, localPlan, req.GetHead().GetModelId(), remoteTarget, runtimev1.Modal_MODAL_TEXT, "text_generate_request")
 	if err != nil {
 		return nil, err
 	}
 	defer releaseLease()
-	if err := s.validateTextGenerateInputParts(ctx, modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
+	if err := s.validateTextGenerateInputPartsWithLocalPlan(ctx, localPlan, modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
 		return nil, err
 	}
 	s.recordRouteAutoSwitch(

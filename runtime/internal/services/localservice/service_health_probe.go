@@ -703,7 +703,23 @@ func (s *Service) probeLocalModelEndpoint(ctx context.Context, model *runtimev1.
 	if model == nil {
 		return endpointProbeResult{}
 	}
-	return s.probeEndpoint(ctx, executionRuntimeEngineForModel(model), endpoint)
+	localAssetID := strings.TrimSpace(model.GetLocalAssetId())
+	engineName := executionRuntimeEngineForModel(model)
+	startedAt := time.Now()
+	probe := s.probeEndpoint(ctx, engineName, endpoint)
+	s.observeCounter("runtime_local_assets_health_probe_total", 1,
+		"local_asset_id", localAssetID,
+		"local_engine", engineName,
+		"responded", probe.responded,
+		"healthy", probe.healthy,
+	)
+	s.observeLatency("runtime.local_assets.health_probe_ms", startedAt,
+		"local_asset_id", localAssetID,
+		"local_engine", engineName,
+		"responded", probe.responded,
+		"healthy", probe.healthy,
+	)
+	return probe
 }
 
 func (s *Service) engineManagerOrNil() EngineManager {

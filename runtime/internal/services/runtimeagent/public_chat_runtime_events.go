@@ -289,6 +289,7 @@ func (r publicChatRuntime) applyPostTurn(
 	req publicChatTurnRequestPayload,
 	structured *publicChatStructuredEnvelope,
 ) publicChatPostTurnOutcome {
+	totalStartedAt := time.Now()
 	outcome := publicChatPostTurnOutcome{
 		AssistantMemory: publicChatAssistantMemoryOutcome{Status: "skipped"},
 		Sidecar:         publicChatSidecarOutcome{Status: "skipped"},
@@ -302,7 +303,27 @@ func (r publicChatRuntime) applyPostTurn(
 		return outcome
 	}
 	r.svc.appendPublicChatAssistantMessage(session.ConversationAnchorID, assistantText)
+	memoryStartedAt := time.Now()
 	outcome.AssistantMemory = r.applyAssistantTurnMemory(ctx, session, turn, assistantText)
+	r.svc.observeCounter("runtime_agent_post_turn_memory_write_total", 1,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"status", outcome.AssistantMemory.Status,
+	)
+	r.svc.observeLatency("runtime.agent.turn.post_turn_memory_ms", memoryStartedAt,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"status", outcome.AssistantMemory.Status,
+	)
+	sidecarStartedAt := time.Now()
 	summary, err := r.svc.executeChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
 		AgentID:       session.AgentID,
 		SourceEventID: turn.TurnID,
@@ -331,7 +352,55 @@ func (r publicChatRuntime) applyPostTurn(
 			StatusText:          summary.StatusText,
 		}
 	}
+	r.svc.observeCounter("runtime_agent_post_turn_sidecar_total", 1,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"status", outcome.Sidecar.Status,
+	)
+	r.svc.observeLatency("runtime.agent.turn.post_turn_sidecar_ms", sidecarStartedAt,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"status", outcome.Sidecar.Status,
+	)
+	followUpStartedAt := time.Now()
 	outcome.FollowUp = r.svc.schedulePublicChatFollowUp(session, turn, req, structured)
+	r.svc.observeCounter("runtime_agent_post_turn_follow_up_total", 1,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"status", outcome.FollowUp.Status,
+	)
+	r.svc.observeLatency("runtime.agent.turn.post_turn_follow_up_ms", followUpStartedAt,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"status", outcome.FollowUp.Status,
+	)
+	r.svc.observeLatency("runtime.agent.turn.post_turn_total_ms", totalStartedAt,
+		"caller_app_id", session.CallerAppID,
+		"agent_id", session.AgentID,
+		"conversation_anchor_id", session.ConversationAnchorID,
+		"turn_id", turn.TurnID,
+		"stream_id", turn.StreamID,
+		"thread_id", session.ThreadID,
+		"memory_status", outcome.AssistantMemory.Status,
+		"sidecar_status", outcome.Sidecar.Status,
+		"follow_up_status", outcome.FollowUp.Status,
+	)
 	return outcome
 }
 func (r publicChatRuntime) applyAssistantTurnMemory(
