@@ -57,6 +57,7 @@
     "check:runtime-provider-endpoint-ssot": "node scripts/check-runtime-provider-endpoint-ssot.mjs",
     "check:runtime-connector-auth-profile-drift": "node scripts/generate-runtime-connector-auth-profiles.mjs --check",
     "check:runtime-video-capability-block-enforcement": "node scripts/check-runtime-video-capability-block-enforcement.mjs",
+    "check:runtime-agent-center-local-config-boundary": "node scripts/check-runtime-agent-center-local-config-boundary.mjs",
     "check:desktop-design-contract": "node scripts/check-desktop-design-contract.mjs",
     "check:nimi-kit": "node scripts/check-nimi-kit.mjs && node scripts/check-canonical-capability-catalog.mjs",
     "check:canonical-capability-catalog": "node scripts/check-canonical-capability-catalog.mjs",
