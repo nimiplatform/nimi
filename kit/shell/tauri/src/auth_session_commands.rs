@@ -149,7 +149,9 @@ fn should_use_e2e_encrypted_file_storage_from_env(
 fn should_use_e2e_encrypted_file_storage() -> bool {
     should_use_e2e_encrypted_file_storage_from_env(
         std::env::var(AUTH_SESSION_E2E_STORAGE_ENV).ok().as_deref(),
-        std::env::var(AUTH_SESSION_E2E_MASTER_KEY_ENV).ok().as_deref(),
+        std::env::var(AUTH_SESSION_E2E_MASTER_KEY_ENV)
+            .ok()
+            .as_deref(),
         non_empty_env(AUTH_SESSION_E2E_PROFILE_ENV),
         non_empty_env(AUTH_SESSION_E2E_FIXTURE_PATH_ENV),
     )
@@ -482,7 +484,10 @@ fn clear_legacy_plaintext_dev_session_file() -> Result<(), String> {
 #[tauri::command]
 pub fn auth_session_load() -> Result<Option<AuthSessionLoadResult>, String> {
     clear_legacy_plaintext_dev_session_file()?;
-    if matches!(auth_session_storage_mode(), AuthSessionStorageMode::E2eEncryptedFile) {
+    if matches!(
+        auth_session_storage_mode(),
+        AuthSessionStorageMode::E2eEncryptedFile
+    ) {
         let path = auth_session_e2e_path()?;
         let key = load_e2e_master_key()?;
         return coerce_cleared_session_load_result(load_auth_session_from_path(
@@ -492,15 +497,15 @@ pub fn auth_session_load() -> Result<Option<AuthSessionLoadResult>, String> {
     }
     let path = auth_session_path()?;
     let key = load_master_key()?;
-    coerce_cleared_session_load_result(load_auth_session_from_path(
-        path.as_path(),
-        key.as_slice(),
-    ))
+    coerce_cleared_session_load_result(load_auth_session_from_path(path.as_path(), key.as_slice()))
 }
 
 #[tauri::command]
 pub fn auth_session_save(payload: AuthSessionSavePayload) -> Result<(), String> {
-    if matches!(auth_session_storage_mode(), AuthSessionStorageMode::E2eEncryptedFile) {
+    if matches!(
+        auth_session_storage_mode(),
+        AuthSessionStorageMode::E2eEncryptedFile
+    ) {
         let path = auth_session_e2e_path()?;
         let key = load_e2e_master_key()?;
         save_auth_session_to_path(path.as_path(), key.as_slice(), &payload)?;
@@ -514,7 +519,10 @@ pub fn auth_session_save(payload: AuthSessionSavePayload) -> Result<(), String> 
 
 #[tauri::command]
 pub fn auth_session_clear() -> Result<(), String> {
-    let path = if matches!(auth_session_storage_mode(), AuthSessionStorageMode::E2eEncryptedFile) {
+    let path = if matches!(
+        auth_session_storage_mode(),
+        AuthSessionStorageMode::E2eEncryptedFile
+    ) {
         auth_session_e2e_path()?
     } else {
         auth_session_path()?
@@ -532,8 +540,8 @@ mod tests {
         should_use_keyring_session_storage_from_env, AuthSessionLoadResult, AuthSessionSavePayload,
         AuthSessionUser, AES_KEY_LEN, AUTH_SESSION_E2E_MASTER_KEY_ENV,
     };
-    use base64::Engine as _;
     use crate::test_support::with_env;
+    use base64::Engine as _;
     use std::cell::RefCell;
     use std::fs;
     use std::path::PathBuf;
@@ -701,12 +709,18 @@ mod tests {
     #[test]
     fn e2e_master_key_must_decode_to_aes_key() {
         let encoded = base64::engine::general_purpose::STANDARD.encode(vec![3_u8; AES_KEY_LEN]);
-        with_env(&[(AUTH_SESSION_E2E_MASTER_KEY_ENV, Some(encoded.as_str()))], || {
-            assert_eq!(load_e2e_master_key().expect("key"), vec![3_u8; AES_KEY_LEN]);
-        });
-        with_env(&[(AUTH_SESSION_E2E_MASTER_KEY_ENV, Some("not-base64"))], || {
-            assert!(load_e2e_master_key().is_err());
-        });
+        with_env(
+            &[(AUTH_SESSION_E2E_MASTER_KEY_ENV, Some(encoded.as_str()))],
+            || {
+                assert_eq!(load_e2e_master_key().expect("key"), vec![3_u8; AES_KEY_LEN]);
+            },
+        );
+        with_env(
+            &[(AUTH_SESSION_E2E_MASTER_KEY_ENV, Some("not-base64"))],
+            || {
+                assert!(load_e2e_master_key().is_err());
+            },
+        );
     }
 
     #[test]
