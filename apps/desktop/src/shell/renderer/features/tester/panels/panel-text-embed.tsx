@@ -127,7 +127,7 @@ export function TextEmbedPanel(props: TextEmbedPanelProps) {
             disabled={!canSubmit}
             aria-label={runLabel}
             title={runLabel}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {state.busy ? (
               <span className="inline-flex items-center gap-0.5">

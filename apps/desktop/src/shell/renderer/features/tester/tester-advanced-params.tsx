@@ -76,7 +76,7 @@ export function AdvancedParamsPopover(props: AdvancedParamsPopoverProps) {
         aria-label={triggerLabel}
         aria-expanded={open}
         title={triggerLabel}
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] transition-colors hover:border-[var(--nimi-border-strong)] hover:text-[var(--nimi-text-secondary)] ${
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--nimi-border-subtle)] transition-colors hover:border-[var(--nimi-border-strong)] hover:text-[var(--nimi-text-secondary)] ${
           open
             ? 'bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]'
             : 'text-[var(--nimi-text-muted)]'
@@ -89,7 +89,7 @@ export function AdvancedParamsPopover(props: AdvancedParamsPopoverProps) {
         <div
           role="dialog"
           aria-label={triggerLabel}
-          className="absolute top-[calc(100%+0.75rem)] right-0 z-[var(--nimi-z-popover,40)] w-[340px] rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-floating)]"
+          className="absolute top-[calc(100%+0.75rem)] left-0 z-[var(--nimi-z-popover,40)] w-[340px] rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-floating)]"
         >
           <div className="flex flex-col gap-4 text-xs">
             <div className="flex flex-col gap-1.5">
@@ -144,7 +144,7 @@ export function AdvancedParamsPopover(props: AdvancedParamsPopoverProps) {
 
           <div
             aria-hidden
-            className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 border-l border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]"
+            className="absolute -top-1.5 left-3 h-3 w-3 rotate-45 border-l border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]"
           />
         </div>
       ) : null}

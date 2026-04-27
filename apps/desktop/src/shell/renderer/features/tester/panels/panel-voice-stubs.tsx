@@ -22,13 +22,6 @@ const PAPERCLIP_ICON = (
   </svg>
 );
 
-const PLUS_ICON = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
 const SLIDERS_ICON = (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="4" y1="6" x2="14" y2="6" />
@@ -84,7 +77,7 @@ function RunButtonCircle(props: { busy: boolean; disabled: boolean; onClick: () 
       disabled={props.disabled}
       aria-label={props.label}
       title={props.label}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
     >
       {props.busy ? (
         <span className="inline-flex items-center gap-0.5">
@@ -340,16 +333,6 @@ export function VoiceClonePanel(props: VoiceClonePanelProps) {
         <div className="mt-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             {modeChip}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={state.busy}
-              aria-label={attachLabel}
-              title={attachLabel}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--nimi-border-subtle)] text-[var(--nimi-text-muted)] transition-colors hover:border-[var(--nimi-border-strong)] hover:text-[var(--nimi-text-secondary)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {PLUS_ICON}
-            </button>
             <VoiceCloneOptionsPopover
               preferredName={preferredName}
               onPreferredNameChange={setPreferredName}
@@ -359,7 +342,19 @@ export function VoiceClonePanel(props: VoiceClonePanelProps) {
               onReferenceAudioMimeChange={setReferenceAudioMime}
             />
           </div>
-          <RunButtonCircle busy={state.busy} disabled={!canSubmit} onClick={() => { void handleRun(); }} label={runLabel} />
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={state.busy}
+              aria-label={attachLabel}
+              title={attachLabel}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-transparent text-[var(--nimi-text-muted)] transition-colors hover:border-[var(--nimi-border-subtle)] hover:bg-[var(--nimi-surface-canvas)] hover:text-[var(--nimi-text-secondary)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {PAPERCLIP_ICON}
+            </button>
+            <RunButtonCircle busy={state.busy} disabled={!canSubmit} onClick={() => { void handleRun(); }} label={runLabel} />
+          </div>
         </div>
       </div>
 
@@ -583,12 +578,13 @@ export type VoiceAssetPanelProps = {
   onDesignStateChange: (updater: (prev: CapabilityState) => CapabilityState) => void;
 };
 
-const MIC_ICON = (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-    <line x1="12" y1="19" x2="12" y2="23" />
-    <line x1="8" y1="23" x2="16" y2="23" />
+const VOICE_WAVE_ICON = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 10v4" />
+    <path d="M7 6v12" />
+    <path d="M12 3v18" />
+    <path d="M17 6v12" />
+    <path d="M21 10v4" />
   </svg>
 );
 
@@ -616,9 +612,9 @@ function VoiceModeChip(props: { mode: VoiceAssetMode; onChange: (next: VoiceAsse
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={t('Tester.voiceAsset.modeToggleLabel', { defaultValue: 'Voice mode' })}
-        className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:border-[var(--nimi-border-strong)]"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:border-[var(--nimi-border-strong)]"
       >
-        <span>{MIC_ICON}</span>
+        <span>{VOICE_WAVE_ICON}</span>
         <span>{shortLabel}</span>
         {CHEVRON_DOWN}
       </button>

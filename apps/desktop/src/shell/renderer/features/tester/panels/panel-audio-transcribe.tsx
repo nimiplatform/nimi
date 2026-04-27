@@ -27,13 +27,6 @@ const PAPERCLIP_ICON = (
   </svg>
 );
 
-const PLUS_ICON = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
 const SLIDERS_ICON = (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="4" y1="6" x2="14" y2="6" />
@@ -265,16 +258,6 @@ export function AudioTranscribePanel(props: AudioTranscribePanelProps) {
         />
         <div className="mt-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={state.busy}
-              aria-label={attachLabel}
-              title={attachLabel}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--nimi-border-subtle)] text-[var(--nimi-text-muted)] transition-colors hover:border-[var(--nimi-border-strong)] hover:text-[var(--nimi-text-secondary)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {PLUS_ICON}
-            </button>
             <TranscribeOptionsPopover
               language={language}
               onLanguageChange={setLanguage}
@@ -282,24 +265,36 @@ export function AudioTranscribePanel(props: AudioTranscribePanelProps) {
               onMimeTypeChange={setMimeType}
             />
           </div>
-          <button
-            type="button"
-            onClick={() => { void handleRun(); }}
-            disabled={!canSubmit}
-            aria-label={runLabel}
-            title={runLabel}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {state.busy ? (
-              <span className="inline-flex items-center gap-0.5">
-                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.2s]" />
-                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.1s]" />
-                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80" />
-              </span>
-            ) : (
-              ARROW_UP_ICON
-            )}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={state.busy}
+              aria-label={attachLabel}
+              title={attachLabel}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-transparent text-[var(--nimi-text-muted)] transition-colors hover:border-[var(--nimi-border-subtle)] hover:bg-[var(--nimi-surface-canvas)] hover:text-[var(--nimi-text-secondary)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {PAPERCLIP_ICON}
+            </button>
+            <button
+              type="button"
+              onClick={() => { void handleRun(); }}
+              disabled={!canSubmit}
+              aria-label={runLabel}
+              title={runLabel}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {state.busy ? (
+                <span className="inline-flex items-center gap-0.5">
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.2s]" />
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.1s]" />
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80" />
+                </span>
+              ) : (
+                ARROW_UP_ICON
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

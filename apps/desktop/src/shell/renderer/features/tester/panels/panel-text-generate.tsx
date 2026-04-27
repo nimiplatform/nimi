@@ -17,10 +17,9 @@ type TextGeneratePanelProps = {
 
 type Mode = 'sync' | 'stream';
 
-const PLUS_ICON = (
+const PAPERCLIP_ICON = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
+    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
   </svg>
 );
 
@@ -30,6 +29,112 @@ const ARROW_UP_ICON = (
     <polyline points="5 12 12 5 19 12" />
   </svg>
 );
+
+const ZAP_ICON = (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
+const CHEVRON_DOWN = (
+  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+function useDismissable(open: boolean, onDismiss: () => void) {
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const handlePointer = (event: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        onDismiss();
+      }
+    };
+    const handleKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onDismiss(); };
+    document.addEventListener('mousedown', handlePointer);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointer);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open, onDismiss]);
+  return wrapperRef;
+}
+
+function ResponseModeChip(props: { mode: Mode; onChange: (next: Mode) => void; disabled?: boolean }) {
+  const { t } = useTranslation();
+  const { mode, onChange, disabled } = props;
+  const [open, setOpen] = React.useState(false);
+  const wrapperRef = useDismissable(open, () => setOpen(false));
+
+  const syncTitle = t('Tester.textGenerate.modeSync', { defaultValue: 'Sync' });
+  const streamTitle = t('Tester.textGenerate.modeStream', { defaultValue: 'Stream' });
+  const syncDesc = t('Tester.textGenerate.modeSyncDesc', { defaultValue: 'Wait for the full response, then show it' });
+  const streamDesc = t('Tester.textGenerate.modeStreamDesc', { defaultValue: 'Show the response as it arrives, word by word' });
+  const shortLabel = mode === 'sync' ? syncTitle : streamTitle;
+
+  const options: Array<{ value: Mode; title: string; desc: string }> = [
+    { value: 'sync', title: syncTitle, desc: syncDesc },
+    { value: 'stream', title: streamTitle, desc: streamDesc },
+  ];
+
+  return (
+    <div ref={wrapperRef} className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={disabled}
+        aria-expanded={open}
+        aria-label={t('Tester.textGenerate.modeToggle', { defaultValue: 'Response mode' })}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:border-[var(--nimi-border-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <span>{ZAP_ICON}</span>
+        <span>{shortLabel}</span>
+        {CHEVRON_DOWN}
+      </button>
+      {open ? (
+        <div
+          role="dialog"
+          aria-label={t('Tester.textGenerate.modeToggle', { defaultValue: 'Response mode' })}
+          className="absolute top-[calc(100%+0.5rem)] left-0 z-[var(--nimi-z-popover,40)] w-[260px] rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 shadow-[var(--nimi-elevation-floating)]"
+        >
+          <div className="flex flex-col gap-1">
+            {options.map((opt) => {
+              const active = opt.value === mode;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { onChange(opt.value); setOpen(false); }}
+                  className={`flex items-start justify-between gap-2 rounded-[var(--nimi-radius-sm)] px-2.5 py-2 text-left transition-colors ${
+                    active
+                      ? 'bg-[var(--nimi-action-primary-bg)]/10'
+                      : 'hover:bg-[var(--nimi-surface-canvas)]'
+                  }`}
+                >
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className={`text-[12px] font-medium ${active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)]'}`}>
+                      {opt.title}
+                    </span>
+                    <span className="text-[10px] leading-snug text-[var(--nimi-text-muted)]">
+                      {opt.desc}
+                    </span>
+                  </div>
+                  {active ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0 text-[var(--nimi-action-primary-bg)]">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function TextGeneratePanel(props: TextGeneratePanelProps) {
   const { t } = useTranslation();
@@ -320,47 +425,8 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
           />
         )}
         <div className="mt-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={media.openFilePicker}
-              disabled={state.busy}
-              aria-label={attachLabel}
-              title={attachLabel}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--nimi-border-subtle)] text-[var(--nimi-text-muted)] transition-colors hover:border-[var(--nimi-border-strong)] hover:text-[var(--nimi-text-secondary)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {PLUS_ICON}
-            </button>
-            <div
-              role="group"
-              aria-label={t('Tester.textGenerate.modeToggle', { defaultValue: 'Response mode' })}
-              className="inline-flex rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-0.5 text-[11px] font-medium"
-            >
-              {(['sync', 'stream'] as Mode[]).map((m) => {
-                const active = mode === m;
-                const label = m === 'sync'
-                  ? t('Tester.textGenerate.modeSync', { defaultValue: 'Sync' })
-                  : t('Tester.textGenerate.modeStream', { defaultValue: 'Stream' });
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMode(m)}
-                    disabled={state.busy}
-                    aria-pressed={active}
-                    className={`rounded-md px-2.5 py-0.5 transition-colors ${
-                      active
-                        ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
-                        : 'text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]'
-                    } disabled:cursor-not-allowed disabled:opacity-50`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
           <div className="flex items-center gap-1.5">
+            <ResponseModeChip mode={mode} onChange={setMode} disabled={state.busy} />
             <AdvancedParamsPopover
               scope="textGenerate"
               system={system}
@@ -370,6 +436,8 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
               maxTokens={maxTokens}
               onMaxTokensChange={setMaxTokens}
             />
+          </div>
+          <div className="flex items-center gap-1.5">
             {mode === 'stream' && state.busy ? (
               <Button tone="danger" size="sm" onClick={handleStop}>
                 {stopLabel}
@@ -377,11 +445,21 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
             ) : null}
             <button
               type="button"
+              onClick={media.openFilePicker}
+              disabled={state.busy}
+              aria-label={attachLabel}
+              title={attachLabel}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-transparent text-[var(--nimi-text-muted)] transition-colors hover:border-[var(--nimi-border-subtle)] hover:bg-[var(--nimi-surface-canvas)] hover:text-[var(--nimi-text-secondary)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {PAPERCLIP_ICON}
+            </button>
+            <button
+              type="button"
               onClick={() => { void handleRun(); }}
               disabled={!canSubmit}
               aria-label={runLabel}
               title={runLabel}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {state.busy ? (
                 <span className="inline-flex items-center gap-0.5">

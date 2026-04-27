@@ -1031,7 +1031,7 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
             disabled={!canSubmit}
             aria-label={runLabel}
             title={runLabel}
-            className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {state.busy ? (
               <span className="inline-flex items-center gap-0.5">
