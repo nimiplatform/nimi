@@ -46,6 +46,7 @@ async function withBootstrapStepTimeout<T>(
 
 export async function bootstrapAuthSession(input: {
   flowId: string;
+  realmBaseUrl: string;
   accessToken: string;
   refreshToken?: string;
   source: 'anonymous' | 'env' | 'persisted';
@@ -89,13 +90,33 @@ export async function bootstrapAuthSession(input: {
       envToken,
       String(input.refreshToken || '').trim() || undefined,
     );
-    if (input.source === 'persisted') {
-      await persistSharedDesktopSession({
+    await withBootstrapStepTimeout(
+      'bootstrap auth shared session persist',
+      persistSharedDesktopSession({
+        realmBaseUrl: input.realmBaseUrl,
         accessToken: envToken,
         refreshToken: input.refreshToken,
         user: normalizedUser,
+      }),
+      AUTO_LOGIN_WARM_LOAD_TIMEOUT_MS,
+    ).catch((persistError) => {
+      const errorMessage = safeErrorMessage(persistError);
+      logRendererEvent({
+        level: 'warn',
+        area: 'renderer-bootstrap',
+        message: 'phase:auto-login:shared-session-persist-failed',
+        flowId: input.flowId,
+        details: {
+          error: errorMessage,
+          source: input.source,
+          resolution: input.resolution || 'unknown',
+        },
       });
-    }
+      void pingDesktopMacosSmoke('bootstrap-auth-session-shared-persist-failed', {
+        source: input.source,
+        error: errorMessage,
+      }).catch(() => {});
+    });
     if (input.skipWarmLoads) {
       void pingDesktopMacosSmoke('bootstrap-auth-session-warm-loads-skipped', {
         source: input.source,

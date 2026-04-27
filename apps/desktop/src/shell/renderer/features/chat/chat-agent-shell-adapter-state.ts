@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
@@ -12,6 +12,7 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import {
+  mergeAgentTargetWithPresentationProfile,
   resolveAgentConversationActiveThreadId,
   toAgentFriendTargetsFromSocialSnapshot,
   toConversationMessageViewModel,
@@ -20,7 +21,11 @@ import { findRuntimeRouteModelProfile } from './chat-nimi-route-view';
 import type { AgentConversationSelection } from './chat-shell-types';
 import { useAgentVisibleProjection } from './chat-agent-visible-projection-store';
 import { useConversationStreamState } from './chat-shared-runtime-stream-ui';
-import { getAgentConversationAnchorBinding } from './chat-agent-anchor-binding-storage';
+import {
+  getAgentConversationAnchorBinding,
+  getAgentConversationAnchorBindingVersion,
+  subscribeAgentConversationAnchorBindings,
+} from './chat-agent-anchor-binding-storage';
 import {
   bundleQueryKey,
   isEmptyPendingAssistantMessage,
@@ -174,15 +179,29 @@ export function useAgentConversationShellState(
     () => threads.find((thread) => thread.id === activeThreadId) || null,
     [activeThreadId, threads],
   );
+  const anchorBindingVersion = useSyncExternalStore(
+    subscribeAgentConversationAnchorBindings,
+    getAgentConversationAnchorBindingVersion,
+    getAgentConversationAnchorBindingVersion,
+  );
   const activeConversationAnchorId = useMemo(
     () => getAgentConversationAnchorBinding(selectedThreadRecord?.id || null)?.conversationAnchorId || null,
-    [selectedThreadRecord?.id],
+    [anchorBindingVersion, selectedThreadRecord?.id],
   );
   const selectedTarget = useMemo(
     () => targetByAgentId.get(input.selection.agentId || '') || null,
     [input.selection.agentId, targetByAgentId],
   );
-  const activeTarget = selectedThreadRecord?.targetSnapshot || selectedTarget || null;
+  const activeTarget = useMemo(() => {
+    const threadTarget = selectedThreadRecord?.targetSnapshot || null;
+    if (!threadTarget) {
+      return selectedTarget || null;
+    }
+    if (selectedTarget?.agentId === threadTarget.agentId) {
+      return mergeAgentTargetWithPresentationProfile(threadTarget, selectedTarget.presentationProfile || null);
+    }
+    return threadTarget;
+  }, [selectedTarget, selectedThreadRecord?.targetSnapshot]);
   const agentRouteReady = agentResolution?.ready === true;
 
   const bundleQuery = useQuery({

@@ -225,7 +225,8 @@ export function ChatAgentAvatarSettingsPanel(props: ChatAgentAvatarSettingsPanel
         avatarInstanceId: input.avatarInstanceId,
         conversationAnchorId: input.conversationAnchorId,
         anchorMode: input.anchorMode,
-        launchedBy: 'desktop',
+        launchedBy: 'nimi.desktop',
+        runtimeAppId: 'nimi.desktop',
         sourceSurface: 'desktop-agent-chat',
       });
       const feedback = resolveAvatarInstanceLaunchFeedback(result.opened);

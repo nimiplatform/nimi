@@ -12,6 +12,7 @@ import {
   waitForSpeakingLive2dPose,
   waitForVisibleLive2dPixels,
 } from './desktop-macos-smoke-live2d';
+import { AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY } from '@renderer/features/chat/chat-agent-anchor-binding-storage';
 import {
   assertStableVrmFramingSignature,
   assertStableVrmRendererMemory,
@@ -22,6 +23,210 @@ import {
   waitForVisibleVrmPixels,
   waitForVrmPostureEvidence,
 } from './desktop-macos-smoke-vrm';
+
+function readEvidenceRecords(evidence: Record<string, unknown>): Array<Record<string, unknown>> {
+  return Array.isArray(evidence.records)
+    ? evidence.records.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+    : [];
+}
+
+function recordKind(record: Record<string, unknown>): string {
+  return typeof record.kind === 'string' ? record.kind : '';
+}
+
+function recordDetail(record: Record<string, unknown>): Record<string, unknown> {
+  return record.detail && typeof record.detail === 'object' && !Array.isArray(record.detail)
+    ? record.detail as Record<string, unknown>
+    : {};
+}
+
+function recordConsume(record: Record<string, unknown>): Record<string, unknown> {
+  return record.consume && typeof record.consume === 'object' && !Array.isArray(record.consume)
+    ? record.consume as Record<string, unknown>
+    : {};
+}
+
+function recordConversationAnchorId(record: Record<string, unknown>): string {
+  const detail = recordDetail(record);
+  const consume = recordConsume(record);
+  return String(
+    consume.conversationAnchorId
+    || consume.conversation_anchor_id
+    || detail.conversation_anchor_id
+    || detail.conversationAnchorId
+    || '',
+  ).trim();
+}
+
+function recordTimeMs(record: Record<string, unknown>): number {
+  const value = typeof record.recordedAt === 'string' ? Date.parse(record.recordedAt) : NaN;
+  return Number.isFinite(value) ? value : 0;
+}
+
+async function waitForAvatarLiveInstance(
+  deps: DesktopMacosSmokeDriverDeps,
+  agentId: string,
+  expectedConversationAnchorId: string | null = null,
+  timeoutMs = SMOKE_STEP_TIMEOUT_MS,
+) {
+  const deadline = Date.now() + timeoutMs;
+  let lastCount = 0;
+  while (Date.now() < deadline) {
+    const instances = await deps.listAvatarLiveInstances(agentId);
+    lastCount = instances.length;
+    const current = instances.find((instance) => (
+      instance.agentId === agentId
+      && instance.anchorMode === 'existing'
+      && Boolean(instance.conversationAnchorId)
+      && (!expectedConversationAnchorId || instance.conversationAnchorId === expectedConversationAnchorId)
+    ));
+    if (current) {
+      return current;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(
+    `missing same-anchor Avatar live instance for ${agentId}`
+    + `${expectedConversationAnchorId ? ` anchor=${expectedConversationAnchorId}` : ''}; observed ${lastCount} instance(s)`,
+  );
+}
+
+async function waitForAgentConversationAnchorBinding(
+  deps: DesktopMacosSmokeDriverDeps,
+  agentId: string,
+  notBeforeMs = 0,
+  timeoutMs = 20_000,
+): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+  let lastRaw = '';
+  while (Date.now() < deadline) {
+    lastRaw = await deps.readLocalStorageItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY) || '';
+    if (lastRaw) {
+      try {
+        const parsed: unknown = JSON.parse(lastRaw);
+        if (Array.isArray(parsed)) {
+          const binding = parsed.find((item) => (
+            item
+            && typeof item === 'object'
+            && !Array.isArray(item)
+            && (item as Record<string, unknown>).agentId === agentId
+            && typeof (item as Record<string, unknown>).conversationAnchorId === 'string'
+            && String((item as Record<string, unknown>).conversationAnchorId).trim()
+          )) as Record<string, unknown> | undefined;
+          const anchor = typeof binding?.conversationAnchorId === 'string'
+            ? binding.conversationAnchorId.trim()
+            : '';
+          const updatedAtMs = Number(binding?.updatedAtMs || 0);
+          if (anchor && Number.isFinite(updatedAtMs) && updatedAtMs >= notBeforeMs) {
+            await deps.verifyRuntimeConversationAnchor({
+              agentId,
+              conversationAnchorId: anchor,
+            });
+            return anchor;
+          }
+        }
+      } catch {
+        // Keep polling until the storage write is complete.
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`missing explicit conversation anchor binding for ${agentId}; storage=${lastRaw || 'empty'}`);
+}
+
+async function waitForAvatarCarrierEvidence(
+  deps: DesktopMacosSmokeDriverDeps,
+  avatarInstanceId: string,
+  expectedConversationAnchorId: string,
+  timeoutMs = 90_000,
+) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = '';
+  while (Date.now() < deadline) {
+    try {
+      const result = await deps.readAvatarEvidence(avatarInstanceId);
+      const records = readEvidenceRecords(result.evidence);
+      const latestRecords = [...records].reverse();
+      const startupTerminal = latestRecords.find((record) => {
+        if (recordConversationAnchorId(record) !== expectedConversationAnchorId) {
+          return false;
+        }
+        const kind = recordKind(record);
+        return kind === 'avatar.startup.runtime-bound' || kind === 'avatar.startup.failed';
+      }) || null;
+      if (startupTerminal && recordKind(startupTerminal) === 'avatar.startup.failed') {
+        const detail = recordDetail(startupTerminal);
+        throw new Error(`Avatar runtime-bound startup failed: ${String(detail.error || 'unknown startup failure')}`);
+      }
+      const startup = startupTerminal && recordKind(startupTerminal) === 'avatar.startup.runtime-bound'
+        ? startupTerminal
+        : null;
+      const startupRecordedAt = startup ? recordTimeMs(startup) : 0;
+      const recordsForCurrentStartup = startupRecordedAt > 0
+        ? latestRecords.filter((record) => recordTimeMs(record) >= startupRecordedAt)
+        : latestRecords;
+      const modelLoad = recordsForCurrentStartup.find((record) => (
+        recordKind(record) === 'avatar.model.load'
+        && recordConversationAnchorId(record) === expectedConversationAnchorId
+      )) || null;
+      const visual = recordsForCurrentStartup.find((record) => {
+        if (recordKind(record) !== 'avatar.carrier.visual') {
+          return false;
+        }
+        if (recordConversationAnchorId(record) !== expectedConversationAnchorId) {
+          return false;
+        }
+        const detail = recordDetail(record);
+        return detail.status === 'ready' && Number(detail.visible_pixels || 0) > 0;
+      }) || null;
+      if (startup && modelLoad && visual) {
+        return {
+          evidencePath: result.evidencePath,
+          evidence: result.evidence,
+          startup,
+          modelLoad,
+          visual,
+        };
+      }
+      lastError = `anchor=${expectedConversationAnchorId} records=${records.map((record) => `${recordKind(record)}:${recordConversationAnchorId(record) || 'no-anchor'}`).join(',') || 'none'}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error || 'unknown evidence read error');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  throw new Error(`missing same-anchor Avatar SDK/model/visual evidence for ${avatarInstanceId} anchor=${expectedConversationAnchorId}: ${lastError}`);
+}
+
+async function waitForRuntimeProductPathEvidence(
+  deps: DesktopMacosSmokeDriverDeps,
+  input: {
+    agentId: string;
+    conversationAnchorId: string;
+  },
+  timeoutMs = 25_000,
+): Promise<Record<string, unknown>> {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = '';
+  while (Date.now() < deadline) {
+    try {
+      const evidence = await deps.readRuntimeProductPathEvidence(input);
+      if (evidence.same_anchor !== true) {
+        throw new Error('Runtime product evidence did not confirm same anchor');
+      }
+      if (evidence.runtime_authenticated !== true) {
+        throw new Error('Runtime product evidence did not confirm authenticated Runtime access');
+      }
+      if (evidence.has_runtime_turn !== true) {
+        throw new Error('Runtime product evidence has no Runtime turn identity yet');
+      }
+      return evidence;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error || 'unknown Runtime product evidence error');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  throw new Error(`missing Runtime-authenticated same-anchor turn evidence: ${lastError}`);
+}
 
 async function waitForMemoryMode(
   deps: Pick<DesktopMacosSmokeDriverDeps, 'readAttributeByTestId' | 'readTextByTestId'>,
@@ -116,6 +321,70 @@ export async function runDesktopMacosSmokeScenario(
           htmlSnapshot: deps.currentHtml(),
         });
         return;
+
+      case 'chat.live2d-avatar-product-smoke': {
+        record('wait-chat-panel');
+        await deps.waitForTestId(E2E_IDS.panel('chat'));
+        record('verify-shared-auth-session');
+        await deps.verifySharedAuthSession();
+        record('clear-stale-anchor-bindings');
+        await deps.clearAgentConversationAnchorBindings();
+        record('select-agent-target');
+        await deps.clickByTestId(E2E_IDS.chatTarget('agent-e2e-alpha'));
+        record('wait-agent-target-selected');
+        await new Promise((resolve) => setTimeout(resolve, 750));
+        record('configure-runtime-text-route');
+        await deps.configureRuntimeTextRoute();
+        const anchorWriteNotBeforeMs = Date.now();
+        record('submit-anchor-turn');
+        await deps.setValueBySelector('[data-chat-composer-textarea="true"]', 'Wave 2 product smoke anchor turn.');
+        await deps.clickSelector('[data-chat-composer-send="true"]');
+        record('wait-runtime-anchor-binding');
+        const conversationAnchorId = await waitForAgentConversationAnchorBinding(
+          deps,
+          'agent-e2e-alpha',
+          anchorWriteNotBeforeMs,
+        );
+        record('wait-runtime-product-path-evidence');
+        const runtimeProductEvidence = await waitForRuntimeProductPathEvidence(deps, {
+          agentId: 'agent-e2e-alpha',
+          conversationAnchorId,
+        });
+        record('open-settings');
+        await deps.clickByTestId(E2E_IDS.chatSettingsToggle);
+        record('wait-avatar-launch-card');
+        await deps.waitForTestId(E2E_IDS.chatAvatarLaunchCard);
+        record('launch-avatar-current-anchor');
+        await deps.clickByTestId(E2E_IDS.chatAvatarLaunchCurrentButton);
+        record('wait-avatar-same-anchor-registry');
+        const liveInstance = await waitForAvatarLiveInstance(
+          deps,
+          'agent-e2e-alpha',
+          conversationAnchorId,
+          20_000,
+        );
+        record('wait-avatar-carrier-evidence');
+        const carrierEvidence = await waitForAvatarCarrierEvidence(deps, liveInstance.avatarInstanceId, conversationAnchorId);
+        record('write-pass-report');
+        await deps.writeReport({
+          ok: true,
+          steps,
+          route: deps.currentRoute(),
+          htmlSnapshot: deps.currentHtml(),
+          details: {
+            avatarProductPath: {
+              conversationAnchorId,
+              runtime: runtimeProductEvidence,
+              liveInstance,
+              evidencePath: carrierEvidence.evidencePath,
+              startup: carrierEvidence.startup,
+              modelLoad: carrierEvidence.modelLoad,
+              visual: carrierEvidence.visual,
+            },
+          },
+        });
+        return;
+      }
 
       case 'chat.live2d-render-smoke':
       case 'chat.live2d-render-smoke-mark':

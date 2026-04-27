@@ -4,6 +4,7 @@ use std::process::Command;
 const AVATAR_HANDOFF_SCHEME: &str = "nimi-avatar";
 const AVATAR_HANDOFF_LAUNCH_HOST: &str = "launch";
 const AVATAR_HANDOFF_CLOSE_HOST: &str = "close";
+const DESKTOP_RUNTIME_APP_ID: &str = "nimi.desktop";
 
 fn structured_avatar_handoff_error(reason_code: &str, message: &str) -> String {
     json!({
@@ -40,7 +41,15 @@ fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Resu
         "avatar_instance_id",
     )?;
     let launched_by = normalize_optional_handoff_value(payload.launched_by.as_deref())
-        .unwrap_or_else(|| "desktop".to_string());
+        .unwrap_or_else(|| DESKTOP_RUNTIME_APP_ID.to_string());
+    let runtime_app_id = normalize_optional_handoff_value(payload.runtime_app_id.as_deref())
+        .unwrap_or_else(|| DESKTOP_RUNTIME_APP_ID.to_string());
+    if runtime_app_id != DESKTOP_RUNTIME_APP_ID {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            "avatar handoff runtime_app_id must be nimi.desktop",
+        ));
+    }
     let source_surface = normalize_optional_handoff_value(payload.source_surface.as_deref())
         .unwrap_or_else(|| "desktop-agent-chat".to_string());
     let anchor_mode =
@@ -71,9 +80,18 @@ fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Resu
     serializer.append_pair("avatar_instance_id", avatar_instance_id.as_str());
     serializer.append_pair("anchor_mode", anchor_mode.as_str());
     serializer.append_pair("launched_by", launched_by.as_str());
+    serializer.append_pair("runtime_app_id", runtime_app_id.as_str());
     serializer.append_pair("source_surface", source_surface.as_str());
     if let Some(conversation_anchor_id) = conversation_anchor_id {
         serializer.append_pair("conversation_anchor_id", conversation_anchor_id.as_str());
+    }
+    if let Ok(defaults) = runtime_defaults() {
+        if !defaults.realm.realm_base_url.trim().is_empty() {
+            serializer.append_pair("realm_base_url", defaults.realm.realm_base_url.trim());
+        }
+        if !defaults.runtime.world_id.trim().is_empty() {
+            serializer.append_pair("world_id", defaults.runtime.world_id.trim());
+        }
     }
     Ok(format!(
         "{AVATAR_HANDOFF_SCHEME}://{AVATAR_HANDOFF_LAUNCH_HOST}?{}",
@@ -151,6 +169,162 @@ fn open_avatar_handoff_uri(uri: &str) -> Result<(), String> {
                 }
             })?;
         return Ok(());
+    }
+}
+
+fn open_avatar_handoff_binary(uri: &str) -> Result<(), String> {
+    let binary_path = std::env::var("NIMI_AVATAR_BINARY_PATH")
+        .map(|value| value.trim().to_string())
+        .unwrap_or_default();
+    if binary_path.is_empty() {
+        return Err("NIMI_AVATAR_BINARY_PATH is not configured".to_string());
+    }
+    let path = std::path::PathBuf::from(&binary_path);
+    if !path.is_absolute() {
+        return Err("NIMI_AVATAR_BINARY_PATH must be absolute".to_string());
+    }
+    if !path.is_file() {
+        return Err(format!(
+            "NIMI_AVATAR_BINARY_PATH does not point to a file: {}",
+            path.display()
+        ));
+    }
+    let mut command = Command::new(path);
+    apply_avatar_runtime_env(&mut command)?;
+    command
+        .arg(uri)
+        .spawn()
+        .map_err(|error| format!("spawn avatar binary failed: {error}"))?;
+    Ok(())
+}
+
+fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
+    let defaults = runtime_defaults()?;
+    let mut pairs = vec![
+        ("NIMI_REALM_URL", defaults.realm.realm_base_url),
+        ("NIMI_REALTIME_URL", defaults.realm.realtime_url),
+        ("NIMI_REALM_JWKS_URL", defaults.realm.jwks_url),
+        ("NIMI_REALM_REVOCATION_URL", defaults.realm.revocation_url),
+        ("NIMI_REALM_JWT_ISSUER", defaults.realm.jwt_issuer),
+        ("NIMI_REALM_JWT_AUDIENCE", defaults.realm.jwt_audience),
+        (
+            "NIMI_LOCAL_PROVIDER_ENDPOINT",
+            defaults.runtime.local_provider_endpoint,
+        ),
+        (
+            "NIMI_LOCAL_PROVIDER_MODEL",
+            defaults.runtime.local_provider_model,
+        ),
+        (
+            "NIMI_LOCAL_OPENAI_ENDPOINT",
+            defaults.runtime.local_open_ai_endpoint,
+        ),
+        ("NIMI_CONNECTOR_ID", defaults.runtime.connector_id),
+        ("NIMI_TARGET_TYPE", defaults.runtime.target_type),
+        ("NIMI_TARGET_ACCOUNT_ID", defaults.runtime.target_account_id),
+        ("NIMI_AGENT_ID", defaults.runtime.agent_id),
+        ("NIMI_WORLD_ID", defaults.runtime.world_id),
+        ("NIMI_PROVIDER", defaults.runtime.provider),
+        (
+            "NIMI_USER_CONFIRMED_UPLOAD",
+            if defaults.runtime.user_confirmed_upload {
+                "1".to_string()
+            } else {
+                String::new()
+            },
+        ),
+    ];
+    for key in [
+        "NIMI_RUNTIME_CONFIG_PATH",
+        "NIMI_RUNTIME_GRPC_ADDR",
+        "NIMI_RUNTIME_HTTP_ADDR",
+        "NIMI_RUNTIME_LOCAL_STATE_PATH",
+        "NIMI_RUNTIME_BRIDGE_DEBUG",
+        "NIMI_E2E_AUTH_SESSION_STORAGE",
+        "NIMI_E2E_AUTH_SESSION_MASTER_KEY",
+        "NIMI_E2E_PROFILE",
+        "NIMI_E2E_FIXTURE_PATH",
+    ] {
+        if let Ok(value) = std::env::var(key) {
+            if !value.trim().is_empty() {
+                pairs.push((key, value));
+            }
+        }
+    }
+    Ok(pairs)
+}
+
+fn apply_avatar_runtime_env(command: &mut Command) -> Result<(), String> {
+    for (key, value) in avatar_runtime_env_pairs()? {
+        command.env(key, value);
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn open_avatar_handoff_app(uri: &str) -> Result<(), String> {
+    let app_path = std::env::var("NIMI_AVATAR_APP_PATH")
+        .map(|value| value.trim().to_string())
+        .unwrap_or_default();
+    if app_path.is_empty() {
+        return Err("NIMI_AVATAR_APP_PATH is not configured".to_string());
+    }
+    let path = std::path::PathBuf::from(&app_path);
+    if !path.is_absolute() {
+        return Err("NIMI_AVATAR_APP_PATH must be absolute".to_string());
+    }
+    if !path.is_dir() {
+        return Err(format!(
+            "NIMI_AVATAR_APP_PATH does not point to an app bundle: {}",
+            path.display()
+        ));
+    }
+    let executable_path = path
+        .join("Contents")
+        .join("MacOS")
+        .join("nimiplatform-avatar");
+    if !executable_path.is_file() {
+        return Err(format!(
+            "NIMI_AVATAR_APP_PATH is missing Avatar executable: {}",
+            executable_path.display()
+        ));
+    }
+    let mut command = Command::new(executable_path);
+    apply_avatar_runtime_env(&mut command)?;
+    command
+        .arg(uri)
+        .spawn()
+        .map_err(|error| format!("spawn avatar app executable failed: {error}"))?;
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn open_avatar_handoff_app(_uri: &str) -> Result<(), String> {
+    Err("NIMI_AVATAR_APP_PATH launch is supported only on macOS".to_string())
+}
+
+fn open_avatar_handoff_uri_or_binary(uri: &str) -> Result<(), String> {
+    if std::env::var("NIMI_AVATAR_APP_PATH")
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false)
+    {
+        return open_avatar_handoff_app(uri).or_else(|app_error| {
+            open_avatar_handoff_binary(uri).map_err(|binary_error| {
+                format!("app fallback failed: {app_error}; binary fallback failed: {binary_error}")
+            })
+        });
+    }
+
+    match open_avatar_handoff_uri(uri) {
+        Ok(()) => Ok(()),
+        Err(primary_error) => match open_avatar_handoff_app(uri) {
+            Ok(()) => Ok(()),
+            Err(app_error) => open_avatar_handoff_binary(uri).map_err(|binary_error| {
+                format!(
+                    "{primary_error}; app fallback failed: {app_error}; binary fallback failed: {binary_error}"
+                )
+            }),
+        },
     }
 }
 
@@ -308,7 +482,7 @@ pub(crate) fn desktop_avatar_launch_handoff(
     payload: DesktopAvatarLaunchHandoffPayload,
 ) -> Result<DesktopAvatarLaunchHandoffResult, String> {
     let handoff_uri = build_avatar_handoff_uri(&payload)?;
-    open_avatar_handoff_uri(handoff_uri.as_str()).map_err(|error| {
+    open_avatar_handoff_uri_or_binary(handoff_uri.as_str()).map_err(|error| {
         structured_avatar_handoff_error(
             "DESKTOP_AVATAR_HANDOFF_OPEN_FAILED",
             &format!("failed to open avatar handoff uri: {error}"),
@@ -325,7 +499,7 @@ pub(crate) fn desktop_avatar_close_handoff(
     payload: DesktopAvatarCloseHandoffPayload,
 ) -> Result<DesktopAvatarCloseHandoffResult, String> {
     let handoff_uri = build_avatar_close_handoff_uri(&payload)?;
-    open_avatar_handoff_uri(handoff_uri.as_str()).map_err(|error| {
+    open_avatar_handoff_uri_or_binary(handoff_uri.as_str()).map_err(|error| {
         structured_avatar_handoff_error(
             "DESKTOP_AVATAR_CLOSE_OPEN_FAILED",
             &format!("failed to open avatar close handoff uri: {error}"),
@@ -340,8 +514,10 @@ pub(crate) fn desktop_avatar_close_handoff(
 #[cfg(test)]
 mod tests {
     use super::{
-        build_avatar_close_handoff_uri, build_avatar_handoff_uri, confirm_dialog,
-        ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload, DesktopAvatarLaunchHandoffPayload,
+        avatar_runtime_env_pairs, build_avatar_close_handoff_uri, build_avatar_handoff_uri,
+        confirm_dialog, ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload,
+        DESKTOP_RUNTIME_APP_ID,
+        DesktopAvatarLaunchHandoffPayload,
     };
     use crate::test_support::test_guard;
     use std::{fs, path::PathBuf};
@@ -413,7 +589,8 @@ mod tests {
             avatar_instance_id: "instance-1".to_string(),
             conversation_anchor_id: Some("anchor-1".to_string()),
             anchor_mode: "existing".to_string(),
-            launched_by: Some("desktop".to_string()),
+            launched_by: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
+            runtime_app_id: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
             source_surface: Some("desktop-agent-chat".to_string()),
         })
         .expect("valid handoff uri");
@@ -422,8 +599,107 @@ mod tests {
         assert!(uri.contains("agent_id=agent-1"));
         assert!(uri.contains("avatar_instance_id=instance-1"));
         assert!(uri.contains("conversation_anchor_id=anchor-1"));
+        assert!(uri.contains("runtime_app_id=nimi.desktop"));
         assert!(!uri.contains("subject_user_id"));
         assert!(!uri.contains("access_token"));
+    }
+
+    #[test]
+    fn avatar_runtime_env_pairs_forward_realm_and_runtime_defaults_without_token() {
+        let _guard = test_guard();
+        let keys = [
+            "NIMI_E2E_FIXTURE_PATH",
+            "NIMI_REALM_URL",
+            "NIMI_REALM_JWKS_URL",
+            "NIMI_REALM_REVOCATION_URL",
+            "NIMI_REALM_JWT_ISSUER",
+            "NIMI_REALM_JWT_AUDIENCE",
+            "NIMI_WORLD_ID",
+            "NIMI_AGENT_ID",
+            "NIMI_ACCESS_TOKEN",
+            "NIMI_E2E_AUTH_SESSION_STORAGE",
+            "NIMI_E2E_AUTH_SESSION_MASTER_KEY",
+            "NIMI_E2E_PROFILE",
+            "NIMI_RUNTIME_CONFIG_PATH",
+            "NIMI_RUNTIME_GRPC_ADDR",
+            "NIMI_RUNTIME_HTTP_ADDR",
+            "NIMI_RUNTIME_LOCAL_STATE_PATH",
+            "NIMI_RUNTIME_BRIDGE_DEBUG",
+        ];
+        let saved: Vec<(&str, Option<String>)> = keys
+            .iter()
+            .map(|key| (*key, std::env::var(key).ok()))
+            .collect();
+        let fixture_dir = make_temp_dir("avatar-runtime-env");
+        let fixture_path = fixture_dir.join("fixture.json");
+        fs::write(&fixture_path, "{}").expect("write fixture");
+        std::env::remove_var("NIMI_E2E_FIXTURE_PATH");
+        std::env::set_var("NIMI_REALM_URL", "http://127.0.0.1:50803");
+        std::env::set_var(
+            "NIMI_REALM_JWKS_URL",
+            "http://127.0.0.1:50803/api/auth/jwks",
+        );
+        std::env::set_var(
+            "NIMI_REALM_REVOCATION_URL",
+            "http://127.0.0.1:50803/api/auth/revocation",
+        );
+        std::env::set_var("NIMI_REALM_JWT_ISSUER", "http://127.0.0.1:50803");
+        std::env::set_var("NIMI_REALM_JWT_AUDIENCE", "nimi-runtime");
+        std::env::set_var("NIMI_WORLD_ID", "world-e2e-1");
+        std::env::set_var("NIMI_AGENT_ID", "agent-e2e-alpha");
+        std::env::set_var("NIMI_ACCESS_TOKEN", "must-not-forward");
+        std::env::set_var("NIMI_E2E_AUTH_SESSION_STORAGE", "encrypted-file");
+        std::env::set_var("NIMI_E2E_AUTH_SESSION_MASTER_KEY", "master-key");
+        std::env::set_var("NIMI_E2E_PROFILE", "chat.live2d-avatar-product-smoke");
+        std::env::set_var("NIMI_E2E_FIXTURE_PATH", fixture_path.as_os_str());
+        std::env::set_var(
+            "NIMI_RUNTIME_CONFIG_PATH",
+            fixture_dir.join("runtime-config.json").as_os_str(),
+        );
+        std::env::set_var("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:51801");
+        std::env::set_var("NIMI_RUNTIME_HTTP_ADDR", "127.0.0.1:51802");
+        std::env::set_var(
+            "NIMI_RUNTIME_LOCAL_STATE_PATH",
+            fixture_dir.join("runtime-state.json").as_os_str(),
+        );
+        std::env::set_var("NIMI_RUNTIME_BRIDGE_DEBUG", "1");
+
+        let pairs = avatar_runtime_env_pairs().expect("avatar env pairs");
+
+        for (key, value) in saved {
+            match value {
+                Some(value) => std::env::set_var(key, value),
+                None => std::env::remove_var(key),
+            }
+        }
+
+        assert!(pairs.contains(&("NIMI_REALM_URL", "http://127.0.0.1:50803".to_string())));
+        assert!(pairs.contains(&("NIMI_WORLD_ID", "world-e2e-1".to_string())));
+        assert!(pairs.contains(&("NIMI_AGENT_ID", "agent-e2e-alpha".to_string())));
+        assert!(pairs.contains(&("NIMI_E2E_AUTH_SESSION_STORAGE", "encrypted-file".to_string())));
+        assert!(pairs.contains(&("NIMI_E2E_PROFILE", "chat.live2d-avatar-product-smoke".to_string())));
+        assert!(pairs.contains(&(
+            "NIMI_E2E_FIXTURE_PATH",
+            fixture_path.to_string_lossy().to_string()
+        )));
+        assert!(pairs.contains(&(
+            "NIMI_RUNTIME_CONFIG_PATH",
+            fixture_dir
+                .join("runtime-config.json")
+                .to_string_lossy()
+                .to_string()
+        )));
+        assert!(pairs.contains(&("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:51801".to_string())));
+        assert!(pairs.contains(&("NIMI_RUNTIME_HTTP_ADDR", "127.0.0.1:51802".to_string())));
+        assert!(pairs.contains(&(
+            "NIMI_RUNTIME_LOCAL_STATE_PATH",
+            fixture_dir
+                .join("runtime-state.json")
+                .to_string_lossy()
+                .to_string()
+        )));
+        assert!(!pairs.iter().any(|(key, _)| key.contains("ACCESS_TOKEN")));
+        let _ = fs::remove_dir_all(fixture_dir);
     }
 
     #[test]
@@ -433,7 +709,8 @@ mod tests {
             avatar_instance_id: "instance-1".to_string(),
             conversation_anchor_id: None,
             anchor_mode: "existing".to_string(),
-            launched_by: Some("desktop".to_string()),
+            launched_by: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
+            runtime_app_id: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
             source_surface: Some("desktop-agent-chat".to_string()),
         })
         .expect_err("missing anchor should fail");

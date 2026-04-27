@@ -187,8 +187,7 @@ pub(crate) fn create_thread(
                 return Err(map_sql_error("create chat_ai thread failed", error));
             }
             get_thread_record_by_id(conn, &id)?.ok_or_else(|| {
-                "create chat_ai thread failed: duplicate thread without existing record"
-                    .to_string()
+                "create chat_ai thread failed: duplicate thread without existing record".to_string()
             })
         }
     }

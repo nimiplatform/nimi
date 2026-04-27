@@ -22,6 +22,9 @@ function listRepoFiles(relativePath: string): string[] {
   const files: string[] = [];
   const visit = (directoryPath: string): void => {
     for (const entry of fs.readdirSync(directoryPath, { withFileTypes: true })) {
+      if (entry.name === 'generated') {
+        continue;
+      }
       const entryPath = path.join(directoryPath, entry.name);
       if (entry.isDirectory()) {
         visit(entryPath);

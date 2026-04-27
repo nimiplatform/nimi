@@ -18,6 +18,7 @@ import {
   sanitizeActionId,
   toRecord,
 } from './action-runtime/primitives.js';
+import { compileCspSafeJsonSchema } from './action-runtime/schema-validator.js';
 import type {
   ActionEntry,
   ActionServiceContext,
@@ -106,8 +107,8 @@ export class HookRuntimeActionService {
     let inputValidator: ValidateFunction;
     let outputValidator: ValidateFunction;
     try {
-      inputValidator = this.ctx.ajv.compile(input.descriptor.inputSchema || {});
-      outputValidator = this.ctx.ajv.compile(input.descriptor.outputSchema || {});
+      inputValidator = compileCspSafeJsonSchema(input.descriptor.inputSchema || {});
+      outputValidator = compileCspSafeJsonSchema(input.descriptor.outputSchema || {});
     } catch (error) {
       throw createHookError(
         'HOOK_CONTRACT_INVALID_EXTENSION',

@@ -12,8 +12,19 @@ function writeJsonFile(filePath, value) {
 
 function json(response, statusCode, payload) {
   response.statusCode = statusCode;
+  response.setHeader('access-control-allow-origin', '*');
+  response.setHeader('access-control-allow-headers', 'authorization, content-type');
+  response.setHeader('access-control-allow-methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   response.setHeader('content-type', 'application/json; charset=utf-8');
   response.end(`${JSON.stringify(payload)}\n`);
+}
+
+function options(response) {
+  response.statusCode = 204;
+  response.setHeader('access-control-allow-origin', '*');
+  response.setHeader('access-control-allow-headers', 'authorization, content-type');
+  response.setHeader('access-control-allow-methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  response.end();
 }
 
 function notFound(response, pathname) {
@@ -103,6 +114,11 @@ function handleApi(request, response, manifestPath) {
   const requestUrl = new URL(request.url, 'http://127.0.0.1');
   const pathname = requestUrl.pathname;
 
+  if (request.method === 'OPTIONS') {
+    options(response);
+    return undefined;
+  }
+
   if (pathname.startsWith('/__fixture/control/')) {
     return handleControl(request, response, manifestPath);
   }
@@ -119,6 +135,19 @@ function handleApi(request, response, manifestPath) {
     json(response, 503, {
       message: 'fixture rest offline',
       scenarioId: manifest.scenarioId,
+    });
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/auth/jwks') {
+    json(response, 200, fixture.authJwks || { keys: [] });
+    return undefined;
+  }
+
+  if (request.method === 'POST' && pathname === '/api/auth/revocation') {
+    json(response, 200, {
+      active: true,
+      revoked: false,
     });
     return undefined;
   }

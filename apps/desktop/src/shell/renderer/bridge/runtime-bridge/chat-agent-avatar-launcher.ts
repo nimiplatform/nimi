@@ -8,6 +8,7 @@ export type DesktopAvatarLaunchHandoffInput = {
   conversationAnchorId?: string | null;
   anchorMode: DesktopAvatarLaunchAnchorMode;
   launchedBy?: string;
+  runtimeAppId?: string;
   sourceSurface?: string;
 };
 
@@ -33,6 +34,7 @@ export type DesktopAvatarLaunchHandoffPayload = {
   conversationAnchorId: string | null;
   anchorMode: DesktopAvatarLaunchAnchorMode;
   launchedBy: string;
+  runtimeAppId: string;
   sourceSurface: string;
 };
 
@@ -95,7 +97,8 @@ export function buildDesktopAvatarLaunchHandoffPayload(
     avatarInstanceId: normalizeRequiredString(input.avatarInstanceId, 'avatarInstanceId'),
     conversationAnchorId,
     anchorMode,
-    launchedBy: input.launchedBy || 'desktop',
+    launchedBy: input.launchedBy || 'nimi.desktop',
+    runtimeAppId: input.runtimeAppId || 'nimi.desktop',
     sourceSurface: input.sourceSurface || 'desktop-agent-chat',
   };
 }

@@ -1,4 +1,6 @@
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
+import type { DesktopAvatarLiveInstanceRecord } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
+import type { DesktopMacosSmokeAvatarEvidenceReadResult } from '@renderer/bridge/runtime-bridge/types';
 
 export const SMOKE_STEP_TIMEOUT_MS = 15000;
 export const SMOKE_BOOTSTRAP_TIMEOUT_MS = 60000;
@@ -42,6 +44,14 @@ export type DesktopMacosSmokeDriverDeps = {
   waitForSelector: (selector: string, timeoutMs?: number) => Promise<void>;
   waitForSelectorGone: (selector: string, timeoutMs?: number) => Promise<void>;
   clickByTestId: (id: string, timeoutMs?: number) => Promise<void>;
+  clickSelector: (selector: string, timeoutMs?: number) => Promise<void>;
+  setValueBySelector: (selector: string, value: string, timeoutMs?: number) => Promise<void>;
+  readLocalStorageItem: (key: string) => Promise<string | null>;
+  verifySharedAuthSession: () => Promise<void>;
+  clearAgentConversationAnchorBindings: () => Promise<void>;
+  configureRuntimeTextRoute: () => Promise<void>;
+  verifyRuntimeConversationAnchor: (input: { agentId: string; conversationAnchorId: string }) => Promise<void>;
+  readRuntimeProductPathEvidence: (input: { agentId: string; conversationAnchorId: string }) => Promise<Record<string, unknown>>;
   setChatAvatarInteractionOverride: (override: Record<string, unknown> | null) => Promise<void>;
   resizeLive2dViewport: (size: { width: number; height: number }) => Promise<void>;
   pulseLive2dViewportTinyHost: () => Promise<void>;
@@ -54,6 +64,8 @@ export type DesktopMacosSmokeDriverDeps = {
   readAttributeByTestId: (id: string, name: string) => Promise<string | null>;
   readLive2dCanvasStats: (selector: string) => Promise<Live2dCanvasStats>;
   readVrmCanvasStats: (selector: string) => Promise<VrmCanvasStats>;
+  listAvatarLiveInstances: (agentId: string) => Promise<DesktopAvatarLiveInstanceRecord[]>;
+  readAvatarEvidence: (avatarInstanceId: string) => Promise<DesktopMacosSmokeAvatarEvidenceReadResult>;
   writeReport: (payload: DesktopMacosSmokeReportPayload) => Promise<void>;
   currentRoute: () => string;
   currentHtml: () => string;

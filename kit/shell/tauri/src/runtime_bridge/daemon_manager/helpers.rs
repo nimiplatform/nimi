@@ -80,11 +80,16 @@ pub(super) async fn probe_running_async(addr: &str) -> bool {
 }
 
 pub(super) async fn wait_until_running_async(addr: &str) -> bool {
-    for _ in 0..20 {
+    let timeout_ms = read_non_empty_env("NIMI_RUNTIME_BRIDGE_START_TIMEOUT_MS")
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(90_000)
+        .clamp(2_000, 180_000);
+    let deadline = std::time::Instant::now() + Duration::from_millis(timeout_ms);
+    while std::time::Instant::now() < deadline {
         if probe_running_async(addr).await {
             return true;
         }
-        sleep(Duration::from_millis(100)).await;
+        sleep(Duration::from_millis(250)).await;
     }
     false
 }

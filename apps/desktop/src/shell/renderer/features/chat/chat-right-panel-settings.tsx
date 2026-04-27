@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { ScrollArea, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { DesktopIconToggleAction } from '@renderer/components/action';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatRightColumnCard } from './chat-shared-right-column-primitives';
 
 // ---------------------------------------------------------------------------
@@ -102,6 +103,7 @@ export function ChatRightPanelSettings(props: ChatRightPanelSettingsProps) {
             <circle cx="12" cy="12" r="3" />
           </svg>
           )}
+          data-testid={E2E_IDS.chatSettingsToggle}
           data-chat-settings-toggle="true"
           active={props.expanded}
           aria-label={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}

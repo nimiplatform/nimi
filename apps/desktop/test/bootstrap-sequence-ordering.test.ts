@@ -163,12 +163,16 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
 
   test('D-BOOT-013: runtime unavailable stays non-fatal and still completes bootstrap', () => {
     assert.ok(
-      bootstrapSource.includes('const runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);'),
+      bootstrapSource.includes('let runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);'),
       'bootstrap must classify runtimeUnavailable from runtime bridge status',
     );
     assert.ok(
-      bootstrapSource.includes('if (desktopBridge.hasTauriInvoke() && !runtimeUnavailable)'),
-      'bootstrap must skip runtime config sync when runtime is unavailable',
+      bootstrapSource.includes('if (desktopBridge.hasTauriInvoke() && runtimeUnavailable)'),
+      'bootstrap must attempt to start the runtime bridge when runtime is unavailable',
+    );
+    assert.ok(
+      bootstrapSource.includes('daemonStatus = await desktopBridge.startRuntimeBridge();'),
+      'bootstrap must use the bridge start command before falling back to strip-only readiness',
     );
     assert.ok(
       bootstrapSource.includes("message: 'phase:runtime-unavailable:strip-only'"),

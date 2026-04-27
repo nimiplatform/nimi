@@ -143,6 +143,7 @@ struct DesktopMacosSmokeContextResult {
     report_path: Option<String>,
     artifacts_dir: Option<String>,
     disable_runtime_bootstrap: bool,
+    bootstrap_timeout_ms: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -165,6 +166,19 @@ struct DesktopMacosSmokeReportPayload {
 struct DesktopMacosSmokePingPayload {
     stage: String,
     details: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopMacosSmokeAvatarEvidenceReadPayload {
+    avatar_instance_id: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopMacosSmokeAvatarEvidenceReadResult {
+    evidence_path: String,
+    evidence: serde_json::Value,
 }
 
 #[derive(Debug, Serialize)]
@@ -194,6 +208,7 @@ pub(crate) struct DesktopAvatarLaunchHandoffPayload {
     conversation_anchor_id: Option<String>,
     anchor_mode: String,
     launched_by: Option<String>,
+    runtime_app_id: Option<String>,
     source_surface: Option<String>,
 }
 

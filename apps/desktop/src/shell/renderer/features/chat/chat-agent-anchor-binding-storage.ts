@@ -9,6 +9,8 @@ export type AgentConversationAnchorBinding = {
 
 const anchorBindingsByThreadId = new Map<string, AgentConversationAnchorBinding>();
 let storageSnapshot = '';
+let anchorBindingVersion = 0;
+const anchorBindingListeners = new Set<() => void>();
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -49,6 +51,22 @@ function readBrowserStorage(): Storage | null {
   } catch {
     return null;
   }
+}
+
+function notifyAnchorBindingListeners(): void {
+  anchorBindingVersion += 1;
+  for (const listener of anchorBindingListeners) {
+    listener();
+  }
+}
+
+function handleExternalAnchorBindingStorageChange(event: StorageEvent): void {
+  if (event.key !== AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY) {
+    return;
+  }
+  storageSnapshot = '';
+  hydrateBindingsFromStorage();
+  notifyAnchorBindingListeners();
 }
 
 function serializeBindings(): string {
@@ -130,6 +148,7 @@ export function persistAgentConversationAnchorBinding(
   }
   anchorBindingsByThreadId.set(normalizedBinding.threadId, normalizedBinding);
   persistBindingsToStorage();
+  notifyAnchorBindingListeners();
   return normalizedBinding;
 }
 
@@ -143,4 +162,34 @@ export function clearAgentConversationAnchorBinding(
   hydrateBindingsFromStorage();
   anchorBindingsByThreadId.delete(normalizedThreadId);
   persistBindingsToStorage();
+  notifyAnchorBindingListeners();
+}
+
+export function clearAllAgentConversationAnchorBindings(): void {
+  hydrateBindingsFromStorage();
+  if (anchorBindingsByThreadId.size === 0) {
+    return;
+  }
+  anchorBindingsByThreadId.clear();
+  persistBindingsToStorage();
+  notifyAnchorBindingListeners();
+}
+
+export function getAgentConversationAnchorBindingVersion(): number {
+  hydrateBindingsFromStorage();
+  return anchorBindingVersion;
+}
+
+export function subscribeAgentConversationAnchorBindings(listener: () => void): () => void {
+  anchorBindingListeners.add(listener);
+  const windowLike = typeof window !== 'undefined' ? window : null;
+  if (windowLike && anchorBindingListeners.size === 1) {
+    windowLike.addEventListener('storage', handleExternalAnchorBindingStorageChange);
+  }
+  return () => {
+    anchorBindingListeners.delete(listener);
+    if (windowLike && anchorBindingListeners.size === 0) {
+      windowLike.removeEventListener('storage', handleExternalAnchorBindingStorageChange);
+    }
+  };
 }

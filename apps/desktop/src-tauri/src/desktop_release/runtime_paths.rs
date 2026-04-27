@@ -12,6 +12,7 @@ const CURRENT_RUNTIME_STATE_FILE: &str = "current.json";
 pub(super) struct CurrentRuntimeState {
     pub(super) version: String,
     pub(super) binary_path: String,
+    pub(super) runtime_sha256: String,
     pub(super) switched_at: String,
 }
 

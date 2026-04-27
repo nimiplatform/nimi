@@ -7,6 +7,7 @@ import {
   listConnectorAuthOptionsForProvider,
   sdkConnectorToApiConnector,
   sdkCreateConnector,
+  sdkListConnectors,
   providerToVendor,
   vendorToProvider,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
@@ -342,6 +343,62 @@ test('sdkCreateConnector runtime calls include auto authorization and pick refre
     const secondCall = unaryCalls[unaryCalls.length - 1];
     assert.equal(firstCall?.payload.authorization, 'Bearer connector-token-1');
     assert.equal(secondCall?.payload.authorization, 'Bearer connector-token-2');
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('sdkListConnectors retries read-only connector discovery without stale bearer authorization', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await createPlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => 'stale-realm-token',
+    });
+
+    const targetMethods = new Set([
+      '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog',
+      '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors',
+    ]);
+    const failedOnce = new Set<string>();
+    const target = globalThis as MutableGlobalTauri;
+    const invoke = target.__NIMI_TAURI_TEST__?.invoke;
+    assert.ok(invoke, 'expected test tauri invoke');
+    target.__NIMI_TAURI_TEST__ = {
+      ...target.__NIMI_TAURI_TEST__,
+      invoke: async (command: string, payload?: unknown) => {
+        const unwrapped = unwrapPayload(payload);
+        calls.push({ command, payload: unwrapped });
+        const methodId = String(unwrapped.methodId || '');
+        if (
+          command === 'runtime_bridge_unary'
+          && targetMethods.has(methodId)
+          && unwrapped.authorization
+          && !failedOnce.has(methodId)
+        ) {
+          failedOnce.add(methodId);
+          throw {
+            reasonCode: 'AUTH_TOKEN_INVALID',
+            message: 'stale bearer rejected by Runtime authn',
+          };
+        }
+        return { responseBytesBase64: '' };
+      },
+    };
+    if (target.window?.__NIMI_TAURI_TEST__) {
+      target.window.__NIMI_TAURI_TEST__.invoke = target.__NIMI_TAURI_TEST__.invoke;
+    }
+
+    await sdkListConnectors();
+
+    const listConnectorCalls = calls.filter((call) => (
+      call.command === 'runtime_bridge_unary'
+      && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
+    ));
+    assert.equal(listConnectorCalls.length, 2);
+    assert.equal(listConnectorCalls[0]?.payload.authorization, 'Bearer stale-realm-token');
+    assert.equal(listConnectorCalls[1]?.payload.authorization, undefined);
   } finally {
     restoreTauri();
   }

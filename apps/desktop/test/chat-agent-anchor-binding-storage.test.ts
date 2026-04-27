@@ -6,6 +6,7 @@ import {
   clearAgentConversationAnchorBinding,
   getAgentConversationAnchorBinding,
   persistAgentConversationAnchorBinding,
+  subscribeAgentConversationAnchorBindings,
 } from '../src/shell/renderer/features/chat/chat-agent-anchor-binding-storage';
 
 class MemoryStorage implements Storage {
@@ -113,4 +114,26 @@ test('agent conversation anchor binding drops malformed persisted entries and cl
 
   assert.equal(getAgentConversationAnchorBinding('thread-valid'), null);
   assert.equal(storage.getItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY), null);
+});
+
+test('agent conversation anchor binding notifies same-window subscribers', () => {
+  installMemoryStorage();
+  let notifications = 0;
+  const unsubscribe = subscribeAgentConversationAnchorBindings(() => {
+    notifications += 1;
+  });
+
+  try {
+    persistAgentConversationAnchorBinding({
+      threadId: 'thread-live',
+      agentId: 'agent-alpha',
+      conversationAnchorId: 'anchor-live',
+      updatedAtMs: 5,
+    });
+    clearAgentConversationAnchorBinding('thread-live');
+  } finally {
+    unsubscribe();
+  }
+
+  assert.equal(notifications, 2);
 });

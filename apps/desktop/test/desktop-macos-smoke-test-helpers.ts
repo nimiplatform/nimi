@@ -48,6 +48,23 @@ export function createBaseDriver(
     async waitForSelector() {},
     async waitForSelectorGone() {},
     async clickByTestId() {},
+    async clickSelector() {},
+    async setValueBySelector() {},
+    async readLocalStorageItem() {
+      return null;
+    },
+    async verifySharedAuthSession() {},
+    async clearAgentConversationAnchorBindings() {},
+    async configureRuntimeTextRoute() {},
+    async verifyRuntimeConversationAnchor() {},
+    async readRuntimeProductPathEvidence() {
+      return {
+        runtime_health: { status: 'healthy' },
+        runtime_authenticated: true,
+        same_anchor: true,
+        has_runtime_turn: true,
+      };
+    },
     async setChatAvatarInteractionOverride() {},
     async resizeLive2dViewport() {},
     async pulseLive2dViewportTinyHost() {},
@@ -67,6 +84,15 @@ export function createBaseDriver(
     },
     async readVrmCanvasStats() {
       return createEmptyVrmCanvasStats();
+    },
+    async listAvatarLiveInstances() {
+      return [];
+    },
+    async readAvatarEvidence() {
+      return {
+        evidencePath: '',
+        evidence: {},
+      };
     },
     async writeReport() {},
     currentRoute() {

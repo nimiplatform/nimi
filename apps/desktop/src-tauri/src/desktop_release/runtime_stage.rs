@@ -12,6 +12,8 @@ use super::runtime_paths::{
 };
 use super::{bridge_error, now_iso_string, now_ms, DesktopReleaseManifest};
 
+const RUNTIME_RELEASE_STAMP_FILE: &str = ".runtime-release.json";
+
 pub(super) fn sha256_hex(path: &Path) -> Result<String, String> {
     let file = fs::File::open(path).map_err(|error| {
         bridge_error(
@@ -254,6 +256,45 @@ fn validate_runtime_binary_version(
     Ok(reported_version)
 }
 
+fn runtime_release_stamp_path(version_dir: &Path) -> PathBuf {
+    version_dir.join(RUNTIME_RELEASE_STAMP_FILE)
+}
+
+fn read_runtime_release_sha(version_dir: &Path) -> Option<String> {
+    let raw = fs::read_to_string(runtime_release_stamp_path(version_dir)).ok()?;
+    let parsed = serde_json::from_str::<Value>(&raw).ok()?;
+    parsed
+        .get("runtimeSha256")
+        .and_then(Value::as_str)
+        .map(|value| value.trim().to_ascii_lowercase())
+        .filter(|value| !value.is_empty())
+}
+
+fn write_runtime_release_stamp(
+    version_dir: &Path,
+    manifest: &DesktopReleaseManifest,
+) -> Result<(), String> {
+    let stamp_path = runtime_release_stamp_path(version_dir);
+    let payload = serde_json::json!({
+        "version": manifest.runtime_version.as_str(),
+        "runtimeSha256": manifest.runtime_sha256.trim().to_ascii_lowercase(),
+        "runtimeBinaryPath": manifest.runtime_binary_path.as_str(),
+        "stagedAt": now_iso_string(),
+    });
+    let serialized = serde_json::to_string_pretty(&payload).map_err(|error| {
+        bridge_error(
+            "DESKTOP_RUNTIME_RELEASE_STAMP_SERIALIZE_FAILED",
+            error.to_string().as_str(),
+        )
+    })?;
+    fs::write(&stamp_path, serialized).map_err(|error| {
+        bridge_error(
+            "DESKTOP_RUNTIME_RELEASE_STAMP_WRITE_FAILED",
+            format!("failed to write {}: {error}", stamp_path.display()).as_str(),
+        )
+    })
+}
+
 pub(super) fn stage_runtime_archive(
     manifest: &DesktopReleaseManifest,
     archive_path: &Path,
@@ -279,15 +320,30 @@ pub(super) fn stage_runtime_archive(
     let version_dir = runtime_version_dir(manifest.runtime_version.as_str())?;
     let target_binary = version_dir.join(manifest.runtime_binary_path.as_str());
     if target_binary.exists() {
-        set_executable(&target_binary)?;
-        let reported_version = validate_runtime_binary_version(manifest, &target_binary)?;
-        write_current_runtime_state(&CurrentRuntimeState {
-            version: manifest.runtime_version.clone(),
-            binary_path: target_binary.display().to_string(),
-            switched_at: now_iso_string(),
+        let expected_sha = manifest.runtime_sha256.trim().to_ascii_lowercase();
+        if read_runtime_release_sha(&version_dir).as_deref() == Some(expected_sha.as_str()) {
+            set_executable(&target_binary)?;
+            let reported_version = validate_runtime_binary_version(manifest, &target_binary)?;
+            write_runtime_release_stamp(&version_dir, manifest)?;
+            write_current_runtime_state(&CurrentRuntimeState {
+                version: manifest.runtime_version.clone(),
+                binary_path: target_binary.display().to_string(),
+                runtime_sha256: expected_sha,
+                switched_at: now_iso_string(),
+            })?;
+            let _ = cleanup_old_versions(manifest.runtime_version.as_str());
+            return Ok((target_binary, reported_version));
+        }
+        fs::remove_dir_all(&version_dir).map_err(|error| {
+            bridge_error(
+                "DESKTOP_RUNTIME_VERSION_RESTAGE_FAILED",
+                format!(
+                    "failed to remove stale runtime version dir {}: {error}",
+                    version_dir.display()
+                )
+                .as_str(),
+            )
         })?;
-        let _ = cleanup_old_versions(manifest.runtime_version.as_str());
-        return Ok((target_binary, reported_version));
     }
 
     let staging_dir =
@@ -318,7 +374,16 @@ pub(super) fn stage_runtime_archive(
         }
     };
     if version_dir.exists() {
-        let _ = fs::remove_dir_all(&version_dir);
+        fs::remove_dir_all(&version_dir).map_err(|error| {
+            bridge_error(
+                "DESKTOP_RUNTIME_VERSION_RESTAGE_FAILED",
+                format!(
+                    "failed to remove stale runtime version dir {}: {error}",
+                    version_dir.display()
+                )
+                .as_str(),
+            )
+        })?;
     }
     if let Some(parent) = version_dir.parent() {
         fs::create_dir_all(parent).map_err(|error| {
@@ -339,11 +404,13 @@ pub(super) fn stage_runtime_archive(
             .as_str(),
         )
     })?;
+    write_runtime_release_stamp(&version_dir, manifest)?;
     let promoted_binary = version_dir.join(manifest.runtime_binary_path.as_str());
     set_executable(&promoted_binary)?;
     write_current_runtime_state(&CurrentRuntimeState {
         version: manifest.runtime_version.clone(),
         binary_path: promoted_binary.display().to_string(),
+        runtime_sha256: manifest.runtime_sha256.trim().to_ascii_lowercase(),
         switched_at: now_iso_string(),
     })?;
     let _ = cleanup_old_versions(manifest.runtime_version.as_str());

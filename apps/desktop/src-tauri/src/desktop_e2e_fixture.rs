@@ -56,6 +56,7 @@ pub struct DesktopE2EMacosSmokeOverride {
     pub report_path: Option<String>,
     pub artifacts_dir: Option<String>,
     pub disable_runtime_bootstrap: Option<bool>,
+    pub bootstrap_timeout_ms: Option<u64>,
 }
 
 fn confirm_dialog_override_index_store() -> &'static Mutex<usize> {

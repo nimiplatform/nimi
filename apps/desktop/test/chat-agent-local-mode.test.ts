@@ -708,7 +708,7 @@ test('agent runtime turn stream binds to the current request_id and ignores back
   }
 });
 
-test('agent runtime turn consumes runtime-owned projection events without opting out of SDK agent events', async () => {
+test('agent runtime turn consumes runtime-owned projection events from anchor app messages', async () => {
   clearPlatformClient();
   const client = await createPlatformClient({
     appId: 'nimi.desktop.test.anchor-agent-projection',
@@ -941,7 +941,7 @@ test('agent runtime turn consumes runtime-owned projection events without opting
     }
 
     assert.equal(subscribeCalls.length, 1);
-    assert.equal(subscribeCalls[0]?.includeAgentEvents, undefined);
+    assert.equal(subscribeCalls[0]?.includeAgentEvents, false);
     assert.deepEqual(
       parts.map((part) => part.type),
       ['message-sealed', 'turn-completed'],

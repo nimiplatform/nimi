@@ -234,7 +234,11 @@ fn collect_disk_usage_bytes() -> Option<(u64, u64)> {
     let target = disks
         .list()
         .iter()
-        .find(|disk| disk.mount_point().to_string_lossy().eq_ignore_ascii_case("C:\\"))
+        .find(|disk| {
+            disk.mount_point()
+                .to_string_lossy()
+                .eq_ignore_ascii_case("C:\\")
+        })
         .or_else(|| disks.list().first())?;
     let total_bytes = target.total_space();
     let free_bytes = target.available_space();

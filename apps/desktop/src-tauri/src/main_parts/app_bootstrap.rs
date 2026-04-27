@@ -309,6 +309,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::runtime_memory_embedding::memory_embedding_runtime_request_bind,
             super::defaults_and_commands::runtime_memory_embedding::memory_embedding_runtime_request_cutover,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_context_get,
+            super::defaults_and_commands::macos_smoke::desktop_macos_smoke_avatar_evidence_read,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_report_write,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_ping,
             super::defaults_and_commands::window_and_logs::confirm_dialog,

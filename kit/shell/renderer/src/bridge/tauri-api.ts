@@ -1,4 +1,4 @@
-import { invoke as tauriCoreInvoke, type InvokeArgs } from '@tauri-apps/api/core';
+import { invoke as tauriCoreInvoke, isTauri, type InvokeArgs } from '@tauri-apps/api/core';
 
 type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
 type TauriTestHook = {
@@ -29,6 +29,7 @@ export function hasTauriRuntime(): boolean {
   const value = tauriGlobal();
   return Boolean(
     testInvoke()
+      || isTauri()
       || value.__TAURI_INTERNALS__
       || value.__TAURI_IPC__
       || value.window?.__TAURI_INTERNALS__

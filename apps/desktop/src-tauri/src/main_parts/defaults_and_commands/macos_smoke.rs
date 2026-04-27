@@ -30,6 +30,23 @@ fn require_enabled_macos_smoke_override(
     Ok(override_payload)
 }
 
+fn sanitize_avatar_evidence_component(input: &str) -> String {
+    let mut out = String::new();
+    for ch in input.trim().chars() {
+        if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_') {
+            out.push(ch);
+        } else {
+            out.push('_');
+        }
+    }
+    let trimmed = out.trim_matches('_').to_string();
+    if trimmed.is_empty() {
+        "avatar-instance".to_string()
+    } else {
+        trimmed
+    }
+}
+
 pub(crate) fn append_macos_smoke_backend_stage(
     stage: &str,
     details: Option<&serde_json::Value>,
@@ -56,6 +73,39 @@ pub(crate) fn append_macos_smoke_backend_stage(
 }
 
 #[tauri::command]
+pub(crate) fn desktop_macos_smoke_avatar_evidence_read(
+    payload: DesktopMacosSmokeAvatarEvidenceReadPayload,
+) -> Result<DesktopMacosSmokeAvatarEvidenceReadResult, String> {
+    let _override_payload = require_enabled_macos_smoke_override()?;
+    let avatar_instance_id = payload.avatar_instance_id.trim();
+    if avatar_instance_id.is_empty() {
+        return Err("avatarInstanceId is required".to_string());
+    }
+    let evidence_path = crate::desktop_paths::resolve_nimi_data_dir()?
+        .join("avatar-carrier-evidence")
+        .join(format!(
+            "{}.json",
+            sanitize_avatar_evidence_component(avatar_instance_id)
+        ));
+    let raw = fs::read_to_string(&evidence_path).map_err(|error| {
+        format!(
+            "read avatar carrier evidence failed ({}): {error}",
+            evidence_path.display()
+        )
+    })?;
+    let evidence = serde_json::from_str::<serde_json::Value>(&raw).map_err(|error| {
+        format!(
+            "parse avatar carrier evidence failed ({}): {error}",
+            evidence_path.display()
+        )
+    })?;
+    Ok(DesktopMacosSmokeAvatarEvidenceReadResult {
+        evidence_path: evidence_path.display().to_string(),
+        evidence,
+    })
+}
+
+#[tauri::command]
 pub(crate) fn desktop_macos_smoke_context_get() -> Result<DesktopMacosSmokeContextResult, String> {
     let Some(override_payload) = crate::desktop_e2e_fixture::macos_smoke_override()? else {
         return Ok(DesktopMacosSmokeContextResult {
@@ -64,6 +114,7 @@ pub(crate) fn desktop_macos_smoke_context_get() -> Result<DesktopMacosSmokeConte
             report_path: None,
             artifacts_dir: None,
             disable_runtime_bootstrap: false,
+            bootstrap_timeout_ms: None,
         });
     };
 
@@ -73,6 +124,7 @@ pub(crate) fn desktop_macos_smoke_context_get() -> Result<DesktopMacosSmokeConte
         report_path: normalize_optional(override_payload.report_path),
         artifacts_dir: normalize_optional(override_payload.artifacts_dir),
         disable_runtime_bootstrap: override_payload.disable_runtime_bootstrap.unwrap_or(false),
+        bootstrap_timeout_ms: override_payload.bootstrap_timeout_ms,
     })
 }
 
@@ -210,7 +262,8 @@ mod tests {
       "scenarioId": "chat.memory-standard-bind",
       "reportPath": "{}",
       "artifactsDir": "{}",
-      "disableRuntimeBootstrap": true
+      "disableRuntimeBootstrap": true,
+      "bootstrapTimeoutMs": 90000
     }}
   }}
 }}"#,
@@ -236,6 +289,7 @@ mod tests {
         assert!(result.report_path.is_some());
         assert!(result.artifacts_dir.is_some());
         assert!(result.disable_runtime_bootstrap);
+        assert_eq!(result.bootstrap_timeout_ms, Some(90000));
         let _ = fs::remove_dir_all(temp);
     }
 

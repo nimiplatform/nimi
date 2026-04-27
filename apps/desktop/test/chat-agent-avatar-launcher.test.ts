@@ -101,7 +101,10 @@ test('desktop avatar launcher payload round-trips into avatar launch context wit
     conversationAnchorId: 'anchor-1',
     anchorMode: 'existing',
     launchedBy: 'desktop',
+    runtimeAppId: 'nimi.desktop',
     sourceSurface: 'desktop-agent-chat',
+    realmBaseUrl: null,
+    worldId: null,
   });
 });
 
@@ -121,7 +124,10 @@ test('desktop avatar launcher round-trips open-new handoff without existing anch
     conversationAnchorId: null,
     anchorMode: 'open_new',
     launchedBy: 'desktop',
+    runtimeAppId: 'nimi.desktop',
     sourceSurface: 'desktop-agent-chat',
+    realmBaseUrl: null,
+    worldId: null,
   });
 });
 

@@ -3,11 +3,21 @@ import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import {
   getDesktopMacosSmokeContext,
   pingDesktopMacosSmoke,
+  readDesktopMacosSmokeAvatarEvidence,
   writeDesktopMacosSmokeReport,
 } from '@renderer/bridge/runtime-bridge/macos-smoke';
+import { listDesktopAvatarLiveInstances } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT } from '@renderer/features/chat/chat-agent-avatar-debug-override';
+import { clearAllAgentConversationAnchorBindings } from '@renderer/features/chat/chat-agent-anchor-binding-storage';
+import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
+import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
+import { desktopBridge } from '@renderer/bridge';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import { createRuntimeProtectedScopeHelper } from '@nimiplatform/sdk/runtime';
 import {
   type DesktopMacosSmokeCanvasStats,
   type DesktopMacosSmokeDriverDeps,
@@ -74,6 +84,22 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
     canvas.dispatchEvent(new Event('webglcontextrestored'));
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     runtimeWindow.__NIMI_DESKTOP_SMOKE_DEBUG_ACTION__ = null;
+  };
+
+  const withSmokeTimeout = async <T,>(label: string, task: Promise<T>, timeoutMs = 5_000): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    try {
+      return await Promise.race([
+        task,
+        new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
   };
 
   const readCanvasStats = async (
@@ -212,6 +238,159 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
       }
       element.click();
     },
+    async clickSelector(selector: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
+      await this.waitForSelector(selector, timeoutMs);
+      const element = document.querySelector(selector) as HTMLElement | null;
+      if (!element) {
+        throw new Error(`missing selector ${selector}`);
+      }
+      element.click();
+    },
+    async setValueBySelector(selector: string, value: string, timeoutMs = SMOKE_STEP_TIMEOUT_MS) {
+      await this.waitForSelector(selector, timeoutMs);
+      const element = document.querySelector(selector) as HTMLInputElement | HTMLTextAreaElement | null;
+      if (!element) {
+        throw new Error(`missing selector ${selector}`);
+      }
+      const prototype = element instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype;
+      const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+      descriptor?.set?.call(element, value);
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+    },
+    async readLocalStorageItem(key: string) {
+      return window.localStorage.getItem(key);
+    },
+    async clearAgentConversationAnchorBindings() {
+      clearAllAgentConversationAnchorBindings();
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    },
+    async configureRuntimeTextRoute() {
+      const scopeRef = getActiveScope();
+      const service = getDesktopAIConfigService();
+      const current = service.aiConfig.get(scopeRef);
+      service.aiConfig.update(scopeRef, {
+        ...current,
+        capabilities: {
+          ...current.capabilities,
+          selectedBindings: {
+            ...current.capabilities.selectedBindings,
+            'text.generate': {
+              source: 'local',
+              connectorId: '',
+              model: 'e2e-live2d-text-route',
+              modelId: 'e2e-live2d-text-route',
+              modelLabel: 'E2E Live2D Text Route',
+              localModelId: 'local-e2e-live2d-text-route',
+              goRuntimeLocalModelId: 'local-e2e-live2d-text-route',
+              goRuntimeStatus: 'active',
+              provider: 'llama',
+              engine: 'llama',
+            },
+          },
+        },
+      });
+      await refreshConversationCapabilityProjections(['text.generate']);
+    },
+    async verifyRuntimeConversationAnchor(input) {
+      const auth = useAppStore.getState().auth;
+      const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
+      if (!subjectUserId) {
+        throw new Error('cannot verify Runtime conversation anchor without authenticated subject user id');
+      }
+      const runtime = getPlatformClient().runtime;
+      const protectedAccess = createRuntimeProtectedScopeHelper({
+        runtime,
+        getSubjectUserId: async () => subjectUserId,
+      });
+      await protectedAccess.withScopes(['runtime.agent.turn.read'], (options) => runtime.agent.anchors.getSnapshot({
+        agentId: input.agentId,
+        conversationAnchorId: input.conversationAnchorId,
+      }, options));
+    },
+    async readRuntimeProductPathEvidence(input) {
+      const auth = useAppStore.getState().auth;
+      const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
+      if (!subjectUserId) {
+        throw new Error('cannot read Runtime product evidence without authenticated subject user id');
+      }
+      const runtime = getPlatformClient().runtime;
+      const [health, snapshot] = await Promise.all([
+        runtime.health(),
+        createRuntimeProtectedScopeHelper({
+          runtime,
+          getSubjectUserId: async () => subjectUserId,
+        }).withScopes(['runtime.agent.turn.read'], (options) => runtime.agent.anchors.getSnapshot({
+          agentId: input.agentId,
+          conversationAnchorId: input.conversationAnchorId,
+        }, options)),
+      ]);
+      const anchor = snapshot.anchor || null;
+      const snapshotAgentId = String(anchor?.agentId || '').trim();
+      const snapshotAnchorId = String(anchor?.conversationAnchorId || '').trim();
+      const lastTurnId = String(anchor?.lastTurnId || '').trim();
+      const activeTurnId = String(snapshot.activeTurnId || '').trim();
+      const lastMessageId = String(anchor?.lastMessageId || '').trim();
+      if (snapshotAgentId !== input.agentId || snapshotAnchorId !== input.conversationAnchorId) {
+        throw new Error(`Runtime anchor snapshot mismatch agent=${snapshotAgentId || 'missing'} anchor=${snapshotAnchorId || 'missing'}`);
+      }
+      return {
+        runtime_health: {
+          status: health.status,
+          reason: health.reason || null,
+          queue_depth: health.queueDepth,
+          active_workflows: health.activeWorkflows,
+          active_inference_jobs: health.activeInferenceJobs,
+          sampled_at: health.sampledAt || null,
+        },
+        runtime_authenticated: true,
+        runtime_auth_scopes: ['runtime.agent.turn.read'],
+        same_anchor: true,
+        agent_id: input.agentId,
+        conversation_anchor_id: input.conversationAnchorId,
+        subject_user_id: subjectUserId,
+        anchor_snapshot: {
+          status: anchor?.status ?? null,
+          last_turn_id: lastTurnId || null,
+          active_turn_id: activeTurnId || null,
+          active_stream_id: String(snapshot.activeStreamId || '').trim() || null,
+          last_message_id: lastMessageId || null,
+        },
+        has_runtime_turn: Boolean(lastTurnId || activeTurnId || lastMessageId),
+      };
+    },
+    async verifySharedAuthSession() {
+      const realmBaseUrl = String(useAppStore.getState().runtimeDefaults?.realm?.realmBaseUrl || '').trim();
+      if (!realmBaseUrl) {
+        throw new Error('cannot verify shared auth session without Desktop runtimeDefaults.realm.realmBaseUrl');
+      }
+      const deadline = Date.now() + 5_000;
+      let lastError = 'not checked';
+      while (Date.now() < deadline) {
+        const auth = useAppStore.getState().auth;
+        const accessToken = String(auth.token || '').trim();
+        if (auth.status !== 'authenticated' || !accessToken) {
+          lastError = `Desktop auth status=${auth.status || 'unknown'} token_present=${Boolean(accessToken)}`;
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          continue;
+        }
+        try {
+          const persisted = await withSmokeTimeout('shared auth session readback', desktopBridge.loadAuthSession(), 2_000);
+          const persistedRealmBaseUrl = String(persisted?.realmBaseUrl || '').trim();
+          const persistedAccessToken = String(persisted?.accessToken || '').trim();
+          if (persistedRealmBaseUrl === realmBaseUrl && persistedAccessToken === accessToken) {
+            return;
+          }
+          lastError = `persisted realm/token mismatch realm_ok=${persistedRealmBaseUrl === realmBaseUrl} token_ok=${persistedAccessToken === accessToken}`;
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : String(error || 'shared auth read failed');
+        }
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+      throw new Error(`Desktop authenticated session was not available through shared auth: ${lastError}`);
+    },
     async setChatAvatarInteractionOverride(override) {
       const runtimeWindow = window as typeof window & {
         __NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__?: Record<string, unknown> | null;
@@ -314,6 +493,12 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
         runtimeDebug: stats.runtimeDebug,
       };
     },
+    async listAvatarLiveInstances(agentId: string) {
+      return listDesktopAvatarLiveInstances(agentId);
+    },
+    async readAvatarEvidence(avatarInstanceId: string) {
+      return readDesktopMacosSmokeAvatarEvidence(avatarInstanceId);
+    },
     async writeReport(payload) {
       await writeDesktopMacosSmokeReport(payload);
     },
@@ -332,6 +517,14 @@ function currentRouteSnapshot(): string {
 
 function currentHtmlSnapshot(): string {
   return document.documentElement.outerHTML;
+}
+
+function resolveSmokeBootstrapTimeoutMs(context: DesktopMacosSmokeContext): number {
+  const requested = Number(context.bootstrapTimeoutMs || 0);
+  if (!Number.isFinite(requested) || requested <= 0) {
+    return SMOKE_BOOTSTRAP_TIMEOUT_MS;
+  }
+  return Math.min(180_000, Math.max(SMOKE_BOOTSTRAP_TIMEOUT_MS, requested));
 }
 
 export function buildDesktopMacosSmokeFailureReportPayload(input: {
@@ -470,6 +663,7 @@ export function useDesktopMacosSmokeBootstrap(
       return;
     }
     const flowId = createRendererFlowId('desktop-macos-smoke-bootstrap-timeout');
+    const timeoutMs = resolveSmokeBootstrapTimeoutMs(context);
     const timeoutId = setTimeout(() => {
       if (startedRef.current || reportedRef.current) {
         return;
@@ -489,7 +683,7 @@ export function useDesktopMacosSmokeBootstrap(
           },
         });
       });
-    }, SMOKE_BOOTSTRAP_TIMEOUT_MS);
+    }, timeoutMs);
     return () => {
       clearTimeout(timeoutId);
     };

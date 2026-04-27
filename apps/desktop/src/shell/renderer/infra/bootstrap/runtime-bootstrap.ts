@@ -202,7 +202,7 @@ export function rebootstrapRuntime(): Promise<void> {
 }
 
 function runtimeDaemonUnavailable(status: { running: boolean; lastError?: string }): boolean {
-  return !status.running && Boolean(String(status.lastError || '').trim());
+  return !status.running;
 }
 
 async function teardownBootstrapState(): Promise<void> {
@@ -277,9 +277,9 @@ export function bootstrapRuntime(): Promise<void> {
     const defaults = await desktopBridge.getRuntimeDefaults();
     useAppStore.getState().setRuntimeDefaults(defaults);
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
-    const runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
+    let runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
     let bootstrapRuntimeConfigWarning: string | null = null;
-    if (desktopBridge.hasTauriInvoke() && !runtimeUnavailable) {
+    if (desktopBridge.hasTauriInvoke()) {
       try {
         const runtimeStorageDirs = await desktopBridge.getRuntimeModStorageDirs();
         daemonStatus = await syncRuntimeLocalModelsConfig({
@@ -300,6 +300,7 @@ export function bootstrapRuntime(): Promise<void> {
             restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
           },
         });
+        runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
       } catch (error) {
         if (isRuntimeConfigManualRestartRequiredError(error)) {
           throw error;
@@ -312,6 +313,43 @@ export function bootstrapRuntime(): Promise<void> {
           flowId,
           details: {
             error: bootstrapRuntimeConfigWarning,
+          },
+        });
+      }
+    }
+    if (desktopBridge.hasTauriInvoke() && runtimeUnavailable) {
+      try {
+        daemonStatus = await desktopBridge.startRuntimeBridge();
+        runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
+        logRendererEvent({
+          level: runtimeUnavailable ? 'warn' : 'info',
+          area: 'renderer-bootstrap',
+          message: runtimeUnavailable
+            ? 'phase:runtime-bridge:start-unavailable'
+            : 'phase:runtime-bridge:started',
+          flowId,
+          details: {
+            running: daemonStatus.running,
+            managed: daemonStatus.managed,
+            grpcAddr: daemonStatus.grpcAddr,
+            launchMode: daemonStatus.launchMode,
+            lastError: daemonStatus.lastError || null,
+          },
+        });
+      } catch (error) {
+        runtimeUnavailable = true;
+        daemonStatus = {
+          ...daemonStatus,
+          running: false,
+          lastError: safeErrorMessage(error),
+        };
+        logRendererEvent({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'phase:runtime-bridge:start-failed',
+          flowId,
+          details: {
+            error: daemonStatus.lastError,
           },
         });
       }
@@ -494,8 +532,11 @@ export function bootstrapRuntime(): Promise<void> {
       isFriend: (userId: string) => isFriendInContacts(getCachedContacts(), userId),
     });
 
+    startAuthStateWatcher();
+
     await bootstrapAuthSession({
       flowId,
+      realmBaseUrl: defaults.realm.realmBaseUrl,
       accessToken: bootstrapAccessToken,
       refreshToken: bootstrapRefreshToken,
       source: resolvedBootstrapAuthSession.source,
@@ -503,8 +544,6 @@ export function bootstrapRuntime(): Promise<void> {
       clearPersistedSession: clearPersistedDesktopSession,
       skipWarmLoads: skipHeavyBootstrapForMacosSmoke,
     });
-
-    startAuthStateWatcher();
 
     let runtimeModFailures: RuntimeModRegisterFailure[] = [];
     let manifestCount = 0;

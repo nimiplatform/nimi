@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@nimiplatform/nimi-kit/ui';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   buildDesktopAvatarEphemeralInstanceId,
   buildDesktopAvatarInstanceId,
@@ -79,7 +80,8 @@ export function ChatAgentAvatarAppLauncher(props: ChatAgentAvatarAppLauncherProp
       avatarInstanceId: instanceId,
       conversationAnchorId: props.activeConversationAnchorId,
       anchorMode,
-      launchedBy: 'desktop',
+      launchedBy: 'nimi.desktop',
+      runtimeAppId: 'nimi.desktop',
       sourceSurface: 'desktop-agent-chat',
     })
       .then((result) => {
@@ -127,6 +129,7 @@ export function ChatAgentAvatarAppLauncher(props: ChatAgentAvatarAppLauncherProp
       <Button
         tone={buttonTone}
         disabled={!tauriReady || pendingAction !== null}
+        data-testid={isCurrent ? E2E_IDS.chatAvatarLaunchCurrentButton : E2E_IDS.chatAvatarLaunchNewButton}
         onClick={() => {
           launchWithInstanceId(isCurrent ? avatarInstanceId : newCompanionInstanceId, target);
         }}
@@ -144,7 +147,10 @@ export function ChatAgentAvatarAppLauncher(props: ChatAgentAvatarAppLauncherProp
   };
 
   return (
-    <div className="rounded-2xl border border-sky-200/80 bg-sky-50/80 p-4 text-left shadow-[0_16px_32px_rgba(15,23,42,0.06)]">
+    <div
+      className="rounded-2xl border border-sky-200/80 bg-sky-50/80 p-4 text-left shadow-[0_16px_32px_rgba(15,23,42,0.06)]"
+      data-testid={E2E_IDS.chatAvatarLaunchCard}
+    >
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-700">

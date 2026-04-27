@@ -339,6 +339,20 @@ mod tests {
         serde_json::from_str::<Value>(&current_state).expect("parse current state")
     }
 
+    fn write_runtime_release_stamp(version_dir: &Path, runtime_sha256: &str) {
+        fs::write(
+            version_dir.join(".runtime-release.json"),
+            serde_json::json!({
+                "version": version_dir.file_name().and_then(|name| name.to_str()).unwrap_or(""),
+                "runtimeSha256": runtime_sha256,
+                "runtimeBinaryPath": test_binary_relative_path(),
+                "stagedAt": "2026-01-01T00:00:00.000Z",
+            })
+            .to_string(),
+        )
+        .expect("write release stamp");
+    }
+
     #[test]
     fn validate_release_manifest_rejects_mismatched_versions() {
         let archive = PathBuf::from("runtime.zip");
@@ -425,11 +439,15 @@ mod tests {
             let current_state = read_current_runtime_state_json();
             assert_eq!(current_state["version"], "1.2.3");
             assert_eq!(current_state["binaryPath"], staged.display().to_string());
+            assert_eq!(
+                current_state["runtimeSha256"],
+                manifest.runtime_sha256.to_ascii_lowercase()
+            );
         });
     }
 
     #[test]
-    fn stage_runtime_archive_reuses_existing_runtime_and_refreshes_current_state() {
+    fn stage_runtime_archive_reuses_matching_sha_runtime_and_refreshes_current_state() {
         let home = temp_home("reuses");
         let archive = home.join("runtime.zip");
         write_runtime_zip(
@@ -445,6 +463,7 @@ mod tests {
             let existing_binary = version_dir.join(test_binary_relative_path());
             fs::write(&existing_binary, runtime_probe_fixture("2.0.0"))
                 .expect("write existing runtime");
+            write_runtime_release_stamp(&version_dir, manifest.runtime_sha256.as_str());
 
             let (staged, version) =
                 stage_runtime_archive(&manifest, &archive).expect("reuse runtime");
@@ -456,6 +475,40 @@ mod tests {
             assert_eq!(
                 current_state["binaryPath"],
                 existing_binary.display().to_string()
+            );
+            assert_eq!(
+                current_state["runtimeSha256"],
+                manifest.runtime_sha256.to_ascii_lowercase()
+            );
+        });
+    }
+
+    #[test]
+    fn stage_runtime_archive_restages_same_version_when_sha_stamp_is_missing() {
+        let home = temp_home("restages-missing-sha");
+        let archive = home.join("runtime.zip");
+        write_runtime_zip(
+            &archive,
+            test_binary_relative_path(),
+            runtime_probe_fixture("2.1.0").as_slice(),
+        );
+        let manifest = test_manifest(&archive, "2.1.0");
+
+        with_env(&[("HOME", home.to_str())], || {
+            let version_dir = runtime_version_dir("2.1.0").expect("version dir");
+            fs::create_dir_all(version_dir.join("bin")).expect("create bin dir");
+            let existing_binary = version_dir.join(test_binary_relative_path());
+            fs::write(&existing_binary, runtime_probe_fixture("2.1.0"))
+                .expect("write existing runtime");
+
+            stage_runtime_archive(&manifest, &archive).expect("restage runtime");
+
+            let stamp = fs::read_to_string(version_dir.join(".runtime-release.json"))
+                .expect("read release stamp");
+            let parsed = serde_json::from_str::<Value>(&stamp).expect("parse stamp");
+            assert_eq!(
+                parsed["runtimeSha256"],
+                manifest.runtime_sha256.to_ascii_lowercase()
             );
         });
     }

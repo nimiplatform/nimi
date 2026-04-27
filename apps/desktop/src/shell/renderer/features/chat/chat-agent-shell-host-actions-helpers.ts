@@ -3,6 +3,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   asNimiError,
   createRuntimeProtectedScopeHelper,
+  type AgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -84,7 +85,56 @@ function getRuntimeProtectedAccess() {
   return runtimeProtectedAccess;
 }
 
-async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promise<void> {
+function toRuntimePresentationBackendKind(
+  value: NonNullable<AgentLocalTargetSnapshot['presentationProfile']>['backendKind'],
+): AgentPresentationBackendKind {
+  switch (value) {
+    case 'vrm':
+      return 1;
+    case 'live2d':
+      return 2;
+    case 'sprite2d':
+      return 3;
+    case 'canvas2d':
+      return 4;
+    case 'video':
+      return 5;
+    default:
+      return 0;
+  }
+}
+
+async function syncRuntimePresentationProfile(input: {
+  target: AgentLocalTargetSnapshot;
+  context: {
+    appId: string;
+    subjectUserId: string;
+  };
+}): Promise<void> {
+  const profile = input.target.presentationProfile;
+  if (!profile?.avatarAssetRef) {
+    return;
+  }
+  const runtime = getPlatformClient().runtime;
+  const protectedAccess = getRuntimeProtectedAccess();
+  await protectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agent.setPresentationProfile({
+    context: input.context,
+    agentId: input.target.agentId,
+    mutation: {
+      oneofKind: 'profile',
+      profile: {
+        backendKind: toRuntimePresentationBackendKind(profile.backendKind),
+        avatarAssetRef: profile.avatarAssetRef,
+        expressionProfileRef: profile.expressionProfileRef || '',
+        idlePreset: profile.idlePreset || '',
+        interactionPolicyRef: profile.interactionPolicyRef || '',
+        defaultVoiceReference: profile.defaultVoiceReference || '',
+      },
+    },
+  }, options));
+}
+
+export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promise<void> {
   const runtime = getPlatformClient().runtime;
   const protectedAccess = getRuntimeProtectedAccess();
   const subjectUserId = requireRuntimeSubjectUserId();
@@ -99,6 +149,7 @@ async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promi
       agentId: target.agentId,
     }, options));
     if (Number(response.agent?.lifecycleStatus) === 2) {
+      await syncRuntimePresentationProfile({ target, context });
       return;
     }
   } catch (error) {
@@ -123,6 +174,8 @@ async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promi
       throw normalized;
     }
   }
+
+  await syncRuntimePresentationProfile({ target, context });
 }
 
 export async function assertAgentSubmitSchedulingAllowed(input: {

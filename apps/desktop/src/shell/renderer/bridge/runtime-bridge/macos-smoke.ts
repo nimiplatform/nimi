@@ -4,8 +4,10 @@ import { invokeTauri } from '@runtime/tauri-api';
 import type { JsonObject } from './shared.js';
 import {
   parseDesktopMacosSmokeContext,
+  parseDesktopMacosSmokeAvatarEvidenceReadResult,
   parseDesktopMacosSmokeReportResult,
   type DesktopMacosSmokeContext,
+  type DesktopMacosSmokeAvatarEvidenceReadResult,
   type DesktopMacosSmokeReportPayload,
   type DesktopMacosSmokeReportResult,
 } from './types';
@@ -18,6 +20,19 @@ export async function getDesktopMacosSmokeContext(): Promise<DesktopMacosSmokeCo
     'desktop_macos_smoke_context_get',
     {},
     parseDesktopMacosSmokeContext,
+  );
+}
+
+export async function readDesktopMacosSmokeAvatarEvidence(
+  avatarInstanceId: string,
+): Promise<DesktopMacosSmokeAvatarEvidenceReadResult> {
+  if (!hasTauriInvoke()) {
+    throw new Error('desktop_macos_smoke_avatar_evidence_read requires Tauri runtime');
+  }
+  return invokeChecked(
+    'desktop_macos_smoke_avatar_evidence_read',
+    { payload: { avatarInstanceId } },
+    parseDesktopMacosSmokeAvatarEvidenceReadResult,
   );
 }
 

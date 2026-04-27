@@ -12,10 +12,12 @@ import { useMenuBarRuntimeSync } from '@renderer/infra/menu-bar/menu-bar-runtime
 import { useDesktopUpdatesBootstrap } from '@renderer/infra/bootstrap/desktop-updates';
 import { useDesktopMacosSmokeBootstrap } from '@renderer/infra/bootstrap/desktop-macos-smoke';
 import { useRuntimeHealthCoordinatorBootstrap } from '@renderer/features/runtime-config/runtime-health-coordinator';
-import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
+import { getDesktopMacosSmokeContext, pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 
 const WEB_BOOTSTRAP_TIMEOUT_MS = 15000;
 const DESKTOP_BOOTSTRAP_TIMEOUT_MS = 25000;
+const MIN_BOOTSTRAP_TIMEOUT_MS = 5_000;
+const MAX_BOOTSTRAP_TIMEOUT_MS = 180_000;
 
 function isStandaloneWorldTourRoute(): boolean {
   if (typeof window === 'undefined') {
@@ -27,6 +29,28 @@ function isStandaloneWorldTourRoute(): boolean {
 async function runBootstrapRuntime(): Promise<void> {
   const module = await import('@renderer/infra/bootstrap/runtime-bootstrap');
   await module.bootstrapRuntime();
+}
+
+async function resolveBootstrapTimeoutMs(shellMode: string): Promise<number> {
+  const defaultTimeoutMs = shellMode === 'web'
+    ? WEB_BOOTSTRAP_TIMEOUT_MS
+    : DESKTOP_BOOTSTRAP_TIMEOUT_MS;
+  if (shellMode !== 'desktop') {
+    return defaultTimeoutMs;
+  }
+  try {
+    const context = await getDesktopMacosSmokeContext();
+    const requested = Number(context.bootstrapTimeoutMs || 0);
+    if (!context.enabled || !Number.isFinite(requested) || requested <= 0) {
+      return defaultTimeoutMs;
+    }
+    return Math.min(
+      MAX_BOOTSTRAP_TIMEOUT_MS,
+      Math.max(MIN_BOOTSTRAP_TIMEOUT_MS, requested),
+    );
+  } catch {
+    return defaultTimeoutMs;
+  }
 }
 
 function AppBoot() {
@@ -74,49 +98,49 @@ function AppBoot() {
       },
     });
 
-    const timeoutMs = shellMode === 'web'
-      ? WEB_BOOTSTRAP_TIMEOUT_MS
-      : DESKTOP_BOOTSTRAP_TIMEOUT_MS;
-    timeoutId = setTimeout(() => {
+    void resolveBootstrapTimeoutMs(shellMode).then((timeoutMs) => {
       if (settled || cancelled) return;
-      settled = true;
-      if (shellMode === 'web') {
-        setBootstrapReady(true);
-        setBootstrapError(null);
+      timeoutId = setTimeout(() => {
+        if (settled || cancelled) return;
+        settled = true;
+        if (shellMode === 'web') {
+          setBootstrapReady(true);
+          setBootstrapError(null);
+          setStatusBanner({
+            kind: 'warning',
+            message: t('Bootstrap.webDegraded'),
+          });
+          logRendererEvent({
+            level: 'warn',
+            area: 'renderer-bootstrap',
+            message: 'phase:bootstrap:timeout-degraded',
+            flowId,
+            details: {
+              timeoutMs,
+              shellMode,
+            },
+          });
+          return;
+        }
+        const message = t('Bootstrap.runtimeInitTimeout');
+        setBootstrapReady(false);
+        setBootstrapError(message);
         setStatusBanner({
-          kind: 'warning',
-          message: t('Bootstrap.webDegraded'),
+          kind: 'error',
+          message,
         });
         logRendererEvent({
-          level: 'warn',
+          level: 'error',
           area: 'renderer-bootstrap',
-          message: 'phase:bootstrap:timeout-degraded',
+          message: 'phase:bootstrap:timeout-failed',
           flowId,
           details: {
             timeoutMs,
             shellMode,
           },
         });
-        return;
-      }
-      const message = t('Bootstrap.runtimeInitTimeout');
-      setBootstrapReady(false);
-      setBootstrapError(message);
-      setStatusBanner({
-        kind: 'error',
-        message,
-      });
-      logRendererEvent({
-        level: 'error',
-        area: 'renderer-bootstrap',
-        message: 'phase:bootstrap:timeout-failed',
-        flowId,
-        details: {
-          timeoutMs,
-          shellMode,
-        },
-      });
-    }, timeoutMs);
+      }, timeoutMs);
+    });
 
     void runBootstrapRuntime()
       .then(() => {
@@ -166,7 +190,7 @@ function AppBoot() {
         clearTimeout(timeoutId);
       }
     };
-  }, [setBootstrapError, setBootstrapReady, setStatusBanner, standaloneWorldTour, t]);
+  }, [setBootstrapError, setBootstrapReady, setStatusBanner, shellMode, standaloneWorldTour, t]);
 
   useEffect(() => {
     const unsubscribe = onI18nIssue((issue) => {

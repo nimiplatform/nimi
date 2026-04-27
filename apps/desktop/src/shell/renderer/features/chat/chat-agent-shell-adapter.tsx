@@ -64,6 +64,7 @@ import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
 import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
 import { useAgentConversationHostActions } from './chat-agent-shell-host-actions';
+import { ensureRuntimeAgentExists } from './chat-agent-shell-host-actions-helpers';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
@@ -329,14 +330,16 @@ export function useAgentConversationModeHost(
 
   useEffect(() => {
     let cancelled = false;
-    const agentId = normalizeText(shellActiveTarget?.agentId);
-    if (input.authStatus !== 'authenticated' || !agentId) {
+    const target = activeTarget;
+    const agentId = normalizeText(target?.agentId);
+    if (input.authStatus !== 'authenticated' || !target || !agentId) {
       setRuntimePresentationProfile(null);
       return () => {
         cancelled = true;
       };
     }
-    void runtimeAgentInspect.getPresentationProfile(agentId)
+    void ensureRuntimeAgentExists(target)
+      .then(() => runtimeAgentInspect.getPresentationProfile(agentId))
       .then((profile) => {
         if (!cancelled) {
           setRuntimePresentationProfile(profile);
@@ -359,7 +362,7 @@ export function useAgentConversationModeHost(
     return () => {
       cancelled = true;
     };
-  }, [buildHostErrorDetails, input.authStatus, runtimeAgentInspect, shellActiveTarget?.agentId]);
+  }, [activeTarget, buildHostErrorDetails, input.authStatus, runtimeAgentInspect]);
 
   useEffect(() => {
     const metadataUpdate = buildAgentThreadMetadataUpdate({
@@ -525,14 +528,15 @@ export function useAgentConversationModeHost(
   }, [activeTarget?.agentId, buildHostErrorDetails, input.authStatus, reportHostError, runtimeAgentMemory]);
   useEffect(() => {
     let cancelled = false;
-    const agentId = normalizeText(activeTarget?.agentId);
+    const target = activeTarget;
+    const agentId = normalizeText(target?.agentId);
     const cachedInspectAgentId = lastInspectFetchedAgentIdRef.current;
     if (cachedInspectAgentId && cachedInspectAgentId !== agentId) {
       setRuntimeInspect(null);
       setRecentRuntimeEvents([]);
       lastInspectFetchedAgentIdRef.current = null;
     }
-    if (input.authStatus !== 'authenticated' || !agentId) {
+    if (input.authStatus !== 'authenticated' || !target || !agentId) {
       setRuntimeInspect(null);
       lastInspectFetchedAgentIdRef.current = null;
       setRuntimeInspectLoading(false);
@@ -542,7 +546,8 @@ export function useAgentConversationModeHost(
       };
     }
     setRuntimeInspectLoading(true);
-    void runtimeAgentInspect.getPublicInspect(agentId)
+    void ensureRuntimeAgentExists(target)
+      .then(() => runtimeAgentInspect.getPublicInspect(agentId))
       .then((snapshot) => {
         if (cancelled) {
           return;
@@ -574,7 +579,7 @@ export function useAgentConversationModeHost(
     return () => {
       cancelled = true;
     };
-  }, [activeTarget?.agentId, buildHostErrorDetails, input.authStatus, runtimeAgentInspect]);
+  }, [activeTarget, buildHostErrorDetails, input.authStatus, runtimeAgentInspect]);
   // Coalesce event-driven state updates: buffer incoming events and flush at
   // most once per EVENTS_COALESCE_MS to reduce re-render frequency while the
   // diagnostics panel is open.  The subscription itself stays active whenever

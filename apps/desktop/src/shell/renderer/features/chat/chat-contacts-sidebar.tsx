@@ -272,6 +272,7 @@ export function ChatContactsSidebar({
           aria-label={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
           title={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
           onClick={onToggleSettings}
+          data-testid={E2E_IDS.chatSettingsToggle}
           data-chat-settings-toggle="true"
           className="h-10 w-10 rounded-2xl"
         />

@@ -290,6 +290,7 @@ export async function streamChatAgentRuntimeAgentTurn(
   const subscribed = await runtime.agent.turns.subscribe({
     agentId: request.agentId,
     conversationAnchorId: request.conversationAnchorId,
+    includeAgentEvents: false,
   });
   safeLogRuntimeAgentEvent({
     level: 'info',

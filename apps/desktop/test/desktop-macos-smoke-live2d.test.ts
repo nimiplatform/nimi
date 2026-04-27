@@ -366,3 +366,176 @@ test('desktop macos smoke live2d speaking scenario waits for speaking telemetry 
     },
   });
 });
+
+test('desktop macos smoke live2d avatar product scenario waits for same-anchor Avatar evidence', async () => {
+  const clicked: string[] = [];
+  const clickedSelectors: string[] = [];
+  const values: Array<{ selector: string; value: string }> = [];
+  let sharedAuthVerified = false;
+  let routeConfigured = false;
+  let staleAnchorsCleared = false;
+  let runtimeAnchorVerified = false;
+  let runtimeProductEvidenceRead = false;
+  const writtenReports: Array<Record<string, unknown>> = [];
+  let evidenceReads = 0;
+
+  await runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
+    async clickByTestId(id) {
+      clicked.push(id);
+    },
+    async clickSelector(selector) {
+      clickedSelectors.push(selector);
+    },
+    async setValueBySelector(selector, value) {
+      values.push({ selector, value });
+    },
+    async verifySharedAuthSession() {
+      sharedAuthVerified = true;
+    },
+    async configureRuntimeTextRoute() {
+      routeConfigured = true;
+    },
+    async clearAgentConversationAnchorBindings() {
+      staleAnchorsCleared = true;
+    },
+    async verifyRuntimeConversationAnchor(input) {
+      runtimeAnchorVerified = input.agentId === 'agent-e2e-alpha' && input.conversationAnchorId === 'anchor-1';
+    },
+    async readRuntimeProductPathEvidence(input) {
+      runtimeProductEvidenceRead = input.agentId === 'agent-e2e-alpha' && input.conversationAnchorId === 'anchor-1';
+      return {
+        runtime_health: { status: 'healthy', sampled_at: '2026-04-26T00:00:00.000Z' },
+        runtime_authenticated: true,
+        runtime_auth_scopes: ['runtime.agent.turn.read'],
+        same_anchor: true,
+        agent_id: input.agentId,
+        conversation_anchor_id: input.conversationAnchorId,
+        anchor_snapshot: {
+          last_turn_id: 'turn-1',
+          active_turn_id: null,
+          active_stream_id: null,
+          last_message_id: 'message-1',
+        },
+        has_runtime_turn: true,
+      };
+    },
+    async readLocalStorageItem() {
+      return JSON.stringify([{
+        threadId: 'agent-thread-1',
+        agentId: 'agent-e2e-alpha',
+        conversationAnchorId: 'anchor-1',
+        updatedAtMs: Date.now(),
+      }]);
+    },
+    async listAvatarLiveInstances(agentId) {
+      assert.equal(agentId, 'agent-e2e-alpha');
+      return [{
+        avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
+        agentId: 'agent-e2e-alpha',
+        conversationAnchorId: 'anchor-1',
+        anchorMode: 'existing',
+        launchedBy: 'desktop',
+        sourceSurface: 'desktop-agent-chat',
+      }];
+    },
+    async readAvatarEvidence(avatarInstanceId) {
+      evidenceReads += 1;
+      assert.equal(avatarInstanceId, 'desktop-avatar-agent-e2e-alpha-anchor-1');
+      return {
+        evidencePath: '/tmp/avatar-evidence.json',
+        evidence: {
+          launchContext: {
+            agentId: 'agent-e2e-alpha',
+            avatarInstanceId,
+            conversationAnchorId: 'anchor-1',
+          },
+          records: [
+            {
+              kind: 'avatar.startup.runtime-bound',
+              detail: { driver_kind: 'sdk', authority: 'runtime', conversation_anchor_id: 'anchor-1' },
+            },
+            {
+              kind: 'avatar.model.load',
+              detail: {
+                conversation_anchor_id: 'anchor-1',
+                model_id: 'ren',
+                compatibility_tier: 'semantic_basic',
+                adapter_id: 'ren-basic',
+              },
+            },
+            {
+              kind: 'avatar.carrier.visual',
+              detail: {
+                conversation_anchor_id: 'anchor-1',
+                status: 'ready',
+                visible_pixels: evidenceReads >= 2 ? 12 : 0,
+              },
+            },
+          ],
+        },
+      };
+    },
+    async writeReport(payload) {
+      writtenReports.push(payload as unknown as Record<string, unknown>);
+    },
+    currentRoute() {
+      return '/chat';
+    },
+    currentHtml() {
+      return '<html>avatar-product</html>';
+    },
+  }));
+
+  assert.deepEqual(clicked, [
+    E2E_IDS.chatTarget('agent-e2e-alpha'),
+    E2E_IDS.chatSettingsToggle,
+    E2E_IDS.chatAvatarLaunchCurrentButton,
+  ]);
+  assert.deepEqual(clickedSelectors, ['[data-chat-composer-send="true"]']);
+  assert.deepEqual(values, [{
+    selector: '[data-chat-composer-textarea="true"]',
+    value: 'Wave 2 product smoke anchor turn.',
+  }]);
+  assert.equal(sharedAuthVerified, true);
+  assert.equal(routeConfigured, true);
+  assert.equal(staleAnchorsCleared, true);
+  assert.equal(runtimeAnchorVerified, true);
+  assert.equal(runtimeProductEvidenceRead, true);
+  assert.equal(evidenceReads, 2);
+  assert.equal(writtenReports.length, 1);
+  const report = writtenReports[0] as Record<string, unknown>;
+  assert.equal(report.ok, true);
+  assert.deepEqual(report.steps, [
+    'wait-chat-panel',
+    'verify-shared-auth-session',
+    'clear-stale-anchor-bindings',
+    'select-agent-target',
+    'wait-agent-target-selected',
+    'configure-runtime-text-route',
+    'submit-anchor-turn',
+    'wait-runtime-anchor-binding',
+    'wait-runtime-product-path-evidence',
+    'open-settings',
+    'wait-avatar-launch-card',
+    'launch-avatar-current-anchor',
+    'wait-avatar-same-anchor-registry',
+    'wait-avatar-carrier-evidence',
+    'write-pass-report',
+  ]);
+  const details = report.details as { avatarProductPath?: Record<string, unknown> };
+  assert.deepEqual(details.avatarProductPath?.runtime, {
+    runtime_health: { status: 'healthy', sampled_at: '2026-04-26T00:00:00.000Z' },
+    runtime_authenticated: true,
+    runtime_auth_scopes: ['runtime.agent.turn.read'],
+    same_anchor: true,
+    agent_id: 'agent-e2e-alpha',
+    conversation_anchor_id: 'anchor-1',
+    anchor_snapshot: {
+      last_turn_id: 'turn-1',
+      active_turn_id: null,
+      active_stream_id: null,
+      last_message_id: 'message-1',
+    },
+    has_runtime_turn: true,
+  });
+});

@@ -43,6 +43,10 @@ const authStateWatcherSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/auth-state-watcher.ts'),
   'utf8',
 );
+const runtimeBootstrapSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts'),
+  'utf8',
+);
 
 test('setAuthSession keeps existing refresh token when refreshToken is undefined', () => {
   let state: Record<string, unknown> = {
@@ -189,6 +193,17 @@ test('auth state watcher persists shared desktop session after desktop auth beco
   );
   assert.match(authStateWatcherSource, /message: 'phase:auth-persist:done'/);
   assert.match(authStateWatcherSource, /message: 'phase:auth-persist:failed'/);
+});
+
+test('desktop bootstrap starts auth state watcher before auto-login sets auth session', () => {
+  const watcherIndex = runtimeBootstrapSource.indexOf('startAuthStateWatcher();');
+  const bootstrapAuthIndex = runtimeBootstrapSource.indexOf('await bootstrapAuthSession({');
+  assert.notEqual(watcherIndex, -1);
+  assert.notEqual(bootstrapAuthIndex, -1);
+  assert.ok(
+    watcherIndex < bootstrapAuthIndex,
+    'auth state watcher must observe bootstrap auto-login so shared desktop auth is persisted',
+  );
 });
 
 test('web auth adapter stores browser metadata instead of calling shared desktop session persistence in web mode', () => {

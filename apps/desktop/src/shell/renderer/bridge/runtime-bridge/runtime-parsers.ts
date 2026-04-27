@@ -25,6 +25,7 @@ import type {
   MemoryEmbeddingRuntimeCutoverResult,
   MemoryEmbeddingRuntimeInspectResult,
   DesktopMacosSmokeContext,
+  DesktopMacosSmokeAvatarEvidenceReadResult,
   DesktopMacosSmokeReportResult,
   ConfirmPrivateSyncResult,
   ConfirmDialogResult,
@@ -618,6 +619,7 @@ export function parseDesktopMacosSmokeContext(value: unknown): DesktopMacosSmoke
     reportPath: parseOptionalString(record.reportPath),
     artifactsDir: parseOptionalString(record.artifactsDir),
     disableRuntimeBootstrap: Boolean(record.disableRuntimeBootstrap),
+    bootstrapTimeoutMs: parseOptionalNumber(record.bootstrapTimeoutMs),
   };
 }
 
@@ -626,6 +628,14 @@ export function parseDesktopMacosSmokeReportResult(value: unknown): DesktopMacos
   return {
     reportPath: parseRequiredString(record.reportPath, 'reportPath', 'desktop_macos_smoke_report_write'),
     htmlSnapshotPath: parseOptionalString(record.htmlSnapshotPath),
+  };
+}
+
+export function parseDesktopMacosSmokeAvatarEvidenceReadResult(value: unknown): DesktopMacosSmokeAvatarEvidenceReadResult {
+  const record = assertRecord(value, 'desktop_macos_smoke_avatar_evidence_read returned invalid payload');
+  return {
+    evidencePath: parseRequiredString(record.evidencePath, 'evidencePath', 'desktop_macos_smoke_avatar_evidence_read'),
+    evidence: parseOptionalJsonObject(record.evidence) || {},
   };
 }
 

@@ -1,6 +1,8 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  asNimiError,
   createNimiError,
+  Runtime,
   RuntimeReasonCode,
   ConnectorAuthKind,
   type ProviderCatalogEntry,
@@ -33,6 +35,7 @@ const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
 
 let cachedProviderCatalog: ProviderCatalogEntry[] | null = null;
 let cachedProviderCatalogAt = 0;
+let anonymousRuntime: Runtime | null = null;
 
 type RuntimeConnectorLike = {
   connectorId: string;
@@ -76,6 +79,49 @@ function runtimeAdmin() {
   return getPlatformClient().domains.runtimeAdmin;
 }
 
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function authFailedBecauseOfStaleBearer(error: unknown): boolean {
+  const normalized = asNimiError(error, {
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    actionHint: 'retry_without_stale_runtime_bearer',
+    source: 'runtime',
+  });
+  return normalizeText(normalized.reasonCode) === ReasonCode.AUTH_TOKEN_INVALID;
+}
+
+function getAnonymousRuntime(): Runtime {
+  const runtime = getPlatformClient().runtime;
+  if (
+    anonymousRuntime
+    && anonymousRuntime.appId === runtime.appId
+    && anonymousRuntime.transport === runtime.transport
+  ) {
+    return anonymousRuntime;
+  }
+  anonymousRuntime = new Runtime({
+    appId: runtime.appId,
+    transport: runtime.transport,
+  });
+  return anonymousRuntime;
+}
+
+async function withAnonymousReadFallback<T>(
+  action: () => Promise<T>,
+  anonymousAction: (runtime: Runtime) => Promise<T>,
+): Promise<T> {
+  try {
+    return await action();
+  } catch (error) {
+    if (!authFailedBecauseOfStaleBearer(error)) {
+      throw error;
+    }
+    return anonymousAction(getAnonymousRuntime());
+  }
+}
+
 export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> {
   const now = Date.now();
   if (
@@ -84,7 +130,10 @@ export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> 
   ) {
     return cachedProviderCatalog;
   }
-  const response = await runtimeAdmin().listProviderCatalog({}, CONNECTOR_CALL_OPTIONS);
+  const response = await withAnonymousReadFallback(
+    () => runtimeAdmin().listProviderCatalog({}, CONNECTOR_CALL_OPTIONS),
+    (runtime) => runtime.connector.listProviderCatalog({}, CONNECTOR_CALL_OPTIONS),
+  );
   const providers = Array.isArray(response.providers)
     ? (response.providers as ProviderCatalogEntry[])
     : [];
@@ -245,9 +294,16 @@ export function sdkConnectorToApiConnector(
 
 export async function sdkListConnectors(): Promise<ApiConnector[]> {
   const providerCatalog = await sdkListProviderCatalog();
-  const response = await runtimeAdmin().listConnectors(
-    { pageSize: 0, pageToken: '', kindFilter: CONNECTOR_KIND_REMOTE_MANAGED, statusFilter: 0, providerFilter: '' },
-    CONNECTOR_CALL_OPTIONS,
+  const request = {
+    pageSize: 0,
+    pageToken: '',
+    kindFilter: CONNECTOR_KIND_REMOTE_MANAGED,
+    statusFilter: 0,
+    providerFilter: '',
+  };
+  const response = await withAnonymousReadFallback(
+    () => runtimeAdmin().listConnectors(request, CONNECTOR_CALL_OPTIONS),
+    (runtime) => runtime.connector.listConnectors(request, CONNECTOR_CALL_OPTIONS),
   );
   const connectors = Array.isArray(response.connectors)
     ? (response.connectors as RuntimeConnectorLike[])
@@ -390,14 +446,15 @@ export async function sdkListConnectorModelDescriptors(
   const seenModelIds = new Set<string>();
   let pageToken = '';
   for (let pageIndex = 0; pageIndex < CONNECTOR_MODELS_MAX_PAGES; pageIndex += 1) {
-    const response = await runtimeAdmin().listConnectorModels(
-      {
-        connectorId,
-        forceRefresh: pageIndex === 0 ? forceRefresh : false,
-        pageSize: CONNECTOR_MODELS_PAGE_SIZE,
-        pageToken,
-      },
-      CONNECTOR_CALL_OPTIONS,
+    const request = {
+      connectorId,
+      forceRefresh: pageIndex === 0 ? forceRefresh : false,
+      pageSize: CONNECTOR_MODELS_PAGE_SIZE,
+      pageToken,
+    };
+    const response = await withAnonymousReadFallback(
+      () => runtimeAdmin().listConnectorModels(request, CONNECTOR_CALL_OPTIONS),
+      (runtime) => runtime.connector.listConnectorModels(request, CONNECTOR_CALL_OPTIONS),
     );
     const models = Array.isArray(response.models)
       ? (response.models as RuntimeConnectorModelLike[])
