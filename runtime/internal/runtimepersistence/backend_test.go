@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -80,6 +81,107 @@ func TestBackendRestoresNewestHealthyBackup(t *testing.T) {
 	}
 }
 
+func TestBackendMigratesResidualRuntimeAgentNamespaceTables(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	backend, err := Open(nil, localStatePath)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if err := backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+		if _, err := tx.Exec(`INSERT INTO runtime_agent_meta(key, value) VALUES ('agent_event_sequence', '229') ON CONFLICT(key) DO UPDATE SET value=excluded.value`); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`CREATE TABLE agentcore_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO agentcore_meta(key, value) VALUES ('schema_version', '1'), ('state_initialized', '1'), ('agent_event_sequence', '0'), ('legacy_only', 'old-value')`); err != nil {
+			return err
+		}
+		_, err := tx.Exec(`CREATE TABLE agentcore_agent (
+			agent_id TEXT PRIMARY KEY,
+			agent_json TEXT NOT NULL
+		)`)
+		return err
+	}); err != nil {
+		t.Fatalf("WriteTx(seed legacy tables): %v", err)
+	}
+	if err := backend.Close(); err != nil {
+		t.Fatalf("Close(seed): %v", err)
+	}
+
+	backend, err = Open(nil, localStatePath)
+	if err != nil {
+		t.Fatalf("Open(migrated): %v", err)
+	}
+	defer func() {
+		if err := backend.Close(); err != nil {
+			t.Fatalf("Close(migrated): %v", err)
+		}
+	}()
+
+	if tableExists(t, backend.DB(), "agentcore_meta") {
+		t.Fatal("expected legacy agentcore_meta table to be removed")
+	}
+	if tableExists(t, backend.DB(), "agentcore_agent") {
+		t.Fatal("expected empty legacy agentcore_agent table to be removed")
+	}
+	var sequence string
+	if err := backend.DB().QueryRow(`SELECT value FROM runtime_agent_meta WHERE key = 'agent_event_sequence'`).Scan(&sequence); err != nil {
+		t.Fatalf("QueryRow(agent_event_sequence): %v", err)
+	}
+	if sequence != "229" {
+		t.Fatalf("expected target meta value to win, got %q", sequence)
+	}
+	var legacyOnly string
+	if err := backend.DB().QueryRow(`SELECT value FROM runtime_agent_meta WHERE key = 'legacy_only'`).Scan(&legacyOnly); err != nil {
+		t.Fatalf("QueryRow(legacy_only): %v", err)
+	}
+	if legacyOnly != "old-value" {
+		t.Fatalf("expected missing legacy meta key to be copied, got %q", legacyOnly)
+	}
+}
+
+func TestBackendFailsClosedWhenLegacyAndTargetRuntimeAgentRowsConflict(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	backend, err := Open(nil, localStatePath)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if err := backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+		if _, err := tx.Exec(`INSERT INTO runtime_agent_agent(agent_id, agent_json) VALUES ('agent-new', '{}')`); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`CREATE TABLE agentcore_agent (
+			agent_id TEXT PRIMARY KEY,
+			agent_json TEXT NOT NULL
+		)`); err != nil {
+			return err
+		}
+		_, err := tx.Exec(`INSERT INTO agentcore_agent(agent_id, agent_json) VALUES ('agent-old', '{}')`)
+		return err
+	}); err != nil {
+		t.Fatalf("WriteTx(seed conflicting rows): %v", err)
+	}
+	if err := backend.Close(); err != nil {
+		t.Fatalf("Close(seed): %v", err)
+	}
+
+	backend, err = Open(nil, localStatePath)
+	if err == nil {
+		_ = backend.Close()
+		t.Fatal("expected conflicting non-meta legacy and target rows to fail closed")
+	}
+	if !strings.Contains(err.Error(), "both agentcore_agent and runtime_agent_agent contain rows") {
+		t.Fatalf("expected conflict error, got %v", err)
+	}
+}
+
 func TestBackendSerializesWritesWhileReadsProceed(t *testing.T) {
 	t.Parallel()
 
@@ -149,4 +251,13 @@ func TestBackendSerializesWritesWhileReadsProceed(t *testing.T) {
 	if value != writers {
 		t.Fatalf("expected serialized write count %d, got %d", writers, value)
 	}
+}
+
+func tableExists(t *testing.T, db *sql.DB, name string) bool {
+	t.Helper()
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, name).Scan(&count); err != nil {
+		t.Fatalf("QueryRow(table exists %s): %v", name, err)
+	}
+	return count > 0
 }

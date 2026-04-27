@@ -493,7 +493,10 @@ func (b *Backend) migrateRuntimeAgentNamespace() error {
 			return fmt.Errorf("check target runtime agent table %s: %w", pair.new, err)
 		}
 		if newExists {
-			return fmt.Errorf("runtime agent namespace migration blocked: both %s and %s exist", pair.old, pair.new)
+			if err := migrateOverlappingRuntimeAgentTable(tx, pair.old, pair.new); err != nil {
+				return err
+			}
+			continue
 		}
 		if _, err := tx.Exec(fmt.Sprintf(`ALTER TABLE %s RENAME TO %s`, pair.old, pair.new)); err != nil {
 			return fmt.Errorf("rename runtime agent table %s -> %s: %w", pair.old, pair.new, err)
@@ -505,12 +508,60 @@ func (b *Backend) migrateRuntimeAgentNamespace() error {
 	return nil
 }
 
+func migrateOverlappingRuntimeAgentTable(tx *sql.Tx, oldName string, newName string) error {
+	oldRows, err := sqliteTableRowCount(tx, oldName)
+	if err != nil {
+		return fmt.Errorf("count legacy runtime agent table %s: %w", oldName, err)
+	}
+	if oldRows == 0 {
+		if _, err := tx.Exec(fmt.Sprintf(`DROP TABLE %s`, oldName)); err != nil {
+			return fmt.Errorf("drop empty legacy runtime agent table %s: %w", oldName, err)
+		}
+		return nil
+	}
+	newRows, err := sqliteTableRowCount(tx, newName)
+	if err != nil {
+		return fmt.Errorf("count target runtime agent table %s: %w", newName, err)
+	}
+	if newRows == 0 {
+		if _, err := tx.Exec(fmt.Sprintf(`DROP TABLE %s`, newName)); err != nil {
+			return fmt.Errorf("drop empty target runtime agent table %s: %w", newName, err)
+		}
+		if _, err := tx.Exec(fmt.Sprintf(`ALTER TABLE %s RENAME TO %s`, oldName, newName)); err != nil {
+			return fmt.Errorf("rename runtime agent table %s -> %s: %w", oldName, newName, err)
+		}
+		return nil
+	}
+	if oldName == "agentcore_meta" && newName == "runtime_agent_meta" {
+		if _, err := tx.Exec(`
+			INSERT INTO runtime_agent_meta(key, value)
+			SELECT key, value FROM agentcore_meta
+			WHERE key NOT IN (SELECT key FROM runtime_agent_meta)
+		`); err != nil {
+			return fmt.Errorf("merge legacy runtime agent meta: %w", err)
+		}
+		if _, err := tx.Exec(`DROP TABLE agentcore_meta`); err != nil {
+			return fmt.Errorf("drop merged legacy runtime agent meta: %w", err)
+		}
+		return nil
+	}
+	return fmt.Errorf("runtime agent namespace migration blocked: both %s and %s contain rows", oldName, newName)
+}
+
 func sqliteTableExists(tx *sql.Tx, name string) (bool, error) {
 	var count int
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, name).Scan(&count); err != nil {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func sqliteTableRowCount(tx *sql.Tx, name string) (int, error) {
+	var count int
+	if err := tx.QueryRow(fmt.Sprintf(`SELECT COUNT(*) FROM %s`, name)).Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func databasePath(localStatePath string) (string, error) {
