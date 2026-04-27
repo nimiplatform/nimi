@@ -5,6 +5,7 @@ import {
   type Live2DCarrierVisualFrameStats,
   type Live2DCarrierVisualHost,
 } from './carrier-visual-host.js';
+import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 
 type Live2DCarrierVisualSurfaceProps = {
   session: Live2DBackendSession | null;
@@ -23,15 +24,23 @@ function measureHost(host: HTMLDivElement): { width: number; height: number } {
   };
 }
 
+function timeoutAfter<T>(ms: number, message: string): Promise<T> {
+  return new Promise((_, reject) => {
+    window.setTimeout(() => reject(new Error(message)), ms);
+  });
+}
+
 export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfaceProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Live2DCarrierVisualFrameStats | null>(null);
+  const recordedVisualRef = useRef(false);
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host || !session?.execution.loaded) {
+      recordedVisualRef.current = false;
       setStatus('idle');
       setError(null);
       setStats(null);
@@ -46,6 +55,13 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
     setStatus('loading');
     setError(null);
     setStats(null);
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.carrier.visual',
+      detail: {
+        status: 'loading',
+        source: 'avatar-live2d-carrier-surface',
+      },
+    });
 
     const renderLoop = () => {
       if (cancelled || !visualHost) {
@@ -55,9 +71,30 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
         const nextStats = visualHost.renderFrame();
         setStats(nextStats);
         setStatus('ready');
+        if (!recordedVisualRef.current && nextStats.visiblePixels > 0) {
+          recordedVisualRef.current = true;
+          recordAvatarEvidenceEventually({
+            kind: 'avatar.carrier.visual',
+            detail: {
+              status: 'ready',
+              visible_pixels: nextStats.visiblePixels,
+              visible_drawable_count: nextStats.visibleDrawableCount,
+              canvas_width: nextStats.width,
+              canvas_height: nextStats.height,
+            },
+          });
+        }
       } catch (renderError) {
+        const message = describeError(renderError);
         setStatus('error');
-        setError(describeError(renderError));
+        setError(message);
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.carrier.visual',
+          detail: {
+            status: 'error',
+            error: message,
+          },
+        });
         return;
       }
       animationFrame = requestAnimationFrame(renderLoop);
@@ -70,12 +107,15 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
         canvas.setAttribute('aria-hidden', 'true');
         host.replaceChildren(canvas);
         const size = measureHost(host);
-        visualHost = await createLive2DCarrierVisualHost({
-          canvas,
-          session,
-          width: size.width,
-          height: size.height,
-        });
+        visualHost = await Promise.race([
+          createLive2DCarrierVisualHost({
+            canvas,
+            session,
+            width: size.width,
+            height: size.height,
+          }),
+          timeoutAfter<Live2DCarrierVisualHost>(8_000, 'Live2D carrier visual host initialization timed out'),
+        ]);
         if (cancelled) {
           visualHost.unload();
           visualHost = null;
@@ -97,7 +137,15 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
           return;
         }
         setStatus('error');
-        setError(describeError(loadError));
+        const message = describeError(loadError);
+        setError(message);
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.carrier.visual',
+          detail: {
+            status: 'error',
+            error: message,
+          },
+        });
         host.replaceChildren();
       }
     })();
@@ -119,6 +167,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
       ref={hostRef}
       className="avatar-live2d-carrier"
       data-testid="avatar-live2d-carrier-visual"
+      data-avatar-owned-live2d-status={status}
       data-avatar-live2d-carrier-status={status}
       data-avatar-live2d-carrier-visible-pixels={stats?.visiblePixels ?? 0}
       data-avatar-live2d-carrier-drawables={stats?.visibleDrawableCount ?? 0}

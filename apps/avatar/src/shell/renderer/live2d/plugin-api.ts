@@ -7,6 +7,7 @@ import type {
   ProjectionBounds,
 } from '../nas/embodiment-projection-api.js';
 import { activityIdToMotionGroup } from '../nas/activity-naming.js';
+import type { Live2DCompatibilityReport } from './compatibility.js';
 
 export type Live2DCommandEvent =
   | { kind: 'motion'; group: string; options: PlayMotionOptions }
@@ -24,6 +25,7 @@ export type PluginApiContext = {
   bounds: () => ProjectionBounds;
   parameterState: Map<string, number>;
   commandBus: Live2DCommandBus;
+  compatibility?: Live2DCompatibilityReport | null;
 };
 
 const FALLBACK_IDLE_GROUP = 'Idle';
@@ -33,18 +35,35 @@ function resolveActivityIntensityMotion(activityId: string): string {
   return base;
 }
 
+function resolveAdapterActivityMotion(
+  compatibility: Live2DCompatibilityReport | null | undefined,
+  activityId: string,
+  intensity: string | null | undefined,
+): string | null {
+  const mapping = compatibility?.activityMotionGroups.get(activityId);
+  if (!mapping) return null;
+  if (intensity === 'weak' && mapping.weak_group) return mapping.weak_group;
+  if (intensity === 'strong' && mapping.strong_group) return mapping.strong_group;
+  return mapping.group ?? null;
+}
+
 async function runLive2DDefaultActivityFallback(
   context: PluginApiContext,
   activityId: string,
   options: ActivityFallbackOptions,
 ): Promise<void> {
   const intensity = options.bundle.activity?.intensity;
+  const adapterMotion = resolveAdapterActivityMotion(context.compatibility, activityId, intensity);
   const base = resolveActivityIntensityMotion(activityId);
-  const motion = intensity === 'weak'
+  const motion = adapterMotion ?? (intensity === 'weak'
     ? `${base}_Weak`
     : intensity === 'strong'
       ? `${base}_Strong`
-      : base;
+      : base);
+  if (!adapterMotion && context.compatibility?.missingActivity === 'diagnostic_no_success') {
+    console.warn(`[avatar:live2d:compat] AVATAR_LIVE2D_COMPAT_UNSUPPORTED_SEMANTIC: no motion mapping for ${activityId}`);
+    return;
+  }
   try {
     context.commandBus.emit('command', {
       kind: 'motion',
@@ -53,10 +72,11 @@ async function runLive2DDefaultActivityFallback(
     });
   } catch (err) {
     if (options.signal.aborted) return;
-    console.warn(`[avatar:live2d:fallback] ${motion} failed (${String(err)}), falling back to ${FALLBACK_IDLE_GROUP}`);
+    const idleGroup = context.compatibility?.idleMotionGroup ?? FALLBACK_IDLE_GROUP;
+    console.warn(`[avatar:live2d:fallback] ${motion} failed (${String(err)}), falling back to ${idleGroup}`);
     context.commandBus.emit('command', {
       kind: 'motion',
-      group: FALLBACK_IDLE_GROUP,
+      group: idleGroup,
       options: { priority: 'low' },
     });
   }

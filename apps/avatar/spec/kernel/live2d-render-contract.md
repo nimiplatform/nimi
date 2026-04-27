@@ -66,6 +66,13 @@ Avatar app 接收 `model_path`（来自 `avatar.app.start.detail.model_path` 或
 10. Compute model bounds → emit avatar.model.load + 通知 shell 调整 window
 ```
 
+Existing-asset adaptation is governed by
+[`live2d-asset-compatibility-contract.md`](live2d-asset-compatibility-contract.md).
+The loader may consume an Avatar-owned adapter manifest only through that
+contract's explicit manifest sources. It must not silently rewrite upstream
+Cubism assets or treat arbitrary Live2D package loading as semantic companion
+support.
+
 ### 2.2 Model-ID 推断 (NAV-L2D-003)
 
 `model_id` = `*.model3.json` 文件名去掉 `.model3.json` 后缀。

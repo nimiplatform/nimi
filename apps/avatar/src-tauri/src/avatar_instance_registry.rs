@@ -131,8 +131,11 @@ mod tests {
             } else {
                 AvatarAnchorMode::OpenNew
             },
-            launched_by: "desktop".to_string(),
+            launched_by: "nimi.desktop".to_string(),
+            runtime_app_id: Some("nimi.desktop".to_string()),
             source_surface: Some("desktop-agent-chat".to_string()),
+            realm_base_url: Some("http://localhost:3002".to_string()),
+            world_id: Some("world-1".to_string()),
         }
     }
 

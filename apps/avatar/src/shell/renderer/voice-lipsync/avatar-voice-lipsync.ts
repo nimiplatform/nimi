@@ -219,12 +219,14 @@ function emitDriverEvent(
 export function createAvatarVoiceLipsyncPipeline(input: {
   driver: AgentDataDriver;
   projection: EmbodimentProjectionApi;
+  mouthSignalId?: string;
 }): AvatarVoiceLipsyncPipeline {
   const canceled = new Set<string>();
   let disposed = false;
+  const mouthSignalId = input.mouthSignalId ?? AVATAR_MOUTH_OPEN_SIGNAL;
 
   function resetMouth(): void {
-    input.projection.setSignal(AVATAR_MOUTH_OPEN_SIGNAL, 0, 1);
+    input.projection.setSignal(mouthSignalId, 0, 1);
   }
 
   function handleInterrupt(event: AgentEvent, detail: Record<string, unknown>): void {
@@ -291,7 +293,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
         resetMouth();
         return;
       }
-      input.projection.setSignal(AVATAR_MOUTH_OPEN_SIGNAL, frame.mouthOpenY, 1);
+      input.projection.setSignal(mouthSignalId, frame.mouthOpenY, 1);
       emitDriverEvent(input.driver, 'avatar.lipsync.frame', timeline, {
         source_event_name: event.name,
         audio_artifact_id: voiceTiming.audioArtifactId ?? null,
@@ -336,6 +338,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
 export function wireAvatarVoiceLipsync(input: {
   driver: AgentDataDriver;
   projection: EmbodimentProjectionApi;
+  mouthSignalId?: string;
 }): () => void {
   const pipeline = createAvatarVoiceLipsyncPipeline(input);
   const unwire = input.driver.onEvent((event) => pipeline.handleEvent(event));

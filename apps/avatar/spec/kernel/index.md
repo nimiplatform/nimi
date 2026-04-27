@@ -41,6 +41,16 @@ Current shipped backend-specific rendering branch:
 - Default lipsync behavior (Phase 2)
 - Physics / expression / motion playback
 
+### [`live2d-asset-compatibility-contract.md`](live2d-asset-compatibility-contract.md)
+
+Existing Live2D asset adaptation:
+
+- Compatibility tiers for render-only, semantic-basic, and complete companion behavior
+- Adapter manifest format and validation diagnostics
+- Semantic mapping for motions, expressions, pose, lip-sync ids, physics, hit regions, and NAS fallback
+- Legal fixture and no-redistribution posture
+- Avatar carrier visual acceptance linkage
+
 ### [`carrier-visual-acceptance-contract.md`](carrier-visual-acceptance-contract.md)
 
 Avatar app carrier visual acceptance:
@@ -92,6 +102,10 @@ Phase 1 / 2 / 3 feature phasing. **Drift check**: code features must map to decl
 ### [`tables/activity-mapping.yaml`](tables/activity-mapping.yaml)
 
 Current Live2D backend branch default fallback mapping (used when NAS handler not provided for the activity).
+
+### [`tables/live2d-compatibility-tiers.yaml`](tables/live2d-compatibility-tiers.yaml)
+
+Existing Live2D asset compatibility tier requirements and forbidden success states.
 
 ### [`tables/scenario-catalog.yaml`](tables/scenario-catalog.yaml)
 

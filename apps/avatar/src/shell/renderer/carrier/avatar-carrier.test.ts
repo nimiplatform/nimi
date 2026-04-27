@@ -3,6 +3,7 @@ import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from 
 import { useAvatarStore } from '../app-shell/app-store.js';
 
 const resolveModelManifestMock = vi.fn();
+const readTextFileMock = vi.fn();
 const scanNasHandlersMock = vi.fn();
 const populateRegistryMock = vi.fn();
 const startNasHandlerHotReloadMock = vi.fn();
@@ -15,6 +16,7 @@ const backendUnloadMock = vi.fn();
 
 vi.mock('../live2d/model-loader.js', () => ({
   resolveModelManifest: (...args: unknown[]) => resolveModelManifestMock(...args),
+  readTextFile: (...args: unknown[]) => readTextFileMock(...args),
 }));
 
 vi.mock('../live2d/cubism-bootstrap.js', () => ({
@@ -111,6 +113,7 @@ describe('avatar runtime carrier', () => {
   beforeEach(() => {
     useAvatarStore.setState(useAvatarStore.getInitialState(), true);
     resolveModelManifestMock.mockReset();
+    readTextFileMock.mockReset();
     scanNasHandlersMock.mockReset();
     populateRegistryMock.mockReset();
     startNasHandlerHotReloadMock.mockReset();
@@ -125,6 +128,7 @@ describe('avatar runtime carrier', () => {
       modelId: 'ren',
       model3JsonPath: '/models/ren/runtime/ren.model3.json',
       nimiDir: null,
+      adapterManifestPath: null,
     });
     scanNasHandlersMock.mockResolvedValue({
       activity: [],
@@ -140,7 +144,76 @@ describe('avatar runtime carrier', () => {
     createLive2DBackendSessionMock.mockResolvedValue({
       applyCommand: (...args: unknown[]) => backendApplyCommandMock(...args),
       unload: (...args: unknown[]) => backendUnloadMock(...args),
+      compatibility: {
+        tier: 'render_only',
+        adapter: null,
+        diagnostics: [],
+        activityMotionGroups: new Map(),
+        idleMotionGroup: 'Idle',
+        mouthOpenParameterId: 'ParamMouthOpenY',
+        missingActivity: 'idle_degraded_with_diagnostic',
+      },
     });
+  });
+
+  it('loads an embedded Live2D adapter manifest and passes compatibility into the backend session', async () => {
+    resolveModelManifestMock.mockResolvedValue({
+      runtimeDir: '/models/ren/runtime',
+      modelId: 'ren',
+      model3JsonPath: '/models/ren/runtime/ren.model3.json',
+      nimiDir: '/models/ren/runtime/nimi',
+      adapterManifestPath: '/models/ren/runtime/nimi/live2d-adapter.json',
+    });
+    readTextFileMock.mockResolvedValue(JSON.stringify({
+      manifest_kind: 'nimi.avatar.live2d.adapter',
+      schema_version: 1,
+      adapter_id: 'ren-basic',
+      target_model: { model_id: 'ren', model3: 'ren.model3.json' },
+      license: {
+        redistribution: 'allowed',
+        evidence: 'synthetic test metadata',
+        fixture_use: 'committable',
+      },
+      compatibility: { requested_tier: 'render_only' },
+      semantics: {
+        motions: {
+          idle: { group: 'Idle' },
+          missing_activity: 'idle_degraded_with_diagnostic',
+        },
+        expressions: { disposition: { status: 'not_applicable', reason: 'render only' } },
+        poses: { disposition: { status: 'not_applicable', reason: 'render only' } },
+        lipsync: { disposition: { status: 'not_applicable', reason: 'render only' } },
+        physics: {
+          mode: 'absent',
+          disposition: { status: 'not_applicable', reason: 'render only' },
+        },
+        hit_regions: {
+          fallback: 'alpha_mask_only',
+          disposition: { status: 'not_applicable', reason: 'render only' },
+        },
+        nas_fallback: {
+          default_idle_motion: 'Idle',
+          missing_handler: 'backend_default_with_diagnostic',
+        },
+      },
+    }));
+
+    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
+    const driver = createDriver();
+    const carrier = await startAvatarRuntimeCarrier({
+      driver,
+      modelPath: '/models/ren',
+    });
+
+    expect(readTextFileMock).toHaveBeenCalledWith('/models/ren/runtime/nimi/live2d-adapter.json');
+    expect(createLive2DBackendSessionMock).toHaveBeenCalledWith(
+      expect.objectContaining({ modelId: 'ren' }),
+      expect.objectContaining({
+        adapterManifest: expect.objectContaining({ adapter_id: 'ren-basic' }),
+      }),
+    );
+
+    carrier.shutdown();
   });
 
   it('loads model manifest and uses Live2D default activity fallback when no NAS handler exists', async () => {
@@ -183,9 +256,58 @@ describe('avatar runtime carrier', () => {
       detail: expect.objectContaining({
         model_id: 'ren',
         nas_handler_count: 0,
+        compatibility_tier: 'render_only',
       }),
     });
     expect(commands).toEqual(['Activity_Happy']);
+
+    unsubscribeCommand();
+    carrier.shutdown();
+  });
+
+  it('uses adapter manifest motion mapping for Live2D fallback before convention names', async () => {
+    createLive2DBackendSessionMock.mockResolvedValueOnce({
+      applyCommand: (...args: unknown[]) => backendApplyCommandMock(...args),
+      unload: (...args: unknown[]) => backendUnloadMock(...args),
+      compatibility: {
+        tier: 'semantic_basic',
+        adapter: { adapter_id: 'ren-basic' },
+        diagnostics: [],
+        activityMotionGroups: new Map([
+          ['greet', { group: 'RenWave' }],
+        ]),
+        idleMotionGroup: 'RenIdle',
+        mouthOpenParameterId: 'ParamMouthOpenY',
+        missingActivity: 'diagnostic_no_success',
+      },
+    });
+    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
+    const driver = createDriver();
+    const carrier = await startAvatarRuntimeCarrier({
+      driver,
+      modelPath: '/models/ren',
+    });
+    const commands: string[] = [];
+    const unsubscribeCommand = carrier.commandBus.on('command', (command) => {
+      if (command.kind === 'motion') {
+        commands.push(command.group);
+      }
+    });
+
+    driver.trigger({
+      event_id: 'event-adapter-greet',
+      name: 'runtime.agent.presentation.activity_requested',
+      timestamp: '2026-04-25T00:00:01.000Z',
+      detail: {
+        activity_name: 'greet',
+        category: 'interaction',
+        intensity: 'moderate',
+        source: 'apml_output',
+      },
+    });
+    await Promise.resolve();
+
+    expect(commands).toEqual(['RenWave']);
 
     unsubscribeCommand();
     carrier.shutdown();

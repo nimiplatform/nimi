@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentDataBundle, AgentDataDriver, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from './app-store.js';
 
@@ -20,6 +20,9 @@ const startDaemonMock = vi.fn();
 const onShellReadyMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
 const openConversationAnchorMock = vi.fn();
+const getAgentMock = vi.fn();
+const registerAppMock = vi.fn();
+const authorizeExternalPrincipalMock = vi.fn();
 const requestTurnMock = vi.fn();
 const interruptTurnMock = vi.fn();
 const routeListOptionsMock = vi.fn();
@@ -148,6 +151,37 @@ function createFakeDriver(kind: 'sdk' | 'mock'): AgentDataDriver {
   };
 }
 
+function presentationProfileMetadata(input: {
+  backendKind?: string;
+  avatarAssetRef?: string;
+} = {}) {
+  return {
+    fields: {
+      presentationProfile: {
+        kind: {
+          oneofKind: 'structValue',
+          structValue: {
+            fields: {
+              backendKind: {
+                kind: {
+                  oneofKind: 'stringValue',
+                  stringValue: input.backendKind || 'live2d',
+                },
+              },
+              avatarAssetRef: {
+                kind: {
+                  oneofKind: 'stringValue',
+                  stringValue: input.avatarAssetRef || '/models/runtime-profile-ren',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
 describe('bootstrapAvatar', () => {
   beforeEach(() => {
     useAvatarStore.setState(useAvatarStore.getInitialState(), true);
@@ -169,6 +203,9 @@ describe('bootstrapAvatar', () => {
     onShellReadyMock.mockReset();
     setAlwaysOnTopMock.mockReset();
     openConversationAnchorMock.mockReset();
+    getAgentMock.mockReset();
+    registerAppMock.mockReset();
+    authorizeExternalPrincipalMock.mockReset();
     requestTurnMock.mockReset();
     interruptTurnMock.mockReset();
     routeListOptionsMock.mockReset();
@@ -221,7 +258,8 @@ describe('bootstrapAvatar', () => {
       avatarInstanceId: 'instance-1',
       conversationAnchorId: 'anchor-launch',
       anchorMode: 'existing',
-      launchedBy: 'desktop',
+      launchedBy: 'nimi.desktop',
+      runtimeAppId: 'nimi.desktop',
       sourceSurface: 'desktop-agent-chat',
     });
     getRuntimeDefaultsMock.mockResolvedValue({
@@ -271,9 +309,30 @@ describe('bootstrapAvatar', () => {
       };
     });
     startDaemonMock.mockResolvedValue({ running: true });
+    getAgentMock.mockResolvedValue({
+      agent: {
+        metadata: presentationProfileMetadata(),
+      },
+    });
+    registerAppMock.mockResolvedValue({ accepted: true });
+    authorizeExternalPrincipalMock.mockResolvedValue({
+      tokenId: 'protected-token-id',
+      secret: 'protected-secret',
+      expiresAt: {
+        seconds: String(Math.floor(Date.now() / 1000) + 3600),
+        nanos: 0,
+      },
+    });
     createPlatformClientMock.mockResolvedValue({
       runtime: {
+        appId: 'nimi.desktop',
         ready: async () => undefined,
+        auth: {
+          registerApp: (...args: unknown[]) => registerAppMock(...args),
+        },
+        appAuth: {
+          authorizeExternalPrincipal: (...args: unknown[]) => authorizeExternalPrincipalMock(...args),
+        },
         route: {
           listOptions: (...args: unknown[]) => routeListOptionsMock(...args),
           checkHealth: (...args: unknown[]) => routeCheckHealthMock(...args),
@@ -284,6 +343,7 @@ describe('bootstrapAvatar', () => {
           },
         },
         agent: {
+          getAgent: (...args: unknown[]) => getAgentMock(...args),
           anchors: {
             open: (...args: unknown[]) => openConversationAnchorMock(...args),
           },
@@ -325,6 +385,10 @@ describe('bootstrapAvatar', () => {
     });
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('boots through sdk as the normal path and does not require mock fixture input', async () => {
     createDriverMock.mockReturnValue(createFakeDriver('sdk'));
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
@@ -354,7 +418,19 @@ describe('bootstrapAvatar', () => {
     }));
     expect(startAvatarRuntimeCarrierMock).toHaveBeenCalledWith(expect.objectContaining({
       driver: expect.any(Object),
-      modelPath: '/models/ren',
+      modelPath: '/models/runtime-profile-ren',
+    }));
+    expect(getAgentMock).toHaveBeenCalledWith(expect.objectContaining({
+      context: {
+        appId: 'nimi.desktop',
+        subjectUserId: 'user-1',
+      },
+      agentId: 'agent-launch',
+    }), expect.objectContaining({
+      protectedAccessToken: {
+        tokenId: 'protected-token-id',
+        secret: 'protected-secret',
+      },
     }));
     expect(handle.carrier).toEqual(expect.objectContaining({
       backendSession: expect.objectContaining({
@@ -391,7 +467,8 @@ describe('bootstrapAvatar', () => {
       avatarInstanceId: 'instance-new-anchor',
       conversationAnchorId: null,
       anchorMode: 'open_new',
-      launchedBy: 'desktop',
+      launchedBy: 'nimi.desktop',
+      runtimeAppId: 'nimi.desktop',
       sourceSurface: 'desktop-agent-chat',
     });
     createDriverMock.mockReturnValue(createFakeDriver('sdk'));
@@ -410,7 +487,7 @@ describe('bootstrapAvatar', () => {
       agentId: 'agent-launch',
       metadata: expect.objectContaining({
         avatarInstanceId: 'instance-new-anchor',
-        launchedBy: 'desktop',
+        launchedBy: 'nimi.desktop',
       }),
     });
 
@@ -426,7 +503,8 @@ describe('bootstrapAvatar', () => {
       avatarInstanceId: 'instance-anchor-a',
       conversationAnchorId: 'anchor-a',
       anchorMode: 'existing',
-      launchedBy: 'desktop',
+      launchedBy: 'nimi.desktop',
+      runtimeAppId: 'nimi.desktop',
       sourceSurface: 'desktop-agent-chat',
     });
     const firstHandle = await bootstrapAvatar();
@@ -439,7 +517,8 @@ describe('bootstrapAvatar', () => {
       avatarInstanceId: 'instance-anchor-b',
       conversationAnchorId: 'anchor-b',
       anchorMode: 'existing',
-      launchedBy: 'desktop',
+      launchedBy: 'nimi.desktop',
+      runtimeAppId: 'nimi.desktop',
       sourceSurface: 'desktop-agent-chat',
     });
     const secondHandle = await bootstrapAvatar();
@@ -476,15 +555,19 @@ describe('bootstrapAvatar', () => {
   });
 
   it('fails closed when desktop launch context is missing', async () => {
+    vi.useFakeTimers();
     getAvatarLaunchContextMock.mockRejectedValue(
       new Error('avatar launch context is required; launch from desktop orchestrator'),
     );
     createDriverMock.mockReturnValue(createFakeDriver('sdk'));
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
 
-    await expect(bootstrapAvatar()).rejects.toThrow(
-      'avatar launch context is required; launch from desktop orchestrator',
+    const bootstrap = bootstrapAvatar();
+    const assertion = expect(bootstrap).rejects.toThrow(
+      'avatar launch context was not bound within 5000ms',
     );
+    await vi.advanceTimersByTimeAsync(5_000);
+    await assertion;
   });
 
   it('fails closed when runtime daemon cannot start instead of falling back to mock', async () => {

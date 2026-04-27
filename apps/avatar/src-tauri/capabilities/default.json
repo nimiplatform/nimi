@@ -1,33 +1,33 @@
 {
   "identifier": "default",
   "description": "Default capability for the avatar window (transparent, always-on-top)",
-  "windows": ["avatar"],
+  "windows": ["avatar", "avatar-instance-*"],
   "permissions": [
     "core:default",
     "deep-link:default",
     {
       "identifier": "core:window:allow-set-title",
-      "allow": [{ "label": "avatar" }]
+      "allow": [{ "label": "avatar" }, { "label": "avatar-instance-*" }]
     },
     {
       "identifier": "core:window:allow-set-size",
-      "allow": [{ "label": "avatar" }]
+      "allow": [{ "label": "avatar" }, { "label": "avatar-instance-*" }]
     },
     {
       "identifier": "core:window:allow-set-position",
-      "allow": [{ "label": "avatar" }]
+      "allow": [{ "label": "avatar" }, { "label": "avatar-instance-*" }]
     },
     {
       "identifier": "core:window:allow-set-always-on-top",
-      "allow": [{ "label": "avatar" }]
+      "allow": [{ "label": "avatar" }, { "label": "avatar-instance-*" }]
     },
     {
       "identifier": "core:window:allow-set-ignore-cursor-events",
-      "allow": [{ "label": "avatar" }]
+      "allow": [{ "label": "avatar" }, { "label": "avatar-instance-*" }]
     },
     {
       "identifier": "core:window:allow-start-dragging",
-      "allow": [{ "label": "avatar" }]
+      "allow": [{ "label": "avatar" }, { "label": "avatar-instance-*" }]
     }
   ]
 }

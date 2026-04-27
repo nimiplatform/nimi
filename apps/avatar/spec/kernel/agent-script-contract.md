@@ -547,6 +547,11 @@ Avatar app 加载 model 时：
 }
 ```
 **所有字段可选**。不存在 config.json → 全部走 default。
+
+`runtime/nimi/live2d-adapter.json`, when present, is not NAS configuration and
+does not change NAS 1.0 into a declarative DSL. It is governed by
+`live2d-asset-compatibility-contract.md` and only maps an existing Live2D
+package to Avatar carrier compatibility tiers.
 ---
 ## 12. Handler Execution Model ⚠️ [分叉 49 — Option B]
 ### 12.1 Activity / Event Handler Execution

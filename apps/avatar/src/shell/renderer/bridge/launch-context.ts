@@ -8,7 +8,10 @@ export type AvatarLaunchContext = {
   conversationAnchorId: string | null;
   anchorMode: AvatarLaunchAnchorMode;
   launchedBy: string;
+  runtimeAppId?: string | null;
   sourceSurface: string | null;
+  realmBaseUrl?: string | null;
+  worldId?: string | null;
 };
 
 function normalizeRequiredString(value: unknown, field: string): string {
@@ -42,7 +45,10 @@ export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
     conversationAnchorId: normalizeOptionalString(record.conversationAnchorId),
     anchorMode: parseAnchorMode(record.anchorMode),
     launchedBy: normalizeRequiredString(record.launchedBy, 'launchedBy'),
+    runtimeAppId: normalizeOptionalString(record.runtimeAppId),
     sourceSurface: normalizeOptionalString(record.sourceSurface),
+    realmBaseUrl: normalizeOptionalString(record.realmBaseUrl),
+    worldId: normalizeOptionalString(record.worldId),
   };
   if (context.anchorMode === 'existing' && !context.conversationAnchorId) {
     throw new Error('avatar launch context requires conversationAnchorId when anchorMode=existing');

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
 import { useAvatarStore } from './app-shell/app-store.js';
+import { recordAvatarEvidenceEventually } from './app-shell/avatar-evidence.js';
 import { setAlwaysOnTop, startWindowDrag } from './app-shell/tauri-commands.js';
 import { isTauriRuntime, onLaunchContextUpdated } from './app-shell/tauri-lifecycle.js';
 import {
@@ -158,6 +159,18 @@ export function App() {
   useEffect(() => {
     useAvatarStore.getState().setAlwaysOnTop(shellSettings.alwaysOnTop);
   }, [shellSettings.alwaysOnTop]);
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.renderer.boot',
+      detail: {
+        source: 'avatar-renderer',
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      },
+    });
+  }, []);
   useEffect(() => {
     const handleKeyDown = (): void => {
       setInteractionModality('keyboard');

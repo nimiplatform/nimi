@@ -95,7 +95,7 @@ export default defineConfig(() => {
       'globalThis.__NIMI_IMPORT_META_ENV__': 'import.meta.env',
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('nimi-avatar'),
     },
-    publicDir: false as const,
+    publicDir: path.resolve(__dirname, 'src/shell/renderer/public'),
     resolve: {
       dedupe: [
         'react',

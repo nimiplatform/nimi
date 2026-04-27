@@ -1,4 +1,8 @@
 import { clearPlatformClient, createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
+import { createRuntimeProtectedScopeHelper } from '@nimiplatform/sdk/runtime/browser';
+import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
+import { invoke as tauriInvoke, type InvokeArgs } from '@tauri-apps/api/core';
+import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event';
 import {
   persistSharedDesktopAuthSession,
   resolveDesktopBootstrapAuthSession,
@@ -21,6 +25,7 @@ import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
 import { bootstrapAuthSession } from './bootstrap-auth.js';
+import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import {
   useAvatarStore,
   type AvatarAuthFailureReason,
@@ -72,15 +77,242 @@ function readNormalizedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+type TauriRuntimeSdkHook = {
+  invoke: (command: string, payload?: unknown) => Promise<unknown>;
+  listen: (
+    eventName: string,
+    handler: (event: { event?: string; id?: number; payload: unknown }) => void,
+  ) => Promise<UnlistenFn>;
+};
+
+function installTauriRuntimeSdkHook(): void {
+  if (!hasTauriInvoke()) {
+    return;
+  }
+  const hook: TauriRuntimeSdkHook = {
+    invoke: (command, payload) => tauriInvoke(command, payload as InvokeArgs | undefined),
+    listen: (eventName, handler) => tauriListen(eventName, handler),
+  };
+  const target = globalThis as typeof globalThis & {
+    __NIMI_TAURI_RUNTIME__?: TauriRuntimeSdkHook;
+    window?: Window & { __NIMI_TAURI_RUNTIME__?: TauriRuntimeSdkHook };
+  };
+  target.__NIMI_TAURI_RUNTIME__ = hook;
+  if (target.window) {
+    target.window.__NIMI_TAURI_RUNTIME__ = hook;
+  }
+}
+
+function applyLaunchContextRuntimeDefaults(
+  runtimeDefaults: Awaited<ReturnType<typeof getRuntimeDefaults>>,
+  launchContext: AvatarLaunchContext,
+): Awaited<ReturnType<typeof getRuntimeDefaults>> {
+  const realmBaseUrl = readNormalizedString(launchContext.realmBaseUrl);
+  const worldId = readNormalizedString(launchContext.worldId);
+  if (!realmBaseUrl && !worldId) {
+    return runtimeDefaults;
+  }
+  return {
+    ...runtimeDefaults,
+    realm: {
+      ...runtimeDefaults.realm,
+      ...(realmBaseUrl ? { realmBaseUrl } : {}),
+    },
+    runtime: {
+      ...runtimeDefaults.runtime,
+      ...(worldId ? { worldId } : {}),
+    },
+  };
+}
+
 function createAbortError(message: string): Error {
   const error = new Error(message);
   error.name = 'AbortError';
   return error;
 }
 
-function resolveAvatarModelPath(): string {
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function wait(ms: number): Promise<void> {
+  await new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function waitForAvatarLaunchContext(timeoutMs: number): Promise<AvatarLaunchContext> {
+  const startedAt = Date.now();
+  let lastError: unknown = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      return await getAvatarLaunchContext();
+    } catch (error) {
+      lastError = error;
+      await wait(100);
+    }
+  }
+  throw new Error(`avatar launch context was not bound within ${timeoutMs}ms: ${errorMessage(lastError)}`);
+}
+
+function resolveConfiguredAvatarModelPath(): string {
   return readNormalizedString(import.meta.env['VITE_AVATAR_MODEL_PATH'])
     || readNormalizedString(import.meta.env['NIMI_AVATAR_MODEL_PATH']);
+}
+
+type ProtoStructLike = {
+  fields?: Record<string, ProtoValueLike>;
+};
+
+type ProtoValueLike = {
+  kind?: {
+    oneofKind?: 'nullValue' | 'numberValue' | 'stringValue' | 'boolValue' | 'structValue' | 'listValue';
+    nullValue?: number;
+    numberValue?: number;
+    stringValue?: string;
+    boolValue?: boolean;
+    structValue?: ProtoStructLike;
+    listValue?: {
+      values?: ProtoValueLike[];
+    };
+  };
+};
+
+function protoValueToJson(value?: ProtoValueLike): unknown {
+  switch (value?.kind?.oneofKind) {
+    case 'boolValue':
+      return value.kind.boolValue ?? false;
+    case 'numberValue':
+      return value.kind.numberValue ?? 0;
+    case 'stringValue':
+      return value.kind.stringValue ?? '';
+    case 'structValue':
+      return protoStructToJson(value.kind.structValue);
+    case 'listValue':
+      return (value.kind.listValue?.values || []).map((item) => protoValueToJson(item));
+    default:
+      return null;
+  }
+}
+
+function protoStructToJson(value?: ProtoStructLike): Record<string, unknown> {
+  const output: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value?.fields || {})) {
+    output[key] = protoValueToJson(item);
+  }
+  return output;
+}
+
+function parseAvatarBackendKind(value: unknown): AvatarPresentationProfile['backendKind'] | null {
+  const normalized = readNormalizedString(value);
+  if (
+    normalized === 'vrm'
+    || normalized === 'live2d'
+    || normalized === 'sprite2d'
+    || normalized === 'canvas2d'
+    || normalized === 'video'
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
+function parseAvatarPresentationProfile(value: unknown): AvatarPresentationProfile | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const backendKind = parseAvatarBackendKind(record.backendKind);
+  const avatarAssetRef = readNormalizedString(record.avatarAssetRef);
+  if (!backendKind || !avatarAssetRef) {
+    return null;
+  }
+  return {
+    backendKind,
+    avatarAssetRef,
+    expressionProfileRef: readNormalizedString(record.expressionProfileRef) || null,
+    idlePreset: readNormalizedString(record.idlePreset) || null,
+    interactionPolicyRef: readNormalizedString(record.interactionPolicyRef) || null,
+    defaultVoiceReference: readNormalizedString(record.defaultVoiceReference) || null,
+  };
+}
+
+function readAgentPresentationProfile(metadata?: ProtoStructLike): AvatarPresentationProfile | null {
+  const json = protoStructToJson(metadata);
+  return parseAvatarPresentationProfile(json.presentationProfile);
+}
+
+function resolveLocalLive2DAssetPath(assetRef: string): string | null {
+  const normalized = readNormalizedString(assetRef);
+  if (!normalized) {
+    return null;
+  }
+  if (normalized.startsWith('/') || /^[A-Za-z]:[\\/]/.test(normalized)) {
+    return normalized;
+  }
+  if (/^file:\/\//i.test(normalized) || /^asset:\/\/localhost\//i.test(normalized)) {
+    try {
+      const parsed = new URL(normalized);
+      return decodeURIComponent(parsed.pathname || '') || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function resolveRuntimeAppId(launchContext: AvatarLaunchContext): string {
+  const explicitRuntimeAppId = readNormalizedString(launchContext.runtimeAppId);
+  if (explicitRuntimeAppId) {
+    return explicitRuntimeAppId;
+  }
+  const launchedBy = readNormalizedString(launchContext.launchedBy);
+  if (launchedBy === 'desktop') {
+    return 'nimi.desktop';
+  }
+  return launchedBy || 'nimi.avatar';
+}
+
+async function resolveRuntimePresentationProfile(input: {
+  runtime: PlatformClient['runtime'];
+  agentId: string;
+  subjectUserId: string;
+}): Promise<AvatarPresentationProfile | null> {
+  const protectedScopes = createRuntimeProtectedScopeHelper({
+    runtime: input.runtime,
+    getSubjectUserId: () => input.subjectUserId,
+  });
+  const response = await protectedScopes.withScopes(['runtime.agent.read'], (options) => input.runtime.agent.getAgent({
+    context: {
+      appId: input.runtime.appId,
+      subjectUserId: input.subjectUserId,
+    },
+    agentId: input.agentId,
+  }, options));
+  return readAgentPresentationProfile(response.agent?.metadata);
+}
+
+async function resolveAvatarModelPath(input: {
+  runtime: PlatformClient['runtime'];
+  agentId: string;
+  subjectUserId: string;
+}): Promise<string> {
+  const profile = await resolveRuntimePresentationProfile(input);
+  if (profile) {
+    if (profile.backendKind !== 'live2d') {
+      throw new Error(`avatar presentation profile backend is not Live2D: ${profile.backendKind}`);
+    }
+    const modelPath = resolveLocalLive2DAssetPath(profile.avatarAssetRef);
+    if (!modelPath) {
+      throw new Error('avatar presentation profile Live2D asset ref must resolve to a local model path');
+    }
+    return modelPath;
+  }
+  const configuredPath = resolveConfiguredAvatarModelPath();
+  if (configuredPath) {
+    return configuredPath;
+  }
+  throw new Error('avatar Live2D model path is not configured by Runtime presentation profile or NIMI_AVATAR_MODEL_PATH');
 }
 
 type RuntimeExecutionBinding = {
@@ -237,6 +469,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let unsubscribeBundle = () => {};
   let shouldClearPlatformClient = false;
   let cleanedUp = false;
+  let authResolutionEvidence: Record<string, unknown> | null = null;
   let getVoiceInputAvailability: BootstrapHandle['getVoiceInputAvailability'] = async () => ({
     available: false,
     reason: 'Foreground voice is unavailable outside runtime-bound mode.',
@@ -309,16 +542,30 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       if (!isTauriRuntime() || !hasTauriInvoke()) {
         throw new Error('avatar real runtime bootstrap requires Tauri runtime');
       }
-      const launchContext = await getAvatarLaunchContext();
+      installTauriRuntimeSdkHook();
+      const launchContext = await waitForAvatarLaunchContext(5_000);
       useAvatarStore.getState().setLaunchContext(launchContext);
 
-      const runtimeDefaults = await getRuntimeDefaults();
+      const runtimeDefaults = applyLaunchContextRuntimeDefaults(
+        await getRuntimeDefaults(),
+        launchContext,
+      );
       useAvatarStore.getState().setRuntimeDefaults(runtimeDefaults);
       const resolvedBootstrapAuthSession = await resolveDesktopBootstrapAuthSession({
         realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
         envAccessToken: runtimeDefaults.realm.accessToken,
         loadPersistedSession: () => loadAuthSession(),
       });
+      authResolutionEvidence = {
+        realm_base_url: runtimeDefaults.realm.realmBaseUrl,
+        env_access_token_present: Boolean(String(runtimeDefaults.realm.accessToken || '').trim()),
+        source: resolvedBootstrapAuthSession.source,
+        resolution: resolvedBootstrapAuthSession.resolution,
+        has_session: Boolean(resolvedBootstrapAuthSession.session),
+        has_access_token: Boolean(String(resolvedBootstrapAuthSession.session?.accessToken || '').trim()),
+        session_realm_base_url: String(resolvedBootstrapAuthSession.session?.realmBaseUrl || '').trim() || null,
+        should_clear_persisted_session: resolvedBootstrapAuthSession.shouldClearPersistedSession,
+      };
       if (resolvedBootstrapAuthSession.shouldClearPersistedSession) {
         await clearAuthSession();
       }
@@ -352,8 +599,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         await cleanup();
       };
 
+      const runtimeAppId = resolveRuntimeAppId(launchContext);
       const { runtime, realm } = await createPlatformClient({
-        appId: 'nimi.avatar',
+        appId: runtimeAppId,
         realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
         accessToken: bootstrapAccessToken,
         accessTokenProvider: resolveCurrentAccessToken,
@@ -450,6 +698,20 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         agentId,
         worldId,
       });
+      recordAvatarEvidenceEventually({
+        kind: 'avatar.startup.runtime-bound',
+        detail: {
+          driver_kind: 'sdk',
+          authority: 'runtime',
+          agent_id: agentId,
+          conversation_anchor_id: conversationAnchorId,
+          avatar_instance_id: launchContext.avatarInstanceId,
+          world_id: worldId,
+          launched_by: launchContext.launchedBy,
+          runtime_app_id: runtimeAppId,
+          source_surface: launchContext.sourceSurface || null,
+        },
+      });
       driver = createDriver({
         kind: 'sdk',
         sdk: {
@@ -472,7 +734,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       });
       carrier = await startAvatarRuntimeCarrier({
         driver,
-        modelPath: resolveAvatarModelPath(),
+        modelPath: await resolveAvatarModelPath({
+          runtime,
+          agentId,
+          subjectUserId: authUser.id,
+        }),
       });
 
       if (resolvedBootstrapAuthSession.source === 'persisted') {
@@ -716,6 +982,30 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       },
     };
   } catch (error) {
+    const errorRecord = error as {
+      message?: unknown;
+      name?: unknown;
+      stack?: unknown;
+      reasonCode?: unknown;
+      actionHint?: unknown;
+      source?: unknown;
+      retryable?: unknown;
+      cause?: unknown;
+    };
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.startup.failed',
+      detail: {
+        error: error instanceof Error ? error.message : String(error || 'unknown avatar startup failure'),
+        error_name: error instanceof Error ? error.name : null,
+        error_reason_code: typeof errorRecord.reasonCode === 'string' ? errorRecord.reasonCode : null,
+        error_action_hint: typeof errorRecord.actionHint === 'string' ? errorRecord.actionHint : null,
+        error_source: typeof errorRecord.source === 'string' ? errorRecord.source : null,
+        error_retryable: typeof errorRecord.retryable === 'boolean' ? errorRecord.retryable : null,
+        error_stack: typeof errorRecord.stack === 'string' ? errorRecord.stack.slice(0, 2_000) : null,
+        error_cause: errorRecord.cause ? String(errorRecord.cause).slice(0, 1_000) : null,
+        auth_resolution: authResolutionEvidence,
+      },
+    });
     await cleanup();
     throw error;
   }

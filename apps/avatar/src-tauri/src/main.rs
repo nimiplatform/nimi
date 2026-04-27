@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod avatar_evidence_projection;
 mod avatar_instance_projection;
 mod avatar_instance_registry;
 mod avatar_launch_context;
@@ -10,6 +11,7 @@ use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use avatar_evidence_projection::AvatarEvidenceRecordInput;
 use avatar_instance_projection::{persist_projection, AvatarInstanceProjectionRecord};
 use avatar_instance_registry::AvatarInstanceRegistry;
 use avatar_launch_context::{
@@ -21,6 +23,7 @@ use nimi_kit_shell_tauri::runtime_bridge;
 use nimi_kit_shell_tauri::runtime_defaults as defaults;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
+use serde_json::json;
 use tauri::{
     Emitter, Manager, PhysicalPosition, PhysicalSize, State, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder,
@@ -43,6 +46,7 @@ struct ModelManifest {
     model_id: String,
     model3_json_path: String,
     nimi_dir: Option<String>,
+    adapter_manifest_path: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -173,6 +177,29 @@ fn sync_avatar_instance_projection(registry: &AvatarInstanceRegistry) {
     }
 }
 
+fn now_evidence_timestamp() -> String {
+    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+}
+
+fn record_avatar_backend_evidence(
+    context: &AvatarLaunchContext,
+    kind: &str,
+    detail: serde_json::Value,
+) {
+    if let Err(error) = avatar_evidence_projection::append_evidence_record(
+        context.clone(),
+        AvatarEvidenceRecordInput {
+            kind: kind.to_string(),
+            recorded_at: now_evidence_timestamp(),
+            detail,
+            consume: json!({ "mode": "sdk", "authority": "runtime" }),
+            model: json!({}),
+        },
+    ) {
+        eprintln!("[avatar-carrier-evidence] backend diagnostic failed: {error}");
+    }
+}
+
 fn build_avatar_window(
     app: &tauri::AppHandle,
     window_label: &str,
@@ -203,6 +230,15 @@ fn route_avatar_launch_context(
                 emit_update_event_for_reused_window,
             );
             sync_avatar_instance_projection(registry);
+            record_avatar_backend_evidence(
+                &context,
+                "avatar.launch.context-bound",
+                json!({
+                    "source": "avatar-backend",
+                    "window_label": window.label(),
+                    "window_reused": true
+                }),
+            );
             return Ok(());
         }
     }
@@ -216,6 +252,15 @@ fn route_avatar_launch_context(
                 emit_update_event_for_reused_window,
             );
             sync_avatar_instance_projection(registry);
+            record_avatar_backend_evidence(
+                &context,
+                "avatar.launch.context-bound",
+                json!({
+                    "source": "avatar-backend",
+                    "window_label": window.label(),
+                    "window_reused": true
+                }),
+            );
             return Ok(());
         }
     }
@@ -226,6 +271,15 @@ fn route_avatar_launch_context(
     registry.bind_window(window.label().to_string(), context.clone())?;
     sync_avatar_window_to_launch_context(&window, &context, false);
     sync_avatar_instance_projection(registry);
+    record_avatar_backend_evidence(
+        &context,
+        "avatar.launch.context-bound",
+        json!({
+            "source": "avatar-backend",
+            "window_label": window.label(),
+            "window_reused": false
+        }),
+    );
     Ok(())
 }
 
@@ -259,9 +313,35 @@ async fn nimi_avatar_get_launch_context(
     window: WebviewWindow,
     registry: State<'_, AvatarInstanceRegistry>,
 ) -> Result<AvatarLaunchContext, String> {
-    registry.context_for_window(window.label())?.ok_or_else(|| {
-        "avatar launch context is required; launch from desktop orchestrator".to_string()
-    })
+    let context = registry
+        .context_for_window(window.label())?
+        .ok_or_else(|| {
+            "avatar launch context is required; launch from desktop orchestrator".to_string()
+        })?;
+    record_avatar_backend_evidence(
+        &context,
+        "avatar.renderer.launch-context-read",
+        json!({
+            "source": "avatar-backend",
+            "window_label": window.label()
+        }),
+    );
+    Ok(context)
+}
+
+#[tauri::command]
+async fn nimi_avatar_record_evidence(
+    window: WebviewWindow,
+    registry: State<'_, AvatarInstanceRegistry>,
+    payload: AvatarEvidenceRecordInput,
+) -> Result<String, String> {
+    let context = registry
+        .context_for_window(window.label())?
+        .ok_or_else(|| {
+            "avatar evidence requires launch context; launch from desktop orchestrator".to_string()
+        })?;
+    let path = avatar_evidence_projection::append_evidence_record(context, payload)?;
+    Ok(path.display().to_string())
 }
 
 #[tauri::command]
@@ -320,7 +400,9 @@ async fn nimi_avatar_constrain_window_to_visible_area(
         position.y.clamp(min_y, max_y),
     );
     if constrained != position {
-        window.set_position(constrained).map_err(|e| e.to_string())?;
+        window
+            .set_position(constrained)
+            .map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -379,11 +461,20 @@ async fn nimi_avatar_resolve_model(path: String) -> Result<ModelManifest, String
             None
         }
     };
+    let adapter_manifest_path = {
+        let candidate = runtime_dir.join("nimi").join("live2d-adapter.json");
+        if candidate.is_file() {
+            Some(candidate.display().to_string())
+        } else {
+            None
+        }
+    };
     Ok(ModelManifest {
         runtime_dir: runtime_dir.display().to_string(),
         model_id,
         model3_json_path: model3.display().to_string(),
         nimi_dir,
+        adapter_manifest_path,
     })
 }
 
@@ -553,6 +644,17 @@ fn main() {
                 && is_avatar_window_label(webview.label())
             {
                 emit_avatar_shell_ready_for_webview(webview);
+                let registry = webview.app_handle().state::<AvatarInstanceRegistry>();
+                if let Ok(Some(context)) = registry.context_for_window(webview.label()) {
+                    record_avatar_backend_evidence(
+                        &context,
+                        "avatar.window.page-loaded",
+                        json!({
+                            "source": "avatar-backend",
+                            "window_label": webview.label()
+                        }),
+                    );
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -575,6 +677,7 @@ fn main() {
             nimi_avatar_constrain_window_to_visible_area,
             nimi_avatar_set_always_on_top,
             nimi_avatar_get_launch_context,
+            nimi_avatar_record_evidence,
             nimi_avatar_resolve_model,
             nimi_avatar_scan_nas_handlers,
             nimi_avatar_read_text_file,

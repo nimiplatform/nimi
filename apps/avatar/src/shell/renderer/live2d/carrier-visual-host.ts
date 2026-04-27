@@ -23,6 +23,16 @@ export type Live2DCarrierVisualFrameStats = {
   textureBindingCount: number;
 };
 
+export class Live2DCarrierVisualFrameError extends Error {
+  public constructor(
+    message: string,
+    public readonly stats: Live2DCarrierVisualFrameStats,
+  ) {
+    super(message);
+    this.name = 'Live2DCarrierVisualFrameError';
+  }
+}
+
 export type Live2DCarrierVisualHost = {
   readonly canvas: HTMLCanvasElement;
   renderFrame(input?: {
@@ -68,7 +78,7 @@ function sampleVisiblePixels(input: {
   width: number;
   height: number;
 }): Pick<Live2DCarrierVisualFrameStats, 'sampledPixels' | 'visiblePixels' | 'sampledPixelChecksum'> {
-  const grid = 4;
+  const grid = 24;
   const pixel = new Uint8Array(4);
   let sampledPixels = 0;
   let visiblePixels = 0;
@@ -94,16 +104,16 @@ function sampleVisiblePixels(input: {
 
 export function assertLive2DCarrierVisualFrame(stats: Live2DCarrierVisualFrameStats): void {
   if (stats.width <= 0 || stats.height <= 0) {
-    throw new Error('Live2D carrier visual frame has no renderable size');
+    throw new Live2DCarrierVisualFrameError('Live2D carrier visual frame has no renderable size', stats);
   }
   if (stats.drawableCount <= 0 || stats.visibleDrawableCount <= 0 || stats.nonZeroOpacityDrawableCount <= 0) {
-    throw new Error('Live2D carrier visual frame has no visible Cubism drawables');
+    throw new Live2DCarrierVisualFrameError('Live2D carrier visual frame has no visible Cubism drawables', stats);
   }
   if (stats.textureBindingCount <= 0) {
-    throw new Error('Live2D carrier visual frame has no bound model textures');
+    throw new Live2DCarrierVisualFrameError('Live2D carrier visual frame has no bound model textures', stats);
   }
   if (stats.sampledPixels <= 0 || stats.visiblePixels <= 0) {
-    throw new Error('Live2D carrier visual frame produced no visible pixels');
+    throw new Live2DCarrierVisualFrameError('Live2D carrier visual frame produced no visible pixels', stats);
   }
 }
 
@@ -223,6 +233,7 @@ async function createVisualModel(input: {
           inputFrame.height,
         ]);
         renderer.drawModel(resolveLive2DShaderRootUrl());
+        input.gl.flush();
       } finally {
         offscreen.endFrameProcess(input.gl);
         offscreen.releaseStaleRenderTextures(input.gl);

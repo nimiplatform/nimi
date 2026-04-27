@@ -12,10 +12,12 @@ const requiredPaths = [
   'spec/kernel/avatar-event-contract.md',
   'spec/kernel/app-shell-contract.md',
   'spec/kernel/live2d-render-contract.md',
+  'spec/kernel/live2d-asset-compatibility-contract.md',
   'spec/kernel/carrier-visual-acceptance-contract.md',
   'spec/kernel/mock-fixture-contract.md',
   'spec/kernel/tables/feature-matrix.yaml',
   'spec/kernel/tables/activity-mapping.yaml',
+  'spec/kernel/tables/live2d-compatibility-tiers.yaml',
   'spec/kernel/tables/scenario-catalog.yaml',
   'spec/nimi-avatar.md',
 ];

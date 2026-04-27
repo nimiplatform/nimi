@@ -7,6 +7,12 @@ import {
   type Model3Settings,
   type ModelManifest,
 } from './model-loader.js';
+import {
+  assertLive2DCompatibilitySupported,
+  validateLive2DCompatibility,
+  type Live2DAdapterManifestV1,
+  type Live2DCompatibilityReport,
+} from './compatibility.js';
 
 export type Live2DBackendResources = {
   mocPath: string;
@@ -39,6 +45,7 @@ export type Live2DBackendSession = {
   readonly manifest: ModelManifest;
   readonly settings: Model3Settings;
   readonly resources: Live2DBackendResources;
+  readonly compatibility: Live2DCompatibilityReport;
   readonly framework: Live2DFrameworkArtifacts;
   readonly execution: Live2DBackendExecutionState;
   applyCommand(command: Live2DCommandEvent): void;
@@ -49,6 +56,7 @@ export type Live2DBackendDeps = {
   core: CubismCoreGlobal;
   framework: OfficialCubismFrameworkRuntime;
   readBinary?: (path: string) => Promise<ArrayBuffer>;
+  adapterManifest?: Live2DAdapterManifestV1 | null;
 };
 
 function resolveRuntimeAsset(manifest: ModelManifest, relativePath: string, label: string): string {
@@ -232,6 +240,13 @@ export async function createLive2DBackendSession(
 ): Promise<Live2DBackendSession> {
   const settings = await loadModel3Settings(manifest);
   const resources = collectResources(settings, manifest);
+  const compatibility = validateLive2DCompatibility({
+    model: manifest,
+    settings,
+    resources,
+    adapter: deps.adapterManifest ?? null,
+  });
+  assertLive2DCompatibilitySupported(compatibility);
   const readBinary = deps.readBinary ?? readBinaryFile;
   const mocBytes = await requireReadableAssets(resources, readBinary);
   const framework = await createFrameworkArtifacts(settings, resources, deps.framework, readBinary);
@@ -249,6 +264,7 @@ export async function createLive2DBackendSession(
     manifest,
     settings,
     resources,
+    compatibility,
     framework,
     execution,
     applyCommand(command) {

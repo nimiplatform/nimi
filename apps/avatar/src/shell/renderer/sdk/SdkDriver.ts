@@ -2,7 +2,7 @@ import type { PlatformClient } from '@nimiplatform/sdk';
 import type {
   RuntimeAgentConsumeEvent as SdkRuntimeAgentConsumeEvent,
   RuntimeAgentSessionSnapshot as SdkRuntimeAgentSessionSnapshot,
-} from '@nimiplatform/sdk/runtime';
+} from '@nimiplatform/sdk/runtime/browser';
 import type {
   AgentDataBundle,
   AgentBundleHistory,

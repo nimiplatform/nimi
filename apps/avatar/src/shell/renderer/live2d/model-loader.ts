@@ -5,6 +5,7 @@ export type ModelManifest = {
   modelId: string;
   model3JsonPath: string;
   nimiDir: string | null;
+  adapterManifestPath?: string | null;
 };
 
 type RustModelManifest = {
@@ -12,6 +13,7 @@ type RustModelManifest = {
   model_id: string;
   model3_json_path: string;
   nimi_dir: string | null;
+  adapter_manifest_path?: string | null;
 };
 
 export async function resolveModelManifest(modelPath: string): Promise<ModelManifest> {
@@ -21,6 +23,7 @@ export async function resolveModelManifest(modelPath: string): Promise<ModelMani
     modelId: raw.model_id,
     model3JsonPath: raw.model3_json_path,
     nimiDir: raw.nimi_dir,
+    adapterManifestPath: raw.adapter_manifest_path ?? null,
   };
 }
 

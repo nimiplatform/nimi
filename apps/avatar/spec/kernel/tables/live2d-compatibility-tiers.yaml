@@ -1,0 +1,76 @@
+version: 1
+description: >
+  Compatibility tiers for adapting existing Live2D Cubism packages into the
+  Nimi Avatar Live2D carrier. The validator computes the highest tier proven by
+  package layout, adapter manifest, legal posture, semantic mappings, and Avatar
+  carrier evidence.
+
+tiers:
+  unsupported:
+    product_claim: "The package must not load as a successful Avatar carrier."
+    requires_manifest: false
+    requires_carrier_visual: false
+    requirements:
+      - "Package or manifest violates mandatory layout, schema, license, or claimed-feature checks."
+    forbidden_success:
+      - "placeholder model"
+      - "silent asset mutation"
+      - "unsupported semantic request counted as playback"
+
+  render_only:
+    product_claim: "The package renders as a Live2D model only."
+    requires_manifest: false
+    requires_carrier_visual: true
+    requirements:
+      - "runtime/ exists or the selected path is the runtime directory."
+      - "Exactly one resolved *.model3.json is selected."
+      - "FileReferences.Moc exists and Cubism Core accepts the MOC3 binary."
+      - "All declared textures are readable and bindable."
+      - "Avatar carrier WebGL path produces non-placeholder visible pixels."
+    semantic_disposition:
+      motions: "no activity support is claimed except explicit Idle if present"
+      expressions: "unsupported unless mapped by manifest"
+      poses: "unsupported unless mapped by manifest"
+      lipsync: "unsupported unless mapped by manifest"
+      physics: "not_applicable or model_physics if present and valid"
+      hit_regions: "alpha_mask_only unless mapped by manifest"
+      nas_fallback: "no semantic success without supported motion mapping"
+
+  semantic_basic:
+    product_claim: "The package works as a basic companion with bounded degraded features."
+    requires_manifest: true
+    requires_carrier_visual: true
+    required_motion_ids:
+      - idle
+      - neutral
+      - greet
+      - listening
+      - thinking
+    requirements:
+      - "Adapter manifest validates with schema_version=1."
+      - "License fixture posture is explicit."
+      - "Required basic motion ids map to existing model motion groups."
+      - "Expressions, poses, lipsync, physics, and hit regions have explicit supported/unsupported/not_applicable dispositions."
+      - "Unsupported requested semantics emit diagnostics and are not counted as success."
+
+  companion_complete:
+    product_claim: "The package supports complete current Live2D companion behavior for the active Avatar carrier."
+    requires_manifest: true
+    requires_carrier_visual: true
+    required_activity_scope: "all active core Avatar activity ids in tables/activity-mapping.yaml"
+    requirements:
+      - "All core activity ids map to existing model motion groups or NAS handlers."
+      - "Idle fallback maps to an existing motion group."
+      - "Expression support is mapped or proven not applicable for every current core emotion."
+      - "Pose support maps posture ids when pose is declared supported."
+      - "Lipsync support maps an available mouth-open parameter."
+      - "Physics support is either valid model physics or explicit not_applicable with no physics claim."
+      - "Hit regions map declared head/body/face/accessory aliases or fail closed when region-specific interaction is required."
+      - "Avatar carrier visual acceptance proves at least one mapped semantic behavior changes command state or pixels."
+
+diagnostic_namespace: "AVATAR_LIVE2D_COMPAT_*"
+validation_posture:
+  manifest_merge: "forbidden"
+  upstream_mutation: "forbidden"
+  unsupported_feature_success: "forbidden"
+  desktop_renderer_acceptance: "forbidden"

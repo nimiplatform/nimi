@@ -25,6 +25,10 @@ vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
 }));
 
+vi.mock('./app-shell/avatar-evidence.js', () => ({
+  recordAvatarEvidenceEventually: vi.fn(),
+}));
+
 vi.mock('./app-shell/tauri-commands.js', () => ({
   startWindowDrag: () => startWindowDragMock(),
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
@@ -215,6 +219,7 @@ describe('App surface foundation', () => {
     expect(screen.getByText('Live companion')).toBeTruthy();
     expect(screen.getByText('Text or review this anchor')).toBeTruthy();
     expect(screen.getByText('Foreground only, same anchor')).toBeTruthy();
+    expect(screen.getByTestId('avatar-live2d-carrier-visual').getAttribute('data-avatar-owned-live2d-status')).toBe('idle');
     expect(screen.queryByText(/shell:/i)).toBeNull();
     expect(screen.queryByText(/driver:/i)).toBeNull();
   });

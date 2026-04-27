@@ -7,6 +7,7 @@
     "dev:renderer": "vite --host 127.0.0.1 --port 1427 --strictPort",
     "dev:shell": "tauri dev --config src-tauri/tauri.conf.json",
     "build:renderer": "vite build",
+    "check:bundle-runtime-imports": "node scripts/check-avatar-bundle-runtime-imports.mjs",
     "typecheck": "tsc --noEmit",
     "build": "pnpm run typecheck && pnpm run build:renderer && (cd src-tauri && cargo check)",
     "lint": "pnpm run typecheck && eslint . --max-warnings 0 && (cd src-tauri && cargo check)",
@@ -41,6 +42,7 @@
     "@tauri-apps/plugin-fs": "^2.4.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "scheduler": "0.27.0",
     "zustand": "^5.0.12"
   }
 }

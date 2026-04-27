@@ -1,3 +1,4 @@
+import { isTauri } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { AvatarLaunchContext } from '@renderer/bridge';
 
@@ -22,5 +23,12 @@ export async function onLaunchContextUpdated(
 }
 
 export function isTauriRuntime(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  return isTauri()
+    || (
+      typeof window !== 'undefined'
+      && (
+        '__TAURI_INTERNALS__' in window
+        || '__TAURI_IPC__' in window
+      )
+    );
 }

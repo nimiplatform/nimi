@@ -13,7 +13,7 @@ export async function waitForCubismCore(timeoutMs: number = DEFAULT_TIMEOUT_MS):
     await new Promise<void>((resolve) => globalThis.setTimeout(resolve, WAIT_INTERVAL_MS));
   }
   throw new Error(
-    'Live2DCubismCore not available within timeout. Ensure /assets/js/live2d-cubism-core/Core/live2dcubismcore.min.js is loaded via <script> before main.tsx.',
+    'Live2DCubismCore not available within timeout. Ensure ./assets/js/live2d-cubism-core/Core/live2dcubismcore.min.js is loaded via <script> before main.tsx.',
   );
 }
 
