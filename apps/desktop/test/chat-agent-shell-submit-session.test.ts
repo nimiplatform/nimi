@@ -178,6 +178,11 @@ test('agent submit session keeps assistant invisible until first-beat and then g
   });
   session = firstBeatStep.state;
   assert.equal(firstBeatStep.visibleBundle?.messages.at(-1)?.contentText, 'sealed first beat');
+  assert.deepEqual(firstBeatStep.streamEvent, {
+    type: 'done',
+    finalText: 'sealed first beat',
+    finalReasoningText: '',
+  });
   assert.equal(session.assistantVisible, true);
 
   const postFirstBeatText = reduceAgentSubmitSessionEvent(session, {
@@ -249,6 +254,56 @@ test('agent submit session keeps the sealed message visible', () => {
   session = firstBeatStep.state;
   assert.equal(firstBeatStep.visibleBundle?.messages.at(-1)?.contentText, 'hello');
   assert.equal(session.assistantVisible, true);
+});
+
+test('agent submit session treats message sealed as visible done without terminal lifecycle completion', () => {
+  const session = createSession();
+
+  const sealedStep = reduceAgentSubmitSessionEvent(session, {
+    event: {
+      type: 'message-sealed',
+      turnId: 'turn-1',
+      beatId: 'beat-1',
+      messageId: 'message-1',
+      text: 'visible answer',
+    },
+    updatedAtMs: 130,
+  });
+
+  assert.deepEqual(sealedStep.streamEvent, {
+    type: 'done',
+    finalText: 'visible answer',
+    finalReasoningText: '',
+  });
+  assert.equal(sealedStep.state.lifecycle.terminal, 'running');
+
+  const completedStep = reduceAgentSubmitSessionEvent(sealedStep.state, {
+    event: {
+      type: 'turn-completed',
+      turnId: 'turn-1',
+      outputText: 'visible answer',
+      reasoningText: '',
+      usage: {
+        inputTokens: 1,
+        outputTokens: 2,
+      },
+      trace: {
+        traceId: 'trace-completed',
+      },
+    },
+    updatedAtMs: 160,
+  });
+
+  assert.equal(completedStep.state.lifecycle.terminal, 'completed');
+  assert.deepEqual(completedStep.streamEvent, {
+    type: 'done',
+    usage: {
+      inputTokens: 1,
+      outputTokens: 2,
+    },
+    finalText: 'visible answer',
+    finalReasoningText: undefined,
+  });
 });
 
 test('agent submit session keeps authoritative projection when stale text delta arrives after projection rebuild', () => {

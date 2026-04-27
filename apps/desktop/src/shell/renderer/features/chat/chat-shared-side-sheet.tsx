@@ -17,10 +17,13 @@ export type ChatSideSheetProps = {
 
 export function ChatSideSheet(props: ChatSideSheetProps) {
   const { t } = useTranslation();
+  const widthClassName = props.sheetKey === 'settings'
+    ? 'w-[min(460px,calc(100vw-96px))]'
+    : 'w-[min(340px,calc(100vw-96px))]';
 
   return (
     <aside
-      className={cn('mr-2 flex min-h-0 w-[340px] shrink-0', props.className)}
+      className={cn('mr-2 flex min-h-0 shrink-0', widthClassName, props.className)}
       data-chat-shared-side-sheet={props.sheetKey}
     >
       <DesktopCardSurface

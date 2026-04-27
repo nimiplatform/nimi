@@ -12,6 +12,7 @@ import type {
   AgentLocalTurnContext,
 } from '@renderer/bridge/runtime-bridge/types';
 import type { AgentResolvedBehavior } from './chat-agent-behavior';
+import type { AgentEffectiveCapabilityResolution } from './conversation-capability';
 import {
   buildContinuityDigest,
   buildContinuitySummary,
@@ -155,6 +156,7 @@ export type BuildAgentLocalChatExecutionTextRequestInput = {
   followUpInstruction?: string | null;
   context: AgentLocalTurnContext;
   resolvedBehavior?: AgentResolvedBehavior | null;
+  agentResolution?: AgentEffectiveCapabilityResolution | null;
   modelContextTokens?: number | null;
   maxOutputTokensRequested?: number | null;
 };

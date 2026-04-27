@@ -600,6 +600,57 @@ test('agent local chat execution seam instructs explicit media turns to emit an 
   assert.match(request.systemPrompt || '', /If the latest user message negates or cancels image generation, do not emit an image action/);
 });
 
+test('agent local chat execution seam tells explicit media turns when image generation is unavailable', () => {
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: [],
+    userText: '能生成一张风景图片吗？',
+    context: sampleTurnContext(),
+    resolvedBehavior: resolveAgentChatBehavior({
+      userText: '能生成一张风景图片吗？',
+      settings: {
+        thinkingPreference: 'off',
+        maxOutputTokensOverride: null,
+      },
+    }),
+    agentResolution: {
+      ready: true,
+      reason: 'ok',
+      textProjection: {
+        capability: 'text.generate',
+        selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
+        resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
+        health: null,
+        metadata: null,
+        supported: true,
+        reasonCode: null,
+      },
+      imageProjection: {
+        capability: 'image.generate',
+        selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
+        resolvedBinding: null,
+        health: null,
+        metadata: null,
+        supported: false,
+        reasonCode: 'route_unhealthy',
+      },
+      voiceProjection: null,
+      voiceWorkflowProjections: {},
+      voiceWorkflowReadyByCapability: {},
+      imageReady: false,
+      voiceReady: false,
+    },
+  });
+
+  assert.match(request.systemPrompt || '', /CapabilityContext:/);
+  assert.match(request.systemPrompt || '', /"ready": false/);
+  assert.match(request.systemPrompt || '', /"reasonCode": "route_unhealthy"/);
+  assert.match(request.systemPrompt || '', /image\.generate capability is unavailable/);
+  assert.match(request.systemPrompt || '', /do not emit an image action/);
+  assert.doesNotMatch(request.systemPrompt || '', /emit exactly one <action id="image-0" kind="image">/);
+});
+
 test('agent local chat execution seam drops a duplicated current user turn from history and supports follow-up continuation inputs', () => {
   const duplicatedUserHistory = [
     {

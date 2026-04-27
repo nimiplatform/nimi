@@ -175,25 +175,35 @@ function createMockRouteRuntime(overrides?: {
 
 // --- image.generate projection tests ---
 
-test('image.generate projection fails closed without typed describe metadata', async () => {
+test('image.generate projection is supported after resolve and health without route describe metadata', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
     { source: 'local', connectorId: '', model: 'sd-xl' },
   );
+  let describeCalls = 0;
   const routeRuntime = createMockRouteRuntime({
     resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
     healthResult: createHealthyResult(),
+    describeError: new Error('image route describe should not be called'),
   });
+  const routeRuntimeWithSpy: ConversationCapabilityRouteRuntime = {
+    ...routeRuntime,
+    describe: async (input) => {
+      describeCalls += 1;
+      return routeRuntime.describe(input);
+    },
+  };
   const projection = await buildConversationCapabilityProjection({
     capability: 'image.generate',
     selectionStore: store,
-    routeRuntime,
+    routeRuntime: routeRuntimeWithSpy,
   });
-  assert.equal(projection.supported, false);
-  assert.equal(projection.reasonCode, 'metadata_missing');
+  assert.equal(projection.supported, true);
+  assert.equal(projection.reasonCode, null);
   assert.equal(projection.metadata, null);
   assert.equal(projection.resolvedBinding?.model, 'sd-xl');
+  assert.equal(describeCalls, 0);
 });
 
 test('image.generate projection fails closed when selection missing', async () => {
@@ -261,7 +271,7 @@ test('image.generate projection fails closed when health is unhealthy', async ()
   assert.equal(projection.reasonCode, 'route_unhealthy');
 });
 
-test('image.generate projection still requires typed metadata without retired image profile refs', async () => {
+test('image.generate projection does not require retired image profile refs or route describe metadata', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
@@ -276,8 +286,9 @@ test('image.generate projection still requires typed metadata without retired im
     selectionStore: store,
     routeRuntime,
   });
-  assert.equal(projection.supported, false);
-  assert.equal(projection.reasonCode, 'metadata_missing');
+  assert.equal(projection.supported, true);
+  assert.equal(projection.reasonCode, null);
+  assert.equal(projection.metadata, null);
 });
 
 // --- audio.synthesize projection tests ---
@@ -400,15 +411,16 @@ test('buildConversationCapabilityProjectionMap refreshes all capabilities includ
   assert.ok(projections['image.generate']);
   assert.ok(projections['audio.synthesize']);
   assert.ok(projections['voice_workflow.tts_v2v']);
-  assert.equal(projections['image.generate']!.supported, false);
-  assert.equal(projections['image.generate']!.reasonCode, 'metadata_missing');
+  assert.equal(projections['image.generate']!.supported, true);
+  assert.equal(projections['image.generate']!.reasonCode, null);
+  assert.equal(projections['image.generate']!.metadata, null);
   assert.equal(projections['audio.synthesize']!.supported, true);
   assert.ok(resolvedCapabilities.includes('image.generate'));
   assert.ok(resolvedCapabilities.includes('audio.synthesize'));
   assert.ok(resolvedCapabilities.includes('voice_workflow.tts_v2v'));
 });
 
-test('buildConversationCapabilityProjectionMap fails image.generate closed without typed metadata', async () => {
+test('buildConversationCapabilityProjectionMap supports image.generate without typed route metadata', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
@@ -423,8 +435,9 @@ test('buildConversationCapabilityProjectionMap fails image.generate closed witho
     routeRuntime,
     capabilities: ['image.generate'],
   });
-  assert.equal(projections['image.generate']!.supported, false);
-  assert.equal(projections['image.generate']!.reasonCode, 'metadata_missing');
+  assert.equal(projections['image.generate']!.supported, true);
+  assert.equal(projections['image.generate']!.reasonCode, null);
+  assert.equal(projections['image.generate']!.metadata, null);
 });
 
 // --- host_denied fail-close ---
@@ -481,7 +494,7 @@ test('image.edit maps to image.generate via toRuntimeCanonicalCapability', () =>
   assert.equal(toRuntimeCanonicalCapability('image.edit'), 'image.generate');
 });
 
-test('image.edit projection resolves but fails closed without image.generate metadata', async () => {
+test('image.edit projection resolves without image.generate route metadata', async () => {
   const routeRuntime = createMockRouteRuntime({
     resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
     healthResult: createHealthyResult(),
@@ -496,8 +509,9 @@ test('image.edit projection resolves but fails closed without image.generate met
     selectionStore: store,
     routeRuntime,
   });
-  assert.equal(projection.supported, false);
-  assert.equal(projection.reasonCode, 'metadata_missing');
+  assert.equal(projection.supported, true);
+  assert.equal(projection.reasonCode, null);
+  assert.equal(projection.metadata, null);
   assert.equal(projection.capability, 'image.edit');
   assert.equal(projection.resolvedBinding?.model, 'sd-xl');
 });
@@ -520,7 +534,7 @@ test('image.edit projection fails closed when selection missing', async () => {
   assert.equal(projection.reasonCode, 'selection_missing');
 });
 
-test('image.edit projection still requires typed metadata without retired image profile refs', async () => {
+test('image.edit projection does not require retired image profile refs or route describe metadata', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.edit',
@@ -534,8 +548,9 @@ test('image.edit projection still requires typed metadata without retired image 
       healthResult: createHealthyResult(),
     }),
   });
-  assert.equal(projection.supported, false);
-  assert.equal(projection.reasonCode, 'metadata_missing');
+  assert.equal(projection.supported, true);
+  assert.equal(projection.reasonCode, null);
+  assert.equal(projection.metadata, null);
 });
 
 test('image.edit and image.generate have independent selection bindings', async () => {
@@ -562,8 +577,8 @@ test('image.edit and image.generate have independent selection bindings', async 
     selectionStore: store,
     routeRuntime,
   });
-  assert.equal(genProjection.supported, false);
-  assert.equal(genProjection.reasonCode, 'metadata_missing');
+  assert.equal(genProjection.supported, true);
+  assert.equal(genProjection.reasonCode, null);
   assert.equal(editProjection.supported, false);
   assert.equal(editProjection.reasonCode, 'selection_cleared');
 });
@@ -585,8 +600,9 @@ test('buildConversationCapabilityProjectionMap includes image.edit in full refre
     routeRuntime,
   });
   assert.ok(projections['image.edit'], 'image.edit must appear in projection map');
-  assert.equal(projections['image.edit']!.supported, false);
-  assert.equal(projections['image.edit']!.reasonCode, 'metadata_missing');
+  assert.equal(projections['image.edit']!.supported, true);
+  assert.equal(projections['image.edit']!.reasonCode, null);
+  assert.equal(projections['image.edit']!.metadata, null);
 });
 
 // --- projection gate scoping: conversationExecution discriminator ---

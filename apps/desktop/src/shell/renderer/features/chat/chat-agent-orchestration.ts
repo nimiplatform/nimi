@@ -415,6 +415,7 @@ export function createAgentLocalChatConversationProvider(
           userAttachments,
           context: turnContext,
           resolvedBehavior: metadata.resolvedBehavior,
+          agentResolution: metadata.agentResolution,
           modelContextTokens: metadata.textModelContextTokens,
           maxOutputTokensRequested: metadata.textMaxOutputTokensRequested,
         });

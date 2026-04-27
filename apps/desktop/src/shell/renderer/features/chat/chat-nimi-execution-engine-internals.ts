@@ -258,7 +258,31 @@ function buildResolvedBehaviorSection(resolvedBehavior: AgentResolvedBehavior | 
   });
 }
 
-function buildActionPlanningSection(resolvedBehavior: AgentResolvedBehavior | null | undefined): string | null {
+function buildCapabilityContextSection(input: {
+  agentResolution?: BuildAgentLocalChatExecutionTextRequestInput['agentResolution'];
+}): string | null {
+  const agentResolution = input.agentResolution || null;
+  if (!agentResolution) {
+    return null;
+  }
+  const imageProjection = agentResolution.imageProjection || null;
+  const reasonCode = normalizeText(imageProjection?.reasonCode) || null;
+  return stringifyJson({
+    image: {
+      capability: 'image.generate',
+      ready: agentResolution.imageReady === true,
+      selected: Boolean(imageProjection?.selectedBinding),
+      supported: imageProjection?.supported === true,
+      reasonCode,
+    },
+  });
+}
+
+function buildActionPlanningSection(input: {
+  resolvedBehavior?: AgentResolvedBehavior | null;
+  agentResolution?: BuildAgentLocalChatExecutionTextRequestInput['agentResolution'];
+}): string | null {
+  const resolvedBehavior = input.resolvedBehavior;
   if (!resolvedBehavior) {
     return null;
   }
@@ -267,10 +291,17 @@ function buildActionPlanningSection(resolvedBehavior: AgentResolvedBehavior | nu
     'Never put a media generation prompt only in visible message text when an immediate media action is intended.',
   ];
   if (resolvedBehavior.resolvedExperiencePolicy.contentBoundary === 'explicit-media-request') {
-    lines.push(
-      'For an affirmative latest user request to create, send, show, or generate an image, emit exactly one <action id="image-0" kind="image"> with a complete <prompt-text>.',
-      'If the latest user message negates or cancels image generation, do not emit an image action.',
-    );
+    if (input.agentResolution?.imageReady === false) {
+      lines.push(
+        'The current image.generate capability is unavailable for this turn; do not emit an image action.',
+        'For an affirmative latest user request to create, send, show, or generate an image, the visible message must say image generation is unavailable right now.',
+      );
+    } else {
+      lines.push(
+        'For an affirmative latest user request to create, send, show, or generate an image, emit exactly one <action id="image-0" kind="image"> with a complete <prompt-text>.',
+        'If the latest user message negates or cancels image generation, do not emit an image action.',
+      );
+    }
   }
   if (resolvedBehavior.resolvedTurnMode === 'explicit-voice') {
     lines.push(
@@ -299,15 +330,18 @@ function buildSystemPrompt(input: {
   bioCharLimit: number;
   followUpInstruction?: string | null;
   resolvedBehavior?: AgentResolvedBehavior | null;
+  agentResolution?: BuildAgentLocalChatExecutionTextRequestInput['agentResolution'];
 }): string | null {
   const resolvedBehaviorSection = buildResolvedBehaviorSection(input.resolvedBehavior);
-  const actionPlanningSection = buildActionPlanningSection(input.resolvedBehavior);
+  const capabilityContextSection = buildCapabilityContextSection(input);
+  const actionPlanningSection = buildActionPlanningSection(input);
   const followUpInstruction = normalizeWhitespace(input.followUpInstruction);
   const sections = [
     normalizeText(input.systemPrompt) ? `Preset:\n${normalizeWhitespace(input.systemPrompt)}` : null,
     `Target:\n${buildTargetSection(input.targetSnapshot, input.bioCharLimit)}`,
     `Continuity:\n${buildContinuitySection(input.digest)}`,
     resolvedBehaviorSection ? `ResolvedBehavior:\n${resolvedBehaviorSection}` : null,
+    capabilityContextSection ? `CapabilityContext:\n${capabilityContextSection}` : null,
     actionPlanningSection,
     `Safety Policy:\n${buildSafetyPolicySection()}`,
     followUpInstruction
@@ -349,6 +383,7 @@ export function reduceSystemPrompt(
       bioCharLimit: plan.bioCharLimit,
       followUpInstruction: input.followUpInstruction,
       resolvedBehavior: input.resolvedBehavior,
+      agentResolution: input.agentResolution,
     });
     const systemTokens = estimateSystemPromptTokens(systemPrompt);
 

@@ -2,7 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
-  IMAGE_WORKFLOW_PRESET_SELECTIONS,
   type CapabilityState,
   type ImageGenerationRecord,
   type ImageWorkflowDraftState,
@@ -23,7 +22,15 @@ import { resolveEffectiveBinding, resolveImageResponseFormat } from '../tester-r
 import { makeEmptyDiagnostics } from '../tester-state.js';
 import { bindingToRouteInfo } from '../tester-runtime.js';
 import { DiagnosticsPanel, ErrorBox, RawJsonSection } from '../tester-diagnostics.js';
-import { buildLocalProfileExtensions, createModRuntimeClient, type ModRuntimeBoundImageGenerateInput } from '@nimiplatform/sdk/mod';
+import { createModRuntimeClient, type ModRuntimeBoundImageGenerateInput } from '@nimiplatform/sdk/mod';
+import { ImageAdvancedParamsPopover } from './panel-image-generate-advanced.js';
+import {
+  buildProfileOverrides,
+  buildWorkflowExtensions,
+  formatRelativeTime,
+  formatScenarioJobProgress,
+  shouldUseLocalImageWorkflowExtensions,
+} from './panel-image-generate-model.js';
 
 type ImageGeneratePanelProps = {
   mode?: 'generate' | 'job';
@@ -215,127 +222,6 @@ const EMPTY_IMAGE_ICON = (
     <polyline points="21 15 16 10 5 21" />
   </svg>
 );
-
-function buildProfileOverrides(input: {
-  step: string; cfgScale: string; sampler: string; scheduler: string;
-  optionsText: string; rawJsonText: string;
-}): { overrides: Record<string, unknown> | undefined; error: string } {
-  const overrides: Record<string, unknown> = {};
-  const step = Number(input.step);
-  if (input.step && Number.isFinite(step) && step > 0) overrides.steps = step;
-  const cfgScale = Number(input.cfgScale);
-  if (input.cfgScale && Number.isFinite(cfgScale)) overrides.cfg_scale = cfgScale;
-  if (asString(input.sampler)) overrides.sampler = asString(input.sampler);
-  if (asString(input.scheduler)) overrides.scheduler = asString(input.scheduler);
-  if (asString(input.optionsText)) {
-    for (const line of input.optionsText.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const separatorIdx = trimmed.indexOf(':');
-      if (separatorIdx < 1) {
-        overrides[trimmed] = true;
-        continue;
-      }
-      const key = trimmed.slice(0, separatorIdx).trim();
-      const val = trimmed.slice(separatorIdx + 1).trim();
-      overrides[key] = val === 'true' ? true : val === 'false' ? false : val;
-    }
-  }
-  if (asString(input.rawJsonText)) {
-    try {
-      const parsed = JSON.parse(input.rawJsonText);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        Object.assign(overrides, parsed);
-      }
-    } catch {
-      return { overrides: undefined, error: 'Invalid JSON in profile overrides.' };
-    }
-  }
-  return { overrides: Object.keys(overrides).length > 0 ? overrides : undefined, error: '' };
-}
-
-const TESTER_IMAGE_MAIN_ENTRY_ID = 'tester/image-main-model';
-
-function buildWorkflowExtensions(input: {
-  draft: ImageWorkflowDraftState;
-  profileOverrides: Record<string, unknown> | undefined;
-  mainLocalAssetId: string;
-  mainAssetId: string;
-}): { extensions: Record<string, unknown> | undefined; error: string } {
-  const { draft, profileOverrides, mainLocalAssetId, mainAssetId } = input;
-  const entryOverrides: Array<{ entryId: string; localAssetId: string }> = [];
-  if (mainLocalAssetId) {
-    entryOverrides.push({ entryId: TESTER_IMAGE_MAIN_ENTRY_ID, localAssetId: mainLocalAssetId });
-  }
-  for (const preset of IMAGE_WORKFLOW_PRESET_SELECTIONS) {
-    const val = draft[preset.key];
-    if (asString(val)) {
-      entryOverrides.push({ entryId: `tester/image-slot/${preset.slot}`, localAssetId: val });
-    }
-  }
-  for (const comp of draft.componentDrafts) {
-    if (asString(comp.slot) && asString(comp.localArtifactId)) {
-      entryOverrides.push({ entryId: `tester/image-slot/${comp.slot}`, localAssetId: comp.localArtifactId });
-    }
-  }
-  if (entryOverrides.length === 0 && !profileOverrides) {
-    return { extensions: undefined, error: '' };
-  }
-  const extensions = buildLocalProfileExtensions({
-    entryOverrides,
-    profileOverrides: profileOverrides || {},
-  });
-  const companionProfileEntries = IMAGE_WORKFLOW_PRESET_SELECTIONS
-    .filter((preset) => asString(draft[preset.key]))
-    .map((preset) => ({
-      entryId: `tester/image-slot/${preset.slot}`,
-      kind: 'asset',
-      capability: 'image',
-      title: `Workflow slot ${preset.slot}`,
-      required: true,
-      preferred: true,
-      assetId: preset.slot,
-      assetKind: preset.kind,
-      engineSlot: preset.slot,
-    }));
-  extensions.profile_entries = [
-    {
-      entryId: TESTER_IMAGE_MAIN_ENTRY_ID,
-      kind: 'asset',
-      capability: 'image',
-      title: 'Selected local image model',
-      required: true,
-      preferred: true,
-      assetId: mainAssetId || mainLocalAssetId,
-      assetKind: 'image',
-    },
-    ...companionProfileEntries,
-  ];
-  return { extensions, error: '' };
-}
-
-function formatRelativeTime(timestamp: number): string {
-  const delta = Date.now() - timestamp;
-  if (delta < 60_000) return 'just now';
-  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
-  if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h ago`;
-  return new Date(timestamp).toLocaleDateString();
-}
-
-function formatScenarioJobProgress(job: Record<string, unknown> | null | undefined): string {
-  const record = job || {};
-  const progressPercent = Number(record.progressPercent ?? record.progress);
-  const currentStep = Number(record.progressCurrentStep ?? record.progress_current_step);
-  const totalSteps = Number(record.progressTotalSteps ?? record.progress_total_steps);
-  const parts: string[] = [];
-  if (Number.isFinite(progressPercent) && progressPercent >= 0) {
-    parts.push(`${Math.round(progressPercent)}%`);
-  }
-  if (Number.isFinite(currentStep) && currentStep > 0 && Number.isFinite(totalSteps) && totalSteps > 0) {
-    parts.push(`${Math.round(currentStep)}/${Math.round(totalSteps)}`);
-  }
-  return parts.join(' · ');
-}
 
 type OutputGalleryProps = {
   records: ImageGenerationRecord[];
@@ -689,12 +575,13 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
   }, []);
 
   const effectiveBinding = React.useMemo(() => resolveEffectiveBinding(state.snapshot, state.binding), [state.snapshot, state.binding]);
-  const isLocalRuntimeWorkflow = effectiveBinding?.source === 'local';
-  const localEngine = asString(isLocalRuntimeWorkflow ? (effectiveBinding?.engine || effectiveBinding?.provider) : '');
-  const isMediaImageWorkflow = isLocalRuntimeWorkflow && localEngine.toLowerCase() === 'media';
+  const usesLocalImageWorkflow = shouldUseLocalImageWorkflowExtensions(effectiveBinding);
 
-  const updateDraft = React.useCallback((patch: Partial<ImageWorkflowDraftState>) => {
-    onDraftChange((prev) => ({ ...prev, ...patch }));
+  const updateDraft = React.useCallback((updater: Partial<ImageWorkflowDraftState> | ((prev: ImageWorkflowDraftState) => ImageWorkflowDraftState)) => {
+    onDraftChange((prev) => {
+      if (typeof updater === 'function') return updater(prev);
+      return { ...prev, ...updater };
+    });
   }, [onDraftChange]);
 
   const buildRequestContext = React.useCallback(() => {
@@ -711,7 +598,7 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
     const binding = effectiveBinding || undefined;
     const nNum = Math.max(1, Number(draft.n) || 1);
     let extensions: Record<string, unknown> | undefined;
-    if (isMediaImageWorkflow) {
+    if (usesLocalImageWorkflow) {
       const mainLocalAssetId = asString(binding?.goRuntimeLocalModelId || binding?.localModelId);
       const mainAssetId = asString(binding?.modelId || binding?.model);
       const localWorkflow = buildWorkflowExtensions({
@@ -735,7 +622,7 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
       ...(binding ? { binding } : {}),
     };
     return { error: '', binding, requestParams };
-  }, [draft, effectiveBinding, isMediaImageWorkflow]);
+  }, [draft, effectiveBinding, usesLocalImageWorkflow]);
 
   const finalizeAsyncImageJob = React.useCallback(async (input: {
     jobId: string;
@@ -950,15 +837,12 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
             }
           }}
         />
-        <div className="mt-2 border-t border-dashed border-[var(--nimi-border-subtle)] pt-2">
-          <textarea
-            value={draft.negativePrompt}
-            onChange={(event) => updateDraft({ negativePrompt: event.target.value })}
-            placeholder={t('Tester.imageGenerate.negativePromptPlaceholder', { defaultValue: 'Negative prompt (optional)...' })}
-            rows={3}
-            className="w-full resize-none border-0 bg-transparent px-0 py-0 text-xs leading-relaxed text-[var(--nimi-text-primary)] outline-none placeholder:text-[var(--nimi-text-muted)]"
-          />
-        </div>
+        {draft.negativePrompt ? (
+          <div className="mt-1 truncate text-[11px] text-[var(--nimi-text-muted)]">
+            <span className="mr-1 uppercase tracking-wide">{t('Tester.imageGenerate.negativePromptShort', { defaultValue: 'neg:' })}</span>
+            <span className="font-mono">{draft.negativePrompt}</span>
+          </div>
+        ) : null}
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
           <GenerationPrefsPopover
             size={draft.size}
@@ -966,6 +850,9 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
             onSizeChange={(next) => updateDraft({ size: next })}
             onCountChange={(next) => updateDraft({ n: next })}
           />
+
+          {draft.seed ? <span className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-0.5 font-mono text-[11px] text-[var(--nimi-text-muted)]">seed:{draft.seed}</span> : null}
+          {draft.responseFormatMode && draft.responseFormatMode !== 'auto' ? <span className="rounded-full bg-[var(--nimi-surface-canvas)] px-2 py-0.5 font-mono text-[11px] text-[var(--nimi-text-muted)]">{draft.responseFormatMode}</span> : null}
 
           {mode !== 'job' ? (
             <div ref={watchWrapperRef} className="relative inline-flex">
@@ -1025,24 +912,31 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
             </div>
           ) : null}
 
-          <button
-            type="button"
-            onClick={() => { void handleRun(); }}
-            disabled={!canSubmit}
-            aria-label={runLabel}
-            title={runLabel}
-            className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {state.busy ? (
-              <span className="inline-flex items-center gap-0.5">
-                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.2s]" />
-                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.1s]" />
-                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80" />
-              </span>
-            ) : (
-              ARROW_UP_ICON
-            )}
-          </button>
+          <div className="ml-auto flex items-center gap-1.5">
+            <ImageAdvancedParamsPopover
+              draft={draft}
+              onDraftChange={updateDraft}
+              showWorkflowSlots={usesLocalImageWorkflow}
+            />
+            <button
+              type="button"
+              onClick={() => { void handleRun(); }}
+              disabled={!canSubmit}
+              aria-label={runLabel}
+              title={runLabel}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {state.busy ? (
+                <span className="inline-flex items-center gap-0.5">
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.2s]" />
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.1s]" />
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80" />
+                </span>
+              ) : (
+                ARROW_UP_ICON
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

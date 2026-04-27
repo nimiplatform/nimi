@@ -1,4 +1,5 @@
 import { buildLocalProfileExtensions } from '@nimiplatform/sdk/mod';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import {
   IMAGE_WORKFLOW_PRESET_SELECTIONS,
   type ImageWorkflowDraftState,
@@ -55,6 +56,17 @@ export function buildProfileOverrides(input: {
 }
 
 const TESTER_IMAGE_MAIN_ENTRY_ID = 'tester/image-main-model';
+
+export function shouldUseLocalImageWorkflowExtensions(binding: RuntimeRouteBinding | null | undefined): boolean {
+  if (!binding || binding.source !== 'local') {
+    return false;
+  }
+  const engine = asString(binding.engine || binding.provider).toLowerCase();
+  if (engine === 'media') {
+    return true;
+  }
+  return Boolean(asString(binding.goRuntimeLocalModelId || binding.localModelId));
+}
 
 export function buildWorkflowExtensions(input: {
   draft: ImageWorkflowDraftState;

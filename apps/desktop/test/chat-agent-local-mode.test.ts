@@ -384,6 +384,236 @@ test('agent session hydration preserves local pending projections over runtime s
   assert.equal(hydrated, null);
 });
 
+test('agent session hydration preserves committed assistant image projection when text transcript matches', () => {
+  const thread = {
+    id: 'thread-1',
+    agentId: 'agent-1',
+    title: 'Agent One',
+    createdAtMs: 1000,
+    updatedAtMs: 1000,
+    lastMessageAtMs: 3000,
+    archivedAtMs: null,
+    targetSnapshot: {
+      agentId: 'agent-1',
+      displayName: 'Agent One',
+      handle: 'agent-one',
+      avatarUrl: null,
+      presentationProfile: null,
+      worldId: null,
+      worldName: null,
+      bio: null,
+      ownershipType: null,
+    },
+  };
+
+  const hydrated = hydrateAgentThreadBundleFromRuntimeSessionSnapshot({
+    thread,
+    bundle: {
+      thread,
+      messages: [
+        {
+          id: 'anchor-1:session:0',
+          threadId: 'thread-1',
+          role: 'user',
+          status: 'complete',
+          kind: 'text',
+          contentText: 'hello',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: null,
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: null,
+          createdAtMs: 1001,
+          updatedAtMs: 1001,
+        },
+        {
+          id: 'anchor-1:session:1',
+          threadId: 'thread-1',
+          role: 'assistant',
+          status: 'complete',
+          kind: 'text',
+          contentText: 'hi there',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: 'anchor-1:session:0',
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: null,
+          createdAtMs: 1002,
+          updatedAtMs: 1002,
+        },
+        {
+          id: 'turn-image-1:message:1',
+          threadId: 'thread-1',
+          role: 'assistant',
+          status: 'complete',
+          kind: 'image',
+          contentText: 'A quiet lake at dawn',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: null,
+          mediaUrl: 'file:///tmp/agent-image.png',
+          mediaMimeType: 'image/png',
+          artifactId: 'artifact-image-1',
+          metadataJson: null,
+          createdAtMs: 1003,
+          updatedAtMs: 1003,
+        },
+      ],
+      draft: null,
+    },
+    conversationAnchorId: 'anchor-1',
+    snapshot: {
+      transcript: [
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: 'hi there' },
+      ],
+      transcriptMessageCount: 2,
+    },
+    nowMs: 5000,
+  });
+
+  assert.equal(hydrated, null);
+});
+
+test('agent session hydration merges committed media projections when runtime text transcript changes', () => {
+  const thread = {
+    id: 'thread-1',
+    agentId: 'agent-1',
+    title: 'Agent One',
+    createdAtMs: 1000,
+    updatedAtMs: 1000,
+    lastMessageAtMs: 3000,
+    archivedAtMs: null,
+    targetSnapshot: {
+      agentId: 'agent-1',
+      displayName: 'Agent One',
+      handle: 'agent-one',
+      avatarUrl: null,
+      presentationProfile: null,
+      worldId: null,
+      worldName: null,
+      bio: null,
+      ownershipType: null,
+    },
+  };
+
+  const hydrated = hydrateAgentThreadBundleFromRuntimeSessionSnapshot({
+    thread,
+    bundle: {
+      thread,
+      messages: [
+        {
+          id: 'anchor-1:session:0',
+          threadId: 'thread-1',
+          role: 'user',
+          status: 'complete',
+          kind: 'text',
+          contentText: 'hello',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: null,
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: null,
+          createdAtMs: 1001,
+          updatedAtMs: 1001,
+        },
+        {
+          id: 'anchor-1:session:1',
+          threadId: 'thread-1',
+          role: 'assistant',
+          status: 'complete',
+          kind: 'text',
+          contentText: 'old answer',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: 'anchor-1:session:0',
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: null,
+          createdAtMs: 1002,
+          updatedAtMs: 1002,
+        },
+        {
+          id: 'turn-image-1:message:1',
+          threadId: 'thread-1',
+          role: 'assistant',
+          status: 'complete',
+          kind: 'image',
+          contentText: 'A quiet lake at dawn',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: null,
+          mediaUrl: 'file:///tmp/agent-image.png',
+          mediaMimeType: 'image/png',
+          artifactId: 'artifact-image-1',
+          metadataJson: null,
+          createdAtMs: 6000,
+          updatedAtMs: 6000,
+        },
+      ],
+      draft: null,
+    },
+    conversationAnchorId: 'anchor-1',
+    snapshot: {
+      transcript: [
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: 'new answer' },
+      ],
+      transcriptMessageCount: 2,
+    },
+    nowMs: 5000,
+  });
+
+  assert.ok(hydrated);
+  assert.deepEqual(hydrated?.messages.map((message) => ({
+    id: message.id,
+    kind: message.kind,
+    text: message.contentText,
+    mediaUrl: message.mediaUrl,
+    mediaMimeType: message.mediaMimeType,
+    artifactId: message.artifactId,
+  })), [
+    {
+      id: 'anchor-1:session:0',
+      kind: 'text',
+      text: 'hello',
+      mediaUrl: null,
+      mediaMimeType: null,
+      artifactId: null,
+    },
+    {
+      id: 'anchor-1:session:1',
+      kind: 'text',
+      text: 'new answer',
+      mediaUrl: null,
+      mediaMimeType: null,
+      artifactId: null,
+    },
+    {
+      id: 'turn-image-1:message:1',
+      kind: 'image',
+      text: 'A quiet lake at dawn',
+      mediaUrl: 'file:///tmp/agent-image.png',
+      mediaMimeType: 'image/png',
+      artifactId: 'artifact-image-1',
+    },
+  ]);
+  assert.equal(hydrated?.thread.lastMessageAtMs, 6000);
+});
+
 test('agent runtime turns interrupt stays bound to the aborted anchor and does not cross-wire sibling anchors', async () => {
   clearPlatformClient();
   const client = await createPlatformClient({
@@ -995,7 +1225,7 @@ test('agent runtime turn consumes runtime-owned projection events from anchor ap
   }
 });
 
-test('agent runtime turn warms local model before requesting runtime.agent turn on local routes', async () => {
+test('agent runtime turn requests runtime without desktop local warm on local routes', async () => {
   resetRuntimeLocalModelWarmCacheForTests();
   clearPlatformClient();
   const client = await createPlatformClient({
@@ -1008,17 +1238,20 @@ test('agent runtime turn warms local model before requesting runtime.agent turn 
   const requestCalls: Array<{ requestId?: string; threadId: string }> = [];
   (client as unknown as { runtime: unknown }).runtime = {
     local: {
-      listLocalAssets: async () => ({
-        assets: [{
-          localAssetId: 'local-model-1',
-          assetId: 'llama3',
-          engine: 'llama',
-          endpoint: 'http://127.0.0.1:11434/v1',
-          updatedAt: '2026-04-23T00:00:00.000Z',
-          status: 2,
-        }],
-        nextPageToken: '',
-      }),
+      listLocalAssets: async () => {
+        calls.push('list');
+        return {
+          assets: [{
+            localAssetId: 'local-model-1',
+            assetId: 'llama3',
+            engine: 'llama',
+            endpoint: 'http://127.0.0.1:11434/v1',
+            updatedAt: '2026-04-23T00:00:00.000Z',
+            status: 2,
+          }],
+          nextPageToken: '',
+        };
+      },
       warmLocalAsset: async () => {
         calls.push('warm');
         return {
@@ -1132,7 +1365,7 @@ test('agent runtime turn warms local model before requesting runtime.agent turn 
       // Drain terminal events.
     }
 
-    assert.deepEqual(calls, ['warm', 'request']);
+    assert.deepEqual(calls, ['request']);
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
     clearPlatformClient();
@@ -3274,6 +3507,9 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(adapterSource, /useAgentConversationPresentation/);
   assert.match(adapterSource, /runtime\.agent\.turns\.getSessionSnapshot/);
   assert.match(adapterSource, /hydrateAgentThreadBundleFromRuntimeSessionSnapshot/);
+  assert.match(adapterSource, /lastRuntimeSessionSnapshotRequestKeyRef/);
+  assert.match(adapterSource, /pendingRuntimeSessionSnapshotRequestKeyRef/);
+  assert.match(adapterSource, /desktop_runtime_agent_session_snapshot_request_deduped_total/);
   assert.match(adapterStateSource, /dataSync\.loadSocialSnapshot\(\)/);
   assert.match(adapterStateSource, /getDesktopAIConfigService\(\)/);
   assert.match(sessionHydrationSource, /snapshot\.transcript/);

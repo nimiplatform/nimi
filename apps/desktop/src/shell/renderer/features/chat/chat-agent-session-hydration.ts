@@ -13,6 +13,28 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function isTranscriptTextMessage(message: RuntimeAgentMessage | null | undefined): boolean {
+  const role = normalizeText(message?.role);
+  const contentText = typeof message?.content === 'string' ? message.content : '';
+  return (role === 'system' || role === 'user' || role === 'assistant')
+    && contentText.length > 0;
+}
+
+function isCommittedMediaProjectionMessage(message: AgentLocalMessageRecord): boolean {
+  return message.status !== 'pending'
+    && (
+      message.kind === 'image'
+      || message.kind === 'voice'
+      || Boolean(normalizeText(message.mediaUrl))
+      || Boolean(normalizeText(message.mediaMimeType))
+      || Boolean(normalizeText(message.artifactId))
+    );
+}
+
+function isCommittedTextProjectionMessage(message: AgentLocalMessageRecord): boolean {
+  return message.status !== 'pending' && !isCommittedMediaProjectionMessage(message);
+}
+
 function toHydratedMessageRecord(input: {
   threadId: string;
   conversationAnchorId: string;
@@ -84,15 +106,53 @@ function transcriptMatchesBundle(
   if (!bundle) {
     return false;
   }
-  const currentMessages = bundle.messages.filter((message) => message.status !== 'pending');
-  if (currentMessages.length !== transcript.length) {
+  const transcriptMessages = transcript.filter(isTranscriptTextMessage);
+  const currentMessages = bundle.messages.filter(isCommittedTextProjectionMessage);
+  if (currentMessages.length !== transcriptMessages.length) {
     return false;
   }
   return currentMessages.every((message, index) => {
-    const transcriptMessage = transcript[index];
+    const transcriptMessage = transcriptMessages[index];
     return normalizeText(message.role) === normalizeText(transcriptMessage?.role)
       && message.contentText === (typeof transcriptMessage?.content === 'string' ? transcriptMessage.content : '');
   });
+}
+
+function committedMediaProjectionMessages(
+  bundle: AgentLocalThreadBundle | null | undefined,
+): AgentLocalMessageRecord[] {
+  if (!bundle) {
+    return [];
+  }
+  return bundle.messages.filter(isCommittedMediaProjectionMessage);
+}
+
+function mergeHydratedTextAndCommittedMediaMessages(input: {
+  hydratedMessages: AgentLocalMessageRecord[];
+  committedMediaMessages: AgentLocalMessageRecord[];
+}): AgentLocalMessageRecord[] {
+  if (input.committedMediaMessages.length === 0) {
+    return input.hydratedMessages;
+  }
+  const seenIds = new Set<string>();
+  return [
+    ...input.hydratedMessages,
+    ...input.committedMediaMessages,
+  ]
+    .filter((message) => {
+      if (seenIds.has(message.id)) {
+        return false;
+      }
+      seenIds.add(message.id);
+      return true;
+    })
+    .map((message, index) => ({ message, index }))
+    .sort((left, right) => (
+      left.message.createdAtMs - right.message.createdAtMs
+      || left.message.updatedAtMs - right.message.updatedAtMs
+      || left.index - right.index
+    ))
+    .map((item) => item.message);
 }
 
 export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
@@ -124,7 +184,11 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
     return null;
   }
 
-  const lastMessage = hydratedMessages[hydratedMessages.length - 1] || null;
+  const messages = mergeHydratedTextAndCommittedMediaMessages({
+    hydratedMessages,
+    committedMediaMessages: committedMediaProjectionMessages(input.bundle),
+  });
+  const lastMessage = messages[messages.length - 1] || null;
   const createdAtMs = 'createdAtMs' in input.thread && typeof input.thread.createdAtMs === 'number'
     ? input.thread.createdAtMs
     : input.bundle?.thread.createdAtMs || input.nowMs;
@@ -139,7 +203,7 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
       updatedAtMs,
       lastMessageAtMs: lastMessage?.updatedAtMs || input.thread.lastMessageAtMs,
     },
-    messages: hydratedMessages,
+    messages,
     draft: input.bundle?.draft || null,
   };
 }

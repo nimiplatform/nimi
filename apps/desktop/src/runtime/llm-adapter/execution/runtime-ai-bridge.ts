@@ -2,6 +2,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { inferRouteSourceFromEndpoint, type InferenceRouteSource } from './inference-audit';
 import { asNimiError, createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
+import { emitRuntimeLog } from '../../telemetry/logger';
 
 const ROUTE_POLICY_LOCAL = 1;
 const ROUTE_POLICY_CLOUD = 2;
@@ -58,6 +59,50 @@ type RuntimeLocalWarmCandidate = {
 
 const warmedLocalModelKeys = new Set<string>();
 const pendingLocalWarmups = new Map<string, Promise<void>>();
+
+function nowMs(): number {
+  return typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now();
+}
+
+function elapsedMs(startedAt: number): number {
+  return Math.max(0, Math.round(nowMs() - startedAt));
+}
+
+function logDesktopRuntimeAgentTiming(input: {
+  stage: string;
+  startedAt: number;
+  details?: Record<string, unknown>;
+}): void {
+  emitRuntimeLog({
+    level: 'info',
+    area: 'desktop-runtime-agent-latency',
+    message: `phase:${input.stage}`,
+    costMs: elapsedMs(input.startedAt),
+    details: {
+      stage: input.stage,
+      ...(input.details || {}),
+    },
+  });
+}
+
+function logDesktopRuntimeAgentCounter(input: {
+  counter: string;
+  value?: number;
+  details?: Record<string, unknown>;
+}): void {
+  emitRuntimeLog({
+    level: 'info',
+    area: 'desktop-runtime-agent-latency',
+    message: `action:${input.counter}`,
+    details: {
+      counter: input.counter,
+      value: input.value ?? 1,
+      ...(input.details || {}),
+    },
+  });
+}
 
 export const RUNTIME_MODAL_TEXT = 1;
 export const RUNTIME_MODAL_IMAGE = 2;
@@ -185,8 +230,10 @@ function selectRuntimeLocalWarmCandidate(
 }
 
 async function listAllRuntimeLocalModels(): Promise<Array<Record<string, unknown>>> {
+  const startedAt = nowMs();
   const runtime = getRuntimeClient();
   const models: Array<Record<string, unknown>> = [];
+  let pages = 0;
   let pageToken = '';
   for (let index = 0; index < LOCAL_WARM_MAX_PAGES; index += 1) {
     const response = await runtime.local.listLocalAssets({
@@ -196,6 +243,7 @@ async function listAllRuntimeLocalModels(): Promise<Array<Record<string, unknown
       pageSize: LOCAL_WARM_PAGE_SIZE,
       pageToken,
     });
+    pages += 1;
     for (const model of response.assets || []) {
       if (model && typeof model === 'object' && !Array.isArray(model)) {
         models.push(model as unknown as Record<string, unknown>);
@@ -206,6 +254,23 @@ async function listAllRuntimeLocalModels(): Promise<Array<Record<string, unknown
       break;
     }
   }
+  logDesktopRuntimeAgentCounter({
+    counter: 'desktop_runtime_agent_local_warm_list_pages_total',
+    value: pages,
+    details: {
+      modelCount: models.length,
+      hasNextPage: Boolean(pageToken),
+    },
+  });
+  logDesktopRuntimeAgentTiming({
+    stage: 'desktop.runtime_agent.local_warm_list_ms',
+    startedAt,
+    details: {
+      modelCount: models.length,
+      pages,
+      hasNextPage: Boolean(pageToken),
+    },
+  });
   return models;
 }
 
@@ -218,6 +283,16 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
   if (input.source !== 'local') {
     return;
   }
+  const totalStartedAt = nowMs();
+  logDesktopRuntimeAgentCounter({
+    counter: 'desktop_runtime_agent_local_warm_attempt_total',
+    details: {
+      route: input.source,
+      modelId: input.modelId,
+      engine: input.engine || '',
+      hasEndpoint: Boolean(String(input.endpoint || '').trim()),
+    },
+  });
 
   const selectionInput = {
     source: input.source,
@@ -227,7 +302,18 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
     engine: input.engine,
     endpoint: input.endpoint,
   };
+  const cacheCheckStartedAt = nowMs();
   const initialCandidate = selectRuntimeLocalWarmCandidate(selectionInput, await listAllRuntimeLocalModels());
+  logDesktopRuntimeAgentTiming({
+    stage: 'desktop.runtime_agent.local_warm_cache_check_ms',
+    startedAt: cacheCheckStartedAt,
+    details: {
+      route: input.source,
+      modelId: input.modelId,
+      engine: input.engine || '',
+      selectedLocalAssetId: initialCandidate?.localAssetId || null,
+    },
+  });
   if (!initialCandidate) {
     throw createNimiError({
       message: 'runtime local model unavailable',
@@ -239,12 +325,48 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
 
   const initialCacheKey = localWarmCacheKey(initialCandidate);
   if (warmedLocalModelKeys.has(initialCacheKey)) {
+    logDesktopRuntimeAgentCounter({
+      counter: 'desktop_runtime_agent_local_warm_cache_hit_total',
+      details: {
+        modelId: input.modelId,
+        localAssetId: initialCandidate.localAssetId,
+        engine: initialCandidate.engine,
+      },
+    });
+    logDesktopRuntimeAgentTiming({
+      stage: 'desktop.runtime_agent.local_warm_total_ms',
+      startedAt: totalStartedAt,
+      details: {
+        modelId: input.modelId,
+        localAssetId: initialCandidate.localAssetId,
+        engine: initialCandidate.engine,
+        cacheHit: true,
+      },
+    });
     return;
   }
+  logDesktopRuntimeAgentCounter({
+    counter: 'desktop_runtime_agent_local_warm_cache_miss_total',
+    details: {
+      modelId: input.modelId,
+      localAssetId: initialCandidate.localAssetId,
+      engine: initialCandidate.engine,
+    },
+  });
 
   const pending = pendingLocalWarmups.get(initialCacheKey);
   if (pending) {
     await pending;
+    logDesktopRuntimeAgentTiming({
+      stage: 'desktop.runtime_agent.local_warm_total_ms',
+      startedAt: totalStartedAt,
+      details: {
+        modelId: input.modelId,
+        localAssetId: initialCandidate.localAssetId,
+        engine: initialCandidate.engine,
+        pendingJoined: true,
+      },
+    });
     return;
   }
 
@@ -277,6 +399,16 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
 
   pendingLocalWarmups.set(initialCacheKey, warmPromise);
   await warmPromise;
+  logDesktopRuntimeAgentTiming({
+    stage: 'desktop.runtime_agent.local_warm_total_ms',
+    startedAt: totalStartedAt,
+    details: {
+      modelId: input.modelId,
+      localAssetId: initialCandidate.localAssetId,
+      engine: initialCandidate.engine,
+      cacheHit: false,
+    },
+  });
 }
 
 function ensureRouteModelId(model: string, routePolicy: number, provider: string): string {

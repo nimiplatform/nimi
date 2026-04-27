@@ -326,6 +326,16 @@ export async function buildConversationCapabilityProjection(
   }
 
   const expectedMetadataCapability = toRuntimeCanonicalCapability(input.capability);
+  if (expectedMetadataCapability === 'image.generate') {
+    return createProjection(input.capability, {
+      selectedBinding,
+      resolvedBinding,
+      health,
+      metadata: null,
+      supported: true,
+      reasonCode: null,
+    });
+  }
   let metadata: RuntimeRouteDescribeResult;
   try {
     metadata = await routeRuntime.describe({

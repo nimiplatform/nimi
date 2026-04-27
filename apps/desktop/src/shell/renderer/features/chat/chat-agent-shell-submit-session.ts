@@ -276,6 +276,11 @@ export function reduceAgentSubmitSessionEvent(
           streamedText: sealedText,
           workingBundle: visibleBundle,
         },
+        streamEvent: {
+          type: 'done',
+          finalText: sealedText,
+          finalReasoningText: '',
+        },
         visibleBundle: visibleBundle,
         projectionBundle: visibleBundle,
         persistedBundle: visibleBundle,
