@@ -228,7 +228,11 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
       if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
         authorizeCalls += 1;
         const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
-        assert.ok(request.scopes.includes('runtime.agent.turn.read') || request.scopes.includes('runtime.agent.turn.write'));
+        assert.ok(
+          request.scopes.includes('runtime.agent.turn.read')
+          || request.scopes.includes('runtime.agent.turn.write')
+          || request.scopes.includes('runtime.agent.read'),
+        );
         return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
           tokenId: `token-${authorizeCalls}`,
           appId: APP_ID,
@@ -412,7 +416,7 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
     assert.equal(registerCalls, 1);
     assert.equal(appSubscribeCalls, 1);
     assert.equal(agentSubscribeCalls, 1);
-    assert.equal(authorizeCalls, 2);
+    assert.equal(authorizeCalls, 3);
     assert.equal(capturedMessages.length, 2);
     assert.equal(capturedAgentSubscribeRequest?.agentId, 'agent-1');
     assert.deepEqual(capturedAgentSubscribeRequest?.eventFilters, [
@@ -595,7 +599,10 @@ test('runtime agent turns subscribe parses Wave 2 hook projection events with or
       }
       if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
         const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
-        assert.deepEqual(request.scopes, ['runtime.agent.turn.read']);
+        assert.ok(
+          request.scopes.length === 1
+          && (request.scopes[0] === 'runtime.agent.turn.read' || request.scopes[0] === 'runtime.agent.read'),
+        );
         return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
           tokenId: 'token-read',
           appId: APP_ID,

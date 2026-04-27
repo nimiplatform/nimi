@@ -283,6 +283,10 @@ export const RuntimeLocalAnonymousMethodIds: readonly string[] = Object.freeze([
 const RuntimeStreamMethodIdSet: ReadonlySet<string> = new Set(RuntimeStreamMethodIds);
 const RuntimeWriteMethodIdSet: ReadonlySet<string> = new Set(RuntimeWriteMethodIds);
 const RuntimeLocalAnonymousMethodIdSet: ReadonlySet<string> = new Set(RuntimeLocalAnonymousMethodIds);
+const RuntimeAppSessionBootstrapMethodIdSet: ReadonlySet<string> = new Set([
+  RuntimeMethodIds.auth.registerApp,
+  RuntimeMethodIds.auth.openSession,
+]);
 
 export function isRuntimeStreamMethod(methodId: string): boolean {
   return RuntimeStreamMethodIdSet.has(methodId);
@@ -294,4 +298,8 @@ export function isRuntimeWriteMethod(methodId: string): boolean {
 
 export function isRuntimeLocalAnonymousMethod(methodId: string): boolean {
   return RuntimeLocalAnonymousMethodIdSet.has(methodId);
+}
+
+export function isRuntimeAppSessionBootstrapMethod(methodId: string): boolean {
+  return RuntimeAppSessionBootstrapMethodIdSet.has(methodId);
 }

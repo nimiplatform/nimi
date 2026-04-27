@@ -15,6 +15,10 @@ import {
   StreamScenarioEvent,
 } from '../../src/runtime/generated/runtime/v1/ai';
 import {
+  OpenSessionResponse,
+  RegisterAppResponse,
+} from '../../src/runtime/generated/runtime/v1/auth';
+import {
   ConversationAnchor,
   ConversationAnchorStatus,
   OpenConversationAnchorResponse,
@@ -193,6 +197,128 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
       tokenId: 'protected-token-id',
       secret: 'protected-token-secret',
     });
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('tauri-ipc per-call protected access token suppresses stale bearer authorization', async () => {
+  let capturedPayload: Record<string, unknown> | null = null;
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        if (command === 'runtime_bridge_unary') {
+          capturedPayload = unwrapTauriInvokePayload(payload);
+          return {
+            responseBytesBase64: Buffer.from(
+              ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })),
+            ).toString('base64'),
+          };
+        }
+        throw new Error(`unexpected tauri command: ${command}`);
+      },
+    },
+    event: {
+      listen: () => () => {},
+    },
+  });
+
+  try {
+    const client = createRuntimeClient({
+      ...runtimeConfig,
+      transport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+      auth: {
+        accessToken: () => 'stale-realm-token',
+      },
+    });
+
+    await client.model.list({}, {
+      protectedAccessToken: {
+        tokenId: 'protected-token-id',
+        secret: 'protected-token-secret',
+      },
+    });
+
+    assert.ok(capturedPayload);
+    assert.equal(capturedPayload.authorization, undefined);
+    assert.deepEqual(capturedPayload.protectedAccessToken, {
+      tokenId: 'protected-token-id',
+      secret: 'protected-token-secret',
+    });
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('tauri-ipc runtime app session bootstrap suppresses stale bearer authorization', async () => {
+  const capturedPayloads: Record<string, unknown>[] = [];
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        if (command === 'runtime_bridge_unary') {
+          const captured = unwrapTauriInvokePayload(payload);
+          capturedPayloads.push(captured);
+          if (captured.methodId === RuntimeMethodIds.auth.registerApp) {
+            return {
+              responseBytesBase64: Buffer.from(
+                RegisterAppResponse.toBinary(RegisterAppResponse.create({ accepted: true })),
+              ).toString('base64'),
+            };
+          }
+          if (captured.methodId === RuntimeMethodIds.auth.openSession) {
+            return {
+              responseBytesBase64: Buffer.from(
+                OpenSessionResponse.toBinary(OpenSessionResponse.create({
+                  sessionId: 'runtime-session-id',
+                  sessionToken: 'runtime-session-token',
+                })),
+              ).toString('base64'),
+            };
+          }
+        }
+        throw new Error(`unexpected tauri command: ${command}`);
+      },
+    },
+    event: {
+      listen: () => () => {},
+    },
+  });
+
+  try {
+    const client = createRuntimeClient({
+      ...runtimeConfig,
+      transport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+      auth: {
+        accessToken: () => 'stale-realm-token',
+      },
+    });
+
+    await client.auth.registerApp({
+      appId: APP_ID,
+      appInstanceId: 'desktop-session',
+      deviceId: 'desktop-session',
+      appVersion: '1',
+    });
+    await client.auth.openSession({
+      appId: APP_ID,
+      appInstanceId: 'desktop-session',
+      deviceId: 'desktop-session',
+      subjectUserId: 'user-1',
+    });
+
+    assert.equal(capturedPayloads.length, 2);
+    assert.equal(capturedPayloads[0]?.methodId, RuntimeMethodIds.auth.registerApp);
+    assert.equal(capturedPayloads[0]?.authorization, undefined);
+    assert.equal(capturedPayloads[1]?.methodId, RuntimeMethodIds.auth.openSession);
+    assert.equal(capturedPayloads[1]?.authorization, undefined);
   } finally {
     restoreTauri();
   }

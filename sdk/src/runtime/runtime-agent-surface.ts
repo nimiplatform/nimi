@@ -38,6 +38,7 @@ import type { RuntimeAgentClient } from './types-client-interfaces.js';
 import type { SendAppMessageResponse } from './generated/runtime/v1/app.js';
 import { fromProtoStruct, matchesConsumeRequest, mergeAsyncIterables, parseAgentConsumeEvent, parseAppConsumeEvent } from './runtime-agent-surface-parsers.js';
 const RUNTIME_AGENT_APP_ID = 'runtime.agent';
+const AGENT_READ_SCOPE = 'runtime.agent.read';
 const TURN_WRITE_SCOPE = 'runtime.agent.turn.write';
 const TURN_READ_SCOPE = 'runtime.agent.turn.read';
 const TURN_REQUEST_TYPE = 'runtime.agent.turn.request';
@@ -222,6 +223,9 @@ export function createRuntimeAgentTurnsModule(input: {
         fromAppIds: [RUNTIME_AGENT_APP_ID],
       }, makeStreamOptions(subscribeBaseOptions, options?.signal));
       const includeAgentEvents = request.includeAgentEvents !== false;
+      const agentSubscribeOptions = includeAgentEvents
+        ? await input.protectedAccess.getCallOptions([AGENT_READ_SCOPE], options)
+        : null;
       const agentStreamHandle = includeAgentEvents
         ? await input.agent.subscribeEvents({
           agentId: request.agentId,
@@ -231,7 +235,7 @@ export function createRuntimeAgentTurnsModule(input: {
             appId: input.appId,
             subjectUserId,
           },
-        }, makeStreamOptions(options || {}, options?.signal))
+        }, makeStreamOptions(agentSubscribeOptions || {}, options?.signal))
         : null;
       return {
         async *[Symbol.asyncIterator](): AsyncIterator<RuntimeAgentConsumeEvent> {
