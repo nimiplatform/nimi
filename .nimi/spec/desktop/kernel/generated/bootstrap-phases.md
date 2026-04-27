@@ -8,7 +8,7 @@
 | `platform-client` | 2 | `true` | `—` | `D-BOOT-002` |
 | `datasync-init` | 3 | `false` | `—` | `D-BOOT-003` |
 | `runtime-host` | 4 | `true` | `enableRuntimeBootstrap` | `D-BOOT-004` |
-| `runtime-mods` | 5 | `true` | `enableRuntimeBootstrap` | `D-BOOT-005` |
+| `runtime-mod-host-ready` | 5 | `true` | `enableRuntimeBootstrap` | `D-BOOT-005` |
 | `external-agent` | 6 | `true` | `enableRuntimeBootstrap` | `D-BOOT-006` |
 | `auth-session` | 7 | `true` | `—` | `D-BOOT-007` |
 | `bootstrap-ready` | 8 | `false` | `—` | `D-BOOT-008` |
@@ -18,3 +18,4 @@
 | Constraint | Description | Source Rule |
 |---|---|---|
 | `idempotency-guard` | bootstrapRuntime() uses bootstrapPromise singleton to ensure exactly-once execution | `D-BOOT-009` |
+| `mod-hydration-not-ready-gate` | bootstrapReady must not depend on sideload/catalog/dev mod entry import or setup execution | `D-BOOT-005` |

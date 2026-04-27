@@ -166,6 +166,22 @@ Desktop same-tree host 的默认 route lifecycle policy 还必须满足：
 - `discarded` 只允许在 tab 被关闭、mod 被禁用/卸载、或 host 明确销毁 route instance 时出现
 - `frozen` 在 same-tree host 中保留为未来更强策略的兼容状态，不得作为常规 tab 切换的默认结果
 
+## D-HOOK-013 — Deferred Mod Hydration Fail-Closed Semantics
+
+Hook permission 与 mod hydration readiness 是两个不同判断：
+
+- permission key 判断某个 mod 是否被允许调用能力；
+- hydration readiness 判断该 mod generation 的 entry import、`setup()`、UI extension / hook / data capability materialization 是否完成。
+
+当 UI slot、route、turn hook、data capability、inter-mod provider、action descriptor 或 SDK facade 需要某个
+尚未完成 hydration 的 mod 时，Desktop host 必须 fail-close：
+
+- 可以触发明确的 on-demand hydration 并在完成后继续；
+- 可以返回结构化 `pending` / `unavailable` / `failed` projection；
+- 不得把未 hydration 的 mod 当作空注册成功；
+- 不得跳过 D-HOOK-008 allowlist 或 D-MOD-005 capability policy；
+- 不得用 hydration readiness 推断 runtime canonical provider/model capability。
+
 ## Fact Sources
 
 - `tables/hook-subsystems.yaml` — Hook 子系统枚举

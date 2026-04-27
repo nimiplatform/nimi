@@ -98,6 +98,7 @@
 | `D-HOOK-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-HOOK-011` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-HOOK-012` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-HOOK-013` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `runtime_mod_hook_hardcut_gate` |
 | `D-IPC-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate` |
 | `D-IPC-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_journey_gate` |
 | `D-IPC-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_runtime_config_path_gate` |
@@ -277,5 +278,6 @@
 | `D-GATE-060` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_journey_gate`, `desktop_macos_manual_smoke_policy`, `desktop_macos_automated_smoke_gate`, `desktop_macos_automated_smoke_report` |
 | `D-GATE-070` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate`, `desktop_e2e_journey_gate`, `desktop_e2e_failure_artifacts_gate`, `desktop_e2e_ci_evidence_report` |
 | `D-GATE-080` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate` |
+| `D-GATE-081` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate`, `desktop_spec_docs_drift_gate` |
 | `D-GATE-090` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate` |
 | `D-GATE-091` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate` |

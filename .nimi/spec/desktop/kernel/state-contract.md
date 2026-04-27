@@ -32,9 +32,15 @@ lifecycle projection，不得成为平行语义 owner。
 - `runtimeDefaults: RuntimeDefaults | null`
 - `localManifestSummaries`、`registeredRuntimeModIds`、`runtimeModDisabledIds`
 - `runtimeModUninstalledIds`、`runtimeModSettingsById`、`runtimeModFailures`
+- `runtimeModHydrationById`（或等价 Desktop mod host projection）：按 `modId + generation/source revision`
+  表达 `not_requested` / `scheduled` / `hydrating` / `hydrated` / `failed`
 - `fusedRuntimeMods`（熔断记录）
 
 `localManifestSummaries` 的来源固定为 runtime mods 安装目录；Desktop 不扫描源码仓作为发现输入。
+`localManifestSummaries` 只表示 manifest/source/diagnostic projection；不得被解释为 entry 已 import 或
+`setup()` 已执行。`registeredRuntimeModIds` 只允许表示 Desktop host 中已完成 setup 的 active mod registrations；
+若实现需要展示未 hydration 的 mod，必须通过 hydration projection 或 manifest projection 表达，不得伪造
+registered 状态。
 
 初始 `RuntimeFieldMap`：
 - `targetType: ''`

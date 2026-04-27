@@ -22,14 +22,14 @@ phases:
 
   - phase: runtime-host
     order: 4
-    description: Wire mod SDK host, hook runtime, speech route resolver, and data capabilities
+    description: Wire mod SDK host, hook runtime, speech route resolver, and core data capabilities without executing mod entries
     source_rule: D-BOOT-004
     async: true
     gated_by: enableRuntimeBootstrap
 
-  - phase: runtime-mods
+  - phase: runtime-mod-host-ready
     order: 5
-    description: Register bootstrap runtime mods from local manifests
+    description: Prepare Desktop mod host state and schedule deferred post-ready/on-demand hydration; mod entry import and setup are not bootstrap readiness gates
     source_rule: D-BOOT-005
     async: true
     gated_by: enableRuntimeBootstrap
@@ -58,3 +58,6 @@ constraints:
   - constraint: idempotency-guard
     description: bootstrapRuntime() uses bootstrapPromise singleton to ensure exactly-once execution
     source_rule: D-BOOT-009
+  - constraint: mod-hydration-not-ready-gate
+    description: bootstrapReady must not depend on sideload/catalog/dev mod entry import or setup execution
+    source_rule: D-BOOT-005

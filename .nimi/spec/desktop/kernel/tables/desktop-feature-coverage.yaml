@@ -12,7 +12,7 @@ features:
       - platform-client
       - datasync-init
       - runtime-host
-      - runtime-mods
+      - runtime-mod-host-ready
       - external-agent
       - auth-session
       - bootstrap-ready
@@ -224,7 +224,7 @@ features:
     covers_tabs:
       - mods
     covers_bootstrap_phases:
-      - runtime-mods
+      - runtime-mod-host-ready
     covers_ipc_commands:
       - runtime_mod_list_installed
     covers_runtime_pages: []

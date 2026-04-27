@@ -296,6 +296,13 @@
     - desktop_kernel_consistency
     - desktop_lint_gate
     - desktop_test_gate
+- rule_id: D-HOOK-013
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - runtime_mod_hook_hardcut_gate
 - rule_id: D-IPC-001
   status: covered
   evidence_refs:
@@ -1334,6 +1341,12 @@
   status: covered
   evidence_refs:
     - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+- rule_id: D-GATE-081
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_test_gate
     - desktop_spec_docs_drift_gate
 - rule_id: D-GATE-090
   status: covered

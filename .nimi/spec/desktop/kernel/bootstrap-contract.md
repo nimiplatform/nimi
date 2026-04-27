@@ -68,12 +68,41 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 - local route bootstrap / hydration / health merge 时，RuntimeLocalService local model list/status 是唯一 readiness 真源；host-local snapshot 只能补充展示元数据。
 - 当 selected local model 与 runtime authoritative local record 缺失、degraded、或状态冲突时，Desktop 可以保留原选择用于显示，但必须把 binding 视为 unavailable/not-sendable，不得继续 fail-open 发送。
 
-## D-BOOT-005 — Runtime Mods 注册
+## D-BOOT-005 — Runtime Mod Host Readiness / Deferred Hydration
 
-调用 `registerBootstrapRuntimeMods` 从本地清单注册 mods。
+Desktop bootstrap 只负责让 mod host 能力面进入可调度状态，不得把第三方 /
+外部 mod entry import 或 `setup()` 执行作为 `bootstrapReady=true` 的前置条件。
 
-- 返回 `runtimeModFailures` 和 `manifestCount`。
-- 部分 mod 注册失败不中断启动序列（degraded mode）。
+启动期允许执行的 mod 相关工作固定为：
+
+- 初始化 Desktop-owned mod SDK host、hook runtime 与 capability gate。
+- 注册 host-only core data capabilities。
+- 读取或刷新 manifest/source/diagnostic projection，用于 Mods UI 可见性。
+- 安排 post-ready hydration coordinator。
+
+启动期不得执行的工作：
+
+- 不得同步 import sideload/catalog/dev mod entry。
+- 不得在 `bootstrapReady=true` 前执行第三方 mod `setup()`。
+- 不得把 timeout fallback 视为 lazy loading 成功。
+- 不得创建第二套 mod registry 或 app-local shadow readiness truth。
+
+Mod entry import、`setup()`、UI extension sync、styles injection、turn hook / data
+capability registration 等属于 deferred hydration。触发时机只允许是：
+
+- bootstrap ready 后的显式 post-ready hydration coordinator；
+- 用户打开 Mods / Mod Workspace / mod route；
+- UI slot、route、hook、data capability 或 reload/retry 流程首次需要对应 mod；
+- source change / reload 事件要求重新 hydration。
+
+Hydration 必须以 Desktop mod host 现有 registry / state 为唯一真源，并且按
+`modId + generation/source revision` 幂等：同一 generation 的重复 hydration 请求不得重复执行
+`setup()`。失败必须记录到 `runtimeModFailures` 或等价的 Desktop mod host failure projection，
+但不得清除 shell bootstrap 成功状态。
+
+任何需要未完成 hydration 的 slot / route / hook / data capability 的 consumer 必须 fail-close：
+返回结构化 pending / unavailable / failed 状态，或触发明确 hydration 后再继续；不得把缺失
+hydration 伪装成空成功。
 
 ## D-BOOT-006 — External Agent 桥接
 
@@ -95,7 +124,8 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 
 正常路径：
 - `bootstrapReady = true`、`bootstrapError = null`。
-- 日志级别：有 mod 失败时 `warn`，否则 `info`。
+- 日志级别：shell/bootstrap 致命失败为 `error`；post-ready mod hydration 失败只影响 mod failure projection，
+  不得反向改写 bootstrap success。
 
 错误路径（仅 shell-fatal）：
 - `bootstrapReady = false`、`bootstrapError = message`。

@@ -83,6 +83,23 @@ Desktop Mod 治理契约。定义 8 阶段执行内核、2 种 runtime access mo
 - catalog install/update 如命中 `community` trust tier、trust tier 降级、capability 增量或 advisory review，必须返回结构化 `consentReasons[]`；其中 capability 增量必须返回 `addedCapabilities[]`
 - 满足上述 re-consent 条件时，安装产物可落盘，但 Desktop 不得自动重新启用 mod，必须等待用户重新确认
 
+Package lifecycle 与 runtime hydration lifecycle 必须分开：
+
+- package lifecycle 仍使用 `INSTALLED` / `ENABLED` / `DISABLED` / `UNINSTALLED` 等状态描述安装与启用策略。
+- runtime hydration lifecycle 只描述某一 mod generation 的 entry import、`setup()`、UI extension / style / hook / data capability materialization 状态。
+- runtime hydration 状态不得取代 package lifecycle，也不得构成第二套 registry。
+
+Desktop host 暴露的 hydration projection 至少必须能区分：
+
+- `not_requested`：已发现/可见，但尚未请求 entry hydration。
+- `scheduled`：已在 post-ready 或 on-demand 队列中等待 hydration。
+- `hydrating`：正在 import entry 或执行 `setup()`。
+- `hydrated`：该 generation 已完成 setup，相关 host materialization 已同步。
+- `failed`：该 generation hydration 失败，失败原因可见且可 retry。
+
+重复 hydration 请求必须按 `modId + generation/source revision` 幂等。reload、source change、disable、
+uninstall 或 rebootstrap 可以使旧 generation 失效，但不得让同一 generation 并发执行多次 `setup()`。
+
 ## D-MOD-008 — Audit 阶段
 
 写入审计决策记录：
@@ -120,6 +137,7 @@ Runtime 对 Mod 无感知。所有 mod 发起的 SDK 请求在 Runtime 视角等
 - Desktop renderer 层 sandbox 被绕过时，Runtime 无法阻止携带有效 token 的请求。
 - Phase 1 跳过签名验证（D-MOD-003），`local-dev` 和 `sideload` 模式的 mod 完全受信任。
 - 此信任模型是**设计意图**：Runtime 的安全职责是 token 级授权，不是调用来源鉴别。来源鉴别是 Desktop 层职责。
+- Deferred hydration 不改变该信任边界：Runtime 不得接收或依赖 `modId`、source type、hydration state 作为授权事实。
 
 ## D-MOD-012 — Desktop 作为零内置 Mod Host
 
