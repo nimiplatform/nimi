@@ -303,7 +303,6 @@ export function ChatComposer<TAttachment = never>({
               >
                 {leadingSlot ? <div className="flex items-center">{leadingSlot}</div> : null}
                 {voiceButtonNode}
-                {attachmentButtonNode}
                 {toolbarSlot ? (
                   <div data-chat-composer-toolbar-slot="true" className="flex items-center gap-2">
                     {toolbarSlot}
@@ -321,8 +320,9 @@ export function ChatComposer<TAttachment = never>({
               ) : null}
               <div
                 data-chat-composer-toolbar-trailing="true"
-                className="ml-auto flex shrink-0 items-center justify-end"
+                className="ml-auto flex shrink-0 items-center justify-end gap-2"
               >
+                {attachmentButtonNode}
                 {sendButtonNode}
               </div>
             </div>
@@ -346,6 +346,7 @@ export function ChatComposer<TAttachment = never>({
                   {ICON_MIC}
                 </button>
               )}
+              {textareaNode}
               {attachmentButtonNode ?? (
                 <button
                   type="button"
@@ -359,7 +360,6 @@ export function ChatComposer<TAttachment = never>({
                   {ICON_PLUS}
                 </button>
               )}
-              {textareaNode}
               {sendButtonNode}
             </div>
             {modelLabel || sendHint ? (
