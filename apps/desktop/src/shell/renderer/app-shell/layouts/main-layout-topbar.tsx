@@ -104,7 +104,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                   data-testid={E2E_IDS.topbarLoginButton}
                   data-mod-tab-interactive="true"
                   onClick={props.onLogin}
-                  className={`${SHELL_CHROME_ACTION_CELL_CLASS} px-3`}
+                  className={SHELL_CHROME_ACTION_CELL_CLASS}
                   aria-label={t('Auth.login', { defaultValue: 'Login' })}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

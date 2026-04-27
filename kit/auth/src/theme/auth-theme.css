@@ -41,7 +41,17 @@
 }
 
 .nimi-shell-auth-root[data-shell-auth-theme='desktop'] {
-  --nimi-app-background: #f3f1ee;
+  /*
+   * Match the in-app glassmorphism surface: same mesh family as
+   * AmbientBackground variant="mesh" with the light theme's pastel halos
+   * (pale blue / lavender / pink / mint) over a slate-tinted base.
+   */
+  --nimi-app-background:
+    radial-gradient(ellipse at 0% 0%, rgba(191, 219, 254, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 0%, rgba(221, 214, 254, 0.30) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(252, 231, 243, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 0% 100%, rgba(167, 243, 208, 0.20) 0%, transparent 50%),
+    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   --nimi-surface-card: #fffdf9;
   --nimi-surface-overlay: rgba(255, 255, 255, 0.95);
   --nimi-text-primary: #3b352c;

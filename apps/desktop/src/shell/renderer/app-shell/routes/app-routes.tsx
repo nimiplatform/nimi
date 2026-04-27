@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect, type ReactNode, type MouseEvent } from 'react';
+import { Suspense, lazy, useState, useEffect, type ReactNode, type MouseEvent, type CSSProperties } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
@@ -56,6 +56,49 @@ function NimiLogoMark({ className = 'h-12 w-12' }: { className?: string }) {
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
 
+/**
+ * Pure-CSS floating glow particles that echo the landing-page particle field
+ * in an ultra-subtle, motion-light form. This connects the bootstrap screen
+ * visually to the auth landing without spinning up WebGL on the bootstrap path.
+ */
+function BootstrapAmbientParticles() {
+  const seeds = [
+    { left: '8%', top: '18%', size: 4, dx: '14px', dy: '-22px', dur: '7.5s', delay: '0s', opacity: 0.45 },
+    { left: '22%', top: '74%', size: 6, dx: '-20px', dy: '14px', dur: '9s', delay: '-1.6s', opacity: 0.55 },
+    { left: '38%', top: '28%', size: 3, dx: '12px', dy: '20px', dur: '6.8s', delay: '-3s', opacity: 0.4 },
+    { left: '55%', top: '82%', size: 5, dx: '-16px', dy: '-12px', dur: '8.2s', delay: '-2.2s', opacity: 0.5 },
+    { left: '68%', top: '14%', size: 4, dx: '18px', dy: '18px', dur: '7s', delay: '-4s', opacity: 0.45 },
+    { left: '82%', top: '62%', size: 6, dx: '-14px', dy: '-18px', dur: '9.4s', delay: '-0.8s', opacity: 0.55 },
+    { left: '14%', top: '46%', size: 3, dx: '10px', dy: '14px', dur: '6.4s', delay: '-2.6s', opacity: 0.35 },
+    { left: '90%', top: '36%', size: 4, dx: '-12px', dy: '16px', dur: '8s', delay: '-3.4s', opacity: 0.45 },
+    { left: '46%', top: '8%', size: 3, dx: '14px', dy: '12px', dur: '7.2s', delay: '-1.2s', opacity: 0.35 },
+    { left: '60%', top: '52%', size: 5, dx: '-18px', dy: '-14px', dur: '8.6s', delay: '-4.4s', opacity: 0.5 },
+  ] as const;
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+      {seeds.map((s, i) => (
+        <span
+          key={i}
+          style={{
+            position: 'absolute',
+            left: s.left,
+            top: s.top,
+            width: s.size,
+            height: s.size,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(73,201,165,0.95) 0%, rgba(31,155,171,0.45) 55%, transparent 100%)',
+            filter: 'blur(0.6px)',
+            animation: `nimi-particle-drift ${s.dur} ease-in-out ${s.delay} infinite`,
+            ['--nimi-particle-dx' as string]: s.dx,
+            ['--nimi-particle-dy' as string]: s.dy,
+            ['--nimi-particle-opacity' as string]: String(s.opacity),
+          } as CSSProperties}
+        />
+      ))}
+    </div>
+  );
+}
+
 function SharedStatusShell(props: {
   eyebrow: string;
   title: string;
@@ -101,7 +144,19 @@ function SharedStatusShell(props: {
           0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
           40% { transform: translateY(-4px); opacity: 1; }
         }
+        @keyframes nimi-particle-drift {
+          0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0.0; }
+          12%  { opacity: var(--nimi-particle-opacity, 0.55); }
+          50%  { transform: translate3d(var(--nimi-particle-dx, 18px), var(--nimi-particle-dy, -22px), 0) scale(1.12); }
+          88%  { opacity: var(--nimi-particle-opacity, 0.55); }
+          100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.0; }
+        }
+        @keyframes nimi-progress-glow {
+          0%, 100% { box-shadow: 0 0 6px 1px rgba(73,201,165,0.55), 0 0 16px 4px rgba(31,155,171,0.30); }
+          50%      { box-shadow: 0 0 10px 2px rgba(73,201,165,0.85), 0 0 24px 6px rgba(31,155,171,0.45); }
+        }
       `}</style>
+      <BootstrapAmbientParticles />
       <div className="relative z-10 flex min-h-screen items-center justify-center p-6">
         <Surface
           as="section"
@@ -172,11 +227,22 @@ function LoadingScreen() {
       description={t('Bootstrap.initializingRuntimeDescription')}
     >
       <div data-testid={E2E_IDS.appLoadingScreen} className="mt-8 w-full max-w-[18rem]">
-        <div className="h-2 overflow-hidden rounded-full bg-[#e7eef0]">
+        <div className="relative h-2 overflow-visible rounded-full bg-[#e7eef0]">
           <div
-            className="h-full rounded-full bg-[linear-gradient(90deg,#49c9a5_0%,#1f9bab_100%)] transition-all duration-300 ease-out"
+            className="absolute inset-y-0 left-0 rounded-full bg-[linear-gradient(90deg,#49c9a5_0%,#1f9bab_100%)] transition-all duration-300 ease-out"
             style={{ width: `${Math.min(100, progress)}%` }}
           />
+          {/* Glowing leading-edge particle — echoes the landing's micro-particles. */}
+          <div
+            className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
+            style={{ left: `${Math.min(100, progress)}%` }}
+            aria-hidden
+          >
+            <span
+              className="block h-3 w-3 rounded-full bg-[radial-gradient(circle,#ffffff_0%,#49c9a5_55%,rgba(31,155,171,0.0)_100%)]"
+              style={{ animation: 'nimi-progress-glow 1.6s ease-in-out infinite' }}
+            />
+          </div>
         </div>
         <div className="mt-3 flex items-center justify-between text-xs text-[#7b8794]">
           <span>{t('Bootstrap.bootSequenceLabel')}</span>
@@ -186,7 +252,7 @@ function LoadingScreen() {
           {[0, 1, 2].map((i) => (
             <span
               key={i}
-              className="h-2.5 w-2.5 rounded-full bg-[#49c9a5]"
+              className="h-2.5 w-2.5 rounded-full bg-[radial-gradient(circle,#49c9a5_0%,#1f9bab_70%)] shadow-[0_0_8px_rgba(73,201,165,0.55)]"
               style={{
                 animation: 'nimi-dot 1.4s ease-in-out infinite',
                 animationDelay: `${i * 0.18}s`,
