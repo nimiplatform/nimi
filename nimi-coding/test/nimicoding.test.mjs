@@ -1671,7 +1671,7 @@ test("topic packet freeze validates required fields and writes a frozen packet a
   });
 });
 
-test("topic run-next-step emits gated decisions without mutating topic state", async () => {
+test("topic run-next-step emits mechanical decisions without mutating topic state", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
@@ -1702,9 +1702,10 @@ test("topic run-next-step emits gated decisions without mutating topic state", a
     ]);
     assert.equal(admitDecisionResult.exitCode, 0);
     const admitDecision = JSON.parse(admitDecisionResult.stdout).decision;
-    assert.equal(admitDecision.stop_class, "require_human_confirmation");
+    assert.equal(admitDecision.stop_class, "continue");
     assert.equal(admitDecision.recommended_action, "admit_wave");
-    assert.equal(admitDecision.requires_human_confirmation, true);
+    assert.equal(admitDecision.requires_human_confirmation, false);
+    assert.doesNotMatch(admitDecision.next_command_ref, /</);
 
     const admitResult = await captureRunCli([
       "topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json",
@@ -1721,8 +1722,10 @@ test("topic run-next-step emits gated decisions without mutating topic state", a
     const packetDecision = JSON.parse(packetDecisionResult.stdout).decision;
     assert.equal(packetDecision.stop_class, "require_human_confirmation");
     assert.equal(packetDecision.recommended_action, "freeze_packet");
+    assert.equal(packetDecision.reason_code, "admitted_wave_requires_packet");
 
-    const draftPath = path.join(projectRoot, "draft-packet.yaml");
+    const topicDir = path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId);
+    const draftPath = path.join(topicDir, "draft-packet.yaml");
     await writeFile(
       draftPath,
       YAML.stringify({
@@ -1740,6 +1743,20 @@ test("topic run-next-step emits gated decisions without mutating topic state", a
       }),
       "utf8",
     );
+
+    const freezeDecisionResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(freezeDecisionResult.exitCode, 0);
+    const freezeDecision = JSON.parse(freezeDecisionResult.stdout).decision;
+    assert.equal(freezeDecision.stop_class, "continue");
+    assert.equal(freezeDecision.recommended_action, "freeze_packet");
+    assert.equal(freezeDecision.reason_code, "draft_packet_ready");
+    assert.doesNotMatch(freezeDecision.next_command_ref, /</);
+
     const freezeResult = await captureRunCli([
       "topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json",
     ]);
@@ -1761,6 +1778,67 @@ test("topic run-next-step emits gated decisions without mutating topic state", a
     const topicYaml = YAML.parse(await readFile(movedTopicYamlPath, "utf8"));
     const wave = topicYaml.waves.find((entry) => entry.wave_id === "wave-1-foundation");
     assert.equal(wave.state, "preflight_admitted");
+  });
+});
+
+test("topic run-next-step gates packet freeze when matching drafts are ambiguous", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "next-step-ambiguous-draft",
+      "--justification",
+      "next-step ambiguous draft demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-foundation", "foundation",
+      "--goal", "close foundation", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-foundation", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-foundation", "--json"]);
+
+    const topicDir = path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId);
+    const draftBase = {
+      topic_id: createPayload.topicId,
+      wave_id: "wave-1-foundation",
+      packet_kind: "implementation",
+      status: "draft",
+      authority_owner: ["nimi-coding/topic"],
+      canonical_seams: ["topic.yaml waves[]"],
+      forbidden_shortcuts: ["placeholder_success"],
+      acceptance_invariants: ["all required fields stay explicit"],
+      negative_tests: ["missing required field fails closed"],
+      reopen_conditions: ["owner-cut changes require new packet"],
+    };
+    await writeFile(
+      path.join(topicDir, "draft-a.yaml"),
+      YAML.stringify({ ...draftBase, packet_id: "wave-1-foundation-a" }),
+      "utf8",
+    );
+    await writeFile(
+      path.join(topicDir, "draft-b.yaml"),
+      YAML.stringify({ ...draftBase, packet_id: "wave-1-foundation-b" }),
+      "utf8",
+    );
+
+    const decisionResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(decisionResult.exitCode, 0);
+    const decision = JSON.parse(decisionResult.stdout).decision;
+    assert.equal(decision.stop_class, "require_human_confirmation");
+    assert.equal(decision.recommended_action, "freeze_packet");
+    assert.equal(decision.reason_code, "admitted_wave_has_ambiguous_draft_packets");
+    assert.match(decision.next_command_ref, /<draft-packet>/);
   });
 });
 
@@ -2108,9 +2186,9 @@ test("topic-runner run executes mechanical dispatch and records run-ledger linea
       "--goal", "dispatch via topic runner", "--owner-domain", "nimicoding/topic-runner", "--json",
     ]);
     await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-runner", "--json"]);
-    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-runner", "--json"]);
 
-    const draftPath = path.join(projectRoot, "runner-packet.yaml");
+    const topicDir = path.join(projectRoot, createPayload.topicRef);
+    const draftPath = path.join(topicDir, "draft-runner-packet.yaml");
     await writeFile(
       draftPath,
       YAML.stringify({
@@ -2128,7 +2206,6 @@ test("topic-runner run executes mechanical dispatch and records run-ledger linea
       }),
       "utf8",
     );
-    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json"]);
 
     const runnerResult = await captureRunCli([
       "topic-runner",
@@ -2146,25 +2223,35 @@ test("topic-runner run executes mechanical dispatch and records run-ledger linea
     assert.equal(runnerResult.exitCode, 0);
     const payload = JSON.parse(runnerResult.stdout);
     assert.equal(payload.mode, "run");
-    assert.equal(payload.stepCount, 2);
+    assert.equal(payload.stepCount, 4);
     assert.equal(payload.runnerStatus, "stopped");
     assert.equal(payload.stopClass, "await_external_evidence");
     assert.equal(payload.steps[0].runnerStatus, "continued");
-    assert.equal(payload.steps[0].dispatch.role, "worker");
+    assert.equal(payload.steps[0].recommendedAction, "admit_wave");
+    assert.equal(payload.steps[0].command.waveState, "preflight_admitted");
+    assert.equal(payload.steps[1].recommendedAction, "freeze_packet");
+    assert.equal(payload.steps[1].command.packetId, "wave-1-runner");
+    assert.equal(payload.steps[2].runnerStatus, "continued");
+    assert.equal(payload.steps[2].dispatch.role, "worker");
 
-    await readFile(path.join(projectRoot, payload.steps[0].dispatch.promptRef), "utf8");
+    await readFile(path.join(projectRoot, payload.steps[2].dispatch.promptRef), "utf8");
     const ledger = YAML.parse(await readFile(
       path.join(projectRoot, payload.topicRef, "run-ledger-runner-dispatch.yaml"),
       "utf8",
     ));
-    assert.equal(ledger.event_count, 3);
+    assert.equal(ledger.event_count, 7);
     assert.deepEqual(ledger.event_refs, [
       "run-event-runner-dispatch-0001-decision_emitted.yaml",
-      "run-event-runner-dispatch-0002-worker_dispatched.yaml",
+      "run-event-runner-dispatch-0002-wave_admitted.yaml",
       "run-event-runner-dispatch-0003-decision_emitted.yaml",
+      "run-event-runner-dispatch-0004-packet_frozen.yaml",
+      "run-event-runner-dispatch-0005-decision_emitted.yaml",
+      "run-event-runner-dispatch-0006-worker_dispatched.yaml",
+      "run-event-runner-dispatch-0007-decision_emitted.yaml",
     ]);
     assert.equal(ledger.latest_packet_ref, `${payload.topicRef}/packet-wave-1-runner.md`);
     assert.equal(ledger.latest_prompt_ref, `${payload.topicRef}/prompt-wave-1-runner-worker.md`);
+    assert.equal(ledger.current_human_gate, null);
     assert.equal(ledger.run_status, "awaiting_external_evidence");
   });
 });

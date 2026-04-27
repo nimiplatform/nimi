@@ -33,8 +33,11 @@ recommended_action_enum:
   - closeout_topic
   - no_action
 rules:
-  - continue must carry a concrete next_command_ref
+  - continue must carry a concrete placeholder-free next_command_ref for a mechanically executable package-owned command
+  - continue may represent a lifecycle transition when the selected target and command inputs are uniquely determined
   - require_human_confirmation must carry a recommended_decision and recommendation_rationale
+  - require_human_confirmation is reserved for manager judgement, branch selection, ambiguous input, closeout, overflow continuation, or other non-mechanical gates
+  - await_external_evidence must be used when worker, audit, or result evidence is not yet available
   - blocked must carry blocking_checks or a reason_code that names the failed gate
   - completed must not imply semantic promotion or true-close
   - decision output must not mutate topic state

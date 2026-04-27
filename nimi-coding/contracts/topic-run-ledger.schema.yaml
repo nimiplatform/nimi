@@ -32,6 +32,7 @@ event_required:
   - artifact_refs
 event_kind_enum:
   - decision_emitted
+  - wave_admitted
   - packet_frozen
   - worker_dispatched
   - audit_dispatched
@@ -65,6 +66,7 @@ rules:
   - run events are append-only topic artifacts
   - the ledger is a rebuildable projection from run events
   - event stop_class and recommended_action must use the topic-step-decision contract enums
+  - continue events may record mechanically executed wave admission, packet freeze, and dispatch lineage without opening a human gate
   - require_human_confirmation opens current_human_gate unless resolved by a later human_gate_resolved event
   - completed must not imply semantic promotion or true-close
   - no event may encode transport secrets or host resume tokens

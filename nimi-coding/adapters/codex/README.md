@@ -32,6 +32,11 @@ The runner may call Codex only after `run-next-step` returns:
 - a mechanical `recommended_action`
 - a concrete `next_command_ref`
 
+`continue` means the next package-owned command is placeholder-free and
+mechanically determined. It may include lifecycle transitions such as admitting
+the uniquely selected wave or freezing the uniquely matching draft packet; those
+transitions do not by themselves create a human gate.
+
 All other stop classes must be represented as run-ledger events and returned to
 the manager/operator without hidden continuation.
 

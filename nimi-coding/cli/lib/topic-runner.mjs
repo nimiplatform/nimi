@@ -3,9 +3,11 @@ import path from "node:path";
 
 import { runNativeCodexSdkPrompt } from "./codex-sdk-runner.mjs";
 import {
+  admitWaveInTopic,
   buildTopicRunLedger,
   decideTopicNextStep,
   dispatchTopicPacket,
+  freezePacketForTopic,
   initTopicRunLedger,
   loadTopicReport,
   readTopicRunLedger,
@@ -32,6 +34,15 @@ function hasPlaceholder(value) {
 
 function safeSegment(value) {
   return String(value).replace(/[^a-zA-Z0-9._-]+/g, "-");
+}
+
+function remapTopicRef(ref, fromTopicRef, toTopicRef) {
+  if (!ref || !fromTopicRef || !toTopicRef || fromTopicRef === toTopicRef) {
+    return ref;
+  }
+  return ref.startsWith(`${fromTopicRef}/`)
+    ? `${toTopicRef}/${ref.slice(fromTopicRef.length + 1)}`
+    : ref;
 }
 
 function buildGate(decision) {
@@ -99,7 +110,17 @@ async function recordRunnerBlocked(projectRoot, options, fields) {
   });
 }
 
-function parseDispatchCommandRef(commandRef, topicId) {
+async function rewriteMovedRunEventRef(projectRoot, eventRef, fromTopicRef, toTopicRef, fromRef, toRef) {
+  if (fromRef === toRef) {
+    return;
+  }
+  const movedEventRef = remapTopicRef(eventRef, fromTopicRef, toTopicRef);
+  const eventPath = path.join(projectRoot, movedEventRef);
+  const eventText = await readFile(eventPath, "utf8");
+  await writeFile(eventPath, eventText.split(fromRef).join(toRef), "utf8");
+}
+
+function parseMechanicalCommandRef(commandRef, topicId) {
   if (typeof commandRef !== "string" || commandRef.trim().length === 0) {
     return {
       ok: false,
@@ -122,33 +143,122 @@ function parseDispatchCommandRef(commandRef, topicId) {
     };
   }
 
-  const [role, action, commandTopicId] = parts.slice(2, 5);
-  if (!["worker", "audit"].includes(role) || action !== "dispatch") {
+  const [domain, action, commandTopicId] = parts.slice(2, 5);
+  if (domain === "wave" && action === "admit") {
+    const waveId = parts[5] ?? null;
+    if (commandTopicId !== topicId) {
+      return {
+        ok: false,
+        error: `topic-runner refused: next command topic ${commandTopicId} does not match ${topicId}`,
+      };
+    }
+    if (!waveId || waveId.startsWith("--")) {
+      return {
+        ok: false,
+        error: `topic-runner refused: wave admit command is missing wave id: ${commandRef}`,
+      };
+    }
     return {
-      ok: false,
-      error: `topic-runner refused: unsupported mechanical next command: ${commandRef}`,
-    };
-  }
-  if (commandTopicId !== topicId) {
-    return {
-      ok: false,
-      error: `topic-runner refused: next command topic ${commandTopicId} does not match ${topicId}`,
+      ok: true,
+      action: "admit_wave",
+      waveId,
     };
   }
 
-  const packetFlagIndex = parts.indexOf("--packet");
-  const packetId = packetFlagIndex >= 0 ? parts[packetFlagIndex + 1] : null;
-  if (!packetId || packetId.startsWith("--")) {
+  if (domain === "packet" && action === "freeze") {
+    if (commandTopicId !== topicId) {
+      return {
+        ok: false,
+        error: `topic-runner refused: next command topic ${commandTopicId} does not match ${topicId}`,
+      };
+    }
+    const fromFlagIndex = parts.indexOf("--from");
+    const draftPath = fromFlagIndex >= 0 ? parts[fromFlagIndex + 1] : null;
+    if (!draftPath || draftPath.startsWith("--")) {
+      return {
+        ok: false,
+        error: `topic-runner refused: packet freeze command is missing --from: ${commandRef}`,
+      };
+    }
     return {
-      ok: false,
-      error: `topic-runner refused: dispatch command is missing --packet: ${commandRef}`,
+      ok: true,
+      action: "freeze_packet",
+      draftPath,
+    };
+  }
+
+  if (["worker", "audit"].includes(domain) && action === "dispatch") {
+    if (commandTopicId !== topicId) {
+      return {
+        ok: false,
+        error: `topic-runner refused: next command topic ${commandTopicId} does not match ${topicId}`,
+      };
+    }
+
+    const packetFlagIndex = parts.indexOf("--packet");
+    const packetId = packetFlagIndex >= 0 ? parts[packetFlagIndex + 1] : null;
+    if (!packetId || packetId.startsWith("--")) {
+      return {
+        ok: false,
+        error: `topic-runner refused: dispatch command is missing --packet: ${commandRef}`,
+      };
+    }
+
+    return {
+      ok: true,
+      action: domain === "audit" ? "dispatch_audit" : "dispatch_worker",
+      role: domain,
+      packetId,
     };
   }
 
   return {
-    ok: true,
-    role,
-    packetId,
+    ok: false,
+    error: `topic-runner refused: unsupported mechanical next command: ${commandRef}`,
+  };
+}
+
+async function executeMechanicalCommand(projectRoot, options, parsedCommand) {
+  if (parsedCommand.action === "admit_wave") {
+    const report = await admitWaveInTopic(projectRoot, options.topicInput, parsedCommand.waveId);
+    return {
+      ok: report.ok,
+      action: parsedCommand.action,
+      report,
+      eventKind: "wave_admitted",
+      eventSourceRef: report.ok ? `${report.topicRef}/topic.yaml` : null,
+      summary: report.ok ? "wave_admit_completed" : "runner_wave_admit_failed",
+      artifactRefs: {},
+      waveId: report.ok ? report.waveId : parsedCommand.waveId,
+      error: report.ok ? null : report.error,
+    };
+  }
+
+  if (parsedCommand.action === "freeze_packet") {
+    const report = await freezePacketForTopic(projectRoot, options.topicInput, parsedCommand.draftPath);
+    return {
+      ok: report.ok,
+      action: parsedCommand.action,
+      report,
+      eventKind: "packet_frozen",
+      eventSourceRef: report.ok ? report.packetRef : null,
+      summary: report.ok ? "packet_freeze_completed" : "runner_packet_freeze_failed",
+      artifactRefs: report.ok ? { packet_ref: report.packetRef } : {},
+      waveId: report.ok ? report.waveId : null,
+      error: report.ok ? null : report.error,
+    };
+  }
+
+  return {
+    ok: false,
+    action: parsedCommand.action,
+    report: null,
+    eventKind: null,
+    eventSourceRef: null,
+    summary: "runner_unsupported_mechanical_command",
+    artifactRefs: {},
+    waveId: null,
+    error: `topic-runner refused: unsupported mechanical action ${parsedCommand.action}`,
   };
 }
 
@@ -278,7 +388,7 @@ export async function runTopicRunnerStep(projectRoot, options, deps = {}) {
     };
   }
 
-  const parsedCommand = parseDispatchCommandRef(
+  const parsedCommand = parseMechanicalCommandRef(
     decisionReport.decision.next_command_ref,
     decisionReport.topicId,
   );
@@ -300,6 +410,79 @@ export async function runTopicRunnerStep(projectRoot, options, deps = {}) {
       ledgerRef: blockedEvent.ok ? blockedEvent.ledgerRef : decisionEvent.ledgerRef,
       eventCount: blockedEvent.ok ? blockedEvent.eventCount : decisionEvent.eventCount,
     }, parsedCommand.error);
+  }
+
+  if (["admit_wave", "freeze_packet"].includes(parsedCommand.action)) {
+    const commandExecution = await executeMechanicalCommand(projectRoot, { ...options, recordedAt }, parsedCommand);
+    if (!commandExecution.ok) {
+      const blockedEvent = await recordRunnerBlocked(projectRoot, { ...options, verifiedAt: recordedAt }, {
+        sourceRef: decisionRef,
+        summary: commandExecution.summary,
+        recordedAt,
+        waveId: commandExecution.waveId ?? decisionReport.decision.wave_id,
+        artifactRefs: { decision_ref: decisionRef },
+      });
+      return blockedResult({
+        topicId: decisionReport.topicId,
+        topicRef: decisionReport.topicRef,
+        runId: options.runId,
+        adapter: options.adapter,
+        decision: decisionReport.decision,
+        decisionRef,
+        ledgerRef: blockedEvent.ok ? blockedEvent.ledgerRef : decisionEvent.ledgerRef,
+        eventCount: blockedEvent.ok ? blockedEvent.eventCount : decisionEvent.eventCount,
+      }, commandExecution.error ?? "topic-runner mechanical command failed");
+    }
+
+    const effectiveDecisionRef = remapTopicRef(
+      decisionRef,
+      decisionReport.topicRef,
+      commandExecution.report.topicRef,
+    );
+    await rewriteMovedRunEventRef(
+      projectRoot,
+      decisionEvent.eventRef,
+      decisionReport.topicRef,
+      commandExecution.report.topicRef,
+      decisionRef,
+      effectiveDecisionRef,
+    );
+    const artifactRefs = {
+      decision_ref: effectiveDecisionRef,
+      ...commandExecution.artifactRefs,
+    };
+    const commandEvent = await recordTopicRunEvent(projectRoot, options.topicInput, {
+      runId: options.runId,
+      eventKind: commandExecution.eventKind,
+      stopClass: "continue",
+      recommendedAction: parsedCommand.action,
+      sourceRef: commandExecution.eventSourceRef,
+      summary: commandExecution.summary,
+      recordedAt,
+      waveId: commandExecution.waveId,
+      artifactRefs,
+    });
+    if (!commandEvent.ok) {
+      return commandEvent;
+    }
+
+    return {
+      ok: true,
+      topicId: commandExecution.report.topicId,
+      topicRef: commandExecution.report.topicRef,
+      runId: options.runId,
+      adapter: options.adapter,
+      runnerStatus: "continued",
+      executed: true,
+      stopClass: "continue",
+      recommendedAction: decisionReport.decision.recommended_action,
+      decision: decisionReport.decision,
+      gate: buildGate(decisionReport.decision),
+      decisionRef: effectiveDecisionRef,
+      command: commandExecution.report,
+      ledgerRef: commandEvent.ledgerRef,
+      eventCount: commandEvent.eventCount,
+    };
   }
 
   const dispatchReport = await dispatchTopicPacket(
