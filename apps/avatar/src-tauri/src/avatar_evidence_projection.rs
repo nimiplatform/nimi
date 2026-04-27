@@ -173,7 +173,11 @@ mod tests {
 
     fn context() -> AvatarLaunchContext {
         AvatarLaunchContext {
+            agent_center_account_id: "account_1".to_string(),
             agent_id: "agent-1".to_string(),
+            avatar_package_kind: "live2d".to_string(),
+            avatar_package_id: "live2d_ab12cd34ef56".to_string(),
+            avatar_package_schema_version: 1,
             avatar_instance_id: "instance-1".to_string(),
             conversation_anchor_id: Some("anchor-1".to_string()),
             anchor_mode: AvatarAnchorMode::Existing,

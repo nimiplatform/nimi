@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState, type MouseEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useCallback, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
@@ -19,11 +19,29 @@ import type {
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { ChatSettingsPanel } from './chat-shared-settings-panel';
 import { RuntimeStreamFooter } from './chat-shared-runtime-stream-ui';
-import { ChatAgentAvatarSettingsPanel } from './chat-agent-avatar-settings-panel';
+import { AgentCenterPanel } from './chat-agent-center-panel';
+import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import {
-  desktopAgentBackdropBindingQueryKey,
-  getDesktopAgentBackdropBinding,
-} from '@renderer/bridge/runtime-bridge/chat-agent-backdrop-store';
+  buildDesktopAvatarInstanceId,
+  closeDesktopAvatarHandoff,
+  launchDesktopAvatarHandoff,
+} from '@renderer/bridge/runtime-bridge/chat-agent-avatar-launcher';
+import {
+  desktopAvatarInstanceRegistryQueryKey,
+  listDesktopAvatarLiveInstances,
+} from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
+import {
+  agentCenterLocalConfigQueryKey,
+  getAgentCenterBackgroundAsset,
+  getAgentCenterLocalConfig,
+  importAgentCenterBackground,
+  importAgentCenterAvatarPackage,
+  pickAgentCenterBackgroundSource,
+  pickAgentCenterAvatarPackageSource,
+  removeAgentCenterAvatarPackage,
+  removeAgentCenterBackground,
+  validateAgentCenterAvatarPackage,
+} from '@renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
 import { cancelStream } from '../turns/stream-controller';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
@@ -64,6 +82,7 @@ import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-sh
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
+  accountId: string | null;
   activeThreadId: string | null;
   activeConversationAnchorId: string | null;
   bundle: AgentLocalThreadBundle | null;
@@ -105,7 +124,9 @@ type UseAgentConversationPresentationInput = {
   selectedTargetId: string | null;
   behaviorSettings: AgentChatExperienceSettings;
   setBehaviorSettings: (value: AgentChatExperienceSettings) => void;
+  cognitionContent?: ReactNode;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
+  onOpenAgentCenter?: () => void;
   voiceSessionState: AgentVoiceSessionShellState;
   voiceCaptureState: {
     active: boolean;
@@ -142,6 +163,16 @@ type UseAgentConversationPresentationInput = {
 
 const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-[clamp(140px,16vh,200px)]';
 
+function assetUrlFromFileUrl(fileUrl: string | null | undefined): string | undefined {
+  const normalized = String(fileUrl || '').trim();
+  if (!normalized) {
+    return undefined;
+  }
+  return normalized.startsWith('file://')
+    ? normalized.replace(/^file:\/\//, 'asset://localhost')
+    : normalized;
+}
+
 export function useAgentConversationPresentation(
   input: UseAgentConversationPresentationInput,
 ): Pick<
@@ -156,12 +187,15 @@ export function useAgentConversationPresentation(
   | 'onThinkingToggle'
   | 'selectedTargetId'
   | 'settingsContent'
+  | 'settingsDrawerTitle'
+  | 'settingsDrawerSubtitle'
   | 'setupDescription'
   | 'stagePanelProps'
   | 'targets'
   | 'thinkingState'
   | 'transcriptProps'
 > {
+  const queryClient = useQueryClient();
   const schedulingGuard = useMemo(
     () => resolveExecutionSchedulingGuardDecision({
       judgement: input.schedulingJudgement,
@@ -239,27 +273,306 @@ export function useAgentConversationPresentation(
       }),
     },
   }), [footerViewState, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, input.voiceCaptureState, input.voicePlaybackState, input.voiceSessionState, latestStatusCue, runtimeCommittedStatus]);
-  const backdropBindingQuery = useQuery({
-    queryKey: input.activeTarget?.agentId
-      ? desktopAgentBackdropBindingQueryKey(input.activeTarget.agentId)
-      : ['desktop-agent-backdrop-binding', 'none'],
+  const agentCenterLocalConfigQuery = useQuery({
+    queryKey: input.accountId && input.activeTarget?.agentId
+      ? agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.agentId)
+      : ['agent-center-local-config', 'none'],
     queryFn: async () => (
-      input.activeTarget?.agentId
-        ? getDesktopAgentBackdropBinding(input.activeTarget.agentId)
+      input.accountId && input.activeTarget?.agentId
+        ? getAgentCenterLocalConfig({
+          accountId: input.accountId,
+          agentId: input.activeTarget.agentId,
+        })
         : null
     ),
-    enabled: Boolean(input.activeTarget?.agentId),
+    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.agentId),
     staleTime: 30_000,
   });
-  // Rust store returns a `file://` URL; Tauri 2 webview cannot load `file://`
-  // assets directly under CSP. Convert to the allowed `asset://localhost/...`
-  // protocol (scope registered in tauri.conf.json).
-  const rawBackdropFileUrl = backdropBindingQuery.data?.fileUrl;
-  const backdropImageUrl = rawBackdropFileUrl
-    ? rawBackdropFileUrl.startsWith('file://')
-      ? rawBackdropFileUrl.replace(/^file:\/\//, 'asset://localhost')
-      : rawBackdropFileUrl
-    : undefined;
+  const selectedAvatarPackage = agentCenterLocalConfigQuery.data?.modules.avatar_package.selected_package || null;
+  const selectedBackgroundAssetId = agentCenterLocalConfigQuery.data?.modules.appearance.background_asset_id || null;
+  const backgroundAssetQuery = useQuery({
+    queryKey: input.accountId && input.activeTarget?.agentId && selectedBackgroundAssetId
+      ? [
+        'agent-center-background-asset',
+        input.accountId,
+        input.activeTarget.agentId,
+        selectedBackgroundAssetId,
+      ]
+      : ['agent-center-background-asset', 'none'],
+    queryFn: async () => (
+      input.accountId && input.activeTarget?.agentId && selectedBackgroundAssetId
+        ? getAgentCenterBackgroundAsset({
+          accountId: input.accountId,
+          agentId: input.activeTarget.agentId,
+          backgroundAssetId: selectedBackgroundAssetId,
+        })
+        : null
+    ),
+    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.agentId && selectedBackgroundAssetId),
+    staleTime: 30_000,
+  });
+  const backdropImageUrl = assetUrlFromFileUrl(backgroundAssetQuery.data?.file_url);
+  const avatarPackageValidationQuery = useQuery({
+    queryKey: input.accountId && input.activeTarget?.agentId && selectedAvatarPackage
+      ? [
+        'agent-center-avatar-package-validation',
+        input.accountId,
+        input.activeTarget.agentId,
+        selectedAvatarPackage.kind,
+        selectedAvatarPackage.package_id,
+      ]
+      : ['agent-center-avatar-package-validation', 'none'],
+    queryFn: async () => (
+      input.accountId && input.activeTarget?.agentId && selectedAvatarPackage
+        ? validateAgentCenterAvatarPackage({
+          accountId: input.accountId,
+          agentId: input.activeTarget.agentId,
+          kind: selectedAvatarPackage.kind,
+          packageId: selectedAvatarPackage.package_id,
+        })
+        : null
+    ),
+    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.agentId && selectedAvatarPackage),
+    staleTime: 30_000,
+  });
+  const avatarConfigured = Boolean(selectedAvatarPackage);
+  const avatarPackageLaunchSupported = !selectedAvatarPackage || selectedAvatarPackage.kind === 'live2d';
+  const avatarPackageValid = avatarPackageLaunchSupported && avatarPackageValidationQuery.data?.status === 'valid';
+  const avatarPackageChecking = Boolean(selectedAvatarPackage && avatarPackageValidationQuery.isFetching);
+  const backgroundValidation = backgroundAssetQuery.data?.validation || null;
+  const backgroundValid = backgroundValidation?.status === 'valid';
+  const avatarPackageImportMutation = useMutation({
+    mutationFn: async (kind: 'live2d' | 'vrm') => {
+      if (!input.accountId || !input.activeTarget?.agentId) {
+        throw new Error(input.t('Chat.agentCenterAvatarImportAgentRequired', {
+          defaultValue: 'Select an agent before importing an avatar package.',
+        }));
+      }
+      const sourcePath = await pickAgentCenterAvatarPackageSource({ kind });
+      if (!sourcePath) {
+        return null;
+      }
+      return importAgentCenterAvatarPackage({
+        accountId: input.accountId,
+        agentId: input.activeTarget.agentId,
+        kind,
+        sourcePath,
+        select: true,
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result || !input.accountId || !input.activeTarget?.agentId) {
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.agentId),
+        }),
+        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-package-validation'] }),
+      ]);
+    },
+  });
+  const avatarImportDisabled = !hasTauriInvoke()
+    || !input.accountId
+    || !input.activeTarget?.agentId
+    || avatarPackageImportMutation.isPending;
+  const avatarImportError = avatarPackageImportMutation.error instanceof Error
+    ? avatarPackageImportMutation.error.message
+    : null;
+  const clearAvatarPackageMutation = useMutation({
+    mutationFn: async () => {
+      if (!input.accountId || !input.activeTarget?.agentId || !selectedAvatarPackage) {
+        return null;
+      }
+      return removeAgentCenterAvatarPackage({
+        accountId: input.accountId,
+        agentId: input.activeTarget.agentId,
+        kind: selectedAvatarPackage.kind,
+        packageId: selectedAvatarPackage.package_id,
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result || !input.accountId || !input.activeTarget?.agentId) {
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.agentId),
+        }),
+        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-package-validation'] }),
+      ]);
+    },
+  });
+  const backgroundImportMutation = useMutation({
+    mutationFn: async () => {
+      if (!input.accountId || !input.activeTarget?.agentId) {
+        throw new Error(input.t('Chat.agentCenterBackgroundImportAgentRequired', {
+          defaultValue: 'Select an agent before importing a background.',
+        }));
+      }
+      const sourcePath = await pickAgentCenterBackgroundSource();
+      if (!sourcePath) {
+        return null;
+      }
+      return importAgentCenterBackground({
+        accountId: input.accountId,
+        agentId: input.activeTarget.agentId,
+        sourcePath,
+        select: true,
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result || !input.accountId || !input.activeTarget?.agentId) {
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.agentId),
+        }),
+        queryClient.invalidateQueries({ queryKey: ['agent-center-background-asset'] }),
+      ]);
+    },
+  });
+  const backgroundImportDisabled = !hasTauriInvoke()
+    || !input.accountId
+    || !input.activeTarget?.agentId
+    || backgroundImportMutation.isPending;
+  const backgroundImportError = backgroundImportMutation.error instanceof Error
+    ? backgroundImportMutation.error.message
+    : null;
+  const clearBackgroundMutation = useMutation({
+    mutationFn: async () => {
+      if (!input.accountId || !input.activeTarget?.agentId || !selectedBackgroundAssetId) {
+        return null;
+      }
+      return removeAgentCenterBackground({
+        accountId: input.accountId,
+        agentId: input.activeTarget.agentId,
+        backgroundAssetId: selectedBackgroundAssetId,
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result || !input.accountId || !input.activeTarget?.agentId) {
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.agentId),
+        }),
+        queryClient.invalidateQueries({ queryKey: ['agent-center-background-asset'] }),
+      ]);
+    },
+  });
+  const avatarHandoffReady = hasTauriInvoke();
+  const [avatarActionPending, setAvatarActionPending] = useState(false);
+  const avatarInstanceId = useMemo(() => (
+    input.activeTarget
+      ? buildDesktopAvatarInstanceId({
+        agentId: input.activeTarget.agentId,
+        threadId: input.activeThreadId,
+        conversationAnchorId: input.activeConversationAnchorId,
+      })
+      : null
+  ), [input.activeConversationAnchorId, input.activeTarget, input.activeThreadId]);
+  const avatarLiveInstancesQuery = useQuery({
+    queryKey: input.activeTarget?.agentId
+      ? desktopAvatarInstanceRegistryQueryKey(input.activeTarget.agentId)
+      : ['desktop-avatar-instance-registry', 'none'],
+    queryFn: async () => (
+      input.activeTarget?.agentId
+        ? listDesktopAvatarLiveInstances(input.activeTarget.agentId)
+        : []
+    ),
+    enabled: avatarHandoffReady && avatarPackageValid && Boolean(input.activeTarget?.agentId),
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: avatarHandoffReady && avatarPackageValid && input.activeTarget?.agentId ? 5_000 : false,
+  });
+  const avatarRunning = Boolean(
+    avatarInstanceId
+    && avatarLiveInstancesQuery.data?.some((instance) => instance.avatarInstanceId === avatarInstanceId),
+  );
+  const handleComposerAvatarAction = useCallback(async () => {
+    if (
+      !input.accountId
+      || !input.activeTarget
+      || !selectedAvatarPackage
+      || !avatarConfigured
+      || !avatarPackageValid
+      || !avatarHandoffReady
+      || !avatarInstanceId
+    ) {
+      input.onOpenAgentCenter?.();
+      return null;
+    }
+    setAvatarActionPending(true);
+    try {
+      if (avatarRunning) {
+        const result = await closeDesktopAvatarHandoff({
+          avatarInstanceId,
+          closedBy: 'desktop',
+          sourceSurface: 'desktop-agent-chat',
+        });
+        await avatarLiveInstancesQuery.refetch();
+        return {
+          kind: result.opened ? 'success' as const : 'warning' as const,
+          message: result.opened
+            ? input.t('Chat.agentCenterAvatarStopSuccess', { defaultValue: 'Avatar close request sent.' })
+            : input.t('Chat.agentCenterAvatarStopUnconfirmed', { defaultValue: 'Close request was sent, but the OS did not confirm it.' }),
+        };
+      }
+      const anchorMode = input.activeConversationAnchorId ? 'existing' : 'open_new';
+      const result = await launchDesktopAvatarHandoff({
+        accountId: input.accountId,
+        agentId: input.activeTarget.agentId,
+        avatarPackage: {
+          kind: selectedAvatarPackage.kind,
+          packageId: selectedAvatarPackage.package_id,
+        },
+        avatarInstanceId,
+        conversationAnchorId: input.activeConversationAnchorId,
+        anchorMode,
+        launchedBy: 'nimi.desktop',
+        runtimeAppId: 'nimi.desktop',
+        sourceSurface: 'desktop-agent-chat',
+      });
+      await avatarLiveInstancesQuery.refetch();
+      return {
+        kind: result.opened ? 'success' as const : 'warning' as const,
+        message: result.opened
+          ? input.t('Chat.agentCenterAvatarStartSuccess', { defaultValue: 'Avatar opened in Nimi Avatar.' })
+          : input.t('Chat.agentCenterAvatarStartUnconfirmed', { defaultValue: 'Launch request was sent, but the OS did not confirm it.' }),
+      };
+    } finally {
+      setAvatarActionPending(false);
+    }
+  }, [
+    avatarConfigured,
+    avatarPackageValid,
+    avatarHandoffReady,
+    avatarInstanceId,
+    avatarLiveInstancesQuery,
+    avatarRunning,
+    input.activeConversationAnchorId,
+    input.activeTarget,
+    input.accountId,
+    input.onOpenAgentCenter,
+    input.t,
+    selectedAvatarPackage,
+  ]);
+  const avatarComposerActionState = !avatarConfigured
+    ? 'not_configured'
+    : avatarPackageChecking
+      ? 'pending'
+      : !avatarPackageValid
+        ? 'package_invalid'
+        : avatarActionPending
+          ? 'pending'
+          : !avatarHandoffReady
+            ? 'unavailable'
+            : avatarRunning
+              ? 'running'
+              : 'ready_stopped';
   const characterData = useMemo(() => ({
     ...surfaceState.character,
     theme: {
@@ -453,30 +766,177 @@ export function useAgentConversationPresentation(
     stagePanelProps: undefined,
     topContent: schedulingFeedbackNode,
     settingsContent: (
-      <ChatSettingsPanel
-        onDiagnosticsVisibilityChange={input.onDiagnosticsVisibilityChange}
-        onModelSelectionChange={input.onModelSelectionChange}
-        initialModelSelection={input.initialModelSelection}
-        diagnosticsContent={diagnosticsContent}
-        presenceContent={(
-          <ChatAgentAvatarSettingsPanel
-            selectedTarget={input.activeTarget
-              ? {
-                id: input.activeTarget.agentId,
-                title: input.activeTarget.displayName || resolvedAgentDisplayName,
-              }
-              : null}
-            activeThreadId={input.activeThreadId}
-            activeConversationAnchorId={input.activeConversationAnchorId}
-            presentationProfile={input.runtimeInspect?.presentationProfile || input.activeTarget?.presentationProfile || null}
-            onRefreshInspect={input.onRefreshInspect}
+      <AgentCenterPanel
+        activeTarget={input.activeTarget}
+        runtimeInspect={input.runtimeInspect}
+        runtimeInspectLoading={input.runtimeInspectLoading}
+        routeReady={input.agentRouteReady}
+        mutationPendingAction={input.mutationPendingAction}
+        avatarConfigured={avatarPackageValid}
+        backgroundConfigured={Boolean(backgroundValid)}
+        avatarContent={(
+          <div className="space-y-3">
+            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-slate-950">
+                    {input.t('Chat.agentCenterAvatarPackage', { defaultValue: 'Avatar package' })}
+                  </div>
+                  <div className="mt-1 text-[11px] leading-4 text-slate-500">
+                    {avatarPackageValid
+                      ? input.t('Chat.agentCenterAvatarPackageReady', { defaultValue: 'A local package is selected and ready to launch from the composer.' })
+                      : avatarPackageChecking
+                        ? input.t('Chat.agentCenterAvatarPackageChecking', { defaultValue: 'Checking the selected local package.' })
+                        : selectedAvatarPackage
+                          ? input.t('Chat.agentCenterAvatarPackageNeedsFix', { defaultValue: 'The selected local package needs attention before launch.' })
+                          : input.t('Chat.agentCenterAvatarPackageMissing', { defaultValue: 'Import a local Live2D folder or VRM file to enable avatar launch.' })}
+                  </div>
+                </div>
+                <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600">
+                  {avatarPackageValid
+                    ? input.t('Chat.agentCenterReady', { defaultValue: 'Ready' })
+                    : avatarPackageChecking
+                      ? input.t('Chat.agentCenterChecking', { defaultValue: 'Checking' })
+                      : input.t('Chat.agentCenterNeedsSetup', { defaultValue: 'Needs setup' })}
+                </span>
+              </div>
+              {avatarPackageValidationQuery.data?.errors?.[0]?.message ? (
+                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800">
+                  {avatarPackageValidationQuery.data.errors[0].message}
+                </div>
+              ) : null}
+              {(avatarImportError || (clearAvatarPackageMutation.error instanceof Error ? clearAvatarPackageMutation.error.message : null)) ? (
+                <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
+                  {avatarImportError || (clearAvatarPackageMutation.error instanceof Error ? clearAvatarPackageMutation.error.message : null)}
+                </div>
+              ) : null}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                disabled={avatarImportDisabled}
+                onClick={() => avatarPackageImportMutation.mutate('live2d')}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {avatarPackageImportMutation.isPending
+                  ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing…' })
+                  : input.t('Chat.agentCenterImportLive2d', { defaultValue: 'Import Live2D folder' })}
+              </button>
+              <button
+                type="button"
+                disabled={avatarImportDisabled}
+                onClick={() => avatarPackageImportMutation.mutate('vrm')}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {avatarPackageImportMutation.isPending
+                  ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing…' })
+                  : input.t('Chat.agentCenterImportVrm', { defaultValue: 'Import VRM file' })}
+              </button>
+            </div>
+            {selectedAvatarPackage ? (
+              <button
+                type="button"
+                disabled={clearAvatarPackageMutation.isPending || avatarActionPending}
+                onClick={() => clearAvatarPackageMutation.mutate()}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {clearAvatarPackageMutation.isPending
+                  ? input.t('Chat.agentCenterAvatarClearing', { defaultValue: 'Clearing…' })
+                  : input.t('Chat.agentCenterClearAvatarSelection', { defaultValue: 'Remove avatar package' })}
+              </button>
+            ) : null}
+            {!hasTauriInvoke() ? (
+              <div className="text-[11px] leading-4 text-slate-500">
+                {input.t('Chat.agentCenterAvatarImportDesktopOnly', { defaultValue: 'Avatar package import is available in the desktop app.' })}
+              </div>
+            ) : null}
+          </div>
+        )}
+        localAppearanceContent={(
+          <div className="space-y-3">
+            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-slate-950">
+                    {input.t('Chat.agentCenterBackground', { defaultValue: 'Background' })}
+                  </div>
+                  <div className="mt-1 text-[11px] leading-4 text-slate-500">
+                    {backgroundValid
+                      ? input.t('Chat.agentCenterBackgroundReadyHint', { defaultValue: 'A local background is selected for this agent.' })
+                      : selectedBackgroundAssetId
+                        ? input.t('Chat.agentCenterBackgroundNeedsFix', { defaultValue: 'The selected local background needs attention.' })
+                        : input.t('Chat.agentCenterBackgroundMissingHint', { defaultValue: 'Import a png, jpeg, or webp image for this agent.' })}
+                  </div>
+                </div>
+                <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600">
+                  {backgroundValid
+                    ? input.t('Chat.agentCenterReady', { defaultValue: 'Ready' })
+                    : backgroundAssetQuery.isFetching
+                      ? input.t('Chat.agentCenterChecking', { defaultValue: 'Checking' })
+                      : input.t('Chat.agentCenterNeedsSetup', { defaultValue: 'Needs setup' })}
+                </span>
+              </div>
+              {backgroundValidation?.errors?.[0]?.message ? (
+                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800">
+                  {backgroundValidation.errors[0].message}
+                </div>
+              ) : null}
+              {(backgroundImportError || (clearBackgroundMutation.error instanceof Error ? clearBackgroundMutation.error.message : null)) ? (
+                <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
+                  {backgroundImportError || (clearBackgroundMutation.error instanceof Error ? clearBackgroundMutation.error.message : null)}
+                </div>
+              ) : null}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                disabled={backgroundImportDisabled}
+                onClick={() => backgroundImportMutation.mutate()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {backgroundImportMutation.isPending
+                  ? input.t('Chat.agentCenterBackgroundImporting', { defaultValue: 'Importing…' })
+                  : input.t('Chat.agentCenterImportBackground', { defaultValue: 'Import background image' })}
+              </button>
+              <button
+                type="button"
+                disabled={!selectedBackgroundAssetId || clearBackgroundMutation.isPending}
+                onClick={() => clearBackgroundMutation.mutate()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {clearBackgroundMutation.isPending
+                  ? input.t('Chat.agentCenterBackgroundClearing', { defaultValue: 'Clearing…' })
+                  : input.t('Chat.agentCenterClearBackgroundSelection', { defaultValue: 'Remove background' })}
+              </button>
+            </div>
+          </div>
+        )}
+        modelContent={(
+          <ChatSettingsPanel
+            onDiagnosticsVisibilityChange={input.onDiagnosticsVisibilityChange}
+            onModelSelectionChange={input.onModelSelectionChange}
+            initialModelSelection={input.initialModelSelection}
+            diagnosticsContent={diagnosticsContent}
+            clearChatsTargetName={input.clearChatsTargetName}
+            clearChatsDisabled={input.clearChatsDisabled}
+            onClearAgentHistory={input.onClearAgentHistory}
+            showPresenceContent={false}
+            showDiagnosticsFooter={false}
+            showClearHistoryAction={false}
           />
         )}
+        cognitionContent={input.cognitionContent}
+        diagnosticsContent={diagnosticsContent}
+        onEnableAutonomy={input.onEnableAutonomy}
+        onDisableAutonomy={input.onDisableAutonomy}
+        onUpdateAutonomyConfig={input.onUpdateAutonomyConfig}
         clearChatsTargetName={input.clearChatsTargetName}
         clearChatsDisabled={input.clearChatsDisabled}
         onClearAgentHistory={input.onClearAgentHistory}
       />
     ),
+    settingsDrawerTitle: input.t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' }),
+    settingsDrawerSubtitle: resolvedAgentDisplayName,
     composerContent: (
       adapter.composerAdapter ? (
         <div className="space-y-3">
@@ -521,6 +981,11 @@ export function useAgentConversationPresentation(
                 fallbackLabel={characterData.avatarFallback || resolvedAgentDisplayName}
               />
             )}
+            avatarAction={{
+              state: avatarComposerActionState,
+              onConfigure: input.onOpenAgentCenter,
+              onActivate: handleComposerAvatarAction,
+            }}
             widthClassName={CHAT_CONTENT_WIDTH_CLASS}
             widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
           />
@@ -543,11 +1008,38 @@ export function useAgentConversationPresentation(
     hostFeedbackNode,
     schedulingFeedbackNode,
     hostSnapshot,
+    agentCenterLocalConfigQuery.data,
     characterData.name,
+    characterData.avatarUrl,
+    characterData.avatarFallback,
+    avatarConfigured,
+    avatarImportDisabled,
+    avatarImportError,
+    avatarPackageChecking,
+    avatarPackageImportMutation,
+    avatarPackageValidationQuery.data,
+    avatarPackageValid,
+    avatarComposerActionState,
+    avatarActionPending,
+    avatarHandoffReady,
+    avatarRunning,
+    backgroundImportDisabled,
+    backgroundImportError,
+    backgroundImportMutation,
+    backgroundAssetQuery.data,
+    backgroundAssetQuery.isFetching,
+    backgroundValidation,
+    backgroundValid,
+    clearAvatarPackageMutation,
+    clearBackgroundMutation,
+    selectedBackgroundAssetId,
+    selectedAvatarPackage,
+    handleComposerAvatarAction,
     input.activeTarget,
     input.activeConversationAnchorId,
     input.activeThreadId,
     input.agentRouteReady,
+    input.mutationPendingAction,
     input.behaviorSettings,
     input.bundle?.draft?.text,
     input.bundle?.draft?.updatedAtMs,
@@ -555,6 +1047,9 @@ export function useAgentConversationPresentation(
     input.handleSubmit,
     input.onAttachmentsChange,
     input.onDismissHostFeedback,
+    input.onEnableAutonomy,
+    input.onDisableAutonomy,
+    input.onUpdateAutonomyConfig,
     input.onEnterHandsFreeVoiceSession,
     input.onExitHandsFreeVoiceSession,
     input.setBehaviorSettings,
@@ -575,5 +1070,7 @@ export function useAgentConversationPresentation(
     input.clearChatsTargetName,
     input.clearChatsDisabled,
     input.onClearAgentHistory,
+    input.cognitionContent,
+    input.onOpenAgentCenter,
   ]);
 }

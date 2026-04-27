@@ -120,8 +120,8 @@ test('desktop avatar close handoff failure does not invoke unrelated bridge comm
       },
     });
     assert.ok(!calls.some(({ command }) => (
-      command === 'desktop_agent_backdrop_import'
-      || command === 'desktop_agent_backdrop_clear'
+      command === 'desktop_agent_center_background_import'
+      || command === 'desktop_agent_center_config_put'
       || command === 'runtime_bridge_unary'
       || command === 'desktop_avatar_launch_handoff'
     )));

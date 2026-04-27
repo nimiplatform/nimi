@@ -34,8 +34,77 @@ fn normalize_optional_handoff_value(value: Option<&str>) -> Option<String> {
     }
 }
 
+fn validate_normalized_handoff_id(value: &str, field: &str) -> Result<String, String> {
+    let normalized = normalize_required_handoff_value(value, field)?;
+    if normalized.len() > 256
+        || normalized == "."
+        || normalized == ".."
+        || normalized.contains("://")
+        || !normalized.chars().any(|ch| ch.is_ascii_alphanumeric())
+        || !normalized.chars().all(|ch| {
+            ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | '~' | ':' | '@' | '+')
+        })
+    {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            &format!("{field} must use Agent Center normalized id characters"),
+        ));
+    }
+    Ok(normalized)
+}
+
+fn validate_avatar_package_kind(value: &str) -> Result<String, String> {
+    let normalized = normalize_required_handoff_value(value, "avatar_package_kind")?;
+    if normalized != "live2d" && normalized != "vrm" {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            "avatar handoff avatar_package_kind must be live2d or vrm",
+        ));
+    }
+    Ok(normalized)
+}
+
+fn validate_avatar_package_id(value: &str, kind: &str) -> Result<String, String> {
+    let normalized = normalize_required_handoff_value(value, "avatar_package_id")?;
+    let expected_prefix = format!("{kind}_");
+    if !normalized.starts_with(expected_prefix.as_str()) {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            "avatar handoff avatar_package_id must match avatar_package_kind",
+        ));
+    }
+    let suffix = &normalized[expected_prefix.len()..];
+    if suffix.len() != 12
+        || !suffix
+            .chars()
+            .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
+    {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            "avatar handoff avatar_package_id must use a 12-character lowercase hex digest suffix",
+        ));
+    }
+    Ok(normalized)
+}
+
 fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Result<String, String> {
+    let account_id = validate_normalized_handoff_id(
+        payload.agent_center_account_id.as_str(),
+        "agent_center_account_id",
+    )?;
     let agent_id = normalize_required_handoff_value(payload.agent_id.as_str(), "agent_id")?;
+    let avatar_package_kind = validate_avatar_package_kind(payload.avatar_package_kind.as_str())?;
+    let avatar_package_id = validate_avatar_package_id(
+        payload.avatar_package_id.as_str(),
+        avatar_package_kind.as_str(),
+    )?;
+    let avatar_package_schema_version = payload.avatar_package_schema_version.unwrap_or(1);
+    if avatar_package_schema_version != 1 {
+        return Err(structured_avatar_handoff_error(
+            "DESKTOP_AVATAR_HANDOFF_INVALID",
+            "avatar handoff avatar_package_schema_version must be 1",
+        ));
+    }
     let avatar_instance_id = normalize_required_handoff_value(
         payload.avatar_instance_id.as_str(),
         "avatar_instance_id",
@@ -76,7 +145,14 @@ fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Resu
     }
 
     let mut serializer = url::form_urlencoded::Serializer::new(String::new());
+    serializer.append_pair("agent_center_account_id", account_id.as_str());
     serializer.append_pair("agent_id", agent_id.as_str());
+    serializer.append_pair("avatar_package_kind", avatar_package_kind.as_str());
+    serializer.append_pair("avatar_package_id", avatar_package_id.as_str());
+    serializer.append_pair(
+        "avatar_package_schema_version",
+        avatar_package_schema_version.to_string().as_str(),
+    );
     serializer.append_pair("avatar_instance_id", avatar_instance_id.as_str());
     serializer.append_pair("anchor_mode", anchor_mode.as_str());
     serializer.append_pair("launched_by", launched_by.as_str());
@@ -516,8 +592,7 @@ mod tests {
     use super::{
         avatar_runtime_env_pairs, build_avatar_close_handoff_uri, build_avatar_handoff_uri,
         confirm_dialog, ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload,
-        DESKTOP_RUNTIME_APP_ID,
-        DesktopAvatarLaunchHandoffPayload,
+        DesktopAvatarLaunchHandoffPayload, DESKTOP_RUNTIME_APP_ID,
     };
     use crate::test_support::test_guard;
     use std::{fs, path::PathBuf};
@@ -530,6 +605,25 @@ mod tests {
         ));
         fs::create_dir_all(&dir).expect("create temp dir");
         dir
+    }
+
+    fn launch_payload(
+        anchor_mode: &str,
+        conversation_anchor_id: Option<&str>,
+    ) -> DesktopAvatarLaunchHandoffPayload {
+        DesktopAvatarLaunchHandoffPayload {
+            agent_center_account_id: "account_1".to_string(),
+            agent_id: "agent-1".to_string(),
+            avatar_package_kind: "live2d".to_string(),
+            avatar_package_id: "live2d_ab12cd34ef56".to_string(),
+            avatar_package_schema_version: Some(1),
+            avatar_instance_id: "instance-1".to_string(),
+            conversation_anchor_id: conversation_anchor_id.map(str::to_string),
+            anchor_mode: anchor_mode.to_string(),
+            launched_by: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
+            runtime_app_id: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
+            source_surface: Some("desktop-agent-chat".to_string()),
+        }
     }
 
     #[test]
@@ -585,23 +679,35 @@ mod tests {
     #[test]
     fn avatar_handoff_uri_includes_existing_anchor_context_without_identity_leak() {
         let uri = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
-            agent_id: "agent-1".to_string(),
-            avatar_instance_id: "instance-1".to_string(),
             conversation_anchor_id: Some("anchor-1".to_string()),
-            anchor_mode: "existing".to_string(),
-            launched_by: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
-            runtime_app_id: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
-            source_surface: Some("desktop-agent-chat".to_string()),
+            ..launch_payload("existing", Some("anchor-1"))
         })
         .expect("valid handoff uri");
 
         assert!(uri.starts_with("nimi-avatar://launch?"));
+        assert!(uri.contains("agent_center_account_id=account_1"));
         assert!(uri.contains("agent_id=agent-1"));
+        assert!(uri.contains("avatar_package_kind=live2d"));
+        assert!(uri.contains("avatar_package_id=live2d_ab12cd34ef56"));
+        assert!(uri.contains("avatar_package_schema_version=1"));
         assert!(uri.contains("avatar_instance_id=instance-1"));
         assert!(uri.contains("conversation_anchor_id=anchor-1"));
         assert!(uri.contains("runtime_app_id=nimi.desktop"));
         assert!(!uri.contains("subject_user_id"));
         assert!(!uri.contains("access_token"));
+        assert!(!uri.contains("manifest_path"));
+        assert!(!uri.contains("package_path"));
+    }
+
+    #[test]
+    fn avatar_handoff_uri_accepts_opaque_agent_center_account_id() {
+        let uri = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
+            agent_center_account_id: "account:abc.def+1".to_string(),
+            ..launch_payload("open_new", None)
+        })
+        .expect("opaque account id should be valid handoff context");
+
+        assert!(uri.contains("agent_center_account_id=account%3Aabc.def%2B1"));
     }
 
     #[test]
@@ -676,8 +782,14 @@ mod tests {
         assert!(pairs.contains(&("NIMI_REALM_URL", "http://127.0.0.1:50803".to_string())));
         assert!(pairs.contains(&("NIMI_WORLD_ID", "world-e2e-1".to_string())));
         assert!(pairs.contains(&("NIMI_AGENT_ID", "agent-e2e-alpha".to_string())));
-        assert!(pairs.contains(&("NIMI_E2E_AUTH_SESSION_STORAGE", "encrypted-file".to_string())));
-        assert!(pairs.contains(&("NIMI_E2E_PROFILE", "chat.live2d-avatar-product-smoke".to_string())));
+        assert!(pairs.contains(&(
+            "NIMI_E2E_AUTH_SESSION_STORAGE",
+            "encrypted-file".to_string()
+        )));
+        assert!(pairs.contains(&(
+            "NIMI_E2E_PROFILE",
+            "chat.live2d-avatar-product-smoke".to_string()
+        )));
         assert!(pairs.contains(&(
             "NIMI_E2E_FIXTURE_PATH",
             fixture_path.to_string_lossy().to_string()
@@ -704,16 +816,8 @@ mod tests {
 
     #[test]
     fn avatar_handoff_uri_rejects_missing_anchor_for_existing_mode() {
-        let error = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
-            agent_id: "agent-1".to_string(),
-            avatar_instance_id: "instance-1".to_string(),
-            conversation_anchor_id: None,
-            anchor_mode: "existing".to_string(),
-            launched_by: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
-            runtime_app_id: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
-            source_surface: Some("desktop-agent-chat".to_string()),
-        })
-        .expect_err("missing anchor should fail");
+        let error = build_avatar_handoff_uri(&launch_payload("existing", None))
+            .expect_err("missing anchor should fail");
 
         let payload: serde_json::Value =
             serde_json::from_str(error.as_str()).expect("structured error json");

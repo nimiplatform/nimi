@@ -93,6 +93,7 @@ type UseAgentConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
   diagnosticsVisible: boolean;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
+  onOpenAgentCenter?: () => void;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   selection: AgentConversationSelection;
@@ -1260,8 +1261,28 @@ export function useAgentConversationModeHost(
     void handleDeleteThread(threadId).catch(reportHostError);
   }, [clearLatestVoiceCaptureForThread, clearMessageContextMenu, handleDeleteThread, reportHostError, setPendingAttachmentsForThread]);
 
+  const cognitionContent = useMemo(() => (
+    activeTarget ? (
+      <ChatAgentHistoryPanel
+        targetTitle={activeTarget.displayName}
+        disabled={Boolean(submittingThreadId)}
+        memoryStatus={canonicalMemoryStatus}
+        memoryLoading={canonicalMemoryLoading}
+        allowMemoryUpgrade={false}
+      />
+    ) : null
+  ), [
+    activeTarget,
+    canonicalMemoryLoading,
+    canonicalMemoryStatus,
+    submittingThreadId,
+  ]);
+
   const presentation = useAgentConversationPresentation({
     activeTarget,
+    accountId: input.runtimeFields.targetAccountId
+      || normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id)
+      || 'local_account',
     activeThreadId,
     activeConversationAnchorId,
     bundle,
@@ -1300,7 +1321,9 @@ export function useAgentConversationModeHost(
     selectedTargetId: activeTarget?.agentId || null,
     behaviorSettings,
     setBehaviorSettings,
+    cognitionContent,
     onDiagnosticsVisibilityChange: input.onDiagnosticsVisibilityChange,
+    onOpenAgentCenter: input.onOpenAgentCenter,
     voiceSessionState,
     voiceCaptureState,
     voicePlaybackState,
@@ -1323,60 +1346,11 @@ export function useAgentConversationModeHost(
     onClearAgentHistory: activeThreadId ? () => handleDeleteCurrentThread(activeThreadId) : undefined,
   });
 
-  const handleUpgradeStandardMemory = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.agentId);
-    const targetName = normalizeText(activeTarget?.displayName) || agentId;
-    if (!agentId) {
-      return Promise.resolve();
-    }
-    setCanonicalMemoryLoading(true);
-    return runtimeAgentMemory.bindCanonicalBankStandard(agentId)
-      .then((status) => {
-        setCanonicalMemoryStatus(status);
-        setHostFeedback({
-          kind: 'success',
-          message: t('Chat.memoryModeUpgradeSuccess', {
-            defaultValue: '{{name}} now uses Standard memory on this device.',
-            name: targetName,
-          }),
-        });
-      })
-      .catch((error) => {
-        reportHostError(error);
-      })
-      .finally(() => {
-        setCanonicalMemoryLoading(false);
-      });
-  }, [activeTarget?.agentId, activeTarget?.displayName, reportHostError, runtimeAgentMemory, t]);
-
-  const settingsContent = useMemo(() => (
-    <div className="space-y-4">
-      {activeTarget ? (
-        <ChatAgentHistoryPanel
-          targetTitle={activeTarget.displayName}
-          disabled={Boolean(submittingThreadId)}
-          memoryStatus={canonicalMemoryStatus}
-          memoryLoading={canonicalMemoryLoading}
-          onUpgradeStandardMemory={handleUpgradeStandardMemory}
-        />
-      ) : null}
-      {presentation.settingsContent}
-    </div>
-  ), [
-    activeTarget,
-    canonicalMemoryLoading,
-    canonicalMemoryStatus,
-    handleUpgradeStandardMemory,
-    presentation.settingsContent,
-    submittingThreadId,
-  ]);
-
   return useMemo<DesktopConversationModeHost>(() => ({
     ...presentation,
     auxiliaryOverlayContent,
     handsFreeState,
-    settingsContent,
     onSelectTarget: handleSelectAgent,
     onSelectThread: handleSelectThread,
-  }), [auxiliaryOverlayContent, handleSelectAgent, handleSelectThread, handsFreeState, presentation, settingsContent]);
+  }), [auxiliaryOverlayContent, handleSelectAgent, handleSelectThread, handsFreeState, presentation]);
 }

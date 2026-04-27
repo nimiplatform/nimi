@@ -13,13 +13,33 @@ const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
 let tauriRuntime = false;
 let launchContextUpdatedHandler: ((payload: {
+  agentCenterAccountId: string;
   agentId: string;
+  avatarPackageKind: 'live2d' | 'vrm';
+  avatarPackageId: string;
+  avatarPackageSchemaVersion: 1;
   avatarInstanceId: string;
   conversationAnchorId: string | null;
   anchorMode: 'existing' | 'open_new';
   launchedBy: string;
   sourceSurface: string | null;
 }) => void) | null = null;
+
+function launchContext(overrides: Partial<Parameters<NonNullable<typeof launchContextUpdatedHandler>>[0]> = {}) {
+  return {
+    agentCenterAccountId: 'account_1',
+    agentId: 'agent-product-01',
+    avatarPackageKind: 'live2d' as const,
+    avatarPackageId: 'live2d_ab12cd34ef56',
+    avatarPackageSchemaVersion: 1 as const,
+    avatarInstanceId: 'avatar-instance-01',
+    conversationAnchorId: 'anchor-01',
+    anchorMode: 'existing' as const,
+    launchedBy: 'desktop',
+    sourceSurface: 'desktop-avatar-launcher',
+    ...overrides,
+  };
+}
 
 vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
@@ -105,14 +125,7 @@ function seedReadyState(): void {
     agentId: 'agent-product-01',
     worldId: 'world-01',
   });
-  useAvatarStore.getState().setLaunchContext({
-    agentId: 'agent-product-01',
-    avatarInstanceId: 'avatar-instance-01',
-    conversationAnchorId: 'anchor-01',
-    anchorMode: 'existing',
-    launchedBy: 'desktop',
-    sourceSurface: 'desktop-avatar-launcher',
-  });
+  useAvatarStore.getState().setLaunchContext(launchContext());
   useAvatarStore.getState().setAuthSession(
     {
       id: 'user-01',
@@ -602,14 +615,10 @@ describe('App surface foundation', () => {
         agentId: 'agent-product-01',
         worldId: 'world-01',
       });
-      useAvatarStore.getState().setLaunchContext({
-        agentId: 'agent-product-01',
+      useAvatarStore.getState().setLaunchContext(launchContext({
         avatarInstanceId: 'avatar-instance-02',
         conversationAnchorId: 'anchor-02',
-        anchorMode: 'existing',
-        launchedBy: 'desktop',
-        sourceSurface: 'desktop-avatar-launcher',
-      });
+      }));
       useAvatarStore.getState().setBundle({
         ...useAvatarStore.getState().bundle!,
         status_text: 'Anchor B is now active.',
@@ -872,14 +881,10 @@ describe('App surface foundation', () => {
         agentId: 'agent-product-01',
         worldId: 'world-01',
       });
-      useAvatarStore.getState().setLaunchContext({
-        agentId: 'agent-product-01',
+      useAvatarStore.getState().setLaunchContext(launchContext({
         avatarInstanceId: 'avatar-instance-02',
         conversationAnchorId: 'anchor-02',
-        anchorMode: 'existing',
-        launchedBy: 'desktop',
-        sourceSurface: 'desktop-avatar-launcher',
-      });
+      }));
       useAvatarStore.getState().setBundle({
         ...useAvatarStore.getState().bundle!,
         custom: {
@@ -934,14 +939,10 @@ describe('App surface foundation', () => {
         agentId: 'agent-product-01',
         worldId: 'world-01',
       });
-      useAvatarStore.getState().setLaunchContext({
-        agentId: 'agent-product-01',
+      useAvatarStore.getState().setLaunchContext(launchContext({
         avatarInstanceId: 'avatar-instance-02',
         conversationAnchorId: 'anchor-02',
-        anchorMode: 'existing',
-        launchedBy: 'desktop',
-        sourceSurface: 'desktop-avatar-launcher',
-      });
+      }));
       useAvatarStore.getState().setBundle({
         ...useAvatarStore.getState().bundle!,
         custom: {
@@ -995,14 +996,10 @@ describe('App surface foundation', () => {
         agentId: 'agent-product-01',
         worldId: 'world-01',
       });
-      useAvatarStore.getState().setLaunchContext({
-        agentId: 'agent-product-01',
+      useAvatarStore.getState().setLaunchContext(launchContext({
         avatarInstanceId: 'avatar-instance-02',
         conversationAnchorId: 'anchor-02',
-        anchorMode: 'existing',
-        launchedBy: 'desktop',
-        sourceSurface: 'desktop-avatar-launcher',
-      });
+      }));
     });
 
     expect(screen.queryByText('Old anchor reply must stay closed.')).toBeNull();
@@ -1061,14 +1058,11 @@ describe('App surface foundation', () => {
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Draft before rebind' } });
 
     await act(async () => {
-      launchContextUpdatedHandler?.({
+      launchContextUpdatedHandler?.(launchContext({
         agentId: 'agent-product-02',
         avatarInstanceId: 'avatar-instance-02',
         conversationAnchorId: 'anchor-02',
-        anchorMode: 'existing',
-        launchedBy: 'desktop',
-        sourceSurface: 'desktop-avatar-launcher',
-      });
+      }));
     });
 
     expect(screen.getAllByText('Desktop update received').length).toBeGreaterThan(0);

@@ -12,6 +12,7 @@ import { ChatSideSheet } from './chat-shared-side-sheet';
 export type ChatAgentModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
   settingsOpen: boolean;
+  onOpenSettings: () => void;
   onCloseSettings: () => void;
   onSetupAction: (action: ConversationSetupAction) => void;
   onSelectTarget: (targetId: string | null) => void;
@@ -20,6 +21,7 @@ export type ChatAgentModeContentProps = {
 export function ChatAgentModeContent({
   allTargets,
   settingsOpen,
+  onOpenSettings,
   onCloseSettings,
   onSetupAction,
   onSelectTarget,
@@ -39,6 +41,7 @@ export function ChatAgentModeContent({
     authStatus,
     diagnosticsVisible: settingsOpen && diagnosticsSectionVisible,
     onDiagnosticsVisibilityChange: setDiagnosticsSectionVisible,
+    onOpenAgentCenter: onOpenSettings,
     runtimeConfigState: null,
     runtimeFields,
     selection: agentConversationSelection,

@@ -7,6 +7,7 @@ use sysinfo::{Pid, ProcessesToUpdate, System};
 const AVATAR_INSTANCE_REGISTRY_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_REGISTRY_FILE: &str = "instances.json";
 const PROCESS_START_TIME_SKEW_MS: i64 = 1_000;
+const LIVE_PROJECTION_TTL_MS: i64 = 2_000;
 const AVATAR_INSTANCE_REGISTRY_SCHEMA_VERSION: u32 = 1;
 
 fn registry_path() -> Result<PathBuf, String> {
@@ -45,6 +46,10 @@ fn process_start_time_ms(pid: u32) -> Option<i64> {
 
 fn process_start_time_matches_projection(process_started_at_ms: i64, published_at_ms: i64) -> bool {
     process_started_at_ms <= published_at_ms.saturating_add(PROCESS_START_TIME_SKEW_MS)
+}
+
+fn projection_is_fresh(published_at_ms: i64, now_ms: i64) -> bool {
+    published_at_ms <= now_ms && now_ms.saturating_sub(published_at_ms) <= LIVE_PROJECTION_TTL_MS
 }
 
 fn is_projection_owned_by_live_process(publisher_pid: u32, published_at_ms: i64) -> bool {
@@ -116,6 +121,24 @@ fn list_instances_from_file(
     file: DesktopAvatarInstanceRegistryFile,
     agent_id: Option<&str>,
 ) -> Result<Vec<DesktopAvatarInstanceRegistryRecord>, String> {
+    list_instances_from_file_at(file, agent_id, current_time_ms())
+}
+
+fn current_time_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as i64)
+        .unwrap_or(0)
+}
+
+fn list_instances_from_file_at(
+    file: DesktopAvatarInstanceRegistryFile,
+    agent_id: Option<&str>,
+    now_ms: i64,
+) -> Result<Vec<DesktopAvatarInstanceRegistryRecord>, String> {
+    if !projection_is_fresh(file.published_at_ms, now_ms) {
+        return Ok(Vec::new());
+    }
     if !is_projection_owned_by_live_process(file.publisher_pid, file.published_at_ms) {
         return Ok(Vec::new());
     }
@@ -148,7 +171,8 @@ mod tests {
     use std::fs;
 
     use super::{
-        list_instances_from_file, load_registry_from_path, process_start_time_matches_projection,
+        list_instances_from_file, list_instances_from_file_at, load_registry_from_path,
+        process_start_time_matches_projection, projection_is_fresh,
         DesktopAvatarInstanceRegistryFile,
     };
 
@@ -243,6 +267,24 @@ mod tests {
                 instances: vec![valid_record()],
             },
             None,
+        )
+        .expect("list instances");
+
+        assert!(listed.is_empty());
+    }
+
+    #[test]
+    fn list_instances_returns_empty_when_projection_is_stale_by_ttl() {
+        let now = now_ms();
+        let listed = list_instances_from_file_at(
+            DesktopAvatarInstanceRegistryFile {
+                schema_version: 1,
+                publisher_pid: std::process::id(),
+                published_at_ms: now - 2_001,
+                instances: vec![valid_record()],
+            },
+            None,
+            now,
         )
         .expect("list instances");
 
@@ -350,5 +392,12 @@ mod tests {
     fn projection_ownership_rejects_processes_started_after_projection() {
         assert!(process_start_time_matches_projection(10_000, 10_500));
         assert!(!process_start_time_matches_projection(12_000, 10_000));
+    }
+
+    #[test]
+    fn projection_freshness_uses_two_second_ttl() {
+        assert!(projection_is_fresh(10_000, 12_000));
+        assert!(!projection_is_fresh(10_000, 12_001));
+        assert!(!projection_is_fresh(12_001, 12_000));
     }
 }

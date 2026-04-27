@@ -13,6 +13,7 @@ type ChatAgentHistoryPanelProps = {
   memoryStatus?: CanonicalMemoryBankStatus | null;
   memoryLoading?: boolean;
   onUpgradeStandardMemory?: () => unknown;
+  allowMemoryUpgrade?: boolean;
 };
 
 export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
@@ -54,6 +55,7 @@ export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
       : props.memoryStatus?.mode === 'unavailable'
         ? t('Chat.memoryModeUnavailable', { defaultValue: 'Unavailable' })
         : t('Chat.memoryModeBaseline', { defaultValue: 'Baseline' });
+  const allowMemoryUpgrade = props.allowMemoryUpgrade === true;
   const memoryModeHint = props.memoryStatus?.mode === 'standard'
     ? props.memoryStatus?.pendingCutover
       ? t('Chat.memoryModeStandardCutoverHint', {
@@ -66,9 +68,13 @@ export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
       ? t('Chat.memoryModeUnavailableHint', {
         defaultValue: 'Standard memory is unavailable until a valid local or cloud memory embedding source is configured.',
       })
-    : t('Chat.memoryModeBaselineHint', {
-      defaultValue: 'Canonical memory stays in Baseline until you explicitly bind the configured memory embedding profile.',
-    });
+    : allowMemoryUpgrade
+      ? t('Chat.memoryModeBaselineHint', {
+        defaultValue: 'Canonical memory stays in Baseline until you explicitly bind the configured memory embedding profile.',
+      })
+      : t('Chat.memoryModeBaselineReadOnlyHint', {
+        defaultValue: 'Canonical memory is currently in Baseline. Cognition settings are read-only here.',
+      });
   const showMemoryCard = props.memoryLoading || props.memoryStatus?.mode === 'baseline' || props.memoryStatus?.mode === 'standard';
 
   return (
@@ -102,7 +108,7 @@ export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
               {memoryModeHint}
             </p>
           </div>
-          {props.memoryStatus?.mode === 'baseline' ? (
+          {props.memoryStatus?.mode === 'baseline' && allowMemoryUpgrade ? (
             <div className="mt-5 flex flex-col gap-2">
               <DesktopCompactAction
                 data-testid={E2E_IDS.chatMemoryModeUpgradeButton}

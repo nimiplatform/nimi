@@ -9,6 +9,7 @@ const clearPlatformClientMock = vi.fn();
 const resolveDesktopBootstrapAuthSessionMock = vi.fn();
 const bootstrapAuthSessionMock = vi.fn();
 const startAvatarRuntimeCarrierMock = vi.fn();
+const resolveAgentCenterAvatarPackageManifestMock = vi.fn();
 const getAvatarLaunchContextMock = vi.fn();
 const getRuntimeDefaultsMock = vi.fn();
 const hasTauriInvokeMock = vi.fn();
@@ -46,6 +47,31 @@ let watchedAuthSessionChange:
   | null = null;
 let watchedAuthSessionError: ((error: Error) => Promise<void> | void) | null = null;
 
+function launchContext(overrides: Partial<{
+  agentId: string;
+  avatarInstanceId: string;
+  conversationAnchorId: string | null;
+  anchorMode: 'existing' | 'open_new';
+  launchedBy: string;
+  runtimeAppId: string;
+  sourceSurface: string | null;
+}> = {}) {
+  return {
+    agentCenterAccountId: 'account_1',
+    agentId: 'agent-launch',
+    avatarPackageKind: 'live2d' as const,
+    avatarPackageId: 'live2d_ab12cd34ef56',
+    avatarPackageSchemaVersion: 1 as const,
+    avatarInstanceId: 'instance-1',
+    conversationAnchorId: 'anchor-launch',
+    anchorMode: 'existing' as const,
+    launchedBy: 'nimi.desktop',
+    runtimeAppId: 'nimi.desktop',
+    sourceSurface: 'desktop-agent-chat',
+    ...overrides,
+  };
+}
+
 vi.mock('../driver/factory.js', () => ({
   resolveDriverKind: () => driverKind,
   createDriver: (...args: unknown[]) => createDriverMock(...args),
@@ -53,6 +79,10 @@ vi.mock('../driver/factory.js', () => ({
 
 vi.mock('../carrier/avatar-carrier.js', () => ({
   startAvatarRuntimeCarrier: (...args: unknown[]) => startAvatarRuntimeCarrierMock(...args),
+}));
+
+vi.mock('../live2d/model-loader.js', () => ({
+  resolveAgentCenterAvatarPackageManifest: (...args: unknown[]) => resolveAgentCenterAvatarPackageManifestMock(...args),
 }));
 
 vi.mock('@nimiplatform/sdk', () => ({
@@ -192,6 +222,7 @@ describe('bootstrapAvatar', () => {
     clearPlatformClientMock.mockReset();
     bootstrapAuthSessionMock.mockReset();
     startAvatarRuntimeCarrierMock.mockReset();
+    resolveAgentCenterAvatarPackageManifestMock.mockReset();
     getAvatarLaunchContextMock.mockReset();
     getRuntimeDefaultsMock.mockReset();
     hasTauriInvokeMock.mockReset();
@@ -239,6 +270,13 @@ describe('bootstrapAvatar', () => {
         unload: vi.fn(),
       },
     });
+    resolveAgentCenterAvatarPackageManifestMock.mockResolvedValue({
+      runtimeDir: '/agent-center/packages/live2d/live2d_ab12cd34ef56/files',
+      modelId: 'ren',
+      model3JsonPath: '/agent-center/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json',
+      nimiDir: '/agent-center/packages/live2d/live2d_ab12cd34ef56/files/nimi',
+      adapterManifestPath: null,
+    });
     onShellReadyMock.mockResolvedValue(() => {});
     setAlwaysOnTopMock.mockResolvedValue(undefined);
     watchAuthSessionChangesMock.mockImplementation((input: {
@@ -253,15 +291,7 @@ describe('bootstrapAvatar', () => {
       };
     });
     hasTauriInvokeMock.mockReturnValue(true);
-    getAvatarLaunchContextMock.mockResolvedValue({
-      agentId: 'agent-launch',
-      avatarInstanceId: 'instance-1',
-      conversationAnchorId: 'anchor-launch',
-      anchorMode: 'existing',
-      launchedBy: 'nimi.desktop',
-      runtimeAppId: 'nimi.desktop',
-      sourceSurface: 'desktop-agent-chat',
-    });
+    getAvatarLaunchContextMock.mockResolvedValue(launchContext());
     getRuntimeDefaultsMock.mockResolvedValue({
       realm: {
         realmBaseUrl: 'http://localhost:3002',
@@ -418,20 +448,18 @@ describe('bootstrapAvatar', () => {
     }));
     expect(startAvatarRuntimeCarrierMock).toHaveBeenCalledWith(expect.objectContaining({
       driver: expect.any(Object),
-      modelPath: '/models/runtime-profile-ren',
+      modelManifest: expect.objectContaining({
+        model3JsonPath: '/agent-center/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json',
+      }),
     }));
-    expect(getAgentMock).toHaveBeenCalledWith(expect.objectContaining({
-      context: {
-        appId: 'nimi.desktop',
-        subjectUserId: 'user-1',
-      },
+    expect(resolveAgentCenterAvatarPackageManifestMock).toHaveBeenCalledWith({
+      agentCenterAccountId: 'account_1',
       agentId: 'agent-launch',
-    }), expect.objectContaining({
-      protectedAccessToken: {
-        tokenId: 'protected-token-id',
-        secret: 'protected-secret',
-      },
-    }));
+      avatarPackageKind: 'live2d',
+      avatarPackageId: 'live2d_ab12cd34ef56',
+      avatarPackageSchemaVersion: 1,
+    });
+    expect(getAgentMock).not.toHaveBeenCalled();
     expect(handle.carrier).toEqual(expect.objectContaining({
       backendSession: expect.objectContaining({
         applyCommand: expect.any(Function),
@@ -462,15 +490,11 @@ describe('bootstrapAvatar', () => {
   });
 
   it('opens a new anchor only when launch context explicitly requires it', async () => {
-    getAvatarLaunchContextMock.mockResolvedValue({
-      agentId: 'agent-launch',
+    getAvatarLaunchContextMock.mockResolvedValue(launchContext({
       avatarInstanceId: 'instance-new-anchor',
       conversationAnchorId: null,
       anchorMode: 'open_new',
-      launchedBy: 'nimi.desktop',
-      runtimeAppId: 'nimi.desktop',
-      sourceSurface: 'desktop-agent-chat',
-    });
+    }));
     createDriverMock.mockReturnValue(createFakeDriver('sdk'));
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
 
@@ -498,29 +522,21 @@ describe('bootstrapAvatar', () => {
     createDriverMock.mockImplementation(() => createFakeDriver('sdk'));
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
 
-    getAvatarLaunchContextMock.mockResolvedValueOnce({
-      agentId: 'agent-launch',
+    getAvatarLaunchContextMock.mockResolvedValueOnce(launchContext({
       avatarInstanceId: 'instance-anchor-a',
       conversationAnchorId: 'anchor-a',
       anchorMode: 'existing',
-      launchedBy: 'nimi.desktop',
-      runtimeAppId: 'nimi.desktop',
-      sourceSurface: 'desktop-agent-chat',
-    });
+    }));
     const firstHandle = await bootstrapAvatar();
     const firstSdkConfig = createDriverMock.mock.calls[0]?.[0]?.sdk;
     await firstHandle.shutdown();
 
     useAvatarStore.setState(useAvatarStore.getInitialState(), true);
-    getAvatarLaunchContextMock.mockResolvedValueOnce({
-      agentId: 'agent-launch',
+    getAvatarLaunchContextMock.mockResolvedValueOnce(launchContext({
       avatarInstanceId: 'instance-anchor-b',
       conversationAnchorId: 'anchor-b',
       anchorMode: 'existing',
-      launchedBy: 'nimi.desktop',
-      runtimeAppId: 'nimi.desktop',
-      sourceSurface: 'desktop-agent-chat',
-    });
+    }));
     const secondHandle = await bootstrapAvatar();
     const secondSdkConfig = createDriverMock.mock.calls[1]?.[0]?.sdk;
 

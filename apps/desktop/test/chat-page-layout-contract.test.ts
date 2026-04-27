@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
@@ -14,6 +15,8 @@ const chatHumanModeSource = readWorkspaceFile('src/shell/renderer/features/chat/
 const chatNimiModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
 const chatAgentSceneBackgroundSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-scene-background.tsx');
 const chatAgentModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
+const chatAgentPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
+const chatAgentCanonicalComposerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx');
 const chatGroupModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatSideSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-side-sheet.tsx');
 
@@ -30,7 +33,7 @@ test('chat page uses transient side sheets; agent mode keeps the scene backgroun
   assert.match(chatPageSource, /nimiThreadListOpen/);
   assert.match(chatSideSheetSource, /data-chat-shared-side-sheet=/);
   assert.match(chatSideSheetSource, /sheetKey === 'settings'/);
-  assert.match(chatSideSheetSource, /w-\[min\(460px,calc\(100vw-96px\)\)\]/);
+  assert.match(chatSideSheetSource, /w-\[min\(620px,calc\(100vw-96px\)\)\]/);
   assert.match(chatSideSheetSource, /w-\[min\(340px,calc\(100vw-96px\)\)\]/);
   assert.match(chatNimiSheetSource, /ChatSideSheet/);
   assert.doesNotMatch(chatNimiSheetSource, /Assistant status/u);
@@ -66,11 +69,44 @@ test('chat page startup keeps agent mode lazy-loaded while removing the desktop-
 });
 
 test('agent shell presentation disables stage panel props so desktop chat cannot present a co-equal local avatar carrier route', () => {
-  const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
-  const avatarSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-avatar-settings-panel.tsx');
-  assert.match(source, /stagePanelProps:\s*undefined/);
-  assert.match(source, /topContent:\s*schedulingFeedbackNode/);
-  assert.equal((avatarSettingsSource.match(/ChatAgentAvatarAppLauncher/g) || []).length, 2);
-  assert.doesNotMatch(source, /avatarStagePlacement/u);
-  assert.doesNotMatch(source, /useAgentAvatarPlacement/u);
+  assert.match(chatAgentPresentationSource, /stagePanelProps:\s*undefined/);
+  assert.match(chatAgentPresentationSource, /topContent:\s*schedulingFeedbackNode/);
+  assert.match(chatAgentPresentationSource, /AgentCenterPanel/);
+  assert.match(chatAgentPresentationSource, /importAgentCenterAvatarPackage/);
+  assert.match(chatAgentPresentationSource, /getAgentCenterBackgroundAsset/);
+  assert.doesNotMatch(chatAgentPresentationSource, /ChatAgentAvatarSettingsPanel/u);
+  assert.doesNotMatch(chatAgentPresentationSource, /desktopAgentBackdropBindingQueryKey/u);
+  assert.doesNotMatch(chatAgentPresentationSource, /avatarStagePlacement/u);
+  assert.doesNotMatch(chatAgentPresentationSource, /useAgentAvatarPlacement/u);
+});
+
+test('agent composer avatar action is keyboard reachable and package preview remains absent', () => {
+  assert.match(chatAgentCanonicalComposerSource, /<button\s+type="button"\s+data-agent-composer-avatar=\{avatarState\}/);
+  assert.match(chatAgentCanonicalComposerSource, /aria-label=\{avatarLabel\}/);
+  assert.match(chatAgentCanonicalComposerSource, /title=\{avatarTitle\}/);
+  assert.match(chatAgentCanonicalComposerSource, /disabled=\{avatarDisabled\}/);
+  assert.match(chatAgentPresentationSource, /onConfigure:\s*input\.onOpenAgentCenter/);
+  assert.match(chatAgentPresentationSource, /onActivate:\s*handleComposerAvatarAction/);
+  assert.doesNotMatch(chatAgentPresentationSource, /previewLoader|PackagePreview|Preview Avatar/u);
+  assert.doesNotMatch(chatAgentCanonicalComposerSource, /previewLoader|PackagePreview|Preview Avatar/u);
+});
+
+test('Agent Center locale copy does not keep preview or deprecated companion-readiness keys', () => {
+  const forbiddenKeys = [
+    'agentCenterAvatarCompanionReadiness',
+    'agentCenterAvatarPreview',
+    'agentCenterPreviewUnavailable',
+    'agentCenterAvatarSetupTitle',
+    'agentCenterAvatarSetupDescription',
+    'agentCenterAvatarAdvancedTitle',
+    'agentCenterAvatarComposerHintReady',
+    'agentCenterAvatarComposerHintBlocked',
+    'agentCenterRuntimeState',
+  ];
+  for (const locale of ['en', 'zh']) {
+    const chatBundle = readDesktopLocale(locale).Chat;
+    for (const key of forbiddenKeys) {
+      assert.equal(chatBundle[key], undefined, `${locale}.${key} should not remain in Agent Center copy`);
+    }
+  }
 });

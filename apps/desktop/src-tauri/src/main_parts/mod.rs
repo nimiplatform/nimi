@@ -203,7 +203,11 @@ struct OpenExternalUrlResult {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAvatarLaunchHandoffPayload {
+    agent_center_account_id: String,
     agent_id: String,
+    avatar_package_kind: String,
+    avatar_package_id: String,
+    avatar_package_schema_version: Option<u8>,
     avatar_instance_id: String,
     conversation_anchor_id: Option<String>,
     anchor_mode: String,

@@ -189,6 +189,10 @@ export function ChatPage() {
   const sharedProps = {
     allTargets,
     settingsOpen: chatSettingsOpen,
+    onOpenSettings: () => {
+      setChatSettingsOpen(true);
+      setNimiThreadListOpen(false);
+    },
     onCloseSettings: () => setChatSettingsOpen(false),
     onSetupAction: handleSetupAction,
     onSelectTarget: handleShellSelectTarget,

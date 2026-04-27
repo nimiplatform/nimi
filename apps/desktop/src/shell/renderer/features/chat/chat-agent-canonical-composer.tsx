@@ -17,6 +17,12 @@ type AgentComposerHandsFreeState = {
   onExit: () => void;
 };
 
+type AgentComposerAvatarAction = {
+  state: 'not_configured' | 'package_invalid' | 'ready_stopped' | 'running' | 'pending' | 'unavailable';
+  onConfigure?: () => void;
+  onActivate?: () => Promise<InlineFeedbackState | null | void> | InlineFeedbackState | null | void;
+};
+
 const ICON_HANDS_FREE = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 12a8 8 0 0 1 16 0" />
@@ -37,7 +43,18 @@ const ICON_THINKING = (
   </svg>
 );
 
+const ICON_AVATAR = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M6 21a6 6 0 0 1 12 0" />
+    <path d="M8.5 8h.01" />
+    <path d="M15.5 8h.01" />
+  </svg>
+);
+
 function AgentComposerToolbarControls(props: {
+  avatarAction?: AgentComposerAvatarAction;
+  onAvatarFeedback?: (feedback: InlineFeedbackState) => void;
   thinkingState?: 'on' | 'off' | 'unsupported';
   onThinkingToggle?: () => void;
   handsFreeState?: AgentComposerHandsFreeState;
@@ -45,9 +62,80 @@ function AgentComposerToolbarControls(props: {
   const { t } = useTranslation();
   const handsFreeActive = props.handsFreeState?.mode === 'hands-free';
   const handsFreeDisabled = props.handsFreeState ? (!handsFreeActive && props.handsFreeState.disabled) : false;
+  const avatarState = props.avatarAction?.state || 'not_configured';
+  const avatarConfigActionState = avatarState === 'not_configured' || avatarState === 'package_invalid';
+  const avatarDisabled = avatarState === 'pending'
+    || avatarState === 'unavailable'
+    || (avatarConfigActionState ? !props.avatarAction?.onConfigure : !props.avatarAction?.onActivate);
+  const avatarLabel = avatarState === 'running'
+    ? t('Chat.agentCenterAvatarStop', { defaultValue: 'Stop Avatar' })
+    : avatarState === 'ready_stopped'
+      ? t('Chat.agentCenterAvatarStart', { defaultValue: 'Start Avatar' })
+      : avatarState === 'pending'
+        ? t('Chat.agentCenterAvatarUpdating', { defaultValue: 'Updating Avatar' })
+        : avatarState === 'unavailable'
+          ? t('Chat.agentCenterAvatarLaunchUnavailable', { defaultValue: 'Avatar launch unavailable' })
+          : avatarState === 'package_invalid'
+            ? t('Chat.agentCenterFixAvatarSetup', { defaultValue: 'Fix Avatar Setup' })
+            : t('Chat.agentCenterConfigureAvatar', { defaultValue: 'Configure Avatar' });
+  const avatarTitle = avatarState === 'running'
+    ? t('Chat.agentCenterAvatarStopHint', { defaultValue: 'Close the current companion window.' })
+    : avatarState === 'ready_stopped'
+      ? t('Chat.agentCenterAvatarStartHint', { defaultValue: 'Open this agent in Nimi Avatar.' })
+      : avatarState === 'pending'
+        ? t('Chat.agentCenterAvatarUpdatingHint', { defaultValue: 'Avatar action is in progress.' })
+        : avatarState === 'unavailable'
+          ? t('Chat.agentCenterAvatarLaunchUnavailableHint', { defaultValue: 'Avatar is configured, but launch controls are not available yet.' })
+          : avatarState === 'package_invalid'
+            ? t('Chat.agentCenterFixAvatarSetupHint', { defaultValue: 'Avatar setup needs attention before it can start.' })
+          : t('Chat.agentCenterConfigureAvatarHint', { defaultValue: 'Configure Avatar in Agent Center before starting.' });
+  const handleAvatarClick = () => {
+    if (avatarDisabled) {
+      return;
+    }
+    if (avatarConfigActionState) {
+      props.avatarAction?.onConfigure?.();
+      return;
+    }
+    void Promise.resolve(props.avatarAction?.onActivate?.())
+      .then((feedback) => {
+        if (feedback) {
+          props.onAvatarFeedback?.(feedback);
+        }
+      })
+      .catch((error: unknown) => {
+        props.onAvatarFeedback?.({
+          kind: 'error',
+          message: error instanceof Error ? error.message : String(error || ''),
+        });
+      });
+  };
 
   return (
     <>
+      <button
+        type="button"
+        data-agent-composer-avatar={avatarState}
+        aria-label={avatarLabel}
+        title={avatarTitle}
+        disabled={avatarDisabled}
+        onClick={handleAvatarClick}
+        className={cn(
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors',
+          avatarState === 'running'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:border-emerald-300 hover:text-emerald-700'
+            : avatarState === 'ready_stopped'
+              ? 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:text-amber-800'
+              : avatarState === 'pending'
+                ? 'cursor-wait border-amber-200 bg-amber-50 text-amber-600 opacity-70'
+                : avatarState === 'unavailable'
+                  ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 opacity-60'
+            : 'border-slate-200/80 bg-white/90 text-slate-500 hover:border-amber-300 hover:text-amber-700',
+          'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-200/80 disabled:hover:text-slate-500',
+        )}
+      >
+        {ICON_AVATAR}
+      </button>
       {props.handsFreeState ? (
         <button
           type="button"
@@ -146,6 +234,7 @@ export function AgentCanonicalComposer(props: {
   voiceState?: ChatComposerVoiceState;
   runtimeHint?: string | null;
   leadingSlot?: ReactNode;
+  avatarAction?: AgentComposerAvatarAction;
   thinkingState?: 'on' | 'off' | 'unsupported';
   onThinkingToggle?: () => void;
   handsFreeState?: AgentComposerHandsFreeState;
@@ -284,6 +373,8 @@ export function AgentCanonicalComposer(props: {
         widthPositionClassName={props.widthPositionClassName}
         toolbarSlot={(
           <AgentComposerToolbarControls
+            avatarAction={props.avatarAction}
+            onAvatarFeedback={(nextFeedback) => setFeedback(nextFeedback)}
             thinkingState={props.thinkingState}
             onThinkingToggle={props.onThinkingToggle}
             handsFreeState={props.handsFreeState}

@@ -37,6 +37,9 @@ type ChatSettingsPanelProps = {
   clearChatsTargetName?: string | null;
   clearChatsDisabled?: boolean;
   onClearAgentHistory?: () => Promise<void> | void;
+  showPresenceContent?: boolean;
+  showDiagnosticsFooter?: boolean;
+  showClearHistoryAction?: boolean;
 };
 
 const SCHEDULING_STYLE: Record<string, { border: string; bg: string; text: string; icon: string }> = {
@@ -256,6 +259,9 @@ function AiModeSettings(props: {
   clearChatsTargetName?: string | null;
   clearChatsDisabled?: boolean;
   onClearAgentHistory?: () => Promise<void> | void;
+  showPresenceContent?: boolean;
+  showDiagnosticsFooter?: boolean;
+  showClearHistoryAction?: boolean;
 }) {
   const { t } = useTranslation();
   const aiConfig = useAppStore((state) => state.aiConfig);
@@ -334,17 +340,17 @@ function AiModeSettings(props: {
   const footer = (
     <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-3">
       <SchedulingWarningSection />
-      {props.diagnosticsContent ? (
+      {props.showDiagnosticsFooter !== false && props.diagnosticsContent ? (
         <div data-chat-settings-module="diagnostics" className="space-y-2">
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
             {t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
           </div>
           {props.diagnosticsContent}
         </div>
-      ) : (
+      ) : props.showDiagnosticsFooter !== false ? (
         <DisabledSettingsNote label={props.unavailableReason} />
-      )}
-      {props.onClearAgentHistory ? (
+      ) : null}
+      {props.showClearHistoryAction !== false && props.onClearAgentHistory ? (
         <button
           type="button"
           onClick={handleClearChats}
@@ -365,7 +371,7 @@ function AiModeSettings(props: {
   return (
     <div className="space-y-5">
       {props.headerSlot}
-      {props.presenceContent ? (
+      {props.showPresenceContent !== false && props.presenceContent ? (
         <div data-chat-settings-module="avatar">{props.presenceContent}</div>
       ) : null}
       <ModelConfigAiModelHub surface={surface} profile={profile} footer={footer} />
@@ -388,6 +394,9 @@ export function ChatSettingsPanel({
   clearChatsTargetName,
   clearChatsDisabled,
   onClearAgentHistory,
+  showPresenceContent,
+  showDiagnosticsFooter,
+  showClearHistoryAction,
 }: ChatSettingsPanelProps) {
   const { t } = useTranslation();
   const resolvedUnavailableReason = unavailableReason || t('Chat.settingsUnavailableReason', {
@@ -405,6 +414,9 @@ export function ChatSettingsPanel({
         clearChatsTargetName={clearChatsTargetName}
         clearChatsDisabled={clearChatsDisabled}
         onClearAgentHistory={onClearAgentHistory}
+        showPresenceContent={showPresenceContent}
+        showDiagnosticsFooter={showDiagnosticsFooter}
+        showClearHistoryAction={showClearHistoryAction}
       />
     );
   }

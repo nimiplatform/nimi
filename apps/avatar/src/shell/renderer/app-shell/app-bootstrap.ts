@@ -21,6 +21,7 @@ import {
 } from '@renderer/bridge';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
 import { startAvatarRuntimeCarrier, type AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
+import { resolveAgentCenterAvatarPackageManifest } from '../live2d/model-loader.js';
 import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
@@ -734,10 +735,12 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       });
       carrier = await startAvatarRuntimeCarrier({
         driver,
-        modelPath: await resolveAvatarModelPath({
-          runtime,
+        modelManifest: await resolveAgentCenterAvatarPackageManifest({
+          agentCenterAccountId: launchContext.agentCenterAccountId,
           agentId,
-          subjectUserId: authUser.id,
+          avatarPackageKind: launchContext.avatarPackageKind,
+          avatarPackageId: launchContext.avatarPackageId,
+          avatarPackageSchemaVersion: launchContext.avatarPackageSchemaVersion,
         }),
       });
 

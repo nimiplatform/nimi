@@ -23,7 +23,6 @@ const chatAiPresentationSource = readWorkspaceFile('src/shell/renderer/features/
 const chatAgentAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
 const chatAgentCanonicalComposerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx');
 const chatAgentPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
-const chatAgentAvatarSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-avatar-settings-panel.tsx');
 const chatHumanAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-adapter.tsx');
 const canonicalHumanComposerProfileSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-canonical-composer-profile.tsx');
 const chatAiModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
@@ -174,7 +173,8 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /CanonicalComposer/);
   assert.match(chatAgentCanonicalComposerSource, /layout="stacked"/);
   assert.match(chatAgentPresentationSource, /resolveAgentConversationHostSnapshot/);
-  assert.match(chatAgentPresentationSource, /desktopAgentBackdropBindingQueryKey/);
+  assert.match(chatAgentPresentationSource, /getAgentCenterBackgroundAsset/);
+  assert.doesNotMatch(chatAgentPresentationSource, /desktopAgentBackdropBindingQueryKey/);
   assert.match(chatAgentPresentationSource, /const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-\[clamp\(140px,16vh,200px\)\]'/);
   assert.doesNotMatch(chatAgentPresentationSource, /avatarStagePlacement/);
   assert.doesNotMatch(chatAgentPresentationSource, /useAgentAvatarPlacement/);
@@ -184,7 +184,8 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /widthClassName=\{CHAT_CONTENT_WIDTH_CLASS\}/);
   assert.match(chatAgentPresentationSource, /widthPositionClassName=\{CHAT_CONTENT_POSITION_CLASS\}/);
   assert.match(chatAgentPresentationSource, /topContent: schedulingFeedbackNode/);
-  assert.match(chatAgentAvatarSettingsSource, /<ChatAgentAvatarAppLauncher/);
+  assert.match(chatAgentPresentationSource, /importAgentCenterAvatarPackage/);
+  assert.match(chatAgentPresentationSource, /importAgentCenterBackground/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);
   assert.match(chatAgentPresentationSource, /diagnosticsContent=/);
   assert.match(chatAgentPresentationSource, /composerContent:/);

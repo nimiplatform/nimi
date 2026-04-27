@@ -3,7 +3,13 @@ import { invokeChecked } from './invoke';
 export type DesktopAvatarLaunchAnchorMode = 'existing' | 'open_new';
 
 export type DesktopAvatarLaunchHandoffInput = {
+  accountId: string;
   agentId: string;
+  avatarPackage: {
+    kind: 'live2d' | 'vrm';
+    packageId: string;
+    schemaVersion?: 1;
+  };
   avatarInstanceId: string;
   conversationAnchorId?: string | null;
   anchorMode: DesktopAvatarLaunchAnchorMode;
@@ -29,7 +35,11 @@ export type DesktopAvatarCloseHandoffResult = {
 };
 
 export type DesktopAvatarLaunchHandoffPayload = {
+  agentCenterAccountId: string;
   agentId: string;
+  avatarPackageKind: 'live2d' | 'vrm';
+  avatarPackageId: string;
+  avatarPackageSchemaVersion: 1;
   avatarInstanceId: string;
   conversationAnchorId: string | null;
   anchorMode: DesktopAvatarLaunchAnchorMode;
@@ -55,6 +65,23 @@ function normalizeAnchorMode(value: string): DesktopAvatarLaunchAnchorMode {
   const normalized = normalizeRequiredString(value, 'anchorMode');
   if (normalized !== 'existing' && normalized !== 'open_new') {
     throw new Error('desktop avatar handoff requires anchorMode to be existing or open_new');
+  }
+  return normalized;
+}
+
+function normalizeAvatarPackageKind(value: string): 'live2d' | 'vrm' {
+  const normalized = normalizeRequiredString(value, 'avatarPackage.kind');
+  if (normalized !== 'live2d' && normalized !== 'vrm') {
+    throw new Error('desktop avatar handoff requires avatarPackage.kind to be live2d or vrm');
+  }
+  return normalized;
+}
+
+function normalizeAvatarPackageId(value: string, kind: 'live2d' | 'vrm'): string {
+  const normalized = normalizeRequiredString(value, 'avatarPackage.packageId');
+  const pattern = kind === 'live2d' ? /^live2d_[a-f0-9]{12}$/u : /^vrm_[a-f0-9]{12}$/u;
+  if (!pattern.test(normalized)) {
+    throw new Error('desktop avatar handoff requires avatarPackage.packageId to match avatarPackage.kind');
   }
   return normalized;
 }
@@ -86,6 +113,12 @@ export function buildDesktopAvatarLaunchHandoffPayload(
 ): DesktopAvatarLaunchHandoffPayload {
   const anchorMode = normalizeAnchorMode(input.anchorMode);
   const conversationAnchorId = normalizeOptionalString(input.conversationAnchorId);
+  const avatarPackageKind = normalizeAvatarPackageKind(input.avatarPackage?.kind || '');
+  const avatarPackageId = normalizeAvatarPackageId(input.avatarPackage?.packageId || '', avatarPackageKind);
+  const avatarPackageSchemaVersion = input.avatarPackage.schemaVersion || 1;
+  if (avatarPackageSchemaVersion !== 1) {
+    throw new Error('desktop avatar handoff requires avatarPackage.schemaVersion=1');
+  }
   if (anchorMode === 'existing' && !conversationAnchorId) {
     throw new Error('desktop avatar handoff requires conversationAnchorId when anchorMode=existing');
   }
@@ -93,7 +126,11 @@ export function buildDesktopAvatarLaunchHandoffPayload(
     throw new Error('desktop avatar handoff must omit conversationAnchorId when anchorMode=open_new');
   }
   return {
+    agentCenterAccountId: normalizeRequiredString(input.accountId, 'accountId'),
     agentId: normalizeRequiredString(input.agentId, 'agentId'),
+    avatarPackageKind,
+    avatarPackageId,
+    avatarPackageSchemaVersion,
     avatarInstanceId: normalizeRequiredString(input.avatarInstanceId, 'avatarInstanceId'),
     conversationAnchorId,
     anchorMode,

@@ -8,6 +8,14 @@ import {
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher';
 import { parseAvatarLaunchContext } from '../../avatar/src/shell/renderer/bridge/launch-context.js';
 
+const validPackageContext = {
+  accountId: 'account_1',
+  avatarPackage: {
+    kind: 'live2d' as const,
+    packageId: 'live2d_ab12cd34ef56',
+  },
+};
+
 test('desktop avatar launcher builds deterministic instance ids from target context', () => {
   assert.equal(
     buildDesktopAvatarInstanceId({
@@ -20,6 +28,7 @@ test('desktop avatar launcher builds deterministic instance ids from target cont
 
 test('desktop avatar launcher keeps same-agent different-anchor launches isolated', () => {
   const anchorOnePayload = buildDesktopAvatarLaunchHandoffPayload({
+    ...validPackageContext,
     agentId: 'agent-alpha',
     avatarInstanceId: buildDesktopAvatarInstanceId({
       agentId: 'agent-alpha',
@@ -29,6 +38,7 @@ test('desktop avatar launcher keeps same-agent different-anchor launches isolate
     anchorMode: 'existing',
   });
   const anchorTwoPayload = buildDesktopAvatarLaunchHandoffPayload({
+    ...validPackageContext,
     agentId: 'agent-alpha',
     avatarInstanceId: buildDesktopAvatarInstanceId({
       agentId: 'agent-alpha',
@@ -62,12 +72,14 @@ test('desktop avatar launcher keeps different agents isolated even on the same a
   assert.notEqual(alphaInstanceId, betaInstanceId);
 
   const alphaContext = parseAvatarLaunchContext(buildDesktopAvatarLaunchHandoffPayload({
+    ...validPackageContext,
     agentId: 'agent-alpha',
     avatarInstanceId: alphaInstanceId,
     conversationAnchorId: 'anchor-shared',
     anchorMode: 'existing',
   }));
   const betaContext = parseAvatarLaunchContext(buildDesktopAvatarLaunchHandoffPayload({
+    ...validPackageContext,
     agentId: 'agent-beta',
     avatarInstanceId: betaInstanceId,
     conversationAnchorId: 'anchor-shared',
@@ -82,6 +94,7 @@ test('desktop avatar launcher keeps different agents isolated even on the same a
 
 test('desktop avatar launcher payload round-trips into avatar launch context without auth payload bleed', () => {
   const payload = buildDesktopAvatarLaunchHandoffPayload({
+    ...validPackageContext,
     agentId: 'agent-1',
     avatarInstanceId: 'desktop-avatar-agent-1-anchor-1',
     conversationAnchorId: 'anchor-1',
@@ -94,9 +107,17 @@ test('desktop avatar launcher payload round-trips into avatar launch context wit
   assert.equal('refreshToken' in payload, false);
   assert.equal('subjectUserId' in payload, false);
   assert.equal('subject_user_id' in payload, false);
+  assert.equal('manifestPath' in payload, false);
+  assert.equal('manifest_path' in payload, false);
+  assert.equal('packagePath' in payload, false);
+  assert.equal('package_path' in payload, false);
 
   assert.deepEqual(parseAvatarLaunchContext(payload), {
+    agentCenterAccountId: 'account_1',
     agentId: 'agent-1',
+    avatarPackageKind: 'live2d',
+    avatarPackageId: 'live2d_ab12cd34ef56',
+    avatarPackageSchemaVersion: 1,
     avatarInstanceId: 'desktop-avatar-agent-1-anchor-1',
     conversationAnchorId: 'anchor-1',
     anchorMode: 'existing',
@@ -110,6 +131,7 @@ test('desktop avatar launcher payload round-trips into avatar launch context wit
 
 test('desktop avatar launcher round-trips open-new handoff without existing anchor leakage', () => {
   const payload = buildDesktopAvatarLaunchHandoffPayload({
+    ...validPackageContext,
     agentId: 'agent-1',
     avatarInstanceId: 'desktop-avatar-agent-1-open-new-anchor',
     conversationAnchorId: null,
@@ -119,7 +141,11 @@ test('desktop avatar launcher round-trips open-new handoff without existing anch
   });
 
   assert.deepEqual(parseAvatarLaunchContext(payload), {
+    agentCenterAccountId: 'account_1',
     agentId: 'agent-1',
+    avatarPackageKind: 'live2d',
+    avatarPackageId: 'live2d_ab12cd34ef56',
+    avatarPackageSchemaVersion: 1,
     avatarInstanceId: 'desktop-avatar-agent-1-open-new-anchor',
     conversationAnchorId: null,
     anchorMode: 'open_new',
@@ -134,6 +160,7 @@ test('desktop avatar launcher round-trips open-new handoff without existing anch
 test('desktop avatar launcher fails closed before invoking handoff for invalid anchor context', () => {
   assert.throws(
     () => buildDesktopAvatarLaunchHandoffPayload({
+      ...validPackageContext,
       agentId: 'agent-1',
       avatarInstanceId: 'instance-1',
       conversationAnchorId: null,
@@ -143,6 +170,7 @@ test('desktop avatar launcher fails closed before invoking handoff for invalid a
   );
   assert.throws(
     () => buildDesktopAvatarLaunchHandoffPayload({
+      ...validPackageContext,
       agentId: 'agent-1',
       avatarInstanceId: 'instance-1',
       conversationAnchorId: 'anchor-1',
@@ -152,12 +180,44 @@ test('desktop avatar launcher fails closed before invoking handoff for invalid a
   );
   assert.throws(
     () => buildDesktopAvatarLaunchHandoffPayload({
+      ...validPackageContext,
       agentId: 'agent-1',
       avatarInstanceId: 'instance-1',
       conversationAnchorId: null,
       anchorMode: 'invalid' as never,
     }),
     /anchorMode to be existing or open_new/,
+  );
+});
+
+test('desktop avatar launcher fails closed before invoking handoff for invalid package context', () => {
+  assert.throws(
+    () => buildDesktopAvatarLaunchHandoffPayload({
+      accountId: 'account_1',
+      agentId: 'agent-1',
+      avatarPackage: {
+        kind: 'vrm',
+        packageId: 'live2d_ab12cd34ef56',
+      },
+      avatarInstanceId: 'instance-1',
+      conversationAnchorId: null,
+      anchorMode: 'open_new',
+    }),
+    /packageId to match/,
+  );
+  assert.throws(
+    () => buildDesktopAvatarLaunchHandoffPayload({
+      accountId: 'account_1',
+      agentId: 'agent-1',
+      avatarPackage: {
+        kind: 'live2d',
+        packageId: 'live2d_NOTHEX0000',
+      },
+      avatarInstanceId: 'instance-1',
+      conversationAnchorId: null,
+      anchorMode: 'open_new',
+    }),
+    /packageId to match/,
   );
 });
 

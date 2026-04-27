@@ -8,6 +8,14 @@ export type ModelManifest = {
   adapterManifestPath?: string | null;
 };
 
+export type AgentCenterAvatarPackageReference = {
+  agentCenterAccountId: string;
+  agentId: string;
+  avatarPackageKind: 'live2d' | 'vrm';
+  avatarPackageId: string;
+  avatarPackageSchemaVersion: 1;
+};
+
 type RustModelManifest = {
   runtime_dir: string;
   model_id: string;
@@ -18,6 +26,21 @@ type RustModelManifest = {
 
 export async function resolveModelManifest(modelPath: string): Promise<ModelManifest> {
   const raw = await invoke<RustModelManifest>('nimi_avatar_resolve_model', { path: modelPath });
+  return {
+    runtimeDir: raw.runtime_dir,
+    modelId: raw.model_id,
+    model3JsonPath: raw.model3_json_path,
+    nimiDir: raw.nimi_dir,
+    adapterManifestPath: raw.adapter_manifest_path ?? null,
+  };
+}
+
+export async function resolveAgentCenterAvatarPackageManifest(
+  reference: AgentCenterAvatarPackageReference,
+): Promise<ModelManifest> {
+  const raw = await invoke<RustModelManifest>('nimi_avatar_resolve_agent_center_avatar_package', {
+    payload: reference,
+  });
   return {
     runtimeDir: raw.runtime_dir,
     modelId: raw.model_id,

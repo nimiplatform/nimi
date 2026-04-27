@@ -15,7 +15,11 @@ pub enum AvatarAnchorMode {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AvatarLaunchContext {
+    pub agent_center_account_id: String,
     pub agent_id: String,
+    pub avatar_package_kind: String,
+    pub avatar_package_id: String,
+    pub avatar_package_schema_version: u8,
     pub avatar_instance_id: String,
     pub conversation_anchor_id: Option<String>,
     pub anchor_mode: AvatarAnchorMode,
@@ -66,6 +70,40 @@ fn parse_anchor_mode(value: &str) -> Result<AvatarAnchorMode, String> {
     }
 }
 
+fn parse_avatar_package_kind(value: &str) -> Result<String, String> {
+    match value.trim() {
+        "live2d" => Ok("live2d".to_string()),
+        "vrm" => Ok("vrm".to_string()),
+        _ => Err("avatar_package_kind must be one of: live2d, vrm".to_string()),
+    }
+}
+
+fn parse_avatar_package_id(value: &str, kind: &str) -> Result<String, String> {
+    let normalized = value.trim();
+    let expected_prefix = format!("{kind}_");
+    if !normalized.starts_with(expected_prefix.as_str()) {
+        return Err("avatar_package_id must match avatar_package_kind".to_string());
+    }
+    let suffix = &normalized[expected_prefix.len()..];
+    if suffix.len() != 12
+        || !suffix
+            .chars()
+            .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
+    {
+        return Err(
+            "avatar_package_id must use a 12-character lowercase hex digest suffix".to_string(),
+        );
+    }
+    Ok(normalized.to_string())
+}
+
+fn parse_avatar_package_schema_version(value: &str) -> Result<u8, String> {
+    match value.trim() {
+        "1" => Ok(1),
+        _ => Err("avatar_package_schema_version must be 1".to_string()),
+    }
+}
+
 pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext, String> {
     let parsed = Url::parse(raw_url).map_err(|error| error.to_string())?;
     if parsed.scheme() != AVATAR_LAUNCH_SCHEME {
@@ -78,7 +116,11 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
         return Err("avatar launch host must be launch".to_string());
     }
 
+    let mut agent_center_account_id = None;
     let mut agent_id = None;
+    let mut avatar_package_kind = None;
+    let mut avatar_package_id = None;
+    let mut avatar_package_schema_version = None;
     let mut avatar_instance_id = None;
     let mut conversation_anchor_id = None;
     let mut anchor_mode = None;
@@ -90,7 +132,13 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
 
     for (key, value) in parsed.query_pairs() {
         match key.as_ref() {
+            "agent_center_account_id" => agent_center_account_id = Some(value.into_owned()),
             "agent_id" => agent_id = Some(value.into_owned()),
+            "avatar_package_kind" => avatar_package_kind = Some(value.into_owned()),
+            "avatar_package_id" => avatar_package_id = Some(value.into_owned()),
+            "avatar_package_schema_version" => {
+                avatar_package_schema_version = Some(value.into_owned())
+            }
             "avatar_instance_id" => avatar_instance_id = Some(value.into_owned()),
             "conversation_anchor_id" => conversation_anchor_id = Some(value.into_owned()),
             "anchor_mode" => anchor_mode = Some(value.into_owned()),
@@ -99,7 +147,8 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
             "source_surface" => source_surface = Some(value.into_owned()),
             "realm_base_url" => realm_base_url = Some(value.into_owned()),
             "world_id" => world_id = Some(value.into_owned()),
-            "access_token" | "refresh_token" | "subject_user_id" => {
+            "access_token" | "refresh_token" | "subject_user_id" | "manifest_path"
+            | "package_path" | "source_path" | "config_path" => {
                 return Err(format!(
                     "forbidden avatar launch query parameter: {}",
                     key.as_ref()
@@ -109,7 +158,23 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
         }
     }
 
+    let agent_center_account_id =
+        normalize_required_query_value(agent_center_account_id, "agent_center_account_id")?;
     let agent_id = normalize_required_query_value(agent_id, "agent_id")?;
+    let avatar_package_kind = parse_avatar_package_kind(
+        normalize_required_query_value(avatar_package_kind, "avatar_package_kind")?.as_str(),
+    )?;
+    let avatar_package_id = parse_avatar_package_id(
+        normalize_required_query_value(avatar_package_id, "avatar_package_id")?.as_str(),
+        avatar_package_kind.as_str(),
+    )?;
+    let avatar_package_schema_version = parse_avatar_package_schema_version(
+        normalize_required_query_value(
+            avatar_package_schema_version,
+            "avatar_package_schema_version",
+        )?
+        .as_str(),
+    )?;
     let avatar_instance_id =
         normalize_required_query_value(avatar_instance_id, "avatar_instance_id")?;
     let launched_by = normalize_required_query_value(launched_by, "launched_by")?;
@@ -135,7 +200,11 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
     }
 
     Ok(AvatarLaunchContext {
+        agent_center_account_id,
         agent_id,
+        avatar_package_kind,
+        avatar_package_id,
+        avatar_package_schema_version,
         avatar_instance_id,
         conversation_anchor_id,
         anchor_mode,
@@ -222,11 +291,15 @@ mod tests {
     #[test]
     fn parse_avatar_launch_context_accepts_existing_anchor_mode() {
         let parsed = parse_avatar_launch_context(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&avatar_instance_id=instance-1&anchor_mode=existing&conversation_anchor_id=anchor-1&launched_by=nimi.desktop&runtime_app_id=nimi.desktop&source_surface=desktop-agent-chat"
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_center_account_id=account_1&agent_id=agent-1&avatar_package_kind=live2d&avatar_package_id=live2d_ab12cd34ef56&avatar_package_schema_version=1&avatar_instance_id=instance-1&anchor_mode=existing&conversation_anchor_id=anchor-1&launched_by=nimi.desktop&runtime_app_id=nimi.desktop&source_surface=desktop-agent-chat"
         ))
         .expect("valid launch context");
 
+        assert_eq!(parsed.agent_center_account_id, "account_1");
         assert_eq!(parsed.agent_id, "agent-1");
+        assert_eq!(parsed.avatar_package_kind, "live2d");
+        assert_eq!(parsed.avatar_package_id, "live2d_ab12cd34ef56");
+        assert_eq!(parsed.avatar_package_schema_version, 1);
         assert_eq!(parsed.avatar_instance_id, "instance-1");
         assert_eq!(parsed.conversation_anchor_id.as_deref(), Some("anchor-1"));
         assert_eq!(parsed.anchor_mode, AvatarAnchorMode::Existing);
@@ -238,7 +311,7 @@ mod tests {
     #[test]
     fn parse_avatar_launch_context_rejects_missing_anchor_for_existing_mode() {
         let error = parse_avatar_launch_context(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&avatar_instance_id=instance-1&anchor_mode=existing&launched_by=desktop"
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_center_account_id=account_1&agent_id=agent-1&avatar_package_kind=live2d&avatar_package_id=live2d_ab12cd34ef56&avatar_package_schema_version=1&avatar_instance_id=instance-1&anchor_mode=existing&launched_by=desktop"
         ))
         .expect_err("missing anchor should fail");
 
@@ -248,11 +321,26 @@ mod tests {
     #[test]
     fn parse_avatar_launch_context_rejects_forbidden_identity_fields() {
         let error = parse_avatar_launch_context(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&avatar_instance_id=instance-1&anchor_mode=open_new&launched_by=desktop&subject_user_id=user-1"
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_center_account_id=account_1&agent_id=agent-1&avatar_package_kind=live2d&avatar_package_id=live2d_ab12cd34ef56&avatar_package_schema_version=1&avatar_instance_id=instance-1&anchor_mode=open_new&launched_by=desktop&subject_user_id=user-1"
         ))
         .expect_err("forbidden identity field should fail");
 
         assert!(error.contains("forbidden avatar launch query parameter"));
+    }
+
+    #[test]
+    fn parse_avatar_launch_context_rejects_path_fields_and_invalid_package_reference() {
+        let path_error = parse_avatar_launch_context(&format!(
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_center_account_id=account_1&agent_id=agent-1&avatar_package_kind=live2d&avatar_package_id=live2d_ab12cd34ef56&avatar_package_schema_version=1&avatar_instance_id=instance-1&anchor_mode=open_new&launched_by=desktop&manifest_path=/tmp/model.json"
+        ))
+        .expect_err("path fields should fail");
+        assert!(path_error.contains("forbidden avatar launch query parameter"));
+
+        let package_error = parse_avatar_launch_context(&format!(
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_center_account_id=account_1&agent_id=agent-1&avatar_package_kind=vrm&avatar_package_id=live2d_ab12cd34ef56&avatar_package_schema_version=1&avatar_instance_id=instance-1&anchor_mode=open_new&launched_by=desktop"
+        ))
+        .expect_err("mismatched package should fail");
+        assert!(package_error.contains("avatar_package_id must match"));
     }
 
     #[test]
@@ -280,7 +368,7 @@ mod tests {
     #[test]
     fn parse_avatar_deep_link_request_routes_by_host() {
         let launch = parse_avatar_deep_link_request(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&avatar_instance_id=instance-1&anchor_mode=open_new&launched_by=desktop"
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_center_account_id=account_1&agent_id=agent-1&avatar_package_kind=live2d&avatar_package_id=live2d_ab12cd34ef56&avatar_package_schema_version=1&avatar_instance_id=instance-1&anchor_mode=open_new&launched_by=desktop"
         ))
         .expect("launch request");
         let close = parse_avatar_deep_link_request(&format!(

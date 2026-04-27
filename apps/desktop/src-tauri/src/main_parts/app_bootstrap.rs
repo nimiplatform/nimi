@@ -1,8 +1,7 @@
 use super::*;
 use crate::{
-    chat_agent_store, chat_ai_store, desktop_agent_backdrop_store, desktop_release,
-    desktop_updates, external_agent_gateway, local_runtime, menu_bar_shell, runtime_bridge,
-    runtime_mod,
+    chat_agent_store, chat_ai_store, desktop_agent_center_store, desktop_release, desktop_updates,
+    external_agent_gateway, local_runtime, menu_bar_shell, runtime_bridge, runtime_mod,
 };
 use nimi_kit_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
 use std::sync::Arc;
@@ -394,10 +393,19 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             chat_agent_store::chat_agent_commit_turn_result,
             chat_agent_store::chat_agent_cancel_turn,
             chat_agent_store::chat_agent_rebuild_projection,
-            desktop_agent_backdrop_store::desktop_agent_backdrop_pick_image,
-            desktop_agent_backdrop_store::desktop_agent_backdrop_get_binding,
-            desktop_agent_backdrop_store::desktop_agent_backdrop_import,
-            desktop_agent_backdrop_store::desktop_agent_backdrop_clear,
+            desktop_agent_center_store::desktop_agent_center_account_local_resources_remove,
+            desktop_agent_center_store::desktop_agent_center_agent_local_resources_remove,
+            desktop_agent_center_store::desktop_agent_center_avatar_package_import,
+            desktop_agent_center_store::desktop_agent_center_avatar_package_pick_source,
+            desktop_agent_center_store::desktop_agent_center_avatar_package_remove,
+            desktop_agent_center_store::desktop_agent_center_avatar_package_validate,
+            desktop_agent_center_store::desktop_agent_center_background_asset_get,
+            desktop_agent_center_store::desktop_agent_center_background_import,
+            desktop_agent_center_store::desktop_agent_center_background_pick_source,
+            desktop_agent_center_store::desktop_agent_center_background_remove,
+            desktop_agent_center_store::desktop_agent_center_background_validate,
+            desktop_agent_center_store::desktop_agent_center_config_get,
+            desktop_agent_center_store::desktop_agent_center_config_put,
             external_agent_gateway::external_agent_issue_token,
             external_agent_gateway::external_agent_revoke_token,
             external_agent_gateway::external_agent_list_tokens,

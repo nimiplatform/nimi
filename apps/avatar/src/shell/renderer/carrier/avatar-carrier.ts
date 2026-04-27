@@ -160,9 +160,10 @@ async function recordBootstrapCarrierVisualProof(session: Live2DBackendSession):
 
 export async function startAvatarRuntimeCarrier(input: {
   driver: AgentDataDriver;
-  modelPath: string;
+  modelPath?: string;
+  modelManifest?: ModelManifest;
 }): Promise<AvatarRuntimeCarrier> {
-  const modelPath = input.modelPath.trim();
+  const modelPath = input.modelPath?.trim() || input.modelManifest?.runtimeDir.trim() || '';
   if (!modelPath) {
     throw new Error('avatar runtime carrier requires configured model_path');
   }
@@ -172,7 +173,7 @@ export async function startAvatarRuntimeCarrier(input: {
 
   let model: ModelManifest;
   try {
-    model = await resolveModelManifest(modelPath);
+    model = input.modelManifest ?? await resolveModelManifest(modelPath);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     store.setModelError(message);

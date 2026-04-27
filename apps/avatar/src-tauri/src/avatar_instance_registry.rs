@@ -123,7 +123,11 @@ mod tests {
 
     fn sample_context(instance_id: &str, anchor_id: Option<&str>) -> AvatarLaunchContext {
         AvatarLaunchContext {
+            agent_center_account_id: "account_1".to_string(),
             agent_id: "agent-1".to_string(),
+            avatar_package_kind: "live2d".to_string(),
+            avatar_package_id: "live2d_ab12cd34ef56".to_string(),
+            avatar_package_schema_version: 1,
             avatar_instance_id: instance_id.to_string(),
             conversation_anchor_id: anchor_id.map(str::to_string),
             anchor_mode: if anchor_id.is_some() {
